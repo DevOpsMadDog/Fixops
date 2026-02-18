@@ -20,13 +20,17 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 try:
     from core.auth_middleware import require_auth
+
     _auth_dep = Depends(require_auth)
     logger.info("Auth middleware loaded (JWT + scoped API keys)")
 except ImportError:
     from fastapi.security import APIKeyHeader as _AKH
+
     _api_key_header = _AKH(name="X-API-Key", auto_error=False)
+
     async def _fallback_auth(api_key: str = Depends(_api_key_header)):
         pass
+
     _auth_dep = Depends(_fallback_auth)
     logger.warning("Auth middleware not available, using passthrough")
 
@@ -72,6 +76,7 @@ app.add_middleware(
 # ML Learning Middleware
 try:
     from core.learning_middleware import LearningMiddleware
+
     app.add_middleware(LearningMiddleware)
     logger.info("LearningMiddleware enabled on suite-feeds")
 except ImportError:
@@ -88,4 +93,3 @@ try:
     logger.info("Loaded vulnerability intelligence feeds router")
 except ImportError as exc:
     logger.warning("Feeds router not available: %s", exc)
-

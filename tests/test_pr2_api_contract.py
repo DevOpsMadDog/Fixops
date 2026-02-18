@@ -9,8 +9,9 @@ Tests to verify backend endpoints for UI contract compliance:
 """
 
 import os
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 API_TOKEN = "test-token"
 
@@ -22,10 +23,10 @@ def client():
     os.environ["FIXOPS_API_TOKEN"] = API_TOKEN
     os.environ["FIXOPS_JWT_SECRET"] = "test-secret"
     os.environ["FIXOPS_DEMO_MODE"] = "true"
-    
-    from fastapi.testclient import TestClient
+
     from backend.app import create_app
-    
+    from fastapi.testclient import TestClient
+
     app = create_app()
     with TestClient(app) as c:
         yield c
@@ -56,7 +57,7 @@ class TestDashboardOverview:
         )
         assert response.status_code == 200
         data = response.json()
-        
+
         # Should have org_id echoed back
         assert "org_id" in data
         assert data["org_id"] == "test-org"
@@ -97,12 +98,17 @@ class TestFeedsEndpoint:
         )
         assert response.status_code == 200
         data = response.json()
-        
+
         # Should return a list or paginated structure
         assert isinstance(data, (list, dict))
         if isinstance(data, dict):
             # Paginated response - accept various field names
-            assert "items" in data or "scores" in data or "epss_data" in data or "data" in data
+            assert (
+                "items" in data
+                or "scores" in data
+                or "epss_data" in data
+                or "data" in data
+            )
 
     def test_feeds_kev_returns_200(self, client, auth_headers):
         """KEV (Known Exploited Vulnerabilities) endpoint should return 200."""
@@ -145,10 +151,7 @@ class TestCopilotIntelligenceEndpoint:
         response = client.post(
             "/api/v1/copilot/sessions",
             headers=auth_headers,
-            json={
-                "title": "Test Session",
-                "context": {"type": "security_analysis"}
-            }
+            json={"title": "Test Session", "context": {"type": "security_analysis"}},
         )
         # Accept 201 (created) or 200 (if it echoes existing)
         assert response.status_code in (200, 201)
@@ -160,8 +163,8 @@ class TestCopilotIntelligenceEndpoint:
             headers=auth_headers,
             json={
                 "finding_id": "test-finding-123",
-                "context": "Test vulnerability context"
-            }
+                "context": "Test vulnerability context",
+            },
         )
         # 200 if LLM available, 503 if not configured
         assert response.status_code in (200, 201, 503)
@@ -178,7 +181,7 @@ class TestMicroPentestEndpoint:
         )
         assert response.status_code == 200
         data = response.json()
-        
+
         # Should include mpte connection status
         assert "mpte_status" in data
         assert "status" in data
@@ -198,14 +201,13 @@ class TestMicroPentestEndpoint:
         response = client.post(
             "/api/v1/micro-pentest/run",
             headers=auth_headers,
-            json={
-                "cve_ids": [],
-                "target_urls": ["https://example.com"]
-            },
+            json={"cve_ids": [], "target_urls": ["https://example.com"]},
         )
         assert response.status_code == 400  # Bad request - empty CVE list
 
-    def test_micro_pentest_run_returns_503_when_mpte_unavailable(self, client, auth_headers):
+    def test_micro_pentest_run_returns_503_when_mpte_unavailable(
+        self, client, auth_headers
+    ):
         """Micro-pentest should return 503 when MPTE is not configured."""
         # Mock the micro_pentest module to simulate MPTE being unavailable
         with patch("apps.api.micro_pentest_router.run_micro_pentest") as mock_run:
@@ -214,13 +216,13 @@ class TestMicroPentestEndpoint:
             mock_result.status = "error"
             mock_result.error = "MPTE service unavailable"
             mock_run.return_value = mock_result
-            
+
             response = client.post(
                 "/api/v1/micro-pentest/run",
                 headers=auth_headers,
                 json={
                     "cve_ids": ["CVE-2024-1234"],
-                    "target_urls": ["https://example.com"]
+                    "target_urls": ["https://example.com"],
                 },
             )
             # Should return 503 Service Unavailable
@@ -246,7 +248,7 @@ class TestInventoryAssets:
         )
         assert response.status_code == 200
         data = response.json()
-        
+
         assert "items" in data
         assert "total" in data
         assert "limit" in data
@@ -264,8 +266,8 @@ class TestReportsGenerate:
             json={
                 "name": "Test Report",
                 "report_type": "vulnerability",
-                "format": "json"
-            }
+                "format": "json",
+            },
         )
         assert response.status_code == 201
 
@@ -277,12 +279,12 @@ class TestReportsGenerate:
             json={
                 "name": "Test Report 2",
                 "report_type": "compliance",
-                "format": "pdf"
-            }
+                "format": "pdf",
+            },
         )
         assert response.status_code == 201
         data = response.json()
-        
+
         assert "id" in data
         assert "status" in data
 
@@ -293,6 +295,7 @@ class TestContractChecker:
     def test_contract_check_script_exists(self):
         """Contract check script should exist."""
         from pathlib import Path
+
         script_path = Path(__file__).parent.parent / "scripts" / "api_contract_check.py"
         assert script_path.exists(), "scripts/api_contract_check.py should exist"
 
@@ -300,11 +303,11 @@ class TestContractChecker:
         """Contract check script should be importable."""
         import importlib.util
         from pathlib import Path
-        
+
         script_path = Path(__file__).parent.parent / "scripts" / "api_contract_check.py"
         spec = importlib.util.spec_from_file_location("api_contract_check", script_path)
         module = importlib.util.module_from_spec(spec)
-        
+
         # Just check it loads without error
         assert spec is not None
         assert module is not None

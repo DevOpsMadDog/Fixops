@@ -6,7 +6,7 @@ import asyncio
 import gzip
 import os
 import time
-from typing import Any, Callable, Dict, MutableMapping, Optional, Tuple
+from typing import Any, Callable, MutableMapping, Optional, Tuple
 
 import structlog
 from fastapi import HTTPException

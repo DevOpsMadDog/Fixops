@@ -100,10 +100,11 @@ async def run_pipeline(req: PipelineRunRequest) -> Dict[str, Any]:
 async def list_pipeline_runs(limit: int = 20, offset: int = 0) -> Dict[str, Any]:
     """List past pipeline runs."""
     from core.brain_pipeline import get_brain_pipeline
+
     pipeline = get_brain_pipeline()
     runs = pipeline.list_runs()
     total = len(runs)
-    page = runs[offset: offset + limit]
+    page = runs[offset : offset + limit]
     return {
         "total": total,
         "limit": limit,
@@ -116,6 +117,7 @@ async def list_pipeline_runs(limit: int = 20, offset: int = 0) -> Dict[str, Any]
 async def get_pipeline_run(run_id: str) -> Dict[str, Any]:
     """Get details of a specific pipeline run."""
     from core.brain_pipeline import get_brain_pipeline
+
     pipeline = get_brain_pipeline()
     result = pipeline.get_run(run_id)
     if not result:
@@ -146,6 +148,7 @@ async def generate_evidence_pack(req: EvidenceGenerateRequest) -> Dict[str, Any]
 async def list_evidence_packs(limit: int = 20) -> Dict[str, Any]:
     """List generated evidence packs."""
     from core.soc2_evidence_generator import get_evidence_generator
+
     generator = get_evidence_generator()
     packs = generator.list_packs()[:limit]
     return {"total": len(packs), "packs": [p.to_dict() for p in packs]}
@@ -155,6 +158,7 @@ async def list_evidence_packs(limit: int = 20) -> Dict[str, Any]:
 async def get_evidence_pack(pack_id: str) -> Dict[str, Any]:
     """Get a specific evidence pack."""
     from core.soc2_evidence_generator import get_evidence_generator
+
     generator = get_evidence_generator()
     pack = generator.get_pack(pack_id)
     if not pack:
@@ -177,6 +181,7 @@ def _collect_platform_data(req: EvidenceGenerateRequest) -> Dict[str, Any]:
     # Try to collect from brain graph
     try:
         from core.knowledge_brain import get_brain
+
         brain = get_brain()
         stats = brain.stats()
         data["graph_stats"] = stats
@@ -186,10 +191,10 @@ def _collect_platform_data(req: EvidenceGenerateRequest) -> Dict[str, Any]:
     # Try to collect exposure case stats
     try:
         from core.exposure_case import ExposureCaseManager
+
         mgr = ExposureCaseManager.get_instance()
         data["case_stats"] = mgr.stats()
     except Exception:
         pass
 
     return data
-

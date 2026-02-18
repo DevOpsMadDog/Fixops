@@ -45,7 +45,9 @@ async def list_rules() -> Dict[str, Any]:
     from core.cspm_engine import AWS_RULES, AZURE_RULES, GCP_RULES
 
     def fmt(rules):
-        return [{"id": r[0], "title": r[1], "severity": r[2], "cwe": r[3]} for r in rules]
+        return [
+            {"id": r[0], "title": r[1], "severity": r[2], "cwe": r[3]} for r in rules
+        ]
 
     return {
         "aws": fmt(AWS_RULES),
@@ -61,9 +63,10 @@ async def cspm_status() -> Dict[str, Any]:
 
     engine = get_cspm_engine()
     return {
-        "engine": "cspm", "status": "ready", "version": "1.0.0",
+        "engine": "cspm",
+        "status": "ready",
+        "version": "1.0.0",
         "boto3_available": engine._boto3_available,
         "azure_available": engine._azure_available,
         "gcp_available": engine._gcp_available,
     }
-

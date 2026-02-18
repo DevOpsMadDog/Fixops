@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 class CaseStatus(str, Enum):
     """Lifecycle states for an Exposure Case."""
+
     OPEN = "open"
     TRIAGING = "triaging"
     FIXING = "fixing"
@@ -38,6 +39,7 @@ class CaseStatus(str, Enum):
 
 class CasePriority(str, Enum):
     """Priority levels for Exposure Cases."""
+
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"
@@ -46,8 +48,17 @@ class CasePriority(str, Enum):
 
 
 VALID_TRANSITIONS: Dict[CaseStatus, Set[CaseStatus]] = {
-    CaseStatus.OPEN: {CaseStatus.TRIAGING, CaseStatus.ACCEPTED_RISK, CaseStatus.FALSE_POSITIVE},
-    CaseStatus.TRIAGING: {CaseStatus.FIXING, CaseStatus.ACCEPTED_RISK, CaseStatus.FALSE_POSITIVE, CaseStatus.OPEN},
+    CaseStatus.OPEN: {
+        CaseStatus.TRIAGING,
+        CaseStatus.ACCEPTED_RISK,
+        CaseStatus.FALSE_POSITIVE,
+    },
+    CaseStatus.TRIAGING: {
+        CaseStatus.FIXING,
+        CaseStatus.ACCEPTED_RISK,
+        CaseStatus.FALSE_POSITIVE,
+        CaseStatus.OPEN,
+    },
     CaseStatus.FIXING: {CaseStatus.RESOLVED, CaseStatus.TRIAGING, CaseStatus.OPEN},
     CaseStatus.RESOLVED: {CaseStatus.CLOSED, CaseStatus.OPEN},
     CaseStatus.CLOSED: {CaseStatus.OPEN},
@@ -59,6 +70,7 @@ VALID_TRANSITIONS: Dict[CaseStatus, Set[CaseStatus]] = {
 @dataclass
 class ExposureCase:
     """A single Exposure Case grouping related findings/clusters."""
+
     case_id: str
     title: str
     description: str = ""
@@ -128,7 +140,9 @@ class ExposureCaseManager:
         logger.info("ExposureCaseManager initialized: db=%s", db_path)
 
     @classmethod
-    def get_instance(cls, db_path: str = "fixops_exposure_cases.db") -> "ExposureCaseManager":
+    def get_instance(
+        cls, db_path: str = "fixops_exposure_cases.db"
+    ) -> "ExposureCaseManager":
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
@@ -144,7 +158,8 @@ class ExposureCaseManager:
 
     def _create_tables(self) -> None:
         with self._conn_lock:
-            self._conn.executescript("""
+            self._conn.executescript(
+                """
                 CREATE TABLE IF NOT EXISTS exposure_cases (
                     case_id         TEXT PRIMARY KEY,
                     title           TEXT NOT NULL,
@@ -180,7 +195,8 @@ class ExposureCaseManager:
                 CREATE INDEX IF NOT EXISTS idx_ec_status ON exposure_cases(status);
                 CREATE INDEX IF NOT EXISTS idx_ec_priority ON exposure_cases(priority);
                 CREATE INDEX IF NOT EXISTS idx_ec_cve ON exposure_cases(root_cve);
-            """)
+            """
+            )
 
     # ------------------------------------------------------------------
     # CRUD
@@ -202,17 +218,35 @@ class ExposureCaseManager:
                     remediation_plan, playbook_id, autofix_pr_url, tags, metadata
                 ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (
-                    case.case_id, case.title, case.description,
-                    case.status.value, case.priority.value, case.org_id,
-                    case.root_cve, case.root_cwe, case.root_component,
-                    json.dumps(case.affected_assets), json.dumps(case.cluster_ids),
-                    case.finding_count, case.risk_score, case.epss_score,
-                    1 if case.in_kev else 0, case.blast_radius,
-                    case.assigned_to, case.assigned_team, case.sla_due,
+                    case.case_id,
+                    case.title,
+                    case.description,
+                    case.status.value,
+                    case.priority.value,
+                    case.org_id,
+                    case.root_cve,
+                    case.root_cwe,
+                    case.root_component,
+                    json.dumps(case.affected_assets),
+                    json.dumps(case.cluster_ids),
+                    case.finding_count,
+                    case.risk_score,
+                    case.epss_score,
+                    1 if case.in_kev else 0,
+                    case.blast_radius,
+                    case.assigned_to,
+                    case.assigned_team,
+                    case.sla_due,
                     1 if case.sla_breached else 0,
-                    case.created_at, case.updated_at, case.resolved_at, case.closed_at,
-                    case.remediation_plan, case.playbook_id, case.autofix_pr_url,
-                    json.dumps(case.tags), json.dumps(case.metadata, default=str),
+                    case.created_at,
+                    case.updated_at,
+                    case.resolved_at,
+                    case.closed_at,
+                    case.remediation_plan,
+                    case.playbook_id,
+                    case.autofix_pr_url,
+                    json.dumps(case.tags),
+                    json.dumps(case.metadata, default=str),
                 ),
             )
             self._conn.commit()
@@ -231,8 +265,12 @@ class ExposureCaseManager:
         return self._row_to_case(row)
 
     def list_cases(
-        self, org_id: Optional[str] = None, status: Optional[str] = None,
-        priority: Optional[str] = None, limit: int = 100, offset: int = 0,
+        self,
+        org_id: Optional[str] = None,
+        status: Optional[str] = None,
+        priority: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0,
     ) -> Dict[str, Any]:
         """List Exposure Cases with filtering."""
         conditions, params = [], []
@@ -256,10 +294,14 @@ class ExposureCaseManager:
             ).fetchall()
         return {
             "cases": [self._row_to_case(r).to_dict() for r in rows],
-            "total": total, "limit": limit, "offset": offset,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
         }
 
-    def transition(self, case_id: str, new_status: CaseStatus, actor: str = "system") -> ExposureCase:
+    def transition(
+        self, case_id: str, new_status: CaseStatus, actor: str = "system"
+    ) -> ExposureCase:
         """Transition a case to a new lifecycle state with validation."""
         case = self.get_case(case_id)
         if not case:
@@ -285,9 +327,15 @@ class ExposureCaseManager:
             )
             self._conn.commit()
         self._persist_to_brain(case)
-        self._emit_event(case, "exposure_case.transitioned", extra={
-            "from": old_status.value, "to": new_status.value, "actor": actor,
-        })
+        self._emit_event(
+            case,
+            "exposure_case.transitioned",
+            extra={
+                "from": old_status.value,
+                "to": new_status.value,
+                "actor": actor,
+            },
+        )
         return case
 
     def update_case(self, case_id: str, updates: Dict[str, Any]) -> ExposureCase:
@@ -313,15 +361,31 @@ class ExposureCaseManager:
                     epss_score=?, in_kev=?, updated_at=?
                 WHERE case_id=?""",
                 (
-                    case.title, case.description, case.priority.value if isinstance(case.priority, CasePriority) else case.priority,
-                    case.assigned_to, case.assigned_team,
-                    case.sla_due, 1 if case.sla_breached else 0,
-                    case.remediation_plan, case.playbook_id, case.autofix_pr_url,
-                    json.dumps(case.tags), json.dumps(case.metadata, default=str),
-                    case.risk_score, json.dumps(case.affected_assets),
-                    json.dumps(case.cluster_ids), case.finding_count,
-                    case.blast_radius, case.root_cve, case.root_cwe, case.root_component,
-                    case.epss_score, 1 if case.in_kev else 0, now,
+                    case.title,
+                    case.description,
+                    case.priority.value
+                    if isinstance(case.priority, CasePriority)
+                    else case.priority,
+                    case.assigned_to,
+                    case.assigned_team,
+                    case.sla_due,
+                    1 if case.sla_breached else 0,
+                    case.remediation_plan,
+                    case.playbook_id,
+                    case.autofix_pr_url,
+                    json.dumps(case.tags),
+                    json.dumps(case.metadata, default=str),
+                    case.risk_score,
+                    json.dumps(case.affected_assets),
+                    json.dumps(case.cluster_ids),
+                    case.finding_count,
+                    case.blast_radius,
+                    case.root_cve,
+                    case.root_cwe,
+                    case.root_component,
+                    case.epss_score,
+                    1 if case.in_kev else 0,
+                    now,
                     case_id,
                 ),
             )
@@ -329,7 +393,9 @@ class ExposureCaseManager:
         self._persist_to_brain(case)
         return case
 
-    def add_clusters(self, case_id: str, cluster_ids: List[str], finding_count_delta: int = 0) -> ExposureCase:
+    def add_clusters(
+        self, case_id: str, cluster_ids: List[str], finding_count_delta: int = 0
+    ) -> ExposureCase:
         """Add deduplication clusters to an existing case."""
         case = self.get_case(case_id)
         if not case:
@@ -340,25 +406,44 @@ class ExposureCaseManager:
             return case
         case.cluster_ids = case.cluster_ids + new_ids
         case.finding_count += finding_count_delta
-        return self.update_case(case_id, {
-            "cluster_ids": case.cluster_ids,
-            "finding_count": case.finding_count,
-        })
+        return self.update_case(
+            case_id,
+            {
+                "cluster_ids": case.cluster_ids,
+                "finding_count": case.finding_count,
+            },
+        )
 
     def stats(self, org_id: Optional[str] = None) -> Dict[str, Any]:
         """Get exposure case statistics."""
         where = "WHERE org_id = ?" if org_id else ""
         params = [org_id] if org_id else []
         with self._conn_lock:
-            total = self._conn.execute(f"SELECT COUNT(*) FROM exposure_cases {where}", params).fetchone()[0]
+            total = self._conn.execute(
+                f"SELECT COUNT(*) FROM exposure_cases {where}", params
+            ).fetchone()[0]
             by_status = {}
-            for row in self._conn.execute(f"SELECT status, COUNT(*) FROM exposure_cases {where} GROUP BY status", params):
+            for row in self._conn.execute(
+                f"SELECT status, COUNT(*) FROM exposure_cases {where} GROUP BY status",
+                params,
+            ):
                 by_status[row[0]] = row[1]
             by_priority = {}
-            for row in self._conn.execute(f"SELECT priority, COUNT(*) FROM exposure_cases {where} GROUP BY priority", params):
+            for row in self._conn.execute(
+                f"SELECT priority, COUNT(*) FROM exposure_cases {where} GROUP BY priority",
+                params,
+            ):
                 by_priority[row[0]] = row[1]
-            avg_risk = self._conn.execute(f"SELECT AVG(risk_score) FROM exposure_cases {where}", params).fetchone()[0] or 0
-            kev_count = self._conn.execute(f"SELECT COUNT(*) FROM exposure_cases {where} {'AND' if org_id else 'WHERE'} in_kev=1", params).fetchone()[0]
+            avg_risk = (
+                self._conn.execute(
+                    f"SELECT AVG(risk_score) FROM exposure_cases {where}", params
+                ).fetchone()[0]
+                or 0
+            )
+            kev_count = self._conn.execute(
+                f"SELECT COUNT(*) FROM exposure_cases {where} {'AND' if org_id else 'WHERE'} in_kev=1",
+                params,
+            ).fetchone()[0]
         return {
             "total_cases": total,
             "by_status": by_status,
@@ -373,63 +458,107 @@ class ExposureCaseManager:
     def _row_to_case(self, row) -> ExposureCase:
         """Convert a database row to an ExposureCase."""
         return ExposureCase(
-            case_id=row[0], title=row[1], description=row[2],
-            status=CaseStatus(row[3]), priority=CasePriority(row[4]),
-            org_id=row[5], root_cve=row[6], root_cwe=row[7], root_component=row[8],
-            affected_assets=json.loads(row[9]), cluster_ids=json.loads(row[10]),
-            finding_count=row[11], risk_score=row[12], epss_score=row[13],
-            in_kev=bool(row[14]), blast_radius=row[15],
-            assigned_to=row[16], assigned_team=row[17],
-            sla_due=row[18], sla_breached=bool(row[19]),
-            created_at=row[20], updated_at=row[21],
-            resolved_at=row[22], closed_at=row[23],
-            remediation_plan=row[24], playbook_id=row[25], autofix_pr_url=row[26],
-            tags=json.loads(row[27]), metadata=json.loads(row[28]),
+            case_id=row[0],
+            title=row[1],
+            description=row[2],
+            status=CaseStatus(row[3]),
+            priority=CasePriority(row[4]),
+            org_id=row[5],
+            root_cve=row[6],
+            root_cwe=row[7],
+            root_component=row[8],
+            affected_assets=json.loads(row[9]),
+            cluster_ids=json.loads(row[10]),
+            finding_count=row[11],
+            risk_score=row[12],
+            epss_score=row[13],
+            in_kev=bool(row[14]),
+            blast_radius=row[15],
+            assigned_to=row[16],
+            assigned_team=row[17],
+            sla_due=row[18],
+            sla_breached=bool(row[19]),
+            created_at=row[20],
+            updated_at=row[21],
+            resolved_at=row[22],
+            closed_at=row[23],
+            remediation_plan=row[24],
+            playbook_id=row[25],
+            autofix_pr_url=row[26],
+            tags=json.loads(row[27]),
+            metadata=json.loads(row[28]),
         )
 
     def _persist_to_brain(self, case: ExposureCase) -> None:
         """Write exposure case to Knowledge Graph."""
         try:
-            from core.knowledge_brain import GraphNode, GraphEdge, EntityType, EdgeType, get_brain
+            from core.knowledge_brain import (
+                EdgeType,
+                EntityType,
+                GraphEdge,
+                GraphNode,
+                get_brain,
+            )
+
             brain = get_brain()
-            brain.upsert_node(GraphNode(
-                node_id=f"exposure_case:{case.case_id}",
-                node_type=EntityType.EXPOSURE_CASE,
-                org_id=case.org_id,
-                properties={
-                    "title": case.title, "status": case.status.value,
-                    "priority": case.priority.value, "risk_score": case.risk_score,
-                    "finding_count": case.finding_count, "blast_radius": case.blast_radius,
-                    "root_cve": case.root_cve, "in_kev": case.in_kev,
-                },
-            ))
+            brain.upsert_node(
+                GraphNode(
+                    node_id=f"exposure_case:{case.case_id}",
+                    node_type=EntityType.EXPOSURE_CASE,
+                    org_id=case.org_id,
+                    properties={
+                        "title": case.title,
+                        "status": case.status.value,
+                        "priority": case.priority.value,
+                        "risk_score": case.risk_score,
+                        "finding_count": case.finding_count,
+                        "blast_radius": case.blast_radius,
+                        "root_cve": case.root_cve,
+                        "in_kev": case.in_kev,
+                    },
+                )
+            )
             # Link to clusters
             for cid in case.cluster_ids:
-                brain.add_edge(GraphEdge(
-                    source_id=f"exposure_case:{case.case_id}",
-                    target_id=f"cluster:{cid}",
-                    edge_type=EdgeType.GROUPS,
-                ))
+                brain.add_edge(
+                    GraphEdge(
+                        source_id=f"exposure_case:{case.case_id}",
+                        target_id=f"cluster:{cid}",
+                        edge_type=EdgeType.GROUPS,
+                    )
+                )
             # Link to CVE
             if case.root_cve:
-                brain.add_edge(GraphEdge(
-                    source_id=f"exposure_case:{case.case_id}",
-                    target_id=f"cve:{case.root_cve}",
-                    edge_type=EdgeType.REFERENCES,
-                ))
+                brain.add_edge(
+                    GraphEdge(
+                        source_id=f"exposure_case:{case.case_id}",
+                        target_id=f"cve:{case.root_cve}",
+                        edge_type=EdgeType.REFERENCES,
+                    )
+                )
         except Exception as e:
             logger.warning("Failed to persist exposure case to brain: %s", e)
 
-    def _emit_event(self, case: ExposureCase, event_type: str, extra: Optional[Dict] = None) -> None:
+    def _emit_event(
+        self, case: ExposureCase, event_type: str, extra: Optional[Dict] = None
+    ) -> None:
         """Emit event to the event bus."""
         try:
             import asyncio
+
             from core.event_bus import Event, get_event_bus
+
             bus = get_event_bus()
-            data = {"case_id": case.case_id, "status": case.status.value, "org_id": case.org_id}
+            data = {
+                "case_id": case.case_id,
+                "status": case.status.value,
+                "org_id": case.org_id,
+            }
             if extra:
                 data.update(extra)
-            event = Event(event_type=event_type, source="exposure_case_manager", data=data)
+            event = Event(
+                event_type=event_type, source="exposure_case_manager", data=data
+            )
             try:
                 loop = asyncio.get_running_loop()
                 loop.create_task(bus.emit(event))
@@ -446,4 +575,3 @@ class ExposureCaseManager:
 def get_case_manager(db_path: str = "fixops_exposure_cases.db") -> ExposureCaseManager:
     """Get the global ExposureCaseManager instance."""
     return ExposureCaseManager.get_instance(db_path=db_path)
-

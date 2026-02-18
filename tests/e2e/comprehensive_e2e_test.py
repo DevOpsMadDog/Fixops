@@ -1859,9 +1859,9 @@ class ComprehensiveTestRunner:
                 "POST", "/api/v1/mpte/configs", json=cfg
             )
             if status in [200, 201]:
-                self.client.resource_registry.setdefault(
-                    "mpte_config_ids", []
-                ).append(response.get("id", cfg["name"]))
+                self.client.resource_registry.setdefault("mpte_config_ids", []).append(
+                    response.get("id", cfg["name"])
+                )
             self.add_result(
                 E2ETestCase(
                     endpoint="/api/v1/mpte/configs",
@@ -1901,9 +1901,9 @@ class ComprehensiveTestRunner:
                 "POST", "/api/v1/mpte/requests", json=req
             )
             if status in [200, 201]:
-                self.client.resource_registry.setdefault(
-                    "mpte_request_ids", []
-                ).append(response.get("id", response.get("request_id")))
+                self.client.resource_registry.setdefault("mpte_request_ids", []).append(
+                    response.get("id", response.get("request_id"))
+                )
             self.add_result(
                 E2ETestCase(
                     endpoint="/api/v1/mpte/requests",
@@ -3525,9 +3525,7 @@ class ComprehensiveTestRunner:
                     ):
                         substituted_path = path.replace(
                             "{request_id}",
-                            str(
-                                self.client.resource_registry["mpte_request_ids"][0]
-                            ),
+                            str(self.client.resource_registry["mpte_request_ids"][0]),
                         )
                     elif "{workflow_id}" in path and self.client.resource_registry.get(
                         "workflow_ids"

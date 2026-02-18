@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 
 class VerificationStage(str, Enum):
     """Stages of the verification pipeline."""
+
     PRODUCT_DETECTION = "product_detection"
     VERSION_FINGERPRINT = "version_fingerprint"
     EXPLOIT_VERIFICATION = "exploit_verification"
@@ -40,6 +41,7 @@ class VerificationStage(str, Enum):
 @dataclass
 class StageResult:
     """Result from a single verification stage."""
+
     stage: VerificationStage
     passed: bool
     confidence_contribution: float
@@ -50,6 +52,7 @@ class StageResult:
 @dataclass
 class VerificationResult:
     """Aggregated result of the multi-stage verification pipeline."""
+
     vulnerable: bool
     confidence: float
     stages: List[StageResult] = field(default_factory=list)
@@ -58,8 +61,7 @@ class VerificationResult:
 
     def summary(self) -> str:
         stages_str = " → ".join(
-            f"{s.stage.value}({'✓' if s.passed else '✗'})"
-            for s in self.stages
+            f"{s.stage.value}({'✓' if s.passed else '✗'})" for s in self.stages
         )
         return f"[{self.confidence:.0%}] {stages_str}"
 
@@ -78,6 +80,7 @@ MINIMUM_CONFIDENCE_THRESHOLD = 0.60
 @dataclass
 class ProductSignature:
     """Signature for detecting a specific product."""
+
     name: str
     header_patterns: Dict[str, str] = field(default_factory=dict)
     body_patterns: List[str] = field(default_factory=list)
@@ -89,6 +92,7 @@ class ProductSignature:
 @dataclass
 class VersionRange:
     """Defines a vulnerable version range for a product."""
+
     product: str
     min_version: Optional[str] = None
     max_version: Optional[str] = None
@@ -182,6 +186,7 @@ PRODUCT_SIGNATURES: Dict[str, ProductSignature] = {
 # Differential Analysis Helpers
 # ═══════════════════════════════════════════════════════════════════
 
+
 def _response_fingerprint(resp: httpx.Response) -> Dict[str, Any]:
     """Create a fingerprint of an HTTP response for differential comparison."""
     body = resp.content
@@ -194,13 +199,20 @@ def _response_fingerprint(resp: httpx.Response) -> Dict[str, Any]:
     }
 
 
-def _compute_diff_score(benign_fp: Dict[str, Any], malicious_fp: Dict[str, Any]) -> float:
+def _compute_diff_score(
+    benign_fp: Dict[str, Any], malicious_fp: Dict[str, Any]
+) -> float:
     """Compute a normalized difference score between two response fingerprints.
 
     Returns 0.0 (identical) to 1.0 (completely different).
     """
     score = 0.0
-    weights = {"status_code": 0.35, "content_length": 0.25, "content_hash": 0.25, "content_type": 0.15}
+    weights = {
+        "status_code": 0.35,
+        "content_length": 0.25,
+        "content_hash": 0.25,
+        "content_type": 0.15,
+    }
 
     if benign_fp["status_code"] != malicious_fp["status_code"]:
         score += weights["status_code"]
@@ -223,7 +235,10 @@ def _compute_diff_score(benign_fp: Dict[str, Any], malicious_fp: Dict[str, Any])
 
 
 async def _measure_timing(
-    client: httpx.AsyncClient, url: str, headers: Optional[Dict[str, str]] = None, timeout: float = 10.0
+    client: httpx.AsyncClient,
+    url: str,
+    headers: Optional[Dict[str, str]] = None,
+    timeout: float = 10.0,
 ) -> float:
     """Measure response time in seconds."""
     start = time.monotonic()
@@ -236,10 +251,11 @@ async def _measure_timing(
 
 def _version_compare(v1: str, v2: str) -> int:
     """Compare two version strings. Returns -1, 0, or 1."""
+
     def _normalize(v: str) -> List:
         parts = []
-        for seg in re.split(r'[.\-_]', v):
-            match = re.match(r'^(\d+)(.*)', seg)
+        for seg in re.split(r"[.\-_]", v):
+            match = re.match(r"^(\d+)(.*)", seg)
             if match:
                 parts.append(int(match.group(1)))
                 if match.group(2):
@@ -250,7 +266,7 @@ def _version_compare(v1: str, v2: str) -> int:
 
     p1, p2 = _normalize(v1), _normalize(v2)
     for a, b in zip(p1, p2):
-        if type(a) == type(b):
+        if type(a) is type(b):
             if a < b:
                 return -1
             elif a > b:
@@ -268,7 +284,9 @@ def _version_compare(v1: str, v2: str) -> int:
     return 0
 
 
-def _version_in_range(version: str, min_ver: Optional[str], max_ver: Optional[str]) -> bool:
+def _version_in_range(
+    version: str, min_ver: Optional[str], max_ver: Optional[str]
+) -> bool:
     """Check if version falls within a vulnerable range (inclusive)."""
     if min_ver and _version_compare(version, min_ver) < 0:
         return False
@@ -280,6 +298,7 @@ def _version_in_range(version: str, min_ver: Optional[str], max_ver: Optional[st
 # ═══════════════════════════════════════════════════════════════════
 # Core Verification Engine
 # ═══════════════════════════════════════════════════════════════════
+
 
 class VerificationEngine:
     """Multi-stage vulnerability verification engine.
@@ -323,6 +342,7 @@ class VerificationEngine:
 
             # Check known URL paths
             from urllib.parse import urljoin
+
             for path in signature.url_paths[:3]:
                 try:
                     path_resp = await self.client.get(
@@ -332,15 +352,24 @@ class VerificationEngine:
                     if path_resp.status_code == expected_status:
                         # Only count as detected if body also hints at product
                         path_body = path_resp.text[:5000].lower()
-                        if any(re.search(bp, path_body, re.IGNORECASE) for bp in signature.body_patterns):
+                        if any(
+                            re.search(bp, path_body, re.IGNORECASE)
+                            for bp in signature.body_patterns
+                        ):
                             detected = True
-                            detail_parts.append(f"Path {path} (HTTP {path_resp.status_code})")
+                            detail_parts.append(
+                                f"Path {path} (HTTP {path_resp.status_code})"
+                            )
                 except Exception:
                     pass
 
             # Check cookies
             for cookie_p in signature.cookie_patterns:
-                for header_val in [v for k, v in resp.headers.multi_items() if k.lower() == "set-cookie"]:
+                for header_val in [
+                    v
+                    for k, v in resp.headers.multi_items()
+                    if k.lower() == "set-cookie"
+                ]:
                     if re.search(cookie_p, header_val, re.IGNORECASE):
                         detected = True
                         detail_parts.append(f"Cookie match: {cookie_p}")
@@ -348,7 +377,9 @@ class VerificationEngine:
         except Exception as e:
             detail_parts.append(f"Error: {e}")
 
-        contribution = CONFIDENCE_WEIGHTS[VerificationStage.PRODUCT_DETECTION] if detected else 0.0
+        contribution = (
+            CONFIDENCE_WEIGHTS[VerificationStage.PRODUCT_DETECTION] if detected else 0.0
+        )
         result = StageResult(
             stage=VerificationStage.PRODUCT_DETECTION,
             passed=detected,
@@ -358,12 +389,15 @@ class VerificationEngine:
         )
         self._stages.append(result)
         self._confidence += contribution
-        self._evidence["verification_stages"].append({
-            "stage": result.stage.value, "passed": result.passed,
-            "confidence": result.confidence_contribution, "detail": result.detail,
-        })
+        self._evidence["verification_stages"].append(
+            {
+                "stage": result.stage.value,
+                "passed": result.passed,
+                "confidence": result.confidence_contribution,
+                "detail": result.detail,
+            }
+        )
         return result
-
 
     async def run_stage_2_version_fingerprint(
         self, version_range: VersionRange
@@ -402,12 +436,19 @@ class VerificationEngine:
                 for path in ["/api/version", "/version", "/api/v1/version"]:
                     try:
                         from urllib.parse import urljoin
-                        vr = await self.client.get(urljoin(self.target_url, path), timeout=5.0)
+
+                        vr = await self.client.get(
+                            urljoin(self.target_url, path), timeout=5.0
+                        )
                         if vr.status_code == 200 and version_range.version_regex:
                             m = re.search(version_range.version_regex, vr.text[:5000])
                             if m:
-                                version_found = m.group(1) if m.lastindex else m.group(0)
-                                detail_parts.append(f"Version from {path}: {version_found}")
+                                version_found = (
+                                    m.group(1) if m.lastindex else m.group(0)
+                                )
+                                detail_parts.append(
+                                    f"Version from {path}: {version_found}"
+                                )
                                 break
                     except Exception:
                         pass
@@ -420,10 +461,14 @@ class VerificationEngine:
                 if version_range.fixed_version:
                     if _version_compare(version_found, version_range.fixed_version) < 0:
                         in_range = True
-                        detail_parts.append(f"Below fix version {version_range.fixed_version}")
+                        detail_parts.append(
+                            f"Below fix version {version_range.fixed_version}"
+                        )
                     else:
                         in_range = False
-                        detail_parts.append(f"At or above fix version {version_range.fixed_version}")
+                        detail_parts.append(
+                            f"At or above fix version {version_range.fixed_version}"
+                        )
                 detail_parts.append(f"In vulnerable range: {in_range}")
             else:
                 detail_parts.append("Version not detected")
@@ -431,20 +476,31 @@ class VerificationEngine:
         except Exception as e:
             detail_parts.append(f"Error: {e}")
 
-        contribution = CONFIDENCE_WEIGHTS[VerificationStage.VERSION_FINGERPRINT] if in_range else 0.0
+        contribution = (
+            CONFIDENCE_WEIGHTS[VerificationStage.VERSION_FINGERPRINT]
+            if in_range
+            else 0.0
+        )
         result = StageResult(
             stage=VerificationStage.VERSION_FINGERPRINT,
             passed=in_range,
             confidence_contribution=contribution,
-            evidence={"version_detected": version_found, "in_vulnerable_range": in_range},
+            evidence={
+                "version_detected": version_found,
+                "in_vulnerable_range": in_range,
+            },
             detail=f"Version: {version_found or 'unknown'} | Vulnerable: {in_range}",
         )
         self._stages.append(result)
         self._confidence += contribution
-        self._evidence["verification_stages"].append({
-            "stage": result.stage.value, "passed": result.passed,
-            "confidence": result.confidence_contribution, "detail": result.detail,
-        })
+        self._evidence["verification_stages"].append(
+            {
+                "stage": result.stage.value,
+                "passed": result.passed,
+                "confidence": result.confidence_contribution,
+                "detail": result.detail,
+            }
+        )
         self._evidence["version_detected"] = version_found
         return result
 
@@ -466,6 +522,7 @@ class VerificationEngine:
         payload_results = []
 
         from urllib.parse import urljoin
+
         for i, payload in enumerate(exploit_payloads):
             try:
                 method = payload.get("method", "GET").upper()
@@ -477,11 +534,17 @@ class VerificationEngine:
                 if method == "GET":
                     resp = await self.client.get(url, headers=hdrs, timeout=10.0)
                 elif method == "POST":
-                    resp = await self.client.post(url, headers=hdrs, content=body, timeout=10.0)
+                    resp = await self.client.post(
+                        url, headers=hdrs, content=body, timeout=10.0
+                    )
                 elif method == "PUT":
-                    resp = await self.client.put(url, headers=hdrs, content=body, timeout=10.0)
+                    resp = await self.client.put(
+                        url, headers=hdrs, content=body, timeout=10.0
+                    )
                 else:
-                    resp = await self.client.request(method, url, headers=hdrs, content=body, timeout=10.0)
+                    resp = await self.client.request(
+                        method, url, headers=hdrs, content=body, timeout=10.0
+                    )
 
                 resp_text = resp.text[:10000]
                 payload_result = {
@@ -495,7 +558,9 @@ class VerificationEngine:
                     if re.search(pattern, resp_text, re.IGNORECASE):
                         exploit_confirmed = True
                         payload_result["matched_indicator"] = pattern
-                        detail_parts.append(f"Payload {i}: exploit indicator matched '{pattern}'")
+                        detail_parts.append(
+                            f"Payload {i}: exploit indicator matched '{pattern}'"
+                        )
                         break
 
                 # Check failure indicators (definitively NOT vulnerable)
@@ -515,20 +580,31 @@ class VerificationEngine:
             except Exception as e:
                 payload_results.append({"payload_index": i, "error": str(e)})
 
-        contribution = CONFIDENCE_WEIGHTS[VerificationStage.EXPLOIT_VERIFICATION] if exploit_confirmed else 0.0
+        contribution = (
+            CONFIDENCE_WEIGHTS[VerificationStage.EXPLOIT_VERIFICATION]
+            if exploit_confirmed
+            else 0.0
+        )
         result = StageResult(
             stage=VerificationStage.EXPLOIT_VERIFICATION,
             passed=exploit_confirmed,
             confidence_contribution=contribution,
-            evidence={"payloads_sent": len(exploit_payloads), "payload_results": payload_results},
+            evidence={
+                "payloads_sent": len(exploit_payloads),
+                "payload_results": payload_results,
+            },
             detail=f"{'Exploit confirmed' if exploit_confirmed else 'Exploit not confirmed'} ({len(exploit_payloads)} payloads)",
         )
         self._stages.append(result)
         self._confidence += contribution
-        self._evidence["verification_stages"].append({
-            "stage": result.stage.value, "passed": result.passed,
-            "confidence": result.confidence_contribution, "detail": result.detail,
-        })
+        self._evidence["verification_stages"].append(
+            {
+                "stage": result.stage.value,
+                "passed": result.passed,
+                "confidence": result.confidence_contribution,
+                "detail": result.detail,
+            }
+        )
         return result
 
     async def run_stage_4_differential_confirmation(
@@ -581,24 +657,42 @@ class VerificationEngine:
             # Threshold: diff_score > 0.30 indicates meaningfully different behavior
             if diff_score > 0.30:
                 confirmed = True
-                detail_parts.append(f"Differential score {diff_score:.2f} > 0.30 threshold")
+                detail_parts.append(
+                    f"Differential score {diff_score:.2f} > 0.30 threshold"
+                )
             else:
-                detail_parts.append(f"Differential score {diff_score:.2f} <= 0.30 (no meaningful difference)")
+                detail_parts.append(
+                    f"Differential score {diff_score:.2f} <= 0.30 (no meaningful difference)"
+                )
 
             # Timing-based differential
-            benign_time = await _measure_timing(self.client, benign_url, benign_request.get("headers"))
-            mal_time = await _measure_timing(self.client, mal_url, malicious_request.get("headers"))
+            benign_time = await _measure_timing(
+                self.client, benign_url, benign_request.get("headers")
+            )
+            mal_time = await _measure_timing(
+                self.client, mal_url, malicious_request.get("headers")
+            )
             time_diff = abs(mal_time - benign_time)
-            diff_data["timing"] = {"benign_ms": round(benign_time * 1000), "malicious_ms": round(mal_time * 1000), "diff_ms": round(time_diff * 1000)}
+            diff_data["timing"] = {
+                "benign_ms": round(benign_time * 1000),
+                "malicious_ms": round(mal_time * 1000),
+                "diff_ms": round(time_diff * 1000),
+            }
 
-            if time_diff > 2.0:  # >2 seconds difference suggests time-based exploitation
+            if (
+                time_diff > 2.0
+            ):  # >2 seconds difference suggests time-based exploitation
                 confirmed = True
                 detail_parts.append(f"Timing anomaly: {time_diff:.1f}s difference")
 
         except Exception as e:
             detail_parts.append(f"Error: {e}")
 
-        contribution = CONFIDENCE_WEIGHTS[VerificationStage.DIFFERENTIAL_CONFIRMATION] if confirmed else 0.0
+        contribution = (
+            CONFIDENCE_WEIGHTS[VerificationStage.DIFFERENTIAL_CONFIRMATION]
+            if confirmed
+            else 0.0
+        )
         result = StageResult(
             stage=VerificationStage.DIFFERENTIAL_CONFIRMATION,
             passed=confirmed,
@@ -608,10 +702,14 @@ class VerificationEngine:
         )
         self._stages.append(result)
         self._confidence += contribution
-        self._evidence["verification_stages"].append({
-            "stage": result.stage.value, "passed": result.passed,
-            "confidence": result.confidence_contribution, "detail": result.detail,
-        })
+        self._evidence["verification_stages"].append(
+            {
+                "stage": result.stage.value,
+                "passed": result.passed,
+                "confidence": result.confidence_contribution,
+                "detail": result.detail,
+            }
+        )
         return result
 
     def finalize(self) -> VerificationResult:

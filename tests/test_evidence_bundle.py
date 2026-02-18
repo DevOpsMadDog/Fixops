@@ -4,7 +4,6 @@ from zipfile import ZipFile
 
 import pytest
 import yaml
-
 from cli.fixops_ci import main as ci_main
 from evidence.packager import _collect_files
 from services.evidence.packager import (

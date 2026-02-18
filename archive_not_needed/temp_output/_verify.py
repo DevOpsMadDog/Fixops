@@ -1,6 +1,13 @@
 import os
+
 out = []
-for d in ["suite-evidence-risk/api", "suite-integrations/api", "suite-core/api", "suite-attack/api", "suite-feeds/api"]:
+for d in [
+    "suite-evidence-risk/api",
+    "suite-integrations/api",
+    "suite-core/api",
+    "suite-attack/api",
+    "suite-feeds/api",
+]:
     if os.path.isdir(d):
         files = os.listdir(d)
         out.append(f"DIR EXISTS: {d} -> {files}")
@@ -24,4 +31,3 @@ for f in [
 with open("_verify_output.txt", "w") as fh:
     fh.write("\n".join(out))
 print("DONE")
-

@@ -12,4 +12,3 @@ class SarifLog:
     version: str
     schema_uri: Optional[str] = None
     properties: Optional[dict[str, Any]] = field(default=None)
-

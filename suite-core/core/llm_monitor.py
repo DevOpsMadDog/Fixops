@@ -55,12 +55,16 @@ class LLMThreat:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "threat_id": self.threat_id, "title": self.title,
-            "severity": self.severity.value, "category": self.category.value,
+            "threat_id": self.threat_id,
+            "title": self.title,
+            "severity": self.severity.value,
+            "category": self.category.value,
             "matched_pattern": self.matched_pattern,
             "matched_text": self.matched_text[:200],
-            "location": self.location, "confidence": self.confidence,
-            "description": self.description, "recommendation": self.recommendation,
+            "location": self.location,
+            "confidence": self.confidence,
+            "description": self.description,
+            "recommendation": self.recommendation,
             "timestamp": self.timestamp.isoformat(),
         }
 
@@ -85,7 +89,8 @@ class LLMAnalysisResult:
             "response_threats": [t.to_dict() for t in self.response_threats],
             "total_threats": self.total_threats,
             "risk_score": self.risk_score,
-            "by_severity": self.by_severity, "by_category": self.by_category,
+            "by_severity": self.by_severity,
+            "by_category": self.by_category,
             "tokens_estimated": self.tokens_estimated,
             "duration_ms": self.duration_ms,
             "timestamp": self.timestamp.isoformat(),
@@ -94,14 +99,22 @@ class LLMAnalysisResult:
 
 # ── Detection Patterns ─────────────────────────────────────────────
 JAILBREAK_PATTERNS: List[Tuple[str, str, str]] = [
-    (r"ignore\s+(all\s+)?previous\s+instructions", "Instruction override attempt", "critical"),
+    (
+        r"ignore\s+(all\s+)?previous\s+instructions",
+        "Instruction override attempt",
+        "critical",
+    ),
     (r"you\s+are\s+now\s+(DAN|evil|unrestricted)", "DAN/persona jailbreak", "critical"),
     (r"pretend\s+(you\s+are|to\s+be)\s+a", "Role impersonation", "high"),
     (r"do\s+anything\s+now", "DAN activation phrase", "critical"),
     (r"forget\s+(all\s+)?(your\s+)?rules", "Rule bypass attempt", "critical"),
     (r"system\s*:\s*you\s+are", "System prompt injection", "critical"),
     (r"bypass\s+(safety|content|filter)", "Filter bypass attempt", "high"),
-    (r"act\s+as\s+(if\s+)?(there\s+are\s+)?no\s+(restrictions|rules)", "Restriction bypass", "high"),
+    (
+        r"act\s+as\s+(if\s+)?(there\s+are\s+)?no\s+(restrictions|rules)",
+        "Restriction bypass",
+        "high",
+    ),
     (r"\[SYSTEM\]|\[INST\]|\[\/INST\]", "Prompt template injection", "high"),
     (r"<\|im_start\|>|<\|im_end\|>", "ChatML injection", "critical"),
 ]
@@ -112,16 +125,29 @@ PII_PATTERNS: List[Tuple[str, str, str]] = [
     (r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", "Email address", "medium"),
     (r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b", "Phone number pattern", "medium"),
     (r"\b(?:password|passwd|pwd)\s*[:=]\s*\S+", "Password in text", "critical"),
-    (r"\b(?:api[_-]?key|secret[_-]?key|access[_-]?token)\s*[:=]\s*\S+", "API key/secret", "critical"),
-    (r"\b(?:sk-|pk_live_|sk_live_|ghp_|glpat-)[A-Za-z0-9]+", "Known API key format", "critical"),
+    (
+        r"\b(?:api[_-]?key|secret[_-]?key|access[_-]?token)\s*[:=]\s*\S+",
+        "API key/secret",
+        "critical",
+    ),
+    (
+        r"\b(?:sk-|pk_live_|sk_live_|ghp_|glpat-)[A-Za-z0-9]+",
+        "Known API key format",
+        "critical",
+    ),
 ]
 
 SENSITIVE_TOPICS: List[Tuple[str, str]] = [
-    (r"\b(how\s+to\s+)?(make|build|create)\s+(a\s+)?(bomb|weapon|explosive)", "Weapons/explosives"),
-    (r"\b(hack|exploit|attack)\s+(a\s+)?(server|system|network|website)", "Hacking instructions"),
+    (
+        r"\b(how\s+to\s+)?(make|build|create)\s+(a\s+)?(bomb|weapon|explosive)",
+        "Weapons/explosives",
+    ),
+    (
+        r"\b(hack|exploit|attack)\s+(a\s+)?(server|system|network|website)",
+        "Hacking instructions",
+    ),
     (r"\bmalware\s+(code|source|creation)", "Malware creation"),
 ]
-
 
 
 class LLMMonitor:
@@ -133,12 +159,10 @@ class LLMMonitor:
             for p, title, sev in JAILBREAK_PATTERNS
         ]
         self._pii_compiled = [
-            (re.compile(p, re.IGNORECASE), title, sev)
-            for p, title, sev in PII_PATTERNS
+            (re.compile(p, re.IGNORECASE), title, sev) for p, title, sev in PII_PATTERNS
         ]
         self._topic_compiled = [
-            (re.compile(p, re.IGNORECASE), title)
-            for p, title in SENSITIVE_TOPICS
+            (re.compile(p, re.IGNORECASE), title) for p, title in SENSITIVE_TOPICS
         ]
 
     def analyze(
@@ -167,15 +191,17 @@ class LLMMonitor:
         # Token anomaly check
         est_tokens = self._estimate_tokens(prompt + response)
         if max_tokens > 0 and est_tokens > max_tokens * 1.5:
-            prompt_threats.append(LLMThreat(
-                threat_id=f"LLM-{uuid.uuid4().hex[:8]}",
-                title="Token Usage Anomaly",
-                severity=ThreatSeverity.MEDIUM,
-                category=ThreatCategory.TOKEN_ANOMALY,
-                description=f"Estimated tokens ({est_tokens}) exceed max ({max_tokens}) by >50%",
-                recommendation="Check for prompt stuffing or exfiltration attempts",
-                location="prompt",
-            ))
+            prompt_threats.append(
+                LLMThreat(
+                    threat_id=f"LLM-{uuid.uuid4().hex[:8]}",
+                    title="Token Usage Anomaly",
+                    severity=ThreatSeverity.MEDIUM,
+                    category=ThreatCategory.TOKEN_ANOMALY,
+                    description=f"Estimated tokens ({est_tokens}) exceed max ({max_tokens}) by >50%",
+                    recommendation="Check for prompt stuffing or exfiltration attempts",
+                    location="prompt",
+                )
+            )
 
         all_threats = prompt_threats + response_threats
         by_sev: Dict[str, int] = {}
@@ -193,7 +219,8 @@ class LLMMonitor:
             response_threats=response_threats,
             total_threats=len(all_threats),
             risk_score=risk,
-            by_severity=by_sev, by_category=by_cat,
+            by_severity=by_sev,
+            by_category=by_cat,
             tokens_estimated=est_tokens,
             duration_ms=round(elapsed, 2),
         )
@@ -203,15 +230,20 @@ class LLMMonitor:
         for pat, title, sev in self._jailbreak_compiled:
             m = pat.search(text)
             if m:
-                threats.append(LLMThreat(
-                    threat_id=f"LLM-{uuid.uuid4().hex[:8]}",
-                    title=title, severity=ThreatSeverity(sev),
-                    category=ThreatCategory.JAILBREAK,
-                    matched_pattern=pat.pattern, matched_text=m.group(),
-                    location=location, confidence=0.9,
-                    description=f"Jailbreak pattern detected: {title}",
-                    recommendation="Block this prompt and log the attempt",
-                ))
+                threats.append(
+                    LLMThreat(
+                        threat_id=f"LLM-{uuid.uuid4().hex[:8]}",
+                        title=title,
+                        severity=ThreatSeverity(sev),
+                        category=ThreatCategory.JAILBREAK,
+                        matched_pattern=pat.pattern,
+                        matched_text=m.group(),
+                        location=location,
+                        confidence=0.9,
+                        description=f"Jailbreak pattern detected: {title}",
+                        recommendation="Block this prompt and log the attempt",
+                    )
+                )
         return threats
 
     def _check_pii(self, text: str, location: str) -> List[LLMThreat]:
@@ -219,15 +251,20 @@ class LLMMonitor:
         for pat, title, sev in self._pii_compiled:
             m = pat.search(text)
             if m:
-                threats.append(LLMThreat(
-                    threat_id=f"LLM-{uuid.uuid4().hex[:8]}",
-                    title=title, severity=ThreatSeverity(sev),
-                    category=ThreatCategory.PII_EXPOSURE,
-                    matched_pattern=pat.pattern, matched_text=m.group(),
-                    location=location, confidence=0.85,
-                    description=f"PII detected in {location}: {title}",
-                    recommendation="Redact sensitive data before sending to LLM",
-                ))
+                threats.append(
+                    LLMThreat(
+                        threat_id=f"LLM-{uuid.uuid4().hex[:8]}",
+                        title=title,
+                        severity=ThreatSeverity(sev),
+                        category=ThreatCategory.PII_EXPOSURE,
+                        matched_pattern=pat.pattern,
+                        matched_text=m.group(),
+                        location=location,
+                        confidence=0.85,
+                        description=f"PII detected in {location}: {title}",
+                        recommendation="Redact sensitive data before sending to LLM",
+                    )
+                )
         return threats
 
     def _check_sensitive_topics(self, text: str, location: str) -> List[LLMThreat]:
@@ -235,16 +272,20 @@ class LLMMonitor:
         for pat, title in self._topic_compiled:
             m = pat.search(text)
             if m:
-                threats.append(LLMThreat(
-                    threat_id=f"LLM-{uuid.uuid4().hex[:8]}",
-                    title=f"Sensitive topic: {title}",
-                    severity=ThreatSeverity.HIGH,
-                    category=ThreatCategory.SENSITIVE_TOPIC,
-                    matched_pattern=pat.pattern, matched_text=m.group(),
-                    location=location, confidence=0.75,
-                    description=f"Sensitive topic detected: {title}",
-                    recommendation="Review content policy and block if appropriate",
-                ))
+                threats.append(
+                    LLMThreat(
+                        threat_id=f"LLM-{uuid.uuid4().hex[:8]}",
+                        title=f"Sensitive topic: {title}",
+                        severity=ThreatSeverity.HIGH,
+                        category=ThreatCategory.SENSITIVE_TOPIC,
+                        matched_pattern=pat.pattern,
+                        matched_text=m.group(),
+                        location=location,
+                        confidence=0.75,
+                        description=f"Sensitive topic detected: {title}",
+                        recommendation="Review content policy and block if appropriate",
+                    )
+                )
         return threats
 
     @staticmethod

@@ -45,6 +45,7 @@ def load_app():
     try:
         # Use same factory as README: uvicorn apps.api.app:create_app --factory
         from apps.api.app import create_app
+
         return create_app()
     except ImportError as e:
         print(f"FATAL: Failed to import app factory: {e}", file=sys.stderr)
@@ -66,20 +67,26 @@ def get_openapi_spec(app) -> dict:
 def extract_routes_from_app(app) -> List[Dict[str, Any]]:
     """Extract route info directly from app.routes (APIRoute objects)."""
     from fastapi.routing import APIRoute
-    
+
     routes = []
     for route in app.routes:
         if isinstance(route, APIRoute):
             for method in route.methods:
                 if method.upper() in ("GET", "POST", "PUT", "DELETE", "PATCH"):
                     endpoint_func = route.endpoint
-                    routes.append({
-                        "method": method.upper(),
-                        "path": route.path,
-                        "name": route.name,
-                        "endpoint_module": getattr(endpoint_func, "__module__", "unknown"),
-                        "endpoint_name": getattr(endpoint_func, "__name__", "unknown"),
-                    })
+                    routes.append(
+                        {
+                            "method": method.upper(),
+                            "path": route.path,
+                            "name": route.name,
+                            "endpoint_module": getattr(
+                                endpoint_func, "__module__", "unknown"
+                            ),
+                            "endpoint_name": getattr(
+                                endpoint_func, "__name__", "unknown"
+                            ),
+                        }
+                    )
     return routes
 
 
@@ -87,18 +94,20 @@ def extract_openapi_operations(spec: dict) -> List[Dict[str, Any]]:
     """Extract operations from OpenAPI spec with tag info."""
     operations = []
     paths = spec.get("paths", {})
-    
+
     for path, methods in paths.items():
         for method, details in methods.items():
             if method.upper() in ("GET", "POST", "PUT", "DELETE", "PATCH"):
                 tags = details.get("tags", [])
-                operations.append({
-                    "method": method.upper(),
-                    "path": path,
-                    "tags": tags,
-                    "operationId": details.get("operationId", ""),
-                    "summary": details.get("summary", ""),
-                })
+                operations.append(
+                    {
+                        "method": method.upper(),
+                        "path": path,
+                        "tags": tags,
+                        "operationId": details.get("operationId", ""),
+                        "summary": details.get("summary", ""),
+                    }
+                )
     return operations
 
 
@@ -123,79 +132,79 @@ def detect_aliases(routes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Detect same endpoint function mapped to multiple paths for same method."""
     # Group by (module, function_name, method)
     endpoint_paths: Dict[Tuple[str, str, str], List[str]] = defaultdict(list)
-    
+
     for route in routes:
         key = (route["endpoint_module"], route["endpoint_name"], route["method"])
         endpoint_paths[key].append(route["path"])
-    
+
     aliases = []
     for (module, func_name, method), paths in endpoint_paths.items():
         if len(paths) > 1:
-            aliases.append({
-                "module": module,
-                "function": func_name,
-                "method": method,
-                "paths": sorted(paths),
-            })
-    
+            aliases.append(
+                {
+                    "module": module,
+                    "function": func_name,
+                    "method": method,
+                    "paths": sorted(paths),
+                }
+            )
+
     return aliases
 
 
 def generate_report(
-    app,
-    spec: dict,
-    only_prefix: Optional[str] = None
+    app, spec: dict, only_prefix: Optional[str] = None
 ) -> Dict[str, Any]:
     """Generate comprehensive API surface report."""
     # Extract from both sources
     routes = extract_routes_from_app(app)
     openapi_ops = extract_openapi_operations(spec)
-    
+
     # Apply prefix filter if specified
     if only_prefix:
         routes = [r for r in routes if r["path"].startswith(only_prefix)]
         openapi_ops = [op for op in openapi_ops if op["path"].startswith(only_prefix)]
-    
+
     # Unique (method, path) operations
     unique_operations: Set[Tuple[str, str]] = set()
     for route in routes:
         unique_operations.add((route["method"], route["path"]))
-    
+
     # Also add from OpenAPI (may have slight differences)
     openapi_operations: Set[Tuple[str, str]] = set()
     for op in openapi_ops:
         openapi_operations.add((op["method"], op["path"]))
-    
+
     # Unique paths
     unique_paths = set(path for _, path in unique_operations)
-    
+
     # Count by method
     by_method: Dict[str, int] = defaultdict(int)
     for method, _ in unique_operations:
         by_method[method] += 1
-    
+
     # Count by prefix bucket
     by_prefix: Dict[str, int] = defaultdict(int)
     for _, path in unique_operations:
         bucket = get_prefix_bucket(path)
         by_prefix[bucket] += 1
-    
+
     # Count by endpoint module (top 20)
     by_module: Dict[str, int] = defaultdict(int)
     for route in routes:
         by_module[route["endpoint_module"]] += 1
     by_module_top20 = dict(sorted(by_module.items(), key=lambda x: -x[1])[:20])
-    
+
     # Count by OpenAPI tag (top 20)
     by_tag: Dict[str, int] = defaultdict(int)
     for op in openapi_ops:
         for tag in op["tags"]:
             by_tag[tag] += 1
     by_tag_top20 = dict(sorted(by_tag.items(), key=lambda x: -x[1])[:20])
-    
+
     # Detect aliases
     aliases = detect_aliases(routes)
-    
+
     return {
         "total_operations": len(unique_operations),
         "unique_paths": len(unique_paths),
@@ -214,34 +223,34 @@ def print_report(report: Dict[str, Any]) -> None:
     print("=" * 60)
     print("API SURFACE REPORT")
     print("=" * 60)
-    
+
     if report.get("filter_prefix"):
         print(f"Filter: {report['filter_prefix']}")
         print("-" * 60)
-    
+
     print(f"\nTotal Operations (method+path): {report['total_operations']}")
     print(f"Unique Paths:                   {report['unique_paths']}")
     print(f"OpenAPI Operations:             {report['openapi_operations']}")
-    
+
     print("\n--- By HTTP Method ---")
     for method, count in report["by_method"].items():
         print(f"  {method:8s}: {count:4d}")
-    
+
     print("\n--- By Prefix Bucket ---")
     for prefix, count in report["by_prefix"].items():
         print(f"  {prefix:20s}: {count:4d}")
-    
+
     print("\n--- By Endpoint Module (Top 20) ---")
     for module, count in report["by_endpoint_module"].items():
         # Truncate long module names
         display_module = module if len(module) <= 45 else "..." + module[-42:]
         print(f"  {display_module:45s}: {count:4d}")
-    
+
     if report["by_openapi_tag"]:
         print("\n--- By OpenAPI Tag (Top 20) ---")
         for tag, count in report["by_openapi_tag"].items():
             print(f"  {tag:30s}: {count:4d}")
-    
+
     if report["aliases"]:
         print(f"\n--- Aliases ({len(report['aliases'])} found) ---")
         for alias in report["aliases"][:10]:  # Show first 10
@@ -252,7 +261,7 @@ def print_report(report: Dict[str, Any]) -> None:
     else:
         print("\n--- Aliases ---")
         print("  (none detected)")
-    
+
     print("\n" + "=" * 60)
 
 
@@ -284,34 +293,34 @@ def main():
         action="store_true",
         help="Suppress stdout report (useful with --json)",
     )
-    
+
     args = parser.parse_args()
-    
+
     # Setup environment and load app
     setup_environment()
     app = load_app()
     spec = get_openapi_spec(app)
-    
+
     # Generate report
     report = generate_report(app, spec, only_prefix=args.only_prefix)
-    
+
     # Print to stdout
     if not args.quiet:
         print_report(report)
-    
+
     # Write JSON if requested
     if args.json:
         json_path = Path(args.json)
         json_path.write_text(json.dumps(report, indent=2))
         if not args.quiet:
             print(f"\nJSON report written to: {args.json}")
-    
+
     # Check minimum endpoints
     if report["total_operations"] < args.min_endpoints:
         print(
             f"\n❌ FAIL: Found {report['total_operations']} operations, "
             f"expected at least {args.min_endpoints}",
-            file=sys.stderr
+            file=sys.stderr,
         )
         sys.exit(1)
     else:
@@ -320,7 +329,7 @@ def main():
                 f"\n✅ PASS: {report['total_operations']} operations "
                 f"(>= {args.min_endpoints} minimum)"
             )
-    
+
     sys.exit(0)
 
 

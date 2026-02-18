@@ -3,15 +3,14 @@
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
-
 from apps.api.dependencies import get_org_id
 from core.services.remediation import (
     VALID_TRANSITIONS,
     RemediationService,
     RemediationStatus,
 )
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 
 # Knowledge Brain + Event Bus integration (graceful degradation)
 try:
@@ -110,13 +109,19 @@ async def create_task(request: CreateTaskRequest) -> Dict[str, Any]:
             severity=request.severity,
             assignee=request.assignee,
         )
-        await bus.emit(Event(
-            event_type=EventType.REMEDIATION_CREATED,
-            source="remediation_router",
-            data={"task_id": task_id, "org_id": request.org_id,
-                  "title": request.title, "severity": request.severity},
-            org_id=request.org_id,
-        ))
+        await bus.emit(
+            Event(
+                event_type=EventType.REMEDIATION_CREATED,
+                source="remediation_router",
+                data={
+                    "task_id": task_id,
+                    "org_id": request.org_id,
+                    "title": request.title,
+                    "severity": request.severity,
+                },
+                org_id=request.org_id,
+            )
+        )
 
     return result
 
@@ -163,7 +168,9 @@ def get_task(task_id: str) -> Dict[str, Any]:
 
 
 @router.put("/tasks/{task_id}/status")
-async def update_task_status(task_id: str, request: UpdateStatusRequest) -> Dict[str, Any]:
+async def update_task_status(
+    task_id: str, request: UpdateStatusRequest
+) -> Dict[str, Any]:
     """Update task status with state machine validation."""
     service = get_remediation_service()
     try:
@@ -185,12 +192,17 @@ async def update_task_status(task_id: str, request: UpdateStatusRequest) -> Dict
             if request.status.lower() in completed_statuses
             else EventType.REMEDIATION_CREATED  # status change
         )
-        await bus.emit(Event(
-            event_type=event_type,
-            source="remediation_router",
-            data={"task_id": task_id, "new_status": request.status,
-                  "changed_by": request.changed_by},
-        ))
+        await bus.emit(
+            Event(
+                event_type=event_type,
+                source="remediation_router",
+                data={
+                    "task_id": task_id,
+                    "new_status": request.status,
+                    "changed_by": request.changed_by,
+                },
+            )
+        )
 
     return result
 
@@ -283,6 +295,7 @@ def list_valid_statuses() -> Dict[str, Any]:
 # AutoFix engine (graceful degradation)
 try:
     from core.autofix_engine import get_autofix_engine
+
     _HAS_AUTOFIX = True
 except ImportError:
     _HAS_AUTOFIX = False
@@ -290,6 +303,7 @@ except ImportError:
 
 class AutoFixTaskRequest(BaseModel):
     """Request to generate autofix for a remediation task."""
+
     source_code: Optional[str] = None
     repo_context: Optional[Dict[str, Any]] = None
     repository: Optional[str] = None

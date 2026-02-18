@@ -13,7 +13,7 @@ logger = structlog.get_logger()
 
 try:
     # Optional dependency
-    import lib4sbom
+    pass
 
     HAS_LIB4SBOM = True
 except Exception:  # pragma: no cover

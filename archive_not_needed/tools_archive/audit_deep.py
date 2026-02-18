@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Deep audit script to find EventBus, KnowledgeBrain, and other integration usage."""
-import os, re
+import os
+import re
 
 PROJECT = "/Users/devops.ai/developement/fixops/Fixops"
 SKIP = {"__pycache__", "node_modules", ".git", "archive", ".vite", "dist"}
+
 
 def walk_py(base_dirs):
     """Yield (rel_path, content) for all .py files in suite-* directories."""
@@ -24,8 +26,15 @@ def walk_py(base_dirs):
                 except Exception:
                     pass
 
-suites = ["suite-api", "suite-core", "suite-attack", "suite-feeds",
-           "suite-evidence-risk", "suite-integrations"]
+
+suites = [
+    "suite-api",
+    "suite-core",
+    "suite-attack",
+    "suite-feeds",
+    "suite-evidence-risk",
+    "suite-integrations",
+]
 
 print("=" * 80)
 print("SECTION 1: Files that import/use EventBus")
@@ -64,8 +73,14 @@ print("\n" + "=" * 80)
 print("SECTION 3: Inter-service HTTP calls (httpx/requests/aiohttp)")
 print("=" * 80)
 for path, txt in walk_py(suites):
-    patterns = ["httpx", "requests.get", "requests.post", "aiohttp.ClientSession",
-                 "urllib.request", "http.client"]
+    patterns = [
+        "httpx",
+        "requests.get",
+        "requests.post",
+        "aiohttp.ClientSession",
+        "urllib.request",
+        "http.client",
+    ]
     found = [p for p in patterns if p in txt]
     if found:
         print(f"  {path}: {', '.join(found)}")
@@ -78,8 +93,8 @@ secret_patterns = [
     (r'password\s*=\s*["\'][^"\']{3,}', "PASSWORD"),
     (r'secret\s*=\s*["\'][^"\']{5,}', "SECRET"),
     (r'token\s*=\s*["\'][^"\']{10,}', "TOKEN"),
-    (r'sk-[a-zA-Z0-9]{20,}', "OPENAI_KEY"),
-    (r'ghp_[a-zA-Z0-9]{36}', "GITHUB_TOKEN"),
+    (r"sk-[a-zA-Z0-9]{20,}", "OPENAI_KEY"),
+    (r"ghp_[a-zA-Z0-9]{36}", "GITHUB_TOKEN"),
 ]
 for path, txt in walk_py(suites):
     for pat, label in secret_patterns:
@@ -95,7 +110,7 @@ print("=" * 80)
 for path, txt in walk_py(suites):
     if "cli" in path.lower():
         # Find function defs
-        funcs = re.findall(r'def\s+(\w+)\(', txt)
+        funcs = re.findall(r"def\s+(\w+)\(", txt)
         urls = re.findall(r'["\'](?:http[s]?://[^"\']+|/api/v1/[^"\']+)["\']', txt)
         print(f"  {path}: {len(funcs)} functions, {len(urls)} URL refs")
         for u in urls[:10]:
@@ -106,14 +121,23 @@ print("SECTION 6: Brain Pipeline Orchestrator steps")
 print("=" * 80)
 for path, txt in walk_py(suites):
     if "pipeline_orchestrator" in path or "brain_pipeline" in path:
-        steps = re.findall(r'(?:step|phase|stage)[_\s]*(\d+|[a-z_]+)', txt, re.IGNORECASE)
+        steps = re.findall(
+            r"(?:step|phase|stage)[_\s]*(\d+|[a-z_]+)", txt, re.IGNORECASE
+        )
         print(f"  {path}: step refs = {steps[:20]}")
         # Check for stub indicators
-        stubs = re.findall(r'pass\s*$|NotImplemented|TODO|FIXME|STUB', txt, re.IGNORECASE | re.MULTILINE)
+        stubs = re.findall(
+            r"pass\s*$|NotImplemented|TODO|FIXME|STUB",
+            txt,
+            re.IGNORECASE | re.MULTILINE,
+        )
         print(f"    Stub indicators: {len(stubs)} found")
-        stubbed = re.findall(r'.*(pass\s*$|NotImplemented|TODO|FIXME|STUB).*', txt, re.IGNORECASE | re.MULTILINE)
+        stubbed = re.findall(
+            r".*(pass\s*$|NotImplemented|TODO|FIXME|STUB).*",
+            txt,
+            re.IGNORECASE | re.MULTILINE,
+        )
         for s in stubbed[:10]:
             print(f"      {s.strip()[:100]}")
 
 print("\nDONE")
-

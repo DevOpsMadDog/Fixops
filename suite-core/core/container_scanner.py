@@ -44,51 +44,112 @@ class ContainerFinding:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "finding_id": self.finding_id, "title": self.title,
-            "severity": self.severity.value, "category": self.category,
-            "cwe_id": self.cwe_id, "description": self.description,
-            "recommendation": self.recommendation, "line_number": self.line_number,
-            "image_ref": self.image_ref, "confidence": self.confidence,
+            "finding_id": self.finding_id,
+            "title": self.title,
+            "severity": self.severity.value,
+            "category": self.category,
+            "cwe_id": self.cwe_id,
+            "description": self.description,
+            "recommendation": self.recommendation,
+            "line_number": self.line_number,
+            "image_ref": self.image_ref,
+            "confidence": self.confidence,
             "timestamp": self.timestamp.isoformat(),
         }
 
 
 # ── Dockerfile Rules ───────────────────────────────────────────────
 DOCKERFILE_RULES: List[Tuple[str, str, str, str, str, str, str]] = [
-    ("CONT-001", "Running as Root", "high", "CWE-250",
-     r"^USER\s+root", "Container runs as root user",
-     "Add USER directive with non-root user"),
-    ("CONT-002", "No USER Directive", "high", "CWE-250",
-     "__NO_USER__", "Dockerfile has no USER directive (defaults to root)",
-     "Add 'USER nonroot' before CMD/ENTRYPOINT"),
-    ("CONT-003", "Latest Tag", "medium", "CWE-1104",
-     r"FROM\s+\S+:latest", "Using :latest tag — unpinned base image",
-     "Pin to specific version tag or SHA digest"),
-    ("CONT-004", "No HEALTHCHECK", "low", "CWE-693",
-     "__NO_HEALTHCHECK__", "No HEALTHCHECK instruction",
-     "Add HEALTHCHECK to enable container orchestrator health monitoring"),
-    ("CONT-005", "ADD Instead of COPY", "low", "CWE-829",
-     r"^ADD\s+(?!https?://)", "ADD used instead of COPY for local files",
-     "Use COPY for local files; ADD only for URLs or tar extraction"),
-    ("CONT-006", "Secrets in ENV", "critical", "CWE-798",
-     r"ENV\s+\S*(PASSWORD|SECRET|TOKEN|API_KEY|PRIVATE_KEY)\s*=\s*\S+",
-     "Secret value hardcoded in ENV directive",
-     "Use build args with --secret or runtime env injection"),
-    ("CONT-007", "Privileged Port", "medium", "CWE-284",
-     r"EXPOSE\s+([0-9]+)", "Exposing privileged port (<1024)",
-     "Use non-privileged ports (>1024) when possible"),
-    ("CONT-008", "Curl Pipe to Shell", "critical", "CWE-829",
-     r"(curl|wget)\s+.*\|\s*(sh|bash|zsh)",
-     "Downloading and piping to shell — supply chain risk",
-     "Download, verify checksum, then execute separately"),
-    ("CONT-009", "No Package Pinning", "medium", "CWE-1104",
-     r"(apt-get install|apk add|yum install)\s+(?!.*=)",
-     "Package installed without version pinning",
-     "Pin package versions for reproducible builds"),
-    ("CONT-010", "Apt-get No Clean", "low", "CWE-400",
-     r"apt-get install(?!.*&&\s*(apt-get clean|rm -rf /var/lib/apt))",
-     "apt-get install without cleanup — bloated image",
-     "Add '&& apt-get clean && rm -rf /var/lib/apt/lists/*'"),
+    (
+        "CONT-001",
+        "Running as Root",
+        "high",
+        "CWE-250",
+        r"^USER\s+root",
+        "Container runs as root user",
+        "Add USER directive with non-root user",
+    ),
+    (
+        "CONT-002",
+        "No USER Directive",
+        "high",
+        "CWE-250",
+        "__NO_USER__",
+        "Dockerfile has no USER directive (defaults to root)",
+        "Add 'USER nonroot' before CMD/ENTRYPOINT",
+    ),
+    (
+        "CONT-003",
+        "Latest Tag",
+        "medium",
+        "CWE-1104",
+        r"FROM\s+\S+:latest",
+        "Using :latest tag — unpinned base image",
+        "Pin to specific version tag or SHA digest",
+    ),
+    (
+        "CONT-004",
+        "No HEALTHCHECK",
+        "low",
+        "CWE-693",
+        "__NO_HEALTHCHECK__",
+        "No HEALTHCHECK instruction",
+        "Add HEALTHCHECK to enable container orchestrator health monitoring",
+    ),
+    (
+        "CONT-005",
+        "ADD Instead of COPY",
+        "low",
+        "CWE-829",
+        r"^ADD\s+(?!https?://)",
+        "ADD used instead of COPY for local files",
+        "Use COPY for local files; ADD only for URLs or tar extraction",
+    ),
+    (
+        "CONT-006",
+        "Secrets in ENV",
+        "critical",
+        "CWE-798",
+        r"ENV\s+\S*(PASSWORD|SECRET|TOKEN|API_KEY|PRIVATE_KEY)\s*=\s*\S+",
+        "Secret value hardcoded in ENV directive",
+        "Use build args with --secret or runtime env injection",
+    ),
+    (
+        "CONT-007",
+        "Privileged Port",
+        "medium",
+        "CWE-284",
+        r"EXPOSE\s+([0-9]+)",
+        "Exposing privileged port (<1024)",
+        "Use non-privileged ports (>1024) when possible",
+    ),
+    (
+        "CONT-008",
+        "Curl Pipe to Shell",
+        "critical",
+        "CWE-829",
+        r"(curl|wget)\s+.*\|\s*(sh|bash|zsh)",
+        "Downloading and piping to shell — supply chain risk",
+        "Download, verify checksum, then execute separately",
+    ),
+    (
+        "CONT-009",
+        "No Package Pinning",
+        "medium",
+        "CWE-1104",
+        r"(apt-get install|apk add|yum install)\s+(?!.*=)",
+        "Package installed without version pinning",
+        "Pin package versions for reproducible builds",
+    ),
+    (
+        "CONT-010",
+        "Apt-get No Clean",
+        "low",
+        "CWE-400",
+        r"apt-get install(?!.*&&\s*(apt-get clean|rm -rf /var/lib/apt))",
+        "apt-get install without cleanup — bloated image",
+        "Add '&& apt-get clean && rm -rf /var/lib/apt/lists/*'",
+    ),
 ]
 
 KNOWN_VULNERABLE_IMAGES = {
@@ -110,8 +171,6 @@ KNOWN_VULNERABLE_IMAGES = {
 }
 
 
-
-
 @dataclass
 class ContainerScanResult:
     scan_id: str
@@ -127,10 +186,12 @@ class ContainerScanResult:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "scan_id": self.scan_id, "target": self.target,
+            "scan_id": self.scan_id,
+            "target": self.target,
             "total_findings": self.total_findings,
             "findings": [f.to_dict() for f in self.findings],
-            "by_severity": self.by_severity, "by_category": self.by_category,
+            "by_severity": self.by_severity,
+            "by_category": self.by_category,
             "trivy_available": self.trivy_available,
             "grype_available": self.grype_available,
             "duration_ms": self.duration_ms,
@@ -153,9 +214,12 @@ class ContainerImageScanner:
     def grype_available(self) -> bool:
         return self._grype is not None
 
-    def scan_dockerfile(self, content: str, filename: str = "Dockerfile") -> ContainerScanResult:
+    def scan_dockerfile(
+        self, content: str, filename: str = "Dockerfile"
+    ) -> ContainerScanResult:
         """Scan Dockerfile content for misconfigurations."""
         import time
+
         t0 = time.time()
         findings: List[ContainerFinding] = []
         lines = content.split("\n")
@@ -177,28 +241,37 @@ class ContainerImageScanner:
                 image = from_match.group(1).lower()
                 for vuln_img, (sev, desc) in KNOWN_VULNERABLE_IMAGES.items():
                     if image.startswith(vuln_img):
-                        findings.append(ContainerFinding(
-                            finding_id=f"CONT-{uuid.uuid4().hex[:8]}",
-                            title=f"Vulnerable Base Image: {image}",
-                            severity=ContainerSeverity(sev), category="base_image",
-                            cwe_id="CWE-1104", description=desc,
-                            recommendation=f"Upgrade from {vuln_img} to a supported version",
-                            line_number=line_num, image_ref=image,
-                        ))
+                        findings.append(
+                            ContainerFinding(
+                                finding_id=f"CONT-{uuid.uuid4().hex[:8]}",
+                                title=f"Vulnerable Base Image: {image}",
+                                severity=ContainerSeverity(sev),
+                                category="base_image",
+                                cwe_id="CWE-1104",
+                                description=desc,
+                                recommendation=f"Upgrade from {vuln_img} to a supported version",
+                                line_number=line_num,
+                                image_ref=image,
+                            )
+                        )
 
             # Check privileged port
             port_match = re.match(r"^EXPOSE\s+(\d+)", stripped, re.IGNORECASE)
             if port_match:
                 port = int(port_match.group(1))
                 if port < 1024:
-                    findings.append(ContainerFinding(
-                        finding_id=f"CONT-{uuid.uuid4().hex[:8]}",
-                        title=f"Privileged Port {port}",
-                        severity=ContainerSeverity.MEDIUM, category="dockerfile",
-                        cwe_id="CWE-284", description=f"Exposing privileged port {port}",
-                        recommendation="Use non-privileged ports (>1024)",
-                        line_number=line_num,
-                    ))
+                    findings.append(
+                        ContainerFinding(
+                            finding_id=f"CONT-{uuid.uuid4().hex[:8]}",
+                            title=f"Privileged Port {port}",
+                            severity=ContainerSeverity.MEDIUM,
+                            category="dockerfile",
+                            cwe_id="CWE-284",
+                            description=f"Exposing privileged port {port}",
+                            recommendation="Use non-privileged ports (>1024)",
+                            line_number=line_num,
+                        )
+                    )
                 continue
 
             # Pattern-based rules
@@ -206,31 +279,44 @@ class ContainerImageScanner:
                 if pat.startswith("__"):
                     continue
                 if re.search(pat, stripped, re.IGNORECASE):
-                    findings.append(ContainerFinding(
-                        finding_id=f"CONT-{uuid.uuid4().hex[:8]}",
-                        title=title, severity=ContainerSeverity(sev),
-                        category="dockerfile", cwe_id=cwe,
-                        description=desc, recommendation=rec,
-                        line_number=line_num,
-                    ))
+                    findings.append(
+                        ContainerFinding(
+                            finding_id=f"CONT-{uuid.uuid4().hex[:8]}",
+                            title=title,
+                            severity=ContainerSeverity(sev),
+                            category="dockerfile",
+                            cwe_id=cwe,
+                            description=desc,
+                            recommendation=rec,
+                            line_number=line_num,
+                        )
+                    )
 
         # Meta-rules
         if not has_user:
-            findings.append(ContainerFinding(
-                finding_id=f"CONT-{uuid.uuid4().hex[:8]}",
-                title="No USER Directive", severity=ContainerSeverity.HIGH,
-                category="dockerfile", cwe_id="CWE-250",
-                description="Dockerfile has no USER directive (defaults to root)",
-                recommendation="Add 'USER nonroot' before CMD/ENTRYPOINT",
-            ))
+            findings.append(
+                ContainerFinding(
+                    finding_id=f"CONT-{uuid.uuid4().hex[:8]}",
+                    title="No USER Directive",
+                    severity=ContainerSeverity.HIGH,
+                    category="dockerfile",
+                    cwe_id="CWE-250",
+                    description="Dockerfile has no USER directive (defaults to root)",
+                    recommendation="Add 'USER nonroot' before CMD/ENTRYPOINT",
+                )
+            )
         if not has_healthcheck:
-            findings.append(ContainerFinding(
-                finding_id=f"CONT-{uuid.uuid4().hex[:8]}",
-                title="No HEALTHCHECK", severity=ContainerSeverity.LOW,
-                category="dockerfile", cwe_id="CWE-693",
-                description="No HEALTHCHECK instruction",
-                recommendation="Add HEALTHCHECK to enable health monitoring",
-            ))
+            findings.append(
+                ContainerFinding(
+                    finding_id=f"CONT-{uuid.uuid4().hex[:8]}",
+                    title="No HEALTHCHECK",
+                    severity=ContainerSeverity.LOW,
+                    category="dockerfile",
+                    cwe_id="CWE-693",
+                    description="No HEALTHCHECK instruction",
+                    recommendation="Add HEALTHCHECK to enable health monitoring",
+                )
+            )
 
         by_sev: Dict[str, int] = {}
         by_cat: Dict[str, int] = {}
@@ -240,9 +326,12 @@ class ContainerImageScanner:
 
         elapsed = (time.time() - t0) * 1000
         return ContainerScanResult(
-            scan_id=f"cont-{uuid.uuid4().hex[:12]}", target=filename,
-            total_findings=len(findings), findings=findings,
-            by_severity=by_sev, by_category=by_cat,
+            scan_id=f"cont-{uuid.uuid4().hex[:12]}",
+            target=filename,
+            total_findings=len(findings),
+            findings=findings,
+            by_severity=by_sev,
+            by_category=by_cat,
             trivy_available=self.trivy_available,
             grype_available=self.grype_available,
             duration_ms=round(elapsed, 2),
@@ -251,14 +340,21 @@ class ContainerImageScanner:
     async def scan_image(self, image_ref: str) -> ContainerScanResult:
         """Scan a container image using Trivy/Grype if available."""
         import time
+
         t0 = time.time()
         findings: List[ContainerFinding] = []
 
         if self._trivy:
             try:
                 proc = await asyncio.create_subprocess_exec(
-                    self._trivy, "image", "--format", "json", "--quiet", image_ref,
-                    stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+                    self._trivy,
+                    "image",
+                    "--format",
+                    "json",
+                    "--quiet",
+                    image_ref,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
                 )
                 stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=120)
                 data = json.loads(stdout.decode())
@@ -267,15 +363,20 @@ class ContainerImageScanner:
                         sev = vuln.get("Severity", "UNKNOWN").lower()
                         if sev not in ("critical", "high", "medium", "low"):
                             sev = "info"
-                        findings.append(ContainerFinding(
-                            finding_id=f"CONT-{uuid.uuid4().hex[:8]}",
-                            title=f"{vuln.get('VulnerabilityID', 'UNKNOWN')}: {vuln.get('PkgName', '')}",
-                            severity=ContainerSeverity(sev), category="image_vuln",
-                            cwe_id=vuln.get("CweIDs", ["CWE-1104"])[0] if vuln.get("CweIDs") else "CWE-1104",
-                            description=vuln.get("Description", "")[:300],
-                            recommendation=f"Upgrade {vuln.get('PkgName', '')} to {vuln.get('FixedVersion', 'latest')}",
-                            image_ref=image_ref,
-                        ))
+                        findings.append(
+                            ContainerFinding(
+                                finding_id=f"CONT-{uuid.uuid4().hex[:8]}",
+                                title=f"{vuln.get('VulnerabilityID', 'UNKNOWN')}: {vuln.get('PkgName', '')}",
+                                severity=ContainerSeverity(sev),
+                                category="image_vuln",
+                                cwe_id=vuln.get("CweIDs", ["CWE-1104"])[0]
+                                if vuln.get("CweIDs")
+                                else "CWE-1104",
+                                description=vuln.get("Description", "")[:300],
+                                recommendation=f"Upgrade {vuln.get('PkgName', '')} to {vuln.get('FixedVersion', 'latest')}",
+                                image_ref=image_ref,
+                            )
+                        )
             except Exception:
                 pass
 
@@ -287,9 +388,12 @@ class ContainerImageScanner:
 
         elapsed = (time.time() - t0) * 1000
         return ContainerScanResult(
-            scan_id=f"cont-{uuid.uuid4().hex[:12]}", target=image_ref,
-            total_findings=len(findings), findings=findings,
-            by_severity=by_sev, by_category=by_cat,
+            scan_id=f"cont-{uuid.uuid4().hex[:12]}",
+            target=image_ref,
+            total_findings=len(findings),
+            findings=findings,
+            by_severity=by_sev,
+            by_category=by_cat,
             trivy_available=self.trivy_available,
             grype_available=self.grype_available,
             duration_ms=round(elapsed, 2),

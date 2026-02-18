@@ -9,15 +9,10 @@ from __future__ import annotations
 
 import csv
 import io
-import math
 import statistics
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Sequence
-
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
 
 from apps.api.dependencies import get_org_id
 from core.analytics_db import AnalyticsDB
@@ -28,6 +23,9 @@ from core.analytics_models import (
     FindingSeverity,
     FindingStatus,
 )
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/analytics", tags=["analytics"])
 db = AnalyticsDB()
@@ -37,12 +35,13 @@ db = AnalyticsDB()
 # Internal helpers — real statistical computation
 # ---------------------------------------------------------------------------
 
+
 def _moving_average(values: Sequence[float], window: int = 7) -> List[float]:
     """Compute simple moving average."""
     result: List[float] = []
     for i in range(len(values)):
         start = max(0, i - window + 1)
-        result.append(sum(values[start:i + 1]) / (i - start + 1))
+        result.append(sum(values[start : i + 1]) / (i - start + 1))
     return result
 
 
@@ -498,7 +497,8 @@ async def export_analytics(
             writer.writerow({k: str(v) for k, v in row.items()})
         buf.seek(0)
         return StreamingResponse(
-            buf, media_type="text/csv",
+            buf,
+            media_type="text/csv",
             headers={"Content-Disposition": f"attachment; filename={data_type}.csv"},
         )
 
@@ -535,7 +535,6 @@ async def get_analytics_summary(org_id: str = Depends(get_org_id)):
     return await get_analytics_stats(org_id)
 
 
-
 # ---------------------------------------------------------------------------
 # Advanced analytics — trend analysis, anomaly detection, comparison
 # ---------------------------------------------------------------------------
@@ -559,7 +558,11 @@ async def severity_over_time(
     # Bucket findings by date
     buckets: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
     for f in findings:
-        ts = f.created_at if isinstance(f.created_at, datetime) else datetime.fromisoformat(str(f.created_at))
+        ts = (
+            f.created_at
+            if isinstance(f.created_at, datetime)
+            else datetime.fromisoformat(str(f.created_at))
+        )
         if ts.tzinfo is None:
             ts = ts.replace(tzinfo=timezone.utc)
         if ts < cutoff:
@@ -580,10 +583,13 @@ async def severity_over_time(
 
     series = []
     for i, k in enumerate(sorted_keys):
-        series.append({
-            "period": k, **dict(buckets[k]),
-            "moving_avg": round(ma[i], 2),
-        })
+        series.append(
+            {
+                "period": k,
+                **dict(buckets[k]),
+                "moving_avg": round(ma[i], 2),
+            }
+        )
 
     return {"org_id": org_id, "bucket": bucket, "days": days, "series": series}
 
@@ -604,7 +610,11 @@ async def detect_anomalies(
 
     daily: Dict[str, int] = defaultdict(int)
     for f in findings:
-        ts = f.created_at if isinstance(f.created_at, datetime) else datetime.fromisoformat(str(f.created_at))
+        ts = (
+            f.created_at
+            if isinstance(f.created_at, datetime)
+            else datetime.fromisoformat(str(f.created_at))
+        )
         if ts.tzinfo is None:
             ts = ts.replace(tzinfo=timezone.utc)
         if ts < cutoff:
@@ -618,11 +628,14 @@ async def detect_anomalies(
     anomalies = []
     for i, d in enumerate(sorted_dates):
         if abs(z[i]) >= threshold:
-            anomalies.append({
-                "date": d, "count": values[i],
-                "z_score": round(z[i], 3),
-                "direction": "spike" if z[i] > 0 else "drop",
-            })
+            anomalies.append(
+                {
+                    "date": d,
+                    "count": values[i],
+                    "z_score": round(z[i], 3),
+                    "direction": "spike" if z[i] > 0 else "drop",
+                }
+            )
 
     return {
         "org_id": org_id,
@@ -651,7 +664,11 @@ async def compare_periods(
     current: List[Finding] = []
     previous: List[Finding] = []
     for f in findings:
-        ts = f.created_at if isinstance(f.created_at, datetime) else datetime.fromisoformat(str(f.created_at))
+        ts = (
+            f.created_at
+            if isinstance(f.created_at, datetime)
+            else datetime.fromisoformat(str(f.created_at))
+        )
         if ts.tzinfo is None:
             ts = ts.replace(tzinfo=timezone.utc)
         if current_start <= ts <= now:
@@ -661,11 +678,37 @@ async def compare_periods(
 
     def _kpis(lst: List[Finding]) -> Dict[str, Any]:
         total = len(lst)
-        crit = sum(1 for f in lst if (f.severity.value if hasattr(f.severity, "value") else str(f.severity)) == "critical")
-        high = sum(1 for f in lst if (f.severity.value if hasattr(f.severity, "value") else str(f.severity)) == "high")
-        resolved = sum(1 for f in lst if (f.status.value if hasattr(f.status, "value") else str(f.status)) in ("resolved", "false_positive"))
-        risk_score = sum(_severity_weight(f.severity.value if hasattr(f.severity, "value") else str(f.severity)) for f in lst)
-        return {"total": total, "critical": crit, "high": high, "resolved": resolved, "risk_score": round(risk_score, 1)}
+        crit = sum(
+            1
+            for f in lst
+            if (f.severity.value if hasattr(f.severity, "value") else str(f.severity))
+            == "critical"
+        )
+        high = sum(
+            1
+            for f in lst
+            if (f.severity.value if hasattr(f.severity, "value") else str(f.severity))
+            == "high"
+        )
+        resolved = sum(
+            1
+            for f in lst
+            if (f.status.value if hasattr(f.status, "value") else str(f.status))
+            in ("resolved", "false_positive")
+        )
+        risk_score = sum(
+            _severity_weight(
+                f.severity.value if hasattr(f.severity, "value") else str(f.severity)
+            )
+            for f in lst
+        )
+        return {
+            "total": total,
+            "critical": crit,
+            "high": high,
+            "resolved": resolved,
+            "risk_score": round(risk_score, 1),
+        }
 
     cur = _kpis(current)
     prev = _kpis(previous)
@@ -673,7 +716,12 @@ async def compare_periods(
     def _delta(c: float, p: float) -> Dict[str, Any]:
         diff = c - p
         pct = ((diff / p) * 100) if p else (100.0 if diff > 0 else 0.0)
-        return {"current": c, "previous": p, "change": diff, "change_pct": round(pct, 1)}
+        return {
+            "current": c,
+            "previous": p,
+            "change": diff,
+            "change_pct": round(pct, 1),
+        }
 
     return {
         "org_id": org_id,
@@ -702,7 +750,11 @@ async def risk_velocity(
 
     daily_risk: Dict[str, float] = defaultdict(float)
     for f in findings:
-        ts = f.created_at if isinstance(f.created_at, datetime) else datetime.fromisoformat(str(f.created_at))
+        ts = (
+            f.created_at
+            if isinstance(f.created_at, datetime)
+            else datetime.fromisoformat(str(f.created_at))
+        )
         if ts.tzinfo is None:
             ts = ts.replace(tzinfo=timezone.utc)
         if ts < cutoff:
@@ -730,7 +782,14 @@ async def risk_velocity(
         "org_id": org_id,
         "period_days": days,
         "daily_risk_velocity": velocity,
-        "direction": "increasing" if velocity > 0 else "decreasing" if velocity < 0 else "stable",
+        "direction": "increasing"
+        if velocity > 0
+        else "decreasing"
+        if velocity < 0
+        else "stable",
         "cumulative_risk": cumulative[-1] if cumulative else 0.0,
-        "series": [{"date": d, "delta": round(daily_risk[d], 2), "cumulative": c} for d, c in zip(sorted_days, cumulative)],
+        "series": [
+            {"date": d, "delta": round(daily_risk[d], 2), "cumulative": c}
+            for d, c in zip(sorted_days, cumulative)
+        ],
     }

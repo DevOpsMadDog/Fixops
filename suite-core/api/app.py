@@ -13,7 +13,6 @@ import os
 from fastapi import APIRouter, Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -21,13 +20,17 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 try:
     from core.auth_middleware import require_auth
+
     _auth_dep = Depends(require_auth)
     logger.info("Auth middleware loaded (JWT + scoped API keys)")
 except ImportError:
     from fastapi.security import APIKeyHeader as _AKH
+
     _api_key_header = _AKH(name="X-API-Key", auto_error=False)
+
     async def _fallback_auth(api_key: str = Depends(_api_key_header)):
         pass
+
     _auth_dep = Depends(_fallback_auth)
     logger.warning("Auth middleware not available, using passthrough")
 
@@ -73,23 +76,25 @@ app.add_middleware(
 # ML Learning Middleware — captures all API traffic for anomaly detection
 try:
     from core.learning_middleware import LearningMiddleware
+
     app.add_middleware(LearningMiddleware)
     logger.info("LearningMiddleware enabled on suite-core")
 except ImportError:
     logger.debug("LearningMiddleware not available on suite-core")
+
+from api.autofix_router import router as autofix_router
+from api.brain_router import router as brain_router
+from api.decisions import router as decisions_router
+from api.deduplication_router import router as deduplication_router
+from api.exposure_case_router import router as exposure_case_router
+from api.fuzzy_identity_router import router as fuzzy_identity_router
+from api.mindsdb_router import router as ml_router
 
 # ---------------------------------------------------------------------------
 # Mount routers — direct imports (always available)
 # suite-core is on sys.path, so api.xxx resolves to suite-core/api/xxx.py
 # ---------------------------------------------------------------------------
 from api.nerve_center import router as nerve_center_router
-from api.decisions import router as decisions_router
-from api.deduplication_router import router as deduplication_router
-from api.brain_router import router as brain_router
-from api.mindsdb_router import router as ml_router
-from api.autofix_router import router as autofix_router
-from api.fuzzy_identity_router import router as fuzzy_identity_router
-from api.exposure_case_router import router as exposure_case_router
 from api.pipeline_router import router as pipeline_router
 
 app.include_router(nerve_center_router, dependencies=[_auth_dep])
@@ -125,4 +130,3 @@ for module_name, display_name in _optional_routers.items():
         logger.info("Loaded %s router", display_name)
     except Exception as exc:
         logger.warning("%s router not available: %s", display_name, exc)
-

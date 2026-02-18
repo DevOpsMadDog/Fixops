@@ -6,10 +6,9 @@ import time
 import uuid
 from typing import Callable
 
+from core.logging_config import clear_correlation_id, get_logger, set_correlation_id
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
-
-from core.logging_config import clear_correlation_id, get_logger, set_correlation_id
 
 logger = get_logger(__name__)
 

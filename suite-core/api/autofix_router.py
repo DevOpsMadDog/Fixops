@@ -28,15 +28,26 @@ class GenerateFixRequest(BaseModel):
 
     Accepts either a full 'finding' dict or individual fields (finding_id, title, severity, cve_id).
     """
-    finding: Optional[Dict[str, Any]] = Field(None, description="Finding dict with id, title, severity, cve_ids, cwe_id, etc.")
+
+    finding: Optional[Dict[str, Any]] = Field(
+        None, description="Finding dict with id, title, severity, cve_ids, cwe_id, etc."
+    )
     finding_id: Optional[str] = Field(None, description="Finding ID (shorthand)")
     title: Optional[str] = Field(None, description="Finding title (shorthand)")
     severity: Optional[str] = Field(None, description="Finding severity (shorthand)")
     cve_id: Optional[str] = Field(None, description="CVE ID (shorthand)")
-    language: Optional[str] = Field(None, description="Language hint (python, java, etc.)")
-    fix_type: Optional[str] = Field(None, description="Fix type (patch, config, upgrade)")
-    source_code: Optional[str] = Field(None, description="Source code surrounding the vulnerability")
-    repo_context: Optional[Dict[str, Any]] = Field(None, description="Repo metadata (language, framework, etc.)")
+    language: Optional[str] = Field(
+        None, description="Language hint (python, java, etc.)"
+    )
+    fix_type: Optional[str] = Field(
+        None, description="Fix type (patch, config, upgrade)"
+    )
+    source_code: Optional[str] = Field(
+        None, description="Source code surrounding the vulnerability"
+    )
+    repo_context: Optional[Dict[str, Any]] = Field(
+        None, description="Repo metadata (language, framework, etc.)"
+    )
 
     @validator("finding", pre=True, always=True)
     def build_finding(cls, v, values):
@@ -57,6 +68,7 @@ class GenerateFixRequest(BaseModel):
 
 class ApplyFixRequest(BaseModel):
     """Request to apply a generated fix."""
+
     fix_id: str = Field(..., description="ID of the previously generated fix")
     repository: str = Field(..., description="Repository slug (owner/repo)")
     create_pr: bool = Field(True, description="Whether to create a pull request")
@@ -65,16 +77,19 @@ class ApplyFixRequest(BaseModel):
 
 class ValidateFixRequest(BaseModel):
     """Request to validate a fix."""
+
     fix_id: str = Field(..., description="ID of the fix to validate")
 
 
 class RollbackFixRequest(BaseModel):
     """Request to rollback a fix."""
+
     fix_id: str = Field(..., description="ID of the fix to rollback")
 
 
 class BulkGenerateRequest(BaseModel):
     """Request to generate fixes for multiple findings."""
+
     findings: List[Dict[str, Any]] = Field(..., description="List of finding dicts")
     repo_context: Optional[Dict[str, Any]] = None
 
@@ -83,8 +98,10 @@ class BulkGenerateRequest(BaseModel):
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _get_engine():
     from core.autofix_engine import get_autofix_engine
+
     return get_autofix_engine()
 
 
@@ -112,7 +129,8 @@ async def generate_bulk_fixes(req: BulkGenerateRequest):
     results = []
     for finding in req.findings[:20]:  # Cap at 20 per request
         suggestion = await engine.generate_fix(
-            finding=finding, repo_context=req.repo_context,
+            finding=finding,
+            repo_context=req.repo_context,
         )
         results.append(engine.to_dict(suggestion))
     return {"status": "ok", "fixes": results, "count": len(results)}
@@ -165,8 +183,6 @@ async def get_fix(fix_id: str):
     if not fix:
         raise HTTPException(status_code=404, detail=f"Fix {fix_id} not found")
     return {"status": "ok", "fix": engine.to_dict(fix)}
-
-
 
 
 @router.get("/suggestions/{finding_id}", summary="Get fix suggestions for a finding")
@@ -233,6 +249,7 @@ async def health():
 async def list_fix_types():
     """List all supported fix types."""
     from core.autofix_engine import FixType
+
     return {
         "status": "ok",
         "fix_types": [{"value": ft.value, "name": ft.name} for ft in FixType],

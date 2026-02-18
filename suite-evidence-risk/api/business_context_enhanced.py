@@ -3,15 +3,11 @@ Business Context API - FixOps YAML and OTM Support
 Handles business context upload and SSVC conversion
 """
 
-from typing import Any, Dict, Optional
 
 import structlog
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
-from src.services.business_context_processor import (
-    SSVCBusinessContext,
-    context_processor,
-)
+from src.services.business_context_processor import context_processor
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/business-context", tags=["business-context"])
@@ -83,14 +79,10 @@ async def upload_business_context(
 
     except ValueError as e:
         logger.warning(f"Context processing error: {e}")
-        raise HTTPException(
-            status_code=400, detail="Context processing error"
-        )
+        raise HTTPException(status_code=400, detail="Context processing error")
     except Exception as e:
         logger.error(f"Business context upload failed: {e}")
-        raise HTTPException(
-            status_code=500, detail="Upload processing failed"
-        )
+        raise HTTPException(status_code=500, detail="Upload processing failed")
 
 
 @router.get("/sample/{format_type}")

@@ -1,5 +1,6 @@
-import httpx
 import asyncio
+
+import httpx
 
 
 async def test():
@@ -35,4 +36,3 @@ async def test():
 
 
 asyncio.run(test())
-

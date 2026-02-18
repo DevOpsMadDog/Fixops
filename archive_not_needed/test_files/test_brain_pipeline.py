@@ -8,13 +8,13 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "suite-core"))
 
 from core.brain_pipeline import (
+    STEP_NAMES,
     BrainPipeline,
     PipelineInput,
     PipelineResult,
     PipelineStatus,
-    StepStatus,
     StepResult,
-    STEP_NAMES,
+    StepStatus,
     get_brain_pipeline,
 )
 
@@ -53,12 +53,27 @@ class TestBrainPipelineCoreSteps(unittest.TestCase):
     def setUp(self):
         self.pipeline = BrainPipeline()
         self.findings = [
-            {"id": "f1", "cve_id": "CVE-2024-1234", "severity": "critical",
-             "asset_name": "payments-api-prod", "title": "SQL Injection"},
-            {"id": "f2", "cve_id": "CVE-2024-5678", "severity": "high",
-             "asset_name": "auth-service", "title": "XSS in login"},
-            {"id": "f3", "cve_id": "CVE-2024-9999", "severity": "medium",
-             "asset_name": "payments_prod_api", "title": "Missing CSRF"},
+            {
+                "id": "f1",
+                "cve_id": "CVE-2024-1234",
+                "severity": "critical",
+                "asset_name": "payments-api-prod",
+                "title": "SQL Injection",
+            },
+            {
+                "id": "f2",
+                "cve_id": "CVE-2024-5678",
+                "severity": "high",
+                "asset_name": "auth-service",
+                "title": "XSS in login",
+            },
+            {
+                "id": "f3",
+                "cve_id": "CVE-2024-9999",
+                "severity": "medium",
+                "asset_name": "payments_prod_api",
+                "title": "Missing CSRF",
+            },
         ]
         self.assets = [
             {"id": "payments-api", "name": "payments-api-prod", "criticality": 1.5},
@@ -66,11 +81,13 @@ class TestBrainPipelineCoreSteps(unittest.TestCase):
         ]
 
     def test_run_core_pipeline(self):
-        result = self.pipeline.run(PipelineInput(
-            org_id="test-org",
-            findings=self.findings,
-            assets=self.assets,
-        ))
+        result = self.pipeline.run(
+            PipelineInput(
+                org_id="test-org",
+                findings=self.findings,
+                assets=self.assets,
+            )
+        )
         self.assertIn(result.status, (PipelineStatus.COMPLETED, PipelineStatus.PARTIAL))
         self.assertEqual(result.findings_ingested, 3)
         self.assertTrue(result.run_id.startswith("BR-"))
@@ -78,9 +95,13 @@ class TestBrainPipelineCoreSteps(unittest.TestCase):
         self.assertGreater(result.total_duration_ms, 0)
 
     def test_step1_connect(self):
-        result = self.pipeline.run(PipelineInput(
-            org_id="acme", findings=self.findings, assets=self.assets,
-        ))
+        result = self.pipeline.run(
+            PipelineInput(
+                org_id="acme",
+                findings=self.findings,
+                assets=self.assets,
+            )
+        )
         step = result.steps[0]
         self.assertEqual(step.name, "connect")
         self.assertEqual(step.status, StepStatus.COMPLETED)
@@ -88,18 +109,26 @@ class TestBrainPipelineCoreSteps(unittest.TestCase):
         self.assertEqual(step.output["assets_count"], 2)
 
     def test_step2_normalize(self):
-        result = self.pipeline.run(PipelineInput(
-            org_id="acme", findings=self.findings, assets=self.assets,
-        ))
+        result = self.pipeline.run(
+            PipelineInput(
+                org_id="acme",
+                findings=self.findings,
+                assets=self.assets,
+            )
+        )
         step = result.steps[1]
         self.assertEqual(step.name, "normalize")
         self.assertEqual(step.status, StepStatus.COMPLETED)
         self.assertEqual(step.output["normalized_count"], 3)
 
     def test_step6_enrich_threats(self):
-        result = self.pipeline.run(PipelineInput(
-            org_id="acme", findings=self.findings, assets=self.assets,
-        ))
+        result = self.pipeline.run(
+            PipelineInput(
+                org_id="acme",
+                findings=self.findings,
+                assets=self.assets,
+            )
+        )
         step = result.steps[5]
         self.assertEqual(step.name, "enrich_threats")
         self.assertIn(step.status, (StepStatus.COMPLETED, StepStatus.FAILED))
@@ -107,9 +136,13 @@ class TestBrainPipelineCoreSteps(unittest.TestCase):
             self.assertGreater(step.output.get("enriched", 0), 0)
 
     def test_step7_score_risk(self):
-        result = self.pipeline.run(PipelineInput(
-            org_id="acme", findings=self.findings, assets=self.assets,
-        ))
+        result = self.pipeline.run(
+            PipelineInput(
+                org_id="acme",
+                findings=self.findings,
+                assets=self.assets,
+            )
+        )
         step = result.steps[6]
         self.assertEqual(step.name, "score_risk")
         if step.status == StepStatus.COMPLETED:
@@ -117,18 +150,26 @@ class TestBrainPipelineCoreSteps(unittest.TestCase):
             self.assertGreater(step.output.get("avg_risk_score", 0), 0)
 
     def test_step8_apply_policy(self):
-        result = self.pipeline.run(PipelineInput(
-            org_id="acme", findings=self.findings, assets=self.assets,
-        ))
+        result = self.pipeline.run(
+            PipelineInput(
+                org_id="acme",
+                findings=self.findings,
+                assets=self.assets,
+            )
+        )
         step = result.steps[7]
         self.assertEqual(step.name, "apply_policy")
         if step.status == StepStatus.COMPLETED:
             self.assertIn("action_breakdown", step.output)
 
     def test_optional_steps_skipped(self):
-        result = self.pipeline.run(PipelineInput(
-            org_id="acme", findings=self.findings, assets=self.assets,
-        ))
+        result = self.pipeline.run(
+            PipelineInput(
+                org_id="acme",
+                findings=self.findings,
+                assets=self.assets,
+            )
+        )
         # Steps 10-12 should be skipped when not requested
         self.assertEqual(result.steps[9].name, "micro_pentest")
         self.assertEqual(result.steps[9].status, StepStatus.SKIPPED)
@@ -138,9 +179,13 @@ class TestBrainPipelineCoreSteps(unittest.TestCase):
         self.assertEqual(result.steps[11].status, StepStatus.SKIPPED)
 
     def test_get_run_and_list(self):
-        result = self.pipeline.run(PipelineInput(
-            org_id="acme", findings=self.findings, assets=self.assets,
-        ))
+        result = self.pipeline.run(
+            PipelineInput(
+                org_id="acme",
+                findings=self.findings,
+                assets=self.assets,
+            )
+        )
         fetched = self.pipeline.get_run(result.run_id)
         self.assertIsNotNone(fetched)
         self.assertEqual(fetched.run_id, result.run_id)
@@ -148,9 +193,13 @@ class TestBrainPipelineCoreSteps(unittest.TestCase):
         self.assertGreater(len(runs), 0)
 
     def test_to_dict(self):
-        result = self.pipeline.run(PipelineInput(
-            org_id="acme", findings=self.findings, assets=self.assets,
-        ))
+        result = self.pipeline.run(
+            PipelineInput(
+                org_id="acme",
+                findings=self.findings,
+                assets=self.assets,
+            )
+        )
         d = result.to_dict()
         self.assertEqual(d["org_id"], "acme")
         self.assertEqual(len(d["steps"]), 12)
@@ -172,4 +221,3 @@ class TestBrainPipelineEdgeCases(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

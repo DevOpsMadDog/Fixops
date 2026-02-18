@@ -2,9 +2,10 @@ import csv
 import re
 from pathlib import Path
 
+from ssvc.plugins import deployer
+
 import ssvc
 from core import DesignContextInjector
-from ssvc.plugins import deployer
 
 FIXTURE = Path(__file__).parent / "fixtures" / "design_context.csv"
 

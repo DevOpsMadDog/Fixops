@@ -31,7 +31,9 @@ def test_cors_includes_vite_dev_server(monkeypatch):
     origins = cors_middleware.kwargs["allow_origins"]
     # Vite dev server should be allowed
     assert "http://localhost:5173" in origins, "CORS should allow Vite dev server"
-    assert "http://127.0.0.1:5173" in origins, "CORS should allow Vite dev server on 127.0.0.1"
+    assert (
+        "http://127.0.0.1:5173" in origins
+    ), "CORS should allow Vite dev server on 127.0.0.1"
 
 
 def test_generate_access_token_expiry(monkeypatch):

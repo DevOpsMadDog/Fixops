@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
 """Check recent API logs for errors and empty responses."""
-import sqlite3, json
+import sqlite3
 
-db = sqlite3.connect('.fixops_data/api_detailed_logs.db')
+db = sqlite3.connect(".fixops_data/api_detailed_logs.db")
 
-total = db.execute("SELECT COUNT(*) FROM api_logs WHERE ts > datetime('now', '-30 minutes')").fetchone()[0]
-errors = db.execute("SELECT COUNT(*) FROM api_logs WHERE status_code >= 400 AND ts > datetime('now', '-30 minutes')").fetchone()[0]
+total = db.execute(
+    "SELECT COUNT(*) FROM api_logs WHERE ts > datetime('now', '-30 minutes')"
+).fetchone()[0]
+errors = db.execute(
+    "SELECT COUNT(*) FROM api_logs WHERE status_code >= 400 AND ts > datetime('now', '-30 minutes')"
+).fetchone()[0]
 
-print(f"=== RECENT LOGS (last 30 min) ===")
-print(f"Total: {total}, Errors: {errors}, Error Rate: {errors/max(total,1)*100:.1f}%")
+print("=== RECENT LOGS (last 30 min) ===")
+print(f"Total: {total}, Errors: {errors}, Error Rate: {errors/max(total, 1)*100:.1f}%")
 print()
 
-rows = db.execute("""
+rows = db.execute(
+    """
     SELECT method, path, status_code, COUNT(*) as cnt
     FROM api_logs
     WHERE status_code >= 400
@@ -19,7 +24,8 @@ rows = db.execute("""
     GROUP BY method, path, status_code
     ORDER BY cnt DESC
     LIMIT 20
-""").fetchall()
+"""
+).fetchall()
 
 if rows:
     print("Error endpoints:")
@@ -29,7 +35,8 @@ else:
     print("✅ NO ERRORS in last 30 minutes")
 
 # Check for empty 200 responses
-empty = db.execute("""
+empty = db.execute(
+    """
     SELECT method, path, COUNT(*) as cnt
     FROM api_logs
     WHERE status_code = 200
@@ -41,7 +48,8 @@ empty = db.execute("""
     GROUP BY method, path
     ORDER BY cnt DESC
     LIMIT 10
-""").fetchall()
+"""
+).fetchall()
 
 if empty:
     print()
@@ -52,14 +60,15 @@ if empty:
 # Status code distribution
 print()
 print("Status code distribution (last 30 min):")
-for r in db.execute("""
+for r in db.execute(
+    """
     SELECT status_code, COUNT(*) as cnt
     FROM api_logs
     WHERE ts > datetime('now', '-30 minutes')
     GROUP BY status_code
     ORDER BY cnt DESC
-""").fetchall():
+"""
+).fetchall():
     print(f"  HTTP {r[0]}: {r[1]}")
 
 db.close()
-

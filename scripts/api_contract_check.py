@@ -26,6 +26,7 @@ from typing import NamedTuple
 
 class EndpointSpec(NamedTuple):
     """An API endpoint specification from the mapping document."""
+
     method: str
     path: str
     screen: str
@@ -40,16 +41,16 @@ def parse_screen_api_mapping(mapping_path: Path) -> list[EndpointSpec]:
     current_screen = "Unknown"
 
     # Match screen headers like "### Dashboard (`/dashboard`)"
-    screen_pattern = re.compile(r'^###\s+([^(]+)\s*\(`([^`]+)`\)', re.MULTILINE)
+    screen_pattern = re.compile(r"^###\s+([^(]+)\s*\(`([^`]+)`\)", re.MULTILINE)
 
     # Match table rows with endpoint info
     # Format: | `api.xxx.method()` | `GET /api/v1/path` | Purpose |
     # or:     | `api.xxx.method()` | `GET /path` | Purpose |
     endpoint_pattern = re.compile(
-        r'\|\s*`[^`]+`\s*\|\s*`(GET|POST|PUT|DELETE|PATCH)\s+(/[^`]+)`\s*\|\s*([^|]+)\|'
+        r"\|\s*`[^`]+`\s*\|\s*`(GET|POST|PUT|DELETE|PATCH)\s+(/[^`]+)`\s*\|\s*([^|]+)\|"
     )
 
-    lines = content.split('\n')
+    lines = content.split("\n")
     for line in lines:
         screen_match = screen_pattern.match(line)
         if screen_match:
@@ -62,12 +63,11 @@ def parse_screen_api_mapping(mapping_path: Path) -> list[EndpointSpec]:
             path = endpoint_match.group(2).strip()
             purpose = endpoint_match.group(3).strip()
 
-            endpoints.append(EndpointSpec(
-                method=method,
-                path=path,
-                screen=current_screen,
-                purpose=purpose
-            ))
+            endpoints.append(
+                EndpointSpec(
+                    method=method, path=path, screen=current_screen, purpose=purpose
+                )
+            )
 
     return endpoints
 
@@ -75,15 +75,15 @@ def parse_screen_api_mapping(mapping_path: Path) -> list[EndpointSpec]:
 def normalize_path(path: str) -> str:
     """Normalize path for comparison, stripping query params."""
     # Remove query string if present
-    if '?' in path:
-        path = path.split('?')[0]
+    if "?" in path:
+        path = path.split("?")[0]
     return path.strip()
 
 
 def get_openapi_endpoints_from_url(url: str) -> set[tuple[str, str]]:
     """Fetch OpenAPI spec from URL and extract endpoints."""
-    import urllib.request
     import urllib.error
+    import urllib.request
 
     try:
         with urllib.request.urlopen(url, timeout=10) as response:
@@ -135,15 +135,15 @@ def path_matches(spec_path: str, openapi_path: str) -> bool:
     """Check if a spec path matches an OpenAPI path, handling path parameters."""
     # Convert path parameters to regex pattern
     # {param} in both -> match
-    spec_parts = spec_path.split('/')
-    openapi_parts = openapi_path.split('/')
+    spec_parts = spec_path.split("/")
+    openapi_parts = openapi_path.split("/")
 
     if len(spec_parts) != len(openapi_parts):
         return False
 
     for spec_part, openapi_part in zip(spec_parts, openapi_parts):
         # Both are parameters (e.g., {id} and {findingId})
-        if spec_part.startswith('{') and openapi_part.startswith('{'):
+        if spec_part.startswith("{") and openapi_part.startswith("{"):
             continue
         # Exact match
         if spec_part == openapi_part:
@@ -155,9 +155,7 @@ def path_matches(spec_path: str, openapi_path: str) -> bool:
 
 
 def find_matching_endpoint(
-    method: str,
-    path: str,
-    openapi_endpoints: set[tuple[str, str]]
+    method: str, path: str, openapi_endpoints: set[tuple[str, str]]
 ) -> bool:
     """Check if an endpoint exists in OpenAPI, handling path parameter variations."""
     # Normalize path (strip query params)
@@ -182,32 +180,29 @@ def main():
     parser.add_argument(
         "--openapi-url",
         default="http://localhost:8000/openapi.json",
-        help="URL to fetch OpenAPI spec from (default: http://localhost:8000/openapi.json)"
+        help="URL to fetch OpenAPI spec from (default: http://localhost:8000/openapi.json)",
     )
     parser.add_argument(
         "--introspect",
         action="store_true",
-        help="Import app directly instead of fetching from URL"
+        help="Import app directly instead of fetching from URL",
     )
     parser.add_argument(
         "--parse-only",
         action="store_true",
-        help="Only parse and display endpoints from mapping, don't verify"
+        help="Only parse and display endpoints from mapping, don't verify",
     )
     parser.add_argument(
         "--mapping",
         default=None,
-        help="Path to SCREEN_API_MAPPING.md (default: auto-detect)"
+        help="Path to SCREEN_API_MAPPING.md (default: auto-detect)",
     )
+    parser.add_argument("--json", action="store_true", help="Output results as JSON")
     parser.add_argument(
-        "--json",
+        "--verbose",
+        "-v",
         action="store_true",
-        help="Output results as JSON"
-    )
-    parser.add_argument(
-        "--verbose", "-v",
-        action="store_true",
-        help="Show all endpoints, not just missing ones"
+        help="Show all endpoints, not just missing ones",
     )
 
     args = parser.parse_args()
@@ -294,10 +289,10 @@ def main():
                     "method": ep.method,
                     "path": ep.path,
                     "screen": ep.screen,
-                    "purpose": ep.purpose
+                    "purpose": ep.purpose,
                 }
                 for ep in missing
-            ]
+            ],
         }
         print(json.dumps(result, indent=2))
     else:
@@ -318,7 +313,7 @@ def main():
                     print(f"    {ep.method:6} {ep.path} - {ep.purpose}")
             print()
 
-        print(f"\n--- Summary ---")
+        print("\n--- Summary ---")
         print(f"Mapped endpoints:  {len(endpoints)}")
         print(f"Found in OpenAPI:  {len(found)}")
         print(f"Missing:           {len(missing)}")

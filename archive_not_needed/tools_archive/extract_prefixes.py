@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Extract all APIRouter prefixes and route paths from the codebase."""
-import os, re
+import os
+import re
 
 SUITES = [
     "suite-api/apps/api",
@@ -72,4 +73,3 @@ with open(outpath, "w") as out:
             out.write(f"  {method.upper():6s} {full}\n")
     out.write(f"\n{'=' * 80}\n")
     out.write(f"TOTAL: {total} endpoints across {len(results)} router files\n")
-

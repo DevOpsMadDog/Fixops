@@ -9,10 +9,22 @@ os.chdir(BASE)
 results = []
 
 copies = [
-    ("suite-api/apps/api/enterprise_legacy/business_context.py", "suite-evidence-risk/api/business_context.py"),
-    ("suite-api/apps/api/enterprise_legacy/business_context_enhanced.py", "suite-evidence-risk/api/business_context_enhanced.py"),
-    ("suite-api/apps/api/enterprise_legacy/oss_tools.py", "suite-integrations/api/oss_tools.py"),
-    ("suite-api/apps/api/enterprise_legacy/decisions.py", "suite-core/api/decisions.py"),
+    (
+        "suite-api/apps/api/enterprise_legacy/business_context.py",
+        "suite-evidence-risk/api/business_context.py",
+    ),
+    (
+        "suite-api/apps/api/enterprise_legacy/business_context_enhanced.py",
+        "suite-evidence-risk/api/business_context_enhanced.py",
+    ),
+    (
+        "suite-api/apps/api/enterprise_legacy/oss_tools.py",
+        "suite-integrations/api/oss_tools.py",
+    ),
+    (
+        "suite-api/apps/api/enterprise_legacy/decisions.py",
+        "suite-core/api/decisions.py",
+    ),
 ]
 
 for src, dst in copies:
@@ -36,4 +48,3 @@ with open("_migrate_result.txt", "w") as f:
 
 for r in results:
     print(r)
-

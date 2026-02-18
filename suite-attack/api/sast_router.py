@@ -9,12 +9,11 @@ Endpoints:
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
+from core.sast_engine import SAST_RULES, get_sast_engine
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-
-from core.sast_engine import SASTEngine, SAST_RULES, get_sast_engine
 
 router = APIRouter(prefix="/api/v1/sast", tags=["SAST"])
 
@@ -52,11 +51,17 @@ async def list_rules() -> List[Dict[str, Any]]:
     rules = []
     for r in SAST_RULES:
         rid, title, sev, cwe, pat, msg, fix, langs = r
-        rules.append({
-            "rule_id": rid, "title": title, "severity": sev,
-            "cwe_id": cwe, "message": msg, "fix_suggestion": fix,
-            "languages": langs,
-        })
+        rules.append(
+            {
+                "rule_id": rid,
+                "title": title,
+                "severity": sev,
+                "cwe_id": cwe,
+                "message": msg,
+                "fix_suggestion": fix,
+                "languages": langs,
+            }
+        )
     return rules
 
 
@@ -70,4 +75,3 @@ async def sast_status() -> Dict[str, Any]:
         "languages": ["python", "javascript", "java", "go", "ruby", "php", "csharp"],
         "capabilities": ["pattern_matching", "taint_analysis", "cwe_mapping"],
     }
-

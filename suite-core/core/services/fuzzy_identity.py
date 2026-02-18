@@ -31,23 +31,61 @@ logger = logging.getLogger(__name__)
 # Common abbreviation expansions for infra/devops naming
 # ---------------------------------------------------------------------------
 ABBREVIATIONS: Dict[str, str] = {
-    "prod": "production", "stg": "staging", "dev": "development",
-    "svc": "service", "srv": "service", "api": "api", "fe": "frontend",
-    "be": "backend", "db": "database", "k8s": "kubernetes", "eks": "kubernetes",
-    "aks": "kubernetes", "gke": "kubernetes", "lb": "loadbalancer",
-    "elb": "loadbalancer", "alb": "loadbalancer", "nlb": "loadbalancer",
-    "rds": "database", "ec2": "compute", "vm": "compute", "fn": "function",
-    "lambda": "function", "gw": "gateway", "agw": "gateway",
-    "app": "application", "auth": "authentication", "authn": "authentication",
-    "authz": "authorization", "cfg": "config", "conf": "config",
-    "mgmt": "management", "mgt": "management", "mon": "monitoring",
-    "obs": "observability", "sec": "security", "vuln": "vulnerability",
-    "repo": "repository", "img": "image", "reg": "registry",
-    "ns": "namespace", "env": "environment", "cls": "cluster",
-    "wkr": "worker", "wrk": "worker", "msg": "message", "mq": "messagequeue",
-    "sqs": "messagequeue", "sns": "notification", "cdn": "contentdelivery",
-    "cf": "contentdelivery", "s3": "objectstorage", "gcs": "objectstorage",
-    "az": "azure", "aws": "aws", "gcp": "gcp",
+    "prod": "production",
+    "stg": "staging",
+    "dev": "development",
+    "svc": "service",
+    "srv": "service",
+    "api": "api",
+    "fe": "frontend",
+    "be": "backend",
+    "db": "database",
+    "k8s": "kubernetes",
+    "eks": "kubernetes",
+    "aks": "kubernetes",
+    "gke": "kubernetes",
+    "lb": "loadbalancer",
+    "elb": "loadbalancer",
+    "alb": "loadbalancer",
+    "nlb": "loadbalancer",
+    "rds": "database",
+    "ec2": "compute",
+    "vm": "compute",
+    "fn": "function",
+    "lambda": "function",
+    "gw": "gateway",
+    "agw": "gateway",
+    "app": "application",
+    "auth": "authentication",
+    "authn": "authentication",
+    "authz": "authorization",
+    "cfg": "config",
+    "conf": "config",
+    "mgmt": "management",
+    "mgt": "management",
+    "mon": "monitoring",
+    "obs": "observability",
+    "sec": "security",
+    "vuln": "vulnerability",
+    "repo": "repository",
+    "img": "image",
+    "reg": "registry",
+    "ns": "namespace",
+    "env": "environment",
+    "cls": "cluster",
+    "wkr": "worker",
+    "wrk": "worker",
+    "msg": "message",
+    "mq": "messagequeue",
+    "sqs": "messagequeue",
+    "sns": "notification",
+    "cdn": "contentdelivery",
+    "cf": "contentdelivery",
+    "s3": "objectstorage",
+    "gcs": "objectstorage",
+    "az": "azure",
+    "aws": "aws",
+    "gcp": "gcp",
 }
 
 # Delimiters for token splitting
@@ -67,6 +105,7 @@ class MatchStrategy(str, Enum):
 @dataclass
 class MatchResult:
     """Result of a fuzzy identity match."""
+
     canonical_id: str
     matched_name: str
     confidence: float  # 0.0 – 1.0
@@ -77,6 +116,7 @@ class MatchResult:
 # ---------------------------------------------------------------------------
 # Pure functions — Levenshtein & tokenization
 # ---------------------------------------------------------------------------
+
 
 def levenshtein_distance(s1: str, s2: str) -> int:
     """Compute Levenshtein edit distance between two strings."""
@@ -194,7 +234,9 @@ def compute_match_score(name_a: str, name_b: str) -> Tuple[float, MatchStrategy]
     ts_raw = token_set_similarity(tok_a, tok_b)
     ts_exp = token_set_similarity(exp_a, exp_b)
     best_ts = max(ts_raw, ts_exp)
-    strategy = MatchStrategy.ABBREVIATION if ts_exp > ts_raw else MatchStrategy.TOKEN_SET
+    strategy = (
+        MatchStrategy.ABBREVIATION if ts_exp > ts_raw else MatchStrategy.TOKEN_SET
+    )
     # 3. Levenshtein on normalized (no-delim) form
     norm_a = "".join(tok_a)
     norm_b = "".join(tok_b)
@@ -208,6 +250,7 @@ def compute_match_score(name_a: str, name_b: str) -> Tuple[float, MatchStrategy]
 # ---------------------------------------------------------------------------
 # FuzzyIdentityResolver — the main class
 # ---------------------------------------------------------------------------
+
 
 class FuzzyIdentityResolver:
     """
@@ -238,11 +281,14 @@ class FuzzyIdentityResolver:
         self._load_index()
         logger.info(
             "FuzzyIdentityResolver initialized: %d canonical assets, db=%s",
-            len(self._canonical_names), db_path,
+            len(self._canonical_names),
+            db_path,
         )
 
     @classmethod
-    def get_instance(cls, db_path: str = "fixops_identity.db") -> "FuzzyIdentityResolver":
+    def get_instance(
+        cls, db_path: str = "fixops_identity.db"
+    ) -> "FuzzyIdentityResolver":
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
@@ -261,7 +307,8 @@ class FuzzyIdentityResolver:
     # ------------------------------------------------------------------
     def _create_tables(self) -> None:
         with self._conn_lock:
-            self._conn.executescript("""
+            self._conn.executescript(
+                """
                 CREATE TABLE IF NOT EXISTS canonical_assets (
                     canonical_id TEXT PRIMARY KEY,
                     org_id       TEXT,
@@ -290,18 +337,23 @@ class FuzzyIdentityResolver:
                     org_id      TEXT,
                     created_at  TEXT NOT NULL
                 );
-            """)
+            """
+            )
 
     def _load_index(self) -> None:
         """Load canonical names and aliases into memory for fast matching."""
         with self._conn_lock:
-            cursor = self._conn.execute("SELECT canonical_id, org_id FROM canonical_assets")
+            cursor = self._conn.execute(
+                "SELECT canonical_id, org_id FROM canonical_assets"
+            )
             for row in cursor:
                 cid, org_id = row
                 self._canonical_names.setdefault(cid, set())
                 if org_id:
                     self._org_index.setdefault(org_id, set()).add(cid)
-            cursor = self._conn.execute("SELECT alias_name, canonical_id FROM asset_aliases")
+            cursor = self._conn.execute(
+                "SELECT alias_name, canonical_id FROM asset_aliases"
+            )
             for row in cursor:
                 alias, cid = row
                 self._canonical_names.setdefault(cid, set()).add(alias)
@@ -310,7 +362,9 @@ class FuzzyIdentityResolver:
     # Registration
     # ------------------------------------------------------------------
     def register_canonical(
-        self, canonical_id: str, org_id: Optional[str] = None,
+        self,
+        canonical_id: str,
+        org_id: Optional[str] = None,
         properties: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Register a canonical asset identity."""
@@ -331,8 +385,11 @@ class FuzzyIdentityResolver:
         return canonical_id
 
     def add_alias(
-        self, canonical_id: str, alias_name: str,
-        source: str = "manual", confidence: float = 1.0,
+        self,
+        canonical_id: str,
+        alias_name: str,
+        source: str = "manual",
+        confidence: float = 1.0,
     ) -> None:
         """Add an alias for a canonical asset."""
         now = datetime.now(timezone.utc).isoformat()
@@ -351,8 +408,11 @@ class FuzzyIdentityResolver:
     # Resolution
     # ------------------------------------------------------------------
     def resolve(
-        self, name: str, org_id: Optional[str] = None,
-        threshold: float = 0.65, top_k: int = 5,
+        self,
+        name: str,
+        org_id: Optional[str] = None,
+        threshold: float = 0.65,
+        top_k: int = 5,
     ) -> Optional[MatchResult]:
         """Resolve an asset name to its canonical identity.
 
@@ -371,43 +431,66 @@ class FuzzyIdentityResolver:
             if score > (best.confidence if best else threshold - 0.01):
                 if score >= threshold:
                     best = MatchResult(
-                        canonical_id=canonical_id, matched_name=canonical_id,
-                        confidence=score, strategy=strategy,
+                        canonical_id=canonical_id,
+                        matched_name=canonical_id,
+                        confidence=score,
+                        strategy=strategy,
                     )
 
             # Check all aliases
             for alias in aliases:
                 if alias == name_lower:
                     # Exact alias match
-                    self._log_resolution(name, canonical_id, 1.0, MatchStrategy.ALIAS, org_id)
+                    self._log_resolution(
+                        name, canonical_id, 1.0, MatchStrategy.ALIAS, org_id
+                    )
                     return MatchResult(
-                        canonical_id=canonical_id, matched_name=alias,
-                        confidence=1.0, strategy=MatchStrategy.ALIAS,
+                        canonical_id=canonical_id,
+                        matched_name=alias,
+                        confidence=1.0,
+                        strategy=MatchStrategy.ALIAS,
                     )
                 score, strategy = compute_match_score(name_lower, alias)
                 if score >= threshold and (best is None or score > best.confidence):
                     best = MatchResult(
-                        canonical_id=canonical_id, matched_name=alias,
-                        confidence=score, strategy=strategy,
+                        canonical_id=canonical_id,
+                        matched_name=alias,
+                        confidence=score,
+                        strategy=strategy,
                     )
 
         if best:
-            self._log_resolution(name, best.canonical_id, best.confidence, best.strategy, org_id)
+            self._log_resolution(
+                name, best.canonical_id, best.confidence, best.strategy, org_id
+            )
             # Auto-learn: if high confidence, register as alias
             if best.confidence >= 0.85 and best.strategy != MatchStrategy.ALIAS:
-                self.add_alias(best.canonical_id, name, source="auto_learned", confidence=best.confidence)
+                self.add_alias(
+                    best.canonical_id,
+                    name,
+                    source="auto_learned",
+                    confidence=best.confidence,
+                )
         return best
 
     def resolve_batch(
-        self, names: List[str], org_id: Optional[str] = None,
+        self,
+        names: List[str],
+        org_id: Optional[str] = None,
         threshold: float = 0.65,
     ) -> Dict[str, Optional[MatchResult]]:
         """Resolve a batch of asset names."""
-        return {name: self.resolve(name, org_id=org_id, threshold=threshold) for name in names}
+        return {
+            name: self.resolve(name, org_id=org_id, threshold=threshold)
+            for name in names
+        }
 
     def find_similar(
-        self, name: str, org_id: Optional[str] = None,
-        threshold: float = 0.5, top_k: int = 10,
+        self,
+        name: str,
+        org_id: Optional[str] = None,
+        threshold: float = 0.5,
+        top_k: int = 10,
     ) -> List[MatchResult]:
         """Find all similar canonical assets above threshold."""
         candidates = self._get_candidates(org_id)
@@ -429,10 +512,14 @@ class FuzzyIdentityResolver:
                     best_score, best_strategy, best_matched = score, strategy, alias
 
             if best_score >= threshold:
-                results.append(MatchResult(
-                    canonical_id=canonical_id, matched_name=best_matched,
-                    confidence=best_score, strategy=best_strategy,
-                ))
+                results.append(
+                    MatchResult(
+                        canonical_id=canonical_id,
+                        matched_name=best_matched,
+                        confidence=best_score,
+                        strategy=best_strategy,
+                    )
+                )
 
         results.sort(key=lambda r: r.confidence, reverse=True)
         return results[:top_k]
@@ -443,13 +530,19 @@ class FuzzyIdentityResolver:
     def _get_candidates(self, org_id: Optional[str]) -> Dict[str, Set[str]]:
         """Get candidate canonical assets, optionally filtered by org."""
         if org_id and org_id in self._org_index:
-            return {cid: self._canonical_names.get(cid, set())
-                    for cid in self._org_index[org_id]}
+            return {
+                cid: self._canonical_names.get(cid, set())
+                for cid in self._org_index[org_id]
+            }
         return dict(self._canonical_names)
 
     def _log_resolution(
-        self, input_name: str, resolved_to: Optional[str],
-        confidence: float, strategy: MatchStrategy, org_id: Optional[str],
+        self,
+        input_name: str,
+        resolved_to: Optional[str],
+        confidence: float,
+        strategy: MatchStrategy,
+        org_id: Optional[str],
     ) -> None:
         now = datetime.now(timezone.utc).isoformat()
         try:
@@ -467,14 +560,17 @@ class FuzzyIdentityResolver:
         with self._conn_lock:
             where = "WHERE org_id = ?" if org_id else ""
             params: list = [org_id] if org_id else []
-            total = self._conn.execute(f"SELECT COUNT(*) FROM resolution_log {where}", params).fetchone()[0]
+            total = self._conn.execute(
+                f"SELECT COUNT(*) FROM resolution_log {where}", params
+            ).fetchone()[0]
             resolved = self._conn.execute(
                 f"SELECT COUNT(*) FROM resolution_log {where} {'AND' if org_id else 'WHERE'} resolved_to IS NOT NULL",
                 params,
             ).fetchone()[0]
             by_strategy = {}
             cursor = self._conn.execute(
-                f"SELECT strategy, COUNT(*) FROM resolution_log {where} GROUP BY strategy", params
+                f"SELECT strategy, COUNT(*) FROM resolution_log {where} GROUP BY strategy",
+                params,
             )
             for row in cursor:
                 by_strategy[row[0]] = row[1]
@@ -487,7 +583,9 @@ class FuzzyIdentityResolver:
             "total_aliases": sum(len(a) for a in self._canonical_names.values()),
         }
 
-    def list_canonical(self, org_id: Optional[str] = None, limit: int = 100) -> List[Dict[str, Any]]:
+    def list_canonical(
+        self, org_id: Optional[str] = None, limit: int = 100
+    ) -> List[Dict[str, Any]]:
         """List canonical assets."""
         with self._conn_lock:
             if org_id:
@@ -501,8 +599,13 @@ class FuzzyIdentityResolver:
                     (limit,),
                 )
             return [
-                {"canonical_id": r[0], "org_id": r[1], "properties": json.loads(r[2]),
-                 "created_at": r[3], "aliases": list(self._canonical_names.get(r[0], set()))}
+                {
+                    "canonical_id": r[0],
+                    "org_id": r[1],
+                    "properties": json.loads(r[2]),
+                    "created_at": r[3],
+                    "aliases": list(self._canonical_names.get(r[0], set())),
+                }
                 for r in cursor
             ]
 
@@ -514,4 +617,3 @@ class FuzzyIdentityResolver:
 def get_fuzzy_resolver(db_path: str = "fixops_identity.db") -> FuzzyIdentityResolver:
     """Get the global FuzzyIdentityResolver instance."""
     return FuzzyIdentityResolver.get_instance(db_path=db_path)
-

@@ -14,16 +14,14 @@ Stages: Reconnaissance → Initial Access → Execution → Persistence →
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
-import json
 import logging
 import time
 import uuid
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 class KillChainPhase(str, Enum):
     """MITRE ATT&CK kill chain phases."""
+
     RECONNAISSANCE = "reconnaissance"
     INITIAL_ACCESS = "initial_access"
     EXECUTION = "execution"
@@ -78,50 +77,164 @@ class ThreatActorProfile(str, Enum):
 MITRE_TECHNIQUES: Dict[str, Dict[str, Any]] = {
     # Reconnaissance
     "T1595": {"name": "Active Scanning", "phase": "reconnaissance", "severity": 0.3},
-    "T1592": {"name": "Gather Victim Host Info", "phase": "reconnaissance", "severity": 0.2},
-    "T1589": {"name": "Gather Victim Identity Info", "phase": "reconnaissance", "severity": 0.3},
-    "T1590": {"name": "Gather Victim Network Info", "phase": "reconnaissance", "severity": 0.4},
-    "T1591": {"name": "Gather Victim Org Info", "phase": "reconnaissance", "severity": 0.2},
+    "T1592": {
+        "name": "Gather Victim Host Info",
+        "phase": "reconnaissance",
+        "severity": 0.2,
+    },
+    "T1589": {
+        "name": "Gather Victim Identity Info",
+        "phase": "reconnaissance",
+        "severity": 0.3,
+    },
+    "T1590": {
+        "name": "Gather Victim Network Info",
+        "phase": "reconnaissance",
+        "severity": 0.4,
+    },
+    "T1591": {
+        "name": "Gather Victim Org Info",
+        "phase": "reconnaissance",
+        "severity": 0.2,
+    },
     # Initial Access
-    "T1190": {"name": "Exploit Public-Facing Application", "phase": "initial_access", "severity": 0.9},
-    "T1133": {"name": "External Remote Services", "phase": "initial_access", "severity": 0.7},
+    "T1190": {
+        "name": "Exploit Public-Facing Application",
+        "phase": "initial_access",
+        "severity": 0.9,
+    },
+    "T1133": {
+        "name": "External Remote Services",
+        "phase": "initial_access",
+        "severity": 0.7,
+    },
     "T1566": {"name": "Phishing", "phase": "initial_access", "severity": 0.8},
     "T1078": {"name": "Valid Accounts", "phase": "initial_access", "severity": 0.8},
-    "T1189": {"name": "Drive-by Compromise", "phase": "initial_access", "severity": 0.6},
-    "T1195": {"name": "Supply Chain Compromise", "phase": "initial_access", "severity": 0.95},
+    "T1189": {
+        "name": "Drive-by Compromise",
+        "phase": "initial_access",
+        "severity": 0.6,
+    },
+    "T1195": {
+        "name": "Supply Chain Compromise",
+        "phase": "initial_access",
+        "severity": 0.95,
+    },
     # Execution
-    "T1059": {"name": "Command and Scripting Interpreter", "phase": "execution", "severity": 0.7},
-    "T1203": {"name": "Exploitation for Client Execution", "phase": "execution", "severity": 0.8},
-    "T1047": {"name": "Windows Management Instrumentation", "phase": "execution", "severity": 0.6},
+    "T1059": {
+        "name": "Command and Scripting Interpreter",
+        "phase": "execution",
+        "severity": 0.7,
+    },
+    "T1203": {
+        "name": "Exploitation for Client Execution",
+        "phase": "execution",
+        "severity": 0.8,
+    },
+    "T1047": {
+        "name": "Windows Management Instrumentation",
+        "phase": "execution",
+        "severity": 0.6,
+    },
     "T1053": {"name": "Scheduled Task/Job", "phase": "execution", "severity": 0.5},
     # Persistence
     "T1098": {"name": "Account Manipulation", "phase": "persistence", "severity": 0.7},
     "T1136": {"name": "Create Account", "phase": "persistence", "severity": 0.6},
-    "T1547": {"name": "Boot or Logon Autostart Execution", "phase": "persistence", "severity": 0.7},
-    "T1505": {"name": "Server Software Component (Web Shell)", "phase": "persistence", "severity": 0.9},
+    "T1547": {
+        "name": "Boot or Logon Autostart Execution",
+        "phase": "persistence",
+        "severity": 0.7,
+    },
+    "T1505": {
+        "name": "Server Software Component (Web Shell)",
+        "phase": "persistence",
+        "severity": 0.9,
+    },
     # Privilege Escalation
-    "T1068": {"name": "Exploitation for Privilege Escalation", "phase": "privilege_escalation", "severity": 0.9},
-    "T1548": {"name": "Abuse Elevation Control Mechanism", "phase": "privilege_escalation", "severity": 0.8},
-    "T1134": {"name": "Access Token Manipulation", "phase": "privilege_escalation", "severity": 0.7},
+    "T1068": {
+        "name": "Exploitation for Privilege Escalation",
+        "phase": "privilege_escalation",
+        "severity": 0.9,
+    },
+    "T1548": {
+        "name": "Abuse Elevation Control Mechanism",
+        "phase": "privilege_escalation",
+        "severity": 0.8,
+    },
+    "T1134": {
+        "name": "Access Token Manipulation",
+        "phase": "privilege_escalation",
+        "severity": 0.7,
+    },
     # Lateral Movement
     "T1021": {"name": "Remote Services", "phase": "lateral_movement", "severity": 0.7},
-    "T1550": {"name": "Use Alternate Authentication Material", "phase": "lateral_movement", "severity": 0.8},
-    "T1570": {"name": "Lateral Tool Transfer", "phase": "lateral_movement", "severity": 0.6},
-    "T1210": {"name": "Exploitation of Remote Services", "phase": "lateral_movement", "severity": 0.9},
+    "T1550": {
+        "name": "Use Alternate Authentication Material",
+        "phase": "lateral_movement",
+        "severity": 0.8,
+    },
+    "T1570": {
+        "name": "Lateral Tool Transfer",
+        "phase": "lateral_movement",
+        "severity": 0.6,
+    },
+    "T1210": {
+        "name": "Exploitation of Remote Services",
+        "phase": "lateral_movement",
+        "severity": 0.9,
+    },
     # Command & Control
-    "T1071": {"name": "Application Layer Protocol", "phase": "command_and_control", "severity": 0.6},
-    "T1573": {"name": "Encrypted Channel", "phase": "command_and_control", "severity": 0.5},
-    "T1105": {"name": "Ingress Tool Transfer", "phase": "command_and_control", "severity": 0.7},
-    "T1572": {"name": "Protocol Tunneling", "phase": "command_and_control", "severity": 0.6},
+    "T1071": {
+        "name": "Application Layer Protocol",
+        "phase": "command_and_control",
+        "severity": 0.6,
+    },
+    "T1573": {
+        "name": "Encrypted Channel",
+        "phase": "command_and_control",
+        "severity": 0.5,
+    },
+    "T1105": {
+        "name": "Ingress Tool Transfer",
+        "phase": "command_and_control",
+        "severity": 0.7,
+    },
+    "T1572": {
+        "name": "Protocol Tunneling",
+        "phase": "command_and_control",
+        "severity": 0.6,
+    },
     # Exfiltration
-    "T1041": {"name": "Exfiltration Over C2 Channel", "phase": "exfiltration", "severity": 0.8},
-    "T1048": {"name": "Exfiltration Over Alternative Protocol", "phase": "exfiltration", "severity": 0.7},
-    "T1567": {"name": "Exfiltration Over Web Service", "phase": "exfiltration", "severity": 0.8},
-    "T1537": {"name": "Transfer Data to Cloud Account", "phase": "exfiltration", "severity": 0.9},
+    "T1041": {
+        "name": "Exfiltration Over C2 Channel",
+        "phase": "exfiltration",
+        "severity": 0.8,
+    },
+    "T1048": {
+        "name": "Exfiltration Over Alternative Protocol",
+        "phase": "exfiltration",
+        "severity": 0.7,
+    },
+    "T1567": {
+        "name": "Exfiltration Over Web Service",
+        "phase": "exfiltration",
+        "severity": 0.8,
+    },
+    "T1537": {
+        "name": "Transfer Data to Cloud Account",
+        "phase": "exfiltration",
+        "severity": 0.9,
+    },
 }
 
 PRIVILEGE_LEVELS = [
-    "anonymous", "guest", "user", "power_user", "admin", "system", "root",
+    "anonymous",
+    "guest",
+    "user",
+    "power_user",
+    "admin",
+    "system",
+    "root",
 ]
 
 LATERAL_TECHNIQUES = {
@@ -144,6 +257,7 @@ LATERAL_TECHNIQUES = {
 @dataclass
 class AttackStep:
     """A single step in an attack simulation."""
+
     step_id: str = ""
     phase: KillChainPhase = KillChainPhase.RECONNAISSANCE
     technique_id: str = ""
@@ -169,6 +283,7 @@ class AttackStep:
 @dataclass
 class AttackPath:
     """A sequence of steps forming an attack path."""
+
     path_id: str = ""
     steps: List[AttackStep] = field(default_factory=list)
     entry_point: str = ""
@@ -186,6 +301,7 @@ class AttackPath:
 @dataclass
 class BreachImpact:
     """Business impact assessment of a simulated breach."""
+
     financial_loss_min: float = 0.0
     financial_loss_max: float = 0.0
     financial_loss_expected: float = 0.0
@@ -201,6 +317,7 @@ class BreachImpact:
 @dataclass
 class AttackScenario:
     """A pre-defined or AI-generated attack scenario."""
+
     scenario_id: str = ""
     name: str = ""
     description: str = ""
@@ -226,6 +343,7 @@ class AttackScenario:
 @dataclass
 class CampaignResult:
     """Results of a full attack simulation campaign."""
+
     campaign_id: str = ""
     scenario: Optional[AttackScenario] = None
     status: CampaignStatus = CampaignStatus.DRAFT
@@ -276,6 +394,7 @@ class AttackSimulationEngine:
         if self._brain is None:
             try:
                 from core.knowledge_brain import get_brain
+
                 self._brain = get_brain()
             except Exception:
                 pass
@@ -285,6 +404,7 @@ class AttackSimulationEngine:
         if self._bus is None:
             try:
                 from core.event_bus import get_event_bus
+
                 self._bus = get_event_bus()
             except Exception:
                 pass
@@ -294,6 +414,7 @@ class AttackSimulationEngine:
         if self._llm is None:
             try:
                 from core.llm_providers import LLMProviderManager
+
                 self._llm = LLMProviderManager()
             except Exception:
                 pass
@@ -303,6 +424,7 @@ class AttackSimulationEngine:
         if self._gnn is None:
             try:
                 from core.attack_graph_gnn import GraphNeuralPredictor
+
                 self._gnn = GraphNeuralPredictor()
             except Exception:
                 pass
@@ -322,8 +444,16 @@ class AttackSimulationEngine:
         initial_access_vector: str = "",
     ) -> AttackScenario:
         """Create a new attack scenario."""
-        actor = ThreatActorProfile(threat_actor) if threat_actor in [e.value for e in ThreatActorProfile] else ThreatActorProfile.CYBERCRIMINAL
-        cmplx = AttackComplexity(complexity) if complexity in [e.value for e in AttackComplexity] else AttackComplexity.MEDIUM
+        actor = (
+            ThreatActorProfile(threat_actor)
+            if threat_actor in [e.value for e in ThreatActorProfile]
+            else ThreatActorProfile.CYBERCRIMINAL
+        )
+        cmplx = (
+            AttackComplexity(complexity)
+            if complexity in [e.value for e in AttackComplexity]
+            else AttackComplexity.MEDIUM
+        )
 
         scenario = AttackScenario(
             name=name,
@@ -336,7 +466,10 @@ class AttackSimulationEngine:
             initial_access_vector=initial_access_vector or "T1190",
         )
         self._scenarios[scenario.scenario_id] = scenario
-        logger.info("scenario.created", extra={"scenario_id": scenario.scenario_id, "scenario_name": name})
+        logger.info(
+            "scenario.created",
+            extra={"scenario_id": scenario.scenario_id, "scenario_name": name},
+        )
         return scenario
 
     def list_scenarios(self) -> List[AttackScenario]:
@@ -379,7 +512,9 @@ class AttackSimulationEngine:
             except Exception as exc:
                 logger.warning("llm_scenario_generation.failed: %s", exc)
 
-        reasoning = llm_response.reasoning if llm_response else "AI-generated red team scenario"
+        reasoning = (
+            llm_response.reasoning if llm_response else "AI-generated red team scenario"
+        )
         confidence = llm_response.confidence if llm_response else 0.6
 
         # Map confidence to complexity
@@ -398,7 +533,11 @@ class AttackSimulationEngine:
             threat_actor=threat_actor,
             complexity=complexity,
             target_cves=cve_ids or [],
-            objectives=["validate_vulnerability", "assess_blast_radius", "test_detection"],
+            objectives=[
+                "validate_vulnerability",
+                "assess_blast_radius",
+                "test_detection",
+            ],
             initial_access_vector="T1190",
         )
         return scenario
@@ -432,12 +571,19 @@ class AttackSimulationEngine:
         if bus:
             try:
                 from core.event_bus import Event, EventType
-                await bus.emit(Event(
-                    event_type=EventType.ATTACK_SIMULATED,
-                    source="attack_simulation_engine",
-                    data={"campaign_id": campaign.campaign_id, "action": "started", "scenario": scenario.name},
-                    org_id=org_id,
-                ))
+
+                await bus.emit(
+                    Event(
+                        event_type=EventType.ATTACK_SIMULATED,
+                        source="attack_simulation_engine",
+                        data={
+                            "campaign_id": campaign.campaign_id,
+                            "action": "started",
+                            "scenario": scenario.name,
+                        },
+                        org_id=org_id,
+                    )
+                )
             except Exception:
                 pass
 
@@ -459,20 +605,27 @@ class AttackSimulationEngine:
             campaign.breach_impact = self._assess_breach_impact(all_steps, scenario)
 
             # Generate executive summary
-            campaign.executive_summary = await self._generate_executive_summary(campaign)
+            campaign.executive_summary = await self._generate_executive_summary(
+                campaign
+            )
 
             # Generate recommendations
             campaign.recommendations = self._generate_recommendations(campaign)
 
             # Finalize
             campaign.steps_executed = len(all_steps)
-            campaign.steps_succeeded = sum(1 for s in all_steps if s.status == "succeeded")
+            campaign.steps_succeeded = sum(
+                1 for s in all_steps if s.status == "succeeded"
+            )
             campaign.steps_failed = sum(1 for s in all_steps if s.status == "failed")
             campaign.risk_score = self._calculate_risk_score(campaign)
             campaign.status = CampaignStatus.COMPLETED
             campaign.completed_at = datetime.now(timezone.utc).isoformat()
             campaign.total_duration_seconds = (
-                time.time() - datetime.fromisoformat(campaign.started_at.replace("Z", "+00:00")).timestamp()
+                time.time()
+                - datetime.fromisoformat(
+                    campaign.started_at.replace("Z", "+00:00")
+                ).timestamp()
             )
 
         except Exception as exc:
@@ -488,18 +641,21 @@ class AttackSimulationEngine:
         if bus:
             try:
                 from core.event_bus import Event, EventType
-                await bus.emit(Event(
-                    event_type=EventType.ATTACK_SIMULATED,
-                    source="attack_simulation_engine",
-                    data={
-                        "campaign_id": campaign.campaign_id,
-                        "action": "completed",
-                        "status": campaign.status.value,
-                        "risk_score": campaign.risk_score,
-                        "steps_succeeded": campaign.steps_succeeded,
-                    },
-                    org_id=org_id,
-                ))
+
+                await bus.emit(
+                    Event(
+                        event_type=EventType.ATTACK_SIMULATED,
+                        source="attack_simulation_engine",
+                        data={
+                            "campaign_id": campaign.campaign_id,
+                            "action": "completed",
+                            "status": campaign.status.value,
+                            "risk_score": campaign.risk_score,
+                            "steps_succeeded": campaign.steps_succeeded,
+                        },
+                        org_id=org_id,
+                    )
+                )
             except Exception:
                 pass
 
@@ -523,7 +679,8 @@ class AttackSimulationEngine:
     ) -> List[AttackStep]:
         """Execute a single kill chain phase, returning steps."""
         techniques = [
-            (tid, info) for tid, info in MITRE_TECHNIQUES.items()
+            (tid, info)
+            for tid, info in MITRE_TECHNIQUES.items()
             if info["phase"] == phase.value
         ]
         if not techniques:
@@ -535,7 +692,9 @@ class AttackSimulationEngine:
                 phase=phase,
                 technique_id=technique_id,
                 technique_name=technique_info["name"],
-                target_asset=scenario.target_assets[0] if scenario.target_assets else "primary_target",
+                target_asset=scenario.target_assets[0]
+                if scenario.target_assets
+                else "primary_target",
                 success_probability=technique_info["severity"],
                 impact_score=technique_info["severity"],
             )
@@ -549,7 +708,9 @@ class AttackSimulationEngine:
 
         return steps
 
-    async def _llm_enrich_step(self, step: AttackStep, scenario: AttackScenario) -> AttackStep:
+    async def _llm_enrich_step(
+        self, step: AttackStep, scenario: AttackScenario
+    ) -> AttackStep:
         """Enrich a step with LLM-generated context."""
         llm = self._get_llm()
         if not llm:
@@ -576,10 +737,14 @@ class AttackSimulationEngine:
                 default_reasoning=f"Simulating {step.technique_name}",
             )
             step.description = resp.reasoning[:300]
-            step.mitigations = list(resp.compliance_concerns[:5]) if resp.compliance_concerns else [
-                f"Monitor for {step.technique_name} indicators",
-                f"Implement detection rules for {step.technique_id}",
-            ]
+            step.mitigations = (
+                list(resp.compliance_concerns[:5])
+                if resp.compliance_concerns
+                else [
+                    f"Monitor for {step.technique_name} indicators",
+                    f"Implement detection rules for {step.technique_id}",
+                ]
+            )
             step.success_probability = resp.confidence
         except Exception as exc:
             logger.debug("llm_enrich_step.fallback: %s", exc)
@@ -588,7 +753,9 @@ class AttackSimulationEngine:
 
         return step
 
-    def _simulate_step_execution(self, step: AttackStep, scenario: AttackScenario) -> AttackStep:
+    def _simulate_step_execution(
+        self, step: AttackStep, scenario: AttackScenario
+    ) -> AttackStep:
         """Simulate whether a step succeeds based on probability and threat actor profile."""
         # Adjust success probability based on threat actor sophistication
         actor_multipliers = {
@@ -614,7 +781,9 @@ class AttackSimulationEngine:
             step.duration_seconds = round(hash_value * 120 + 5, 1)
         else:
             step.status = "failed"
-            step.output = f"Failed to execute {step.technique_name} — detected or blocked"
+            step.output = (
+                f"Failed to execute {step.technique_name} — detected or blocked"
+            )
             step.duration_seconds = round(hash_value * 30 + 2, 1)
 
         return step
@@ -665,7 +834,9 @@ class AttackSimulationEngine:
 
     # ---- MITRE Coverage ----
 
-    def _calculate_mitre_coverage(self, steps: List[AttackStep]) -> Dict[str, List[str]]:
+    def _calculate_mitre_coverage(
+        self, steps: List[AttackStep]
+    ) -> Dict[str, List[str]]:
         """Calculate MITRE ATT&CK technique coverage."""
         coverage: Dict[str, List[str]] = {}
         for step in steps:
@@ -711,10 +882,21 @@ class AttackSimulationEngine:
         # Compliance violations
         violations = []
         if exfil_succeeded:
-            violations.extend(["GDPR Art. 33 (breach notification)", "PCI-DSS 12.10 (incident response)"])
-        if any(s.phase == KillChainPhase.PERSISTENCE and s.status == "succeeded" for s in steps):
+            violations.extend(
+                [
+                    "GDPR Art. 33 (breach notification)",
+                    "PCI-DSS 12.10 (incident response)",
+                ]
+            )
+        if any(
+            s.phase == KillChainPhase.PERSISTENCE and s.status == "succeeded"
+            for s in steps
+        ):
             violations.append("SOC2 CC7.2 (system monitoring)")
-        if any(s.phase == KillChainPhase.PRIVILEGE_ESCALATION and s.status == "succeeded" for s in steps):
+        if any(
+            s.phase == KillChainPhase.PRIVILEGE_ESCALATION and s.status == "succeeded"
+            for s in steps
+        ):
             violations.append("HIPAA 164.312(a) (access control)")
 
         # Recovery time
@@ -744,7 +926,8 @@ class AttackSimulationEngine:
             systems_compromised=len(set(s.target_asset for s in succeeded)),
             recovery_time_hours=round(recovery_hours, 1),
             compliance_violations=violations,
-            affected_business_units=["IT", "Security"] + (["Legal", "PR"] if exfil_succeeded else []),
+            affected_business_units=["IT", "Security"]
+            + (["Legal", "PR"] if exfil_succeeded else []),
             reputation_impact=reputation,
             regulatory_notifications=notifications,
         )
@@ -819,9 +1002,14 @@ class AttackSimulationEngine:
         if campaign.breach_impact:
             bi = campaign.breach_impact
             if bi.compliance_violations:
-                recs.append(f"Address {len(bi.compliance_violations)} compliance violations: {', '.join(bi.compliance_violations[:3])}")
+                recs.append(
+                    f"Address {len(bi.compliance_violations)} compliance violations: {', '.join(bi.compliance_violations[:3])}"
+                )
             if bi.reputation_impact in ("high", "critical"):
-                recs.append("URGENT: Implement incident response playbook — reputation impact is " + bi.reputation_impact)
+                recs.append(
+                    "URGENT: Implement incident response playbook — reputation impact is "
+                    + bi.reputation_impact
+                )
 
         # Deduplicate
         seen = set()
@@ -834,36 +1022,45 @@ class AttackSimulationEngine:
 
     # ---- Brain Persistence ----
 
-    def _persist_to_brain(self, campaign: CampaignResult, org_id: Optional[str] = None) -> None:
+    def _persist_to_brain(
+        self, campaign: CampaignResult, org_id: Optional[str] = None
+    ) -> None:
         """Write campaign results to the Knowledge Graph."""
         brain = self._get_brain()
         if not brain:
             return
         try:
-            from core.knowledge_brain import GraphNode, GraphEdge, EntityType, EdgeType
+            from core.knowledge_brain import EdgeType, EntityType, GraphEdge, GraphNode
+
             # Create campaign node
-            brain.upsert_node(GraphNode(
-                node_id=f"attack:{campaign.campaign_id}",
-                node_type=EntityType.ATTACK,
-                org_id=org_id,
-                properties={
-                    "campaign_id": campaign.campaign_id,
-                    "status": campaign.status.value,
-                    "risk_score": campaign.risk_score,
-                    "steps_executed": campaign.steps_executed,
-                    "steps_succeeded": campaign.steps_succeeded,
-                    "scenario_name": campaign.scenario.name if campaign.scenario else "",
-                },
-            ))
+            brain.upsert_node(
+                GraphNode(
+                    node_id=f"attack:{campaign.campaign_id}",
+                    node_type=EntityType.ATTACK,
+                    org_id=org_id,
+                    properties={
+                        "campaign_id": campaign.campaign_id,
+                        "status": campaign.status.value,
+                        "risk_score": campaign.risk_score,
+                        "steps_executed": campaign.steps_executed,
+                        "steps_succeeded": campaign.steps_succeeded,
+                        "scenario_name": campaign.scenario.name
+                        if campaign.scenario
+                        else "",
+                    },
+                )
+            )
             # Link to target CVEs
             if campaign.scenario:
                 for cve_id in campaign.scenario.target_cves:
-                    brain.add_edge(GraphEdge(
-                        source_id=f"attack:{campaign.campaign_id}",
-                        target_id=f"cve:{cve_id}",
-                        edge_type=EdgeType.EXPLOITS,
-                        properties={"campaign": campaign.campaign_id},
-                    ))
+                    brain.add_edge(
+                        GraphEdge(
+                            source_id=f"attack:{campaign.campaign_id}",
+                            target_id=f"cve:{cve_id}",
+                            edge_type=EdgeType.EXPLOITS,
+                            properties={"campaign": campaign.campaign_id},
+                        )
+                    )
         except Exception as exc:
             logger.debug("persist_to_brain.failed: %s", exc)
 
@@ -921,4 +1118,3 @@ __all__ = [
     "ThreatActorProfile",
     "get_attack_simulation_engine",
 ]
-

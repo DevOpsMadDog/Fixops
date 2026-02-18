@@ -18,7 +18,6 @@ except Exception:  # pragma: no cover - optional dependency
     nx = None  # type: ignore[assignment]
 
 from packaging.version import InvalidVersion, Version
-
 from services.provenance.attestation import ProvenanceAttestation, load_attestation
 from telemetry import get_meter, get_tracer
 
@@ -202,10 +201,18 @@ class ProvenanceGraph:
             """
         )
         # Indexes for fast graph traversal
-        self.connection.execute("CREATE INDEX IF NOT EXISTS idx_nodes_type ON nodes(type)")
-        self.connection.execute("CREATE INDEX IF NOT EXISTS idx_edges_source ON edges(source)")
-        self.connection.execute("CREATE INDEX IF NOT EXISTS idx_edges_target ON edges(target)")
-        self.connection.execute("CREATE INDEX IF NOT EXISTS idx_edges_type ON edges(type)")
+        self.connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_nodes_type ON nodes(type)"
+        )
+        self.connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_edges_source ON edges(source)"
+        )
+        self.connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_edges_target ON edges(target)"
+        )
+        self.connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_edges_type ON edges(type)"
+        )
         if nx is None:
             logger.warning(
                 "networkx unavailable; falling back to simplified provenance graph implementation"

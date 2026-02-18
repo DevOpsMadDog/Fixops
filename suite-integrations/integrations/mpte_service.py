@@ -104,9 +104,7 @@ class AdvancedMPTEService:
                 "priority": priority.value,
                 "finding_id": finding_id,
             }
-            mpte_test_id = await self.client.create_test(
-                target_url, test_type, config
-            )
+            mpte_test_id = await self.client.create_test(target_url, test_type, config)
 
             # Update request with MPTE job ID
             request.mpte_job_id = mpte_test_id

@@ -1,6 +1,6 @@
 """ALdeci Vulnerability Discovery API Router.
 
-APIs for contributing pentest-discovered vulnerabilities to the internal 
+APIs for contributing pentest-discovered vulnerabilities to the internal
 vulnerability database and optionally to public CVE programs.
 
 This makes ALdeci unique - we don't just consume vulnerability data,
@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel, Field, validator
 
 # Knowledge Brain + Event Bus integration (graceful degradation)
@@ -45,7 +45,7 @@ router = APIRouter(prefix="/api/v1/vulns", tags=["vulnerability-discovery"])
 
 class DiscoverySource(str, Enum):
     """How the vulnerability was discovered."""
-    
+
     PENTEST_MANUAL = "pentest_manual"
     PENTEST_AUTOMATED = "pentest_automated"
     BUG_BOUNTY = "bug_bounty"
@@ -56,7 +56,7 @@ class DiscoverySource(str, Enum):
 
 class VulnSeverity(str, Enum):
     """Vulnerability severity levels."""
-    
+
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"
@@ -66,7 +66,7 @@ class VulnSeverity(str, Enum):
 
 class VulnStatus(str, Enum):
     """Vulnerability disclosure status."""
-    
+
     DRAFT = "draft"
     INTERNAL = "internal"
     REPORTED_VENDOR = "reported_vendor"
@@ -78,7 +78,7 @@ class VulnStatus(str, Enum):
 
 class ContributionProgram(str, Enum):
     """CVE contribution programs."""
-    
+
     MITRE = "mitre"
     CISA = "cisa"
     CERT = "cert"
@@ -87,7 +87,7 @@ class ContributionProgram(str, Enum):
 
 class AttackVector(str, Enum):
     """Attack vectors."""
-    
+
     NETWORK = "network"
     ADJACENT = "adjacent"
     LOCAL = "local"
@@ -96,7 +96,7 @@ class AttackVector(str, Enum):
 
 class ImpactType(str, Enum):
     """Impact types."""
-    
+
     RCE = "remote_code_execution"
     SQL_INJECTION = "sql_injection"
     XSS = "cross_site_scripting"
@@ -117,17 +117,19 @@ class ImpactType(str, Enum):
 
 class VulnerabilityEvidence(BaseModel):
     """Evidence for a discovered vulnerability."""
-    
+
     type: str = Field(..., description="screenshot, pcap, log, video, code")
     description: str
     artifact_url: Optional[str] = None
-    artifact_data: Optional[str] = Field(None, description="Base64 encoded for small artifacts")
+    artifact_data: Optional[str] = Field(
+        None, description="Base64 encoded for small artifacts"
+    )
     chain_of_custody: List[str] = Field(default_factory=list)
 
 
 class AffectedComponent(BaseModel):
     """Affected software/hardware component."""
-    
+
     vendor: str
     product: str
     version: str
@@ -143,7 +145,9 @@ class DiscoveredVulnRequest(BaseModel):
     """
 
     title: str = Field("Untitled Vulnerability", min_length=1, max_length=200)
-    description: str = Field("Vulnerability discovered via ALdeci platform.", min_length=1)
+    description: str = Field(
+        "Vulnerability discovered via ALdeci platform.", min_length=1
+    )
     severity: VulnSeverity = VulnSeverity.MEDIUM
     impact_type: ImpactType = ImpactType.OTHER
     attack_vector: AttackVector = AttackVector.NETWORK
@@ -153,10 +157,14 @@ class DiscoveredVulnRequest(BaseModel):
     discovered_date: Optional[datetime] = None
 
     affected_components: List[AffectedComponent] = Field(default_factory=list)
-    affected_versions: str = Field("unknown", description="e.g., '< 2.1.5' or '1.0.0 - 2.0.0'")
+    affected_versions: str = Field(
+        "unknown", description="e.g., '< 2.1.5' or '1.0.0 - 2.0.0'"
+    )
 
     proof_of_concept: Optional[str] = Field(None, description="PoC code or steps")
-    exploitation_difficulty: str = Field(default="medium", description="trivial, low, medium, high")
+    exploitation_difficulty: str = Field(
+        default="medium", description="trivial, low, medium, high"
+    )
 
     cvss_vector: Optional[str] = Field(None, description="CVSS 3.1 vector string")
     cvss_score: Optional[float] = Field(None, ge=0.0, le=10.0)
@@ -166,12 +174,14 @@ class DiscoveredVulnRequest(BaseModel):
 
     evidence: List[VulnerabilityEvidence] = Field(default_factory=list)
 
-    internal_only: bool = Field(default=True, description="Keep internal, don't publish")
+    internal_only: bool = Field(
+        default=True, description="Keep internal, don't publish"
+    )
     notify_vendor: bool = Field(default=False)
 
     references: List[str] = Field(default_factory=list)
     tags: List[str] = Field(default_factory=list)
-    
+
     @validator("cvss_vector")
     def validate_cvss_vector(cls, v):
         if v and not v.startswith("CVSS:3."):
@@ -181,7 +191,7 @@ class DiscoveredVulnRequest(BaseModel):
 
 class DiscoveredVulnResponse(BaseModel):
     """Response for discovered vulnerability."""
-    
+
     id: str
     internal_id: str  # ALdeci internal ID (e.g., ALDECI-2026-0001)
     title: str
@@ -195,26 +205,25 @@ class DiscoveredVulnResponse(BaseModel):
 
 class ContributeRequest(BaseModel):
     """Request to submit vulnerability to CVE program."""
-    
+
     vuln_id: str = Field(..., description="ALdeci internal vulnerability ID")
     program: ContributionProgram
     researcher_name: str
     researcher_email: str
     organization: Optional[str] = None
-    
+
     disclosure_timeline: Optional[str] = Field(
-        None, 
-        description="Proposed disclosure timeline (e.g., '90 days')"
+        None, description="Proposed disclosure timeline (e.g., '90 days')"
     )
     coordinate_with_vendor: bool = True
     vendor_contact: Optional[str] = None
-    
+
     additional_references: List[str] = Field(default_factory=list)
 
 
 class ContributeResponse(BaseModel):
     """Response for CVE contribution submission."""
-    
+
     submission_id: str
     vuln_id: str
     program: ContributionProgram
@@ -226,7 +235,7 @@ class ContributeResponse(BaseModel):
 
 class InternalVulnFilter(BaseModel):
     """Filters for internal vulnerability listing."""
-    
+
     status: Optional[VulnStatus] = None
     severity: Optional[VulnSeverity] = None
     discovery_source: Optional[DiscoverySource] = None
@@ -239,28 +248,25 @@ class InternalVulnFilter(BaseModel):
 
 class RetrainRequest(BaseModel):
     """Request to retrain ML models on new vulnerability data."""
-    
+
     vuln_ids: List[str] = Field(
-        default_factory=list, 
-        description="Specific vulns to include in training"
+        default_factory=list, description="Specific vulns to include in training"
     )
     model_types: List[str] = Field(
         default_factory=lambda: ["severity_predictor", "exploitability_predictor"],
-        description="Models to retrain"
+        description="Models to retrain",
     )
     include_external: bool = Field(
-        default=True, 
-        description="Also include external CVE data"
+        default=True, description="Also include external CVE data"
     )
     force_retrain: bool = Field(
-        default=False,
-        description="Retrain even if not enough new data"
+        default=False, description="Retrain even if not enough new data"
     )
 
 
 class RetrainResponse(BaseModel):
     """Response for ML model retraining."""
-    
+
     job_id: str
     status: str
     models_queued: List[str]
@@ -304,7 +310,7 @@ def _generate_internal_id() -> str:
 
 def _calculate_cvss(vector: Optional[str]) -> Optional[float]:
     """Calculate CVSS score from vector string.
-    
+
     Note: CVSS calculation requires a proper library implementation.
     Use cvss package (pip install cvss) for production.
     Currently returns None - integrate cvss library for real scoring.
@@ -350,23 +356,23 @@ async def report_discovered_vulnerability(
     background_tasks: BackgroundTasks,
 ) -> DiscoveredVulnResponse:
     """Report a pentest-discovered vulnerability.
-    
+
     This is the core of ALdeci's unique value proposition - we contribute
     to the vulnerability ecosystem, not just consume it.
-    
+
     The vulnerability is stored internally with a unique ALdeci ID.
     It can later be submitted to CVE programs for public disclosure.
-    
+
     Evidence is cryptographically hashed and stored with chain-of-custody
     for legal and audit purposes.
     """
     vuln_id = _generate_id()
     internal_id = _generate_internal_id()
     now = _now()
-    
+
     # Calculate CVSS if not provided
     cvss_score = request.cvss_score or _calculate_cvss(request.cvss_vector)
-    
+
     vuln = {
         "id": vuln_id,
         "internal_id": internal_id,
@@ -396,7 +402,7 @@ async def report_discovered_vulnerability(
         "created_at": now,
         "updated_at": now,
     }
-    
+
     _discovered_vulns[vuln_id] = vuln
 
     # Background tasks
@@ -410,16 +416,26 @@ async def report_discovered_vulnerability(
         brain.ingest_finding(
             vuln_id,
             title=request.title,
-            severity=request.severity.value if hasattr(request.severity, "value") else str(request.severity),
-            source=request.discovery_source.value if hasattr(request.discovery_source, "value") else str(request.discovery_source),
+            severity=request.severity.value
+            if hasattr(request.severity, "value")
+            else str(request.severity),
+            source=request.discovery_source.value
+            if hasattr(request.discovery_source, "value")
+            else str(request.discovery_source),
             cvss_score=cvss_score,
         )
-        await bus.emit(Event(
-            event_type=EventType.FINDING_CREATED,
-            source="vuln_discovery_router",
-            data={"finding_id": vuln_id, "internal_id": internal_id,
-                  "severity": str(request.severity), "title": request.title},
-        ))
+        await bus.emit(
+            Event(
+                event_type=EventType.FINDING_CREATED,
+                source="vuln_discovery_router",
+                data={
+                    "finding_id": vuln_id,
+                    "internal_id": internal_id,
+                    "severity": str(request.severity),
+                    "title": request.title,
+                },
+            )
+        )
 
     logger.info(f"Reported discovered vulnerability: {internal_id}")
 
@@ -441,7 +457,7 @@ async def _notify_vendor(vuln_id: str) -> None:
     vuln = _discovered_vulns.get(vuln_id)
     if not vuln:
         return
-    
+
     # In production: Send email/API call to vendor
     logger.info(f"Notifying vendor about vulnerability {vuln['internal_id']}")
     vuln["status"] = VulnStatus.REPORTED_VENDOR
@@ -454,13 +470,13 @@ async def contribute_to_cve_program(
     background_tasks: BackgroundTasks,
 ) -> ContributeResponse:
     """Submit a discovered vulnerability to CVE/MITRE program.
-    
+
     This initiates the responsible disclosure process:
     1. Package vulnerability details according to program requirements
     2. Submit to selected CVE Numbering Authority (CNA)
     3. Coordinate disclosure timeline with vendor
     4. Track CVE assignment status
-    
+
     Supported programs:
     - MITRE (direct submission)
     - CISA (US government)
@@ -469,19 +485,23 @@ async def contribute_to_cve_program(
     """
     if request.vuln_id not in _discovered_vulns:
         raise HTTPException(status_code=404, detail="Vulnerability not found")
-    
+
     vuln = _discovered_vulns[request.vuln_id]
-    
+
     # Validate vulnerability is ready for submission
-    if vuln["status"] not in [VulnStatus.DRAFT, VulnStatus.INTERNAL, VulnStatus.REPORTED_VENDOR]:
+    if vuln["status"] not in [
+        VulnStatus.DRAFT,
+        VulnStatus.INTERNAL,
+        VulnStatus.REPORTED_VENDOR,
+    ]:
         raise HTTPException(
-            status_code=400, 
-            detail=f"Vulnerability already in disclosure process (status: {vuln['status']})"
+            status_code=400,
+            detail=f"Vulnerability already in disclosure process (status: {vuln['status']})",
         )
-    
+
     submission_id = _generate_id()
     now = _now()
-    
+
     contribution = {
         "submission_id": submission_id,
         "vuln_id": request.vuln_id,
@@ -498,13 +518,13 @@ async def contribute_to_cve_program(
         "submitted_at": now,
         "updated_at": now,
     }
-    
+
     _contributions[submission_id] = contribution
-    
+
     # Update vulnerability status
     vuln["status"] = VulnStatus.CVE_REQUESTED
     vuln["updated_at"] = now
-    
+
     # Estimate based on program
     estimated_days = {
         ContributionProgram.MITRE: "7-14 days",
@@ -512,9 +532,11 @@ async def contribute_to_cve_program(
         ContributionProgram.CERT: "5-10 days",
         ContributionProgram.VENDOR: "14-30 days",
     }
-    
-    logger.info(f"Submitted {vuln['internal_id']} to {request.program.value} CVE program")
-    
+
+    logger.info(
+        f"Submitted {vuln['internal_id']} to {request.program.value} CVE program"
+    )
+
     return ContributeResponse(
         submission_id=submission_id,
         vuln_id=request.vuln_id,
@@ -540,11 +562,11 @@ async def list_internal_vulnerabilities(
     offset: int = Query(default=0, ge=0),
 ) -> List[DiscoveredVulnResponse]:
     """List internal (pre-CVE) discovered vulnerabilities.
-    
+
     These are vulnerabilities discovered through ALdeci pentesting
     that may not yet have public CVE IDs. This is proprietary
     intelligence that gives ALdeci users an advantage.
-    
+
     Filtering options:
     - status: Current disclosure status
     - severity: Filter by severity level
@@ -554,7 +576,7 @@ async def list_internal_vulnerabilities(
     - tag: Filter by tag
     """
     vulns = list(_discovered_vulns.values())
-    
+
     # Apply filters
     if status:
         vulns = [v for v in vulns if v["status"] == status]
@@ -575,13 +597,13 @@ async def list_internal_vulnerabilities(
         vulns = [v for v in vulns if v["discovered_date"] > discovered_after]
     if discovered_before:
         vulns = [v for v in vulns if v["discovered_date"] < discovered_before]
-    
+
     # Sort by discovered date (newest first)
     vulns = sorted(vulns, key=lambda v: v["discovered_date"], reverse=True)
-    
+
     # Paginate
-    vulns = vulns[offset:offset + limit]
-    
+    vulns = vulns[offset : offset + limit]
+
     return [
         DiscoveredVulnResponse(
             id=v["id"],
@@ -603,7 +625,7 @@ async def get_internal_vulnerability(vuln_id: str) -> Dict[str, Any]:
     """Get full details of an internal vulnerability."""
     if vuln_id not in _discovered_vulns:
         raise HTTPException(status_code=404, detail="Vulnerability not found")
-    
+
     return _discovered_vulns[vuln_id]
 
 
@@ -615,21 +637,28 @@ async def update_internal_vulnerability(
     """Update an internal vulnerability."""
     if vuln_id not in _discovered_vulns:
         raise HTTPException(status_code=404, detail="Vulnerability not found")
-    
+
     vuln = _discovered_vulns[vuln_id]
-    
+
     # Allowed update fields
     allowed_fields = {
-        "title", "description", "severity", "remediation", "workaround",
-        "proof_of_concept", "references", "tags", "internal_only"
+        "title",
+        "description",
+        "severity",
+        "remediation",
+        "workaround",
+        "proof_of_concept",
+        "references",
+        "tags",
+        "internal_only",
     }
-    
+
     for key, value in updates.items():
         if key in allowed_fields:
             vuln[key] = value
-    
+
     vuln["updated_at"] = _now()
-    
+
     return vuln
 
 
@@ -639,16 +668,16 @@ async def retrain_ml_models(
     background_tasks: BackgroundTasks,
 ) -> RetrainResponse:
     """Retrain ML models on new vulnerability data.
-    
+
     ALdeci's ML models improve over time by learning from:
     1. Internally discovered vulnerabilities
     2. External CVE data
     3. Exploitation outcomes from pentests
     4. Remediation effectiveness
-    
+
     This creates a feedback loop that makes our predictions
     more accurate than competitors who only use public data.
-    
+
     Models that can be retrained:
     - severity_predictor: Predicts severity from description
     - exploitability_predictor: Predicts if vuln is exploitable
@@ -658,17 +687,19 @@ async def retrain_ml_models(
     """
     job_id = _generate_id()
     now = _now()
-    
+
     # Count data points
-    internal_count = len(request.vuln_ids) if request.vuln_ids else len(_discovered_vulns)
+    internal_count = (
+        len(request.vuln_ids) if request.vuln_ids else len(_discovered_vulns)
+    )
     # External CVE count requires CISA/NVD feed integration
     external_count = 0  # TODO: Query actual CVE database when integrated
     total_data_points = internal_count + external_count
-    
+
     # Estimate time based on data and models
     models = request.model_types
     estimated_minutes = len(models) * 15 + (total_data_points // 10000)
-    
+
     job = {
         "job_id": job_id,
         "status": "queued",
@@ -679,14 +710,14 @@ async def retrain_ml_models(
         "completed_at": None,
         "created_at": now,
     }
-    
+
     _retrain_jobs[job_id] = job
-    
+
     # Queue training job
     background_tasks.add_task(_run_training, job_id)
-    
+
     logger.info(f"Queued ML training job {job_id} with {len(models)} models")
-    
+
     return RetrainResponse(
         job_id=job_id,
         status="queued",
@@ -698,20 +729,21 @@ async def retrain_ml_models(
 
 async def _run_training(job_id: str) -> None:
     """Run ML model training.
-    
+
     Requires MindsDB integration for actual training.
     """
     job = _retrain_jobs.get(job_id)
     if not job:
         return
-    
+
     job["status"] = "training"
     job["started_at"] = _now()
-    
+
     # Check if MindsDB is configured
     import os
+
     mindsdb_url = os.environ.get("MINDSDB_URL", "")
-    
+
     if not mindsdb_url:
         # Cannot train without MindsDB
         job["status"] = "failed"
@@ -725,7 +757,7 @@ async def _run_training(job_id: str) -> None:
         }
         logger.warning(f"ML training job {job_id} failed: MindsDB not configured")
         return
-    
+
     # TODO: Implement actual MindsDB training call
     # Example: await mindsdb_client.train(model_name, data)
     job["status"] = "pending_implementation"
@@ -737,7 +769,7 @@ async def _run_training(job_id: str) -> None:
         }
         for model in job["models_queued"]
     }
-    
+
     logger.info(f"ML training job {job_id} - pending MindsDB integration")
 
 
@@ -746,7 +778,7 @@ async def get_training_job_status(job_id: str) -> Dict[str, Any]:
     """Get status of a training job."""
     if job_id not in _retrain_jobs:
         raise HTTPException(status_code=404, detail="Training job not found")
-    
+
     return _retrain_jobs[job_id]
 
 
@@ -759,11 +791,13 @@ async def get_training_job_status(job_id: str) -> Dict[str, Any]:
 async def get_discovery_stats() -> Dict[str, Any]:
     """Get vulnerability discovery statistics."""
     vulns = list(_discovered_vulns.values())
-    
+
     return {
         "total_discovered": len(vulns),
         "by_severity": {
-            "critical": len([v for v in vulns if v["severity"] == VulnSeverity.CRITICAL]),
+            "critical": len(
+                [v for v in vulns if v["severity"] == VulnSeverity.CRITICAL]
+            ),
             "high": len([v for v in vulns if v["severity"] == VulnSeverity.HIGH]),
             "medium": len([v for v in vulns if v["severity"] == VulnSeverity.MEDIUM]),
             "low": len([v for v in vulns if v["severity"] == VulnSeverity.LOW]),
@@ -771,8 +805,12 @@ async def get_discovery_stats() -> Dict[str, Any]:
         "by_status": {
             "draft": len([v for v in vulns if v["status"] == VulnStatus.DRAFT]),
             "internal": len([v for v in vulns if v["status"] == VulnStatus.INTERNAL]),
-            "cve_requested": len([v for v in vulns if v["status"] == VulnStatus.CVE_REQUESTED]),
-            "cve_assigned": len([v for v in vulns if v["status"] == VulnStatus.CVE_ASSIGNED]),
+            "cve_requested": len(
+                [v for v in vulns if v["status"] == VulnStatus.CVE_REQUESTED]
+            ),
+            "cve_assigned": len(
+                [v for v in vulns if v["status"] == VulnStatus.CVE_ASSIGNED]
+            ),
             "public": len([v for v in vulns if v["status"] == VulnStatus.PUBLIC]),
         },
         "by_source": {
@@ -780,8 +818,12 @@ async def get_discovery_stats() -> Dict[str, Any]:
             for source in DiscoverySource
         },
         "cves_contributed": len([v for v in vulns if v.get("cve_id")]),
-        "pending_disclosure": len([v for v in vulns if v["status"] == VulnStatus.CVE_REQUESTED]),
-        "this_month": len([v for v in vulns if v["created_at"].month == datetime.now().month]),
+        "pending_disclosure": len(
+            [v for v in vulns if v["status"] == VulnStatus.CVE_REQUESTED]
+        ),
+        "this_month": len(
+            [v for v in vulns if v["created_at"].month == datetime.now().month]
+        ),
     }
 
 
@@ -793,14 +835,14 @@ async def list_cve_contributions(
 ) -> Dict[str, Any]:
     """List CVE contribution submissions."""
     contributions = list(_contributions.values())
-    
+
     if status:
         contributions = [c for c in contributions if c["status"] == status]
     if program:
         contributions = [c for c in contributions if c["program"] == program]
-    
+
     contributions = sorted(contributions, key=lambda c: c["submitted_at"], reverse=True)
-    
+
     return {
         "contributions": contributions[:limit],
         "total": len(contributions),

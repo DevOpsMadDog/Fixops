@@ -10,16 +10,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-
 from core.event_bus import Event, EventType, get_event_bus
-from core.knowledge_brain import (
-    EdgeType,
-    EntityType,
-    GraphEdge,
-    GraphNode,
-    get_brain,
-)
+from core.knowledge_brain import EdgeType, EntityType, GraphEdge, GraphNode, get_brain
+from fastapi import APIRouter, HTTPException, Query
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/brain", tags=["knowledge-brain"])
@@ -29,13 +22,16 @@ router = APIRouter(prefix="/api/v1/brain", tags=["knowledge-brain"])
 # Nodes
 # ---------------------------------------------------------------------------
 
+
 @router.post("/nodes", status_code=201)
 async def create_or_update_node(body: Dict[str, Any]) -> Dict[str, Any]:
     """Create or update a node in the Knowledge Graph."""
     node_id = body.get("node_id")
     node_type = body.get("node_type")
     if not node_id or not node_type:
-        raise HTTPException(status_code=422, detail="node_id and node_type are required")
+        raise HTTPException(
+            status_code=422, detail="node_id and node_type are required"
+        )
     brain = get_brain()
     node = GraphNode(
         node_id=node_id,
@@ -45,15 +41,19 @@ async def create_or_update_node(body: Dict[str, Any]) -> Dict[str, Any]:
     )
     result = brain.upsert_node(node)
     bus = get_event_bus()
-    await bus.emit(Event(
-        event_type=EventType.GRAPH_UPDATED,
-        source="brain_router",
-        data={"action": "upsert_node", "node_id": node_id, "node_type": node_type},
-        org_id=body.get("org_id"),
-    ))
+    await bus.emit(
+        Event(
+            event_type=EventType.GRAPH_UPDATED,
+            source="brain_router",
+            data={"action": "upsert_node", "node_id": node_id, "node_type": node_type},
+            org_id=body.get("org_id"),
+        )
+    )
     return {
         "node_id": result.node_id,
-        "node_type": result.node_type.value if isinstance(result.node_type, EntityType) else result.node_type,
+        "node_type": result.node_type.value
+        if isinstance(result.node_type, EntityType)
+        else result.node_type,
         "org_id": result.org_id,
         "properties": result.properties,
         "created_at": result.created_at,
@@ -65,13 +65,17 @@ async def create_or_update_node(body: Dict[str, Any]) -> Dict[str, Any]:
 async def query_nodes(
     node_type: Optional[str] = Query(None, description="Filter by entity type"),
     org_id: Optional[str] = Query(None, description="Filter by organization"),
-    search: Optional[str] = Query(None, description="Full-text search in node_id and properties"),
+    search: Optional[str] = Query(
+        None, description="Full-text search in node_id and properties"
+    ),
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ) -> Dict[str, Any]:
     """Query nodes with optional filters."""
     brain = get_brain()
-    result = brain.query_nodes(node_type=node_type, org_id=org_id, search=search, limit=limit, offset=offset)
+    result = brain.query_nodes(
+        node_type=node_type, org_id=org_id, search=search, limit=limit, offset=offset
+    )
     return {
         "nodes": result.nodes,
         "total": result.total_nodes,
@@ -97,17 +101,20 @@ async def delete_node(node_id: str) -> Dict[str, Any]:
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Node '{node_id}' not found")
     bus = get_event_bus()
-    await bus.emit(Event(
-        event_type=EventType.GRAPH_UPDATED,
-        source="brain_router",
-        data={"action": "delete_node", "node_id": node_id},
-    ))
+    await bus.emit(
+        Event(
+            event_type=EventType.GRAPH_UPDATED,
+            source="brain_router",
+            data={"action": "delete_node", "node_id": node_id},
+        )
+    )
     return {"deleted": True, "node_id": node_id}
 
 
 # ---------------------------------------------------------------------------
 # Edges
 # ---------------------------------------------------------------------------
+
 
 @router.post("/edges", status_code=201)
 async def create_edge(body: Dict[str, Any]) -> Dict[str, Any]:
@@ -116,7 +123,9 @@ async def create_edge(body: Dict[str, Any]) -> Dict[str, Any]:
     target_id = body.get("target_id")
     edge_type = body.get("edge_type")
     if not source_id or not target_id or not edge_type:
-        raise HTTPException(status_code=422, detail="source_id, target_id, and edge_type are required")
+        raise HTTPException(
+            status_code=422, detail="source_id, target_id, and edge_type are required"
+        )
     brain = get_brain()
     edge = GraphEdge(
         source_id=source_id,
@@ -129,7 +138,9 @@ async def create_edge(body: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "source_id": result.source_id,
         "target_id": result.target_id,
-        "edge_type": result.edge_type.value if isinstance(result.edge_type, EdgeType) else result.edge_type,
+        "edge_type": result.edge_type.value
+        if isinstance(result.edge_type, EdgeType)
+        else result.edge_type,
         "confidence": result.confidence,
         "created_at": result.created_at,
     }
@@ -142,6 +153,7 @@ async def list_all_edges(
 ) -> Dict[str, Any]:
     """List all edges in the graph with optional filtering."""
     import json as _json
+
     brain = get_brain()
     all_edges: List[Dict[str, Any]] = []
     # Query SQLite directly (same approach as stats() and get_edges())
@@ -160,14 +172,16 @@ async def list_all_edges(
                     (limit,),
                 )
             for row in cursor:
-                all_edges.append({
-                    "source": row[0],
-                    "target": row[1],
-                    "edge_type": row[2],
-                    "properties": _json.loads(row[3]) if row[3] else {},
-                    "confidence": row[4],
-                    "created_at": row[5],
-                })
+                all_edges.append(
+                    {
+                        "source": row[0],
+                        "target": row[1],
+                        "edge_type": row[2],
+                        "properties": _json.loads(row[3]) if row[3] else {},
+                        "confidence": row[4],
+                        "created_at": row[5],
+                    }
+                )
     except Exception as exc:
         logger.error("Failed to list edges: %s", exc)
     return {"edges": all_edges, "count": len(all_edges)}
@@ -181,9 +195,12 @@ async def get_edges(
     """Get all edges connected to a node."""
     brain = get_brain()
     edges = brain.get_edges(node_id, direction=direction)
-    return {"node_id": node_id, "direction": direction, "edges": edges, "count": len(edges)}
-
-
+    return {
+        "node_id": node_id,
+        "direction": direction,
+        "edges": edges,
+        "count": len(edges),
+    }
 
 
 @router.delete("/edges")
@@ -204,11 +221,14 @@ async def delete_edge(
 # Graph Traversal & Queries
 # ---------------------------------------------------------------------------
 
+
 @router.get("/neighbors/{node_id}")
 async def get_neighbors(
     node_id: str,
     depth: int = Query(1, ge=1, le=5),
-    edge_types: Optional[str] = Query(None, description="Comma-separated edge types to filter"),
+    edge_types: Optional[str] = Query(
+        None, description="Comma-separated edge types to filter"
+    ),
 ) -> Dict[str, Any]:
     """Get neighbors of a node up to N hops deep."""
     brain = get_brain()
@@ -250,6 +270,7 @@ async def find_paths(
 # Analytics
 # ---------------------------------------------------------------------------
 
+
 @router.get("/stats")
 async def graph_stats() -> Dict[str, Any]:
     """Get comprehensive graph statistics."""
@@ -281,6 +302,7 @@ async def node_risk_score(node_id: str) -> Dict[str, Any]:
 # Events
 # ---------------------------------------------------------------------------
 
+
 @router.get("/events")
 async def get_events(
     event_type: Optional[str] = Query(None, description="Filter by event type"),
@@ -295,6 +317,7 @@ async def get_events(
 # ---------------------------------------------------------------------------
 # Entity Type & Edge Type metadata
 # ---------------------------------------------------------------------------
+
 
 @router.get("/meta/entity-types")
 async def list_entity_types() -> Dict[str, Any]:
@@ -312,6 +335,7 @@ async def list_edge_types() -> Dict[str, Any]:
 # Bulk Ingest
 # ---------------------------------------------------------------------------
 
+
 @router.post("/ingest/cve")
 async def ingest_cve(body: Dict[str, Any]) -> Dict[str, Any]:
     """Ingest a CVE into the Knowledge Brain."""
@@ -323,12 +347,14 @@ async def ingest_cve(body: Dict[str, Any]) -> Dict[str, Any]:
     cve_id_val = body.pop("cve_id")
     node = brain.ingest_cve(cve_id_val, org_id=org_id, **body)
     bus = get_event_bus()
-    await bus.emit(Event(
-        event_type=EventType.CVE_DISCOVERED,
-        source="brain_router",
-        data={"cve_id": cve_id_val, **body},
-        org_id=org_id,
-    ))
+    await bus.emit(
+        Event(
+            event_type=EventType.CVE_DISCOVERED,
+            source="brain_router",
+            data={"cve_id": cve_id_val, **body},
+            org_id=org_id,
+        )
+    )
     return {"node_id": node.node_id, "node_type": "cve", "ingested": True}
 
 
@@ -344,12 +370,14 @@ async def ingest_finding(body: Dict[str, Any]) -> Dict[str, Any]:
     cve_id = body.pop("cve_id", None)
     node = brain.ingest_finding(fid, org_id=org_id, cve_id=cve_id, **body)
     bus = get_event_bus()
-    await bus.emit(Event(
-        event_type=EventType.FINDING_CREATED,
-        source="brain_router",
-        data={"finding_id": fid, "cve_id": cve_id, **body},
-        org_id=org_id,
-    ))
+    await bus.emit(
+        Event(
+            event_type=EventType.FINDING_CREATED,
+            source="brain_router",
+            data={"finding_id": fid, "cve_id": cve_id, **body},
+            org_id=org_id,
+        )
+    )
     return {"node_id": node.node_id, "node_type": "finding", "ingested": True}
 
 
@@ -392,10 +420,12 @@ async def ingest_remediation(body: Dict[str, Any]) -> Dict[str, Any]:
     finding_id = body.pop("finding_id", None)
     node = brain.ingest_remediation(tid, finding_id=finding_id, org_id=org_id, **body)
     bus = get_event_bus()
-    await bus.emit(Event(
-        event_type=EventType.REMEDIATION_CREATED,
-        source="brain_router",
-        data={"task_id": tid, "finding_id": finding_id, **body},
-        org_id=org_id,
-    ))
+    await bus.emit(
+        Event(
+            event_type=EventType.REMEDIATION_CREATED,
+            source="brain_router",
+            data={"task_id": tid, "finding_id": finding_id, **body},
+            org_id=org_id,
+        )
+    )
     return {"node_id": node.node_id, "node_type": "remediation", "ingested": True}

@@ -3,11 +3,10 @@ Business Context Integration API
 Connects to Jira, Confluence, and other business systems
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException
-from src.config.settings import get_settings
 from src.core.security import get_current_user
 
 logger = structlog.get_logger()

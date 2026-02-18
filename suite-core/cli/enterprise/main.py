@@ -20,21 +20,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.config.settings import get_settings
 from src.db.session import DatabaseManager
-from src.models.security_sqlite import (
-    ScannerType,
-    SecurityFinding,
-    Service,
-    SeverityLevel,
-)
+from src.models.security_sqlite import SecurityFinding, Service
 from src.services.cache_service import CacheService
 from src.services.correlation_engine import correlation_engine
-from src.services.decision_engine import (
-    DecisionContext,
-    DecisionOutcome,
-    decision_engine,
-)
-from src.services.fix_engine import fix_engine
-from src.services.policy_engine import PolicyContext, policy_engine
+from src.services.decision_engine import DecisionOutcome
+from src.services.policy_engine import PolicyContext, PolicyDecision, policy_engine
 
 logger = structlog.get_logger()
 settings = get_settings()

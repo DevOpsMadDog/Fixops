@@ -26,9 +26,8 @@ class TestAPIEndpointsE2E:
     @pytest.fixture
     def api_client(self):
         """Create FastAPI test client."""
-        from fastapi.testclient import TestClient
-
         from apps.api.app import create_app
+        from fastapi.testclient import TestClient
 
         os.environ["FIXOPS_API_TOKEN"] = "test-token"
         os.environ["FIXOPS_DISABLE_TELEMETRY"] = "1"
@@ -454,9 +453,8 @@ class TestSecurityFixes:
     @pytest.fixture
     def api_client(self):
         """Create FastAPI test client."""
-        from fastapi.testclient import TestClient
-
         from apps.api.app import create_app
+        from fastapi.testclient import TestClient
 
         os.environ["FIXOPS_API_TOKEN"] = "test-secret-api-key-12345"
         os.environ["FIXOPS_DISABLE_TELEMETRY"] = "1"

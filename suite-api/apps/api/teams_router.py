@@ -3,12 +3,11 @@ Team management API endpoints.
 """
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from apps.api.dependencies import get_org_id
 from core.user_db import UserDB
 from core.user_models import Team
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/teams", tags=["teams"])
 db = UserDB()

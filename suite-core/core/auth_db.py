@@ -10,14 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
-from core.auth_models import (
-    APIKey,
-    AuthProvider,
-    SSOConfig,
-    SSOStatus,
-    User,
-    UserRole,
-)
+from core.auth_models import APIKey, AuthProvider, SSOConfig, SSOStatus, User, UserRole
 
 
 class AuthDB:
@@ -36,7 +29,8 @@ class AuthDB:
     def _init_tables(self):
         conn = self._get_connection()
         try:
-            conn.executescript("""
+            conn.executescript(
+                """
                 CREATE TABLE IF NOT EXISTS sso_configs (
                     id TEXT PRIMARY KEY,
                     name TEXT UNIQUE NOT NULL,
@@ -89,7 +83,8 @@ class AuthDB:
                 CREATE INDEX IF NOT EXISTS idx_apikeys_prefix ON api_keys(key_prefix);
                 CREATE INDEX IF NOT EXISTS idx_apikeys_user ON api_keys(user_id);
                 CREATE INDEX IF NOT EXISTS idx_apikeys_active ON api_keys(is_active);
-            """)
+            """
+            )
             conn.commit()
         finally:
             conn.close()
@@ -182,11 +177,13 @@ class AuthDB:
 
     def _row_to_sso_config(self, row) -> SSOConfig:
         return SSOConfig(
-            id=row["id"], name=row["name"],
+            id=row["id"],
+            name=row["name"],
             provider=AuthProvider(row["provider"]),
             status=SSOStatus(row["status"]),
             metadata=json.loads(row["metadata"]) if row["metadata"] else {},
-            entity_id=row["entity_id"], sso_url=row["sso_url"],
+            entity_id=row["entity_id"],
+            sso_url=row["sso_url"],
             certificate=row["certificate"],
             created_at=datetime.fromisoformat(row["created_at"]),
             updated_at=datetime.fromisoformat(row["updated_at"]),
@@ -203,9 +200,17 @@ class AuthDB:
         try:
             conn.execute(
                 "INSERT INTO users VALUES (?,?,?,?,?,?,?,?,?)",
-                (user.id, user.email, user.name, user.role.value,
-                 user.password_hash, int(user.is_active), user.org_id,
-                 user.created_at.isoformat(), user.updated_at.isoformat()),
+                (
+                    user.id,
+                    user.email,
+                    user.name,
+                    user.role.value,
+                    user.password_hash,
+                    int(user.is_active),
+                    user.org_id,
+                    user.created_at.isoformat(),
+                    user.updated_at.isoformat(),
+                ),
             )
             conn.commit()
             return user
@@ -215,7 +220,9 @@ class AuthDB:
     def get_user(self, user_id: str) -> Optional[User]:
         conn = self._get_connection()
         try:
-            row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+            row = conn.execute(
+                "SELECT * FROM users WHERE id = ?", (user_id,)
+            ).fetchone()
             return self._row_to_user(row) if row else None
         finally:
             conn.close()
@@ -223,12 +230,16 @@ class AuthDB:
     def get_user_by_email(self, email: str) -> Optional[User]:
         conn = self._get_connection()
         try:
-            row = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+            row = conn.execute(
+                "SELECT * FROM users WHERE email = ?", (email,)
+            ).fetchone()
             return self._row_to_user(row) if row else None
         finally:
             conn.close()
 
-    def list_users(self, org_id: Optional[str] = None, limit: int = 100, offset: int = 0) -> List[User]:
+    def list_users(
+        self, org_id: Optional[str] = None, limit: int = 100, offset: int = 0
+    ) -> List[User]:
         conn = self._get_connection()
         try:
             if org_id:
@@ -247,9 +258,13 @@ class AuthDB:
 
     def _row_to_user(self, row) -> User:
         return User(
-            id=row["id"], email=row["email"], name=row["name"],
-            role=UserRole(row["role"]), password_hash=row["password_hash"],
-            is_active=bool(row["is_active"]), org_id=row["org_id"],
+            id=row["id"],
+            email=row["email"],
+            name=row["name"],
+            role=UserRole(row["role"]),
+            password_hash=row["password_hash"],
+            is_active=bool(row["is_active"]),
+            org_id=row["org_id"],
             created_at=datetime.fromisoformat(row["created_at"]),
             updated_at=datetime.fromisoformat(row["updated_at"]),
         )
@@ -265,11 +280,18 @@ class AuthDB:
         try:
             conn.execute(
                 "INSERT INTO api_keys VALUES (?,?,?,?,?,?,?,?,?,?)",
-                (key.id, key.key_prefix, key.key_hash, key.user_id, key.name,
-                 json.dumps(key.scopes), int(key.is_active),
-                 key.expires_at.isoformat() if key.expires_at else None,
-                 key.last_used_at.isoformat() if key.last_used_at else None,
-                 key.created_at.isoformat()),
+                (
+                    key.id,
+                    key.key_prefix,
+                    key.key_hash,
+                    key.user_id,
+                    key.name,
+                    json.dumps(key.scopes),
+                    int(key.is_active),
+                    key.expires_at.isoformat() if key.expires_at else None,
+                    key.last_used_at.isoformat() if key.last_used_at else None,
+                    key.created_at.isoformat(),
+                ),
             )
             conn.commit()
             return key
@@ -321,11 +343,18 @@ class AuthDB:
 
     def _row_to_api_key(self, row) -> APIKey:
         return APIKey(
-            id=row["id"], key_prefix=row["key_prefix"], key_hash=row["key_hash"],
-            user_id=row["user_id"], name=row["name"],
+            id=row["id"],
+            key_prefix=row["key_prefix"],
+            key_hash=row["key_hash"],
+            user_id=row["user_id"],
+            name=row["name"],
             scopes=json.loads(row["scopes"]) if row["scopes"] else [],
             is_active=bool(row["is_active"]),
-            expires_at=datetime.fromisoformat(row["expires_at"]) if row["expires_at"] else None,
-            last_used_at=datetime.fromisoformat(row["last_used_at"]) if row["last_used_at"] else None,
+            expires_at=datetime.fromisoformat(row["expires_at"])
+            if row["expires_at"]
+            else None,
+            last_used_at=datetime.fromisoformat(row["last_used_at"])
+            if row["last_used_at"]
+            else None,
             created_at=datetime.fromisoformat(row["created_at"]),
         )

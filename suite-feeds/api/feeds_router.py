@@ -29,7 +29,6 @@ except ImportError:
     _HAS_BRAIN = False
 
 from apps.api.dependencies import get_org_id
-
 from feeds_service import (
     AUTHORITATIVE_FEEDS,
     CLOUD_RUNTIME_FEEDS,
@@ -73,6 +72,7 @@ def get_feeds_service() -> FeedsService:
 def _auto_refresh_feeds():
     """Automatically refresh EPSS and KEV feeds if empty or stale."""
     import logging
+
     logger = logging.getLogger(__name__)
     try:
         service = _feeds_service
@@ -81,13 +81,13 @@ def _auto_refresh_feeds():
             # get_feed_stats() returns nested: {"epss": {"total_cves": N}, "kev": {"total_cves": N}}
             epss_count = stats.get("epss", {}).get("total_cves", 0)
             kev_count = stats.get("kev", {}).get("total_cves", 0)
-            
+
             # Refresh EPSS if empty
             if epss_count == 0:
                 logger.info("Auto-refreshing EPSS feed (empty)")
                 result = service.refresh_epss()
                 logger.info(f"EPSS refresh: {result.records_updated} records")
-            
+
             # Refresh KEV if empty
             if kev_count == 0:
                 logger.info("Auto-refreshing KEV feed (empty)")
@@ -211,12 +211,17 @@ async def refresh_epss_feed(request: RefreshFeedRequest) -> Dict[str, Any]:
     # Emit EPSS updated event
     if _HAS_BRAIN:
         bus = get_event_bus()
-        await bus.emit(Event(
-            event_type=EventType.EPSS_UPDATED,
-            source="feeds_router",
-            data={"records_updated": result.records_updated,
-                  "success": result.success, "feed_name": result.feed_name},
-        ))
+        await bus.emit(
+            Event(
+                event_type=EventType.EPSS_UPDATED,
+                source="feeds_router",
+                data={
+                    "records_updated": result.records_updated,
+                    "success": result.success,
+                    "feed_name": result.feed_name,
+                },
+            )
+        )
 
     return {
         "status": "refreshed" if result.success else "failed",
@@ -274,12 +279,17 @@ async def refresh_kev_feed(request: RefreshFeedRequest) -> Dict[str, Any]:
     # Emit KEV alert event
     if _HAS_BRAIN:
         bus = get_event_bus()
-        await bus.emit(Event(
-            event_type=EventType.KEV_ALERT,
-            source="feeds_router",
-            data={"records_updated": result.records_updated,
-                  "success": result.success, "feed_name": result.feed_name},
-        ))
+        await bus.emit(
+            Event(
+                event_type=EventType.KEV_ALERT,
+                source="feeds_router",
+                data={
+                    "records_updated": result.records_updated,
+                    "success": result.success,
+                    "feed_name": result.feed_name,
+                },
+            )
+        )
 
     return {
         "status": "refreshed" if result.success else "failed",
@@ -308,12 +318,17 @@ async def refresh_nvd_feed(
 
     if _HAS_BRAIN:
         bus = get_event_bus()
-        await bus.emit(Event(
-            event_type=EventType.FEED_UPDATED,
-            source="feeds_router",
-            data={"records_updated": result.records_updated,
-                  "success": result.success, "feed_name": "nvd"},
-        ))
+        await bus.emit(
+            Event(
+                event_type=EventType.FEED_UPDATED,
+                source="feeds_router",
+                data={
+                    "records_updated": result.records_updated,
+                    "success": result.success,
+                    "feed_name": "nvd",
+                },
+            )
+        )
 
     return {
         "status": "refreshed" if result.success else "failed",
@@ -349,7 +364,9 @@ def get_nvd_cve(cve_id: str) -> Dict[str, Any]:
     service = get_feeds_service()
     cve = service.get_nvd_cve(cve_id)
     if not cve:
-        raise HTTPException(status_code=404, detail=f"CVE {cve_id} not found in NVD cache")
+        raise HTTPException(
+            status_code=404, detail=f"CVE {cve_id} not found in NVD cache"
+        )
     return cve
 
 
@@ -369,12 +386,17 @@ async def refresh_exploitdb_feed() -> Dict[str, Any]:
 
     if _HAS_BRAIN:
         bus = get_event_bus()
-        await bus.emit(Event(
-            event_type=EventType.FEED_UPDATED,
-            source="feeds_router",
-            data={"records_updated": result.records_updated,
-                  "success": result.success, "feed_name": "exploitdb"},
-        ))
+        await bus.emit(
+            Event(
+                event_type=EventType.FEED_UPDATED,
+                source="feeds_router",
+                data={
+                    "records_updated": result.records_updated,
+                    "success": result.success,
+                    "feed_name": "exploitdb",
+                },
+            )
+        )
 
     return {
         "status": "refreshed" if result.success else "failed",
@@ -407,12 +429,17 @@ async def refresh_osv_feed(
 
     if _HAS_BRAIN:
         bus = get_event_bus()
-        await bus.emit(Event(
-            event_type=EventType.FEED_UPDATED,
-            source="feeds_router",
-            data={"records_updated": result.records_updated,
-                  "success": result.success, "feed_name": "osv"},
-        ))
+        await bus.emit(
+            Event(
+                event_type=EventType.FEED_UPDATED,
+                source="feeds_router",
+                data={
+                    "records_updated": result.records_updated,
+                    "success": result.success,
+                    "feed_name": "osv",
+                },
+            )
+        )
 
     return {
         "status": "refreshed" if result.success else "failed",
@@ -439,12 +466,17 @@ async def refresh_github_advisories_feed() -> Dict[str, Any]:
 
     if _HAS_BRAIN:
         bus = get_event_bus()
-        await bus.emit(Event(
-            event_type=EventType.FEED_UPDATED,
-            source="feeds_router",
-            data={"records_updated": result.records_updated,
-                  "success": result.success, "feed_name": "github_advisories"},
-        ))
+        await bus.emit(
+            Event(
+                event_type=EventType.FEED_UPDATED,
+                source="feeds_router",
+                data={
+                    "records_updated": result.records_updated,
+                    "success": result.success,
+                    "feed_name": "github_advisories",
+                },
+            )
+        )
 
     return {
         "status": "refreshed" if result.success else "failed",
@@ -775,12 +807,16 @@ async def enrich_findings(request: EnrichFindingsRequest) -> Dict[str, Any]:
     if _HAS_BRAIN:
         bus = get_event_bus()
         brain = get_brain()
-        await bus.emit(Event(
-            event_type=EventType.FEED_UPDATED,
-            source="feeds_router.enrich",
-            data={"findings_enriched": len(enriched),
-                  "target_region": target_region.value},
-        ))
+        await bus.emit(
+            Event(
+                event_type=EventType.FEED_UPDATED,
+                source="feeds_router.enrich",
+                data={
+                    "findings_enriched": len(enriched),
+                    "target_region": target_region.value,
+                },
+            )
+        )
         # Ingest enriched CVEs into brain
         for finding in enriched:
             cve_id = finding.get("cve_id") or finding.get("id")
@@ -818,7 +854,9 @@ def get_feed_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     epss_count = basic.get("epss", {}).get("total_cves", 0)
     kev_count = basic.get("kev", {}).get("total_cves", 0)
     total_unique = comp.get("totals", {}).get("unique_cves", 0)
-    last_refresh = basic.get("epss", {}).get("last_refresh") or basic.get("kev", {}).get("last_refresh")
+    last_refresh = basic.get("epss", {}).get("last_refresh") or basic.get(
+        "kev", {}
+    ).get("last_refresh")
 
     comp["total_cves"] = total_unique or (epss_count + kev_count)
     comp["new_today"] = 0  # Would need date filtering
@@ -826,8 +864,12 @@ def get_feed_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
         "EPSS": epss_count,
         "KEV": kev_count,
         "NVD": comp.get("categories", {}).get("authoritative", {}).get("nvd_cves", 0),
-        "ExploitDB": comp.get("categories", {}).get("exploit", {}).get("exploit_intelligence", 0),
-        "OSV": comp.get("categories", {}).get("supply_chain", {}).get("supply_chain_vulns", 0),
+        "ExploitDB": comp.get("categories", {})
+        .get("exploit", {})
+        .get("exploit_intelligence", 0),
+        "OSV": comp.get("categories", {})
+        .get("supply_chain", {})
+        .get("supply_chain_vulns", 0),
     }
     comp["last_refresh"] = last_refresh
     return comp
@@ -931,7 +973,13 @@ def get_feed_health() -> Dict[str, Any]:
 
     # Quick lightweight counts instead of expensive get_comprehensive_stats()
     import sqlite3 as _sql
-    cats: Dict[str, Any] = {"authoritative": {}, "exploit": {}, "supply_chain": {}, "threat_actor": {}}
+
+    cats: Dict[str, Any] = {
+        "authoritative": {},
+        "exploit": {},
+        "supply_chain": {},
+        "threat_actor": {},
+    }
     try:
         conn = _sql.connect(service.db_path)
         cur = conn.cursor()
@@ -973,7 +1021,9 @@ def get_feed_health() -> Dict[str, Any]:
         },
         {
             "name": "NVD",
-            "status": "healthy" if cats.get("authoritative", {}).get("nvd_cves", 0) > 0 else "stale",
+            "status": "healthy"
+            if cats.get("authoritative", {}).get("nvd_cves", 0) > 0
+            else "stale",
             "total_records": cats.get("authoritative", {}).get("nvd_cves", 0),
             "new_today": 0,
             "latency_ms": 0,
@@ -981,7 +1031,9 @@ def get_feed_health() -> Dict[str, Any]:
         },
         {
             "name": "ExploitDB",
-            "status": "healthy" if cats.get("exploit", {}).get("exploit_intelligence", 0) > 0 else "stale",
+            "status": "healthy"
+            if cats.get("exploit", {}).get("exploit_intelligence", 0) > 0
+            else "stale",
             "total_records": cats.get("exploit", {}).get("exploit_intelligence", 0),
             "new_today": 0,
             "latency_ms": 0,
@@ -989,7 +1041,9 @@ def get_feed_health() -> Dict[str, Any]:
         },
         {
             "name": "OSV",
-            "status": "healthy" if cats.get("supply_chain", {}).get("supply_chain_vulns", 0) > 0 else "stale",
+            "status": "healthy"
+            if cats.get("supply_chain", {}).get("supply_chain_vulns", 0) > 0
+            else "stale",
             "total_records": cats.get("supply_chain", {}).get("supply_chain_vulns", 0),
             "new_today": 0,
             "latency_ms": 0,
@@ -997,7 +1051,9 @@ def get_feed_health() -> Dict[str, Any]:
         },
         {
             "name": "GitHub",
-            "status": "healthy" if cats.get("supply_chain", {}).get("supply_chain_vulns", 0) > 0 else "stale",
+            "status": "healthy"
+            if cats.get("supply_chain", {}).get("supply_chain_vulns", 0) > 0
+            else "stale",
             "total_records": cats.get("supply_chain", {}).get("supply_chain_vulns", 0),
             "new_today": 0,
             "latency_ms": 0,
@@ -1134,15 +1190,17 @@ async def refresh_all_feeds(
     # Emit feed updated events
     if _HAS_BRAIN:
         bus = get_event_bus()
-        await bus.emit(Event(
-            event_type=EventType.FEED_UPDATED,
-            source="feeds_router.refresh_all",
-            data={
-                "results": results,
-                "all_success": all_success,
-                "total_records": total_records,
-            },
-        ))
+        await bus.emit(
+            Event(
+                event_type=EventType.FEED_UPDATED,
+                source="feeds_router.refresh_all",
+                data={
+                    "results": results,
+                    "all_success": all_success,
+                    "total_records": total_records,
+                },
+            )
+        )
 
     return {
         "status": "completed" if all_success else "partial",

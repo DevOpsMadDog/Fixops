@@ -7,7 +7,14 @@ import sys
 
 # Ensure suite paths are on sys.path
 _ROOT = os.path.dirname(os.path.abspath(__file__))
-for suite in ("suite-core", "suite-attack", "suite-feeds", "suite-evidence-risk", "suite-integrations", "suite-api"):
+for suite in (
+    "suite-core",
+    "suite-attack",
+    "suite-feeds",
+    "suite-evidence-risk",
+    "suite-integrations",
+    "suite-api",
+):
     p = os.path.join(_ROOT, suite)
     if p not in sys.path:
         sys.path.insert(0, p)
@@ -32,24 +39,33 @@ def check(label, condition, detail=""):
 print("\n=== 1. Attack Simulation Engine Imports ===")
 try:
     from core.attack_simulation_engine import (
-        AttackSimulationEngine,
-        AttackScenario,
-        AttackStep,
+        LATERAL_TECHNIQUES,
+        MITRE_TECHNIQUES,
+        PRIVILEGE_LEVELS,
+        AttackComplexity,
         AttackPath,
+        AttackScenario,
+        AttackSimulationEngine,
+        AttackStep,
         BreachImpact,
         CampaignResult,
         CampaignStatus,
         KillChainPhase,
         ThreatActorProfile,
-        AttackComplexity,
-        MITRE_TECHNIQUES,
-        PRIVILEGE_LEVELS,
-        LATERAL_TECHNIQUES,
         get_attack_simulation_engine,
     )
+
     check("All core imports", True)
-    check("MITRE techniques count", len(MITRE_TECHNIQUES) == 34, f"got {len(MITRE_TECHNIQUES)}")
-    check("Kill chain phases", len(list(KillChainPhase)) == 8, f"got {len(list(KillChainPhase))}")
+    check(
+        "MITRE techniques count",
+        len(MITRE_TECHNIQUES) == 34,
+        f"got {len(MITRE_TECHNIQUES)}",
+    )
+    check(
+        "Kill chain phases",
+        len(list(KillChainPhase)) == 8,
+        f"got {len(list(KillChainPhase))}",
+    )
     check("Threat actor profiles", len(list(ThreatActorProfile)) == 6)
     check("Privilege levels", len(PRIVILEGE_LEVELS) == 7)
     check("Lateral techniques", len(LATERAL_TECHNIQUES) == 8)
@@ -93,7 +109,10 @@ try:
     scenarios = engine.list_scenarios()
     check("List scenarios", len(scenarios) >= 1)
     fetched = engine.get_scenario(scenario.scenario_id)
-    check("Get scenario by ID", fetched is not None and fetched.scenario_id == scenario.scenario_id)
+    check(
+        "Get scenario by ID",
+        fetched is not None and fetched.scenario_id == scenario.scenario_id,
+    )
     check("Get non-existent scenario", engine.get_scenario("fake-id") is None)
 except Exception as e:
     check("Scenario management", False, str(e))
@@ -103,6 +122,7 @@ except Exception as e:
 # ==========================================================================
 print("\n=== 4. Campaign Execution ===")
 try:
+
     async def test_campaign():
         campaign = await engine.run_campaign(scenario.scenario_id, org_id="org-test")
         return campaign
@@ -110,10 +130,22 @@ try:
     campaign = asyncio.run(test_campaign())
     check("Campaign created", campaign.campaign_id.startswith("campaign-"))
     check("Campaign completed", campaign.status == CampaignStatus.COMPLETED)
-    check("Steps executed > 0", campaign.steps_executed > 0, f"got {campaign.steps_executed}")
-    check("Steps succeeded > 0", campaign.steps_succeeded > 0, f"got {campaign.steps_succeeded}")
+    check(
+        "Steps executed > 0",
+        campaign.steps_executed > 0,
+        f"got {campaign.steps_executed}",
+    )
+    check(
+        "Steps succeeded > 0",
+        campaign.steps_succeeded > 0,
+        f"got {campaign.steps_succeeded}",
+    )
     check("Risk score > 0", campaign.risk_score > 0, f"got {campaign.risk_score}")
-    check("Attack paths built", len(campaign.attack_paths) > 0, f"got {len(campaign.attack_paths)}")
+    check(
+        "Attack paths built",
+        len(campaign.attack_paths) > 0,
+        f"got {len(campaign.attack_paths)}",
+    )
     check("Breach impact exists", campaign.breach_impact is not None)
     check("MITRE coverage > 0 phases", len(campaign.mitre_coverage) > 0)
     check("Executive summary non-empty", len(campaign.executive_summary) > 0)
@@ -126,7 +158,10 @@ try:
     check("Financial loss expected > 0", bi.financial_loss_expected > 0)
     check("Recovery time > 0", bi.recovery_time_hours > 0)
     check("Systems compromised > 0", bi.systems_compromised > 0)
-    check("Reputation impact set", bi.reputation_impact in ("low", "medium", "high", "critical"))
+    check(
+        "Reputation impact set",
+        bi.reputation_impact in ("low", "medium", "high", "critical"),
+    )
 
     # Campaign queries
     check("Get campaign by ID", engine.get_campaign(campaign.campaign_id) is not None)
@@ -138,6 +173,6 @@ try:
     check("MITRE heatmap has phases", len(heatmap) > 0)
 except Exception as e:
     import traceback
+
     traceback.print_exc()
     check("Campaign execution", False, str(e))
-

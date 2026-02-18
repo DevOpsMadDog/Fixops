@@ -13,21 +13,15 @@ from __future__ import annotations
 
 import logging
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
+from core.attack_simulation_engine import get_attack_simulation_engine
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel, Field, validator
 
-from core.attack_simulation_engine import (
-    AttackSimulationEngine,
-    CampaignStatus,
-    get_attack_simulation_engine,
-)
-
 # Knowledge Brain + Event Bus integration (graceful degradation)
 try:
-    from core.event_bus import Event, EventType, get_event_bus
-    from core.knowledge_brain import get_brain
+    pass
 
     _HAS_BRAIN = True
 except ImportError:
@@ -45,6 +39,7 @@ router = APIRouter(prefix="/api/v1/attack-sim", tags=["attack-simulation"])
 
 class CreateScenarioRequest(BaseModel):
     """Request to create an attack scenario."""
+
     name: str = Field(..., description="Scenario name")
     description: str = Field("", description="Scenario description")
     threat_actor: str = Field("cybercriminal", description="Threat actor profile")
@@ -52,15 +47,22 @@ class CreateScenarioRequest(BaseModel):
     target_assets: List[str] = Field(default_factory=list, description="Target assets")
     target_cves: List[str] = Field(default_factory=list, description="CVEs to exploit")
     objectives: List[str] = Field(default_factory=list, description="Attack objectives")
-    initial_access_vector: str = Field("", description="MITRE technique ID for initial access")
+    initial_access_vector: str = Field(
+        "", description="MITRE technique ID for initial access"
+    )
 
 
 class GenerateScenarioRequest(BaseModel):
     """Request to AI-generate a scenario."""
-    target_description: str = Field("Web application", description="Description of the target")
+
+    target_description: str = Field(
+        "Web application", description="Description of the target"
+    )
     target: Optional[str] = Field(None, description="Alias for target_description")
     threat_actor: str = Field("cybercriminal", description="Threat actor profile")
-    attack_type: Optional[str] = Field(None, description="Type of attack (e.g., rce, xss)")
+    attack_type: Optional[str] = Field(
+        None, description="Type of attack (e.g., rce, xss)"
+    )
     cve_ids: List[str] = Field(default_factory=list, description="Known CVEs")
 
     @validator("target_description", pre=True, always=True)
@@ -75,12 +77,14 @@ class GenerateScenarioRequest(BaseModel):
 
 class RunCampaignRequest(BaseModel):
     """Request to run an attack campaign."""
+
     scenario_id: str = Field(..., description="Scenario to execute")
     org_id: Optional[str] = Field(None, description="Organization ID")
 
 
 class ScenarioResponse(BaseModel):
     """Scenario response."""
+
     scenario_id: str
     name: str
     description: str
@@ -95,6 +99,7 @@ class ScenarioResponse(BaseModel):
 
 class CampaignSummaryResponse(BaseModel):
     """Summary of a campaign."""
+
     campaign_id: str
     status: str
     scenario_name: str = ""
@@ -214,7 +219,9 @@ async def run_campaign(req: RunCampaignRequest, background_tasks: BackgroundTask
     engine = get_attack_simulation_engine()
     scenario = engine.get_scenario(req.scenario_id)
     if not scenario:
-        raise HTTPException(status_code=404, detail=f"Scenario {req.scenario_id} not found")
+        raise HTTPException(
+            status_code=404, detail=f"Scenario {req.scenario_id} not found"
+        )
 
     # Run campaign (async, may take time for LLM calls)
     campaign = await engine.run_campaign(
@@ -346,6 +353,7 @@ async def get_mitre_heatmap():
 async def get_mitre_techniques():
     """Get all supported MITRE ATT&CK techniques."""
     from core.attack_simulation_engine import MITRE_TECHNIQUES
+
     return {
         "techniques": {
             tid: {
@@ -382,4 +390,3 @@ async def attack_sim_health():
             "event_bus_notifications",
         ],
     }
-

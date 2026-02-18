@@ -596,11 +596,14 @@ class IaCScanner:
                     available = self.get_available_scanners()
                     if not available:
                         # Fallback to built-in scanner when no external tools available
-                        logger.info("No external IaC scanner available, using built-in scanner")
+                        logger.info(
+                            "No external IaC scanner available, using built-in scanner"
+                        )
                         from core.real_scanner import get_real_iac_scanner
+
                         builtin_scanner = get_real_iac_scanner()
                         real_findings = builtin_scanner.scan_content(content, filename)
-                        
+
                         # Convert real findings to IaCFinding format
                         findings = []
                         for rf in real_findings:
@@ -624,13 +627,13 @@ class IaCScanner:
                                 },
                             )
                             findings.append(finding)
-                        
+
                         completed_at = datetime.now()
                         duration = (completed_at - started_at).total_seconds()
-                        
+
                         for finding in findings:
                             finding.file_path = filename
-                        
+
                         return ScanResult(
                             scan_id=scan_id,
                             status=ScanStatus.COMPLETED,

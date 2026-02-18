@@ -148,19 +148,19 @@ class RealTimeDependencyScanner:
         self, dep_info: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
         """Check for dependency updates using real package registry APIs.
-        
+
         Queries npm, PyPI, or Maven registries to check for newer versions.
         """
         package_name = dep_info.get("package_name", "")
         package_manager = dep_info.get("package_manager", "")
         current_version = dep_info.get("current_version", "")
-        
+
         if not package_name or not package_manager:
             return None
-            
+
         try:
             import httpx
-            
+
             async with httpx.AsyncClient(timeout=30.0) as client:
                 if package_manager == "npm":
                     # Query npm registry
@@ -176,7 +176,7 @@ class RealTimeDependencyScanner:
                                 "vulnerability_count": 0,
                                 "critical_vulnerability_count": 0,
                             }
-                            
+
                 elif package_manager == "pypi":
                     # Query PyPI registry
                     response = await client.get(
@@ -191,10 +191,12 @@ class RealTimeDependencyScanner:
                                 "vulnerability_count": 0,
                                 "critical_vulnerability_count": 0,
                             }
-                            
+
                 elif package_manager == "maven":
                     # Query Maven Central
-                    group_id = dep_info.get("metadata", {}).get("group_id", package_name)
+                    group_id = dep_info.get("metadata", {}).get(
+                        "group_id", package_name
+                    )
                     response = await client.get(
                         f"https://search.maven.org/solrsearch/select?q=a:{package_name}+AND+g:{group_id}&rows=1&wt=json"
                     )
@@ -209,31 +211,31 @@ class RealTimeDependencyScanner:
                                     "vulnerability_count": 0,
                                     "critical_vulnerability_count": 0,
                                 }
-                                
+
         except Exception as e:
             logger.warning(f"Failed to check updates for {package_name}: {e}")
-            
+
         return None
 
     async def _check_for_vulnerabilities(
         self, dep_info: Dict[str, Any]
     ) -> List[VulnerabilityAlert]:
         """Check for vulnerabilities using real vulnerability databases.
-        
+
         Queries the OSV (Open Source Vulnerabilities) database for known CVEs.
         """
         package_name = dep_info.get("package_name", "")
         package_manager = dep_info.get("package_manager", "")
         current_version = dep_info.get("current_version", "")
-        
+
         if not package_name or not current_version:
             return []
-            
+
         alerts = []
-        
+
         try:
             import httpx
-            
+
             # Map package managers to OSV ecosystem names
             ecosystem_map = {
                 "npm": "npm",
@@ -244,11 +246,11 @@ class RealTimeDependencyScanner:
                 "rubygems": "RubyGems",
                 "nuget": "NuGet",
             }
-            
+
             ecosystem = ecosystem_map.get(package_manager.lower())
             if not ecosystem:
                 return []
-                
+
             async with httpx.AsyncClient(timeout=30.0) as client:
                 # Query OSV database
                 response = await client.post(
@@ -259,13 +261,13 @@ class RealTimeDependencyScanner:
                             "ecosystem": ecosystem,
                         },
                         "version": current_version,
-                    }
+                    },
                 )
-                
+
                 if response.status_code == 200:
                     data = response.json()
                     vulns = data.get("vulns", [])
-                    
+
                     for vuln in vulns:
                         # Extract CVE ID if available
                         cve_id = None
@@ -275,7 +277,7 @@ class RealTimeDependencyScanner:
                                 break
                         if not cve_id:
                             cve_id = vuln.get("id", "UNKNOWN")
-                            
+
                         # Determine severity
                         severity = "medium"
                         if vuln.get("database_specific", {}).get("severity"):
@@ -286,25 +288,29 @@ class RealTimeDependencyScanner:
                                     score = sev.get("score", "")
                                     # Parse CVSS score
                                     if "CRITICAL" in score.upper() or (
-                                        score and float(score.split("/")[0].split(":")[-1]) >= 9.0
+                                        score
+                                        and float(score.split("/")[0].split(":")[-1])
+                                        >= 9.0
                                     ):
                                         severity = "critical"
                                     elif "HIGH" in score.upper():
                                         severity = "high"
                                     break
-                                    
+
                         alert = VulnerabilityAlert(
                             cve_id=cve_id,
                             package_name=package_name,
                             package_version=current_version,
                             severity=severity,
-                            description=vuln.get("summary", vuln.get("details", ""))[:500],
+                            description=vuln.get("summary", vuln.get("details", ""))[
+                                :500
+                            ],
                         )
                         alerts.append(alert)
-                        
+
         except Exception as e:
             logger.warning(f"Failed to check vulnerabilities for {package_name}: {e}")
-            
+
         return alerts
 
 

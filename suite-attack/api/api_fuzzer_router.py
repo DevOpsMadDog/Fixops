@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -42,8 +42,10 @@ async def fuzz_endpoints(req: FuzzRequest) -> Dict[str, Any]:
     engine = get_api_fuzzer_engine()
     endpoints = engine.discover_from_openapi(req.openapi_spec)
     result = await engine.fuzz_endpoints(
-        base_url=req.base_url, endpoints=endpoints,
-        headers=req.headers, max_per_endpoint=req.max_per_endpoint,
+        base_url=req.base_url,
+        endpoints=endpoints,
+        headers=req.headers,
+        max_per_endpoint=req.max_per_endpoint,
     )
     return result.to_dict()
 
@@ -51,4 +53,3 @@ async def fuzz_endpoints(req: FuzzRequest) -> Dict[str, Any]:
 @router.get("/status")
 async def fuzzer_status() -> Dict[str, Any]:
     return {"engine": "api_fuzzer", "status": "ready", "version": "1.0.0"}
-

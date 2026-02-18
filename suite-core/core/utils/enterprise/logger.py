@@ -2,9 +2,7 @@
 Enterprise structured logging with compliance and security features
 """
 
-import asyncio
 import json
-import time
 from datetime import datetime
 from typing import Any, Dict, Optional
 

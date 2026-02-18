@@ -1790,18 +1790,22 @@ class FeedsService:
             )
             results = []
             for row in cursor.fetchall():
-                results.append({
-                    "cve_id": row["cve_id"],
-                    "threat_actor": row["threat_actor"],
-                    "campaign": row["campaign"],
-                    "first_seen": row["first_seen"],
-                    "last_seen": row["last_seen"],
-                    "target_sectors": json_mod.loads(row["target_sectors"] or "[]"),
-                    "target_countries": json_mod.loads(row["target_countries"] or "[]"),
-                    "ttps": json_mod.loads(row["ttps"] or "[]"),
-                    "confidence": row["confidence"],
-                    "source": row["source"],
-                })
+                results.append(
+                    {
+                        "cve_id": row["cve_id"],
+                        "threat_actor": row["threat_actor"],
+                        "campaign": row["campaign"],
+                        "first_seen": row["first_seen"],
+                        "last_seen": row["last_seen"],
+                        "target_sectors": json_mod.loads(row["target_sectors"] or "[]"),
+                        "target_countries": json_mod.loads(
+                            row["target_countries"] or "[]"
+                        ),
+                        "ttps": json_mod.loads(row["ttps"] or "[]"),
+                        "confidence": row["confidence"],
+                        "source": row["source"],
+                    }
+                )
             return results
         except sqlite3.OperationalError:
             # Table might not exist
@@ -1904,17 +1908,19 @@ class FeedsService:
             )
             results = []
             for row in cursor.fetchall():
-                results.append({
-                    "cve_id": row["cve_id"],
-                    "exploit_source": row["exploit_source"],
-                    "exploit_type": row["exploit_type"],
-                    "exploit_url": row["exploit_url"],
-                    "exploit_date": row["exploit_date"],
-                    "verified": bool(row["verified"]),
-                    "reliability": row["reliability"],
-                    "metasploit_module": row["metasploit_module"],
-                    "nuclei_template": row["nuclei_template"],
-                })
+                results.append(
+                    {
+                        "cve_id": row["cve_id"],
+                        "exploit_source": row["exploit_source"],
+                        "exploit_type": row["exploit_type"],
+                        "exploit_url": row["exploit_url"],
+                        "exploit_date": row["exploit_date"],
+                        "verified": bool(row["verified"]),
+                        "reliability": row["reliability"],
+                        "metasploit_module": row["metasploit_module"],
+                        "nuclei_template": row["nuclei_template"],
+                    }
+                )
             return results
         except sqlite3.OperationalError:
             # Table might not exist
@@ -2044,18 +2050,22 @@ class FeedsService:
                 )
             results = []
             for row in cursor.fetchall():
-                results.append({
-                    "vuln_id": row["vuln_id"],
-                    "ecosystem": row["ecosystem"],
-                    "package_name": row["package_name"],
-                    "affected_versions": row["affected_versions"],
-                    "patched_versions": row["patched_versions"],
-                    "severity": row["severity"],
-                    "cvss_score": row["cvss_score"],
-                    "reachable": bool(row["reachable"]) if row["reachable"] is not None else None,
-                    "transitive": bool(row["transitive"]),
-                    "source": row["source"],
-                })
+                results.append(
+                    {
+                        "vuln_id": row["vuln_id"],
+                        "ecosystem": row["ecosystem"],
+                        "package_name": row["package_name"],
+                        "affected_versions": row["affected_versions"],
+                        "patched_versions": row["patched_versions"],
+                        "severity": row["severity"],
+                        "cvss_score": row["cvss_score"],
+                        "reachable": bool(row["reachable"])
+                        if row["reachable"] is not None
+                        else None,
+                        "transitive": bool(row["transitive"]),
+                        "source": row["source"],
+                    }
+                )
             return results
         except sqlite3.OperationalError:
             # Table might not exist

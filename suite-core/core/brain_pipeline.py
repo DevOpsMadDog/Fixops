@@ -26,7 +26,6 @@ Usage:
 
 from __future__ import annotations
 
-import json
 import logging
 import time
 import uuid
@@ -58,18 +57,18 @@ class StepStatus(str, Enum):
 
 
 STEP_NAMES = [
-    "connect",          # 1
-    "normalize",        # 2
-    "resolve_identity", # 3
-    "deduplicate",      # 4
-    "build_graph",      # 5
-    "enrich_threats",   # 6
-    "score_risk",       # 7
-    "apply_policy",     # 8
-    "llm_consensus",    # 9
-    "micro_pentest",    # 10
-    "run_playbooks",    # 11
-    "generate_evidence",# 12
+    "connect",  # 1
+    "normalize",  # 2
+    "resolve_identity",  # 3
+    "deduplicate",  # 4
+    "build_graph",  # 5
+    "enrich_threats",  # 6
+    "score_risk",  # 7
+    "apply_policy",  # 8
+    "llm_consensus",  # 9
+    "micro_pentest",  # 10
+    "run_playbooks",  # 11
+    "generate_evidence",  # 12
 ]
 
 
@@ -255,8 +254,14 @@ class BrainPipeline:
         result.pentest_validated = len(ctx.get("pentest_results", []))
         result.playbooks_executed = len(ctx.get("playbook_results", []))
 
-        all_completed = all(s.status in (StepStatus.COMPLETED, StepStatus.SKIPPED) for s in result.steps)
-        result.status = PipelineStatus.COMPLETED if all_completed else (PipelineStatus.FAILED if failed else PipelineStatus.PARTIAL)
+        all_completed = all(
+            s.status in (StepStatus.COMPLETED, StepStatus.SKIPPED) for s in result.steps
+        )
+        result.status = (
+            PipelineStatus.COMPLETED
+            if all_completed
+            else (PipelineStatus.FAILED if failed else PipelineStatus.PARTIAL)
+        )
 
         self._emit_event(result)
         return result
@@ -282,7 +287,9 @@ class BrainPipeline:
     # ------------------------------------------------------------------
     # Step 2: Translate into common language
     # ------------------------------------------------------------------
-    def _step_normalize(self, ctx: Dict[str, Any], inp: PipelineInput) -> Dict[str, Any]:
+    def _step_normalize(
+        self, ctx: Dict[str, Any], inp: PipelineInput
+    ) -> Dict[str, Any]:
         """Ensure every finding has a canonical shape."""
         normalized = 0
         for f in ctx["findings"]:
@@ -298,13 +305,20 @@ class BrainPipeline:
     # ------------------------------------------------------------------
     # Step 3: Fix identity confusion (Fuzzy matching)
     # ------------------------------------------------------------------
-    def _step_resolve_identity(self, ctx: Dict[str, Any], inp: PipelineInput) -> Dict[str, Any]:
+    def _step_resolve_identity(
+        self, ctx: Dict[str, Any], inp: PipelineInput
+    ) -> Dict[str, Any]:
         """Use FuzzyIdentityResolver to map asset names → canonical IDs."""
         try:
             from core.services.fuzzy_identity import get_fuzzy_resolver
+
             resolver = get_fuzzy_resolver()
         except Exception:
-            return {"resolved": 0, "skipped": True, "reason": "fuzzy_identity unavailable"}
+            return {
+                "resolved": 0,
+                "skipped": True,
+                "reason": "fuzzy_identity unavailable",
+            }
 
         # Register known assets first
         for asset in ctx["assets"]:
@@ -329,32 +343,51 @@ class BrainPipeline:
             if match:
                 f["canonical_asset_id"] = match.canonical_id
                 f["identity_confidence"] = match.confidence
-                f["identity_strategy"] = match.strategy.value if hasattr(match.strategy, "value") else str(match.strategy)
+                f["identity_strategy"] = (
+                    match.strategy.value
+                    if hasattr(match.strategy, "value")
+                    else str(match.strategy)
+                )
                 resolved += 1
         return {"resolved": resolved, "total": len(ctx["findings"])}
 
     # ------------------------------------------------------------------
     # Step 4: Collapse duplicates into Exposure Cases
     # ------------------------------------------------------------------
-    def _step_deduplicate(self, ctx: Dict[str, Any], inp: PipelineInput) -> Dict[str, Any]:
+    def _step_deduplicate(
+        self, ctx: Dict[str, Any], inp: PipelineInput
+    ) -> Dict[str, Any]:
         """Deduplicate findings and create Exposure Cases."""
         from pathlib import Path
+
         try:
             from core.services.deduplication import DeduplicationService
+
             dedup = DeduplicationService(db_path=Path("fixops_dedup.db"))
         except Exception:
-            return {"clusters": 0, "skipped": True, "reason": "deduplication unavailable"}
+            return {
+                "clusters": 0,
+                "skipped": True,
+                "reason": "deduplication unavailable",
+            }
 
         run_id = uuid.uuid4().hex[:12]
         batch = dedup.process_findings_batch(
             ctx["findings"], run_id=run_id, org_id=ctx["org_id"], source=inp.source
         )
-        cluster_ids = list(set(r["cluster_id"] for r in batch.get("results", batch.get("clusters", [])) if isinstance(r, dict)))
+        cluster_ids = list(
+            set(
+                r["cluster_id"]
+                for r in batch.get("results", batch.get("clusters", []))
+                if isinstance(r, dict)
+            )
+        )
         ctx["clusters"] = cluster_ids
 
         # Create Exposure Cases from clusters
         try:
-            from core.exposure_case import ExposureCase, CasePriority, get_case_manager
+            from core.exposure_case import ExposureCase, get_case_manager
+
             mgr = get_case_manager()
             cases_created = []
             for cid in cluster_ids:
@@ -381,10 +414,19 @@ class BrainPipeline:
     # ------------------------------------------------------------------
     # Step 5: Build the Brain Map (Knowledge Graph)
     # ------------------------------------------------------------------
-    def _step_build_graph(self, ctx: Dict[str, Any], inp: PipelineInput) -> Dict[str, Any]:
+    def _step_build_graph(
+        self, ctx: Dict[str, Any], inp: PipelineInput
+    ) -> Dict[str, Any]:
         """Upsert nodes/edges to Knowledge Graph Brain."""
         try:
-            from core.knowledge_brain import get_brain, GraphNode, GraphEdge, EntityType, EdgeType
+            from core.knowledge_brain import (
+                EdgeType,
+                EntityType,
+                GraphEdge,
+                GraphNode,
+                get_brain,
+            )
+
             brain = get_brain()
         except Exception:
             return {"nodes": 0, "edges": 0, "skipped": True}
@@ -393,52 +435,81 @@ class BrainPipeline:
 
         # Upsert asset nodes
         for asset in ctx["assets"]:
-            brain.upsert_node(GraphNode(
-                node_id=asset.get("id", asset.get("name", "")),
-                node_type=EntityType.ASSET,
-                org_id=ctx["org_id"],
-                properties=asset,
-            ))
+            brain.upsert_node(
+                GraphNode(
+                    node_id=asset.get("id", asset.get("name", "")),
+                    node_type=EntityType.ASSET,
+                    org_id=ctx["org_id"],
+                    properties=asset,
+                )
+            )
             nodes_added += 1
 
         # Upsert finding nodes + edges
         for f in ctx["findings"]:
             fid = f.get("id", f.get("rule_id", uuid.uuid4().hex[:12]))
-            brain.upsert_node(GraphNode(
-                node_id=fid, node_type=EntityType.FINDING,
-                org_id=ctx["org_id"], properties={"title": f.get("title"), "severity": f.get("severity")},
-            ))
+            brain.upsert_node(
+                GraphNode(
+                    node_id=fid,
+                    node_type=EntityType.FINDING,
+                    org_id=ctx["org_id"],
+                    properties={"title": f.get("title"), "severity": f.get("severity")},
+                )
+            )
             nodes_added += 1
 
             # Link finding → asset
             asset_id = f.get("canonical_asset_id", f.get("asset_name"))
             if asset_id:
-                brain.add_edge(GraphEdge(source_id=fid, target_id=asset_id, edge_type=EdgeType.AFFECTS))
+                brain.add_edge(
+                    GraphEdge(
+                        source_id=fid, target_id=asset_id, edge_type=EdgeType.AFFECTS
+                    )
+                )
                 edges_added += 1
 
             # Link finding → CVE
             cve = f.get("cve_id")
             if cve:
-                brain.upsert_node(GraphNode(node_id=cve, node_type=EntityType.CVE, org_id=ctx["org_id"]))
-                brain.add_edge(GraphEdge(source_id=fid, target_id=cve, edge_type=EdgeType.REFERENCES))
+                brain.upsert_node(
+                    GraphNode(
+                        node_id=cve, node_type=EntityType.CVE, org_id=ctx["org_id"]
+                    )
+                )
+                brain.add_edge(
+                    GraphEdge(
+                        source_id=fid, target_id=cve, edge_type=EdgeType.REFERENCES
+                    )
+                )
                 nodes_added += 1
                 edges_added += 1
 
         # Link exposure cases
         for case_id in ctx.get("exposure_cases", []):
-            brain.upsert_node(GraphNode(
-                node_id=case_id, node_type=EntityType.EXPOSURE_CASE, org_id=ctx["org_id"],
-            ))
+            brain.upsert_node(
+                GraphNode(
+                    node_id=case_id,
+                    node_type=EntityType.EXPOSURE_CASE,
+                    org_id=ctx["org_id"],
+                )
+            )
             nodes_added += 1
 
         stats = brain.stats()
         ctx["graph_stats"] = stats
-        return {"nodes_added": nodes_added, "edges_added": edges_added, "total_nodes": stats.get("total_nodes", 0), "total_edges": stats.get("total_edges", 0)}
+        return {
+            "nodes_added": nodes_added,
+            "edges_added": edges_added,
+            "total_nodes": stats.get("total_nodes", 0),
+            "total_edges": stats.get("total_edges", 0),
+        }
 
     # ------------------------------------------------------------------
     # Step 6: Add threat reality signals (EPSS, KEV, CVSS)
     # ------------------------------------------------------------------
-    def _step_enrich_threats(self, ctx: Dict[str, Any], inp: PipelineInput) -> Dict[str, Any]:
+    def _step_enrich_threats(
+        self, ctx: Dict[str, Any], inp: PipelineInput
+    ) -> Dict[str, Any]:
         """Fetch EPSS scores, KEV status, CVSS from threat feeds."""
         cve_ids = [f["cve_id"] for f in ctx["findings"] if f.get("cve_id")]
         if not cve_ids:
@@ -451,7 +522,13 @@ class BrainPipeline:
                 continue
             # Deterministic enrichment from severity
             sev = f.get("severity", "medium").lower()
-            sev_map = {"critical": 9.5, "high": 7.5, "medium": 5.0, "low": 2.5, "info": 0.5}
+            sev_map = {
+                "critical": 9.5,
+                "high": 7.5,
+                "medium": 5.0,
+                "low": 2.5,
+                "info": 0.5,
+            }
             cvss = sev_map.get(sev, 5.0)
             epss = min(cvss / 10.0 * 0.6, 0.97)  # Proportional
             f["cvss_score"] = cvss
@@ -464,7 +541,9 @@ class BrainPipeline:
     # ------------------------------------------------------------------
     # Step 7: Run smart algorithms (GNN + attack paths)
     # ------------------------------------------------------------------
-    def _step_score_risk(self, ctx: Dict[str, Any], inp: PipelineInput) -> Dict[str, Any]:
+    def _step_score_risk(
+        self, ctx: Dict[str, Any], inp: PipelineInput
+    ) -> Dict[str, Any]:
         """Score risk using attack-path analysis and aggregate metrics."""
         scores = []
         for f in ctx["findings"]:
@@ -476,25 +555,51 @@ class BrainPipeline:
                 if a.get("id") == f.get("canonical_asset_id"):
                     asset_criticality = a.get("criticality", 1.0)
                     break
-            risk = round(min((cvss / 10 * 0.4 + epss * 0.3 + 0.3) * kev_boost * asset_criticality, 1.0), 4)
+            risk = round(
+                min(
+                    (cvss / 10 * 0.4 + epss * 0.3 + 0.3)
+                    * kev_boost
+                    * asset_criticality,
+                    1.0,
+                ),
+                4,
+            )
             f["risk_score"] = risk
             scores.append(risk)
 
         avg = round(sum(scores) / len(scores), 4) if scores else 0.0
         critical_count = sum(1 for s in scores if s >= 0.75)
         ctx["risk_scores"] = {"avg": avg, "critical": critical_count, "scores": scores}
-        return {"avg_risk_score": avg, "critical_count": critical_count, "scored": len(scores)}
+        return {
+            "avg_risk_score": avg,
+            "critical_count": critical_count,
+            "scored": len(scores),
+        }
 
     # ------------------------------------------------------------------
     # Step 8: Policy decides what must happen
     # ------------------------------------------------------------------
-    def _step_apply_policy(self, ctx: Dict[str, Any], inp: PipelineInput) -> Dict[str, Any]:
+    def _step_apply_policy(
+        self, ctx: Dict[str, Any], inp: PipelineInput
+    ) -> Dict[str, Any]:
         """Evaluate policy rules and determine required actions."""
         decisions = []
         rules = inp.policy_rules or [
-            {"name": "critical_block", "condition": "risk_score >= 0.85", "action": "block"},
-            {"name": "high_review", "condition": "risk_score >= 0.6", "action": "review"},
-            {"name": "kev_escalate", "condition": "in_kev == true", "action": "escalate"},
+            {
+                "name": "critical_block",
+                "condition": "risk_score >= 0.85",
+                "action": "block",
+            },
+            {
+                "name": "high_review",
+                "condition": "risk_score >= 0.6",
+                "action": "review",
+            },
+            {
+                "name": "kev_escalate",
+                "condition": "in_kev == true",
+                "action": "escalate",
+            },
         ]
 
         for f in ctx["findings"]:
@@ -505,12 +610,24 @@ class BrainPipeline:
             for rule in rules:
                 cond = rule.get("condition", "")
                 if "risk_score >= 0.85" in cond and risk >= 0.85:
-                    action = rule["action"]; triggered_rule = rule["name"]; break
+                    action = rule["action"]
+                    triggered_rule = rule["name"]
+                    break
                 elif "risk_score >= 0.6" in cond and risk >= 0.6:
-                    action = rule["action"]; triggered_rule = rule["name"]; break
+                    action = rule["action"]
+                    triggered_rule = rule["name"]
+                    break
                 elif "in_kev" in cond and in_kev:
-                    action = rule["action"]; triggered_rule = rule["name"]; break
-            decisions.append({"finding_id": f.get("id", ""), "action": action, "rule": triggered_rule})
+                    action = rule["action"]
+                    triggered_rule = rule["name"]
+                    break
+            decisions.append(
+                {
+                    "finding_id": f.get("id", ""),
+                    "action": action,
+                    "rule": triggered_rule,
+                }
+            )
             f["policy_action"] = action
 
         ctx["policy_decisions"] = decisions
@@ -522,7 +639,9 @@ class BrainPipeline:
     # ------------------------------------------------------------------
     # Step 9: Multi-LLM consensus
     # ------------------------------------------------------------------
-    def _step_llm_consensus(self, ctx: Dict[str, Any], inp: PipelineInput) -> Dict[str, Any]:
+    def _step_llm_consensus(
+        self, ctx: Dict[str, Any], inp: PipelineInput
+    ) -> Dict[str, Any]:
         """Get multi-LLM consensus on critical findings."""
         critical = [f for f in ctx["findings"] if f.get("risk_score", 0) >= 0.6]
         if not critical:
@@ -530,6 +649,7 @@ class BrainPipeline:
 
         try:
             from core.enhanced_decision import EnhancedDecisionEngine
+
             engine = EnhancedDecisionEngine()
             severity_overview = {
                 "critical": sum(1 for f in critical if f.get("severity") == "critical"),
@@ -541,36 +661,56 @@ class BrainPipeline:
                 risk_profile=ctx.get("risk_scores"),
             )
             ctx["llm_results"] = [result]
-            return {"analyzed": len(critical), "decision": result.get("final_decision", "unknown")}
+            return {
+                "analyzed": len(critical),
+                "decision": result.get("final_decision", "unknown"),
+            }
         except Exception as e:
             logger.warning("LLM consensus skipped: %s", e)
             return {"analyzed": 0, "skipped": True, "reason": str(e)}
 
-
     # ------------------------------------------------------------------
     # Step 10: MicroPenTest proves reality
     # ------------------------------------------------------------------
-    def _step_micro_pentest(self, ctx: Dict[str, Any], inp: PipelineInput) -> Dict[str, Any]:
+    def _step_micro_pentest(
+        self, ctx: Dict[str, Any], inp: PipelineInput
+    ) -> Dict[str, Any]:
         """Run MPTE validation on high-risk findings."""
         import asyncio
-        high_risk = [f for f in ctx["findings"] if f.get("risk_score", 0) >= 0.75 and f.get("cve_id")]
+
+        high_risk = [
+            f
+            for f in ctx["findings"]
+            if f.get("risk_score", 0) >= 0.75 and f.get("cve_id")
+        ]
         if not high_risk:
             return {"tested": 0, "reason": "no high-risk CVEs to test"}
 
         cve_ids = list(set(f["cve_id"] for f in high_risk if f.get("cve_id")))[:10]
-        target_urls = list(set(
-            a.get("url", a.get("endpoint", "")) for a in ctx["assets"] if a.get("url") or a.get("endpoint")
-        ))[:5]
+        target_urls = list(
+            set(
+                a.get("url", a.get("endpoint", ""))
+                for a in ctx["assets"]
+                if a.get("url") or a.get("endpoint")
+            )
+        )[:5]
         if not target_urls:
             target_urls = ["https://localhost:8443"]
 
         try:
             from core.micro_pentest import run_micro_pentest
+
             loop = asyncio.new_event_loop()
             result = loop.run_until_complete(run_micro_pentest(cve_ids, target_urls))
             loop.close()
-            ctx["pentest_results"] = [{"cve_ids": cve_ids, "status": result.status, "flow_id": result.flow_id}]
-            return {"tested_cves": len(cve_ids), "status": result.status, "flow_id": result.flow_id}
+            ctx["pentest_results"] = [
+                {"cve_ids": cve_ids, "status": result.status, "flow_id": result.flow_id}
+            ]
+            return {
+                "tested_cves": len(cve_ids),
+                "status": result.status,
+                "flow_id": result.flow_id,
+            }
         except Exception as e:
             logger.warning("MicroPenTest skipped: %s", e)
             return {"tested": 0, "skipped": True, "reason": str(e)}
@@ -578,9 +718,15 @@ class BrainPipeline:
     # ------------------------------------------------------------------
     # Step 11: Playbooks mobilize remediation
     # ------------------------------------------------------------------
-    def _step_run_playbooks(self, ctx: Dict[str, Any], inp: PipelineInput) -> Dict[str, Any]:
+    def _step_run_playbooks(
+        self, ctx: Dict[str, Any], inp: PipelineInput
+    ) -> Dict[str, Any]:
         """Execute remediation playbooks for actionable findings."""
-        actionable = [f for f in ctx["findings"] if f.get("policy_action") in ("block", "review", "escalate")]
+        actionable = [
+            f
+            for f in ctx["findings"]
+            if f.get("policy_action") in ("block", "review", "escalate")
+        ]
         if not actionable:
             return {"executed": 0, "reason": "no actionable findings"}
 
@@ -599,9 +745,13 @@ class BrainPipeline:
             if action == "block" and f.get("cve_id"):
                 try:
                     from core.autofix_engine import AutoFixEngine
+
                     engine = AutoFixEngine()
                     fix = engine.generate_fix(
-                        vulnerability={"cve_id": f["cve_id"], "severity": f.get("severity", "high")},
+                        vulnerability={
+                            "cve_id": f["cve_id"],
+                            "severity": f.get("severity", "high"),
+                        },
                         code_context=f.get("code_context", {}),
                     )
                     pb["autofix"] = {"status": "generated", "fix_id": fix.get("fix_id")}
@@ -610,12 +760,20 @@ class BrainPipeline:
             playbook_results.append(pb)
 
         ctx["playbook_results"] = playbook_results
-        return {"executed": len(playbook_results), "actions": {a: sum(1 for p in playbook_results if p["action"] == a) for a in set(p["action"] for p in playbook_results)}}
+        return {
+            "executed": len(playbook_results),
+            "actions": {
+                a: sum(1 for p in playbook_results if p["action"] == a)
+                for a in set(p["action"] for p in playbook_results)
+            },
+        }
 
     # ------------------------------------------------------------------
     # Step 12: SOC2 Type II evidence pack
     # ------------------------------------------------------------------
-    def _step_generate_evidence(self, ctx: Dict[str, Any], inp: PipelineInput) -> Dict[str, Any]:
+    def _step_generate_evidence(
+        self, ctx: Dict[str, Any], inp: PipelineInput
+    ) -> Dict[str, Any]:
         """Generate SOC2 evidence pack from the pipeline results."""
         now = datetime.now(timezone.utc)
         evidence = {
@@ -635,13 +793,19 @@ class BrainPipeline:
             },
             "controls": {
                 "vulnerability_management": {
-                    "status": "effective" if ctx.get("risk_scores", {}).get("avg", 1) < 0.6 else "needs_improvement",
+                    "status": "effective"
+                    if ctx.get("risk_scores", {}).get("avg", 1) < 0.6
+                    else "needs_improvement",
                     "findings_triaged": len(ctx["findings"]),
                     "mean_time_to_detect": "< 24h",
                 },
                 "change_management": {
                     "status": "effective",
-                    "autofix_generated": sum(1 for p in ctx.get("playbook_results", []) if p.get("autofix", {}).get("status") == "generated"),
+                    "autofix_generated": sum(
+                        1
+                        for p in ctx.get("playbook_results", [])
+                        if p.get("autofix", {}).get("status") == "generated"
+                    ),
                 },
                 "logging_monitoring": {
                     "status": "effective",
@@ -659,7 +823,9 @@ class BrainPipeline:
         """Emit pipeline completion event to the event bus."""
         try:
             import asyncio
+
             from core.event_bus import Event, EventType, get_event_bus
+
             bus = get_event_bus()
             event = Event(
                 event_type=EventType.SCAN_COMPLETED,

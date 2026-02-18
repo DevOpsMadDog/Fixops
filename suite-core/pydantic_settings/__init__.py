@@ -5,7 +5,17 @@ from __future__ import annotations
 import inspect
 import os
 import types
-from typing import Any, Dict, Iterable, Tuple, Type, Union, get_args, get_origin, get_type_hints
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    Tuple,
+    Type,
+    Union,
+    get_args,
+    get_origin,
+    get_type_hints,
+)
 
 
 def _get_annotations(cls_or_obj: Any) -> Dict[str, Any]:
@@ -19,6 +29,7 @@ def _get_annotations(cls_or_obj: Any) -> Dict[str, Any]:
     except Exception:
         pass
     return getattr(cls_or_obj, "__annotations__", {})
+
 
 from pydantic.fields import FieldInfo
 

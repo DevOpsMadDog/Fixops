@@ -13,7 +13,6 @@ Example:
 This enables backward compatibility with existing scripts, imports, and uvicorn commands.
 """
 
-import os
 import sys
 from pathlib import Path
 

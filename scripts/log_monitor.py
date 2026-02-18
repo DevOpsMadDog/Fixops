@@ -3,7 +3,6 @@
 import sqlite3
 import time
 import urllib.request
-import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -12,6 +11,7 @@ HEALTH_URL = "http://localhost:8000/api/v1/health"
 API_KEY = "test-token-123"
 CHECK_INTERVAL = 15  # seconds
 LOOKBACK = 20  # seconds
+
 
 def check():
     ts = datetime.now().strftime("%H:%M:%S")
@@ -35,11 +35,13 @@ def check():
     db = sqlite3.connect(str(DB_PATH))
     try:
         cutoff = (datetime.now(timezone.utc) - timedelta(seconds=LOOKBACK)).isoformat()
-        errors = list(db.execute(
-            "SELECT ts, method, path, status_code, duration_ms "
-            "FROM api_logs WHERE status_code >= 400 AND ts > ? ORDER BY id DESC LIMIT 10",
-            (cutoff,)
-        ))
+        errors = list(
+            db.execute(
+                "SELECT ts, method, path, status_code, duration_ms "
+                "FROM api_logs WHERE status_code >= 400 AND ts > ? ORDER BY id DESC LIMIT 10",
+                (cutoff,),
+            )
+        )
         if errors:
             print(f"  ERRORS: {len(errors)} in last {LOOKBACK}s:")
             for r in errors:
@@ -55,9 +57,12 @@ def check():
             "SUM(CASE WHEN status_code >= 500 THEN 1 ELSE 0 END), "
             "AVG(duration_ms) FROM api_logs"
         ).fetchone()
-        print(f"  Totals: {row[0]} logs | {row[1]} 4xx+ | {row[2]} 5xx | avg {row[3]:.1f}ms")
+        print(
+            f"  Totals: {row[0]} logs | {row[1]} 4xx+ | {row[2]} 5xx | avg {row[3]:.1f}ms"
+        )
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     print("ALdeci Log Monitor started. Ctrl+C to stop.")
@@ -67,4 +72,3 @@ if __name__ == "__main__":
             time.sleep(CHECK_INTERVAL)
     except KeyboardInterrupt:
         print("\nMonitor stopped.")
-

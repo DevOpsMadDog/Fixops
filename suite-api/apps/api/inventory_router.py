@@ -7,32 +7,39 @@ vulnerability-to-asset correlation, and asset risk scoring.
 """
 from __future__ import annotations
 
-import hashlib
-import json
 import uuid
-from collections import defaultdict, deque
+from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set
-
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
 
 from apps.api.dependencies import get_org_id
 from core.inventory_db import InventoryDB
 from core.inventory_models import Application, ApplicationCriticality, ApplicationStatus
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/inventory", tags=["inventory"])
 db = InventoryDB()
 
 # In-memory stores for enrichment data (prod would be DB-backed)
-_dependency_store: Dict[str, List[Dict[str, Any]]] = {}   # app_id -> deps
+_dependency_store: Dict[str, List[Dict[str, Any]]] = {}  # app_id -> deps
 _license_db: Dict[str, str] = {
-    "MIT": "permissive", "Apache-2.0": "permissive", "BSD-2-Clause": "permissive",
-    "BSD-3-Clause": "permissive", "ISC": "permissive",
-    "GPL-2.0": "copyleft", "GPL-3.0": "copyleft", "AGPL-3.0": "copyleft",
-    "LGPL-2.1": "weak_copyleft", "LGPL-3.0": "weak_copyleft", "MPL-2.0": "weak_copyleft",
-    "Unlicense": "public_domain", "CC0-1.0": "public_domain",
-    "SSPL-1.0": "restrictive", "BSL-1.1": "restrictive", "Elastic-2.0": "restrictive",
+    "MIT": "permissive",
+    "Apache-2.0": "permissive",
+    "BSD-2-Clause": "permissive",
+    "BSD-3-Clause": "permissive",
+    "ISC": "permissive",
+    "GPL-2.0": "copyleft",
+    "GPL-3.0": "copyleft",
+    "AGPL-3.0": "copyleft",
+    "LGPL-2.1": "weak_copyleft",
+    "LGPL-3.0": "weak_copyleft",
+    "MPL-2.0": "weak_copyleft",
+    "Unlicense": "public_domain",
+    "CC0-1.0": "public_domain",
+    "SSPL-1.0": "restrictive",
+    "BSL-1.1": "restrictive",
+    "Elastic-2.0": "restrictive",
 }
 
 
@@ -117,7 +124,9 @@ class PaginatedAssetResponse(BaseModel):
 @router.get("/assets", response_model=PaginatedAssetResponse)
 async def list_assets(
     org_id: str = Depends(get_org_id),
-    asset_type: Optional[str] = Query(None, description="Filter by asset type: application, service, api"),
+    asset_type: Optional[str] = Query(
+        None, description="Filter by asset type: application, service, api"
+    ),
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ):
@@ -250,8 +259,12 @@ async def list_application_components(id: str):
         raise HTTPException(status_code=404, detail="Application not found")
     deps = _dependency_store.get(id, [])
     components = [
-        {"name": d["name"], "version": d.get("version", "unknown"),
-         "type": d.get("type", "library"), "license": d.get("license", "unknown")}
+        {
+            "name": d["name"],
+            "version": d.get("version", "unknown"),
+            "type": d.get("type", "library"),
+            "license": d.get("license", "unknown"),
+        }
         for d in deps
     ]
     return {"application_id": id, "components": components, "total": len(components)}
@@ -301,13 +314,20 @@ async def get_application_dependencies(id: str, include_transitive: bool = Query
     nodes = []
     edges = []
     for dep in deps:
-        nodes.append({"id": dep["name"], "version": dep.get("version", "?"),
-                       "license": dep.get("license", "unknown"),
-                       "direct": not dep.get("transitive", False)})
+        nodes.append(
+            {
+                "id": dep["name"],
+                "version": dep.get("version", "?"),
+                "license": dep.get("license", "unknown"),
+                "direct": not dep.get("transitive", False),
+            }
+        )
         for sub in dep.get("sub_dependencies", []):
             edges.append({"source": dep["name"], "target": sub})
             if include_transitive:
-                nodes.append({"id": sub, "version": "?", "license": "unknown", "direct": False})
+                nodes.append(
+                    {"id": sub, "version": "?", "license": "unknown", "direct": False}
+                )
 
     # Deduplicate nodes by id
     seen: Set[str] = set()
@@ -337,16 +357,26 @@ async def list_services(
     limit: int = Query(100, ge=1, le=1000), offset: int = Query(0, ge=0)
 ):
     """List all services with pagination."""
-    items = list(_service_store.values())[offset:offset + limit]
-    return {"items": items, "total": len(_service_store), "limit": limit, "offset": offset}
+    items = list(_service_store.values())[offset : offset + limit]
+    return {
+        "items": items,
+        "total": len(_service_store),
+        "limit": limit,
+        "offset": offset,
+    }
 
 
 @router.post("/services", status_code=201)
 async def create_service(service_data: Dict[str, Any]):
     """Register a new service."""
     service_id = str(uuid.uuid4())
-    svc = {"id": service_id, "created_at": datetime.now(timezone.utc).isoformat(),
-           "updated_at": datetime.now(timezone.utc).isoformat(), "status": "active", **service_data}
+    svc = {
+        "id": service_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "status": "active",
+        **service_data,
+    }
     _service_store[service_id] = svc
     return svc
 
@@ -365,7 +395,7 @@ async def list_apis(
     limit: int = Query(100, ge=1, le=1000), offset: int = Query(0, ge=0)
 ):
     """List all API endpoints with pagination."""
-    items = list(_api_store.values())[offset:offset + limit]
+    items = list(_api_store.values())[offset : offset + limit]
     return {"items": items, "total": len(_api_store), "limit": limit, "offset": offset}
 
 
@@ -373,8 +403,13 @@ async def list_apis(
 async def create_api(api_data: Dict[str, Any]):
     """Register a new API endpoint."""
     api_id = str(uuid.uuid4())
-    api_entry = {"id": api_id, "created_at": datetime.now(timezone.utc).isoformat(),
-                 "updated_at": datetime.now(timezone.utc).isoformat(), "status": "active", **api_data}
+    api_entry = {
+        "id": api_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "status": "active",
+        **api_data,
+    }
     _api_store[api_id] = api_entry
     return api_entry
 
@@ -390,13 +425,16 @@ async def get_api_security(id: str):
     vulns: List[Dict[str, Any]] = []
     try:
         from core.knowledge_brain import get_brain
+
         brain = get_brain()
         neighbors = brain.get_neighbors(id, depth=1)
         for n in neighbors:
             if n.get("entity_type") == "finding":
                 vulns.append(n)
                 sev = n.get("severity", "medium")
-                penalty = {"critical": 25, "high": 15, "medium": 8, "low": 3}.get(sev, 5)
+                penalty = {"critical": 25, "high": 15, "medium": 8, "low": 3}.get(
+                    sev, 5
+                )
                 score = max(0, score - penalty)
     except Exception:
         pass
@@ -441,12 +479,16 @@ async def check_license_compliance(id: str):
         category = _license_db.get(lic, "unknown")
         summary[category] += 1
         if category in ("copyleft", "restrictive"):
-            issues.append({
-                "package": dep["name"], "version": dep.get("version", "?"),
-                "license": lic, "category": category,
-                "risk": "high" if category == "copyleft" else "critical",
-                "recommendation": "Review license obligations or find alternative package",
-            })
+            issues.append(
+                {
+                    "package": dep["name"],
+                    "version": dep.get("version", "?"),
+                    "license": lic,
+                    "category": category,
+                    "risk": "high" if category == "copyleft" else "critical",
+                    "recommendation": "Review license obligations or find alternative package",
+                }
+            )
 
     compliant = len(issues) == 0
     return {
@@ -493,23 +535,34 @@ async def generate_sbom(
             "specVersion": "1.5",
             "version": 1,
             "metadata": {
-                "component": {"type": "application", "name": app_dict["name"],
-                              "version": "1.0.0"},
+                "component": {
+                    "type": "application",
+                    "name": app_dict["name"],
+                    "version": "1.0.0",
+                },
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                "tools": [{"vendor": "FixOps", "name": "FixOps SBOM Generator", "version": "1.0.0"}],
+                "tools": [
+                    {
+                        "vendor": "FixOps",
+                        "name": "FixOps SBOM Generator",
+                        "version": "1.0.0",
+                    }
+                ],
             },
             "components": components,
         }
     else:  # spdx
         packages = []
         for i, dep in enumerate(deps):
-            packages.append({
-                "SPDXID": f"SPDXRef-Package-{i}",
-                "name": dep["name"],
-                "versionInfo": dep.get("version", "unknown"),
-                "downloadLocation": dep.get("repository_url", "NOASSERTION"),
-                "licenseConcluded": dep.get("license", "NOASSERTION"),
-            })
+            packages.append(
+                {
+                    "SPDXID": f"SPDXRef-Package-{i}",
+                    "name": dep["name"],
+                    "versionInfo": dep.get("version", "unknown"),
+                    "downloadLocation": dep.get("repository_url", "NOASSERTION"),
+                    "licenseConcluded": dep.get("license", "NOASSERTION"),
+                }
+            )
         sbom = {
             "spdxVersion": "SPDX-2.3",
             "dataLicense": "CC0-1.0",
@@ -523,5 +576,9 @@ async def generate_sbom(
             "packages": packages,
         }
 
-    return {"format": format, "application_id": id, "sbom": sbom,
-            "component_count": len(deps)}
+    return {
+        "format": format,
+        "application_id": id,
+        "sbom": sbom,
+        "component_count": len(deps),
+    }

@@ -8,30 +8,21 @@ Exposes advanced algorithmic capabilities:
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
-# Import algorithmic engines
-from core.monte_carlo import (
-    quantify_vulnerability_risk,
-    quantify_cve_risk,
-    FAIRInputs,
-    MonteCarloRiskEngine,
-)
-from core.causal_inference import (
-    analyze_vulnerability_causes,
-    CausalInferenceEngine,
-    CausalSecurityGraph,
-)
 from core.attack_graph_gnn import (
-    analyze_attack_surface,
-    SecurityGraph,
+    EdgeType,
     GraphNeuralPredictor,
     NodeType,
-    EdgeType,
+    SecurityGraph,
+    analyze_attack_surface,
 )
+from core.causal_inference import CausalInferenceEngine, analyze_vulnerability_causes
 
+# Import algorithmic engines
+from core.monte_carlo import FAIRInputs, MonteCarloRiskEngine, quantify_cve_risk
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/algorithms", tags=["ALdeci Algorithms"])
 
@@ -40,52 +31,75 @@ router = APIRouter(prefix="/api/v1/algorithms", tags=["ALdeci Algorithms"])
 # MONTE CARLO RISK QUANTIFICATION
 # ============================================================================
 
+
 class MonteCarloRequest(BaseModel):
     """Request for Monte Carlo risk quantification."""
-    
+
     # Threat parameters
-    threat_event_frequency_min: float = Field(0.1, description="Min annual threat events")
-    threat_event_frequency_mode: float = Field(1.0, description="Most likely annual threat events")
-    threat_event_frequency_max: float = Field(5.0, description="Max annual threat events")
-    
-    # Vulnerability parameters  
-    vulnerability_probability_min: float = Field(0.1, description="Min probability of successful exploit")
-    vulnerability_probability_mode: float = Field(0.5, description="Most likely probability")
+    threat_event_frequency_min: float = Field(
+        0.1, description="Min annual threat events"
+    )
+    threat_event_frequency_mode: float = Field(
+        1.0, description="Most likely annual threat events"
+    )
+    threat_event_frequency_max: float = Field(
+        5.0, description="Max annual threat events"
+    )
+
+    # Vulnerability parameters
+    vulnerability_probability_min: float = Field(
+        0.1, description="Min probability of successful exploit"
+    )
+    vulnerability_probability_mode: float = Field(
+        0.5, description="Most likely probability"
+    )
     vulnerability_probability_max: float = Field(0.9, description="Max probability")
-    
+
     # Loss parameters
     loss_magnitude_min: float = Field(10000, description="Minimum loss in dollars")
     loss_magnitude_mode: float = Field(100000, description="Most likely loss")
     loss_magnitude_max: float = Field(1000000, description="Maximum loss")
-    
+
     # Simulation settings
-    iterations: int = Field(10000, ge=1000, le=100000, description="Number of simulations")
-    confidence_level: float = Field(0.95, ge=0.80, le=0.99, description="Confidence level for intervals")
+    iterations: int = Field(
+        10000, ge=1000, le=100000, description="Number of simulations"
+    )
+    confidence_level: float = Field(
+        0.95, ge=0.80, le=0.99, description="Confidence level for intervals"
+    )
 
 
 class CVERiskRequest(BaseModel):
     """Request for CVE-based risk quantification."""
 
     cve_id: str = Field(..., description="CVE identifier")
-    cvss_score: float = Field(5.0, ge=0.0, le=10.0, description="CVSS score (default 5.0 if unknown)")
+    cvss_score: float = Field(
+        5.0, ge=0.0, le=10.0, description="CVSS score (default 5.0 if unknown)"
+    )
     epss_score: float = Field(0.0, ge=0.0, le=1.0, description="EPSS score (0-1)")
     kev_listed: bool = Field(False, description="Whether in CISA KEV catalog")
     asset_value: float = Field(100000, ge=0, description="Asset value in dollars")
     is_reachable: bool = Field(True, description="Whether vulnerable code is reachable")
-    simulations: int = Field(10000, ge=100, le=100000, description="Number of simulations")
+    simulations: int = Field(
+        10000, ge=100, le=100000, description="Number of simulations"
+    )
 
 
 class PortfolioRiskRequest(BaseModel):
     """Request for portfolio-level risk quantification."""
-    
-    vulnerabilities: List[CVERiskRequest] = Field(..., description="List of vulnerabilities")
-    correlation: float = Field(0.3, ge=0.0, le=1.0, description="Cross-vulnerability correlation")
+
+    vulnerabilities: List[CVERiskRequest] = Field(
+        ..., description="List of vulnerabilities"
+    )
+    correlation: float = Field(
+        0.3, ge=0.0, le=1.0, description="Cross-vulnerability correlation"
+    )
 
 
 @router.post("/monte-carlo/quantify")
 async def quantify_risk_monte_carlo(request: MonteCarloRequest) -> Dict[str, Any]:
     """Quantify risk using FAIR-based Monte Carlo simulation.
-    
+
     Returns Value-at-Risk (VaR), Expected Annual Loss (ALE),
     loss exceedance probabilities, and confidence intervals.
     """
@@ -101,10 +115,10 @@ async def quantify_risk_monte_carlo(request: MonteCarloRequest) -> Dict[str, Any
             primary_loss_mode=request.loss_magnitude_mode,
             primary_loss_max=request.loss_magnitude_max,
         )
-        
+
         engine = MonteCarloRiskEngine(iterations=request.iterations)
         result = engine.simulate(inputs)
-        
+
         return {
             "status": "success",
             "algorithm": "FAIR Monte Carlo",
@@ -144,7 +158,7 @@ async def quantify_portfolio_risk(request: PortfolioRiskRequest) -> Dict[str, An
         individual_results = []
         total_expected_loss = 0.0
         total_var_95 = 0.0
-        
+
         for vuln in request.vulnerabilities:
             result = quantify_cve_risk(
                 cve_id=vuln.cve_id,
@@ -157,10 +171,12 @@ async def quantify_portfolio_risk(request: PortfolioRiskRequest) -> Dict[str, An
             individual_results.append(result)
             total_expected_loss += result["expected_annual_loss"]
             total_var_95 += result["value_at_risk"]["var_95"]
-        
+
         # Apply correlation adjustment
-        correlated_var = total_var_95 * (1 + request.correlation * (len(request.vulnerabilities) - 1))
-        
+        correlated_var = total_var_95 * (
+            1 + request.correlation * (len(request.vulnerabilities) - 1)
+        )
+
         return {
             "status": "success",
             "algorithm": "Portfolio Monte Carlo",
@@ -181,9 +197,10 @@ async def quantify_portfolio_risk(request: PortfolioRiskRequest) -> Dict[str, An
 # CAUSAL INFERENCE FOR ROOT CAUSE ANALYSIS
 # ============================================================================
 
+
 class CausalAnalysisRequest(BaseModel):
     """Request for causal analysis of a vulnerability."""
-    
+
     has_exploit: bool = Field(False, description="Whether an exploit is available")
     is_reachable: bool = Field(True, description="Whether vulnerable code is reachable")
     is_internet_facing: bool = Field(False, description="Whether exposed to internet")
@@ -194,20 +211,24 @@ class CausalAnalysisRequest(BaseModel):
 
 class CounterfactualRequest(BaseModel):
     """Request for counterfactual analysis."""
-    
+
     has_exploit: bool = Field(False, description="Whether an exploit is available")
     is_reachable: bool = Field(True, description="Whether vulnerable code is reachable")
     is_internet_facing: bool = Field(False, description="Whether exposed to internet")
     has_waf: bool = Field(False, description="Whether WAF is enabled")
     is_patched: bool = Field(False, description="Whether vulnerability is patched")
     has_auth: bool = Field(True, description="Whether authentication is required")
-    intervention: str = Field(..., description="Proposed intervention: patch, enable_waf, add_auth, etc.")
+    intervention: str = Field(
+        ..., description="Proposed intervention: patch, enable_waf, add_auth, etc."
+    )
 
 
 @router.post("/causal/analyze")
-async def analyze_vulnerability_root_cause(request: CausalAnalysisRequest) -> Dict[str, Any]:
+async def analyze_vulnerability_root_cause(
+    request: CausalAnalysisRequest,
+) -> Dict[str, Any]:
     """Perform causal inference analysis on a vulnerability.
-    
+
     Identifies root causes, contributing factors, and provides
     SHAP-like explanations for risk factors.
     """
@@ -234,9 +255,9 @@ async def analyze_counterfactual(request: CounterfactualRequest) -> Dict[str, An
     """Perform counterfactual analysis: 'What if we applied this intervention?'"""
     try:
         from core.causal_inference import SecurityFactor
-        
+
         engine = CausalInferenceEngine()
-        
+
         # Build current evidence
         evidence = {
             SecurityFactor.EXPLOIT_AVAILABLE: request.has_exploit,
@@ -247,7 +268,7 @@ async def analyze_counterfactual(request: CounterfactualRequest) -> Dict[str, An
             SecurityFactor.AUTH_REQUIRED: request.has_auth,
             SecurityFactor.VULNERABILITY_EXISTS: not request.is_patched,
         }
-        
+
         # Map intervention string to SecurityFactor and value
         intervention_map = {
             "patch": (SecurityFactor.PATCHED, True),
@@ -256,17 +277,19 @@ async def analyze_counterfactual(request: CounterfactualRequest) -> Dict[str, An
             "remove_internet_exposure": (SecurityFactor.INTERNET_EXPOSED, False),
             "block_reachability": (SecurityFactor.CODE_REACHABLE, False),
         }
-        
-        intervention_key = request.intervention.lower().replace(" ", "_").replace("-", "_")
+
+        intervention_key = (
+            request.intervention.lower().replace(" ", "_").replace("-", "_")
+        )
         if intervention_key not in intervention_map:
             return {
                 "status": "error",
                 "message": f"Unknown intervention: {request.intervention}",
                 "valid_interventions": list(intervention_map.keys()),
             }
-        
+
         intervention_factor, intervention_value = intervention_map[intervention_key]
-        
+
         # Perform counterfactual analysis
         result = engine.counterfactual_analysis(
             outcome=SecurityFactor.ATTACK_SUCCESSFUL,
@@ -274,7 +297,7 @@ async def analyze_counterfactual(request: CounterfactualRequest) -> Dict[str, An
             intervention=intervention_factor,
             intervention_value=intervention_value,
         )
-        
+
         return {
             "status": "success",
             "algorithm": "Counterfactual Analysis",
@@ -290,12 +313,12 @@ async def estimate_treatment_effect(request: CounterfactualRequest) -> Dict[str,
     """Estimate the causal effect of an intervention (treatment)."""
     try:
         engine = CausalInferenceEngine()
-        
+
         result = engine.estimate_treatment_effect(
             treatment="patch_vulnerability",
             outcome="breach_occurred",
         )
-        
+
         return {
             "status": "success",
             "algorithm": "Causal Treatment Effect Estimation",
@@ -310,18 +333,22 @@ async def estimate_treatment_effect(request: CounterfactualRequest) -> Dict[str,
 # GNN ATTACK PATH PREDICTION
 # ============================================================================
 
+
 class InfrastructureNode(BaseModel):
     """Infrastructure node for attack graph."""
-    
+
     id: str
-    type: str = Field("compute", description="Node type: compute, storage, network, identity, service, etc.")
+    type: str = Field(
+        "compute",
+        description="Node type: compute, storage, network, identity, service, etc.",
+    )
     properties: Dict[str, Any] = Field(default_factory=dict)
     risk_score: float = Field(0.0, ge=0.0, le=1.0)
 
 
 class Connection(BaseModel):
     """Connection between nodes."""
-    
+
     source: str
     target: str
     type: str = Field("connects_to", description="Edge type")
@@ -330,24 +357,34 @@ class Connection(BaseModel):
 
 class VulnerabilityNode(BaseModel):
     """Vulnerability affecting infrastructure."""
-    
+
     cve_id: str
     cvss_score: float = Field(5.0, ge=0.0, le=10.0)
-    affects: List[str] = Field(default_factory=list, description="IDs of affected nodes")
+    affects: List[str] = Field(
+        default_factory=list, description="IDs of affected nodes"
+    )
 
 
 class AttackSurfaceRequest(BaseModel):
     """Request for attack surface analysis."""
-    
-    infrastructure: List[InfrastructureNode] = Field(..., description="Infrastructure nodes")
-    connections: List[Connection] = Field(default_factory=list, description="Connections")
-    vulnerabilities: List[VulnerabilityNode] = Field(default_factory=list, description="Vulnerabilities")
-    max_paths: int = Field(10, ge=1, le=50, description="Maximum attack paths to return")
+
+    infrastructure: List[InfrastructureNode] = Field(
+        ..., description="Infrastructure nodes"
+    )
+    connections: List[Connection] = Field(
+        default_factory=list, description="Connections"
+    )
+    vulnerabilities: List[VulnerabilityNode] = Field(
+        default_factory=list, description="Vulnerabilities"
+    )
+    max_paths: int = Field(
+        10, ge=1, le=50, description="Maximum attack paths to return"
+    )
 
 
 class CriticalNodeRequest(BaseModel):
     """Request for critical node identification."""
-    
+
     infrastructure: List[InfrastructureNode]
     connections: List[Connection]
     top_k: int = Field(10, ge=1, le=50)
@@ -356,7 +393,7 @@ class CriticalNodeRequest(BaseModel):
 @router.post("/gnn/attack-surface")
 async def analyze_attack_surface_gnn(request: AttackSurfaceRequest) -> Dict[str, Any]:
     """Analyze attack surface using GNN-based path prediction.
-    
+
     Returns:
     - Predicted attack paths with probabilities
     - Critical nodes in the infrastructure
@@ -369,7 +406,7 @@ async def analyze_attack_surface_gnn(request: AttackSurfaceRequest) -> Dict[str,
             connections=[c.dict() for c in request.connections],
             vulnerabilities=[v.dict() for v in request.vulnerabilities],
         )
-        
+
         return {
             "status": "success",
             "algorithm": "Graph Neural Network Attack Path Prediction",
@@ -385,7 +422,7 @@ async def identify_critical_nodes(request: CriticalNodeRequest) -> Dict[str, Any
     try:
         # Build graph
         graph = SecurityGraph()
-        
+
         for node in request.infrastructure:
             node_type = NodeType(node.type)
             graph.add_node(
@@ -394,14 +431,14 @@ async def identify_critical_nodes(request: CriticalNodeRequest) -> Dict[str, Any
                 properties=node.properties,
                 risk_score=node.risk_score,
             )
-        
+
         for conn in request.connections:
             edge_type = EdgeType(conn.type)
             graph.add_edge(conn.source, conn.target, edge_type, weight=conn.weight)
-        
+
         predictor = GraphNeuralPredictor()
         critical_nodes = predictor.identify_critical_nodes(graph, top_k=request.top_k)
-        
+
         return {
             "status": "success",
             "algorithm": "GNN Critical Node Identification",
@@ -419,7 +456,7 @@ async def propagate_risk_through_graph(request: AttackSurfaceRequest) -> Dict[st
     try:
         # Build graph
         graph = SecurityGraph()
-        
+
         for node in request.infrastructure:
             node_type = NodeType(node.type)
             graph.add_node(
@@ -428,7 +465,7 @@ async def propagate_risk_through_graph(request: AttackSurfaceRequest) -> Dict[st
                 properties=node.properties,
                 risk_score=node.risk_score,
             )
-        
+
         vuln_ids = []
         for vuln in request.vulnerabilities:
             vuln_id = f"vuln_{vuln.cve_id}"
@@ -439,25 +476,30 @@ async def propagate_risk_through_graph(request: AttackSurfaceRequest) -> Dict[st
                 risk_score=vuln.cvss_score / 10.0,
             )
             vuln_ids.append(vuln_id)
-            
+
             for affected in vuln.affects:
                 if affected in graph.nodes:
-                    graph.add_edge(vuln_id, affected, EdgeType.AFFECTS, weight=vuln.cvss_score / 10.0)
-        
+                    graph.add_edge(
+                        vuln_id,
+                        affected,
+                        EdgeType.AFFECTS,
+                        weight=vuln.cvss_score / 10.0,
+                    )
+
         for conn in request.connections:
             edge_type = EdgeType(conn.type)
             graph.add_edge(conn.source, conn.target, edge_type, weight=conn.weight)
-        
+
         predictor = GraphNeuralPredictor()
         risk_scores = predictor.propagate_risk(graph, vuln_ids)
-        
+
         # Sort by risk
         sorted_risks = sorted(
             [(node_id, score) for node_id, score in risk_scores.items()],
             key=lambda x: x[1],
             reverse=True,
         )
-        
+
         return {
             "status": "success",
             "algorithm": "PageRank-style Risk Propagation",
@@ -474,6 +516,7 @@ async def propagate_risk_through_graph(request: AttackSurfaceRequest) -> Dict[st
 # ============================================================================
 # ALGORITHM STATUS & HEALTH
 # ============================================================================
+
 
 @router.get("/status")
 async def get_algorithm_status() -> Dict[str, Any]:

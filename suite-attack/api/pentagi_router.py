@@ -13,14 +13,12 @@ access the same features.
 
 from __future__ import annotations
 
-import json
 import os
-import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 import structlog
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 logger = structlog.get_logger(__name__)

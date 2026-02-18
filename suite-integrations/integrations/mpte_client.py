@@ -301,9 +301,7 @@ class MPTEClient:
             "exploit_attempt": True,
         }
 
-        test_id = await self.create_test(
-            target, MPTETestType.WEB_APPLICATION, config
-        )
+        test_id = await self.create_test(target, MPTETestType.WEB_APPLICATION, config)
 
         # Wait for test completion
         max_wait = 300  # 5 minutes

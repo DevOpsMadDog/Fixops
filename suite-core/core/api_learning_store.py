@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from statistics import mean, stdev
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -54,6 +54,7 @@ class PredictionType(str, Enum):
 @dataclass
 class TrafficRecord:
     """Single API request/response record."""
+
     method: str
     path: str
     status_code: int
@@ -71,6 +72,7 @@ class TrafficRecord:
 @dataclass
 class ModelInfo:
     """ML model metadata."""
+
     name: str
     type: str
     status: ModelStatus = ModelStatus.UNTRAINED
@@ -83,6 +85,7 @@ class ModelInfo:
 @dataclass
 class AnomalyResult:
     """Result of anomaly detection."""
+
     is_anomaly: bool
     score: float  # -1 to 1, lower = more anomalous
     confidence: float
@@ -92,6 +95,7 @@ class AnomalyResult:
 @dataclass
 class ThreatAssessment:
     """Threat assessment for an API request."""
+
     threat_score: float  # 0.0 to 1.0
     risk_level: str  # low, medium, high, critical
     indicators: List[str] = field(default_factory=list)
@@ -101,6 +105,7 @@ class ThreatAssessment:
 # ---------------------------------------------------------------------------
 # API Learning Store
 # ---------------------------------------------------------------------------
+
 
 class APILearningStore:
     """SQLite-backed API traffic store with ML learning capabilities.
@@ -121,7 +126,12 @@ class APILearningStore:
         self._model_info: Dict[str, ModelInfo] = {}
         self._batch: List[TrafficRecord] = []
         self._path_stats: Dict[str, Dict[str, Any]] = defaultdict(
-            lambda: {"count": 0, "durations": [], "errors": 0, "statuses": defaultdict(int)}
+            lambda: {
+                "count": 0,
+                "durations": [],
+                "errors": 0,
+                "statuses": defaultdict(int),
+            }
         )
         self._init_db()
         self._init_models()
@@ -133,7 +143,8 @@ class APILearningStore:
     def _init_db(self):
         """Initialize SQLite tables."""
         with self._get_conn() as conn:
-            conn.executescript("""
+            conn.executescript(
+                """
                 CREATE TABLE IF NOT EXISTS api_traffic (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp REAL NOT NULL,
@@ -196,7 +207,8 @@ class APILearningStore:
                     acknowledged INTEGER DEFAULT 0,
                     created_at TEXT DEFAULT (datetime('now'))
                 );
-            """)
+            """
+            )
 
     def _get_conn(self) -> sqlite3.Connection:
         """Get a thread-local SQLite connection."""
@@ -209,14 +221,43 @@ class APILearningStore:
     def _init_models(self):
         """Initialize ML model registry."""
         model_defs = [
-            ("anomaly_detector", "IsolationForest", ["method_enc", "path_enc", "status_code",
-             "duration_ms", "request_size", "response_size", "hour", "minute"]),
-            ("response_predictor", "LinearRegression", ["method_enc", "path_enc",
-             "request_size", "hour", "day_of_week"]),
-            ("threat_classifier", "GradientBoosting", ["method_enc", "path_enc",
-             "status_code", "duration_ms", "error_rate", "request_rate", "unique_paths"]),
-            ("error_predictor", "LogisticRegression", ["method_enc", "path_enc",
-             "request_size", "hour", "recent_error_rate"]),
+            (
+                "anomaly_detector",
+                "IsolationForest",
+                [
+                    "method_enc",
+                    "path_enc",
+                    "status_code",
+                    "duration_ms",
+                    "request_size",
+                    "response_size",
+                    "hour",
+                    "minute",
+                ],
+            ),
+            (
+                "response_predictor",
+                "LinearRegression",
+                ["method_enc", "path_enc", "request_size", "hour", "day_of_week"],
+            ),
+            (
+                "threat_classifier",
+                "GradientBoosting",
+                [
+                    "method_enc",
+                    "path_enc",
+                    "status_code",
+                    "duration_ms",
+                    "error_rate",
+                    "request_rate",
+                    "unique_paths",
+                ],
+            ),
+            (
+                "error_predictor",
+                "LogisticRegression",
+                ["method_enc", "path_enc", "request_size", "hour", "recent_error_rate"],
+            ),
         ]
         for name, mtype, features in model_defs:
             self._model_info[name] = ModelInfo(
@@ -271,10 +312,23 @@ class APILearningStore:
                     " request_size, response_size, client_ip, user_agent, "
                     " correlation_id, query_params, error_type) "
                     "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-                    [(r.timestamp, r.method, r.path, r.status_code,
-                      r.duration_ms, r.request_size, r.response_size,
-                      r.client_ip, r.user_agent, r.correlation_id,
-                      r.query_params, r.error_type) for r in batch],
+                    [
+                        (
+                            r.timestamp,
+                            r.method,
+                            r.path,
+                            r.status_code,
+                            r.duration_ms,
+                            r.request_size,
+                            r.response_size,
+                            r.client_ip,
+                            r.user_agent,
+                            r.correlation_id,
+                            r.query_params,
+                            r.error_type,
+                        )
+                        for r in batch
+                    ],
                 )
             logger.debug("Flushed %d traffic records to DB", len(batch))
         except Exception as e:
@@ -289,7 +343,15 @@ class APILearningStore:
 
     def _encode_method(self, method: str) -> int:
         """Encode HTTP method as integer."""
-        mapping = {"GET": 0, "POST": 1, "PUT": 2, "PATCH": 3, "DELETE": 4, "HEAD": 5, "OPTIONS": 6}
+        mapping = {
+            "GET": 0,
+            "POST": 1,
+            "PUT": 2,
+            "PATCH": 3,
+            "DELETE": 4,
+            "HEAD": 5,
+            "OPTIONS": 6,
+        }
         return mapping.get(method.upper(), 7)
 
     def _encode_path(self, path: str) -> int:
@@ -301,17 +363,23 @@ class APILearningStore:
         features = []
         for row in rows:
             ts = row.get("timestamp", 0)
-            dt = datetime.fromtimestamp(ts, tz=timezone.utc) if ts else datetime.now(timezone.utc)
-            features.append([
-                self._encode_method(row.get("method", "GET")),
-                self._encode_path(row.get("path", "/")),
-                row.get("status_code", 200),
-                row.get("duration_ms", 0),
-                row.get("request_size", 0),
-                row.get("response_size", 0),
-                dt.hour,
-                dt.minute,
-            ])
+            dt = (
+                datetime.fromtimestamp(ts, tz=timezone.utc)
+                if ts
+                else datetime.now(timezone.utc)
+            )
+            features.append(
+                [
+                    self._encode_method(row.get("method", "GET")),
+                    self._encode_path(row.get("path", "/")),
+                    row.get("status_code", 200),
+                    row.get("duration_ms", 0),
+                    row.get("request_size", 0),
+                    row.get("response_size", 0),
+                    dt.hour,
+                    dt.minute,
+                ]
+            )
         return np.array(features, dtype=np.float64)
 
     def train_anomaly_detector(self) -> ModelInfo:
@@ -327,14 +395,18 @@ class APILearningStore:
 
             if len(rows) < _MIN_SAMPLES_FOR_TRAINING:
                 info.status = ModelStatus.UNTRAINED
-                logger.info("Not enough samples for anomaly training: %d < %d",
-                            len(rows), _MIN_SAMPLES_FOR_TRAINING)
+                logger.info(
+                    "Not enough samples for anomaly training: %d < %d",
+                    len(rows),
+                    _MIN_SAMPLES_FOR_TRAINING,
+                )
                 return info
 
             data = [dict(r) for r in rows]
             X = self._extract_features(data)
 
             from sklearn.ensemble import IsolationForest
+
             model = IsolationForest(
                 n_estimators=100,
                 contamination=_ANOMALY_CONTAMINATION,
@@ -352,8 +424,11 @@ class APILearningStore:
             scores = model.decision_function(X)
             info.accuracy = float(np.mean(scores > 0))
 
-            logger.info("Anomaly detector trained on %d samples, accuracy=%.3f",
-                        len(rows), info.accuracy)
+            logger.info(
+                "Anomaly detector trained on %d samples, accuracy=%.3f",
+                len(rows),
+                info.accuracy,
+            )
             self._save_model_info(info)
             return info
 
@@ -385,6 +460,7 @@ class APILearningStore:
             X_pred = X[:, [0, 1, 4, 6, 7]]  # method, path, req_size, hour, minute
 
             from sklearn.linear_model import Ridge
+
             model = Ridge(alpha=1.0)
             model.fit(X_pred, y)
 
@@ -423,12 +499,21 @@ class APILearningStore:
 
             # Label: 1 if status >= 400 or duration > 2000ms (suspicious), else 0
             y = np.array(
-                [1 if d.get("status_code", 200) >= 400 or d.get("duration_ms", 0) > 2000 else 0
-                 for d in data], dtype=np.int32
+                [
+                    1
+                    if d.get("status_code", 200) >= 400
+                    or d.get("duration_ms", 0) > 2000
+                    else 0
+                    for d in data
+                ],
+                dtype=np.int32,
             )
 
             from sklearn.ensemble import GradientBoostingClassifier
-            model = GradientBoostingClassifier(n_estimators=50, max_depth=3, random_state=42)
+
+            model = GradientBoostingClassifier(
+                n_estimators=50, max_depth=3, random_state=42
+            )
             model.fit(X, y)
 
             self._models["threat_classifier"] = model
@@ -472,6 +557,7 @@ class APILearningStore:
             )
 
             from sklearn.linear_model import LogisticRegression
+
             model = LogisticRegression(max_iter=200, random_state=42)
             model.fit(X_sub, y)
 
@@ -508,18 +594,30 @@ class APILearningStore:
                     "INSERT OR REPLACE INTO ml_models "
                     "(name, type, status, samples_trained, accuracy, last_trained, feature_names, updated_at) "
                     "VALUES (?,?,?,?,?,?,?,datetime('now'))",
-                    (info.name, info.type, info.status.value, info.samples_trained,
-                     info.accuracy, info.last_trained, json.dumps(info.feature_names)),
+                    (
+                        info.name,
+                        info.type,
+                        info.status.value,
+                        info.samples_trained,
+                        info.accuracy,
+                        info.last_trained,
+                        json.dumps(info.feature_names),
+                    ),
                 )
         except Exception as e:
             logger.error("Failed to save model info: %s", e)
 
-
     # -- Predictions -----------------------------------------------------------
 
-    def detect_anomaly(self, method: str, path: str, status_code: int,
-                       duration_ms: float, request_size: int = 0,
-                       response_size: int = 0) -> AnomalyResult:
+    def detect_anomaly(
+        self,
+        method: str,
+        path: str,
+        status_code: int,
+        duration_ms: float,
+        request_size: int = 0,
+        response_size: int = 0,
+    ) -> AnomalyResult:
         """Detect if a request is anomalous."""
         model = self._models.get("anomaly_detector")
         if model is None:
@@ -527,16 +625,21 @@ class APILearningStore:
             return self._statistical_anomaly(method, path, duration_ms, status_code)
 
         now = datetime.now(timezone.utc)
-        features = np.array([[
-            self._encode_method(method),
-            self._encode_path(path),
-            status_code,
-            duration_ms,
-            request_size,
-            response_size,
-            now.hour,
-            now.minute,
-        ]], dtype=np.float64)
+        features = np.array(
+            [
+                [
+                    self._encode_method(method),
+                    self._encode_path(path),
+                    status_code,
+                    duration_ms,
+                    request_size,
+                    response_size,
+                    now.hour,
+                    now.minute,
+                ]
+            ],
+            dtype=np.float64,
+        )
 
         try:
             score = float(model.decision_function(features)[0])
@@ -551,7 +654,9 @@ class APILearningStore:
                 if stats and stats["durations"]:
                     avg = mean(stats["durations"])
                     if duration_ms > avg * 3:
-                        reasons.append(f"Response time {duration_ms:.0f}ms >> avg {avg:.0f}ms")
+                        reasons.append(
+                            f"Response time {duration_ms:.0f}ms >> avg {avg:.0f}ms"
+                        )
                 if status_code >= 500:
                     reasons.append(f"Server error {status_code}")
                 elif status_code >= 400:
@@ -568,14 +673,16 @@ class APILearningStore:
             logger.error("Anomaly detection failed: %s", e)
             return AnomalyResult(is_anomaly=False, score=0.0, confidence=0.0)
 
-    def _statistical_anomaly(self, method: str, path: str,
-                              duration_ms: float, status_code: int) -> AnomalyResult:
+    def _statistical_anomaly(
+        self, method: str, path: str, duration_ms: float, status_code: int
+    ) -> AnomalyResult:
         """Fallback statistical anomaly detection (before model is trained)."""
         key = f"{method}:{path}"
         stats = self._path_stats.get(key)
         if not stats or len(stats["durations"]) < 5:
-            return AnomalyResult(is_anomaly=False, score=0.0, confidence=0.1,
-                                  reason="Insufficient data")
+            return AnomalyResult(
+                is_anomaly=False, score=0.0, confidence=0.1, reason="Insufficient data"
+            )
 
         avg = mean(stats["durations"])
         sd = stdev(stats["durations"]) if len(stats["durations"]) > 1 else avg * 0.5
@@ -597,8 +704,9 @@ class APILearningStore:
             reason="; ".join(reasons) if reasons else "Normal",
         )
 
-    def predict_response_time(self, method: str, path: str,
-                               request_size: int = 0) -> Dict[str, Any]:
+    def predict_response_time(
+        self, method: str, path: str, request_size: int = 0
+    ) -> Dict[str, Any]:
         """Predict expected response time for a request."""
         model = self._models.get("response_predictor")
         now = datetime.now(timezone.utc)
@@ -616,13 +724,18 @@ class APILearningStore:
             }
 
         try:
-            features = np.array([[
-                self._encode_method(method),
-                self._encode_path(path),
-                request_size,
-                now.hour,
-                now.minute,
-            ]], dtype=np.float64)
+            features = np.array(
+                [
+                    [
+                        self._encode_method(method),
+                        self._encode_path(path),
+                        request_size,
+                        now.hour,
+                        now.minute,
+                    ]
+                ],
+                dtype=np.float64,
+            )
             predicted = float(model.predict(features)[0])
             return {
                 "predicted_ms": max(predicted, 1.0),
@@ -632,11 +745,21 @@ class APILearningStore:
             }
         except Exception as e:
             logger.error("Response time prediction failed: %s", e)
-            return {"predicted_ms": hist_avg or 100.0, "confidence": 0.1, "method": "fallback"}
+            return {
+                "predicted_ms": hist_avg or 100.0,
+                "confidence": 0.1,
+                "method": "fallback",
+            }
 
-    def assess_threat(self, method: str, path: str, client_ip: str = "",
-                       status_code: int = 200, duration_ms: float = 0,
-                       user_agent: str = "") -> ThreatAssessment:
+    def assess_threat(
+        self,
+        method: str,
+        path: str,
+        client_ip: str = "",
+        status_code: int = 200,
+        duration_ms: float = 0,
+        user_agent: str = "",
+    ) -> ThreatAssessment:
         """Assess threat level of a request based on patterns."""
         indicators = []
         score = 0.0
@@ -645,10 +768,14 @@ class APILearningStore:
         if client_ip:
             recent_count = self._count_recent_from_ip(client_ip, window_seconds=60)
             if recent_count > 100:
-                indicators.append(f"High request rate: {recent_count}/min from {client_ip}")
+                indicators.append(
+                    f"High request rate: {recent_count}/min from {client_ip}"
+                )
                 score += 0.3
             elif recent_count > 50:
-                indicators.append(f"Elevated request rate: {recent_count}/min from {client_ip}")
+                indicators.append(
+                    f"Elevated request rate: {recent_count}/min from {client_ip}"
+                )
                 score += 0.15
 
         # Check for scanning patterns (many 404s)
@@ -660,8 +787,13 @@ class APILearningStore:
             score += 0.15
 
         # Check for unusual methods on sensitive paths
-        sensitive_paths = ["/api/v1/auth", "/api/v1/users", "/api/v1/teams",
-                          "/api/v1/admin", "/api/v1/mpte"]
+        sensitive_paths = [
+            "/api/v1/auth",
+            "/api/v1/users",
+            "/api/v1/teams",
+            "/api/v1/admin",
+            "/api/v1/mpte",
+        ]
         if any(path.startswith(sp) for sp in sensitive_paths):
             if method in ("DELETE", "PUT", "PATCH"):
                 indicators.append(f"Sensitive path {path} with {method}")
@@ -720,7 +852,11 @@ class APILearningStore:
                     method, path = key.split(":", 1)
                     durations = stats["durations"]
                     avg_dur = mean(durations) if durations else 0
-                    p95_dur = float(np.percentile(durations, 95)) if len(durations) > 5 else avg_dur
+                    p95_dur = (
+                        float(np.percentile(durations, 95))
+                        if len(durations) > 5
+                        else avg_dur
+                    )
                     error_rate = stats["errors"] / max(stats["count"], 1)
                     conn.execute(
                         "INSERT OR REPLACE INTO api_patterns "
@@ -736,7 +872,9 @@ class APILearningStore:
         self.flush()
         try:
             with self._get_conn() as conn:
-                total = conn.execute("SELECT COUNT(*) as cnt FROM api_traffic").fetchone()
+                total = conn.execute(
+                    "SELECT COUNT(*) as cnt FROM api_traffic"
+                ).fetchone()
                 errors = conn.execute(
                     "SELECT COUNT(*) as cnt FROM api_traffic WHERE status_code >= 400"
                 ).fetchone()
@@ -758,10 +896,13 @@ class APILearningStore:
                 "total_requests": total["cnt"] if total else 0,
                 "total_errors": errors["cnt"] if errors else 0,
                 "total_anomalies": anomalies["cnt"] if anomalies else 0,
-                "avg_duration_ms": round(avg_duration["avg_ms"] or 0, 2) if avg_duration else 0,
+                "avg_duration_ms": round(avg_duration["avg_ms"] or 0, 2)
+                if avg_duration
+                else 0,
                 "unique_endpoints": unique_paths["cnt"] if unique_paths else 0,
                 "error_rate": round((errors["cnt"] / max(total["cnt"], 1)) * 100, 2)
-                    if total and errors else 0,
+                if total and errors
+                else 0,
                 "top_endpoints": [
                     {"path": r["path"], "count": r["cnt"]} for r in (top_paths or [])
                 ],
@@ -785,14 +926,16 @@ class APILearningStore:
             with self._get_conn() as conn:
                 rows = conn.execute(
                     "SELECT * FROM api_traffic WHERE is_anomaly = 1 "
-                    "ORDER BY timestamp DESC LIMIT ?", (limit,)
+                    "ORDER BY timestamp DESC LIMIT ?",
+                    (limit,),
                 ).fetchall()
                 return [dict(r) for r in rows]
         except Exception:
             return []
 
-    def get_threat_indicators(self, limit: int = 20,
-                               acknowledged: bool = False) -> List[Dict[str, Any]]:
+    def get_threat_indicators(
+        self, limit: int = 20, acknowledged: bool = False
+    ) -> List[Dict[str, Any]]:
         """Get recent threat indicators."""
         try:
             with self._get_conn() as conn:
@@ -805,9 +948,15 @@ class APILearningStore:
         except Exception:
             return []
 
-    def record_threat(self, indicator_type: str, description: str,
-                       severity: str = "low", source_ip: str = "",
-                       target_path: str = "", details: Optional[Dict] = None):
+    def record_threat(
+        self,
+        indicator_type: str,
+        description: str,
+        severity: str = "low",
+        source_ip: str = "",
+        target_path: str = "",
+        details: Optional[Dict] = None,
+    ):
         """Record a threat indicator."""
         try:
             with self._get_conn() as conn:
@@ -816,8 +965,15 @@ class APILearningStore:
                     "(timestamp, indicator_type, description, severity, "
                     " source_ip, target_path, details) "
                     "VALUES (?,?,?,?,?,?,?)",
-                    (time.time(), indicator_type, description, severity,
-                     source_ip, target_path, json.dumps(details or {})),
+                    (
+                        time.time(),
+                        indicator_type,
+                        description,
+                        severity,
+                        source_ip,
+                        target_path,
+                        json.dumps(details or {}),
+                    ),
                 )
         except Exception as e:
             logger.error("Failed to record threat: %s", e)

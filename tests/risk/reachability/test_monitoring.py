@@ -3,7 +3,6 @@
 import time
 
 import pytest
-
 from risk.reachability.monitoring import AnalysisMetrics, ReachabilityMonitor
 
 

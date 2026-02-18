@@ -8,7 +8,6 @@ from typing import List, Optional, Union
 
 from pydantic import Field, field_validator
 from pydantic.fields import FieldInfo
-
 from pydantic_settings import BaseSettings
 
 

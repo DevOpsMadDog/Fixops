@@ -66,12 +66,16 @@ async def risk_summary(request: Request) -> Dict[str, Any]:
     # Emit risk calculated event
     if _HAS_BRAIN:
         bus = get_event_bus()
-        await bus.emit(Event(
-            event_type=EventType.RISK_CALCULATED,
-            source="risk_router",
-            data={"components_count": result["available_components"],
-                  "cves_count": result["available_cves"]},
-        ))
+        await bus.emit(
+            Event(
+                event_type=EventType.RISK_CALCULATED,
+                source="risk_router",
+                data={
+                    "components_count": result["available_components"],
+                    "cves_count": result["available_cves"],
+                },
+            )
+        )
 
     return result
 
@@ -104,12 +108,18 @@ async def cve_risk(cve_id: str, request: Request) -> Dict[str, Any]:
     if _HAS_BRAIN:
         bus = get_event_bus()
         brain = get_brain()
-        brain.ingest_cve(cve_id.upper(), severity=entry.get("severity", "unknown"), source="risk_report")
-        await bus.emit(Event(
-            event_type=EventType.RISK_CALCULATED,
-            source="risk_router",
-            data={"cve_id": cve_id.upper(), "risk_data": entry},
-        ))
+        brain.ingest_cve(
+            cve_id.upper(),
+            severity=entry.get("severity", "unknown"),
+            source="risk_report",
+        )
+        await bus.emit(
+            Event(
+                event_type=EventType.RISK_CALCULATED,
+                source="risk_router",
+                data={"cve_id": cve_id.upper(), "risk_data": entry},
+            )
+        )
 
     return entry
 

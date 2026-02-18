@@ -7,14 +7,13 @@ and a unified command surface for the entire FixOps platform.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
 
 _log = logging.getLogger(__name__)
@@ -22,10 +21,12 @@ _log = logging.getLogger(__name__)
 
 # ── Lazy helpers — import once, cache ─────────────────────────────────────
 
+
 def _brain():
     """Get the KnowledgeBrain singleton (returns None on failure)."""
     try:
         from core.knowledge_brain import get_brain
+
         return get_brain()
     except Exception:
         return None
@@ -35,6 +36,7 @@ def _ml_store():
     """Get the APILearningStore singleton (returns None on failure)."""
     try:
         from core.api_learning_store import get_learning_store
+
         return get_learning_store()
     except Exception:
         return None
@@ -44,23 +46,31 @@ def _event_bus():
     """Get the EventBus singleton (returns None on failure)."""
     try:
         from core.event_bus import get_event_bus
+
         return get_event_bus()
     except Exception:
         return None
+
 
 router = APIRouter(prefix="/api/v1/nerve-center", tags=["Nerve Center"])
 
 
 # ── Request / Response Models ──────────────────────────────────────────────
 
+
 class ThreatPulse(BaseModel):
     """Real-time threat level across all suites."""
-    level: str = Field(..., description="overall | critical | high | medium | low | info")
+
+    level: str = Field(
+        ..., description="overall | critical | high | medium | low | info"
+    )
     score: float = Field(..., ge=0, le=100, description="0-100 composite threat score")
     active_incidents: int = 0
     auto_blocked: int = 0
     pending_decisions: int = 0
-    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 class SuiteStatus(BaseModel):
@@ -103,12 +113,15 @@ class NerveCenterState(BaseModel):
 
 class RemediationTrigger(BaseModel):
     finding_ids: List[str] = Field(..., min_length=1)
-    action: str = Field(..., description="block | quarantine | patch | escalate | notify")
+    action: str = Field(
+        ..., description="block | quarantine | patch | escalate | notify"
+    )
     override_confidence: Optional[float] = None
     reason: Optional[str] = None
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────
+
 
 @router.get("/pulse", response_model=ThreatPulse)
 async def get_threat_pulse():
@@ -144,7 +157,9 @@ async def get_threat_pulse():
         try:
             stats = brain.stats()
             edge_types = stats.get("edge_types", {})
-            auto_blocked = edge_types.get("BLOCKED", 0) + edge_types.get("QUARANTINED", 0)
+            auto_blocked = edge_types.get("BLOCKED", 0) + edge_types.get(
+                "QUARANTINED", 0
+            )
         except Exception:
             pass
 
@@ -153,8 +168,10 @@ async def get_threat_pulse():
     if ml:
         try:
             st = ml.get_stats()
-            err_rate = st.get("error_rate", 0)           # 0-100
-            anomaly_pct = (st.get("total_anomalies", 0) / max(st.get("total_requests", 1), 1)) * 100
+            err_rate = st.get("error_rate", 0)  # 0-100
+            anomaly_pct = (
+                st.get("total_anomalies", 0) / max(st.get("total_requests", 1), 1)
+            ) * 100
             score = min(err_rate * 0.5 + anomaly_pct * 40 + active_incidents * 2, 100)
         except Exception:
             score = 10.0
@@ -168,10 +185,14 @@ async def get_threat_pulse():
 
     score = round(score, 1)
     level = (
-        "critical" if score >= 80
-        else "high" if score >= 60
-        else "medium" if score >= 30
-        else "low" if score >= 10
+        "critical"
+        if score >= 80
+        else "high"
+        if score >= 60
+        else "medium"
+        if score >= 30
+        else "low"
+        if score >= 10
         else "info"
     )
 
@@ -198,12 +219,12 @@ async def get_nerve_center_state():
     # All suites run in one monolithic process on port 8000.
     api_port = int(os.environ.get("FIXOPS_API_PORT", "8000"))
     suite_defs = [
-        ("suite-api",             "/api/v1/health"),
-        ("suite-core",            "/api/v1/nerve-center/pulse"),
-        ("suite-attack",          "/api/v1/attack-sim/health"),
-        ("suite-feeds",           "/api/v1/feeds/health"),
-        ("suite-evidence-risk",   "/api/v1/evidence/stats"),
-        ("suite-integrations",    "/api/v1/integrations"),
+        ("suite-api", "/api/v1/health"),
+        ("suite-core", "/api/v1/nerve-center/pulse"),
+        ("suite-attack", "/api/v1/attack-sim/health"),
+        ("suite-feeds", "/api/v1/feeds/health"),
+        ("suite-evidence-risk", "/api/v1/evidence/stats"),
+        ("suite-integrations", "/api/v1/integrations"),
     ]
     suites: List[SuiteStatus] = []
     api_token = os.environ.get("FIXOPS_API_TOKEN", "")
@@ -213,20 +234,31 @@ async def get_nerve_center_state():
         try:
             t0 = time.monotonic()
             async with httpx.AsyncClient(timeout=2.0) as c:
-                r = await c.get(f"http://127.0.0.1:{api_port}{path}", headers=probe_headers)
+                r = await c.get(
+                    f"http://127.0.0.1:{api_port}{path}", headers=probe_headers
+                )
             latency = round((time.monotonic() - t0) * 1000, 1)
             if r.status_code < 400:
                 status = "healthy"
-                body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
+                body = (
+                    r.json()
+                    if r.headers.get("content-type", "").startswith("application/json")
+                    else {}
+                )
                 endpoints = body.get("routes", body.get("endpoints", 0))
             elif r.status_code < 500:
                 status = "degraded"
         except Exception:
             pass
-        suites.append(SuiteStatus(
-            suite=name, status=status, endpoints=endpoints,
-            latency_ms=latency, last_heartbeat=now,
-        ))
+        suites.append(
+            SuiteStatus(
+                suite=name,
+                status=status,
+                endpoints=endpoints,
+                latency_ms=latency,
+                last_heartbeat=now,
+            )
+        )
 
     # ── Intelligence links from event bus ─────────────────────────────
     links: List[IntelligenceLink] = []
@@ -239,19 +271,34 @@ async def get_nerve_center_state():
                 src = ev.get("source", "unknown")
                 flow_counts[src] = flow_counts.get(src, 0) + 1
             for src, cnt in sorted(flow_counts.items(), key=lambda x: -x[1])[:8]:
-                links.append(IntelligenceLink(
-                    source_suite=src, target_suite="suite-core",
-                    data_flow=f"{src} → core ({cnt} events)",
-                    events_per_min=round(cnt / max(len(recent) / 60, 1), 1),
-                ))
+                links.append(
+                    IntelligenceLink(
+                        source_suite=src,
+                        target_suite="suite-core",
+                        data_flow=f"{src} → core ({cnt} events)",
+                        events_per_min=round(cnt / max(len(recent) / 60, 1), 1),
+                    )
+                )
         except Exception:
             pass
     if not links:
         # Fallback: structural links (always valid)
         links = [
-            IntelligenceLink(source_suite="suite-api", target_suite="suite-core", data_flow="Ingested artifacts → Pipeline"),
-            IntelligenceLink(source_suite="suite-core", target_suite="suite-evidence-risk", data_flow="Risk scores → Evidence bundles"),
-            IntelligenceLink(source_suite="suite-core", target_suite="suite-integrations", data_flow="Decisions → External systems"),
+            IntelligenceLink(
+                source_suite="suite-api",
+                target_suite="suite-core",
+                data_flow="Ingested artifacts → Pipeline",
+            ),
+            IntelligenceLink(
+                source_suite="suite-core",
+                target_suite="suite-evidence-risk",
+                data_flow="Risk scores → Evidence bundles",
+            ),
+            IntelligenceLink(
+                source_suite="suite-core",
+                target_suite="suite-integrations",
+                data_flow="Decisions → External systems",
+            ),
         ]
 
     # ── Recent actions from event bus ─────────────────────────────────
@@ -264,16 +311,20 @@ async def get_nerve_center_state():
                 et = ev.get("event_type", "")
                 if any(et.startswith(p) for p in _action_types):
                     d = ev.get("data", {}) if isinstance(ev.get("data"), dict) else {}
-                    recent_actions.append(AutoRemediationAction(
-                        id=ev.get("event_id", "")[:12],
-                        trigger=et,
-                        action_type=et.split(".")[-1],
-                        target=d.get("target", d.get("cve_id", ev.get("source", "unknown"))),
-                        severity=d.get("severity", "medium"),
-                        status=d.get("status", "completed"),
-                        confidence=d.get("confidence", 0.80),
-                        timestamp=ev.get("timestamp", now),
-                    ))
+                    recent_actions.append(
+                        AutoRemediationAction(
+                            id=ev.get("event_id", "")[:12],
+                            trigger=et,
+                            action_type=et.split(".")[-1],
+                            target=d.get(
+                                "target", d.get("cve_id", ev.get("source", "unknown"))
+                            ),
+                            severity=d.get("severity", "medium"),
+                            status=d.get("status", "completed"),
+                            confidence=d.get("confidence", 0.80),
+                            timestamp=ev.get("timestamp", now),
+                        )
+                    )
                 if len(recent_actions) >= 10:
                     break
         except Exception:
@@ -299,6 +350,7 @@ async def get_nerve_center_state():
     de_metrics: Dict[str, Any] = {}
     try:
         from src.services.decision_engine import decision_engine as de
+
         de_metrics = await de.get_decision_metrics()
     except Exception as exc:
         _log.debug("Decision engine metrics unavailable: %s", exc)
@@ -311,14 +363,19 @@ async def get_nerve_center_state():
             bs = brain.stats()
             nt = bs.get("node_types", {})
             compliance = {
-                "frameworks_tracked": nt.get("COMPLIANCE_FRAMEWORK", 0) + nt.get("POLICY", 0),
+                "frameworks_tracked": nt.get("COMPLIANCE_FRAMEWORK", 0)
+                + nt.get("POLICY", 0),
                 "controls_passing": nt.get("EVIDENCE", 0),
                 "controls_failing": bs.get("edge_types", {}).get("VIOLATES", 0),
                 "total_nodes": bs.get("total_nodes", 0),
                 "total_edges": bs.get("total_edges", 0),
             }
-            total_ctrl = max(compliance["controls_passing"] + compliance["controls_failing"], 1)
-            compliance["coverage_pct"] = round(compliance["controls_passing"] / total_ctrl * 100, 1)
+            total_ctrl = max(
+                compliance["controls_passing"] + compliance["controls_failing"], 1
+            )
+            compliance["coverage_pct"] = round(
+                compliance["controls_passing"] / total_ctrl * 100, 1
+            )
         except Exception:
             pass
 
@@ -354,30 +411,140 @@ async def get_intelligence_map():
     """Return the intelligence map — merges structural topology with live brain graph data."""
     # Structural nodes (always present — describes the architecture)
     _STRUCTURAL_NODES = [
-        {"id": "ingest", "suite": "suite-api", "label": "Data Ingestion", "type": "entry", "apis": ["SBOM", "SARIF", "CVE", "VEX", "CNAPP"]},
-        {"id": "pipeline", "suite": "suite-core", "label": "Pipeline Orchestrator", "type": "processor", "apis": ["crosswalk", "correlation", "dedup"]},
-        {"id": "decision", "suite": "suite-core", "label": "Decision Engine", "type": "brain", "apis": ["multi-LLM", "SSVC", "bayesian", "markov"]},
-        {"id": "attack", "suite": "suite-core", "label": "Attack Verification", "type": "verifier", "apis": ["MPTE", "micro-pentest", "reachability"]},
-        {"id": "compliance", "suite": "suite-evidence-risk", "label": "Compliance Engine", "type": "assessor", "apis": ["SOC2", "ISO27001", "PCI-DSS", "GDPR"]},
-        {"id": "evidence", "suite": "suite-evidence-risk", "label": "Evidence Vault", "type": "store", "apis": ["bundles", "provenance", "audit"]},
-        {"id": "feeds", "suite": "suite-evidence-risk", "label": "Threat Feeds", "type": "enricher", "apis": ["KEV", "EPSS", "NVD", "exploit-db"]},
-        {"id": "integrations", "suite": "suite-integrations", "label": "External Systems", "type": "connector", "apis": ["Jira", "Slack", "Confluence", "GitHub"]},
-        {"id": "playbook", "suite": "suite-core", "label": "Playbook Engine", "type": "automator", "apis": ["execute", "validate", "schedule"]},
-        {"id": "overlay", "suite": "suite-core", "label": "Overlay Config", "type": "config", "apis": ["risk-models", "modules", "signals"]},
+        {
+            "id": "ingest",
+            "suite": "suite-api",
+            "label": "Data Ingestion",
+            "type": "entry",
+            "apis": ["SBOM", "SARIF", "CVE", "VEX", "CNAPP"],
+        },
+        {
+            "id": "pipeline",
+            "suite": "suite-core",
+            "label": "Pipeline Orchestrator",
+            "type": "processor",
+            "apis": ["crosswalk", "correlation", "dedup"],
+        },
+        {
+            "id": "decision",
+            "suite": "suite-core",
+            "label": "Decision Engine",
+            "type": "brain",
+            "apis": ["multi-LLM", "SSVC", "bayesian", "markov"],
+        },
+        {
+            "id": "attack",
+            "suite": "suite-core",
+            "label": "Attack Verification",
+            "type": "verifier",
+            "apis": ["MPTE", "micro-pentest", "reachability"],
+        },
+        {
+            "id": "compliance",
+            "suite": "suite-evidence-risk",
+            "label": "Compliance Engine",
+            "type": "assessor",
+            "apis": ["SOC2", "ISO27001", "PCI-DSS", "GDPR"],
+        },
+        {
+            "id": "evidence",
+            "suite": "suite-evidence-risk",
+            "label": "Evidence Vault",
+            "type": "store",
+            "apis": ["bundles", "provenance", "audit"],
+        },
+        {
+            "id": "feeds",
+            "suite": "suite-evidence-risk",
+            "label": "Threat Feeds",
+            "type": "enricher",
+            "apis": ["KEV", "EPSS", "NVD", "exploit-db"],
+        },
+        {
+            "id": "integrations",
+            "suite": "suite-integrations",
+            "label": "External Systems",
+            "type": "connector",
+            "apis": ["Jira", "Slack", "Confluence", "GitHub"],
+        },
+        {
+            "id": "playbook",
+            "suite": "suite-core",
+            "label": "Playbook Engine",
+            "type": "automator",
+            "apis": ["execute", "validate", "schedule"],
+        },
+        {
+            "id": "overlay",
+            "suite": "suite-core",
+            "label": "Overlay Config",
+            "type": "config",
+            "apis": ["risk-models", "modules", "signals"],
+        },
     ]
     _STRUCTURAL_EDGES = [
-        {"from": "ingest", "to": "pipeline", "label": "Normalized artifacts", "weight": 5},
-        {"from": "pipeline", "to": "decision", "label": "Crosswalk + risk scores", "weight": 5},
-        {"from": "decision", "to": "attack", "label": "Verify exploitability", "weight": 4},
-        {"from": "decision", "to": "compliance", "label": "Compliance mapping", "weight": 4},
-        {"from": "decision", "to": "playbook", "label": "Trigger playbooks", "weight": 3},
-        {"from": "feeds", "to": "pipeline", "label": "KEV/EPSS enrichment", "weight": 4},
+        {
+            "from": "ingest",
+            "to": "pipeline",
+            "label": "Normalized artifacts",
+            "weight": 5,
+        },
+        {
+            "from": "pipeline",
+            "to": "decision",
+            "label": "Crosswalk + risk scores",
+            "weight": 5,
+        },
+        {
+            "from": "decision",
+            "to": "attack",
+            "label": "Verify exploitability",
+            "weight": 4,
+        },
+        {
+            "from": "decision",
+            "to": "compliance",
+            "label": "Compliance mapping",
+            "weight": 4,
+        },
+        {
+            "from": "decision",
+            "to": "playbook",
+            "label": "Trigger playbooks",
+            "weight": 3,
+        },
+        {
+            "from": "feeds",
+            "to": "pipeline",
+            "label": "KEV/EPSS enrichment",
+            "weight": 4,
+        },
         {"from": "attack", "to": "evidence", "label": "Pentest evidence", "weight": 3},
-        {"from": "compliance", "to": "evidence", "label": "Compliance bundles", "weight": 4},
-        {"from": "playbook", "to": "integrations", "label": "Action dispatch", "weight": 3},
+        {
+            "from": "compliance",
+            "to": "evidence",
+            "label": "Compliance bundles",
+            "weight": 4,
+        },
+        {
+            "from": "playbook",
+            "to": "integrations",
+            "label": "Action dispatch",
+            "weight": 3,
+        },
         {"from": "overlay", "to": "pipeline", "label": "Runtime config", "weight": 5},
-        {"from": "overlay", "to": "decision", "label": "Risk model selection", "weight": 5},
-        {"from": "integrations", "to": "ingest", "label": "Webhook events", "weight": 2},
+        {
+            "from": "overlay",
+            "to": "decision",
+            "label": "Risk model selection",
+            "weight": 5,
+        },
+        {
+            "from": "integrations",
+            "to": "ingest",
+            "label": "Webhook events",
+            "weight": 2,
+        },
     ]
 
     brain = _brain()
@@ -403,6 +570,7 @@ async def get_intelligence_map():
 
 # ── Playbook Management ───────────────────────────────────────────────────
 
+
 @router.get("/playbooks")
 async def list_playbooks():
     """List all playbooks — reads from brain graph nodes of type PLAYBOOK."""
@@ -417,36 +585,91 @@ async def list_playbooks():
                 ).fetchall()
             for r in rows:
                 import json as _j
+
                 props = _j.loads(r[3]) if r[3] else {}
-                playbooks.append({
-                    "id": r[0],
-                    "name": r[2] or r[0],
-                    "kind": props.get("kind", "Playbook"),
-                    "version": props.get("version", "1.0.0"),
-                    "status": props.get("status", "active"),
-                    "last_run": props.get("last_run"),
-                    "run_count": props.get("run_count", 0),
-                    "steps": props.get("steps", 0),
-                    "frameworks": props.get("frameworks", []),
-                    "author": props.get("author", "FixOps"),
-                })
+                playbooks.append(
+                    {
+                        "id": r[0],
+                        "name": r[2] or r[0],
+                        "kind": props.get("kind", "Playbook"),
+                        "version": props.get("version", "1.0.0"),
+                        "status": props.get("status", "active"),
+                        "last_run": props.get("last_run"),
+                        "run_count": props.get("run_count", 0),
+                        "steps": props.get("steps", 0),
+                        "frameworks": props.get("frameworks", []),
+                        "author": props.get("author", "FixOps"),
+                    }
+                )
         except Exception as exc:
             _log.debug("Playbook query from brain failed: %s", exc)
 
     # If brain has no playbook nodes, seed defaults and return them
     if not playbooks:
         _DEFAULTS = [
-            {"id": "pb-soc2-access", "name": "SOC2 Access Control Validation", "kind": "CompliancePack", "version": "1.0.0", "status": "active", "last_run": None, "run_count": 0, "steps": 4, "frameworks": ["SOC2"], "author": "FixOps Security Team"},
-            {"id": "pb-kev-response", "name": "KEV Emergency Response", "kind": "Playbook", "version": "2.1.0", "status": "active", "last_run": None, "run_count": 0, "steps": 6, "frameworks": ["NIST_SSDF"], "author": "FixOps Security Team"},
-            {"id": "pb-sbom-audit", "name": "SBOM License Audit", "kind": "TestPack", "version": "1.2.0", "status": "active", "last_run": None, "run_count": 0, "steps": 3, "frameworks": ["PCI_DSS"], "author": "FixOps Security Team"},
-            {"id": "pb-vuln-triage", "name": "Automated Vulnerability Triage", "kind": "MitigationPack", "version": "1.0.0", "status": "draft", "last_run": None, "run_count": 0, "steps": 5, "frameworks": ["ISO27001", "SOC2"], "author": "Security Engineering"},
+            {
+                "id": "pb-soc2-access",
+                "name": "SOC2 Access Control Validation",
+                "kind": "CompliancePack",
+                "version": "1.0.0",
+                "status": "active",
+                "last_run": None,
+                "run_count": 0,
+                "steps": 4,
+                "frameworks": ["SOC2"],
+                "author": "FixOps Security Team",
+            },
+            {
+                "id": "pb-kev-response",
+                "name": "KEV Emergency Response",
+                "kind": "Playbook",
+                "version": "2.1.0",
+                "status": "active",
+                "last_run": None,
+                "run_count": 0,
+                "steps": 6,
+                "frameworks": ["NIST_SSDF"],
+                "author": "FixOps Security Team",
+            },
+            {
+                "id": "pb-sbom-audit",
+                "name": "SBOM License Audit",
+                "kind": "TestPack",
+                "version": "1.2.0",
+                "status": "active",
+                "last_run": None,
+                "run_count": 0,
+                "steps": 3,
+                "frameworks": ["PCI_DSS"],
+                "author": "FixOps Security Team",
+            },
+            {
+                "id": "pb-vuln-triage",
+                "name": "Automated Vulnerability Triage",
+                "kind": "MitigationPack",
+                "version": "1.0.0",
+                "status": "draft",
+                "last_run": None,
+                "run_count": 0,
+                "steps": 5,
+                "frameworks": ["ISO27001", "SOC2"],
+                "author": "Security Engineering",
+            },
         ]
         # Seed into brain if available
         if brain:
             try:
                 from core.knowledge_brain import NodeType
+
                 for pb in _DEFAULTS:
-                    brain.upsert_node(pb["id"], NodeType.PLAYBOOK if hasattr(NodeType, "PLAYBOOK") else "PLAYBOOK", label=pb["name"], properties={k: v for k, v in pb.items() if k != "id"})
+                    brain.upsert_node(
+                        pb["id"],
+                        NodeType.PLAYBOOK
+                        if hasattr(NodeType, "PLAYBOOK")
+                        else "PLAYBOOK",
+                        label=pb["name"],
+                        properties={k: v for k, v in pb.items() if k != "id"},
+                    )
             except Exception:
                 pass
         playbooks = _DEFAULTS
@@ -485,6 +708,7 @@ async def execute_playbook(playbook_id: str, dry_run: bool = Query(False)):
 
 # ── Overlay Configuration ─────────────────────────────────────────────────
 
+
 @router.get("/overlay")
 async def get_overlay_config():
     """Get the current overlay configuration for the UI editor."""
@@ -520,30 +744,75 @@ async def get_overlay_config():
         },
         "risk_models": {
             "default_model": "bn_lr_hybrid_v1",
-            "fallback_chain": ["bn_lr_hybrid_v1", "bayesian_network_v1", "weighted_scoring_v1"],
+            "fallback_chain": [
+                "bn_lr_hybrid_v1",
+                "bayesian_network_v1",
+                "weighted_scoring_v1",
+            ],
             "models": {
-                "weighted_scoring_v1": {"enabled": True, "priority": 10, "description": "Simple weighted scoring based on severity"},
-                "bayesian_network_v1": {"enabled": True, "priority": 50, "description": "Bayesian network with 5-factor CPD model"},
-                "bn_lr_hybrid_v1": {"enabled": True, "priority": 100, "description": "Hybrid Bayesian + Logistic Regression (recommended)"},
-            }
+                "weighted_scoring_v1": {
+                    "enabled": True,
+                    "priority": 10,
+                    "description": "Simple weighted scoring based on severity",
+                },
+                "bayesian_network_v1": {
+                    "enabled": True,
+                    "priority": 50,
+                    "description": "Bayesian network with 5-factor CPD model",
+                },
+                "bn_lr_hybrid_v1": {
+                    "enabled": True,
+                    "priority": 100,
+                    "description": "Hybrid Bayesian + Logistic Regression (recommended)",
+                },
+            },
         },
         "modules": {
             "guardrails": {"enabled": True, "description": "Pipeline gate enforcement"},
-            "compliance": {"enabled": True, "description": "Compliance framework mapping"},
+            "compliance": {
+                "enabled": True,
+                "description": "Compliance framework mapping",
+            },
             "ssdlc": {"enabled": True, "description": "Secure SDLC stage tracking"},
-            "probabilistic": {"enabled": True, "description": "Bayesian + Markov risk analysis"},
-            "iac_posture": {"enabled": True, "description": "Infrastructure as Code scanning"},
+            "probabilistic": {
+                "enabled": True,
+                "description": "Bayesian + Markov risk analysis",
+            },
+            "iac_posture": {
+                "enabled": True,
+                "description": "Infrastructure as Code scanning",
+            },
             "analytics": {"enabled": True, "description": "ROI and metrics dashboards"},
-            "correlation_engine": {"enabled": True, "description": "Cross-source finding correlation"},
-            "enhanced_decision": {"enabled": True, "description": "Multi-LLM consensus engine"},
-            "vector_store": {"enabled": True, "description": "Security pattern matching"},
-            "ai_agents": {"enabled": True, "description": "Autonomous AI security agents"},
+            "correlation_engine": {
+                "enabled": True,
+                "description": "Cross-source finding correlation",
+            },
+            "enhanced_decision": {
+                "enabled": True,
+                "description": "Multi-LLM consensus engine",
+            },
+            "vector_store": {
+                "enabled": True,
+                "description": "Security pattern matching",
+            },
+            "ai_agents": {
+                "enabled": True,
+                "description": "Autonomous AI security agents",
+            },
         },
         "exploit_signals": {
             "kev": {"enabled": True, "mode": "boolean", "escalate_to": "critical"},
             "epss_high": {"enabled": True, "mode": "probability", "threshold": 0.60},
-            "active_exploitation": {"enabled": True, "mode": "boolean", "escalate_to": "critical"},
-            "weaponized_exploit": {"enabled": True, "mode": "boolean", "severity_floor": "high"},
+            "active_exploitation": {
+                "enabled": True,
+                "mode": "boolean",
+                "escalate_to": "critical",
+            },
+            "weaponized_exploit": {
+                "enabled": True,
+                "mode": "boolean",
+                "severity_floor": "high",
+            },
         },
         "guardrails": {
             "maturity": "scaling",
@@ -551,9 +820,17 @@ async def get_overlay_config():
                 "foundational": {"fail_on": "critical", "warn_on": "high"},
                 "scaling": {"fail_on": "high", "warn_on": "medium"},
                 "advanced": {"fail_on": "medium", "warn_on": "medium"},
-            }
+            },
         },
-        "compliance_frameworks": ["SOC2", "ISO27001", "PCI_DSS", "GDPR", "NIST_SSDF", "HIPAA", "FedRAMP"],
+        "compliance_frameworks": [
+            "SOC2",
+            "ISO27001",
+            "PCI_DSS",
+            "GDPR",
+            "NIST_SSDF",
+            "HIPAA",
+            "FedRAMP",
+        ],
     }
 
 
@@ -566,4 +843,3 @@ async def update_overlay_config(config: Dict[str, Any]):
         "message": "Overlay configuration updated successfully",
         "requires_restart": False,
     }
-

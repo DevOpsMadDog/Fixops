@@ -9,11 +9,10 @@ Generates real compliance assessment evidence packs with:
 
 from __future__ import annotations
 
-import json
 import logging
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -32,6 +31,7 @@ class ControlStatus(str, Enum):
 
 class TSC(str, Enum):
     """Trust Service Criteria categories."""
+
     CC1 = "CC1"  # Control Environment
     CC2 = "CC2"  # Communication and Information
     CC3 = "CC3"  # Risk Assessment
@@ -41,42 +41,131 @@ class TSC(str, Enum):
     CC7 = "CC7"  # System Operations
     CC8 = "CC8"  # Change Management
     CC9 = "CC9"  # Risk Mitigation
-    A1 = "A1"    # Availability
+    A1 = "A1"  # Availability
     PI1 = "PI1"  # Processing Integrity
-    C1 = "C1"    # Confidentiality
-    P1 = "P1"    # Privacy
+    C1 = "C1"  # Confidentiality
+    P1 = "P1"  # Privacy
 
 
 # SOC2 control definitions with assessment criteria
 SOC2_CONTROLS: Dict[str, Dict[str, Any]] = {
-    "CC6.1": {"tsc": "CC6", "title": "Logical Access Security", "checks": ["rbac_enabled", "sso_configured", "mfa_enforced"]},
-    "CC6.2": {"tsc": "CC6", "title": "User Registration & Authorization", "checks": ["user_provisioning", "approval_workflow"]},
-    "CC6.3": {"tsc": "CC6", "title": "Access Removal on Termination", "checks": ["deprovisioning_automation", "access_reviews"]},
-    "CC6.6": {"tsc": "CC6", "title": "System Boundary Protection", "checks": ["firewall_rules", "network_segmentation"]},
-    "CC6.7": {"tsc": "CC6", "title": "Restrict Data Transmission", "checks": ["tls_enforced", "encryption_at_rest"]},
-    "CC6.8": {"tsc": "CC6", "title": "Prevent Unauthorized Software", "checks": ["sbom_scanning", "dependency_audit"]},
-    "CC7.1": {"tsc": "CC7", "title": "Detect Configuration Changes", "checks": ["change_detection", "drift_monitoring"]},
-    "CC7.2": {"tsc": "CC7", "title": "Monitor for Anomalies", "checks": ["anomaly_detection", "siem_alerts", "threat_feeds"]},
-    "CC7.3": {"tsc": "CC7", "title": "Evaluate Security Events", "checks": ["incident_triage", "severity_classification"]},
-    "CC7.4": {"tsc": "CC7", "title": "Respond to Identified Events", "checks": ["incident_response", "playbook_execution"]},
-    "CC7.5": {"tsc": "CC7", "title": "Recover from Events", "checks": ["backup_recovery", "rto_rpo_met"]},
-    "CC8.1": {"tsc": "CC8", "title": "Change Management Process", "checks": ["change_approval", "ci_cd_gates", "autofix_review"]},
-    "CC3.1": {"tsc": "CC3", "title": "Risk Identification", "checks": ["vuln_scanning", "threat_modeling"]},
-    "CC3.2": {"tsc": "CC3", "title": "Risk Assessment Activities", "checks": ["risk_scoring", "epss_integration", "kev_monitoring"]},
-    "CC3.3": {"tsc": "CC3", "title": "Fraud Risk Assessment", "checks": ["secrets_scanning", "insider_threat"]},
-    "CC4.1": {"tsc": "CC4", "title": "Monitoring Controls", "checks": ["continuous_monitoring", "dashboard_alerts"]},
-    "CC4.2": {"tsc": "CC4", "title": "Evaluate and Communicate", "checks": ["reporting_cadence", "executive_dashboard"]},
-    "CC5.1": {"tsc": "CC5", "title": "Mitigate Risk Through Activities", "checks": ["remediation_sla", "playbook_coverage"]},
-    "A1.1": {"tsc": "A1", "title": "Capacity Planning", "checks": ["capacity_monitoring", "auto_scaling"]},
-    "A1.2": {"tsc": "A1", "title": "Recovery Procedures", "checks": ["disaster_recovery", "failover_testing"]},
-    "C1.1": {"tsc": "C1", "title": "Confidential Information Identified", "checks": ["data_classification", "pii_detection"]},
-    "C1.2": {"tsc": "C1", "title": "Confidential Information Disposed", "checks": ["data_retention", "secure_deletion"]},
+    "CC6.1": {
+        "tsc": "CC6",
+        "title": "Logical Access Security",
+        "checks": ["rbac_enabled", "sso_configured", "mfa_enforced"],
+    },
+    "CC6.2": {
+        "tsc": "CC6",
+        "title": "User Registration & Authorization",
+        "checks": ["user_provisioning", "approval_workflow"],
+    },
+    "CC6.3": {
+        "tsc": "CC6",
+        "title": "Access Removal on Termination",
+        "checks": ["deprovisioning_automation", "access_reviews"],
+    },
+    "CC6.6": {
+        "tsc": "CC6",
+        "title": "System Boundary Protection",
+        "checks": ["firewall_rules", "network_segmentation"],
+    },
+    "CC6.7": {
+        "tsc": "CC6",
+        "title": "Restrict Data Transmission",
+        "checks": ["tls_enforced", "encryption_at_rest"],
+    },
+    "CC6.8": {
+        "tsc": "CC6",
+        "title": "Prevent Unauthorized Software",
+        "checks": ["sbom_scanning", "dependency_audit"],
+    },
+    "CC7.1": {
+        "tsc": "CC7",
+        "title": "Detect Configuration Changes",
+        "checks": ["change_detection", "drift_monitoring"],
+    },
+    "CC7.2": {
+        "tsc": "CC7",
+        "title": "Monitor for Anomalies",
+        "checks": ["anomaly_detection", "siem_alerts", "threat_feeds"],
+    },
+    "CC7.3": {
+        "tsc": "CC7",
+        "title": "Evaluate Security Events",
+        "checks": ["incident_triage", "severity_classification"],
+    },
+    "CC7.4": {
+        "tsc": "CC7",
+        "title": "Respond to Identified Events",
+        "checks": ["incident_response", "playbook_execution"],
+    },
+    "CC7.5": {
+        "tsc": "CC7",
+        "title": "Recover from Events",
+        "checks": ["backup_recovery", "rto_rpo_met"],
+    },
+    "CC8.1": {
+        "tsc": "CC8",
+        "title": "Change Management Process",
+        "checks": ["change_approval", "ci_cd_gates", "autofix_review"],
+    },
+    "CC3.1": {
+        "tsc": "CC3",
+        "title": "Risk Identification",
+        "checks": ["vuln_scanning", "threat_modeling"],
+    },
+    "CC3.2": {
+        "tsc": "CC3",
+        "title": "Risk Assessment Activities",
+        "checks": ["risk_scoring", "epss_integration", "kev_monitoring"],
+    },
+    "CC3.3": {
+        "tsc": "CC3",
+        "title": "Fraud Risk Assessment",
+        "checks": ["secrets_scanning", "insider_threat"],
+    },
+    "CC4.1": {
+        "tsc": "CC4",
+        "title": "Monitoring Controls",
+        "checks": ["continuous_monitoring", "dashboard_alerts"],
+    },
+    "CC4.2": {
+        "tsc": "CC4",
+        "title": "Evaluate and Communicate",
+        "checks": ["reporting_cadence", "executive_dashboard"],
+    },
+    "CC5.1": {
+        "tsc": "CC5",
+        "title": "Mitigate Risk Through Activities",
+        "checks": ["remediation_sla", "playbook_coverage"],
+    },
+    "A1.1": {
+        "tsc": "A1",
+        "title": "Capacity Planning",
+        "checks": ["capacity_monitoring", "auto_scaling"],
+    },
+    "A1.2": {
+        "tsc": "A1",
+        "title": "Recovery Procedures",
+        "checks": ["disaster_recovery", "failover_testing"],
+    },
+    "C1.1": {
+        "tsc": "C1",
+        "title": "Confidential Information Identified",
+        "checks": ["data_classification", "pii_detection"],
+    },
+    "C1.2": {
+        "tsc": "C1",
+        "title": "Confidential Information Disposed",
+        "checks": ["data_retention", "secure_deletion"],
+    },
 }
 
 
 @dataclass
 class ControlAssessment:
     """Assessment result for a single SOC2 control."""
+
     control_id: str
     title: str
     tsc: str
@@ -91,11 +180,14 @@ class ControlAssessment:
 @dataclass
 class EvidencePack:
     """Complete SOC2 Type II Evidence Pack."""
+
     pack_id: str = field(default_factory=lambda: f"EP-{uuid.uuid4().hex[:12]}")
     framework: str = "SOC2"
     version: str = "Type II"
     org_id: str = ""
-    generated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    generated_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     timeframe_start: str = ""
     timeframe_end: str = ""
     timeframe_days: int = 90
@@ -116,7 +208,11 @@ class EvidencePack:
             "version": self.version,
             "org_id": self.org_id,
             "generated_at": self.generated_at,
-            "timeframe": {"start": self.timeframe_start, "end": self.timeframe_end, "days": self.timeframe_days},
+            "timeframe": {
+                "start": self.timeframe_start,
+                "end": self.timeframe_end,
+                "days": self.timeframe_days,
+            },
             "overall_score": self.overall_score,
             "overall_status": self.overall_status,
             "controls_summary": {
@@ -127,10 +223,15 @@ class EvidencePack:
             },
             "assessments": [
                 {
-                    "control_id": a.control_id, "title": a.title, "tsc": a.tsc,
-                    "status": a.status.value, "checks_passed": a.checks_passed,
-                    "checks_total": a.checks_total, "evidence_items": a.evidence_items,
-                    "findings": a.findings, "tested_at": a.tested_at,
+                    "control_id": a.control_id,
+                    "title": a.title,
+                    "tsc": a.tsc,
+                    "status": a.status.value,
+                    "checks_passed": a.checks_passed,
+                    "checks_total": a.checks_total,
+                    "evidence_items": a.evidence_items,
+                    "findings": a.findings,
+                    "tested_at": a.tested_at,
                 }
                 for a in self.assessments
             ],
@@ -174,12 +275,20 @@ class SOC2EvidenceGenerator:
 
         # Compute overall metrics
         pack.controls_assessed = len(pack.assessments)
-        pack.controls_effective = sum(1 for a in pack.assessments if a.status == ControlStatus.EFFECTIVE)
-        pack.controls_needing_improvement = sum(1 for a in pack.assessments if a.status == ControlStatus.NEEDS_IMPROVEMENT)
-        pack.controls_not_effective = sum(1 for a in pack.assessments if a.status == ControlStatus.NOT_EFFECTIVE)
+        pack.controls_effective = sum(
+            1 for a in pack.assessments if a.status == ControlStatus.EFFECTIVE
+        )
+        pack.controls_needing_improvement = sum(
+            1 for a in pack.assessments if a.status == ControlStatus.NEEDS_IMPROVEMENT
+        )
+        pack.controls_not_effective = sum(
+            1 for a in pack.assessments if a.status == ControlStatus.NOT_EFFECTIVE
+        )
 
         if pack.controls_assessed > 0:
-            pack.overall_score = round(pack.controls_effective / pack.controls_assessed, 4)
+            pack.overall_score = round(
+                pack.controls_effective / pack.controls_assessed, 4
+            )
         else:
             pack.overall_score = 0.0
 
@@ -194,8 +303,12 @@ class SOC2EvidenceGenerator:
         pack.pipeline_data = data
 
         self._packs[pack.pack_id] = pack
-        logger.info("Generated evidence pack %s: score=%.2f status=%s",
-                     pack.pack_id, pack.overall_score, pack.overall_status)
+        logger.info(
+            "Generated evidence pack %s: score=%.2f status=%s",
+            pack.pack_id,
+            pack.overall_score,
+            pack.overall_status,
+        )
         return pack
 
     def get_pack(self, pack_id: str) -> Optional[EvidencePack]:
@@ -205,8 +318,11 @@ class SOC2EvidenceGenerator:
         return sorted(self._packs.values(), key=lambda p: p.generated_at, reverse=True)
 
     def _assess_control(
-        self, ctrl_id: str, ctrl_def: Dict[str, Any],
-        data: Dict[str, Any], now: datetime,
+        self,
+        ctrl_id: str,
+        ctrl_def: Dict[str, Any],
+        data: Dict[str, Any],
+        now: datetime,
     ) -> ControlAssessment:
         """Assess a single SOC2 control using platform telemetry."""
         checks = ctrl_def.get("checks", [])
@@ -219,13 +335,17 @@ class SOC2EvidenceGenerator:
             if result["passed"]:
                 passed += 1
             else:
-                findings.append(result.get("finding", f"Check '{check_name}' not fully met"))
-            evidence_items.append({
-                "check": check_name,
-                "passed": result["passed"],
-                "detail": result.get("detail", ""),
-                "source": result.get("source", "platform_telemetry"),
-            })
+                findings.append(
+                    result.get("finding", f"Check '{check_name}' not fully met")
+                )
+            evidence_items.append(
+                {
+                    "check": check_name,
+                    "passed": result["passed"],
+                    "detail": result.get("detail", ""),
+                    "source": result.get("source", "platform_telemetry"),
+                }
+            )
 
         total = len(checks)
         if total == 0:
@@ -253,7 +373,7 @@ class SOC2EvidenceGenerator:
         """Evaluate a single check against platform data."""
         # Map check names to actual platform data evaluation
         findings_count = data.get("findings_count", 0)
-        assets_count = data.get("assets_count", 0)
+        data.get("assets_count", 0)
         graph_stats = data.get("graph_stats", {})
         case_stats = data.get("case_stats", {})
         total_nodes = graph_stats.get("total_nodes", 0)
@@ -265,25 +385,50 @@ class SOC2EvidenceGenerator:
             "mfa_enforced": lambda: (True, "MFA enforced at identity provider level"),
             "user_provisioning": lambda: (True, "User provisioning workflow active"),
             "approval_workflow": lambda: (True, "Approval workflow configured"),
-            "deprovisioning_automation": lambda: (True, "Auto-deprovisioning on termination"),
+            "deprovisioning_automation": lambda: (
+                True,
+                "Auto-deprovisioning on termination",
+            ),
             "access_reviews": lambda: (True, "Quarterly access reviews scheduled"),
             "firewall_rules": lambda: (True, "Network firewall rules configured"),
-            "network_segmentation": lambda: (True, "Network segmentation via VPC/subnets"),
+            "network_segmentation": lambda: (
+                True,
+                "Network segmentation via VPC/subnets",
+            ),
             "tls_enforced": lambda: (True, "TLS 1.2+ enforced on all endpoints"),
             "encryption_at_rest": lambda: (True, "AES-256 encryption at rest"),
             # CC6.8 - Software controls
-            "sbom_scanning": lambda: (findings_count > 0, f"{findings_count} findings from SBOM scanning"),
-            "dependency_audit": lambda: (findings_count > 0, f"{findings_count} dependencies audited"),
+            "sbom_scanning": lambda: (
+                findings_count > 0,
+                f"{findings_count} findings from SBOM scanning",
+            ),
+            "dependency_audit": lambda: (
+                findings_count > 0,
+                f"{findings_count} dependencies audited",
+            ),
             # CC7 - System Operations
-            "change_detection": lambda: (total_nodes > 0, f"Knowledge graph tracking {total_nodes} entities"),
-            "drift_monitoring": lambda: (total_nodes > 0, f"Drift monitoring via {total_nodes} graph nodes"),
-            "anomaly_detection": lambda: (True, "MindsDB anomaly detection layer active"),
+            "change_detection": lambda: (
+                total_nodes > 0,
+                f"Knowledge graph tracking {total_nodes} entities",
+            ),
+            "drift_monitoring": lambda: (
+                total_nodes > 0,
+                f"Drift monitoring via {total_nodes} graph nodes",
+            ),
+            "anomaly_detection": lambda: (
+                True,
+                "MindsDB anomaly detection layer active",
+            ),
             "siem_alerts": lambda: (True, "SIEM integration via event bus"),
             "threat_feeds": lambda: (True, "NVD/EPSS/KEV/ExploitDB feeds active"),
-            "incident_triage": lambda: (case_stats.get("total", 0) > 0 or findings_count > 0,
-                                         f"{case_stats.get('total', findings_count)} cases triaged"),
-            "severity_classification": lambda: (findings_count > 0,
-                                                  f"{findings_count} findings classified by severity"),
+            "incident_triage": lambda: (
+                case_stats.get("total", 0) > 0 or findings_count > 0,
+                f"{case_stats.get('total', findings_count)} cases triaged",
+            ),
+            "severity_classification": lambda: (
+                findings_count > 0,
+                f"{findings_count} findings classified by severity",
+            ),
             "incident_response": lambda: (True, "Automated playbook execution enabled"),
             "playbook_execution": lambda: (True, "Remediation playbooks configured"),
             "backup_recovery": lambda: (True, "Evidence WORM storage with backup"),
@@ -293,28 +438,46 @@ class SOC2EvidenceGenerator:
             "ci_cd_gates": lambda: (True, "Security gates in CI/CD pipeline"),
             "autofix_review": lambda: (True, "AutoFix PRs require human review"),
             # CC3 - Risk Assessment
-            "vuln_scanning": lambda: (findings_count > 0, f"{findings_count} vulnerabilities scanned"),
-            "threat_modeling": lambda: (total_nodes > 0, f"Threat model with {total_nodes} entities"),
+            "vuln_scanning": lambda: (
+                findings_count > 0,
+                f"{findings_count} vulnerabilities scanned",
+            ),
+            "threat_modeling": lambda: (
+                total_nodes > 0,
+                f"Threat model with {total_nodes} entities",
+            ),
             "risk_scoring": lambda: (True, "CVSS + EPSS + KEV composite risk scoring"),
             "epss_integration": lambda: (True, "EPSS scores integrated from FIRST.org"),
             "kev_monitoring": lambda: (True, "CISA KEV catalog monitored daily"),
             "secrets_scanning": lambda: (True, "Secret scanning enabled in CI/CD"),
             "insider_threat": lambda: (True, "Anomaly detection for insider threats"),
             # CC4 - Monitoring
-            "continuous_monitoring": lambda: (True, "24/7 continuous monitoring via feeds"),
+            "continuous_monitoring": lambda: (
+                True,
+                "24/7 continuous monitoring via feeds",
+            ),
             "dashboard_alerts": lambda: (True, "Real-time dashboard with alerts"),
             "reporting_cadence": lambda: (True, "Weekly automated reports"),
             "executive_dashboard": lambda: (True, "Executive risk dashboard active"),
             # CC5 - Control Activities
             "remediation_sla": lambda: (True, "SLA-based remediation tracking"),
-            "playbook_coverage": lambda: (True, "Playbook coverage for all severity levels"),
+            "playbook_coverage": lambda: (
+                True,
+                "Playbook coverage for all severity levels",
+            ),
             # A1 - Availability
-            "capacity_monitoring": lambda: (True, "Resource capacity monitoring active"),
+            "capacity_monitoring": lambda: (
+                True,
+                "Resource capacity monitoring active",
+            ),
             "auto_scaling": lambda: (True, "Auto-scaling configured"),
             "disaster_recovery": lambda: (True, "DR plan documented and tested"),
             "failover_testing": lambda: (True, "Quarterly failover testing"),
             # C1 - Confidentiality
-            "data_classification": lambda: (True, "Data classification policy enforced"),
+            "data_classification": lambda: (
+                True,
+                "Data classification policy enforced",
+            ),
             "pii_detection": lambda: (True, "PII detection in scanning pipeline"),
             "data_retention": lambda: (True, "Data retention policy: 7 years"),
             "secure_deletion": lambda: (True, "Secure deletion procedures documented"),
@@ -323,14 +486,26 @@ class SOC2EvidenceGenerator:
         evaluator = check_evaluators.get(check_name)
         if evaluator:
             passed, detail = evaluator()
-            result = {"passed": passed, "detail": detail, "source": "platform_telemetry"}
+            result = {
+                "passed": passed,
+                "detail": detail,
+                "source": "platform_telemetry",
+            }
             if not passed:
-                result["finding"] = f"Control check '{check_name}' not satisfied: {detail}"
+                result[
+                    "finding"
+                ] = f"Control check '{check_name}' not satisfied: {detail}"
             return result
 
-        return {"passed": False, "detail": f"Unknown check: {check_name}", "finding": f"No evaluator for '{check_name}'"}
+        return {
+            "passed": False,
+            "detail": f"Unknown check: {check_name}",
+            "finding": f"No evaluator for '{check_name}'",
+        }
 
-    def _build_summary(self, pack: EvidencePack, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _build_summary(
+        self, pack: EvidencePack, data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Build executive summary for the evidence pack."""
         tsc_scores: Dict[str, Dict[str, int]] = {}
         for a in pack.assessments:
@@ -346,8 +521,13 @@ class SOC2EvidenceGenerator:
             "overall_score_pct": round(pack.overall_score * 100, 1),
             "qualification": pack.overall_status,
             "tsc_breakdown": {
-                tsc: {"score_pct": round(v["effective"] / v["total"] * 100 if v["total"] else 0, 1),
-                       "effective": v["effective"], "total": v["total"]}
+                tsc: {
+                    "score_pct": round(
+                        v["effective"] / v["total"] * 100 if v["total"] else 0, 1
+                    ),
+                    "effective": v["effective"],
+                    "total": v["total"],
+                }
                 for tsc, v in sorted(tsc_scores.items())
             },
             "total_findings": sum(len(a.findings) for a in pack.assessments),
@@ -372,4 +552,3 @@ def get_evidence_generator() -> SOC2EvidenceGenerator:
     if _generator_instance is None:
         _generator_instance = SOC2EvidenceGenerator()
     return _generator_instance
-

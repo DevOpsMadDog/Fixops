@@ -3,7 +3,6 @@ import os
 import tempfile
 
 import pytest
-
 from core.iac_db import IaCDB
 
 

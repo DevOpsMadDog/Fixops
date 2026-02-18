@@ -13,7 +13,6 @@ Run:
 """
 from __future__ import annotations
 
-import json
 import os
 import random
 import uuid
@@ -31,10 +30,20 @@ _SBOM_SMALL = {
     "specVersion": "1.5",
     "serialNumber": f"urn:uuid:{uuid.uuid4()}",
     "version": 1,
-    "metadata": {"component": {"name": "load-test-app", "version": "1.0.0", "type": "application"}},
+    "metadata": {
+        "component": {
+            "name": "load-test-app",
+            "version": "1.0.0",
+            "type": "application",
+        }
+    },
     "components": [
-        {"type": "library", "name": f"lib-{i}", "version": f"0.{i}.0",
-         "purl": f"pkg:npm/lib-{i}@0.{i}.0"}
+        {
+            "type": "library",
+            "name": f"lib-{i}",
+            "version": f"0.{i}.0",
+            "purl": f"pkg:npm/lib-{i}@0.{i}.0",
+        }
         for i in range(20)
     ],
 }
@@ -53,6 +62,7 @@ _COPILOT_QUESTIONS = [
 # ---------------------------------------------------------------------------
 # Load test user
 # ---------------------------------------------------------------------------
+
 
 class ALdeciUser(HttpUser):
     """Simulates a typical ALdeci platform user."""
@@ -103,7 +113,10 @@ class ALdeciUser(HttpUser):
     def graph_nodes(self):
         self.client.get(
             "/api/v1/graph/nodes",
-            params={"type": random.choice(["package", "vulnerability", "asset"]), "limit": 50},
+            params={
+                "type": random.choice(["package", "vulnerability", "asset"]),
+                "limit": 50,
+            },
             headers=self.headers,
             name="/api/v1/graph/nodes",
         )
@@ -163,7 +176,10 @@ class ALdeciUser(HttpUser):
     def list_findings(self):
         self.client.get(
             "/api/v1/findings",
-            params={"limit": 25, "severity": random.choice(["critical", "high", "medium"])},
+            params={
+                "limit": 25,
+                "severity": random.choice(["critical", "high", "medium"]),
+            },
             headers=self.headers,
             name="/api/v1/findings",
         )
@@ -176,4 +192,3 @@ class ALdeciUser(HttpUser):
             headers=self.headers,
             name="/api/v1/nerve-center/overview",
         )
-

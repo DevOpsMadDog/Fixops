@@ -20,7 +20,7 @@ def configure(*args: Any, **kwargs: Any) -> None:
 
     global _CONFIGURED
     if not _CONFIGURED:
-        level = kwargs.get("cache_logger_on_first_use")
+        kwargs.get("cache_logger_on_first_use")
         logging.basicConfig(level=logging.INFO)
         _CONFIGURED = True
 

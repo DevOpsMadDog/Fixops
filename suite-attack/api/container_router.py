@@ -10,10 +10,9 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
-
 from core.container_scanner import get_container_scanner
+from fastapi import APIRouter
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/container", tags=["Container Scanner"])
 
@@ -54,6 +53,10 @@ async def container_status() -> Dict[str, Any]:
         "grype_available": scanner.grype_available,
         "dockerfile_rules": 10,
         "known_vulnerable_images": 15,
-        "capabilities": ["dockerfile_analysis", "base_image_check", "trivy_integration", "grype_integration"],
+        "capabilities": [
+            "dockerfile_analysis",
+            "base_image_check",
+            "trivy_integration",
+            "grype_integration",
+        ],
     }
-

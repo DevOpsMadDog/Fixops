@@ -8,7 +8,14 @@ files_with_routes = []
 total = 0
 all_endpoints = []
 
-for suite in ["suite-api", "suite-core", "suite-attack", "suite-feeds", "suite-evidence-risk", "suite-integrations"]:
+for suite in [
+    "suite-api",
+    "suite-core",
+    "suite-attack",
+    "suite-feeds",
+    "suite-evidence-risk",
+    "suite-integrations",
+]:
     for root, dirs, fnames in os.walk(suite):
         if "__pycache__" in root or "node_modules" in root:
             continue
@@ -20,7 +27,10 @@ for suite in ["suite-api", "suite-core", "suite-attack", "suite-feeds", "suite-e
                 lines = f.readlines()
             endpoints_in_file = 0
             for i, line in enumerate(lines):
-                m = re.search(r'@(router|app)\.(get|post|put|patch|delete)\(\s*["\']([^"\']*)["\']', line)
+                m = re.search(
+                    r'@(router|app)\.(get|post|put|patch|delete)\(\s*["\']([^"\']*)["\']',
+                    line,
+                )
                 if m:
                     method = m.group(2).upper()
                     path = m.group(3)
@@ -28,8 +38,8 @@ for suite in ["suite-api", "suite-core", "suite-attack", "suite-feeds", "suite-e
                     total += 1
                     endpoints_in_file += 1
                     all_endpoints.append((method, path, fpath, i + 1))
-                elif re.search(r'@(router|app)\.(get|post|put|patch|delete)\(', line):
-                    method_match = re.search(r'\.(get|post|put|patch|delete)\(', line)
+                elif re.search(r"@(router|app)\.(get|post|put|patch|delete)\(", line):
+                    method_match = re.search(r"\.(get|post|put|patch|delete)\(", line)
                     if method_match:
                         method = method_match.group(1).upper()
                         count[method_match.group(1)] += 1
@@ -63,4 +73,3 @@ files_with_routes.sort(key=lambda x: -x[1])
 print("Top router files:")
 for fp, cnt in files_with_routes[:40]:
     print(f"  {cnt:3d}  {fp}")
-

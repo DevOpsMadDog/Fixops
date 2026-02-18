@@ -5,9 +5,8 @@ Creates realistic enterprise data for testing and demonstration
 """
 
 import asyncio
-import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 # Add project root to path
@@ -16,8 +15,7 @@ sys.path.insert(0, str(project_root))
 
 from src.core.security import PasswordManager
 from src.db.session import DatabaseManager
-from src.models.user import User, UserRole, UserStatus
-from src.utils.crypto import generate_secure_token
+from src.models.user import User, UserStatus
 
 
 async def create_demo_users():
@@ -128,7 +126,7 @@ async def main():
         print(f"✅ Created {len(users)} demo users")
 
         print(
-            f"""
+            """
 🎉 Demo Data Seeded Successfully!
 
 📝 Demo User Credentials:
@@ -137,7 +135,7 @@ async def main():
 ├─────────────────────────┼──────────────────┼─────────────────────┤
 │ admin@core.com        │ FixOpsAdmin123!  │ Administrator       │
 │ analyst@core.com      │ SecureAnalyst123!│ Security Analyst    │
-│ operator@core.com     │ OpsSecure123!    │ Operator            │ 
+│ operator@core.com     │ OpsSecure123!    │ Operator            │
 │ viewer@core.com       │ ViewSecure123!   │ Viewer              │
 │ compliance@core.com   │ Compliance123!   │ Compliance Officer  │
 └─────────────────────────┴──────────────────┴─────────────────────┘

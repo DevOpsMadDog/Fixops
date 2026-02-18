@@ -19,17 +19,15 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from core.exposure_case import (
+    VALID_TRANSITIONS,
     CasePriority,
     CaseStatus,
     ExposureCase,
-    ExposureCaseManager,
-    VALID_TRANSITIONS,
     get_case_manager,
 )
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/cases", tags=["exposure-cases"])
@@ -135,8 +133,9 @@ async def list_cases(
 ):
     """List Exposure Cases with optional filtering."""
     mgr = get_case_manager()
-    return mgr.list_cases(org_id=org_id, status=status, priority=priority,
-                          limit=limit, offset=offset)
+    return mgr.list_cases(
+        org_id=org_id, status=status, priority=priority, limit=limit, offset=offset
+    )
 
 
 @router.get("/{case_id}")
@@ -147,7 +146,6 @@ async def get_case(case_id: str):
     if not case:
         raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
     return case.to_dict()
-
 
 
 @router.patch("/{case_id}")
@@ -177,8 +175,9 @@ async def transition_case(case_id: str, req: TransitionRequest):
         case = mgr.transition(case_id, new_status, actor=req.actor)
         return case.to_dict()
     except ValueError as e:
-        raise HTTPException(status_code=400 if "Invalid transition" in str(e) else 404,
-                            detail=str(e))
+        raise HTTPException(
+            status_code=400 if "Invalid transition" in str(e) else 404, detail=str(e)
+        )
 
 
 @router.post("/{case_id}/clusters")
@@ -205,4 +204,3 @@ async def get_valid_transitions(case_id: str):
         "current_status": case.status.value,
         "valid_transitions": [s.value for s in allowed],
     }
-

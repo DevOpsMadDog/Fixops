@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Callable, Optional
+from typing import Callable
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -52,6 +52,7 @@ class LearningMiddleware(BaseHTTPMiddleware):
         if self._store is None:
             try:
                 from core.api_learning_store import get_learning_store
+
                 self._store = get_learning_store()
             except Exception as exc:
                 logger.warning("Could not initialise learning store: %s", exc)
@@ -134,9 +135,9 @@ class LearningMiddleware(BaseHTTPMiddleware):
                     )
 
                 # Mark anomaly flag for DB storage
-                is_anomaly = anomaly.is_anomaly
+                anomaly.is_anomaly
             except Exception:
-                is_anomaly = False
+                pass
 
             # Inject ML headers
             response.headers["X-Anomaly-Score"] = f"{anomaly_score:.4f}"
@@ -144,19 +145,22 @@ class LearningMiddleware(BaseHTTPMiddleware):
 
             # ---- Stream to learning store ----
             from core.api_learning_store import TrafficRecord
-            store.record(TrafficRecord(
-                method=method,
-                path=path,
-                status_code=status_code,
-                duration_ms=round(duration_ms, 2),
-                request_size=request_size,
-                response_size=response_size,
-                client_ip=client_ip,
-                user_agent=user_agent,
-                correlation_id=correlation_id,
-                query_params=query_params,
-                error_type=error_type,
-            ))
+
+            store.record(
+                TrafficRecord(
+                    method=method,
+                    path=path,
+                    status_code=status_code,
+                    duration_ms=round(duration_ms, 2),
+                    request_size=request_size,
+                    response_size=response_size,
+                    client_ip=client_ip,
+                    user_agent=user_agent,
+                    correlation_id=correlation_id,
+                    query_params=query_params,
+                    error_type=error_type,
+                )
+            )
 
             return response
 
@@ -167,19 +171,22 @@ class LearningMiddleware(BaseHTTPMiddleware):
             # Still record the failed request
             try:
                 from core.api_learning_store import TrafficRecord
-                store.record(TrafficRecord(
-                    method=method,
-                    path=path,
-                    status_code=500,
-                    duration_ms=round(duration_ms, 2),
-                    request_size=request_size,
-                    response_size=0,
-                    client_ip=client_ip,
-                    user_agent=user_agent,
-                    correlation_id=correlation_id,
-                    query_params=query_params,
-                    error_type=error_type,
-                ))
+
+                store.record(
+                    TrafficRecord(
+                        method=method,
+                        path=path,
+                        status_code=500,
+                        duration_ms=round(duration_ms, 2),
+                        request_size=request_size,
+                        response_size=0,
+                        client_ip=client_ip,
+                        user_agent=user_agent,
+                        correlation_id=correlation_id,
+                        query_params=query_params,
+                        error_type=error_type,
+                    )
+                )
             except Exception:
                 pass  # Never let middleware recording break the request
 
@@ -187,4 +194,3 @@ class LearningMiddleware(BaseHTTPMiddleware):
 
 
 __all__ = ["LearningMiddleware"]
-

@@ -4,14 +4,22 @@ Phase 17 of ALdeci Transformation Plan.
 """
 from __future__ import annotations
 
-import json, logging, os, re, sqlite3, time, uuid
+import json
+import logging
+import os
+import re
+import sqlite3
+import time
+import uuid
 from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 from threading import Lock
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable, Optional
 
-from fastapi import APIRouter, Query as FQ, Request, Response
+from fastapi import APIRouter
+from fastapi import Query as FQ
+from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger(__name__)
@@ -19,7 +27,8 @@ logger = logging.getLogger(__name__)
 MAX_BODY = 10_240
 _SENS_HDR = {"x-api-key", "authorization", "cookie", "x-auth-token"}
 _SENS_BODY = re.compile(
-    r"(password|secret|token|api_key|apikey|credential|private_key|access_token|refresh_token)", re.I
+    r"(password|secret|token|api_key|apikey|credential|private_key|access_token|refresh_token)",
+    re.I,
 )
 _SKIP = ("/docs", "/openapi.json", "/redoc", "/favicon.ico", "/static/")
 _log_ring: deque = deque(maxlen=500)
@@ -99,13 +108,28 @@ class DetailedLogStore:
             c = self._c()
             c.execute(
                 "INSERT INTO api_logs VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                (r["id"], r["ts"], r["method"], r["path"], r.get("query_params", ""),
-                 r.get("status_code"), r.get("duration_ms"), r.get("client_ip", ""),
-                 r.get("user_agent", ""), r.get("correlation_id", ""),
-                 json.dumps(r.get("req_headers", {})), r.get("req_body", ""),
-                 json.dumps(r.get("resp_headers", {})), r.get("resp_body", ""),
-                 r.get("req_size", 0), r.get("resp_size", 0),
-                 r.get("error"), r.get("error_type"), r.get("level", "info")))
+                (
+                    r["id"],
+                    r["ts"],
+                    r["method"],
+                    r["path"],
+                    r.get("query_params", ""),
+                    r.get("status_code"),
+                    r.get("duration_ms"),
+                    r.get("client_ip", ""),
+                    r.get("user_agent", ""),
+                    r.get("correlation_id", ""),
+                    json.dumps(r.get("req_headers", {})),
+                    r.get("req_body", ""),
+                    json.dumps(r.get("resp_headers", {})),
+                    r.get("resp_body", ""),
+                    r.get("req_size", 0),
+                    r.get("resp_size", 0),
+                    r.get("error"),
+                    r.get("error_type"),
+                    r.get("level", "info"),
+                ),
+            )
             c.commit()
             c.close()
         except Exception as e:
@@ -121,24 +145,43 @@ class DetailedLogStore:
                     cls._instance = cls()
         return cls._instance
 
-    def query(self, *, limit=100, offset=0, method=None, path_pat=None,
-              status_min=None, status_max=None, level=None, since=None, search=None):
+    def query(
+        self,
+        *,
+        limit=100,
+        offset=0,
+        method=None,
+        path_pat=None,
+        status_min=None,
+        status_max=None,
+        level=None,
+        since=None,
+        search=None,
+    ):
         c = self._c()
         w, p = [], []
         if method:
-            w.append("method=?"); p.append(method.upper())
+            w.append("method=?")
+            p.append(method.upper())
         if path_pat:
-            w.append("path LIKE ?"); p.append(f"%{path_pat}%")
+            w.append("path LIKE ?")
+            p.append(f"%{path_pat}%")
         if status_min is not None:
-            w.append("status_code>=?"); p.append(status_min)
+            w.append("status_code>=?")
+            p.append(status_min)
         if status_max is not None:
-            w.append("status_code<=?"); p.append(status_max)
+            w.append("status_code<=?")
+            p.append(status_max)
         if level:
-            w.append("level=?"); p.append(level)
+            w.append("level=?")
+            p.append(level)
         if since:
-            w.append("ts>=?"); p.append(since)
+            w.append("ts>=?")
+            p.append(since)
         if search:
-            w.append("(path LIKE ?1 OR req_body LIKE ?1 OR resp_body LIKE ?1 OR error LIKE ?1)")
+            w.append(
+                "(path LIKE ?1 OR req_body LIKE ?1 OR resp_body LIKE ?1 OR error LIKE ?1)"
+            )
             w[-1] = w[-1].replace("?1", "?")
             s = f"%{search}%"
             p.extend([s, s, s, s])
@@ -158,17 +201,32 @@ class DetailedLogStore:
     def stats(self):
         c = self._c()
         total = c.execute("SELECT COUNT(*) FROM api_logs").fetchone()[0]
-        errs = c.execute("SELECT COUNT(*) FROM api_logs WHERE status_code>=400").fetchone()[0]
-        avg = c.execute("SELECT AVG(duration_ms) FROM api_logs WHERE duration_ms IS NOT NULL").fetchone()[0]
-        by_m = {r[0]: r[1] for r in c.execute("SELECT method, COUNT(*) FROM api_logs GROUP BY method")}
-        by_s = {r[0]: r[1] for r in c.execute(
-            "SELECT CASE WHEN status_code<300 THEN '2xx' WHEN status_code<400 THEN '3xx' "
-            "WHEN status_code<500 THEN '4xx' ELSE '5xx' END, COUNT(*) "
-            "FROM api_logs WHERE status_code IS NOT NULL GROUP BY 1"
-        )}
+        errs = c.execute(
+            "SELECT COUNT(*) FROM api_logs WHERE status_code>=400"
+        ).fetchone()[0]
+        avg = c.execute(
+            "SELECT AVG(duration_ms) FROM api_logs WHERE duration_ms IS NOT NULL"
+        ).fetchone()[0]
+        by_m = {
+            r[0]: r[1]
+            for r in c.execute("SELECT method, COUNT(*) FROM api_logs GROUP BY method")
+        }
+        by_s = {
+            r[0]: r[1]
+            for r in c.execute(
+                "SELECT CASE WHEN status_code<300 THEN '2xx' WHEN status_code<400 THEN '3xx' "
+                "WHEN status_code<500 THEN '4xx' ELSE '5xx' END, COUNT(*) "
+                "FROM api_logs WHERE status_code IS NOT NULL GROUP BY 1"
+            )
+        }
         c.close()
-        return {"total": total, "errors": errs, "avg_duration_ms": round(avg or 0, 2),
-                "by_method": by_m, "by_status": by_s}
+        return {
+            "total": total,
+            "errors": errs,
+            "avg_duration_ms": round(avg or 0, 2),
+            "by_method": by_m,
+            "by_status": by_s,
+        }
 
     def clear(self):
         c = self._c()
@@ -243,7 +301,10 @@ class DetailedLoggingMiddleware(BaseHTTPMiddleware):
             if req_size > 0 and req_size <= MAX_BODY:
                 req_body_raw = _san_body(body_bytes.decode("utf-8", errors="replace"))
             elif req_size > MAX_BODY:
-                req_body_raw = body_bytes[:MAX_BODY].decode("utf-8", errors="replace") + "...[TRUNCATED]"
+                req_body_raw = (
+                    body_bytes[:MAX_BODY].decode("utf-8", errors="replace")
+                    + "...[TRUNCATED]"
+                )
         except Exception:
             req_body_raw = "[UNREADABLE]"
 
@@ -273,10 +334,14 @@ class DetailedLoggingMiddleware(BaseHTTPMiddleware):
             if resp_size <= MAX_BODY:
                 resp_body_raw = _san_body(full_body.decode("utf-8", errors="replace"))
             else:
-                resp_body_raw = full_body[:MAX_BODY].decode("utf-8", errors="replace") + "...[TRUNCATED]"
+                resp_body_raw = (
+                    full_body[:MAX_BODY].decode("utf-8", errors="replace")
+                    + "...[TRUNCATED]"
+                )
 
             # Reconstruct response with the consumed body
             from starlette.responses import Response as StarletteResponse
+
             new_response = StarletteResponse(
                 content=full_body,
                 status_code=response.status_code,
@@ -285,18 +350,32 @@ class DetailedLoggingMiddleware(BaseHTTPMiddleware):
             )
 
             duration_ms = round((time.perf_counter() - start) * 1000, 2)
-            level = "error" if status_code >= 500 else ("warn" if status_code >= 400 else "info")
+            level = (
+                "error"
+                if status_code >= 500
+                else ("warn" if status_code >= 400 else "info")
+            )
 
             record = {
-                "id": log_id, "ts": datetime.now(timezone.utc).isoformat(),
-                "method": method, "path": path, "query_params": qp,
-                "status_code": status_code, "duration_ms": duration_ms,
-                "client_ip": client_ip, "user_agent": user_agent,
+                "id": log_id,
+                "ts": datetime.now(timezone.utc).isoformat(),
+                "method": method,
+                "path": path,
+                "query_params": qp,
+                "status_code": status_code,
+                "duration_ms": duration_ms,
+                "client_ip": client_ip,
+                "user_agent": user_agent,
                 "correlation_id": corr_id,
-                "req_headers": req_headers, "req_body": req_body_raw,
-                "resp_headers": resp_headers, "resp_body": resp_body_raw,
-                "req_size": req_size, "resp_size": resp_size,
-                "error": error_msg, "error_type": error_type, "level": level,
+                "req_headers": req_headers,
+                "req_body": req_body_raw,
+                "resp_headers": resp_headers,
+                "resp_body": resp_body_raw,
+                "req_size": req_size,
+                "resp_size": resp_size,
+                "error": error_msg,
+                "error_type": error_type,
+                "level": level,
             }
             store.insert(record)
             return new_response
@@ -306,22 +385,31 @@ class DetailedLoggingMiddleware(BaseHTTPMiddleware):
             error_msg = str(exc)
             error_type = type(exc).__name__
             record = {
-                "id": log_id, "ts": datetime.now(timezone.utc).isoformat(),
-                "method": method, "path": path, "query_params": qp,
-                "status_code": 500, "duration_ms": duration_ms,
-                "client_ip": client_ip, "user_agent": user_agent,
+                "id": log_id,
+                "ts": datetime.now(timezone.utc).isoformat(),
+                "method": method,
+                "path": path,
+                "query_params": qp,
+                "status_code": 500,
+                "duration_ms": duration_ms,
+                "client_ip": client_ip,
+                "user_agent": user_agent,
                 "correlation_id": corr_id,
-                "req_headers": req_headers, "req_body": req_body_raw,
-                "resp_headers": {}, "resp_body": "",
-                "req_size": req_size, "resp_size": 0,
-                "error": error_msg, "error_type": error_type, "level": "error",
+                "req_headers": req_headers,
+                "req_body": req_body_raw,
+                "resp_headers": {},
+                "resp_body": "",
+                "req_size": req_size,
+                "resp_size": 0,
+                "error": error_msg,
+                "error_type": error_type,
+                "level": "error",
             }
             try:
                 store.insert(record)
             except Exception:
                 pass
             raise
-
 
 
 # ── REST API Router ──────────────────────────────────────────────────────
@@ -343,9 +431,15 @@ async def get_logs(
     """Query detailed API logs with filtering."""
     store = DetailedLogStore.get_instance()
     logs = store.query(
-        limit=limit, offset=offset, method=method, path_pat=path_pattern,
-        status_min=status_min, status_max=status_max, level=level,
-        since=since, search=search,
+        limit=limit,
+        offset=offset,
+        method=method,
+        path_pat=path_pattern,
+        status_min=status_min,
+        status_max=status_max,
+        level=level,
+        since=since,
+        search=search,
     )
     total = store.count()
     return {"logs": logs, "total": total, "limit": limit, "offset": offset}
@@ -388,11 +482,12 @@ async def stream_logs(request: Request):
                 current = len(_log_ring)
             if current != last_count and current > 0:
                 with _ring_lock:
-                    new_logs = list(_log_ring)[:max(1, current - last_count)]
+                    new_logs = list(_log_ring)[: max(1, current - last_count)]
                 last_count = current
                 data = json.dumps(new_logs, default=str)
                 yield f"data: {data}\n\n"
             await asyncio.sleep(1)
 
     from starlette.responses import StreamingResponse as SSEResponse
+
     return SSEResponse(event_generator(), media_type="text/event-stream")

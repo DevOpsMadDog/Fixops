@@ -4,7 +4,6 @@ import json
 import os
 
 import pytest
-
 from lib4sbom.normalizer import write_normalized_sbom
 
 

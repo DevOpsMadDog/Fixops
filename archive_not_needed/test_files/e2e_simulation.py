@@ -39,19 +39,26 @@ results: list[dict] = []
 
 def step(name: str):
     """Decorator to run and record a test step."""
+
     def decorator(fn):
         def wrapper():
             t0 = time.time()
             try:
                 detail = fn()
                 elapsed = round((time.time() - t0) * 1000, 1)
-                results.append({"name": name, "ok": True, "ms": elapsed, "detail": detail})
+                results.append(
+                    {"name": name, "ok": True, "ms": elapsed, "detail": detail}
+                )
                 print(f"  {PASS} {name} ({elapsed}ms) — {detail}")
             except Exception as exc:
                 elapsed = round((time.time() - t0) * 1000, 1)
-                results.append({"name": name, "ok": False, "ms": elapsed, "detail": str(exc)})
+                results.append(
+                    {"name": name, "ok": False, "ms": elapsed, "detail": str(exc)}
+                )
                 print(f"  {FAIL} {name} ({elapsed}ms) — {exc}")
+
         return wrapper
+
     return decorator
 
 
@@ -60,8 +67,10 @@ def step(name: str):
 # ═══════════════════════════════════════════════════════════════════
 @step("1. NVD CVE Feed (last 7 days)")
 def test_nvd():
-    import requests
     from datetime import timedelta
+
+    import requests
+
     end = datetime.now(timezone.utc)
     start = end - timedelta(days=7)
     url = (
@@ -88,6 +97,7 @@ def test_nvd():
 @step("2. CISA KEV Catalog")
 def test_kev():
     import requests
+
     url = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
     resp = requests.get(url, timeout=30)
     resp.raise_for_status()
@@ -104,6 +114,7 @@ def test_kev():
 @step("3. EPSS Scores (sample)")
 def test_epss():
     import requests
+
     # Use the EPSS API for specific CVEs
     cve_ids = getattr(test_nvd, "cve_ids", ["CVE-2024-0001"])
     url = f"https://api.first.org/data/v1/epss?cve={','.join(cve_ids[:5])}"
@@ -114,7 +125,9 @@ def test_epss():
     if scores:
         top = max(scores, key=lambda s: float(s.get("epss", 0)))
         return f"{len(scores)} scores, highest: {top['cve']} EPSS={top['epss']}"
-    return f"No EPSS data for requested CVEs (API returned {data.get('total', 0)} results)"
+    return (
+        f"No EPSS data for requested CVEs (API returned {data.get('total', 0)} results)"
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -123,7 +136,8 @@ def test_epss():
 @step("4. SAST Scan (vulnerable Python code)")
 def test_sast():
     from core.sast_engine import get_sast_engine
-    vuln_code = '''
+
+    vuln_code = """
 import os, pickle, yaml
 from flask import request
 
@@ -149,7 +163,7 @@ api_key = "sk-abcdefghijklmnop"
 # Weak crypto
 import hashlib
 h = md5(data)
-'''
+"""
     engine = get_sast_engine()
     result = engine.scan_code(vuln_code, "vulnerable_app.py")
     return f"{result.total_findings} findings, {len(result.taint_flows)} taint flows, by_sev={result.by_severity}"
@@ -161,6 +175,7 @@ h = md5(data)
 @step("5. Container Scanner (bad Dockerfile)")
 def test_container():
     from core.container_scanner import get_container_scanner
+
     bad_dockerfile = """
 FROM python:2.7
 RUN apt-get update && apt-get install -y curl wget
@@ -182,7 +197,8 @@ CMD ["python", "app.py"]
 @step("6. CSPM Scan (misconfigured Terraform)")
 def test_cspm():
     from core.cspm_engine import get_cspm_engine
-    bad_tf = '''
+
+    bad_tf = """
 resource "aws_s3_bucket" "data" {
   bucket = "my-public-data"
   acl    = "public-read"
@@ -202,7 +218,7 @@ resource "aws_db_instance" "main" {
   publicly_accessible = true
   storage_encrypted   = false
 }
-'''
+"""
     engine = get_cspm_engine()
     result = engine.scan_terraform(bad_tf, "insecure.tf")
     return f"{result.total_findings} findings, compliance={result.compliance_score}%, provider={result.provider}"
@@ -214,6 +230,7 @@ resource "aws_db_instance" "main" {
 @step("7. LLM Monitor (jailbreak + PII detection)")
 def test_llm_monitor():
     from core.llm_monitor import get_llm_monitor
+
     monitor = get_llm_monitor()
     result = monitor.analyze(
         prompt=(
@@ -234,7 +251,8 @@ def test_llm_monitor():
 @step("8. Malware Detector (PHP webshell)")
 def test_malware():
     from core.malware_detector import get_malware_detector
-    webshell = '''<?php
+
+    webshell = """<?php
 if(isset($_REQUEST['cmd'])){
     echo "<pre>";
     $cmd = ($_REQUEST['cmd']);
@@ -245,7 +263,7 @@ if(isset($_REQUEST['cmd'])){
 // base64 encoded payload
 $payload = base64_decode("ZXZhbCgkX1BPU1RbJ2NtZCddKTs=");
 eval($payload);
-?>'''
+?>"""
     detector = get_malware_detector()
     result = detector.scan_content(webshell, "shell.php")
     return f"{result.total_findings} findings, clean={result.clean}, by_sev={result.by_severity}"
@@ -257,6 +275,7 @@ eval($payload);
 @step("9. Code-to-Cloud Trace (CVE in production)")
 def test_c2c():
     from core.code_to_cloud_tracer import CodeToCloudTracer
+
     tracer = CodeToCloudTracer()
     result = tracer.trace(
         vulnerability_id="CVE-2024-12345",
@@ -277,15 +296,16 @@ def test_c2c():
     )
 
 
-
-
 # ═══════════════════════════════════════════════════════════════════
 # STEP 10: Fuzzy Identity Resolution
 # ═══════════════════════════════════════════════════════════════════
 @step("10. Fuzzy Identity Resolution")
 def test_fuzzy():
-    import tempfile, os
+    import os
+    import tempfile
+
     from core.services.fuzzy_identity import FuzzyIdentityResolver
+
     tmp = tempfile.mktemp(suffix=".db")
     try:
         resolver = FuzzyIdentityResolver(db_path=tmp)
@@ -317,20 +337,30 @@ def test_fuzzy():
 # ═══════════════════════════════════════════════════════════════════
 @step("11. Exposure Case Lifecycle (OPEN→TRIAGING→FIXING→RESOLVED→CLOSED)")
 def test_exposure_case():
-    import tempfile, os
-    from core.exposure_case import ExposureCaseManager, ExposureCase, CaseStatus, CasePriority
+    import os
+    import tempfile
+
+    from core.exposure_case import (
+        CasePriority,
+        CaseStatus,
+        ExposureCase,
+        ExposureCaseManager,
+    )
+
     tmp = tempfile.mktemp(suffix=".db")
     try:
         mgr = ExposureCaseManager(db_path=tmp)
-        case = mgr.create_case(ExposureCase(
-            case_id="EC-SIM-001",
-            title="Critical SQL Injection in Auth Service",
-            priority=CasePriority.CRITICAL,
-            org_id="acme",
-            affected_assets=["payments-api"],
-            finding_count=2,
-            metadata={"finding_ids": ["SAST-001", "SAST-002"]},
-        ))
+        case = mgr.create_case(
+            ExposureCase(
+                case_id="EC-SIM-001",
+                title="Critical SQL Injection in Auth Service",
+                priority=CasePriority.CRITICAL,
+                org_id="acme",
+                affected_assets=["payments-api"],
+                finding_count=2,
+                metadata={"finding_ids": ["SAST-001", "SAST-002"]},
+            )
+        )
         assert case.status == CaseStatus.OPEN
         mgr.transition("EC-SIM-001", CaseStatus.TRIAGING, actor="analyst")
         mgr.transition("EC-SIM-001", CaseStatus.FIXING, actor="dev-team")
@@ -350,6 +380,7 @@ def test_exposure_case():
 @step("12. Brain Pipeline (12-step orchestrator)")
 def test_brain_pipeline():
     from core.brain_pipeline import BrainPipeline, PipelineInput
+
     # Build findings from real NVD data if available
     findings = []
     real_vulns = getattr(test_nvd, "vulns", [])
@@ -366,18 +397,30 @@ def test_brain_pipeline():
         for m in metrics.get("cvssMetricV31", []) or metrics.get("cvssMetricV30", []):
             cvss = m.get("cvssData", {}).get("baseScore")
             break
-        findings.append({
-            "id": cve_id,
-            "title": f"{cve_id}: {desc[:80]}",
-            "severity": "critical" if (cvss or 0) >= 9 else "high" if (cvss or 0) >= 7 else "medium",
-            "cvss": cvss or 5.0,
-            "source": "nvd",
-            "asset_name": "web-app-prod",
-        })
+        findings.append(
+            {
+                "id": cve_id,
+                "title": f"{cve_id}: {desc[:80]}",
+                "severity": "critical"
+                if (cvss or 0) >= 9
+                else "high"
+                if (cvss or 0) >= 7
+                else "medium",
+                "cvss": cvss or 5.0,
+                "source": "nvd",
+                "asset_name": "web-app-prod",
+            }
+        )
     if not findings:
         findings = [
-            {"id": "CVE-2024-0001", "title": "Test vuln", "severity": "high",
-             "cvss": 8.5, "source": "test", "asset_name": "web-app-prod"},
+            {
+                "id": "CVE-2024-0001",
+                "title": "Test vuln",
+                "severity": "high",
+                "cvss": 8.5,
+                "source": "test",
+                "asset_name": "web-app-prod",
+            },
         ]
     pipeline = BrainPipeline()
     inp = PipelineInput(
@@ -402,6 +445,7 @@ def test_brain_pipeline():
 @step("13. SOC2 Evidence Pack Generation")
 def test_soc2():
     from core.soc2_evidence_generator import SOC2EvidenceGenerator
+
     gen = SOC2EvidenceGenerator()
     # Provide real platform data from prior steps
     platform_data = {
@@ -416,7 +460,9 @@ def test_soc2():
         "llm_monitor_threats_detected": 5,
         "malware_scans": 1,
     }
-    pack = gen.generate(org_id="acme-corp", timeframe_days=90, platform_data=platform_data)
+    pack = gen.generate(
+        org_id="acme-corp", timeframe_days=90, platform_data=platform_data
+    )
     info = pack.summary  # dict attribute, not a method
     return (
         f"score={info['overall_score_pct']}%, "
@@ -431,6 +477,7 @@ def test_soc2():
 @step("14. Multi-LLM Copilot (real OpenAI API call)")
 def test_llm_copilot():
     from core.llm_providers import LLMProviderManager
+
     manager = LLMProviderManager()
     # Build a security question from real CVE data
     cve_ids = getattr(test_nvd, "cve_ids", ["CVE-2024-0001"])
@@ -480,13 +527,20 @@ def main():
     print()
 
     all_steps = [
-        test_nvd, test_kev, test_epss,          # Real feeds
-        test_sast, test_container, test_cspm,     # Security scanners
-        test_llm_monitor, test_malware, test_c2c, # Detection engines
-        test_fuzzy, test_exposure_case,           # Identity & lifecycle
-        test_brain_pipeline,                      # Orchestrator
-        test_soc2,                                # Compliance
-        test_llm_copilot,                         # AI/LLM
+        test_nvd,
+        test_kev,
+        test_epss,  # Real feeds
+        test_sast,
+        test_container,
+        test_cspm,  # Security scanners
+        test_llm_monitor,
+        test_malware,
+        test_c2c,  # Detection engines
+        test_fuzzy,
+        test_exposure_case,  # Identity & lifecycle
+        test_brain_pipeline,  # Orchestrator
+        test_soc2,  # Compliance
+        test_llm_copilot,  # AI/LLM
     ]
 
     for step_fn in all_steps:
@@ -498,7 +552,9 @@ def main():
     passed = sum(1 for r in results if r["ok"])
     failed = sum(1 for r in results if not r["ok"])
     total_ms = sum(r["ms"] for r in results)
-    print(f"  RESULTS: {passed}/{len(results)} passed, {failed} failed, {total_ms:.0f}ms total")
+    print(
+        f"  RESULTS: {passed}/{len(results)} passed, {failed} failed, {total_ms:.0f}ms total"
+    )
     print("=" * 72)
 
     if failed:

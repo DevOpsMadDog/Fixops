@@ -18,22 +18,18 @@ Usage in FastAPI:
 """
 from __future__ import annotations
 
-import hashlib
-import hmac
 import logging
 import os
 import secrets
-import time
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 import bcrypt
 import jwt
+from core.auth_db import AuthDB
+from core.auth_models import ROLE_SCOPES, User, UserRole
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
-
-from core.auth_db import AuthDB
-from core.auth_models import ROLE_SCOPES, APIKey, User, UserRole
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +57,7 @@ def _get_db() -> AuthDB:
 # JWT helpers
 # ---------------------------------------------------------------------------
 
+
 def create_jwt(user: User, extra_claims: Optional[Dict[str, Any]] = None) -> str:
     """Create a signed JWT for a user."""
     now = datetime.now(timezone.utc)
@@ -87,6 +84,7 @@ def decode_jwt(token: str) -> Dict[str, Any]:
 # API Key helpers
 # ---------------------------------------------------------------------------
 
+
 def generate_api_key() -> tuple[str, str, str]:
     """Generate a new API key. Returns (full_key, prefix, bcrypt_hash)."""
     raw = secrets.token_urlsafe(32)
@@ -105,19 +103,27 @@ def verify_api_key_hash(plain_key: str, hashed: str) -> bool:
 # FastAPI dependencies
 # ---------------------------------------------------------------------------
 
+
 class AuthContext:
     """Holds authenticated user context for the current request."""
+
     __slots__ = ("user_id", "email", "role", "org_id", "scopes", "auth_method")
 
-    def __init__(self, user_id: str, email: str, role: str, org_id: str,
-                 scopes: List[str], auth_method: str):
+    def __init__(
+        self,
+        user_id: str,
+        email: str,
+        role: str,
+        org_id: str,
+        scopes: List[str],
+        auth_method: str,
+    ):
         self.user_id = user_id
         self.email = email
         self.role = role
         self.org_id = org_id
         self.scopes = scopes
         self.auth_method = auth_method
-
 
 
 async def require_auth(
@@ -203,6 +209,7 @@ def _validate_api_key(raw_key: str) -> Optional[AuthContext]:
 
 def require_scope(scope: str):
     """Factory that returns a dependency requiring a specific scope."""
+
     async def _check(auth: AuthContext = Depends(require_auth)):
         if not auth.has_scope(scope):
             raise HTTPException(
@@ -210,12 +217,14 @@ def require_scope(scope: str):
                 f"Missing required scope: {scope}",
             )
         return auth
+
     return _check
 
 
 # ---------------------------------------------------------------------------
 # Password helpers (for local users)
 # ---------------------------------------------------------------------------
+
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()

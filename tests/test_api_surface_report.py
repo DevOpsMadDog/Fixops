@@ -14,8 +14,6 @@ import sys
 import tempfile
 from pathlib import Path
 
-import pytest
-
 # Project root for running the script
 PROJECT_ROOT = Path(__file__).parent.parent
 SCRIPT_PATH = PROJECT_ROOT / "scripts" / "api_surface_report.py"
@@ -37,7 +35,9 @@ class TestApiSurfaceReportScript:
             text=True,
             env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
         )
-        assert result.returncode == 0, f"Script failed:\n{result.stderr}\n{result.stdout}"
+        assert (
+            result.returncode == 0
+        ), f"Script failed:\n{result.stderr}\n{result.stdout}"
 
     def test_script_stdout_contains_report(self):
         """Stdout should contain readable report elements."""
@@ -49,7 +49,7 @@ class TestApiSurfaceReportScript:
             env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
         )
         assert result.returncode == 0
-        
+
         # Check for expected report sections
         stdout = result.stdout
         assert "API SURFACE REPORT" in stdout
@@ -69,7 +69,7 @@ class TestApiSurfaceReportScript:
         )
         assert result.returncode == 0
         stdout = result.stdout
-        
+
         # Should have GET and POST at minimum
         assert "GET" in stdout
         assert "POST" in stdout
@@ -94,7 +94,7 @@ class TestApiSurfaceReportJson:
         """--json flag should write valid JSON file."""
         with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
             json_path = f.name
-        
+
         try:
             result = subprocess.run(
                 [sys.executable, str(SCRIPT_PATH), "--json", json_path],
@@ -104,11 +104,11 @@ class TestApiSurfaceReportJson:
                 env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
             )
             assert result.returncode == 0, f"Script failed:\n{result.stderr}"
-            
+
             # Parse JSON
             with open(json_path) as f:
                 data = json.load(f)
-            
+
             assert isinstance(data, dict)
         finally:
             os.unlink(json_path)
@@ -117,7 +117,7 @@ class TestApiSurfaceReportJson:
         """JSON output should have total_operations >= 363."""
         with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
             json_path = f.name
-        
+
         try:
             result = subprocess.run(
                 [sys.executable, str(SCRIPT_PATH), "--json", json_path],
@@ -127,14 +127,14 @@ class TestApiSurfaceReportJson:
                 env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
             )
             assert result.returncode == 0
-            
+
             with open(json_path) as f:
                 data = json.load(f)
-            
+
             assert "total_operations" in data
-            assert data["total_operations"] >= 363, (
-                f"Expected >= 363 operations, got {data['total_operations']}"
-            )
+            assert (
+                data["total_operations"] >= 363
+            ), f"Expected >= 363 operations, got {data['total_operations']}"
         finally:
             os.unlink(json_path)
 
@@ -142,7 +142,7 @@ class TestApiSurfaceReportJson:
         """JSON output should have by_method with GET/POST keys."""
         with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
             json_path = f.name
-        
+
         try:
             result = subprocess.run(
                 [sys.executable, str(SCRIPT_PATH), "--json", json_path],
@@ -152,10 +152,10 @@ class TestApiSurfaceReportJson:
                 env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
             )
             assert result.returncode == 0
-            
+
             with open(json_path) as f:
                 data = json.load(f)
-            
+
             assert "by_method" in data
             assert "GET" in data["by_method"]
             assert "POST" in data["by_method"]
@@ -166,7 +166,7 @@ class TestApiSurfaceReportJson:
         """JSON output should have by_prefix with /api/v1 bucket."""
         with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
             json_path = f.name
-        
+
         try:
             result = subprocess.run(
                 [sys.executable, str(SCRIPT_PATH), "--json", json_path],
@@ -176,10 +176,10 @@ class TestApiSurfaceReportJson:
                 env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
             )
             assert result.returncode == 0
-            
+
             with open(json_path) as f:
                 data = json.load(f)
-            
+
             assert "by_prefix" in data
             assert "/api/v1" in data["by_prefix"]
         finally:
@@ -189,7 +189,7 @@ class TestApiSurfaceReportJson:
         """JSON output should have aliases field (may be empty list)."""
         with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
             json_path = f.name
-        
+
         try:
             result = subprocess.run(
                 [sys.executable, str(SCRIPT_PATH), "--json", json_path],
@@ -199,10 +199,10 @@ class TestApiSurfaceReportJson:
                 env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
             )
             assert result.returncode == 0
-            
+
             with open(json_path) as f:
                 data = json.load(f)
-            
+
             assert "aliases" in data
             assert isinstance(data["aliases"], list)
         finally:
@@ -244,14 +244,18 @@ class TestApiSurfaceReportOnlyPrefix:
         """--only-prefix should filter results to matching paths."""
         with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
             json_path = f.name
-        
+
         try:
             result = subprocess.run(
                 [
-                    sys.executable, str(SCRIPT_PATH),
-                    "--only-prefix", "/api/v1",
-                    "--json", json_path,
-                    "--min-endpoints", "1",  # Lower threshold for filtered results
+                    sys.executable,
+                    str(SCRIPT_PATH),
+                    "--only-prefix",
+                    "/api/v1",
+                    "--json",
+                    json_path,
+                    "--min-endpoints",
+                    "1",  # Lower threshold for filtered results
                 ],
                 cwd=PROJECT_ROOT,
                 capture_output=True,
@@ -259,13 +263,13 @@ class TestApiSurfaceReportOnlyPrefix:
                 env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
             )
             assert result.returncode == 0
-            
+
             with open(json_path) as f:
                 data = json.load(f)
-            
+
             # Should have filter_prefix set
             assert data.get("filter_prefix") == "/api/v1"
-            
+
             # Should only have /api/v1 in by_prefix (if there are results)
             if data["total_operations"] > 0:
                 # All prefixes should be /api/v1
@@ -282,13 +286,15 @@ class TestApiSurfaceReportQuietMode:
         """--quiet should suppress stdout report."""
         with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
             json_path = f.name
-        
+
         try:
             result = subprocess.run(
                 [
-                    sys.executable, str(SCRIPT_PATH),
+                    sys.executable,
+                    str(SCRIPT_PATH),
                     "--quiet",
-                    "--json", json_path,
+                    "--json",
+                    json_path,
                 ],
                 cwd=PROJECT_ROOT,
                 capture_output=True,
@@ -296,10 +302,10 @@ class TestApiSurfaceReportQuietMode:
                 env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
             )
             assert result.returncode == 0
-            
+
             # stdout should be empty or nearly empty
             assert "API SURFACE REPORT" not in result.stdout
-            
+
             # JSON should still be written
             with open(json_path) as f:
                 data = json.load(f)

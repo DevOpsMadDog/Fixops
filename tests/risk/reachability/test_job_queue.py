@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 import pytest
-
 from risk.reachability.job_queue import JobQueue, JobResult, JobStatus, ReachabilityJob
 
 

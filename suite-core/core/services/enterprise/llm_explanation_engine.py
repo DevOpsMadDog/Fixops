@@ -4,11 +4,10 @@ Purpose: Generate human-readable summaries of complex technical findings
 Uses models from Awesome-LLM4Cybersecurity for security domain expertise
 """
 
-import asyncio
 import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import structlog
 from src.services.chatgpt_client import ChatGPTClient, get_primary_llm_api_key

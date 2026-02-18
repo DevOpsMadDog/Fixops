@@ -55,8 +55,10 @@ class TraceNode:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "node_id": self.node_id, "node_type": self.node_type.value,
-            "name": self.name, "metadata": self.metadata,
+            "node_id": self.node_id,
+            "node_type": self.node_type.value,
+            "name": self.name,
+            "metadata": self.metadata,
         }
 
 
@@ -69,8 +71,10 @@ class TraceEdge:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "source_id": self.source_id, "target_id": self.target_id,
-            "edge_type": self.edge_type.value, "metadata": self.metadata,
+            "source_id": self.source_id,
+            "target_id": self.target_id,
+            "edge_type": self.edge_type.value,
+            "metadata": self.metadata,
         }
 
 
@@ -100,7 +104,6 @@ class TraceResult:
             "duration_ms": self.duration_ms,
             "timestamp": self.timestamp.isoformat(),
         }
-
 
 
 class CodeToCloudTracer:
@@ -137,45 +140,85 @@ class CodeToCloudTracer:
         # Node 1: Source code
         if source_file:
             src_nid = f"src-{uuid.uuid4().hex[:8]}"
-            nodes.append(TraceNode(src_nid, TraceNodeType.SOURCE_CODE, source_file,
-                                   {"line": source_line}))
+            nodes.append(
+                TraceNode(
+                    src_nid,
+                    TraceNodeType.SOURCE_CODE,
+                    source_file,
+                    {"line": source_line},
+                )
+            )
             edges.append(TraceEdge(vuln_nid, src_nid, TraceEdgeType.EXPLOITS))
 
             # Node 2: Git commit
             if git_commit:
                 commit_nid = f"commit-{git_commit[:12]}"
-                nodes.append(TraceNode(commit_nid, TraceNodeType.GIT_COMMIT, git_commit[:12],
-                                       {"full_sha": git_commit}))
+                nodes.append(
+                    TraceNode(
+                        commit_nid,
+                        TraceNodeType.GIT_COMMIT,
+                        git_commit[:12],
+                        {"full_sha": git_commit},
+                    )
+                )
                 edges.append(TraceEdge(src_nid, commit_nid, TraceEdgeType.COMMITTED_IN))
 
         # Node 3: Container image
         if container_image:
             img_nid = f"img-{uuid.uuid4().hex[:8]}"
-            nodes.append(TraceNode(img_nid, TraceNodeType.CONTAINER_IMAGE, container_image))
+            nodes.append(
+                TraceNode(img_nid, TraceNodeType.CONTAINER_IMAGE, container_image)
+            )
             if git_commit:
-                edges.append(TraceEdge(f"commit-{git_commit[:12]}", img_nid, TraceEdgeType.BUILT_INTO))
+                edges.append(
+                    TraceEdge(
+                        f"commit-{git_commit[:12]}", img_nid, TraceEdgeType.BUILT_INTO
+                    )
+                )
             elif source_file:
-                edges.append(TraceEdge(f"src-{nodes[1].node_id.split('-',1)[1]}", img_nid, TraceEdgeType.BUILT_INTO))
+                edges.append(
+                    TraceEdge(
+                        f"src-{nodes[1].node_id.split('-', 1)[1]}",
+                        img_nid,
+                        TraceEdgeType.BUILT_INTO,
+                    )
+                )
 
             # Node 4: K8s deployment
             if k8s_deployment:
                 dep_nid = f"k8s-{uuid.uuid4().hex[:8]}"
-                nodes.append(TraceNode(dep_nid, TraceNodeType.K8S_DEPLOYMENT, k8s_deployment,
-                                       {"namespace": k8s_namespace}))
+                nodes.append(
+                    TraceNode(
+                        dep_nid,
+                        TraceNodeType.K8S_DEPLOYMENT,
+                        k8s_deployment,
+                        {"namespace": k8s_namespace},
+                    )
+                )
                 edges.append(TraceEdge(img_nid, dep_nid, TraceEdgeType.DEPLOYED_AS))
 
         # Node 5: Cloud service
         if cloud_service:
             cloud_nid = f"cloud-{uuid.uuid4().hex[:8]}"
-            nodes.append(TraceNode(cloud_nid, TraceNodeType.CLOUD_SERVICE, cloud_service,
-                                   {"region": cloud_region, "internet_facing": internet_facing}))
+            nodes.append(
+                TraceNode(
+                    cloud_nid,
+                    TraceNodeType.CLOUD_SERVICE,
+                    cloud_service,
+                    {"region": cloud_region, "internet_facing": internet_facing},
+                )
+            )
             if k8s_deployment:
-                edges.append(TraceEdge(nodes[-2].node_id, cloud_nid, TraceEdgeType.RUNS_ON))
+                edges.append(
+                    TraceEdge(nodes[-2].node_id, cloud_nid, TraceEdgeType.RUNS_ON)
+                )
             elif container_image:
                 edges.append(TraceEdge(img_nid, cloud_nid, TraceEdgeType.RUNS_ON))
 
         # Calculate metrics
-        exposure = "internet" if internet_facing else ("internal" if cloud_service else "none")
+        exposure = (
+            "internet" if internet_facing else ("internal" if cloud_service else "none")
+        )
         path_length = len(edges)
         risk_amp = self.RISK_MULTIPLIERS[exposure] * (1 + 0.2 * path_length)
 
@@ -186,7 +229,8 @@ class CodeToCloudTracer:
         return TraceResult(
             trace_id=f"trace-{uuid.uuid4().hex[:12]}",
             vulnerability_id=vulnerability_id,
-            nodes=nodes, edges=edges,
+            nodes=nodes,
+            edges=edges,
             attack_path_length=path_length,
             risk_amplification=round(risk_amp, 2),
             cloud_exposure=exposure,
@@ -196,34 +240,48 @@ class CodeToCloudTracer:
 
     @staticmethod
     def _identify_remediation_points(
-        nodes: List[TraceNode], edges: List[TraceEdge], exposure: str,
+        nodes: List[TraceNode],
+        edges: List[TraceEdge],
+        exposure: str,
     ) -> List[Dict[str, Any]]:
         points = []
         for n in nodes:
             if n.node_type == TraceNodeType.SOURCE_CODE:
-                points.append({
-                    "type": "code_fix", "node": n.name,
-                    "priority": "high",
-                    "action": f"Fix vulnerability in {n.name} at line {n.metadata.get('line', '?')}",
-                })
+                points.append(
+                    {
+                        "type": "code_fix",
+                        "node": n.name,
+                        "priority": "high",
+                        "action": f"Fix vulnerability in {n.name} at line {n.metadata.get('line', '?')}",
+                    }
+                )
             elif n.node_type == TraceNodeType.CONTAINER_IMAGE:
-                points.append({
-                    "type": "image_rebuild", "node": n.name,
-                    "priority": "medium",
-                    "action": f"Rebuild container image {n.name} with patched base",
-                })
+                points.append(
+                    {
+                        "type": "image_rebuild",
+                        "node": n.name,
+                        "priority": "medium",
+                        "action": f"Rebuild container image {n.name} with patched base",
+                    }
+                )
             elif n.node_type == TraceNodeType.K8S_DEPLOYMENT:
-                points.append({
-                    "type": "deploy_rollout", "node": n.name,
-                    "priority": "medium",
-                    "action": f"Rolling update deployment {n.name}",
-                })
+                points.append(
+                    {
+                        "type": "deploy_rollout",
+                        "node": n.name,
+                        "priority": "medium",
+                        "action": f"Rolling update deployment {n.name}",
+                    }
+                )
             elif n.node_type == TraceNodeType.CLOUD_SERVICE and exposure == "internet":
-                points.append({
-                    "type": "network_isolation", "node": n.name,
-                    "priority": "critical",
-                    "action": f"Add WAF/firewall rule for {n.name}",
-                })
+                points.append(
+                    {
+                        "type": "network_isolation",
+                        "node": n.name,
+                        "priority": "critical",
+                        "action": f"Add WAF/firewall rule for {n.name}",
+                    }
+                )
         return points
 
 

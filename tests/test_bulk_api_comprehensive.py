@@ -2,9 +2,8 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastapi.testclient import TestClient
-
 from apps.api.app import create_app
+from fastapi.testclient import TestClient
 
 API_TOKEN = "demo-token-12345"
 AUTH_HEADERS = {"X-API-Key": API_TOKEN}
@@ -590,8 +589,9 @@ class TestBulkTicketCreation:
     @pytest.mark.asyncio
     async def test_process_bulk_tickets_jira_success(self, reset_bulk_state):
         """Test bulk tickets with Jira integration."""
-        from apps.api import bulk_router
         from core.integration_models import IntegrationType
+
+        from apps.api import bulk_router
 
         mock_integration = MagicMock()
         mock_integration.integration_type = IntegrationType.JIRA
@@ -635,8 +635,9 @@ class TestBulkTicketCreation:
     @pytest.mark.asyncio
     async def test_process_bulk_tickets_servicenow(self, reset_bulk_state):
         """Test bulk tickets with ServiceNow integration."""
-        from apps.api import bulk_router
         from core.integration_models import IntegrationType
+
+        from apps.api import bulk_router
 
         mock_integration = MagicMock()
         mock_integration.integration_type = IntegrationType.SERVICENOW
@@ -674,8 +675,9 @@ class TestBulkTicketCreation:
     @pytest.mark.asyncio
     async def test_process_bulk_tickets_gitlab(self, reset_bulk_state):
         """Test bulk tickets with GitLab integration."""
-        from apps.api import bulk_router
         from core.integration_models import IntegrationType
+
+        from apps.api import bulk_router
 
         mock_integration = MagicMock()
         mock_integration.integration_type = IntegrationType.GITLAB
@@ -713,8 +715,9 @@ class TestBulkTicketCreation:
     @pytest.mark.asyncio
     async def test_process_bulk_tickets_github(self, reset_bulk_state):
         """Test bulk tickets with GitHub integration."""
-        from apps.api import bulk_router
         from core.integration_models import IntegrationType
+
+        from apps.api import bulk_router
 
         mock_integration = MagicMock()
         mock_integration.integration_type = IntegrationType.GITHUB
@@ -752,8 +755,9 @@ class TestBulkTicketCreation:
     @pytest.mark.asyncio
     async def test_process_bulk_tickets_azure_devops(self, reset_bulk_state):
         """Test bulk tickets with Azure DevOps integration."""
-        from apps.api import bulk_router
         from core.integration_models import IntegrationType
+
+        from apps.api import bulk_router
 
         mock_integration = MagicMock()
         mock_integration.integration_type = IntegrationType.AZURE_DEVOPS
@@ -812,8 +816,9 @@ class TestBulkTicketCreation:
     @pytest.mark.asyncio
     async def test_process_bulk_tickets_not_configured(self, reset_bulk_state):
         """Test bulk tickets when connector not configured."""
-        from apps.api import bulk_router
         from core.integration_models import IntegrationType
+
+        from apps.api import bulk_router
 
         mock_integration = MagicMock()
         mock_integration.integration_type = IntegrationType.JIRA
@@ -839,8 +844,9 @@ class TestBulkTicketCreation:
     @pytest.mark.asyncio
     async def test_process_bulk_tickets_cluster_not_found(self, reset_bulk_state):
         """Test bulk tickets when cluster not found."""
-        from apps.api import bulk_router
         from core.integration_models import IntegrationType
+
+        from apps.api import bulk_router
 
         mock_integration = MagicMock()
         mock_integration.integration_type = IntegrationType.JIRA
@@ -873,8 +879,9 @@ class TestBulkTicketCreation:
     @pytest.mark.asyncio
     async def test_process_bulk_tickets_connector_failure(self, reset_bulk_state):
         """Test bulk tickets when connector returns failure."""
-        from apps.api import bulk_router
         from core.integration_models import IntegrationType
+
+        from apps.api import bulk_router
 
         mock_integration = MagicMock()
         mock_integration.integration_type = IntegrationType.JIRA
@@ -911,8 +918,9 @@ class TestBulkTicketCreation:
     @pytest.mark.asyncio
     async def test_process_bulk_tickets_exception(self, reset_bulk_state):
         """Test bulk tickets handles exceptions."""
-        from apps.api import bulk_router
         from core.integration_models import IntegrationType
+
+        from apps.api import bulk_router
 
         mock_integration = MagicMock()
         mock_integration.integration_type = IntegrationType.JIRA

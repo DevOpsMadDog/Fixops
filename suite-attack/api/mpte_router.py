@@ -4,9 +4,6 @@ import os
 from typing import List, Optional
 
 import httpx
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from core.mpte_db import MPTEDB
 from core.mpte_models import (
     ExploitabilityLevel,
@@ -16,7 +13,9 @@ from core.mpte_models import (
     PenTestResult,
     PenTestStatus,
 )
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from integrations.mpte_service import AdvancedMPTEService
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +35,7 @@ def _ensure_demo_config():
     configs = db.list_configs(limit=1)
     if not configs:
         from core.mpte_models import PenTestConfig
+
         demo_config = PenTestConfig(
             id="",
             name="demo-config",
@@ -79,7 +79,7 @@ async def _call_real_mpte_verify(data) -> dict:
     """Call real MPTE verification service."""
     import uuid
     from datetime import datetime
-    
+
     async with httpx.AsyncClient(verify=False, timeout=30.0) as client:
         try:
             # Call real MPTE API for verification
@@ -87,12 +87,12 @@ async def _call_real_mpte_verify(data) -> dict:
                 "finding_id": data.finding_id,
                 "target_url": data.target_url,
                 "vulnerability_type": data.vulnerability_type,
-                "evidence": getattr(data, 'evidence', ''),
+                "evidence": getattr(data, "evidence", ""),
             }
             resp = await client.post(
                 f"{MPTE_URL}/api/v1/verify",
                 json=payload,
-                headers={"Content-Type": "application/json"}
+                headers={"Content-Type": "application/json"},
             )
             if resp.status_code == 200:
                 result = resp.json()
@@ -102,7 +102,7 @@ async def _call_real_mpte_verify(data) -> dict:
                 logger.warning(f"MPTE verify returned {resp.status_code}")
         except Exception as e:
             logger.warning(f"MPTE verify call failed: {e}")
-    
+
     # Fallback: return pending status for async processing
     return {
         "id": str(uuid.uuid4()),
@@ -111,7 +111,7 @@ async def _call_real_mpte_verify(data) -> dict:
         "status": "pending",
         "message": f"Verification queued for {data.vulnerability_type} at {data.target_url}",
         "demo_mode": False,
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.utcnow().isoformat(),
     }
 
 
@@ -119,19 +119,19 @@ async def _call_real_mpte_scan(data) -> dict:
     """Call real MPTE comprehensive scan service."""
     import uuid
     from datetime import datetime
-    
+
     async with httpx.AsyncClient(verify=False, timeout=30.0) as client:
         try:
             # Call real MPTE API for scanning
             payload = {
                 "target": data.target,
                 "scan_types": data.scan_types or ["xss", "sqli", "csrf"],
-                "depth": getattr(data, 'depth', 'standard'),
+                "depth": getattr(data, "depth", "standard"),
             }
             resp = await client.post(
                 f"{MPTE_URL}/api/v1/scan",
                 json=payload,
-                headers={"Content-Type": "application/json"}
+                headers={"Content-Type": "application/json"},
             )
             if resp.status_code == 200 or resp.status_code == 201:
                 result = resp.json()
@@ -141,7 +141,7 @@ async def _call_real_mpte_scan(data) -> dict:
                 logger.warning(f"MPTE scan returned {resp.status_code}")
         except Exception as e:
             logger.warning(f"MPTE scan call failed: {e}")
-    
+
     # Fallback: return pending status for async processing
     return {
         "id": str(uuid.uuid4()),
@@ -150,7 +150,7 @@ async def _call_real_mpte_scan(data) -> dict:
         "status": "pending",
         "message": f"Scan queued for {data.target}",
         "demo_mode": False,
-        "started_at": datetime.utcnow().isoformat()
+        "started_at": datetime.utcnow().isoformat(),
     }
 
 
@@ -502,7 +502,7 @@ async def verify_vulnerability(data: VerifyVulnerabilityModel):
             # Auto-create config and retry
             _ensure_demo_config()
             service = get_mpte_service()
-        
+
         if service:
             result = await service.verify_vulnerability_from_finding(
                 finding_id=data.finding_id,

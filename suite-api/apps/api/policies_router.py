@@ -13,12 +13,11 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from apps.api.dependencies import get_org_id
 from core.policy_db import PolicyDB
 from core.policy_models import Policy, PolicyStatus
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/policies", tags=["policies"])
 db = PolicyDB()
@@ -155,8 +154,28 @@ async def delete_policy(id: str):
 # Policy-as-code engine helpers
 # ---------------------------------------------------------------------------
 
-_VALID_RULE_KEYS = {"condition", "action", "severity", "threshold", "pattern", "field", "operator", "value"}
-_VALID_OPERATORS = {"eq", "ne", "gt", "gte", "lt", "lte", "in", "not_in", "matches", "contains"}
+_VALID_RULE_KEYS = {
+    "condition",
+    "action",
+    "severity",
+    "threshold",
+    "pattern",
+    "field",
+    "operator",
+    "value",
+}
+_VALID_OPERATORS = {
+    "eq",
+    "ne",
+    "gt",
+    "gte",
+    "lt",
+    "lte",
+    "in",
+    "not_in",
+    "matches",
+    "contains",
+}
 _VALID_ACTIONS = {"block", "warn", "notify", "auto_remediate", "quarantine", "escalate"}
 
 
@@ -178,7 +197,9 @@ def _validate_rules(rules: Dict[str, Any]) -> List[str]:
             errors.append(f"conditions[{i}] missing 'field'")
         op = cond.get("operator", "")
         if op and op not in _VALID_OPERATORS:
-            errors.append(f"conditions[{i}] invalid operator '{op}' — must be one of {sorted(_VALID_OPERATORS)}")
+            errors.append(
+                f"conditions[{i}] invalid operator '{op}' — must be one of {sorted(_VALID_OPERATORS)}"
+            )
         if "value" not in cond and op not in ("matches",):
             errors.append(f"conditions[{i}] missing 'value'")
     actions = rules.get("actions", [])
@@ -188,7 +209,9 @@ def _validate_rules(rules: Dict[str, Any]) -> List[str]:
         for i, act in enumerate(actions):
             atype = act.get("type", "") if isinstance(act, dict) else act
             if atype not in _VALID_ACTIONS:
-                errors.append(f"actions[{i}] invalid type '{atype}' — must be one of {sorted(_VALID_ACTIONS)}")
+                errors.append(
+                    f"actions[{i}] invalid type '{atype}' — must be one of {sorted(_VALID_ACTIONS)}"
+                )
     return errors
 
 
@@ -214,9 +237,15 @@ def _evaluate_condition(cond: Dict[str, Any], data: Dict[str, Any]) -> bool:
         elif op == "lte":
             return float(actual) <= float(expected)
         elif op == "in":
-            return str(actual).lower() in [str(v).lower() for v in (expected if isinstance(expected, list) else [expected])]
+            return str(actual).lower() in [
+                str(v).lower()
+                for v in (expected if isinstance(expected, list) else [expected])
+            ]
         elif op == "not_in":
-            return str(actual).lower() not in [str(v).lower() for v in (expected if isinstance(expected, list) else [expected])]
+            return str(actual).lower() not in [
+                str(v).lower()
+                for v in (expected if isinstance(expected, list) else [expected])
+            ]
         elif op == "matches":
             return bool(re.search(str(expected), str(actual), re.IGNORECASE))
         elif op == "contains":
@@ -226,7 +255,9 @@ def _evaluate_condition(cond: Dict[str, Any], data: Dict[str, Any]) -> bool:
     return False
 
 
-def _evaluate_policy(policy: Policy, data_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _evaluate_policy(
+    policy: Policy, data_items: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
     """Evaluate a policy against a list of data items. Returns violations."""
     conditions = policy.rules.get("conditions", [])
     logic = policy.rules.get("logic", "all")  # all = AND, any = OR
@@ -235,16 +266,18 @@ def _evaluate_policy(policy: Policy, data_items: List[Dict[str, Any]]) -> List[D
         results = [_evaluate_condition(c, item) for c in conditions]
         triggered = all(results) if logic == "all" else any(results)
         if triggered:
-            violations.append({
-                "id": str(uuid.uuid4()),
-                "policy_id": policy.id,
-                "policy_name": policy.name,
-                "item": item,
-                "matched_conditions": [c for c, r in zip(conditions, results) if r],
-                "actions": policy.rules.get("actions", []),
-                "severity": policy.rules.get("severity", "medium"),
-                "detected_at": datetime.now(timezone.utc).isoformat(),
-            })
+            violations.append(
+                {
+                    "id": str(uuid.uuid4()),
+                    "policy_id": policy.id,
+                    "policy_name": policy.name,
+                    "item": item,
+                    "matched_conditions": [c for c, r in zip(conditions, results) if r],
+                    "actions": policy.rules.get("actions", []),
+                    "severity": policy.rules.get("severity", "medium"),
+                    "detected_at": datetime.now(timezone.utc).isoformat(),
+                }
+            )
     return violations
 
 
@@ -299,7 +332,11 @@ async def get_policy_violations(id: str, limit: int = Query(100, ge=1, le=1000))
     if not policy:
         raise HTTPException(status_code=404, detail="Policy not found")
     violations = _violation_store.get(id, [])[:limit]
-    return {"policy_id": id, "violations": violations, "total": len(_violation_store.get(id, []))}
+    return {
+        "policy_id": id,
+        "violations": violations,
+        "total": len(_violation_store.get(id, [])),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -317,16 +354,21 @@ async def enforce_policy(id: str):
     if not policy:
         raise HTTPException(status_code=404, detail="Policy not found")
     if policy.status != PolicyStatus.ACTIVE:
-        raise HTTPException(status_code=400, detail="Only active policies can be enforced")
+        raise HTTPException(
+            status_code=400, detail="Only active policies can be enforced"
+        )
 
     # Fetch findings from the findings DB
     findings_data: List[Dict[str, Any]] = []
     try:
         from core.findings_db import FindingsDB
+
         fdb = FindingsDB()
         findings = fdb.list_findings(limit=10000)
         for f in findings:
-            findings_data.append(f.to_dict() if hasattr(f, "to_dict") else {"id": str(f)})
+            findings_data.append(
+                f.to_dict() if hasattr(f, "to_dict") else {"id": str(f)}
+            )
     except Exception:
         pass
 
@@ -357,12 +399,14 @@ async def simulate_policies(test_data: Dict[str, Any]):
     for policy in active_policies:
         violations = _evaluate_policy(policy, items)
         total_violations += len(violations)
-        results.append({
-            "policy_id": policy.id,
-            "policy_name": policy.name,
-            "violations": len(violations),
-            "details": violations[:5],
-        })
+        results.append(
+            {
+                "policy_id": policy.id,
+                "policy_name": policy.name,
+                "violations": len(violations),
+                "details": violations[:5],
+            }
+        )
 
     return {
         "policies_evaluated": len(active_policies),
@@ -384,20 +428,46 @@ async def detect_conflicts():
 
     conflicts: List[Dict[str, Any]] = []
     for i, p1 in enumerate(active):
-        for p2 in active[i + 1:]:
-            p1_fields = {c.get("field") for c in p1.rules.get("conditions", []) if isinstance(c, dict)}
-            p2_fields = {c.get("field") for c in p2.rules.get("conditions", []) if isinstance(c, dict)}
+        for p2 in active[i + 1 :]:
+            p1_fields = {
+                c.get("field")
+                for c in p1.rules.get("conditions", [])
+                if isinstance(c, dict)
+            }
+            p2_fields = {
+                c.get("field")
+                for c in p2.rules.get("conditions", [])
+                if isinstance(c, dict)
+            }
             overlap = p1_fields & p2_fields - {None}
             if not overlap:
                 continue
-            p1_actions = {(a.get("type") if isinstance(a, dict) else a) for a in p1.rules.get("actions", [])}
-            p2_actions = {(a.get("type") if isinstance(a, dict) else a) for a in p2.rules.get("actions", [])}
+            p1_actions = {
+                (a.get("type") if isinstance(a, dict) else a)
+                for a in p1.rules.get("actions", [])
+            }
+            p2_actions = {
+                (a.get("type") if isinstance(a, dict) else a)
+                for a in p2.rules.get("actions", [])
+            }
             if p1_actions != p2_actions:
-                conflicts.append({
-                    "policy_a": {"id": p1.id, "name": p1.name, "actions": list(p1_actions)},
-                    "policy_b": {"id": p2.id, "name": p2.name, "actions": list(p2_actions)},
-                    "overlapping_fields": list(overlap),
-                    "severity": "high" if {"block", "auto_remediate"} & (p1_actions | p2_actions) else "medium",
-                })
+                conflicts.append(
+                    {
+                        "policy_a": {
+                            "id": p1.id,
+                            "name": p1.name,
+                            "actions": list(p1_actions),
+                        },
+                        "policy_b": {
+                            "id": p2.id,
+                            "name": p2.name,
+                            "actions": list(p2_actions),
+                        },
+                        "overlapping_fields": list(overlap),
+                        "severity": "high"
+                        if {"block", "auto_remediate"} & (p1_actions | p2_actions)
+                        else "medium",
+                    }
+                )
 
     return {"conflicts": conflicts, "total": len(conflicts)}

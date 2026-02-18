@@ -6,7 +6,7 @@ Supports both Demo Mode (simulated data) and Production Mode (real integrations)
 import asyncio
 import json
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
@@ -687,27 +687,27 @@ class DecisionEngine:
         try:
             prompt = f"""
             Security Decision Context Analysis for CI/CD Pipeline:
-            
+
             Service: {context.service_name}
             Environment: {context.environment}
             Security Findings Count: {len(context.security_findings)}
             Business Context: {base_context}
-            
+
             Security Findings Summary:
             {json.dumps(context.security_findings[:3], indent=2) if context.security_findings else 'No findings'}
-            
+
             Please provide a JSON response with:
             {{
                 "business_impact": "critical|high|medium|low",
                 "data_sensitivity": "pii_financial|pii|internal|public",
-                "threat_severity": "critical|high|medium|low", 
+                "threat_severity": "critical|high|medium|low",
                 "deployment_risk": "high|medium|low",
                 "recommended_action": "allow|block|defer",
                 "risk_reasoning": "Brief explanation of risk assessment",
                 "compliance_concerns": ["pci_dss", "sox", "gdpr"] or [],
                 "mitigation_required": true/false
             }}
-            
+
             Focus on bank/financial context and regulatory compliance.
             """
 
@@ -1410,7 +1410,7 @@ class DecisionEngine:
             else:
                 # Get real decisions from Evidence Lake
                 try:
-                    from src.services.evidence_lake import EvidenceLake
+                    pass
 
                     # In a real implementation, Evidence Lake would have a method to get recent records
                     # For now, return simplified recent decisions

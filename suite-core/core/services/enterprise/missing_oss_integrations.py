@@ -2,15 +2,14 @@
 Missing OSS Tools Integration
 Implements the remaining OSS components from the architecture table:
 - python-ssvc for SSVC Prep
-- lib4sbom for SBOM parsing  
+- lib4sbom for SBOM parsing
 - sarif-tools for SARIF conversion
 - pomegranate for alternative Bayesian modeling
 """
 
-import asyncio
 import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import structlog
 

@@ -17,14 +17,12 @@ Competitive parity: Aikido API Discovery, StackHawk, 42Crunch.
 
 from __future__ import annotations
 
-import json
-import re
 import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 import httpx
 
@@ -60,10 +58,12 @@ class ApiEndpoint:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "method": self.method, "path": self.path,
+            "method": self.method,
+            "path": self.path,
             "parameters": self.parameters,
             "auth_required": self.auth_required,
-            "description": self.description, "source": self.source,
+            "description": self.description,
+            "source": self.source,
         }
 
 
@@ -87,15 +87,21 @@ class FuzzFinding:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "finding_id": self.finding_id, "title": self.title,
-            "severity": self.severity.value, "category": self.category.value,
-            "endpoint": self.endpoint, "method": self.method,
-            "parameter": self.parameter, "payload": self.payload,
+            "finding_id": self.finding_id,
+            "title": self.title,
+            "severity": self.severity.value,
+            "category": self.category.value,
+            "endpoint": self.endpoint,
+            "method": self.method,
+            "parameter": self.parameter,
+            "payload": self.payload,
             "status_code": self.status_code,
             "response_snippet": self.response_snippet[:300],
-            "cwe_id": self.cwe_id, "description": self.description,
+            "cwe_id": self.cwe_id,
+            "description": self.description,
             "recommendation": self.recommendation,
-            "confidence": self.confidence, "timestamp": self.timestamp.isoformat(),
+            "confidence": self.confidence,
+            "timestamp": self.timestamp.isoformat(),
         }
 
 
@@ -115,26 +121,36 @@ class FuzzScanResult:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "scan_id": self.scan_id, "target_base_url": self.target_base_url,
+            "scan_id": self.scan_id,
+            "target_base_url": self.target_base_url,
             "endpoints_discovered": self.endpoints_discovered,
             "endpoints_fuzzed": self.endpoints_fuzzed,
             "total_findings": self.total_findings,
             "findings": [f.to_dict() for f in self.findings],
             "endpoints": self.endpoints[:100],
-            "by_severity": self.by_severity, "by_category": self.by_category,
+            "by_severity": self.by_severity,
+            "by_category": self.by_category,
             "duration_ms": self.duration_ms,
             "timestamp": self.timestamp.isoformat(),
         }
 
 
-
 # ── Fuzz Payloads ──────────────────────────────────────────────────
 FUZZ_PAYLOADS = {
     "string": [
-        "", "null", "undefined", "true", "false",
-        "A" * 10000, "<script>alert(1)</script>",
-        "' OR '1'='1", "${7*7}", "{{7*7}}",
-        "../../../etc/passwd", "%00", "\x00",
+        "",
+        "null",
+        "undefined",
+        "true",
+        "false",
+        "A" * 10000,
+        "<script>alert(1)</script>",
+        "' OR '1'='1",
+        "${7*7}",
+        "{{7*7}}",
+        "../../../etc/passwd",
+        "%00",
+        "\x00",
     ],
     "integer": [0, -1, 2147483647, -2147483648, 999999999999, 0.1, "NaN", "Infinity"],
     "boolean": ["yes", "no", "1", "0", "null", "2", -1],
@@ -164,24 +180,32 @@ class ApiFuzzerEngine:
                     continue
                 params = []
                 for p in details.get("parameters", []):
-                    params.append({
-                        "name": p.get("name", ""),
-                        "in": p.get("in", "query"),
-                        "type": p.get("schema", {}).get("type", "string"),
-                        "required": p.get("required", False),
-                    })
+                    params.append(
+                        {
+                            "name": p.get("name", ""),
+                            "in": p.get("in", "query"),
+                            "type": p.get("schema", {}).get("type", "string"),
+                            "required": p.get("required", False),
+                        }
+                    )
                 body = details.get("requestBody")
-                endpoints.append(ApiEndpoint(
-                    method=method.upper(), path=path,
-                    parameters=params, request_body=body,
-                    auth_required=bool(details.get("security")),
-                    description=details.get("summary", ""),
-                    source="openapi",
-                ))
+                endpoints.append(
+                    ApiEndpoint(
+                        method=method.upper(),
+                        path=path,
+                        parameters=params,
+                        request_body=body,
+                        auth_required=bool(details.get("security")),
+                        description=details.get("summary", ""),
+                        source="openapi",
+                    )
+                )
         return endpoints
 
     async def fuzz_endpoints(
-        self, base_url: str, endpoints: List[ApiEndpoint],
+        self,
+        base_url: str,
+        endpoints: List[ApiEndpoint],
         headers: Optional[Dict[str, str]] = None,
         max_per_endpoint: int = 5,
     ) -> FuzzScanResult:
@@ -191,7 +215,9 @@ class ApiFuzzerEngine:
         fuzzed = 0
 
         async with httpx.AsyncClient(
-            timeout=self._timeout, headers=headers or {}, verify=False,
+            timeout=self._timeout,
+            headers=headers or {},
+            verify=False,
         ) as client:
             for ep in endpoints[:50]:
                 fuzzed += 1
@@ -203,10 +229,16 @@ class ApiFuzzerEngine:
                     for payload in payloads[:max_per_endpoint]:
                         try:
                             if ep.method == "GET":
-                                resp = await client.get(url, params={pname: str(payload)})
+                                resp = await client.get(
+                                    url, params={pname: str(payload)}
+                                )
                             else:
-                                resp = await client.request(ep.method, url, json={pname: payload})
-                            findings.extend(self._analyze_response(resp, ep, pname, str(payload)))
+                                resp = await client.request(
+                                    ep.method, url, json={pname: payload}
+                                )
+                            findings.extend(
+                                self._analyze_response(resp, ep, pname, str(payload))
+                            )
                         except Exception:
                             pass
 
@@ -215,17 +247,21 @@ class ApiFuzzerEngine:
                         try:
                             resp = await client.get(url, headers=bypass)
                             if resp.status_code < 400:
-                                findings.append(FuzzFinding(
-                                    finding_id=f"FUZZ-{uuid.uuid4().hex[:8]}",
-                                    title="Authentication Bypass",
-                                    severity=FuzzSeverity.CRITICAL,
-                                    category=FuzzCategory.AUTH_BYPASS,
-                                    endpoint=ep.path, method=ep.method,
-                                    payload=str(bypass), status_code=resp.status_code,
-                                    cwe_id="CWE-287",
-                                    description="Endpoint accessible without valid auth",
-                                    recommendation="Enforce authentication on all protected endpoints",
-                                ))
+                                findings.append(
+                                    FuzzFinding(
+                                        finding_id=f"FUZZ-{uuid.uuid4().hex[:8]}",
+                                        title="Authentication Bypass",
+                                        severity=FuzzSeverity.CRITICAL,
+                                        category=FuzzCategory.AUTH_BYPASS,
+                                        endpoint=ep.path,
+                                        method=ep.method,
+                                        payload=str(bypass),
+                                        status_code=resp.status_code,
+                                        cwe_id="CWE-287",
+                                        description="Endpoint accessible without valid auth",
+                                        recommendation="Enforce authentication on all protected endpoints",
+                                    )
+                                )
                                 break
                         except Exception:
                             pass
@@ -238,50 +274,79 @@ class ApiFuzzerEngine:
 
         elapsed = (time.time() - t0) * 1000
         return FuzzScanResult(
-            scan_id=f"fuzz-{uuid.uuid4().hex[:12]}", target_base_url=base_url,
-            endpoints_discovered=len(endpoints), endpoints_fuzzed=fuzzed,
-            total_findings=len(findings), findings=findings,
+            scan_id=f"fuzz-{uuid.uuid4().hex[:12]}",
+            target_base_url=base_url,
+            endpoints_discovered=len(endpoints),
+            endpoints_fuzzed=fuzzed,
+            total_findings=len(findings),
+            findings=findings,
             endpoints=[e.to_dict() for e in endpoints],
-            by_severity=by_sev, by_category=by_cat,
+            by_severity=by_sev,
+            by_category=by_cat,
             duration_ms=round(elapsed, 2),
         )
 
-    def _analyze_response(self, resp: httpx.Response, ep: ApiEndpoint, param: str, payload: str) -> List[FuzzFinding]:
+    def _analyze_response(
+        self, resp: httpx.Response, ep: ApiEndpoint, param: str, payload: str
+    ) -> List[FuzzFinding]:
         findings = []
         text = resp.text[:2000].lower()
         if resp.status_code >= 500:
-            findings.append(FuzzFinding(
-                finding_id=f"FUZZ-{uuid.uuid4().hex[:8]}",
-                title="Server Error on Fuzz Input",
-                severity=FuzzSeverity.MEDIUM, category=FuzzCategory.ERROR_DISCLOSURE,
-                endpoint=ep.path, method=ep.method, parameter=param,
-                payload=payload, status_code=resp.status_code,
-                response_snippet=resp.text[:300], cwe_id="CWE-209",
-                description=f"Server returned {resp.status_code} on fuzz input",
-                recommendation="Handle all input gracefully",
-            ))
-        if any(k in text for k in ["traceback", "stack trace", "at line", "exception in"]):
-            findings.append(FuzzFinding(
-                finding_id=f"FUZZ-{uuid.uuid4().hex[:8]}",
-                title="Stack Trace Disclosure",
-                severity=FuzzSeverity.MEDIUM, category=FuzzCategory.ERROR_DISCLOSURE,
-                endpoint=ep.path, method=ep.method, parameter=param,
-                payload=payload, status_code=resp.status_code,
-                response_snippet=resp.text[:300], cwe_id="CWE-209",
-                description="Server reveals stack trace",
-                recommendation="Disable debug mode in production",
-            ))
+            findings.append(
+                FuzzFinding(
+                    finding_id=f"FUZZ-{uuid.uuid4().hex[:8]}",
+                    title="Server Error on Fuzz Input",
+                    severity=FuzzSeverity.MEDIUM,
+                    category=FuzzCategory.ERROR_DISCLOSURE,
+                    endpoint=ep.path,
+                    method=ep.method,
+                    parameter=param,
+                    payload=payload,
+                    status_code=resp.status_code,
+                    response_snippet=resp.text[:300],
+                    cwe_id="CWE-209",
+                    description=f"Server returned {resp.status_code} on fuzz input",
+                    recommendation="Handle all input gracefully",
+                )
+            )
+        if any(
+            k in text for k in ["traceback", "stack trace", "at line", "exception in"]
+        ):
+            findings.append(
+                FuzzFinding(
+                    finding_id=f"FUZZ-{uuid.uuid4().hex[:8]}",
+                    title="Stack Trace Disclosure",
+                    severity=FuzzSeverity.MEDIUM,
+                    category=FuzzCategory.ERROR_DISCLOSURE,
+                    endpoint=ep.path,
+                    method=ep.method,
+                    parameter=param,
+                    payload=payload,
+                    status_code=resp.status_code,
+                    response_snippet=resp.text[:300],
+                    cwe_id="CWE-209",
+                    description="Server reveals stack trace",
+                    recommendation="Disable debug mode in production",
+                )
+            )
         if any(k in text for k in ["sql syntax", "sqlstate", "pg_query", "ora-"]):
-            findings.append(FuzzFinding(
-                finding_id=f"FUZZ-{uuid.uuid4().hex[:8]}",
-                title="SQL Injection via API",
-                severity=FuzzSeverity.CRITICAL, category=FuzzCategory.INJECTION,
-                endpoint=ep.path, method=ep.method, parameter=param,
-                payload=payload, status_code=resp.status_code,
-                response_snippet=resp.text[:300], cwe_id="CWE-89",
-                description="SQL error in API response",
-                recommendation="Use parameterized queries",
-            ))
+            findings.append(
+                FuzzFinding(
+                    finding_id=f"FUZZ-{uuid.uuid4().hex[:8]}",
+                    title="SQL Injection via API",
+                    severity=FuzzSeverity.CRITICAL,
+                    category=FuzzCategory.INJECTION,
+                    endpoint=ep.path,
+                    method=ep.method,
+                    parameter=param,
+                    payload=payload,
+                    status_code=resp.status_code,
+                    response_snippet=resp.text[:300],
+                    cwe_id="CWE-89",
+                    description="SQL error in API response",
+                    recommendation="Use parameterized queries",
+                )
+            )
         return findings
 
 

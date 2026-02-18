@@ -8,7 +8,6 @@ remain fixed and do not regress in future releases.
 import json
 
 import pytest
-
 from apps.api.normalizers import InputNormalizer
 
 

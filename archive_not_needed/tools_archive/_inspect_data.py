@@ -55,8 +55,15 @@ for p in m.get("poc_commands", []):
     print("---")
 
 print("\n=== SCAN CONFIG ===")
-for k in ["targets_scanned", "cves_tested", "scan_duration_seconds", "engine",
-           "ai_powered", "total_findings", "total_cve_tests"]:
+for k in [
+    "targets_scanned",
+    "cves_tested",
+    "scan_duration_seconds",
+    "engine",
+    "ai_powered",
+    "total_findings",
+    "total_cve_tests",
+]:
     print(f"  {k}: {m.get(k)}")
 
 print("\n=== AI ANALYSIS KEYS ===")
@@ -84,4 +91,3 @@ for f in d.get("findings", []):
     sevs[s] = sevs.get(s, 0) + 1
 for s, c in sorted(sevs.items()):
     print(f"  {s}: {c}")
-

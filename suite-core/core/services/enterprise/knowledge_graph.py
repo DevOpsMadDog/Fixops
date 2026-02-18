@@ -4,12 +4,9 @@ Purpose: Link components, vulnerabilities, and context
 Uses CTINexus for entity extraction and graph visualization
 """
 
-import asyncio
-import json
 from collections import defaultdict, deque
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set
 
 import structlog
 from src.services.chatgpt_client import ChatGPTClient, get_primary_llm_api_key
@@ -30,7 +27,7 @@ class NoPathError(Exception):
 
 
 if NETWORKX_AVAILABLE:  # pragma: no cover - simple aliasing
-    NoPathError = nx.NetworkXNoPath  # type: ignore
+    NoPathError = nx.NetworkXNoPath  # type: ignore  # noqa: F811
 
 
 @dataclass

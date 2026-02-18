@@ -4,7 +4,6 @@ import os
 import tempfile
 
 import pytest
-
 from core.cli import build_parser
 from core.mpte_db import MPTEDB
 from core.mpte_models import PenTestConfig, PenTestPriority, PenTestRequest
@@ -97,9 +96,7 @@ def test_list_configs_command(db, monkeypatch, capsys):
     # MPTEDB is imported inside _handle_mpte, so monkeypatch the source module
     monkeypatch.setattr("core.mpte_db.MPTEDB", lambda db_path=None: db)
 
-    config = PenTestConfig(
-        id="", name="Test Config", mpte_url="https://mpte.test.com"
-    )
+    config = PenTestConfig(id="", name="Test Config", mpte_url="https://mpte.test.com")
     db.create_config(config)
 
     parser = build_parser()

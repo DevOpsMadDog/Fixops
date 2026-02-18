@@ -9,25 +9,23 @@ execution timeline visualization.
 from __future__ import annotations
 
 import asyncio
-import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from apps.api.dependencies import get_org_id
 from core.workflow_db import WorkflowDB
 from core.workflow_models import Workflow, WorkflowExecution, WorkflowStatus
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/workflows", tags=["workflows"])
 db = WorkflowDB()
 
 # In-memory SLA / execution state stores
-_sla_store: Dict[str, Dict[str, Any]] = {}        # workflow_id -> sla config
-_execution_steps: Dict[str, List[Dict]] = {}       # execution_id -> step results
-_paused_executions: Dict[str, Dict[str, Any]] = {} # execution_id -> pause state
+_sla_store: Dict[str, Dict[str, Any]] = {}  # workflow_id -> sla config
+_execution_steps: Dict[str, List[Dict]] = {}  # execution_id -> step results
+_paused_executions: Dict[str, Dict[str, Any]] = {}  # execution_id -> pause state
 
 
 class WorkflowCreate(BaseModel):
@@ -163,7 +161,10 @@ async def delete_workflow(id: str):
 # Step execution engine
 # ---------------------------------------------------------------------------
 
-def _evaluate_step_condition(condition: Dict[str, Any], context: Dict[str, Any]) -> bool:
+
+def _evaluate_step_condition(
+    condition: Dict[str, Any], context: Dict[str, Any]
+) -> bool:
     """Evaluate an if-condition on a step. Returns True when the step should run."""
     field = condition.get("field", "")
     op = condition.get("operator", "eq")
@@ -199,9 +200,15 @@ async def _run_step(step: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, 
     # Check condition (if/else branching)
     condition = step.get("condition")
     if condition and not _evaluate_step_condition(condition, context):
-        return {"step_id": step_id, "name": step_name, "status": "skipped",
-                "reason": "condition_not_met", "started_at": started.isoformat(),
-                "completed_at": started.isoformat(), "duration_ms": 0}
+        return {
+            "step_id": step_id,
+            "name": step_name,
+            "status": "skipped",
+            "reason": "condition_not_met",
+            "started_at": started.isoformat(),
+            "completed_at": started.isoformat(),
+            "duration_ms": 0,
+        }
 
     # Retry logic
     max_retries = step.get("retries", 0)
@@ -212,23 +219,35 @@ async def _run_step(step: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, 
         try:
             result = await _execute_action(action, step.get("params", {}), context)
             completed = datetime.now(timezone.utc)
-            return {"step_id": step_id, "name": step_name, "status": "completed",
-                    "attempt": attempt + 1, "output": result,
-                    "started_at": started.isoformat(),
-                    "completed_at": completed.isoformat(),
-                    "duration_ms": int((completed - started).total_seconds() * 1000)}
+            return {
+                "step_id": step_id,
+                "name": step_name,
+                "status": "completed",
+                "attempt": attempt + 1,
+                "output": result,
+                "started_at": started.isoformat(),
+                "completed_at": completed.isoformat(),
+                "duration_ms": int((completed - started).total_seconds() * 1000),
+            }
         except Exception as exc:
             last_error = str(exc)
             attempt += 1
             if attempt <= max_retries:
-                await asyncio.sleep(retry_delay / 1000 * (2 ** (attempt - 1)))  # exp backoff
+                await asyncio.sleep(
+                    retry_delay / 1000 * (2 ** (attempt - 1))
+                )  # exp backoff
 
     completed = datetime.now(timezone.utc)
-    return {"step_id": step_id, "name": step_name, "status": "failed",
-            "attempt": attempt, "error": last_error,
-            "started_at": started.isoformat(),
-            "completed_at": completed.isoformat(),
-            "duration_ms": int((completed - started).total_seconds() * 1000)}
+    return {
+        "step_id": step_id,
+        "name": step_name,
+        "status": "failed",
+        "attempt": attempt,
+        "error": last_error,
+        "started_at": started.isoformat(),
+        "completed_at": completed.isoformat(),
+        "duration_ms": int((completed - started).total_seconds() * 1000),
+    }
 
 
 async def _execute_action(action: str, params: Dict, context: Dict) -> Any:
@@ -238,12 +257,17 @@ async def _execute_action(action: str, params: Dict, context: Dict) -> Any:
     elif action == "log":
         return {"logged": params.get("message", "step executed")}
     elif action == "notify":
-        return {"notified": params.get("channel", "default"), "message": params.get("message", "")}
+        return {
+            "notified": params.get("channel", "default"),
+            "message": params.get("message", ""),
+        }
     elif action == "http_call":
         import httpx
+
         async with httpx.AsyncClient(timeout=30) as client:
-            resp = await client.request(params.get("method", "GET"), params["url"],
-                                         json=params.get("body"))
+            resp = await client.request(
+                params.get("method", "GET"), params["url"], json=params.get("body")
+            )
             return {"status_code": resp.status_code, "body": resp.text[:500]}
     elif action == "evaluate_policy":
         return {"policy_evaluated": params.get("policy_id", ""), "result": "pass"}
@@ -268,9 +292,12 @@ async def execute_workflow(id: str, input_data: Optional[Dict[str, Any]] = None)
     if not workflow.enabled:
         raise HTTPException(status_code=400, detail="Workflow is disabled")
 
-    execution = WorkflowExecution(id="", workflow_id=id,
-                                   status=WorkflowStatus.RUNNING,
-                                   input_data=input_data or {})
+    execution = WorkflowExecution(
+        id="",
+        workflow_id=id,
+        status=WorkflowStatus.RUNNING,
+        input_data=input_data or {},
+    )
     created_execution = db.create_execution(execution)
     exec_id = created_execution.id
 
@@ -279,7 +306,7 @@ async def execute_workflow(id: str, input_data: Optional[Dict[str, Any]] = None)
     step_results: List[Dict] = []
     failed = False
 
-    for step in (workflow.steps or []):
+    for step in workflow.steps or []:
         # Parallel group?
         if step.get("parallel") and isinstance(step.get("steps"), list):
             tasks = [_run_step(s, context) for s in step["steps"]]
@@ -303,11 +330,15 @@ async def execute_workflow(id: str, input_data: Optional[Dict[str, Any]] = None)
     sla = _sla_store.get(id)
     sla_breached = False
     if sla:
-        deadline = created_execution.started_at + timedelta(seconds=sla.get("max_duration_seconds", 3600))
+        deadline = created_execution.started_at + timedelta(
+            seconds=sla.get("max_duration_seconds", 3600)
+        )
         if datetime.now(timezone.utc) > deadline.replace(tzinfo=timezone.utc):
             sla_breached = True
 
-    created_execution.status = WorkflowStatus.FAILED if failed else WorkflowStatus.COMPLETED
+    created_execution.status = (
+        WorkflowStatus.FAILED if failed else WorkflowStatus.COMPLETED
+    )
     created_execution.completed_at = datetime.utcnow()
     created_execution.output_data = {
         "result": "failure" if failed else "success",
@@ -347,13 +378,15 @@ async def list_workflow_rules(org_id: str = Depends(get_org_id)):
     rules = []
     for w in workflows:
         if w.triggers:
-            rules.append({
-                "workflow_id": w.id,
-                "workflow_name": w.name,
-                "enabled": w.enabled,
-                "triggers": w.triggers,
-                "steps_count": len(w.steps) if w.steps else 0,
-            })
+            rules.append(
+                {
+                    "workflow_id": w.id,
+                    "workflow_name": w.name,
+                    "enabled": w.enabled,
+                    "triggers": w.triggers,
+                    "steps_count": len(w.steps) if w.steps else 0,
+                }
+            )
     return {"rules": rules, "total": len(rules)}
 
 
@@ -386,7 +419,10 @@ async def get_workflow_sla(id: str):
     workflow = db.get_workflow(id)
     if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    return {"workflow_id": id, "sla": _sla_store.get(id, {"message": "No SLA configured"})}
+    return {
+        "workflow_id": id,
+        "sla": _sla_store.get(id, {"message": "No SLA configured"}),
+    }
 
 
 @router.post("/executions/{exec_id}/pause")
@@ -396,13 +432,18 @@ async def pause_execution(exec_id: str):
     if not execution:
         raise HTTPException(status_code=404, detail="Execution not found")
     if execution.status != WorkflowStatus.RUNNING:
-        raise HTTPException(status_code=400, detail="Only running executions can be paused")
+        raise HTTPException(
+            status_code=400, detail="Only running executions can be paused"
+        )
     _paused_executions[exec_id] = {
         "paused_at": datetime.now(timezone.utc).isoformat(),
         "completed_steps": len(_execution_steps.get(exec_id, [])),
     }
-    return {"execution_id": exec_id, "status": "paused",
-            "paused_at": _paused_executions[exec_id]["paused_at"]}
+    return {
+        "execution_id": exec_id,
+        "status": "paused",
+        "paused_at": _paused_executions[exec_id]["paused_at"],
+    }
 
 
 @router.post("/executions/{exec_id}/resume")
@@ -411,9 +452,12 @@ async def resume_execution(exec_id: str):
     if exec_id not in _paused_executions:
         raise HTTPException(status_code=400, detail="Execution is not paused")
     pause_info = _paused_executions.pop(exec_id)
-    return {"execution_id": exec_id, "status": "resumed",
-            "was_paused_at": pause_info["paused_at"],
-            "resumed_at": datetime.now(timezone.utc).isoformat()}
+    return {
+        "execution_id": exec_id,
+        "status": "resumed",
+        "was_paused_at": pause_info["paused_at"],
+        "resumed_at": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 @router.get("/executions/{exec_id}/timeline")
@@ -431,5 +475,7 @@ async def get_execution_timeline(exec_id: str):
         "steps": steps,
         "total_duration_ms": total_ms,
         "started_at": execution.started_at.isoformat(),
-        "completed_at": execution.completed_at.isoformat() if execution.completed_at else None,
+        "completed_at": execution.completed_at.isoformat()
+        if execution.completed_at
+        else None,
     }

@@ -76,22 +76,18 @@ class OPAEngine(ABC):
         self, policy_name: str, input_data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Evaluate a policy against input data."""
-        pass
 
     @abstractmethod
     async def health_check(self) -> bool:
         """Check if the OPA server is healthy."""
-        pass
 
     @abstractmethod
     async def get_policy(self, policy_name: str) -> Optional[str]:
         """Get policy source code."""
-        pass
 
     @abstractmethod
     async def list_policies(self) -> List[str]:
         """List all available policies."""
-        pass
 
 
 class DemoOPAEngine(OPAEngine):

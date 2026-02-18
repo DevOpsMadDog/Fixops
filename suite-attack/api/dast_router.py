@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter
@@ -38,4 +37,3 @@ async def dast_scan(req: DastScanRequest) -> Dict[str, Any]:
 @router.get("/status")
 async def dast_status() -> Dict[str, Any]:
     return {"engine": "dast", "status": "ready", "version": "1.0.0"}
-

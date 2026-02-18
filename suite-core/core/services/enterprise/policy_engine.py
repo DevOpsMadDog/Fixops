@@ -15,21 +15,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import structlog
 from dotenv import load_dotenv
-from sqlalchemy import and_, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from src.db.session import DatabaseManager
-from src.models.security_sqlite import (
-    PolicyDecisionLog,
-    PolicyRule,
-    SecurityFinding,
-    Service,
-)
+from src.models.security_sqlite import PolicyDecisionLog, PolicyRule
 from src.services.cache_service import CacheService
-from src.services.chatgpt_client import (
-    ChatGPTChatSession,
-    UserMessage,
-    get_primary_llm_api_key,
-)
+from src.services.chatgpt_client import ChatGPTChatSession, get_primary_llm_api_key
 from src.utils.logger import PerformanceLogger
 
 # Load environment variables
@@ -284,7 +274,7 @@ class PolicyEngine:
             async with DatabaseManager.get_session_context() as session:
                 result = await session.execute(
                     select(PolicyRule)
-                    .where(PolicyRule.active == True)
+                    .where(PolicyRule.active.is_(True))
                     .order_by(PolicyRule.priority.desc())
                 )
                 policies = result.scalars().all()
@@ -344,9 +334,7 @@ class PolicyEngine:
             logger.error(f"Policy evaluation failed for {policy.name}: {str(e)}")
             return None
 
-    def _safe_eval_expr(
-        self, node: ast.AST, context: PolicyContext
-    ) -> Any:
+    def _safe_eval_expr(self, node: ast.AST, context: PolicyContext) -> Any:
         """
         Safely evaluate an AST node without using eval().
         Only allows a restricted set of operations for policy rules.
@@ -369,14 +357,14 @@ class PolicyEngine:
             ast.Is: operator.is_,
             ast.IsNot: operator.is_not,
         }
-        
+
         # Allowed unary operators
         unary_ops = {
             ast.UAdd: operator.pos,
             ast.USub: operator.neg,
             ast.Not: operator.not_,
         }
-        
+
         # Allowed safe functions
         safe_funcs = {
             "len": len,
@@ -388,7 +376,7 @@ class PolicyEngine:
             "min": min,
             "max": max,
         }
-        
+
         if isinstance(node, ast.Constant):
             return node.value
         elif isinstance(node, ast.Name):
@@ -474,7 +462,7 @@ class PolicyEngine:
         try:
             # Parse the rule content into an AST
             tree = ast.parse(policy.rule_content, mode="eval")
-            
+
             # Safely evaluate the AST without using eval()
             result = self._safe_eval_expr(tree.body, context)
 
@@ -724,7 +712,7 @@ class PolicyEngine:
 
             # Active policies count
             active_policies = await session.execute(
-                select(func.count(PolicyRule.id)).where(PolicyRule.active == True)
+                select(func.count(PolicyRule.id)).where(PolicyRule.active.is_(True))
             )
 
             return {

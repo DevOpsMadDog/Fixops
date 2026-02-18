@@ -4,7 +4,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
 from core.configuration import OverlayConfig
 from core.evidence import EvidenceHub
 

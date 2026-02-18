@@ -19,13 +19,17 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 try:
     from core.auth_middleware import require_auth
+
     _auth_dep = Depends(require_auth)
     logger.info("Auth middleware loaded (JWT + scoped API keys)")
 except ImportError:
     from fastapi.security import APIKeyHeader as _AKH
+
     _api_key_header = _AKH(name="X-API-Key", auto_error=False)
+
     async def _fallback_auth(api_key: str = Depends(_api_key_header)):
         pass
+
     _auth_dep = Depends(_fallback_auth)
     logger.warning("Auth middleware not available, using passthrough")
 
@@ -71,21 +75,23 @@ app.add_middleware(
 # ML Learning Middleware
 try:
     from core.learning_middleware import LearningMiddleware
+
     app.add_middleware(LearningMiddleware)
     logger.info("LearningMiddleware enabled on suite-integrations")
 except ImportError:
     logger.debug("LearningMiddleware not available on suite-integrations")
+
+from api.iac_router import router as iac_router
+from api.ide_router import router as ide_router
 
 # ---------------------------------------------------------------------------
 # Mount routers
 # ---------------------------------------------------------------------------
 # suite-integrations is on sys.path; namespace-package `api` merges dirs.
 from api.integrations_router import router as integrations_router
-from api.webhooks_router import router as webhooks_router
-from api.webhooks_router import receiver_router as webhooks_receiver_router
-from api.iac_router import router as iac_router
-from api.ide_router import router as ide_router
 from api.oss_tools import router as oss_tools_router
+from api.webhooks_router import receiver_router as webhooks_receiver_router
+from api.webhooks_router import router as webhooks_router
 
 app.include_router(integrations_router, dependencies=[_auth_dep])
 app.include_router(iac_router, dependencies=[_auth_dep])
@@ -95,4 +101,3 @@ app.include_router(webhooks_router, dependencies=[_auth_dep])
 # Webhook receiver endpoints - NO API key required, uses signature verification
 # External services (Jira, ServiceNow, GitLab, Azure DevOps) cannot provide FixOps API keys
 app.include_router(webhooks_receiver_router)
-

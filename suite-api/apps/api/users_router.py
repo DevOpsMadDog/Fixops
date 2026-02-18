@@ -16,12 +16,11 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from pydantic import BaseModel, EmailStr, Field
-
 from apps.api.dependencies import get_org_id
 from core.user_db import UserDB
 from core.user_models import User, UserRole, UserStatus
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel, EmailStr, Field
 
 logger = logging.getLogger(__name__)
 

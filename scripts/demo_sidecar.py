@@ -324,9 +324,7 @@ def analyze_reachability(client: httpx.Client, cve_id: str) -> Optional[Dict[str
     return {"status": "completed", "reachable": "unknown", "confidence": 0.75}
 
 
-def run_mpte_assessment(
-    client: httpx.Client, cve_id: str
-) -> Optional[Dict[str, Any]]:
+def run_mpte_assessment(client: httpx.Client, cve_id: str) -> Optional[Dict[str, Any]]:
     """Run MPTE security assessment with animated output."""
     results = {}
 

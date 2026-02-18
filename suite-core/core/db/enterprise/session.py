@@ -2,9 +2,8 @@
 Enterprise database session management with connection pooling and performance optimization
 """
 
-import asyncio
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator
 
 import structlog
 from sqlalchemy import event, text

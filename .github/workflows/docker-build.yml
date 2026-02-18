@@ -52,7 +52,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile
+          file: ./docker/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -62,7 +62,7 @@ jobs:
       - name: Export image for PR testing
         if: github.event_name == 'pull_request'
         run: |
-          docker build -t fixops-test:${{ github.sha }} .
+          docker build -f docker/Dockerfile -t fixops-test:${{ github.sha }} .
           docker save fixops-test:${{ github.sha }} > /tmp/fixops-image.tar
 
       - name: Upload image artifact for PR

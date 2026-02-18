@@ -5,11 +5,18 @@ Phase 5 of FixOps Transformation Plan.
 Renames files, updates imports, class names, API paths, comments.
 """
 import os
-import re
 import shutil
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SKIP_DIRS = {"archive", "node_modules", "__pycache__", ".next", ".git", "dist", ".turbo"}
+SKIP_DIRS = {
+    "archive",
+    "node_modules",
+    "__pycache__",
+    ".next",
+    ".git",
+    "dist",
+    ".turbo",
+}
 EXTENSIONS = {".py", ".ts", ".tsx", ".md", ".yml", ".yaml", ".json"}
 
 # Order matters — longer/more specific patterns first to avoid partial matches
@@ -68,12 +75,27 @@ FILE_RENAMES = [
     ("suite-core/core/mpte_advanced.py", "suite-core/core/mpte_advanced.py"),
     ("suite-core/core/mpte_db.py", "suite-core/core/mpte_db.py"),
     ("suite-core/core/mpte_models.py", "suite-core/core/mpte_models.py"),
-    ("suite-integrations/integrations/mpte_client.py", "suite-integrations/integrations/mpte_client.py"),
-    ("suite-integrations/integrations/mpte_decision_integration.py", "suite-integrations/integrations/mpte_decision_integration.py"),
-    ("suite-integrations/integrations/mpte_service.py", "suite-integrations/integrations/mpte_service.py"),
+    (
+        "suite-integrations/integrations/mpte_client.py",
+        "suite-integrations/integrations/mpte_client.py",
+    ),
+    (
+        "suite-integrations/integrations/mpte_decision_integration.py",
+        "suite-integrations/integrations/mpte_decision_integration.py",
+    ),
+    (
+        "suite-integrations/integrations/mpte_service.py",
+        "suite-integrations/integrations/mpte_service.py",
+    ),
     ("suite-api/apps/mpte_integration.py", "suite-api/apps/mpte_integration.py"),
-    ("suite-ui/aldeci/src/components/attack/MPTEChat.tsx", "suite-ui/aldeci/src/components/attack/MPTEChat.tsx"),
-    ("suite-ui/aldeci/src/pages/attack/MPTEConsole.tsx", "suite-ui/aldeci/src/pages/attack/MPTEConsole.tsx"),
+    (
+        "suite-ui/aldeci/src/components/attack/MPTEChat.tsx",
+        "suite-ui/aldeci/src/components/attack/MPTEChat.tsx",
+    ),
+    (
+        "suite-ui/aldeci/src/pages/attack/MPTEConsole.tsx",
+        "suite-ui/aldeci/src/pages/attack/MPTEConsole.tsx",
+    ),
     ("docker-compose.mpte.yml", "docker-compose.mpte.yml"),
     ("docs/MPTE_INTEGRATION.md", "docs/MPTE_INTEGRATION.md"),
 ]
@@ -144,17 +166,22 @@ def main():
             if updated != original:
                 with open(fpath, "w", encoding="utf-8") as f:
                     f.write(updated)
-                count = sum(1 for a, b in zip(original, updated) if a != b)
                 changed_files += 1
-                total_replacements += original.count("mpte") + original.count("MPTE") + original.count("MPTE") + original.count("MPTE")
+                total_replacements += (
+                    original.count("mpte")
+                    + original.count("MPTE")
+                    + original.count("MPTE")
+                    + original.count("MPTE")
+                )
                 print(f"  UPDATED: {rel}")
 
-    print(f"\n=== Summary ===")
-    print(f"Files renamed: {sum(1 for o, _ in FILE_RENAMES if os.path.exists(os.path.join(ROOT, _.replace(o, ''))) or True)}")
+    print("\n=== Summary ===")
+    print(
+        f"Files renamed: {sum(1 for o, _ in FILE_RENAMES if os.path.exists(os.path.join(ROOT, _.replace(o, ''))) or True)}"
+    )
     print(f"Files content-updated: {changed_files}")
     print(f"Approximate replacements: {total_replacements}")
 
 
 if __name__ == "__main__":
     main()
-

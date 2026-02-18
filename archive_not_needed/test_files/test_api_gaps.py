@@ -1,9 +1,19 @@
 """Find frontend→backend API gaps by checking which endpoints exist."""
-import sys, os, importlib.util, re
+import importlib.util
+import os
+import re
+import sys
 
 root = os.path.dirname(os.path.abspath(__file__))
-for sp in ['suite-core', 'suite-api', 'suite-api/apps', 'suite-attack',
-           'suite-evidence-risk', 'suite-feeds', 'suite-integrations']:
+for sp in [
+    "suite-core",
+    "suite-api",
+    "suite-api/apps",
+    "suite-attack",
+    "suite-evidence-risk",
+    "suite-feeds",
+    "suite-integrations",
+]:
     p = os.path.join(root, sp)
     if p not in sys.path:
         sys.path.insert(0, p)
@@ -17,12 +27,13 @@ router_files = [
 
 # Find all router files
 import glob
-for pattern in ['suite-*/api/*_router*.py', 'suite-api/apps/api/*_router*.py']:
+
+for pattern in ["suite-*/api/*_router*.py", "suite-api/apps/api/*_router*.py"]:
     for f in glob.glob(os.path.join(root, pattern)):
         router_files.append((os.path.relpath(f, root), None))
 
 # Also check non-router files that define routes
-for pattern in ['suite-*/api/app.py', 'suite-api/apps/api/health.py']:
+for pattern in ["suite-*/api/app.py", "suite-api/apps/api/health.py"]:
     for f in glob.glob(os.path.join(root, pattern)):
         router_files.append((os.path.relpath(f, root), None))
 
@@ -34,18 +45,20 @@ for filepath, _ in router_files:
         continue
     with open(full) as fh:
         content = fh.read()
-    
+
     # Find prefix
     prefix_match = re.search(r'APIRouter\(prefix=["\']([^"\']+)', content)
     prefix = prefix_match.group(1) if prefix_match else ""
-    
+
     # Find route decorators
-    for m in re.finditer(r'@(?:router|app)\.(get|post|put|patch|delete)\(["\']([^"\']+)', content):
+    for m in re.finditer(
+        r'@(?:router|app)\.(get|post|put|patch|delete)\(["\']([^"\']+)', content
+    ):
         method = m.group(1).upper()
         path = m.group(2)
-        full_path = prefix + path if not path.startswith('/api/') else path
+        full_path = prefix + path if not path.startswith("/api/") else path
         # Normalize path params
-        full_path = re.sub(r'\{[^}]+\}', '{id}', full_path)
+        full_path = re.sub(r"\{[^}]+\}", "{id}", full_path)
         route_patterns.add((method, full_path))
 
 # Frontend endpoints to check (extracted from api.ts)
@@ -88,10 +101,10 @@ print()
 gaps = []
 matched = []
 for method, path in sorted(frontend_calls):
-    norm_path = re.sub(r'\{[^}]+\}', '{id}', path)
+    norm_path = re.sub(r"\{[^}]+\}", "{id}", path)
     found = False
     for rm, rp in route_patterns:
-        rp_norm = re.sub(r'\{[^}]+\}', '{id}', rp)
+        rp_norm = re.sub(r"\{[^}]+\}", "{id}", rp)
         if rp_norm == norm_path:
             if rm == method:
                 found = True
@@ -113,4 +126,3 @@ for m, p in gaps:
 print(f"\n=== ALL BACKEND ROUTES ({len(route_patterns)}) ===")
 for m, p in sorted(route_patterns):
     print(f"  {m:6s} {p}")
-

@@ -646,19 +646,22 @@ class SecretsDetector:
                     available = self.get_available_scanners()
                     if not available:
                         # Fallback to built-in scanner when no external tools available
-                        logger.info("No external secrets scanner available, using built-in scanner")
+                        logger.info(
+                            "No external secrets scanner available, using built-in scanner"
+                        )
                         from core.real_scanner import get_real_secrets_scanner
+
                         builtin_scanner = get_real_secrets_scanner()
                         real_findings = builtin_scanner.scan_content(content, filename)
-                        
+
                         # Convert real findings to SecretFinding format
                         findings = []
                         for rf in real_findings:
                             finding = SecretFinding(
                                 id=rf.finding_id,
                                 secret_type=self._map_secret_type(
-                                    rf.evidence.get("secret_type", "generic"), 
-                                    rf.description
+                                    rf.evidence.get("secret_type", "generic"),
+                                    rf.description,
                                 ),
                                 status=SecretStatus.ACTIVE,
                                 file_path=filename,
@@ -675,10 +678,10 @@ class SecretsDetector:
                                 },
                             )
                             findings.append(finding)
-                        
+
                         completed_at = datetime.now()
                         duration = (completed_at - started_at).total_seconds()
-                        
+
                         return SecretsScanResult(
                             scan_id=scan_id,
                             status=SecretsScanStatus.COMPLETED,

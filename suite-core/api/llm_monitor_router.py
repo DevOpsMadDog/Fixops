@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -24,8 +24,10 @@ async def analyze_llm(req: AnalyzeRequest) -> Dict[str, Any]:
 
     monitor = get_llm_monitor()
     result = monitor.analyze(
-        prompt=req.prompt, response=req.response,
-        model=req.model, max_tokens=req.max_tokens,
+        prompt=req.prompt,
+        response=req.response,
+        model=req.model,
+        max_tokens=req.max_tokens,
     )
     return result.to_dict()
 
@@ -60,4 +62,3 @@ async def list_patterns() -> Dict[str, Any]:
 @router.get("/status")
 async def llm_monitor_status() -> Dict[str, Any]:
     return {"engine": "llm_monitor", "status": "ready", "version": "1.0.0"}
-

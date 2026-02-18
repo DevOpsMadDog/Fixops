@@ -17,13 +17,12 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
-
 from apps.api.dependencies import get_org_id
 from core.audit_db import AuditDB
 from core.audit_models import AuditEventType, AuditSeverity
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/audit", tags=["audit"])
 db = AuditDB()
@@ -117,21 +116,29 @@ async def export_audit_logs(
         for row in filtered:
             writer.writerow({k: str(v) for k, v in row.items()})
         buf.seek(0)
-        return StreamingResponse(buf, media_type="text/csv",
-                                  headers={"Content-Disposition": "attachment; filename=audit_logs.csv"})
+        return StreamingResponse(
+            buf,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=audit_logs.csv"},
+        )
     elif format == "siem":
         # CEF (Common Event Format) style
         cef_lines = []
         for entry in filtered:
-            cef = (f"CEF:0|FixOps|AuditLog|1.0|{entry.get('event_type', '')}|"
-                   f"{entry.get('action', '')}|{entry.get('severity', 'info')}|"
-                   f"src={entry.get('ip_address', '')} "
-                   f"duser={entry.get('user_id', '')} "
-                   f"msg={json.dumps(entry.get('details', {}))}")
+            cef = (
+                f"CEF:0|FixOps|AuditLog|1.0|{entry.get('event_type', '')}|"
+                f"{entry.get('action', '')}|{entry.get('severity', 'info')}|"
+                f"src={entry.get('ip_address', '')} "
+                f"duser={entry.get('user_id', '')} "
+                f"msg={json.dumps(entry.get('details', {}))}"
+            )
             cef_lines.append(cef)
         buf = io.StringIO("\n".join(cef_lines))
-        return StreamingResponse(buf, media_type="text/plain",
-                                  headers={"Content-Disposition": "attachment; filename=audit_logs.cef"})
+        return StreamingResponse(
+            buf,
+            media_type="text/plain",
+            headers={"Content-Disposition": "attachment; filename=audit_logs.cef"},
+        )
 
     return {"logs": filtered, "count": len(filtered), "period_days": days}
 
@@ -211,7 +218,9 @@ async def get_framework_status(id: str):
     failed_list: List[Dict[str, Any]] = []
     for ctrl in controls:
         # A control passes if we have audit evidence referencing it OR its requirements
-        has_evidence = ctrl.id in evidence_resources or ctrl.control_id in evidence_resources
+        has_evidence = (
+            ctrl.id in evidence_resources or ctrl.control_id in evidence_resources
+        )
         if has_evidence:
             passed += 1
         else:
@@ -247,6 +256,7 @@ async def get_compliance_gaps(id: str):
     findings_by_control: Dict[str, int] = defaultdict(int)
     try:
         from core.findings_db import FindingsDB
+
         fdb = FindingsDB()
         for f in fdb.list_findings(limit=10000):
             fd = f.to_dict() if hasattr(f, "to_dict") else {}
@@ -260,22 +270,32 @@ async def get_compliance_gaps(id: str):
         has_evidence = ctrl.id in evidence_ids or ctrl.control_id in evidence_ids
         open_findings = findings_by_control.get(ctrl.control_id, 0)
         if not has_evidence or open_findings > 0:
-            severity = "critical" if open_findings > 5 else "high" if open_findings > 0 else "medium"
-            gaps.append({
-                "control_id": ctrl.control_id,
-                "control_name": ctrl.name,
-                "category": ctrl.category,
-                "has_evidence": has_evidence,
-                "open_findings": open_findings,
-                "severity": severity,
-                "remediation": f"{'Address {open_findings} open findings and ' if open_findings else ''}Provide audit evidence for control {ctrl.control_id}",
-            })
+            severity = (
+                "critical"
+                if open_findings > 5
+                else "high"
+                if open_findings > 0
+                else "medium"
+            )
+            gaps.append(
+                {
+                    "control_id": ctrl.control_id,
+                    "control_name": ctrl.name,
+                    "category": ctrl.category,
+                    "has_evidence": has_evidence,
+                    "open_findings": open_findings,
+                    "severity": severity,
+                    "remediation": f"{'Address {open_findings} open findings and ' if open_findings else ''}Provide audit evidence for control {ctrl.control_id}",
+                }
+            )
 
     return {"framework_id": id, "gaps": gaps, "total_gaps": len(gaps)}
 
 
 @router.post("/compliance/frameworks/{id}/report")
-async def generate_compliance_report(id: str, format: str = Query("json", pattern="^(json|csv)$")):
+async def generate_compliance_report(
+    id: str, format: str = Query("json", pattern="^(json|csv)$")
+):
     """Generate a detailed compliance report for a framework."""
     framework = db.get_framework(id)
     if not framework:
@@ -289,16 +309,22 @@ async def generate_compliance_report(id: str, format: str = Query("json", patter
     sections: List[Dict[str, Any]] = []
     passed = 0
     for ctrl in controls:
-        status = "pass" if (ctrl.id in evidence_ids or ctrl.control_id in evidence_ids) else "fail"
+        status = (
+            "pass"
+            if (ctrl.id in evidence_ids or ctrl.control_id in evidence_ids)
+            else "fail"
+        )
         if status == "pass":
             passed += 1
-        sections.append({
-            "control_id": ctrl.control_id,
-            "name": ctrl.name,
-            "category": ctrl.category,
-            "status": status,
-            "requirements": ctrl.requirements,
-        })
+        sections.append(
+            {
+                "control_id": ctrl.control_id,
+                "name": ctrl.name,
+                "category": ctrl.category,
+                "status": status,
+                "requirements": ctrl.requirements,
+            }
+        )
 
     report = {
         "report_id": report_id,
@@ -317,13 +343,20 @@ async def generate_compliance_report(id: str, format: str = Query("json", patter
 
     if format == "csv":
         buf = io.StringIO()
-        writer = csv.DictWriter(buf, fieldnames=["control_id", "name", "category", "status"])
+        writer = csv.DictWriter(
+            buf, fieldnames=["control_id", "name", "category", "status"]
+        )
         writer.writeheader()
         for s in sections:
-            writer.writerow({k: s[k] for k in ["control_id", "name", "category", "status"]})
+            writer.writerow(
+                {k: s[k] for k in ["control_id", "name", "category", "status"]}
+            )
         buf.seek(0)
-        return StreamingResponse(buf, media_type="text/csv",
-                                  headers={"Content-Disposition": f"attachment; filename={report_id}.csv"})
+        return StreamingResponse(
+            buf,
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename={report_id}.csv"},
+        )
 
     return report
 
@@ -342,7 +375,6 @@ async def list_controls(
         "limit": limit,
         "offset": offset,
     }
-
 
 
 # ---------------------------------------------------------------------------
@@ -364,6 +396,7 @@ async def append_to_chain(log_data: AuditLogCreate):
     an immutable chain similar to a blockchain.
     """
     from core.audit_models import AuditLog
+
     log = AuditLog(
         id=str(uuid.uuid4()),
         event_type=log_data.event_type,
@@ -397,7 +430,7 @@ async def verify_chain():
     """
     logs = db.list_audit_logs(limit=50000)
     # Sort by timestamp ascending to replay the chain
-    logs.sort(key=lambda l: l.timestamp)
+    logs.sort(key=lambda entry: entry.timestamp)
 
     recomputed: List[str] = []
     prev = "0" * 64

@@ -18,13 +18,12 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field
-
 from apps.api.dependencies import get_org_id
 from core.report_db import ReportDB
 from core.report_models import Report, ReportFormat, ReportStatus, ReportType
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +49,11 @@ class ReportCreate(BaseModel):
         """Auto-generate name from framework/report_type if not provided."""
         if not self.name:
             fw = self.framework or self.parameters.get("framework", "")
-            self.name = f"{fw} {self.report_type.value} Report".strip() if fw else f"{self.report_type.value} Report {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}"
+            self.name = (
+                f"{fw} {self.report_type.value} Report".strip()
+                if fw
+                else f"{self.report_type.value} Report {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}"
+            )
 
 
 class ReportScheduleCreate(BaseModel):
@@ -250,8 +253,9 @@ async def get_report_file(id: str):
     if not file_path.exists():
         # Only generate fallback files in demo mode
         import os
+
         demo_mode = os.environ.get("FIXOPS_DEMO_MODE", "false").lower() == "true"
-        
+
         if not demo_mode:
             raise HTTPException(
                 status_code=503,
@@ -259,14 +263,11 @@ async def get_report_file(id: str):
                     "error": {
                         "code": "INTEGRATION_UNAVAILABLE",
                         "message": "Report file not generated - report generation service unavailable",
-                        "details": {
-                            "report_id": id,
-                            "expected_path": str(file_path)
-                        }
+                        "details": {"report_id": id, "expected_path": str(file_path)},
                     }
-                }
+                },
             )
-        
+
         # Demo mode: Generate fallback file on-the-fly
         from apps.api.demo_data import (
             generate_demo_csv_report,

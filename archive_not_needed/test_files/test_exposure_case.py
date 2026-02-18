@@ -7,11 +7,11 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "suite-core"))
 
 from core.exposure_case import (
+    VALID_TRANSITIONS,
     CasePriority,
     CaseStatus,
     ExposureCase,
     ExposureCaseManager,
-    VALID_TRANSITIONS,
     get_case_manager,
 )
 
@@ -70,8 +70,13 @@ class TestExposureCaseManager(unittest.TestCase):
             os.unlink(self.tmp)
 
     def _make_case(self, case_id="EC-T1", **kwargs):
-        defaults = dict(title="Test CVE", org_id="org1", root_cve="CVE-2024-1234",
-                        risk_score=8.5, priority=CasePriority.CRITICAL)
+        defaults = dict(
+            title="Test CVE",
+            org_id="org1",
+            root_cve="CVE-2024-1234",
+            risk_score=8.5,
+            priority=CasePriority.CRITICAL,
+        )
         defaults.update(kwargs)
         return ExposureCase(case_id=case_id, **defaults)
 
@@ -138,7 +143,9 @@ class TestExposureCaseManager(unittest.TestCase):
 
     def test_update_case(self):
         self.mgr.create_case(self._make_case())
-        updated = self.mgr.update_case("EC-T1", {"title": "New Title", "assigned_to": "alice"})
+        updated = self.mgr.update_case(
+            "EC-T1", {"title": "New Title", "assigned_to": "alice"}
+        )
         self.assertEqual(updated.title, "New Title")
         self.assertEqual(updated.assigned_to, "alice")
 
@@ -174,4 +181,3 @@ class TestExposureCaseManager(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

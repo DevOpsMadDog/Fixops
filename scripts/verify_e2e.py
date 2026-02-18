@@ -3,7 +3,9 @@
 
 Tests every feature area with the correct API key.
 """
-import requests, sys, json, time
+import sys
+
+import requests
 
 BASE = "http://localhost:8000"
 H = {"X-API-Key": "test-token-123", "Content-Type": "application/json"}
@@ -11,6 +13,7 @@ H = {"X-API-Key": "test-token-123", "Content-Type": "application/json"}
 passed = 0
 failed = 0
 total = 0
+
 
 def check(name, method, path, expected_status=200, body=None):
     global passed, failed, total
@@ -27,12 +30,15 @@ def check(name, method, path, expected_status=200, body=None):
         else:
             failed += 1
             detail = ""
-            try: detail = r.json().get("detail","")[:60]
-            except: pass
+            try:
+                detail = r.json().get("detail", "")[:60]
+            except Exception:
+                pass
             print(f"  ❌ {name} [{r.status_code}] expected {expected_status} - {detail}")
     except Exception as e:
         failed += 1
         print(f"  ❌ {name} [ERROR] {e}")
+
 
 print("🧪 ALdeci E2E Verification\n")
 
@@ -52,9 +58,24 @@ check("Overlay Config", "GET", "/api/v1/nerve-center/overlay")
 # ── Knowledge Brain ──
 print("\n── Knowledge Brain ──")
 check("Brain Nodes", "GET", "/api/v1/brain/nodes")
-check("Brain Edges", "POST", "/api/v1/brain/edges", expected_status=201, body={"source_id": "cve:CVE-2024-3094", "target_id": "asset:web-api-gateway", "edge_type": "AFFECTS"})
+check(
+    "Brain Edges",
+    "POST",
+    "/api/v1/brain/edges",
+    expected_status=201,
+    body={
+        "source_id": "cve:CVE-2024-3094",
+        "target_id": "asset:web-api-gateway",
+        "edge_type": "AFFECTS",
+    },
+)
 check("Brain Stats", "GET", "/api/v1/brain/stats")
-check("Ingest CVE", "POST", "/api/v1/brain/ingest/cve", body={"cve_id": "CVE-2024-99999", "title": "Test CVE", "severity": "low"})
+check(
+    "Ingest CVE",
+    "POST",
+    "/api/v1/brain/ingest/cve",
+    body={"cve_id": "CVE-2024-99999", "title": "Test CVE", "severity": "low"},
+)
 
 # ── ML/MindsDB ──
 print("\n── ML/MindsDB ──")
@@ -62,7 +83,19 @@ check("ML Status", "GET", "/api/v1/ml/status")
 check("ML Models", "GET", "/api/v1/ml/models")
 check("ML Analytics Stats", "GET", "/api/v1/ml/analytics/stats")
 check("ML Analytics Anomalies", "GET", "/api/v1/ml/analytics/anomalies")
-check("ML Predict Anomaly", "POST", "/api/v1/ml/predict/anomaly", body={"method": "GET", "path": "/test", "status_code": 200, "duration_ms": 100, "request_size": 50, "response_size": 200})
+check(
+    "ML Predict Anomaly",
+    "POST",
+    "/api/v1/ml/predict/anomaly",
+    body={
+        "method": "GET",
+        "path": "/test",
+        "status_code": 200,
+        "duration_ms": 100,
+        "request_size": 50,
+        "response_size": 200,
+    },
+)
 
 # ── Copilot ──
 print("\n── Copilot ──")
@@ -72,7 +105,19 @@ check("Copilot List Sessions", "GET", "/api/v1/copilot/sessions")
 # ── MPTE / Attack ──
 print("\n── MPTE / Attack ──")
 check("MPTE Requests", "GET", "/api/v1/mpte/requests")
-check("MPTE Create", "POST", "/api/v1/mpte/requests", expected_status=201, body={"finding_id": "test-e2e", "target_url": "http://test.local", "vulnerability_type": "xss", "test_case": "e2e-verify", "priority": "low"})
+check(
+    "MPTE Create",
+    "POST",
+    "/api/v1/mpte/requests",
+    expected_status=201,
+    body={
+        "finding_id": "test-e2e",
+        "target_url": "http://test.local",
+        "vulnerability_type": "xss",
+        "test_case": "e2e-verify",
+        "priority": "low",
+    },
+)
 check("Attack Sim Campaigns", "GET", "/api/v1/attack-sim/campaigns")
 
 # ── Feeds ──
@@ -91,7 +136,12 @@ check("AutoFix Fix Types", "GET", "/api/v1/autofix/fix-types")
 # ── Evidence / Compliance ──
 print("\n── Evidence / Compliance ──")
 check("Evidence Packs", "GET", "/api/v1/pipeline/evidence/packs")
-check("Evidence Generate", "POST", "/api/v1/pipeline/evidence/generate", body={"framework": "soc2", "org_id": "test-org"})
+check(
+    "Evidence Generate",
+    "POST",
+    "/api/v1/pipeline/evidence/generate",
+    body={"framework": "soc2", "org_id": "test-org"},
+)
 
 # ── Algorithms ──
 print("\n── Algorithms ──")
@@ -133,4 +183,3 @@ if failed == 0:
 else:
     print(f"⚠️  {failed} test(s) need attention")
 sys.exit(0 if failed == 0 else 1)
-

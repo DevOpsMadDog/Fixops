@@ -3,11 +3,9 @@ Enhanced Decision Engine - Multi-LLM Analysis and Consensus
 Provides advanced security decision making with multiple AI models
 """
 
-import asyncio
 import json
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -223,18 +221,18 @@ class AdvancedLLMEngine:
         """Build analysis prompt for LLM"""
         prompt = f"""
         Security Decision Analysis for CI/CD Pipeline:
-        
+
         Service: {context.get('service_name', 'unknown')}
         Environment: {context.get('environment', 'unknown')}
         Business Context: {context.get('business_context', {})}
-        
+
         Security Findings: {json.dumps(findings, indent=2)}
-        
+
         Provide a security decision recommendation:
-        - Action: "allow", "block", or "defer"  
+        - Action: "allow", "block", or "defer"
         - Confidence: 0.0 to 1.0
         - Reasoning: Brief explanation
-        
+
         Format: ACTION|CONFIDENCE|REASONING
         """
         return prompt

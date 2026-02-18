@@ -10,17 +10,11 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from core.event_bus import Event, EventType, get_event_bus
-from core.knowledge_brain import EntityType, GraphNode, get_brain
-from core.services.fuzzy_identity import (
-    FuzzyIdentityResolver,
-    MatchResult,
-    MatchStrategy,
-    get_fuzzy_resolver,
-)
+from core.knowledge_brain import get_brain
+from core.services.fuzzy_identity import get_fuzzy_resolver
+from fastapi import APIRouter, Query
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/identity", tags=["fuzzy-identity"])
@@ -29,6 +23,7 @@ router = APIRouter(prefix="/api/v1/identity", tags=["fuzzy-identity"])
 # ---------------------------------------------------------------------------
 # Request / Response models
 # ---------------------------------------------------------------------------
+
 
 class RegisterCanonicalRequest(BaseModel):
     canonical_id: str = Field(..., description="Unique canonical asset identifier")
@@ -66,28 +61,39 @@ class MatchResultResponse(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+
 @router.post("/canonical", summary="Register a canonical asset identity")
 async def register_canonical(req: RegisterCanonicalRequest):
     resolver = get_fuzzy_resolver()
-    cid = resolver.register_canonical(req.canonical_id, org_id=req.org_id, properties=req.properties)
+    cid = resolver.register_canonical(
+        req.canonical_id, org_id=req.org_id, properties=req.properties
+    )
     # Register in Knowledge Graph
     brain = get_brain()
     brain.ingest_asset(cid, org_id=req.org_id, **(req.properties or {}))
     # Emit event
     bus = get_event_bus()
-    await bus.emit(Event(
-        event_type=EventType.ASSET_DISCOVERED,
-        source="fuzzy_identity",
-        data={"canonical_id": cid, "org_id": req.org_id},
-    ))
+    await bus.emit(
+        Event(
+            event_type=EventType.ASSET_DISCOVERED,
+            source="fuzzy_identity",
+            data={"canonical_id": cid, "org_id": req.org_id},
+        )
+    )
     return {"canonical_id": cid, "status": "registered"}
 
 
 @router.post("/alias", summary="Add an alias for a canonical asset")
 async def add_alias(req: AddAliasRequest):
     resolver = get_fuzzy_resolver()
-    resolver.add_alias(req.canonical_id, req.alias_name, source=req.source, confidence=req.confidence)
-    return {"canonical_id": req.canonical_id, "alias": req.alias_name, "status": "added"}
+    resolver.add_alias(
+        req.canonical_id, req.alias_name, source=req.source, confidence=req.confidence
+    )
+    return {
+        "canonical_id": req.canonical_id,
+        "alias": req.alias_name,
+        "status": "added",
+    }
 
 
 @router.post("/resolve", summary="Resolve an asset name to its canonical identity")
@@ -111,7 +117,9 @@ async def resolve_name(req: ResolveRequest):
 @router.post("/resolve/batch", summary="Resolve multiple asset names")
 async def resolve_batch(req: ResolveBatchRequest):
     resolver = get_fuzzy_resolver()
-    results = resolver.resolve_batch(req.names, org_id=req.org_id, threshold=req.threshold)
+    results = resolver.resolve_batch(
+        req.names, org_id=req.org_id, threshold=req.threshold
+    )
     output = {}
     for name, match in results.items():
         if match is None:
@@ -123,7 +131,11 @@ async def resolve_batch(req: ResolveBatchRequest):
                 "confidence": round(match.confidence, 4),
                 "strategy": match.strategy.value,
             }
-    return {"results": output, "total": len(results), "resolved": sum(1 for v in results.values() if v)}
+    return {
+        "results": output,
+        "total": len(results),
+        "resolved": sum(1 for v in results.values() if v),
+    }
 
 
 @router.get("/similar", summary="Find similar canonical assets")
@@ -134,12 +146,18 @@ async def find_similar(
     top_k: int = Query(10),
 ):
     resolver = get_fuzzy_resolver()
-    results = resolver.find_similar(name, org_id=org_id, threshold=threshold, top_k=top_k)
+    results = resolver.find_similar(
+        name, org_id=org_id, threshold=threshold, top_k=top_k
+    )
     return {
         "query": name,
         "matches": [
-            {"canonical_id": r.canonical_id, "matched_name": r.matched_name,
-             "confidence": round(r.confidence, 4), "strategy": r.strategy.value}
+            {
+                "canonical_id": r.canonical_id,
+                "matched_name": r.matched_name,
+                "confidence": round(r.confidence, 4),
+                "strategy": r.strategy.value,
+            }
             for r in results
         ],
     }
@@ -158,4 +176,3 @@ async def list_canonical(
 async def get_stats(org_id: Optional[str] = Query(None)):
     resolver = get_fuzzy_resolver()
     return resolver.get_resolution_stats(org_id=org_id)
-

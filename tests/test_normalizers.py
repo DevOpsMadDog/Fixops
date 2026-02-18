@@ -2,7 +2,6 @@ import json
 import logging
 
 import pytest
-
 from apps.api.normalizers import InputNormalizer
 
 

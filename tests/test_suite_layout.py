@@ -76,18 +76,21 @@ class TestSuiteDirectoriesExist:
 class TestLegacyDirsNotAtRoot:
     """Verify legacy code directories do NOT exist at root."""
 
-    @pytest.mark.parametrize("legacy_dir", [
-        "apps",
-        "backend",
-        "core",
-        "risk",
-        "evidence",
-        "integrations",
-        "ui",
-        "services",
-        "telemetry",
-        "agents",
-    ])
+    @pytest.mark.parametrize(
+        "legacy_dir",
+        [
+            "apps",
+            "backend",
+            "core",
+            "risk",
+            "evidence",
+            "integrations",
+            "ui",
+            "services",
+            "telemetry",
+            "agents",
+        ],
+    )
     def test_legacy_dir_not_at_root(self, legacy_dir: str):
         """Legacy code directory should not exist at root."""
         legacy_path = PROJECT_ROOT / legacy_dir
@@ -100,13 +103,16 @@ class TestLegacyDirsNotAtRoot:
 class TestEssentialDirsExist:
     """Verify essential directories exist at root."""
 
-    @pytest.mark.parametrize("essential_dir", [
-        "docs",
-        "scripts",
-        "tests",
-        "archive",
-        ".github",
-    ])
+    @pytest.mark.parametrize(
+        "essential_dir",
+        [
+            "docs",
+            "scripts",
+            "tests",
+            "archive",
+            ".github",
+        ],
+    )
     def test_essential_dir_exists(self, essential_dir: str):
         """Essential directory should exist at root."""
         dir_path = PROJECT_ROOT / essential_dir
@@ -127,7 +133,9 @@ class TestSitecustomizeExists:
         content = sitecustomize.read_text()
         assert "suite-api" in content, "sitecustomize.py should reference suite-api"
         assert "suite-core" in content, "sitecustomize.py should reference suite-core"
-        assert "suite-attack" in content, "sitecustomize.py should reference suite-attack"
+        assert (
+            "suite-attack" in content
+        ), "sitecustomize.py should reference suite-attack"
         assert "suite-feeds" in content, "sitecustomize.py should reference suite-feeds"
         assert "sys.path" in content, "sitecustomize.py should modify sys.path"
 
@@ -141,17 +149,18 @@ class TestImportsStillWork:
         suite_api_path = str(PROJECT_ROOT / "suite-api")
         if suite_api_path not in sys.path:
             sys.path.insert(0, suite_api_path)
-        
+
         # Add archive/legacy for fixops module
         legacy_path = str(PROJECT_ROOT / "archive" / "legacy")
         if legacy_path not in sys.path:
             sys.path.insert(0, legacy_path)
-        
+
         # Skip path security check for tests
         os.environ.setdefault("FIXOPS_SKIP_PATH_SECURITY", "1")
-        
+
         try:
             from apps.api.app import create_app
+
             assert callable(create_app), "create_app should be callable"
         except ImportError as e:
             pytest.fail(f"Failed to import apps.api.app: {e}")
@@ -161,9 +170,10 @@ class TestImportsStillWork:
         suite_core_path = str(PROJECT_ROOT / "suite-core")
         if suite_core_path not in sys.path:
             sys.path.insert(0, suite_core_path)
-        
+
         try:
             import core
+
             assert core is not None
         except ImportError as e:
             pytest.fail(f"Failed to import core: {e}")
@@ -173,9 +183,10 @@ class TestImportsStillWork:
         suite_er_path = str(PROJECT_ROOT / "suite-evidence-risk")
         if suite_er_path not in sys.path:
             sys.path.insert(0, suite_er_path)
-        
+
         try:
             import risk
+
             assert risk is not None
         except ImportError as e:
             pytest.fail(f"Failed to import risk: {e}")
@@ -185,9 +196,10 @@ class TestImportsStillWork:
         suite_api_path = str(PROJECT_ROOT / "suite-api")
         if suite_api_path not in sys.path:
             sys.path.insert(0, suite_api_path)
-        
+
         try:
             import backend
+
             assert backend is not None
         except ImportError as e:
             pytest.fail(f"Failed to import backend: {e}")
@@ -207,22 +219,34 @@ class TestCreateAppWorks:
         suite_int_path = str(PROJECT_ROOT / "suite-integrations")
         legacy_path = str(PROJECT_ROOT / "archive" / "legacy")
 
-        for path in [suite_api_path, suite_core_path, suite_attack_path, suite_feeds_path, suite_er_path, suite_int_path, legacy_path]:
+        for path in [
+            suite_api_path,
+            suite_core_path,
+            suite_attack_path,
+            suite_feeds_path,
+            suite_er_path,
+            suite_int_path,
+            legacy_path,
+        ]:
             if path not in sys.path:
                 sys.path.insert(0, path)
-        
+
         # Set minimal environment
         os.environ.setdefault("FIXOPS_JWT_SECRET", "test-secret")
         os.environ.setdefault("FIXOPS_API_TOKEN", "test-token")
         os.environ.setdefault("FIXOPS_DEMO_MODE", "true")
         os.environ.setdefault("FIXOPS_SKIP_PATH_SECURITY", "1")
-        
+
         try:
             from apps.api.app import create_app
+
             app = create_app()
-            
+
             from fastapi import FastAPI
-            assert isinstance(app, FastAPI), "create_app() should return a FastAPI instance"
+
+            assert isinstance(
+                app, FastAPI
+            ), "create_app() should return a FastAPI instance"
         except ImportError as e:
             pytest.fail(f"Failed to create app: {e}")
 
@@ -263,20 +287,28 @@ class TestSuiteContents:
     def test_suite_integrations_has_integrations(self):
         """suite-integrations/integrations should exist."""
         integrations_path = PROJECT_ROOT / "suite-integrations" / "integrations"
-        assert integrations_path.exists(), "suite-integrations/integrations should exist"
+        assert (
+            integrations_path.exists()
+        ), "suite-integrations/integrations should exist"
 
     def test_suite_attack_has_api(self):
         """suite-attack/api should exist with attack routers."""
         api_path = PROJECT_ROOT / "suite-attack" / "api"
         assert api_path.exists(), "suite-attack/api should exist"
-        assert (api_path / "micro_pentest_router.py").exists(), "micro_pentest_router.py should be in suite-attack/api"
-        assert (api_path / "mpte_router.py").exists(), "mpte_router.py should be in suite-attack/api"
+        assert (
+            api_path / "micro_pentest_router.py"
+        ).exists(), "micro_pentest_router.py should be in suite-attack/api"
+        assert (
+            api_path / "mpte_router.py"
+        ).exists(), "mpte_router.py should be in suite-attack/api"
 
     def test_suite_feeds_has_api(self):
         """suite-feeds/api should exist with feeds router."""
         api_path = PROJECT_ROOT / "suite-feeds" / "api"
         assert api_path.exists(), "suite-feeds/api should exist"
-        assert (api_path / "feeds_router.py").exists(), "feeds_router.py should be in suite-feeds/api"
+        assert (
+            api_path / "feeds_router.py"
+        ).exists(), "feeds_router.py should be in suite-feeds/api"
 
     def test_suite_feeds_has_service(self):
         """suite-feeds/feeds_service.py should exist."""

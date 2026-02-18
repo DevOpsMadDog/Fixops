@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Run bounty scans and write results to tools/_status_result.txt"""
-import requests, json, time, os, sys
+import json
+import os
+import sys
+import time
+
+import requests
 
 BASE = "http://localhost:8000"
 HEADERS = {"X-API-Key": "test-token-123", "Content-Type": "application/json"}
@@ -15,6 +20,8 @@ TARGETS = [
 ]
 
 lines = []
+
+
 def log(msg):
     lines.append(msg)
     print(msg)
@@ -22,14 +29,24 @@ def log(msg):
     with open(OUT, "w") as f:
         f.write("\n".join(lines) + "\n")
 
+
 def scan(name, url):
     log(f"\n{'='*60}")
     log(f"  SCANNING: {name} ({url})")
     log(f"{'='*60}")
-    payload = {"cve_ids": [], "target_urls": [url], "context": {"scan_type": "advanced"}}
+    payload = {
+        "cve_ids": [],
+        "target_urls": [url],
+        "context": {"scan_type": "advanced"},
+    }
     t0 = time.time()
     try:
-        r = requests.post(f"{BASE}/api/v1/micro-pentest/run", json=payload, headers=HEADERS, timeout=180)
+        r = requests.post(
+            f"{BASE}/api/v1/micro-pentest/run",
+            json=payload,
+            headers=HEADERS,
+            timeout=180,
+        )
         dt = time.time() - t0
         if r.status_code in (200, 201):
             d = r.json()
@@ -40,16 +57,29 @@ def scan(name, url):
             hicrit = [f for f in findings if f.get("severity") in ("critical", "high")]
             log(f"  Time: {dt:.1f}s | Status: {d.get('status')}")
             log(f"  Risk: {risk.get('score','?')}/10 ({risk.get('level','?')})")
-            log(f"  Findings: {len(findings)} | Crit+High: {len(hicrit)} | Verified Exploits: {len(verified)}")
+            log(
+                f"  Findings: {len(findings)} | Crit+High: {len(hicrit)} | Verified Exploits: {len(verified)}"
+            )
             for v in verified:
-                log(f"    ** VULN: {v.get('cve_id')} - {v.get('title','?')} (conf: {v.get('confidence_score','?')}%)")
+                log(
+                    f"    ** VULN: {v.get('cve_id')} - {v.get('title','?')} (conf: {v.get('confidence_score','?')}%)"
+                )
             for f in hicrit:
                 log(f"    - [{f.get('severity','?').upper()}] {f.get('title','?')}")
             # Save full JSON
-            jpath = os.path.join(os.path.dirname(OUT), f"_bounty_{name.lower().replace(' ','_')}.json")
+            jpath = os.path.join(
+                os.path.dirname(OUT), f"_bounty_{name.lower().replace(' ','_')}.json"
+            )
             with open(jpath, "w") as jf:
                 json.dump(d, jf, indent=2, default=str)
-            return {"name": name, "risk": risk.get("score"), "findings": len(findings), "hicrit": len(hicrit), "exploits": len(verified), "time": round(dt, 1)}
+            return {
+                "name": name,
+                "risk": risk.get("score"),
+                "findings": len(findings),
+                "hicrit": len(hicrit),
+                "exploits": len(verified),
+                "time": round(dt, 1),
+            }
         else:
             log(f"  ERROR: HTTP {r.status_code} - {r.text[:200]}")
             return {"name": name, "error": f"HTTP {r.status_code}"}
@@ -57,18 +87,20 @@ def scan(name, url):
         log(f"  ERROR: {e}")
         return {"name": name, "error": str(e)}
 
+
 def main():
     try:
         h = requests.get(f"{BASE}/api/v1/health", timeout=5)
         log(f"Backend: HTTP {h.status_code}")
     except:
-        log("Backend DOWN"); sys.exit(1)
-    
+        log("Backend DOWN")
+        sys.exit(1)
+
     log(f"\nScanning {len(TARGETS)} major bug bounty platforms...")
     results = []
     for name, url in TARGETS:
         results.append(scan(name, url))
-    
+
     log(f"\n{'='*80}")
     log(f"  SUMMARY")
     log(f"{'='*80}")
@@ -78,9 +110,11 @@ def main():
         if "error" in r:
             log(f"{r['name']:<20} {'ERR':>6}")
         else:
-            log(f"{r['name']:<20} {r['risk']:>6} {r['findings']:>6} {r['hicrit']:>6} {r['exploits']:>5} {r['time']:>6.1f}s")
+            log(
+                f"{r['name']:<20} {r['risk']:>6} {r['findings']:>6} {r['hicrit']:>6} {r['exploits']:>5} {r['time']:>6.1f}s"
+            )
     log("DONE")
+
 
 if __name__ == "__main__":
     main()
-

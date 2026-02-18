@@ -18,13 +18,12 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel, Field
 
 # Knowledge Brain + Event Bus integration (graceful degradation)
@@ -64,7 +63,7 @@ router = APIRouter(prefix="/api/v1/copilot", tags=["copilot"])
 
 class CopilotAgentType(str, Enum):
     """Available Copilot AI agents."""
-    
+
     SECURITY_ANALYST = "security_analyst"
     PENTEST = "pentest"
     COMPLIANCE = "compliance"
@@ -74,7 +73,7 @@ class CopilotAgentType(str, Enum):
 
 class ActionStatus(str, Enum):
     """Status of an agent action."""
-    
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -84,7 +83,7 @@ class ActionStatus(str, Enum):
 
 class MessageRole(str, Enum):
     """Message role in conversation."""
-    
+
     USER = "user"
     ASSISTANT = "assistant"
     SYSTEM = "system"
@@ -98,21 +97,19 @@ class MessageRole(str, Enum):
 
 class CreateSessionRequest(BaseModel):
     """Request to create a new chat session."""
-    
+
     name: Optional[str] = Field(None, description="Session name")
     agent_type: CopilotAgentType = Field(
-        default=CopilotAgentType.GENERAL,
-        description="Primary agent for this session"
+        default=CopilotAgentType.GENERAL, description="Primary agent for this session"
     )
     context: Optional[Dict[str, Any]] = Field(
-        default=None,
-        description="Initial context (e.g., CVE IDs, asset IDs)"
+        default=None, description="Initial context (e.g., CVE IDs, asset IDs)"
     )
 
 
 class SessionResponse(BaseModel):
     """Chat session response."""
-    
+
     id: str
     name: str
     agent_type: CopilotAgentType
@@ -124,19 +121,17 @@ class SessionResponse(BaseModel):
 
 class SendMessageRequest(BaseModel):
     """Request to send a message in a session."""
-    
+
     message: str = Field(..., min_length=1, max_length=10000)
     agent_type: Optional[CopilotAgentType] = Field(
         None, description="Override agent for this message"
     )
-    include_context: bool = Field(
-        default=True, description="Include session context"
-    )
+    include_context: bool = Field(default=True, description="Include session context")
 
 
 class MessageResponse(BaseModel):
     """Message in conversation."""
-    
+
     id: str
     session_id: str
     role: MessageRole
@@ -149,17 +144,15 @@ class MessageResponse(BaseModel):
 
 class ExecuteActionRequest(BaseModel):
     """Request to execute an agent action."""
-    
+
     action_type: str = Field(..., description="Type of action to execute")
     parameters: Dict[str, Any] = Field(default_factory=dict)
-    async_execution: bool = Field(
-        default=True, description="Execute asynchronously"
-    )
+    async_execution: bool = Field(default=True, description="Execute asynchronously")
 
 
 class ActionResponse(BaseModel):
     """Agent action response."""
-    
+
     id: str
     session_id: str
     action_type: str
@@ -173,14 +166,14 @@ class ActionResponse(BaseModel):
 
 class AddContextRequest(BaseModel):
     """Request to add context to a session."""
-    
+
     context_type: str = Field(..., description="Type of context (cve, asset, finding)")
     data: Dict[str, Any] = Field(..., description="Context data")
 
 
 class SuggestionResponse(BaseModel):
     """AI-generated suggestion."""
-    
+
     id: str
     type: str
     title: str
@@ -191,7 +184,7 @@ class SuggestionResponse(BaseModel):
 
 class QuickAnalyzeRequest(BaseModel):
     """Quick vulnerability analysis request."""
-    
+
     cve_id: Optional[str] = None
     finding_id: Optional[str] = None
     asset_id: Optional[str] = None
@@ -200,7 +193,7 @@ class QuickAnalyzeRequest(BaseModel):
 
 class QuickPentestRequest(BaseModel):
     """Quick pentest request."""
-    
+
     target: str = Field(..., description="Target URL or IP")
     cve_ids: List[str] = Field(default_factory=list)
     test_type: str = Field(default="reachability", description="Test type")
@@ -209,7 +202,7 @@ class QuickPentestRequest(BaseModel):
 
 class QuickReportRequest(BaseModel):
     """Quick report generation request."""
-    
+
     report_type: str = Field(default="executive", description="Report type")
     finding_ids: List[str] = Field(default_factory=list)
     include_remediation: bool = True
@@ -312,10 +305,7 @@ async def _call_llm_agent(
         except Exception:
             pass
 
-    full_prompt = (
-        f"{system_prompt}\n\n"
-        f"User query: {message}\n"
-    )
+    full_prompt = f"{system_prompt}\n\n" f"User query: {message}\n"
     if context:
         ctx_str = json.dumps(context, default=str)[:2000]
         full_prompt += f"\nSession context: {ctx_str}\n"
@@ -357,11 +347,17 @@ async def _call_llm_agent(
     content_parts.append(llm_response.reasoning)
 
     if llm_response.mitre_techniques:
-        content_parts.append("\n**MITRE ATT&CK:** " + ", ".join(llm_response.mitre_techniques))
+        content_parts.append(
+            "\n**MITRE ATT&CK:** " + ", ".join(llm_response.mitre_techniques)
+        )
     if llm_response.compliance_concerns:
-        content_parts.append("**Compliance:** " + ", ".join(llm_response.compliance_concerns))
+        content_parts.append(
+            "**Compliance:** " + ", ".join(llm_response.compliance_concerns)
+        )
     if llm_response.attack_vectors:
-        content_parts.append("**Attack Vectors:** " + ", ".join(llm_response.attack_vectors))
+        content_parts.append(
+            "**Attack Vectors:** " + ", ".join(llm_response.attack_vectors)
+        )
 
     # Derive suggested actions from the response
     actions: List[Dict[str, Any]] = []
@@ -374,16 +370,18 @@ async def _call_llm_agent(
     if _HAS_BRAIN:
         try:
             bus = get_event_bus()
-            await bus.emit(Event(
-                event_type=EventType.COPILOT_QUERY,
-                source="copilot_router._call_llm_agent",
-                data={
-                    "agent_type": agent_type.value,
-                    "message": message[:500],
-                    "provider": provider_used,
-                    "confidence": llm_response.confidence,
-                },
-            ))
+            await bus.emit(
+                Event(
+                    event_type=EventType.COPILOT_QUERY,
+                    source="copilot_router._call_llm_agent",
+                    data={
+                        "agent_type": agent_type.value,
+                        "message": message[:500],
+                        "provider": provider_used,
+                        "confidence": llm_response.confidence,
+                    },
+                )
+            )
         except Exception:
             pass
 
@@ -409,13 +407,13 @@ async def _call_llm_agent(
 @router.post("/sessions", response_model=SessionResponse)
 async def create_session(request: CreateSessionRequest) -> SessionResponse:
     """Create a new chat session.
-    
+
     Creates a new conversation session with optional initial context.
     Each session maintains its own conversation history and context.
     """
     session_id = _generate_id()
     now = _now()
-    
+
     session = {
         "id": session_id,
         "name": request.name or f"Session {session_id[:8]}",
@@ -425,12 +423,12 @@ async def create_session(request: CreateSessionRequest) -> SessionResponse:
         "message_count": 0,
         "context": request.context or {},
     }
-    
+
     _sessions[session_id] = session
     _messages[session_id] = []
-    
+
     logger.info(f"Created copilot session: {session_id}")
-    
+
     return SessionResponse(**session)
 
 
@@ -440,16 +438,12 @@ async def list_sessions(
     offset: int = Query(default=0, ge=0),
 ) -> List[SessionResponse]:
     """List all chat sessions.
-    
+
     Returns paginated list of sessions sorted by last update time.
     """
-    sessions = sorted(
-        _sessions.values(),
-        key=lambda s: s["updated_at"],
-        reverse=True
-    )
-    
-    return [SessionResponse(**s) for s in sessions[offset:offset + limit]]
+    sessions = sorted(_sessions.values(), key=lambda s: s["updated_at"], reverse=True)
+
+    return [SessionResponse(**s) for s in sessions[offset : offset + limit]]
 
 
 @router.get("/sessions/{session_id}", response_model=SessionResponse)
@@ -457,7 +451,7 @@ async def get_session(session_id: str) -> SessionResponse:
     """Get a specific chat session."""
     if session_id not in _sessions:
         raise HTTPException(status_code=404, detail="Session not found")
-    
+
     return SessionResponse(**_sessions[session_id])
 
 
@@ -466,13 +460,13 @@ async def delete_session(session_id: str) -> Dict[str, str]:
     """Delete a chat session and all its messages."""
     if session_id not in _sessions:
         raise HTTPException(status_code=404, detail="Session not found")
-    
+
     del _sessions[session_id]
     if session_id in _messages:
         del _messages[session_id]
-    
+
     logger.info(f"Deleted copilot session: {session_id}")
-    
+
     return {"status": "deleted", "session_id": session_id}
 
 
@@ -488,17 +482,17 @@ async def send_message(
     background_tasks: BackgroundTasks,
 ) -> MessageResponse:
     """Send a message and get AI response.
-    
+
     Sends user message to LLM agent (OpenAI/Claude) and returns the response.
     The agent type can be overridden per-message.
     """
     if session_id not in _sessions:
         raise HTTPException(status_code=404, detail="Session not found")
-    
+
     session = _sessions[session_id]
     agent_type = request.agent_type or session["agent_type"]
     now = _now()
-    
+
     # Store user message
     user_msg_id = _generate_id()
     user_message = {
@@ -515,12 +509,17 @@ async def send_message(
     # Emit copilot query event
     if _HAS_BRAIN:
         bus = get_event_bus()
-        await bus.emit(Event(
-            event_type=EventType.COPILOT_QUERY,
-            source="copilot_router",
-            data={"session_id": session_id, "message": request.message,
-                  "agent_type": str(agent_type)},
-        ))
+        await bus.emit(
+            Event(
+                event_type=EventType.COPILOT_QUERY,
+                source="copilot_router",
+                data={
+                    "session_id": session_id,
+                    "message": request.message,
+                    "agent_type": str(agent_type),
+                },
+            )
+        )
 
     # Get AI response
     context = session["context"] if request.include_context else {}
@@ -543,13 +542,18 @@ async def send_message(
     # Emit copilot response event
     if _HAS_BRAIN:
         bus = get_event_bus()
-        await bus.emit(Event(
-            event_type=EventType.COPILOT_RESPONSE,
-            source="copilot_router",
-            data={"session_id": session_id, "message_id": asst_msg_id,
-                  "agent_type": str(agent_type),
-                  "confidence": response.get("confidence", 0.0)},
-        ))
+        await bus.emit(
+            Event(
+                event_type=EventType.COPILOT_RESPONSE,
+                source="copilot_router",
+                data={
+                    "session_id": session_id,
+                    "message_id": asst_msg_id,
+                    "agent_type": str(agent_type),
+                    "confidence": response.get("confidence", 0.0),
+                },
+            )
+        )
 
     # Update session
     session["updated_at"] = _now()
@@ -565,21 +569,21 @@ async def get_messages(
     before: Optional[str] = None,
 ) -> List[MessageResponse]:
     """Get messages in a session.
-    
+
     Returns messages in chronological order. Use 'before' for pagination.
     """
     if session_id not in _sessions:
         raise HTTPException(status_code=404, detail="Session not found")
-    
+
     messages = _messages.get(session_id, [])
-    
+
     if before:
         # Find index of 'before' message and return messages before it
         for i, msg in enumerate(messages):
             if msg["id"] == before:
                 messages = messages[:i]
                 break
-    
+
     return [MessageResponse(**m) for m in messages[-limit:]]
 
 
@@ -595,37 +599,39 @@ async def execute_action(
     background_tasks: BackgroundTasks,
 ) -> ActionResponse:
     """Execute an agent action.
-    
+
     Actions include: analyze, pentest, remediate, report, escalate.
     Async actions return immediately with a task ID for polling.
     """
     if session_id not in _sessions:
         raise HTTPException(status_code=404, detail="Session not found")
-    
+
     action_id = _generate_id()
     now = _now()
-    
+
     action = {
         "id": action_id,
         "session_id": session_id,
         "action_type": request.action_type,
-        "status": ActionStatus.PENDING if request.async_execution else ActionStatus.RUNNING,
+        "status": ActionStatus.PENDING
+        if request.async_execution
+        else ActionStatus.RUNNING,
         "parameters": request.parameters,
         "result": None,
         "error": None,
         "created_at": now,
         "completed_at": None,
     }
-    
+
     _actions[action_id] = action
-    
+
     if request.async_execution:
         # Queue for background execution
         background_tasks.add_task(_execute_action_async, action_id)
     else:
         # Execute synchronously
         await _execute_action_sync(action_id)
-    
+
     return ActionResponse(**_actions[action_id])
 
 
@@ -653,11 +659,17 @@ async def _execute_action_sync(action_id: str) -> None:
         elif action_type == "remediate":
             action["result"] = await _action_remediate(params, action)
         elif action_type == "report":
-            action["result"] = {"status": "completed", "message": "Report generation queued"}
+            action["result"] = {
+                "status": "completed",
+                "message": "Report generation queued",
+            }
         elif action_type == "escalate":
             action["result"] = {"status": "completed", "message": "Escalation created"}
         else:
-            action["result"] = {"status": "completed", "message": f"Action {action_type} acknowledged"}
+            action["result"] = {
+                "status": "completed",
+                "message": f"Action {action_type} acknowledged",
+            }
 
         action["status"] = ActionStatus.COMPLETED
         action["completed_at"] = _now()
@@ -676,6 +688,7 @@ async def _action_analyze(params: dict, action: dict) -> dict:
     # EPSS / KEV enrichment via FeedsService
     try:
         from src.services.feeds_service import FeedsService
+
         svc = FeedsService()
         if target.upper().startswith("CVE-"):
             epss = await svc.get_epss_score(target)
@@ -691,7 +704,9 @@ async def _action_analyze(params: dict, action: dict) -> dict:
             nodes = brain.search_nodes(target, limit=5)
             result["enrichments"]["graph_nodes"] = len(nodes)
             if nodes:
-                result["enrichments"]["risk_score"] = brain.risk_score_for_node(nodes[0].get("node_id", ""))
+                result["enrichments"]["risk_score"] = brain.risk_score_for_node(
+                    nodes[0].get("node_id", "")
+                )
         except Exception:
             pass
     return result
@@ -703,6 +718,7 @@ async def _action_pentest(params: dict, action: dict) -> dict:
     result = {"status": "completed", "target": target}
     try:
         from core.attack_simulation import get_attack_engine
+
         engine = get_attack_engine()
         sim_result = await engine.run_simulation(
             target=target,
@@ -726,6 +742,7 @@ async def _action_remediate(params: dict, action: dict) -> dict:
     result = {"status": "completed", "finding_id": finding_id}
     try:
         from core.autofix_engine import get_autofix_engine
+
         engine = get_autofix_engine()
         fix = await engine.generate_fix(finding_id=finding_id)
         result["fix"] = fix
@@ -744,7 +761,7 @@ async def get_action_status(action_id: str) -> ActionResponse:
     """Get status of an agent action."""
     if action_id not in _actions:
         raise HTTPException(status_code=404, detail="Action not found")
-    
+
     return ActionResponse(**_actions[action_id])
 
 
@@ -759,29 +776,29 @@ async def add_context(
     request: AddContextRequest,
 ) -> Dict[str, Any]:
     """Add context to a session.
-    
+
     Context is fed to Knowledge Brain for RAG-enhanced responses.
     Types: cve, asset, finding, sbom, policy, evidence
     """
     if session_id not in _sessions:
         raise HTTPException(status_code=404, detail="Session not found")
-    
+
     session = _sessions[session_id]
     context = session.get("context", {})
-    
+
     # Add or update context
     context_key = request.context_type
     if context_key not in context:
         context[context_key] = []
-    
+
     if isinstance(context[context_key], list):
         context[context_key].append(request.data)
     else:
         context[context_key] = request.data
-    
+
     session["context"] = context
     session["updated_at"] = _now()
-    
+
     return {
         "status": "added",
         "context_type": request.context_type,
@@ -839,7 +856,9 @@ async def get_suggestions(
         ctx_filter=context_filter,
         brain_summary=brain_summary or "No prior context available.",
         sessions=len(_sessions),
-        actions=len([a for a in _actions.values() if a.get("status") == ActionStatus.PENDING]),
+        actions=len(
+            [a for a in _actions.values() if a.get("status") == ActionStatus.PENDING]
+        ),
     )
 
     manager = LLMProviderManager()
@@ -864,17 +883,21 @@ async def get_suggestions(
                 if start >= 0 and end > start:
                     items = json.loads(text[start:end])
                     for i, item in enumerate(items[:limit]):
-                        suggestions.append(SuggestionResponse(
-                            id=str(uuid.uuid4()),
-                            type=item.get("type", "vulnerability"),
-                            title=item.get("title", "Security suggestion"),
-                            description=item.get("description", ""),
-                            confidence=float(item.get("confidence", 0.7)),
-                            action=item.get("action"),
-                        ))
+                        suggestions.append(
+                            SuggestionResponse(
+                                id=str(uuid.uuid4()),
+                                type=item.get("type", "vulnerability"),
+                                title=item.get("title", "Security suggestion"),
+                                description=item.get("description", ""),
+                                confidence=float(item.get("confidence", 0.7)),
+                                action=item.get("action"),
+                            )
+                        )
                     break
         except Exception as exc:
-            logger.warning("Suggestion generation via %s failed: %s", provider_name, exc)
+            logger.warning(
+                "Suggestion generation via %s failed: %s", provider_name, exc
+            )
             continue
 
     return suggestions[:limit]
@@ -892,18 +915,26 @@ async def quick_analyze(request: QuickAnalyzeRequest) -> Dict[str, Any]:
     One-shot analysis without creating a session.
     Returns immediate analysis results from real data sources.
     """
-    target = request.cve_id or request.finding_id or request.asset_id or request.description
+    target = (
+        request.cve_id or request.finding_id or request.asset_id or request.description
+    )
 
     # Emit copilot query event for quick analysis
     if _HAS_BRAIN:
         bus = get_event_bus()
-        await bus.emit(Event(
-            event_type=EventType.COPILOT_QUERY,
-            source="copilot_router.quick_analyze",
-            data={"target": target, "cve_id": request.cve_id,
-                  "finding_id": request.finding_id, "asset_id": request.asset_id},
-        ))
-    
+        await bus.emit(
+            Event(
+                event_type=EventType.COPILOT_QUERY,
+                source="copilot_router.quick_analyze",
+                data={
+                    "target": target,
+                    "cve_id": request.cve_id,
+                    "finding_id": request.finding_id,
+                    "asset_id": request.asset_id,
+                },
+            )
+        )
+
     # Gather real intelligence from FeedsService
     feed_data: Dict[str, Any] = {}
     if _HAS_FEEDS and request.cve_id:
@@ -931,7 +962,9 @@ async def quick_analyze(request: QuickAnalyzeRequest) -> Dict[str, Any]:
             f"Target: {target}\n"
         )
         if feed_data:
-            analysis_prompt += f"Feed intelligence: {json.dumps(feed_data, default=str)[:1500]}\n"
+            analysis_prompt += (
+                f"Feed intelligence: {json.dumps(feed_data, default=str)[:1500]}\n"
+            )
         if request.description:
             analysis_prompt += f"Description: {request.description}\n"
 
@@ -963,7 +996,9 @@ async def quick_analyze(request: QuickAnalyzeRequest) -> Dict[str, Any]:
         "affected_assets": None,
         "remediation_available": llm_analysis is not None,
         "status": "complete" if (feed_data or llm_analysis) else "partial",
-        "message": "Analysis from EPSS/KEV/NVD + LLM" if feed_data else "LLM analysis only",
+        "message": "Analysis from EPSS/KEV/NVD + LLM"
+        if feed_data
+        else "LLM analysis only",
     }
 
 
@@ -973,15 +1008,15 @@ async def quick_pentest(
     background_tasks: BackgroundTasks,
 ) -> Dict[str, Any]:
     """Quick pentest initiation.
-    
+
     Starts a lightweight pentest and returns task ID for tracking.
     Uses MPTE for execution.
     """
     task_id = _generate_id()
-    
+
     # Queue pentest (would integrate with MPTE)
     background_tasks.add_task(_run_quick_pentest, task_id, request)
-    
+
     return {
         "task_id": task_id,
         "status": "queued",
@@ -1052,12 +1087,12 @@ async def _run_quick_pentest(task_id: str, request: QuickPentestRequest) -> None
 @router.post("/quick/report")
 async def quick_report(request: QuickReportRequest) -> Dict[str, Any]:
     """Quick report generation.
-    
+
     Generates a report without creating a session.
     Returns download URL when ready.
     """
     report_id = _generate_id()
-    
+
     return {
         "report_id": report_id,
         "status": "generating",
@@ -1093,12 +1128,12 @@ async def copilot_health() -> Dict[str, Any]:
         "status": "healthy",
         "service": "aldeci-copilot",
         "version": "2.0.0",
-        "agents": {
-            agent.value: "ready" for agent in CopilotAgentType
-        },
+        "agents": {agent.value: "ready" for agent in CopilotAgentType},
         "llm_providers": llm_status,
         "knowledge_brain": _HAS_BRAIN,
         "feeds_service": _HAS_FEEDS,
         "sessions_active": len(_sessions),
-        "actions_pending": len([a for a in _actions.values() if a.get("status") == ActionStatus.PENDING]),
+        "actions_pending": len(
+            [a for a in _actions.values() if a.get("status") == ActionStatus.PENDING]
+        ),
     }

@@ -3,17 +3,15 @@ FixOps Processing Layer Implementation
 Based on the architecture documentation showing specific components:
 - Bayesian Prior Mapping (Custom)
 - Markov Transition Matrix Builder (Custom)
-- SSVC + Probabilistic Fusion Logic (Custom)  
+- SSVC + Probabilistic Fusion Logic (Custom)
 - SARIF-Based Non-CVE Vulnerability Handling (Custom)
 - Knowledge Graph Construction
 - LLM Explanation Engine
 """
 
-import asyncio
-import json
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import structlog
 
@@ -28,7 +26,6 @@ except ImportError:  # pragma: no cover - exercised in constrained envs
 
 # OSS Component Imports as per architecture
 try:  # pragma: no cover - optional dependency
-    import pgmpy
     from pgmpy.factors.discrete import TabularCPD
     from pgmpy.inference import VariableElimination
     from pgmpy.models import BayesianNetwork
@@ -38,7 +35,7 @@ except ImportError:  # pragma: no cover - exercised when pgmpy missing
     PGMPY_AVAILABLE = False
 
 try:  # pragma: no cover - optional dependency
-    import pomegranate as pom
+    pass
 
     POMEGRANATE_AVAILABLE = True
 except ImportError:  # pragma: no cover - exercised when pomegranate missing

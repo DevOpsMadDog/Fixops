@@ -22,13 +22,14 @@ import json
 import logging
 import os
 import time
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # In-memory backend (default, zero dependencies)
 # ---------------------------------------------------------------------------
+
 
 class _MemoryBackend:
     """Thread-safe in-memory cache with TTL eviction."""
@@ -76,9 +77,15 @@ class _MemoryBackend:
     async def stats(self) -> dict:
         async with self._lock:
             now = time.time()
-            live = sum(1 for _, (_, exp) in self._store.items() if not exp or now <= exp)
-            return {"backend": "memory", "total_keys": len(self._store), "live_keys": live,
-                    "max_size": self._max_size}
+            live = sum(
+                1 for _, (_, exp) in self._store.items() if not exp or now <= exp
+            )
+            return {
+                "backend": "memory",
+                "total_keys": len(self._store),
+                "live_keys": live,
+                "max_size": self._max_size,
+            }
 
     def _evict(self) -> None:
         """Evict expired entries, then LRU-style oldest 10%."""
@@ -96,6 +103,7 @@ class _MemoryBackend:
 # Redis backend (optional)
 # ---------------------------------------------------------------------------
 
+
 class _RedisBackend:
     """Redis-backed cache. Falls back to memory if Redis unavailable."""
 
@@ -110,6 +118,7 @@ class _RedisBackend:
             return
         try:
             import redis.asyncio as aioredis
+
             self._redis = aioredis.from_url(self._url, decode_responses=True)
             await self._redis.ping()
             self._connected = True
@@ -149,10 +158,10 @@ class _RedisBackend:
         return len(keys)
 
 
-
 # ---------------------------------------------------------------------------
 # CacheManager — singleton facade
 # ---------------------------------------------------------------------------
+
 
 class CacheManager:
     """Unified cache interface. Picks backend from FIXOPS_CACHE_URL env."""
@@ -194,6 +203,7 @@ cache_manager = CacheManager()
 # @cached decorator
 # ---------------------------------------------------------------------------
 
+
 def cached(ttl: int = 300, prefix: str = "default"):
     """Decorator to cache async function results.
 
@@ -201,11 +211,14 @@ def cached(ttl: int = 300, prefix: str = "default"):
         ttl: Time-to-live in seconds (default 5 min).
         prefix: Key prefix for grouping (enables pattern invalidation).
     """
+
     def decorator(fn: Callable) -> Callable:
         @functools.wraps(fn)
         async def wrapper(*args, **kwargs):
             # Build cache key from function name + args hash
-            key_data = f"{fn.__module__}.{fn.__qualname__}:{args}:{sorted(kwargs.items())}"
+            key_data = (
+                f"{fn.__module__}.{fn.__qualname__}:{args}:{sorted(kwargs.items())}"
+            )
             key_hash = hashlib.md5(key_data.encode()).hexdigest()[:12]
             cache_key = f"{prefix}:{fn.__name__}:{key_hash}"
 
@@ -219,5 +232,7 @@ def cached(ttl: int = 300, prefix: str = "default"):
             if result is not None:
                 await cache_manager.set(cache_key, result, ttl)
             return result
+
         return wrapper
+
     return decorator

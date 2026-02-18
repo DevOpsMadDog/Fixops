@@ -1,6 +1,5 @@
 import pytest
 from fastapi.testclient import TestClient
-
 from new_backend.api import create_app
 
 

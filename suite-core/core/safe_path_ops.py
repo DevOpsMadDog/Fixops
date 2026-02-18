@@ -47,8 +47,6 @@ if os.environ.get("FIXOPS_DEMO_MODE", "true").lower() == "true":
 class PathContainmentError(ValueError):
     """Raised when a path escapes the allowed base directory."""
 
-    pass
-
 
 def _is_under(child: str, parent: str) -> bool:
     """Check if child path is under parent path using startswith after normalization."""

@@ -6,13 +6,14 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-
 # ---------------------------------------------------------------------------
 # Enums
 # ---------------------------------------------------------------------------
 
+
 class AuthProvider(str, Enum):
     """Authentication provider types."""
+
     LOCAL = "local"
     SAML = "saml"
     OAUTH2 = "oauth2"
@@ -21,6 +22,7 @@ class AuthProvider(str, Enum):
 
 class SSOStatus(str, Enum):
     """SSO configuration status."""
+
     ACTIVE = "active"
     INACTIVE = "inactive"
     PENDING = "pending"
@@ -28,6 +30,7 @@ class SSOStatus(str, Enum):
 
 class UserRole(str, Enum):
     """Built-in user roles."""
+
     ADMIN = "admin"
     ANALYST = "analyst"
     VIEWER = "viewer"
@@ -36,6 +39,7 @@ class UserRole(str, Enum):
 
 class APIKeyScope(str, Enum):
     """Granular permission scopes for API keys."""
+
     READ_SBOM = "read:sbom"
     WRITE_SBOM = "write:sbom"
     READ_FINDINGS = "read:findings"
@@ -55,16 +59,24 @@ class APIKeyScope(str, Enum):
 ROLE_SCOPES: Dict[UserRole, List[str]] = {
     UserRole.ADMIN: [s.value for s in APIKeyScope],
     UserRole.ANALYST: [
-        APIKeyScope.READ_SBOM.value, APIKeyScope.WRITE_SBOM.value,
-        APIKeyScope.READ_FINDINGS.value, APIKeyScope.WRITE_FINDINGS.value,
-        APIKeyScope.READ_GRAPH.value, APIKeyScope.READ_FEEDS.value,
-        APIKeyScope.READ_EVIDENCE.value, APIKeyScope.WRITE_EVIDENCE.value,
-        APIKeyScope.READ_INTEGRATIONS.value, APIKeyScope.ATTACK_EXECUTE.value,
+        APIKeyScope.READ_SBOM.value,
+        APIKeyScope.WRITE_SBOM.value,
+        APIKeyScope.READ_FINDINGS.value,
+        APIKeyScope.WRITE_FINDINGS.value,
+        APIKeyScope.READ_GRAPH.value,
+        APIKeyScope.READ_FEEDS.value,
+        APIKeyScope.READ_EVIDENCE.value,
+        APIKeyScope.WRITE_EVIDENCE.value,
+        APIKeyScope.READ_INTEGRATIONS.value,
+        APIKeyScope.ATTACK_EXECUTE.value,
     ],
     UserRole.VIEWER: [
-        APIKeyScope.READ_SBOM.value, APIKeyScope.READ_FINDINGS.value,
-        APIKeyScope.READ_GRAPH.value, APIKeyScope.READ_FEEDS.value,
-        APIKeyScope.READ_EVIDENCE.value, APIKeyScope.READ_INTEGRATIONS.value,
+        APIKeyScope.READ_SBOM.value,
+        APIKeyScope.READ_FINDINGS.value,
+        APIKeyScope.READ_GRAPH.value,
+        APIKeyScope.READ_FEEDS.value,
+        APIKeyScope.READ_EVIDENCE.value,
+        APIKeyScope.READ_INTEGRATIONS.value,
     ],
     UserRole.SERVICE: [s.value for s in APIKeyScope],
 }
@@ -74,9 +86,11 @@ ROLE_SCOPES: Dict[UserRole, List[str]] = {
 # Data classes
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class SSOConfig:
     """SSO configuration record."""
+
     id: str
     name: str
     provider: AuthProvider
@@ -90,10 +104,14 @@ class SSOConfig:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "id": self.id, "name": self.name,
-            "provider": self.provider.value, "status": self.status.value,
-            "metadata": self.metadata, "entity_id": self.entity_id,
-            "sso_url": self.sso_url, "certificate": self.certificate,
+            "id": self.id,
+            "name": self.name,
+            "provider": self.provider.value,
+            "status": self.status.value,
+            "metadata": self.metadata,
+            "entity_id": self.entity_id,
+            "sso_url": self.sso_url,
+            "certificate": self.certificate,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
         }
@@ -102,6 +120,7 @@ class SSOConfig:
 @dataclass
 class SAMLAssertion:
     """SAML assertion record."""
+
     id: str
     user_id: str
     assertion_data: Dict[str, Any]
@@ -110,7 +129,8 @@ class SAMLAssertion:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "id": self.id, "user_id": self.user_id,
+            "id": self.id,
+            "user_id": self.user_id,
             "assertion_data": self.assertion_data,
             "issued_at": self.issued_at.isoformat(),
             "expires_at": self.expires_at.isoformat() if self.expires_at else None,
@@ -120,6 +140,7 @@ class SAMLAssertion:
 @dataclass
 class User:
     """Platform user."""
+
     id: str
     email: str
     name: str
@@ -132,8 +153,11 @@ class User:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "id": self.id, "email": self.email, "name": self.name,
-            "role": self.role.value, "is_active": self.is_active,
+            "id": self.id,
+            "email": self.email,
+            "name": self.name,
+            "role": self.role.value,
+            "is_active": self.is_active,
             "org_id": self.org_id,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
@@ -143,9 +167,10 @@ class User:
 @dataclass
 class APIKey:
     """Scoped API key."""
+
     id: str
-    key_prefix: str          # First 8 chars for identification
-    key_hash: str            # bcrypt hash of full key
+    key_prefix: str  # First 8 chars for identification
+    key_hash: str  # bcrypt hash of full key
     user_id: str
     name: str
     scopes: List[str] = field(default_factory=list)
@@ -156,10 +181,15 @@ class APIKey:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "id": self.id, "key_prefix": self.key_prefix, "name": self.name,
-            "user_id": self.user_id, "scopes": self.scopes,
+            "id": self.id,
+            "key_prefix": self.key_prefix,
+            "name": self.name,
+            "user_id": self.user_id,
+            "scopes": self.scopes,
             "is_active": self.is_active,
             "expires_at": self.expires_at.isoformat() if self.expires_at else None,
-            "last_used_at": self.last_used_at.isoformat() if self.last_used_at else None,
+            "last_used_at": self.last_used_at.isoformat()
+            if self.last_used_at
+            else None,
             "created_at": self.created_at.isoformat(),
         }

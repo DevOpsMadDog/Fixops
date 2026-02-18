@@ -33,8 +33,6 @@ T = TypeVar("T", bound="Base")
 class Base(DeclarativeBase):
     """Base class for all SQLAlchemy models."""
 
-    pass
-
 
 class AsyncSession(Protocol):
     """Protocol for async database sessions."""

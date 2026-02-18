@@ -5,16 +5,14 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 import yaml  # type: ignore[import]
+from core.paths import verify_allowlisted_path
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from core.paths import verify_allowlisted_path
-
 # Knowledge Brain + Event Bus integration (graceful degradation)
 try:
     from core.event_bus import Event, EventType, get_event_bus
-    from core.knowledge_brain import get_brain
 
     _HAS_BRAIN = True
 except ImportError:
@@ -92,9 +90,9 @@ async def evidence_stats(request: Request) -> dict[str, Any]:
 
     releases = []
     if manifest_dir.exists():
-        releases = [
-            p.stem for p in sorted(manifest_dir.glob("*.yaml"))
-        ] + [p.stem for p in sorted(manifest_dir.glob("*.yml"))]
+        releases = [p.stem for p in sorted(manifest_dir.glob("*.yaml"))] + [
+            p.stem for p in sorted(manifest_dir.glob("*.yml"))
+        ]
 
     total_bundles = 0
     if bundle_dir.exists():
@@ -371,12 +369,18 @@ async def verify_evidence(
     # Emit evidence collected event
     if _HAS_BRAIN:
         bus = get_event_bus()
-        await bus.emit(Event(
-            event_type=EventType.EVIDENCE_COLLECTED,
-            source="evidence_router",
-            data={"bundle_id": bundle_id, "verified": verified,
-                  "fingerprint": fingerprint, "signature_algorithm": signature_algorithm},
-        ))
+        await bus.emit(
+            Event(
+                event_type=EventType.EVIDENCE_COLLECTED,
+                source="evidence_router",
+                data={
+                    "bundle_id": bundle_id,
+                    "verified": verified,
+                    "fingerprint": fingerprint,
+                    "signature_algorithm": signature_algorithm,
+                },
+            )
+        )
 
     return result
 
@@ -419,11 +423,13 @@ async def collect_evidence(bundle_id: str, request: Request) -> dict[str, Any]:
 
     if _HAS_BRAIN:
         bus = get_event_bus()
-        await bus.emit(Event(
-            event_type=EventType.EVIDENCE_COLLECTED,
-            source="evidence_router",
-            data={"bundle_id": safe_id, "action": "collect"},
-        ))
+        await bus.emit(
+            Event(
+                event_type=EventType.EVIDENCE_COLLECTED,
+                source="evidence_router",
+                data={"bundle_id": safe_id, "action": "collect"},
+            )
+        )
 
     return {
         "bundle_id": safe_id,

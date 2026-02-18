@@ -3,10 +3,9 @@ import os
 import tempfile
 
 import pytest
-from fastapi.testclient import TestClient
-
 from apps.api.app import create_app
 from core.secrets_db import SecretsDB
+from fastapi.testclient import TestClient
 
 # Use the API token from environment or default (matches Docker image default)
 API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "demo-token-12345")

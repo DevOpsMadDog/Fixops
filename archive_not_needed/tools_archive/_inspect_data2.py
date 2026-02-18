@@ -11,7 +11,9 @@ m = d["scan_metadata"]
 print("=== ALL FINDINGS ===")
 for i, f in enumerate(d.get("findings", [])):
     ev_keys = list(f.get("evidence", {}).keys())
-    print(f"  [{i}] {f.get('vulnerability_type','?')} | {f.get('severity','?')} | {f.get('target','?')}")
+    print(
+        f"  [{i}] {f.get('vulnerability_type','?')} | {f.get('severity','?')} | {f.get('target','?')}"
+    )
     print(f"       title: {f.get('title','?')}")
     print(f"       evidence keys: {ev_keys}")
 
@@ -52,4 +54,3 @@ print("\n=== CVE IDS ===")
 print(d.get("cve_ids", []))
 print("\n=== TARGET URLS ===")
 print(d.get("target_urls", []))
-

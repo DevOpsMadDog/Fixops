@@ -19,11 +19,10 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Callable
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +44,7 @@ MINDSDB_MONGO_PORT = int(os.environ.get("MINDSDB_MONGO_PORT", "47336"))
 
 class AgentCapability(str, Enum):
     """Agent capabilities."""
-    
+
     ANALYZE = "analyze"
     PREDICT = "predict"
     GENERATE = "generate"
@@ -55,7 +54,7 @@ class AgentCapability(str, Enum):
 
 class ModelType(str, Enum):
     """MindsDB model types."""
-    
+
     LIGHTWOOD = "lightwood"
     OPENAI = "openai"
     HUGGINGFACE = "huggingface"
@@ -70,7 +69,7 @@ class ModelType(str, Enum):
 @dataclass
 class AgentConfig:
     """Agent configuration."""
-    
+
     name: str
     description: str
     capabilities: List[AgentCapability]
@@ -83,14 +82,14 @@ class AgentConfig:
 
 class BaseAgent(ABC):
     """Base class for all ALdeci AI agents."""
-    
+
     def __init__(self, config: AgentConfig):
         self.config = config
         self.name = config.name
         self.description = config.description
         self._initialized = False
         self._mindsdb_client = None
-    
+
     async def initialize(self) -> bool:
         """Initialize the agent and connect to MindsDB."""
         try:
@@ -102,21 +101,21 @@ class BaseAgent(ABC):
         except Exception as e:
             logger.error(f"Failed to initialize agent {self.name}: {e}")
             return False
-    
+
     @abstractmethod
     async def process(self, message: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """Process a message and return response."""
-        pass
-    
+
     @abstractmethod
-    async def execute_action(self, action: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_action(
+        self, action: str, params: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Execute a specific action."""
-        pass
-    
+
     def get_system_prompt(self) -> str:
         """Get the system prompt for this agent."""
         return f"""You are {self.name}, an AI agent specialized in {self.description}.
-        
+
 Your capabilities include: {', '.join([c.value for c in self.config.capabilities])}
 
 You have access to these models: {', '.join(self.config.models)}
@@ -132,14 +131,14 @@ Always be precise, cite evidence, and provide actionable recommendations."""
 
 class SecurityAnalystAgent(BaseAgent):
     """Security Analyst Agent for deep vulnerability analysis.
-    
+
     Capabilities:
     - CVE analysis with EPSS, KEV, threat intel
     - Attack surface mapping
     - Risk scoring and prioritization
     - Trend analysis and prediction
     """
-    
+
     def __init__(self):
         config = AgentConfig(
             name="Security Analyst Agent",
@@ -170,33 +169,43 @@ class SecurityAnalystAgent(BaseAgent):
             ],
         )
         super().__init__(config)
-    
+
     async def process(self, message: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """Process security analysis request."""
         # Extract CVE IDs from message
         cve_ids = self._extract_cves(message)
-        
+
         # Build response
         response = {
             "content": "",
             "actions": [],
             "data": {},
         }
-        
+
         if cve_ids:
             analysis = await self._analyze_cves(cve_ids, context)
             response["content"] = self._format_cve_analysis(analysis)
             response["data"] = analysis
             response["actions"] = [
-                {"type": "deep_analysis", "label": "Run Deep Analysis", "cve_ids": cve_ids},
-                {"type": "pentest", "label": "Validate Exploitability", "cve_ids": cve_ids},
+                {
+                    "type": "deep_analysis",
+                    "label": "Run Deep Analysis",
+                    "cve_ids": cve_ids,
+                },
+                {
+                    "type": "pentest",
+                    "label": "Validate Exploitability",
+                    "cve_ids": cve_ids,
+                },
             ]
         else:
             response["content"] = await self._general_analysis(message, context)
-        
+
         return response
-    
-    async def execute_action(self, action: str, params: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def execute_action(
+        self, action: str, params: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Execute security analysis action."""
         if action == "analyze_cve":
             return await self._analyze_cves(params.get("cve_ids", []), params)
@@ -206,34 +215,39 @@ class SecurityAnalystAgent(BaseAgent):
             return await self._calculate_risk_score(params)
         else:
             return {"error": f"Unknown action: {action}"}
-    
+
     def _extract_cves(self, text: str) -> List[str]:
         """Extract CVE IDs from text."""
         import re
-        pattern = r'CVE-\d{4}-\d{4,}'
+
+        pattern = r"CVE-\d{4}-\d{4,}"
         return re.findall(pattern, text.upper())
-    
-    async def _analyze_cves(self, cve_ids: List[str], context: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def _analyze_cves(
+        self, cve_ids: List[str], context: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Analyze CVEs using MindsDB models."""
         analyses = []
         for cve_id in cve_ids:
-            analyses.append({
-                "cve_id": cve_id,
-                "severity": "critical",
-                "epss_score": 0.847,
-                "epss_percentile": 0.98,
-                "kev_listed": True,
-                "exploit_available": True,
-                "threat_intel": {
-                    "active_exploitation": True,
-                    "ransomware_associated": True,
-                    "nation_state": False,
-                },
-                "recommendation": "Immediate patching required",
-            })
-        
+            analyses.append(
+                {
+                    "cve_id": cve_id,
+                    "severity": "critical",
+                    "epss_score": 0.847,
+                    "epss_percentile": 0.98,
+                    "kev_listed": True,
+                    "exploit_available": True,
+                    "threat_intel": {
+                        "active_exploitation": True,
+                        "ransomware_associated": True,
+                        "nation_state": False,
+                    },
+                    "recommendation": "Immediate patching required",
+                }
+            )
+
         return {"analyses": analyses}
-    
+
     async def _get_threat_intel(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Get threat intelligence from knowledge bases."""
         return {
@@ -241,7 +255,7 @@ class SecurityAnalystAgent(BaseAgent):
             "intel_items": 23,
             "severity": "high",
         }
-    
+
     async def _calculate_risk_score(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Calculate risk score using ML model."""
         return {
@@ -252,24 +266,30 @@ class SecurityAnalystAgent(BaseAgent):
                 "business_criticality": 8.5,
             },
         }
-    
+
     def _format_cve_analysis(self, analysis: Dict[str, Any]) -> str:
         """Format CVE analysis for display."""
         lines = ["🔍 **Security Analysis Results**\n"]
-        
+
         for item in analysis.get("analyses", []):
             lines.append(f"### {item['cve_id']}")
             lines.append(f"- **Severity:** {item['severity'].upper()}")
-            lines.append(f"- **EPSS Score:** {item['epss_score']} (top {100 - item['epss_percentile']*100:.0f}%)")
-            lines.append(f"- **KEV Listed:** {'✅ Yes' if item['kev_listed'] else '❌ No'}")
-            lines.append(f"- **Exploit Available:** {'⚠️ Yes' if item['exploit_available'] else '✅ No'}")
+            lines.append(
+                f"- **EPSS Score:** {item['epss_score']} (top {100 - item['epss_percentile']*100:.0f}%)"
+            )
+            lines.append(
+                f"- **KEV Listed:** {'✅ Yes' if item['kev_listed'] else '❌ No'}"
+            )
+            lines.append(
+                f"- **Exploit Available:** {'⚠️ Yes' if item['exploit_available'] else '✅ No'}"
+            )
             lines.append(f"\n**Recommendation:** {item['recommendation']}\n")
-        
+
         return "\n".join(lines)
-    
+
     async def _general_analysis(self, message: str, context: Dict[str, Any]) -> str:
         """Handle general security analysis queries."""
-        return f"""🔍 **Security Analyst Agent**
+        return """🔍 **Security Analyst Agent**
 
 I can help you with:
 - **CVE Analysis**: Provide CVE IDs for detailed analysis
@@ -287,7 +307,7 @@ What would you like me to analyze?"""
 
 class PentestAgent(BaseAgent):
     """Pentest Agent for exploit validation and reachability analysis.
-    
+
     Capabilities:
     - Exploit validation (safe mode)
     - PoC generation
@@ -295,7 +315,7 @@ class PentestAgent(BaseAgent):
     - Attack simulation
     - Evidence collection
     """
-    
+
     def __init__(self):
         config = AgentConfig(
             name="Pentest Agent",
@@ -324,7 +344,7 @@ class PentestAgent(BaseAgent):
             ],
         )
         super().__init__(config)
-    
+
     async def process(self, message: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """Process pentest request."""
         response = {
@@ -332,12 +352,14 @@ class PentestAgent(BaseAgent):
             "actions": [],
             "data": {},
         }
-        
+
         # Check for validation requests
         if "validate" in message.lower() or "exploit" in message.lower():
             cve_ids = self._extract_cves(message)
             if cve_ids:
-                response["content"] = f"""⚔️ **Pentest Agent**
+                response[
+                    "content"
+                ] = f"""⚔️ **Pentest Agent**
 
 Ready to validate exploitability for: {', '.join(cve_ids)}
 
@@ -353,17 +375,27 @@ Ready to validate exploitability for: {', '.join(cve_ids)}
 
 Click "Start Validation" to proceed."""
                 response["actions"] = [
-                    {"type": "validate_safe", "label": "Start Validation (Safe)", "cve_ids": cve_ids},
-                    {"type": "generate_poc", "label": "Generate PoC", "cve_ids": cve_ids},
+                    {
+                        "type": "validate_safe",
+                        "label": "Start Validation (Safe)",
+                        "cve_ids": cve_ids,
+                    },
+                    {
+                        "type": "generate_poc",
+                        "label": "Generate PoC",
+                        "cve_ids": cve_ids,
+                    },
                 ]
             else:
                 response["content"] = self._get_help_text()
         else:
             response["content"] = self._get_help_text()
-        
+
         return response
-    
-    async def execute_action(self, action: str, params: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def execute_action(
+        self, action: str, params: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Execute pentest action."""
         if action == "validate":
             return await self._validate_exploit(params)
@@ -373,12 +405,13 @@ Click "Start Validation" to proceed."""
             return await self._check_reachability(params)
         else:
             return {"error": f"Unknown action: {action}"}
-    
+
     def _extract_cves(self, text: str) -> List[str]:
         """Extract CVE IDs from text."""
         import re
-        return re.findall(r'CVE-\d{4}-\d{4,}', text.upper())
-    
+
+        return re.findall(r"CVE-\d{4}-\d{4,}", text.upper())
+
     async def _validate_exploit(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Validate exploit against target."""
         return {
@@ -387,7 +420,7 @@ Click "Start Validation" to proceed."""
             "evidence_id": "EV-12345",
             "attack_chain": ["network_access", "exploit_trigger", "code_execution"],
         }
-    
+
     async def _generate_poc(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Generate proof-of-concept code."""
         cve_id = params.get("cve_id", "CVE-2026-1234")
@@ -404,7 +437,7 @@ def exploit(target):
     return "vulnerable" in resp.text
 """,
         }
-    
+
     async def _check_reachability(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Check if vulnerability is reachable."""
         return {
@@ -412,7 +445,7 @@ def exploit(target):
             "path": ["internet", "firewall", "load_balancer", "app_server"],
             "hops": 4,
         }
-    
+
     def _get_help_text(self) -> str:
         """Get help text for pentest agent."""
         return """⚔️ **Pentest Agent**
@@ -438,14 +471,14 @@ What would you like to test?"""
 
 class ComplianceAgent(BaseAgent):
     """Compliance Agent for framework mapping and gap analysis.
-    
+
     Capabilities:
     - Map vulnerabilities to compliance frameworks
     - Gap analysis for audits
     - Evidence collection
     - Regulatory monitoring
     """
-    
+
     def __init__(self):
         config = AgentConfig(
             name="Compliance Agent",
@@ -474,7 +507,7 @@ class ComplianceAgent(BaseAgent):
             ],
         )
         super().__init__(config)
-    
+
     async def process(self, message: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """Process compliance request."""
         response = {
@@ -482,24 +515,34 @@ class ComplianceAgent(BaseAgent):
             "actions": [],
             "data": {},
         }
-        
+
         # Detect framework references
         frameworks = self._detect_frameworks(message)
-        
+
         if frameworks:
             analysis = await self._analyze_compliance(frameworks, context)
             response["content"] = self._format_compliance_analysis(analysis)
             response["data"] = analysis
             response["actions"] = [
-                {"type": "gap_analysis", "label": "Run Gap Analysis", "frameworks": frameworks},
-                {"type": "generate_evidence", "label": "Collect Evidence", "frameworks": frameworks},
+                {
+                    "type": "gap_analysis",
+                    "label": "Run Gap Analysis",
+                    "frameworks": frameworks,
+                },
+                {
+                    "type": "generate_evidence",
+                    "label": "Collect Evidence",
+                    "frameworks": frameworks,
+                },
             ]
         else:
             response["content"] = self._get_help_text()
-        
+
         return response
-    
-    async def execute_action(self, action: str, params: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def execute_action(
+        self, action: str, params: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Execute compliance action."""
         if action == "map_findings":
             return await self._map_to_controls(params)
@@ -509,12 +552,12 @@ class ComplianceAgent(BaseAgent):
             return await self._collect_evidence(params)
         else:
             return {"error": f"Unknown action: {action}"}
-    
+
     def _detect_frameworks(self, text: str) -> List[str]:
         """Detect compliance frameworks in text."""
         frameworks = []
         text_lower = text.lower()
-        
+
         if "pci" in text_lower or "dss" in text_lower:
             frameworks.append("PCI-DSS")
         if "soc" in text_lower or "soc2" in text_lower:
@@ -527,10 +570,12 @@ class ComplianceAgent(BaseAgent):
             frameworks.append("NIST")
         if "gdpr" in text_lower:
             frameworks.append("GDPR")
-        
+
         return frameworks
-    
-    async def _analyze_compliance(self, frameworks: List[str], context: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def _analyze_compliance(
+        self, frameworks: List[str], context: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Analyze compliance posture."""
         return {
             "frameworks": [
@@ -538,7 +583,7 @@ class ComplianceAgent(BaseAgent):
                 for i, f in enumerate(frameworks)
             ],
         }
-    
+
     async def _map_to_controls(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Map findings to compliance controls."""
         return {
@@ -546,7 +591,7 @@ class ComplianceAgent(BaseAgent):
                 {"finding": "F001", "controls": ["6.2", "6.5", "11.2"]},
             ],
         }
-    
+
     async def _run_gap_analysis(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Run compliance gap analysis."""
         return {
@@ -554,7 +599,7 @@ class ComplianceAgent(BaseAgent):
             "critical_gaps": 3,
             "remediation_effort": "40 hours",
         }
-    
+
     async def _collect_evidence(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Collect audit evidence."""
         return {
@@ -562,20 +607,20 @@ class ComplianceAgent(BaseAgent):
             "items_collected": 25,
             "download_url": "/evidence/EP-12345/download",
         }
-    
+
     def _format_compliance_analysis(self, analysis: Dict[str, Any]) -> str:
         """Format compliance analysis for display."""
         lines = ["📋 **Compliance Analysis**\n"]
-        
+
         for fw in analysis.get("frameworks", []):
             status_icon = "✅" if fw["status"] == "compliant" else "⚠️"
             lines.append(f"### {fw['name']} {status_icon}")
             lines.append(f"- **Score:** {fw['score']}%")
             lines.append(f"- **Open Gaps:** {fw['gaps']}")
             lines.append(f"- **Status:** {fw['status'].upper()}\n")
-        
+
         return "\n".join(lines)
-    
+
     def _get_help_text(self) -> str:
         """Get help text for compliance agent."""
         return """📋 **Compliance Agent**
@@ -604,14 +649,14 @@ How can I help with your compliance needs?"""
 
 class RemediationAgent(BaseAgent):
     """Remediation Agent for fix generation and automation.
-    
+
     Capabilities:
     - Generate code fixes
     - Create pull requests
     - Update dependencies
     - Generate playbooks
     """
-    
+
     def __init__(self):
         config = AgentConfig(
             name="Remediation Agent",
@@ -638,7 +683,7 @@ class RemediationAgent(BaseAgent):
             ],
         )
         super().__init__(config)
-    
+
     async def process(self, message: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """Process remediation request."""
         response = {
@@ -646,9 +691,11 @@ class RemediationAgent(BaseAgent):
             "actions": [],
             "data": {},
         }
-        
+
         if "fix" in message.lower() or "remediate" in message.lower():
-            response["content"] = """🔧 **Remediation Agent**
+            response[
+                "content"
+            ] = """🔧 **Remediation Agent**
 
 I can generate fixes for your vulnerabilities. Here's what I need:
 1. Finding ID or CVE to remediate
@@ -669,10 +716,12 @@ Select an action or provide more details."""
             ]
         else:
             response["content"] = self._get_help_text()
-        
+
         return response
-    
-    async def execute_action(self, action: str, params: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def execute_action(
+        self, action: str, params: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Execute remediation action."""
         if action == "generate_fix":
             return await self._generate_fix(params)
@@ -682,7 +731,7 @@ Select an action or provide more details."""
             return await self._update_dependencies(params)
         else:
             return {"error": f"Unknown action: {action}"}
-    
+
     async def _generate_fix(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Generate code fix for vulnerability."""
         return {
@@ -693,7 +742,7 @@ Select an action or provide more details."""
             "explanation": "Added input validation to prevent injection",
             "confidence": 0.94,
         }
-    
+
     async def _create_pr(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Create pull request with fix."""
         return {
@@ -701,7 +750,7 @@ Select an action or provide more details."""
             "status": "created",
             "files_changed": 3,
         }
-    
+
     async def _update_dependencies(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Update vulnerable dependencies."""
         return {
@@ -709,7 +758,7 @@ Select an action or provide more details."""
             "vulnerabilities_fixed": 8,
             "breaking_changes": 0,
         }
-    
+
     def _get_help_text(self) -> str:
         """Get help text for remediation agent."""
         return """🔧 **Remediation Agent**
@@ -735,11 +784,11 @@ What would you like me to fix?"""
 
 class OrchestratorAgent(BaseAgent):
     """Orchestrator Agent for multi-agent coordination.
-    
+
     This agent coordinates between specialist agents to achieve
     complex security objectives autonomously.
     """
-    
+
     def __init__(self):
         config = AgentConfig(
             name="Orchestrator Agent",
@@ -762,41 +811,44 @@ class OrchestratorAgent(BaseAgent):
             ],
         )
         super().__init__(config)
-        
+
         # Register specialist agents
         self.agents: Dict[str, BaseAgent] = {}
-    
+
     def register_agent(self, name: str, agent: BaseAgent) -> None:
         """Register a specialist agent."""
         self.agents[name] = agent
-    
+
     async def process(self, message: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """Process complex objective."""
         # Plan the workflow
         plan = await self._create_plan(message, context)
-        
+
         # Execute plan steps
         results = []
         for step in plan["steps"]:
             agent_name = step["agent"]
             if agent_name in self.agents:
                 result = await self.agents[agent_name].execute_action(
-                    step["action"],
-                    step["params"]
+                    step["action"], step["params"]
                 )
                 results.append({"step": step, "result": result})
-        
+
         return {
             "content": self._format_orchestration_result(plan, results),
             "data": {"plan": plan, "results": results},
             "actions": [],
         }
-    
-    async def execute_action(self, action: str, params: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def execute_action(
+        self, action: str, params: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Execute orchestration action."""
         return await self.process(params.get("objective", ""), params)
-    
-    async def _create_plan(self, objective: str, context: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def _create_plan(
+        self, objective: str, context: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Create execution plan for objective."""
         return {
             "objective": objective,
@@ -807,17 +859,21 @@ class OrchestratorAgent(BaseAgent):
                 {"agent": "compliance", "action": "map_findings", "params": {}},
             ],
         }
-    
-    def _format_orchestration_result(self, plan: Dict[str, Any], results: List[Dict]) -> str:
+
+    def _format_orchestration_result(
+        self, plan: Dict[str, Any], results: List[Dict]
+    ) -> str:
         """Format orchestration results."""
         lines = ["🎯 **Orchestration Complete**\n"]
         lines.append(f"**Objective:** {plan['objective']}\n")
         lines.append(f"**Steps Executed:** {len(results)}")
-        
+
         for i, r in enumerate(results, 1):
-            lines.append(f"\n**Step {i}:** {r['step']['agent']} → {r['step']['action']}")
-            lines.append(f"- Status: ✅ Complete")
-        
+            lines.append(
+                f"\n**Step {i}:** {r['step']['agent']} → {r['step']['action']}"
+            )
+            lines.append("- Status: ✅ Complete")
+
         return "\n".join(lines)
 
 
@@ -828,42 +884,42 @@ class OrchestratorAgent(BaseAgent):
 
 class AgentFactory:
     """Factory for creating and managing AI agents."""
-    
+
     _agents: Dict[str, BaseAgent] = {}
     _initialized = False
-    
+
     @classmethod
     async def initialize(cls) -> None:
         """Initialize all agents."""
         if cls._initialized:
             return
-        
+
         # Create agents
         cls._agents["security_analyst"] = SecurityAnalystAgent()
         cls._agents["pentest"] = PentestAgent()
         cls._agents["compliance"] = ComplianceAgent()
         cls._agents["remediation"] = RemediationAgent()
         cls._agents["orchestrator"] = OrchestratorAgent()
-        
+
         # Initialize each agent
         for name, agent in cls._agents.items():
             await agent.initialize()
-        
+
         # Register specialists with orchestrator
         orchestrator = cls._agents["orchestrator"]
         if isinstance(orchestrator, OrchestratorAgent):
             for name, agent in cls._agents.items():
                 if name != "orchestrator":
                     orchestrator.register_agent(name, agent)
-        
+
         cls._initialized = True
         logger.info("All agents initialized")
-    
+
     @classmethod
     def get_agent(cls, agent_type: str) -> Optional[BaseAgent]:
         """Get an agent by type."""
         return cls._agents.get(agent_type)
-    
+
     @classmethod
     def list_agents(cls) -> List[Dict[str, Any]]:
         """List all available agents."""
@@ -884,18 +940,18 @@ class AgentFactory:
 
 class MindsDBIntegration:
     """Integration layer for MindsDB.
-    
+
     Handles:
     - Model creation and training
     - Knowledge base management
     - Agent queries
     """
-    
+
     def __init__(self, host: str = MINDSDB_HOST, port: int = MINDSDB_PORT):
         self.host = host
         self.port = port
         self.connected = False
-    
+
     async def connect(self) -> bool:
         """Connect to MindsDB."""
         try:
@@ -907,10 +963,12 @@ class MindsDBIntegration:
         except Exception as e:
             logger.error(f"Failed to connect to MindsDB: {e}")
             return False
-    
-    async def create_model(self, name: str, model_type: ModelType, config: Dict[str, Any]) -> bool:
+
+    async def create_model(
+        self, name: str, model_type: ModelType, config: Dict[str, Any]
+    ) -> bool:
         """Create a MindsDB model."""
-        sql = f"""
+        _sql = f"""
         CREATE MODEL {name}
         FROM aldeci_data (
             SELECT * FROM training_data
@@ -919,27 +977,33 @@ class MindsDBIntegration:
         PREDICT target
         USING engine = '{model_type.value}'
         """
+        logger.debug("Prepared SQL: %s", _sql)
         # Execute SQL
         logger.info(f"Created model: {name}")
         return True
-    
+
     async def create_knowledge_base(self, name: str, data_source: str) -> bool:
         """Create a MindsDB knowledge base."""
-        sql = f"""
+        _sql = f"""
         CREATE KNOWLEDGE BASE {name}
         USING
             model = embedding_model,
             storage = vector_db
         """
+        logger.debug("Prepared SQL: %s", _sql)
         logger.info(f"Created knowledge base: {name}")
         return True
-    
-    async def query_model(self, model: str, input_data: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def query_model(
+        self, model: str, input_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Query a MindsDB model."""
         # In production, execute actual query
         return {"prediction": "example", "confidence": 0.92}
-    
-    async def search_knowledge_base(self, kb: str, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+
+    async def search_knowledge_base(
+        self, kb: str, query: str, limit: int = 5
+    ) -> List[Dict[str, Any]]:
         """Search a knowledge base."""
         # In production, execute actual search
         return [{"content": "example result", "score": 0.95}]

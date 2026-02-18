@@ -17,7 +17,7 @@ import re
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 class FixType(Enum):
     """Types of automated fixes."""
+
     CODE_PATCH = "code_patch"
     DEPENDENCY_UPDATE = "dependency_update"
     CONFIG_HARDENING = "config_hardening"
@@ -43,6 +44,7 @@ class FixType(Enum):
 
 class FixStatus(Enum):
     """Status of an autofix suggestion."""
+
     GENERATED = "generated"
     VALIDATED = "validated"
     APPLIED = "applied"
@@ -55,13 +57,15 @@ class FixStatus(Enum):
 
 class FixConfidence(Enum):
     """Confidence level of a fix."""
-    HIGH = "high"        # >85% — safe to auto-apply
-    MEDIUM = "medium"    # 60-85% — needs review
-    LOW = "low"          # <60% — manual review required
+
+    HIGH = "high"  # >85% — safe to auto-apply
+    MEDIUM = "medium"  # 60-85% — needs review
+    LOW = "low"  # <60% — manual review required
 
 
 class PatchFormat(Enum):
     """Format of the generated patch."""
+
     UNIFIED_DIFF = "unified_diff"
     JSON_PATCH = "json_patch"
     YAML_PATCH = "yaml_patch"
@@ -80,6 +84,7 @@ class PatchFormat(Enum):
 @dataclass
 class CodePatch:
     """A single code change within a fix."""
+
     file_path: str = ""
     language: str = ""
     old_code: str = ""
@@ -94,18 +99,20 @@ class CodePatch:
 @dataclass
 class DependencyFix:
     """A dependency version update."""
+
     package_name: str = ""
-    ecosystem: str = ""          # npm, pip, maven, gradle, cargo, go
+    ecosystem: str = ""  # npm, pip, maven, gradle, cargo, go
     current_version: str = ""
     fixed_version: str = ""
     cve_ids: List[str] = field(default_factory=list)
     breaking_changes: List[str] = field(default_factory=list)
-    manifest_file: str = ""      # package.json, requirements.txt, etc.
+    manifest_file: str = ""  # package.json, requirements.txt, etc.
 
 
 @dataclass
 class AutoFixSuggestion:
     """A complete autofix suggestion for a vulnerability."""
+
     fix_id: str = ""
     finding_id: str = ""
     finding_title: str = ""
@@ -138,6 +145,7 @@ class AutoFixSuggestion:
 @dataclass
 class AutoFixResult:
     """Result of an autofix operation."""
+
     success: bool = False
     fix: Optional[AutoFixSuggestion] = None
     pr_url: str = ""
@@ -189,24 +197,28 @@ class AutoFixEngine:
     def _get_llm(self) -> Any:
         if self._llm is None:
             from core.llm_providers import LLMProviderManager
+
             self._llm = LLMProviderManager()
         return self._llm
 
     def _get_brain(self) -> Any:
         if self._brain is None:
             from core.knowledge_brain import get_brain
+
             self._brain = get_brain()
         return self._brain
 
     def _get_bus(self) -> Any:
         if self._bus is None:
             from core.event_bus import get_event_bus
+
             self._bus = get_event_bus()
         return self._bus
 
     def _get_pr_generator(self) -> Any:
         if self._pr_gen is None:
             from automation.pr_generator import PRGenerator
+
             self._pr_gen = PRGenerator()
         return self._pr_gen
 
@@ -218,8 +230,6 @@ class AutoFixEngine:
     def _make_fix_id(finding_id: str, fix_type: FixType) -> str:
         raw = f"{finding_id}-{fix_type.value}-{datetime.now(timezone.utc).isoformat()}"
         return f"fix-{hashlib.sha256(raw.encode()).hexdigest()[:16]}"
-
-
 
     # ------------------------------------------------------------------
     # MAIN: generate_fix
@@ -243,16 +253,20 @@ class AutoFixEngine:
             AutoFixSuggestion with code patches, dependency fixes, etc.
         """
         finding_id = finding.get("id", "unknown")
-        finding_title = finding.get("title", finding.get("name", "Unknown Vulnerability"))
-        cwe_id = finding.get("cwe_id", "")
-        severity = finding.get("severity", "medium").lower()
+        finding_title = finding.get(
+            "title", finding.get("name", "Unknown Vulnerability")
+        )
+        finding.get("cwe_id", "")
+        finding.get("severity", "medium").lower()
         cve_ids = finding.get("cve_ids", [])
 
         # Determine fix type from the finding
         fix_type = self._infer_fix_type(finding)
         fix_id = self._make_fix_id(finding_id, fix_type)
 
-        logger.info(f"[AutoFix] Generating {fix_type.value} fix for {finding_id} ({finding_title})")
+        logger.info(
+            f"[AutoFix] Generating {fix_type.value} fix for {finding_id} ({finding_title})"
+        )
 
         # Enrich context from Knowledge Graph
         graph_context = self._enrich_from_graph(finding_id, cve_ids)
@@ -268,13 +282,21 @@ class AutoFixEngine:
 
         try:
             if fix_type == FixType.DEPENDENCY_UPDATE:
-                suggestion = await self._generate_dependency_fix(suggestion, finding, repo_context or {})
+                suggestion = await self._generate_dependency_fix(
+                    suggestion, finding, repo_context or {}
+                )
             elif fix_type == FixType.CONFIG_HARDENING:
-                suggestion = await self._generate_config_fix(suggestion, finding, repo_context or {})
+                suggestion = await self._generate_config_fix(
+                    suggestion, finding, repo_context or {}
+                )
             elif fix_type == FixType.IAC_FIX:
-                suggestion = await self._generate_iac_fix(suggestion, finding, source_code, repo_context or {})
+                suggestion = await self._generate_iac_fix(
+                    suggestion, finding, source_code, repo_context or {}
+                )
             elif fix_type == FixType.CONTAINER_FIX:
-                suggestion = await self._generate_container_fix(suggestion, finding, source_code, repo_context or {})
+                suggestion = await self._generate_container_fix(
+                    suggestion, finding, source_code, repo_context or {}
+                )
             else:
                 suggestion = await self._generate_code_patch(
                     suggestion, finding, source_code, repo_context or {}, graph_context
@@ -307,22 +329,36 @@ class AutoFixEngine:
         # Store and track
         self._fixes[fix_id] = suggestion
         self._update_stats(suggestion)
-        self._history.append({
-            "action": "generate", "fix_id": fix_id,
-            "finding_id": finding_id, "fix_type": fix_type.value,
-            "status": suggestion.status.value,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        self._history.append(
+            {
+                "action": "generate",
+                "fix_id": fix_id,
+                "finding_id": finding_id,
+                "fix_type": fix_type.value,
+                "status": suggestion.status.value,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
         # Emit event
         try:
-            from core.event_bus import EventType, Event
             import asyncio
-            asyncio.ensure_future(self._get_bus().emit(Event(
-                event_type=EventType.AUTOFIX_GENERATED,
-                source="autofix_engine",
-                data={"fix_id": fix_id, "finding_id": finding_id, "fix_type": fix_type.value},
-            )))
+
+            from core.event_bus import Event, EventType
+
+            asyncio.ensure_future(
+                self._get_bus().emit(
+                    Event(
+                        event_type=EventType.AUTOFIX_GENERATED,
+                        source="autofix_engine",
+                        data={
+                            "fix_id": fix_id,
+                            "finding_id": finding_id,
+                            "fix_type": fix_type.value,
+                        },
+                    )
+                )
+            )
         except Exception:
             pass
 
@@ -335,45 +371,72 @@ class AutoFixEngine:
     @staticmethod
     def _infer_fix_type(finding: Dict[str, Any]) -> FixType:
         """Infer the best fix type from the finding metadata."""
-        title = (finding.get("title", "") + " " + finding.get("description", "")).lower()
+        title = (
+            finding.get("title", "") + " " + finding.get("description", "")
+        ).lower()
         category = finding.get("category", "").lower()
         file_path = finding.get("file_path", "").lower()
 
         # Dependency-related
-        if any(kw in title for kw in ("outdated", "dependency", "package", "library", "component")):
+        if any(
+            kw in title
+            for kw in ("outdated", "dependency", "package", "library", "component")
+        ):
             return FixType.DEPENDENCY_UPDATE
         if finding.get("cve_ids") and "dependency" in category:
             return FixType.DEPENDENCY_UPDATE
 
         # IaC
-        if any(kw in file_path for kw in (".tf", "terraform", "cloudformation", ".yaml", "helm")):
-            if any(kw in title for kw in ("misconfigur", "iac", "infrastructure", "cloud")):
+        if any(
+            kw in file_path
+            for kw in (".tf", "terraform", "cloudformation", ".yaml", "helm")
+        ):
+            if any(
+                kw in title for kw in ("misconfigur", "iac", "infrastructure", "cloud")
+            ):
                 return FixType.IAC_FIX
 
         # Container
-        if any(kw in file_path for kw in ("dockerfile", "docker-compose", "containerfile")):
+        if any(
+            kw in file_path for kw in ("dockerfile", "docker-compose", "containerfile")
+        ):
             return FixType.CONTAINER_FIX
         if "container" in title or "docker" in title:
             return FixType.CONTAINER_FIX
 
         # Configuration
-        if any(kw in title for kw in ("config", "header", "cors", "tls", "ssl", "hsts", "csp")):
+        if any(
+            kw in title
+            for kw in ("config", "header", "cors", "tls", "ssl", "hsts", "csp")
+        ):
             return FixType.CONFIG_HARDENING
 
         # Secret
-        if any(kw in title for kw in ("secret", "credential", "api key", "password", "token leak")):
+        if any(
+            kw in title
+            for kw in ("secret", "credential", "api key", "password", "token leak")
+        ):
             return FixType.SECRET_ROTATION
 
         # Permission
-        if any(kw in title for kw in ("permission", "privilege", "authorization", "rbac", "iam")):
+        if any(
+            kw in title
+            for kw in ("permission", "privilege", "authorization", "rbac", "iam")
+        ):
             return FixType.PERMISSION_FIX
 
         # Input validation
-        if any(kw in title for kw in ("injection", "sqli", "xss", "command injection", "input")):
+        if any(
+            kw in title
+            for kw in ("injection", "sqli", "xss", "command injection", "input")
+        ):
             return FixType.INPUT_VALIDATION
 
         # Output encoding
-        if any(kw in title for kw in ("xss", "cross-site scripting", "output encoding", "html inject")):
+        if any(
+            kw in title
+            for kw in ("xss", "cross-site scripting", "output encoding", "html inject")
+        ):
             return FixType.OUTPUT_ENCODING
 
         # WAF
@@ -388,7 +451,11 @@ class AutoFixEngine:
 
     def _enrich_from_graph(self, finding_id: str, cve_ids: List[str]) -> Dict[str, Any]:
         """Pull extra context from the Knowledge Graph."""
-        ctx: Dict[str, Any] = {"related_cves": [], "affected_assets": [], "prior_fixes": []}
+        ctx: Dict[str, Any] = {
+            "related_cves": [],
+            "affected_assets": [],
+            "prior_fixes": [],
+        }
         try:
             brain = self._get_brain()
             # Get finding node and neighbors
@@ -423,7 +490,9 @@ class AutoFixEngine:
         framework = repo_ctx.get("framework", "")
         file_path = finding.get("file_path", "unknown")
 
-        code_snippet = source_code or finding.get("code_snippet", "# no source provided")
+        code_snippet = source_code or finding.get(
+            "code_snippet", "# no source provided"
+        )
 
         prompt = f"""You are a senior security engineer. Generate a precise code fix for this vulnerability.
 
@@ -478,20 +547,30 @@ Provide ONLY valid JSON. The fix must be precise, minimal, and production-ready.
         try:
             raw = response.reasoning
             # Try to extract JSON from the response
-            json_match = re.search(r'\{[\s\S]*\}', raw)
+            json_match = re.search(r"\{[\s\S]*\}", raw)
             if json_match:
                 data = json.loads(json_match.group())
             else:
                 data = json.loads(raw)
 
-            suggestion.title = data.get("title", f"Fix {finding.get('title', 'vulnerability')}")
+            suggestion.title = data.get(
+                "title", f"Fix {finding.get('title', 'vulnerability')}"
+            )
             suggestion.description = data.get("description", response.reasoning[:500])
-            suggestion.testing_guidance = data.get("testing_guidance", "Run security tests to verify fix")
+            suggestion.testing_guidance = data.get(
+                "testing_guidance", "Run security tests to verify fix"
+            )
             suggestion.rollback_steps = data.get("rollback_steps", "Revert the commit")
-            suggestion.risk_assessment = data.get("risk_assessment", "Low risk — minimal code change")
+            suggestion.risk_assessment = data.get(
+                "risk_assessment", "Low risk — minimal code change"
+            )
             suggestion.effort_minutes = data.get("effort_minutes", 15)
-            suggestion.mitre_techniques = data.get("mitre_techniques", list(response.mitre_techniques))
-            suggestion.compliance_frameworks = data.get("compliance", list(response.compliance_concerns))
+            suggestion.mitre_techniques = data.get(
+                "mitre_techniques", list(response.mitre_techniques)
+            )
+            suggestion.compliance_frameworks = data.get(
+                "compliance", list(response.compliance_concerns)
+            )
 
             for patch_data in data.get("patches", []):
                 patch = CodePatch(
@@ -509,7 +588,9 @@ Provide ONLY valid JSON. The fix must be precise, minimal, and production-ready.
                 suggestion.code_patches.append(patch)
 
         except (json.JSONDecodeError, KeyError) as exc:
-            logger.warning(f"[AutoFix] LLM response parse failed, using fallback: {exc}")
+            logger.warning(
+                f"[AutoFix] LLM response parse failed, using fallback: {exc}"
+            )
             suggestion.title = f"Fix {finding.get('title', 'vulnerability')}"
             suggestion.description = response.reasoning[:500]
             suggestion.testing_guidance = "Manual review required — LLM parse failed"
@@ -522,7 +603,10 @@ Provide ONLY valid JSON. The fix must be precise, minimal, and production-ready.
     # ------------------------------------------------------------------
 
     async def _generate_dependency_fix(
-        self, suggestion: AutoFixSuggestion, finding: Dict[str, Any], repo_ctx: Dict[str, Any],
+        self,
+        suggestion: AutoFixSuggestion,
+        finding: Dict[str, Any],
+        repo_ctx: Dict[str, Any],
     ) -> AutoFixSuggestion:
         """Generate a dependency version update fix."""
         pkg = finding.get("package_name", finding.get("component", "unknown"))
@@ -559,9 +643,13 @@ Provide ONLY valid JSON. The fix must be precise, minimal, and production-ready.
             f"Security update for {pkg}: {current} → {fixed or 'latest'}. "
             f"Fixes: {', '.join(finding.get('cve_ids', [])) or 'security vulnerability'}."
         )
-        suggestion.testing_guidance = f"Run tests after updating {pkg}. Check for breaking changes."
+        suggestion.testing_guidance = (
+            f"Run tests after updating {pkg}. Check for breaking changes."
+        )
         suggestion.rollback_steps = f"Revert {manifest} to {pkg}@{current}"
-        suggestion.risk_assessment = "Medium — dependency updates may introduce breaking changes"
+        suggestion.risk_assessment = (
+            "Medium — dependency updates may introduce breaking changes"
+        )
         suggestion.effort_minutes = 10
         return suggestion
 
@@ -570,7 +658,10 @@ Provide ONLY valid JSON. The fix must be precise, minimal, and production-ready.
     # ------------------------------------------------------------------
 
     async def _generate_config_fix(
-        self, suggestion: AutoFixSuggestion, finding: Dict[str, Any], repo_ctx: Dict[str, Any],
+        self,
+        suggestion: AutoFixSuggestion,
+        finding: Dict[str, Any],
+        repo_ctx: Dict[str, Any],
     ) -> AutoFixSuggestion:
         """Generate configuration hardening fix via LLM."""
         llm = self._get_llm()
@@ -589,15 +680,21 @@ Provide JSON: {{"config_changes": {{"key": "value"}}, "title": "...", "descripti
         )
 
         try:
-            m = re.search(r'\{[\s\S]*\}', resp.reasoning)
+            m = re.search(r"\{[\s\S]*\}", resp.reasoning)
             data = json.loads(m.group()) if m else {}
         except Exception:
             data = {}
 
-        suggestion.config_changes = data.get("config_changes", {"security_hardening": True})
-        suggestion.title = data.get("title", f"Harden config: {finding.get('title', '')}")
+        suggestion.config_changes = data.get(
+            "config_changes", {"security_hardening": True}
+        )
+        suggestion.title = data.get(
+            "title", f"Harden config: {finding.get('title', '')}"
+        )
         suggestion.description = data.get("description", resp.reasoning[:500])
-        suggestion.testing_guidance = data.get("testing_guidance", "Verify configuration changes")
+        suggestion.testing_guidance = data.get(
+            "testing_guidance", "Verify configuration changes"
+        )
         suggestion.risk_assessment = data.get("risk_assessment", "Low risk")
         suggestion.effort_minutes = 10
         return suggestion
@@ -607,8 +704,11 @@ Provide JSON: {{"config_changes": {{"key": "value"}}, "title": "...", "descripti
     # ------------------------------------------------------------------
 
     async def _generate_iac_fix(
-        self, suggestion: AutoFixSuggestion, finding: Dict[str, Any],
-        source_code: Optional[str], repo_ctx: Dict[str, Any],
+        self,
+        suggestion: AutoFixSuggestion,
+        finding: Dict[str, Any],
+        source_code: Optional[str],
+        repo_ctx: Dict[str, Any],
     ) -> AutoFixSuggestion:
         """Generate infrastructure-as-code fix."""
         file_path = finding.get("file_path", "main.tf")
@@ -632,7 +732,7 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
         )
 
         try:
-            m = re.search(r'\{[\s\S]*\}', resp.reasoning)
+            m = re.search(r"\{[\s\S]*\}", resp.reasoning)
             data = json.loads(m.group()) if m else {}
         except Exception:
             data = {}
@@ -640,12 +740,16 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
         suggestion.title = data.get("title", f"Fix IaC: {finding.get('title', '')}")
         suggestion.description = data.get("description", resp.reasoning[:500])
         for p in data.get("patches", []):
-            suggestion.code_patches.append(CodePatch(
-                file_path=p.get("file_path", file_path),
-                language="hcl" if ".tf" in file_path else "yaml",
-                old_code=p.get("old_code", ""), new_code=p.get("new_code", ""),
-                explanation=p.get("explanation", ""), patch_format=PatchFormat.TERRAFORM,
-            ))
+            suggestion.code_patches.append(
+                CodePatch(
+                    file_path=p.get("file_path", file_path),
+                    language="hcl" if ".tf" in file_path else "yaml",
+                    old_code=p.get("old_code", ""),
+                    new_code=p.get("new_code", ""),
+                    explanation=p.get("explanation", ""),
+                    patch_format=PatchFormat.TERRAFORM,
+                )
+            )
         suggestion.effort_minutes = 20
         return suggestion
 
@@ -654,8 +758,11 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
     # ------------------------------------------------------------------
 
     async def _generate_container_fix(
-        self, suggestion: AutoFixSuggestion, finding: Dict[str, Any],
-        source_code: Optional[str], repo_ctx: Dict[str, Any],
+        self,
+        suggestion: AutoFixSuggestion,
+        finding: Dict[str, Any],
+        source_code: Optional[str],
+        repo_ctx: Dict[str, Any],
     ) -> AutoFixSuggestion:
         """Generate Dockerfile / container fix."""
         file_path = finding.get("file_path", "Dockerfile")
@@ -678,19 +785,26 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
             default_reasoning="Fix container security misconfiguration",
         )
         try:
-            m = re.search(r'\{[\s\S]*\}', resp.reasoning)
+            m = re.search(r"\{[\s\S]*\}", resp.reasoning)
             data = json.loads(m.group()) if m else {}
         except Exception:
             data = {}
 
-        suggestion.title = data.get("title", f"Fix container: {finding.get('title', '')}")
+        suggestion.title = data.get(
+            "title", f"Fix container: {finding.get('title', '')}"
+        )
         suggestion.description = data.get("description", resp.reasoning[:500])
         for p in data.get("patches", []):
-            suggestion.code_patches.append(CodePatch(
-                file_path=p.get("file_path", file_path), language="dockerfile",
-                old_code=p.get("old_code", ""), new_code=p.get("new_code", ""),
-                explanation=p.get("explanation", ""), patch_format=PatchFormat.DOCKERFILE,
-            ))
+            suggestion.code_patches.append(
+                CodePatch(
+                    file_path=p.get("file_path", file_path),
+                    language="dockerfile",
+                    old_code=p.get("old_code", ""),
+                    new_code=p.get("new_code", ""),
+                    explanation=p.get("explanation", ""),
+                    patch_format=PatchFormat.DOCKERFILE,
+                )
+            )
         suggestion.effort_minutes = 15
         return suggestion
 
@@ -706,19 +820,33 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
 
         # Check 1: At least one patch or dependency fix
         total_checks += 1
-        if suggestion.code_patches or suggestion.dependency_fixes or suggestion.config_changes:
+        if (
+            suggestion.code_patches
+            or suggestion.dependency_fixes
+            or suggestion.config_changes
+        ):
             checks_passed += 1
         else:
             issues.append("No patches, dependency fixes, or config changes generated")
 
         # Check 2: No dangerous patterns in patches
-        dangerous = ["rm -rf", "DROP TABLE", "DELETE FROM", "FORMAT C:", "; curl", "wget |", "eval("]
+        dangerous = [
+            "rm -rf",
+            "DROP TABLE",
+            "DELETE FROM",
+            "FORMAT C:",
+            "; curl",
+            "wget |",
+            "eval(",
+        ]
         total_checks += 1
         safe = True
         for patch in suggestion.code_patches:
             for pattern in dangerous:
                 if pattern.lower() in patch.new_code.lower():
-                    issues.append(f"Dangerous pattern '{pattern}' in patch for {patch.file_path}")
+                    issues.append(
+                        f"Dangerous pattern '{pattern}' in patch for {patch.file_path}"
+                    )
                     safe = False
         if safe:
             checks_passed += 1
@@ -751,7 +879,9 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
             "issues": issues,
         }
 
-    def _compute_confidence(self, suggestion: AutoFixSuggestion, finding: Dict[str, Any]) -> float:
+    def _compute_confidence(
+        self, suggestion: AutoFixSuggestion, finding: Dict[str, Any]
+    ) -> float:
         """Compute confidence score for a fix."""
         score = 0.5  # Base
 
@@ -790,7 +920,9 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
     # PR description builder
     # ------------------------------------------------------------------
 
-    def _build_pr_description(self, suggestion: AutoFixSuggestion, finding: Dict[str, Any]) -> str:
+    def _build_pr_description(
+        self, suggestion: AutoFixSuggestion, finding: Dict[str, Any]
+    ) -> str:
         """Build a rich PR description for the autofix."""
         lines = [
             "## 🔒 FixOps AutoFix",
@@ -817,26 +949,32 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
         if suggestion.dependency_fixes:
             lines.append("\n### Dependency Updates")
             for dep in suggestion.dependency_fixes:
-                lines.append(f"- **{dep.package_name}:** {dep.current_version} → {dep.fixed_version}")
+                lines.append(
+                    f"- **{dep.package_name}:** {dep.current_version} → {dep.fixed_version}"
+                )
 
         if suggestion.config_changes:
             lines.append("\n### Configuration Changes")
-            lines.append(f"```json\n{json.dumps(suggestion.config_changes, indent=2)}\n```")
+            lines.append(
+                f"```json\n{json.dumps(suggestion.config_changes, indent=2)}\n```"
+            )
 
-        lines.extend([
-            "",
-            "### Testing Guidance",
-            suggestion.testing_guidance,
-            "",
-            "### Rollback",
-            suggestion.rollback_steps,
-            "",
-            "### Risk Assessment",
-            suggestion.risk_assessment,
-            "",
-            "---",
-            "*Automated by FixOps AutoFix Engine*",
-        ])
+        lines.extend(
+            [
+                "",
+                "### Testing Guidance",
+                suggestion.testing_guidance,
+                "",
+                "### Rollback",
+                suggestion.rollback_steps,
+                "",
+                "### Risk Assessment",
+                suggestion.risk_assessment,
+                "",
+                "---",
+                "*Automated by FixOps AutoFix Engine*",
+            ]
+        )
         return "\n".join(lines)
 
     # ------------------------------------------------------------------
@@ -906,13 +1044,23 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
 
                     # Emit event
                     try:
-                        from core.event_bus import EventType, Event
                         import asyncio
-                        asyncio.ensure_future(self._get_bus().emit(Event(
-                            event_type=EventType.AUTOFIX_PR_CREATED,
-                            source="autofix_engine",
-                            data={"fix_id": fix_id, "pr_url": suggestion.pr_url, "repository": repository},
-                        )))
+
+                        from core.event_bus import Event, EventType
+
+                        asyncio.ensure_future(
+                            self._get_bus().emit(
+                                Event(
+                                    event_type=EventType.AUTOFIX_PR_CREATED,
+                                    source="autofix_engine",
+                                    data={
+                                        "fix_id": fix_id,
+                                        "pr_url": suggestion.pr_url,
+                                        "repository": repository,
+                                    },
+                                )
+                            )
+                        )
                     except Exception:
                         pass
                 else:
@@ -933,14 +1081,16 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
             self._stats["total_applied"] += 1
 
         # Log history
-        self._history.append({
-            "action": "apply",
-            "fix_id": fix_id,
-            "repository": repository,
-            "create_pr": create_pr,
-            "status": suggestion.status.value,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        self._history.append(
+            {
+                "action": "apply",
+                "fix_id": fix_id,
+                "repository": repository,
+                "create_pr": create_pr,
+                "status": suggestion.status.value,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
         return result
 
@@ -956,19 +1106,28 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
 
         suggestion.status = FixStatus.ROLLED_BACK
         self._stats["total_rolled_back"] += 1
-        self._history.append({
-            "action": "rollback", "fix_id": fix_id,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        self._history.append(
+            {
+                "action": "rollback",
+                "fix_id": fix_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
         try:
-            from core.event_bus import EventType, Event
             import asyncio
-            asyncio.ensure_future(self._get_bus().emit(Event(
-                event_type=EventType.AUTOFIX_ROLLED_BACK,
-                source="autofix_engine",
-                data={"fix_id": fix_id},
-            )))
+
+            from core.event_bus import Event, EventType
+
+            asyncio.ensure_future(
+                self._get_bus().emit(
+                    Event(
+                        event_type=EventType.AUTOFIX_ROLLED_BACK,
+                        source="autofix_engine",
+                        data={"fix_id": fix_id},
+                    )
+                )
+            )
         except Exception:
             pass
 
@@ -1015,11 +1174,14 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
     def _make_unified_diff(file_path: str, old_code: str, new_code: str) -> str:
         """Generate a unified diff string."""
         import difflib
+
         old_lines = old_code.splitlines(keepends=True)
         new_lines = new_code.splitlines(keepends=True)
         diff = difflib.unified_diff(
-            old_lines, new_lines,
-            fromfile=f"a/{file_path}", tofile=f"b/{file_path}",
+            old_lines,
+            new_lines,
+            fromfile=f"a/{file_path}",
+            tofile=f"b/{file_path}",
         )
         return "".join(diff)
 
@@ -1058,10 +1220,15 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
         self._stats["total_generated"] += 1
         ft = suggestion.fix_type.value
         self._stats["by_type"][ft] = self._stats["by_type"].get(ft, 0) + 1
-        if suggestion.confidence != FixConfidence.MEDIUM or suggestion.confidence_score > 0:
+        if (
+            suggestion.confidence != FixConfidence.MEDIUM
+            or suggestion.confidence_score > 0
+        ):
             self._stats["by_confidence"][suggestion.confidence.value] += 1
         # Recompute average confidence
-        scores = [f.confidence_score for f in self._fixes.values() if f.confidence_score > 0]
+        scores = [
+            f.confidence_score for f in self._fixes.values() if f.confidence_score > 0
+        ]
         self._stats["avg_confidence_score"] = sum(scores) / max(len(scores), 1)
 
     def to_dict(self, suggestion: AutoFixSuggestion) -> Dict[str, Any]:
@@ -1071,7 +1238,9 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
         d["status"] = suggestion.status.value
         d["confidence"] = suggestion.confidence.value
         for i, p in enumerate(d.get("code_patches", [])):
-            d["code_patches"][i]["patch_format"] = suggestion.code_patches[i].patch_format.value
+            d["code_patches"][i]["patch_format"] = suggestion.code_patches[
+                i
+            ].patch_format.value
         return d
 
 

@@ -25,10 +25,13 @@ async def _on_cve_discovered(event):
     logger.info("EventBus handler: CVE_DISCOVERED %s", cve_id)
     try:
         from core.knowledge_brain import get_brain
+
         brain = get_brain()
-        brain.ingest_cve(cve_id, org_id=event.org_id, **{
-            k: v for k, v in data.items() if k != "cve_id"
-        })
+        brain.ingest_cve(
+            cve_id,
+            org_id=event.org_id,
+            **{k: v for k, v in data.items() if k != "cve_id"},
+        )
         logger.info("CVE %s ingested into Knowledge Graph", cve_id)
     except Exception as exc:
         logger.warning("Failed to ingest CVE %s into graph: %s", cve_id, exc)
@@ -36,6 +39,7 @@ async def _on_cve_discovered(event):
     # Trigger EPSS lookup
     try:
         from src.services.feeds_service import FeedsService
+
         svc = FeedsService()
         epss = await svc.get_epss_score(cve_id)
         if epss:
@@ -51,6 +55,7 @@ async def _on_scan_completed(event):
     logger.info("EventBus handler: SCAN_COMPLETED %s", scan_id)
     try:
         from core.knowledge_brain import get_brain
+
         brain = get_brain()
         brain.log_event("scan.completed", event.source, data)
     except Exception as exc:
@@ -64,11 +69,14 @@ async def _on_finding_created(event):
     logger.info("EventBus handler: FINDING_CREATED %s", finding_id)
     try:
         from core.knowledge_brain import get_brain
+
         brain = get_brain()
         cve_id = data.get("cve_id")
         brain.ingest_finding(
-            finding_id, org_id=event.org_id, cve_id=cve_id,
-            **{k: v for k, v in data.items() if k not in ("finding_id", "cve_id")}
+            finding_id,
+            org_id=event.org_id,
+            cve_id=cve_id,
+            **{k: v for k, v in data.items() if k not in ("finding_id", "cve_id")},
         )
     except Exception as exc:
         logger.debug("Finding graph ingest skipped: %s", exc)
@@ -80,6 +88,7 @@ async def _on_autofix_generated(event):
     logger.info("EventBus handler: AUTOFIX_GENERATED fix_id=%s", data.get("fix_id", ""))
     try:
         from core.knowledge_brain import get_brain
+
         brain = get_brain()
         brain.log_event("autofix.generated", event.source, data)
     except Exception as exc:
@@ -92,6 +101,7 @@ async def _on_pentest_completed(event):
     logger.info("EventBus handler: PENTEST_COMPLETED target=%s", data.get("target", ""))
     try:
         from core.knowledge_brain import get_brain
+
         brain = get_brain()
         brain.log_event("pentest.completed", event.source, data)
     except Exception as exc:
@@ -106,7 +116,9 @@ async def _on_risk_changed(event):
 
 async def _on_graph_updated(event):
     """When graph is updated: log for audit trail."""
-    logger.debug("EventBus handler: GRAPH_UPDATED action=%s", event.data.get("action", ""))
+    logger.debug(
+        "EventBus handler: GRAPH_UPDATED action=%s", event.data.get("action", "")
+    )
 
 
 async def _on_feed_updated(event):
@@ -118,14 +130,20 @@ async def _on_feed_updated(event):
 async def _on_evidence_collected(event):
     """When evidence is collected: log to graph."""
     data = event.data
-    logger.info("EventBus handler: EVIDENCE_COLLECTED control=%s", data.get("control_id", ""))
+    logger.info(
+        "EventBus handler: EVIDENCE_COLLECTED control=%s", data.get("control_id", "")
+    )
 
 
 async def _on_wildcard(event):
     """Wildcard handler: audit log every event."""
-    logger.debug("EventBus AUDIT: %s from %s", 
-                 event.event_type.value if hasattr(event.event_type, 'value') else event.event_type,
-                 event.source)
+    logger.debug(
+        "EventBus AUDIT: %s from %s",
+        event.event_type.value
+        if hasattr(event.event_type, "value")
+        else event.event_type,
+        event.source,
+    )
 
 
 def register_all_subscribers() -> int:
@@ -136,6 +154,7 @@ def register_all_subscribers() -> int:
         return 0
 
     from core.event_bus import EventType, get_event_bus
+
     bus = get_event_bus()
 
     handlers = [
@@ -160,6 +179,7 @@ def register_all_subscribers() -> int:
 
     _registered = True
     count = len(handlers) + 1  # +1 for wildcard
-    logger.info("Registered %d event subscribers (%d typed + 1 wildcard)", count, len(handlers))
+    logger.info(
+        "Registered %d event subscribers (%d typed + 1 wildcard)", count, len(handlers)
+    )
     return count
-

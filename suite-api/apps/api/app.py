@@ -17,10 +17,6 @@ from types import SimpleNamespace
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 import jwt
-from fastapi import APIRouter, Body, Depends, FastAPI, File, HTTPException, Query, Request, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import APIKeyHeader
-
 from apps.api.analytics_router import router as analytics_router
 from apps.api.audit_router import router as audit_router
 from apps.api.auth_router import router as auth_router
@@ -33,6 +29,19 @@ from apps.api.reports_router import router as reports_router
 from apps.api.teams_router import router as teams_router
 from apps.api.users_router import router as users_router
 from apps.api.workflows_router import router as workflows_router
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    FastAPI,
+    File,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+)
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import APIKeyHeader
 
 # Validation router - compatibility checking for security tool outputs
 validation_router: Optional[APIRouter] = None
@@ -57,6 +66,7 @@ _logger = logging.getLogger(__name__)
 mpte_router: Optional[APIRouter] = None
 try:
     from api.mpte_router import router as mpte_router
+
     _logger.info("Loaded MPTE (MPTE Enhanced) router from suite-attack")
 except ImportError as e:
     _logger.warning("MPTE router not available: %s", e)
@@ -64,6 +74,7 @@ except ImportError as e:
 micro_pentest_router: Optional[APIRouter] = None
 try:
     from api.micro_pentest_router import router as micro_pentest_router
+
     _logger.info("Loaded Micro Pentest router from suite-attack")
 except ImportError as e:
     _logger.warning("Micro Pentest router not available: %s", e)
@@ -71,6 +82,7 @@ except ImportError as e:
 vuln_discovery_router: Optional[APIRouter] = None
 try:
     from api.vuln_discovery_router import router as vuln_discovery_router
+
     _logger.info("Loaded Vulnerability Discovery router from suite-attack")
 except ImportError as e:
     _logger.warning("Vulnerability Discovery router not available: %s", e)
@@ -78,6 +90,7 @@ except ImportError as e:
 pentagi_router: Optional[APIRouter] = None
 try:
     from api.pentagi_router import router as pentagi_router
+
     _logger.info("Loaded PentAGI unified router from suite-attack")
 except ImportError as e:
     _logger.warning("PentAGI router not available: %s", e)
@@ -85,6 +98,7 @@ except ImportError as e:
 secrets_router: Optional[APIRouter] = None
 try:
     from api.secrets_router import router as secrets_router
+
     _logger.info("Loaded Secrets Scanner router from suite-attack")
 except ImportError as e:
     _logger.warning("Secrets Scanner router not available: %s", e)
@@ -95,6 +109,7 @@ except ImportError as e:
 feeds_router: Optional[APIRouter] = None
 try:
     from api.feeds_router import router as feeds_router
+
     _logger.info("Loaded Feeds router from suite-feeds")
 except ImportError as e:
     _logger.warning("Feeds router not available: %s", e)
@@ -116,6 +131,7 @@ except ImportError as e:
 nerve_center_router: Optional[APIRouter] = None
 try:
     from api.nerve_center import router as nerve_center_router
+
     _logger.info("Loaded Nerve Center router from suite-core")
 except ImportError as e:
     _logger.warning("Nerve Center router not available: %s", e)
@@ -123,6 +139,7 @@ except ImportError as e:
 decisions_router: Optional[APIRouter] = None
 try:
     from api.decisions import router as decisions_router
+
     _logger.info("Loaded Decisions router from suite-core")
 except ImportError as e:
     _logger.warning("Decisions router not available: %s", e)
@@ -130,6 +147,7 @@ except ImportError as e:
 deduplication_router: Optional[APIRouter] = None
 try:
     from api.deduplication_router import router as deduplication_router
+
     _logger.info("Loaded Deduplication router from suite-core")
 except ImportError as e:
     _logger.warning("Deduplication router not available: %s", e)
@@ -137,6 +155,7 @@ except ImportError as e:
 ml_router: Optional[APIRouter] = None
 try:
     from api.mindsdb_router import router as ml_router
+
     _logger.info("Loaded ML/MindsDB router from suite-core")
 except ImportError as e:
     _logger.warning("ML/MindsDB router not available: %s", e)
@@ -144,6 +163,7 @@ except ImportError as e:
 autofix_router: Optional[APIRouter] = None
 try:
     from api.autofix_router import router as autofix_router
+
     _logger.info("Loaded AutoFix router from suite-core")
 except ImportError as e:
     _logger.warning("AutoFix router not available: %s", e)
@@ -151,6 +171,7 @@ except ImportError as e:
 fuzzy_identity_router: Optional[APIRouter] = None
 try:
     from api.fuzzy_identity_router import router as fuzzy_identity_router
+
     _logger.info("Loaded Fuzzy Identity router from suite-core")
 except ImportError as e:
     _logger.warning("Fuzzy Identity router not available: %s", e)
@@ -158,6 +179,7 @@ except ImportError as e:
 exposure_case_router: Optional[APIRouter] = None
 try:
     from api.exposure_case_router import router as exposure_case_router
+
     _logger.info("Loaded Exposure Case router from suite-core")
 except ImportError as e:
     _logger.warning("Exposure Case router not available: %s", e)
@@ -165,6 +187,7 @@ except ImportError as e:
 pipeline_router: Optional[APIRouter] = None
 try:
     from api.pipeline_router import router as pipeline_router
+
     _logger.info("Loaded Pipeline router from suite-core")
 except ImportError as e:
     _logger.warning("Pipeline router not available: %s", e)
@@ -172,6 +195,7 @@ except ImportError as e:
 copilot_router: Optional[APIRouter] = None
 try:
     from api.copilot_router import router as copilot_router
+
     _logger.info("Loaded Copilot router from suite-core")
 except ImportError as e:
     _logger.warning("Copilot router not available: %s", e)
@@ -179,6 +203,7 @@ except ImportError as e:
 agents_router: Optional[APIRouter] = None
 try:
     from api.agents_router import router as agents_router
+
     _logger.info("Loaded Agents router from suite-core")
 except ImportError as e:
     _logger.warning("Agents router not available: %s", e)
@@ -186,6 +211,7 @@ except ImportError as e:
 predictions_router: Optional[APIRouter] = None
 try:
     from api.predictions_router import router as predictions_router
+
     _logger.info("Loaded Predictions router from suite-core")
 except ImportError as e:
     _logger.warning("Predictions router not available: %s", e)
@@ -193,6 +219,7 @@ except ImportError as e:
 llm_router: Optional[APIRouter] = None
 try:
     from api.llm_router import router as llm_router
+
     _logger.info("Loaded LLM router from suite-core")
 except ImportError as e:
     _logger.warning("LLM router not available: %s", e)
@@ -200,6 +227,7 @@ except ImportError as e:
 algorithmic_router: Optional[APIRouter] = None
 try:
     from api.algorithmic_router import router as algorithmic_router
+
     _logger.info("Loaded Algorithmic router from suite-core")
 except ImportError as e:
     _logger.warning("Algorithmic router not available: %s", e)
@@ -207,6 +235,7 @@ except ImportError as e:
 intelligent_engine_router: Optional[APIRouter] = None
 try:
     from api.intelligent_engine_routes import router as intelligent_engine_router
+
     _logger.info("Loaded Intelligent Engine router from suite-core")
 except ImportError as e:
     _logger.warning("Intelligent Engine router not available: %s", e)
@@ -214,6 +243,7 @@ except ImportError as e:
 llm_monitor_router: Optional[APIRouter] = None
 try:
     from api.llm_monitor_router import router as llm_monitor_router
+
     _logger.info("Loaded LLM Monitor router from suite-core")
 except ImportError as e:
     _logger.warning("LLM Monitor router not available: %s", e)
@@ -221,6 +251,7 @@ except ImportError as e:
 streaming_router: Optional[APIRouter] = None
 try:
     from api.streaming_router import router as streaming_router
+
     _logger.info("Loaded Streaming/SSE router from suite-core")
 except ImportError as e:
     _logger.warning("Streaming/SSE router not available: %s", e)
@@ -228,6 +259,7 @@ except ImportError as e:
 code_to_cloud_router: Optional[APIRouter] = None
 try:
     from api.code_to_cloud_router import router as code_to_cloud_router
+
     _logger.info("Loaded Code-to-Cloud router from suite-core")
 except ImportError as e:
     _logger.warning("Code-to-Cloud router not available: %s", e)
@@ -238,6 +270,7 @@ except ImportError as e:
 attack_sim_router: Optional[APIRouter] = None
 try:
     from api.attack_sim_router import router as attack_sim_router
+
     _logger.info("Loaded Attack Simulation router from suite-attack")
 except ImportError as e:
     _logger.warning("Attack Simulation router not available: %s", e)
@@ -245,6 +278,7 @@ except ImportError as e:
 sast_router: Optional[APIRouter] = None
 try:
     from api.sast_router import router as sast_router
+
     _logger.info("Loaded SAST router from suite-attack")
 except ImportError as e:
     _logger.warning("SAST router not available: %s", e)
@@ -252,6 +286,7 @@ except ImportError as e:
 container_router: Optional[APIRouter] = None
 try:
     from api.container_router import router as container_router
+
     _logger.info("Loaded Container Security router from suite-attack")
 except ImportError as e:
     _logger.warning("Container Security router not available: %s", e)
@@ -259,6 +294,7 @@ except ImportError as e:
 dast_router: Optional[APIRouter] = None
 try:
     from api.dast_router import router as dast_router
+
     _logger.info("Loaded DAST router from suite-attack")
 except ImportError as e:
     _logger.warning("DAST router not available: %s", e)
@@ -266,6 +302,7 @@ except ImportError as e:
 cspm_router: Optional[APIRouter] = None
 try:
     from api.cspm_router import router as cspm_router
+
     _logger.info("Loaded CSPM router from suite-attack")
 except ImportError as e:
     _logger.warning("CSPM router not available: %s", e)
@@ -273,6 +310,7 @@ except ImportError as e:
 api_fuzzer_router: Optional[APIRouter] = None
 try:
     from api.api_fuzzer_router import router as api_fuzzer_router
+
     _logger.info("Loaded API Fuzzer router from suite-attack")
 except ImportError as e:
     _logger.warning("API Fuzzer router not available: %s", e)
@@ -280,6 +318,7 @@ except ImportError as e:
 malware_router: Optional[APIRouter] = None
 try:
     from api.malware_router import router as malware_router
+
     _logger.info("Loaded Malware Analysis router from suite-attack")
 except ImportError as e:
     _logger.warning("Malware Analysis router not available: %s", e)
@@ -290,6 +329,7 @@ except ImportError as e:
 evidence_router: Optional[APIRouter] = None
 try:
     from api.evidence_router import router as evidence_router
+
     _logger.info("Loaded Evidence router from suite-evidence-risk")
 except ImportError as e:
     _logger.warning("Evidence router not available: %s", e)
@@ -297,6 +337,7 @@ except ImportError as e:
 risk_router_ext: Optional[APIRouter] = None
 try:
     from api.risk_router import router as risk_router_ext
+
     _logger.info("Loaded Risk router from suite-evidence-risk")
 except ImportError as e:
     _logger.warning("Risk router not available: %s", e)
@@ -304,6 +345,7 @@ except ImportError as e:
 graph_router: Optional[APIRouter] = None
 try:
     from api.graph_router import router as graph_router
+
     _logger.info("Loaded Graph router from suite-evidence-risk")
 except ImportError as e:
     _logger.warning("Graph router not available: %s", e)
@@ -311,6 +353,7 @@ except ImportError as e:
 provenance_router: Optional[APIRouter] = None
 try:
     from api.provenance_router import router as provenance_router
+
     _logger.info("Loaded Provenance router from suite-evidence-risk")
 except ImportError as e:
     _logger.warning("Provenance router not available: %s", e)
@@ -318,6 +361,7 @@ except ImportError as e:
 biz_ctx_router: Optional[APIRouter] = None
 try:
     from api.business_context import router as biz_ctx_router
+
     _logger.info("Loaded Business Context router from suite-evidence-risk")
 except ImportError as e:
     _logger.warning("Business Context router not available: %s", e)
@@ -325,6 +369,7 @@ except ImportError as e:
 biz_ctx_enhanced_router: Optional[APIRouter] = None
 try:
     from api.business_context_enhanced import router as biz_ctx_enhanced_router
+
     _logger.info("Loaded Business Context Enhanced router from suite-evidence-risk")
 except ImportError as e:
     _logger.warning("Business Context Enhanced router not available: %s", e)
@@ -335,6 +380,7 @@ except ImportError as e:
 integrations_router_ext: Optional[APIRouter] = None
 try:
     from api.integrations_router import router as integrations_router_ext
+
     _logger.info("Loaded Integrations router from suite-integrations")
 except ImportError as e:
     _logger.warning("Integrations router not available: %s", e)
@@ -342,8 +388,9 @@ except ImportError as e:
 webhooks_router: Optional[APIRouter] = None
 webhooks_receiver_router: Optional[APIRouter] = None
 try:
-    from api.webhooks_router import router as webhooks_router
     from api.webhooks_router import receiver_router as webhooks_receiver_router
+    from api.webhooks_router import router as webhooks_router
+
     _logger.info("Loaded Webhooks routers from suite-integrations")
 except ImportError as e:
     _logger.warning("Webhooks routers not available: %s", e)
@@ -351,6 +398,7 @@ except ImportError as e:
 iac_router: Optional[APIRouter] = None
 try:
     from api.iac_router import router as iac_router
+
     _logger.info("Loaded IaC router from suite-integrations")
 except ImportError as e:
     _logger.warning("IaC router not available: %s", e)
@@ -358,6 +406,7 @@ except ImportError as e:
 ide_router: Optional[APIRouter] = None
 try:
     from api.ide_router import router as ide_router
+
     _logger.info("Loaded IDE router from suite-integrations")
 except ImportError as e:
     _logger.warning("IDE router not available: %s", e)
@@ -365,6 +414,7 @@ except ImportError as e:
 oss_tools_router: Optional[APIRouter] = None
 try:
     from api.oss_tools import router as oss_tools_router
+
     _logger.info("Loaded OSS Tools router from suite-integrations")
 except ImportError as e:
     _logger.warning("OSS Tools router not available: %s", e)
@@ -372,6 +422,7 @@ except ImportError as e:
 mcp_router: Optional[APIRouter] = None
 try:
     from api.mcp_router import router as mcp_router
+
     _logger.info("Loaded MCP router from suite-integrations")
 except ImportError as e:
     _logger.warning("MCP router not available: %s", e)
@@ -530,6 +581,7 @@ def create_app() -> FastAPI:
     # Detailed Logging Middleware — captures full request/response payloads
     try:
         from apps.api.detailed_logging import DetailedLoggingMiddleware
+
         app.add_middleware(DetailedLoggingMiddleware)
         logger.info("DetailedLoggingMiddleware enabled — full payload capture active")
     except Exception as _dl_err:
@@ -735,9 +787,12 @@ def create_app() -> FastAPI:
         }
 
     @app.get("/api/v1/search", dependencies=[Depends(_verify_api_key)])
-    async def global_search(q: str = Query("", description="Search query")) -> Dict[str, Any]:
+    async def global_search(
+        q: str = Query("", description="Search query")
+    ) -> Dict[str, Any]:
         """Global search across findings, CVEs, assets, and more."""
         from core.analytics import AnalyticsStore
+
         db = AnalyticsStore()
         results: list[Dict[str, Any]] = []
         if q:
@@ -747,7 +802,15 @@ def create_app() -> FastAPI:
                 fd = f.to_dict()
                 searchable = " ".join(str(v) for v in fd.values() if v).lower()
                 if q.lower() in searchable:
-                    results.append({"type": "finding", "id": fd.get("id"), "title": fd.get("title", ""), "severity": fd.get("severity", ""), "match": "finding"})
+                    results.append(
+                        {
+                            "type": "finding",
+                            "id": fd.get("id"),
+                            "title": fd.get("title", ""),
+                            "severity": fd.get("severity", ""),
+                            "match": "finding",
+                        }
+                    )
                     if len(results) >= 50:
                         break
         return {"query": q, "results": results, "total": len(results)}
@@ -806,6 +869,7 @@ def create_app() -> FastAPI:
     # Knowledge Brain router (central intelligence graph — from suite-core/api/)
     try:
         from api.brain_router import router as brain_router
+
         app.include_router(brain_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Loaded Knowledge Brain router from suite-core")
     except ImportError as e:
@@ -871,7 +935,9 @@ def create_app() -> FastAPI:
     ]
     for _r, _name, _prefix in _evidence_routers:
         if _r:
-            app.include_router(_r, prefix=_prefix, dependencies=[Depends(_verify_api_key)])
+            app.include_router(
+                _r, prefix=_prefix, dependencies=[Depends(_verify_api_key)]
+            )
             _logger.info("Mounted %s router from suite-evidence-risk", _name)
 
     # -------------------------------------------------------------------
@@ -896,13 +962,20 @@ def create_app() -> FastAPI:
 
     # OSS Tools — needs /api/v1 prefix normalization
     if oss_tools_router:
-        app.include_router(oss_tools_router, prefix="/api/v1", dependencies=[Depends(_verify_api_key)])
+        app.include_router(
+            oss_tools_router, prefix="/api/v1", dependencies=[Depends(_verify_api_key)]
+        )
         _logger.info("Mounted OSS Tools router from suite-integrations")
 
     # Detailed Logging REST API — query/stream/clear logs
     try:
         from apps.api.detailed_logging import logs_router as detailed_logs_router
-        app.include_router(detailed_logs_router, prefix="/api/v1", dependencies=[Depends(_verify_api_key)])
+
+        app.include_router(
+            detailed_logs_router,
+            prefix="/api/v1",
+            dependencies=[Depends(_verify_api_key)],
+        )
         _logger.info("Mounted Detailed Logs router at /api/v1/logs")
     except Exception as _lr_err:
         _logger.warning("Detailed Logs router not available: %s", _lr_err)
@@ -2341,6 +2414,7 @@ def create_app() -> FastAPI:
         """Register EventBus subscribers so emitted events trigger handlers."""
         try:
             from core.event_subscribers import register_all_subscribers
+
             count = register_all_subscribers()
             _logger.info("EventBus: %d subscribers registered at startup", count)
         except Exception as exc:
@@ -2350,7 +2424,11 @@ def create_app() -> FastAPI:
     async def _log_mounted_routes():
         """Log all mounted routes and optionally fail-fast if critical routes missing."""
         routes = [r for r in app.routes if hasattr(r, "path")]
-        prefixes = {"/".join(r.path.split("/")[:4]) for r in routes if r.path.startswith("/api/")}
+        prefixes = {
+            "/".join(r.path.split("/")[:4])
+            for r in routes
+            if r.path.startswith("/api/")
+        }
         _logger.info(
             "API startup complete: %d routes mounted across %d prefixes",
             len(routes),
@@ -2359,9 +2437,14 @@ def create_app() -> FastAPI:
 
         # Critical prefixes that must exist for a functional deployment
         critical = [
-            "/api/v1/nerve-center", "/api/v1/copilot", "/api/v1/pipeline",
-            "/api/v1/attack-sim", "/api/v1/feeds", "/api/v1/evidence",
-            "/api/v1/risk", "/api/v1/stream",
+            "/api/v1/nerve-center",
+            "/api/v1/copilot",
+            "/api/v1/pipeline",
+            "/api/v1/attack-sim",
+            "/api/v1/feeds",
+            "/api/v1/evidence",
+            "/api/v1/risk",
+            "/api/v1/stream",
         ]
         missing = [p for p in critical if p not in prefixes]
 
@@ -2370,6 +2453,7 @@ def create_app() -> FastAPI:
             if os.getenv("FIXOPS_FAIL_FAST", "").lower() in ("1", "true", "yes"):
                 _logger.error("FAIL_FAST enabled — aborting due to missing routes")
                 import sys
+
                 sys.exit(1)
         else:
             _logger.info("All %d critical route prefixes verified OK", len(critical))

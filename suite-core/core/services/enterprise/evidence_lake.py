@@ -4,11 +4,11 @@ import base64
 import hashlib
 import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import structlog
 from src.db.session import DatabaseManager
-from src.models.user import User, UserAuditLog
+from src.models.user import UserAuditLog
 from src.utils.crypto import rsa_sign, rsa_verify
 
 logger = structlog.get_logger()
@@ -174,8 +174,8 @@ class EvidenceLake:
                 result = await session.execute(
                     text(
                         """
-                        SELECT COUNT(*) FROM user_audit_logs 
-                        WHERE action = 'evidence_stored' 
+                        SELECT COUNT(*) FROM user_audit_logs
+                        WHERE action = 'evidence_stored'
                         AND timestamp > datetime('now', '-1 day')
                     """
                     )

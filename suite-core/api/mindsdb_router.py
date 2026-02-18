@@ -29,8 +29,10 @@ router = APIRouter(prefix="/api/v1/ml", tags=["ML Learning Layer"])
 # Response Models
 # ---------------------------------------------------------------------------
 
+
 class ModelStatusResponse(BaseModel):
     """Status of a single ML model."""
+
     name: str
     type: str
     status: str
@@ -42,12 +44,14 @@ class ModelStatusResponse(BaseModel):
 
 class AllModelsStatusResponse(BaseModel):
     """Status of all ML models."""
+
     models: Dict[str, ModelStatusResponse]
     store_stats: Dict[str, Any] = Field(default_factory=dict)
 
 
 class AnomalyPredictionRequest(BaseModel):
     """Input for anomaly detection."""
+
     method: str = "GET"
     path: str = "/"
     status_code: int = 200
@@ -58,6 +62,7 @@ class AnomalyPredictionRequest(BaseModel):
 
 class AnomalyPredictionResponse(BaseModel):
     """Anomaly detection result."""
+
     is_anomaly: bool
     score: float
     confidence: float
@@ -66,6 +71,7 @@ class AnomalyPredictionResponse(BaseModel):
 
 class ThreatAssessmentRequest(BaseModel):
     """Input for threat assessment."""
+
     method: str = "GET"
     path: str = "/"
     client_ip: str = ""
@@ -76,6 +82,7 @@ class ThreatAssessmentRequest(BaseModel):
 
 class ThreatAssessmentResponse(BaseModel):
     """Threat assessment result."""
+
     threat_score: float
     risk_level: str
     indicators: List[str] = Field(default_factory=list)
@@ -84,6 +91,7 @@ class ThreatAssessmentResponse(BaseModel):
 
 class ResponseTimePrediction(BaseModel):
     """Predicted response time."""
+
     predicted_ms: float
     historical_avg_ms: Optional[float] = None
     confidence: float
@@ -92,6 +100,7 @@ class ResponseTimePrediction(BaseModel):
 
 class TrainResult(BaseModel):
     """Training result for a model."""
+
     name: str
     status: str
     samples_trained: int = 0
@@ -102,18 +111,23 @@ class TrainResult(BaseModel):
 # Helper
 # ---------------------------------------------------------------------------
 
+
 def _get_store():
     """Get the singleton learning store."""
     try:
         from core.api_learning_store import get_learning_store
+
         return get_learning_store()
     except Exception as exc:
-        raise HTTPException(status_code=503, detail=f"Learning store unavailable: {exc}")
+        raise HTTPException(
+            status_code=503, detail=f"Learning store unavailable: {exc}"
+        )
 
 
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+
 
 @router.get("/status", response_model=AllModelsStatusResponse)
 async def get_ml_status():
@@ -143,16 +157,20 @@ async def get_ml_models():
     store = _get_store()
     models_list = []
     for name, info in store._model_info.items():
-        models_list.append({
-            "model_id": name,
-            "name": info.name,
-            "type": info.type,
-            "status": "trained" if info.status.value == "trained" else info.status.value,
-            "accuracy": round(info.accuracy, 4),
-            "last_trained": info.last_trained,
-            "predictions_count": info.samples_trained,
-            "feature_names": info.feature_names,
-        })
+        models_list.append(
+            {
+                "model_id": name,
+                "name": info.name,
+                "type": info.type,
+                "status": "trained"
+                if info.status.value == "trained"
+                else info.status.value,
+                "accuracy": round(info.accuracy, 4),
+                "last_trained": info.last_trained,
+                "predictions_count": info.samples_trained,
+                "feature_names": info.feature_names,
+            }
+        )
     return {"models": models_list}
 
 
@@ -242,13 +260,16 @@ async def predict_response_time(
 ):
     """Predict expected response time for a given endpoint."""
     store = _get_store()
-    result = store.predict_response_time(method=method, path=path, request_size=request_size)
+    result = store.predict_response_time(
+        method=method, path=path, request_size=request_size
+    )
     return ResponseTimePrediction(**result)
 
 
 # ---------------------------------------------------------------------------
 # Analytics
 # ---------------------------------------------------------------------------
+
 
 @router.get("/stats")
 async def get_stats_alias():
@@ -291,9 +312,10 @@ async def get_threat_indicators(
 @router.post("/analytics/threats/{indicator_id}/acknowledge")
 async def acknowledge_threat(indicator_id: int):
     """Acknowledge a threat indicator."""
-    store = _get_store()
+    _get_store()
     try:
         from core.api_learning_store import get_learning_store
+
         s = get_learning_store()
         with s._get_conn() as conn:
             conn.execute(
@@ -311,5 +333,3 @@ async def flush_traffic():
     store = _get_store()
     store.flush()
     return {"flushed": True}
-
-

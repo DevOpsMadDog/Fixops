@@ -5,7 +5,6 @@ import os
 import tempfile
 
 import pytest
-
 from core.analytics_db import AnalyticsDB
 from core.analytics_models import (
     Decision,

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Run a live micropentest and save results to cache for report generation."""
-import json
 import asyncio
+import json
 import sys
+
 from dotenv import load_dotenv
 
 # Load environment variables from .env BEFORE importing anything else
@@ -29,7 +30,9 @@ async def main():
     profiles = meta.get("architecture_profiles", {})
     print(f"Architecture profiles: {list(profiles.keys())}")
     for url, p in profiles.items():
-        print(f"  {url}: OS={p.get('os_fingerprint',{}).get('os','?')} cloud={p.get('cloud_provider',{}).get('provider','?')} arch={p.get('architecture_class','?')}")
+        print(
+            f"  {url}: OS={p.get('os_fingerprint',{}).get('os','?')} cloud={p.get('cloud_provider',{}).get('provider','?')} arch={p.get('architecture_class','?')}"
+        )
     # Check enrichment
     for f in data.get("findings", [])[:3]:
         src = f.get("source_file", "")
@@ -54,4 +57,3 @@ async def main():
 
 
 asyncio.run(main())
-

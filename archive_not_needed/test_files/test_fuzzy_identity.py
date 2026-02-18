@@ -1,18 +1,25 @@
 """Test suite for fuzzy_identity.py - Phase 9.5.1 validation."""
-import tempfile
 import os
 import sys
+import tempfile
 
 sys.path.insert(0, os.path.dirname(__file__))
 
 from core.services.fuzzy_identity import (
-    compute_match_score, tokenize, expand_tokens, token_set_similarity,
-    levenshtein_similarity, levenshtein_distance,
-    FuzzyIdentityResolver, MatchStrategy, MatchResult,
+    FuzzyIdentityResolver,
+    MatchResult,
+    MatchStrategy,
+    compute_match_score,
+    expand_tokens,
+    levenshtein_distance,
+    levenshtein_similarity,
+    token_set_similarity,
+    tokenize,
 )
 
 passed = 0
 failed = 0
+
 
 def check(name, condition, detail=""):
     global passed, failed
@@ -43,7 +50,12 @@ print("\n=== 2. Match Score Tests ===")
 pairs = [
     ("payments-api-prod", "payments_prod_api", 0.65, "same tokens reordered"),
     ("payments-api-prod", "payment-api-prod", 0.85, "singular vs plural"),
-    ("k8s-prod-cluster", "kubernetes-production-cluster", 0.65, "abbreviation expansion"),
+    (
+        "k8s-prod-cluster",
+        "kubernetes-production-cluster",
+        0.65,
+        "abbreviation expansion",
+    ),
     ("auth-svc-staging", "authentication-service-stg", 0.65, "multi abbreviation"),
     ("totally-different", "payments-api", 0.0, "unrelated should be low"),
     ("payments-api", "payments-api", 1.0, "exact match"),
@@ -53,8 +65,11 @@ for a, b, min_score, desc in pairs:
     if desc == "unrelated should be low":
         check(f"score({a}, {b}) < 0.5 [{desc}]", score < 0.5, f"got {score:.3f}")
     else:
-        check(f"score({a}, {b}) >= {min_score} [{desc}]", score >= min_score,
-              f"got {score:.3f} via {strat.value}")
+        check(
+            f"score({a}, {b}) >= {min_score} [{desc}]",
+            score >= min_score,
+            f"got {score:.3f} via {strat.value}",
+        )
 
 
 print("\n=== 3. Resolver Tests ===")
@@ -68,21 +83,28 @@ resolver.add_alias("payments-api", "payments_prod_api")
 
 # Exact alias match
 r = resolver.resolve("payments_prod_api", org_id="org_1")
-check("exact alias match", r is not None and r.strategy == MatchStrategy.ALIAS,
-      f"got {r}")
+check(
+    "exact alias match", r is not None and r.strategy == MatchStrategy.ALIAS, f"got {r}"
+)
 
 # Fuzzy match
 r2 = resolver.resolve("payment-api-prod", org_id="org_1")
-check("fuzzy resolve payment-api-prod", r2 is not None and r2.canonical_id == "payments-api",
-      f"got {r2}")
+check(
+    "fuzzy resolve payment-api-prod",
+    r2 is not None and r2.canonical_id == "payments-api",
+    f"got {r2}",
+)
 
 # Org isolation
 r3 = resolver.resolve("user-db", org_id="org_1")
 check("org isolation (user-db not in org_1)", r3 is None, f"got {r3}")
 
 r4 = resolver.resolve("user-db", org_id="org_2")
-check("resolve in correct org", r4 is not None and r4.canonical_id == "user-db",
-      f"got {r4}")
+check(
+    "resolve in correct org",
+    r4 is not None and r4.canonical_id == "user-db",
+    f"got {r4}",
+)
 
 # Batch resolve
 batch = resolver.resolve_batch(
@@ -124,4 +146,3 @@ if failed == 0:
 else:
     print("=== SOME TESTS FAILED ❌ ===")
     sys.exit(1)
-

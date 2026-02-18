@@ -40,7 +40,9 @@ for method, endpoint, data in endpoints:
         if method == "GET":
             resp = requests.get(f"{BASE_URL}{endpoint}", headers=headers, timeout=10)
         else:
-            resp = requests.post(f"{BASE_URL}{endpoint}", headers=headers, json=data, timeout=10)
+            resp = requests.post(
+                f"{BASE_URL}{endpoint}", headers=headers, json=data, timeout=10
+            )
         status = resp.status_code
         if status in [200, 201]:
             print(f"OK  {status} {method} {endpoint}")

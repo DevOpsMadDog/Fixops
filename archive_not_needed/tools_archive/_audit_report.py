@@ -30,7 +30,9 @@ for v in verified:
     cscore = v.get("confidence_score")
     sev = v.get("severity")
     cvss = v.get("cvss_score")
-    print(f"  {cid}: confidence={conf}, confidence_score={cscore}, severity={sev}, cvss={cvss}")
+    print(
+        f"  {cid}: confidence={conf}, confidence_score={cscore}, severity={sev}, cvss={cvss}"
+    )
 
 print("\n=== VERDICT COUNTS ===")
 meta = data.get("scan_metadata", {})
@@ -50,4 +52,3 @@ findings = data.get("findings", [])
 for f in findings[:3]:
     print(json.dumps(f, indent=2, default=str)[:500])
     print("---")
-

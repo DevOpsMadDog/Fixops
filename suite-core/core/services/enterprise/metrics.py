@@ -74,6 +74,55 @@ UPLOADS_COMPLETED = Counter(
     ["scan_type"],
     registry=_registry,
 )
+DECISION_LATENCY = Histogram(
+    "fixops_decision_latency_seconds",
+    "Decision engine latency in seconds",
+    ["verdict"],
+    registry=_registry,
+    buckets=(0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 5),
+)
+DECISION_CONFIDENCE = Gauge(
+    "fixops_decision_confidence",
+    "Last recorded decision confidence score",
+    registry=_registry,
+)
+DECISION_ERRORS = Counter(
+    "fixops_decision_errors_total",
+    "Decision engine errors",
+    ["reason"],
+    registry=_registry,
+)
+EVIDENCE_REQUESTS = Counter(
+    "fixops_evidence_requests_total",
+    "Evidence requests",
+    ["source", "status"],
+    registry=_registry,
+)
+EVIDENCE_LATENCY = Histogram(
+    "fixops_evidence_latency_seconds",
+    "Evidence request latency in seconds",
+    ["source", "status"],
+    registry=_registry,
+    buckets=(0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 5),
+)
+POLICY_EVALUATIONS = Counter(
+    "fixops_policy_evaluations_total",
+    "Policy evaluations",
+    ["outcome"],
+    registry=_registry,
+)
+POLICY_LATENCY = Histogram(
+    "fixops_policy_latency_seconds",
+    "Policy evaluation latency in seconds",
+    ["outcome"],
+    registry=_registry,
+    buckets=(0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 5),
+)
+POLICY_BLOCK_RATIO = Gauge(
+    "fixops_policy_block_ratio",
+    "Block ratio for evaluated policies",
+    registry=_registry,
+)
 
 
 class FixOpsMetrics:
@@ -89,6 +138,8 @@ class FixOpsMetrics:
     _observed_key_providers: set[str] = set()
     _key_rotation_age: MutableMapping[str, float] = {}
     _key_rotation_health: MutableMapping[str, bool] = {}
+    _policy_total: int = 0
+    _policy_blocked: int = 0
 
     _HOT_PATH_PREFIXES = {
         "/api/v1/decisions/make-decision": "decision",
@@ -236,7 +287,9 @@ class FixOpsMetrics:
     # Domain specific metrics
     # ------------------------------------------------------------------
     @staticmethod
-    def record_decision(verdict: str, confidence: float = 0.0, duration_seconds: float = 0.0) -> None:
+    def record_decision(
+        verdict: str, confidence: float = 0.0, duration_seconds: float = 0.0
+    ) -> None:
         try:
             ENGINE_DECISIONS.labels(verdict=verdict).inc()
             DECISION_LATENCY.labels(verdict=verdict).observe(duration_seconds)

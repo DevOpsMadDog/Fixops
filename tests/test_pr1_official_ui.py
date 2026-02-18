@@ -8,10 +8,7 @@ These tests ensure:
 4. CORS allows Vite dev server
 """
 
-import os
 from pathlib import Path
-
-import pytest
 
 
 # Get project root (assumes tests are run from project root or tests/ directory)
@@ -71,7 +68,9 @@ class TestUIAldeciIsOfficialUI:
     def test_ui_aldeci_has_screen_api_mapping(self):
         """suite-ui/aldeci must have SCREEN_API_MAPPING.md."""
         mapping_file = PROJECT_ROOT / "suite-ui" / "aldeci" / "SCREEN_API_MAPPING.md"
-        assert mapping_file.exists(), "suite-ui/aldeci should have SCREEN_API_MAPPING.md"
+        assert (
+            mapping_file.exists()
+        ), "suite-ui/aldeci should have SCREEN_API_MAPPING.md"
 
 
 class TestLegacyMFEsDeprecated:
@@ -88,9 +87,9 @@ class TestLegacyMFEsDeprecated:
     def test_legacy_mfe_in_archive(self):
         """Legacy MFEs should be in archive/web_mfe_legacy/."""
         archive_path = PROJECT_ROOT / "archive" / "web_mfe_legacy"
-        assert archive_path.exists(), (
-            "Legacy MFEs should be archived at archive/web_mfe_legacy/"
-        )
+        assert (
+            archive_path.exists()
+        ), "Legacy MFEs should be archived at archive/web_mfe_legacy/"
         assert archive_path.is_dir(), "archive/web_mfe_legacy should be a directory"
 
     def test_legacy_ui_documentation_exists(self):
@@ -102,12 +101,12 @@ class TestLegacyMFEsDeprecated:
         """docs/legacy-ui.md should mention deprecation."""
         legacy_doc = PROJECT_ROOT / "docs" / "legacy-ui.md"
         content = legacy_doc.read_text()
-        assert "deprecated" in content.lower(), (
-            "docs/legacy-ui.md should mention deprecation"
-        )
-        assert "archive/web_mfe_legacy" in content, (
-            "docs/legacy-ui.md should reference archive location"
-        )
+        assert (
+            "deprecated" in content.lower()
+        ), "docs/legacy-ui.md should mention deprecation"
+        assert (
+            "archive/web_mfe_legacy" in content
+        ), "docs/legacy-ui.md should reference archive location"
 
 
 class TestReadmeUpdated:
@@ -129,9 +128,9 @@ class TestReadmeUpdated:
         """README should note web/ deprecation."""
         readme = PROJECT_ROOT / "README.md"
         content = readme.read_text()
-        assert "legacy" in content.lower() or "deprecated" in content.lower(), (
-            "README should mention legacy/deprecated MFEs"
-        )
+        assert (
+            "legacy" in content.lower() or "deprecated" in content.lower()
+        ), "README should mention legacy/deprecated MFEs"
 
 
 class TestBackendCORS:
@@ -141,9 +140,9 @@ class TestBackendCORS:
         """suite-api/apps/api/app.py should allow localhost:5173 in CORS."""
         app_py = PROJECT_ROOT / "suite-api" / "apps" / "api" / "app.py"
         content = app_py.read_text()
-        assert "localhost:5173" in content, (
-            "Backend CORS should allow Vite dev server on port 5173"
-        )
-        assert "127.0.0.1:5173" in content, (
-            "Backend CORS should allow Vite dev server on 127.0.0.1:5173"
-        )
+        assert (
+            "localhost:5173" in content
+        ), "Backend CORS should allow Vite dev server on port 5173"
+        assert (
+            "127.0.0.1:5173" in content
+        ), "Backend CORS should allow Vite dev server on 127.0.0.1:5173"

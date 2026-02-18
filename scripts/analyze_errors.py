@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Analyze API logs for errors and empty responses."""
 import sqlite3
-import json
 
-db = sqlite3.connect('.fixops_data/api_detailed_logs.db')
+db = sqlite3.connect(".fixops_data/api_detailed_logs.db")
 
 print("=== ALL 4xx/5xx ERRORS (recent first, last 50) ===")
 for r in db.execute(
@@ -11,7 +10,7 @@ for r in db.execute(
     "FROM api_logs WHERE status_code >= 400 ORDER BY ts DESC LIMIT 50"
 ).fetchall():
     method, path, status, body, ts = r
-    body_str = (body[:200] if body else "null")
+    body_str = body[:200] if body else "null"
     print(f"  {ts} {method:4s} {path:<55s} -> {status} {body_str}")
 
 print("\n=== ERROR SUMMARY BY ENDPOINT ===")
@@ -33,12 +32,14 @@ for r in db.execute(
     "OR resp_body LIKE '%\"total\":0%'"
     ") ORDER BY ts DESC LIMIT 30"
 ).fetchall():
-    body = (r[2][:200] if r[2] else "null")
+    body = r[2][:200] if r[2] else "null"
     print(f"  {r[3]} {r[0]:4s} {r[1]:<50s} -> {body}")
 
 print("\n=== TOTAL LOG STATS ===")
 total = db.execute("SELECT COUNT(*) FROM api_logs").fetchone()[0]
-errors = db.execute("SELECT COUNT(*) FROM api_logs WHERE status_code >= 400").fetchone()[0]
+errors = db.execute(
+    "SELECT COUNT(*) FROM api_logs WHERE status_code >= 400"
+).fetchone()[0]
 ok = db.execute("SELECT COUNT(*) FROM api_logs WHERE status_code < 400").fetchone()[0]
 print(f"  Total logs: {total}")
 print(f"  Success (< 400): {ok}")
@@ -46,4 +47,3 @@ print(f"  Errors (>= 400): {errors}")
 print(f"  Error rate: {errors/total*100:.1f}%")
 
 db.close()
-

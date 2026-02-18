@@ -9,14 +9,13 @@ audit log, and team notification — all automatically.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Set
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -153,11 +152,13 @@ class EventBus:
 
     def on(self, event_type: EventType | str) -> Callable:
         """Decorator to subscribe to an event type."""
+
         def decorator(func: Subscriber) -> Subscriber:
             key = event_type.value if isinstance(event_type, EventType) else event_type
             self._subscribers.setdefault(key, []).append(func)
             logger.debug("Subscriber registered for %s: %s", key, func.__name__)
             return func
+
         return decorator
 
     def subscribe(self, event_type: EventType | str, handler: Subscriber) -> None:
@@ -172,23 +173,30 @@ class EventBus:
     async def emit(self, event: Event) -> int:
         """Emit an event. Returns number of subscribers notified."""
         start = time.monotonic()
-        key = event.event_type.value if isinstance(event.event_type, EventType) else event.event_type
+        key = (
+            event.event_type.value
+            if isinstance(event.event_type, EventType)
+            else event.event_type
+        )
 
         # Log event
-        self._event_log.append({
-            "event_id": event.event_id,
-            "event_type": key,
-            "source": event.source,
-            "org_id": event.org_id,
-            "timestamp": event.timestamp,
-        })
+        self._event_log.append(
+            {
+                "event_id": event.event_id,
+                "event_type": key,
+                "source": event.source,
+                "org_id": event.org_id,
+                "timestamp": event.timestamp,
+            }
+        )
         if len(self._event_log) > self._max_log_size:
-            self._event_log = self._event_log[-self._max_log_size:]
+            self._event_log = self._event_log[-self._max_log_size :]
 
         # Also log to brain if available
         try:
             if self._brain is None:
                 from core.knowledge_brain import get_brain
+
                 self._brain = get_brain()
             self._brain.log_event(key, event.source, event.data)
         except Exception:
@@ -204,13 +212,17 @@ class EventBus:
             except Exception as exc:
                 logger.error(
                     "Event handler %s failed for %s: %s",
-                    handler.__name__, key, exc,
+                    handler.__name__,
+                    key,
+                    exc,
                 )
 
         elapsed_ms = (time.monotonic() - start) * 1000
         logger.debug(
             "Event %s emitted: %d handlers in %.1fms",
-            key, notified, elapsed_ms,
+            key,
+            notified,
+            elapsed_ms,
         )
         return notified
 
@@ -228,4 +240,3 @@ _bus: Optional[EventBus] = None
 def get_event_bus() -> EventBus:
     """Get the global EventBus instance."""
     return EventBus.get_instance()
-

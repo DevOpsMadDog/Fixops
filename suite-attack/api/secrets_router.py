@@ -8,12 +8,11 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from core.secrets_db import SecretsDB
 from core.secrets_models import SecretFinding, SecretStatus, SecretType
 from core.secrets_scanner import SecretsScanner, get_secrets_detector
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 # Knowledge Brain + Event Bus integration (graceful degradation)
 try:
@@ -136,12 +135,18 @@ async def create_secret_finding(finding_data: SecretFindingCreate):
             file_path=finding_data.file_path,
             repository=finding_data.repository,
         )
-        await bus.emit(Event(
-            event_type=EventType.SECRET_FOUND,
-            source="secrets_router",
-            data={"finding_id": created_finding.id, "secret_type": finding_data.secret_type.value,
-                  "repository": finding_data.repository, "file_path": finding_data.file_path},
-        ))
+        await bus.emit(
+            Event(
+                event_type=EventType.SECRET_FOUND,
+                source="secrets_router",
+                data={
+                    "finding_id": created_finding.id,
+                    "secret_type": finding_data.secret_type.value,
+                    "repository": finding_data.repository,
+                    "file_path": finding_data.file_path,
+                },
+            )
+        )
 
     return SecretFindingResponse(**created_finding.to_dict())
 

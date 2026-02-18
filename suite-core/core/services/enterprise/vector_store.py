@@ -5,7 +5,6 @@ Real Vector Store Implementation with ChromaDB for Production Mode
 """
 from __future__ import annotations
 
-import asyncio
 import uuid
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
@@ -28,7 +27,6 @@ class VectorRecord:
 class VectorStore:
     async def initialize(self):
         """Initialize the vector store"""
-        pass
 
     async def upsert(self, records: List[VectorRecord]):
         raise NotImplementedError

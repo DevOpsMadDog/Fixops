@@ -4,19 +4,18 @@ Performance-optimized for 299μs hot path operations with AI-powered insights
 """
 
 import asyncio
-import hashlib
 import json
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import structlog
 from dotenv import load_dotenv
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.session import DatabaseManager
-from src.models.security_sqlite import FindingCorrelation, SecurityFinding, Service
+from src.models.security_sqlite import FindingCorrelation, SecurityFinding
 from src.services.cache_service import CacheService
 from src.services.chatgpt_client import (
     ChatGPTChatSession,
@@ -621,7 +620,7 @@ class CorrelationEngine:
 
                 Please provide analysis in JSON format with:
                 1. "correlation_insights" - How this finding relates to context findings
-                2. "risk_assessment" - Risk level and business impact assessment  
+                2. "risk_assessment" - Risk level and business impact assessment
                 3. "root_cause_analysis" - Likely root causes and patterns
                 4. "prioritization" - Should this be high/medium/low priority and why
                 5. "recommendations" - Specific actions to address this finding

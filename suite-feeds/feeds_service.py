@@ -1311,7 +1311,9 @@ class FeedsService:
                             severity = (
                                 "HIGH"
                                 if cvss_score >= 7.0
-                                else "MEDIUM" if cvss_score >= 4.0 else "LOW"
+                                else "MEDIUM"
+                                if cvss_score >= 4.0
+                                else "LOW"
                             )
 
                 # Extract CWE IDs
@@ -1334,9 +1336,7 @@ class FeedsService:
 
                 # Extract references
                 refs = [
-                    r.get("url", "")
-                    for r in cve.get("references", [])
-                    if r.get("url")
+                    r.get("url", "") for r in cve.get("references", []) if r.get("url")
                 ]
 
                 records.append(
@@ -1370,10 +1370,17 @@ class FeedsService:
             """,
                 [
                     (
-                        r["cve_id"], r["description"], r["severity"],
-                        r["cvss_score"], r["cvss_vector"], r["cwe_ids"],
-                        r["affected_packages"], r["references_json"],
-                        r["published"], r["modified"], r["source_identifier"],
+                        r["cve_id"],
+                        r["description"],
+                        r["severity"],
+                        r["cvss_score"],
+                        r["cvss_vector"],
+                        r["cwe_ids"],
+                        r["affected_packages"],
+                        r["references_json"],
+                        r["published"],
+                        r["modified"],
+                        r["source_identifier"],
                         now,
                     )
                     for r in records
@@ -1454,7 +1461,9 @@ class FeedsService:
                         "exploit_url": f"https://www.exploit-db.com/exploits/{exploit_id}",
                         "exploit_date": date_published,
                         "verified": row.get("verified", "0") == "1",
-                        "reliability": "good" if row.get("verified", "0") == "1" else "normal",
+                        "reliability": "good"
+                        if row.get("verified", "0") == "1"
+                        else "normal",
                         "platform": platform,
                         "description": description,
                     }
@@ -1474,9 +1483,14 @@ class FeedsService:
             """,
                 [
                     (
-                        r["cve_id"], r["exploit_source"], r["exploit_type"],
-                        r["exploit_url"], r["exploit_date"],
-                        1 if r["verified"] else 0, r["reliability"], now,
+                        r["cve_id"],
+                        r["exploit_source"],
+                        r["exploit_type"],
+                        r["exploit_url"],
+                        r["exploit_date"],
+                        1 if r["verified"] else 0,
+                        r["reliability"],
+                        now,
                     )
                     for r in records
                 ],
@@ -1553,7 +1567,7 @@ class FeedsService:
                         if not vuln_id:
                             continue
 
-                        summary = vuln.get("summary", "")
+                        vuln.get("summary", "")
                         severity = None
                         cvss_score = None
                         for sev in vuln.get("severity", []):
@@ -1569,9 +1583,12 @@ class FeedsService:
 
                         if cvss_score:
                             severity = (
-                                "CRITICAL" if cvss_score >= 9.0
-                                else "HIGH" if cvss_score >= 7.0
-                                else "MEDIUM" if cvss_score >= 4.0
+                                "CRITICAL"
+                                if cvss_score >= 9.0
+                                else "HIGH"
+                                if cvss_score >= 7.0
+                                else "MEDIUM"
+                                if cvss_score >= 4.0
                                 else "LOW"
                             )
 
@@ -1597,7 +1614,8 @@ class FeedsService:
                                 "ecosystem": ecosystem,
                                 "package_name": ", ".join(pkg_names[:5]),
                                 "affected_versions": ", ".join(affected_vers[:10]),
-                                "patched_versions": ", ".join(patched_vers[:10]) or None,
+                                "patched_versions": ", ".join(patched_vers[:10])
+                                or None,
                                 "severity": severity or "unknown",
                                 "cvss_score": cvss_score,
                                 "source": "osv",
@@ -1619,9 +1637,15 @@ class FeedsService:
                         """,
                             [
                                 (
-                                    r["vuln_id"], r["ecosystem"], r["package_name"],
-                                    r["affected_versions"], r["patched_versions"],
-                                    r["severity"], r["cvss_score"], r["source"], now,
+                                    r["vuln_id"],
+                                    r["ecosystem"],
+                                    r["package_name"],
+                                    r["affected_versions"],
+                                    r["patched_versions"],
+                                    r["severity"],
+                                    r["cvss_score"],
+                                    r["source"],
+                                    now,
                                 )
                                 for r in records
                             ],
@@ -1702,7 +1726,7 @@ class FeedsService:
                 if not ghsa_id:
                     continue
 
-                summary = adv.get("summary", "")
+                adv.get("summary", "")
                 severity = (adv.get("severity") or "unknown").upper()
                 cvss_score = None
                 cvss = adv.get("cvss")
@@ -1771,9 +1795,15 @@ class FeedsService:
                 """,
                     [
                         (
-                            r["vuln_id"], r["ecosystem"], r["package_name"],
-                            r["affected_versions"], r["patched_versions"],
-                            r["severity"], r["cvss_score"], r["source"], now,
+                            r["vuln_id"],
+                            r["ecosystem"],
+                            r["package_name"],
+                            r["affected_versions"],
+                            r["patched_versions"],
+                            r["severity"],
+                            r["cvss_score"],
+                            r["source"],
+                            now,
                         )
                         for r in records
                     ],
@@ -1789,9 +1819,7 @@ class FeedsService:
                 conn.commit()
                 conn.close()
 
-            logger.info(
-                "GitHub Advisory refresh complete: %d records", len(records)
-            )
+            logger.info("GitHub Advisory refresh complete: %d records", len(records))
 
             return FeedRefreshResult(
                 feed_name="github_advisories",
@@ -1835,9 +1863,7 @@ class FeedsService:
         conn.row_factory = sqlite3.Row
         try:
             cursor = conn.cursor()
-            cursor.execute(
-                "SELECT * FROM nvd_cves WHERE cve_id = ?", (cve_id.upper(),)
-            )
+            cursor.execute("SELECT * FROM nvd_cves WHERE cve_id = ?", (cve_id.upper(),))
             row = cursor.fetchone()
             if row:
                 return {
@@ -1847,9 +1873,7 @@ class FeedsService:
                     "cvss_score": row["cvss_score"],
                     "cvss_vector": row["cvss_vector"],
                     "cwe_ids": json.loads(row["cwe_ids"] or "[]"),
-                    "affected_packages": json.loads(
-                        row["affected_packages"] or "[]"
-                    ),
+                    "affected_packages": json.loads(row["affected_packages"] or "[]"),
                     "references": json.loads(row["references_json"] or "[]"),
                     "published": row["published"],
                     "modified": row["modified"],
@@ -1901,9 +1925,7 @@ class FeedsService:
                     "cvss_score": r["cvss_score"],
                     "cvss_vector": r["cvss_vector"],
                     "cwe_ids": json.loads(r["cwe_ids"] or "[]"),
-                    "affected_packages": json.loads(
-                        r["affected_packages"] or "[]"
-                    ),
+                    "affected_packages": json.loads(r["affected_packages"] or "[]"),
                     "published": r["published"],
                     "modified": r["modified"],
                 }
@@ -2487,18 +2509,22 @@ class FeedsService:
             )
             results = []
             for row in cursor.fetchall():
-                results.append({
-                    "cve_id": row["cve_id"],
-                    "threat_actor": row["threat_actor"],
-                    "campaign": row["campaign"],
-                    "first_seen": row["first_seen"],
-                    "last_seen": row["last_seen"],
-                    "target_sectors": json_mod.loads(row["target_sectors"] or "[]"),
-                    "target_countries": json_mod.loads(row["target_countries"] or "[]"),
-                    "ttps": json_mod.loads(row["ttps"] or "[]"),
-                    "confidence": row["confidence"],
-                    "source": row["source"],
-                })
+                results.append(
+                    {
+                        "cve_id": row["cve_id"],
+                        "threat_actor": row["threat_actor"],
+                        "campaign": row["campaign"],
+                        "first_seen": row["first_seen"],
+                        "last_seen": row["last_seen"],
+                        "target_sectors": json_mod.loads(row["target_sectors"] or "[]"),
+                        "target_countries": json_mod.loads(
+                            row["target_countries"] or "[]"
+                        ),
+                        "ttps": json_mod.loads(row["ttps"] or "[]"),
+                        "confidence": row["confidence"],
+                        "source": row["source"],
+                    }
+                )
             return results
         except sqlite3.OperationalError:
             # Table might not exist
@@ -2601,17 +2627,19 @@ class FeedsService:
             )
             results = []
             for row in cursor.fetchall():
-                results.append({
-                    "cve_id": row["cve_id"],
-                    "exploit_source": row["exploit_source"],
-                    "exploit_type": row["exploit_type"],
-                    "exploit_url": row["exploit_url"],
-                    "exploit_date": row["exploit_date"],
-                    "verified": bool(row["verified"]),
-                    "reliability": row["reliability"],
-                    "metasploit_module": row["metasploit_module"],
-                    "nuclei_template": row["nuclei_template"],
-                })
+                results.append(
+                    {
+                        "cve_id": row["cve_id"],
+                        "exploit_source": row["exploit_source"],
+                        "exploit_type": row["exploit_type"],
+                        "exploit_url": row["exploit_url"],
+                        "exploit_date": row["exploit_date"],
+                        "verified": bool(row["verified"]),
+                        "reliability": row["reliability"],
+                        "metasploit_module": row["metasploit_module"],
+                        "nuclei_template": row["nuclei_template"],
+                    }
+                )
             return results
         except sqlite3.OperationalError:
             # Table might not exist
@@ -2741,18 +2769,22 @@ class FeedsService:
                 )
             results = []
             for row in cursor.fetchall():
-                results.append({
-                    "vuln_id": row["vuln_id"],
-                    "ecosystem": row["ecosystem"],
-                    "package_name": row["package_name"],
-                    "affected_versions": row["affected_versions"],
-                    "patched_versions": row["patched_versions"],
-                    "severity": row["severity"],
-                    "cvss_score": row["cvss_score"],
-                    "reachable": bool(row["reachable"]) if row["reachable"] is not None else None,
-                    "transitive": bool(row["transitive"]),
-                    "source": row["source"],
-                })
+                results.append(
+                    {
+                        "vuln_id": row["vuln_id"],
+                        "ecosystem": row["ecosystem"],
+                        "package_name": row["package_name"],
+                        "affected_versions": row["affected_versions"],
+                        "patched_versions": row["patched_versions"],
+                        "severity": row["severity"],
+                        "cvss_score": row["cvss_score"],
+                        "reachable": bool(row["reachable"])
+                        if row["reachable"] is not None
+                        else None,
+                        "transitive": bool(row["transitive"]),
+                        "source": row["source"],
+                    }
+                )
             return results
         except sqlite3.OperationalError:
             # Table might not exist

@@ -3,14 +3,22 @@
 
 Usage:  python scripts/seed_via_api.py
 """
-import requests, json, time
+
+import requests
 
 BASE = "http://localhost:8000"
 HEADERS = {"X-API-Key": "test-token-123", "Content-Type": "application/json"}
 
+
 def post(path, data):
     r = requests.post(f"{BASE}{path}", json=data, headers=HEADERS, timeout=10)
-    return r.status_code, r.json() if r.headers.get("content-type","").startswith("application/json") else r.text
+    return (
+        r.status_code,
+        r.json()
+        if r.headers.get("content-type", "").startswith("application/json")
+        else r.text,
+    )
+
 
 def main():
     # ── 1. Seed CVEs ──
@@ -33,9 +41,10 @@ def main():
     ]
     print("🛡️  Seeding 15 CVEs...")
     for cve_id, title, severity, cvss in cves:
-        code, resp = post("/api/v1/brain/ingest/cve", {
-            "cve_id": cve_id, "title": title, "severity": severity, "cvss": cvss
-        })
+        code, resp = post(
+            "/api/v1/brain/ingest/cve",
+            {"cve_id": cve_id, "title": title, "severity": severity, "cvss": cvss},
+        )
         nid = resp.get("node_id", "?") if isinstance(resp, dict) else "?"
         print(f"  [{code}] {nid}")
 
@@ -44,14 +53,17 @@ def main():
     scanners = ["trivy", "semgrep", "snyk", "grype", "bandit"]
     for i in range(10):
         cve_id = cves[i][0]
-        code, resp = post("/api/v1/brain/ingest/finding", {
-            "finding_id": f"FIND-2024-{1001+i}",
-            "title": f"Vuln in component-{i+1} ({cves[i][1]})",
-            "severity": cves[i][2],
-            "status": "open",
-            "scanner": scanners[i % len(scanners)],
-            "cve_id": cve_id,
-        })
+        code, resp = post(
+            "/api/v1/brain/ingest/finding",
+            {
+                "finding_id": f"FIND-2024-{1001+i}",
+                "title": f"Vuln in component-{i+1} ({cves[i][1]})",
+                "severity": cves[i][2],
+                "status": "open",
+                "scanner": scanners[i % len(scanners)],
+                "cve_id": cve_id,
+            },
+        )
         nid = resp.get("node_id", "?") if isinstance(resp, dict) else "?"
         print(f"  [{code}] {nid}")
 
@@ -65,9 +77,15 @@ def main():
         ("k8s-prod", "Kubernetes Production", "container"),
     ]
     for asset_id, name, atype in assets:
-        code, resp = post("/api/v1/brain/ingest/asset", {
-            "asset_id": asset_id, "name": name, "type": atype, "environment": "production"
-        })
+        code, resp = post(
+            "/api/v1/brain/ingest/asset",
+            {
+                "asset_id": asset_id,
+                "name": name,
+                "type": atype,
+                "environment": "production",
+            },
+        )
         nid = resp.get("node_id", "?") if isinstance(resp, dict) else "?"
         print(f"  [{code}] {nid}")
 
@@ -88,6 +106,7 @@ def main():
     r = requests.get(f"{BASE}/api/v1/brain/nodes", headers=HEADERS, timeout=10)
     nodes = r.json().get("nodes", [])
     from collections import Counter
+
     types = Counter(n["node_type"] for n in nodes)
     print(f"  Total nodes: {len(nodes)}")
     for t, c in types.most_common():
@@ -97,10 +116,12 @@ def main():
     print("\n🤖 Verifying ML models...")
     r = requests.get(f"{BASE}/api/v1/ml/models", headers=HEADERS, timeout=10)
     for m in r.json().get("models", []):
-        print(f"  {m['model_id']}: status={m['status']}, accuracy={m['accuracy']}, samples={m['predictions_count']}")
+        print(
+            f"  {m['model_id']}: status={m['status']}, accuracy={m['accuracy']}, samples={m['predictions_count']}"
+        )
 
     print("\n✅ Seed complete!")
 
+
 if __name__ == "__main__":
     main()
-

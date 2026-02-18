@@ -3,7 +3,6 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from core.automated_remediation import (
     AutomatedRemediationEngine,
     RemediationPriority,
@@ -177,9 +176,7 @@ class TestAdvancedMPTEClient:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
-            client = AdvancedMPTEClient(
-                mpte_config, llm_manager, mock_db_instance
-            )
+            client = AdvancedMPTEClient(mpte_config, llm_manager, mock_db_instance)
 
             request = PenTestRequest(
                 id="test-request",
@@ -213,9 +210,7 @@ class TestAdvancedMPTEClient:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
-            client = AdvancedMPTEClient(
-                mpte_config, llm_manager, mock_db_instance
-            )
+            client = AdvancedMPTEClient(mpte_config, llm_manager, mock_db_instance)
 
             result = await client.execute_pentest_with_consensus(
                 sample_vulnerability, sample_context
@@ -299,9 +294,7 @@ class TestContinuousValidation:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
-            client = AdvancedMPTEClient(
-                mpte_config, llm_manager, mock_db_instance
-            )
+            client = AdvancedMPTEClient(mpte_config, llm_manager, mock_db_instance)
             orchestrator = MultiAIOrchestrator(llm_manager)
             engine = ContinuousValidationEngine(client, orchestrator)
 
@@ -323,9 +316,7 @@ class TestContinuousValidation:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
-            client = AdvancedMPTEClient(
-                mpte_config, llm_manager, mock_db_instance
-            )
+            client = AdvancedMPTEClient(mpte_config, llm_manager, mock_db_instance)
             orchestrator = MultiAIOrchestrator(llm_manager)
             engine = ContinuousValidationEngine(client, orchestrator)
 
@@ -350,9 +341,7 @@ class TestAutomatedRemediation:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
-            client = AdvancedMPTEClient(
-                mpte_config, llm_manager, mock_db_instance
-            )
+            client = AdvancedMPTEClient(mpte_config, llm_manager, mock_db_instance)
             engine = AutomatedRemediationEngine(llm_manager, client)
 
             suggestions = await engine.generate_remediation_suggestions(
@@ -376,9 +365,7 @@ class TestAutomatedRemediation:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
-            client = AdvancedMPTEClient(
-                mpte_config, llm_manager, mock_db_instance
-            )
+            client = AdvancedMPTEClient(mpte_config, llm_manager, mock_db_instance)
             engine = AutomatedRemediationEngine(llm_manager, client)
 
             findings = [
@@ -396,17 +383,13 @@ class TestAutomatedRemediation:
             assert "estimated_total_effort" in plan
 
     @pytest.mark.asyncio
-    async def test_verify_remediation(
-        self, mpte_config, llm_manager, sample_context
-    ):
+    async def test_verify_remediation(self, mpte_config, llm_manager, sample_context):
         """Test remediation verification."""
         with patch("core.mpte_db.MPTEDB") as mock_db:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
-            client = AdvancedMPTEClient(
-                mpte_config, llm_manager, mock_db_instance
-            )
+            client = AdvancedMPTEClient(mpte_config, llm_manager, mock_db_instance)
             client.validate_remediation = AsyncMock(
                 return_value=(True, "Vulnerability fixed")
             )
@@ -441,9 +424,7 @@ class TestIntegrationWorkflow:
             mock_db.return_value = mock_db_instance
 
             # Initialize components
-            client = AdvancedMPTEClient(
-                mpte_config, llm_manager, mock_db_instance
-            )
+            client = AdvancedMPTEClient(mpte_config, llm_manager, mock_db_instance)
             generator = IntelligentExploitGenerator(llm_manager)
 
             # 1. Generate custom exploit
@@ -470,9 +451,7 @@ class TestIntegrationWorkflow:
             mock_db.return_value = mock_db_instance
 
             # Initialize components
-            client = AdvancedMPTEClient(
-                mpte_config, llm_manager, mock_db_instance
-            )
+            client = AdvancedMPTEClient(mpte_config, llm_manager, mock_db_instance)
             engine = AutomatedRemediationEngine(llm_manager, client)
 
             # 1. Generate remediation suggestions

@@ -730,10 +730,9 @@ def _handle_get_evidence(args: argparse.Namespace) -> int:
 
 
 def _handle_stage_run(args: argparse.Namespace) -> int:
+    from core.stage_runner import StageRunner  # noqa: F811
     from src.services import id_allocator, signing  # noqa: F811
     from src.services.run_registry import RunRegistry  # noqa: F811
-
-    from core.stage_runner import StageRunner  # noqa: F811
 
     input_path: Optional[Path] = args.input
     if input_path is not None:
@@ -1094,7 +1093,6 @@ def _handle_demo(args: argparse.Namespace) -> int:
 def _handle_train_bn_lr(args: argparse.Namespace) -> int:
     import numpy as np
     import pandas as pd
-
     from core.bn_lr import save_model, train
 
     data_path = args.data
@@ -1189,7 +1187,6 @@ def _handle_predict_bn_lr(args: argparse.Namespace) -> int:
 
 def _handle_backtest_bn_lr(args: argparse.Namespace) -> int:
     import pandas as pd
-
     from core.bn_lr import backtest, load_model
 
     model_path = args.model
@@ -1772,10 +1769,18 @@ def _handle_compliance(args: argparse.Namespace) -> int:
         )
         """
     )
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_controls_framework ON compliance_controls(framework_id)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_controls_status ON compliance_controls(status)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_gaps_framework ON compliance_gaps(framework_id)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_gaps_status ON compliance_gaps(status)")
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_controls_framework ON compliance_controls(framework_id)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_controls_status ON compliance_controls(status)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_gaps_framework ON compliance_gaps(framework_id)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_gaps_status ON compliance_gaps(status)"
+    )
     conn.commit()
 
     if args.compliance_command == "frameworks":
@@ -2016,9 +2021,13 @@ def _handle_reports(args: argparse.Namespace) -> int:
         )
         """
     )
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_reports_type ON reports(report_type)")
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_reports_type ON reports(report_type)"
+    )
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_schedules_type ON report_schedules(report_type)")
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_schedules_type ON report_schedules(report_type)"
+    )
     conn.commit()
 
     if args.reports_command == "list":
@@ -2258,9 +2267,15 @@ def _handle_inventory(args: argparse.Namespace) -> int:
         )
         """
     )
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_services_app ON services(application_id)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_components_app ON components(application_id)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_apps_criticality ON applications(criticality)")
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_services_app ON services(application_id)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_components_app ON components(application_id)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_apps_criticality ON applications(criticality)"
+    )
     conn.commit()
 
     if args.inventory_command == "apps":
@@ -2384,8 +2399,12 @@ def _handle_policies(args: argparse.Namespace) -> int:
         )
         """
     )
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_policies_type ON policies(policy_type)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_policies_enabled ON policies(enabled)")
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_policies_type ON policies(policy_type)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_policies_enabled ON policies(enabled)"
+    )
     conn.commit()
 
     if args.policies_command == "list":
@@ -2583,8 +2602,12 @@ def _handle_integrations(args: argparse.Namespace) -> int:
         )
         """
     )
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_integrations_type ON integrations(integration_type)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_integrations_enabled ON integrations(enabled)")
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_integrations_type ON integrations(integration_type)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_integrations_enabled ON integrations(enabled)"
+    )
     conn.commit()
 
     if args.integrations_command == "list":
@@ -2867,8 +2890,12 @@ def _handle_audit(args: argparse.Namespace) -> int:
         )
         """
     )
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_audit_event_type ON audit_logs(event_type)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_logs(timestamp)")
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_audit_event_type ON audit_logs(event_type)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_logs(timestamp)"
+    )
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_audit_actor ON audit_logs(actor)")
     conn.commit()
 
@@ -3047,9 +3074,15 @@ def _handle_workflows(args: argparse.Namespace) -> int:
         )
         """
     )
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_workflows_trigger ON workflows(trigger_type)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_workflow_exec_wf ON workflow_executions(workflow_id)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_workflow_exec_status ON workflow_executions(status)")
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_workflows_trigger ON workflows(trigger_type)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_workflow_exec_wf ON workflow_executions(workflow_id)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_workflow_exec_status ON workflow_executions(status)"
+    )
     conn.commit()
 
     if args.workflows_command == "list":
@@ -3476,10 +3509,8 @@ def _handle_pentagi(args: argparse.Namespace) -> int:
     """Handle unified PentAGI commands — delegates to micro-pentest, mpte, and
     advanced-pentest handlers for a single cohesive 'pentagi' CLI."""
     import argparse as _argparse
-    import asyncio
     import json
     import os
-    from datetime import datetime, timezone
 
     cmd = args.pentagi_command
 
@@ -3610,7 +3641,9 @@ def _handle_pentagi(args: argparse.Namespace) -> int:
             "scan_type": scan_type,
         }
         if compliance:
-            payload["compliance_frameworks"] = [c.strip() for c in compliance.split(",")]
+            payload["compliance_frameworks"] = [
+                c.strip() for c in compliance.split(",")
+            ]
 
         try:
             import urllib.request
@@ -3741,7 +3774,10 @@ def _handle_pentagi(args: argparse.Namespace) -> int:
     elif cmd == "generate-report":
         url = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
         target = args.target
-        payload = {"target_url": target, "report_format": getattr(args, "report_format", "pdf")}
+        payload = {
+            "target_url": target,
+            "report_format": getattr(args, "report_format", "pdf"),
+        }
         try:
             import urllib.request
 
@@ -4927,9 +4963,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--priority", default="medium", choices=["critical", "high", "medium", "low"]
     )
 
-    get_request = mpte_subparsers.add_parser(
-        "get-request", help="Get pen test request"
-    )
+    get_request = mpte_subparsers.add_parser("get-request", help="Get pen test request")
     get_request.add_argument("id", help="Request ID")
 
     list_results = mpte_subparsers.add_parser(
@@ -5713,9 +5747,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     # pentagi list — list all pen test requests
-    ptg_list = pentagi_subparsers.add_parser(
-        "list", help="List pen test requests"
-    )
+    ptg_list = pentagi_subparsers.add_parser("list", help="List pen test requests")
     ptg_list.add_argument("--finding-id", help="Filter by finding ID")
     ptg_list.add_argument(
         "--status",
@@ -5751,9 +5783,7 @@ def build_parser() -> argparse.ArgumentParser:
     ptg_biz.add_argument("--cves", help="Comma-separated CVE IDs")
 
     # pentagi simulate — simulate attack chain
-    ptg_sim = pentagi_subparsers.add_parser(
-        "simulate", help="Simulate attack chain"
-    )
+    ptg_sim = pentagi_subparsers.add_parser("simulate", help="Simulate attack chain")
     ptg_sim.add_argument("--target", required=True, help="Target URL")
     ptg_sim.add_argument(
         "--attack-type",
@@ -5773,9 +5803,7 @@ def build_parser() -> argparse.ArgumentParser:
     ptg_rem.add_argument("cve", help="CVE ID")
 
     # pentagi capabilities — list all capabilities
-    pentagi_subparsers.add_parser(
-        "capabilities", help="List PentAGI capabilities"
-    )
+    pentagi_subparsers.add_parser("capabilities", help="List PentAGI capabilities")
 
     # pentagi enterprise-scan — run enterprise-grade scan
     ptg_escan = pentagi_subparsers.add_parser(
@@ -5799,9 +5827,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     # pentagi audit-logs — view enterprise audit logs
-    pentagi_subparsers.add_parser(
-        "audit-logs", help="View enterprise audit logs"
-    )
+    pentagi_subparsers.add_parser("audit-logs", help="View enterprise audit logs")
 
     # pentagi attack-vectors — list attack vectors
     pentagi_subparsers.add_parser(
@@ -5809,9 +5835,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     # pentagi threat-categories — list threat categories
-    pentagi_subparsers.add_parser(
-        "threat-categories", help="List threat categories"
-    )
+    pentagi_subparsers.add_parser("threat-categories", help="List threat categories")
 
     # pentagi compliance-frameworks — list compliance frameworks
     pentagi_subparsers.add_parser(
@@ -5819,9 +5843,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     # pentagi scan-modes — list scan modes
-    pentagi_subparsers.add_parser(
-        "scan-modes", help="List available scan modes"
-    )
+    pentagi_subparsers.add_parser("scan-modes", help="List available scan modes")
 
     # pentagi generate-report — generate pentest report
     ptg_report = pentagi_subparsers.add_parser(
@@ -5836,9 +5858,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     # pentagi report-data — get latest report data
-    pentagi_subparsers.add_parser(
-        "report-data", help="Get latest report data"
-    )
+    pentagi_subparsers.add_parser("report-data", help="Get latest report data")
 
     pentagi_parser.set_defaults(func=_handle_pentagi)
 

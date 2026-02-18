@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -47,4 +47,3 @@ async def trace_vulnerability(req: TraceRequest) -> Dict[str, Any]:
 @router.get("/status")
 async def tracer_status() -> Dict[str, Any]:
     return {"engine": "code_to_cloud_tracer", "status": "ready", "version": "1.0.0"}
-
