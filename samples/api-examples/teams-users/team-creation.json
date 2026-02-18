@@ -1,0 +1,75 @@
+{
+  "team_id": "team-payments-001",
+  "name": "Payments Platform Team",
+  "description": "Team responsible for payment processing services",
+  "type": "engineering",
+  "status": "active",
+  "organization": {
+    "business_unit": "Financial Services",
+    "cost_center": "CC-12345",
+    "department": "Engineering"
+  },
+  "leadership": {
+    "manager": "john.doe@example.com",
+    "tech_lead": "jane.smith@example.com",
+    "security_champion": "bob.wilson@example.com"
+  },
+  "members": [
+    {
+      "email": "john.doe@example.com",
+      "role": "manager",
+      "permissions": ["admin", "approve", "deploy"]
+    },
+    {
+      "email": "jane.smith@example.com",
+      "role": "tech_lead",
+      "permissions": ["admin", "approve", "deploy", "review"]
+    },
+    {
+      "email": "bob.wilson@example.com",
+      "role": "security_champion",
+      "permissions": ["review", "approve_security", "exception_request"]
+    },
+    {
+      "email": "alice.johnson@example.com",
+      "role": "developer",
+      "permissions": ["deploy_staging", "review"]
+    },
+    {
+      "email": "charlie.brown@example.com",
+      "role": "developer",
+      "permissions": ["deploy_staging", "review"]
+    }
+  ],
+  "applications": [
+    "payment-gateway",
+    "card-vault",
+    "tokenization-service",
+    "payment-webhook"
+  ],
+  "policies": {
+    "security_policy": "sec-policy-prod-001",
+    "deployment_policy": "deploy-policy-001",
+    "exception_policy": "exception-policy-001"
+  },
+  "sla": {
+    "critical_response_hours": 4,
+    "critical_resolution_hours": 24,
+    "high_response_hours": 8,
+    "high_resolution_hours": 72
+  },
+  "notifications": {
+    "channels": ["slack:#payments-security", "email:payments-team@example.com"],
+    "escalation": ["pagerduty:payments-oncall"]
+  },
+  "integrations": {
+    "jira_project": "PAY",
+    "confluence_space": "PAYMENTS",
+    "github_team": "payments-platform"
+  },
+  "metadata": {
+    "created_at": "2024-01-15T10:00:00Z",
+    "created_by": "admin@example.com",
+    "last_modified": "2025-01-10T15:30:00Z"
+  }
+}

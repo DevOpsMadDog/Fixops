@@ -1,0 +1,279 @@
+# FixOps Playbook: SOC2 Access Control Validation
+# This playbook validates SOC2 access control requirements and creates
+# remediation tickets for any gaps found.
+
+apiVersion: fixops.io/v1
+kind: CompliancePack
+metadata:
+  name: soc2-access-control-validation
+  version: "1.0.0"
+  description: "Validates SOC2 access control requirements (CC6.1-CC6.8) and creates remediation tickets for gaps"
+  author: "FixOps Security Team"
+  license: MIT
+  tags:
+    - soc2
+    - access-control
+    - compliance
+    - authentication
+    - authorization
+  compliance_frameworks:
+    - SOC2
+  ssdlc_stages:
+    - test
+    - deploy
+    - operate
+
+spec:
+  inputs:
+    findings:
+      type: sarif
+      required: true
+      description: "SARIF findings from security scanners"
+    sbom:
+      type: sbom
+      required: false
+      description: "Software Bill of Materials for dependency analysis"
+    severity_threshold:
+      type: string
+      default: "high"
+      description: "Minimum severity to flag (critical, high, medium, low)"
+    auto_create_tickets:
+      type: boolean
+      default: true
+      description: "Automatically create Jira tickets for gaps"
+
+  conditions:
+    frameworks:
+      - SOC2
+    min_severity: medium
+
+  steps:
+    - name: evaluate-access-controls
+      action: opa.evaluate
+      params:
+        policy: "soc2/access-control.rego"
+        input: "{{ inputs.findings }}"
+        data:
+          severity_threshold: "{{ inputs.severity_threshold }}"
+      timeout: "60s"
+      on_failure:
+        retry: 1
+        continue: false
+
+    - name: check-mfa-requirement
+      action: compliance.check_control
+      condition:
+        depends_on:
+          - evaluate-access-controls
+      params:
+        framework: SOC2
+        control: "CC6.1"
+        evidence_type: "mfa_configuration"
+        description: "Multi-factor authentication must be enabled for all privileged access"
+      timeout: "30s"
+
+    - name: check-least-privilege
+      action: compliance.check_control
+      condition:
+        depends_on:
+          - evaluate-access-controls
+      params:
+        framework: SOC2
+        control: "CC6.3"
+        evidence_type: "rbac_configuration"
+        description: "Role-based access control with least privilege principle"
+      timeout: "30s"
+
+    - name: check-access-review
+      action: compliance.check_control
+      condition:
+        depends_on:
+          - evaluate-access-controls
+      params:
+        framework: SOC2
+        control: "CC6.2"
+        evidence_type: "access_review_logs"
+        description: "Periodic access reviews must be conducted"
+      timeout: "30s"
+
+    - name: check-session-management
+      action: compliance.check_control
+      condition:
+        depends_on:
+          - evaluate-access-controls
+      params:
+        framework: SOC2
+        control: "CC6.7"
+        evidence_type: "session_configuration"
+        description: "Session timeout and management controls"
+      timeout: "30s"
+
+    - name: collect-evidence
+      action: evidence.collect
+      condition:
+        depends_on:
+          - check-mfa-requirement
+          - check-least-privilege
+          - check-access-review
+          - check-session-management
+      params:
+        evidence_types:
+          - mfa_configuration
+          - rbac_configuration
+          - access_review_logs
+          - session_configuration
+        retention_days: 365
+      timeout: "120s"
+
+    - name: create-mfa-ticket
+      action: jira.create_issue
+      condition:
+        when: "steps.check-mfa-requirement.status == 'failed'"
+        depends_on:
+          - check-mfa-requirement
+      params:
+        project: "SEC"
+        issue_type: "Bug"
+        priority: "High"
+        summary: "SOC2 CC6.1 - MFA requirement not met"
+        description: |
+          ## SOC2 Compliance Gap Detected
+          
+          **Control:** CC6.1 - Multi-Factor Authentication
+          **Status:** Failed
+          **Details:** {{ steps.check-mfa-requirement.output.details }}
+          
+          ### Required Actions
+          1. Enable MFA for all privileged accounts
+          2. Configure MFA enforcement policy
+          3. Document MFA implementation
+          
+          ### Evidence Required
+          - MFA configuration screenshots
+          - Policy documentation
+          - User enrollment status
+        labels:
+          - soc2
+          - compliance
+          - mfa
+          - security
+
+    - name: create-rbac-ticket
+      action: jira.create_issue
+      condition:
+        when: "steps.check-least-privilege.status == 'failed'"
+        depends_on:
+          - check-least-privilege
+      params:
+        project: "SEC"
+        issue_type: "Bug"
+        priority: "High"
+        summary: "SOC2 CC6.3 - Least privilege principle not enforced"
+        description: |
+          ## SOC2 Compliance Gap Detected
+          
+          **Control:** CC6.3 - Least Privilege
+          **Status:** Failed
+          **Details:** {{ steps.check-least-privilege.output.details }}
+          
+          ### Required Actions
+          1. Review and update role definitions
+          2. Remove excessive permissions
+          3. Implement RBAC controls
+        labels:
+          - soc2
+          - compliance
+          - rbac
+          - security
+
+    - name: notify-security-team
+      action: notify.slack
+      condition:
+        when: "steps.check-mfa-requirement.status == 'failed'"
+        depends_on:
+          - create-mfa-ticket
+      params:
+        channel: "#security-alerts"
+        message: |
+          :warning: *SOC2 Access Control Validation Failed*
+          
+          Control CC6.1 (MFA) compliance gap detected.
+          Jira ticket created: {{ steps.create-mfa-ticket.output.issue_key }}
+          
+          Please review and remediate within 30 days.
+
+    - name: generate-compliance-report
+      action: compliance.generate_report
+      condition:
+        depends_on:
+          - check-mfa-requirement
+          - check-least-privilege
+          - check-access-review
+          - check-session-management
+      params:
+        framework: SOC2
+        controls:
+          - CC6.1
+          - CC6.2
+          - CC6.3
+          - CC6.7
+        format: pdf
+        include_evidence: true
+      timeout: "180s"
+
+    - name: sign-evidence-bundle
+      action: evidence.sign
+      condition:
+        depends_on:
+          - collect-evidence
+          - generate-compliance-report
+      params:
+        evidence_id: "{{ steps.collect-evidence.output.evidence_id }}"
+        report_id: "{{ steps.generate-compliance-report.output.report_id }}"
+        algorithm: "RSA-SHA256"
+      timeout: "30s"
+
+  outputs:
+    compliance_status:
+      type: object
+      description: "Overall compliance status for SOC2 access controls"
+      from: "steps.generate-compliance-report.output"
+    
+    mfa_status:
+      type: object
+      description: "MFA compliance check result"
+      from: "steps.check-mfa-requirement.output"
+    
+    rbac_status:
+      type: object
+      description: "RBAC compliance check result"
+      from: "steps.check-least-privilege.output"
+    
+    remediation_tickets:
+      type: array
+      description: "List of created Jira tickets for remediation"
+      from:
+        - "steps.create-mfa-ticket.output"
+        - "steps.create-rbac-ticket.output"
+    
+    evidence_bundle:
+      type: evidence_bundle
+      description: "Signed evidence bundle for audit"
+      from: "steps.sign-evidence-bundle.output"
+
+  triggers:
+    - event: pipeline.completed
+      filter:
+        stage: deploy
+        environment: production
+    
+    - event: schedule.cron
+      filter:
+        expression: "0 0 * * 1"  # Weekly on Monday at midnight
+    
+    - event: compliance.control_failed
+      filter:
+        framework: SOC2
+        control_prefix: "CC6"
+    
+    - event: manual

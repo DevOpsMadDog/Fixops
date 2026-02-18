@@ -12,6 +12,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 import pytest
+
 from risk.scoring import (
     DEFAULT_WEIGHTS,
     EXPOSURE_ALIASES,

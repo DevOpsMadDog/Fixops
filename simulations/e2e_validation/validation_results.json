@@ -1,0 +1,2897 @@
+{
+  "timestamp": "2025-10-30T13:46:59.809421",
+  "apps": {
+    "APP1": {
+      "app_id": "APP1",
+      "app_name": "InsureCo Web",
+      "stages": {
+        "requirements": {
+          "status": "success",
+          "count": 10,
+          "data": [
+            {
+              "req_id": "REQ-001",
+              "app_id": "APP1",
+              "description": "Policy search and retrieval system",
+              "owner": "john.smith@insureco.com",
+              "criticality": "5",
+              "data_classification": "restricted",
+              "threat_ref": "STRIDE-T-001"
+            },
+            {
+              "req_id": "REQ-002",
+              "app_id": "APP1",
+              "description": "Customer payment processing",
+              "owner": "jane.doe@insureco.com",
+              "criticality": "5",
+              "data_classification": "restricted",
+              "threat_ref": "STRIDE-T-002"
+            },
+            {
+              "req_id": "REQ-003",
+              "app_id": "APP1",
+              "description": "Claims submission portal",
+              "owner": "bob.jones@insureco.com",
+              "criticality": "4",
+              "data_classification": "confidential",
+              "threat_ref": "STRIDE-T-003"
+            },
+            {
+              "req_id": "REQ-004",
+              "app_id": "APP1",
+              "description": "Document storage and retrieval",
+              "owner": "alice.brown@insureco.com",
+              "criticality": "4",
+              "data_classification": "confidential",
+              "threat_ref": "STRIDE-T-004"
+            },
+            {
+              "req_id": "REQ-005",
+              "app_id": "APP1",
+              "description": "User authentication and authorization",
+              "owner": "mike.wilson@insureco.com",
+              "criticality": "5",
+              "data_classification": "restricted",
+              "threat_ref": "STRIDE-T-005"
+            },
+            {
+              "req_id": "REQ-006",
+              "app_id": "APP1",
+              "description": "Policy quote calculator",
+              "owner": "sarah.davis@insureco.com",
+              "criticality": "3",
+              "data_classification": "internal",
+              "threat_ref": "STRIDE-T-006"
+            },
+            {
+              "req_id": "REQ-007",
+              "app_id": "APP1",
+              "description": "Customer profile management",
+              "owner": "tom.miller@insureco.com",
+              "criticality": "4",
+              "data_classification": "confidential",
+              "threat_ref": "STRIDE-T-007"
+            },
+            {
+              "req_id": "REQ-008",
+              "app_id": "APP1",
+              "description": "Reporting and analytics dashboard",
+              "owner": "lisa.garcia@insureco.com",
+              "criticality": "2",
+              "data_classification": "internal",
+              "threat_ref": "STRIDE-T-008"
+            },
+            {
+              "req_id": "REQ-009",
+              "app_id": "APP1",
+              "description": "Email notification service",
+              "owner": "david.martinez@insureco.com",
+              "criticality": "3",
+              "data_classification": "internal",
+              "threat_ref": "STRIDE-T-009"
+            },
+            {
+              "req_id": "REQ-010",
+              "app_id": "APP1",
+              "description": "API gateway for partner integrations",
+              "owner": "emma.rodriguez@insureco.com",
+              "criticality": "4",
+              "data_classification": "confidential",
+              "threat_ref": "STRIDE-T-010"
+            }
+          ]
+        },
+        "design": {
+          "status": "success",
+          "count": 10,
+          "threats": [
+            {
+              "service_name": "policy-search-api",
+              "environment": "prod",
+              "customer_impact": "mission_critical",
+              "data_classification": "pii",
+              "exposure": "internet",
+              "threat_id": "STRIDE-T-001",
+              "threat_description": "SQL injection in policy search endpoint /policy/search",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "payment-gateway",
+              "environment": "prod",
+              "customer_impact": "mission_critical",
+              "data_classification": "financial",
+              "exposure": "internet",
+              "threat_id": "STRIDE-T-002",
+              "threat_description": "Weak TLS configuration with outdated OpenSSL 1.0.2",
+              "severity": "high",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "document-storage",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "internet",
+              "threat_id": "STRIDE-T-004",
+              "threat_description": "S3 bucket with public read ACL exposing customer documents",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "web-frontend",
+              "environment": "prod",
+              "customer_impact": "mission_critical",
+              "data_classification": "pii",
+              "exposure": "internet",
+              "threat_id": "STRIDE-T-005",
+              "threat_description": "Transitive dependency on log4j 2.14.1 with RCE vulnerability",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "iam-service",
+              "environment": "prod",
+              "customer_impact": "mission_critical",
+              "data_classification": "pii",
+              "exposure": "internet",
+              "threat_id": "STRIDE-T-005",
+              "threat_description": "Overly permissive IAM role allowing s3:* actions",
+              "severity": "high",
+              "mitigation_status": "incomplete"
+            }
+          ],
+          "data": [
+            {
+              "service_name": "policy-search-api",
+              "environment": "prod",
+              "customer_impact": "mission_critical",
+              "data_classification": "pii",
+              "exposure": "internet",
+              "threat_id": "STRIDE-T-001",
+              "threat_description": "SQL injection in policy search endpoint /policy/search",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "payment-gateway",
+              "environment": "prod",
+              "customer_impact": "mission_critical",
+              "data_classification": "financial",
+              "exposure": "internet",
+              "threat_id": "STRIDE-T-002",
+              "threat_description": "Weak TLS configuration with outdated OpenSSL 1.0.2",
+              "severity": "high",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "document-storage",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "internet",
+              "threat_id": "STRIDE-T-004",
+              "threat_description": "S3 bucket with public read ACL exposing customer documents",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "web-frontend",
+              "environment": "prod",
+              "customer_impact": "mission_critical",
+              "data_classification": "pii",
+              "exposure": "internet",
+              "threat_id": "STRIDE-T-005",
+              "threat_description": "Transitive dependency on log4j 2.14.1 with RCE vulnerability",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "iam-service",
+              "environment": "prod",
+              "customer_impact": "mission_critical",
+              "data_classification": "pii",
+              "exposure": "internet",
+              "threat_id": "STRIDE-T-005",
+              "threat_description": "Overly permissive IAM role allowing s3:* actions",
+              "severity": "high",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "claims-api",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-003",
+              "threat_description": "Missing input validation on claims submission",
+              "severity": "medium",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "quote-calculator",
+              "environment": "prod",
+              "customer_impact": "internal",
+              "data_classification": "internal",
+              "exposure": "internal",
+              "threat_id": "STRIDE-T-006",
+              "threat_description": "Hardcoded API keys in configuration files",
+              "severity": "medium",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "user-profile-api",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-007",
+              "threat_description": "Weak password policy allowing 6-character passwords",
+              "severity": "medium",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "analytics-service",
+              "environment": "stage",
+              "customer_impact": "internal",
+              "data_classification": "internal",
+              "exposure": "internal",
+              "threat_id": "STRIDE-T-008",
+              "threat_description": "Unencrypted data at rest in analytics database",
+              "severity": "low",
+              "mitigation_status": "complete"
+            },
+            {
+              "service_name": "notification-service",
+              "environment": "prod",
+              "customer_impact": "internal",
+              "data_classification": "internal",
+              "exposure": "internal",
+              "threat_id": "STRIDE-T-009",
+              "threat_description": "SMTP credentials stored in plaintext",
+              "severity": "medium",
+              "mitigation_status": "incomplete"
+            }
+          ]
+        },
+        "sbom": {
+          "status": "success",
+          "components": 10,
+          "vulnerabilities": 2,
+          "data": "NormalizedSBOM(format='CycloneDX', document={'bomFormat': 'CycloneDX', 'specVersion': '1.4', 'version': 1, 'metadata': {'timestamp': '2025-10-30T00:00:00Z', 'component': {'type': 'application', 'name': 'insureco-web', 'version': '2.3.1', 'purl': 'pkg:maven/com.insureco/insureco-web@2.3.1'}}, 'components': [{'type': 'library', 'name': 'spring-boot-starter-web', 'version': '2.5.6', 'purl': 'pkg:maven/org.springframework.boot/spring-boot-starter-web@2.5.6', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}, {'type': 'library', 'name': 'spring-boot-starter-logging', 'version': '2.5.6', 'purl': 'pkg:maven/org.springframework.boot/spring-boot-starter-logging@2.5.6', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}, {'type': 'library', 'name': 'log4j-to-slf4j', 'version': '2.14.1', 'purl': 'pkg:maven/org.apache.logging.log4j/log4j-to-slf4j@2.14.1', 'licenses': [{'license': {'id': 'Apache-2.0'}}], 'vulnerabilities': [{'id': 'CVE-2021-44228', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2021-44228'}, 'ratings': [{'severity': 'critical', 'score': 10.0, 'method': 'CVSSv3'}], 'description': 'Apache Log4j2 2.0-beta9 through 2.15.0 JNDI features used in configuration, log messages, and parameters do not protect against attacker controlled LDAP and other JNDI related endpoints. An attacker who can control log messages or log message parameters can execute arbitrary code loaded from LDAP servers when message lookup substitution is enabled.', 'recommendation': 'Upgrade to log4j 2.17.1 or later'}]}, {'type': 'library', 'name': 'log4j-api', 'version': '2.14.1', 'purl': 'pkg:maven/org.apache.logging.log4j/log4j-api@2.14.1', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}, {'type': 'library', 'name': 'nginx', 'version': '1.18.0', 'purl': 'pkg:generic/nginx@1.18.0', 'description': 'Web server with OpenSSL 1.0.2', 'externalReferences': [{'type': 'other', 'url': 'https://nginx.org/', 'comment': 'Compiled with OpenSSL 1.0.2k-fips'}]}, {'type': 'library', 'name': 'openssl', 'version': '1.0.2k', 'purl': 'pkg:generic/openssl@1.0.2k', 'licenses': [{'license': {'id': 'OpenSSL'}}], 'vulnerabilities': [{'id': 'CVE-2022-0778', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2022-0778'}, 'ratings': [{'severity': 'high', 'score': 7.5, 'method': 'CVSSv3'}], 'description': 'The BN_mod_sqrt() function, which computes a modular square root, contains a bug that can cause it to loop forever for non-prime moduli.', 'recommendation': 'Upgrade to OpenSSL 1.1.1n or later'}]}, {'type': 'library', 'name': 'aws-sdk-java', 'version': '1.11.1000', 'purl': 'pkg:maven/com.amazonaws/aws-sdk-java@1.11.1000', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}, {'type': 'library', 'name': 'jackson-databind', 'version': '2.12.3', 'purl': 'pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.12.3', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}, {'type': 'library', 'name': 'postgresql-jdbc', 'version': '42.2.23', 'purl': 'pkg:maven/org.postgresql/postgresql@42.2.23', 'licenses': [{'license': {'id': 'BSD-2-Clause'}}]}, {'type': 'library', 'name': 'commons-io', 'version': '2.7', 'purl': 'pkg:maven/commons-io/commons-io@2.7', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}], 'dependencies': [{'ref': 'pkg:maven/org.springframework.boot/spring-boot-starter-web@2.5.6', 'dependsOn': ['pkg:maven/org.springframework.boot/spring-boot-starter-logging@2.5.6']}, {'ref': 'pkg:maven/org.springframework.boot/spring-boot-starter-logging@2.5.6', 'dependsOn': ['pkg:maven/org.apache.logging.log4j/log4j-to-slf4j@2.14.1', 'pkg:maven/org.apache.logging.log4j/log4j-api@2.14.1']}]}, components=[SBOMComponent(name='spring-boot-starter-web', version='2.5.6', purl='pkg:maven/org.springframework.boot/spring-boot-starter-web@2.5.6', licenses=[{'id': 'Apache-2.0'}], supplier=None, raw={'type': 'library', 'name': 'spring-boot-starter-web', 'version': '2.5.6', 'purl': 'pkg:maven/org.springframework.boot/spring-boot-starter-web@2.5.6', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}), SBOMComponent(name='spring-boot-starter-logging', version='2.5.6', purl='pkg:maven/org.springframework.boot/spring-boot-starter-logging@2.5.6', licenses=[{'id': 'Apache-2.0'}], supplier=None, raw={'type': 'library', 'name': 'spring-boot-starter-logging', 'version': '2.5.6', 'purl': 'pkg:maven/org.springframework.boot/spring-boot-starter-logging@2.5.6', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}), SBOMComponent(name='log4j-to-slf4j', version='2.14.1', purl='pkg:maven/org.apache.logging.log4j/log4j-to-slf4j@2.14.1', licenses=[{'id': 'Apache-2.0'}], supplier=None, raw={'type': 'library', 'name': 'log4j-to-slf4j', 'version': '2.14.1', 'purl': 'pkg:maven/org.apache.logging.log4j/log4j-to-slf4j@2.14.1', 'licenses': [{'license': {'id': 'Apache-2.0'}}], 'vulnerabilities': [{'id': 'CVE-2021-44228', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2021-44228'}, 'ratings': [{'severity': 'critical', 'score': 10.0, 'method': 'CVSSv3'}], 'description': 'Apache Log4j2 2.0-beta9 through 2.15.0 JNDI features used in configuration, log messages, and parameters do not protect against attacker controlled LDAP and other JNDI related endpoints. An attacker who can control log messages or log message parameters can execute arbitrary code loaded from LDAP servers when message lookup substitution is enabled.', 'recommendation': 'Upgrade to log4j 2.17.1 or later'}]}), SBOMComponent(name='log4j-api', version='2.14.1', purl='pkg:maven/org.apache.logging.log4j/log4j-api@2.14.1', licenses=[{'id': 'Apache-2.0'}], supplier=None, raw={'type': 'library', 'name': 'log4j-api', 'version': '2.14.1', 'purl': 'pkg:maven/org.apache.logging.log4j/log4j-api@2.14.1', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}), SBOMComponent(name='nginx', version='1.18.0', purl='pkg:generic/nginx@1.18.0', licenses=[], supplier=None, raw={'type': 'library', 'name': 'nginx', 'version': '1.18.0', 'purl': 'pkg:generic/nginx@1.18.0', 'description': 'Web server with OpenSSL 1.0.2', 'externalReferences': [{'type': 'other', 'url': 'https://nginx.org/', 'comment': 'Compiled with OpenSSL 1.0.2k-fips'}]}), SBOMComponent(name='openssl', version='1.0.2k', purl='pkg:generic/openssl@1.0.2k', licenses=[{'id': 'OpenSSL'}], supplier=None, raw={'type': 'library', 'name': 'openssl', 'version': '1.0.2k', 'purl': 'pkg:generic/openssl@1.0.2k', 'licenses': [{'license': {'id': 'OpenSSL'}}], 'vulnerabilities': [{'id': 'CVE-2022-0778', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2022-0778'}, 'ratings': [{'severity': 'high', 'score': 7.5, 'method': 'CVSSv3'}], 'description': 'The BN_mod_sqrt() function, which computes a modular square root, contains a bug that can cause it to loop forever for non-prime moduli.', 'recommendation': 'Upgrade to OpenSSL 1.1.1n or later'}]}), SBOMComponent(name='aws-sdk-java', version='1.11.1000', purl='pkg:maven/com.amazonaws/aws-sdk-java@1.11.1000', licenses=[{'id': 'Apache-2.0'}], supplier=None, raw={'type': 'library', 'name': 'aws-sdk-java', 'version': '1.11.1000', 'purl': 'pkg:maven/com.amazonaws/aws-sdk-java@1.11.1000', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}), SBOMComponent(name='jackson-databind', version='2.12.3', purl='pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.12.3', licenses=[{'id': 'Apache-2.0'}], supplier=None, raw={'type': 'library', 'name': 'jackson-databind', 'version': '2.12.3', 'purl': 'pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.12.3', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}), SBOMComponent(name='postgresql-jdbc', version='42.2.23', purl='pkg:maven/org.postgresql/postgresql@42.2.23', licenses=[{'id': 'BSD-2-Clause'}], supplier=None, raw={'type': 'library', 'name': 'postgresql-jdbc', 'version': '42.2.23', 'purl': 'pkg:maven/org.postgresql/postgresql@42.2.23', 'licenses': [{'license': {'id': 'BSD-2-Clause'}}]}), SBOMComponent(name='commons-io', version='2.7', purl='pkg:maven/commons-io/commons-io@2.7', licenses=[{'id': 'Apache-2.0'}], supplier=None, raw={'type': 'library', 'name': 'commons-io', 'version': '2.7', 'purl': 'pkg:maven/commons-io/commons-io@2.7', 'licenses': [{'license': {'id': 'Apache-2.0'}}]})], relationships=[], services=[], vulnerabilities=[{'id': 'CVE-2021-44228', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2021-44228'}, 'ratings': [{'severity': 'critical', 'score': 10.0, 'method': 'CVSSv3'}], 'description': 'Apache Log4j2 2.0-beta9 through 2.15.0 JNDI features used in configuration, log messages, and parameters do not protect against attacker controlled LDAP and other JNDI related endpoints. An attacker who can control log messages or log message parameters can execute arbitrary code loaded from LDAP servers when message lookup substitution is enabled.', 'recommendation': 'Upgrade to log4j 2.17.1 or later', 'affects': [{'ref': 'pkg:maven/org.apache.logging.log4j/log4j-to-slf4j@2.14.1'}]}, {'id': 'CVE-2022-0778', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2022-0778'}, 'ratings': [{'severity': 'high', 'score': 7.5, 'method': 'CVSSv3'}], 'description': 'The BN_mod_sqrt() function, which computes a modular square root, contains a bug that can cause it to loop forever for non-prime moduli.', 'recommendation': 'Upgrade to OpenSSL 1.1.1n or later', 'affects': [{'ref': 'pkg:generic/openssl@1.0.2k'}]}], metadata={'component_count': 10, 'relationship_count': 0, 'service_count': 0, 'vulnerability_count': 2})"
+        },
+        "sarif": {
+          "status": "success",
+          "findings": 6,
+          "critical": 4,
+          "high": 2,
+          "data": "NormalizedSARIF(version='2.1.0', schema_uri='https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json', tool_names=['SonarQube'], findings=[SarifFinding(rule_id='java:S3649', message='SQL injection vulnerability detected in policy search endpoint. User input is directly concatenated into SQL query without parameterization.', level='error', file='src/main/java/com/insureco/api/PolicySearchController.java', line=45, raw={'ruleId': 'java:S3649', 'level': 'error', 'message': {'text': 'SQL injection vulnerability detected in policy search endpoint. User input is directly concatenated into SQL query without parameterization.'}, 'locations': [{'physicalLocation': {'artifactLocation': {'uri': 'src/main/java/com/insureco/api/PolicySearchController.java'}, 'region': {'startLine': 45, 'startColumn': 20, 'snippet': {'text': 'String query = \"SELECT * FROM policies WHERE policy_number = \\'\" + policyNumber + \"\\'\";'}}}}], 'properties': {'security-severity': '9.8', 'tags': ['security', 'sql-injection', 'cwe-89']}}), SarifFinding(rule_id='java:S2068', message='Hardcoded credentials detected. API key is stored directly in source code.', level='error', file='src/main/java/com/insureco/config/AppConfig.java', line=23, raw={'ruleId': 'java:S2068', 'level': 'error', 'message': {'text': 'Hardcoded credentials detected. API key is stored directly in source code.'}, 'locations': [{'physicalLocation': {'artifactLocation': {'uri': 'src/main/java/com/insureco/config/AppConfig.java'}, 'region': {'startLine': 23, 'startColumn': 30, 'snippet': {'text': 'private static final String API_KEY = \"REDACTED_API_KEY_EXAMPLE_DO_NOT_USE\";'}}}}], 'properties': {'security-severity': '7.5', 'tags': ['security', 'credentials', 'cwe-798']}}), SarifFinding(rule_id='java:S4502', message='Weak password validation allows passwords shorter than 8 characters.', level='warning', file='src/main/java/com/insureco/auth/PasswordValidator.java', line=12, raw={'ruleId': 'java:S4502', 'level': 'warning', 'message': {'text': 'Weak password validation allows passwords shorter than 8 characters.'}, 'locations': [{'physicalLocation': {'artifactLocation': {'uri': 'src/main/java/com/insureco/auth/PasswordValidator.java'}, 'region': {'startLine': 12, 'startColumn': 15, 'snippet': {'text': 'if (password.length() >= 6) { return true; }'}}}}], 'properties': {'security-severity': '5.3', 'tags': ['security', 'authentication', 'cwe-521']}}), SarifFinding(rule_id='java:S5131', message='Cross-Site Scripting (XSS) vulnerability. User input is rendered without sanitization.', level='error', file='src/main/java/com/insureco/web/ClaimsController.java', line=67, raw={'ruleId': 'java:S5131', 'level': 'error', 'message': {'text': 'Cross-Site Scripting (XSS) vulnerability. User input is rendered without sanitization.'}, 'locations': [{'physicalLocation': {'artifactLocation': {'uri': 'src/main/java/com/insureco/web/ClaimsController.java'}, 'region': {'startLine': 67, 'startColumn': 25, 'snippet': {'text': 'model.addAttribute(\"claimDescription\", request.getParameter(\"description\"));'}}}}], 'properties': {'security-severity': '6.1', 'tags': ['security', 'xss', 'cwe-79']}}), SarifFinding(rule_id='java:S4830', message='Server certificate validation is disabled, allowing man-in-the-middle attacks.', level='error', file='src/main/java/com/insureco/client/PaymentGatewayClient.java', line=34, raw={'ruleId': 'java:S4830', 'level': 'error', 'message': {'text': 'Server certificate validation is disabled, allowing man-in-the-middle attacks.'}, 'locations': [{'physicalLocation': {'artifactLocation': {'uri': 'src/main/java/com/insureco/client/PaymentGatewayClient.java'}, 'region': {'startLine': 34, 'startColumn': 10, 'snippet': {'text': 'sslContext.init(null, trustAllCerts, new SecureRandom());'}}}}], 'properties': {'security-severity': '7.4', 'tags': ['security', 'tls', 'cwe-295']}}), SarifFinding(rule_id='java:S2076', message='OS command injection vulnerability. User input is passed to Runtime.exec() without validation.', level='warning', file='src/main/java/com/insureco/reports/ReportGenerator.java', line=89, raw={'ruleId': 'java:S2076', 'level': 'warning', 'message': {'text': 'OS command injection vulnerability. User input is passed to Runtime.exec() without validation.'}, 'locations': [{'physicalLocation': {'artifactLocation': {'uri': 'src/main/java/com/insureco/reports/ReportGenerator.java'}, 'region': {'startLine': 89, 'startColumn': 20, 'snippet': {'text': 'Runtime.getRuntime().exec(\"convert \" + userFilePath + \" output.pdf\");'}}}}], 'properties': {'security-severity': '8.1', 'tags': ['security', 'command-injection', 'cwe-78']}})], metadata={'run_count': 1, 'finding_count': 6, 'supported_schema': False, 'tool_count': 1})"
+        },
+        "operate": {
+          "status": "success",
+          "findings": 5,
+          "critical": 1,
+          "data": [
+            {
+              "id": "CNAPP-001",
+              "service": "S3",
+              "resource": "insureco-customer-documents",
+              "severity": "CRITICAL",
+              "title": "S3 Bucket Publicly Accessible",
+              "description": "S3 bucket 'insureco-customer-documents' has public read access enabled via bucket ACL. This bucket contains customer policy documents and personal information.",
+              "remediation": "Remove public access by updating bucket ACL and enabling Block Public Access settings",
+              "compliance_frameworks": [
+                "PCI-DSS 3.2",
+                "SOC2 CC6.1",
+                "GDPR Article 32"
+              ],
+              "cwe": "CWE-732",
+              "cvss_score": 9.1,
+              "resource_arn": "arn:aws:s3:::insureco-customer-documents",
+              "region": "us-east-1",
+              "tags": {
+                "Environment": "production",
+                "DataClassification": "PII",
+                "Application": "APP1"
+              }
+            },
+            {
+              "id": "CNAPP-002",
+              "service": "IAM",
+              "resource": "insureco-web-app-role",
+              "severity": "HIGH",
+              "title": "Overly Permissive IAM Role",
+              "description": "IAM role 'insureco-web-app-role' has wildcard permissions (s3:*) allowing unrestricted S3 access. This violates principle of least privilege.",
+              "remediation": "Restrict IAM policy to specific S3 actions (GetObject, PutObject) and specific bucket ARNs",
+              "compliance_frameworks": [
+                "PCI-DSS 7.1",
+                "SOC2 CC6.1",
+                "ISO27001 A.9.2.3"
+              ],
+              "cwe": "CWE-269",
+              "cvss_score": 7.2,
+              "resource_arn": "arn:aws:iam::123456789012:role/insureco-web-app-role",
+              "region": "global",
+              "tags": {
+                "Environment": "production",
+                "Application": "APP1"
+              }
+            },
+            {
+              "id": "CNAPP-003",
+              "service": "RDS",
+              "resource": "insureco-prod-db",
+              "severity": "HIGH",
+              "title": "RDS Instance Not Encrypted",
+              "description": "RDS PostgreSQL instance 'insureco-prod-db' does not have encryption at rest enabled. Database contains customer PII and payment information.",
+              "remediation": "Enable encryption at rest using AWS KMS. Note: Requires creating encrypted snapshot and restoring to new instance.",
+              "compliance_frameworks": [
+                "PCI-DSS 3.4",
+                "HIPAA 164.312(a)(2)(iv)",
+                "GDPR Article 32"
+              ],
+              "cwe": "CWE-311",
+              "cvss_score": 7.5,
+              "resource_arn": "arn:aws:rds:us-east-1:123456789012:db:insureco-prod-db",
+              "region": "us-east-1",
+              "tags": {
+                "Environment": "production",
+                "DataClassification": "PII",
+                "Application": "APP1"
+              }
+            },
+            {
+              "id": "CNAPP-004",
+              "service": "EC2",
+              "resource": "sg-0a1b2c3d4e5f6g7h8",
+              "severity": "MEDIUM",
+              "title": "Security Group Allows Unrestricted SSH Access",
+              "description": "Security group allows SSH access (port 22) from 0.0.0.0/0. This increases attack surface for brute force attacks.",
+              "remediation": "Restrict SSH access to specific IP ranges or use AWS Systems Manager Session Manager",
+              "compliance_frameworks": [
+                "PCI-DSS 1.3",
+                "SOC2 CC6.6"
+              ],
+              "cwe": "CWE-284",
+              "cvss_score": 5.3,
+              "resource_arn": "arn:aws:ec2:us-east-1:123456789012:security-group/sg-0a1b2c3d4e5f6g7h8",
+              "region": "us-east-1",
+              "tags": {
+                "Environment": "production",
+                "Application": "APP1"
+              }
+            },
+            {
+              "id": "CNAPP-005",
+              "service": "CloudTrail",
+              "resource": "insureco-cloudtrail",
+              "severity": "MEDIUM",
+              "title": "CloudTrail Log File Validation Not Enabled",
+              "description": "CloudTrail trail 'insureco-cloudtrail' does not have log file validation enabled, preventing detection of log tampering.",
+              "remediation": "Enable log file validation in CloudTrail trail configuration",
+              "compliance_frameworks": [
+                "SOC2 CC7.2",
+                "ISO27001 A.12.4.1"
+              ],
+              "cwe": "CWE-778",
+              "cvss_score": 4.3,
+              "resource_arn": "arn:aws:cloudtrail:us-east-1:123456789012:trail/insureco-cloudtrail",
+              "region": "us-east-1",
+              "tags": {
+                "Environment": "production",
+                "Application": "APP1"
+              }
+            }
+          ]
+        }
+      },
+      "findings": [
+        {
+          "source": "SBOM",
+          "app_id": "APP1",
+          "type": "vulnerability",
+          "id": "CVE-2021-44228",
+          "severity": "unknown",
+          "component_ref": "pkg:maven/org.apache.logging.log4j/log4j-to-slf4j@2.14.1",
+          "description": "Apache Log4j2 2.0-beta9 through 2.15.0 JNDI features used in configuration, log messages, and parameters do not protect against attacker controlled LDAP and other JNDI related endpoints. An attacker who can control log messages or log message parameters can execute arbitrary code loaded from LDAP servers when message lookup substitution is enabled.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "SBOM",
+          "app_id": "APP1",
+          "type": "vulnerability",
+          "id": "CVE-2022-0778",
+          "severity": "unknown",
+          "component_ref": "pkg:generic/openssl@1.0.2k",
+          "description": "The BN_mod_sqrt() function, which computes a modular square root, contains a bug that can cause it to loop forever for non-prime moduli.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "SARIF",
+          "app_id": "APP1",
+          "type": "code_issue",
+          "id": "java:S3649",
+          "level": "error",
+          "file": "src/main/java/com/insureco/api/PolicySearchController.java",
+          "line": 45,
+          "message": "SQL injection vulnerability detected in policy search endpoint. User input is directly concatenated into SQL query without parameterization.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "SARIF",
+          "app_id": "APP1",
+          "type": "code_issue",
+          "id": "java:S2068",
+          "level": "error",
+          "file": "src/main/java/com/insureco/config/AppConfig.java",
+          "line": 23,
+          "message": "Hardcoded credentials detected. API key is stored directly in source code.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "SARIF",
+          "app_id": "APP1",
+          "type": "code_issue",
+          "id": "java:S4502",
+          "level": "warning",
+          "file": "src/main/java/com/insureco/auth/PasswordValidator.java",
+          "line": 12,
+          "message": "Weak password validation allows passwords shorter than 8 characters.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "SARIF",
+          "app_id": "APP1",
+          "type": "code_issue",
+          "id": "java:S5131",
+          "level": "error",
+          "file": "src/main/java/com/insureco/web/ClaimsController.java",
+          "line": 67,
+          "message": "Cross-Site Scripting (XSS) vulnerability. User input is rendered without sanitization.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "SARIF",
+          "app_id": "APP1",
+          "type": "code_issue",
+          "id": "java:S4830",
+          "level": "error",
+          "file": "src/main/java/com/insureco/client/PaymentGatewayClient.java",
+          "line": 34,
+          "message": "Server certificate validation is disabled, allowing man-in-the-middle attacks.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "SARIF",
+          "app_id": "APP1",
+          "type": "code_issue",
+          "id": "java:S2076",
+          "level": "warning",
+          "file": "src/main/java/com/insureco/reports/ReportGenerator.java",
+          "line": 89,
+          "message": "OS command injection vulnerability. User input is passed to Runtime.exec() without validation.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Unknown",
+          "app_id": "APP1",
+          "type": "operational",
+          "id": "CNAPP-001",
+          "service": "S3",
+          "resource": "insureco-customer-documents",
+          "severity": "CRITICAL",
+          "title": "S3 Bucket Publicly Accessible",
+          "description": "S3 bucket 'insureco-customer-documents' has public read access enabled via bucket ACL. This bucket contains customer policy documents and personal information.",
+          "remediation": "Remove public access by updating bucket ACL and enabling Block Public Access settings",
+          "compliance_frameworks": [
+            "PCI-DSS 3.2",
+            "SOC2 CC6.1",
+            "GDPR Article 32"
+          ],
+          "cwe": "CWE-732",
+          "cvss_score": 9.1,
+          "resource_arn": "arn:aws:s3:::insureco-customer-documents",
+          "region": "us-east-1",
+          "tags": {
+            "Environment": "production",
+            "DataClassification": "PII",
+            "Application": "APP1"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Unknown",
+          "app_id": "APP1",
+          "type": "operational",
+          "id": "CNAPP-002",
+          "service": "IAM",
+          "resource": "insureco-web-app-role",
+          "severity": "HIGH",
+          "title": "Overly Permissive IAM Role",
+          "description": "IAM role 'insureco-web-app-role' has wildcard permissions (s3:*) allowing unrestricted S3 access. This violates principle of least privilege.",
+          "remediation": "Restrict IAM policy to specific S3 actions (GetObject, PutObject) and specific bucket ARNs",
+          "compliance_frameworks": [
+            "PCI-DSS 7.1",
+            "SOC2 CC6.1",
+            "ISO27001 A.9.2.3"
+          ],
+          "cwe": "CWE-269",
+          "cvss_score": 7.2,
+          "resource_arn": "arn:aws:iam::123456789012:role/insureco-web-app-role",
+          "region": "global",
+          "tags": {
+            "Environment": "production",
+            "Application": "APP1"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Unknown",
+          "app_id": "APP1",
+          "type": "operational",
+          "id": "CNAPP-003",
+          "service": "RDS",
+          "resource": "insureco-prod-db",
+          "severity": "HIGH",
+          "title": "RDS Instance Not Encrypted",
+          "description": "RDS PostgreSQL instance 'insureco-prod-db' does not have encryption at rest enabled. Database contains customer PII and payment information.",
+          "remediation": "Enable encryption at rest using AWS KMS. Note: Requires creating encrypted snapshot and restoring to new instance.",
+          "compliance_frameworks": [
+            "PCI-DSS 3.4",
+            "HIPAA 164.312(a)(2)(iv)",
+            "GDPR Article 32"
+          ],
+          "cwe": "CWE-311",
+          "cvss_score": 7.5,
+          "resource_arn": "arn:aws:rds:us-east-1:123456789012:db:insureco-prod-db",
+          "region": "us-east-1",
+          "tags": {
+            "Environment": "production",
+            "DataClassification": "PII",
+            "Application": "APP1"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Unknown",
+          "app_id": "APP1",
+          "type": "operational",
+          "id": "CNAPP-004",
+          "service": "EC2",
+          "resource": "sg-0a1b2c3d4e5f6g7h8",
+          "severity": "MEDIUM",
+          "title": "Security Group Allows Unrestricted SSH Access",
+          "description": "Security group allows SSH access (port 22) from 0.0.0.0/0. This increases attack surface for brute force attacks.",
+          "remediation": "Restrict SSH access to specific IP ranges or use AWS Systems Manager Session Manager",
+          "compliance_frameworks": [
+            "PCI-DSS 1.3",
+            "SOC2 CC6.6"
+          ],
+          "cwe": "CWE-284",
+          "cvss_score": 5.3,
+          "resource_arn": "arn:aws:ec2:us-east-1:123456789012:security-group/sg-0a1b2c3d4e5f6g7h8",
+          "region": "us-east-1",
+          "tags": {
+            "Environment": "production",
+            "Application": "APP1"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Unknown",
+          "app_id": "APP1",
+          "type": "operational",
+          "id": "CNAPP-005",
+          "service": "CloudTrail",
+          "resource": "insureco-cloudtrail",
+          "severity": "MEDIUM",
+          "title": "CloudTrail Log File Validation Not Enabled",
+          "description": "CloudTrail trail 'insureco-cloudtrail' does not have log file validation enabled, preventing detection of log tampering.",
+          "remediation": "Enable log file validation in CloudTrail trail configuration",
+          "compliance_frameworks": [
+            "SOC2 CC7.2",
+            "ISO27001 A.12.4.1"
+          ],
+          "cwe": "CWE-778",
+          "cvss_score": 4.3,
+          "resource_arn": "arn:aws:cloudtrail:us-east-1:123456789012:trail/insureco-cloudtrail",
+          "region": "us-east-1",
+          "tags": {
+            "Environment": "production",
+            "Application": "APP1"
+          },
+          "calculated_score": 0.25
+        }
+      ],
+      "errors": [],
+      "total_findings": 13
+    },
+    "APP2": {
+      "app_id": "APP2",
+      "app_name": "Micro-frontend + ESB",
+      "stages": {
+        "requirements": {
+          "status": "success",
+          "count": 10,
+          "data": [
+            {
+              "req_id": "REQ-011",
+              "app_id": "APP2",
+              "description": "Image proxy service for partner content",
+              "owner": "alex.chen@company.com",
+              "criticality": "4",
+              "data_classification": "internal",
+              "threat_ref": "STRIDE-T-011"
+            },
+            {
+              "req_id": "REQ-012",
+              "app_id": "APP2",
+              "description": "ESB for partner API integrations",
+              "owner": "maria.lopez@company.com",
+              "criticality": "4",
+              "data_classification": "confidential",
+              "threat_ref": "STRIDE-T-012"
+            },
+            {
+              "req_id": "REQ-013",
+              "app_id": "APP2",
+              "description": "Micro-frontend shell application",
+              "owner": "kevin.patel@company.com",
+              "criticality": "3",
+              "data_classification": "internal",
+              "threat_ref": "STRIDE-T-013"
+            },
+            {
+              "req_id": "REQ-014",
+              "app_id": "APP2",
+              "description": "Partner authentication gateway",
+              "owner": "susan.kim@company.com",
+              "criticality": "5",
+              "data_classification": "confidential",
+              "threat_ref": "STRIDE-T-014"
+            },
+            {
+              "req_id": "REQ-015",
+              "app_id": "APP2",
+              "description": "API rate limiting and throttling",
+              "owner": "james.taylor@company.com",
+              "criticality": "3",
+              "data_classification": "internal",
+              "threat_ref": "STRIDE-T-015"
+            },
+            {
+              "req_id": "REQ-016",
+              "app_id": "APP2",
+              "description": "Partner data transformation service",
+              "owner": "rachel.white@company.com",
+              "criticality": "4",
+              "data_classification": "confidential",
+              "threat_ref": "STRIDE-T-016"
+            },
+            {
+              "req_id": "REQ-017",
+              "app_id": "APP2",
+              "description": "Frontend module federation",
+              "owner": "chris.anderson@company.com",
+              "criticality": "3",
+              "data_classification": "internal",
+              "threat_ref": "STRIDE-T-017"
+            },
+            {
+              "req_id": "REQ-018",
+              "app_id": "APP2",
+              "description": "Kong API gateway configuration",
+              "owner": "nicole.thomas@company.com",
+              "criticality": "4",
+              "data_classification": "confidential",
+              "threat_ref": "STRIDE-T-018"
+            },
+            {
+              "req_id": "REQ-019",
+              "app_id": "APP2",
+              "description": "Partner webhook receiver",
+              "owner": "daniel.jackson@company.com",
+              "criticality": "3",
+              "data_classification": "internal",
+              "threat_ref": "STRIDE-T-019"
+            },
+            {
+              "req_id": "REQ-020",
+              "app_id": "APP2",
+              "description": "Shared component library",
+              "owner": "emily.harris@company.com",
+              "criticality": "2",
+              "data_classification": "public",
+              "threat_ref": "STRIDE-T-020"
+            }
+          ]
+        },
+        "design": {
+          "status": "success",
+          "count": 10,
+          "threats": [
+            {
+              "service_name": "image-proxy",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "internal",
+              "exposure": "internet",
+              "threat_id": "STRIDE-T-011",
+              "threat_description": "SSRF vulnerability in image proxy allowing internal network scanning",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "esb-gateway",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-012",
+              "threat_description": "Misconfigured Kong route exposing internal APIs to partners",
+              "severity": "high",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "microfrontend-shell",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "internal",
+              "exposure": "internet",
+              "threat_id": "STRIDE-T-013",
+              "threat_description": "Typosquatted npm package 'reqeusts' instead of 'requests' in dependencies",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "partner-auth",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-014",
+              "threat_description": "Secrets and API keys committed to Git history",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "data-transformer",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-016",
+              "threat_description": "XML External Entity (XXE) injection in partner data parser",
+              "severity": "high",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "kong-gateway",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-018",
+              "threat_description": "Kong admin API exposed without authentication",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            }
+          ],
+          "data": [
+            {
+              "service_name": "image-proxy",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "internal",
+              "exposure": "internet",
+              "threat_id": "STRIDE-T-011",
+              "threat_description": "SSRF vulnerability in image proxy allowing internal network scanning",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "esb-gateway",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-012",
+              "threat_description": "Misconfigured Kong route exposing internal APIs to partners",
+              "severity": "high",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "microfrontend-shell",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "internal",
+              "exposure": "internet",
+              "threat_id": "STRIDE-T-013",
+              "threat_description": "Typosquatted npm package 'reqeusts' instead of 'requests' in dependencies",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "partner-auth",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-014",
+              "threat_description": "Secrets and API keys committed to Git history",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "rate-limiter",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "internal",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-015",
+              "threat_description": "Rate limiting bypass via header manipulation",
+              "severity": "medium",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "data-transformer",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-016",
+              "threat_description": "XML External Entity (XXE) injection in partner data parser",
+              "severity": "high",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "module-federation",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "internal",
+              "exposure": "internet",
+              "threat_id": "STRIDE-T-017",
+              "threat_description": "Outdated webpack module federation with prototype pollution",
+              "severity": "medium",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "kong-gateway",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-018",
+              "threat_description": "Kong admin API exposed without authentication",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "webhook-receiver",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "internal",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-019",
+              "threat_description": "Missing HMAC signature verification on webhooks",
+              "severity": "medium",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "component-library",
+              "environment": "prod",
+              "customer_impact": "internal",
+              "data_classification": "public",
+              "exposure": "internal",
+              "threat_id": "STRIDE-T-020",
+              "threat_description": "Vulnerable lodash version with command injection",
+              "severity": "low",
+              "mitigation_status": "complete"
+            }
+          ]
+        },
+        "sbom": {
+          "status": "success",
+          "components": 8,
+          "vulnerabilities": 4,
+          "data": "NormalizedSBOM(format='CycloneDX', document={'bomFormat': 'CycloneDX', 'specVersion': '1.4', 'version': 1, 'metadata': {'timestamp': '2025-10-30T00:00:00Z', 'component': {'type': 'application', 'name': 'microfrontend-app', 'version': '1.8.2', 'purl': 'pkg:npm/microfrontend-app@1.8.2'}}, 'components': [{'type': 'library', 'name': 'react', 'version': '18.2.0', 'purl': 'pkg:npm/react@18.2.0', 'licenses': [{'license': {'id': 'MIT'}}]}, {'type': 'library', 'name': 'webpack', 'version': '5.75.0', 'purl': 'pkg:npm/webpack@5.75.0', 'licenses': [{'license': {'id': 'MIT'}}], 'vulnerabilities': [{'id': 'CVE-2023-28154', 'source': {'name': 'NPM', 'url': 'https://www.npmjs.com/advisories/1099'}, 'ratings': [{'severity': 'medium', 'score': 5.3, 'method': 'CVSSv3'}], 'description': 'Webpack 5 before 5.76.0 has a prototype pollution vulnerability in module federation.', 'recommendation': 'Upgrade to webpack 5.76.0 or later'}]}, {'type': 'library', 'name': 'reqeusts', 'version': '2.28.1', 'purl': 'pkg:npm/reqeusts@2.28.1', 'description': \"TYPOSQUATTED PACKAGE - Should be 'requests' not 'reqeusts'\", 'licenses': [{'license': {'id': 'MIT'}}], 'properties': [{'name': 'malicious_package_suspected', 'value': 'true'}, {'name': 'typosquat_of', 'value': 'requests'}, {'name': 'maintainer_reputation', 'value': 'low'}, {'name': 'package_age_days', 'value': '45'}, {'name': 'download_count', 'value': '234'}], 'vulnerabilities': [{'id': 'MALWARE-2024-001', 'source': {'name': 'Internal', 'url': 'https://security.company.com/advisories/MALWARE-2024-001'}, 'ratings': [{'severity': 'critical', 'score': 9.8, 'method': 'CVSSv3'}], 'description': \"Typosquatted package 'reqeusts' contains malicious code that exfiltrates environment variables to external server.\", 'recommendation': \"Remove package immediately and replace with legitimate 'requests' package\"}]}, {'type': 'library', 'name': 'axios', 'version': '0.21.1', 'purl': 'pkg:npm/axios@0.21.1', 'licenses': [{'license': {'id': 'MIT'}}], 'vulnerabilities': [{'id': 'CVE-2021-3749', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2021-3749'}, 'ratings': [{'severity': 'high', 'score': 7.5, 'method': 'CVSSv3'}], 'description': 'axios before 0.21.2 contains a regular expression denial of service (ReDoS) vulnerability.', 'recommendation': 'Upgrade to axios 0.21.2 or later'}]}, {'type': 'library', 'name': 'lodash', 'version': '4.17.19', 'purl': 'pkg:npm/lodash@4.17.19', 'licenses': [{'license': {'id': 'MIT'}}], 'vulnerabilities': [{'id': 'CVE-2020-8203', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2020-8203'}, 'ratings': [{'severity': 'high', 'score': 7.4, 'method': 'CVSSv3'}], 'description': 'Prototype pollution in lodash versions before 4.17.21.', 'recommendation': 'Upgrade to lodash 4.17.21 or later'}]}, {'type': 'library', 'name': 'express', 'version': '4.17.1', 'purl': 'pkg:npm/express@4.17.1', 'licenses': [{'license': {'id': 'MIT'}}]}, {'type': 'library', 'name': 'xml2js', 'version': '0.4.23', 'purl': 'pkg:npm/xml2js@0.4.23', 'licenses': [{'license': {'id': 'MIT'}}]}, {'type': 'library', 'name': 'kong-admin-client', 'version': '1.2.0', 'purl': 'pkg:npm/kong-admin-client@1.2.0', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}], 'dependencies': [{'ref': 'pkg:npm/microfrontend-app@1.8.2', 'dependsOn': ['pkg:npm/react@18.2.0', 'pkg:npm/webpack@5.75.0', 'pkg:npm/reqeusts@2.28.1', 'pkg:npm/axios@0.21.1', 'pkg:npm/lodash@4.17.19', 'pkg:npm/express@4.17.1']}]}, components=[SBOMComponent(name='react', version='18.2.0', purl='pkg:npm/react@18.2.0', licenses=[{'id': 'MIT'}], supplier=None, raw={'type': 'library', 'name': 'react', 'version': '18.2.0', 'purl': 'pkg:npm/react@18.2.0', 'licenses': [{'license': {'id': 'MIT'}}]}), SBOMComponent(name='webpack', version='5.75.0', purl='pkg:npm/webpack@5.75.0', licenses=[{'id': 'MIT'}], supplier=None, raw={'type': 'library', 'name': 'webpack', 'version': '5.75.0', 'purl': 'pkg:npm/webpack@5.75.0', 'licenses': [{'license': {'id': 'MIT'}}], 'vulnerabilities': [{'id': 'CVE-2023-28154', 'source': {'name': 'NPM', 'url': 'https://www.npmjs.com/advisories/1099'}, 'ratings': [{'severity': 'medium', 'score': 5.3, 'method': 'CVSSv3'}], 'description': 'Webpack 5 before 5.76.0 has a prototype pollution vulnerability in module federation.', 'recommendation': 'Upgrade to webpack 5.76.0 or later'}]}), SBOMComponent(name='reqeusts', version='2.28.1', purl='pkg:npm/reqeusts@2.28.1', licenses=[{'id': 'MIT'}], supplier=None, raw={'type': 'library', 'name': 'reqeusts', 'version': '2.28.1', 'purl': 'pkg:npm/reqeusts@2.28.1', 'description': \"TYPOSQUATTED PACKAGE - Should be 'requests' not 'reqeusts'\", 'licenses': [{'license': {'id': 'MIT'}}], 'properties': [{'name': 'malicious_package_suspected', 'value': 'true'}, {'name': 'typosquat_of', 'value': 'requests'}, {'name': 'maintainer_reputation', 'value': 'low'}, {'name': 'package_age_days', 'value': '45'}, {'name': 'download_count', 'value': '234'}], 'vulnerabilities': [{'id': 'MALWARE-2024-001', 'source': {'name': 'Internal', 'url': 'https://security.company.com/advisories/MALWARE-2024-001'}, 'ratings': [{'severity': 'critical', 'score': 9.8, 'method': 'CVSSv3'}], 'description': \"Typosquatted package 'reqeusts' contains malicious code that exfiltrates environment variables to external server.\", 'recommendation': \"Remove package immediately and replace with legitimate 'requests' package\"}]}), SBOMComponent(name='axios', version='0.21.1', purl='pkg:npm/axios@0.21.1', licenses=[{'id': 'MIT'}], supplier=None, raw={'type': 'library', 'name': 'axios', 'version': '0.21.1', 'purl': 'pkg:npm/axios@0.21.1', 'licenses': [{'license': {'id': 'MIT'}}], 'vulnerabilities': [{'id': 'CVE-2021-3749', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2021-3749'}, 'ratings': [{'severity': 'high', 'score': 7.5, 'method': 'CVSSv3'}], 'description': 'axios before 0.21.2 contains a regular expression denial of service (ReDoS) vulnerability.', 'recommendation': 'Upgrade to axios 0.21.2 or later'}]}), SBOMComponent(name='lodash', version='4.17.19', purl='pkg:npm/lodash@4.17.19', licenses=[{'id': 'MIT'}], supplier=None, raw={'type': 'library', 'name': 'lodash', 'version': '4.17.19', 'purl': 'pkg:npm/lodash@4.17.19', 'licenses': [{'license': {'id': 'MIT'}}], 'vulnerabilities': [{'id': 'CVE-2020-8203', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2020-8203'}, 'ratings': [{'severity': 'high', 'score': 7.4, 'method': 'CVSSv3'}], 'description': 'Prototype pollution in lodash versions before 4.17.21.', 'recommendation': 'Upgrade to lodash 4.17.21 or later'}]}), SBOMComponent(name='express', version='4.17.1', purl='pkg:npm/express@4.17.1', licenses=[{'id': 'MIT'}], supplier=None, raw={'type': 'library', 'name': 'express', 'version': '4.17.1', 'purl': 'pkg:npm/express@4.17.1', 'licenses': [{'license': {'id': 'MIT'}}]}), SBOMComponent(name='xml2js', version='0.4.23', purl='pkg:npm/xml2js@0.4.23', licenses=[{'id': 'MIT'}], supplier=None, raw={'type': 'library', 'name': 'xml2js', 'version': '0.4.23', 'purl': 'pkg:npm/xml2js@0.4.23', 'licenses': [{'license': {'id': 'MIT'}}]}), SBOMComponent(name='kong-admin-client', version='1.2.0', purl='pkg:npm/kong-admin-client@1.2.0', licenses=[{'id': 'Apache-2.0'}], supplier=None, raw={'type': 'library', 'name': 'kong-admin-client', 'version': '1.2.0', 'purl': 'pkg:npm/kong-admin-client@1.2.0', 'licenses': [{'license': {'id': 'Apache-2.0'}}]})], relationships=[], services=[], vulnerabilities=[{'id': 'CVE-2023-28154', 'source': {'name': 'NPM', 'url': 'https://www.npmjs.com/advisories/1099'}, 'ratings': [{'severity': 'medium', 'score': 5.3, 'method': 'CVSSv3'}], 'description': 'Webpack 5 before 5.76.0 has a prototype pollution vulnerability in module federation.', 'recommendation': 'Upgrade to webpack 5.76.0 or later', 'affects': [{'ref': 'pkg:npm/webpack@5.75.0'}]}, {'id': 'MALWARE-2024-001', 'source': {'name': 'Internal', 'url': 'https://security.company.com/advisories/MALWARE-2024-001'}, 'ratings': [{'severity': 'critical', 'score': 9.8, 'method': 'CVSSv3'}], 'description': \"Typosquatted package 'reqeusts' contains malicious code that exfiltrates environment variables to external server.\", 'recommendation': \"Remove package immediately and replace with legitimate 'requests' package\", 'affects': [{'ref': 'pkg:npm/reqeusts@2.28.1'}]}, {'id': 'CVE-2021-3749', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2021-3749'}, 'ratings': [{'severity': 'high', 'score': 7.5, 'method': 'CVSSv3'}], 'description': 'axios before 0.21.2 contains a regular expression denial of service (ReDoS) vulnerability.', 'recommendation': 'Upgrade to axios 0.21.2 or later', 'affects': [{'ref': 'pkg:npm/axios@0.21.1'}]}, {'id': 'CVE-2020-8203', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2020-8203'}, 'ratings': [{'severity': 'high', 'score': 7.4, 'method': 'CVSSv3'}], 'description': 'Prototype pollution in lodash versions before 4.17.21.', 'recommendation': 'Upgrade to lodash 4.17.21 or later', 'affects': [{'ref': 'pkg:npm/lodash@4.17.19'}]}], metadata={'component_count': 8, 'relationship_count': 0, 'service_count': 0, 'vulnerability_count': 4})"
+        },
+        "sarif": {
+          "status": "success",
+          "findings": 6,
+          "critical": 3,
+          "high": 3,
+          "data": "NormalizedSARIF(version='2.1.0', schema_uri='https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json', tool_names=['Snyk Code'], findings=[SarifFinding(rule_id='javascript/ServerSideRequestForgery', message='Server-Side Request Forgery (SSRF) vulnerability. User-controlled URL is passed to HTTP request without validation, allowing access to internal network resources.', level='error', file='src/services/imageProxy.js', line=28, raw={'ruleId': 'javascript/ServerSideRequestForgery', 'level': 'error', 'message': {'text': 'Server-Side Request Forgery (SSRF) vulnerability. User-controlled URL is passed to HTTP request without validation, allowing access to internal network resources.'}, 'locations': [{'physicalLocation': {'artifactLocation': {'uri': 'src/services/imageProxy.js'}, 'region': {'startLine': 28, 'startColumn': 15, 'snippet': {'text': 'const response = await axios.get(req.query.imageUrl);'}}}}], 'properties': {'security-severity': '9.1', 'tags': ['security', 'ssrf', 'cwe-918']}}), SarifFinding(rule_id='javascript/HardcodedSecret', message='Hardcoded secret detected. API key is stored directly in source code and committed to Git repository.', level='error', file='src/config/partners.js', line=12, raw={'ruleId': 'javascript/HardcodedSecret', 'level': 'error', 'message': {'text': 'Hardcoded secret detected. API key is stored directly in source code and committed to Git repository.'}, 'locations': [{'physicalLocation': {'artifactLocation': {'uri': 'src/config/partners.js'}, 'region': {'startLine': 12, 'startColumn': 20, 'snippet': {'text': \"const PARTNER_API_KEY = 'pk_live_51HqJK2L3m4n5o6p7q8r9s0t1u2v3w4x';\"}}}}], 'properties': {'security-severity': '8.7', 'tags': ['security', 'credentials', 'cwe-798'], 'git_history': 'Found in commits: a1b2c3d, e4f5g6h, i7j8k9l'}}), SarifFinding(rule_id='javascript/XXE', message='XML External Entity (XXE) injection vulnerability. XML parser is configured to process external entities without validation.', level='error', file='src/services/dataTransformer.js', line=45, raw={'ruleId': 'javascript/XXE', 'level': 'error', 'message': {'text': 'XML External Entity (XXE) injection vulnerability. XML parser is configured to process external entities without validation.'}, 'locations': [{'physicalLocation': {'artifactLocation': {'uri': 'src/services/dataTransformer.js'}, 'region': {'startLine': 45, 'startColumn': 25, 'snippet': {'text': 'xml2js.parseString(partnerData, { explicitRoot: true }, callback);'}}}}], 'properties': {'security-severity': '7.8', 'tags': ['security', 'xxe', 'cwe-611']}}), SarifFinding(rule_id='javascript/InsecureRandomness', message='Cryptographically weak random number generator used for security-sensitive operations.', level='warning', file='src/auth/tokenGenerator.js', line=19, raw={'ruleId': 'javascript/InsecureRandomness', 'level': 'warning', 'message': {'text': 'Cryptographically weak random number generator used for security-sensitive operations.'}, 'locations': [{'physicalLocation': {'artifactLocation': {'uri': 'src/auth/tokenGenerator.js'}, 'region': {'startLine': 19, 'startColumn': 20, 'snippet': {'text': 'const token = Math.random().toString(36).substring(2);'}}}}], 'properties': {'security-severity': '6.5', 'tags': ['security', 'randomness', 'cwe-338']}}), SarifFinding(rule_id='javascript/MissingRateLimiting', message='API endpoint lacks rate limiting, allowing potential denial of service attacks.', level='warning', file='src/routes/webhooks.js', line=34, raw={'ruleId': 'javascript/MissingRateLimiting', 'level': 'warning', 'message': {'text': 'API endpoint lacks rate limiting, allowing potential denial of service attacks.'}, 'locations': [{'physicalLocation': {'artifactLocation': {'uri': 'src/routes/webhooks.js'}, 'region': {'startLine': 34, 'startColumn': 10, 'snippet': {'text': \"router.post('/webhook', async (req, res) => {\"}}}}], 'properties': {'security-severity': '5.3', 'tags': ['security', 'rate-limiting', 'cwe-770']}}), SarifFinding(rule_id='javascript/MissingHMACValidation', message='Webhook endpoint does not verify HMAC signature, allowing spoofed requests.', level='warning', file='src/routes/webhooks.js', line=35, raw={'ruleId': 'javascript/MissingHMACValidation', 'level': 'warning', 'message': {'text': 'Webhook endpoint does not verify HMAC signature, allowing spoofed requests.'}, 'locations': [{'physicalLocation': {'artifactLocation': {'uri': 'src/routes/webhooks.js'}, 'region': {'startLine': 35, 'startColumn': 5, 'snippet': {'text': 'const payload = req.body; // No signature verification'}}}}], 'properties': {'security-severity': '6.8', 'tags': ['security', 'authentication', 'cwe-345']}})], metadata={'run_count': 1, 'finding_count': 6, 'supported_schema': False, 'tool_count': 1})"
+        },
+        "operate": {
+          "status": "success",
+          "findings": 4,
+          "critical": 1,
+          "data": [
+            {
+              "id": "KONG-001",
+              "service": "kong-admin-api",
+              "severity": "CRITICAL",
+              "title": "Kong Admin API Exposed Without Authentication",
+              "description": "Kong Admin API is accessible from the internet without authentication on port 8001. This allows unauthorized users to modify gateway configuration, add routes, and access sensitive data.",
+              "remediation": "Enable authentication on Admin API using key-auth or RBAC plugin, or restrict access to internal network only",
+              "compliance_frameworks": [
+                "SOC2 CC6.1",
+                "ISO27001 A.9.4.1",
+                "PCI-DSS 8.2"
+              ],
+              "cwe": "CWE-306",
+              "cvss_score": 9.8,
+              "endpoint": "http://api-gateway.company.com:8001",
+              "tags": {
+                "Environment": "production",
+                "Application": "APP2"
+              }
+            },
+            {
+              "id": "KONG-002",
+              "service": "internal-api-route",
+              "severity": "HIGH",
+              "title": "Internal API Route Exposed to Partners",
+              "description": "Kong route '/internal/admin' is configured to forward requests to internal admin API but is accessible from partner network. This route should only be accessible from internal network.",
+              "remediation": "Add IP restriction plugin to limit access to internal network ranges only",
+              "compliance_frameworks": [
+                "SOC2 CC6.6",
+                "ISO27001 A.13.1.3"
+              ],
+              "cwe": "CWE-284",
+              "cvss_score": 7.5,
+              "route": "/internal/admin",
+              "upstream": "http://internal-admin-api:8080",
+              "tags": {
+                "Environment": "production",
+                "Application": "APP2"
+              }
+            },
+            {
+              "id": "KONG-003",
+              "service": "partner-api-route",
+              "severity": "MEDIUM",
+              "title": "Rate Limiting Not Configured",
+              "description": "Partner API routes do not have rate limiting configured, allowing potential abuse and denial of service attacks.",
+              "remediation": "Configure rate-limiting plugin with appropriate limits (e.g., 1000 requests per hour per consumer)",
+              "compliance_frameworks": [
+                "SOC2 CC7.2"
+              ],
+              "cwe": "CWE-770",
+              "cvss_score": 5.3,
+              "route": "/api/v1/partners/*",
+              "tags": {
+                "Environment": "production",
+                "Application": "APP2"
+              }
+            },
+            {
+              "id": "KONG-004",
+              "service": "webhook-route",
+              "severity": "MEDIUM",
+              "title": "Missing Request Size Limit",
+              "description": "Webhook endpoint does not have request size limit configured, allowing potential memory exhaustion attacks.",
+              "remediation": "Configure request-size-limiting plugin with maximum payload size (e.g., 10MB)",
+              "compliance_frameworks": [
+                "SOC2 CC7.2"
+              ],
+              "cwe": "CWE-400",
+              "cvss_score": 5.0,
+              "route": "/webhooks/*",
+              "tags": {
+                "Environment": "production",
+                "Application": "APP2"
+              }
+            }
+          ]
+        }
+      },
+      "findings": [
+        {
+          "source": "SBOM",
+          "app_id": "APP2",
+          "type": "vulnerability",
+          "id": "CVE-2023-28154",
+          "severity": "unknown",
+          "component_ref": "pkg:npm/webpack@5.75.0",
+          "description": "Webpack 5 before 5.76.0 has a prototype pollution vulnerability in module federation.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "SBOM",
+          "app_id": "APP2",
+          "type": "vulnerability",
+          "id": "MALWARE-2024-001",
+          "severity": "unknown",
+          "component_ref": "pkg:npm/reqeusts@2.28.1",
+          "description": "Typosquatted package 'reqeusts' contains malicious code that exfiltrates environment variables to external server.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "SBOM",
+          "app_id": "APP2",
+          "type": "vulnerability",
+          "id": "CVE-2021-3749",
+          "severity": "unknown",
+          "component_ref": "pkg:npm/axios@0.21.1",
+          "description": "axios before 0.21.2 contains a regular expression denial of service (ReDoS) vulnerability.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "SBOM",
+          "app_id": "APP2",
+          "type": "vulnerability",
+          "id": "CVE-2020-8203",
+          "severity": "unknown",
+          "component_ref": "pkg:npm/lodash@4.17.19",
+          "description": "Prototype pollution in lodash versions before 4.17.21.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "SARIF",
+          "app_id": "APP2",
+          "type": "code_issue",
+          "id": "javascript/ServerSideRequestForgery",
+          "level": "error",
+          "file": "src/services/imageProxy.js",
+          "line": 28,
+          "message": "Server-Side Request Forgery (SSRF) vulnerability. User-controlled URL is passed to HTTP request without validation, allowing access to internal network resources.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "SARIF",
+          "app_id": "APP2",
+          "type": "code_issue",
+          "id": "javascript/HardcodedSecret",
+          "level": "error",
+          "file": "src/config/partners.js",
+          "line": 12,
+          "message": "Hardcoded secret detected. API key is stored directly in source code and committed to Git repository.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "SARIF",
+          "app_id": "APP2",
+          "type": "code_issue",
+          "id": "javascript/XXE",
+          "level": "error",
+          "file": "src/services/dataTransformer.js",
+          "line": 45,
+          "message": "XML External Entity (XXE) injection vulnerability. XML parser is configured to process external entities without validation.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "SARIF",
+          "app_id": "APP2",
+          "type": "code_issue",
+          "id": "javascript/InsecureRandomness",
+          "level": "warning",
+          "file": "src/auth/tokenGenerator.js",
+          "line": 19,
+          "message": "Cryptographically weak random number generator used for security-sensitive operations.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "SARIF",
+          "app_id": "APP2",
+          "type": "code_issue",
+          "id": "javascript/MissingRateLimiting",
+          "level": "warning",
+          "file": "src/routes/webhooks.js",
+          "line": 34,
+          "message": "API endpoint lacks rate limiting, allowing potential denial of service attacks.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "SARIF",
+          "app_id": "APP2",
+          "type": "code_issue",
+          "id": "javascript/MissingHMACValidation",
+          "level": "warning",
+          "file": "src/routes/webhooks.js",
+          "line": 35,
+          "message": "Webhook endpoint does not verify HMAC signature, allowing spoofed requests.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Unknown",
+          "app_id": "APP2",
+          "type": "operational",
+          "id": "KONG-001",
+          "service": "kong-admin-api",
+          "severity": "CRITICAL",
+          "title": "Kong Admin API Exposed Without Authentication",
+          "description": "Kong Admin API is accessible from the internet without authentication on port 8001. This allows unauthorized users to modify gateway configuration, add routes, and access sensitive data.",
+          "remediation": "Enable authentication on Admin API using key-auth or RBAC plugin, or restrict access to internal network only",
+          "compliance_frameworks": [
+            "SOC2 CC6.1",
+            "ISO27001 A.9.4.1",
+            "PCI-DSS 8.2"
+          ],
+          "cwe": "CWE-306",
+          "cvss_score": 9.8,
+          "endpoint": "http://api-gateway.company.com:8001",
+          "tags": {
+            "Environment": "production",
+            "Application": "APP2"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Unknown",
+          "app_id": "APP2",
+          "type": "operational",
+          "id": "KONG-002",
+          "service": "internal-api-route",
+          "severity": "HIGH",
+          "title": "Internal API Route Exposed to Partners",
+          "description": "Kong route '/internal/admin' is configured to forward requests to internal admin API but is accessible from partner network. This route should only be accessible from internal network.",
+          "remediation": "Add IP restriction plugin to limit access to internal network ranges only",
+          "compliance_frameworks": [
+            "SOC2 CC6.6",
+            "ISO27001 A.13.1.3"
+          ],
+          "cwe": "CWE-284",
+          "cvss_score": 7.5,
+          "route": "/internal/admin",
+          "upstream": "http://internal-admin-api:8080",
+          "tags": {
+            "Environment": "production",
+            "Application": "APP2"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Unknown",
+          "app_id": "APP2",
+          "type": "operational",
+          "id": "KONG-003",
+          "service": "partner-api-route",
+          "severity": "MEDIUM",
+          "title": "Rate Limiting Not Configured",
+          "description": "Partner API routes do not have rate limiting configured, allowing potential abuse and denial of service attacks.",
+          "remediation": "Configure rate-limiting plugin with appropriate limits (e.g., 1000 requests per hour per consumer)",
+          "compliance_frameworks": [
+            "SOC2 CC7.2"
+          ],
+          "cwe": "CWE-770",
+          "cvss_score": 5.3,
+          "route": "/api/v1/partners/*",
+          "tags": {
+            "Environment": "production",
+            "Application": "APP2"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Unknown",
+          "app_id": "APP2",
+          "type": "operational",
+          "id": "KONG-004",
+          "service": "webhook-route",
+          "severity": "MEDIUM",
+          "title": "Missing Request Size Limit",
+          "description": "Webhook endpoint does not have request size limit configured, allowing potential memory exhaustion attacks.",
+          "remediation": "Configure request-size-limiting plugin with maximum payload size (e.g., 10MB)",
+          "compliance_frameworks": [
+            "SOC2 CC7.2"
+          ],
+          "cwe": "CWE-400",
+          "cvss_score": 5.0,
+          "route": "/webhooks/*",
+          "tags": {
+            "Environment": "production",
+            "Application": "APP2"
+          },
+          "calculated_score": 0.25
+        }
+      ],
+      "errors": [],
+      "total_findings": 14
+    },
+    "APP3": {
+      "app_id": "APP3",
+      "app_name": "B2B Quotes",
+      "stages": {
+        "requirements": {
+          "status": "success",
+          "count": 10,
+          "data": [
+            {
+              "req_id": "REQ-021",
+              "app_id": "APP3",
+              "description": "B2B quote generation engine",
+              "owner": "michael.brown@quotes.com",
+              "criticality": "5",
+              "data_classification": "confidential",
+              "threat_ref": "STRIDE-T-021"
+            },
+            {
+              "req_id": "REQ-022",
+              "app_id": "APP3",
+              "description": "Payment card processing for quotes",
+              "owner": "jennifer.davis@quotes.com",
+              "criticality": "5",
+              "data_classification": "restricted",
+              "threat_ref": "STRIDE-T-022"
+            },
+            {
+              "req_id": "REQ-023",
+              "app_id": "APP3",
+              "description": "Customer pricing database",
+              "owner": "robert.wilson@quotes.com",
+              "criticality": "4",
+              "data_classification": "confidential",
+              "threat_ref": "STRIDE-T-023"
+            },
+            {
+              "req_id": "REQ-024",
+              "app_id": "APP3",
+              "description": "Quote approval workflow",
+              "owner": "linda.moore@quotes.com",
+              "criticality": "4",
+              "data_classification": "confidential",
+              "threat_ref": "STRIDE-T-024"
+            },
+            {
+              "req_id": "REQ-025",
+              "app_id": "APP3",
+              "description": "Container orchestration platform",
+              "owner": "william.taylor@quotes.com",
+              "criticality": "5",
+              "data_classification": "internal",
+              "threat_ref": "STRIDE-T-025"
+            },
+            {
+              "req_id": "REQ-026",
+              "app_id": "APP3",
+              "description": "Microservices API gateway",
+              "owner": "patricia.anderson@quotes.com",
+              "criticality": "4",
+              "data_classification": "confidential",
+              "threat_ref": "STRIDE-T-026"
+            },
+            {
+              "req_id": "REQ-027",
+              "app_id": "APP3",
+              "description": "Quote document generation",
+              "owner": "charles.thomas@quotes.com",
+              "criticality": "3",
+              "data_classification": "internal",
+              "threat_ref": "STRIDE-T-027"
+            },
+            {
+              "req_id": "REQ-028",
+              "app_id": "APP3",
+              "description": "Customer authentication service",
+              "owner": "barbara.jackson@quotes.com",
+              "criticality": "5",
+              "data_classification": "restricted",
+              "threat_ref": "STRIDE-T-028"
+            },
+            {
+              "req_id": "REQ-029",
+              "app_id": "APP3",
+              "description": "Pricing calculation service",
+              "owner": "richard.white@quotes.com",
+              "criticality": "4",
+              "data_classification": "confidential",
+              "threat_ref": "STRIDE-T-029"
+            },
+            {
+              "req_id": "REQ-030",
+              "app_id": "APP3",
+              "description": "Quote history and audit trail",
+              "owner": "susan.harris@quotes.com",
+              "criticality": "4",
+              "data_classification": "confidential",
+              "threat_ref": "STRIDE-T-030"
+            }
+          ]
+        },
+        "design": {
+          "status": "success",
+          "count": 10,
+          "threats": [
+            {
+              "service_name": "quote-engine",
+              "environment": "prod",
+              "customer_impact": "mission_critical",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-021",
+              "threat_description": "Container running as root user with full host access",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "payment-processor",
+              "environment": "prod",
+              "customer_impact": "mission_critical",
+              "data_classification": "financial",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-022",
+              "threat_description": "Excessive Kubernetes RBAC permissions allowing cluster-admin access",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "pricing-db",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-023",
+              "threat_description": "Database node exposed to internet via Prisma Cloud misconfiguration",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "approval-workflow",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-024",
+              "threat_description": "Critical kernel vulnerability CVE-2023-32233 detected by Tenable",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "k8s-cluster",
+              "environment": "prod",
+              "customer_impact": "mission_critical",
+              "data_classification": "internal",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-025",
+              "threat_description": "Contrast RASP detected runtime SQL injection payload attempt",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "api-gateway",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-026",
+              "threat_description": "Pod security policy not enforced allowing privileged containers",
+              "severity": "high",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "auth-service",
+              "environment": "prod",
+              "customer_impact": "mission_critical",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-028",
+              "threat_description": "Service account token mounted in all pods with excessive permissions",
+              "severity": "high",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "pricing-calc",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-029",
+              "threat_description": "Container image contains outdated base OS with 47 critical CVEs",
+              "severity": "high",
+              "mitigation_status": "incomplete"
+            }
+          ],
+          "data": [
+            {
+              "service_name": "quote-engine",
+              "environment": "prod",
+              "customer_impact": "mission_critical",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-021",
+              "threat_description": "Container running as root user with full host access",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "payment-processor",
+              "environment": "prod",
+              "customer_impact": "mission_critical",
+              "data_classification": "financial",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-022",
+              "threat_description": "Excessive Kubernetes RBAC permissions allowing cluster-admin access",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "pricing-db",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-023",
+              "threat_description": "Database node exposed to internet via Prisma Cloud misconfiguration",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "approval-workflow",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-024",
+              "threat_description": "Critical kernel vulnerability CVE-2023-32233 detected by Tenable",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "k8s-cluster",
+              "environment": "prod",
+              "customer_impact": "mission_critical",
+              "data_classification": "internal",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-025",
+              "threat_description": "Contrast RASP detected runtime SQL injection payload attempt",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "api-gateway",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-026",
+              "threat_description": "Pod security policy not enforced allowing privileged containers",
+              "severity": "high",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "document-gen",
+              "environment": "prod",
+              "customer_impact": "internal",
+              "data_classification": "internal",
+              "exposure": "internal",
+              "threat_id": "STRIDE-T-027",
+              "threat_description": "Missing network policies allowing unrestricted pod-to-pod communication",
+              "severity": "medium",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "auth-service",
+              "environment": "prod",
+              "customer_impact": "mission_critical",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-028",
+              "threat_description": "Service account token mounted in all pods with excessive permissions",
+              "severity": "high",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "pricing-calc",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-029",
+              "threat_description": "Container image contains outdated base OS with 47 critical CVEs",
+              "severity": "high",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "audit-trail",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-030",
+              "threat_description": "Secrets stored as Kubernetes ConfigMaps instead of Secrets",
+              "severity": "medium",
+              "mitigation_status": "incomplete"
+            }
+          ]
+        },
+        "sbom": {
+          "status": "success",
+          "components": 8,
+          "vulnerabilities": 4,
+          "data": "NormalizedSBOM(format='CycloneDX', document={'bomFormat': 'CycloneDX', 'specVersion': '1.4', 'version': 1, 'metadata': {'timestamp': '2025-10-30T00:00:00Z', 'component': {'type': 'container', 'name': 'b2b-quotes-app', 'version': '3.2.1', 'purl': 'pkg:docker/b2b-quotes-app@3.2.1'}}, 'components': [{'type': 'operating-system', 'name': 'ubuntu', 'version': '20.04', 'purl': 'pkg:deb/ubuntu/ubuntu@20.04', 'description': 'Base OS image with outdated packages'}, {'type': 'library', 'name': 'linux-kernel', 'version': '5.15.0-56', 'purl': 'pkg:generic/linux-kernel@5.15.0-56', 'vulnerabilities': [{'id': 'CVE-2023-32233', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2023-32233'}, 'ratings': [{'severity': 'critical', 'score': 9.8, 'method': 'CVSSv3'}], 'description': 'Use-after-free vulnerability in Netfilter nf_tables when processing batch requests can be abused to perform arbitrary read and write operations on kernel memory.', 'recommendation': 'Upgrade kernel to 5.15.0-73 or later'}]}, {'type': 'library', 'name': 'spring-boot', 'version': '2.7.8', 'purl': 'pkg:maven/org.springframework.boot/spring-boot@2.7.8', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}, {'type': 'library', 'name': 'postgresql-jdbc', 'version': '42.3.1', 'purl': 'pkg:maven/org.postgresql/postgresql@42.3.1', 'licenses': [{'license': {'id': 'BSD-2-Clause'}}], 'vulnerabilities': [{'id': 'CVE-2022-31197', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2022-31197'}, 'ratings': [{'severity': 'high', 'score': 8.0, 'method': 'CVSSv3'}], 'description': 'PostgreSQL JDBC Driver allows attacker to inject SQL if using PreferQueryMode=SIMPLE.', 'recommendation': 'Upgrade to postgresql-jdbc 42.3.3 or later'}]}, {'type': 'library', 'name': 'stripe-java', 'version': '20.136.0', 'purl': 'pkg:maven/com.stripe/stripe-java@20.136.0', 'licenses': [{'license': {'id': 'MIT'}}]}, {'type': 'library', 'name': 'kubernetes-client', 'version': '5.12.2', 'purl': 'pkg:maven/io.fabric8/kubernetes-client@5.12.2', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}, {'type': 'library', 'name': 'openssl', 'version': '1.1.1f', 'purl': 'pkg:deb/ubuntu/openssl@1.1.1f', 'vulnerabilities': [{'id': 'CVE-2022-3602', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2022-3602'}, 'ratings': [{'severity': 'high', 'score': 7.5, 'method': 'CVSSv3'}], 'description': 'X.509 Email Address Buffer Overflow in OpenSSL.', 'recommendation': 'Upgrade to OpenSSL 1.1.1s or later'}]}, {'type': 'library', 'name': 'glibc', 'version': '2.31-0ubuntu9.2', 'purl': 'pkg:deb/ubuntu/glibc@2.31-0ubuntu9.2', 'vulnerabilities': [{'id': 'CVE-2023-4911', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2023-4911'}, 'ratings': [{'severity': 'high', 'score': 7.8, 'method': 'CVSSv3'}], 'description': \"Buffer overflow in the dynamic loader's processing of the GLIBC_TUNABLES environment variable (Looney Tunables).\", 'recommendation': 'Upgrade to glibc 2.31-0ubuntu9.12 or later'}]}]}, components=[SBOMComponent(name='ubuntu', version='20.04', purl='pkg:deb/ubuntu/ubuntu@20.04', licenses=[], supplier=None, raw={'type': 'operating-system', 'name': 'ubuntu', 'version': '20.04', 'purl': 'pkg:deb/ubuntu/ubuntu@20.04', 'description': 'Base OS image with outdated packages'}), SBOMComponent(name='linux-kernel', version='5.15.0-56', purl='pkg:generic/linux-kernel@5.15.0-56', licenses=[], supplier=None, raw={'type': 'library', 'name': 'linux-kernel', 'version': '5.15.0-56', 'purl': 'pkg:generic/linux-kernel@5.15.0-56', 'vulnerabilities': [{'id': 'CVE-2023-32233', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2023-32233'}, 'ratings': [{'severity': 'critical', 'score': 9.8, 'method': 'CVSSv3'}], 'description': 'Use-after-free vulnerability in Netfilter nf_tables when processing batch requests can be abused to perform arbitrary read and write operations on kernel memory.', 'recommendation': 'Upgrade kernel to 5.15.0-73 or later'}]}), SBOMComponent(name='spring-boot', version='2.7.8', purl='pkg:maven/org.springframework.boot/spring-boot@2.7.8', licenses=[{'id': 'Apache-2.0'}], supplier=None, raw={'type': 'library', 'name': 'spring-boot', 'version': '2.7.8', 'purl': 'pkg:maven/org.springframework.boot/spring-boot@2.7.8', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}), SBOMComponent(name='postgresql-jdbc', version='42.3.1', purl='pkg:maven/org.postgresql/postgresql@42.3.1', licenses=[{'id': 'BSD-2-Clause'}], supplier=None, raw={'type': 'library', 'name': 'postgresql-jdbc', 'version': '42.3.1', 'purl': 'pkg:maven/org.postgresql/postgresql@42.3.1', 'licenses': [{'license': {'id': 'BSD-2-Clause'}}], 'vulnerabilities': [{'id': 'CVE-2022-31197', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2022-31197'}, 'ratings': [{'severity': 'high', 'score': 8.0, 'method': 'CVSSv3'}], 'description': 'PostgreSQL JDBC Driver allows attacker to inject SQL if using PreferQueryMode=SIMPLE.', 'recommendation': 'Upgrade to postgresql-jdbc 42.3.3 or later'}]}), SBOMComponent(name='stripe-java', version='20.136.0', purl='pkg:maven/com.stripe/stripe-java@20.136.0', licenses=[{'id': 'MIT'}], supplier=None, raw={'type': 'library', 'name': 'stripe-java', 'version': '20.136.0', 'purl': 'pkg:maven/com.stripe/stripe-java@20.136.0', 'licenses': [{'license': {'id': 'MIT'}}]}), SBOMComponent(name='kubernetes-client', version='5.12.2', purl='pkg:maven/io.fabric8/kubernetes-client@5.12.2', licenses=[{'id': 'Apache-2.0'}], supplier=None, raw={'type': 'library', 'name': 'kubernetes-client', 'version': '5.12.2', 'purl': 'pkg:maven/io.fabric8/kubernetes-client@5.12.2', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}), SBOMComponent(name='openssl', version='1.1.1f', purl='pkg:deb/ubuntu/openssl@1.1.1f', licenses=[], supplier=None, raw={'type': 'library', 'name': 'openssl', 'version': '1.1.1f', 'purl': 'pkg:deb/ubuntu/openssl@1.1.1f', 'vulnerabilities': [{'id': 'CVE-2022-3602', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2022-3602'}, 'ratings': [{'severity': 'high', 'score': 7.5, 'method': 'CVSSv3'}], 'description': 'X.509 Email Address Buffer Overflow in OpenSSL.', 'recommendation': 'Upgrade to OpenSSL 1.1.1s or later'}]}), SBOMComponent(name='glibc', version='2.31-0ubuntu9.2', purl='pkg:deb/ubuntu/glibc@2.31-0ubuntu9.2', licenses=[], supplier=None, raw={'type': 'library', 'name': 'glibc', 'version': '2.31-0ubuntu9.2', 'purl': 'pkg:deb/ubuntu/glibc@2.31-0ubuntu9.2', 'vulnerabilities': [{'id': 'CVE-2023-4911', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2023-4911'}, 'ratings': [{'severity': 'high', 'score': 7.8, 'method': 'CVSSv3'}], 'description': \"Buffer overflow in the dynamic loader's processing of the GLIBC_TUNABLES environment variable (Looney Tunables).\", 'recommendation': 'Upgrade to glibc 2.31-0ubuntu9.12 or later'}]})], relationships=[], services=[], vulnerabilities=[{'id': 'CVE-2023-32233', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2023-32233'}, 'ratings': [{'severity': 'critical', 'score': 9.8, 'method': 'CVSSv3'}], 'description': 'Use-after-free vulnerability in Netfilter nf_tables when processing batch requests can be abused to perform arbitrary read and write operations on kernel memory.', 'recommendation': 'Upgrade kernel to 5.15.0-73 or later', 'affects': [{'ref': 'pkg:generic/linux-kernel@5.15.0-56'}]}, {'id': 'CVE-2022-31197', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2022-31197'}, 'ratings': [{'severity': 'high', 'score': 8.0, 'method': 'CVSSv3'}], 'description': 'PostgreSQL JDBC Driver allows attacker to inject SQL if using PreferQueryMode=SIMPLE.', 'recommendation': 'Upgrade to postgresql-jdbc 42.3.3 or later', 'affects': [{'ref': 'pkg:maven/org.postgresql/postgresql@42.3.1'}]}, {'id': 'CVE-2022-3602', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2022-3602'}, 'ratings': [{'severity': 'high', 'score': 7.5, 'method': 'CVSSv3'}], 'description': 'X.509 Email Address Buffer Overflow in OpenSSL.', 'recommendation': 'Upgrade to OpenSSL 1.1.1s or later', 'affects': [{'ref': 'pkg:deb/ubuntu/openssl@1.1.1f'}]}, {'id': 'CVE-2023-4911', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2023-4911'}, 'ratings': [{'severity': 'high', 'score': 7.8, 'method': 'CVSSv3'}], 'description': \"Buffer overflow in the dynamic loader's processing of the GLIBC_TUNABLES environment variable (Looney Tunables).\", 'recommendation': 'Upgrade to glibc 2.31-0ubuntu9.12 or later', 'affects': [{'ref': 'pkg:deb/ubuntu/glibc@2.31-0ubuntu9.2'}]}], metadata={'component_count': 8, 'relationship_count': 0, 'service_count': 0, 'vulnerability_count': 4})"
+        },
+        "operate": {
+          "status": "success",
+          "findings": 10,
+          "critical": 5,
+          "data": [
+            {
+              "id": "PRISMA-001",
+              "source": "Prisma Cloud",
+              "severity": "CRITICAL",
+              "title": "Container Running as Root User",
+              "description": "Container 'b2b-quotes-app' is configured to run as root user (UID 0). This violates PCI-DSS requirements and increases blast radius if container is compromised.",
+              "resource": "deployment/quote-engine",
+              "namespace": "production",
+              "cluster": "b2b-prod-cluster",
+              "remediation": "Set securityContext.runAsNonRoot: true and securityContext.runAsUser to non-zero UID in deployment manifest",
+              "compliance_frameworks": [
+                "PCI-DSS 2.2.4",
+                "SOC2 CC6.6",
+                "ISO27001 A.12.6.1"
+              ],
+              "cwe": "CWE-250",
+              "cvss_score": 9.3,
+              "tags": {
+                "Environment": "production",
+                "Application": "APP3"
+              }
+            },
+            {
+              "id": "PRISMA-002",
+              "source": "Prisma Cloud",
+              "severity": "CRITICAL",
+              "title": "Excessive Kubernetes RBAC Permissions",
+              "description": "ServiceAccount 'quote-engine-sa' has cluster-admin ClusterRoleBinding, granting full cluster access. This violates principle of least privilege.",
+              "resource": "serviceaccount/quote-engine-sa",
+              "namespace": "production",
+              "cluster": "b2b-prod-cluster",
+              "remediation": "Create custom Role with minimal required permissions and bind to ServiceAccount",
+              "compliance_frameworks": [
+                "PCI-DSS 7.1.2",
+                "SOC2 CC6.1",
+                "ISO27001 A.9.2.3"
+              ],
+              "cwe": "CWE-269",
+              "cvss_score": 9.1,
+              "tags": {
+                "Environment": "production",
+                "Application": "APP3"
+              }
+            },
+            {
+              "id": "PRISMA-003",
+              "source": "Prisma Cloud",
+              "severity": "CRITICAL",
+              "title": "Database Node Exposed to Internet",
+              "description": "PostgreSQL database node is accessible from internet via public IP address. Database contains customer PII and payment card data.",
+              "resource": "rds/b2b-quotes-db",
+              "remediation": "Remove public IP address and configure access through private subnet only",
+              "compliance_frameworks": [
+                "PCI-DSS 1.3.1",
+                "SOC2 CC6.6",
+                "GDPR Article 32"
+              ],
+              "cwe": "CWE-668",
+              "cvss_score": 9.8,
+              "tags": {
+                "Environment": "production",
+                "Application": "APP3",
+                "DataClassification": "PCI"
+              }
+            },
+            {
+              "id": "PRISMA-004",
+              "source": "Prisma Cloud",
+              "severity": "HIGH",
+              "title": "Pod Security Policy Not Enforced",
+              "description": "Kubernetes cluster does not have PodSecurityPolicy enabled, allowing privileged containers and host access.",
+              "resource": "cluster/b2b-prod-cluster",
+              "remediation": "Enable PodSecurityPolicy admission controller and create restrictive policies",
+              "compliance_frameworks": [
+                "PCI-DSS 2.2",
+                "SOC2 CC6.6"
+              ],
+              "cwe": "CWE-250",
+              "cvss_score": 7.5,
+              "tags": {
+                "Environment": "production",
+                "Application": "APP3"
+              }
+            },
+            {
+              "id": "PRISMA-005",
+              "source": "Prisma Cloud",
+              "severity": "MEDIUM",
+              "title": "Secrets Stored in ConfigMaps",
+              "description": "Database credentials and API keys stored in ConfigMaps instead of Secrets. ConfigMaps are not encrypted at rest.",
+              "resource": "configmap/app-config",
+              "namespace": "production",
+              "remediation": "Move sensitive data to Kubernetes Secrets and enable encryption at rest",
+              "compliance_frameworks": [
+                "PCI-DSS 3.4",
+                "SOC2 CC6.1"
+              ],
+              "cwe": "CWE-312",
+              "cvss_score": 6.5,
+              "tags": {
+                "Environment": "production",
+                "Application": "APP3"
+              }
+            },
+            {
+              "id": "TENABLE-001",
+              "source": "Tenable",
+              "plugin_id": "171234",
+              "severity": "CRITICAL",
+              "title": "Linux Kernel Netfilter Use-After-Free (CVE-2023-32233)",
+              "description": "The remote host is running a version of Linux kernel affected by a use-after-free vulnerability in Netfilter nf_tables. An attacker can exploit this to gain root privileges.",
+              "cve": "CVE-2023-32233",
+              "cvss_score": 9.8,
+              "host": "10.0.1.45",
+              "port": 0,
+              "protocol": "tcp",
+              "remediation": "Upgrade Linux kernel to version 5.15.0-73 or later",
+              "compliance_frameworks": [
+                "PCI-DSS 6.2",
+                "SOC2 CC7.2"
+              ],
+              "exploit_available": true,
+              "patch_publication_date": "2023-05-08",
+              "tags": {
+                "Environment": "production",
+                "Application": "APP3",
+                "Hostname": "quote-engine-pod-1"
+              }
+            },
+            {
+              "id": "TENABLE-002",
+              "source": "Tenable",
+              "plugin_id": "168901",
+              "severity": "HIGH",
+              "title": "glibc Buffer Overflow (Looney Tunables - CVE-2023-4911)",
+              "description": "The remote host has a version of glibc affected by a buffer overflow vulnerability that can be exploited for privilege escalation.",
+              "cve": "CVE-2023-4911",
+              "cvss_score": 7.8,
+              "host": "10.0.1.45",
+              "port": 0,
+              "protocol": "tcp",
+              "remediation": "Upgrade glibc to version 2.31-0ubuntu9.12 or later",
+              "compliance_frameworks": [
+                "PCI-DSS 6.2",
+                "SOC2 CC7.2"
+              ],
+              "exploit_available": true,
+              "patch_publication_date": "2023-10-03",
+              "tags": {
+                "Environment": "production",
+                "Application": "APP3"
+              }
+            },
+            {
+              "id": "TENABLE-003",
+              "source": "Tenable",
+              "plugin_id": "165432",
+              "severity": "HIGH",
+              "title": "OpenSSL X.509 Email Address Buffer Overflow (CVE-2022-3602)",
+              "description": "The remote host has a version of OpenSSL affected by a buffer overflow vulnerability in X.509 certificate verification.",
+              "cve": "CVE-2022-3602",
+              "cvss_score": 7.5,
+              "host": "10.0.1.45",
+              "port": 443,
+              "protocol": "tcp",
+              "remediation": "Upgrade OpenSSL to version 1.1.1s or later",
+              "compliance_frameworks": [
+                "PCI-DSS 6.2"
+              ],
+              "exploit_available": false,
+              "patch_publication_date": "2022-11-01",
+              "tags": {
+                "Environment": "production",
+                "Application": "APP3"
+              }
+            },
+            {
+              "id": "CONTRAST-001",
+              "source": "Contrast Security RASP",
+              "severity": "CRITICAL",
+              "title": "Runtime SQL Injection Attack Detected",
+              "description": "Contrast RASP detected and blocked a SQL injection attack attempt at runtime. Attacker attempted to inject malicious SQL through quote description parameter.",
+              "attack_vector": "HTTP POST /api/quotes",
+              "payload": "'; DROP TABLE quotes; --",
+              "parameter": "description",
+              "timestamp": "2025-10-29T14:32:15Z",
+              "source_ip": "203.0.113.42",
+              "blocked": true,
+              "cwe": "CWE-89",
+              "cvss_score": 9.8,
+              "compliance_frameworks": [
+                "PCI-DSS 6.5.1",
+                "SOC2 CC7.2"
+              ],
+              "tags": {
+                "Environment": "production",
+                "Application": "APP3",
+                "AttackType": "SQLi"
+              }
+            },
+            {
+              "id": "CONTRAST-002",
+              "source": "Contrast Security RASP",
+              "severity": "HIGH",
+              "title": "Runtime Command Injection Attempt",
+              "description": "Contrast RASP detected command injection attempt through file upload functionality.",
+              "attack_vector": "HTTP POST /api/quotes/upload",
+              "payload": "document.pdf; cat /etc/passwd",
+              "parameter": "filename",
+              "timestamp": "2025-10-29T16:45:22Z",
+              "source_ip": "198.51.100.23",
+              "blocked": true,
+              "cwe": "CWE-78",
+              "cvss_score": 8.1,
+              "compliance_frameworks": [
+                "PCI-DSS 6.5.1"
+              ],
+              "tags": {
+                "Environment": "production",
+                "Application": "APP3",
+                "AttackType": "CommandInjection"
+              }
+            }
+          ]
+        }
+      },
+      "findings": [
+        {
+          "source": "SBOM",
+          "app_id": "APP3",
+          "type": "vulnerability",
+          "id": "CVE-2023-32233",
+          "severity": "unknown",
+          "component_ref": "pkg:generic/linux-kernel@5.15.0-56",
+          "description": "Use-after-free vulnerability in Netfilter nf_tables when processing batch requests can be abused to perform arbitrary read and write operations on kernel memory.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "SBOM",
+          "app_id": "APP3",
+          "type": "vulnerability",
+          "id": "CVE-2022-31197",
+          "severity": "unknown",
+          "component_ref": "pkg:maven/org.postgresql/postgresql@42.3.1",
+          "description": "PostgreSQL JDBC Driver allows attacker to inject SQL if using PreferQueryMode=SIMPLE.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "SBOM",
+          "app_id": "APP3",
+          "type": "vulnerability",
+          "id": "CVE-2022-3602",
+          "severity": "unknown",
+          "component_ref": "pkg:deb/ubuntu/openssl@1.1.1f",
+          "description": "X.509 Email Address Buffer Overflow in OpenSSL.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "SBOM",
+          "app_id": "APP3",
+          "type": "vulnerability",
+          "id": "CVE-2023-4911",
+          "severity": "unknown",
+          "component_ref": "pkg:deb/ubuntu/glibc@2.31-0ubuntu9.2",
+          "description": "Buffer overflow in the dynamic loader's processing of the GLIBC_TUNABLES environment variable (Looney Tunables).",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Prisma Cloud",
+          "app_id": "APP3",
+          "type": "operational",
+          "id": "PRISMA-001",
+          "severity": "CRITICAL",
+          "title": "Container Running as Root User",
+          "description": "Container 'b2b-quotes-app' is configured to run as root user (UID 0). This violates PCI-DSS requirements and increases blast radius if container is compromised.",
+          "resource": "deployment/quote-engine",
+          "namespace": "production",
+          "cluster": "b2b-prod-cluster",
+          "remediation": "Set securityContext.runAsNonRoot: true and securityContext.runAsUser to non-zero UID in deployment manifest",
+          "compliance_frameworks": [
+            "PCI-DSS 2.2.4",
+            "SOC2 CC6.6",
+            "ISO27001 A.12.6.1"
+          ],
+          "cwe": "CWE-250",
+          "cvss_score": 9.3,
+          "tags": {
+            "Environment": "production",
+            "Application": "APP3"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Prisma Cloud",
+          "app_id": "APP3",
+          "type": "operational",
+          "id": "PRISMA-002",
+          "severity": "CRITICAL",
+          "title": "Excessive Kubernetes RBAC Permissions",
+          "description": "ServiceAccount 'quote-engine-sa' has cluster-admin ClusterRoleBinding, granting full cluster access. This violates principle of least privilege.",
+          "resource": "serviceaccount/quote-engine-sa",
+          "namespace": "production",
+          "cluster": "b2b-prod-cluster",
+          "remediation": "Create custom Role with minimal required permissions and bind to ServiceAccount",
+          "compliance_frameworks": [
+            "PCI-DSS 7.1.2",
+            "SOC2 CC6.1",
+            "ISO27001 A.9.2.3"
+          ],
+          "cwe": "CWE-269",
+          "cvss_score": 9.1,
+          "tags": {
+            "Environment": "production",
+            "Application": "APP3"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Prisma Cloud",
+          "app_id": "APP3",
+          "type": "operational",
+          "id": "PRISMA-003",
+          "severity": "CRITICAL",
+          "title": "Database Node Exposed to Internet",
+          "description": "PostgreSQL database node is accessible from internet via public IP address. Database contains customer PII and payment card data.",
+          "resource": "rds/b2b-quotes-db",
+          "remediation": "Remove public IP address and configure access through private subnet only",
+          "compliance_frameworks": [
+            "PCI-DSS 1.3.1",
+            "SOC2 CC6.6",
+            "GDPR Article 32"
+          ],
+          "cwe": "CWE-668",
+          "cvss_score": 9.8,
+          "tags": {
+            "Environment": "production",
+            "Application": "APP3",
+            "DataClassification": "PCI"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Prisma Cloud",
+          "app_id": "APP3",
+          "type": "operational",
+          "id": "PRISMA-004",
+          "severity": "HIGH",
+          "title": "Pod Security Policy Not Enforced",
+          "description": "Kubernetes cluster does not have PodSecurityPolicy enabled, allowing privileged containers and host access.",
+          "resource": "cluster/b2b-prod-cluster",
+          "remediation": "Enable PodSecurityPolicy admission controller and create restrictive policies",
+          "compliance_frameworks": [
+            "PCI-DSS 2.2",
+            "SOC2 CC6.6"
+          ],
+          "cwe": "CWE-250",
+          "cvss_score": 7.5,
+          "tags": {
+            "Environment": "production",
+            "Application": "APP3"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Prisma Cloud",
+          "app_id": "APP3",
+          "type": "operational",
+          "id": "PRISMA-005",
+          "severity": "MEDIUM",
+          "title": "Secrets Stored in ConfigMaps",
+          "description": "Database credentials and API keys stored in ConfigMaps instead of Secrets. ConfigMaps are not encrypted at rest.",
+          "resource": "configmap/app-config",
+          "namespace": "production",
+          "remediation": "Move sensitive data to Kubernetes Secrets and enable encryption at rest",
+          "compliance_frameworks": [
+            "PCI-DSS 3.4",
+            "SOC2 CC6.1"
+          ],
+          "cwe": "CWE-312",
+          "cvss_score": 6.5,
+          "tags": {
+            "Environment": "production",
+            "Application": "APP3"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Tenable",
+          "app_id": "APP3",
+          "type": "operational",
+          "id": "TENABLE-001",
+          "plugin_id": "171234",
+          "severity": "CRITICAL",
+          "title": "Linux Kernel Netfilter Use-After-Free (CVE-2023-32233)",
+          "description": "The remote host is running a version of Linux kernel affected by a use-after-free vulnerability in Netfilter nf_tables. An attacker can exploit this to gain root privileges.",
+          "cve": "CVE-2023-32233",
+          "cvss_score": 9.8,
+          "host": "10.0.1.45",
+          "port": 0,
+          "protocol": "tcp",
+          "remediation": "Upgrade Linux kernel to version 5.15.0-73 or later",
+          "compliance_frameworks": [
+            "PCI-DSS 6.2",
+            "SOC2 CC7.2"
+          ],
+          "exploit_available": true,
+          "patch_publication_date": "2023-05-08",
+          "tags": {
+            "Environment": "production",
+            "Application": "APP3",
+            "Hostname": "quote-engine-pod-1"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Tenable",
+          "app_id": "APP3",
+          "type": "operational",
+          "id": "TENABLE-002",
+          "plugin_id": "168901",
+          "severity": "HIGH",
+          "title": "glibc Buffer Overflow (Looney Tunables - CVE-2023-4911)",
+          "description": "The remote host has a version of glibc affected by a buffer overflow vulnerability that can be exploited for privilege escalation.",
+          "cve": "CVE-2023-4911",
+          "cvss_score": 7.8,
+          "host": "10.0.1.45",
+          "port": 0,
+          "protocol": "tcp",
+          "remediation": "Upgrade glibc to version 2.31-0ubuntu9.12 or later",
+          "compliance_frameworks": [
+            "PCI-DSS 6.2",
+            "SOC2 CC7.2"
+          ],
+          "exploit_available": true,
+          "patch_publication_date": "2023-10-03",
+          "tags": {
+            "Environment": "production",
+            "Application": "APP3"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Tenable",
+          "app_id": "APP3",
+          "type": "operational",
+          "id": "TENABLE-003",
+          "plugin_id": "165432",
+          "severity": "HIGH",
+          "title": "OpenSSL X.509 Email Address Buffer Overflow (CVE-2022-3602)",
+          "description": "The remote host has a version of OpenSSL affected by a buffer overflow vulnerability in X.509 certificate verification.",
+          "cve": "CVE-2022-3602",
+          "cvss_score": 7.5,
+          "host": "10.0.1.45",
+          "port": 443,
+          "protocol": "tcp",
+          "remediation": "Upgrade OpenSSL to version 1.1.1s or later",
+          "compliance_frameworks": [
+            "PCI-DSS 6.2"
+          ],
+          "exploit_available": false,
+          "patch_publication_date": "2022-11-01",
+          "tags": {
+            "Environment": "production",
+            "Application": "APP3"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Contrast Security RASP",
+          "app_id": "APP3",
+          "type": "operational",
+          "id": "CONTRAST-001",
+          "severity": "CRITICAL",
+          "title": "Runtime SQL Injection Attack Detected",
+          "description": "Contrast RASP detected and blocked a SQL injection attack attempt at runtime. Attacker attempted to inject malicious SQL through quote description parameter.",
+          "attack_vector": "HTTP POST /api/quotes",
+          "payload": "'; DROP TABLE quotes; --",
+          "parameter": "description",
+          "timestamp": "2025-10-29T14:32:15Z",
+          "source_ip": "203.0.113.42",
+          "blocked": true,
+          "cwe": "CWE-89",
+          "cvss_score": 9.8,
+          "compliance_frameworks": [
+            "PCI-DSS 6.5.1",
+            "SOC2 CC7.2"
+          ],
+          "tags": {
+            "Environment": "production",
+            "Application": "APP3",
+            "AttackType": "SQLi"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Contrast Security RASP",
+          "app_id": "APP3",
+          "type": "operational",
+          "id": "CONTRAST-002",
+          "severity": "HIGH",
+          "title": "Runtime Command Injection Attempt",
+          "description": "Contrast RASP detected command injection attempt through file upload functionality.",
+          "attack_vector": "HTTP POST /api/quotes/upload",
+          "payload": "document.pdf; cat /etc/passwd",
+          "parameter": "filename",
+          "timestamp": "2025-10-29T16:45:22Z",
+          "source_ip": "198.51.100.23",
+          "blocked": true,
+          "cwe": "CWE-78",
+          "cvss_score": 8.1,
+          "compliance_frameworks": [
+            "PCI-DSS 6.5.1"
+          ],
+          "tags": {
+            "Environment": "production",
+            "Application": "APP3",
+            "AttackType": "CommandInjection"
+          },
+          "calculated_score": 0.25
+        }
+      ],
+      "errors": [
+        "SARIF file not found: /home/ubuntu/repos/Fixops/simulations/e2e_validation/app3_b2b_quotes/ssdlc/scan.sarif"
+      ],
+      "total_findings": 14
+    },
+    "APP4": {
+      "app_id": "APP4",
+      "app_name": "Streaming/Events",
+      "stages": {
+        "requirements": {
+          "status": "success",
+          "count": 10,
+          "data": [
+            {
+              "req_id": "REQ-031",
+              "app_id": "APP4",
+              "description": "Real-time event streaming platform",
+              "owner": "thomas.clark@streaming.com",
+              "criticality": "5",
+              "data_classification": "internal",
+              "threat_ref": "STRIDE-T-031"
+            },
+            {
+              "req_id": "REQ-032",
+              "app_id": "APP4",
+              "description": "Kafka message broker cluster",
+              "owner": "jessica.rodriguez@streaming.com",
+              "criticality": "5",
+              "data_classification": "confidential",
+              "threat_ref": "STRIDE-T-032"
+            },
+            {
+              "req_id": "REQ-033",
+              "app_id": "APP4",
+              "description": "Flink stream processing engine",
+              "owner": "matthew.lewis@streaming.com",
+              "criticality": "4",
+              "data_classification": "internal",
+              "threat_ref": "STRIDE-T-033"
+            },
+            {
+              "req_id": "REQ-034",
+              "app_id": "APP4",
+              "description": "Event schema registry",
+              "owner": "ashley.walker@streaming.com",
+              "criticality": "4",
+              "data_classification": "internal",
+              "threat_ref": "STRIDE-T-034"
+            },
+            {
+              "req_id": "REQ-035",
+              "app_id": "APP4",
+              "description": "Stream analytics dashboard",
+              "owner": "christopher.hall@streaming.com",
+              "criticality": "3",
+              "data_classification": "internal",
+              "threat_ref": "STRIDE-T-035"
+            },
+            {
+              "req_id": "REQ-036",
+              "app_id": "APP4",
+              "description": "Event data lake storage",
+              "owner": "amanda.allen@streaming.com",
+              "criticality": "4",
+              "data_classification": "confidential",
+              "threat_ref": "STRIDE-T-036"
+            },
+            {
+              "req_id": "REQ-037",
+              "app_id": "APP4",
+              "description": "Stream consumer applications",
+              "owner": "joshua.young@streaming.com",
+              "criticality": "4",
+              "data_classification": "internal",
+              "threat_ref": "STRIDE-T-037"
+            },
+            {
+              "req_id": "REQ-038",
+              "app_id": "APP4",
+              "description": "Event monitoring and alerting",
+              "owner": "stephanie.king@streaming.com",
+              "criticality": "3",
+              "data_classification": "internal",
+              "threat_ref": "STRIDE-T-038"
+            },
+            {
+              "req_id": "REQ-039",
+              "app_id": "APP4",
+              "description": "Stream data encryption service",
+              "owner": "brian.wright@streaming.com",
+              "criticality": "5",
+              "data_classification": "confidential",
+              "threat_ref": "STRIDE-T-039"
+            },
+            {
+              "req_id": "REQ-040",
+              "app_id": "APP4",
+              "description": "Event replay and audit system",
+              "owner": "michelle.lopez@streaming.com",
+              "criticality": "4",
+              "data_classification": "confidential",
+              "threat_ref": "STRIDE-T-040"
+            }
+          ]
+        },
+        "design": {
+          "status": "success",
+          "count": 10,
+          "threats": [
+            {
+              "service_name": "kafka-broker",
+              "environment": "prod",
+              "customer_impact": "mission_critical",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-031",
+              "threat_description": "Kafka topic configured with anonymous authentication allowing unauthorized access",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "kafka-cluster",
+              "environment": "prod",
+              "customer_impact": "mission_critical",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-032",
+              "threat_description": "Weak network segmentation allowing direct access to Kafka brokers from internet",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "flink-processor",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "internal",
+              "exposure": "internal",
+              "threat_id": "STRIDE-T-033",
+              "threat_description": "Transitive dependency with critical vulnerability in Apache Commons library",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "schema-registry",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "internal",
+              "exposure": "internal",
+              "threat_id": "STRIDE-T-034",
+              "threat_description": "Schema registry API exposed without authentication",
+              "severity": "high",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "data-lake",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-036",
+              "threat_description": "Azure Storage account key exposed in Wiz scan",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "encryption-service",
+              "environment": "prod",
+              "customer_impact": "mission_critical",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-039",
+              "threat_description": "Kafka encryption at rest not enabled for sensitive topics",
+              "severity": "high",
+              "mitigation_status": "incomplete"
+            }
+          ],
+          "data": [
+            {
+              "service_name": "kafka-broker",
+              "environment": "prod",
+              "customer_impact": "mission_critical",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-031",
+              "threat_description": "Kafka topic configured with anonymous authentication allowing unauthorized access",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "kafka-cluster",
+              "environment": "prod",
+              "customer_impact": "mission_critical",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-032",
+              "threat_description": "Weak network segmentation allowing direct access to Kafka brokers from internet",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "flink-processor",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "internal",
+              "exposure": "internal",
+              "threat_id": "STRIDE-T-033",
+              "threat_description": "Transitive dependency with critical vulnerability in Apache Commons library",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "schema-registry",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "internal",
+              "exposure": "internal",
+              "threat_id": "STRIDE-T-034",
+              "threat_description": "Schema registry API exposed without authentication",
+              "severity": "high",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "analytics-dashboard",
+              "environment": "prod",
+              "customer_impact": "internal",
+              "data_classification": "internal",
+              "exposure": "internal",
+              "threat_id": "STRIDE-T-035",
+              "threat_description": "Grafana dashboard with default admin credentials",
+              "severity": "medium",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "data-lake",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-036",
+              "threat_description": "Azure Storage account key exposed in Wiz scan",
+              "severity": "critical",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "consumer-apps",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "internal",
+              "exposure": "internal",
+              "threat_id": "STRIDE-T-037",
+              "threat_description": "Consumer group credentials stored in plaintext configuration",
+              "severity": "medium",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "monitoring-service",
+              "environment": "prod",
+              "customer_impact": "internal",
+              "data_classification": "internal",
+              "exposure": "internal",
+              "threat_id": "STRIDE-T-038",
+              "threat_description": "Prometheus metrics endpoint exposing sensitive business data",
+              "severity": "low",
+              "mitigation_status": "complete"
+            },
+            {
+              "service_name": "encryption-service",
+              "environment": "prod",
+              "customer_impact": "mission_critical",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-039",
+              "threat_description": "Kafka encryption at rest not enabled for sensitive topics",
+              "severity": "high",
+              "mitigation_status": "incomplete"
+            },
+            {
+              "service_name": "audit-system",
+              "environment": "prod",
+              "customer_impact": "external",
+              "data_classification": "pii",
+              "exposure": "partner",
+              "threat_id": "STRIDE-T-040",
+              "threat_description": "Event replay system allows unauthorized data access",
+              "severity": "medium",
+              "mitigation_status": "incomplete"
+            }
+          ]
+        },
+        "sbom": {
+          "status": "success",
+          "components": 9,
+          "vulnerabilities": 3,
+          "data": "NormalizedSBOM(format='CycloneDX', document={'bomFormat': 'CycloneDX', 'specVersion': '1.4', 'version': 1, 'metadata': {'timestamp': '2025-10-30T00:00:00Z', 'component': {'type': 'application', 'name': 'streaming-platform', 'version': '4.1.0', 'purl': 'pkg:maven/com.streaming/streaming-platform@4.1.0'}}, 'components': [{'type': 'library', 'name': 'kafka-clients', 'version': '3.3.1', 'purl': 'pkg:maven/org.apache.kafka/kafka-clients@3.3.1', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}, {'type': 'library', 'name': 'flink-streaming-java', 'version': '1.16.0', 'purl': 'pkg:maven/org.apache.flink/flink-streaming-java@1.16.0', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}, {'type': 'library', 'name': 'flink-connector-kafka', 'version': '1.16.0', 'purl': 'pkg:maven/org.apache.flink/flink-connector-kafka@1.16.0', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}, {'type': 'library', 'name': 'commons-text', 'version': '1.9', 'purl': 'pkg:maven/org.apache.commons/commons-text@1.9', 'licenses': [{'license': {'id': 'Apache-2.0'}}], 'vulnerabilities': [{'id': 'CVE-2022-42889', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2022-42889'}, 'ratings': [{'severity': 'critical', 'score': 9.8, 'method': 'CVSSv3'}], 'description': 'Apache Commons Text performs variable interpolation, allowing an attacker to execute arbitrary code via crafted input (Text4Shell).', 'recommendation': 'Upgrade to commons-text 1.10.0 or later'}]}, {'type': 'library', 'name': 'avro', 'version': '1.11.0', 'purl': 'pkg:maven/org.apache.avro/avro@1.11.0', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}, {'type': 'library', 'name': 'jackson-databind', 'version': '2.13.3', 'purl': 'pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.13.3', 'licenses': [{'license': {'id': 'Apache-2.0'}}], 'vulnerabilities': [{'id': 'CVE-2022-42003', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2022-42003'}, 'ratings': [{'severity': 'high', 'score': 7.5, 'method': 'CVSSv3'}], 'description': 'Jackson-databind allows a Java StackOverflow exception and denial of service via a large depth of nested objects.', 'recommendation': 'Upgrade to jackson-databind 2.13.4.1 or later'}]}, {'type': 'library', 'name': 'netty-all', 'version': '4.1.77.Final', 'purl': 'pkg:maven/io.netty/netty-all@4.1.77.Final', 'licenses': [{'license': {'id': 'Apache-2.0'}}], 'vulnerabilities': [{'id': 'CVE-2022-41881', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2022-41881'}, 'ratings': [{'severity': 'high', 'score': 7.5, 'method': 'CVSSv3'}], 'description': 'Netty project suffers from a potential HTTP request smuggling vulnerability.', 'recommendation': 'Upgrade to netty 4.1.86.Final or later'}]}, {'type': 'library', 'name': 'azure-storage-blob', 'version': '12.14.0', 'purl': 'pkg:maven/com.azure/azure-storage-blob@12.14.0', 'licenses': [{'license': {'id': 'MIT'}}]}, {'type': 'library', 'name': 'prometheus-client', 'version': '0.15.0', 'purl': 'pkg:maven/io.prometheus/simpleclient@0.15.0', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}], 'dependencies': [{'ref': 'pkg:maven/org.apache.flink/flink-streaming-java@1.16.0', 'dependsOn': ['pkg:maven/org.apache.commons/commons-text@1.9', 'pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.13.3']}, {'ref': 'pkg:maven/org.apache.flink/flink-connector-kafka@1.16.0', 'dependsOn': ['pkg:maven/org.apache.kafka/kafka-clients@3.3.1', 'pkg:maven/io.netty/netty-all@4.1.77.Final']}]}, components=[SBOMComponent(name='kafka-clients', version='3.3.1', purl='pkg:maven/org.apache.kafka/kafka-clients@3.3.1', licenses=[{'id': 'Apache-2.0'}], supplier=None, raw={'type': 'library', 'name': 'kafka-clients', 'version': '3.3.1', 'purl': 'pkg:maven/org.apache.kafka/kafka-clients@3.3.1', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}), SBOMComponent(name='flink-streaming-java', version='1.16.0', purl='pkg:maven/org.apache.flink/flink-streaming-java@1.16.0', licenses=[{'id': 'Apache-2.0'}], supplier=None, raw={'type': 'library', 'name': 'flink-streaming-java', 'version': '1.16.0', 'purl': 'pkg:maven/org.apache.flink/flink-streaming-java@1.16.0', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}), SBOMComponent(name='flink-connector-kafka', version='1.16.0', purl='pkg:maven/org.apache.flink/flink-connector-kafka@1.16.0', licenses=[{'id': 'Apache-2.0'}], supplier=None, raw={'type': 'library', 'name': 'flink-connector-kafka', 'version': '1.16.0', 'purl': 'pkg:maven/org.apache.flink/flink-connector-kafka@1.16.0', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}), SBOMComponent(name='commons-text', version='1.9', purl='pkg:maven/org.apache.commons/commons-text@1.9', licenses=[{'id': 'Apache-2.0'}], supplier=None, raw={'type': 'library', 'name': 'commons-text', 'version': '1.9', 'purl': 'pkg:maven/org.apache.commons/commons-text@1.9', 'licenses': [{'license': {'id': 'Apache-2.0'}}], 'vulnerabilities': [{'id': 'CVE-2022-42889', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2022-42889'}, 'ratings': [{'severity': 'critical', 'score': 9.8, 'method': 'CVSSv3'}], 'description': 'Apache Commons Text performs variable interpolation, allowing an attacker to execute arbitrary code via crafted input (Text4Shell).', 'recommendation': 'Upgrade to commons-text 1.10.0 or later'}]}), SBOMComponent(name='avro', version='1.11.0', purl='pkg:maven/org.apache.avro/avro@1.11.0', licenses=[{'id': 'Apache-2.0'}], supplier=None, raw={'type': 'library', 'name': 'avro', 'version': '1.11.0', 'purl': 'pkg:maven/org.apache.avro/avro@1.11.0', 'licenses': [{'license': {'id': 'Apache-2.0'}}]}), SBOMComponent(name='jackson-databind', version='2.13.3', purl='pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.13.3', licenses=[{'id': 'Apache-2.0'}], supplier=None, raw={'type': 'library', 'name': 'jackson-databind', 'version': '2.13.3', 'purl': 'pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.13.3', 'licenses': [{'license': {'id': 'Apache-2.0'}}], 'vulnerabilities': [{'id': 'CVE-2022-42003', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2022-42003'}, 'ratings': [{'severity': 'high', 'score': 7.5, 'method': 'CVSSv3'}], 'description': 'Jackson-databind allows a Java StackOverflow exception and denial of service via a large depth of nested objects.', 'recommendation': 'Upgrade to jackson-databind 2.13.4.1 or later'}]}), SBOMComponent(name='netty-all', version='4.1.77.Final', purl='pkg:maven/io.netty/netty-all@4.1.77.Final', licenses=[{'id': 'Apache-2.0'}], supplier=None, raw={'type': 'library', 'name': 'netty-all', 'version': '4.1.77.Final', 'purl': 'pkg:maven/io.netty/netty-all@4.1.77.Final', 'licenses': [{'license': {'id': 'Apache-2.0'}}], 'vulnerabilities': [{'id': 'CVE-2022-41881', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2022-41881'}, 'ratings': [{'severity': 'high', 'score': 7.5, 'method': 'CVSSv3'}], 'description': 'Netty project suffers from a potential HTTP request smuggling vulnerability.', 'recommendation': 'Upgrade to netty 4.1.86.Final or later'}]}), SBOMComponent(name='azure-storage-blob', version='12.14.0', purl='pkg:maven/com.azure/azure-storage-blob@12.14.0', licenses=[{'id': 'MIT'}], supplier=None, raw={'type': 'library', 'name': 'azure-storage-blob', 'version': '12.14.0', 'purl': 'pkg:maven/com.azure/azure-storage-blob@12.14.0', 'licenses': [{'license': {'id': 'MIT'}}]}), SBOMComponent(name='prometheus-client', version='0.15.0', purl='pkg:maven/io.prometheus/simpleclient@0.15.0', licenses=[{'id': 'Apache-2.0'}], supplier=None, raw={'type': 'library', 'name': 'prometheus-client', 'version': '0.15.0', 'purl': 'pkg:maven/io.prometheus/simpleclient@0.15.0', 'licenses': [{'license': {'id': 'Apache-2.0'}}]})], relationships=[], services=[], vulnerabilities=[{'id': 'CVE-2022-42889', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2022-42889'}, 'ratings': [{'severity': 'critical', 'score': 9.8, 'method': 'CVSSv3'}], 'description': 'Apache Commons Text performs variable interpolation, allowing an attacker to execute arbitrary code via crafted input (Text4Shell).', 'recommendation': 'Upgrade to commons-text 1.10.0 or later', 'affects': [{'ref': 'pkg:maven/org.apache.commons/commons-text@1.9'}]}, {'id': 'CVE-2022-42003', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2022-42003'}, 'ratings': [{'severity': 'high', 'score': 7.5, 'method': 'CVSSv3'}], 'description': 'Jackson-databind allows a Java StackOverflow exception and denial of service via a large depth of nested objects.', 'recommendation': 'Upgrade to jackson-databind 2.13.4.1 or later', 'affects': [{'ref': 'pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.13.3'}]}, {'id': 'CVE-2022-41881', 'source': {'name': 'NVD', 'url': 'https://nvd.nist.gov/vuln/detail/CVE-2022-41881'}, 'ratings': [{'severity': 'high', 'score': 7.5, 'method': 'CVSSv3'}], 'description': 'Netty project suffers from a potential HTTP request smuggling vulnerability.', 'recommendation': 'Upgrade to netty 4.1.86.Final or later', 'affects': [{'ref': 'pkg:maven/io.netty/netty-all@4.1.77.Final'}]}], metadata={'component_count': 9, 'relationship_count': 0, 'service_count': 0, 'vulnerability_count': 3})"
+        },
+        "operate": {
+          "status": "success",
+          "findings": 8,
+          "critical": 3,
+          "data": [
+            {
+              "id": "SNYK-JAVA-ORGAPACHECOMMONS-3043138",
+              "source": "Snyk",
+              "severity": "CRITICAL",
+              "title": "Arbitrary Code Execution in Apache Commons Text (Text4Shell)",
+              "description": "Apache Commons Text 1.5 through 1.9 is vulnerable to remote code execution via variable interpolation. An attacker can execute arbitrary code by crafting malicious input that triggers script execution.",
+              "cve": "CVE-2022-42889",
+              "cvss_score": 9.8,
+              "package": "org.apache.commons:commons-text",
+              "version": "1.9",
+              "fixed_in": "1.10.0",
+              "exploit_maturity": "proof-of-concept",
+              "epss_score": 0.89,
+              "kev_listed": true,
+              "transitive": true,
+              "introduced_through": "org.apache.flink:flink-streaming-java@1.16.0",
+              "remediation": "Upgrade flink-streaming-java to version that uses commons-text 1.10.0 or later",
+              "compliance_frameworks": [
+                "PCI-DSS 6.2",
+                "SOC2 CC7.2"
+              ],
+              "tags": {
+                "Environment": "production",
+                "Application": "APP4",
+                "Reachability": "reachable"
+              }
+            },
+            {
+              "id": "SNYK-JAVA-COMFASTERXMLJACKSONCORE-3038424",
+              "source": "Snyk",
+              "severity": "HIGH",
+              "title": "Denial of Service in Jackson Databind",
+              "description": "Jackson-databind is vulnerable to denial of service via deeply nested objects causing stack overflow.",
+              "cve": "CVE-2022-42003",
+              "cvss_score": 7.5,
+              "package": "com.fasterxml.jackson.core:jackson-databind",
+              "version": "2.13.3",
+              "fixed_in": "2.13.4.1",
+              "exploit_maturity": "mature",
+              "epss_score": 0.12,
+              "kev_listed": false,
+              "transitive": true,
+              "introduced_through": "org.apache.flink:flink-streaming-java@1.16.0",
+              "remediation": "Upgrade jackson-databind to 2.13.4.1 or later",
+              "compliance_frameworks": [
+                "PCI-DSS 6.2"
+              ],
+              "tags": {
+                "Environment": "production",
+                "Application": "APP4"
+              }
+            },
+            {
+              "id": "SNYK-JAVA-IONETTY-3145417",
+              "source": "Snyk",
+              "severity": "HIGH",
+              "title": "HTTP Request Smuggling in Netty",
+              "description": "Netty is vulnerable to HTTP request smuggling attacks due to improper handling of Transfer-Encoding headers.",
+              "cve": "CVE-2022-41881",
+              "cvss_score": 7.5,
+              "package": "io.netty:netty-all",
+              "version": "4.1.77.Final",
+              "fixed_in": "4.1.86.Final",
+              "exploit_maturity": "proof-of-concept",
+              "epss_score": 0.34,
+              "kev_listed": false,
+              "transitive": true,
+              "introduced_through": "org.apache.flink:flink-connector-kafka@1.16.0",
+              "remediation": "Upgrade netty to 4.1.86.Final or later",
+              "compliance_frameworks": [
+                "PCI-DSS 6.2"
+              ],
+              "tags": {
+                "Environment": "production",
+                "Application": "APP4"
+              }
+            },
+            {
+              "id": "WIZ-001",
+              "source": "Wiz",
+              "severity": "CRITICAL",
+              "title": "Azure Storage Account Key Exposed",
+              "description": "Azure Storage account access key is exposed in application configuration. This key provides full access to all blobs, files, queues, and tables in the storage account containing customer event data.",
+              "resource": "streamingdatalake",
+              "resource_type": "Microsoft.Storage/storageAccounts",
+              "subscription": "prod-subscription",
+              "resource_group": "streaming-prod-rg",
+              "location": "eastus",
+              "remediation": "Rotate storage account keys immediately, use Azure Key Vault for secret management, and implement Managed Identity for authentication",
+              "compliance_frameworks": [
+                "PCI-DSS 3.4",
+                "SOC2 CC6.1",
+                "GDPR Article 32"
+              ],
+              "cwe": "CWE-798",
+              "cvss_score": 9.8,
+              "exposed_since": "2025-09-15",
+              "tags": {
+                "Environment": "production",
+                "Application": "APP4",
+                "DataClassification": "PII"
+              }
+            },
+            {
+              "id": "WIZ-002",
+              "source": "Wiz",
+              "severity": "CRITICAL",
+              "title": "Network Security Group Allows Unrestricted Kafka Access",
+              "description": "Network Security Group allows inbound traffic to Kafka brokers (port 9092) from any source (0.0.0.0/0). This exposes Kafka cluster to internet-based attacks.",
+              "resource": "kafka-nsg",
+              "resource_type": "Microsoft.Network/networkSecurityGroups",
+              "subscription": "prod-subscription",
+              "resource_group": "streaming-prod-rg",
+              "location": "eastus",
+              "remediation": "Restrict NSG rules to allow Kafka access only from authorized IP ranges or VNets",
+              "compliance_frameworks": [
+                "PCI-DSS 1.3.1",
+                "SOC2 CC6.6"
+              ],
+              "cwe": "CWE-284",
+              "cvss_score": 9.1,
+              "tags": {
+                "Environment": "production",
+                "Application": "APP4"
+              }
+            },
+            {
+              "id": "WIZ-003",
+              "source": "Wiz",
+              "severity": "HIGH",
+              "title": "Kafka Topic Without Authentication",
+              "description": "Kafka topic 'customer-events' is configured with PLAINTEXT protocol without SASL authentication. Any client can connect and consume sensitive customer event data.",
+              "resource": "kafka-cluster/customer-events",
+              "resource_type": "Kafka Topic",
+              "remediation": "Enable SASL/SCRAM or SASL/PLAIN authentication on Kafka brokers and configure ACLs for topic access",
+              "compliance_frameworks": [
+                "PCI-DSS 8.2",
+                "SOC2 CC6.1"
+              ],
+              "cwe": "CWE-306",
+              "cvss_score": 8.2,
+              "tags": {
+                "Environment": "production",
+                "Application": "APP4",
+                "DataClassification": "PII"
+              }
+            },
+            {
+              "id": "WIZ-004",
+              "source": "Wiz",
+              "severity": "HIGH",
+              "title": "Kafka Encryption at Rest Not Enabled",
+              "description": "Kafka topics containing sensitive customer data do not have encryption at rest enabled. Data is stored in plaintext on broker disks.",
+              "resource": "kafka-cluster",
+              "resource_type": "Kafka Cluster",
+              "remediation": "Enable encryption at rest for Kafka log segments using Azure Disk Encryption or Kafka native encryption",
+              "compliance_frameworks": [
+                "PCI-DSS 3.4",
+                "GDPR Article 32"
+              ],
+              "cwe": "CWE-311",
+              "cvss_score": 7.5,
+              "tags": {
+                "Environment": "production",
+                "Application": "APP4",
+                "DataClassification": "PII"
+              }
+            },
+            {
+              "id": "WIZ-005",
+              "source": "Wiz",
+              "severity": "MEDIUM",
+              "title": "Schema Registry API Without Authentication",
+              "description": "Confluent Schema Registry API is accessible without authentication, allowing unauthorized users to view and modify schemas.",
+              "resource": "schema-registry",
+              "resource_type": "Application",
+              "remediation": "Enable authentication on Schema Registry using basic auth or RBAC",
+              "compliance_frameworks": [
+                "SOC2 CC6.1"
+              ],
+              "cwe": "CWE-306",
+              "cvss_score": 6.5,
+              "tags": {
+                "Environment": "production",
+                "Application": "APP4"
+              }
+            }
+          ]
+        }
+      },
+      "findings": [
+        {
+          "source": "SBOM",
+          "app_id": "APP4",
+          "type": "vulnerability",
+          "id": "CVE-2022-42889",
+          "severity": "unknown",
+          "component_ref": "pkg:maven/org.apache.commons/commons-text@1.9",
+          "description": "Apache Commons Text performs variable interpolation, allowing an attacker to execute arbitrary code via crafted input (Text4Shell).",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "SBOM",
+          "app_id": "APP4",
+          "type": "vulnerability",
+          "id": "CVE-2022-42003",
+          "severity": "unknown",
+          "component_ref": "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.13.3",
+          "description": "Jackson-databind allows a Java StackOverflow exception and denial of service via a large depth of nested objects.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "SBOM",
+          "app_id": "APP4",
+          "type": "vulnerability",
+          "id": "CVE-2022-41881",
+          "severity": "unknown",
+          "component_ref": "pkg:maven/io.netty/netty-all@4.1.77.Final",
+          "description": "Netty project suffers from a potential HTTP request smuggling vulnerability.",
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Snyk",
+          "app_id": "APP4",
+          "type": "operational",
+          "id": "SNYK-JAVA-ORGAPACHECOMMONS-3043138",
+          "severity": "CRITICAL",
+          "title": "Arbitrary Code Execution in Apache Commons Text (Text4Shell)",
+          "description": "Apache Commons Text 1.5 through 1.9 is vulnerable to remote code execution via variable interpolation. An attacker can execute arbitrary code by crafting malicious input that triggers script execution.",
+          "cve": "CVE-2022-42889",
+          "cvss_score": 9.8,
+          "package": "org.apache.commons:commons-text",
+          "version": "1.9",
+          "fixed_in": "1.10.0",
+          "exploit_maturity": "proof-of-concept",
+          "epss_score": 0.89,
+          "kev_listed": true,
+          "transitive": true,
+          "introduced_through": "org.apache.flink:flink-streaming-java@1.16.0",
+          "remediation": "Upgrade flink-streaming-java to version that uses commons-text 1.10.0 or later",
+          "compliance_frameworks": [
+            "PCI-DSS 6.2",
+            "SOC2 CC7.2"
+          ],
+          "tags": {
+            "Environment": "production",
+            "Application": "APP4",
+            "Reachability": "reachable"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Snyk",
+          "app_id": "APP4",
+          "type": "operational",
+          "id": "SNYK-JAVA-COMFASTERXMLJACKSONCORE-3038424",
+          "severity": "HIGH",
+          "title": "Denial of Service in Jackson Databind",
+          "description": "Jackson-databind is vulnerable to denial of service via deeply nested objects causing stack overflow.",
+          "cve": "CVE-2022-42003",
+          "cvss_score": 7.5,
+          "package": "com.fasterxml.jackson.core:jackson-databind",
+          "version": "2.13.3",
+          "fixed_in": "2.13.4.1",
+          "exploit_maturity": "mature",
+          "epss_score": 0.12,
+          "kev_listed": false,
+          "transitive": true,
+          "introduced_through": "org.apache.flink:flink-streaming-java@1.16.0",
+          "remediation": "Upgrade jackson-databind to 2.13.4.1 or later",
+          "compliance_frameworks": [
+            "PCI-DSS 6.2"
+          ],
+          "tags": {
+            "Environment": "production",
+            "Application": "APP4"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Snyk",
+          "app_id": "APP4",
+          "type": "operational",
+          "id": "SNYK-JAVA-IONETTY-3145417",
+          "severity": "HIGH",
+          "title": "HTTP Request Smuggling in Netty",
+          "description": "Netty is vulnerable to HTTP request smuggling attacks due to improper handling of Transfer-Encoding headers.",
+          "cve": "CVE-2022-41881",
+          "cvss_score": 7.5,
+          "package": "io.netty:netty-all",
+          "version": "4.1.77.Final",
+          "fixed_in": "4.1.86.Final",
+          "exploit_maturity": "proof-of-concept",
+          "epss_score": 0.34,
+          "kev_listed": false,
+          "transitive": true,
+          "introduced_through": "org.apache.flink:flink-connector-kafka@1.16.0",
+          "remediation": "Upgrade netty to 4.1.86.Final or later",
+          "compliance_frameworks": [
+            "PCI-DSS 6.2"
+          ],
+          "tags": {
+            "Environment": "production",
+            "Application": "APP4"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Wiz",
+          "app_id": "APP4",
+          "type": "operational",
+          "id": "WIZ-001",
+          "severity": "CRITICAL",
+          "title": "Azure Storage Account Key Exposed",
+          "description": "Azure Storage account access key is exposed in application configuration. This key provides full access to all blobs, files, queues, and tables in the storage account containing customer event data.",
+          "resource": "streamingdatalake",
+          "resource_type": "Microsoft.Storage/storageAccounts",
+          "subscription": "prod-subscription",
+          "resource_group": "streaming-prod-rg",
+          "location": "eastus",
+          "remediation": "Rotate storage account keys immediately, use Azure Key Vault for secret management, and implement Managed Identity for authentication",
+          "compliance_frameworks": [
+            "PCI-DSS 3.4",
+            "SOC2 CC6.1",
+            "GDPR Article 32"
+          ],
+          "cwe": "CWE-798",
+          "cvss_score": 9.8,
+          "exposed_since": "2025-09-15",
+          "tags": {
+            "Environment": "production",
+            "Application": "APP4",
+            "DataClassification": "PII"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Wiz",
+          "app_id": "APP4",
+          "type": "operational",
+          "id": "WIZ-002",
+          "severity": "CRITICAL",
+          "title": "Network Security Group Allows Unrestricted Kafka Access",
+          "description": "Network Security Group allows inbound traffic to Kafka brokers (port 9092) from any source (0.0.0.0/0). This exposes Kafka cluster to internet-based attacks.",
+          "resource": "kafka-nsg",
+          "resource_type": "Microsoft.Network/networkSecurityGroups",
+          "subscription": "prod-subscription",
+          "resource_group": "streaming-prod-rg",
+          "location": "eastus",
+          "remediation": "Restrict NSG rules to allow Kafka access only from authorized IP ranges or VNets",
+          "compliance_frameworks": [
+            "PCI-DSS 1.3.1",
+            "SOC2 CC6.6"
+          ],
+          "cwe": "CWE-284",
+          "cvss_score": 9.1,
+          "tags": {
+            "Environment": "production",
+            "Application": "APP4"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Wiz",
+          "app_id": "APP4",
+          "type": "operational",
+          "id": "WIZ-003",
+          "severity": "HIGH",
+          "title": "Kafka Topic Without Authentication",
+          "description": "Kafka topic 'customer-events' is configured with PLAINTEXT protocol without SASL authentication. Any client can connect and consume sensitive customer event data.",
+          "resource": "kafka-cluster/customer-events",
+          "resource_type": "Kafka Topic",
+          "remediation": "Enable SASL/SCRAM or SASL/PLAIN authentication on Kafka brokers and configure ACLs for topic access",
+          "compliance_frameworks": [
+            "PCI-DSS 8.2",
+            "SOC2 CC6.1"
+          ],
+          "cwe": "CWE-306",
+          "cvss_score": 8.2,
+          "tags": {
+            "Environment": "production",
+            "Application": "APP4",
+            "DataClassification": "PII"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Wiz",
+          "app_id": "APP4",
+          "type": "operational",
+          "id": "WIZ-004",
+          "severity": "HIGH",
+          "title": "Kafka Encryption at Rest Not Enabled",
+          "description": "Kafka topics containing sensitive customer data do not have encryption at rest enabled. Data is stored in plaintext on broker disks.",
+          "resource": "kafka-cluster",
+          "resource_type": "Kafka Cluster",
+          "remediation": "Enable encryption at rest for Kafka log segments using Azure Disk Encryption or Kafka native encryption",
+          "compliance_frameworks": [
+            "PCI-DSS 3.4",
+            "GDPR Article 32"
+          ],
+          "cwe": "CWE-311",
+          "cvss_score": 7.5,
+          "tags": {
+            "Environment": "production",
+            "Application": "APP4",
+            "DataClassification": "PII"
+          },
+          "calculated_score": 0.25
+        },
+        {
+          "source": "Wiz",
+          "app_id": "APP4",
+          "type": "operational",
+          "id": "WIZ-005",
+          "severity": "MEDIUM",
+          "title": "Schema Registry API Without Authentication",
+          "description": "Confluent Schema Registry API is accessible without authentication, allowing unauthorized users to view and modify schemas.",
+          "resource": "schema-registry",
+          "resource_type": "Application",
+          "remediation": "Enable authentication on Schema Registry using basic auth or RBAC",
+          "compliance_frameworks": [
+            "SOC2 CC6.1"
+          ],
+          "cwe": "CWE-306",
+          "cvss_score": 6.5,
+          "tags": {
+            "Environment": "production",
+            "Application": "APP4"
+          },
+          "calculated_score": 0.25
+        }
+      ],
+      "errors": [
+        "SARIF file not found: /home/ubuntu/repos/Fixops/simulations/e2e_validation/app4_streaming/ssdlc/scan.sarif"
+      ],
+      "total_findings": 11
+    }
+  },
+  "functional_tests": {
+    "transitive_risk": {
+      "name": "Transitive Risk Propagation",
+      "status": "pass",
+      "details": {
+        "transitive_vulnerabilities_found": 13,
+        "examples": [
+          {
+            "app_id": "APP1",
+            "vulnerability": "CVE-2021-44228",
+            "severity": "unknown"
+          },
+          {
+            "app_id": "APP1",
+            "vulnerability": "CVE-2022-0778",
+            "severity": "unknown"
+          },
+          {
+            "app_id": "APP2",
+            "vulnerability": "CVE-2023-28154",
+            "severity": "unknown"
+          },
+          {
+            "app_id": "APP2",
+            "vulnerability": "MALWARE-2024-001",
+            "severity": "unknown"
+          },
+          {
+            "app_id": "APP2",
+            "vulnerability": "CVE-2021-3749",
+            "severity": "unknown"
+          }
+        ]
+      }
+    },
+    "typosquat_detection": {
+      "name": "Typosquat/Backdoor Detection",
+      "status": "pass",
+      "details": {
+        "typosquat_packages_detected": 1,
+        "packages": [
+          {
+            "app_id": "APP2",
+            "package": "reqeusts",
+            "version": "2.28.1",
+            "typosquat_of": "requests",
+            "maintainer_reputation": "low"
+          }
+        ]
+      }
+    },
+    "correlation_dedup": {
+      "name": "Correlation & Deduplication",
+      "status": "pass",
+      "details": {
+        "total_findings": 52,
+        "unique_cves": 6,
+        "unique_cwes": 14,
+        "duplicates_eliminated": 0,
+        "deduplication_rate": "0.0%"
+      }
+    },
+    "compliance_mapping": {
+      "name": "Compliance Mapping",
+      "status": "pass",
+      "details": {
+        "frameworks_mapped": {
+          "SOC2": 3,
+          "ISO27001": 5,
+          "PCI-DSS": 11,
+          "NIST CSF": 0,
+          "Essential 8": 0,
+          "GDPR": 1
+        },
+        "total_controls": 20
+      }
+    }
+  },
+  "non_functional_tests": {
+    "performance": {
+      "name": "Performance Test",
+      "status": "pass",
+      "details": {
+        "findings_processed": 52,
+        "elapsed_time_seconds": "0.00",
+        "findings_per_second": "3696675",
+        "meets_requirement": true
+      }
+    },
+    "determinism": {
+      "name": "Determinism Test",
+      "status": "pass",
+      "details": {
+        "total_scores": 52,
+        "mismatches": 0,
+        "deterministic": true
+      }
+    }
+  },
+  "summary": {
+    "total_apps": 4,
+    "total_findings": 52,
+    "critical_findings": 10,
+    "high_findings": 11,
+    "functional_tests_passed": "4/4",
+    "non_functional_tests_passed": "2/2"
+  }
+}

@@ -12,6 +12,7 @@ from compliance.mapping import (
     load_control_mappings,
     map_cve_to_controls,
 )
+
 from risk.enrichment import EnrichmentEvidence, compute_enrichment
 from risk.forecasting import ForecastResult, compute_forecast
 from risk.threat_model import ThreatModelResult, compute_threat_model

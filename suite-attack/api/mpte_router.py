@@ -14,8 +14,9 @@ from core.mpte_models import (
     PenTestStatus,
 )
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
-from integrations.mpte_service import AdvancedMPTEService
 from pydantic import BaseModel, Field
+
+from integrations.mpte_service import AdvancedMPTEService
 
 logger = logging.getLogger(__name__)
 

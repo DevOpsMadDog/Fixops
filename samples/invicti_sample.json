@@ -1,0 +1,156 @@
+{
+  "List": [
+    {
+      "Id": "vuln-001",
+      "Severity": 4,
+      "Type": "SqlInjection",
+      "Url": "https://api.example.com/users?id=1",
+      "FirstSeenDate": "2024-10-15T10:30:00Z",
+      "LastSeenDate": "2024-10-28T15:45:00Z",
+      "State": "Present",
+      "Certainty": 100,
+      "Classification": "Confirmed",
+      "Impact": "High",
+      "HttpRequest": {
+        "Method": "GET",
+        "Url": "https://api.example.com/users?id=1' OR '1'='1",
+        "Headers": "User-Agent: Mozilla/5.0\nHost: api.example.com"
+      },
+      "HttpResponse": {
+        "StatusCode": 200,
+        "Duration": 245
+      },
+      "LongDescription": "SQL Injection vulnerability found in the 'id' parameter. An attacker can manipulate SQL queries to access unauthorized data.",
+      "Remediation": "Use parameterized queries or prepared statements to prevent SQL injection attacks.",
+      "RemediationComplexity": "Easy",
+      "RemediationPriority": "High",
+      "CweId": 89,
+      "Cvss": {
+        "Score": 9.8,
+        "Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+      }
+    },
+    {
+      "Id": "vuln-002",
+      "Severity": 4,
+      "Type": "CrossSiteScripting",
+      "Url": "https://api.example.com/search?q=test",
+      "FirstSeenDate": "2024-10-14T15:45:00Z",
+      "LastSeenDate": "2024-10-28T15:45:00Z",
+      "State": "Present",
+      "Certainty": 100,
+      "Classification": "Confirmed",
+      "Impact": "Medium",
+      "HttpRequest": {
+        "Method": "GET",
+        "Url": "https://api.example.com/search?q=<script>alert('XSS')</script>",
+        "Headers": "User-Agent: Mozilla/5.0\nHost: api.example.com"
+      },
+      "HttpResponse": {
+        "StatusCode": 200,
+        "Duration": 189
+      },
+      "LongDescription": "Cross-Site Scripting (XSS) vulnerability found in the 'q' parameter. An attacker can inject malicious scripts that execute in users' browsers.",
+      "Remediation": "Implement proper input validation and output encoding. Use Content Security Policy (CSP) headers.",
+      "RemediationComplexity": "Easy",
+      "RemediationPriority": "High",
+      "CweId": 79,
+      "Cvss": {
+        "Score": 7.1,
+        "Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+      }
+    },
+    {
+      "Id": "vuln-003",
+      "Severity": 3,
+      "Type": "PathTraversal",
+      "Url": "https://api.example.com/files?path=document.pdf",
+      "FirstSeenDate": "2024-10-13T09:15:00Z",
+      "LastSeenDate": "2024-10-28T15:45:00Z",
+      "State": "Present",
+      "Certainty": 100,
+      "Classification": "Confirmed",
+      "Impact": "High",
+      "HttpRequest": {
+        "Method": "GET",
+        "Url": "https://api.example.com/files?path=../../../../etc/passwd",
+        "Headers": "User-Agent: Mozilla/5.0\nHost: api.example.com"
+      },
+      "HttpResponse": {
+        "StatusCode": 200,
+        "Duration": 312
+      },
+      "LongDescription": "Path Traversal vulnerability found in the 'path' parameter. An attacker can access files outside the intended directory.",
+      "Remediation": "Validate and sanitize file paths. Use a whitelist of allowed files and directories.",
+      "RemediationComplexity": "Easy",
+      "RemediationPriority": "High",
+      "CweId": 22,
+      "Cvss": {
+        "Score": 7.5,
+        "Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N"
+      }
+    },
+    {
+      "Id": "vuln-004",
+      "Severity": 2,
+      "Type": "SensitiveDataExposure",
+      "Url": "https://api.example.com/config",
+      "FirstSeenDate": "2024-10-12T14:20:00Z",
+      "LastSeenDate": "2024-10-28T15:45:00Z",
+      "State": "Present",
+      "Certainty": 100,
+      "Classification": "Confirmed",
+      "Impact": "Medium",
+      "HttpRequest": {
+        "Method": "GET",
+        "Url": "https://api.example.com/config",
+        "Headers": "User-Agent: Mozilla/5.0\nHost: api.example.com"
+      },
+      "HttpResponse": {
+        "StatusCode": 200,
+        "Duration": 156
+      },
+      "LongDescription": "Sensitive configuration data exposed through API endpoint. Database credentials and API keys are visible in the response.",
+      "Remediation": "Remove sensitive data from public endpoints. Implement proper access controls and authentication.",
+      "RemediationComplexity": "Easy",
+      "RemediationPriority": "Medium",
+      "CweId": 200,
+      "Cvss": {
+        "Score": 5.3,
+        "Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N"
+      }
+    },
+    {
+      "Id": "vuln-005",
+      "Severity": 3,
+      "Type": "InsecureAuthentication",
+      "Url": "https://api.example.com/login",
+      "FirstSeenDate": "2024-10-11T11:30:00Z",
+      "LastSeenDate": "2024-10-28T15:45:00Z",
+      "State": "Present",
+      "Certainty": 100,
+      "Classification": "Confirmed",
+      "Impact": "High",
+      "HttpRequest": {
+        "Method": "POST",
+        "Url": "https://api.example.com/login",
+        "Headers": "User-Agent: Mozilla/5.0\nHost: api.example.com\nContent-Type: application/json"
+      },
+      "HttpResponse": {
+        "StatusCode": 200,
+        "Duration": 423
+      },
+      "LongDescription": "Authentication endpoint lacks rate limiting and account lockout mechanisms. Vulnerable to brute force attacks.",
+      "Remediation": "Implement rate limiting, account lockout after failed attempts, and multi-factor authentication.",
+      "RemediationComplexity": "Medium",
+      "RemediationPriority": "High",
+      "CweId": 307,
+      "Cvss": {
+        "Score": 7.5,
+        "Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N"
+      }
+    }
+  ],
+  "IsSuccess": true,
+  "Count": 5
+}

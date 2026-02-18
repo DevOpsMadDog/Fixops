@@ -1,0 +1,12 @@
+{
+  "app_id": "APP-1234",
+  "artefacts": [
+    "requirements.json",
+    "design.manifest.json",
+    "build.report.json",
+    "test.report.json",
+    "deploy.manifest.json",
+    "operate.snapshot.json"
+  ],
+  "mode": "enterprise"
+}

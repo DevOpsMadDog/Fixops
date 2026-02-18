@@ -1,0 +1,51 @@
+{
+  "operation_id": "bulk-2025-001",
+  "operation_type": "bulk_status_update",
+  "description": "Update status for resolved vulnerabilities",
+  "scope": {
+    "filter": {
+      "applications": ["payment-gateway", "user-service"],
+      "severity": ["medium", "low"],
+      "age_days_greater_than": 90,
+      "current_status": "open"
+    },
+    "preview_count": 150
+  },
+  "action": {
+    "type": "update_status",
+    "new_status": "accepted_risk",
+    "reason": "Low severity findings older than 90 days with compensating controls",
+    "expiry_date": "2025-07-15",
+    "add_tags": ["bulk-accepted", "q1-2025-cleanup"],
+    "add_comment": "Bulk accepted as part of Q1 2025 vulnerability backlog cleanup. Compensating controls in place."
+  },
+  "approval": {
+    "required": true,
+    "approvers": ["security-lead@example.com", "ciso@example.com"],
+    "approval_status": "pending",
+    "justification": "These low/medium severity findings have been open for over 90 days with no exploitation attempts. Compensating controls (WAF, IDS) are in place."
+  },
+  "execution": {
+    "mode": "batch",
+    "batch_size": 50,
+    "delay_between_batches_seconds": 5,
+    "stop_on_error": false,
+    "dry_run": true
+  },
+  "notifications": {
+    "notify_on_start": true,
+    "notify_on_complete": true,
+    "notify_on_error": true,
+    "recipients": ["security-team@example.com"]
+  },
+  "audit": {
+    "create_audit_trail": true,
+    "include_before_after": true,
+    "retention_days": 365
+  },
+  "rollback": {
+    "enabled": true,
+    "auto_rollback_on_error_percentage": 10,
+    "rollback_window_hours": 24
+  }
+}

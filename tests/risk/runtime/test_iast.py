@@ -8,6 +8,7 @@ import time
 from datetime import datetime, timezone
 
 import pytest
+
 from risk.runtime.iast import (
     IASTAnalyzer,
     IASTConfig,

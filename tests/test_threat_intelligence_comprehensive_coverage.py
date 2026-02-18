@@ -11,6 +11,7 @@ from typing import Any, Dict
 from unittest.mock import patch
 
 import pytest
+
 from risk.feeds.base import FeedMetadata, VulnerabilityRecord
 from risk.feeds.ecosystems import (
     AlpineSecDBFeed,

@@ -8,6 +8,7 @@ from typing import Any, Dict
 from urllib.parse import urlparse
 
 import pytest
+
 from risk.feeds.base import FeedMetadata, FeedRegistry, VulnerabilityRecord
 from risk.feeds.ecosystems import DebianSecurityFeed, NPMSecurityFeed, RubySecFeed
 from risk.feeds.exploits import ExploitDBFeed

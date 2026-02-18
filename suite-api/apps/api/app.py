@@ -434,6 +434,7 @@ from core.feedback import FeedbackRecorder
 from core.flags.provider_factory import create_flag_provider
 from core.paths import ensure_secure_directory, verify_allowlisted_path
 from core.storage import ArtefactArchive
+
 from telemetry import configure as configure_telemetry
 
 if importlib.util.find_spec("opentelemetry.instrumentation.fastapi"):

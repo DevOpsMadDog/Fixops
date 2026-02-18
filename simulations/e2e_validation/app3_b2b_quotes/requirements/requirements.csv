@@ -1,0 +1,11 @@
+req_id,app_id,description,owner,criticality,data_classification,threat_ref
+REQ-021,APP3,B2B quote generation engine,michael.brown@quotes.com,5,confidential,STRIDE-T-021
+REQ-022,APP3,Payment card processing for quotes,jennifer.davis@quotes.com,5,restricted,STRIDE-T-022
+REQ-023,APP3,Customer pricing database,robert.wilson@quotes.com,4,confidential,STRIDE-T-023
+REQ-024,APP3,Quote approval workflow,linda.moore@quotes.com,4,confidential,STRIDE-T-024
+REQ-025,APP3,Container orchestration platform,william.taylor@quotes.com,5,internal,STRIDE-T-025
+REQ-026,APP3,Microservices API gateway,patricia.anderson@quotes.com,4,confidential,STRIDE-T-026
+REQ-027,APP3,Quote document generation,charles.thomas@quotes.com,3,internal,STRIDE-T-027
+REQ-028,APP3,Customer authentication service,barbara.jackson@quotes.com,5,restricted,STRIDE-T-028
+REQ-029,APP3,Pricing calculation service,richard.white@quotes.com,4,confidential,STRIDE-T-029
+REQ-030,APP3,Quote history and audit trail,susan.harris@quotes.com,4,confidential,STRIDE-T-030

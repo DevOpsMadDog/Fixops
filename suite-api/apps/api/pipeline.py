@@ -33,6 +33,7 @@ from core.severity_promotion import SeverityPromotionEngine
 from core.ssdlc import SSDLCEvaluator
 from core.tenancy import TenantLifecycleManager
 from core.vector_store import SecurityPatternMatcher
+
 from domain import CrosswalkRow
 from services.match.indexes import (
     build_component_index,

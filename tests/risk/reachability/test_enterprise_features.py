@@ -2,6 +2,7 @@
 
 
 import pytest
+
 from risk.reachability.enterprise_features import (
     SLA,
     EnterpriseConfig,

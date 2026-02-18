@@ -1,0 +1,111 @@
+{
+  "scan_id": "trivy-pay-container-2025-001",
+  "tool": "trivy",
+  "tool_version": "0.48.0",
+  "scan_type": "container",
+  "timestamp": "2025-01-15T15:00:00Z",
+  "application": "payment-gateway",
+  "image": "payment-gateway:3.2.1",
+  "registry": "ecr.aws/example/payment-gateway",
+  "digest": "sha256:abc123def456789...",
+  "os": {
+    "family": "debian",
+    "name": "12.4"
+  },
+  "results": [
+    {
+      "target": "payment-gateway:3.2.1 (debian 12.4)",
+      "class": "os-pkgs",
+      "type": "debian",
+      "vulnerabilities": [
+        {
+          "id": "CVE-2024-0567",
+          "pkg_name": "gnutls28",
+          "installed_version": "3.7.9-2",
+          "fixed_version": "3.7.9-2+deb12u2",
+          "severity": "high",
+          "cvss_score": 7.5,
+          "title": "GnuTLS certificate verification bypass",
+          "description": "A vulnerability in GnuTLS allows certificate verification bypass",
+          "correlation_id": "CORR-GNUTLS-001"
+        },
+        {
+          "id": "CVE-2023-50387",
+          "pkg_name": "systemd",
+          "installed_version": "252.19-1~deb12u1",
+          "fixed_version": "252.22-1~deb12u1",
+          "severity": "high",
+          "cvss_score": 7.5,
+          "title": "KeyTrap - DNSSEC verification DoS",
+          "description": "DNSSEC verification can be exploited to cause denial of service",
+          "correlation_id": "CORR-KEYTRAP-001"
+        },
+        {
+          "id": "CVE-2024-2961",
+          "pkg_name": "glibc",
+          "installed_version": "2.36-9+deb12u4",
+          "fixed_version": "2.36-9+deb12u7",
+          "severity": "critical",
+          "cvss_score": 9.8,
+          "title": "glibc buffer overflow in iconv",
+          "description": "Buffer overflow in glibc iconv function allows remote code execution",
+          "correlation_id": "CORR-GLIBC-001"
+        }
+      ]
+    },
+    {
+      "target": "Java",
+      "class": "lang-pkgs",
+      "type": "jar",
+      "vulnerabilities": [
+        {
+          "id": "CVE-2021-44228",
+          "pkg_name": "log4j-core",
+          "installed_version": "2.14.1",
+          "fixed_version": "2.17.1",
+          "severity": "critical",
+          "cvss_score": 10.0,
+          "title": "Log4Shell - Remote Code Execution",
+          "description": "Apache Log4j2 JNDI features vulnerable to RCE",
+          "correlation_id": "CORR-LOG4J-001"
+        }
+      ]
+    }
+  ],
+  "misconfigurations": [
+    {
+      "id": "DS002",
+      "type": "dockerfile",
+      "title": "Image user is 'root'",
+      "severity": "high",
+      "description": "Running as root user increases attack surface",
+      "resolution": "Add USER instruction to run as non-root",
+      "correlation_id": "CORR-ROOT-001"
+    },
+    {
+      "id": "DS026",
+      "type": "dockerfile",
+      "title": "No HEALTHCHECK defined",
+      "severity": "low",
+      "description": "Container has no health check defined",
+      "resolution": "Add HEALTHCHECK instruction",
+      "correlation_id": "CORR-HEALTH-001"
+    }
+  ],
+  "secrets": [
+    {
+      "id": "aws-access-key-id",
+      "category": "AWS",
+      "severity": "critical",
+      "title": "AWS Access Key ID",
+      "match": "AKIA...",
+      "target": "/app/config/aws.properties:3",
+      "correlation_id": "CORR-SECRET-001"
+    }
+  ],
+  "summary": {
+    "vulnerabilities": {"critical": 2, "high": 2, "medium": 0, "low": 0},
+    "misconfigurations": {"high": 1, "medium": 0, "low": 1},
+    "secrets": {"critical": 1}
+  }
+}

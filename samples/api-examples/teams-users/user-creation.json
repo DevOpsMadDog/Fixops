@@ -1,0 +1,70 @@
+{
+  "user_id": "user-001",
+  "email": "new.developer@example.com",
+  "first_name": "New",
+  "last_name": "Developer",
+  "display_name": "New Developer",
+  "status": "active",
+  "authentication": {
+    "method": "sso",
+    "provider": "okta",
+    "mfa_enabled": true,
+    "mfa_methods": ["totp", "webauthn"]
+  },
+  "roles": [
+    {
+      "role": "developer",
+      "scope": "team",
+      "team_id": "team-payments-001"
+    },
+    {
+      "role": "viewer",
+      "scope": "organization"
+    }
+  ],
+  "permissions": {
+    "applications": {
+      "payment-gateway": ["view", "deploy_staging"],
+      "card-vault": ["view"]
+    },
+    "features": {
+      "vulnerability_management": ["view", "comment"],
+      "compliance": ["view"],
+      "reports": ["view", "export"],
+      "integrations": ["view"]
+    }
+  },
+  "teams": ["team-payments-001"],
+  "notifications": {
+    "email": true,
+    "slack": true,
+    "preferences": {
+      "critical_alerts": "immediate",
+      "high_alerts": "immediate",
+      "medium_alerts": "daily_digest",
+      "low_alerts": "weekly_digest"
+    }
+  },
+  "profile": {
+    "title": "Software Engineer",
+    "department": "Engineering",
+    "location": "New York, NY",
+    "timezone": "America/New_York",
+    "manager": "jane.smith@example.com"
+  },
+  "security_training": {
+    "secure_coding_completed": true,
+    "completion_date": "2024-12-15",
+    "next_renewal": "2025-12-15"
+  },
+  "api_access": {
+    "enabled": true,
+    "rate_limit": 1000,
+    "allowed_ips": ["10.0.0.0/8"]
+  },
+  "metadata": {
+    "created_at": "2025-01-15T10:00:00Z",
+    "created_by": "admin@example.com",
+    "onboarding_status": "completed"
+  }
+}

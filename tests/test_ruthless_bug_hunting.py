@@ -19,6 +19,7 @@ from unittest.mock import Mock, patch
 import pytest
 from core.evidence_indexer import EvidenceBundleIndexer
 from core.portfolio_search import PortfolioSearchEngine
+
 from risk.feeds.base import VulnerabilityRecord
 from risk.feeds.github import GitHubSecurityAdvisoriesFeed
 from risk.feeds.nvd import NVDFeed
