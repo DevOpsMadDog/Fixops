@@ -38,7 +38,7 @@ class Settings:
     """Application configuration with environment overrides."""
 
     ENVIRONMENT: str = "development"
-    FIXOPS_API_KEY: str = "local-dev-key"
+    FIXOPS_API_KEY: str = ""
     FIXOPS_ALLOWED_ORIGINS: List[str] = field(
         default_factory=lambda: ["http://localhost"]
     )

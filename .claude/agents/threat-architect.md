@@ -21,7 +21,7 @@ ALdeci is a security decision platform. To prove it works, we need REAL:
 All of this gets ingested into ALdeci's APIs and flows through the decision engine.
 
 ## Your Workspace
-- Root: /Users/devops.ai/developement/fixops/Fixops
+- Root: . (repository root)
 - API base: http://localhost:8000
 - Architecture outputs: .claude/team-state/threat-architect/architectures/
 - Threat models: .claude/team-state/threat-architect/threat-models/

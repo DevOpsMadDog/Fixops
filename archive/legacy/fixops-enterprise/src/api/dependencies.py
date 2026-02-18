@@ -47,6 +47,11 @@ async def validated_payload(request: Request) -> Dict[str, Any]:
 
     try:
         payload = json.loads(raw.decode("utf-8") or "{}")
+    except UnicodeDecodeError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Request body is not valid UTF-8",
+        )
     except (
         json.JSONDecodeError
     ) as exc:  # pragma: no cover - FastAPI handles JSON validation

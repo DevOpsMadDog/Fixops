@@ -8,7 +8,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
-from src.api.dependencies import authenticated_payload
+from src.api.dependencies import authenticate, authenticated_payload
 from src.services.ci_adapters import GitHubCIAdapter, JenkinsCIAdapter, SonarQubeAdapter
 from src.services.runtime import DECISION_ENGINE
 from src.utils.crypto import rsa_verify
@@ -60,6 +60,7 @@ async def sonarqube_ingest(payload=Depends(authenticated_payload)) -> dict:
 @router.post("/verify-signature")
 async def verify_signature(
     request: SignatureVerificationRequest,
+    _: None = Depends(authenticate),
 ) -> Dict[str, Any]:
     """Verify signed payloads pushed from CI/CD tooling."""
 
@@ -74,7 +75,7 @@ async def verify_signature(
     payload_bytes = json.dumps(request.payload, sort_keys=True).encode("utf-8")
     if not rsa_verify(payload_bytes, signature_bytes, request.fingerprint):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Signature verification failed",
         )
 

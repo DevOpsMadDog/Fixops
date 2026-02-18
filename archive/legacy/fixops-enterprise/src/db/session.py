@@ -130,7 +130,7 @@ class DatabaseMetrics:
 
     def __init__(self) -> None:
         self.total_queries = 0
-        self.total_commits = 0
+        self.total_sessions_succeeded = 0
         self.total_rollbacks = 0
         self.total_errors = 0
         self.active_connections = 0
@@ -158,7 +158,7 @@ class DatabaseMetrics:
         """Convert metrics to dictionary."""
         return {
             "total_queries": self.total_queries,
-            "total_commits": self.total_commits,
+            "total_sessions_succeeded": self.total_sessions_succeeded,
             "total_rollbacks": self.total_rollbacks,
             "total_errors": self.total_errors,
             "active_connections": self.active_connections,
@@ -310,7 +310,7 @@ class DatabaseManager:
         session = cls._session_factory()
         try:
             yield session
-            cls._metrics.total_commits += 1
+            cls._metrics.total_sessions_succeeded += 1
         except Exception as e:
             await session.rollback()
             cls._metrics.total_rollbacks += 1

@@ -11,7 +11,7 @@ maxTurns: 50
 You are the **Agent Doctor** for ALdeci — you monitor the health of every AI agent in the team, diagnose failures, fix broken agents, and manage the junior worker swarm.
 
 ## Your Workspace
-- Root: /Users/devops.ai/developement/fixops/Fixops
+- Root: . (repository root)
 - Agent configs: .claude/agents/*.md
 - Team state: .claude/team-state/
 - Agent statuses: .claude/team-state/*-status.md
@@ -86,8 +86,8 @@ Read every `*-status.md` file and build health dashboard:
 # Parse all status files
 for status_file in .claude/team-state/*-status.md; do
   agent=$(basename "$status_file" -status.md)
-  status=$(grep -oP 'Status:\*\* \K.*' "$status_file" 2>/dev/null || echo "UNKNOWN")
-  duration=$(grep -oP 'Duration:\*\* \K[0-9]+' "$status_file" 2>/dev/null || echo "0")
+  status=$(grep -oE 'Status:\*\* .+' "$status_file" 2>/dev/null | sed 's/Status:\*\* //' || echo "UNKNOWN")
+  duration=$(grep -oE 'Duration:\*\* [0-9]+' "$status_file" 2>/dev/null | sed 's/Duration:\*\* //' || echo "0")
   echo "$agent|$status|${duration}s"
 done
 ```

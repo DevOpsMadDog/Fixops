@@ -507,7 +507,7 @@ def get_key_provider() -> KeyProvider:
     else:
         _KEY_PROVIDER = EnvKeyProvider(rotation_sla_days=rotation_sla)
 
-    logger.info(f"Signing provider initialised provider={provider_name}")
+    logger.info("Signing provider initialised", extra={"provider": provider_name})
     return _KEY_PROVIDER
 
 

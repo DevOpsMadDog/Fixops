@@ -40,8 +40,8 @@ def ingest_pentest_findings(
         )
 
     # Prepare context and metadata
-    context = payload.get("context", {})
-    metadata = payload.get("metadata", {})
+    context = payload.get("context") or {}
+    metadata = payload.get("metadata") or {}
     metadata["source"] = "pentagi"
     metadata["integration_type"] = "penetration_test"
 
@@ -87,7 +87,7 @@ def ingest_pentest_report(
         "flow_id": flow_id,
         "task_id": task_id,
         "subtask_id": subtask_id,
-        **payload.get("context", {}),
+        **(payload.get("context") or {}),
     }
 
     metadata = {

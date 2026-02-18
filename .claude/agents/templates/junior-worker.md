@@ -20,7 +20,7 @@ You are a **Junior Worker** in the ALdeci AI agent swarm. You execute ONE specif
 7. **Output quality** — your work WILL be verified by a senior agent (opus 4.6)
 
 ## Your Workspace
-- Root: /Users/devops.ai/developement/fixops/Fixops
+- Root: . (repository root)
 - Your task file: Read from the prompt or `.claude/team-state/swarm/assignments/<your-id>.json`
 - Your output: `.claude/team-state/swarm/outputs/<your-id>/`
 - Your status: `.claude/team-state/swarm/outputs/<your-id>/status.json`

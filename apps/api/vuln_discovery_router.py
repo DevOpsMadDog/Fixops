@@ -1,7 +1,7 @@
 """ALdeci Vulnerability Discovery API Router.
 
 APIs for contributing pentest-discovered vulnerabilities to the internal
-vulnerability databaseand optionally to public CVE programs.
+vulnerability database and optionally to public CVE programs.
 
 This makes ALdeci unique - we don't just consume vulnerability data,
 we CONTRIBUTE to it through our pentesting operations.

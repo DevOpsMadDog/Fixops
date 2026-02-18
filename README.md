@@ -128,7 +128,7 @@ Three AI providers with weighted voting and fallback:
 
 | Layer | Technology |
 |-------|------------|
-| **Backend** | Python 3.14, FastAPI, uvicorn, SQLite (WAL mode) |
+| **Backend** | Python 3.11, FastAPI, uvicorn, SQLite (WAL mode) |
 | **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, framer-motion |
 | **AI/ML** | OpenAI GPT-4, Anthropic Claude, Google Gemini, scikit-learn, pgmpy |
 | **Threat Intel** | NVD 2.0 API, CISA KEV, FIRST.org EPSS, ExploitDB, OSV, GitHub Advisories |

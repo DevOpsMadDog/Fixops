@@ -2,7 +2,7 @@
 
 ## Architecture Overview
 
-**6-Suite Monolith** running on port 8000. All suites share imports via `sitecustomize.py` (auto-loaded by Python).
+**7-Suite Monolith** running on port 8000. All suites share imports via `sitecustomize.py` (auto-loaded by Python).
 
 | Suite | Purpose | Key Files |
 |-------|---------|-----------|

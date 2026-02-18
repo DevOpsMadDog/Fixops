@@ -67,16 +67,17 @@ async def ingest_artefact(
 
     temp_path: Path | None = None
     if payload is not None:
-        try:
-            contents = await payload.read()
-        except Exception as exc:  # pragma: no cover - runtime protection
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
-            ) from exc
         suffix = Path(payload.filename or f"{stage}.dat").suffix or ".json"
         handle = NamedTemporaryFile(delete=False, suffix=suffix)
         try:
-            handle.write(contents)
+            while chunk := await payload.read(8192):
+                handle.write(chunk)
+        except Exception as exc:  # pragma: no cover - runtime protection
+            handle.close()
+            Path(handle.name).unlink(missing_ok=True)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+            ) from exc
         finally:
             handle.close()
         temp_path = Path(handle.name)
