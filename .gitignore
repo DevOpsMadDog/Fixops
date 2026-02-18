@@ -68,6 +68,10 @@ chainlit.md
 .vercel
 
 # Data and databases
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
 agenthub/agents/youtube/db
 data/automation/
 data/evidence/
