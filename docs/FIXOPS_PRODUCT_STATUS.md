@@ -1,4 +1,4 @@
-# ALdeci (FixOps) Product Status & Technical Reference
+# ALdeci (ALdeci) Product Status & Technical Reference
 
 **Document Version:** 4.0
 **Date:** February 2026
@@ -196,7 +196,7 @@ flowchart LR
 
 ## Developer Starting Points
 
-This section provides the essential entry points for developers to start working on FixOps.
+This section provides the essential entry points for developers to start working on ALdeci.
 
 ### API Architecture
 
@@ -406,7 +406,7 @@ python -m core.cli micro-pentest run --cve-ids CVE-2024-1234 --target-urls http:
 
 ---
 
-## What FixOps Does (Business Capabilities)
+## What ALdeci Does (Business Capabilities)
 
 ### Available Today
 
@@ -444,7 +444,7 @@ python -m core.cli micro-pentest run --cve-ids CVE-2024-1234 --target-urls http:
 
 ## Executive Summary
 
-FixOps is an Enterprise DevSecOps Decision & Verification Engine with substantial production-ready functionality. This document provides a single source of truth for implementation status, enterprise readiness, and roadmap.
+ALdeci is an Enterprise DevSecOps Decision & Verification Engine with substantial production-ready functionality. This document provides a single source of truth for implementation status, enterprise readiness, and roadmap.
 
 **What's Working (Production-Ready):**
 - Multi-LLM consensus decisioning (GPT-5, Claude-3, Gemini-2, Sentinel)
@@ -484,7 +484,7 @@ For true enterprise plug-and-play, each connector needs: Inbound (webhook receiv
 
 ## Enterprise Plug-and-Play Readiness
 
-This section provides a deep analysis of what's needed for true enterprise plug-and-play deployment via Docker images (aldeci/fixops) at client sites. Focus areas: connectors, working APIs, and business logic depth.
+This section provides a deep analysis of what's needed for true enterprise plug-and-play deployment via Docker images (aldeci/aldeci) at client sites. Focus areas: connectors, working APIs, and business logic depth.
 
 ### Enterprise Plug-and-Play Status Summary
 
@@ -605,7 +605,7 @@ These workflows should work end-to-end for enterprise plug-and-play:
 **Workflow 1: Create Jira ticket from remediation and keep in sync**
 1. Remediation task created → Auto-create Jira ticket
 2. Remediation status changes → Update Jira ticket status
-3. Jira ticket updated externally → Webhook updates FixOps
+3. Jira ticket updated externally → Webhook updates ALdeci
 4. Drift detected → Alert or auto-reconcile
 
 **Workflow 2: Ingest GitLab findings and triage**
@@ -662,10 +662,10 @@ This section classifies each API router by implementation depth and enterprise o
 | **Users** | `apps/api/users_router.py` | Real | SQLite | None | Not HA-ready |
 | **Workflows** | `apps/api/workflows_router.py` | Real | SQLite | None | Not HA-ready |
 | **Webhooks** | `apps/api/webhooks_router.py` | Real | SQLite | External services | No outbox worker |
-| **Feeds** | `apps/api/feeds_router.py` | Real | SQLite | fixops-enterprise | Packaging awkward |
+| **Feeds** | `apps/api/feeds_router.py` | Real | SQLite | aldeci-enterprise | Packaging awkward |
 | **Validation** | `apps/api/validation_router.py` | Real | None (stateless) | None | None |
 | **Bulk Operations** | `apps/api/bulk_router.py` | Real | **In-memory** | None | **Not production-safe** |
-| **Marketplace** | `apps/api/marketplace_router.py` | **Demo fallback** | File (enterprise) | fixops-enterprise | Falls back to demo data |
+| **Marketplace** | `apps/api/marketplace_router.py` | **Demo fallback** | File (enterprise) | aldeci-enterprise | Falls back to demo data |
 | **IDE Integration** | `apps/api/ide_router.py` | **Stub** | None | None | Returns empty arrays |
 | **Health** | `apps/api/health_router.py` | Real | None | None | None (expected) |
 | **Legacy Bridge** | `apps/api/legacy_bridge_router.py` | Real | Varies | archive modules | Deprecated |
@@ -674,20 +674,20 @@ This section classifies each API router by implementation depth and enterprise o
 
 All routers are mounted with `dependencies=[Depends(_verify_api_key)]` in `apps/api/app.py:404-463`, ensuring API key authentication is enforced globally. Exceptions:
 - `health_router` - Unauthenticated (expected for health checks)
-- `webhooks_receiver_router` - Uses webhook signature verification instead of API key (external services can't provide FixOps API keys)
+- `webhooks_receiver_router` - Uses webhook signature verification instead of API key (external services can't provide ALdeci API keys)
 
 **Code reference:** `apps/api/app.py:272-294` defines `_verify_api_key()` dependency.
 
 ### Enterprise Plug-and-Play Blockers
 
-To make FixOps truly enterprise plug-and-play, the following must be addressed:
+To make ALdeci truly enterprise plug-and-play, the following must be addressed:
 
 | Blocker | Current State | Required Change | Effort |
 |---------|---------------|-----------------|--------|
 | **SQLite Persistence** | 12 separate SQLite DBs in `core/*_db.py` | PostgreSQL with migrations | 2-3 weeks |
 | **In-memory Job Store** | `apps/api/bulk_router.py:47` uses `_jobs: Dict` | Redis or database-backed queue | 1 week |
 | **Outbox Worker** | Outbox table exists but no consumer | Background worker to poll `process_outbox_item` | 1 week |
-| **fixops-enterprise Packaging** | `sys.path` manipulation in `feeds_router.py:27-29` | Proper package installation | 1 week |
+| **aldeci-enterprise Packaging** | `sys.path` manipulation in `feeds_router.py:27-29` | Proper package installation | 1 week |
 | **Multi-tenancy** | Partial `org_id` in some services | Consistent tenant isolation | 2-3 weeks |
 
 ### What's NOT Required for Enterprise
@@ -971,7 +971,7 @@ These are target metrics for enterprise deployments, not current measurements:
 | Dockerfile.enterprise | `/Dockerfile.enterprise` | Enterprise variant |
 | docker-compose.yml | `/docker-compose.yml` | Local development |
 | docker-compose.enterprise.yml | `/docker-compose.enterprise.yml` | Enterprise stack |
-| Helm Chart | `/deployment/kubernetes/helm/fixops-enterprise/` | Kubernetes deployment |
+| Helm Chart | `/deployment/kubernetes/helm/aldeci-enterprise/` | Kubernetes deployment |
 
 ---
 
@@ -979,7 +979,7 @@ These are target metrics for enterprise deployments, not current measurements:
 
 ## Capability Decomposition (Sub-features)
 
-This section breaks down each capability into its constituent sub-features with code references, addressing the full scope of FixOps functionality.
+This section breaks down each capability into its constituent sub-features with code references, addressing the full scope of ALdeci functionality.
 
 ### T1: Intake & Normalize - Sub-features
 
@@ -1156,7 +1156,7 @@ This comprehensive inventory maps every feature to its implementation status, CL
 
 | Feature | Location | Status | Notes |
 |---------|----------|--------|-------|
-| **Micropentests** | `fixops-enterprise/src/api/v1/micro_pentest.py` | Not wired | Enterprise-only, not mounted in `apps/api/app.py` |
+| **Micropentests** | `aldeci-enterprise/src/api/v1/micro_pentest.py` | Not wired | Enterprise-only, not mounted in `apps/api/app.py` |
 
 ---
 
@@ -1719,7 +1719,7 @@ python -m core.cli integrations sync jira
 
 **Program Flow:**
 ```
-FixOps Finding -> Jira Issue (Outbound)
+ALdeci Finding -> Jira Issue (Outbound)
     |
     v
 [core/connectors.py:JiraConnector]
@@ -1732,12 +1732,12 @@ FixOps Finding -> Jira Issue (Outbound)
     |-- Queue item in outbox table
     |-- **NO WORKER PROCESSES IT** (Enterprise Blocker)
 
-Jira Webhook -> FixOps (Inbound)
+Jira Webhook -> ALdeci (Inbound)
     |
     v
 [apps/api/webhooks_router.py:233-350]
     |-- verify_hmac_signature()
-    |-- map_jira_status_to_fixops()
+    |-- map_jira_status_to_aldeci()
     |-- update_remediation_task()
     |
     v
@@ -2123,7 +2123,7 @@ User Browse/Install Request
 [apps/api/marketplace_router.py] - 12 endpoints
     |
     v
-[fixops-enterprise/src/services/marketplace_service.py:MarketplaceService]
+[aldeci-enterprise/src/services/marketplace_service.py:MarketplaceService]
     |-- list_items()
     |-- get_item_details()
     |-- install_item() - Download + configure

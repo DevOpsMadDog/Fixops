@@ -1,9 +1,9 @@
-# FixOps Product Requirements Document (PRD)
+# ALdeci Product Requirements Document (PRD)
 
 **Version:** 1.0  
 **Date:** January 2026  
 **Document Status:** Active  
-**Product:** FixOps - Enterprise DevSecOps Decision, Verification & Vulnerability Operations Platform
+**Product:** ALdeci - Enterprise DevSecOps Decision, Verification & Vulnerability Operations Platform
 
 ---
 
@@ -35,7 +35,7 @@
 
 ### 1.1 Product Overview
 
-FixOps is an enterprise-grade DevSecOps platform that transforms vulnerability management from reactive noise into proactive intelligence. By ingesting security artifacts (SBOM, SARIF, CVE, VEX, CNAPP) and business context, FixOps delivers automated, auditable release decisions with cryptographic evidence and provenance.
+ALdeci is an enterprise-grade DevSecOps platform that transforms vulnerability management from reactive noise into proactive intelligence. By ingesting security artifacts (SBOM, SARIF, CVE, VEX, CNAPP) and business context, ALdeci delivers automated, auditable release decisions with cryptographic evidence and provenance.
 
 ### 1.2 Key Value Propositions
 
@@ -69,7 +69,7 @@ FixOps is an enterprise-grade DevSecOps platform that transforms vulnerability m
 
 ### 2.2 Mission Statement
 
-FixOps operationalizes the complete Continuous Threat Exposure Management (CTEM) cycle:
+ALdeci operationalizes the complete Continuous Threat Exposure Management (CTEM) cycle:
 1. **Discover/Ingest** - Universal security artifact ingestion
 2. **Prioritize** - AI-driven risk scoring with business context
 3. **Validate** - Exploit verification through automated pentesting
@@ -78,11 +78,11 @@ FixOps operationalizes the complete Continuous Threat Exposure Management (CTEM)
 
 ### 2.3 Strategic Positioning
 
-FixOps is **not a scanner** - it's the decision and evidence layer that sits between your existing security tools and your development/compliance teams. We replace manual triage with automated intelligence while maintaining human oversight through configurable thresholds and transparent scoring.
+ALdeci is **not a scanner** - it's the decision and evidence layer that sits between your existing security tools and your development/compliance teams. We replace manual triage with automated intelligence while maintaining human oversight through configurable thresholds and transparent scoring.
 
 ### 2.4 Competitive Differentiation
 
-| Capability | FixOps | Traditional ASPM | RBVM Platforms |
+| Capability | ALdeci | Traditional ASPM | RBVM Platforms |
 |------------|--------|------------------|----------------|
 | **Decision Transparency** | Full explainability with step-by-step reasoning | Black-box risk scores | Opaque algorithms |
 | **Evidence Storage** | SLSA v1 + 7-year retention + crypto signatures | Logs only | Basic reports |
@@ -203,11 +203,11 @@ FixOps is **not a scanner** - it's the decision and evidence layer that sits bet
 
 **Security Scanning Platforms:**
 - Snyk, Checkmarx, Veracode, SonarQube, GitHub Advanced Security
-- *Positioning:* FixOps ingests their outputs rather than replacing them
+- *Positioning:* ALdeci ingests their outputs rather than replacing them
 
 **SIEM/SOAR Platforms:**
 - Splunk, Palo Alto Cortex XSOAR, IBM QRadar
-- *Positioning:* FixOps focuses on pre-production/SDLC vs. runtime/SOC
+- *Positioning:* ALdeci focuses on pre-production/SDLC vs. runtime/SOC
 
 ### 3.4 Market Trends
 
@@ -219,7 +219,7 @@ FixOps is **not a scanner** - it's the decision and evidence layer that sits bet
 
 ### 3.5 Regulatory Drivers
 
-| Regulation | Requirement | FixOps Capability |
+| Regulation | Requirement | ALdeci Capability |
 |------------|-------------|-------------------|
 | **EU Cyber Resilience Act** | Supply chain transparency, SBOM attestations | SLSA v1 provenance, signed evidence |
 | **EO 14028 (US)** | Secure software attestation | Self-attestation with cryptographic proof |
@@ -233,7 +233,7 @@ FixOps is **not a scanner** - it's the decision and evidence layer that sits bet
 
 ### 4.1 Product Description
 
-FixOps is a comprehensive DevSecOps platform comprising three main interfaces:
+ALdeci is a comprehensive DevSecOps platform comprising three main interfaces:
 
 1. **REST API** (313+ endpoints across 32 routers)
    - Programmatic access for CI/CD integration
@@ -301,7 +301,7 @@ FixOps is a comprehensive DevSecOps platform comprising three main interfaces:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         FixOps Platform                          │
+│                         ALdeci Platform                          │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                   │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
@@ -369,7 +369,7 @@ FixOps is a comprehensive DevSecOps platform comprising three main interfaces:
 - No correlation between tools (Snyk + SonarQube + Wiz = chaos)
 - Auditors reject deprioritization without cryptographic proof
 
-**How FixOps Helps:**
+**How ALdeci Helps:**
 - Multi-LLM consensus automates 85% of decisions
 - Risk Graph correlates findings across all scanners
 - Signed evidence bundles satisfy auditor requirements
@@ -394,7 +394,7 @@ FixOps is a comprehensive DevSecOps platform comprising three main interfaces:
 - No visibility into what's actually exploitable
 - Manual ticket creation and tracking across Jira
 
-**How FixOps Helps:**
+**How ALdeci Helps:**
 - Universal SBOM/SARIF ingestion works with any scanner
 - Micro-pentest validation proves exploitability
 - Automated Jira ticket creation with smart assignments
@@ -419,7 +419,7 @@ FixOps is a comprehensive DevSecOps platform comprising three main interfaces:
 - Manual compliance report generation
 - Difficult to demonstrate continuous improvement
 
-**How FixOps Helps:**
+**How ALdeci Helps:**
 - Auto-generated audit artifacts with crypto signatures
 - 7-year evidence retention with tamper-proof storage
 - Compliance framework mapping (ISO/NIST/SOC2/PCI)
@@ -444,7 +444,7 @@ FixOps is a comprehensive DevSecOps platform comprising three main interfaces:
 - Can't prove ROI of security investments
 - Security team burnout from alert fatigue
 
-**How FixOps Helps:**
+**How ALdeci Helps:**
 - Comprehensive analytics with MTTR/coverage/trend metrics
 - Automated reporting reduces manual effort by 60%
 - 100:1 noise reduction improves team morale
@@ -483,7 +483,7 @@ FixOps is a comprehensive DevSecOps platform comprising three main interfaces:
    - Better served by integrated scanner tooling
 
 2. **Organizations Without Existing Scanners:**
-   - FixOps complements existing tools, doesn't replace them
+   - ALdeci complements existing tools, doesn't replace them
    - Need to invest in SAST/DAST/SCA first
 
 3. **Non-Technical Compliance Teams:**
@@ -1068,8 +1068,8 @@ Bidirectional integration with ticketing systems for automated remediation workf
 
 **Inbound Operations (Webhooks):**
 - Receive status updates from external system
-- Sync comments back to FixOps
-- Detect drift (ticket state ≠ FixOps state)
+- Sync comments back to ALdeci
+- Detect drift (ticket state ≠ ALdeci state)
 - Trigger re-verification on ticket closure
 
 **Acceptance Criteria:**
@@ -1595,7 +1595,7 @@ Comprehensive analytics and metrics visualization.
 
 ## Summary
 
-This PRD document provides comprehensive product requirements for FixOps, covering:
+This PRD document provides comprehensive product requirements for ALdeci, covering:
 - **Executive vision** and market positioning
 - **Core capabilities** across 8 functional areas (40+ requirements)
 - **Technical architecture** and system design

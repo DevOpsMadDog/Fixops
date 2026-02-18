@@ -1,10 +1,10 @@
-# FixOps Enhancement Analysis: Deduplication + ALM Integration + SLA Management
+# ALdeci Enhancement Analysis: Deduplication + ALM Integration + SLA Management
 
 ## Executive Summary
 
-**Answer: YES, adding these three features would make FixOps significantly better and more enterprise-ready.**
+**Answer: YES, adding these three features would make ALdeci significantly better and more enterprise-ready.**
 
-Adding **deduplication**, **ALM integration**, and **SLA management** would address the **three biggest gaps** identified in vulnerability management workflows, transforming FixOps from a **decision engine** into a **complete vulnerability management platform**.
+Adding **deduplication**, **ALM integration**, and **SLA management** would address the **three biggest gaps** identified in vulnerability management workflows, transforming ALdeci from a **decision engine** into a **complete vulnerability management platform**.
 
 **Impact Score**: **+2.5 points** (from 7/10 to **9.5/10**)
 
@@ -15,7 +15,7 @@ Adding **deduplication**, **ALM integration**, and **SLA management** would addr
 ### What Exists Today
 
 #### 1. **Deduplication** - Partial Foundation ✅
-- **Correlation Engine exists** (`fixops-enterprise/src/services/correlation_engine.py`)
+- **Correlation Engine exists** (`aldeci-enterprise/src/services/correlation_engine.py`)
 - **5 correlation strategies**:
   - Fingerprint-based correlation
   - Location-based correlation
@@ -122,7 +122,7 @@ class ALMIntegrationManager:
         """
         Creates/updates tickets in ALM system
         - One ticket per finding (or grouped findings)
-        - Links to FixOps evidence bundle
+        - Links to ALdeci evidence bundle
         - Syncs status changes bidirectionally
         """
     
@@ -132,9 +132,9 @@ class ALMIntegrationManager:
     ) -> List[StatusUpdate]:
         """
         Polls ALM system for status updates
-        - Ticket status changes → Update FixOps
+        - Ticket status changes → Update ALdeci
         - PR merges → Verify remediation
-        - Comments/notes → Sync to FixOps
+        - Comments/notes → Sync to ALdeci
         """
 ```
 
@@ -151,7 +151,7 @@ class ALMIntegrationManager:
    - Link PRs to vulnerabilities
    - Track fix commits
    - Verify remediation via re-scan
-   - Comment on PRs with FixOps data
+   - Comment on PRs with ALdeci data
 
 3. **Azure DevOps**:
    - Link work items
@@ -169,7 +169,7 @@ class ALMIntegrationManager:
 
 **Before ALM Integration:**
 - Analyst manually creates tickets in Jira (5 min per ticket)
-- No status sync: Must manually check FixOps + Jira
+- No status sync: Must manually check ALdeci + Jira
 - No remediation tracking: Can't see if vulnerabilities are being fixed
 - **Time**: ~8 hours/week for ticket management
 
@@ -182,7 +182,7 @@ class ALMIntegrationManager:
 
 **Time Saved**: **~7.5 hours/week** per analyst
 
-**Value Score**: **10/10** - Transforms FixOps into complete platform
+**Value Score**: **10/10** - Transforms ALdeci into complete platform
 
 ---
 
@@ -312,7 +312,7 @@ class SLAManager:
 3. Manually prioritizes → 1 hour → Top 50 critical
 4. Manually creates Jira tickets → 4 hours → 50 tickets
 5. No SLA tracking → Vulnerabilities sit for weeks
-6. No status sync → Must check FixOps + Jira separately
+6. No status sync → Must check ALdeci + Jira separately
 7. No remediation tracking → Can't see progress
 
 Total Time: ~7 hours per cycle
@@ -324,9 +324,9 @@ Accountability: None
 
 ```
 1. Analyst receives 1000 findings from 3 scanners
-2. FixOps auto-deduplicates → 5 seconds → 300 unique findings
-3. FixOps auto-prioritizes by SLA risk → 5 seconds → Top 50 critical
-4. FixOps auto-creates Jira tickets → 30 seconds → 50 tickets
+2. ALdeci auto-deduplicates → 5 seconds → 300 unique findings
+3. ALdeci auto-prioritizes by SLA risk → 5 seconds → Top 50 critical
+4. ALdeci auto-creates Jira tickets → 30 seconds → 50 tickets
 5. SLA tracking → Automatic alerts on violations
 6. Bidirectional sync → Status updates automatically
 7. Remediation tracking → Real-time progress visibility
@@ -415,18 +415,18 @@ Accountability: Full
 ## Competitive Advantage
 
 ### vs. Snyk
-- **FixOps Advantage**: Multi-LLM consensus + Deduplication + ALM + SLA
+- **ALdeci Advantage**: Multi-LLM consensus + Deduplication + ALM + SLA
 - **Snyk Advantage**: Better SAST coverage, more scanners
 
 ### vs. Veracode
-- **FixOps Advantage**: ALM integration, SLA management, deduplication
+- **ALdeci Advantage**: ALM integration, SLA management, deduplication
 - **Veracode Advantage**: Better SAST/DAST coverage
 
 ### vs. Jira + Custom Scripts
-- **FixOps Advantage**: Automated risk assessment, multi-LLM consensus, SLA management
-- **Jira Advantage**: Better workflow management (but FixOps closes this gap)
+- **ALdeci Advantage**: Automated risk assessment, multi-LLM consensus, SLA management
+- **Jira Advantage**: Better workflow management (but ALdeci closes this gap)
 
-**With these features, FixOps becomes a complete vulnerability management platform**, not just a decision engine.
+**With these features, ALdeci becomes a complete vulnerability management platform**, not just a decision engine.
 
 ---
 
@@ -496,7 +496,7 @@ Accountability: Full
 
 ## Conclusion
 
-**YES, adding deduplication, ALM integration, and SLA management would make FixOps significantly better.**
+**YES, adding deduplication, ALM integration, and SLA management would make ALdeci significantly better.**
 
 **Impact:**
 - **Enterprise Readiness**: 7/10 → **9.5/10** (+2.5 points)
@@ -504,6 +504,6 @@ Accountability: Full
 - **ROI**: **~180% annually**
 - **Competitive Position**: **Complete platform** vs. decision engine
 
-**These three features transform FixOps from a sophisticated decision engine into a complete vulnerability management platform** that can compete directly with Snyk, Veracode, and other enterprise solutions.
+**These three features transform ALdeci from a sophisticated decision engine into a complete vulnerability management platform** that can compete directly with Snyk, Veracode, and other enterprise solutions.
 
-**Recommendation**: **Build all three features** - they're the missing pieces that make FixOps enterprise-ready.
+**Recommendation**: **Build all three features** - they're the missing pieces that make ALdeci enterprise-ready.

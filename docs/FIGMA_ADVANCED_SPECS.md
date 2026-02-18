@@ -1,4 +1,4 @@
-# FixOps — Advanced Figma Screen Specifications v2
+# ALdeci — Advanced Figma Screen Specifications v2
 ## Cross-Linked Data Architecture · 526 APIs · 68 Routes · 45+ Screens
 
 > Every screen has: wireframe, API map, **data-in** (what feeds it), **data-out** (what it feeds),
@@ -12,7 +12,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                        FixOps Entity Graph                              │
+│                        ALdeci Entity Graph                              │
 │                                                                         │
 │  ┌──────────┐    contains    ┌──────────┐    grouped     ┌──────────┐  │
 │  │  Asset    ├──────────────►│ Finding  ├───────────────►│ Cluster  │  │
@@ -162,7 +162,7 @@ These objects flow between screens. Every screen that displays or mutates one is
 | **Webhooks** → Event row | Click | **Event Detail (expand)** | `event_id` |
 | **Webhooks** → Work Item row | Click | **External** (Jira/GH) | `work_item_url` (new tab) |
 
-## 2.2 The Attack Verification Flow (unique to FixOps)
+## 2.2 The Attack Verification Flow (unique to ALdeci)
 
 ```
  DISCOVER                                VERIFY                                VALIDATE
@@ -325,7 +325,7 @@ Dashboard Load
 ### Wireframe
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│  🧠 FixOps Nerve Center                    [Auto-Remediate ▶]   │
+│  🧠 ALdeci Nerve Center                    [Auto-Remediate ▶]   │
 ├──────────────────────────────────────────────────────────────────┤
 │  ┌─ SYSTEM PULSE ──────────────┐  ┌─ INTELLIGENCE MAP ────────┐ │
 │  │                              │  │                            │ │

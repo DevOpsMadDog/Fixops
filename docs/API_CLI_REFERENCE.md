@@ -1,4 +1,4 @@
-# FixOps API to CLI Mapping (322 Endpoints)
+# ALdeci API to CLI Mapping (322 Endpoints)
 
 ## Summary
 
@@ -412,7 +412,7 @@ These API-only features are typically used by the web UI or require interactive 
 | 16 | `/api/v1/deduplication/baseline` | GET | Get baseline comparison (NEW/EXISTING/FIXED) |
 | 17 | `/api/v1/deduplication/cross-stage` | POST | Correlate findings across lifecycle stages |
 
-**CLI Commands:** `fixops correlation analyze`, `fixops correlation stats`, `fixops correlation graph`, `fixops correlation feedback`, `fixops groups list`, `fixops groups get`, `fixops groups merge`, `fixops groups unmerge`
+**CLI Commands:** `aldeci correlation analyze`, `aldeci correlation stats`, `aldeci correlation graph`, `aldeci correlation feedback`, `aldeci groups list`, `aldeci groups get`, `aldeci groups merge`, `aldeci groups unmerge`
 
 ### REMEDIATION LIFECYCLE (13 API Endpoints)
 
@@ -432,7 +432,7 @@ These API-only features are typically used by the web UI or require interactive 
 | 12 | `/api/v1/remediation/metrics` | GET | Get global remediation metrics (CLI-compatible) |
 | 13 | `/api/v1/remediation/statuses` | GET | List valid status values and transitions |
 
-**CLI Commands:** `fixops remediation list`, `fixops remediation get`, `fixops remediation assign`, `fixops remediation transition`, `fixops remediation verify`, `fixops remediation metrics`
+**CLI Commands:** `aldeci remediation list`, `aldeci remediation get`, `aldeci remediation assign`, `aldeci remediation transition`, `aldeci remediation verify`, `aldeci remediation metrics`
 
 **State Machine:** OPEN → ASSIGNED → IN_PROGRESS → VERIFICATION → RESOLVED (with DEFERRED and WONT_FIX branches)
 

@@ -1,6 +1,6 @@
-# FixOps Docker Guide
+# ALdeci Docker Guide
 
-This guide explains all Docker configurations available in FixOps and how to use them.
+This guide explains all Docker configurations available in ALdeci and how to use them.
 
 ## Quick Reference
 
@@ -25,7 +25,7 @@ This guide explains all Docker configurations available in FixOps and how to use
 
 ## Health Endpoints
 
-All FixOps containers expose health check endpoints:
+All ALdeci containers expose health check endpoints:
 
 - `/health` - Simple liveness check (root level)
 - `/api/v1/health` - Full health check with version info
@@ -33,7 +33,7 @@ All FixOps containers expose health check endpoints:
 
 ## Authentication
 
-FixOps uses token-based authentication by default. The API token is set via the `FIXOPS_API_TOKEN` environment variable.
+ALdeci uses token-based authentication by default. The API token is set via the `FIXOPS_API_TOKEN` environment variable.
 
 To authenticate API requests, include the token in the `X-API-Key` header:
 
@@ -49,14 +49,14 @@ Note: Health/liveness endpoints (`/health`, `/api/v1/health`) do not require aut
 
 ### 1. Main Development Stack (`docker-compose.yml`)
 
-**Purpose:** Primary development environment with the FixOps API and optional sidecars.
+**Purpose:** Primary development environment with the ALdeci API and optional sidecars.
 
 **Services:**
-- `fixops` - Main API server
-- `fixops-demo` - Interactive demo sidecar (profile: `demo`)
-- `fixops-smoke` - Smoke test runner (profile: `test`)
-- `fixops-feeds` - Real-time feed fetcher (profile: `feeds`)
-- `fixops-micropentest` - Micro penetration testing (profile: `pentest`)
+- `aldeci` - Main API server
+- `aldeci-demo` - Interactive demo sidecar (profile: `demo`)
+- `aldeci-smoke` - Smoke test runner (profile: `test`)
+- `aldeci-feeds` - Real-time feed fetcher (profile: `feeds`)
+- `aldeci-micropentest` - Micro penetration testing (profile: `pentest`)
 - `risk-graph-ui` - Risk Graph visualization (profile: `ui`)
 
 **Usage:**
@@ -87,7 +87,7 @@ docker compose --profile demo --profile ui --profile feeds up -d
 
 **Services:**
 - `collector` - OpenTelemetry collector
-- `api` - FixOps API with telemetry enabled
+- `api` - ALdeci API with telemetry enabled
 - `graph` - Graph worker for dependency analysis
 - `dashboard` - Nginx dashboard
 
@@ -108,7 +108,7 @@ docker compose -f docker-compose.demo.yml up -d
 **Purpose:** Enterprise mode with vector store (ChromaDB) for semantic search and ML features.
 
 **Services:**
-- `fixops-enterprise` - Enterprise API with ChromaDB integration
+- `aldeci-enterprise` - Enterprise API with ChromaDB integration
 
 **Usage:**
 ```bash
@@ -119,7 +119,7 @@ docker compose -f docker-compose.enterprise.yml up -d
 - Port: `8000`
 - Token: `enterprise-token`
 - Mode: `enterprise`
-- Vector Store: ChromaDB (persisted to `fixops-chroma-data` volume)
+- Vector Store: ChromaDB (persisted to `aldeci-chroma-data` volume)
 
 **Features Enabled:**
 - Semantic search via ChromaDB
@@ -137,7 +137,7 @@ docker compose -f docker-compose.enterprise.yml up -d
 docker compose -f docker-compose.vc-demo.yml up -d
 
 # Run demo inside container
-docker exec -it fixops-vc-demo python -m core.cli demo --mode demo --output demo_decision_outputs/decision.json --pretty
+docker exec -it aldeci-vc-demo python -m core.cli demo --mode demo --output demo_decision_outputs/decision.json --pretty
 ```
 
 **Configuration:**
@@ -154,8 +154,8 @@ docker exec -it fixops-vc-demo python -m core.cli demo --mode demo --output demo
 **Services:**
 - `mongodb` - Evidence lake storage
 - `redis` - Caching layer
-- `fixops-backend` - Production API
-- `fixops-frontend` - Web UI (profile: `frontend`)
+- `aldeci-backend` - Production API
+- `aldeci-frontend` - Web UI (profile: `frontend`)
 - `nginx` - Reverse proxy (profile: `nginx`)
 - `prometheus` - Metrics (profile: `monitoring`)
 - `grafana` - Dashboards (profile: `monitoring`)
@@ -197,9 +197,9 @@ docker compose --profile monitoring up -d
 **Purpose:** Production enterprise deployment with HA, monitoring, and security.
 
 **Services:**
-- `fixops-api` - API server (3 replicas)
-- `fixops-reachability` - Reachability analyzer (5 replicas)
-- `fixops-threat-intel` - Threat intelligence engine
+- `aldeci-api` - API server (3 replicas)
+- `aldeci-reachability` - Reachability analyzer (5 replicas)
+- `aldeci-threat-intel` - Threat intelligence engine
 - `postgres` - Primary database
 - `postgres-replica` - Read replica
 - `redis` - Caching with Sentinel HA
@@ -232,26 +232,26 @@ docker compose -f docker-compose.enterprise.yml up -d
 
 ### Main Image (`Dockerfile`)
 
-**Purpose:** Optimized production image for the FixOps API.
+**Purpose:** Optimized production image for the ALdeci API.
 
 **Build:**
 ```bash
-docker build -t fixops:latest .
+docker build -t aldeci:latest .
 ```
 
 **Run:**
 ```bash
 # API server mode (default)
-docker run -p 8000:8000 fixops:latest
+docker run -p 8000:8000 aldeci:latest
 
 # Interactive mode
-docker run -it fixops:latest interactive
+docker run -it aldeci:latest interactive
 
 # Demo mode
-docker run -it fixops:latest demo
+docker run -it aldeci:latest demo
 
 # CLI command
-docker run fixops:latest cli demo --mode demo
+docker run aldeci:latest cli demo --mode demo
 ```
 
 **Modes:**
@@ -278,7 +278,7 @@ Same as main `Dockerfile` but includes additional tools (nano, vim, less).
 
 **Build:**
 ```bash
-docker build -f Dockerfile.enterprise -t fixops:enterprise .
+docker build -f Dockerfile.enterprise -t aldeci:enterprise .
 ```
 
 **Features:**
@@ -290,20 +290,20 @@ docker build -f Dockerfile.enterprise -t fixops:enterprise .
 
 ### Sidecar Image (`Dockerfile.sidecar`)
 
-**Purpose:** Lightweight container for running demos and tests against a FixOps API.
+**Purpose:** Lightweight container for running demos and tests against a ALdeci API.
 
 **Build:**
 ```bash
-docker build -f Dockerfile.sidecar -t fixops-sidecar .
+docker build -f Dockerfile.sidecar -t aldeci-sidecar .
 ```
 
 **Usage:**
 ```bash
 # Full demo
-docker run --network host -e FIXOPS_BASE_URL=http://localhost:8000 fixops-sidecar
+docker run --network host -e FIXOPS_BASE_URL=http://localhost:8000 aldeci-sidecar
 
 # Specific scenario
-docker run --network host -e FIXOPS_BASE_URL=http://localhost:8000 fixops-sidecar python demo_sidecar.py run-scenario --cve CVE-2021-44228
+docker run --network host -e FIXOPS_BASE_URL=http://localhost:8000 aldeci-sidecar python demo_sidecar.py run-scenario --cve CVE-2021-44228
 ```
 
 ---
@@ -314,14 +314,14 @@ docker run --network host -e FIXOPS_BASE_URL=http://localhost:8000 fixops-sideca
 
 **Build:**
 ```bash
-docker build -f Dockerfile.risk-graph -t fixops-risk-graph \
+docker build -f Dockerfile.risk-graph -t aldeci-risk-graph \
   --build-arg NEXT_PUBLIC_FIXOPS_API_URL=http://localhost:8000 \
   --build-arg NEXT_PUBLIC_FIXOPS_API_TOKEN=demo-token .
 ```
 
 **Run:**
 ```bash
-docker run -p 3000:3000 fixops-risk-graph
+docker run -p 3000:3000 aldeci-risk-graph
 ```
 
 ---
@@ -355,10 +355,10 @@ curl -H "X-API-Key: $FIXOPS_API_TOKEN" http://localhost:8000/pipeline/run | jq
 
 ```bash
 # Docker Compose
-docker compose logs -f fixops
+docker compose logs -f aldeci
 
 # Single container
-docker logs -f fixops-api
+docker logs -f aldeci-api
 ```
 
 ### Check Published Ports
@@ -380,7 +380,7 @@ docker compose ps
 
 2. Check container logs:
    ```bash
-   docker compose logs fixops
+   docker compose logs aldeci
    ```
 
 3. Verify environment variables are set:
@@ -393,7 +393,7 @@ docker compose ps
 1. Verify the token matches what's configured:
    ```bash
    # Check what token the container expects
-   docker compose exec fixops env | grep FIXOPS_API_TOKEN
+   docker compose exec aldeci env | grep FIXOPS_API_TOKEN
    ```
 
 2. Ensure you're using the correct header:

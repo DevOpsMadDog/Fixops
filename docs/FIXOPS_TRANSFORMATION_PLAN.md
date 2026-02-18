@@ -1,7 +1,7 @@
-# FixOps $1B Product Transformation Plan
+# ALdeci $1B Product Transformation Plan
 
 > **Version**: 1.0 | **Date**: 2026-02-07 | **Status**: Active
-> **Goal**: Transform FixOps from a ~$10M prototype to a $1B enterprise security platform
+> **Goal**: Transform ALdeci from a ~$10M prototype to a $1B enterprise security platform
 > **Total Requirements**: 24 (15 original + 9 from competitive gap analysis)
 
 ---
@@ -25,7 +25,7 @@
 
 ## 1. Executive Summary
 
-FixOps is a comprehensive security vulnerability management and risk assessment platform with a suite-based architecture. After deep analysis, we identified:
+ALdeci is a comprehensive security vulnerability management and risk assessment platform with a suite-based architecture. After deep analysis, we identified:
 
 - **467 API endpoints** across 38 functional domains in 4 suites
 - **82 frontend API methods** with 72/82 (88%) perfect backend matches
@@ -34,7 +34,7 @@ FixOps is a comprehensive security vulnerability management and risk assessment 
 
 ### What Makes This a $1B Product (When Complete)
 
-| Differentiator | FixOps | Aikido | Snyk | Wiz |
+| Differentiator | ALdeci | Aikido | Snyk | Wiz |
 |---|---|---|---|---|
 | Multi-LLM Consensus (4 providers, weighted voting) | ✅ Unique | ❌ Single AI | ❌ DeepCode AI only | ❌ No |
 | 8-Phase Micro Penetration Testing (MPTE) | ✅ Unique | ⚠️ 3-phase | ❌ No | ❌ No |
@@ -54,7 +54,7 @@ FixOps is a comprehensive security vulnerability management and risk assessment 
 | No real AI (asyncio.sleep stubs in MPTE) | Fake scanning | Phase 5 |
 | MindsDB completely stubbed | No ML learning | Phase 6 |
 | org_id missing from entire suite-core (13 routers) | No multi-tenancy | Phase 1 |
-| Feeds use sys.path hack to fixops-enterprise | Fragile, breaks easily | Phase 0 |
+| Feeds use sys.path hack to aldeci-enterprise | Fragile, breaks easily | Phase 0 |
 | ~280 backend endpoints (60%) have NO frontend UI | Invisible features | Phase 9 |
 | MPTE not rebranded to MPTE | Naming inconsistency | Phase 5 |
 | 7 frontend→backend gaps (calls non-existent endpoints) | Broken UI features | Phase 2 |
@@ -124,7 +124,7 @@ return {"status": "connected", "models": ["api_usage_patterns"], ...}  # Fake
 
 **Product Areas (22 distinct products):**
 
-| Category | Product | FixOps Has? | Gap Level |
+| Category | Product | ALdeci Has? | Gap Level |
 |---|---|---|---|
 | **Code ASPM** | Static Code Analysis (SAST + AI SAST) | ❌ Missing | 🔴 Critical |
 | | Open Source Dependencies (SCA) | ⚠️ SBOM only, no auto-fix | 🟡 Partial |
@@ -158,7 +158,7 @@ return {"status": "connected", "models": ["api_usage_patterns"], ...}  # Fake
 - $4K-$8K per pentest saves (value proposition)
 - SOC2 Type II certified
 
-**Where FixOps is BETTER than Aikido:**
+**Where ALdeci is BETTER than Aikido:**
 - **Multi-LLM Consensus**: 4 AI providers with weighted voting vs Aikido's single AI
 - **8-Phase MPTE**: More thorough than Aikido's 3-phase approach
 - **Probabilistic ML**: Bayesian networks + Markov chains + Monte Carlo (academic-grade)
@@ -170,7 +170,7 @@ return {"status": "connected", "models": ["api_usage_patterns"], ...}  # Fake
 ### 3.2 Snyk — $8.7B Valuation (Post Series G)
 
 **Key Products:**
-| Product | FixOps Has? | Gap |
+| Product | ALdeci Has? | Gap |
 |---|---|---|
 | Snyk Code (SAST with DeepCode AI) | ❌ | 🔴 Critical |
 | Snyk Open Source (SCA) | ⚠️ SBOM only | 🟡 |
@@ -192,7 +192,7 @@ return {"status": "connected", "models": ["api_usage_patterns"], ...}  # Fake
 ### 3.3 Wiz — $12B Valuation (Largest Private Cybersecurity Company)
 
 **Key Products:**
-| Product | FixOps Has? | Gap |
+| Product | ALdeci Has? | Gap |
 |---|---|---|
 | CNAPP (Cloud Native Application Protection) | ⚠️ CNAPP ingestion | 🟡 |
 | CSPM (Cloud Security Posture Management) | ❌ | 🔴 Critical |
@@ -211,7 +211,7 @@ return {"status": "connected", "models": ["api_usage_patterns"], ...}  # Fake
 - Code-to-cloud — trace vulnerabilities from code to running cloud workload
 - Google Cloud partnership (Google attempted $23B acquisition in 2024)
 
-### 3.4 Competitive Gap Summary — What FixOps Must Add
+### 3.4 Competitive Gap Summary — What ALdeci Must Add
 
 | Gap # | Missing Capability | Found In | Priority | Phase |
 |---|---|---|---|---|
@@ -268,9 +268,9 @@ return {"status": "connected", "models": ["api_usage_patterns"], ...}  # Fake
 
 ## 5. WORM Storage Analysis
 
-### Does FixOps Have WORM Storage? — YES
+### Does ALdeci Have WORM Storage? — YES
 
-FixOps **already has** WORM-compliant storage backends in `suite-core/core/storage_backends.py`:
+ALdeci **already has** WORM-compliant storage backends in `suite-core/core/storage_backends.py`:
 
 | Backend | Class | WORM Compliant? | Status |
 |---|---|---|---|
@@ -294,7 +294,7 @@ Pipeline Result → EvidenceHub.persist() → compress(gzip) → encrypt(Fernet)
 
 ### Compliance Coverage
 
-| Standard | Requirement | FixOps Status |
+| Standard | Requirement | ALdeci Status |
 |---|---|---|
 | SOC2 Type II | Immutable audit trails | ✅ S3 Object Lock |
 | ISO 27001 | Evidence preservation 7+ years | ✅ RetentionPolicy class |

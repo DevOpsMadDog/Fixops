@@ -500,10 +500,432 @@ class AzureSecurityCenterConnector(_BaseConnector):
         return ConnectorHealth(healthy=False, latency_ms=ms, message="Auth failed")
 
 
+# ---------------------------------------------------------------------------
+# 6. Wiz CNAPP Connector
+# ---------------------------------------------------------------------------
+
+class WizConnector(_BaseConnector):
+    """Fetch vulnerability and cloud security data from Wiz GraphQL API."""
+
+    def __init__(self, settings: Mapping[str, Any]):
+        super().__init__(timeout=float(settings.get("timeout", 30.0) or 30.0))
+        self.base_url = str(settings.get("base_url") or "https://api.wiz.io").rstrip("/")
+        self.client_id = settings.get("client_id")
+        self.client_secret = settings.get("client_secret")
+        client_secret_env = settings.get("client_secret_env", "WIZ_CLIENT_SECRET")
+        if client_secret_env:
+            self.client_secret = os.getenv(str(client_secret_env)) or self.client_secret
+        self._token: Optional[str] = None
+        self._token_expires: float = 0
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.base_url and self.client_id and self.client_secret)
+
+    def _get_token(self) -> Optional[str]:
+        """Get OAuth token, refreshing if needed."""
+        if self._token and time.time() < self._token_expires:
+            return self._token
+        try:
+            resp = self._request(
+                "POST",
+                f"https://auth.wiz.io/oauth/token",
+                data={
+                    "grant_type": "client_credentials",
+                    "client_id": self.client_id,
+                    "client_secret": self.client_secret,
+                    "audience": "wiz-api",
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            self._token = data["access_token"]
+            self._token_expires = time.time() + data.get("expires_in", 3600) - 60
+            return self._token
+        except Exception as exc:
+            logger.warning(f"Wiz auth failed: {exc}")
+            return None
+
+    def _headers(self) -> Dict[str, str]:
+        token = self._get_token()
+        return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+    def _graphql(self, query: str, variables: Optional[Dict[str, Any]] = None) -> Any:
+        """Execute a GraphQL query against Wiz API."""
+        resp = self._request(
+            "POST",
+            f"{self.base_url}/graphql",
+            headers=self._headers(),
+            json={"query": query, "variables": variables or {}},
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    def get_issues(self, severity: Optional[str] = None, limit: int = 100) -> ConnectorOutcome:
+        """Fetch security issues from Wiz."""
+        if not self.configured:
+            return ConnectorOutcome("skipped", {"reason": "wiz not configured"})
+        query = """
+        query GetIssues($first: Int, $filterBy: IssueFilters) {
+            issues(first: $first, filterBy: $filterBy) {
+                nodes {
+                    id
+                    sourceRule { id name }
+                    severity
+                    status
+                    createdAt
+                    resolvedAt
+                    dueAt
+                    entitySnapshot { id type name }
+                }
+            }
+        }
+        """
+        filters = {}
+        if severity:
+            filters["severity"] = [severity.upper()]
+        try:
+            data = self._graphql(query, {"first": limit, "filterBy": filters})
+            issues = data.get("data", {}).get("issues", {}).get("nodes", [])
+            return ConnectorOutcome("fetched", {"issues": issues, "count": len(issues)})
+        except Exception as exc:
+            return ConnectorOutcome("failed", {"error": str(exc)})
+
+    def get_vulnerabilities(self, limit: int = 100) -> ConnectorOutcome:
+        """Fetch vulnerability findings from Wiz."""
+        if not self.configured:
+            return ConnectorOutcome("skipped", {"reason": "wiz not configured"})
+        query = """
+        query GetVulnerabilities($first: Int) {
+            vulnerabilityFindings(first: $first) {
+                nodes {
+                    id
+                    name
+                    CVEDescription
+                    CVSSScore
+                    severity
+                    status
+                    firstDetectedAt
+                    resolvedAt
+                    vendorSeverity
+                    exploitabilityScore
+                    hasCisaKevExploit
+                    hasExploit
+                }
+            }
+        }
+        """
+        try:
+            data = self._graphql(query, {"first": limit})
+            vulns = data.get("data", {}).get("vulnerabilityFindings", {}).get("nodes", [])
+            return ConnectorOutcome("fetched", {"vulnerabilities": vulns, "count": len(vulns)})
+        except Exception as exc:
+            return ConnectorOutcome("failed", {"error": str(exc)})
+
+    def get_cloud_resources(self, limit: int = 100) -> ConnectorOutcome:
+        """Fetch cloud resources inventory."""
+        if not self.configured:
+            return ConnectorOutcome("skipped", {"reason": "wiz not configured"})
+        query = """
+        query GetCloudResources($first: Int) {
+            graphSearch(first: $first, query: "{ find {*} }") {
+                nodes {
+                    entities { id type name cloudPlatform }
+                }
+            }
+        }
+        """
+        try:
+            data = self._graphql(query, {"first": limit})
+            resources = data.get("data", {}).get("graphSearch", {}).get("nodes", [])
+            return ConnectorOutcome("fetched", {"resources": resources, "count": len(resources)})
+        except Exception as exc:
+            return ConnectorOutcome("failed", {"error": str(exc)})
+
+    def health_check(self) -> ConnectorHealth:
+        if not self.configured:
+            return ConnectorHealth(healthy=False, latency_ms=0, message="Not configured")
+        start = time.time()
+        token = self._get_token()
+        ms = (time.time() - start) * 1000
+        if token:
+            return ConnectorHealth(healthy=True, latency_ms=ms, message="Authenticated OK")
+        return ConnectorHealth(healthy=False, latency_ms=ms, message="Auth failed")
+
+
+# ---------------------------------------------------------------------------
+# 7. Prisma Cloud (Palo Alto CNAPP) Connector
+# ---------------------------------------------------------------------------
+
+class PrismaCloudConnector(_BaseConnector):
+    """Fetch vulnerability and compliance data from Prisma Cloud REST API."""
+
+    def __init__(self, settings: Mapping[str, Any]):
+        super().__init__(timeout=float(settings.get("timeout", 30.0) or 30.0))
+        self.base_url = str(settings.get("base_url") or "https://api.prismacloud.io").rstrip("/")
+        self.access_key = settings.get("access_key")
+        self.secret_key = settings.get("secret_key")
+        secret_key_env = settings.get("secret_key_env", "PRISMA_SECRET_KEY")
+        if secret_key_env:
+            self.secret_key = os.getenv(str(secret_key_env)) or self.secret_key
+        self._token: Optional[str] = None
+        self._token_expires: float = 0
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.base_url and self.access_key and self.secret_key)
+
+    def _get_token(self) -> Optional[str]:
+        """Get login token, refreshing if needed."""
+        if self._token and time.time() < self._token_expires:
+            return self._token
+        try:
+            resp = self._request(
+                "POST",
+                f"{self.base_url}/login",
+                json={"username": self.access_key, "password": self.secret_key},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            self._token = data["token"]
+            self._token_expires = time.time() + 600 - 30  # Token valid ~10 mins
+            return self._token
+        except Exception as exc:
+            logger.warning(f"Prisma Cloud auth failed: {exc}")
+            return None
+
+    def _headers(self) -> Dict[str, str]:
+        token = self._get_token()
+        return {"x-redlock-auth": token or "", "Content-Type": "application/json"}
+
+    def get_alerts(self, status: str = "open", limit: int = 100) -> ConnectorOutcome:
+        """Fetch security alerts from Prisma Cloud."""
+        if not self.configured:
+            return ConnectorOutcome("skipped", {"reason": "prisma cloud not configured"})
+        url = f"{self.base_url}/alert"
+        try:
+            resp = self._request(
+                "POST",
+                url,
+                headers=self._headers(),
+                json={"filters": [{"name": "alert.status", "operator": "=", "value": status}], "limit": limit},
+            )
+            resp.raise_for_status()
+            alerts = resp.json()
+            return ConnectorOutcome("fetched", {"alerts": alerts, "count": len(alerts)})
+        except Exception as exc:
+            return ConnectorOutcome("failed", {"error": str(exc)})
+
+    def get_vulnerabilities(self, limit: int = 100) -> ConnectorOutcome:
+        """Fetch vulnerability findings from Prisma Cloud Compute."""
+        if not self.configured:
+            return ConnectorOutcome("skipped", {"reason": "prisma cloud not configured"})
+        url = f"{self.base_url}/api/v1/images"
+        try:
+            resp = self._request("GET", url, headers=self._headers(), params={"limit": limit})
+            resp.raise_for_status()
+            images = resp.json()
+            # Extract vulnerabilities from images
+            vulns = []
+            for img in images:
+                for vuln in img.get("vulnerabilities", []):
+                    vulns.append({**vuln, "image": img.get("id")})
+            return ConnectorOutcome("fetched", {"vulnerabilities": vulns, "count": len(vulns)})
+        except Exception as exc:
+            return ConnectorOutcome("failed", {"error": str(exc)})
+
+    def get_compliance_findings(self, limit: int = 100) -> ConnectorOutcome:
+        """Fetch compliance posture findings."""
+        if not self.configured:
+            return ConnectorOutcome("skipped", {"reason": "prisma cloud not configured"})
+        url = f"{self.base_url}/compliance/posture"
+        try:
+            resp = self._request("POST", url, headers=self._headers(), json={"limit": limit})
+            resp.raise_for_status()
+            data = resp.json()
+            return ConnectorOutcome("fetched", {"compliance": data, "count": len(data.get("items", []))})
+        except Exception as exc:
+            return ConnectorOutcome("failed", {"error": str(exc)})
+
+    def health_check(self) -> ConnectorHealth:
+        if not self.configured:
+            return ConnectorHealth(healthy=False, latency_ms=0, message="Not configured")
+        start = time.time()
+        token = self._get_token()
+        ms = (time.time() - start) * 1000
+        if token:
+            return ConnectorHealth(healthy=True, latency_ms=ms, message="Authenticated OK")
+        return ConnectorHealth(healthy=False, latency_ms=ms, message="Auth failed")
+
+
+# ---------------------------------------------------------------------------
+# 8. Orca Security CNAPP Connector
+# ---------------------------------------------------------------------------
+
+class OrcaSecurityConnector(_BaseConnector):
+    """Fetch security findings from Orca Security REST API."""
+
+    def __init__(self, settings: Mapping[str, Any]):
+        super().__init__(timeout=float(settings.get("timeout", 30.0) or 30.0))
+        self.base_url = str(settings.get("base_url") or "https://api.orcasecurity.io").rstrip("/")
+        self.api_token = settings.get("api_token")
+        token_env = settings.get("api_token_env", "ORCA_API_TOKEN")
+        if token_env:
+            self.api_token = os.getenv(str(token_env)) or self.api_token
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.base_url and self.api_token)
+
+    def _headers(self) -> Dict[str, str]:
+        return {"Authorization": f"Token {self.api_token}", "Content-Type": "application/json"}
+
+    def get_alerts(self, severity: Optional[str] = None, limit: int = 100) -> ConnectorOutcome:
+        """Fetch security alerts from Orca."""
+        if not self.configured:
+            return ConnectorOutcome("skipped", {"reason": "orca not configured"})
+        url = f"{self.base_url}/api/alerts"
+        params = {"limit": limit}
+        if severity:
+            params["severity"] = severity
+        try:
+            resp = self._request("GET", url, headers=self._headers(), params=params)
+            resp.raise_for_status()
+            data = resp.json()
+            alerts = data.get("data", [])
+            return ConnectorOutcome("fetched", {"alerts": alerts, "count": len(alerts)})
+        except Exception as exc:
+            return ConnectorOutcome("failed", {"error": str(exc)})
+
+    def get_vulnerabilities(self, limit: int = 100) -> ConnectorOutcome:
+        """Fetch vulnerability findings."""
+        if not self.configured:
+            return ConnectorOutcome("skipped", {"reason": "orca not configured"})
+        url = f"{self.base_url}/api/cves"
+        try:
+            resp = self._request("GET", url, headers=self._headers(), params={"limit": limit})
+            resp.raise_for_status()
+            data = resp.json()
+            vulns = data.get("data", [])
+            return ConnectorOutcome("fetched", {"vulnerabilities": vulns, "count": len(vulns)})
+        except Exception as exc:
+            return ConnectorOutcome("failed", {"error": str(exc)})
+
+    def health_check(self) -> ConnectorHealth:
+        if not self.configured:
+            return ConnectorHealth(healthy=False, latency_ms=0, message="Not configured")
+        start = time.time()
+        try:
+            resp = self._request("GET", f"{self.base_url}/api/user/me", headers=self._headers())
+            ms = (time.time() - start) * 1000
+            if resp.status_code == 200:
+                return ConnectorHealth(healthy=True, latency_ms=ms, message="OK")
+            return ConnectorHealth(healthy=False, latency_ms=ms, message=f"HTTP {resp.status_code}")
+        except Exception as exc:
+            return ConnectorHealth(healthy=False, latency_ms=(time.time() - start) * 1000, message=str(exc))
+
+
+# ---------------------------------------------------------------------------
+# 9. Lacework CNAPP Connector
+# ---------------------------------------------------------------------------
+
+class LaceworkConnector(_BaseConnector):
+    """Fetch security data from Lacework API v2."""
+
+    def __init__(self, settings: Mapping[str, Any]):
+        super().__init__(timeout=float(settings.get("timeout", 30.0) or 30.0))
+        self.account = settings.get("account")  # e.g., "yourcompany"
+        self.base_url = f"https://{self.account}.lacework.net" if self.account else ""
+        self.key_id = settings.get("key_id")
+        self.secret = settings.get("secret")
+        secret_env = settings.get("secret_env", "LACEWORK_SECRET")
+        if secret_env:
+            self.secret = os.getenv(str(secret_env)) or self.secret
+        self._token: Optional[str] = None
+        self._token_expires: float = 0
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.account and self.key_id and self.secret)
+
+    def _get_token(self) -> Optional[str]:
+        """Get API access token."""
+        if self._token and time.time() < self._token_expires:
+            return self._token
+        try:
+            resp = self._request(
+                "POST",
+                f"{self.base_url}/api/v2/access/tokens",
+                json={"keyId": self.key_id, "expiryTime": 3600},
+                headers={"X-LW-UAKS": self.secret, "Content-Type": "application/json"},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            self._token = data.get("token")
+            self._token_expires = time.time() + 3600 - 60
+            return self._token
+        except Exception as exc:
+            logger.warning(f"Lacework auth failed: {exc}")
+            return None
+
+    def _headers(self) -> Dict[str, str]:
+        token = self._get_token()
+        return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+    def get_alerts(self, severity: Optional[str] = None, limit: int = 100) -> ConnectorOutcome:
+        """Fetch security alerts."""
+        if not self.configured:
+            return ConnectorOutcome("skipped", {"reason": "lacework not configured"})
+        url = f"{self.base_url}/api/v2/Alerts"
+        try:
+            resp = self._request("GET", url, headers=self._headers(), params={"limit": limit})
+            resp.raise_for_status()
+            data = resp.json()
+            alerts = data.get("data", [])
+            if severity:
+                alerts = [a for a in alerts if a.get("severity", "").lower() == severity.lower()]
+            return ConnectorOutcome("fetched", {"alerts": alerts, "count": len(alerts)})
+        except Exception as exc:
+            return ConnectorOutcome("failed", {"error": str(exc)})
+
+    def get_vulnerabilities(self, limit: int = 100) -> ConnectorOutcome:
+        """Fetch vulnerability findings from host/container scans."""
+        if not self.configured:
+            return ConnectorOutcome("skipped", {"reason": "lacework not configured"})
+        url = f"{self.base_url}/api/v2/Vulnerabilities/Hosts/search"
+        try:
+            resp = self._request(
+                "POST",
+                url,
+                headers=self._headers(),
+                json={"filters": [], "returns": ["vulnId", "severity", "fixInfo", "cveProps"]},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            vulns = data.get("data", [])
+            return ConnectorOutcome("fetched", {"vulnerabilities": vulns[:limit], "count": len(vulns)})
+        except Exception as exc:
+            return ConnectorOutcome("failed", {"error": str(exc)})
+
+    def health_check(self) -> ConnectorHealth:
+        if not self.configured:
+            return ConnectorHealth(healthy=False, latency_ms=0, message="Not configured")
+        start = time.time()
+        token = self._get_token()
+        ms = (time.time() - start) * 1000
+        if token:
+            return ConnectorHealth(healthy=True, latency_ms=ms, message="Authenticated OK")
+        return ConnectorHealth(healthy=False, latency_ms=ms, message="Auth failed")
+
+
 __all__ = [
     "SnykConnector",
     "SonarQubeConnector",
     "DependabotConnector",
     "AWSSecurityHubConnector",
     "AzureSecurityCenterConnector",
+    "WizConnector",
+    "PrismaCloudConnector",
+    "OrcaSecurityConnector",
+    "LaceworkConnector",
 ]

@@ -1,0 +1,11 @@
+#!/bin/bash
+# ALdeci CLI wrapper script
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Add workspace to Python path
+export PYTHONPATH="$WORKSPACE_ROOT:$WORKSPACE_ROOT/suite-core:$WORKSPACE_ROOT/suite-api:$PYTHONPATH"
+
+# Run aldeci CLI
+python3 "$WORKSPACE_ROOT/suite-core/cli/aldeci.py" "$@"

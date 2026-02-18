@@ -1,4 +1,4 @@
-# ALdeci/FixOps — CORRECTED Competitive Verdict (Live API + Deep Codebase Audit)
+# ALdeci/ALdeci — CORRECTED Competitive Verdict (Live API + Deep Codebase Audit)
 
 > **Date:** 12 Feb 2026 (Corrected)  
 > **Method:** Live curl tests (28 endpoints) + full codebase audit (168K Python LOC, 527K TypeScript LOC)  
@@ -206,8 +206,8 @@
 | **Attestation** | `suite-core/services/provenance/attestation.py` (695 lines) | `ProvenanceAttestation`, `InTotoStatement`, `InTotoEnvelope`, RSA-SHA256 signing |
 | **SLSA v1** | `IN_TOTO_STATEMENT_TYPE` spec compliance | Industry-standard |
 | **Provenance Graph** | `suite-core/services/graph/graph.py` (727 lines) — SQLite + NetworkX DAG | Links attestations → SBOMs → risk reports |
-| **Cosign** | `suite-core/cli/fixops_ci.py` — `--cosign-key` option for MANIFEST.yaml signing | Supply chain signing |
-| **CLI** | `suite-core/cli/fixops_provenance.py` — sign/verify attestations, Ed25519 keys | Full provenance toolchain |
+| **Cosign** | `suite-core/cli/aldeci_ci.py` — `--cosign-key` option for MANIFEST.yaml signing | Supply chain signing |
+| **CLI** | `suite-core/cli/aldeci_provenance.py` — sign/verify attestations, Ed25519 keys | Full provenance toolchain |
 | **Verifier** | `suite-core/services/repro/verifier.py` — reproducibility verification | Validates attestation subjects against builds |
 | **Ingestion** | `ScanType.SUPPLY_CHAIN` in ingestion.py | Supply chain scan type |
 
@@ -233,9 +233,9 @@
 
 ## 3. CORRECTED FEATURE-BY-FEATURE COMPARISON
 
-### ALdeci/FixOps vs Apiiro ($150M+, $1B+ valuation)
+### ALdeci/ALdeci vs Apiiro ($150M+, $1B+ valuation)
 
-| Capability | Apiiro | ALdeci/FixOps | Verdict |
+| Capability | Apiiro | ALdeci/ALdeci | Verdict |
 |-----------|--------|---------------|---------|
 | **Risk Graph** | Risk Graph™ | Brain Graph (578 nodes, 285 edges, multi-org) | **PARITY** |
 | **Deep Code Analysis** | DCA (architecture, data models) | Reachability (clones repos, 5,569-function call graphs) | **PARITY** |
@@ -264,9 +264,9 @@
 
 ---
 
-### ALdeci/FixOps vs Aikido Security (50K+ orgs)
+### ALdeci/ALdeci vs Aikido Security (50K+ orgs)
 
-| Capability | Aikido | ALdeci/FixOps | Verdict |
+| Capability | Aikido | ALdeci/ALdeci | Verdict |
 |-----------|--------|---------------|---------|
 | **SAST** | Native + AI AutoFix | **Native 16-rule engine + Semgrep + OSS fallback** | **PARITY** |
 | **SCA** | Native, 75-92% noise reduction | SCA normalizers (Trivy/Grype/Snyk/Dependabot) + EPSS/KEV enrichment, 83.3% dedup | **PARITY** |

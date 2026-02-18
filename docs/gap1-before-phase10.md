@@ -1,8 +1,8 @@
-# FixOps Codebase Analysis: Architecture, Flows, Database Connections & Gaps
+# ALdeci Codebase Analysis: Architecture, Flows, Database Connections & Gaps
 
 **Document**: gap1-before-phase10.md  
 **Created**: 8 February 2026  
-**Purpose**: Comprehensive analysis of FixOps codebase before Phase 10 implementation  
+**Purpose**: Comprehensive analysis of ALdeci codebase before Phase 10 implementation  
 **Status**: Current State Assessment (No code modifications)
 
 ---
@@ -51,7 +51,7 @@ Production:    ██░░░░░░░░░░░░░░░░░░ 10% 
 ### Suite Structure
 
 ```
-fixops/
+aldeci/
 ├── suite-api/           # Governance Layer (200 endpoints)
 │   └── apps/api/        # 14 routers
 │       ├── app.py                 [MAIN ENTRY] → In-memory dict storage
@@ -1290,7 +1290,7 @@ async def copilot_chat(org_id: str, query: str):
 
 ### The Bottom Line
 
-**FixOps has a $1B architecture implemented at 40%.**
+**ALdeci has a $1B architecture implemented at 40%.**
 
 With 6-8 weeks of focused work wiring persistence, real AI, and Knowledge Graph population, this becomes a legitimate enterprise product competitive with Snyk/Aikido/Wiz.
 

@@ -15,7 +15,7 @@ The legacy MFE stack was built with Next.js and a micro-frontend architecture. I
 
 ## Official UI: ALdeci
 
-The official FixOps frontend is now located at:
+The official ALdeci frontend is now located at:
 
 ```
 suite-ui/aldeci/
@@ -77,4 +77,4 @@ This archive is kept for reference only and will not receive updates. It should 
 
 ## Support
 
-For questions about migration, open an issue on the FixOps repository or consult the development team.
+For questions about migration, open an issue on the ALdeci repository or consult the development team.

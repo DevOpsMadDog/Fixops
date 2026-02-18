@@ -1,8 +1,8 @@
-# FixOps Enterprise Features Roadmap
+# ALdeci Enterprise Features Roadmap
 
 ## Executive Summary
 
-This document outlines the world-class enterprise features designed to make FixOps the definitive platform for vulnerability management teams. These features address the five priority areas identified for enterprise readiness, with architectural patterns that differentiate FixOps from all competitors.
+This document outlines the world-class enterprise features designed to make ALdeci the definitive platform for vulnerability management teams. These features address the five priority areas identified for enterprise readiness, with architectural patterns that differentiate ALdeci from all competitors.
 
 **Priority Features:**
 1. **HIGH**: Intelligent Deduplication & Correlation Engine
@@ -17,7 +17,7 @@ This document outlines the world-class enterprise features designed to make FixO
 
 ### Overview
 
-The FixOps Correlation Engine is a two-layer system that separates **deduplication** (identity matching) from **correlation** (root cause analysis). This separation is critical because enterprise teams require extremely high precision for dedup merges while accepting probabilistic correlation for investigation.
+The ALdeci Correlation Engine is a two-layer system that separates **deduplication** (identity matching) from **correlation** (root cause analysis). This separation is critical because enterprise teams require extremely high precision for dedup merges while accepting probabilistic correlation for investigation.
 
 ### Architecture
 
@@ -174,21 +174,21 @@ POST   /api/v1/correlation/links/{id}/reject    # Reject with reason
 
 ```bash
 # Correlation analysis
-fixops correlation analyze --input findings.json --output correlations.json
-fixops correlation status <job_id>
+aldeci correlation analyze --input findings.json --output correlations.json
+aldeci correlation status <job_id>
 
 # Group management
-fixops groups list [--status open|triaged|remediated]
-fixops groups show <group_id>
-fixops groups merge <source_id> <target_id> --reason "Same root cause"
-fixops groups unmerge <group_id> --finding <finding_id>
+aldeci groups list [--status open|triaged|remediated]
+aldeci groups show <group_id>
+aldeci groups merge <source_id> <target_id> --reason "Same root cause"
+aldeci groups unmerge <group_id> --finding <finding_id>
 
 # Correlation graph
-fixops correlation graph --format dot|json --output graph.dot
-fixops correlation explain <link_id>
+aldeci correlation graph --format dot|json --output graph.dot
+aldeci correlation explain <link_id>
 ```
 
-### Integration with FixOps Pipeline
+### Integration with ALdeci Pipeline
 
 The correlation engine integrates at three points in the pipeline:
 
@@ -223,7 +223,7 @@ class NoiseReductionMetrics:
 
 ### Overview
 
-Enterprise-grade integration requires **bidirectional state reconciliation**, not fire-and-forget ticket creation. The FixOps integration framework implements an outbox/inbox pattern with reliable delivery, idempotency, and drift detection.
+Enterprise-grade integration requires **bidirectional state reconciliation**, not fire-and-forget ticket creation. The ALdeci integration framework implements an outbox/inbox pattern with reliable delivery, idempotency, and drift detection.
 
 ### Architecture
 
@@ -233,7 +233,7 @@ Enterprise-grade integration requires **bidirectional state reconciliation**, no
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │  ┌──────────────────┐                           ┌──────────────────┐        │
-│  │   FixOps Core    │                           │  External System │        │
+│  │   ALdeci Core    │                           │  External System │        │
 │  │                  │                           │  (Jira/ServiceNow)│        │
 │  │  ┌────────────┐  │    ┌─────────────────┐   │                  │        │
 │  │  │ Finding    │──┼───▶│    Outbox       │───┼─▶│  Create/Update │        │
@@ -258,26 +258,26 @@ Enterprise-grade integration requires **bidirectional state reconciliation**, no
 ### Core Data Models
 
 #### IntegrationMapping
-Links FixOps entities to external tickets with state tracking.
+Links ALdeci entities to external tickets with state tracking.
 
 ```python
 @dataclass
 class IntegrationMapping:
-    """Bidirectional mapping between FixOps and external systems."""
+    """Bidirectional mapping between ALdeci and external systems."""
     
     id: str
-    fixops_entity_type: str              # finding_group | remediation_task
-    fixops_entity_id: str
+    aldeci_entity_type: str              # finding_group | remediation_task
+    aldeci_entity_id: str
     
     external_system: str                 # jira | servicenow
     external_id: str                     # Jira key or ServiceNow sys_id
     external_url: str                    # Deep link
     
     # State tracking
-    last_fixops_state: Dict[str, Any]    # Hash of relevant fields
+    last_aldeci_state: Dict[str, Any]    # Hash of relevant fields
     last_external_state: Dict[str, Any]  # Hash of relevant fields
     last_sync_at: datetime
-    sync_direction: str                  # fixops_to_external | external_to_fixops | bidirectional
+    sync_direction: str                  # aldeci_to_external | external_to_aldeci | bidirectional
     
     # Drift detection
     drift_detected: bool
@@ -389,19 +389,19 @@ GET    /api/v1/integrations/{id}/sync/history    # Sync history
 
 ```bash
 # Integration management
-fixops integrations list
-fixops integrations configure jira --url https://company.atlassian.net --project SEC
-fixops integrations configure servicenow --url https://company.service-now.com --table incident
-fixops integrations test <integration_id>
+aldeci integrations list
+aldeci integrations configure jira --url https://company.atlassian.net --project SEC
+aldeci integrations configure servicenow --url https://company.service-now.com --table incident
+aldeci integrations test <integration_id>
 
 # Ticket operations
-fixops tickets create --group <group_id> --integration <integration_id>
-fixops tickets sync --integration <integration_id> [--full]
-fixops tickets status <ticket_id>
+aldeci tickets create --group <group_id> --integration <integration_id>
+aldeci tickets sync --integration <integration_id> [--full]
+aldeci tickets status <ticket_id>
 
 # Mapping management
-fixops mappings list [--integration <id>] [--drift-only]
-fixops mappings unlink <mapping_id>
+aldeci mappings list [--integration <id>] [--drift-only]
+aldeci mappings unlink <mapping_id>
 ```
 
 ### Reliability Features
@@ -419,7 +419,7 @@ fixops mappings unlink <mapping_id>
 
 ### Overview
 
-Remediation tracking requires a proper **state machine** and **timeline**, not a single status field. FixOps separates **FindingGroup** (what is wrong) from **RemediationTask** (what we're doing about it), enabling proper SLA tracking, ownership, and verification.
+Remediation tracking requires a proper **state machine** and **timeline**, not a single status field. ALdeci separates **FindingGroup** (what is wrong) from **RemediationTask** (what we're doing about it), enabling proper SLA tracking, ownership, and verification.
 
 ### Architecture
 
@@ -625,19 +625,19 @@ GET    /api/v1/remediation/metrics/sla           # SLA compliance rate
 
 ```bash
 # Task management
-fixops remediation list [--status open|in_progress|verified]
-fixops remediation create --group <group_id> --owner <user_id>
-fixops remediation assign <task_id> --owner <user_id>
-fixops remediation start <task_id>
-fixops remediation verify <task_id> --evidence <evidence_file>
-fixops remediation close <task_id>
+aldeci remediation list [--status open|in_progress|verified]
+aldeci remediation create --group <group_id> --owner <user_id>
+aldeci remediation assign <task_id> --owner <user_id>
+aldeci remediation start <task_id>
+aldeci remediation verify <task_id> --evidence <evidence_file>
+aldeci remediation close <task_id>
 
 # Risk acceptance
-fixops remediation accept-risk <task_id> --reason "Compensating controls" --expiry 90d
+aldeci remediation accept-risk <task_id> --reason "Compensating controls" --expiry 90d
 
 # SLA reporting
-fixops remediation sla-report --period 30d --format csv
-fixops remediation mttr --period 90d
+aldeci remediation sla-report --period 30d --format csv
+aldeci remediation mttr --period 90d
 ```
 
 ### Drift Detection
@@ -656,7 +656,7 @@ When a remediated finding reappears:
 
 ### Overview
 
-Enterprise bulk operations require **job semantics** with partial failure handling, per-item outcomes, and full audit trails. FixOps implements an async job model that scales to thousands of items.
+Enterprise bulk operations require **job semantics** with partial failure handling, per-item outcomes, and full audit trails. ALdeci implements an async job model that scales to thousands of items.
 
 ### Architecture
 
@@ -799,26 +799,26 @@ POST   /api/v1/bulk/views/{id}/execute           # Execute view as bulk job
 
 ```bash
 # Bulk operations
-fixops bulk assign --query "severity:critical AND status:open" --owner security-team
-fixops bulk accept-risk --ids id1,id2,id3 --reason "Compensating controls" --expiry 90d
-fixops bulk create-tickets --query "severity:high" --integration jira
-fixops bulk export --query "created:>2024-01-01" --format csv --output findings.csv
+aldeci bulk assign --query "severity:critical AND status:open" --owner security-team
+aldeci bulk accept-risk --ids id1,id2,id3 --reason "Compensating controls" --expiry 90d
+aldeci bulk create-tickets --query "severity:high" --integration jira
+aldeci bulk export --query "created:>2024-01-01" --format csv --output findings.csv
 
 # Job management
-fixops bulk status <job_id>
-fixops bulk results <job_id> [--failed-only]
-fixops bulk cancel <job_id>
-fixops bulk retry <job_id>
+aldeci bulk status <job_id>
+aldeci bulk results <job_id> [--failed-only]
+aldeci bulk cancel <job_id>
+aldeci bulk retry <job_id>
 
 # Saved views
-fixops views list
-fixops views create "Critical Open" --query "severity:critical AND status:open"
-fixops views execute <view_id> --action assign --owner security-team
+aldeci views list
+aldeci views create "Critical Open" --query "severity:critical AND status:open"
+aldeci views execute <view_id> --action assign --owner security-team
 ```
 
 ### Query Language
 
-FixOps supports a powerful query language for bulk selections:
+ALdeci supports a powerful query language for bulk selections:
 
 ```
 # Severity and status
@@ -846,7 +846,7 @@ correlation_group:group-123 OR root_cause:input_validation
 
 ### Overview
 
-Enterprise collaboration requires **append-only, auditable** communication with attribution and retention. FixOps implements a threaded comment system with mentions, watchers, and integration with evidence bundles.
+Enterprise collaboration requires **append-only, auditable** communication with attribution and retention. ALdeci implements a threaded comment system with mentions, watchers, and integration with evidence bundles.
 
 ### Architecture
 
@@ -993,18 +993,18 @@ POST   /api/v1/notifications/read-all            # Mark all as read
 
 ```bash
 # Comments
-fixops comments list --group <group_id>
-fixops comments add --group <group_id> --body "Investigation complete, root cause identified"
-fixops comments add --task <task_id> --type decision_rationale --body "Accepting risk due to compensating controls"
+aldeci comments list --group <group_id>
+aldeci comments add --group <group_id> --body "Investigation complete, root cause identified"
+aldeci comments add --task <task_id> --type decision_rationale --body "Accepting risk due to compensating controls"
 
 # Watchers
-fixops watch --group <group_id>
-fixops unwatch --group <group_id>
-fixops watchers list --group <group_id>
+aldeci watch --group <group_id>
+aldeci unwatch --group <group_id>
+aldeci watchers list --group <group_id>
 
 # Activity
-fixops activity --since 24h
-fixops activity --group <group_id>
+aldeci activity --since 24h
+aldeci activity --group <group_id>
 ```
 
 ### Integration with External Systems
@@ -1017,15 +1017,15 @@ comment_sync:
   jira:
     enabled: true
     sync_direction: bidirectional
-    fixops_to_jira:
+    aldeci_to_jira:
       include_types: [decision_rationale, risk_acceptance, compensating_control]
-      prefix: "[FixOps] "
-    jira_to_fixops:
+      prefix: "[ALdeci] "
+    jira_to_aldeci:
       include_internal: false
       
   servicenow:
     enabled: true
-    sync_direction: fixops_to_servicenow
+    sync_direction: aldeci_to_servicenow
     field: work_notes
 ```
 
@@ -1039,29 +1039,29 @@ All enterprise features are controlled by feature flags for gradual rollout:
 # Feature flag configuration
 feature_flags:
   # Correlation Engine
-  fixops.feature.correlation.enabled: false
-  fixops.feature.correlation.strategies: [fingerprint, location, pattern, vulnerability]
-  fixops.feature.correlation.auto_merge: false
+  aldeci.feature.correlation.enabled: false
+  aldeci.feature.correlation.strategies: [fingerprint, location, pattern, vulnerability]
+  aldeci.feature.correlation.auto_merge: false
   
   # Integrations
-  fixops.feature.integrations.jira.enabled: true
-  fixops.feature.integrations.servicenow.enabled: false
-  fixops.feature.integrations.bidirectional_sync: false
+  aldeci.feature.integrations.jira.enabled: true
+  aldeci.feature.integrations.servicenow.enabled: false
+  aldeci.feature.integrations.bidirectional_sync: false
   
   # Remediation
-  fixops.feature.remediation.sla_tracking: true
-  fixops.feature.remediation.verification_required: false
-  fixops.feature.remediation.drift_detection: true
+  aldeci.feature.remediation.sla_tracking: true
+  aldeci.feature.remediation.verification_required: false
+  aldeci.feature.remediation.drift_detection: true
   
   # Bulk Operations
-  fixops.feature.bulk.enabled: true
-  fixops.feature.bulk.max_items: 10000
-  fixops.feature.bulk.async_threshold: 100
+  aldeci.feature.bulk.enabled: true
+  aldeci.feature.bulk.max_items: 10000
+  aldeci.feature.bulk.async_threshold: 100
   
   # Collaboration
-  fixops.feature.collaboration.comments: true
-  fixops.feature.collaboration.watchers: true
-  fixops.feature.collaboration.activity_feed: true
+  aldeci.feature.collaboration.comments: true
+  aldeci.feature.collaboration.watchers: true
+  aldeci.feature.collaboration.activity_feed: true
 ```
 
 ---
@@ -1249,7 +1249,7 @@ curl -X POST -H "X-API-Key: demo-token" -H "Content-Type: application/json" \
 | File | Purpose |
 |------|---------|
 | `apps/api/micro_pentest_router.py` | API endpoints (lines 927-1222) |
-| `fixops-enterprise/src/services/micro_pentest_engine.py` | Core engine implementation |
+| `aldeci-enterprise/src/services/micro_pentest_engine.py` | Core engine implementation |
 | `tests/test_micro_pentest_engine.py` | Test suite (18 tests) |
 
 ### Success Metrics

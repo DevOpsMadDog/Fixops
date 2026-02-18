@@ -1,4 +1,4 @@
-# FixOps Updated Analysis - DeepWiki Integration & Current State
+# ALdeci Updated Analysis - DeepWiki Integration & Current State
 
 ## Key Updates Since Initial Analysis
 
@@ -6,7 +6,7 @@
 
 **What is DeepWiki?**
 - **AI-indexed documentation platform** at https://deepwiki.com/DevOpsMadDog/Fixops
-- Provides **semantic search** across FixOps documentation
+- Provides **semantic search** across ALdeci documentation
 - **Structured documentation** with 30+ pages covering:
   - System Architecture
   - Vulnerability Intelligence System
@@ -18,7 +18,7 @@
 **Value for Teams:**
 - **Faster onboarding**: New team members can search for specific concepts
 - **Better discoverability**: Find documentation by concept, not just file names
-- **AI-powered answers**: Ask questions about FixOps architecture and get contextual answers
+- **AI-powered answers**: Ask questions about ALdeci architecture and get contextual answers
 - **Structured learning path**: Documentation organized hierarchically
 
 **Documentation Structure** (from `.devin/wiki.json`):
@@ -130,7 +130,7 @@
 
 #### 1. **Faster Onboarding** ⭐⭐⭐⭐⭐
 - New team members can search for concepts instead of reading entire docs
-- Example: "How does FixOps prioritize vulnerabilities?" → Gets relevant pages
+- Example: "How does ALdeci prioritize vulnerabilities?" → Gets relevant pages
 - **Time saved**: Hours → Minutes
 
 #### 2. **Better Understanding** ⭐⭐⭐⭐
@@ -151,7 +151,7 @@
 ### Example DeepWiki Queries
 
 **For Vulnerability Management Teams:**
-- "How does FixOps check CISA KEV catalog?"
+- "How does ALdeci check CISA KEV catalog?"
 - "How are EPSS scores used in risk calculation?"
 - "What is the severity promotion engine?"
 - "How does multi-LLM consensus work?"
@@ -173,11 +173,11 @@
 
 #### ✅ **Use DeepWiki For:**
 - **Onboarding new team members** - Faster than reading all docs
-- **Understanding decision logic** - How FixOps makes decisions
+- **Understanding decision logic** - How ALdeci makes decisions
 - **Troubleshooting** - Find answers to specific questions
 - **Architecture understanding** - How components work together
 
-#### ✅ **Use FixOps For:**
+#### ✅ **Use ALdeci For:**
 - **CI/CD release gates** - Allow/block/defer decisions
 - **Vulnerability prioritization** - Risk-based ranking
 - **Compliance reporting** - Automated mapping and reports
@@ -232,7 +232,7 @@
 
 ### Bottom Line
 
-**FixOps is more mature than the README suggests**, particularly in:
+**ALdeci is more mature than the README suggests**, particularly in:
 - Documentation (DeepWiki)
 - Frontend architecture (27 MFEs)
 - CLI coverage (67 commands)
@@ -280,10 +280,10 @@
 
 ## Conclusion
 
-**FixOps has improved in documentation and architecture** since initial analysis, particularly with DeepWiki integration. The platform is **more mature than the README suggests**, with 67 CLI commands and 27 micro frontend applications.
+**ALdeci has improved in documentation and architecture** since initial analysis, particularly with DeepWiki integration. The platform is **more mature than the README suggests**, with 67 CLI commands and 27 micro frontend applications.
 
 **However, critical gaps remain** in data parsing, observability, and scalability that prevent full enterprise readiness.
 
-**DeepWiki is a significant value-add** that makes FixOps more accessible and easier to understand, particularly for vulnerability management teams who need to understand how decisions are made.
+**DeepWiki is a significant value-add** that makes ALdeci more accessible and easier to understand, particularly for vulnerability management teams who need to understand how decisions are made.
 
 **Updated Verdict**: **7/10** (up from 6.5/10) - Strong documentation and architecture, but still needs production hardening.

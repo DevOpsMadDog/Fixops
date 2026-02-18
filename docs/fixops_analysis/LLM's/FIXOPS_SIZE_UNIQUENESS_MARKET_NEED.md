@@ -1,4 +1,4 @@
-# FixOps: Size, Uniqueness, and Market Need Analysis
+# ALdeci: Size, Uniqueness, and Market Need Analysis
 **Date:** December 25, 2025  
 **Analysis:** Codebase size, unique differentiation, market demand assessment
 
@@ -16,7 +16,7 @@
 - **41MB codebase** (excluding dependencies)
 
 ### Uniqueness: **Highly Distinctive** ⭐⭐⭐⭐⭐
-FixOps combines **4 unique differentiators** that no competitor offers together:
+ALdeci combines **4 unique differentiators** that no competitor offers together:
 1. **Multi-LLM Consensus** (4 AI providers with weighted voting)
 2. **Cryptographically-Signed Evidence Bundles** (RSA-SHA256, SLSA v1)
 3. **Micro-Pentest Validation** (automated exploit verification)
@@ -28,7 +28,7 @@ FixOps combines **4 unique differentiators** that no competitor offers together:
 - **Regulatory pressure** (EU CRA, NIST SSDF, ISO 27001:2022)
 - **Evidence gap** (auditors rejecting opaque risk scores)
 
-**Verdict:** ✅ **Companies NEED FixOps** - addresses critical pain points that competitors don't solve
+**Verdict:** ✅ **Companies NEED ALdeci** - addresses critical pain points that competitors don't solve
 
 ---
 
@@ -52,13 +52,13 @@ FixOps combines **4 unique differentiators** that no competitor offers together:
 
 | Product | Python LOC | API Endpoints | Frontend Apps | Status |
 |---------|-----------|---------------|---------------|--------|
-| **FixOps** | ~175K | 250+ | 27 MFEs | ✅ Production |
+| **ALdeci** | ~175K | 250+ | 27 MFEs | ✅ Production |
 | **Nucleus** | ~120K | ~150 | 1 monolith | ✅ Commercial |
 | **Apiiro** | ~200K | ~200 | 5-10 | ✅ Commercial |
 | **ArmorCode** | ~150K | ~180 | 8-12 | ✅ Commercial |
 | **Cycode** | ~100K | ~120 | 6-8 | ✅ Commercial |
 
-**Assessment:** FixOps is **comparable in size** to established commercial platforms, indicating enterprise-grade complexity and feature completeness.
+**Assessment:** ALdeci is **comparable in size** to established commercial platforms, indicating enterprise-grade complexity and feature completeness.
 
 ### Code Distribution:
 
@@ -176,7 +176,7 @@ Total:                234K LOC  (excluding tests/docs)
 
 ### Market Size & Growth:
 
-| Market Segment | Size (2025) | Growth Rate | FixOps Addressable |
+| Market Segment | Size (2025) | Growth Rate | ALdeci Addressable |
 |----------------|-------------|-------------|-------------------|
 | **Vulnerability Management** | $12B | 15% YoY | ✅ Core market |
 | **Application Security** | $8B | 18% YoY | ✅ Strong fit |
@@ -190,7 +190,7 @@ Total:                234K LOC  (excluding tests/docs)
 
 ---
 
-### Critical Pain Points (FixOps Solves):
+### Critical Pain Points (ALdeci Solves):
 
 #### 1. Alert Fatigue (60% of security teams) 🔴
 **Problem:**
@@ -199,7 +199,7 @@ Total:                234K LOC  (excluding tests/docs)
 - Manual triage takes 2-4 hours per day per analyst
 - Critical vulnerabilities get buried in noise
 
-**FixOps Solution:**
+**ALdeci Solution:**
 - Multi-LLM consensus reduces false positives by 40-60%
 - Micro-pentest validation eliminates non-exploitable findings
 - Correlation engine reduces noise by 35%
@@ -217,7 +217,7 @@ Total:                234K LOC  (excluding tests/docs)
 - SOC2/PCI-DSS require continuous compliance
 - Auditors reject opaque risk scores without proof
 
-**FixOps Solution:**
+**ALdeci Solution:**
 - Cryptographically-signed evidence bundles (RSA-SHA256)
 - SLSA v1 provenance/attestations
 - Immutable evidence lake with integrity verification
@@ -235,7 +235,7 @@ Total:                234K LOC  (excluding tests/docs)
 - Competitors are SaaS-only or limited on-prem
 - No cloud dependencies allowed
 
-**FixOps Solution:**
+**ALdeci Solution:**
 - Full functionality offline
 - Complete air-gapped deployment
 - No cloud dependencies
@@ -252,7 +252,7 @@ Total:                234K LOC  (excluding tests/docs)
 - Developers don't trust black-box risk scores
 - Compliance requires "explainable" decisions
 
-**FixOps Solution:**
+**ALdeci Solution:**
 - Transparent "Why" with natural-language narratives
 - Step-by-step reasoning from multi-LLM consensus
 - Visible scoring weights and factors
@@ -270,7 +270,7 @@ Total:                234K LOC  (excluding tests/docs)
 - Wastes developer time on false positives
 - Blocks releases unnecessarily
 
-**FixOps Solution:**
+**ALdeci Solution:**
 - Micro-pentest engine validates exploitability
 - Reachability analysis checks attack paths
 - Multi-AI exploit verification
@@ -283,20 +283,20 @@ Total:                234K LOC  (excluding tests/docs)
 ### Market Demand Indicators:
 
 #### 1. Regulatory Pressure 📈
-- **EU CRA** (2024): Requires supply chain transparency → FixOps evidence bundles
-- **NIST SSDF** (2021): Requires secure software attestation → FixOps SLSA provenance
-- **ISO 27001:2022**: Requires evidence of secure development → FixOps audit artifacts
-- **SOC2/PCI-DSS**: Requires continuous compliance → FixOps compliance automation
+- **EU CRA** (2024): Requires supply chain transparency → ALdeci evidence bundles
+- **NIST SSDF** (2021): Requires secure software attestation → ALdeci SLSA provenance
+- **ISO 27001:2022**: Requires evidence of secure development → ALdeci audit artifacts
+- **SOC2/PCI-DSS**: Requires continuous compliance → ALdeci compliance automation
 
 **Impact:** **80% of enterprises** need evidence-based vulnerability management by 2026
 
 ---
 
 #### 2. Industry Trends 📈
-- **Shift-left security**: FixOps integrates into CI/CD (250+ API endpoints)
-- **AI adoption**: FixOps multi-LLM consensus addresses AI accuracy concerns
-- **On-prem preference**: FixOps serves 30% of market that SaaS can't
-- **Evidence-based decisions**: FixOps provides transparency that auditors demand
+- **Shift-left security**: ALdeci integrates into CI/CD (250+ API endpoints)
+- **AI adoption**: ALdeci multi-LLM consensus addresses AI accuracy concerns
+- **On-prem preference**: ALdeci serves 30% of market that SaaS can't
+- **Evidence-based decisions**: ALdeci provides transparency that auditors demand
 
 **Impact:** **70% of enterprises** prioritize explainable, evidence-based security by 2026
 
@@ -312,40 +312,40 @@ Total:                234K LOC  (excluding tests/docs)
 
 ---
 
-## 4. Do Companies Need FixOps?
+## 4. Do Companies Need ALdeci?
 
 ### Yes - Here's Why:
 
 #### ✅ **Regulatory Compliance** (80% of enterprises)
 - EU CRA, NIST SSDF, ISO 27001:2022 require evidence bundles
 - Competitors can't provide cryptographically-signed evidence
-- **FixOps is the only solution** that meets these requirements
+- **ALdeci is the only solution** that meets these requirements
 
 #### ✅ **Alert Fatigue** (60% of security teams)
 - 1,000+ alerts per day, 60% false positives
 - Multi-LLM consensus + exploit validation reduces noise by 50-70%
-- **FixOps saves $75K-150K per year** per security team
+- **ALdeci saves $75K-150K per year** per security team
 
 #### ✅ **On-Prem Requirement** (30% of enterprises)
 - Financial services, healthcare, government require air-gapped solutions
 - Competitors are SaaS-only or limited on-prem
-- **FixOps captures $3.6B market** that competitors can't serve
+- **ALdeci captures $3.6B market** that competitors can't serve
 
 #### ✅ **Exploit Validation** (90% of tools don't have it)
 - 50-70% of flagged vulnerabilities are not exploitable
 - Micro-pentest engine validates exploitability before blocking releases
-- **FixOps reduces false positives by 50-70%**
+- **ALdeci reduces false positives by 50-70%**
 
 #### ✅ **Transparent Decisions** (70% of enterprises)
 - Auditors reject opaque risk scores
 - Developers don't trust black-box decisions
-- **FixOps provides explainable verdicts** with step-by-step reasoning
+- **ALdeci provides explainable verdicts** with step-by-step reasoning
 
 ---
 
 ### Market Validation:
 
-| Use Case | Market Size | FixOps Fit | Competitor Gap |
+| Use Case | Market Size | ALdeci Fit | Competitor Gap |
 |----------|-------------|------------|----------------|
 | **Regulated Industries** | $4.8B | ⭐⭐⭐⭐⭐ | No evidence bundles |
 | **On-Prem Enterprises** | $3.6B | ⭐⭐⭐⭐⭐ | SaaS-only |
@@ -359,9 +359,9 @@ Total:                234K LOC  (excluding tests/docs)
 
 ## 5. Competitive Positioning
 
-### FixOps vs. Competitors:
+### ALdeci vs. Competitors:
 
-| Feature | FixOps | Nucleus | Apiiro | ArmorCode | Cycode | Vulcan |
+| Feature | ALdeci | Nucleus | Apiiro | ArmorCode | Cycode | Vulcan |
 |---------|--------|---------|--------|-----------|--------|--------|
 | **Multi-LLM Consensus** | ✅ 4 providers | ❌ | ❌ | ❌ | ❌ | ❌ Single |
 | **Signed Evidence Bundles** | ✅ RSA-SHA256 | ❌ | ❌ | ❌ | ❌ | ❌ |
@@ -373,7 +373,7 @@ Total:                234K LOC  (excluding tests/docs)
 | **Compliance Automation** | ✅ Auto artifacts | ❌ | ⚠️ Reports | ⚠️ Reports | ⚠️ Basic | ⚠️ Basic |
 
 **Unique Features Count:**
-- **FixOps:** 8 unique features
+- **ALdeci:** 8 unique features
 - **Nucleus:** 0 unique features
 - **Apiiro:** 0 unique features
 - **ArmorCode:** 0 unique features
@@ -394,7 +394,7 @@ Total:                234K LOC  (excluding tests/docs)
 
 ### **Market Need Score: 93/100** ⭐⭐⭐⭐⭐
 
-**Interpretation:** **Critical market need** - Companies urgently need FixOps to solve problems that competitors can't address.
+**Interpretation:** **Critical market need** - Companies urgently need ALdeci to solve problems that competitors can't address.
 
 ---
 
@@ -402,7 +402,7 @@ Total:                234K LOC  (excluding tests/docs)
 
 ### Cost Savings per Enterprise:
 
-| Benefit | Annual Savings | FixOps Advantage |
+| Benefit | Annual Savings | ALdeci Advantage |
 |---------|---------------|------------------|
 | **Alert Fatigue Reduction** | $75K-150K | 50-70% false positive reduction |
 | **Compliance Automation** | $200K-500K | Auto-generated audit artifacts |
@@ -412,7 +412,7 @@ Total:                234K LOC  (excluding tests/docs)
 
 **Total Annual Savings:** $675K-1.65M per enterprise
 
-### FixOps Pricing Estimate:
+### ALdeci Pricing Estimate:
 - **Enterprise License:** $100K-300K/year
 - **ROI:** 7.5x-18x return on investment
 
@@ -434,21 +434,21 @@ Total:                234K LOC  (excluding tests/docs)
 
 ### Market Need: **Critical and Growing** ✅
 - **$12B+ vulnerability management market** (growing 15% YoY)
-- **60% alert fatigue** → FixOps reduces by 50-70%
-- **80% regulatory pressure** → FixOps provides evidence bundles
-- **30% on-prem requirement** → FixOps serves $3.6B market
+- **60% alert fatigue** → ALdeci reduces by 50-70%
+- **80% regulatory pressure** → ALdeci provides evidence bundles
+- **30% on-prem requirement** → ALdeci serves $3.6B market
 - **93/100 market need score**
 
 ### Final Verdict:
 
-**✅ YES - Companies NEED FixOps**
+**✅ YES - Companies NEED ALdeci**
 
 **Reasons:**
-1. **Regulatory compliance** (EU CRA, NIST SSDF, ISO 27001) requires evidence bundles → **Only FixOps provides**
-2. **Alert fatigue** costs $75K-150K/year → **FixOps reduces by 50-70%**
-3. **On-prem requirement** ($3.6B market) → **Only FixOps serves**
-4. **Exploit validation** reduces false positives → **Only FixOps validates**
-5. **Transparent decisions** enable compliance → **Only FixOps explains**
+1. **Regulatory compliance** (EU CRA, NIST SSDF, ISO 27001) requires evidence bundles → **Only ALdeci provides**
+2. **Alert fatigue** costs $75K-150K/year → **ALdeci reduces by 50-70%**
+3. **On-prem requirement** ($3.6B market) → **Only ALdeci serves**
+4. **Exploit validation** reduces false positives → **Only ALdeci validates**
+5. **Transparent decisions** enable compliance → **Only ALdeci explains**
 
 **Market Opportunity:**
 - **TAM:** $45B+
@@ -462,7 +462,7 @@ Total:                234K LOC  (excluding tests/docs)
 - **On-prem deployment** captures 30% of market competitors can't serve
 - **Multi-LLM consensus** provides accuracy advantage (40-60% false positive reduction)
 
-**Recommendation:** ✅ **FixOps is uniquely positioned to capture significant market share** in the $12B+ vulnerability management market by solving problems that competitors can't address.
+**Recommendation:** ✅ **ALdeci is uniquely positioned to capture significant market share** in the $12B+ vulnerability management market by solving problems that competitors can't address.
 
 ---
 

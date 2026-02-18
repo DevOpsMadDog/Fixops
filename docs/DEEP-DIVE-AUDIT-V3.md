@@ -1,4 +1,4 @@
-# ALdeci / FixOps — Deep-Dive Codebase Audit V3
+# ALdeci / ALdeci — Deep-Dive Codebase Audit V3
 
 **Date:** 2026-02-08
 **Auditor:** Augment Agent (Claude Opus 4.6)
@@ -450,7 +450,7 @@ class KnowledgeBrain:
     _instance: Optional["KnowledgeBrain"] = None  # Per-process singleton
     _lock = threading.Lock()
 
-    def __init__(self, db_path="fixops_brain.db"):
+    def __init__(self, db_path="aldeci_brain.db"):
         self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self._graph = nx.MultiDiGraph()  # In-memory graph
 ```
@@ -458,9 +458,9 @@ class KnowledgeBrain:
 ### The Problem
 
 Each suite runs as a **separate Python process** on a different port:
-- suite-api → port 8000 → its own `KnowledgeBrain` singleton → its own `fixops_brain.db`
-- suite-core → port 8001 → its own `KnowledgeBrain` singleton → its own `fixops_brain.db`
-- suite-attack → port 8002 → its own `KnowledgeBrain` singleton → its own `fixops_brain.db`
+- suite-api → port 8000 → its own `KnowledgeBrain` singleton → its own `aldeci_brain.db`
+- suite-core → port 8001 → its own `KnowledgeBrain` singleton → its own `aldeci_brain.db`
+- suite-attack → port 8002 → its own `KnowledgeBrain` singleton → its own `aldeci_brain.db`
 - etc.
 
 Python singletons are **per-process**, not cross-process. The `_instance` class variable is isolated in each process's memory space.
@@ -473,11 +473,11 @@ Python singletons are **per-process**, not cross-process. The `_instance` class 
 
 ### SQLite Note
 
-Because the default `db_path` is `"fixops_brain.db"` (relative), each process creates the file in its own working directory. Even if they used the same absolute path, SQLite has limited concurrent write support (WAL mode helps but NetworkX in-memory graph won't sync).
+Because the default `db_path` is `"aldeci_brain.db"` (relative), each process creates the file in its own working directory. Even if they used the same absolute path, SQLite has limited concurrent write support (WAL mode helps but NetworkX in-memory graph won't sync).
 
 ### Fix Required
 
-**Option A (Quick):** Use a single shared absolute path (`/data/fixops_brain.db`) and accept SQLite WAL mode limitations. Remove the NetworkX in-memory graph or make it read-on-demand from SQLite.
+**Option A (Quick):** Use a single shared absolute path (`/data/aldeci_brain.db`) and accept SQLite WAL mode limitations. Remove the NetworkX in-memory graph or make it read-on-demand from SQLite.
 
 **Option B (Production):** Replace SQLite + NetworkX with a proper graph database (Neo4j, or PostgreSQL with Apache AGE) that supports concurrent multi-process access.
 
@@ -519,7 +519,7 @@ for module_name, display_name in _optional_routers.items():
 
 - JWT uses `FIXOPS_JWT_SECRET` env var (no hardcoded secret)
 - CORS reads from `FIXOPS_ALLOWED_ORIGINS` with safe localhost defaults
-- Scoped API keys with `fixops_<prefix>.<secret>` format, bcrypt hashed
+- Scoped API keys with `aldeci_<prefix>.<secret>` format, bcrypt hashed
 - Role-based access: ADMIN, ANALYST, VIEWER, SERVICE
 - Dev mode bypass via `FIXOPS_AUTH_MODE=dev` (appropriate for development)
 
@@ -529,7 +529,7 @@ for module_name, display_name in _optional_routers.items():
 
 ### Helm Chart Alignment ✅
 
-The Helm chart at `deployments/kubernetes/fixops-6suite/` correctly:
+The Helm chart at `deployments/kubernetes/aldeci-6suite/` correctly:
 - Deploys all 6 suites as separate Deployments
 - Sets up correct ports (8000–8005)
 - Configures shared env vars: `FIXOPS_JWT_SECRET`, `FIXOPS_ALLOWED_ORIGINS`, `FIXOPS_AUTH_MODE`
@@ -1147,9 +1147,9 @@ After fixes are applied, these scenarios should pass end-to-end:
 
 ### Scenario 5: CLI Integration
 ```
-1. fixops correlation list → returns real clusters
-2. fixops groups stats → returns real stats
-3. fixops remediation list → returns real tasks
+1. aldeci correlation list → returns real clusters
+2. aldeci groups stats → returns real stats
+3. aldeci remediation list → returns real tasks
 ```
 
 ### Scenario 6: Real-Time Pipeline Streaming (NEW in V3)

@@ -1,4 +1,4 @@
-# FixOps Repository and Pull Request Analysis
+# ALdeci Repository and Pull Request Analysis
 **Date:** December 25, 2025  
 **Analysis Scope:** Repository state, recent PRs (#222, #221, #214), and latest code improvements
 
@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-This analysis reviews the FixOps repository's current state, focusing on:
+This analysis reviews the ALdeci repository's current state, focusing on:
 - **PR #222**: Comprehensive README updates with enterprise features
 - **PR #221**: Enterprise features (remediation lifecycle, bulk operations, team collaboration) - mentioned in PR #222 commits
 - **PR #214**: Not found as a separate merged PR; may be incorporated into other PRs
@@ -26,7 +26,7 @@ This analysis reviews the FixOps repository's current state, focusing on:
 
 #### Changes Summary:
 1. **Crux Statement Added:**
-   - Tagline: *"FixOps turns noisy security outputs into provable release decisions and verified remediation"*
+   - Tagline: *"ALdeci turns noisy security outputs into provable release decisions and verified remediation"*
    - Restructured description covering full pipeline: `ingest→correlate→decide→verify→operate→prove`
 
 2. **Core Capability Areas Table:**
@@ -115,7 +115,7 @@ This analysis reviews the FixOps repository's current state, focusing on:
 - ✅ **Within-file deduplication:** Implemented in `apps/api/normalizers.py` for SBOM and CVE feeds (lines 849-860, 978-989)
   - Uses `seen_vuln_ids` set to track unique vulnerability IDs
   - Deduplicates vulnerabilities by ID within each artifact type
-- ✅ **Correlation Engine:** Exists in `fixops-enterprise/src/services/correlation_engine.py`
+- ✅ **Correlation Engine:** Exists in `aldeci-enterprise/src/services/correlation_engine.py`
   - Implements 5 correlation strategies: fingerprint, location, pattern, root-cause, vulnerability taxonomy
   - **Status:** Disabled by default (`enabled: false` in `config/fixops.overlay.yml` line 223)
   - Not integrated into `apps/api/pipeline.py` (no references found)
@@ -216,7 +216,7 @@ grep -r "team\|collaboration\|assign" apps/api/ --include="*.py"
 ### 2. Deduplication Engine Status
 
 **Check:**
-- `fixops-enterprise/src/services/correlation_engine.py`: Is it enabled by default now?
+- `aldeci-enterprise/src/services/correlation_engine.py`: Is it enabled by default now?
 - `apps/api/normalizers.py`: Is cross-tool deduplication implemented?
 - Configuration: Is deduplication enabled in `config/fixops.overlay.yml`?
 
@@ -241,7 +241,7 @@ grep -r "team\|collaboration\|assign" apps/api/ --include="*.py"
    - **Action:** Complete bulk operations implementation (currently returns mock data)
 
 2. **Enable Correlation Engine:**
-   - ✅ Code exists: `fixops-enterprise/src/services/correlation_engine.py`
+   - ✅ Code exists: `aldeci-enterprise/src/services/correlation_engine.py`
    - ⚠️ **Action:** Enable in `config/fixops.overlay.yml` (`enabled: false` → `enabled: true`)
    - ⚠️ **Action:** Integrate into `apps/api/pipeline.py` for automatic correlation during pipeline execution
 
@@ -303,7 +303,7 @@ grep -r "team\|collaboration\|assign" apps/api/ --include="*.py"
 grep -r "remediation\|bulk\|team\|collaboration" apps/api/ cli/ --include="*.py" | head -50
 
 # Check correlation engine status
-grep -r "correlation_engine\|CorrelationEngine" apps/api/ fixops-enterprise/ --include="*.py"
+grep -r "correlation_engine\|CorrelationEngine" apps/api/ aldeci-enterprise/ --include="*.py"
 
 # Check deduplication implementation
 grep -r "deduplicate\|seen_vuln_ids" apps/api/ --include="*.py"

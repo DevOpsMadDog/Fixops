@@ -1,8 +1,8 @@
-# FixOps PRD Creation - Mind Map
+# ALdeci PRD Creation - Mind Map
 
 ```mermaid
 mindmap
-  root((FixOps PRD))
+  root((ALdeci PRD))
     Executive Summary
       Product Overview
       Value Propositions

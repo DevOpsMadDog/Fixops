@@ -17,7 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
-import { ingestApi, inventoryApi, dedupApi } from '../../lib/api';
+import { inventoryApi, dedupApi } from '../../lib/api';
 import { toast } from 'sonner';
 
 export default function CodeScanning() {

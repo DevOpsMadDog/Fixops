@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  ALdeci AI Team — macOS LaunchAgent
+  
+  Runs the AI team orchestrator daily at 06:00 AM local time.
+  Agents take ~30-50 min total; daily demo ready by ~07:00 AM.
+
+  INSTALL:
+    cp scripts/com.aldeci.ai-team.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.aldeci.ai-team.plist
+
+  UNINSTALL:
+    launchctl unload ~/Library/LaunchAgents/com.aldeci.ai-team.plist
+    rm ~/Library/LaunchAgents/com.aldeci.ai-team.plist
+
+  MANUAL TRIGGER:
+    launchctl start com.aldeci.ai-team
+
+  VIEW LOGS:
+    tail -f /tmp/aldeci-ai-team.log
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.aldeci.ai-team</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/devops.ai/developement/fixops/Fixops/scripts/run-ai-team.sh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/devops.ai/developement/fixops/Fixops</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>6</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/aldeci-ai-team.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/aldeci-ai-team-error.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+        <key>HOME</key>
+        <string>/Users/devops.ai</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>Nice</key>
+    <integer>10</integer>
+</dict>
+</plist>

@@ -1,8 +1,8 @@
-# FixOps Feature-to-Code Mapping
+# ALdeci Feature-to-Code Mapping
 
 > **Total Codebase: ~270K LOC** | **303 API Endpoints** | **111 CLI Commands** | **16 UI Pages**
 
-This document maps every FixOps feature to its exact code paths, API endpoints, CLI commands, and execution flows.
+This document maps every ALdeci feature to its exact code paths, API endpoints, CLI commands, and execution flows.
 
 ---
 
@@ -12,7 +12,7 @@ This document maps every FixOps feature to its exact code paths, API endpoints, 
 
 ### Running Inside Docker (Recommended for Production)
 
-FixOps is distributed as Docker images for easy deployment at customer sites. The main image exposes port 8000 for the API.
+ALdeci is distributed as Docker images for easy deployment at customer sites. The main image exposes port 8000 for the API.
 
 **Option 1: Quick Start with Docker Compose**
 
@@ -33,13 +33,13 @@ curl http://localhost:8000/health
 ```bash
 # Pull and run the image
 docker run -d \
-  --name fixops-api \
+  --name aldeci-api \
   -p 8000:8000 \
   -e FIXOPS_API_TOKEN=your-secure-token \
   -e FIXOPS_DISABLE_TELEMETRY=1 \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/config:/app/config \
-  devopsaico/fixops:latest
+  devopsaico/aldeci:latest
 
 # Check health
 curl http://localhost:8000/health
@@ -51,34 +51,34 @@ The container supports multiple modes via the entrypoint:
 
 | Mode | Command | Description |
 |------|---------|-------------|
-| `api-only` | `docker run fixops api-only` | Start only the API server (default) |
-| `interactive` | `docker run -it fixops interactive` | Interactive API tester shell |
-| `demo` | `docker run -it fixops demo` | Run animated ALDECI demo |
-| `cli <args>` | `docker run fixops cli teams list` | Run any CLI command |
-| `shell` | `docker run -it fixops shell` | Start bash shell |
-| `test-all` | `docker run fixops test-all` | Run all API tests |
+| `api-only` | `docker run aldeci api-only` | Start only the API server (default) |
+| `interactive` | `docker run -it aldeci interactive` | Interactive API tester shell |
+| `demo` | `docker run -it aldeci demo` | Run animated ALDECI demo |
+| `cli <args>` | `docker run aldeci cli teams list` | Run any CLI command |
+| `shell` | `docker run -it aldeci shell` | Start bash shell |
+| `test-all` | `docker run aldeci test-all` | Run all API tests |
 
 **Example: Run CLI Commands Inside Docker**
 
 ```bash
 # List teams
-docker run devopsaico/fixops:latest cli teams list
+docker run devopsaico/aldeci:latest cli teams list
 
 # Run demo pipeline
-docker run devopsaico/fixops:latest cli demo --mode demo --pretty
+docker run devopsaico/aldeci:latest cli demo --mode demo --pretty
 
 # Run compliance check
-docker run devopsaico/fixops:latest cli compliance status --framework PCI-DSS
+docker run devopsaico/aldeci:latest cli compliance status --framework PCI-DSS
 
 # Interactive shell for exploration
-docker run -it devopsaico/fixops:latest shell
+docker run -it devopsaico/aldeci:latest shell
 ```
 
 **Example: Upload Files to Running Container**
 
 ```bash
 # Start container
-docker run -d --name fixops -p 8000:8000 devopsaico/fixops:latest
+docker run -d --name aldeci -p 8000:8000 devopsaico/aldeci:latest
 
 # Upload SBOM
 curl -H "X-API-Key: demo-token-12345" \
@@ -159,8 +159,8 @@ All CLI command groups with their purpose and usage. Run `python -m core.cli <co
 | Command Group | Purpose | Why You Need It | Example |
 |---------------|---------|-----------------|---------|
 | `demo` | Run pipeline with bundled fixtures | Quick validation without external data | `python -m core.cli demo --mode demo --pretty` |
-| `run` | Execute full FixOps pipeline | Production pipeline execution with overlays | `python -m core.cli run --overlay config/fixops.overlay.yml` |
-| `ingest` | Normalize security artifacts | Import SBOM/SARIF/CVE files into FixOps | `python -m core.cli ingest --sbom sbom.json --sarif scan.sarif` |
+| `run` | Execute full ALdeci pipeline | Production pipeline execution with overlays | `python -m core.cli run --overlay config/fixops.overlay.yml` |
+| `ingest` | Normalize security artifacts | Import SBOM/SARIF/CVE files into ALdeci | `python -m core.cli ingest --sbom sbom.json --sarif scan.sarif` |
 | `stage-run` | Run single pipeline stage | Debug specific stages (build, test, deploy) | `python -m core.cli stage-run --stage build --input design.csv` |
 | `make-decision` | Get remediation decision | Automated accept/reject based on policy | `python -m core.cli make-decision --input findings.json` |
 | `analyze` | Analyze findings and output verdict | Quick security assessment | `python -m core.cli analyze --input findings.json` |
@@ -583,8 +583,8 @@ Combined Risk Score = f(CVSS, EPSS, KEV, Reachability)
 | Policy Models | `core/policy_models.py` | 46 | `Policy`, `PolicyRule` |
 | Policies Router | `apps/api/policies_router.py` | 182 | Policy CRUD endpoints |
 | Enhanced Routes | `apps/api/routes/enhanced.py` | 110 | Enhanced decision endpoints |
-| Enterprise Decision | `fixops-enterprise/src/services/decision_engine.py` | 436 | `EnterpriseDecisionEngine` |
-| Enhanced Enterprise | `fixops-enterprise/src/services/enhanced_decision_engine.py` | 134 | Enterprise enhancements |
+| Enterprise Decision | `aldeci-enterprise/src/services/decision_engine.py` | 436 | `EnterpriseDecisionEngine` |
+| Enhanced Enterprise | `aldeci-enterprise/src/services/enhanced_decision_engine.py` | 134 | Enterprise enhancements |
 
 ### API Endpoints
 
@@ -678,9 +678,9 @@ Final Decision (accept/reject/defer/escalate)
 | Basic Router | `apps/api/mpte_router.py` | 290 | 14 basic endpoints |
 | Enhanced Router | `apps/api/mpte_router.py` | 619 | 19 advanced endpoints |
 | Micro Router | `apps/api/micro_pentest_router.py` | 222 | 3 micro endpoints |
-| Enterprise Engine | `fixops-enterprise/src/services/advanced_pentest_engine.py` | 2,292 | Enterprise pentest |
-| Automated Pentest | `fixops-enterprise/src/services/automated_pentest.py` | 1,430 | Automation |
-| Playbook Executor | `fixops-enterprise/src/services/playbook_executor.py` | 916 | Playbook execution |
+| Enterprise Engine | `aldeci-enterprise/src/services/advanced_pentest_engine.py` | 2,292 | Enterprise pentest |
+| Automated Pentest | `aldeci-enterprise/src/services/automated_pentest.py` | 1,430 | Automation |
+| Playbook Executor | `aldeci-enterprise/src/services/playbook_executor.py` | 916 | Playbook execution |
 
 ### API Endpoints
 
@@ -774,7 +774,7 @@ Return findings + recommendations
 | Workflow Models | `core/workflow_models.py` | 87 | `Workflow`, `WorkflowStep` |
 | Remediation Router | `apps/api/remediation_router.py` | 268 | 13 remediation endpoints |
 | Workflows Router | `apps/api/workflows_router.py` | 189 | 7 workflow endpoints |
-| Playbook Executor | `fixops-enterprise/src/services/playbook_executor.py` | 916 | `PlaybookExecutor` |
+| Playbook Executor | `aldeci-enterprise/src/services/playbook_executor.py` | 916 | `PlaybookExecutor` |
 
 ### API Endpoints
 
@@ -862,8 +862,8 @@ Task closed
 | Reports Router | `apps/api/reports_router.py` | 263 | 10 report endpoints |
 | Evidence Router | `backend/api/evidence/router.py` | 330 | 4 evidence endpoints |
 | Provenance Router | `backend/api/provenance/router.py` | 51 | 2 provenance endpoints |
-| MITRE Analyzer | `fixops-enterprise/src/services/mitre_compliance_analyzer.py` | 764 | MITRE ATT&CK mapping |
-| Enterprise Crypto | `fixops-enterprise/src/utils/crypto.py` | 723 | HSM support |
+| MITRE Analyzer | `aldeci-enterprise/src/services/mitre_compliance_analyzer.py` | 764 | MITRE ATT&CK mapping |
+| Enterprise Crypto | `aldeci-enterprise/src/utils/crypto.py` | 723 | HSM support |
 
 ### API Endpoints
 
@@ -1005,7 +1005,7 @@ Jira Webhook (issue updated)
     |
     v
 [core/connectors.py:JiraConnector.process_event()]
-    |-- Map Jira status to FixOps status
+    |-- Map Jira status to ALdeci status
     |-- Update remediation task
     |
     v
@@ -1016,7 +1016,7 @@ Task status synced
 
 ---
 
-FixOps creates Jira issue
+ALdeci creates Jira issue
     |
     v
 [core/connectors.py:JiraConnector.create_issue()]
@@ -1143,7 +1143,7 @@ Secret findings with locations
 | Component | File Path | LOC | Key Functions/Classes |
 |-----------|-----------|-----|----------------------|
 | Deduplication Router | `apps/api/deduplication_router.py` | 417 | 17 dedup endpoints |
-| Correlation Engine | `fixops-enterprise/src/services/correlation_engine.py` | 495 | `CorrelationEngine` |
+| Correlation Engine | `aldeci-enterprise/src/services/correlation_engine.py` | 495 | `CorrelationEngine` |
 
 ### API Endpoints
 
@@ -1174,7 +1174,7 @@ Multiple scan results
 [apps/api/deduplication_router.py:analyze_duplicates()]
     |
     v
-[fixops-enterprise/src/services/correlation_engine.py:correlate()]
+[aldeci-enterprise/src/services/correlation_engine.py:correlate()]
     |-- Fuzzy matching on description
     |-- CVE ID matching
     |-- File path matching
@@ -1289,8 +1289,8 @@ Single remediation task for group
 | Component | File Path | LOC | Key Functions/Classes |
 |-----------|-----------|-----|----------------------|
 | Marketplace Router | `apps/api/marketplace_router.py` | 702 | 12 marketplace endpoints |
-| Marketplace Service | `fixops-enterprise/src/services/marketplace_service.py` | 781 | `MarketplaceService` |
-| Marketplace API | `fixops-enterprise/src/api/v1/marketplace.py` | 328 | Enterprise marketplace |
+| Marketplace Service | `aldeci-enterprise/src/services/marketplace_service.py` | 781 | `MarketplaceService` |
+| Marketplace API | `aldeci-enterprise/src/api/v1/marketplace.py` | 328 | Enterprise marketplace |
 
 ### API Endpoints
 
@@ -1471,7 +1471,7 @@ Playbook YAML → PlaybookRunner.load_playbook()
 ### Example Playbook Structure
 
 ```yaml
-apiVersion: fixops.io/v1
+apiVersion: aldeci.io/v1
 kind: CompliancePack
 metadata:
   name: soc2-access-control-validation
@@ -1509,7 +1509,7 @@ spec:
 ### Related Documentation
 
 - [Playbook Language Reference](PLAYBOOK_LANGUAGE_REFERENCE.md) - Complete syntax documentation
-- [Docker Showcase Guide](DOCKER_SHOWCASE_GUIDE.md#29-playbook---execute-fixops-playbooks-yaml-dsl) - Docker examples
+- [Docker Showcase Guide](DOCKER_SHOWCASE_GUIDE.md#29-playbook---execute-aldeci-playbooks-yaml-dsl) - Docker examples
 
 ---
 

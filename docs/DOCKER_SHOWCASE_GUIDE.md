@@ -1,19 +1,19 @@
-# FixOps Docker Showcase Guide
+# ALdeci Docker Showcase Guide
 
 > **Complete runnable reference for all 303 API endpoints and 111 CLI commands inside Docker**
 
-This guide provides copy-paste Docker commands to run and showcase every FixOps feature.
+This guide provides copy-paste Docker commands to run and showcase every ALdeci feature.
 
 ---
 
 ## Prerequisites
 
 ```bash
-# Pull the FixOps image
-docker pull devopsaico/fixops:latest
+# Pull the ALdeci image
+docker pull devopsaico/aldeci:latest
 
 # Or build locally
-docker build -t fixops:local .
+docker build -t aldeci:local .
 ```
 
 **Environment Variables:**
@@ -30,25 +30,25 @@ docker build -t fixops:local .
 
 ```bash
 # Start API server (runs on port 8000)
-docker run -d --name fixops -p 8000:8000 devopsaico/fixops:latest
+docker run -d --name aldeci -p 8000:8000 devopsaico/aldeci:latest
 
 # Verify it's running
 curl http://localhost:8000/health
 
 # Run CLI commands
-docker exec fixops python -m core.cli --help
+docker exec aldeci python -m core.cli --help
 
 # Interactive shell
-docker exec -it fixops bash
+docker exec -it aldeci bash
 ```
 
 ---
 
 ## CLI Command Reference
 
-All CLI commands use: `docker exec fixops python -m core.cli <command> [options]`
+All CLI commands use: `docker exec aldeci python -m core.cli <command> [options]`
 
-Or for one-off commands: `docker run --rm devopsaico/fixops:latest cli <command> [options]`
+Or for one-off commands: `docker run --rm devopsaico/aldeci:latest cli <command> [options]`
 
 ---
 
@@ -64,16 +64,16 @@ Or for one-off commands: `docker run --rm devopsaico/fixops:latest cli <command>
 
 ```bash
 # Run demo mode
-docker exec fixops python -m core.cli demo --mode demo --pretty
+docker exec aldeci python -m core.cli demo --mode demo --pretty
 
 # Run enterprise mode (enables encryption)
-docker exec fixops python -m core.cli demo --mode enterprise --pretty
+docker exec aldeci python -m core.cli demo --mode enterprise --pretty
 
 # Save output to file
-docker exec fixops python -m core.cli demo --mode demo --output /app/data/pipeline.json --pretty
+docker exec aldeci python -m core.cli demo --mode demo --output /app/data/pipeline.json --pretty
 
 # Quiet mode (no summary)
-docker exec fixops python -m core.cli demo --mode demo --quiet
+docker exec aldeci python -m core.cli demo --mode demo --quiet
 ```
 
 ---
@@ -82,7 +82,7 @@ docker exec fixops python -m core.cli demo --mode demo --quiet
 
 **Purpose:** Production pipeline execution with overlay configuration.
 
-**What it operates on:** Your security artifacts (SBOM, SARIF, CVE, design files) specified via command-line flags. Processes them through the full FixOps pipeline.
+**What it operates on:** Your security artifacts (SBOM, SARIF, CVE, design files) specified via command-line flags. Processes them through the full ALdeci pipeline.
 
 **Prerequisites:** 
 - Security artifact files (SBOM, SARIF, CVE, design CSV)
@@ -93,10 +93,10 @@ docker exec fixops python -m core.cli demo --mode demo --quiet
 
 ```bash
 # Run with default overlay
-docker exec fixops python -m core.cli run --overlay /app/config/fixops.overlay.yml
+docker exec aldeci python -m core.cli run --overlay /app/config/fixops.overlay.yml
 
 # Run with specific inputs (YOUR files)
-docker exec fixops python -m core.cli run \
+docker exec aldeci python -m core.cli run \
   --overlay /app/config/fixops.overlay.yml \
   --design /app/samples/design.csv \
   --sbom /app/samples/sbom.json \
@@ -104,21 +104,21 @@ docker exec fixops python -m core.cli run \
   --output /app/data/pipeline-result.json
 
 # Enable specific modules
-docker exec fixops python -m core.cli run \
+docker exec aldeci python -m core.cli run \
   --overlay /app/config/fixops.overlay.yml \
   --enable policy_automation \
   --enable compliance \
   --enable ssdlc
 
 # Offline mode (no feed refresh - for air-gapped environments)
-docker exec fixops python -m core.cli run --offline --overlay /app/config/fixops.overlay.yml
+docker exec aldeci python -m core.cli run --offline --overlay /app/config/fixops.overlay.yml
 ```
 
 ---
 
 ### 3. ingest - Normalize Security Artifacts
 
-**Purpose:** Import SBOM, SARIF, CVE files into FixOps and normalize to common format.
+**Purpose:** Import SBOM, SARIF, CVE files into ALdeci and normalize to common format.
 
 **What it operates on:** Your security scan output files:
 - SBOM (CycloneDX, SPDX format) - Software Bill of Materials
@@ -127,23 +127,23 @@ docker exec fixops python -m core.cli run --offline --overlay /app/config/fixops
 
 **Prerequisites:** Security artifact files from your scanners/tools.
 
-**Data flow:** Raw file → Format detection → Parsing → Normalization to FixOps schema → Stored in database.
+**Data flow:** Raw file → Format detection → Parsing → Normalization to ALdeci schema → Stored in database.
 
 ```bash
 # Ingest SBOM (e.g., from Syft, Trivy, etc.)
-docker exec fixops python -m core.cli ingest --sbom /app/samples/sbom.json
+docker exec aldeci python -m core.cli ingest --sbom /app/samples/sbom.json
 
 # Ingest SARIF scan results (e.g., from Semgrep, CodeQL)
-docker exec fixops python -m core.cli ingest --sarif /app/samples/scan.sarif
+docker exec aldeci python -m core.cli ingest --sarif /app/samples/scan.sarif
 
 # Ingest multiple artifacts at once
-docker exec fixops python -m core.cli ingest \
+docker exec aldeci python -m core.cli ingest \
   --sbom /app/samples/sbom.json \
   --sarif /app/samples/scan.sarif \
   --cve /app/samples/cve.json
 
 # With custom output location
-docker exec fixops python -m core.cli ingest --sbom /app/samples/sbom.json --output /app/data/normalized.json
+docker exec aldeci python -m core.cli ingest --sbom /app/samples/sbom.json --output /app/data/normalized.json
 ```
 
 ---
@@ -163,13 +163,13 @@ docker exec fixops python -m core.cli ingest --sbom /app/samples/sbom.json --out
 
 ```bash
 # Run build stage (processes design decisions)
-docker exec fixops python -m core.cli stage-run --stage build --input /app/samples/design.csv
+docker exec aldeci python -m core.cli stage-run --stage build --input /app/samples/design.csv
 
 # Run test stage (processes scan results)
-docker exec fixops python -m core.cli stage-run --stage test --input /app/samples/scan.sarif
+docker exec aldeci python -m core.cli stage-run --stage test --input /app/samples/scan.sarif
 
 # Run deploy stage (processes SBOM)
-docker exec fixops python -m core.cli stage-run --stage deploy --input /app/samples/sbom.json
+docker exec aldeci python -m core.cli stage-run --stage deploy --input /app/samples/sbom.json
 ```
 
 ---
@@ -188,10 +188,10 @@ docker exec fixops python -m core.cli stage-run --stage deploy --input /app/samp
 
 ```bash
 # Make decision on findings (uses default policy)
-docker exec fixops python -m core.cli make-decision --input /app/data/findings.json
+docker exec aldeci python -m core.cli make-decision --input /app/data/findings.json
 
 # With specific policy
-docker exec fixops python -m core.cli make-decision --input /app/data/findings.json --policy critical-only
+docker exec aldeci python -m core.cli make-decision --input /app/data/findings.json --policy critical-only
 ```
 
 ---
@@ -208,10 +208,10 @@ docker exec fixops python -m core.cli make-decision --input /app/data/findings.j
 
 ```bash
 # Analyze findings
-docker exec fixops python -m core.cli analyze --input /app/data/findings.json
+docker exec aldeci python -m core.cli analyze --input /app/data/findings.json
 
 # With verbose output
-docker exec fixops python -m core.cli analyze --input /app/data/findings.json --verbose
+docker exec aldeci python -m core.cli analyze --input /app/data/findings.json --verbose
 ```
 
 ---
@@ -228,10 +228,10 @@ docker exec fixops python -m core.cli analyze --input /app/data/findings.json --
 
 ```bash
 # Check all integrations
-docker exec fixops python -m core.cli health
+docker exec aldeci python -m core.cli health
 
 # Check specific integration
-docker exec fixops python -m core.cli health --integration jira
+docker exec aldeci python -m core.cli health --integration jira
 ```
 
 ---
@@ -248,10 +248,10 @@ docker exec fixops python -m core.cli health --integration jira
 
 ```bash
 # Get evidence from pipeline run
-docker exec fixops python -m core.cli get-evidence --run /app/data/pipeline.json --target /app/data/evidence
+docker exec aldeci python -m core.cli get-evidence --run /app/data/pipeline.json --target /app/data/evidence
 
 # Copy to specific directory for audit handoff
-docker exec fixops python -m core.cli copy-evidence --run /app/data/pipeline.json --target /app/data/audit-handoff
+docker exec aldeci python -m core.cli copy-evidence --run /app/data/pipeline.json --target /app/data/audit-handoff
 ```
 
 ---
@@ -268,10 +268,10 @@ docker exec fixops python -m core.cli copy-evidence --run /app/data/pipeline.jso
 
 ```bash
 # Show default overlay
-docker exec fixops python -m core.cli show-overlay --overlay /app/config/fixops.overlay.yml
+docker exec aldeci python -m core.cli show-overlay --overlay /app/config/fixops.overlay.yml
 
 # Show sanitized (secrets masked)
-docker exec fixops python -m core.cli show-overlay --overlay /app/config/fixops.overlay.yml --sanitize
+docker exec aldeci python -m core.cli show-overlay --overlay /app/config/fixops.overlay.yml --sanitize
 ```
 
 ---
@@ -280,7 +280,7 @@ docker exec fixops python -m core.cli show-overlay --overlay /app/config/fixops.
 
 **Purpose:** Create, list, delete security teams for organizing users and assigning findings.
 
-**What it operates on:** Teams table in FixOps database (`fixops.db`).
+**What it operates on:** Teams table in ALdeci database (`fixops.db`).
 
 **Prerequisites:** None for list; team must exist for get/delete.
 
@@ -288,25 +288,25 @@ docker exec fixops python -m core.cli show-overlay --overlay /app/config/fixops.
 
 ```bash
 # List all teams (shows teams in database)
-docker exec fixops python -m core.cli teams list
+docker exec aldeci python -m core.cli teams list
 
 # Create a team
-docker exec fixops python -m core.cli teams create --name "Security Team" --description "Main security team"
+docker exec aldeci python -m core.cli teams create --name "Security Team" --description "Main security team"
 
 # Get team details (requires team ID from list)
-docker exec fixops python -m core.cli teams get --id team-123
+docker exec aldeci python -m core.cli teams get --id team-123
 
 # Delete a team
-docker exec fixops python -m core.cli teams delete --id team-123
+docker exec aldeci python -m core.cli teams delete --id team-123
 ```
 
 ---
 
 ### 11. users - Manage Users
 
-**Purpose:** User administration for the FixOps instance.
+**Purpose:** User administration for the ALdeci instance.
 
-**What it operates on:** Users table in FixOps database.
+**What it operates on:** Users table in ALdeci database.
 
 **Prerequisites:** None for list; user must exist for get/delete.
 
@@ -314,16 +314,16 @@ docker exec fixops python -m core.cli teams delete --id team-123
 
 ```bash
 # List all users
-docker exec fixops python -m core.cli users list
+docker exec aldeci python -m core.cli users list
 
 # Create a user
-docker exec fixops python -m core.cli users create --email "user@example.com" --name "John Doe" --role admin
+docker exec aldeci python -m core.cli users create --email "user@example.com" --name "John Doe" --role admin
 
 # Get user details
-docker exec fixops python -m core.cli users get --id user-123
+docker exec aldeci python -m core.cli users get --id user-123
 
 # Delete a user
-docker exec fixops python -m core.cli users delete --id user-123
+docker exec aldeci python -m core.cli users delete --id user-123
 ```
 
 ---
@@ -332,7 +332,7 @@ docker exec fixops python -m core.cli users delete --id user-123
 
 **Purpose:** Cluster related findings together for bulk management.
 
-**What it operates on:** Finding groups (clusters) in FixOps database. Groups are created when findings are correlated.
+**What it operates on:** Finding groups (clusters) in ALdeci database. Groups are created when findings are correlated.
 
 **Prerequisites:** Findings must exist (from pipeline runs) to have groups.
 
@@ -340,16 +340,16 @@ docker exec fixops python -m core.cli users delete --id user-123
 
 ```bash
 # List all groups (clusters of related findings)
-docker exec fixops python -m core.cli groups list
+docker exec aldeci python -m core.cli groups list
 
 # Get group details
-docker exec fixops python -m core.cli groups get --id group-123
+docker exec aldeci python -m core.cli groups get --id group-123
 
 # Merge two groups together
-docker exec fixops python -m core.cli groups merge --source group-123 --target group-456
+docker exec aldeci python -m core.cli groups merge --source group-123 --target group-456
 
 # Unmerge/split events from a group
-docker exec fixops python -m core.cli groups unmerge --id group-123 --event-ids event-1,event-2
+docker exec aldeci python -m core.cli groups unmerge --id group-123 --event-ids event-1,event-2
 ```
 
 ---
@@ -368,24 +368,24 @@ docker exec fixops python -m core.cli groups unmerge --id group-123 --event-ids 
 
 ```bash
 # List pentest requests
-docker exec fixops python -m core.cli mpte list-requests
+docker exec aldeci python -m core.cli mpte list-requests
 
 # Create pentest request (target must be accessible)
-docker exec fixops python -m core.cli mpte create-request \
+docker exec aldeci python -m core.cli mpte create-request \
   --target "https://example.com" \
   --scope "web application"
 
 # Get request details
-docker exec fixops python -m core.cli mpte get-request --id req-123
+docker exec aldeci python -m core.cli mpte get-request --id req-123
 
 # List results (after pentest completes)
-docker exec fixops python -m core.cli mpte list-results
+docker exec aldeci python -m core.cli mpte list-results
 
 # List configurations
-docker exec fixops python -m core.cli mpte list-configs
+docker exec aldeci python -m core.cli mpte list-configs
 
 # Create configuration
-docker exec fixops python -m core.cli mpte create-config --name "default" --settings '{"timeout": 300}'
+docker exec aldeci python -m core.cli mpte create-config --name "default" --settings '{"timeout": 300}'
 ```
 
 ---
@@ -405,18 +405,18 @@ docker exec fixops python -m core.cli mpte create-config --name "default" --sett
 
 ```bash
 # Run micro pentest for specific CVE against target
-docker exec fixops python -m core.cli micro-pentest run \
+docker exec aldeci python -m core.cli micro-pentest run \
   --cve-ids CVE-2024-1234 \
   --target-urls https://example.com \
   --context "Production web application"
 
 # Run batch micro pentests (multiple CVEs, multiple targets)
-docker exec fixops python -m core.cli micro-pentest run \
+docker exec aldeci python -m core.cli micro-pentest run \
   --cve-ids CVE-2024-1234,CVE-2024-5678 \
   --target-urls https://app1.com,https://app2.com
 
 # Check status of running pentest
-docker exec fixops python -m core.cli micro-pentest status --flow-id 12345
+docker exec aldeci python -m core.cli micro-pentest status --flow-id 12345
 ```
 
 ---
@@ -656,12 +656,12 @@ A typical enterprise scan result includes:
 
 ```bash
 # Run advanced pentest
-docker exec fixops python -m core.cli advanced-pentest run \
+docker exec aldeci python -m core.cli advanced-pentest run \
   --target https://example.com \
   --scope "full application"
 
 # With specific LLM providers
-docker exec fixops python -m core.cli advanced-pentest run \
+docker exec aldeci python -m core.cli advanced-pentest run \
   --target https://example.com \
   --providers gpt,claude,gemini
 ```
@@ -672,7 +672,7 @@ docker exec fixops python -m core.cli advanced-pentest run \
 
 **Purpose:** Framework status and compliance reports.
 
-**What it operates on:** Compliance data in FixOps database:
+**What it operates on:** Compliance data in ALdeci database:
 - `compliance_frameworks` - Framework definitions (PCI-DSS, SOC2, HIPAA, etc.)
 - `compliance_controls` - Individual controls per framework
 - `compliance_gaps` - Gaps found during security assessments
@@ -685,17 +685,17 @@ docker exec fixops python -m core.cli advanced-pentest run \
 
 ```bash
 # List supported frameworks
-docker exec fixops python -m core.cli compliance frameworks
+docker exec aldeci python -m core.cli compliance frameworks
 
 # Get compliance status (shows coverage % for framework)
-docker exec fixops python -m core.cli compliance status --framework PCI-DSS
+docker exec aldeci python -m core.cli compliance status --framework PCI-DSS
 
 # Get compliance gaps (shows what's missing)
-docker exec fixops python -m core.cli compliance gaps --framework SOC2
+docker exec aldeci python -m core.cli compliance gaps --framework SOC2
 
 # Generate compliance report (PDF/JSON)
-# NOTE: Report reflects ALL findings ingested into FixOps, not a specific app
-docker exec fixops python -m core.cli compliance report --framework PCI-DSS --format pdf --output /app/data/compliance.pdf
+# NOTE: Report reflects ALL findings ingested into ALdeci, not a specific app
+docker exec aldeci python -m core.cli compliance report --framework PCI-DSS --format pdf --output /app/data/compliance.pdf
 ```
 
 **To get meaningful compliance data, first ingest security artifacts:**
@@ -708,7 +708,7 @@ curl -H "X-API-Key: demo-token-12345" -F "file=@scan.sarif" http://localhost:800
 curl -H "X-API-Key: demo-token-12345" http://localhost:8000/pipeline/run
 
 # 3. Now compliance reports will have data
-docker exec fixops python -m core.cli compliance status --framework PCI-DSS
+docker exec aldeci python -m core.cli compliance status --framework PCI-DSS
 ```
 
 ---
@@ -717,7 +717,7 @@ docker exec fixops python -m core.cli compliance status --framework PCI-DSS
 
 **Purpose:** Security reports in various formats (PDF, HTML, JSON).
 
-**What it operates on:** All security data in FixOps database (findings, decisions, compliance, etc.).
+**What it operates on:** All security data in ALdeci database (findings, decisions, compliance, etc.).
 
 **Prerequisites:** Data must exist from pipeline runs for meaningful reports.
 
@@ -725,16 +725,16 @@ docker exec fixops python -m core.cli compliance status --framework PCI-DSS
 
 ```bash
 # List generated reports
-docker exec fixops python -m core.cli reports list
+docker exec aldeci python -m core.cli reports list
 
 # Generate new report (executive summary of all findings)
-docker exec fixops python -m core.cli reports generate --type executive --format pdf
+docker exec aldeci python -m core.cli reports generate --type executive --format pdf
 
 # Export report data
-docker exec fixops python -m core.cli reports export --id report-123 --format json
+docker exec aldeci python -m core.cli reports export --id report-123 --format json
 
 # List report schedules
-docker exec fixops python -m core.cli reports schedules
+docker exec aldeci python -m core.cli reports schedules
 ```
 
 ---
@@ -743,7 +743,7 @@ docker exec fixops python -m core.cli reports schedules
 
 **Purpose:** Track applications and services in your organization.
 
-**What it operates on:** Application inventory in FixOps database. Used to associate findings with specific apps.
+**What it operates on:** Application inventory in ALdeci database. Used to associate findings with specific apps.
 
 **Prerequisites:** None for list; apps must be added to query them.
 
@@ -751,22 +751,22 @@ docker exec fixops python -m core.cli reports schedules
 
 ```bash
 # List all applications in inventory
-docker exec fixops python -m core.cli inventory apps
+docker exec aldeci python -m core.cli inventory apps
 
 # Add an application to inventory
-docker exec fixops python -m core.cli inventory add \
+docker exec aldeci python -m core.cli inventory add \
   --name "MyApp" \
   --type web \
   --criticality high
 
 # Get application details
-docker exec fixops python -m core.cli inventory get --id app-123
+docker exec aldeci python -m core.cli inventory get --id app-123
 
 # List all services
-docker exec fixops python -m core.cli inventory services
+docker exec aldeci python -m core.cli inventory services
 
 # Search applications by name
-docker exec fixops python -m core.cli inventory search --query "payment"
+docker exec aldeci python -m core.cli inventory search --query "payment"
 ```
 
 ---
@@ -775,7 +775,7 @@ docker exec fixops python -m core.cli inventory search --query "payment"
 
 **Purpose:** CRUD for decision policies that control accept/reject behavior.
 
-**What it operates on:** Policies table in FixOps database. Policies define rules for automated decisions.
+**What it operates on:** Policies table in ALdeci database. Policies define rules for automated decisions.
 
 **Prerequisites:** None for list; policy must exist for get/validate/test.
 
@@ -783,21 +783,21 @@ docker exec fixops python -m core.cli inventory search --query "payment"
 
 ```bash
 # List all policies
-docker exec fixops python -m core.cli policies list
+docker exec aldeci python -m core.cli policies list
 
 # Get policy details
-docker exec fixops python -m core.cli policies get --id policy-123
+docker exec aldeci python -m core.cli policies get --id policy-123
 
 # Create a policy (rules define when to block/allow)
-docker exec fixops python -m core.cli policies create \
+docker exec aldeci python -m core.cli policies create \
   --name "Critical Only" \
   --rules '{"severity": "critical", "action": "block"}'
 
 # Validate a policy (check syntax)
-docker exec fixops python -m core.cli policies validate --id policy-123
+docker exec aldeci python -m core.cli policies validate --id policy-123
 
 # Test a policy against sample findings
-docker exec fixops python -m core.cli policies test --id policy-123 --input /app/data/test-findings.json
+docker exec aldeci python -m core.cli policies test --id policy-123 --input /app/data/test-findings.json
 ```
 
 ---
@@ -806,7 +806,7 @@ docker exec fixops python -m core.cli policies test --id policy-123 --input /app
 
 **Purpose:** Configure external integrations (Jira, Slack, GitHub, etc.).
 
-**What it operates on:** Integrations table in FixOps database. Stores connection configs for external systems.
+**What it operates on:** Integrations table in ALdeci database. Stores connection configs for external systems.
 
 **Prerequisites:** 
 - For configure: External system credentials (tokens, URLs)
@@ -816,19 +816,19 @@ docker exec fixops python -m core.cli policies test --id policy-123 --input /app
 
 ```bash
 # List all configured integrations
-docker exec fixops python -m core.cli integrations list
+docker exec aldeci python -m core.cli integrations list
 
 # Configure a Jira integration
-docker exec fixops python -m core.cli integrations configure \
+docker exec aldeci python -m core.cli integrations configure \
   --type jira \
   --url https://company.atlassian.net \
   --token $JIRA_TOKEN
 
 # Test an integration connection
-docker exec fixops python -m core.cli integrations test --id integration-123
+docker exec aldeci python -m core.cli integrations test --id integration-123
 
 # Sync data with integration (push findings to Jira, etc.)
-docker exec fixops python -m core.cli integrations sync --id integration-123
+docker exec aldeci python -m core.cli integrations sync --id integration-123
 ```
 
 ---
@@ -837,7 +837,7 @@ docker exec fixops python -m core.cli integrations sync --id integration-123
 
 **Purpose:** Dashboard and MTTR (Mean Time To Remediate) statistics.
 
-**What it operates on:** Aggregated data from all findings, remediations, and decisions in FixOps database.
+**What it operates on:** Aggregated data from all findings, remediations, and decisions in ALdeci database.
 
 **Prerequisites:** Data must exist from pipeline runs for meaningful metrics.
 
@@ -845,28 +845,28 @@ docker exec fixops python -m core.cli integrations sync --id integration-123
 
 ```bash
 # Get dashboard metrics (summary of security posture)
-docker exec fixops python -m core.cli analytics dashboard
+docker exec aldeci python -m core.cli analytics dashboard
 
 # Get MTTR metrics (how fast are vulns being fixed)
-docker exec fixops python -m core.cli analytics mttr --days 90
+docker exec aldeci python -m core.cli analytics mttr --days 90
 
 # Get security scan coverage
-docker exec fixops python -m core.cli analytics coverage
+docker exec aldeci python -m core.cli analytics coverage
 
 # Get ROI analysis (cost savings from automation)
-docker exec fixops python -m core.cli analytics roi
+docker exec aldeci python -m core.cli analytics roi
 
 # Export analytics data
-docker exec fixops python -m core.cli analytics export --format csv --output /app/data/analytics.csv
+docker exec aldeci python -m core.cli analytics export --format csv --output /app/data/analytics.csv
 ```
 
 ---
 
 ### 22. audit - View Audit Logs
 
-**Purpose:** Compliance audit trail of all actions in FixOps.
+**Purpose:** Compliance audit trail of all actions in ALdeci.
 
-**What it operates on:** Audit logs table in FixOps database. Records all user actions, decisions, changes.
+**What it operates on:** Audit logs table in ALdeci database. Records all user actions, decisions, changes.
 
 **Prerequisites:** Actions must have occurred to have audit logs.
 
@@ -874,13 +874,13 @@ docker exec fixops python -m core.cli analytics export --format csv --output /ap
 
 ```bash
 # View audit logs (last 30 days)
-docker exec fixops python -m core.cli audit logs --days 30
+docker exec aldeci python -m core.cli audit logs --days 30
 
 # View decision audit trail (who approved/rejected what)
-docker exec fixops python -m core.cli audit decisions --days 7
+docker exec aldeci python -m core.cli audit decisions --days 7
 
 # Export audit logs for compliance
-docker exec fixops python -m core.cli audit export --format json --output /app/data/audit.json
+docker exec aldeci python -m core.cli audit export --format json --output /app/data/audit.json
 ```
 
 ---
@@ -889,7 +889,7 @@ docker exec fixops python -m core.cli audit export --format json --output /app/d
 
 **Purpose:** Workflow definitions and execution for automated responses.
 
-**What it operates on:** Workflows table in FixOps database. Defines triggers and actions.
+**What it operates on:** Workflows table in ALdeci database. Defines triggers and actions.
 
 **Prerequisites:** None for list; workflow must exist for get/execute.
 
@@ -897,22 +897,22 @@ docker exec fixops python -m core.cli audit export --format json --output /app/d
 
 ```bash
 # List all workflows
-docker exec fixops python -m core.cli workflows list
+docker exec aldeci python -m core.cli workflows list
 
 # Get workflow details
-docker exec fixops python -m core.cli workflows get --id workflow-123
+docker exec aldeci python -m core.cli workflows get --id workflow-123
 
 # Create a workflow (auto-assign critical findings)
-docker exec fixops python -m core.cli workflows create \
+docker exec aldeci python -m core.cli workflows create \
   --name "Auto-Triage" \
   --trigger "new_finding" \
   --actions '["assign", "notify"]'
 
 # Execute a workflow manually
-docker exec fixops python -m core.cli workflows execute --id workflow-123
+docker exec aldeci python -m core.cli workflows execute --id workflow-123
 
 # View execution history
-docker exec fixops python -m core.cli workflows history --id workflow-123
+docker exec aldeci python -m core.cli workflows history --id workflow-123
 ```
 
 ---
@@ -921,7 +921,7 @@ docker exec fixops python -m core.cli workflows history --id workflow-123
 
 **Purpose:** Track fix progress and SLA compliance.
 
-**What it operates on:** Remediation tasks in FixOps database. Tasks are created from findings.
+**What it operates on:** Remediation tasks in ALdeci database. Tasks are created from findings.
 
 **Prerequisites:** Findings must exist (from pipeline runs) to have remediation tasks.
 
@@ -929,25 +929,25 @@ docker exec fixops python -m core.cli workflows history --id workflow-123
 
 ```bash
 # List remediation tasks (filter by status)
-docker exec fixops python -m core.cli remediation list --status open
+docker exec aldeci python -m core.cli remediation list --status open
 
 # Get specific task details
-docker exec fixops python -m core.cli remediation get --id task-123
+docker exec aldeci python -m core.cli remediation get --id task-123
 
 # Assign a task to a user
-docker exec fixops python -m core.cli remediation assign --id task-123 --user user-456
+docker exec aldeci python -m core.cli remediation assign --id task-123 --user user-456
 
 # Transition task status
-docker exec fixops python -m core.cli remediation transition --id task-123 --status in_progress
+docker exec aldeci python -m core.cli remediation transition --id task-123 --status in_progress
 
 # Verify a remediation (mark as fixed)
-docker exec fixops python -m core.cli remediation verify --id task-123
+docker exec aldeci python -m core.cli remediation verify --id task-123
 
 # Get remediation metrics (MTTR, etc.)
-docker exec fixops python -m core.cli remediation metrics
+docker exec aldeci python -m core.cli remediation metrics
 
 # Get SLA compliance report
-docker exec fixops python -m core.cli remediation sla
+docker exec aldeci python -m core.cli remediation sla
 ```
 
 ---
@@ -966,13 +966,13 @@ docker exec fixops python -m core.cli remediation sla
 
 ```bash
 # Analyze reachability for a single CVE
-docker exec fixops python -m core.cli reachability analyze --cve CVE-2024-1234
+docker exec aldeci python -m core.cli reachability analyze --cve CVE-2024-1234
 
 # Bulk reachability analysis (file with CVE IDs, one per line)
-docker exec fixops python -m core.cli reachability bulk --file /app/data/cves.txt
+docker exec aldeci python -m core.cli reachability bulk --file /app/data/cves.txt
 
 # Check job status (for async analysis)
-docker exec fixops python -m core.cli reachability status --job-id job-123
+docker exec aldeci python -m core.cli reachability status --job-id job-123
 ```
 
 ---
@@ -981,7 +981,7 @@ docker exec fixops python -m core.cli reachability status --job-id job-123
 
 **Purpose:** Find and manage duplicate/related findings across scans.
 
-**What it operates on:** Findings in FixOps database. Identifies duplicates across different scanners/runs.
+**What it operates on:** Findings in ALdeci database. Identifies duplicates across different scanners/runs.
 
 **Prerequisites:** Multiple findings must exist (from multiple scans) to find correlations.
 
@@ -989,16 +989,16 @@ docker exec fixops python -m core.cli reachability status --job-id job-123
 
 ```bash
 # Analyze correlations (find duplicates)
-docker exec fixops python -m core.cli correlation analyze
+docker exec aldeci python -m core.cli correlation analyze
 
 # Get correlation statistics
-docker exec fixops python -m core.cli correlation stats
+docker exec aldeci python -m core.cli correlation stats
 
 # View correlation graph (relationships between findings)
-docker exec fixops python -m core.cli correlation graph
+docker exec aldeci python -m core.cli correlation graph
 
 # Provide feedback on correlations (improve accuracy)
-docker exec fixops python -m core.cli correlation feedback --id corr-123 --correct true
+docker exec aldeci python -m core.cli correlation feedback --id corr-123 --correct true
 ```
 
 ---
@@ -1007,7 +1007,7 @@ docker exec fixops python -m core.cli correlation feedback --id corr-123 --corre
 
 **Purpose:** Manage alert delivery to users via configured channels.
 
-**What it operates on:** Notification queue in FixOps database. Notifications are queued by workflows/events.
+**What it operates on:** Notification queue in ALdeci database. Notifications are queued by workflows/events.
 
 **Prerequisites:** Notifications must be queued (from workflows, events, etc.).
 
@@ -1015,10 +1015,10 @@ docker exec fixops python -m core.cli correlation feedback --id corr-123 --corre
 
 ```bash
 # List pending notifications
-docker exec fixops python -m core.cli notifications pending
+docker exec aldeci python -m core.cli notifications pending
 
 # Run notification worker (processes and delivers pending notifications)
-docker exec fixops python -m core.cli notifications worker
+docker exec aldeci python -m core.cli notifications worker
 ```
 
 ---
@@ -1037,21 +1037,21 @@ docker exec fixops python -m core.cli notifications worker
 
 ```bash
 # Train forecast model (requires historical incident data)
-docker exec fixops python -m core.cli train-forecast --data /app/data/incidents.csv
+docker exec aldeci python -m core.cli train-forecast --data /app/data/incidents.csv
 
 # Train Bayesian Network model
-docker exec fixops python -m core.cli train-bn-lr --data /app/data/training.csv
+docker exec aldeci python -m core.cli train-bn-lr --data /app/data/training.csv
 
 # Predict exploitation risk for CVEs
-docker exec fixops python -m core.cli predict-bn-lr --input /app/data/cves.json
+docker exec aldeci python -m core.cli predict-bn-lr --input /app/data/cves.json
 
 # Backtest model accuracy
-docker exec fixops python -m core.cli backtest-bn-lr --model /app/data/model.pkl --test /app/data/test.csv
+docker exec aldeci python -m core.cli backtest-bn-lr --model /app/data/model.pkl --test /app/data/test.csv
 ```
 
 ---
 
-### 29. playbook - Execute FixOps Playbooks (YAML DSL)
+### 29. playbook - Execute ALdeci Playbooks (YAML DSL)
 
 **Purpose:** Execute declarative YAML-based workflows for security automation, compliance validation, and remediation.
 
@@ -1071,43 +1071,43 @@ docker exec fixops python -m core.cli backtest-bn-lr --model /app/data/model.pkl
 
 ```bash
 # List available playbooks
-docker exec fixops python -m core.cli playbook list
+docker exec aldeci python -m core.cli playbook list
 
 # List playbooks from custom directory
-docker exec fixops python -m core.cli playbook list --dir /app/config/playbooks
+docker exec aldeci python -m core.cli playbook list --dir /app/config/playbooks
 
 # Validate a playbook (check syntax without executing)
-docker exec fixops python -m core.cli playbook validate \
+docker exec aldeci python -m core.cli playbook validate \
   --playbook /app/config/playbooks/soc2-access-control-validation.yaml
 
 # Run a playbook (basic execution)
-docker exec fixops python -m core.cli playbook run \
+docker exec aldeci python -m core.cli playbook run \
   --playbook /app/config/playbooks/soc2-access-control-validation.yaml
 
 # Run with inputs
-docker exec fixops python -m core.cli playbook run \
+docker exec aldeci python -m core.cli playbook run \
   --playbook /app/config/playbooks/soc2-access-control-validation.yaml \
   --input severity_threshold=critical \
   --input auto_create_tickets=true
 
 # Run with findings file (SARIF format)
-docker exec fixops python -m core.cli playbook run \
+docker exec aldeci python -m core.cli playbook run \
   --playbook /app/config/playbooks/soc2-access-control-validation.yaml \
   --findings /app/samples/scan.sarif
 
 # Run with overlay (for connector credentials)
-docker exec fixops python -m core.cli playbook run \
+docker exec aldeci python -m core.cli playbook run \
   --playbook /app/config/playbooks/soc2-access-control-validation.yaml \
   --overlay /app/config/fixops.overlay.yml
 
 # Dry run (validate and show what would execute without running)
-docker exec fixops python -m core.cli playbook run \
+docker exec aldeci python -m core.cli playbook run \
   --playbook /app/config/playbooks/soc2-access-control-validation.yaml \
   --dry-run \
   --pretty
 
 # Save execution result to file
-docker exec fixops python -m core.cli playbook run \
+docker exec aldeci python -m core.cli playbook run \
   --playbook /app/config/playbooks/soc2-access-control-validation.yaml \
   --output /app/data/playbook-result.json \
   --pretty
@@ -1152,14 +1152,14 @@ All API calls use: `curl -H "X-API-Key: demo-token-12345" http://localhost:8000/
 
 Start the container first:
 ```bash
-docker run -d --name fixops -p 8000:8000 devopsaico/fixops:latest
+docker run -d --name aldeci -p 8000:8000 devopsaico/aldeci:latest
 ```
 
 ---
 
 ### Health & Status Endpoints
 
-**What it operates on:** FixOps API server health and readiness state.
+**What it operates on:** ALdeci API server health and readiness state.
 
 **Prerequisites:** Container must be running. No authentication required for health/ready.
 
@@ -1186,7 +1186,7 @@ curl -H "X-API-Key: demo-token-12345" http://localhost:8000/api/v1/status
 
 ### Input Endpoints (Upload Security Artifacts)
 
-**What it operates on:** Uploads YOUR security scan artifacts to FixOps for processing:
+**What it operates on:** Uploads YOUR security scan artifacts to ALdeci for processing:
 - **design.csv** - Architecture/design decisions from threat modeling
 - **sbom.json** - Software Bill of Materials (CycloneDX/SPDX format from Syft, Trivy, etc.)
 - **cve.json** - CVE vulnerability data
@@ -1241,7 +1241,7 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Pipeline Endpoints
 
-**What it operates on:** Processes ALL uploaded artifacts through the FixOps pipeline:
+**What it operates on:** Processes ALL uploaded artifacts through the ALdeci pipeline:
 - Normalizes inputs
 - Enriches with threat intelligence (EPSS, KEV, exploits)
 - Scores risk
@@ -1427,7 +1427,7 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Teams Endpoints
 
-**What it operates on:** Teams table in FixOps database. Teams organize users for finding assignment and notifications.
+**What it operates on:** Teams table in ALdeci database. Teams organize users for finding assignment and notifications.
 
 **Prerequisites:** None for list/create. Team must exist for get/update/delete.
 
@@ -1480,7 +1480,7 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Users Endpoints
 
-**What it operates on:** Users table in FixOps database. Manages user accounts, authentication, and roles.
+**What it operates on:** Users table in ALdeci database. Manages user accounts, authentication, and roles.
 
 **Prerequisites:** None for list/create. User must exist for get/update/delete.
 
@@ -1523,7 +1523,7 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Policies Endpoints
 
-**What it operates on:** Policies table in FixOps database. Policies define rules for automated security decisions (block, allow, defer, escalate).
+**What it operates on:** Policies table in ALdeci database. Policies define rules for automated security decisions (block, allow, defer, escalate).
 
 **Prerequisites:** None for list/create. Policy must exist for get/update/delete/validate/test.
 
@@ -1580,7 +1580,7 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Inventory Endpoints
 
-**What it operates on:** Application inventory in FixOps database. Tracks your organization's applications, services, APIs, and their dependencies.
+**What it operates on:** Application inventory in ALdeci database. Tracks your organization's applications, services, APIs, and their dependencies.
 
 **Prerequisites:** None for list/create. Entity must exist for get/update/delete.
 
@@ -1662,7 +1662,7 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Integrations Endpoints
 
-**What it operates on:** Integrations table in FixOps database. Configures connections to external systems (Jira, Slack, GitHub, etc.).
+**What it operates on:** Integrations table in ALdeci database. Configures connections to external systems (Jira, Slack, GitHub, etc.).
 
 **Prerequisites:** 
 - For create: External system credentials (URL, API token)
@@ -1834,7 +1834,7 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Analytics Endpoints
 
-**What it operates on:** Aggregated data from all findings, decisions, and compliance data in FixOps database.
+**What it operates on:** Aggregated data from all findings, decisions, and compliance data in ALdeci database.
 
 **Prerequisites:** Data must exist from pipeline runs for meaningful metrics.
 
@@ -2231,7 +2231,7 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ### Marketplace Endpoints
 
-**What it operates on:** FixOps marketplace for sharing/downloading policy packs, compliance templates, and integrations.
+**What it operates on:** ALdeci marketplace for sharing/downloading policy packs, compliance templates, and integrations.
 
 **Prerequisites:** None for browse/download. Must be authenticated for contribute/purchase.
 
@@ -2418,7 +2418,7 @@ curl -H "X-API-Key: demo-token-12345" \
 
 ```bash
 # 1. Start container
-docker run -d --name fixops -p 8000:8000 devopsaico/fixops:latest
+docker run -d --name aldeci -p 8000:8000 devopsaico/aldeci:latest
 
 # 2. Wait for health
 sleep 5 && curl http://localhost:8000/health
@@ -2441,14 +2441,14 @@ curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/analytics/dashboard/overview | jq
 
 # 6. Cleanup
-docker stop fixops && docker rm fixops
+docker stop aldeci && docker rm aldeci
 ```
 
 ### Recipe 2: LLM Decision Comparison
 
 ```bash
 # 1. Start container
-docker run -d --name fixops -p 8000:8000 devopsaico/fixops:latest
+docker run -d --name aldeci -p 8000:8000 devopsaico/aldeci:latest
 sleep 5
 
 # 2. Compare LLM recommendations
@@ -2465,27 +2465,27 @@ curl -H "X-API-Key: demo-token-12345" \
   http://localhost:8000/api/v1/enhanced/compare-llms | jq
 
 # 3. Cleanup
-docker stop fixops && docker rm fixops
+docker stop aldeci && docker rm aldeci
 ```
 
 ### Recipe 3: Compliance Check
 
 ```bash
 # 1. Start container
-docker run -d --name fixops -p 8000:8000 devopsaico/fixops:latest
+docker run -d --name aldeci -p 8000:8000 devopsaico/aldeci:latest
 sleep 5
 
 # 2. Check compliance status
-docker exec fixops python -m core.cli compliance status --framework PCI-DSS
+docker exec aldeci python -m core.cli compliance status --framework PCI-DSS
 
 # 3. Get compliance gaps
-docker exec fixops python -m core.cli compliance gaps --framework PCI-DSS
+docker exec aldeci python -m core.cli compliance gaps --framework PCI-DSS
 
 # 4. Generate report
-docker exec fixops python -m core.cli compliance report --framework PCI-DSS --format json
+docker exec aldeci python -m core.cli compliance report --framework PCI-DSS --format json
 
 # 5. Cleanup
-docker stop fixops && docker rm fixops
+docker stop aldeci && docker rm aldeci
 ```
 
 ---
@@ -2496,7 +2496,7 @@ docker stop fixops && docker rm fixops
 
 ```bash
 # Check logs
-docker logs fixops
+docker logs aldeci
 
 # Check if port is in use
 lsof -i :8000
@@ -2509,17 +2509,17 @@ lsof -i :8000
 curl -H "X-API-Key: demo-token-12345" http://localhost:8000/api/v1/status
 
 # Check container env
-docker exec fixops env | grep FIXOPS
+docker exec aldeci env | grep FIXOPS
 ```
 
 ### CLI command not found
 
 ```bash
 # Verify CLI is available
-docker exec fixops python -m core.cli --help
+docker exec aldeci python -m core.cli --help
 
 # Check Python path
-docker exec fixops which python
+docker exec aldeci which python
 ```
 
 ---

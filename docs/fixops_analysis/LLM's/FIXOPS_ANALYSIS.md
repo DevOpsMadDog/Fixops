@@ -1,10 +1,10 @@
-# FixOps Enterprise Product Analysis
+# ALdeci Enterprise Product Analysis
 
 ## Executive Summary
 
-**FixOps** is a comprehensive **DevSecOps Decision & Verification Engine** designed to automate security decision-making in CI/CD pipelines. It ingests security artifacts (SBOM, SARIF, CVE feeds, VEX, CNAPP), applies multi-LLM consensus analysis and probabilistic risk models, and produces allow/block/defer decisions with cryptographically-signed evidence bundles.
+**ALdeci** is a comprehensive **DevSecOps Decision & Verification Engine** designed to automate security decision-making in CI/CD pipelines. It ingests security artifacts (SBOM, SARIF, CVE feeds, VEX, CNAPP), applies multi-LLM consensus analysis and probabilistic risk models, and produces allow/block/defer decisions with cryptographically-signed evidence bundles.
 
-**Verdict**: FixOps demonstrates **strong enterprise potential** with sophisticated technical capabilities, but requires production hardening in several areas before being fully enterprise-ready.
+**Verdict**: ALdeci demonstrates **strong enterprise potential** with sophisticated technical capabilities, but requires production hardening in several areas before being fully enterprise-ready.
 
 ---
 
@@ -77,7 +77,7 @@
   - Evidence Timeline
   - MPTE Interface
   - Analytics Dashboard
-- **Design System**: Shared `@fixops/ui` package
+- **Design System**: Shared `@aldeci/ui` package
 - **State Management**: React Context + API client hooks
 
 ### 2.3 Storage & Data
@@ -263,7 +263,7 @@
 
 ### 5.1 Market Position
 
-**FixOps** positions itself as an **intelligence layer for CI/CD pipelines**, competing with:
+**ALdeci** positions itself as an **intelligence layer for CI/CD pipelines**, competing with:
 - **Snyk**: Dependency scanning and vulnerability management
 - **Veracode**: Application security testing platform
 - **Checkmarx**: SAST/DAST/SCA platform
@@ -357,7 +357,7 @@
 
 ## 7. Conclusion
 
-**FixOps** is a **technically sophisticated** DevSecOps decision engine with **strong enterprise potential**. Its multi-LLM consensus approach, probabilistic risk models, and comprehensive compliance support differentiate it from competitors.
+**ALdeci** is a **technically sophisticated** DevSecOps decision engine with **strong enterprise potential**. Its multi-LLM consensus approach, probabilistic risk models, and comprehensive compliance support differentiate it from competitors.
 
 However, **production hardening is required** before it can be considered fully enterprise-ready. Critical gaps in data parsing robustness, observability, scalability, and operational maturity need to be addressed.
 

@@ -1,4 +1,4 @@
-# Complete FixOps API to CLI Mapping
+# Complete ALdeci API to CLI Mapping
 
 > **DEPRECATED**: This document has been consolidated into [FIXOPS_PRODUCT_STATUS.md](./FIXOPS_PRODUCT_STATUS.md).
 > The master document now includes:
@@ -350,7 +350,7 @@
 | 198 | GET | `/api/v1/evidence/{release}` | `get-evidence` | Audit |
 | 199 | GET | `/api/v1/evidence/bundles/{bundle_id}/download` | `copy-evidence` | Audit |
 
-### 23. Enterprise APIs (fixops-enterprise/src/api/v1/) - 45 endpoints
+### 23. Enterprise APIs (aldeci-enterprise/src/api/v1/) - 45 endpoints
 
 | # | Method | Endpoint | CLI Command | Workflow Stage |
 |---|--------|----------|-------------|----------------|

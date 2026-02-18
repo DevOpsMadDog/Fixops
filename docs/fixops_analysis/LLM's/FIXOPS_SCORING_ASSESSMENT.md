@@ -1,4 +1,4 @@
-# FixOps Scoring Assessment
+# ALdeci Scoring Assessment
 **Date:** January 22, 2026  
 **Repository:** DevOpsMadDog/Fixops  
 **Analysis Based On:** PR #236, PR #233, PR #222, PR #221, code verification, recent improvements (reviewed and confirmed)
@@ -76,7 +76,7 @@ The following metrics were verified against actual code via deep code dive:
 ### 1. Enterprise Readiness: 90/100 ⭐⭐⭐⭐⭐
 
 #### Strengths (+):
-- ✅ **FixOps Playbook DSL** (~1,100 LOC) - YAML-based declarative language for security workflows with 25+ action types
+- ✅ **ALdeci Playbook DSL** (~1,100 LOC) - YAML-based declarative language for security workflows with 25+ action types
 - ✅ **Multi-LLM Consensus Engine** (4 providers with weighted voting)
 - ✅ **Probabilistic Risk Models** (Bayesian Networks, Markov forecasting, BN-LR hybrid)
 - ✅ **Evidence Bundles** (RSA-SHA256 signed, compression, encryption - SLSA v1 schema not yet validated)
@@ -120,7 +120,7 @@ The following metrics were verified against actual code via deep code dive:
 - ✅ **Verify Exploitability**: Micro-Pentest Engine wired to API/CLI, reachability analysis
 - ✅ **Operationalize Remediation**: Workflows, team collaboration, bulk operations
 - ✅ **Prove & Retain**: Signed evidence bundles (RSA-SHA256), evidence lake, compression/encryption
-- ✅ **Automate & Extend**: FixOps Playbook DSL (25+ action types), YAML overlay config, compliance marketplace
+- ✅ **Automate & Extend**: ALdeci Playbook DSL (25+ action types), YAML overlay config, compliance marketplace
 - ✅ **Playbook DSL**: Full programming language with conditionals (`when`/`unless`), loops (`for_each`), template interpolation (`{{ inputs.x }}`), and 25+ pre-approved action handlers
 
 #### Missing/Incomplete Features ⚠️:
@@ -287,7 +287,7 @@ The following metrics were verified against actual code via deep code dive:
 - ✅ **Jira**: Enterprise connector with org_id multi-tenancy
 - ✅ **Confluence**: Bidirectional sync with org_id support
 - ✅ **OPA (Open Policy Agent)**: Policy evaluation via Playbook DSL
-- ✅ **API Client Package**: Shared `@fixops/api-client` for frontend
+- ✅ **API Client Package**: Shared `@aldeci/api-client` for frontend
 
 #### Need Live Validation ⚠️:
 - ⚠️ **ServiceNow**: Real HTTP implementation exists (`core/connectors.py:1239-1600`), needs live instance testing
@@ -334,7 +334,7 @@ The following metrics were verified against actual code via deep code dive:
 
 ### vs. Competitors:
 
-| Competitor | FixOps Advantage | Score |
+| Competitor | ALdeci Advantage | Score |
 |------------|------------------|-------|
 | **Nucleus** | Multi-LLM consensus, on-prem, signed evidence | +15 |
 | **Apiiro** | On-prem/air-gapped, transparent decisions | +12 |
@@ -377,7 +377,7 @@ The following metrics were verified against actual code via deep code dive:
 ### Overall Grade: **A (89.75/100)** ⭐⭐⭐⭐⭐
 
 **Strengths:**
-- ✅ **FixOps Playbook DSL** - Full YAML-based programming language for security workflows
+- ✅ **ALdeci Playbook DSL** - Full YAML-based programming language for security workflows
 - ✅ Excellent documentation (98/100) with comprehensive guides
 - ✅ Strong security posture (92/100)
 - ✅ Comprehensive feature set (88/100) with ~287 APIs and 134 CLI parser entries
@@ -397,7 +397,7 @@ The following metrics were verified against actual code via deep code dive:
 - **Full Enterprise Scale**: ⚠️ Needs performance testing
 
 ### Recommendation:
-**FixOps is enterprise-ready for production deployments.** The addition of the Playbook DSL provides a unique differentiator - a full YAML-based programming language for security workflows that no competitor offers. With the comprehensive documentation (Docker Showcase Guide, Feature-to-Code Mapping, Playbook Language Reference), enterprises can be onboarded quickly.
+**ALdeci is enterprise-ready for production deployments.** The addition of the Playbook DSL provides a unique differentiator - a full YAML-based programming language for security workflows that no competitor offers. With the comprehensive documentation (Docker Showcase Guide, Feature-to-Code Mapping, Playbook Language Reference), enterprises can be onboarded quickly.
 
 **Investment Priority:**
 1. **Immediate (P0)**: Enable correlation engine, add performance tests → **+3 points** (92/100)
@@ -421,6 +421,6 @@ The following metrics were verified against actual code via deep code dive:
 
 ## Conclusion
 
-FixOps scores **89.75/100 (A)** with excellent documentation, strong security, comprehensive features, and a unique **FixOps Playbook DSL** - a full YAML-based programming language for security workflows. The main gaps are bulk operations (stub implementation) and performance testing. All 7 enterprise connectors (Jira, Confluence, ServiceNow, GitLab, Azure DevOps, Slack, GitHub) have real HTTP implementations but need live instance validation. With P0 improvements (bulk operations, performance tests), it can reach **92/100** and become fully enterprise-scale ready.
+ALdeci scores **89.75/100 (A)** with excellent documentation, strong security, comprehensive features, and a unique **ALdeci Playbook DSL** - a full YAML-based programming language for security workflows. The main gaps are bulk operations (stub implementation) and performance testing. All 7 enterprise connectors (Jira, Confluence, ServiceNow, GitLab, Azure DevOps, Slack, GitHub) have real HTTP implementations but need live instance validation. With P0 improvements (bulk operations, performance tests), it can reach **92/100** and become fully enterprise-scale ready.
 
 **Verdict:** ✅ **Enterprise-Ready for Production Deployments**

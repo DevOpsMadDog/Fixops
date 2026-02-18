@@ -1,6 +1,6 @@
-# FixOps: Will Competitors Kill It? Competitive Threat Analysis
+# ALdeci: Will Competitors Kill It? Competitive Threat Analysis
 **Date:** December 25, 2025  
-**Critical Question:** Are competitors building similar features? Will they kill FixOps?
+**Critical Question:** Are competitors building similar features? Will they kill ALdeci?
 
 ---
 
@@ -18,11 +18,11 @@
 
 ### **Overall Threat: LOW-MODERATE** ✅
 
-**Verdict:** Competitors **CANNOT easily kill FixOps** because:
+**Verdict:** Competitors **CANNOT easily kill ALdeci** because:
 1. **Regulatory moat** (evidence bundles required by law - competitors can't replicate quickly)
 2. **On-prem moat** (30% of market competitors can't serve)
 3. **Multi-LLM moat** (complex to replicate, requires 4 provider integrations)
-4. **Time advantage** (FixOps is 12-18 months ahead)
+4. **Time advantage** (ALdeci is 12-18 months ahead)
 
 **However:** Large vendors (Microsoft, Google) could build similar features in 18-24 months if they prioritize it.
 
@@ -32,7 +32,7 @@
 
 ### Current Competitors:
 
-| Competitor | Market Share | Resources | Threat Level | Can They Kill FixOps? |
+| Competitor | Market Share | Resources | Threat Level | Can They Kill ALdeci? |
 |------------|--------------|-----------|--------------|----------------------|
 | **Nucleus** | ~5% | Medium | 🟡 Moderate | ❌ No (SaaS-only, no evidence bundles) |
 | **Apiiro** | ~3% | Medium | 🟡 Moderate | ❌ No (SaaS-only, no multi-LLM) |
@@ -46,7 +46,7 @@
 
 ---
 
-## 2. Can Competitors Replicate FixOps's Unique Features?
+## 2. Can Competitors Replicate ALdeci's Unique Features?
 
 ### Feature 1: Multi-LLM Consensus Engine
 
@@ -72,9 +72,9 @@
 | **Microsoft** | ✅ Yes | 6-9 months | 🔴 High |
 | **Google** | ✅ Yes | 3-6 months | 🔴 High (has Gemini) |
 
-**FixOps Advantage:** ⏱️ **12-18 months ahead** - Already built and production-ready
+**ALdeci Advantage:** ⏱️ **12-18 months ahead** - Already built and production-ready
 
-**Threat Level:** 🟡 **MODERATE** - Competitors can replicate, but FixOps has time advantage
+**Threat Level:** 🟡 **MODERATE** - Competitors can replicate, but ALdeci has time advantage
 
 ---
 
@@ -102,7 +102,7 @@
 | **Microsoft** | ✅ Yes | 9-12 months | 🔴 High |
 | **Google** | ✅ Yes | 9-12 months | 🔴 High |
 
-**FixOps Advantage:** 🔒 **REGULATORY MOAT** - EU CRA, NIST SSDF require this NOW (2024-2025)
+**ALdeci Advantage:** 🔒 **REGULATORY MOAT** - EU CRA, NIST SSDF require this NOW (2024-2025)
 
 **Threat Level:** ✅ **LOW** - Regulatory requirements create legal moat, competitors can't catch up fast enough
 
@@ -135,7 +135,7 @@
 | **Microsoft** | ✅ Yes | 12-18 months | 🔴 High |
 | **Google** | ✅ Yes | 12-18 months | 🔴 High |
 
-**FixOps Advantage:** 🎯 **TECHNICAL MOAT** - Complex to replicate, requires security expertise
+**ALdeci Advantage:** 🎯 **TECHNICAL MOAT** - Complex to replicate, requires security expertise
 
 **Threat Level:** ✅ **LOW-MODERATE** - Most competitors don't have security research teams to build this quickly
 
@@ -166,7 +166,7 @@
 | **Microsoft** | ✅ Yes | 6-9 months | 🔴 High |
 | **Google** | ✅ Yes | 6-9 months | 🔴 High |
 
-**FixOps Advantage:** 🏢 **MARKET MOAT** - 30% of market ($3.6B) requires on-prem, competitors can't serve
+**ALdeci Advantage:** 🏢 **MARKET MOAT** - 30% of market ($3.6B) requires on-prem, competitors can't serve
 
 **Threat Level:** ✅ **LOW** - SaaS-first competitors can't easily pivot to on-prem (architectural change)
 
@@ -186,17 +186,17 @@
 - On-prem deployment (6-9 months)
 - Micro-pentest (12-18 months)
 
-**Total Time:** 12-18 months to match FixOps
+**Total Time:** 12-18 months to match ALdeci
 
 **Impact:** 🔴 **HIGH** - Could capture significant market share
 
-**FixOps Defense:**
-- ✅ **Time advantage** (FixOps is 12-18 months ahead)
+**ALdeci Defense:**
+- ✅ **Time advantage** (ALdeci is 12-18 months ahead)
 - ✅ **Regulatory moat** (evidence bundles required NOW)
-- ✅ **Customer lock-in** (if FixOps acquires customers first)
+- ✅ **Customer lock-in** (if ALdeci acquires customers first)
 - ✅ **On-prem expertise** (Microsoft/Google are cloud-first)
 
-**Survival Probability:** ⚠️ **60-70%** - FixOps can survive if it acquires customers first
+**Survival Probability:** ⚠️ **60-70%** - ALdeci can survive if it acquires customers first
 
 ---
 
@@ -209,16 +209,16 @@
 - Evidence bundles (12-18 months)
 - On-prem deployment (18-24 months - hard for SaaS-first)
 
-**Total Time:** 12-24 months to match FixOps
+**Total Time:** 12-24 months to match ALdeci
 
 **Impact:** 🟡 **MODERATE** - Could capture some market share
 
-**FixOps Defense:**
+**ALdeci Defense:**
 - ✅ **On-prem moat** (Snyk/Tenable are SaaS-first, hard to pivot)
 - ✅ **Regulatory moat** (evidence bundles required NOW)
-- ✅ **Time advantage** (FixOps is 12-18 months ahead)
+- ✅ **Time advantage** (ALdeci is 12-18 months ahead)
 
-**Survival Probability:** ✅ **70-80%** - FixOps can survive, competitors are SaaS-first
+**Survival Probability:** ✅ **70-80%** - ALdeci can survive, competitors are SaaS-first
 
 ---
 
@@ -231,16 +231,16 @@
 - Evidence bundles (18-24 months)
 - On-prem deployment (18-24 months - very hard for SaaS-first)
 
-**Total Time:** 18-36 months to match FixOps
+**Total Time:** 18-36 months to match ALdeci
 
 **Impact:** ✅ **LOW** - Limited resources, slow to build
 
-**FixOps Defense:**
-- ✅ **Resource advantage** (FixOps has more development velocity)
+**ALdeci Defense:**
+- ✅ **Resource advantage** (ALdeci has more development velocity)
 - ✅ **On-prem moat** (competitors are SaaS-only)
-- ✅ **Time advantage** (FixOps is 18-24 months ahead)
+- ✅ **Time advantage** (ALdeci is 18-24 months ahead)
 
-**Survival Probability:** ✅ **80-90%** - FixOps can easily survive, competitors are too slow
+**Survival Probability:** ✅ **80-90%** - ALdeci can easily survive, competitors are too slow
 
 ---
 
@@ -259,7 +259,7 @@
 
 **Competitor Response Time:** 12-24 months (too slow)
 
-**FixOps Advantage:** ✅ **VERY STRONG** - Regulatory moat protects market position
+**ALdeci Advantage:** ✅ **VERY STRONG** - Regulatory moat protects market position
 
 ---
 
@@ -275,7 +275,7 @@
 
 **Competitor Response Time:** 12-24 months (architectural change)
 
-**FixOps Advantage:** ✅ **VERY STRONG** - Market moat protects 30% of market
+**ALdeci Advantage:** ✅ **VERY STRONG** - Market moat protects 30% of market
 
 ---
 
@@ -291,7 +291,7 @@
 
 **Competitor Response Time:** 6-12 months (moderate difficulty)
 
-**FixOps Advantage:** ✅ **STRONG** - Technical moat, but competitors can replicate
+**ALdeci Advantage:** ✅ **STRONG** - Technical moat, but competitors can replicate
 
 ---
 
@@ -307,7 +307,7 @@
 
 **Competitor Response Time:** 18-36 months (very hard)
 
-**FixOps Advantage:** ✅ **VERY STRONG** - Technical moat, competitors lack expertise
+**ALdeci Advantage:** ✅ **VERY STRONG** - Technical moat, competitors lack expertise
 
 ---
 
@@ -319,8 +319,8 @@
 
 **Why:**
 - Competitors haven't started building similar features yet
-- FixOps has 6-month head start
-- Regulatory requirements (EU CRA) create urgency for FixOps
+- ALdeci has 6-month head start
+- Regulatory requirements (EU CRA) create urgency for ALdeci
 
 **Action:** ✅ **Acquire first customers** - Lock in market before competitors respond
 
@@ -333,7 +333,7 @@
 **Why:**
 - Large vendors (Microsoft/Google) might start building
 - Established competitors (Snyk/Tenable) might prioritize features
-- FixOps still has 6-12 month advantage
+- ALdeci still has 6-12 month advantage
 
 **Action:** 🟡 **Scale quickly** - Acquire 10+ customers, build customer lock-in
 
@@ -346,24 +346,24 @@
 **Why:**
 - Large vendors could launch competing products
 - Established competitors could match features
-- FixOps advantage narrows
+- ALdeci advantage narrows
 
 **Action:** 🔴 **Build defensible moats** - Regulatory compliance, customer lock-in, on-prem expertise
 
 ---
 
-## 6. Will Competitors Kill FixOps?
+## 6. Will Competitors Kill ALdeci?
 
 ### Short Answer: **NO** (in next 12 months), **MAYBE** (in 12-24 months)
 
 ### Detailed Answer:
 
-#### ✅ **Won't Kill FixOps (Next 12 Months):**
+#### ✅ **Won't Kill ALdeci (Next 12 Months):**
 
 **Reasons:**
 1. **Regulatory moat** - Evidence bundles required NOW (EU CRA, NIST SSDF)
 2. **On-prem moat** - 30% of market competitors can't serve
-3. **Time advantage** - FixOps is 12-18 months ahead
+3. **Time advantage** - ALdeci is 12-18 months ahead
 4. **Technical moat** - Micro-pentest validation is hard to replicate
 5. **Market moat** - Competitors are SaaS-first (hard to pivot)
 
@@ -371,7 +371,7 @@
 
 ---
 
-#### ⚠️ **Might Kill FixOps (12-24 Months):**
+#### ⚠️ **Might Kill ALdeci (12-24 Months):**
 
 **Reasons:**
 1. **Large vendors** (Microsoft/Google) could prioritize and build quickly
@@ -449,7 +449,7 @@
 
 ## 8. Final Verdict
 
-### **Will Competitors Kill FixOps?**
+### **Will Competitors Kill ALdeci?**
 
 **Answer: NO (in next 12 months), MAYBE (in 12-24 months)**
 
@@ -476,13 +476,13 @@
 
 ### **Recommendation:**
 
-**✅ FixOps can survive IF:**
+**✅ ALdeci can survive IF:**
 1. ✅ Acquires first 10+ customers in next 6 months (customer lock-in)
 2. ✅ Focuses on regulated industries (regulatory moat)
 3. ✅ Targets on-prem market (market moat)
 4. ✅ Builds technical moat (micro-pentest validation)
 
-**❌ FixOps will die IF:**
+**❌ ALdeci will die IF:**
 1. ❌ Doesn't acquire customers before competitors respond
 2. ❌ Doesn't focus on regulatory compliance
 3. ❌ Doesn't build on-prem expertise
@@ -492,22 +492,22 @@
 
 ## Conclusion
 
-**Competitors CANNOT easily kill FixOps in the next 12 months** because:
+**Competitors CANNOT easily kill ALdeci in the next 12 months** because:
 - ✅ Regulatory moat (evidence bundles required NOW)
 - ✅ On-prem moat (30% of market competitors can't serve)
 - ✅ Time advantage (12-18 months ahead)
 - ✅ Technical moat (micro-pentest validation is hard to replicate)
 
-**However, competitors COULD kill FixOps in 12-24 months** if:
+**However, competitors COULD kill ALdeci in 12-24 months** if:
 - 🔴 Large vendors (Microsoft/Google) prioritize and build quickly
-- 🔴 FixOps doesn't acquire customers first
-- 🔴 FixOps doesn't build defensible moats
+- 🔴 ALdeci doesn't acquire customers first
+- 🔴 ALdeci doesn't build defensible moats
 
 **Survival Strategy:** ⚡ **Speed to market** - Acquire customers in next 6 months, build regulatory moat, focus on on-prem market.
 
 **Competitive Threat Score: 35/100** ✅ **LOW-MODERATE THREAT**
 
-**Verdict:** ✅ **FixOps can survive** if it executes quickly and builds defensible moats.
+**Verdict:** ✅ **ALdeci can survive** if it executes quickly and builds defensible moats.
 
 ---
 

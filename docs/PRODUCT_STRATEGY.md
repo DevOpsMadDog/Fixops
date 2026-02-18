@@ -1,4 +1,4 @@
-# FixOps — Product Strategy & Investor Deck Blueprint
+# ALdeci — Product Strategy & Investor Deck Blueprint
 ## "The World's Only Prove-It Security Platform"
 
 ---
@@ -24,22 +24,22 @@ Board hears: "I have no idea."
 
 **Nobody answers: "Can an attacker actually exploit this, and can you prove it to an auditor?"**
 
-FixOps does.
+ALdeci does.
 
 ---
 
 # THE ONE-LINER
 
-> **FixOps: The only platform that finds vulnerabilities, proves they're exploitable, and generates audit evidence — in one pipeline.**
+> **ALdeci: The only platform that finds vulnerabilities, proves they're exploitable, and generates audit evidence — in one pipeline.**
 
 Variants for different audiences:
 
 | Audience | One-liner |
 |----------|-----------|
 | **Investor** | "We replace 6 security tools with one AI-powered platform that *proves* exploitability and auto-generates SOC2 evidence." |
-| **CISO** | "FixOps cuts your alert noise by 67%, proves which CVEs are actually exploitable, and hands your auditor a ready-made evidence pack." |
+| **CISO** | "ALdeci cuts your alert noise by 67%, proves which CVEs are actually exploitable, and hands your auditor a ready-made evidence pack." |
 | **DevSecOps** | "One API call: ingest your SBOM → deduplicate → verify exploitability → prioritize → auto-fix → generate compliance evidence." |
-| **Board** | "FixOps tells you exactly which 32 things to fix (out of 5,000 alerts) and proves it with math, not opinions." |
+| **Board** | "ALdeci tells you exactly which 32 things to fix (out of 5,000 alerts) and proves it with math, not opinions." |
 
 ---
 
@@ -48,7 +48,7 @@ Variants for different audiences:
 ## USP 1: "PROVE IT" — Real Exploit Verification
 
 ```
-┌──── What competitors do ─────┐    ┌──── What FixOps does ──────────────┐
+┌──── What competitors do ─────┐    ┌──── What ALdeci does ──────────────┐
 │                               │    │                                     │
 │  Scanner → CVE-2025-1234      │    │  Scanner → CVE-2025-1234            │
 │  CVSS: 9.8                    │    │  CVSS: 9.8                          │
@@ -79,7 +79,7 @@ Variants for different audiences:
 - Minimum confidence threshold: 60%
 - False-positive analysis built-in
 
-**No other tool does this.** Pen testing firms charge $30K-$150K per engagement. FixOps runs it continuously for a subscription.
+**No other tool does this.** Pen testing firms charge $30K-$150K per engagement. ALdeci runs it continuously for a subscription.
 
 ---
 
@@ -140,7 +140,7 @@ Variants for different audiences:
 ## USP 3: "100 ALERTS → 32 CASES" — Intelligent Noise Collapse
 
 ```
-  BEFORE FixOps                          AFTER FixOps
+  BEFORE ALdeci                          AFTER ALdeci
   (what your scanners give you)          (what you actually work on)
 
   ┌────────────────────────┐            ┌────────────────────────┐
@@ -176,7 +176,7 @@ Plus cross-tool CWE normalization (25+ rules) and CSPM control ID mapping (CIS �
 ## USP 4: "ONE BUTTON → EVERYTHING" — 12-Step Brain Pipeline
 
 ```
-  You press ONE button. FixOps runs 12 steps automatically:
+  You press ONE button. ALdeci runs 12 steps automatically:
 
   ┌─────────────────────────────────────────────────────────────┐
   │                                                             │
@@ -210,7 +210,7 @@ Plus cross-tool CWE normalization (25+ rules) and CSPM control ID mapping (CIS �
   Cost: $0.12 in LLM spend per run
 ```
 
-**What takes a team of 5 security engineers a week, FixOps does in 45 seconds with one API call.**
+**What takes a team of 5 security engineers a week, ALdeci does in 45 seconds with one API call.**
 
 ---
 
@@ -249,7 +249,7 @@ Plus cross-tool CWE normalization (25+ rules) and CSPM control ID mapping (CIS �
 
 # COMPETITIVE MOAT — Why Can't Others Copy This?
 
-| Dimension | FixOps | Snyk | Wiz | Qualys | Aikido |
+| Dimension | ALdeci | Snyk | Wiz | Qualys | Aikido |
 |-----------|--------|------|-----|--------|--------|
 | **Scan** | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Prove exploitability** | ✅ Real pentest | ❌ | ❌ | ❌ | ❌ |
@@ -307,7 +307,7 @@ The #1 mistake: showing 526 APIs to a user on day one. Instead:
 ```
   Step 1: Upload SBOM (drag & drop)
           ↓ (3 seconds)
-  Step 2: "FixOps found 847 vulnerabilities, collapsed to 31 cases."
+  Step 2: "ALdeci found 847 vulnerabilities, collapsed to 31 cases."
           ↓ (click "Investigate #1")
   Step 3: Evidence chain appears:
           SBOM → EPSS 94% → KEV ✅ → Exploitable ✅ → Reachable ✅
@@ -324,7 +324,7 @@ The #1 mistake: showing 526 APIs to a user on day one. Instead:
 
 # INVESTOR METRICS THAT MATTER
 
-| Metric | FixOps Value | Industry Average | Source/Proof |
+| Metric | ALdeci Value | Industry Average | Source/Proof |
 |--------|-------------|-----------------|-------------|
 | **Alert-to-Case Compression** | 67% noise reduction | 0% (no dedup) | Fuzzy Identity + CWE normalization |
 | **False Positive Rate** | <5% (verified verdicts) | 40-60% (CVSS only) | 4-stage verification pipeline |
@@ -423,7 +423,7 @@ The #1 mistake: showing 526 APIs to a user on day one. Instead:
 |---------|---------|
 | **Homepage hero** | "Stop guessing. Start proving." |
 | **Subheader** | "The only security platform that finds vulnerabilities, proves they're exploitable, and generates audit evidence — automatically." |
-| **LinkedIn** | "FixOps: 5,000 alerts → 32 proven cases → 0 audit prep hours." |
+| **LinkedIn** | "ALdeci: 5,000 alerts → 32 proven cases → 0 audit prep hours." |
 | **Hacker News** | "We built a 12-step AI pipeline that turns scanner noise into exploit-verified, compliance-ready remediation — with 526 open APIs." |
 | **Investor One-pager** | "6 tools in 1. AI consensus. Exploit proof. Audit-ready. 526 APIs." |
 | **Twitter/X** | "Other tools tell you what's broken. We prove it's exploitable, fix it, and hand your auditor a signed evidence pack." |
@@ -435,7 +435,7 @@ The #1 mistake: showing 526 APIs to a user on day one. Instead:
 ### Feature count comparison:
 
 ```
-  FixOps     ████████████████████████████████████████████████████  526 APIs
+  ALdeci     ████████████████████████████████████████████████████  526 APIs
   Qualys     ████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   ~50 APIs
   Wiz        ██████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   ~40 APIs
   Snyk       █████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   ~30 APIs
@@ -443,7 +443,7 @@ The #1 mistake: showing 526 APIs to a user on day one. Instead:
   Apiiro     █████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   ~30 APIs
 ```
 
-### Things ONLY FixOps does (verified — no competitor has all of these):
+### Things ONLY ALdeci does (verified — no competitor has all of these):
 
 1. **Real exploit verification** with 4-stage differential confirmation
 2. **Multi-LLM consensus** (3 models debating with weighted roles)
@@ -457,10 +457,10 @@ The #1 mistake: showing 526 APIs to a user on day one. Instead:
 10. **526 programmable APIs** (most extensible platform in security)
 
 **No single competitor has more than 2 of these 10.**
-**FixOps has all 10.**
+**ALdeci has all 10.**
 
 That's not incremental. That's a category.
 
 ---
 
-*Created: 2026-02-11 | FixOps Product Strategy v1.0*
+*Created: 2026-02-11 | ALdeci Product Strategy v1.0*

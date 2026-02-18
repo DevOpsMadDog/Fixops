@@ -1,6 +1,6 @@
-# FixOps: Is It Needed for Australia? Market Analysis
+# ALdeci: Is It Needed for Australia? Market Analysis
 **Date:** December 25, 2025  
-**Question:** Are FixOps's regulatory compliance features relevant for Australia?
+**Question:** Are ALdeci's regulatory compliance features relevant for Australia?
 
 ---
 
@@ -18,14 +18,14 @@
 
 ### **Overall Score: 89/100** ✅
 
-**Verdict:** ✅ **YES - FixOps is CRITICALLY NEEDED for Australia**
+**Verdict:** ✅ **YES - ALdeci is CRITICALLY NEEDED for Australia**
 
 **Key Reasons:**
-1. ✅ **ACSC Essential Eight** requires vulnerability management (FixOps provides)
-2. ✅ **APRA CPS 234** requires evidence of security controls (FixOps provides)
-3. ✅ **PSPF (Protective Security Policy Framework)** requires secure software development (FixOps provides)
-4. ✅ **Government/Defense** requires on-prem/air-gapped (FixOps provides)
-5. ✅ **Financial Services** require evidence-based decisions (FixOps provides)
+1. ✅ **ACSC Essential Eight** requires vulnerability management (ALdeci provides)
+2. ✅ **APRA CPS 234** requires evidence of security controls (ALdeci provides)
+3. ✅ **PSPF (Protective Security Policy Framework)** requires secure software development (ALdeci provides)
+4. ✅ **Government/Defense** requires on-prem/air-gapped (ALdeci provides)
+5. ✅ **Financial Services** require evidence-based decisions (ALdeci provides)
 
 ---
 
@@ -33,7 +33,7 @@
 
 ### Regulatory Framework Overview:
 
-| Regulation | Authority | Requirement | FixOps Fit |
+| Regulation | Authority | Requirement | ALdeci Fit |
 |------------|-----------|-------------|------------|
 | **ACSC Essential Eight** | ACSC | Vulnerability management, evidence | ✅ Perfect fit |
 | **APRA CPS 234** | APRA | Evidence of security controls | ✅ Perfect fit |
@@ -52,9 +52,9 @@
 - **Automation**: "Automated vulnerability scanning and assessment"
 - **Remediation**: "Vulnerabilities are remediated within timeframes"
 
-**FixOps Fit:** ✅ **PERFECT FIT**
+**ALdeci Fit:** ✅ **PERFECT FIT**
 
-**Why FixOps Meets Requirements:**
+**Why ALdeci Meets Requirements:**
 - ✅ **Vulnerability Management**: Comprehensive VM platform (SBOM, SARIF, CVE feeds)
 - ✅ **Evidence Retention**: Cryptographically-signed evidence bundles (7-year retention)
 - ✅ **Automation**: 250+ API endpoints, 67 CLI commands, CI/CD integration
@@ -73,9 +73,9 @@
 - **Vulnerability Management**: "Vulnerabilities must be identified and remediated"
 - **Third-Party Risk**: "Third-party security risks must be managed"
 
-**FixOps Fit:** ✅ **PERFECT FIT**
+**ALdeci Fit:** ✅ **PERFECT FIT**
 
-**Why FixOps Meets Requirements:**
+**Why ALdeci Meets Requirements:**
 - ✅ **Evidence Bundles**: Cryptographically-signed evidence (RSA-SHA256)
 - ✅ **Vulnerability Management**: Comprehensive VM platform
 - ✅ **SBOM Support**: Third-party risk management (CycloneDX, SPDX)
@@ -96,9 +96,9 @@
 - **Evidence**: "Evidence of secure development practices must be retained"
 - **Compliance**: "Compliance with security standards must be demonstrated"
 
-**FixOps Fit:** ✅ **PERFECT FIT**
+**ALdeci Fit:** ✅ **PERFECT FIT**
 
-**Why FixOps Meets Requirements:**
+**Why ALdeci Meets Requirements:**
 - ✅ **Secure Development**: SSDLC pipeline integration (requirements → design → code → test → deploy)
 - ✅ **Evidence Bundles**: Cryptographically-signed evidence of secure practices
 - ✅ **Vulnerability Management**: Comprehensive VM platform
@@ -119,9 +119,9 @@
 - **Evidence**: "Evidence of security controls must be retained"
 - **Compliance**: "Compliance with ISM must be demonstrated"
 
-**FixOps Fit:** ✅ **PERFECT FIT**
+**ALdeci Fit:** ✅ **PERFECT FIT**
 
-**Why FixOps Meets Requirements:**
+**Why ALdeci Meets Requirements:**
 - ✅ **Security Controls**: Policy automation, compliance frameworks
 - ✅ **Vulnerability Management**: Comprehensive VM platform
 - ✅ **Evidence Bundles**: Cryptographically-signed evidence
@@ -136,7 +136,7 @@
 
 ### Market Segments:
 
-| Segment | Size (AUD) | Growth | FixOps Addressable |
+| Segment | Size (AUD) | Growth | ALdeci Addressable |
 |---------|------------|--------|-------------------|
 | **Financial Services** | $2.5B | 12% YoY | ✅ Perfect fit (APRA CPS 234) |
 | **Government/Defense** | $1.8B | 15% YoY | ✅ Perfect fit (PSPF, ISM) |
@@ -156,7 +156,7 @@
 - **Market Size:** $2.5B AUD
 - **Key Players:** Big 4 banks (CBA, ANZ, NAB, Westpac), insurers, super funds
 - **Regulatory Requirement:** APRA CPS 234 (evidence of security controls)
-- **FixOps Fit:** ✅ **PERFECT** - Evidence bundles, on-prem deployment
+- **ALdeci Fit:** ✅ **PERFECT** - Evidence bundles, on-prem deployment
 
 **Key Customers:**
 - Commonwealth Bank of Australia (CBA)
@@ -172,7 +172,7 @@
 - **Market Size:** $1.8B AUD
 - **Key Players:** Federal/state government, defense contractors
 - **Regulatory Requirement:** PSPF, ISM (secure software development)
-- **FixOps Fit:** ✅ **PERFECT** - On-prem/air-gapped, evidence bundles
+- **ALdeci Fit:** ✅ **PERFECT** - On-prem/air-gapped, evidence bundles
 
 **Key Customers:**
 - Australian Government (federal agencies)
@@ -186,7 +186,7 @@
 - **Market Size:** $1.2B AUD
 - **Key Players:** Energy, water, transport, communications
 - **Regulatory Requirement:** ACSC Essential Eight (vulnerability management)
-- **FixOps Fit:** ✅ **PERFECT** - Vulnerability management, evidence retention
+- **ALdeci Fit:** ✅ **PERFECT** - Vulnerability management, evidence retention
 
 **Key Customers:**
 - Energy companies (AGL, Origin Energy, etc.)
@@ -200,7 +200,7 @@
 
 ### Current Competitors in Australia:
 
-| Competitor | Market Share | Australian Presence | FixOps Advantage |
+| Competitor | Market Share | Australian Presence | ALdeci Advantage |
 |------------|--------------|-------------------|------------------|
 | **Nucleus** | ~5% | Limited | ✅ On-prem, evidence bundles |
 | **Apiiro** | ~3% | Limited | ✅ On-prem, evidence bundles |
@@ -211,7 +211,7 @@
 
 **Key Finding:** ⚠️ **Most competitors are SaaS-only** - Can't serve Australian government/defense (on-prem requirement)
 
-**FixOps Advantage:** ✅ **ON-PREM DEPLOYMENT** - Only solution that can serve Australian government/defense
+**ALdeci Advantage:** ✅ **ON-PREM DEPLOYMENT** - Only solution that can serve Australian government/defense
 
 ---
 
@@ -227,7 +227,7 @@
 
 **Market Size:** ~40% of Australian market requires on-prem/air-gapped
 
-**FixOps Advantage:** ✅ **ONLY SOLUTION** - Competitors are SaaS-only
+**ALdeci Advantage:** ✅ **ONLY SOLUTION** - Competitors are SaaS-only
 
 ---
 
@@ -241,7 +241,7 @@
 
 **Market Size:** ~60% of Australian market requires evidence
 
-**FixOps Advantage:** ✅ **ONLY SOLUTION** - Competitors don't provide cryptographically-signed evidence
+**ALdeci Advantage:** ✅ **ONLY SOLUTION** - Competitors don't provide cryptographically-signed evidence
 
 ---
 
@@ -255,7 +255,7 @@
 
 **Market Size:** ~70% of Australian market requires regulatory compliance
 
-**FixOps Advantage:** ✅ **PERFECT FIT** - FixOps provides compliance automation
+**ALdeci Advantage:** ✅ **PERFECT FIT** - ALdeci provides compliance automation
 
 ---
 
@@ -271,7 +271,7 @@
 - ISM requires evidence of security controls
 - Auditors reject opaque risk scores
 
-**FixOps Solution:**
+**ALdeci Solution:**
 - Cryptographically-signed evidence bundles (RSA-SHA256)
 - Auto-generated audit artifacts
 - Compliance automation
@@ -288,7 +288,7 @@
 - Critical infrastructure requires on-prem for critical systems
 - Competitors are SaaS-only (can't serve these customers)
 
-**FixOps Solution:**
+**ALdeci Solution:**
 - Full on-prem/air-gapped deployment
 - No cloud dependencies
 - Complete offline operation
@@ -306,7 +306,7 @@
 - Manual triage takes 2-4 hours per day per analyst
 - Critical vulnerabilities get buried in noise
 
-**FixOps Solution:**
+**ALdeci Solution:**
 - Multi-LLM consensus reduces false positives by 40-60%
 - Micro-pentest validation eliminates non-exploitable findings
 - Correlation engine reduces noise by 35%
@@ -323,7 +323,7 @@
 - **Market Size:** $2.5B AUD
 - **Key Customers:** Big 4 banks, insurers, super funds
 - **Regulatory Requirement:** APRA CPS 234
-- **FixOps Fit:** ✅ **PERFECT**
+- **ALdeci Fit:** ✅ **PERFECT**
 - **Estimated Customers:** 150 entities
 
 **Revenue Potential:** $15M-30M AUD/year (150 customers × $100K-200K/year)
@@ -334,7 +334,7 @@
 - **Market Size:** $1.8B AUD
 - **Key Customers:** Federal/state government, defense contractors
 - **Regulatory Requirement:** PSPF, ISM
-- **FixOps Fit:** ✅ **PERFECT**
+- **ALdeci Fit:** ✅ **PERFECT**
 - **Estimated Customers:** 500+ entities
 
 **Revenue Potential:** $25M-50M AUD/year (500 customers × $50K-100K/year)
@@ -345,7 +345,7 @@
 - **Market Size:** $1.2B AUD
 - **Key Customers:** Energy, water, transport, communications
 - **Regulatory Requirement:** Essential Eight
-- **FixOps Fit:** ✅ **PERFECT**
+- **ALdeci Fit:** ✅ **PERFECT**
 - **Estimated Customers:** 200+ entities
 
 **Revenue Potential:** $10M-20M AUD/year (200 customers × $50K-100K/year)
@@ -358,31 +358,31 @@
 
 ## 7. Competitive Advantage in Australia
 
-### Why FixOps Wins in Australia:
+### Why ALdeci Wins in Australia:
 
 #### 1. Regulatory Compliance ✅
-- **APRA CPS 234**: FixOps provides evidence bundles (competitors don't)
-- **PSPF**: FixOps provides secure development evidence (competitors don't)
-- **Essential Eight**: FixOps provides vulnerability management evidence (competitors don't)
-- **ISM**: FixOps provides security control evidence (competitors don't)
+- **APRA CPS 234**: ALdeci provides evidence bundles (competitors don't)
+- **PSPF**: ALdeci provides secure development evidence (competitors don't)
+- **Essential Eight**: ALdeci provides vulnerability management evidence (competitors don't)
+- **ISM**: ALdeci provides security control evidence (competitors don't)
 
 **Advantage:** ✅ **REGULATORY MOAT** - Legal requirement creates moat
 
 ---
 
 #### 2. On-Prem Deployment ✅
-- **Government/Defense**: Requires air-gapped (FixOps provides, competitors don't)
-- **Financial Services**: Requires on-prem (FixOps provides, competitors don't)
-- **Critical Infrastructure**: Requires on-prem (FixOps provides, competitors don't)
+- **Government/Defense**: Requires air-gapped (ALdeci provides, competitors don't)
+- **Financial Services**: Requires on-prem (ALdeci provides, competitors don't)
+- **Critical Infrastructure**: Requires on-prem (ALdeci provides, competitors don't)
 
 **Advantage:** ✅ **MARKET MOAT** - 40% of market competitors can't serve
 
 ---
 
 #### 3. Evidence Bundles ✅
-- **APRA CPS 234**: Requires evidence (FixOps provides, competitors don't)
-- **PSPF**: Requires evidence (FixOps provides, competitors don't)
-- **Essential Eight**: Requires evidence (FixOps provides, competitors don't)
+- **APRA CPS 234**: Requires evidence (ALdeci provides, competitors don't)
+- **PSPF**: Requires evidence (ALdeci provides, competitors don't)
+- **Essential Eight**: Requires evidence (ALdeci provides, competitors don't)
 
 **Advantage:** ✅ **TECHNICAL MOAT** - Cryptographically-signed evidence is hard to replicate
 
@@ -441,18 +441,18 @@
 
 ## 9. Conclusion
 
-### **Is FixOps Needed for Australia?**
+### **Is ALdeci Needed for Australia?**
 
-**Answer: ✅ YES - FixOps is CRITICALLY NEEDED for Australia**
+**Answer: ✅ YES - ALdeci is CRITICALLY NEEDED for Australia**
 
 ### **Key Reasons:**
 
-1. ✅ **APRA CPS 234** - Requires evidence of security controls (FixOps provides)
-2. ✅ **PSPF** - Requires evidence of secure development (FixOps provides)
-3. ✅ **Essential Eight** - Requires vulnerability management evidence (FixOps provides)
-4. ✅ **ISM** - Requires evidence of security controls (FixOps provides)
-5. ✅ **On-Prem Requirement** - 40% of market requires on-prem (FixOps provides, competitors don't)
-6. ✅ **Evidence Bundles** - Required by Australian regulations (FixOps provides, competitors don't)
+1. ✅ **APRA CPS 234** - Requires evidence of security controls (ALdeci provides)
+2. ✅ **PSPF** - Requires evidence of secure development (ALdeci provides)
+3. ✅ **Essential Eight** - Requires vulnerability management evidence (ALdeci provides)
+4. ✅ **ISM** - Requires evidence of security controls (ALdeci provides)
+5. ✅ **On-Prem Requirement** - 40% of market requires on-prem (ALdeci provides, competitors don't)
+6. ✅ **Evidence Bundles** - Required by Australian regulations (ALdeci provides, competitors don't)
 
 ### **Market Opportunity:**
 
@@ -463,13 +463,13 @@
 
 ### **Competitive Advantage:**
 
-- ✅ **Regulatory Moat** - Australian regulations require evidence bundles (FixOps provides)
+- ✅ **Regulatory Moat** - Australian regulations require evidence bundles (ALdeci provides)
 - ✅ **Market Moat** - 40% of market requires on-prem (competitors can't serve)
 - ✅ **Technical Moat** - Cryptographically-signed evidence is hard to replicate
 
 ### **Recommendation:**
 
-**✅ Australia is a CRITICAL market for FixOps** - Strong regulatory requirements, large market size, and competitive gaps create significant opportunity.
+**✅ Australia is a CRITICAL market for ALdeci** - Strong regulatory requirements, large market size, and competitive gaps create significant opportunity.
 
 **Action Required:** 🔴 **CRITICAL** - Enter Australian market immediately, focus on financial services (APRA CPS 234) and government/defense (PSPF, ISM).
 
@@ -477,4 +477,4 @@
 
 **Australia Market Need Score: 89/100** ✅ **VERY HIGH**
 
-**Verdict:** ✅ **FixOps is CRITICALLY NEEDED for Australia**
+**Verdict:** ✅ **ALdeci is CRITICALLY NEEDED for Australia**

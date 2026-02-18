@@ -1,4 +1,4 @@
-# FixOps/ALdeci — Deep Dive Code Audit Report
+# ALdeci/ALdeci — Deep Dive Code Audit Report
 
 **Date:** February 2026  
 **Auditor:** GitHub Copilot (Claude Opus 4.5)  
@@ -44,7 +44,7 @@ I can confirm:
 
 ### Suite Structure
 ```
-FixOps/
+ALdeci/
 ├── suite-api/apps/api/     # Main FastAPI gateway (1939 lines in app.py alone)
 ├── suite-core/core/        # Intelligence engines (90+ modules)
 ├── suite-attack/api/       # Offensive security (12 routers)
@@ -108,13 +108,13 @@ if LearningMiddleware is not None:
 ```python
 class KnowledgeBrain:
     """
-    The Central Intelligence Graph for FixOps.
+    The Central Intelligence Graph for ALdeci.
     Every security entity is a node. Every relationship is an edge.
     Persisted in SQLite for durability, NetworkX for fast traversal.
     Thread-safe for concurrent API access.
     """
 
-    def __init__(self, db_path: str | Path = "fixops_brain.db") -> None:
+    def __init__(self, db_path: str | Path = "aldeci_brain.db") -> None:
         self.db_path = str(db_path)
         self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self._conn.execute("PRAGMA journal_mode=WAL")  # REAL WAL mode!
@@ -565,38 +565,38 @@ class EventType(str, Enum):
 
 ### vs. Snyk ($7.4B valuation)
 
-| Capability | Snyk | FixOps | Status |
+| Capability | Snyk | ALdeci | Status |
 |------------|------|--------|--------|
 | SCA | ✅ | ✅ | Parity |
 | SAST | ✅ | ✅ | Parity |
 | Container Scanning | ✅ | ✅ | Parity |
 | IaC Scanning | ✅ | ✅ | Parity |
 | AutoFix | ✅ | ✅ | Parity |
-| Multi-LLM Consensus | ❌ | ✅ | **FixOps leads** |
-| Attack Simulation | ❌ | ✅ | **FixOps leads** |
-| Knowledge Graph Brain | ❌ | ✅ | **FixOps leads** |
-| 8-Category Intel Feeds | ❌ | ✅ | **FixOps leads** |
+| Multi-LLM Consensus | ❌ | ✅ | **ALdeci leads** |
+| Attack Simulation | ❌ | ✅ | **ALdeci leads** |
+| Knowledge Graph Brain | ❌ | ✅ | **ALdeci leads** |
+| 8-Category Intel Feeds | ❌ | ✅ | **ALdeci leads** |
 
 ---
 
 ### vs. Wiz ($12B valuation)
 
-| Capability | Wiz | FixOps | Status |
+| Capability | Wiz | ALdeci | Status |
 |------------|-----|--------|--------|
 | CSPM | ✅ | ✅ | Parity |
 | CNAPP | ✅ | ✅ | Parity |
 | Attack Path Analysis | ✅ | ✅ | Parity (GNN-based) |
 | Code-to-Cloud Tracing | ✅ | ✅ | Parity |
 | Agentless Scanning | ✅ | 🔶 | Wiz leads |
-| AI Copilot | 🔶 | ✅ | **FixOps leads** (Multi-LLM) |
-| Breach Simulation | ❌ | ✅ | **FixOps leads** |
-| AutoFix with PR | ❌ | ✅ | **FixOps leads** |
+| AI Copilot | 🔶 | ✅ | **ALdeci leads** (Multi-LLM) |
+| Breach Simulation | ❌ | ✅ | **ALdeci leads** |
+| AutoFix with PR | ❌ | ✅ | **ALdeci leads** |
 
 ---
 
 ### vs. Aikido (~$100M valuation)
 
-| Capability | Aikido | FixOps | Status |
+| Capability | Aikido | ALdeci | Status |
 |------------|--------|--------|--------|
 | SAST/DAST/SCA | ✅ | ✅ | Parity |
 | Secrets Detection | ✅ | ✅ | Parity |
@@ -604,10 +604,10 @@ class EventType(str, Enum):
 | Noise Reduction | ✅ | ✅ | Parity (Dedup + Clustering) |
 | AutoFix | ✅ | ✅ | Parity |
 | EPSS/KEV | ✅ | ✅ | Parity |
-| Attack Simulation | ❌ | ✅ | **FixOps leads** |
-| Multi-LLM Consensus | ❌ | ✅ | **FixOps leads** |
-| Knowledge Graph | ❌ | ✅ | **FixOps leads** |
-| Exposure Cases | ❌ | ✅ | **FixOps leads** |
+| Attack Simulation | ❌ | ✅ | **ALdeci leads** |
+| Multi-LLM Consensus | ❌ | ✅ | **ALdeci leads** |
+| Knowledge Graph | ❌ | ✅ | **ALdeci leads** |
+| Exposure Cases | ❌ | ✅ | **ALdeci leads** |
 
 ---
 
@@ -643,7 +643,7 @@ class EventType(str, Enum):
 
 ### **Overall: 92/100 — Enterprise Ready**
 
-**Bottom Line:** FixOps is NOT overengineered. It is EXACTLY what a $100M-$1B security product should look like. The code is real, the implementations are deep, and the architecture is sound.
+**Bottom Line:** ALdeci is NOT overengineered. It is EXACTLY what a $100M-$1B security product should look like. The code is real, the implementations are deep, and the architecture is sound.
 
 **Recommendation:** Ship it. Focus the remaining 8% on cloud SDK integrations and performance testing.
 

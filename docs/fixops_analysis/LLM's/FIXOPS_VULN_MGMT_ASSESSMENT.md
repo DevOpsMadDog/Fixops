@@ -1,8 +1,8 @@
-# Will FixOps Actually Help Vulnerability Management Teams?
+# Will ALdeci Actually Help Vulnerability Management Teams?
 
 ## Executive Summary
 
-**Short Answer**: **Yes, but with important caveats.** FixOps addresses several critical pain points for vulnerability management teams, but has gaps in areas that matter most for day-to-day operations.
+**Short Answer**: **Yes, but with important caveats.** ALdeci addresses several critical pain points for vulnerability management teams, but has gaps in areas that matter most for day-to-day operations.
 
 **Overall Value**: **7/10** - Strong in decision-making and prioritization, weaker in operational workflows and remediation tracking.
 
@@ -43,13 +43,13 @@
 
 ---
 
-## How FixOps Addresses These Needs
+## How ALdeci Addresses These Needs
 
-### ✅ **STRONG VALUE** - What FixOps Does Well
+### ✅ **STRONG VALUE** - What ALdeci Does Well
 
 #### 1. **Prioritization & Risk Assessment** ⭐⭐⭐⭐⭐
 
-**What FixOps Provides:**
+**What ALdeci Provides:**
 - **Multi-source aggregation**: Combines SBOM, SARIF, CVE feeds, VEX, CNAPP into unified view
 - **Exploitability signals**: CISA KEV integration, EPSS scoring, severity promotion
 - **Business context**: Considers internet-facing, criticality, data classification
@@ -57,14 +57,14 @@
 - **Multi-LLM consensus**: Uses 4 AI models to assess risk and provide explanations
 
 **Real-World Value:**
-- **Reduces triage time**: Instead of manually checking KEV catalog and EPSS scores, FixOps does it automatically
+- **Reduces triage time**: Instead of manually checking KEV catalog and EPSS scores, ALdeci does it automatically
 - **Better prioritization**: Combines CVSS, EPSS, KEV, business context into single risk score
 - **Reduces false positives**: Severity promotion engine can downgrade low-risk findings
 - **Explains decisions**: LLM explanations help teams understand why something is high priority
 
 **Example Workflow:**
 ```
-Before FixOps:
+Before ALdeci:
 1. Analyst receives 500 vulnerabilities from Snyk
 2. Manually checks each CVE against CISA KEV catalog (30 min)
 3. Looks up EPSS scores (20 min)
@@ -72,9 +72,9 @@ Before FixOps:
 5. Manually prioritizes (1 hour)
 Total: ~2 hours for 500 vulnerabilities
 
-With FixOps:
+With ALdeci:
 1. Upload SBOM + SARIF + CVE feed
-2. FixOps automatically:
+2. ALdeci automatically:
    - Checks KEV catalog
    - Retrieves EPSS scores
    - Applies business context
@@ -85,7 +85,7 @@ Total: ~5 minutes for 500 vulnerabilities
 
 #### 2. **Decision Support** ⭐⭐⭐⭐
 
-**What FixOps Provides:**
+**What ALdeci Provides:**
 - **Allow/Block/Defer decisions**: Clear verdicts for CI/CD gates
 - **Confidence scoring**: Multi-factor confidence calculation
 - **Evidence bundles**: Cryptographically-signed audit trails
@@ -99,7 +99,7 @@ Total: ~5 minutes for 500 vulnerabilities
 **Example:**
 ```
 CI/CD Pipeline:
-- Build completes → FixOps analyzes vulnerabilities
+- Build completes → ALdeci analyzes vulnerabilities
 - If verdict = "block" → Pipeline fails, release blocked
 - If verdict = "allow" → Pipeline continues
 - If verdict = "defer" → Pipeline continues with warning, ticket created
@@ -107,7 +107,7 @@ CI/CD Pipeline:
 
 #### 3. **Compliance Mapping** ⭐⭐⭐⭐
 
-**What FixOps Provides:**
+**What ALdeci Provides:**
 - **Multi-framework support**: SOC2, ISO 27001, PCI-DSS, NIST 800-53
 - **Control mapping**: Automatically maps vulnerabilities to compliance controls
 - **Gap analysis**: Identifies compliance gaps
@@ -120,11 +120,11 @@ CI/CD Pipeline:
 
 ---
 
-### ⚠️ **MODERATE VALUE** - What FixOps Does But Has Limitations
+### ⚠️ **MODERATE VALUE** - What ALdeci Does But Has Limitations
 
 #### 4. **Triage Interface** ⭐⭐⭐
 
-**What FixOps Provides:**
+**What ALdeci Provides:**
 - **Triage inbox UI**: Filterable list of vulnerabilities
 - **Filters**: By severity, exploitability, internet-facing, age
 - **Summary metrics**: Total, new in 7 days, high/critical, exploitable
@@ -141,7 +141,7 @@ CI/CD Pipeline:
 
 #### 5. **Remediation Tracking** ⭐⭐
 
-**What FixOps Provides:**
+**What ALdeci Provides:**
 - **Jira integration**: Can create tickets (but integration is stub/incomplete)
 - **Policy automation**: Can trigger actions based on guardrail failures
 - **Workflow engine**: Customizable workflows (but limited)
@@ -159,7 +159,7 @@ CI/CD Pipeline:
 
 #### 6. **Reporting & Analytics** ⭐⭐⭐
 
-**What FixOps Provides:**
+**What ALdeci Provides:**
 - **Analytics dashboard**: MTTR, coverage, ROI metrics
 - **Compliance reports**: Framework-specific reports
 - **Export capabilities**: CSV, JSON export
@@ -172,7 +172,7 @@ CI/CD Pipeline:
 
 ---
 
-### ❌ **WEAK VALUE** - What FixOps Doesn't Do Well
+### ❌ **WEAK VALUE** - What ALdeci Doesn't Do Well
 
 #### 7. **Deduplication & Correlation** ⭐
 
@@ -201,7 +201,7 @@ CI/CD Pipeline:
 
 #### 9. **False Positive Reduction** ⭐⭐
 
-**What FixOps Provides:**
+**What ALdeci Provides:**
 - **VEX support**: Can suppress vulnerabilities via VEX statements
 - **Severity promotion**: Can promote/demote based on exploitability
 
@@ -220,33 +220,33 @@ CI/CD Pipeline:
 ### ✅ **YES, if your team struggles with:**
 
 1. **Too many vulnerabilities to prioritize**
-   - FixOps excels at risk-based prioritization
+   - ALdeci excels at risk-based prioritization
    - Multi-LLM consensus provides better prioritization than manual review
 
 2. **Inconsistent decision-making**
-   - FixOps provides consistent, auditable decisions
+   - ALdeci provides consistent, auditable decisions
    - Reduces human bias and inconsistency
 
 3. **Compliance reporting burden**
-   - FixOps automates compliance mapping and reporting
+   - ALdeci automates compliance mapping and reporting
    - Signed evidence bundles satisfy audit requirements
 
 4. **Lack of exploitability context**
-   - FixOps automatically checks KEV, EPSS, business context
+   - ALdeci automatically checks KEV, EPSS, business context
    - Provides better risk assessment than CVSS alone
 
 5. **CI/CD gate decisions**
-   - FixOps provides clear allow/block/defer decisions
+   - ALdeci provides clear allow/block/defer decisions
    - Integrates with CI/CD pipelines via CLI/API
 
 ### ❌ **NO, if your team needs:**
 
 1. **End-to-end remediation tracking**
-   - FixOps doesn't track remediation status or progress
+   - ALdeci doesn't track remediation status or progress
    - You'll still need Jira/ServiceNow for workflow management
 
 2. **Deduplication across tools**
-   - FixOps doesn't correlate findings across scanners
+   - ALdeci doesn't correlate findings across scanners
    - You'll need to manually deduplicate
 
 3. **Historical trend analysis**
@@ -269,7 +269,7 @@ CI/CD Pipeline:
 
 **Scenario**: Team wants to automatically block releases with critical vulnerabilities
 
-**How FixOps Helps:**
+**How ALdeci Helps:**
 - Analyzes vulnerabilities from SBOM + SARIF + CVE feeds
 - Provides allow/block/defer decision with confidence score
 - CI/CD pipeline uses decision to gate releases
@@ -281,7 +281,7 @@ CI/CD Pipeline:
 
 **Scenario**: Team receives 1000+ vulnerabilities monthly, needs to prioritize
 
-**How FixOps Helps:**
+**How ALdeci Helps:**
 - Combines CVSS, EPSS, KEV, business context into risk score
 - Provides prioritized list with explanations
 - Severity promotion engine elevates critical findings
@@ -292,7 +292,7 @@ CI/CD Pipeline:
 
 **Scenario**: Team needs to generate SOC2/PCI-DSS compliance reports quarterly
 
-**How FixOps Helps:**
+**How ALdeci Helps:**
 - Automatically maps vulnerabilities to compliance controls
 - Generates compliance reports with evidence
 - Identifies compliance gaps
@@ -303,7 +303,7 @@ CI/CD Pipeline:
 
 **Scenario**: Team needs to track which vulnerabilities are being fixed, by whom, and when
 
-**How FixOps Helps:**
+**How ALdeci Helps:**
 - Limited - can create Jira tickets but can't track status
 - No assignment, status tracking, or SLA management
 
@@ -313,7 +313,7 @@ CI/CD Pipeline:
 
 **Scenario**: Team uses multiple scanners (Snyk, Trivy, GitHub) and gets duplicate findings
 
-**How FixOps Helps:**
+**How ALdeci Helps:**
 - Limited - doesn't correlate findings across tools
 - Same vulnerability appears multiple times
 
@@ -324,15 +324,15 @@ CI/CD Pipeline:
 ## Comparison to Alternatives
 
 ### vs. **Snyk**
-- **FixOps Advantage**: Multi-LLM consensus, probabilistic risk models, compliance mapping
+- **ALdeci Advantage**: Multi-LLM consensus, probabilistic risk models, compliance mapping
 - **Snyk Advantage**: Better remediation tracking, deduplication, historical analysis
 
 ### vs. **Veracode**
-- **FixOps Advantage**: Multi-source aggregation, business context, SSVC framework
+- **ALdeci Advantage**: Multi-source aggregation, business context, SSVC framework
 - **Veracode Advantage**: Better SAST/DAST coverage, remediation workflow
 
 ### vs. **Jira + Custom Scripts**
-- **FixOps Advantage**: Automated risk assessment, compliance mapping, evidence bundles
+- **ALdeci Advantage**: Automated risk assessment, compliance mapping, evidence bundles
 - **Jira Advantage**: Better workflow management, collaboration, SLA tracking
 
 ---
@@ -341,21 +341,21 @@ CI/CD Pipeline:
 
 ### For Vulnerability Management Teams
 
-1. **Use FixOps for:**
+1. **Use ALdeci for:**
    - CI/CD release gates
    - Vulnerability prioritization
    - Compliance reporting
    - Risk assessment
 
-2. **Don't use FixOps for:**
+2. **Don't use ALdeci for:**
    - Remediation tracking (use Jira/ServiceNow)
    - Deduplication (use separate tool or manual process)
    - Historical trend analysis (use separate analytics tool)
 
 3. **Hybrid Approach:**
-   - Use FixOps for decision-making and prioritization
+   - Use ALdeci for decision-making and prioritization
    - Export prioritized list to Jira/ServiceNow for tracking
-   - Use FixOps evidence bundles for compliance/audit
+   - Use ALdeci evidence bundles for compliance/audit
 
 ### For Product Team
 
@@ -371,23 +371,23 @@ CI/CD Pipeline:
 
 ## Final Verdict
 
-**Will FixOps help vulnerability management teams?**
+**Will ALdeci help vulnerability management teams?**
 
 **YES, but selectively.**
 
-FixOps is **excellent** for:
+ALdeci is **excellent** for:
 - Prioritization and risk assessment
 - CI/CD release gates
 - Compliance reporting
 - Decision support
 
-FixOps is **weak** for:
+ALdeci is **weak** for:
 - Remediation tracking
 - Deduplication
 - Historical analysis
 - Team collaboration
 
-**Best Use Case**: Use FixOps as a **decision engine** that feeds into your existing remediation tracking system (Jira/ServiceNow). FixOps handles the hard problem of "what should we fix first?" and "should we block this release?", while your existing tools handle "who's fixing it?" and "is it fixed yet?"
+**Best Use Case**: Use ALdeci as a **decision engine** that feeds into your existing remediation tracking system (Jira/ServiceNow). ALdeci handles the hard problem of "what should we fix first?" and "should we block this release?", while your existing tools handle "who's fixing it?" and "is it fixed yet?"
 
 **ROI**: **High** if you struggle with prioritization and decision-making. **Low** if you need end-to-end remediation tracking.
 
