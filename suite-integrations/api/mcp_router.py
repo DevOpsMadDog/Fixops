@@ -394,8 +394,6 @@ async def get_mcp_config():
 @router.post("/configure", response_model=MCPServerConfig)
 async def configure_mcp_server(config: MCPConfigureRequest):
     """Update MCP server configuration."""
-    global _mcp_config
-
     if config.enabled is not None:
         _mcp_config.enabled = config.enabled
     if config.transport is not None:
