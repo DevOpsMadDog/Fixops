@@ -1205,7 +1205,7 @@ export const mcpApi = {
   // Tools
   getTools: () => api.get('/api/v1/mcp/tools').then(r => r.data),
   invokeTool: (toolName: string, args: Record<string, unknown>) => 
-    api.post(`/api/v1/mcp/tools/${toolName}/invoke`, args).then(r => r.data),
+    api.post(`/api/v1/mcp/tools/${encodeURIComponent(toolName)}/invoke`, args).then(r => r.data),
   
   // Resources
   getResources: () => api.get('/api/v1/mcp/resources').then(r => r.data),
@@ -1215,7 +1215,7 @@ export const mcpApi = {
   // Prompts
   getPrompts: () => api.get('/api/v1/mcp/prompts').then(r => r.data),
   getPrompt: (name: string, args?: Record<string, unknown>) => 
-    api.get(`/api/v1/mcp/prompts/${name}`, { params: args }).then(r => r.data),
+    api.get(`/api/v1/mcp/prompts/${encodeURIComponent(name)}`, { params: args }).then(r => r.data),
   
   // Configuration
   getConfig: () => api.get('/api/v1/mcp/config').then(r => r.data),
@@ -1265,4 +1265,3 @@ export const cnappConnectorsApi = {
   getFindings: (connectorId: string, params?: { severity?: string, limit?: number }) => 
     api.get(`/api/v1/integrations/${connectorId}/findings`, { params }).then(r => r.data),
 }
-
