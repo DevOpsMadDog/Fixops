@@ -26,13 +26,12 @@ export const api = axios.create({
  * Update the API key used for all future requests.
  * Called from Settings page when user saves a new key.
  *
- * Security: Uses sessionStorage (not localStorage) so the key is never
- * persisted to disk and is cleared when the browser tab closes.
+ * Security: The key is kept only in memory and in request headers; it is not
+ * written to web storage to avoid clear-text persistence.
  */
 export function updateApiKey(key: string) {
   _activeApiKey = key
   api.defaults.headers.common['X-API-Key'] = key
-  sessionStorage.setItem('aldeci_api_key', key)
 }
 
 /** Get the currently active API key */
@@ -44,15 +43,6 @@ export function getActiveApiKey(): string {
 export function getApiBaseUrl(): string {
   return API_BASE_URL
 }
-
-// Restore any session-stored API key (survives page refresh within same tab).
-;(() => {
-  const stored = sessionStorage.getItem('aldeci_api_key')
-  if (stored && stored !== API_KEY) {
-    _activeApiKey = stored
-    api.defaults.headers.common['X-API-Key'] = stored
-  }
-})()
 
 // ═══════════════════════════════════════════════════════════════════════════
 // API Activity Logger — captures every request/response for the debug panel
