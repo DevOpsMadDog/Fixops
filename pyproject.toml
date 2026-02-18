@@ -17,6 +17,7 @@ profile = "black"
 line_length = 88
 skip_gitignore = true
 extend_skip = ["WIP"]
+known_third_party = ["ssvc"]
 
 [tool.pytest.ini_options]
 python_files = ["test_*.py", "*_test.py"]
