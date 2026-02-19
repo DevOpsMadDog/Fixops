@@ -1,0 +1,9 @@
+name: "CodeQL config - exclude archived code"
+
+paths-ignore:
+  - "archive"
+  - "archive/**"
+  - "archive_not_needed"
+  - "archive_not_needed/**"
+  - "fixops-enterprise"
+  - "fixops-enterprise/**"
