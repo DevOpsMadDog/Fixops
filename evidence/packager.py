@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import subprocess
 import tempfile
 from dataclasses import dataclass, field
@@ -254,7 +255,7 @@ def create_bundle(inputs: BundleInputs) -> dict[str, Any]:
             rel = prov_file.relative_to(inputs.provenance_dir)
         except ValueError:
             rel = Path(prov_file.name)
-        arcname = f"provenance/{rel}"
+        arcname = f"provenance/{rel.as_posix()}"
         if arcname in prov_seen:
             arcname = f"provenance/{prov_file.parent.name}/{prov_file.name}"
         prov_seen.add(arcname)
@@ -272,6 +273,7 @@ def create_bundle(inputs: BundleInputs) -> dict[str, Any]:
         arcname = f"extra/{extra.name}"
         if arcname in extra_seen:
             arcname = f"extra/{extra.parent.name}/{extra.name}"
+        arcname = arcname.replace(os.sep, "/")
         extra_seen.add(arcname)
         bundle_files.append((extra, arcname))
         artefact_descriptors.append(
