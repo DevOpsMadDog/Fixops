@@ -18,6 +18,7 @@ jobs:
       options: --user root
     env:
       FIXOPS_SKIP_PATH_SECURITY: "1"
+      SKIP_TESTS: 'true'
     steps:
       - uses: actions/checkout@v4
       - name: Configure git safe directory
@@ -33,10 +34,10 @@ jobs:
       - name: Lint
         run: flake8
       - name: Type check
-        if: false
+        if: ${{ env.SKIP_TESTS != 'true' }}
         run: mypy --explicit-package-bases --ignore-missing-imports core apps scripts
       - name: Run all tests (API, CLI, E2E, Unit)
-        if: false
+        if: ${{ env.SKIP_TESTS != 'true' }}
         env:
           PYTHONPATH: .
           FIXOPS_DISABLE_TELEMETRY: "1"
@@ -57,7 +58,7 @@ jobs:
             --ignore=tests/sidecar/ \
             --ignore=tests/e2e/
       - name: Coverage summary
-        if: false
+        if: ${{ env.SKIP_TESTS != 'true' }}
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -71,7 +72,7 @@ jobs:
           print(summary.strip())
           PY
       - name: Upload coverage artefacts
-        if: false
+        if: ${{ env.SKIP_TESTS != 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: coverage

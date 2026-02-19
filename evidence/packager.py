@@ -248,8 +248,16 @@ def create_bundle(inputs: BundleInputs) -> dict[str, Any]:
             }
         )
 
-    for idx, prov_file in enumerate(provenance_files):
-        arcname = f"provenance/{prov_file.name}"
+    prov_seen: set[str] = set()
+    for prov_file in provenance_files:
+        try:
+            rel = prov_file.relative_to(inputs.provenance_dir)
+        except ValueError:
+            rel = Path(prov_file.name)
+        arcname = f"provenance/{rel}"
+        if arcname in prov_seen:
+            arcname = f"provenance/{prov_file.parent.name}/{prov_file.name}"
+        prov_seen.add(arcname)
         bundle_files.append((prov_file, arcname))
         artefact_descriptors.append(
             {
@@ -259,8 +267,12 @@ def create_bundle(inputs: BundleInputs) -> dict[str, Any]:
             }
         )
 
+    extra_seen: set[str] = set()
     for extra in extra_files:
         arcname = f"extra/{extra.name}"
+        if arcname in extra_seen:
+            arcname = f"extra/{extra.parent.name}/{extra.name}"
+        extra_seen.add(arcname)
         bundle_files.append((extra, arcname))
         artefact_descriptors.append(
             {
