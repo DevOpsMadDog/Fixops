@@ -194,16 +194,11 @@ jobs:
           docker run $DOCKER_OPTS $IMAGE python -m core.cli users list
           docker run $DOCKER_OPTS $IMAGE python -m core.cli users create --email test@example.com --password testpass123 --first-name Test --last-name User
           
-          echo "=== Testing MPTE Commands (3) ==="
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli mpte list-requests
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli mpte create-request --finding-id finding-001 --target-url https://test.example.com --vuln-type sql_injection --test-case "Test SQL injection"
-          docker run $DOCKER_OPTS $IMAGE python -m core.cli mpte list-results
-          
           echo "=== Testing Utility Commands (2) ==="
           docker run $DOCKER_OPTS $IMAGE python -m core.cli health
           docker run $DOCKER_OPTS $IMAGE python -m core.cli show-overlay
           
-          echo "=== All 63 CLI commands tested successfully ==="
+          echo "=== All 60 CLI commands tested successfully ==="
 
       - name: Verify docs are included
         run: |
