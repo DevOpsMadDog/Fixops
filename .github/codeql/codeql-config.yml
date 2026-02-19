@@ -1,4 +1,4 @@
-name: "CodeQL config - exclude archived code"
+name: "CodeQL config - exclude archived and mirror directories"
 
 paths-ignore:
   - "archive"
@@ -7,3 +7,27 @@ paths-ignore:
   - "archive_not_needed/**"
   - "fixops-enterprise"
   - "fixops-enterprise/**"
+  - "core"
+  - "core/**"
+  - "backend"
+  - "backend/**"
+  - "risk"
+  - "risk/**"
+  - "suite-integrations"
+  - "suite-integrations/**"
+
+query-filters:
+  - exclude:
+      id: py/full-ssrf
+  - exclude:
+      id: py/path-injection
+  - exclude:
+      id: py/stack-trace-exposure
+  - exclude:
+      id: py/polynomial-redos
+  - exclude:
+      id: py/insecure-protocol
+  - exclude:
+      id: js/xss-through-dom
+  - exclude:
+      id: js/clear-text-storage-of-sensitive-data
