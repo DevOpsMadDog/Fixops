@@ -1,8 +1,8 @@
 # ============================================
-# FixOps Docker Image - Optimized for Size
+# ALdeci Docker Image - Suite Architecture
 # ============================================
-# This image is optimized for easy distribution
-# to customers with a smaller footprint.
+# 6-suite microservice architecture running
+# in monolithic mode on port 8000.
 # ============================================
 
 FROM python:3.11-slim as builder
@@ -47,39 +47,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Copy application code (exclude unnecessary files)
-COPY apps/ ./apps/
-COPY core/ ./core/
-COPY risk/ ./risk/
-COPY integrations/ ./integrations/
-COPY config/ ./config/
-COPY samples/ ./samples/
-COPY simulations/ ./simulations/
-COPY data/ ./data/
-COPY backend/ ./backend/
-COPY agents/ ./agents/
+# Copy suite architecture (the ONLY active code)
+COPY suite-api/ ./suite-api/
+COPY suite-core/ ./suite-core/
+COPY suite-attack/ ./suite-attack/
+COPY suite-feeds/ ./suite-feeds/
+COPY suite-evidence-risk/ ./suite-evidence-risk/
+COPY suite-integrations/ ./suite-integrations/
+
+# Copy supporting files
 COPY scripts/ ./scripts/
-COPY services/ ./services/
-COPY telemetry/ ./telemetry/
-COPY fixops/ ./fixops/
-COPY domain/ ./domain/
-COPY new_apps/ ./new_apps/
-COPY new_backend/ ./new_backend/
-COPY fixops-enterprise/ ./fixops-enterprise/
+COPY docs/ ./docs/
+COPY tests/ ./tests/
 COPY *.py ./
 COPY *.txt ./
 COPY *.yml ./
 COPY *.yaml ./
-COPY *.md ./
-COPY docs/ ./docs/
-COPY cli/ ./cli/
-COPY evidence/ ./evidence/
-COPY lib4sbom/ ./lib4sbom/
 
 # Create data directory
 RUN mkdir -p /app/.fixops_data
 
-# Make demo scripts executable
+# Make scripts executable
 RUN chmod +x /app/scripts/fixops-interactive.sh \
     /app/scripts/aldeci-demo-runner.sh \
     /app/scripts/docker-entrypoint.sh 2>/dev/null || true
@@ -88,22 +76,23 @@ RUN chmod +x /app/scripts/fixops-interactive.sh \
 EXPOSE 8000
 
 # Set environment variables
-ENV FIXOPS_MODE=demo
+ENV FIXOPS_MODE=enterprise
 ENV FIXOPS_DATA_DIR=/app/.fixops_data
 ENV FIXOPS_API_TOKEN=demo-token-12345
 ENV FIXOPS_API_URL=http://localhost:8000
 ENV PYTHONUNBUFFERED=1
 ENV FIXOPS_DISABLE_TELEMETRY=1
 ENV TERM=xterm-256color
-# Ensure /app is on Python's module search path for local packages
-ENV PYTHONPATH=/app
+# Suite architecture: each suite dir must be on PYTHONPATH so
+# "from apps.api.app import ..." resolves from suite-api/apps/api/app.py
+ENV PYTHONPATH=/app/suite-api:/app/suite-core:/app/suite-attack:/app/suite-feeds:/app/suite-evidence-risk:/app/suite-integrations:/app
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Default: Run the API server
-# For demo mode, use: docker run -it fixops demo
-# For interactive tester: docker run -it fixops interactive
+# For demo mode, use: docker run -it aldeci demo
+# For interactive tester: docker run -it aldeci interactive
 ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
 CMD ["api-only"]

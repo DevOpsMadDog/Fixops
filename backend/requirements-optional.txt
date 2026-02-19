@@ -1,5 +1,0 @@
-# Optional helpers for richer local analysis. These packages are not required
-# for the default pipeline but unlock additional parsers when present.
-
-# CycloneDX utilities for deeper SBOM inspection.
-lib4sbom>=0.6,<1.0

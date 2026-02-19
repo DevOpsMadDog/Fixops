@@ -1,4 +1,0 @@
-service,data_classification,exposure
-identity-service,pii,public
-payment-gateway,financial,public
-reporting-engine,internal,internal

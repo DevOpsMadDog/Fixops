@@ -1,7 +1,0 @@
-component,subcomponent,owner,data_class,description,control_scope
-web,frontend,frontend-team,PII,"quote form collects name,email,ssn","SOC2,ISO27001,HIPAA"
-api,pricing,pricing-team,PII,"quote calculation, stores customer id","SOC2,ISO27001"
-db,customers-db,platform-team,PII/PHI,"postgres storing customer records","SOC2,ISO27001,HIPAA"
-esb,billing,billing-team,PII,"payment callbacks and webhooks","PCI"
-analytics,pricing-ml,ml-team,PII,"ML pricing model uses historical claim data","SOC2,ISO27001"
-iac,terraform,platform-team,Config,"provisions eks cluster + postgres","SOC2,ISO27001"

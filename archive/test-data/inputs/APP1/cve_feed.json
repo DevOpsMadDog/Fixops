@@ -1,8 +1,0 @@
-{
-  "generated": "2025-10-28T12:00:00Z",
-  "cves": [
-    {"id": "CVE-2025-0001", "package": "pg", "version": "8.9.0", "cvss": 9.1, "published": "2025-10-01", "summary": "RCE via malformed query"},
-    {"id": "CVE-2024-1709", "package": "express", "version": "4.18.2", "cvss": 7.8, "published": "2024-05-15", "summary": "Improper auth bypass"},
-    {"id": "CVE-2024-31122", "package": "jsonwebtoken", "version": "9.0.2", "cvss": 8.3, "published": "2024-08-11", "summary": "Signature validation bypass"}
-  ]
-}

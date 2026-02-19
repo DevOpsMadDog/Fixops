@@ -1,7 +1,0 @@
-{
-  "tool": "ExampleScanner",
-  "severity_breakdown": {
-    "error": 1,
-    "warning": 1
-  }
-}

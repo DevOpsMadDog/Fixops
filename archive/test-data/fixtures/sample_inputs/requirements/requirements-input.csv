@@ -1,3 +1,0 @@
-feature,control_refs,data_class,pii,internet_facing,notes
-Account registration,ISO27001:AC-1;ISO27001:AC-2,restricted,true,true,Requires MFA and audit logging
-Policy export,ISO27001:IR-1,internal,false,false,Generate daily compliance exports

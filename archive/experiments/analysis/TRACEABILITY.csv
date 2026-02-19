@@ -1,8 +1,0 @@
-capability,file,status
-API ingestion,apps/api/app.py,UNKNOWN
-API ingestion,apps/api/pipeline.py,UNKNOWN
-Exploit intelligence,core/exploit_signals.py,UNKNOWN
-Compliance overlays,apps/api/pipeline.py,UNKNOWN
-Compliance overlays,core/compliance.py,UNKNOWN
-SSVC scoring,core/design_context_injector.py,UNKNOWN
-Prototype decider,prototypes/decider/api.py,UNKNOWN

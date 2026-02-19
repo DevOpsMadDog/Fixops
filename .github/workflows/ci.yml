@@ -24,6 +24,7 @@ jobs:
       FIXOPS_SKIP_PATH_SECURITY: "1"
       FIXOPS_EVIDENCE_KEY: ${{ secrets.FIXOPS_EVIDENCE_KEY || 'Zz6A0n4P3skS8F6edSxE2xe50Tzw9uQWGWp9JYG1ChE=' }}
       SKIP_UNIT_TESTS: 'true'
+      PYTHONPATH: suite-api:suite-core:suite-attack:suite-feeds:suite-evidence-risk:suite-integrations:.
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,14 +35,14 @@ jobs:
           pip install black==23.7.0 isort==5.12.0 flake8 pytest pytest-cov
       - name: Run format check
         run: |
-          black --check . --exclude '(archive/|\.git/)'
-          isort --check-only . --skip archive --skip .git
+          black --check . --exclude '(archive/|archive_not_needed/|\.git/)'
+          isort --check-only . --skip archive --skip archive_not_needed --skip .git
       - name: Lint
         run: flake8
       - name: Test with Coverage (fail if below 18% baseline)
         if: ${{ env.SKIP_UNIT_TESTS != 'true' }}
         run: |
-          pytest --cov=core --cov=apps --cov=risk --cov=evidence --cov=telemetry --cov-branch --cov-report=xml --cov-report=term-missing --cov-fail-under=18 -q --ignore=tests/e2e --ignore=tests/harness --ignore=tests/sidecar
+          pytest --cov=core --cov=apps --cov=risk --cov=evidence --cov-branch --cov-report=xml --cov-report=term-missing --cov-fail-under=18 -q --ignore=tests/e2e --ignore=tests/harness --ignore=tests/sidecar
       - name: API Contract Check
         continue-on-error: true
         run: |

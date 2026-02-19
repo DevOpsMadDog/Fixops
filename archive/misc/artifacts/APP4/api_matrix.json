@@ -1,8 +1,0 @@
-{
-  "app": "APP4",
-  "routes": [
-    {"path": "/checkout", "methods": ["POST"], "roles": {"store-device": "allow", "finance-ops": "deny"}},
-    {"path": "/settlement/batch", "methods": ["POST"], "roles": {"finance-ops": "allow", "store-device": "deny"}}
-  ],
-  "generated_at": "2025-10-28T14:33:00Z"
-}

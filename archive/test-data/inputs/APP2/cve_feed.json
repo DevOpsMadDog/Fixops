@@ -1,7 +1,0 @@
-{
-  "generated": "2025-10-28T13:32:00Z",
-  "cves": [
-    {"id": "CVE-2024-45598", "package": "next", "version": "14.1.0", "cvss": 8.7, "published": "2024-09-10", "summary": "SSRF via image optimization"},
-    {"id": "CVE-2025-11219", "package": "apollo-server", "version": "4.9.3", "cvss": 7.4, "published": "2025-02-18", "summary": "GraphQL batch auth bypass"}
-  ]
-}

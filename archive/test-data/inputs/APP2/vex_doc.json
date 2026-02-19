@@ -1,8 +1,0 @@
-{
-  "vex_id": "VEX-APP2-2025-10-28-001",
-  "statements": [
-    {"cve": "CVE-2024-45598", "status": "affected", "justification": "Image proxy uses remote patterns; mitigation pending", "action": "deploy allowlist patch by 2025-11-05"},
-    {"cve": "CVE-2025-11219", "status": "not_affected", "justification": "Gateway enforces persisted queries only"}
-  ],
-  "generated": "2025-10-28T13:33:00Z"
-}

@@ -1,8 +1,0 @@
-{
-  "scenario": "baseline",
-  "vus_max": 200,
-  "requests": 18000,
-  "http_req_duration": {"avg": 320, "p95": 520, "max": 890},
-  "http_req_failed": 0.012,
-  "notes": "Exceeded p95 target during AZ failover replay; flagged for remediation"
-}

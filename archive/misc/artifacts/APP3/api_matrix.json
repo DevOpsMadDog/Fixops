@@ -1,8 +1,0 @@
-{
-  "app": "APP3",
-  "routes": [
-    {"path": "/fhir/Patient", "methods": ["GET", "POST"], "roles": {"clinician": "allow", "patient": "deny", "auditor": "read"}},
-    {"path": "/admin/audit/sign", "methods": ["POST"], "roles": {"auditor": "allow", "clinician": "deny"}}
-  ],
-  "generated_at": "2025-10-28T14:13:00Z"
-}

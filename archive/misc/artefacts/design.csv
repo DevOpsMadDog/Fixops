@@ -1,4 +1,0 @@
-component,customer_impact,data_classification,exposure,owner,service_tier
-customer-api,mission_critical,pii,internet,Application Platform,tier1
-payments-gateway,external,financial,partner,Payments Guild,tier1
-admin-portal,internal,confidential,intranet,Platform Ops,tier2

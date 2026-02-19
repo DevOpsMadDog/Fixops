@@ -1,8 +1,0 @@
-{
-  "id": "3ba2cc3aa4624285b3dbc9d71ff975a7",
-  "stage": "sbom",
-  "stored_at": "2026-02-09T11:54:38.812455Z",
-  "original_filename": "attack-paths-2.json",
-  "raw_path": "/Users/devops.ai/developement/fixops/Fixops/data/archive/sbom/2026-02-09T115438.812455Z-3ba2cc3aa4624285b3dbc9d71ff975a7.raw",
-  "normalized_path": "/Users/devops.ai/developement/fixops/Fixops/data/archive/sbom/2026-02-09T115438.812455Z-3ba2cc3aa4624285b3dbc9d71ff975a7.json"
-}

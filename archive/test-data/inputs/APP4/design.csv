@@ -1,7 +1,0 @@
-component,subcomponent,owner,data_class,description,control_scope
-mobile,pos-app,device-team,PCI,"Tablet POS app capturing card data","PCI-DSS"
-api,checkout,payments-team,PCI,"Golang checkout API processing tokens","PCI-DSS"
-services,settlement,finance-team,PCI,"Nightly settlement batch jobs","PCI-DSS,SOX"
-queue,event-stream,platform-team,Operational,"Kafka topics for receipts and inventory","PCI-DSS"
-infrastructure,edge-gateway,platform-team,Operational,"IoT gateway bridging stores to cloud","PCI-DSS"
-iac,terraform,platform-team,Config,"Provisions EKS, MSK, DynamoDB, KMS","PCI-DSS,ISO27001"

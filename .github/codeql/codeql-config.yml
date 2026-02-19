@@ -1,20 +1,12 @@
-name: "CodeQL config - exclude archived and mirror directories"
+name: "CodeQL config - ALdeci suite architecture"
 
 paths-ignore:
   - "archive"
   - "archive/**"
   - "archive_not_needed"
   - "archive_not_needed/**"
-  - "fixops-enterprise"
-  - "fixops-enterprise/**"
-  - "core"
-  - "core/**"
-  - "backend"
-  - "backend/**"
-  - "risk"
-  - "risk/**"
-  - "suite-integrations"
-  - "suite-integrations/**"
+  - "tests"
+  - "tests/**"
 
 query-filters:
   - exclude:

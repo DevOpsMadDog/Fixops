@@ -1,6 +1,0 @@
-Asset,IP Address,Host Name,Operating System,CVE,CVSS Score,Severity,Title,Description,Solution,Proof
-web-server-01,10.0.1.100,web-server-01.internal,Ubuntu 20.04,CVE-2022-22963,9.8,Critical,Spring Cloud Function SpEL Code Injection,Remote code execution via SpEL injection in Spring Cloud Function,Upgrade to Spring Cloud Function 3.1.7 or 3.2.3,Spring Cloud Function 3.1.6 detected on port 8080
-db-server-01,10.0.1.200,db-server-01.internal,CentOS 7,CVE-2021-44228,10.0,Critical,Apache Log4j Remote Code Execution,Remote code execution via JNDI lookup in Log4j,Upgrade to Log4j 2.15.0 or later,Log4j 2.14.1 detected in application logs
-file-server-01,10.0.1.150,file-server-01.internal,Windows Server 2019,CVE-2023-34362,9.8,Critical,Progress MOVEit Transfer SQL Injection,SQL injection vulnerability in MOVEit Transfer,Apply vendor security update,MOVEit Transfer 2023.0.1 detected
-jenkins-01,10.0.1.50,jenkins-01.internal,Ubuntu 22.04,CVE-2024-23897,9.8,Critical,Jenkins CLI Arbitrary File Read,Arbitrary file read via Jenkins CLI,Upgrade to Jenkins 2.442 or later,Jenkins 2.441 detected on port 8080
-ecommerce-web-01,10.0.1.75,ecommerce-web-01.internal,Ubuntu 20.04,CVE-2022-24086,7.5,High,Adobe Commerce Improper Input Validation,Improper input validation in Adobe Commerce,Upgrade to latest Adobe Commerce version,Adobe Commerce 2.4.3 detected

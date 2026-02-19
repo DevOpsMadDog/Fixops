@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: fixops
-  labels:
-    app.kubernetes.io/name: fixops
-    app.kubernetes.io/part-of: security-platform
-    app.kubernetes.io/managed-by: kubectl

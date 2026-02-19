@@ -1,8 +1,0 @@
-{
-  "scan_time": "2025-10-28T13:35:00Z",
-  "findings": [
-    {"id": "F-201", "type": "cdn:misconfig", "severity": "high", "resource": "cloudfront/app2", "description": "Origin failover disabled leading to single point of failure"},
-    {"id": "F-202", "type": "api:rate_limit", "severity": "medium", "resource": "kong/service/partner", "description": "429 threshold misaligned with contract"},
-    {"id": "F-203", "type": "runtime:secret", "severity": "critical", "resource": "lambda/transformer", "description": "Partner secret stored in plaintext env"}
-  ]
-}

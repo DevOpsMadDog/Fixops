@@ -1,7 +1,0 @@
-{
-  "generated": "2025-10-28T14:02:00Z",
-  "cves": [
-    {"id": "CVE-2024-34145", "package": "spring-boot", "version": "3.3.2", "cvss": 9.8, "published": "2024-07-05", "summary": "RCE in Spring expression language"},
-    {"id": "CVE-2025-07701", "package": "azure-storage-blob", "version": "12.24.0", "cvss": 6.9, "published": "2025-01-12", "summary": "Missing TLS hostname verification"}
-  ]
-}

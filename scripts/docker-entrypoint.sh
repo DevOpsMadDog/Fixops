@@ -10,20 +10,20 @@ NC='\033[0m'
 
 echo -e "${CYAN}"
 cat << 'BANNER'
-    ███████╗██╗██╗  ██╗ ██████╗ ██████╗ ███████╗
-    ██╔════╝██║╚██╗██╔╝██╔═══██╗██╔══██╗██╔════╝
-    █████╗  ██║ ╚███╔╝ ██║   ██║██████╔╝███████╗
-    ██╔══╝  ██║ ██╔██╗ ██║   ██║██╔═══╝ ╚════██║
-    ██║     ██║██╔╝ ██╗╚██████╔╝██║     ███████║
-    ╚═╝     ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚══════╝
+     █████╗ ██╗     ██████╗ ███████╗ ██████╗██╗
+    ██╔══██╗██║     ██╔══██╗██╔════╝██╔════╝██║
+    ███████║██║     ██║  ██║█████╗  ██║     ██║
+    ██╔══██║██║     ██║  ██║██╔══╝  ██║     ██║
+    ██║  ██║███████╗██████╔╝███████╗╚██████╗██║
+    ╚═╝  ╚═╝╚══════╝╚═════╝ ╚══════╝ ╚═════╝╚═╝
 BANNER
 echo -e "${NC}"
-echo -e "${GREEN}Interactive API & CLI Testing Suite${NC}"
+echo -e "${GREEN}ALdeci — Security Vulnerability Management Platform${NC}"
 echo ""
 
 # Check if we should start the API server
 if [[ "${START_API_SERVER:-true}" == "true" ]]; then
-    echo -e "${YELLOW}Starting FixOps API server in background...${NC}"
+    echo -e "${YELLOW}Starting ALdeci API server in background...${NC}"
     uvicorn apps.api.app:app --host 0.0.0.0 --port 8000 --log-level warning &
     API_PID=$!
     

@@ -1,6 +1,0 @@
-/Users/devops.ai/developement/fixops/Fixops/suite-core/core/overlay_runtime.py
-/Users/devops.ai/developement/fixops/Fixops/suite-core/config/fixops.overlay.yml
-/Users/devops.ai/developement/fixops/Fixops/suite-core/configs/overlays
-/Users/devops.ai/developement/fixops/Fixops/suite-core/configs/overlay_mappings.yaml
-/Users/devops.ai/developement/fixops/Fixops/suite-core/simulations/ssdlc/design/inputs/overlay.yaml
-DONE

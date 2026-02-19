@@ -74,7 +74,7 @@ def _detect_format(document: Mapping[str, Any]) -> str:
         return document["bomFormat"].lower()
     if "spdxVersion" in document:
         return "spdx"
-    if document.get("metadata", {}).get("tools"):
+    if (document.get("metadata") or {}).get("tools"):
         return "cyclonedx"
     return "unknown"
 

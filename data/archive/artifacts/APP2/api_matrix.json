@@ -1,8 +1,0 @@
-{
-  "app": "APP2",
-  "routes": [
-    {"path": "/graphql", "methods": ["POST"], "roles": {"viewer": "allow", "integration": "allow", "anonymous": "deny"}},
-    {"path": "/api/webhooks/{partner}", "methods": ["POST"], "roles": {"integration": "allow", "viewer": "deny", "ops": "allow"}}
-  ],
-  "generated_at": "2025-10-28T13:46:00Z"
-}

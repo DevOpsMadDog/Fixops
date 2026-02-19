@@ -1,9 +1,0 @@
-{
-  "app": "APP1",
-  "routes": [
-    {"path": "/api/quote", "methods": ["GET", "POST"], "roles": {"broker": "allow", "underwriter": "allow", "auditor": "read", "anonymous": "deny"}},
-    {"path": "/api/claim", "methods": ["POST"], "roles": {"broker": "allow", "auditor": "deny", "customer": "allow"}},
-    {"path": "/api/admin/quote/{quoteId}/approve", "methods": ["POST"], "roles": {"underwriter": "allow", "broker": "deny", "auditor": "read"}}
-  ],
-  "generated_at": "2025-10-28T13:10:00Z"
-}

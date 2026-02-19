@@ -15,6 +15,7 @@ jobs:
       options: --user root
     env:
       FIXOPS_SKIP_PATH_SECURITY: "1"
+      PYTHONPATH: suite-api:suite-core:suite-attack:suite-feeds:suite-evidence-risk:suite-integrations:.
     steps:
       - uses: actions/checkout@v4
       - name: Install test dependencies
@@ -22,7 +23,7 @@ jobs:
           pip install -r requirements-test.txt
       - name: Lint & Compile
         run: |
-          python -m compileall backend fixops simulations tests
+          python -m compileall suite-api suite-core suite-attack suite-feeds suite-evidence-risk suite-integrations tests
       - name: API push-ingestion regression
         env:
           FIXOPS_API_TOKEN: ${{ secrets.FIXOPS_API_TOKEN || 'demo-api-token' }}
@@ -30,7 +31,7 @@ jobs:
           FIXOPS_MODE: demo
           FIXOPS_DISABLE_TELEMETRY: '1'
         run: |
-          uvicorn apps.api.app:create_app --factory --host 0.0.0.0 --port 8000 &
+          uvicorn apps.api.app:app --host 0.0.0.0 --port 8000 &
           API_PID=$!
           sleep 15
           curl -H "X-API-Key: $FIXOPS_API_TOKEN" -F "file=@artefacts/design.csv;type=text/csv" http://127.0.0.1:8000/inputs/design
@@ -96,7 +97,7 @@ jobs:
         run: |
           echo "=== Running real-world CVE integration tests ==="
           echo "Testing with actual CVEs: Log4Shell, Spring4Shell, ProxyLogon, etc."
-          uvicorn apps.api.app:create_app --factory --host 127.0.0.1 --port 8001 &
+          uvicorn apps.api.app:app --host 127.0.0.1 --port 8001 &
           API_PID=$!
           sleep 10
           # Upload real-world test fixtures (fail fast on upload errors)

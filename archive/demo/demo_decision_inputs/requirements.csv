@@ -1,6 +1,0 @@
-component,criticality,exposure,data_classification,environment,compliance_framework
-payment-gateway,critical,internet,payment_card_data,production,PCI_DSS
-user-auth-service,high,internet,pii,production,SOC2
-order-processing,high,internal,business_data,production,SOC2
-analytics-worker,medium,internal,public_data,staging,none
-admin-dashboard,high,internal,pii,production,SOC2

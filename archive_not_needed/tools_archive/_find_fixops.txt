@@ -1,3 +1,0 @@
-/Users/devops.ai/developement/fixops/Fixops/archive/legacy/fixops/__init__.py
-/Users/devops.ai/developement/fixops/Fixops/archive/legacy/fixops/utils/paths.py
-FIND_DONE
