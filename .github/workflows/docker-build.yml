@@ -73,9 +73,8 @@ jobs:
           path: /tmp/fixops-image.tar
           retention-days: 1
 
-  # Test the built image (opt-in: set repo variable RUN_DOCKER_TESTS=true to enable)
+  # Test the built image
   test-image:
-    if: ${{ vars.RUN_DOCKER_TESTS == 'true' }}
     needs: build
     runs-on: ubuntu-latest
     
