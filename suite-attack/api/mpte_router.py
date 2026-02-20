@@ -96,7 +96,7 @@ async def _call_real_mpte_verify(data) -> dict:
             )
             if resp.status_code == 200:
                 result = resp.json()
-                result["demo_mode"] = False
+                result["source"] = "mpte"
                 return result
             else:
                 logger.warning(f"MPTE verify returned {resp.status_code}")
@@ -110,7 +110,7 @@ async def _call_real_mpte_verify(data) -> dict:
         "finding_id": data.finding_id,
         "status": "pending",
         "message": f"Verification queued for {data.vulnerability_type} at {data.target_url}",
-        "demo_mode": False,
+        "source": "queued",
         "created_at": datetime.utcnow().isoformat(),
     }
 
@@ -135,7 +135,7 @@ async def _call_real_mpte_scan(data) -> dict:
             )
             if resp.status_code == 200 or resp.status_code == 201:
                 result = resp.json()
-                result["demo_mode"] = False
+                result["source"] = "mpte"
                 return result
             else:
                 logger.warning(f"MPTE scan returned {resp.status_code}")
@@ -149,7 +149,7 @@ async def _call_real_mpte_scan(data) -> dict:
         "scan_types": data.scan_types or ["xss", "sqli", "csrf"],
         "status": "pending",
         "message": f"Scan queued for {data.target}",
-        "demo_mode": False,
+        "source": "queued",
         "started_at": datetime.utcnow().isoformat(),
     }
 

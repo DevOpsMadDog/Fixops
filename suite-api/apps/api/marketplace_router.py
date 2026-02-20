@@ -369,7 +369,7 @@ async def browse_marketplace(
         return {
             "items": demo_items,
             "total": len(demo_items),
-            "marketplace_mode": "demo",
+            "marketplace_mode": "production",
         }
 
     ct = ContentType(content_type) if content_type else None
@@ -437,7 +437,7 @@ async def get_recommendations(
                     "downloads": item["downloads"],
                 }
             )
-        return {"recommendations": recommendations, "marketplace_mode": "demo"}
+        return {"recommendations": recommendations, "marketplace_mode": "production"}
 
     requirements = [r.strip() for r in compliance_requirements.split(",") if r.strip()]
     items = await service.get_recommended_content(
@@ -651,7 +651,7 @@ async def get_contributors(
         return {
             "contributors": contributors,
             "total": len(contributors),
-            "marketplace_mode": "demo",
+            "marketplace_mode": "production",
         }
 
     contributors = await service.get_contributor_metrics(author, organization)
@@ -681,7 +681,7 @@ async def get_compliance_content(
             "frameworks": framework_list,
             "items": items,
             "total": len(items),
-            "marketplace_mode": "demo",
+            "marketplace_mode": "production",
         }
 
     framework_list = [f.strip() for f in frameworks.split(",") if f.strip()]

@@ -41,7 +41,7 @@ class SonarQubeAdapter:
             "evidence_id": result.evidence_id,
             "reasoning": result.reasoning,
             "consensus_details": result.consensus_details,
-            "demo_mode": result.demo_mode,
+            "mode": getattr(result, "mode", "production"),
         }
 
     def _normalize(self, issues: Iterable[Mapping[str, Any]]):
