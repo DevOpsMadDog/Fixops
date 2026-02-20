@@ -31,9 +31,11 @@ pydantic_settings.BaseSettings = _BaseSettings
 pydantic_settings.SettingsConfigDict = dict
 sys.modules["pydantic_settings"] = pydantic_settings
 
-from src.api.v1.policy import GateRequest, WaiverCreate, create_waiver, evaluate_gate
-from src.models import security_sqlite  # noqa: F401  # Ensure metadata is populated
-from src.models.base_sqlite import Base
+from api.v1.policy import GateRequest, WaiverCreate, create_waiver, evaluate_gate
+from core.models.enterprise import (  # noqa: F401  # Ensure metadata is populated
+    security_sqlite,
+)
+from core.models.enterprise.base_sqlite import Base
 
 
 async def _execute_with_session(

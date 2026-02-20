@@ -110,8 +110,8 @@ if "src.db.session" not in sys.modules:
     session_module.DatabaseManager = DatabaseManager
     sys.modules["src.db.session"] = session_module
 
-from src.services.decision_engine import DecisionContext, DecisionEngine
-from src.services.golden_regression_store import GoldenRegressionStore
+from core.services.enterprise.decision_engine import DecisionContext, DecisionEngine
+from core.services.enterprise.golden_regression_store import GoldenRegressionStore
 
 
 @pytest.fixture(autouse=True)

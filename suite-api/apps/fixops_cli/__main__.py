@@ -23,9 +23,9 @@ def _ensure_enterprise_src() -> Path:
 _ = _ensure_enterprise_src()
 
 
+from core.services.enterprise import id_allocator, signing  # noqa: E402
+from core.services.enterprise.run_registry import RunRegistry  # noqa: E402
 from core.stage_runner import StageRunner  # noqa: E402  (import after path tweak)
-from src.services import id_allocator, signing  # noqa: E402
-from src.services.run_registry import RunRegistry  # noqa: E402
 
 
 def _build_parser() -> argparse.ArgumentParser:

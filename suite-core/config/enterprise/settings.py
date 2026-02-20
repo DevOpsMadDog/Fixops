@@ -162,7 +162,7 @@ class Settings(BaseSettings):
     JIRA_API_TOKEN: Optional[str] = Field(default=None)
 
     # ML & Analytics Configuration
-    ML_MODEL_PATH: str = Field(default="/app/models")
+    ML_MODEL_PATH: str = Field(default="models")
     ENABLE_ML_INFERENCE: bool = Field(default=True)
     ML_BATCH_SIZE: int = Field(default=32)
     ENABLE_RL_EXPERIMENTS: bool = Field(

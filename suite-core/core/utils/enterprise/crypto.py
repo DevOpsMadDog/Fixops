@@ -19,7 +19,7 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 try:  # pragma: no cover - fallback for lightweight test environments
-    from src.config.settings import get_settings
+    from config.enterprise.settings import get_settings
 except (
     ModuleNotFoundError
 ):  # pragma: no cover - used when pydantic_settings is unavailable
@@ -35,7 +35,7 @@ except (
         return _FallbackSettings()
 
 
-from src.services.metrics import FixOpsMetrics
+from core.services.enterprise.metrics import FixOpsMetrics
 
 logger = structlog.get_logger()
 

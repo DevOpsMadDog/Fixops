@@ -35,8 +35,8 @@ if "pydantic_settings" not in sys.modules:  # pragma: no cover - import guard
     pydantic_settings.SettingsConfigDict = dict
     sys.modules["pydantic_settings"] = pydantic_settings
 
-from src.core.middleware import PerformanceMiddleware
-from src.services.metrics import FixOpsMetrics
+from core.enterprise.middleware import PerformanceMiddleware
+from core.services.enterprise.metrics import FixOpsMetrics
 
 
 @pytest.fixture(autouse=True)

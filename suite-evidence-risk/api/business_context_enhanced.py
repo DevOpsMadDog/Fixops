@@ -5,9 +5,9 @@ Handles business context upload and SSVC conversion
 
 
 import structlog
+from core.services.enterprise.business_context_processor import context_processor
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
-from src.services.business_context_processor import context_processor
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/business-context", tags=["business-context"])

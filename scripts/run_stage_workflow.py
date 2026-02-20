@@ -17,9 +17,9 @@ if str(ENTERPRISE_SRC) not in sys.path:
     sys.path.insert(0, str(ENTERPRISE_SRC))
 
 from apps.api.normalizers import InputNormalizer
+from core.services.enterprise import id_allocator, signing
+from core.services.enterprise.run_registry import RunRegistry
 from core.stage_runner import StageRunner
-from src.services import id_allocator, signing
-from src.services.run_registry import RunRegistry
 
 STAGE_SEQUENCE: list[tuple[str, str | None]] = [
     ("requirements", "requirements/requirements-input.csv"),

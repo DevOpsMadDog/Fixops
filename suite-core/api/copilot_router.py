@@ -687,7 +687,7 @@ async def _action_analyze(params: dict, action: dict) -> dict:
     result = {"status": "completed", "target": target, "enrichments": {}}
     # EPSS / KEV enrichment via FeedsService
     try:
-        from src.services.feeds_service import FeedsService
+        from core.services.enterprise.feeds_service import FeedsService
 
         svc = FeedsService()
         if target.upper().startswith("CVE-"):

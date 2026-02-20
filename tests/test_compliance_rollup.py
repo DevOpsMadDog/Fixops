@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.services.compliance import ComplianceEngine
+from core.services.enterprise.compliance import ComplianceEngine
 
 
 def test_compliance_rollup_counts(signing_env: None) -> None:

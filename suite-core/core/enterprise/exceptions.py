@@ -7,11 +7,11 @@ import traceback
 from typing import Any, Dict, Optional
 
 import structlog
+from core.utils.enterprise.logger import log_security_event
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
-from src.utils.logger import log_security_event
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 logger = structlog.get_logger()

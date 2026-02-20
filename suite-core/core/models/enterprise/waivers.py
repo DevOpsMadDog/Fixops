@@ -5,15 +5,19 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Type
 
-from src.config.settings import get_settings
+from config.enterprise.settings import get_settings
 
 try:  # pragma: no cover - optional imports based on runtime database
-    from src.models.security import KevFindingWaiver as PostgresKevFindingWaiver
+    from core.models.enterprise.security import (
+        KevFindingWaiver as PostgresKevFindingWaiver,
+    )
 except Exception:  # pragma: no cover - fallback for limited runtimes
     PostgresKevFindingWaiver = None  # type: ignore[assignment]
 
 try:  # pragma: no cover - optional imports based on runtime database
-    from src.models.security_sqlite import KevFindingWaiver as SqliteKevFindingWaiver
+    from core.models.enterprise.security_sqlite import (
+        KevFindingWaiver as SqliteKevFindingWaiver,
+    )
 except Exception:  # pragma: no cover - fallback for limited runtimes
     SqliteKevFindingWaiver = None  # type: ignore[assignment]
 

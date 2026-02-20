@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from src.services.id_allocator import ensure_ids
+from core.services.enterprise.id_allocator import ensure_ids
 
 
 def _sample_design() -> dict:

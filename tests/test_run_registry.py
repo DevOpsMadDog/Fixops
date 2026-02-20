@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
-from src.services import run_registry, signing
+from core.services.enterprise import run_registry, signing
 
 
 def _prepare(

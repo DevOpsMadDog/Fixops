@@ -30,7 +30,10 @@ if "structlog" not in sys.modules:
     structlog_stub.get_logger = get_logger
     sys.modules["structlog"] = structlog_stub
 
-from src.services.golden_regression_store import GoldenRegressionStore, RegressionCase
+from core.services.enterprise.golden_regression_store import (
+    GoldenRegressionStore,
+    RegressionCase,
+)
 
 
 @pytest.fixture(autouse=True)

@@ -12,15 +12,18 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 import structlog
-from src.config.settings import get_settings
-from src.db.session import DatabaseManager
-from src.services.cache_service import CacheService
-from src.services.chatgpt_client import ChatGPTClient
-from src.services.explainability import ExplainabilityService
-from src.services.feeds_service import FeedsService
-from src.services.golden_regression_store import GoldenRegressionStore
-from src.services.risk_scorer import ContextualRiskScorer
-from src.services.rl_controller import Experience, ReinforcementLearningController
+from config.enterprise.settings import get_settings
+from core.db.enterprise.session import DatabaseManager
+from core.services.enterprise.cache_service import CacheService
+from core.services.enterprise.chatgpt_client import ChatGPTClient
+from core.services.enterprise.explainability import ExplainabilityService
+from core.services.enterprise.feeds_service import FeedsService
+from core.services.enterprise.golden_regression_store import GoldenRegressionStore
+from core.services.enterprise.risk_scorer import ContextualRiskScorer
+from core.services.enterprise.rl_controller import (
+    Experience,
+    ReinforcementLearningController,
+)
 
 logger = structlog.get_logger()
 settings = get_settings()
@@ -215,7 +218,7 @@ class DecisionEngine:
         """Initialize real Vector DB with security patterns"""
         try:
             # Initialize real ChromaDB vector store
-            from src.services.vector_store import get_vector_store
+            from core.services.enterprise.vector_store import get_vector_store
 
             self.real_vector_db = await get_vector_store()
 
@@ -318,7 +321,7 @@ class DecisionEngine:
     async def _initialize_oss_tools(self):
         """Initialize OSS tools integration for real scanning and policy evaluation"""
         try:
-            from src.services.oss_integrations import OSSIntegrationService
+            from core.services.enterprise.oss_integrations import OSSIntegrationService
 
             self.oss_integrations = OSSIntegrationService()
 
@@ -347,7 +350,7 @@ class DecisionEngine:
 
         # Initialize Processing Layer with all architecture components
         try:
-            from src.services.processing_layer import ProcessingLayer
+            from core.services.enterprise.processing_layer import ProcessingLayer
 
             self.processing_layer = ProcessingLayer()
             logger.info(
@@ -384,7 +387,7 @@ class DecisionEngine:
                 result.rl_policy = await self._update_rl_policy(context, result)
 
             # Record metrics for monitoring
-            from src.services.metrics import FixOpsMetrics
+            from core.services.enterprise.metrics import FixOpsMetrics
 
             FixOpsMetrics.record_decision(verdict=result.decision.value)
 
@@ -1001,7 +1004,7 @@ class DecisionEngine:
         """Real policy evaluation using OPA and custom policies"""
         try:
             # Import and use real OPA engine
-            from src.services.real_opa_engine import get_opa_engine
+            from core.services.enterprise.real_opa_engine import get_opa_engine
 
             opa_engine = await get_opa_engine()
 
@@ -1350,7 +1353,7 @@ class DecisionEngine:
             # Store in real Evidence Lake if available
             if not self.demo_mode:
                 try:
-                    from src.services.evidence_lake import EvidenceLake
+                    from core.services.enterprise.evidence_lake import EvidenceLake
 
                     stored_id = await EvidenceLake.store_evidence(evidence_record)
                     logger.info(f"✅ Evidence stored in Evidence Lake: {stored_id}")
@@ -1581,7 +1584,10 @@ class DecisionEngine:
     async def _use_processing_layer(self, context) -> Dict[str, Any]:
         """Use Processing Layer for integrated architecture components"""
         try:
-            from src.services.processing_layer import MarkovState, SSVCContext
+            from core.services.enterprise.processing_layer import (
+                MarkovState,
+                SSVCContext,
+            )
 
             # Convert decision context to Processing Layer format
             ssvc_context = SSVCContext(

@@ -6,8 +6,8 @@ Connects to Jira, Confluence, and other business systems
 from typing import Any, Dict, List
 
 import structlog
+from core.enterprise.security import get_current_user
 from fastapi import APIRouter, Depends, HTTPException
-from src.core.security import get_current_user
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/business-context", tags=["business-integration"])

@@ -16,7 +16,7 @@ from typing import Any, Dict, Iterable, List, Mapping
 
 import aiohttp
 import structlog
-from src.services.vex_ingestion import VEXIngestor
+from core.services.enterprise.vex_ingestion import VEXIngestor
 
 logger = structlog.get_logger()
 
@@ -24,7 +24,7 @@ logger = structlog.get_logger()
 def _resolve_feeds_dir() -> Path:
     """Return the directory that should contain feed snapshots."""
 
-    base = Path(os.getenv("FIXOPS_FEEDS_DIR", "/app/data/feeds"))
+    base = Path(os.getenv("FIXOPS_FEEDS_DIR", "data/feeds"))
     base.mkdir(parents=True, exist_ok=True)
     return base
 

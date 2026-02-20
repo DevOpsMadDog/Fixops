@@ -349,7 +349,7 @@ async def get_nerve_center_state():
     # ── Decision engine metrics ───────────────────────────────────────
     de_metrics: Dict[str, Any] = {}
     try:
-        from src.services.decision_engine import decision_engine as de
+        from core.services.enterprise.decision_engine import decision_engine as de
 
         de_metrics = await de.get_decision_metrics()
     except Exception as exc:

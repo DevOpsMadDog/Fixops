@@ -7,8 +7,8 @@ from typing import Any, Dict, List, Optional
 import orjson
 import redis.asyncio as redis
 import structlog
+from config.enterprise.settings import get_settings
 from redis.asyncio.connection import ConnectionPool
-from src.config.settings import get_settings
 
 logger = structlog.get_logger()
 settings = get_settings()

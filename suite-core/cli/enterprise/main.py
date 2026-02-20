@@ -18,13 +18,17 @@ import structlog
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.config.settings import get_settings
-from src.db.session import DatabaseManager
-from src.models.security_sqlite import SecurityFinding, Service
-from src.services.cache_service import CacheService
-from src.services.correlation_engine import correlation_engine
-from src.services.decision_engine import DecisionOutcome
-from src.services.policy_engine import PolicyContext, PolicyDecision, policy_engine
+from config.enterprise.settings import get_settings
+from core.db.enterprise.session import DatabaseManager
+from core.models.enterprise.security_sqlite import SecurityFinding, Service
+from core.services.enterprise.cache_service import CacheService
+from core.services.enterprise.correlation_engine import correlation_engine
+from core.services.enterprise.decision_engine import DecisionOutcome
+from core.services.enterprise.policy_engine import (
+    PolicyContext,
+    PolicyDecision,
+    policy_engine,
+)
 
 logger = structlog.get_logger()
 settings = get_settings()
@@ -240,7 +244,10 @@ class FixOpsCLI:
 
         try:
             # Initialize decision engine
-            from src.services.decision_engine import DecisionContext, decision_engine
+            from core.services.enterprise.decision_engine import (
+                DecisionContext,
+                decision_engine,
+            )
 
             await decision_engine.initialize()
 
@@ -310,7 +317,7 @@ class FixOpsCLI:
     async def get_evidence(self, args) -> Dict[str, Any]:
         """Retrieve evidence record from Evidence Lake"""
         try:
-            from src.services.cache_service import CacheService
+            from core.services.enterprise.cache_service import CacheService
 
             cache = CacheService.get_instance()
 

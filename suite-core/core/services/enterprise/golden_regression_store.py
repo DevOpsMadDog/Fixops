@@ -392,7 +392,7 @@ class GoldenRegressionStore:
         """Convert persisted context into a decision context instance."""
 
         try:
-            from src.services.decision_engine import DecisionContext
+            from core.services.enterprise.decision_engine import DecisionContext
         except ModuleNotFoundError:  # pragma: no cover - tests supply a stub
             DecisionContext = None  # type: ignore
 

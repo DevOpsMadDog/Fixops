@@ -17,8 +17,10 @@ def _bootstrap_path() -> None:
 
 _bootstrap_path()
 
-from src.services.decision_engine import DecisionEngine  # noqa: E402
-from src.services.golden_regression_store import GoldenRegressionStore  # noqa: E402
+from core.services.enterprise.decision_engine import DecisionEngine  # noqa: E402
+from core.services.enterprise.golden_regression_store import (  # noqa: E402
+    GoldenRegressionStore,
+)
 
 
 def _format_confidence(value: Any) -> str:

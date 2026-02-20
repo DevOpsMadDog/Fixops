@@ -16,7 +16,7 @@ def test_enrich_findings_populates_epss_and_kev(
 ) -> None:
     monkeypatch.setenv("FIXOPS_FEEDS_DIR", str(tmp_path))
 
-    from src.services import feeds_service
+    from core.services.enterprise import feeds_service
 
     importlib.reload(feeds_service)
 

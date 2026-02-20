@@ -9,10 +9,10 @@ import time
 from typing import Any, Callable, MutableMapping, Optional, Tuple
 
 import structlog
+from config.enterprise.settings import get_settings
+from core.services.enterprise.metrics import FixOpsMetrics
 from fastapi import HTTPException
 from pydantic import FieldInfo
-from src.config.settings import get_settings
-from src.services.metrics import FixOpsMetrics
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response

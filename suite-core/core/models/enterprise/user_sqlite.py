@@ -7,14 +7,14 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Dict, List, Optional
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
-from src.models.base_sqlite import (
+from core.models.enterprise.base_sqlite import (
     AuditMixin,
     BaseModel,
     EncryptedFieldMixin,
     SoftDeleteMixin,
 )
+from sqlalchemy import Boolean, DateTime, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
 
 
 class UserStatus(str, Enum):

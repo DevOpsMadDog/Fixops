@@ -38,7 +38,7 @@ async def _on_cve_discovered(event):
 
     # Trigger EPSS lookup
     try:
-        from src.services.feeds_service import FeedsService
+        from core.services.enterprise.feeds_service import FeedsService
 
         svc = FeedsService()
         epss = await svc.get_epss_score(cve_id)

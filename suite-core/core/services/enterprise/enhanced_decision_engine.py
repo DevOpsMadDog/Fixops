@@ -8,13 +8,15 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 import structlog
-from src.config.settings import get_settings
-from src.services.advanced_llm_engine import MultiLLMResult as MultiLLMDecisionResult
-from src.services.advanced_llm_engine import (
+from config.enterprise.settings import get_settings
+from core.services.enterprise.advanced_llm_engine import (
+    MultiLLMResult as MultiLLMDecisionResult,
+)
+from core.services.enterprise.advanced_llm_engine import (
     enhanced_decision_engine as advanced_llm_engine,
 )
-from src.services.cache_service import CacheService
-from src.services.marketplace import marketplace
+from core.services.enterprise.cache_service import CacheService
+from core.services.enterprise.marketplace import marketplace
 
 logger = structlog.get_logger()
 settings = get_settings()
@@ -619,7 +621,7 @@ class EnhancedDecisionEngine:
 
         # Store enhanced evidence
         try:
-            from src.services.evidence_lake import EvidenceLake
+            from core.services.enterprise.evidence_lake import EvidenceLake
 
             await EvidenceLake.store_evidence(evidence_record)
         except Exception as e:

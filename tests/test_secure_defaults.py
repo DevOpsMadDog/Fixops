@@ -9,7 +9,7 @@ def test_production_requires_allowed_origins(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setenv("ALLOWED_HOSTS", "fixops.local")
     monkeypatch.setenv("CORS_ORIGINS", "https://demo.fixops.local")
 
-    from src.config import settings as settings_module
+    from config.enterprise import settings as settings_module
 
     settings_module.get_settings.cache_clear()
     config = settings_module.get_settings()

@@ -127,14 +127,14 @@ class EncryptedFieldMixin:
 
     def set_encrypted_field(self, field_name: str, value: str) -> None:
         """Set encrypted field using SecurityManager"""
-        from src.core.security import SecurityManager
+        from core.enterprise.security import SecurityManager
 
         encrypted_value = SecurityManager.encrypt_sensitive_data(value)
         setattr(self, field_name, encrypted_value)
 
     def get_encrypted_field(self, field_name: str) -> Optional[str]:
         """Get decrypted field value"""
-        from src.core.security import SecurityManager
+        from core.enterprise.security import SecurityManager
 
         encrypted_value = getattr(self, field_name)
         if encrypted_value:

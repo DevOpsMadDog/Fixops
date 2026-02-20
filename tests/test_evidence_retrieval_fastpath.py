@@ -7,8 +7,8 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 import pytest
-from src.db.session import DatabaseManager
-from src.services.evidence_lake import EvidenceLake
+from core.db.enterprise.session import DatabaseManager
+from core.services.enterprise.evidence_lake import EvidenceLake
 
 
 class _FakeResult:

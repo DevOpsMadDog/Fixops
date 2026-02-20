@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.services.decision_engine import DecisionEngine
+from core.services.enterprise.decision_engine import DecisionEngine
 
 
 def test_top_factors_and_marketplace_recommendations(signing_env: None) -> None:

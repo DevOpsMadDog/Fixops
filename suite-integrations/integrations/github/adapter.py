@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Mapping
 
 import structlog
-from src.services.decision_engine import DecisionEngine, DecisionOutcome
+from core.services.enterprise.decision_engine import DecisionEngine, DecisionOutcome
 
 logger = structlog.get_logger()
 

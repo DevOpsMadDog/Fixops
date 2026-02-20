@@ -9,7 +9,10 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Set
 
 import structlog
-from src.services.chatgpt_client import ChatGPTClient, get_primary_llm_api_key
+from core.services.enterprise.chatgpt_client import (
+    ChatGPTClient,
+    get_primary_llm_api_key,
+)
 
 try:  # pragma: no cover - optional dependency
     import networkx as nx

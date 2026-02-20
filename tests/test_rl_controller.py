@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import asyncio
 
-from src.services.rl_controller import Experience, ReinforcementLearningController
+from core.services.enterprise.rl_controller import (
+    Experience,
+    ReinforcementLearningController,
+)
 
 
 def test_rl_controller_updates_q_values() -> None:

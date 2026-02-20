@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, Dict, Iterable, Mapping
 
 import structlog
-from src.services.decision_engine import DecisionEngine
+from core.services.enterprise.decision_engine import DecisionEngine
 
 logger = structlog.get_logger()
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from src.services.mitre_compliance_analyzer import MITREComplianceAnalyzer
+from core.services.enterprise.mitre_compliance_analyzer import MITREComplianceAnalyzer
 
 
 def test_mitre_analyzer_initialization():

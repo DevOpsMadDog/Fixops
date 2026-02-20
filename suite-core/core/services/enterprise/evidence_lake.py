@@ -7,9 +7,9 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 import structlog
-from src.db.session import DatabaseManager
-from src.models.user import UserAuditLog
-from src.utils.crypto import rsa_sign, rsa_verify
+from core.db.enterprise.session import DatabaseManager
+from core.models.enterprise.user import UserAuditLog
+from core.utils.enterprise.crypto import rsa_sign, rsa_verify
 
 logger = structlog.get_logger()
 

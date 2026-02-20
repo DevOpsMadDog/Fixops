@@ -11,7 +11,7 @@ def fixture_rate_limiter(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("FIXOPS_RL_ENABLED", "1")
     monkeypatch.setenv("FIXOPS_RL_REQ_PER_MIN", "3")
 
-    from src.config.settings import get_settings
+    from config.enterprise.settings import get_settings
 
     get_settings.cache_clear()
     middleware = importlib.import_module("src.core.middleware")

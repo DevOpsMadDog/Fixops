@@ -5,12 +5,13 @@ Real Vector Store Implementation with ChromaDB for Production Mode
 """
 from __future__ import annotations
 
+import os
 import uuid
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 import structlog
-from src.config.settings import get_settings
+from config.enterprise.settings import get_settings
 
 logger = structlog.get_logger()
 settings = get_settings()
@@ -213,7 +214,9 @@ class ChromaDBVectorStore(VectorStore):
                 Settings(
                     anonymized_telemetry=False,
                     is_persistent=True,
-                    persist_directory="/app/data/chromadb",
+                    persist_directory=os.environ.get(
+                        "FIXOPS_CHROMADB_DIR", "data/chromadb"
+                    ),
                 )
             )
 

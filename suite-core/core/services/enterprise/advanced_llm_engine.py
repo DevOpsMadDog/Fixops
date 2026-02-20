@@ -10,9 +10,9 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 import structlog
-from src.config.settings import get_settings
-from src.services.cache_service import CacheService
-from src.services.chatgpt_client import ChatGPTClient
+from config.enterprise.settings import get_settings
+from core.services.enterprise.cache_service import CacheService
+from core.services.enterprise.chatgpt_client import ChatGPTClient
 
 logger = structlog.get_logger()
 settings = get_settings()

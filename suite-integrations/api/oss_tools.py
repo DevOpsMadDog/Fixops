@@ -4,9 +4,9 @@ OSS Tools Integration API Endpoints
 from typing import Any, Dict, Optional
 
 import structlog
+from core.services.enterprise.oss_integrations import OSSIntegrationService
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
-from src.services.oss_integrations import OSSIntegrationService
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/oss", tags=["oss-tools"])

@@ -9,7 +9,7 @@ import time
 from typing import Any, Dict, List, Optional, Tuple
 
 import structlog
-from src.config.settings import get_settings
+from config.enterprise.settings import get_settings
 
 logger = structlog.get_logger()
 settings = get_settings()

@@ -39,13 +39,13 @@ except ImportError:  # pragma: no cover - fallback for unit tests
 
 import pyotp
 import structlog
+from config.enterprise.settings import get_settings
+from core.db.enterprise.session import DatabaseManager
+from core.models.enterprise.user_sqlite import User
+from core.services.enterprise.cache_service import CacheService
+from core.utils.enterprise.crypto import generate_secure_token
 from passlib.context import CryptContext
 from sqlalchemy import select
-from src.config.settings import get_settings
-from src.db.session import DatabaseManager
-from src.models.user_sqlite import User
-from src.services.cache_service import CacheService
-from src.utils.crypto import generate_secure_token
 
 logger = structlog.get_logger()
 settings = get_settings()

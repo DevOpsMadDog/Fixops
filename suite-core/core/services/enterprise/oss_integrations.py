@@ -4,6 +4,7 @@ Implements actual integrations with open source security tools
 """
 import asyncio
 import json
+import os
 import subprocess
 import tempfile
 from pathlib import Path
@@ -70,8 +71,10 @@ class OPAPolicyEngine:
     def __init__(self):
         self.name = "opa"
         self.version = self._get_version()
-        self.policies_dir = Path("/app/enterprise/policies")
-        self.policies_dir.mkdir(exist_ok=True)
+        self.policies_dir = Path(
+            os.environ.get("FIXOPS_POLICIES_DIR", "data/policies")
+        )
+        self.policies_dir.mkdir(parents=True, exist_ok=True)
 
     def _get_version(self) -> str:
         try:
@@ -301,8 +304,8 @@ class OSSIntegrationService:
 # Create default OPA policies
 def create_default_policies():
     """Create default security policies for OPA"""
-    policies_dir = Path("/app/enterprise/policies")
-    policies_dir.mkdir(exist_ok=True)
+    policies_dir = Path(os.environ.get("FIXOPS_POLICIES_DIR", "data/policies"))
+    policies_dir.mkdir(parents=True, exist_ok=True)
 
     # Basic vulnerability policy
     vuln_policy = """

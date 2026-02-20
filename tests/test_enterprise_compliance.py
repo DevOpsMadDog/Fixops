@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.services.compliance_engine import ComplianceEngine
+from core.services.enterprise.compliance_engine import ComplianceEngine
 
 
 def test_compliance_engine_evaluates_frameworks() -> None:

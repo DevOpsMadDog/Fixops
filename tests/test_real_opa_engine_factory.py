@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import pytest
-from src.services import real_opa_engine
-from src.services.real_opa_engine import (
+from core.services.enterprise import real_opa_engine
+from core.services.enterprise.real_opa_engine import (
     DemoOPAEngine,
     OPAEngineFactory,
     ProductionOPAEngine,

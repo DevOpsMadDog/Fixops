@@ -10,7 +10,10 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import structlog
-from src.services.chatgpt_client import ChatGPTClient, get_primary_llm_api_key
+from core.services.enterprise.chatgpt_client import (
+    ChatGPTClient,
+    get_primary_llm_api_key,
+)
 
 logger = structlog.get_logger()
 

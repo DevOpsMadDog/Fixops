@@ -27,7 +27,7 @@ structlog.configure(
 # Skip tests that import missing enterprise modules or use missing CLI commands
 # These modules exist only in archive/enterprise_legacy and are not in the Python path
 collect_ignore = [
-    # Missing enterprise modules - these import from src.services or src.core which don't exist
+    # Missing enterprise modules - these import enterprise modules that may not be available
     "test_risk_adjustment.py",  # imports src.services.risk_scorer
     "test_rl_controller.py",  # imports src.services.rl_controller
     "test_tenant_rbac.py",  # imports src.core.security

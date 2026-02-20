@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from src.services.explainability import ExplainabilityService
+from core.services.enterprise.explainability import ExplainabilityService
 
 
 def test_explainability_service_generates_contributions() -> None:

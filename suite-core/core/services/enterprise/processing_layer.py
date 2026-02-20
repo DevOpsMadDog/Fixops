@@ -960,7 +960,9 @@ class ProcessingLayer:
                 else 0,
             }
 
-            from src.services.llm_explanation_engine import ExplanationRequest
+            from core.services.enterprise.llm_explanation_engine import (
+                ExplanationRequest,
+            )
 
             explanation_request = ExplanationRequest(
                 context_type="decision_rationale",
@@ -1015,7 +1017,7 @@ class ProcessingLayer:
         """Initialize Knowledge Graph and LLM Explanation Engine"""
         try:
             # Initialize Knowledge Graph
-            from src.services.knowledge_graph import knowledge_graph
+            from core.services.enterprise.knowledge_graph import knowledge_graph
 
             self.knowledge_graph = knowledge_graph
             logger.info("✅ Knowledge Graph Construction initialized")
@@ -1026,7 +1028,9 @@ class ProcessingLayer:
 
         try:
             # Initialize LLM Explanation Engine
-            from src.services.llm_explanation_engine import explanation_engine
+            from core.services.enterprise.llm_explanation_engine import (
+                explanation_engine,
+            )
 
             self.explanation_engine = explanation_engine
             logger.info("✅ LLM Explanation Engine initialized")

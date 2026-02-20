@@ -13,9 +13,9 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.core.security import PasswordManager
-from src.db.session import DatabaseManager
-from src.models.user import User, UserStatus
+from core.db.enterprise.session import DatabaseManager
+from core.enterprise.security import PasswordManager
+from core.models.enterprise.user import User, UserStatus
 
 
 async def create_demo_users():

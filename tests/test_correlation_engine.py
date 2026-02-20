@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from src.services.correlation_engine import CorrelationEngine
+from core.services.enterprise.correlation_engine import CorrelationEngine
 
 
 def test_correlation_engine_initialization():

@@ -1,6 +1,6 @@
 """
 Marketplace service with file persistence and validation (enterprise-ready stub)
-- In-memory index plus JSON snapshots under /app/data/marketplace
+- In-memory index plus JSON snapshots under data/marketplace
 - UUID-only IDs, simple versioning and purchase records
 - Tokenized download links (HMAC) without app-level auth
 """
@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import os
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -21,7 +22,7 @@ from pydantic import BaseModel, Field
 
 logger = structlog.get_logger()
 
-DATA_DIR = Path("/app/data/marketplace")
+DATA_DIR = Path(os.environ.get("FIXOPS_MARKETPLACE_DIR", "data/marketplace"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 ITEMS_FILE = DATA_DIR / "items.json"
 PURCHASES_FILE = DATA_DIR / "purchases.json"
@@ -647,6 +648,6 @@ class MarketplaceService:
 
 
 # Singleton instance
-from src.config.settings import get_settings
+from config.enterprise.settings import get_settings
 
 marketplace = MarketplaceService(secret=(get_settings().SECRET_KEY or "fixops-secret"))

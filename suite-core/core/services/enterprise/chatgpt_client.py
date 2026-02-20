@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 import structlog
-from src.config.settings import get_settings
+from config.enterprise.settings import get_settings
 
 try:  # pragma: no cover - import guarded for minimal environments
     from openai import AsyncOpenAI

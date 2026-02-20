@@ -7,9 +7,9 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 import structlog
-from src.config.settings import get_settings
-from src.db.session import DatabaseManager
-from src.models.user_sqlite import UserAuditLog
+from config.enterprise.settings import get_settings
+from core.db.enterprise.session import DatabaseManager
+from core.models.enterprise.user_sqlite import UserAuditLog
 from structlog.processors import JSONRenderer
 
 settings = get_settings()

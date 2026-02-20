@@ -19,8 +19,8 @@ if ENTERPRISE_SRC.exists():  # pragma: no cover - enterprise path setup
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
 if TYPE_CHECKING:
-    from src.services import id_allocator, signing  # noqa: F401
-    from src.services.run_registry import RunRegistry  # noqa: F401
+    from core.services.enterprise import id_allocator, signing  # noqa: F401
+    from core.services.enterprise.run_registry import RunRegistry  # noqa: F401
     from apps.api.normalizers import (  # noqa: F401
         InputNormalizer,
         NormalizedCVEFeed,
@@ -730,9 +730,9 @@ def _handle_get_evidence(args: argparse.Namespace) -> int:
 
 
 def _handle_stage_run(args: argparse.Namespace) -> int:
+    from core.services.enterprise import id_allocator, signing  # noqa: F811
+    from core.services.enterprise.run_registry import RunRegistry  # noqa: F811
     from core.stage_runner import StageRunner  # noqa: F811
-    from src.services import id_allocator, signing  # noqa: F811
-    from src.services.run_registry import RunRegistry  # noqa: F811
 
     input_path: Optional[Path] = args.input
     if input_path is not None:

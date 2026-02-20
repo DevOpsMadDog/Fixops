@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Dict, Optional, Tuple
 
 import structlog
-from src.services.cache_service import CacheService
+from core.services.enterprise.cache_service import CacheService
 
 logger = structlog.get_logger()
 

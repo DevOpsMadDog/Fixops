@@ -16,8 +16,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT / "enterprise") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "enterprise"))
 
-from src.services.compliance_engine import ComplianceEngine  # noqa: E402
-from src.services.risk_scorer import ContextualRiskScorer  # noqa: E402
+from core.services.enterprise.compliance_engine import ComplianceEngine  # noqa: E402
+from core.services.enterprise.risk_scorer import ContextualRiskScorer  # noqa: E402
 
 DEFAULT_CONTEXT = {
     "service_name": "payment-service",

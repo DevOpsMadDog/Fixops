@@ -3,10 +3,10 @@ from __future__ import annotations
 from typing import Dict
 
 import pytest
+from apps.api.app import create_app
+from config.enterprise.settings import get_settings
+from core.services.enterprise.enhanced_decision_engine import EnhancedDecisionService
 from fastapi.testclient import TestClient
-from src.config.settings import get_settings
-from src.main import create_app
-from src.services.enhanced_decision_engine import EnhancedDecisionService
 
 API_TOKEN = "enterprise-token"
 

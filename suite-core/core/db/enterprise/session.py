@@ -6,10 +6,10 @@ from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 import structlog
+from config.enterprise.settings import get_settings
 from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import QueuePool
-from src.config.settings import get_settings
 
 logger = structlog.get_logger()
 settings = get_settings()

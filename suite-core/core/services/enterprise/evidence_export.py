@@ -12,13 +12,13 @@ from zipfile import ZIP_DEFLATED, ZipFile
 import structlog
 
 try:
-    from src.services.evidence_lake import EvidenceLake
+    from core.services.enterprise.evidence_lake import EvidenceLake
 except (
     ModuleNotFoundError
 ):  # pragma: no cover - optional dependency for lightweight tests
     EvidenceLake = None  # type: ignore[assignment]
 
-from src.utils.crypto import rsa_sign
+from core.utils.enterprise.crypto import rsa_sign
 
 logger = structlog.get_logger()
 

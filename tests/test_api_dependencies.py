@@ -4,9 +4,9 @@ import asyncio
 from types import SimpleNamespace
 
 import pytest
+from api import dependencies
+from config.enterprise.settings import get_settings
 from fastapi import HTTPException, status
-from src.api import dependencies
-from src.config.settings import get_settings
 
 
 class StubRequest:

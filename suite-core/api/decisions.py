@@ -7,13 +7,13 @@ import time
 from typing import Any, Dict, List, Optional
 
 import structlog
+from config.enterprise.settings import get_settings
+from core.db.enterprise.session import DatabaseManager
+from core.enterprise.security import get_current_user
+from core.services.enterprise.decision_engine import DecisionContext, decision_engine
+from core.services.enterprise.metrics import FixOpsMetrics
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from src.config.settings import get_settings
-from src.core.security import get_current_user
-from src.db.session import DatabaseManager
-from src.services.decision_engine import DecisionContext, decision_engine
-from src.services.metrics import FixOpsMetrics
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/decisions", tags=["decision-engine"])
@@ -228,7 +228,7 @@ async def get_core_components_status(current_user: Dict = Depends(get_current_us
                 }
 
             # Real policy engine status
-            from src.services.real_opa_engine import get_opa_engine
+            from core.services.enterprise.real_opa_engine import get_opa_engine
 
             opa_engine = await get_opa_engine()
             opa_healthy = await opa_engine.health_check()
@@ -282,7 +282,7 @@ async def get_evidence_record(
 
         # Try Evidence Lake first (production mode)
         if not settings.DEMO_MODE:
-            from src.services.evidence_lake import EvidenceLake
+            from core.services.enterprise.evidence_lake import EvidenceLake
 
             evidence = await EvidenceLake.retrieve_evidence(evidence_id)
 
@@ -300,7 +300,7 @@ async def get_evidence_record(
                 }
 
         # Fallback to cache (demo mode or if not found in Evidence Lake)
-        from src.services.cache_service import CacheService
+        from core.services.enterprise.cache_service import CacheService
 
         cache = CacheService.get_instance()
 
