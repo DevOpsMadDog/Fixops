@@ -71,9 +71,7 @@ class OPAPolicyEngine:
     def __init__(self):
         self.name = "opa"
         self.version = self._get_version()
-        self.policies_dir = Path(
-            os.environ.get("FIXOPS_POLICIES_DIR", "data/policies")
-        )
+        self.policies_dir = Path(os.environ.get("FIXOPS_POLICIES_DIR", "data/policies"))
         self.policies_dir.mkdir(parents=True, exist_ok=True)
 
     def _get_version(self) -> str:
