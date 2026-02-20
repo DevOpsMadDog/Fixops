@@ -122,11 +122,12 @@ class _DemoContributor(TypedDict):
     average_rating: float
 
 
-# Demo/stub data for marketplace endpoints when enterprise service is unavailable
+# Demo/stub data — all counts zeroed, names prefixed [DEMO] to prevent
+# fabricated social-proof from being mistaken for production telemetry.
 _DEMO_MARKETPLACE_ITEMS: List[_DemoMarketplaceItem] = [
     {
         "id": "demo-remediation-pack-1",
-        "name": "SQL Injection Remediation Pack",
+        "name": "[DEMO] SQL Injection Remediation Pack",
         "description": "Comprehensive remediation guidance for SQL injection vulnerabilities",
         "content_type": "remediation_pack",
         "compliance_frameworks": ["OWASP", "PCI-DSS", "SOC2"],
@@ -134,9 +135,9 @@ _DEMO_MARKETPLACE_ITEMS: List[_DemoMarketplaceItem] = [
         "pricing_model": "free",
         "price": 0.0,
         "tags": ["sql-injection", "security", "remediation"],
-        "rating": 4.5,
-        "rating_count": 128,
-        "downloads": 1542,
+        "rating": 0.0,
+        "rating_count": 0,
+        "downloads": 0,
         "version": "2.1.0",
         "qa_status": "approved",
         "created_at": "2024-01-15T10:00:00Z",
@@ -144,7 +145,7 @@ _DEMO_MARKETPLACE_ITEMS: List[_DemoMarketplaceItem] = [
     },
     {
         "id": "demo-policy-template-1",
-        "name": "Access Control Policy Template",
+        "name": "[DEMO] Access Control Policy Template",
         "description": "Enterprise-ready access control policy template for ISO27001 compliance",
         "content_type": "policy_template",
         "compliance_frameworks": ["ISO27001", "SOC2", "HIPAA"],
@@ -152,9 +153,9 @@ _DEMO_MARKETPLACE_ITEMS: List[_DemoMarketplaceItem] = [
         "pricing_model": "free",
         "price": 0.0,
         "tags": ["access-control", "policy", "compliance"],
-        "rating": 4.8,
-        "rating_count": 89,
-        "downloads": 967,
+        "rating": 0.0,
+        "rating_count": 0,
+        "downloads": 0,
         "version": "1.5.0",
         "qa_status": "approved",
         "created_at": "2024-02-10T09:00:00Z",
@@ -162,7 +163,7 @@ _DEMO_MARKETPLACE_ITEMS: List[_DemoMarketplaceItem] = [
     },
     {
         "id": "demo-integration-1",
-        "name": "Jira Security Integration",
+        "name": "[DEMO] Jira Security Integration",
         "description": "Automatically create Jira tickets for security findings",
         "content_type": "integration",
         "compliance_frameworks": ["SOC2"],
@@ -170,9 +171,9 @@ _DEMO_MARKETPLACE_ITEMS: List[_DemoMarketplaceItem] = [
         "pricing_model": "free",
         "price": 0.0,
         "tags": ["jira", "integration", "ticketing"],
-        "rating": 4.2,
-        "rating_count": 56,
-        "downloads": 423,
+        "rating": 0.0,
+        "rating_count": 0,
+        "downloads": 0,
         "version": "3.0.1",
         "qa_status": "approved",
         "created_at": "2024-03-05T08:00:00Z",
@@ -182,26 +183,27 @@ _DEMO_MARKETPLACE_ITEMS: List[_DemoMarketplaceItem] = [
 
 _DEMO_CONTRIBUTORS: List[_DemoContributor] = [
     {
-        "author": "FixOps Team",
+        "author": "[DEMO] FixOps Team",
         "organization": "FixOps",
-        "contributions": 15,
-        "total_downloads": 5420,
-        "average_rating": 4.6,
+        "contributions": 0,
+        "total_downloads": 0,
+        "average_rating": 0.0,
     },
     {
-        "author": "Security Community",
+        "author": "[DEMO] Security Community",
         "organization": "Open Source",
-        "contributions": 8,
-        "total_downloads": 2130,
-        "average_rating": 4.3,
+        "contributions": 0,
+        "total_downloads": 0,
+        "average_rating": 0.0,
     },
 ]
 
 _DEMO_STATS = {
+    "demo_data": True,
     "total_items": 3,
-    "total_downloads": 2932,
+    "total_downloads": 0,
     "total_contributors": 2,
-    "average_rating": 4.5,
+    "average_rating": 0.0,
     "items_by_type": {
         "remediation_pack": 1,
         "policy_template": 1,

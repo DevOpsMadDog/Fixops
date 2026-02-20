@@ -1,43 +1,25 @@
-# Fix Progress Tracker (crash recovery)
-# Updated: 2026-02-20
+# Fix Progress Tracker
+# Updated: 2026-02-20 (latest)
 # Branch: features/intermediate-stage
 # PR: #249
 
-## Group 3: Production Runtime Code ✅ DONE
-- [x] evidence_lake.py — resource_type→resource, +success=True
-- [x] copilot_router.py — FeedsService._load_epss_scores/_load_kev_identifiers
-- [x] sonarqube/adapter.py — async make_decision(DecisionContext)
-- [x] cli.py — try/except ImportError for missing modules
+## PR Review Fixes ✅ ALL DONE (commit 82241e9b)
+- [x] Group 3: Production Runtime (evidence_lake, copilot_router, sonarqube/adapter, cli)
+- [x] Group 1: Test Files (6 broken test files fixed/skipped)
+- [x] Group 2: Scripts (run_real_cve_playbook, run_stage_workflow)
+- [x] Group 4: Config/Security (rego, CORS, dashboard, JWT warning, temp file)
+- [x] CI: All 5 required checks GREEN ✅
 
-## Group 1: Test Files 🔄 IN PROGRESS
-- [x] test_ci_adapters.py — pytestmark skip (done in prior session)
-- [ ] test_explainability.py — remove broken imports, skip first 2, keep last 2
-- [ ] test_compliance_rollup.py — fix import + evaluate() signature
-- [ ] test_correlation_engine.py — skip (no sync correlate() method)
-- [ ] test_golden_regression.py — remove dead src.* stubs
-- [ ] test_enterprise_enhanced_api.py — fix class name + stale monkeypatches
+## P0 Stub Fixes ✅ DONE (this commit)
+- [x] decisions.py — fabricated metrics → null + demo_data flag
+- [x] marketplace_router.py — fake ratings/downloads → zeroed + [DEMO] prefix
 
-## Group 2: Scripts
-- [ ] scripts/run_real_cve_playbook.py — fix sys.path
-- [ ] scripts/run_stage_workflow.py — fix sys.path + imports
+## Legacy Workflow Fixes ✅ DONE (this commit)
+- [x] fixops-ci.yml — artefacts/ → tests/fixtures/real_world/, fixops.cli → core.cli
+- [x] fixops_pipeline.yml — inputs/demo/ → tests/fixtures/real_world/, removed missing overlay
 
-## Group 4: Config/Security/Cleanup
-- [ ] Delete _router_test_output.txt
-- [ ] vulnerability.rego — add default allow = false
-- [ ] docker-compose.demo.yml — CORS wildcard
-- [ ] docker-compose.aldeci-complete.yml — health check
-- [ ] values.yaml — JWT secret warning
-- [ ] check_logs_now.py — docstring path
-- [ ] DEVIN_CONTEXT_backup.md — token reference
-- [ ] .claude/agents — hardcoded paths
-- [ ] codeql-config.yml — comments
-
-## Final Steps
-- [ ] Run isort + black + flake8
-- [ ] Commit & push
-- [ ] Verify CI green
-- [ ] Update DEVIN_CONTEXT.md
-- [ ] Update docs/SUITE_ARCHITECTURE.md
-- [ ] Update README.md
-- [ ] Update docs/DEVELOPER_GUIDE.md
+## Remaining
+- [ ] P1 stubs (6 items from BACKEND_STUB_AUDIT)
+- [ ] Update DEVIN_CONTEXT.md with all fixes
+- [ ] Real-world enterprise API & CLI testing
 

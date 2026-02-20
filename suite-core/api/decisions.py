@@ -123,45 +123,52 @@ async def get_core_components_status(current_user: Dict = Depends(get_current_us
         settings = get_settings()
 
         if settings.DEMO_MODE:
-            # Demo mode - return enhanced demo data
+            # Demo mode — clearly labeled, no fabricated metrics
             components = {
+                "demo_data": True,
                 "vector_db": {
                     "status": "demo_active",
+                    "demo_data": True,
                     "type": "Demo Vector Store",
-                    "security_patterns": 4,
-                    "threat_models": 3,
-                    "context_match_rate": 0.94,
+                    "security_patterns": None,
+                    "threat_models": None,
+                    "context_match_rate": None,
                 },
                 "llm_rag": {
                     "status": "demo_active",
-                    "model": "gpt-5 (demo)",
-                    "enrichment_rate": 0.95,
-                    "business_impact_correlation": 0.92,
-                    "threat_intel_enrichment": 0.89,
+                    "demo_data": True,
+                    "model": "not configured (demo mode)",
+                    "enrichment_rate": None,
+                    "business_impact_correlation": None,
+                    "threat_intel_enrichment": None,
                 },
                 "consensus_checker": {
                     "status": "demo_active",
-                    "current_rate": 0.87,
+                    "demo_data": True,
+                    "current_rate": None,
                     "threshold": 0.85,
-                    "threshold_met": True,
+                    "threshold_met": None,
                 },
                 "golden_regression": {
-                    "status": "demo_validated",
-                    "total_cases": 1247,
-                    "validation_accuracy": 0.987,
-                    "last_validation": "demo data",
+                    "status": "demo_active",
+                    "demo_data": True,
+                    "total_cases": 0,
+                    "validation_accuracy": None,
+                    "last_validation": None,
                 },
                 "policy_engine": {
                     "status": "demo_active",
+                    "demo_data": True,
                     "type": "Demo OPA Engine",
-                    "active_policies": 2,
-                    "enforcement_rate": 0.98,
-                    "compliance_score": 0.92,
+                    "active_policies": 0,
+                    "enforcement_rate": None,
+                    "compliance_score": None,
                 },
                 "sbom_injection": {
                     "status": "demo_active",
+                    "demo_data": True,
                     "criticality_assessment": "enabled",
-                    "metadata_sources": ["Demo CycloneDX SBOM", "Demo SLSA Provenance"],
+                    "metadata_sources": [],
                 },
             }
         else:
