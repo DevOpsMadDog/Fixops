@@ -6,6 +6,8 @@ global:
   imagePullSecrets: []
   storageClass: ""
   env:
+    # ⚠️  SECURITY: Replace with a cryptographically random ≥32-byte secret
+    # before deploying.  Generate with: openssl rand -base64 32
     FIXOPS_JWT_SECRET: "CHANGE_ME"
     FIXOPS_ALLOWED_ORIGINS: "https://aldeci.example.com"
     FIXOPS_AUTH_MODE: "enforced"

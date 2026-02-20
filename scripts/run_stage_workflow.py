@@ -10,16 +10,35 @@ from pathlib import Path
 from typing import Iterable, Optional
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-ENTERPRISE_SRC = REPO_ROOT / "fixops-enterprise"
+# Ensure suite directories are importable when running standalone
+for _suite in (
+    "suite-api",
+    "suite-core",
+    "suite-attack",
+    "suite-feeds",
+    "suite-evidence-risk",
+    "suite-integrations",
+):
+    _suite_path = str(REPO_ROOT / _suite)
+    if _suite_path not in sys.path:
+        sys.path.insert(0, _suite_path)
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
-if str(ENTERPRISE_SRC) not in sys.path:
-    sys.path.insert(0, str(ENTERPRISE_SRC))
 
-from apps.api.normalizers import InputNormalizer
-from core.services.enterprise import id_allocator, signing
-from core.services.enterprise.run_registry import RunRegistry
-from core.stage_runner import StageRunner
+from apps.api.normalizers import InputNormalizer  # noqa: E402
+
+try:
+    from core.services.enterprise import id_allocator, signing  # noqa: E402
+    from core.services.enterprise.run_registry import RunRegistry  # noqa: E402
+except ImportError as _exc:
+    print(
+        f"Stage runner dependencies not available: {_exc}\n"
+        "The id_allocator, signing, and run_registry modules are not yet "
+        "implemented. Use 'fixops run' for standard pipeline execution."
+    )
+    raise SystemExit(1) from _exc
+
+from core.stage_runner import StageRunner  # noqa: E402
 
 STAGE_SEQUENCE: list[tuple[str, str | None]] = [
     ("requirements", "requirements/requirements-input.csv"),

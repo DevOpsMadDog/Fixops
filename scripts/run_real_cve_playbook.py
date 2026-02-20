@@ -13,8 +13,20 @@ from rich.console import Console
 from rich.table import Table
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT / "enterprise") not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT / "enterprise"))
+# Ensure suite directories are importable when running standalone
+for _suite in (
+    "suite-api",
+    "suite-core",
+    "suite-attack",
+    "suite-feeds",
+    "suite-evidence-risk",
+    "suite-integrations",
+):
+    _suite_path = str(REPO_ROOT / _suite)
+    if _suite_path not in sys.path:
+        sys.path.insert(0, _suite_path)
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from core.services.enterprise.compliance_engine import ComplianceEngine  # noqa: E402
 from core.services.enterprise.risk_scorer import ContextualRiskScorer  # noqa: E402

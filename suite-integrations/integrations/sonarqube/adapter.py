@@ -5,7 +5,11 @@ from __future__ import annotations
 from typing import Any, Dict, Iterable, Mapping
 
 import structlog
-from core.services.enterprise.decision_engine import DecisionEngine
+from core.services.enterprise.decision_engine import (
+    DecisionContext,
+    DecisionEngine,
+    DecisionResult,
+)
 
 logger = structlog.get_logger()
 
@@ -16,24 +20,28 @@ class SonarQubeAdapter:
     def __init__(self, decision_engine: DecisionEngine | None = None) -> None:
         self._engine = decision_engine or DecisionEngine()
 
-    def ingest(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+    async def ingest(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         findings = list(self._normalize(payload.get("issues") or []))
-        submission = {"findings": findings, "controls": payload.get("controls") or []}
-        outcome = self._engine.evaluate(submission)
+        context = DecisionContext(
+            service_name=payload.get("service_name", "sonarqube-scan"),
+            environment=payload.get("environment", "unknown"),
+            business_context=payload.get("business_context", {}),
+            security_findings=findings,
+        )
+        result: DecisionResult = await self._engine.make_decision(context)
         logger.info(
             "fixops.sonarqube_adapter.decision",
-            verdict=outcome.verdict,
-            confidence=outcome.confidence,
+            verdict=result.decision.value,
+            confidence=result.confidence_score,
             findings=len(findings),
         )
         return {
-            "verdict": outcome.verdict,
-            "confidence": outcome.confidence,
-            "evidence_id": outcome.evidence.evidence_id,
-            "evidence": outcome.evidence.manifest,
-            "compliance": outcome.compliance,
-            "top_factors": outcome.top_factors,
-            "marketplace_recommendations": outcome.marketplace_recommendations,
+            "verdict": result.decision.value,
+            "confidence": result.confidence_score,
+            "evidence_id": result.evidence_id,
+            "reasoning": result.reasoning,
+            "consensus_details": result.consensus_details,
+            "demo_mode": result.demo_mode,
         }
 
     def _normalize(self, issues: Iterable[Mapping[str, Any]]):

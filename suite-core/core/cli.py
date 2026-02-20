@@ -730,8 +730,16 @@ def _handle_get_evidence(args: argparse.Namespace) -> int:
 
 
 def _handle_stage_run(args: argparse.Namespace) -> int:
-    from core.services.enterprise import id_allocator, signing  # noqa: F811
-    from core.services.enterprise.run_registry import RunRegistry  # noqa: F811
+    try:
+        from core.services.enterprise import id_allocator, signing  # noqa: F811
+        from core.services.enterprise.run_registry import RunRegistry  # noqa: F811
+    except ImportError as exc:
+        print(
+            f"Stage runner dependencies not available: {exc}\n"
+            "The id_allocator, signing, and run_registry modules are not yet "
+            "implemented. Use 'fixops run' for standard pipeline execution."
+        )
+        return 1
     from core.stage_runner import StageRunner  # noqa: F811
 
     input_path: Optional[Path] = args.input

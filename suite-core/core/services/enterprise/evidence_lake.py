@@ -55,12 +55,12 @@ class EvidenceLake:
                 audit_record = UserAuditLog(
                     user_id=evidence_record.get("user_id", "system"),
                     action="evidence_stored",
-                    resource_type="decision_evidence",
+                    resource="decision_evidence",
                     resource_id=evidence_record["evidence_id"],
                     details=json.dumps(evidence_record),
                     ip_address="127.0.0.1",
                     user_agent="FixOps Decision Engine",
-                    timestamp=datetime.now(timezone.utc),
+                    success=True,
                 )
 
                 session.add(audit_record)

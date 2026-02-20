@@ -689,12 +689,12 @@ async def _action_analyze(params: dict, action: dict) -> dict:
     try:
         from core.services.enterprise.feeds_service import FeedsService
 
-        svc = FeedsService()
         if target.upper().startswith("CVE-"):
-            epss = await svc.get_epss_score(target)
-            result["enrichments"]["epss"] = epss
-            kev = await svc.check_kev(target)
-            result["enrichments"]["kev_listed"] = kev
+            epss_scores = FeedsService._load_epss_scores()
+            kev_index = FeedsService._load_kev_identifiers()
+            cve_key = target.strip().upper()
+            result["enrichments"]["epss"] = epss_scores.get(cve_key)
+            result["enrichments"]["kev_listed"] = cve_key in kev_index
     except Exception as exc:
         result["enrichments"]["feeds_error"] = str(exc)
     # Knowledge Graph context

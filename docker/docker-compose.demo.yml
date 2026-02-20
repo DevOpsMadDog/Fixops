@@ -1,4 +1,3 @@
-version: '3.9'
 services:
   collector:
     image: otel/opentelemetry-collector:0.94.0
@@ -15,7 +14,8 @@ services:
       - .:/workspace:Z
     environment:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://collector:4318
-      FIXOPS_ALLOWED_ORIGINS: "*"
+      # Restrict CORS to localhost in demo mode — override for production
+      FIXOPS_ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:5173"
     command: >-
       bash -c "pip install -r requirements.txt && uvicorn apps.api.app:create_app --factory --host 0.0.0.0 --port 8000"
     ports:
@@ -39,7 +39,7 @@ services:
   dashboard:
     image: nginx:alpine
     volumes:
-      - ./archive/old-ui/ui_dashboard:/usr/share/nginx/html:ro
+      - ./suite-ui/aldeci/dist:/usr/share/nginx/html:ro
     ports:
       - "8080:80"
     depends_on:
