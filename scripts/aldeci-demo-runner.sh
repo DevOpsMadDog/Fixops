@@ -11,7 +11,7 @@ set -e
 # CONFIGURATION
 # ============================================================================
 FIXOPS_API_URL="${FIXOPS_API_URL:-http://127.0.0.1:8000}"
-FIXOPS_API_TOKEN="${FIXOPS_API_TOKEN:-demo-token}"
+FIXOPS_API_TOKEN="${FIXOPS_API_TOKEN:?ERROR: FIXOPS_API_TOKEN must be set}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 SAMPLES_DIR="$PROJECT_ROOT/samples/api-examples/demo-scenarios"

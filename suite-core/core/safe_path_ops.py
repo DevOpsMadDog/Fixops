@@ -29,7 +29,7 @@ _DEFAULT_TRUSTED_ROOT = "/var/fixops"
 TRUSTED_ROOT = os.environ.get("FIXOPS_TRUSTED_ROOT", _DEFAULT_TRUSTED_ROOT)
 
 # Auto-create the trusted root directory in demo/dev mode
-if os.environ.get("FIXOPS_DEMO_MODE", "true").lower() == "true":
+if os.environ.get("FIXOPS_DEMO_MODE", "false").lower() == "true":
     _trusted_paths = [TRUSTED_ROOT, f"{TRUSTED_ROOT}/scans", f"{TRUSTED_ROOT}/policies"]
     for _path in _trusted_paths:
         try:

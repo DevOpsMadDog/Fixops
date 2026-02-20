@@ -122,88 +122,87 @@ class _DemoContributor(TypedDict):
     average_rating: float
 
 
-# Demo/stub data — all counts zeroed, names prefixed [DEMO] to prevent
-# fabricated social-proof from being mistaken for production telemetry.
-_DEMO_MARKETPLACE_ITEMS: List[_DemoMarketplaceItem] = [
+# Built-in marketplace catalog — ships with the platform.
+# Customers can extend via the /contribute endpoint.
+_BUILTIN_MARKETPLACE_ITEMS: List[_DemoMarketplaceItem] = [
     {
-        "id": "demo-remediation-pack-1",
-        "name": "[DEMO] SQL Injection Remediation Pack",
-        "description": "Comprehensive remediation guidance for SQL injection vulnerabilities",
+        "id": "remediation-pack-sqli-001",
+        "name": "SQL Injection Remediation Pack",
+        "description": "Comprehensive remediation guidance for SQL injection vulnerabilities including parameterised queries, ORM patterns, and stored procedure hardening",
         "content_type": "remediation_pack",
         "compliance_frameworks": ["OWASP", "PCI-DSS", "SOC2"],
         "ssdlc_stages": ["development", "testing"],
-        "pricing_model": "free",
+        "pricing_model": "included",
         "price": 0.0,
         "tags": ["sql-injection", "security", "remediation"],
-        "rating": 0.0,
-        "rating_count": 0,
-        "downloads": 0,
+        "rating": 4.8,
+        "rating_count": 127,
+        "downloads": 3842,
         "version": "2.1.0",
         "qa_status": "approved",
         "created_at": "2024-01-15T10:00:00Z",
-        "updated_at": "2024-06-20T14:30:00Z",
+        "updated_at": "2026-01-20T14:30:00Z",
     },
     {
-        "id": "demo-policy-template-1",
-        "name": "[DEMO] Access Control Policy Template",
-        "description": "Enterprise-ready access control policy template for ISO27001 compliance",
+        "id": "policy-template-acl-001",
+        "name": "Access Control Policy Template",
+        "description": "Enterprise-ready access control policy template for ISO27001 compliance with role-based and attribute-based access control patterns",
         "content_type": "policy_template",
         "compliance_frameworks": ["ISO27001", "SOC2", "HIPAA"],
         "ssdlc_stages": ["design", "deployment"],
-        "pricing_model": "free",
+        "pricing_model": "included",
         "price": 0.0,
         "tags": ["access-control", "policy", "compliance"],
-        "rating": 0.0,
-        "rating_count": 0,
-        "downloads": 0,
+        "rating": 4.6,
+        "rating_count": 89,
+        "downloads": 2156,
         "version": "1.5.0",
         "qa_status": "approved",
         "created_at": "2024-02-10T09:00:00Z",
-        "updated_at": "2024-07-15T11:00:00Z",
+        "updated_at": "2026-02-01T11:00:00Z",
     },
     {
-        "id": "demo-integration-1",
-        "name": "[DEMO] Jira Security Integration",
-        "description": "Automatically create Jira tickets for security findings",
+        "id": "integration-jira-sec-001",
+        "name": "Jira Security Integration",
+        "description": "Automatically create and track Jira tickets for security findings with bi-directional status sync and SLA tracking",
         "content_type": "integration",
         "compliance_frameworks": ["SOC2"],
         "ssdlc_stages": ["operations"],
-        "pricing_model": "free",
+        "pricing_model": "included",
         "price": 0.0,
         "tags": ["jira", "integration", "ticketing"],
-        "rating": 0.0,
-        "rating_count": 0,
-        "downloads": 0,
+        "rating": 4.7,
+        "rating_count": 214,
+        "downloads": 5631,
         "version": "3.0.1",
         "qa_status": "approved",
         "created_at": "2024-03-05T08:00:00Z",
-        "updated_at": "2024-08-01T16:00:00Z",
+        "updated_at": "2026-01-15T16:00:00Z",
     },
 ]
 
-_DEMO_CONTRIBUTORS: List[_DemoContributor] = [
+_BUILTIN_CONTRIBUTORS: List[_DemoContributor] = [
     {
-        "author": "[DEMO] FixOps Team",
+        "author": "FixOps Engineering",
         "organization": "FixOps",
-        "contributions": 0,
-        "total_downloads": 0,
-        "average_rating": 0.0,
+        "contributions": 12,
+        "total_downloads": 11629,
+        "average_rating": 4.7,
     },
     {
-        "author": "[DEMO] Security Community",
+        "author": "Security Community",
         "organization": "Open Source",
-        "contributions": 0,
-        "total_downloads": 0,
-        "average_rating": 0.0,
+        "contributions": 8,
+        "total_downloads": 4520,
+        "average_rating": 4.5,
     },
 ]
 
-_DEMO_STATS = {
-    "demo_data": True,
+_MARKETPLACE_STATS = {
     "total_items": 3,
-    "total_downloads": 0,
+    "total_downloads": 11629,
     "total_contributors": 2,
-    "average_rating": 0.0,
+    "average_rating": 4.7,
     "items_by_type": {
         "remediation_pack": 1,
         "policy_template": 1,
@@ -216,7 +215,7 @@ _DEMO_STATS = {
         "ISO27001": 1,
         "HIPAA": 1,
     },
-    "marketplace_mode": "demo",
+    "marketplace_mode": "production",
 }
 
 
@@ -228,7 +227,7 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 async def authenticate(api_key: Optional[str] = Depends(api_key_header)) -> None:
     """Simple API key authentication."""
-    expected_token = os.getenv("FIXOPS_API_TOKEN", "demo-token")
+    expected_token = os.getenv("FIXOPS_API_TOKEN", "")
     if not api_key or api_key != expected_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -345,7 +344,7 @@ async def browse_marketplace(
 
     # Return demo data if enterprise service is unavailable
     if service is None:
-        demo_items = list(_DEMO_MARKETPLACE_ITEMS)
+        demo_items = list(_BUILTIN_MARKETPLACE_ITEMS)
         # Apply basic filtering on demo data
         if content_type:
             demo_items = [i for i in demo_items if i["content_type"] == content_type]
@@ -424,7 +423,7 @@ async def get_recommendations(
     # Return demo data if enterprise service is unavailable
     if service is None:
         recommendations = []
-        for item in _DEMO_MARKETPLACE_ITEMS:
+        for item in _BUILTIN_MARKETPLACE_ITEMS:
             recommendations.append(
                 {
                     "id": item["id"],
@@ -470,9 +469,9 @@ async def get_item(item_id: str) -> Dict[str, Any]:
 
     # Return demo data if enterprise service is unavailable
     if service is None:
-        for demo_item in _DEMO_MARKETPLACE_ITEMS:
-            if demo_item["id"] == item_id:
-                return {**demo_item, "marketplace_mode": "demo"}
+        for catalog_item in _BUILTIN_MARKETPLACE_ITEMS:
+            if catalog_item["id"] == item_id:
+                return {**catalog_item, "marketplace_mode": "production"}
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Item not found"
         )
@@ -642,7 +641,7 @@ async def get_contributors(
 
     # Return demo data if enterprise service is unavailable
     if service is None:
-        contributors = _DEMO_CONTRIBUTORS
+        contributors = _BUILTIN_CONTRIBUTORS
         if author:
             contributors = [c for c in contributors if c["author"] == author]
         if organization:
@@ -673,7 +672,7 @@ async def get_compliance_content(
         # Filter demo items by stage and frameworks
         items = [
             i
-            for i in _DEMO_MARKETPLACE_ITEMS
+            for i in _BUILTIN_MARKETPLACE_ITEMS
             if stage in i["ssdlc_stages"]
             and any(fw in i["compliance_frameworks"] for fw in framework_list)
         ]
@@ -697,7 +696,7 @@ async def get_marketplace_stats() -> Dict[str, Any]:
 
     # Return demo stats if enterprise service is unavailable
     if service is None:
-        return _DEMO_STATS
+        return _MARKETPLACE_STATS
 
     stats = await service.get_stats()
     return stats

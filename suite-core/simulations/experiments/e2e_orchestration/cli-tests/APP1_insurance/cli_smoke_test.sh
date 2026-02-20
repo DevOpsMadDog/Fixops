@@ -11,7 +11,7 @@ FIXOPS_DIR="/home/ubuntu/repos/Fixops"
 INPUT_DIR="${FIXOPS_DIR}/e2e_orchestration/inputs/APP1_insurance"
 OUTPUT_DIR="${FIXOPS_DIR}/e2e_orchestration/evidence/APP1_insurance"
 ARTIFACTS_DIR="${FIXOPS_DIR}/e2e_orchestration/artifacts/APP1_insurance"
-FIXOPS_API_TOKEN="${FIXOPS_API_TOKEN:-demo-token}"
+FIXOPS_API_TOKEN="${FIXOPS_API_TOKEN:?ERROR: FIXOPS_API_TOKEN must be set}"
 API_BASE_URL="${API_BASE_URL:-http://127.0.0.1:8000}"
 
 mkdir -p "$OUTPUT_DIR" "$ARTIFACTS_DIR"

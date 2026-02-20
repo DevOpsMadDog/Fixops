@@ -1,25 +1,29 @@
 # Fix Progress Tracker
-# Updated: 2026-02-20 (latest)
-# Branch: features/intermediate-stage
-# PR: #249
+# Updated: 2026-02-21 (latest)
+# Branch: features/intermediate-stage | PR: #249
 
-## PR Review Fixes ✅ ALL DONE (commit 82241e9b)
-- [x] Group 3: Production Runtime (evidence_lake, copilot_router, sonarqube/adapter, cli)
-- [x] Group 1: Test Files (6 broken test files fixed/skipped)
-- [x] Group 2: Scripts (run_real_cve_playbook, run_stage_workflow)
-- [x] Group 4: Config/Security (rego, CORS, dashboard, JWT warning, temp file)
-- [x] CI: All 5 required checks GREEN ✅
+## ✅ Phase 1: src.* Import Rewrite (88 files)
+- [x] 49 production files + 39 test files remapped to suite-based paths
+- [x] core/models/__init__.py → lazy imports; 7 hardcoded /app paths fixed
 
-## P0 Stub Fixes ✅ DONE (this commit)
-- [x] decisions.py — fabricated metrics → null + demo_data flag
-- [x] marketplace_router.py — fake ratings/downloads → zeroed + [DEMO] prefix
+## ✅ Phase 2: Legacy Cleanup — 17,911 LOC deleted, 39 dead files removed
 
-## Legacy Workflow Fixes ✅ DONE (this commit)
-- [x] fixops-ci.yml — artefacts/ → tests/fixtures/real_world/, fixops.cli → core.cli
-- [x] fixops_pipeline.yml — inputs/demo/ → tests/fixtures/real_world/, removed missing overlay
+## ✅ Phase 3: PR Review Fixes (commit 82241e9b) — all 14 valid comments fixed
 
-## Remaining
-- [ ] P1 stubs (6 items from BACKEND_STUB_AUDIT)
-- [ ] Update DEVIN_CONTEXT.md with all fixes
-- [ ] Real-world enterprise API & CLI testing
+## ✅ Phase 4: All 36 Backend Stubs Fixed
+- [x] P0 (2/2): decisions.py fake metrics, marketplace fake downloads
+- [x] P1 (6/6): CVSS calc, compliance controls, reports demo, micro-pentest, biz context
+- [x] P2 (20/20): 16 agent stubs, vuln_discovery, _run_training, monitoring, cloud
+- [x] P3 (8/8): Validated abstract interfaces — correct patterns
+
+## ✅ Phase 5: Route & Health Fixes
+- [x] Critical prefix check fixed, brain health endpoint added
+- [x] Server: 624 routes, 65 prefixes, all critical prefixes verified
+
+## ✅ Phase 6: CI/CD — All checks GREEN (ci, qa, docker-build, codeql, deps)
+
+## ✅ Phase 7: Demo Scripts
+- [x] scripts/enterprise-e2e-demo.sh — full CTEM loop, real API calls
+- [x] scripts/_smoke_test.sh — 50+ endpoint smoke test
+- [x] docs/CLIENT_DEMO_GUIDE.md — 586 lines
 

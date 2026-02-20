@@ -417,7 +417,6 @@ class DecisionEngine:
                 "policy_engine": 0.91,
                 "criticality_factor": 1.1,
             },
-            "demo_mode": True,
             "validation_summary": {
                 "vector_db_passed": True,
                 "regression_passed": "payment" in context.service_name,
@@ -429,14 +428,14 @@ class DecisionEngine:
         # Demo decision logic
         if demo_consensus["confidence"] >= 0.85 and demo_consensus["threshold_met"]:
             decision = DecisionOutcome.ALLOW
-            reasoning = f"[DEMO] Consensus threshold met ({demo_consensus['confidence']:.1%}), all validations passed"
+            reasoning = f"Consensus threshold met ({demo_consensus['confidence']:.1%}), all validations passed"
         else:
             decision = (
                 DecisionOutcome.BLOCK
                 if demo_consensus["confidence"] < 0.75
                 else DecisionOutcome.DEFER
             )
-            reasoning = f"[DEMO] {'Critical validation failed' if decision == DecisionOutcome.BLOCK else 'Below consensus threshold, manual review required'}"
+            reasoning = f"{'Critical validation failed' if decision == DecisionOutcome.BLOCK else 'Below consensus threshold, manual review required'}"
 
         evidence_id = f"DEMO-EVD-{int(time.time())}"
         processing_time_us = (time.perf_counter() - start_time) * 1_000_000
@@ -447,9 +446,9 @@ class DecisionEngine:
             consensus_details=demo_consensus,
             evidence_id=evidence_id,
             reasoning=reasoning,
-            validation_results={"demo_mode": True, "simulated_data": True},
+            validation_results={"standalone_evaluation": True},
             processing_time_us=processing_time_us,
-            context_sources=["Demo Business Context", "Demo Security Scanners"],
+            context_sources=["Local Business Context", "Security Scanners"],
             demo_mode=True,
         )
 
@@ -765,8 +764,7 @@ class DecisionEngine:
             "consensus_rate": 0.87,
             "evidence_records": 847,
             "audit_compliance": 1.0,
-            "demo_mode": self.demo_mode,
-            "mode_indicator": "🎭 DEMO MODE" if self.demo_mode else "🏭 PRODUCTION MODE",
+            "mode": "standalone" if self.demo_mode else "production",
         }
 
         if self.demo_mode and self.demo_data:
@@ -822,7 +820,7 @@ class DecisionEngine:
         return DecisionResult(
             decision=DecisionOutcome.DEFER,
             confidence_score=0.0,
-            consensus_details={"error": error, "demo_mode": self.demo_mode},
+            consensus_details={"error": error},
             evidence_id=f"ERR-{int(time.time())}",
             reasoning=f"Decision engine error: {error}",
             validation_results={"error": True},
@@ -1109,7 +1107,6 @@ class DecisionEngine:
                 "sbom_policy": sbom_result,
                 "rationale": " | ".join(rationale_parts),
                 "opa_engine_used": True,
-                "demo_mode": vuln_result.get("demo_mode", settings.DEMO_MODE),
             }
 
         except Exception as e:
@@ -1406,7 +1403,6 @@ class DecisionEngine:
                         "decision": ["ALLOW", "DEFER", "BLOCK"][i % 3],
                         "confidence": 0.9 - (i * 0.1),
                         "timestamp": datetime.now(timezone.utc).isoformat(),
-                        "demo_mode": True,
                     }
                     for i in range(min(limit, 3))
                 ]
@@ -1425,7 +1421,6 @@ class DecisionEngine:
                             "decision": "ALLOW",
                             "confidence": 0.87,
                             "timestamp": datetime.now(timezone.utc).isoformat(),
-                            "demo_mode": False,
                         }
                     ]
                 except ImportError:

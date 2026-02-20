@@ -2439,7 +2439,7 @@ def create_app() -> FastAPI:
         critical = [
             "/api/v1/nerve-center",
             "/api/v1/copilot",
-            "/api/v1/pipeline",
+            "/api/v1/brain",
             "/api/v1/attack-sim",
             "/api/v1/feeds",
             "/api/v1/evidence",

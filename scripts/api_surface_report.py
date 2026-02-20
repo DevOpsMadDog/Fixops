@@ -37,7 +37,7 @@ def setup_environment() -> None:
     """Set minimal environment for app creation without uvicorn."""
     os.environ.setdefault("FIXOPS_JWT_SECRET", "report-secret")
     os.environ.setdefault("FIXOPS_API_TOKEN", "report-token")
-    os.environ.setdefault("FIXOPS_DEMO_MODE", "true")
+    os.environ.setdefault("FIXOPS_DEMO_MODE", "false")
 
 
 def load_app():

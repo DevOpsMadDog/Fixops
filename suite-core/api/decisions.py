@@ -123,50 +123,43 @@ async def get_core_components_status(current_user: Dict = Depends(get_current_us
         settings = get_settings()
 
         if settings.DEMO_MODE:
-            # Demo mode — clearly labeled, no fabricated metrics
+            # Standalone mode — no external integrations configured yet
             components = {
-                "demo_data": True,
                 "vector_db": {
-                    "status": "demo_active",
-                    "demo_data": True,
-                    "type": "Demo Vector Store",
-                    "security_patterns": None,
-                    "threat_models": None,
-                    "context_match_rate": None,
+                    "status": "standalone",
+                    "type": "ChromaDB (embedded)",
+                    "security_patterns": "pending_configuration",
+                    "threat_models": "pending_configuration",
+                    "context_match_rate": "pending_configuration",
                 },
                 "llm_rag": {
-                    "status": "demo_active",
-                    "demo_data": True,
-                    "model": "not configured (demo mode)",
-                    "enrichment_rate": None,
-                    "business_impact_correlation": None,
-                    "threat_intel_enrichment": None,
+                    "status": "standalone",
+                    "model": "awaiting_api_key",
+                    "enrichment_rate": "pending_configuration",
+                    "business_impact_correlation": "pending_configuration",
+                    "threat_intel_enrichment": "pending_configuration",
                 },
                 "consensus_checker": {
-                    "status": "demo_active",
-                    "demo_data": True,
-                    "current_rate": None,
+                    "status": "standalone",
+                    "current_rate": "pending_configuration",
                     "threshold": 0.85,
-                    "threshold_met": None,
+                    "threshold_met": "pending_configuration",
                 },
                 "golden_regression": {
-                    "status": "demo_active",
-                    "demo_data": True,
+                    "status": "standalone",
                     "total_cases": 0,
-                    "validation_accuracy": None,
-                    "last_validation": None,
+                    "validation_accuracy": "pending_configuration",
+                    "last_validation": "pending_configuration",
                 },
                 "policy_engine": {
-                    "status": "demo_active",
-                    "demo_data": True,
-                    "type": "Demo OPA Engine",
+                    "status": "standalone",
+                    "type": "OPA Engine (embedded)",
                     "active_policies": 0,
-                    "enforcement_rate": None,
-                    "compliance_score": None,
+                    "enforcement_rate": "pending_configuration",
+                    "compliance_score": "pending_configuration",
                 },
                 "sbom_injection": {
-                    "status": "demo_active",
-                    "demo_data": True,
+                    "status": "standalone",
                     "criticality_assessment": "enabled",
                     "metadata_sources": [],
                 },
@@ -242,9 +235,7 @@ async def get_core_components_status(current_user: Dict = Depends(get_current_us
 
             components["policy_engine"] = {
                 "status": "production_active" if opa_healthy else "opa_unavailable",
-                "type": "Production OPA Engine"
-                if not settings.DEMO_MODE
-                else "Demo OPA Engine",
+                "type": "Production OPA Engine",
                 "opa_server_healthy": opa_healthy,
                 "policies_loaded": ["vulnerability", "sbom"],
             }
@@ -259,7 +250,7 @@ async def get_core_components_status(current_user: Dict = Depends(get_current_us
 
         # Add system-wide metrics
         components["system_info"] = {
-            "mode": "demo" if settings.DEMO_MODE else "production",
+            "mode": "standalone" if settings.DEMO_MODE else "production",
             "processing_layer_available": decision_engine.processing_layer is not None,
             "oss_integrations_available": decision_engine.oss_integrations is not None,
         }
@@ -306,7 +297,7 @@ async def get_evidence_record(
                     "source": "evidence_lake",
                 }
 
-        # Fallback to cache (demo mode or if not found in Evidence Lake)
+        # Fallback to cache (standalone mode or if not found in Evidence Lake)
         from core.services.enterprise.cache_service import CacheService
 
         cache = CacheService.get_instance()

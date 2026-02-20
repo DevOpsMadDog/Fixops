@@ -90,8 +90,6 @@ class DemoOPAEngine(OPAEngine):
 
             execution_time = (time.perf_counter() - start_time) * 1000
             result["execution_time_ms"] = execution_time
-            result["demo_mode"] = True
-
             return result
 
         except Exception as e:
@@ -100,7 +98,6 @@ class DemoOPAEngine(OPAEngine):
                 "decision": "defer",
                 "rationale": f"Policy evaluation error: {str(e)}",
                 "error": True,
-                "demo_mode": True,
             }
 
     async def _evaluate_vulnerability_policy(
@@ -272,8 +269,6 @@ class ProductionOPAEngine(OPAEngine):
 
             execution_time = (time.perf_counter() - start_time) * 1000
             result["execution_time_ms"] = execution_time
-            result["demo_mode"] = False
-
             return result
 
         except Exception as e:
@@ -282,7 +277,6 @@ class ProductionOPAEngine(OPAEngine):
                 "decision": "defer",
                 "rationale": f"OPA server error: {str(e)}",
                 "error": True,
-                "demo_mode": False,
             }
 
     async def _evaluate_with_client(

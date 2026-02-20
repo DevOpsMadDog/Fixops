@@ -1313,8 +1313,7 @@ async def get_framework_controls(
         "framework_info": info,
         "controls": [],  # Full controls require enterprise integration
         "status": "metadata_only",
-        "demo_data": True,
-        "message": "Framework metadata shown. Full control library requires enterprise compliance module.",
+        "message": "Framework metadata available. Full control library requires enterprise compliance module integration.",
         "category_filter": category,
     }
 

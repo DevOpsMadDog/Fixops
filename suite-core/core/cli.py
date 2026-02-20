@@ -3907,7 +3907,12 @@ def _handle_correlation(args: argparse.Namespace) -> int:
     import requests
 
     api_base = os.environ.get("FIXOPS_API_URL", "http://127.0.0.1:8000")
-    api_token = os.environ.get("FIXOPS_API_TOKEN", "demo-token")
+    api_token = os.environ.get("FIXOPS_API_TOKEN")
+    if not api_token:
+        print(
+            "ERROR: FIXOPS_API_TOKEN environment variable is required.", file=sys.stderr
+        )
+        return 1
     headers = {"X-API-Key": api_token}
 
     if args.correlation_command == "analyze":
@@ -3986,7 +3991,12 @@ def _handle_groups(args: argparse.Namespace) -> int:
     import requests
 
     api_base = os.environ.get("FIXOPS_API_URL", "http://127.0.0.1:8000")
-    api_token = os.environ.get("FIXOPS_API_TOKEN", "demo-token")
+    api_token = os.environ.get("FIXOPS_API_TOKEN")
+    if not api_token:
+        print(
+            "ERROR: FIXOPS_API_TOKEN environment variable is required.", file=sys.stderr
+        )
+        return 1
     headers = {"X-API-Key": api_token}
 
     if args.groups_command == "list":
@@ -4082,7 +4092,12 @@ def _handle_remediation_cli(args: argparse.Namespace) -> int:
     import requests
 
     api_base = os.environ.get("FIXOPS_API_URL", "http://127.0.0.1:8000")
-    api_token = os.environ.get("FIXOPS_API_TOKEN", "demo-token")
+    api_token = os.environ.get("FIXOPS_API_TOKEN")
+    if not api_token:
+        print(
+            "ERROR: FIXOPS_API_TOKEN environment variable is required.", file=sys.stderr
+        )
+        return 1
     headers = {"X-API-Key": api_token}
 
     if args.remediation_command == "list":

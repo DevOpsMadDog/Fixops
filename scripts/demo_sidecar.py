@@ -74,7 +74,7 @@ except ImportError:
 
 # Configuration
 BASE_URL = os.getenv("FIXOPS_BASE_URL", "http://localhost:8000")
-API_KEY = os.getenv("FIXOPS_API_TOKEN", "demo-token")
+API_KEY = os.getenv("FIXOPS_API_TOKEN", "")
 TIMEOUT = 30.0
 
 # Initialize
@@ -278,7 +278,10 @@ def run_pipeline(client: httpx.Client) -> Optional[Dict[str, Any]]:
                 return r.json()
             elif r.status_code == 400:
                 # Missing artifacts - try to show what we can
-                return {"status": "demo_mode", "message": "Running in demo mode"}
+                return {
+                    "status": "fallback",
+                    "message": "Pipeline returned 400 — missing artifacts",
+                }
         except Exception as exc:
             console.print(f"[yellow]Pipeline warning: {exc}[/yellow]")
     return None

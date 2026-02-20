@@ -429,3 +429,22 @@ async def ingest_remediation(body: Dict[str, Any]) -> Dict[str, Any]:
         )
     )
     return {"node_id": node.node_id, "node_type": "remediation", "ingested": True}
+
+
+# ---------------------------------------------------------------------------
+# Health
+# ---------------------------------------------------------------------------
+
+
+@router.get("/health")
+async def brain_health() -> Dict[str, Any]:
+    """Knowledge Brain health check."""
+    brain = get_brain()
+    stats = brain.stats()
+    return {
+        "status": "healthy",
+        "component": "knowledge-brain",
+        "nodes": stats.get("total_nodes", 0),
+        "edges": stats.get("total_edges", 0),
+        "entity_types": stats.get("entity_types", []),
+    }
