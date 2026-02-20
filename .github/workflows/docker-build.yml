@@ -109,10 +109,10 @@ jobs:
           chmod 777 ${{ runner.temp }}/fixops-data
 
           # Common docker run options with shared volume for database state
-          DOCKER_OPTS="--rm -v ${{ runner.temp }}/fixops-data:/app/.fixops_data -e FIXOPS_DISABLE_TELEMETRY=1 -e FIXOPS_API_TOKEN=test-token"
+          DOCKER_OPTS="--rm -v ${{ runner.temp }}/fixops-data:/app/.fixops_data -e FIXOPS_DISABLE_TELEMETRY=1 -e FIXOPS_API_TOKEN=test-token -e FIXOPS_MODE=demo"
 
           echo "=== Testing CLI Help ==="
-          docker run --rm $IMAGE python -m core.cli --help
+          docker run $DOCKER_OPTS $IMAGE python -m core.cli --help
 
           echo "=== Testing Core Pipeline Commands ==="
           docker run $DOCKER_OPTS $IMAGE python -m core.cli run --help
@@ -150,6 +150,7 @@ jobs:
             -e FIXOPS_DISABLE_TELEMETRY=1 \
             -e FIXOPS_API_TOKEN=test-token \
             -e FIXOPS_MODE=enterprise \
+            -e FIXOPS_JWT_SECRET=ci-test-jwt-secret-not-for-production \
             fixops-test:${{ github.sha }}
 
           # Wait for server to start with retry loop
