@@ -150,11 +150,6 @@ class TestImportsStillWork:
         if suite_api_path not in sys.path:
             sys.path.insert(0, suite_api_path)
 
-        # Add archive/legacy for fixops module
-        legacy_path = str(PROJECT_ROOT / "archive" / "legacy")
-        if legacy_path not in sys.path:
-            sys.path.insert(0, legacy_path)
-
         # Skip path security check for tests
         os.environ.setdefault("FIXOPS_SKIP_PATH_SECURITY", "1")
 
@@ -217,7 +212,6 @@ class TestCreateAppWorks:
         suite_feeds_path = str(PROJECT_ROOT / "suite-feeds")
         suite_er_path = str(PROJECT_ROOT / "suite-evidence-risk")
         suite_int_path = str(PROJECT_ROOT / "suite-integrations")
-        legacy_path = str(PROJECT_ROOT / "archive" / "legacy")
 
         for path in [
             suite_api_path,
@@ -226,7 +220,6 @@ class TestCreateAppWorks:
             suite_feeds_path,
             suite_er_path,
             suite_int_path,
-            legacy_path,
         ]:
             if path not in sys.path:
                 sys.path.insert(0, path)

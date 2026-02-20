@@ -2,7 +2,7 @@
 sitecustomize.py - Automatic sys.path configuration for FixOps suite structure.
 
 This module is automatically loaded by Python at startup. It prepends the suite
-directories to sys.path so that legacy imports continue to work after restructure.
+directories to sys.path so that cross-suite imports work seamlessly.
 
 Example:
     - `import apps.api.app` works even though apps/ is now in suite-api/
@@ -27,9 +27,6 @@ _SUITE_PATHS = [
     "suite-feeds",
     "suite-integrations",
     "suite-evidence-risk",
-    # Legacy code paths (still imported by some modules)
-    "archive/legacy",
-    "archive/enterprise_legacy",
 ]
 
 # Prepend suite paths to sys.path if they exist
