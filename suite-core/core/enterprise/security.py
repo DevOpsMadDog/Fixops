@@ -3,6 +3,7 @@ Enterprise-grade security components with zero-trust architecture
 """
 
 import hashlib
+import os
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -11,7 +12,7 @@ from typing import Any, Dict, List, Optional
 
 import jwt
 from cryptography.fernet import Fernet
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 
 try:  # Local FastAPI stub may not expose Header
     from fastapi import Header  # type: ignore
@@ -55,8 +56,8 @@ pwd_context = CryptContext(
     schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=12  # High security rounds
 )
 
-# JWT Security
-security = HTTPBearer()
+# JWT Security — auto_error=False so we can fall back to API-key / dev-bypass
+security = HTTPBearer(auto_error=False)
 
 
 class TenantPersona(str, Enum):
@@ -337,37 +338,71 @@ class RBACManager:
 
 # FastAPI Dependencies
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
 ) -> Dict[str, Any]:
-    """Get current authenticated user from JWT token"""
+    """Get current authenticated user from JWT Bearer token or X-API-Key.
+
+    Authentication precedence:
+      1. Authorization: Bearer <JWT> — validated by JWTManager
+      2. X-API-Key header — validated against FIXOPS_API_TOKEN
+      3. Demo / dev fallback — returns admin context when DEMO_MODE is active
+    """
     start_time = time.perf_counter()
 
-    try:
-        # Verify token
-        payload = JWTManager.verify_token(credentials.credentials)
-
-        # Check token type
-        if payload.get("type") == "refresh":
+    # --- 1. Try JWT Bearer ---
+    if credentials and credentials.credentials:
+        try:
+            payload = JWTManager.verify_token(credentials.credentials)
+            if payload.get("type") == "refresh":
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Cannot use refresh token for authentication",
+                )
+            latency_us = (time.perf_counter() - start_time) * 1_000_000
+            if latency_us > 100:
+                logger.warning(f"Auth latency high: {latency_us:.2f}μs")
+            return payload
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"JWT authentication error: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Cannot use refresh token for authentication",
+                detail="Invalid authentication credentials",
             )
 
-        # Performance logging for hot path
-        latency_us = (time.perf_counter() - start_time) * 1_000_000
-        if latency_us > 100:  # Log if auth takes > 100μs
-            logger.warning(f"Auth latency high: {latency_us:.2f}μs")
+    # --- 2. Try X-API-Key ---
+    api_key = request.headers.get("x-api-key")
+    if api_key:
+        expected = os.environ.get("FIXOPS_API_TOKEN", "")
+        if api_key == expected:
+            return {
+                "sub": "api-key-user",
+                "email": "api-key@fixops.local",
+                "role": "admin",
+                "type": "access",
+            }
+        # In enforced mode, reject invalid keys
+        if not settings.DEMO_MODE:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid API key",
+            )
 
-        return payload
+    # --- 3. Demo / dev fallback ---
+    if settings.DEMO_MODE:
+        return {
+            "sub": "demo-user",
+            "email": "demo@fixops.local",
+            "role": "admin",
+            "type": "access",
+        }
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Authentication error: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-        )
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Authentication required (Bearer token or X-API-Key)",
+    )
 
 
 def require_permission(permission: str):
