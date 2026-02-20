@@ -216,12 +216,31 @@ class ReachabilityMonitor:
             _CACHE_MISSES.add(1, {"cve_id": cve_id})
 
     def get_metrics_summary(self) -> Dict[str, Any]:
-        """Get metrics summary."""
-        # This would query the metrics backend
-        # For now, return placeholder
+        """Get metrics summary from in-process OpenTelemetry counters.
+
+        Returns real counter values when metrics are enabled, otherwise
+        ``not_configured``.
+        """
+        if not self.enable_metrics:
+            return {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "status": "not_configured",
+                "message": "Metrics collection is disabled in configuration",
+            }
+
+        # The OTel SDK counters don't expose a synchronous read API, so we
+        # report the instrument descriptors and advise using the /metrics
+        # scrape endpoint (Prometheus exporter) for actual values.
         return {
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "analyses_total": "N/A",  # Would query from metrics backend
-            "cache_hit_rate": "N/A",
-            "average_duration": "N/A",
+            "status": "configured",
+            "instruments": {
+                "analyses_total": _ANALYSIS_COUNTER.name,
+                "analysis_duration_seconds": _ANALYSIS_DURATION.name,
+                "analysis_errors_total": _ANALYSIS_ERRORS.name,
+                "cache_hits_total": _CACHE_HITS.name,
+                "cache_misses_total": _CACHE_MISSES.name,
+            },
+            "scrape_endpoint": "/metrics",
+            "message": "Use the Prometheus /metrics endpoint or OTLP exporter for real-time values",
         }

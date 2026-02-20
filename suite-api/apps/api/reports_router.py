@@ -252,9 +252,9 @@ async def get_report_file(id: str):
     file_path = Path(report.file_path)
     if not file_path.exists():
         # Only generate fallback files in demo mode
-        import os
+        from config.enterprise.settings import get_settings as _get_settings
 
-        demo_mode = os.environ.get("FIXOPS_DEMO_MODE", "false").lower() == "true"
+        demo_mode = _get_settings().DEMO_MODE
 
         if not demo_mode:
             raise HTTPException(

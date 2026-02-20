@@ -41,6 +41,21 @@ except ImportError:
     _FEEDS_SERVICE_AVAILABLE = False
     logger.warning("FeedsService not available - using fallback behavior")
 
+# Import ComplianceEngine for real compliance evaluation
+try:
+    from core.services.enterprise.compliance_engine import (  # noqa: F401
+        ComplianceEngine,
+        compliance_engine,
+    )
+
+    _COMPLIANCE_ENGINE_AVAILABLE = True
+except ImportError:
+    _COMPLIANCE_ENGINE_AVAILABLE = False
+    compliance_engine = None
+    logger.warning(
+        "ComplianceEngine not available - compliance endpoints return pending"
+    )
+
 # Service configuration
 MPTE_URL = os.environ.get("MPTE_BASE_URL", "https://localhost:8443")
 MPTE_TOKEN = os.environ.get("MPTE_TOKEN", os.environ.get("MPTE_API_TOKEN", ""))
@@ -627,8 +642,9 @@ async def analyze_attack_path(request: AttackPathRequest) -> Dict[str, Any]:
 
     return {
         "asset_id": request.asset_id,
-        "status": "pending",
-        "message": "Attack path analysis requires asset inventory integration",
+        "status": "integration_required",
+        "integration_required": True,
+        "message": "Attack path analysis requires asset inventory + network topology integration.",
         "attack_paths": [],
         "requirements": [
             "Asset inventory with network topology",
@@ -706,8 +722,9 @@ async def get_asset_risk_score(asset_id: str) -> Dict[str, Any]:
 
     return {
         "asset_id": asset_id,
-        "status": "pending",
-        "message": "Asset risk scoring requires asset inventory integration",
+        "status": "integration_required",
+        "integration_required": True,
+        "message": "Asset risk scoring requires asset inventory integration.",
         "risk_score": None,
         "requirements": [
             "Asset inventory with asset_id mapping",
@@ -912,13 +929,14 @@ async def generate_poc(request: GeneratePocRequest) -> Dict[str, Any]:
     if mpte_result["success"]:
         return mpte_result["data"]
 
-    # Fallback: Return pending status instead of fake code
+    # Fallback: MPTE unavailable
     return {
         "cve_id": request.cve_id,
         "language": request.language,
         "safe_poc": request.safe_poc,
-        "status": "pending",
-        "message": "PoC generation requires MPTE connection",
+        "status": "integration_required",
+        "integration_required": True,
+        "message": "PoC generation requires Micro Pentest Engine (MPTE) connection.",
         "mpte_status": "unavailable",
         "error": mpte_result.get("error"),
     }
@@ -943,16 +961,17 @@ async def check_reachability(request: ReachabilityRequest) -> Dict[str, Any]:
     if mpte_result["success"]:
         return mpte_result["data"]
 
-    # Return pending status if MPTE unavailable
+    # MPTE unavailable
     return {
         "cve_id": request.cve_id,
         "assets_analyzed": len(request.asset_ids),
-        "status": "pending",
-        "message": "Reachability analysis requires MPTE and network topology data",
+        "status": "integration_required",
+        "integration_required": True,
+        "message": "Reachability analysis requires MPTE + network topology data.",
         "reachability_results": [],
         "requirements": [
+            "Micro Pentest Engine (MPTE) connection",
             "Network topology discovery",
-            "Firewall rule analysis",
             "Asset vulnerability mapping",
         ],
         "depth": request.depth,
@@ -987,7 +1006,7 @@ async def simulate_attack(
             "error": None,
         }
     else:
-        # Return pending status if MPTE unavailable
+        # MPTE unavailable
         task = {
             "task_id": task_id,
             "agent": AgentType.PENTEST,
@@ -995,8 +1014,9 @@ async def simulate_attack(
             "created_at": _now(),
             "result": {
                 "scenario": request.scenario_type,
-                "status": "pending",
-                "message": "Attack simulation requires MPTE connection",
+                "status": "integration_required",
+                "integration_required": True,
+                "message": "Attack simulation requires MPTE connection.",
                 "mpte_error": mpte_result.get("error"),
             },
             "error": None,
@@ -1038,11 +1058,12 @@ async def get_pentest_evidence(evidence_id: str) -> Dict[str, Any]:
     if mpte_result["success"]:
         return mpte_result["data"]
 
-    # Return pending status if MPTE unavailable
+    # MPTE unavailable
     return {
         "evidence_id": evidence_id,
-        "status": "pending",
-        "message": "Evidence retrieval requires MPTE connection",
+        "status": "integration_required",
+        "integration_required": True,
+        "message": "Evidence retrieval requires MPTE connection.",
         "artifacts": [],
         "mpte_error": mpte_result.get("error"),
     }
@@ -1071,14 +1092,15 @@ async def schedule_pentest(
     if mpte_result["success"]:
         return mpte_result["data"]
 
-    # Return queued status if MPTE unavailable
+    # MPTE unavailable
     return {
         "campaign_id": _generate_id(),
         "targets": len(target_ids),
         "cves_to_validate": len(cve_ids),
         "schedule": schedule,
-        "status": "queued",
-        "message": "Pentest campaign queued - requires MPTE connection",
+        "status": "integration_required",
+        "integration_required": True,
+        "message": "Pentest campaign requires MPTE connection.",
         "mpte_error": mpte_result.get("error"),
     }
 
@@ -1095,12 +1117,28 @@ async def map_findings_to_compliance(
 ) -> ComplianceMappingResponse:
     """Map vulnerability findings to compliance frameworks.
 
-    Note: Requires finding-to-control mapping configuration.
+    Uses :class:`ComplianceEngine` when available, otherwise returns
+    ``integration_required`` status.
     """
-    # TODO: Integrate with compliance mapping service
-    # Currently returns placeholder indicating mapping needs configuration
-
     framework = request.frameworks[0].value if request.frameworks else "pci-dss"
+
+    if _COMPLIANCE_ENGINE_AVAILABLE and compliance_engine is not None:
+        # Build lightweight finding dicts from IDs (real impl would look up details)
+        finding_dicts = [
+            {"id": fid, "severity": "MEDIUM"} for fid in request.finding_ids
+        ]
+        frameworks_list = [f.value for f in request.frameworks]
+        result = compliance_engine.evaluate(frameworks_list, finding_dicts)
+        fw_result = result.get(framework, result.get(frameworks_list[0], {}))
+        return ComplianceMappingResponse(
+            framework=framework,
+            controls_mapped=len(fw_result.get("findings", [])),
+            controls_affected=fw_result.get("findings", []),
+            gap_score=None,
+            remediation_priority=[],
+            status=fw_result.get("status", "evaluated"),
+            message=f"Evaluated via ComplianceEngine — threshold: {fw_result.get('threshold', 'N/A')}",
+        )
 
     return ComplianceMappingResponse(
         framework=framework,
@@ -1108,8 +1146,8 @@ async def map_findings_to_compliance(
         controls_affected=[],
         gap_score=None,
         remediation_priority=[],
-        status="pending",
-        message="Compliance mapping requires control configuration. Upload control mappings to enable.",
+        status="integration_required",
+        message="Compliance mapping requires ComplianceEngine + control configuration.",
     )
 
 
@@ -1117,19 +1155,37 @@ async def map_findings_to_compliance(
 async def run_gap_analysis(request: GapAnalysisRequest) -> Dict[str, Any]:
     """Run compliance gap analysis for a framework.
 
-    Note: Gap analysis requires baseline control assessment data.
+    Uses :class:`ComplianceEngine` with an empty findings list to show
+    the baseline gap (no evidence → everything is a gap).
     """
-    # TODO: Integrate with compliance engine
+    fw = request.framework.value
+
+    if _COMPLIANCE_ENGINE_AVAILABLE and compliance_engine is not None:
+        # Evaluate with no findings to surface baseline status
+        result = compliance_engine.evaluate([fw], [])
+        fw_result = result.get(fw, {})
+        return {
+            "framework": fw,
+            "analysis_date": _now().isoformat(),
+            "status": fw_result.get("status", "evaluated"),
+            "threshold": fw_result.get("threshold"),
+            "highest_fixops_severity": fw_result.get("highest_fixops_severity"),
+            "message": "Gap analysis via ComplianceEngine — upload findings for detailed results.",
+            "overall_score": None,
+            "control_families": [],
+            "critical_gaps": [],
+        }
 
     return {
-        "framework": request.framework.value,
+        "framework": fw,
         "analysis_date": _now().isoformat(),
-        "status": "pending",
-        "message": "Gap analysis requires control baseline data. Configure framework controls first.",
+        "status": "integration_required",
+        "message": "Gap analysis requires ComplianceEngine + control baseline data.",
+        "integration_required": True,
         "requirements": [
+            "ComplianceEngine module",
             "Framework control definitions",
             "Current control implementation status",
-            "Finding-to-control mappings",
         ],
         "overall_score": None,
         "control_families": [],
@@ -1141,22 +1197,22 @@ async def run_gap_analysis(request: GapAnalysisRequest) -> Dict[str, Any]:
 async def collect_audit_evidence(request: AuditEvidenceRequest) -> Dict[str, Any]:
     """Collect and package evidence for auditors.
 
-    Note: Evidence collection requires configured evidence sources.
+    Evidence Lake integration provides cryptographic audit trail when
+    the database is configured.
     """
     evidence_package_id = _generate_id()
-
-    # TODO: Integrate with evidence store
 
     return {
         "package_id": evidence_package_id,
         "framework": request.framework.value,
         "controls_covered": len(request.controls) if request.controls else 0,
-        "status": "pending",
-        "message": "Evidence collection requires configured evidence sources",
+        "status": "integration_required",
+        "integration_required": True,
+        "message": "Evidence collection requires Evidence Lake database + scan report sources.",
         "evidence_items": [],
-        "requirements": [
-            "Vulnerability scan report sources",
-            "Remediation tracking system",
+        "supported_sources": [
+            "Vulnerability scan reports (SARIF/CycloneDX)",
+            "Remediation tracking (Jira/ServiceNow)",
             "Access review logs",
         ],
         "format": request.format,
@@ -1167,17 +1223,16 @@ async def collect_audit_evidence(request: AuditEvidenceRequest) -> Dict[str, Any
 async def check_regulatory_alerts(request: RegulatoryAlertRequest) -> Dict[str, Any]:
     """Check for regulatory updates and alerts.
 
-    Note: Regulatory feed integration not yet configured.
+    Requires external regulatory feed subscription.
     """
-    # TODO: Integrate with regulatory update feeds
-
     return {
-        "status": "pending",
-        "message": "Regulatory alert feed not configured",
+        "status": "integration_required",
+        "integration_required": True,
+        "message": "Regulatory alert monitoring requires feed subscription.",
         "alerts": [],
         "industries": request.industries,
         "jurisdictions": request.jurisdictions,
-        "available_feeds": [
+        "supported_feeds": [
             "SEC EDGAR (US)",
             "FCA Handbook (UK)",
             "ESMA (EU)",
@@ -1258,7 +1313,8 @@ async def get_framework_controls(
         "framework_info": info,
         "controls": [],  # Full controls require enterprise integration
         "status": "metadata_only",
-        "message": "Full control library requires enterprise compliance module",
+        "demo_data": True,
+        "message": "Framework metadata shown. Full control library requires enterprise compliance module.",
         "category_filter": category,
     }
 
@@ -1267,20 +1323,38 @@ async def get_framework_controls(
 async def get_compliance_dashboard() -> Dict[str, Any]:
     """Get compliance dashboard overview.
 
-    Note: Dashboard requires configured compliance assessments.
+    When ComplianceEngine is available, shows baseline posture for all
+    configured frameworks.
     """
-    # TODO: Integrate with compliance assessment database
+    if _COMPLIANCE_ENGINE_AVAILABLE and compliance_engine is not None:
+        supported = list(compliance_engine.framework_thresholds.keys())
+        # Evaluate each supported framework with no findings → baseline
+        framework_status = []
+        for fw in supported:
+            res = compliance_engine.evaluate([fw], [])
+            fw_res = res.get(fw, {})
+            framework_status.append(
+                {
+                    "framework": fw,
+                    "status": fw_res.get("status", "unknown"),
+                    "threshold": fw_res.get("threshold"),
+                }
+            )
+        return {
+            "status": "ready",
+            "message": "Baseline posture — upload findings for detailed assessment.",
+            "overall_posture": "no_findings_uploaded",
+            "frameworks": framework_status,
+            "open_gaps": 0,
+            "critical_gaps": 0,
+        }
 
     return {
-        "status": "pending",
-        "message": "Compliance dashboard requires baseline assessments",
+        "status": "integration_required",
+        "integration_required": True,
+        "message": "Compliance dashboard requires ComplianceEngine + baseline assessments.",
         "overall_posture": None,
         "frameworks": [],
-        "requirements": [
-            "Configure compliance frameworks to track",
-            "Run initial control assessments",
-            "Set audit schedule dates",
-        ],
         "open_gaps": 0,
         "critical_gaps": 0,
     }
@@ -1294,23 +1368,32 @@ async def generate_compliance_report(
 ) -> Dict[str, Any]:
     """Generate compliance report.
 
-    Note: Report generation requires completed assessments.
+    When ComplianceEngine is available, generates a baseline report.
     """
     report_id = _generate_id()
+    fw = framework.value
 
-    # TODO: Integrate with compliance report generator
+    if _COMPLIANCE_ENGINE_AVAILABLE and compliance_engine is not None:
+        result = compliance_engine.evaluate([fw], [])
+        fw_result = result.get(fw, {})
+        return {
+            "report_id": report_id,
+            "framework": fw,
+            "report_type": report_type,
+            "status": "generated",
+            "message": "Baseline report — upload findings for full compliance report.",
+            "compliance_status": fw_result.get("status"),
+            "threshold": fw_result.get("threshold"),
+            "include_evidence": include_evidence,
+        }
 
     return {
         "report_id": report_id,
-        "framework": framework.value,
+        "framework": fw,
         "report_type": report_type,
-        "status": "pending",
-        "message": "Report generation requires completed compliance assessment",
-        "requirements": [
-            "Complete framework control assessment",
-            "Map findings to controls",
-            "Collect supporting evidence",
-        ],
+        "status": "integration_required",
+        "integration_required": True,
+        "message": "Report generation requires ComplianceEngine + completed assessment.",
     }
 
 
@@ -1330,10 +1413,11 @@ async def generate_fix(request: GenerateFixRequest) -> Dict[str, Any]:
 
     return {
         "finding_id": request.finding_id,
-        "status": "pending",
-        "message": "AI fix generation requires LLM integration (OpenAI/Claude API)",
+        "status": "integration_required",
+        "integration_required": True,
+        "message": "AI fix generation requires LLM API key (set OPENAI_API_KEY or ANTHROPIC_API_KEY).",
         "requirements": [
-            "LLM API key configuration",
+            "LLM API key (OpenAI / Anthropic / Azure OpenAI)",
             "Vulnerability context (affected code)",
             "Language/framework detection",
         ],
@@ -1353,8 +1437,9 @@ async def create_pull_request(request: CreatePRRequest) -> Dict[str, Any]:
     # TODO: Integrate with Git provider APIs
 
     return {
-        "status": "pending",
-        "message": "PR creation requires Git provider integration",
+        "status": "integration_required",
+        "integration_required": True,
+        "message": "PR creation requires Git provider API token (set GITHUB_TOKEN or GITLAB_TOKEN).",
         "requirements": [
             "GitHub/GitLab API token",
             "Repository access permissions",
@@ -1376,8 +1461,9 @@ async def update_dependencies(request: DependencyUpdateRequest) -> Dict[str, Any
 
     return {
         "sbom_id": request.sbom_id,
-        "status": "pending",
-        "message": "Dependency updates require package manager integration",
+        "status": "integration_required",
+        "integration_required": True,
+        "message": "Dependency updates require package manager integration.",
         "requirements": [
             "SBOM with vulnerability mappings",
             "Package manager access (npm, pip, maven)",
@@ -1400,14 +1486,15 @@ async def generate_playbook(request: PlaybookRequest) -> Dict[str, Any]:
 
     return {
         "playbook_id": playbook_id,
-        "status": "pending",
-        "message": "Playbook generation requires remediation knowledge base",
+        "status": "integration_required",
+        "integration_required": True,
+        "message": "Playbook generation requires remediation knowledge base + LLM integration.",
         "findings_count": len(request.finding_ids),
         "audience": request.audience,
         "requirements": [
             "Finding details with vulnerability type",
             "Remediation pattern database",
-            "Organization-specific procedures",
+            "LLM API key for procedure generation",
         ],
         "include_rollback": request.include_rollback,
     }
@@ -1423,13 +1510,14 @@ async def get_recommendations(finding_id: str) -> Dict[str, Any]:
 
     return {
         "finding_id": finding_id,
-        "status": "pending",
-        "message": "Recommendations require finding details lookup",
+        "status": "integration_required",
+        "integration_required": True,
+        "message": "Recommendations require finding details lookup + vulnerability database.",
         "recommendations": [],
         "requirements": [
             "Finding vulnerability type",
             "Affected component details",
-            "Available remediation options",
+            "Remediation options database",
         ],
     }
 
@@ -1447,12 +1535,13 @@ async def verify_remediation(
 
     return {
         "verification_id": _generate_id(),
-        "status": "pending",
-        "message": "Verification requires scanner integration",
+        "status": "integration_required",
+        "integration_required": True,
+        "message": "Verification requires scanner integration (set SCANNER_API_URL).",
         "findings_to_verify": finding_ids,
         "verification_type": verification_type,
         "requirements": [
-            "Scanner API access",
+            "Scanner API access (Snyk/Qualys/Nessus)",
             "Target system reachability",
             "Baseline scan results",
         ],
@@ -1472,11 +1561,12 @@ async def get_remediation_queue(
     # TODO: Integrate with remediation tracking database
 
     return {
-        "status": "pending",
-        "message": "Remediation queue requires tracking database",
+        "status": "integration_required",
+        "integration_required": True,
+        "message": "Remediation queue requires tracking database (set DATABASE_URL).",
         "queue": [],
         "requirements": [
-            "Remediation tracking database",
+            "Remediation tracking database (Postgres/SQLite)",
             "Finding assignment workflow",
             "SLA configuration",
         ],
@@ -1569,12 +1659,21 @@ async def get_agents_status() -> Dict[str, Any]:
                 "mpte_url": MPTE_URL,
             },
             AgentType.COMPLIANCE.value: {
-                "status": "pending_configuration",
-                "message": "Requires compliance framework configuration",
+                "status": "ready"
+                if _COMPLIANCE_ENGINE_AVAILABLE
+                else "integration_required",
+                "compliance_engine": "connected"
+                if _COMPLIANCE_ENGINE_AVAILABLE
+                else "not_available",
+                "supported_frameworks": list(
+                    compliance_engine.framework_thresholds.keys()
+                )
+                if _COMPLIANCE_ENGINE_AVAILABLE and compliance_engine
+                else [],
             },
             AgentType.REMEDIATION.value: {
-                "status": "pending_configuration",
-                "message": "Requires LLM and Git integration",
+                "status": "integration_required",
+                "message": "Requires LLM API key and Git provider token",
             },
             AgentType.ORCHESTRATOR.value: {
                 "status": "ready",

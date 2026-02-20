@@ -3,6 +3,8 @@ Business Context API - FixOps YAML and OTM Support
 Handles business context upload and SSVC conversion
 """
 
+from datetime import datetime, timezone
+from typing import Any, Dict
 
 import structlog
 from core.services.enterprise.business_context_processor import context_processor
@@ -11,6 +13,11 @@ from fastapi.responses import JSONResponse
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/business-context", tags=["business-context"])
+
+# In-memory store for uploaded business contexts (keyed by service_name).
+# Persists for the lifetime of the server process.  A production deployment
+# should back this with SQLite / Postgres.
+_context_store: Dict[str, Dict[str, Any]] = {}
 
 
 @router.post("/upload")
@@ -43,37 +50,44 @@ async def upload_business_context(
                 status_code=400, detail=f"Unknown format: {format_type}"
             )
 
-        # Store in database for future use
-        # TODO: Store ssvc_context in database linked to service_name
+        # Persist in session store so the data is available for later API calls
+        stored_record = {
+            "service_name": ssvc_context.service_name,
+            "format_processed": format_type,
+            "stored_at": datetime.now(timezone.utc).isoformat(),
+            "ssvc_factors": {
+                "exploitation": ssvc_context.exploitation,
+                "exposure": ssvc_context.exposure,
+                "utility": ssvc_context.utility,
+                "safety_impact": ssvc_context.safety_impact,
+                "mission_impact": ssvc_context.mission_impact,
+            },
+            "business_context": {
+                "criticality": ssvc_context.business_criticality,
+                "data_classification": ssvc_context.data_classification,
+                "internet_facing": ssvc_context.internet_facing,
+                "compliance_requirements": ssvc_context.compliance_requirements,
+            },
+            "context_enrichment": {
+                "owner_team": ssvc_context.owner_team,
+                "escalation_contacts": len(ssvc_context.escalation_contacts),
+                "attack_surface": ssvc_context.attack_surface,
+                "trust_boundaries": ssvc_context.trust_boundaries,
+            },
+        }
+        _context_store[ssvc_context.service_name] = stored_record
+        logger.info(
+            "business_context_stored",
+            service_name=ssvc_context.service_name,
+            format=format_type,
+        )
 
         return JSONResponse(
             status_code=200,
             content={
                 "status": "success",
-                "message": "Business context processed successfully",
-                "data": {
-                    "service_name": ssvc_context.service_name,
-                    "format_processed": format_type,
-                    "ssvc_factors": {
-                        "exploitation": ssvc_context.exploitation,
-                        "exposure": ssvc_context.exposure,
-                        "utility": ssvc_context.utility,
-                        "safety_impact": ssvc_context.safety_impact,
-                        "mission_impact": ssvc_context.mission_impact,
-                    },
-                    "business_context": {
-                        "criticality": ssvc_context.business_criticality,
-                        "data_classification": ssvc_context.data_classification,
-                        "internet_facing": ssvc_context.internet_facing,
-                        "compliance_requirements": ssvc_context.compliance_requirements,
-                    },
-                    "context_enrichment": {
-                        "owner_team": ssvc_context.owner_team,
-                        "escalation_contacts": len(ssvc_context.escalation_contacts),
-                        "attack_surface": ssvc_context.attack_surface,
-                        "trust_boundaries": ssvc_context.trust_boundaries,
-                    },
-                },
+                "message": "Business context processed and stored",
+                "data": stored_record,
             },
         )
 
@@ -83,6 +97,28 @@ async def upload_business_context(
     except Exception as e:
         logger.error(f"Business context upload failed: {e}")
         raise HTTPException(status_code=500, detail="Upload processing failed")
+
+
+@router.get("/stored/{service_name}")
+async def get_stored_context(service_name: str):
+    """Retrieve previously uploaded business context for a service."""
+    record = _context_store.get(service_name)
+    if record is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No business context stored for service '{service_name}'",
+        )
+    return {"status": "success", "data": record}
+
+
+@router.get("/stored")
+async def list_stored_contexts():
+    """List all stored business contexts (session-scoped)."""
+    return {
+        "status": "success",
+        "count": len(_context_store),
+        "services": list(_context_store.keys()),
+    }
 
 
 @router.get("/sample/{format_type}")

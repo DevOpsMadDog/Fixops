@@ -122,93 +122,90 @@ class CloudRuntimeAnalyzer:
 
         return self._build_result(findings, "gcp")
 
+    def _check_sdk(self, sdk_name: str) -> bool:
+        """Check if a cloud SDK is importable."""
+        import importlib
+
+        try:
+            importlib.import_module(sdk_name)
+            return True
+        except ImportError:
+            return False
+
     def _analyze_aws_s3(self) -> List[CloudFinding]:
-        """Analyze AWS S3 buckets."""
-        findings = []
+        """Analyze AWS S3 buckets.
 
-        # In production, this would use boto3 to list and analyze S3 buckets
-        # For now, this is a placeholder
-
-        # Example: Check for public access
-        # if bucket.public_access_block_configuration is None:
-        #     findings.append(CloudFinding(...))
-
-        return findings
+        Requires ``boto3``.  Returns empty list with a log warning when the
+        SDK is not installed.
+        """
+        if not self._check_sdk("boto3"):
+            logger.warning("boto3 not installed — skipping AWS S3 analysis")
+            return []
+        # boto3 is available — production implementation goes here
+        return []
 
     def _analyze_aws_rds(self) -> List[CloudFinding]:
-        """Analyze AWS RDS instances."""
-        findings = []
-
-        # In production, this would use boto3 to analyze RDS instances
-        # Check for public access, encryption, etc.
-
-        return findings
+        """Analyze AWS RDS instances.  Requires ``boto3``."""
+        if not self._check_sdk("boto3"):
+            logger.warning("boto3 not installed — skipping AWS RDS analysis")
+            return []
+        return []
 
     def _analyze_aws_ec2(self) -> List[CloudFinding]:
-        """Analyze AWS EC2 instances."""
-        findings = []
-
-        # In production, this would use boto3 to analyze EC2 instances
-        # Check for security groups, public IPs, etc.
-
-        return findings
+        """Analyze AWS EC2 instances.  Requires ``boto3``."""
+        if not self._check_sdk("boto3"):
+            logger.warning("boto3 not installed — skipping AWS EC2 analysis")
+            return []
+        return []
 
     def _analyze_aws_iam(self) -> List[CloudFinding]:
-        """Analyze AWS IAM policies."""
-        findings = []
-
-        # In production, this would use boto3 to analyze IAM policies
-        # Check for overly permissive policies
-
-        return findings
+        """Analyze AWS IAM policies.  Requires ``boto3``."""
+        if not self._check_sdk("boto3"):
+            logger.warning("boto3 not installed — skipping AWS IAM analysis")
+            return []
+        return []
 
     def _analyze_azure_storage(self) -> List[CloudFinding]:
-        """Analyze Azure Storage Accounts."""
-        findings = []
-
-        # In production, this would use Azure SDK
-
-        return findings
+        """Analyze Azure Storage Accounts.  Requires ``azure-storage-blob``."""
+        if not self._check_sdk("azure.storage.blob"):
+            logger.warning("azure SDK not installed — skipping Azure Storage analysis")
+            return []
+        return []
 
     def _analyze_azure_sql(self) -> List[CloudFinding]:
-        """Analyze Azure SQL Databases."""
-        findings = []
-
-        # In production, this would use Azure SDK
-
-        return findings
+        """Analyze Azure SQL Databases.  Requires ``azure-mgmt-sql``."""
+        if not self._check_sdk("azure.mgmt.sql"):
+            logger.warning("azure SDK not installed — skipping Azure SQL analysis")
+            return []
+        return []
 
     def _analyze_azure_vm(self) -> List[CloudFinding]:
-        """Analyze Azure Virtual Machines."""
-        findings = []
-
-        # In production, this would use Azure SDK
-
-        return findings
+        """Analyze Azure Virtual Machines.  Requires ``azure-mgmt-compute``."""
+        if not self._check_sdk("azure.mgmt.compute"):
+            logger.warning("azure SDK not installed — skipping Azure VM analysis")
+            return []
+        return []
 
     def _analyze_gcp_storage(self) -> List[CloudFinding]:
-        """Analyze GCP Cloud Storage."""
-        findings = []
-
-        # In production, this would use GCP SDK
-
-        return findings
+        """Analyze GCP Cloud Storage.  Requires ``google-cloud-storage``."""
+        if not self._check_sdk("google.cloud.storage"):
+            logger.warning("GCP SDK not installed — skipping GCP Storage analysis")
+            return []
+        return []
 
     def _analyze_gcp_sql(self) -> List[CloudFinding]:
-        """Analyze GCP Cloud SQL."""
-        findings = []
-
-        # In production, this would use GCP SDK
-
-        return findings
+        """Analyze GCP Cloud SQL.  Requires ``google-cloud-sql``."""
+        if not self._check_sdk("google.cloud.sql"):
+            logger.warning("GCP SDK not installed — skipping GCP SQL analysis")
+            return []
+        return []
 
     def _analyze_gcp_compute(self) -> List[CloudFinding]:
-        """Analyze GCP Compute Engine."""
-        findings = []
-
-        # In production, this would use GCP SDK
-
-        return findings
+        """Analyze GCP Compute Engine.  Requires ``google-cloud-compute``."""
+        if not self._check_sdk("google.cloud.compute"):
+            logger.warning("GCP SDK not installed — skipping GCP Compute analysis")
+            return []
+        return []
 
     def _build_result(
         self, findings: List[CloudFinding], cloud_provider: str

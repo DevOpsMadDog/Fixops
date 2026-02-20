@@ -309,23 +309,22 @@ def _generate_internal_id() -> str:
 
 
 def _calculate_cvss(vector: Optional[str]) -> Optional[float]:
-    """Calculate CVSS score from vector string.
+    """Calculate CVSS score from vector string using the ``cvss`` library.
 
-    Note: CVSS calculation requires a proper library implementation.
-    Use cvss package (pip install cvss) for production.
-    Currently returns None - integrate cvss library for real scoring.
+    Supports CVSS v3.x vector strings (e.g.
+    ``CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H``).
+    Returns ``None`` when the vector is missing or cannot be parsed.
     """
     if not vector:
         return None
-    # TODO: Integrate with cvss library for real calculation
-    # Example with cvss library:
-    # from cvss import CVSS3
-    # try:
-    #     c = CVSS3(vector)
-    #     return c.base_score
-    # except Exception:
-    #     return None
-    return None  # No fake score - requires CVSS library integration
+    try:
+        from cvss import CVSS3
+
+        c = CVSS3(vector)
+        return float(c.base_score)
+    except Exception:
+        logger.warning("CVSS calculation failed for vector: %s", vector)
+        return None
 
 
 # =============================================================================
@@ -692,8 +691,15 @@ async def retrain_ml_models(
     internal_count = (
         len(request.vuln_ids) if request.vuln_ids else len(_discovered_vulns)
     )
-    # External CVE count requires CISA/NVD feed integration
-    external_count = 0  # TODO: Query actual CVE database when integrated
+    # Try to pull external CVE count from EPSS feed if available
+    external_count = 0
+    try:
+        from feeds_service import FeedsService
+
+        _epss = FeedsService._load_epss_scores()
+        external_count = len(_epss) if _epss else 0
+    except Exception:
+        pass  # Feed unavailable — external_count stays 0
     total_data_points = internal_count + external_count
 
     # Estimate time based on data and models
@@ -758,14 +764,14 @@ async def _run_training(job_id: str) -> None:
         logger.warning(f"ML training job {job_id} failed: MindsDB not configured")
         return
 
-    # TODO: Implement actual MindsDB training call
-    # Example: await mindsdb_client.train(model_name, data)
-    job["status"] = "pending_implementation"
+    # MindsDB URL is set but actual training call is not yet wired.
+    # Mark as "awaiting_integration" so callers know it's not silently dropped.
+    job["status"] = "awaiting_integration"
     job["completed_at"] = _now()
     job["results"] = {
         model: {
-            "status": "pending_implementation",
-            "message": "MindsDB training integration not yet implemented",
+            "status": "awaiting_integration",
+            "message": f"MindsDB reachable at {mindsdb_url} but training API call not yet wired",
         }
         for model in job["models_queued"]
     }
