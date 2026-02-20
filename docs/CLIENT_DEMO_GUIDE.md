@@ -1,8 +1,9 @@
-# ALdeci — Client Demo Guide
+# ALdeci — Enterprise Client Guide
 
 > **Last updated:** 2026-02-20
 > **Platform version:** 3.0.0
 > **CI status:** All checks GREEN ✅
+> **Mode:** Enterprise (all real data, no demo flags)
 
 ---
 
@@ -11,20 +12,21 @@
 1. [Quick Start — Docker](#1-quick-start--docker)
 2. [Quick Start — Local](#2-quick-start--local)
 3. [Authentication](#3-authentication)
-4. [Demo Workflow 1 — Platform Health & Status](#4-demo-workflow-1--platform-health--status)
-5. [Demo Workflow 2 — Threat Intelligence & CVE Analysis](#5-demo-workflow-2--threat-intelligence--cve-analysis)
-6. [Demo Workflow 3 — Compliance Assessment](#6-demo-workflow-3--compliance-assessment)
-7. [Demo Workflow 4 — Vulnerability Discovery & CVSS](#7-demo-workflow-4--vulnerability-discovery--cvss)
-8. [Demo Workflow 5 — Copilot Agents & Orchestration](#8-demo-workflow-5--copilot-agents--orchestration)
-9. [Demo Workflow 6 — Decision Engine](#9-demo-workflow-6--decision-engine)
-10. [Demo Workflow 7 — Reporting](#10-demo-workflow-7--reporting)
-11. [Demo Workflow 8 — Business Context & SSVC](#11-demo-workflow-8--business-context--ssvc)
-12. [Demo Workflow 9 — Marketplace](#12-demo-workflow-9--marketplace)
-13. [Demo Workflow 10 — Remediation Pipeline](#13-demo-workflow-10--remediation-pipeline)
-14. [Demo Workflow 11 — Attack Surface & Micro-Pentest](#14-demo-workflow-11--attack-surface--micro-pentest)
-15. [CLI Examples](#15-cli-examples)
-16. [Full API Endpoint Reference](#16-full-api-endpoint-reference)
-17. [Known Limitations & Integrations Required](#17-known-limitations--integrations-required)
+4. [Workflow 1 — Platform Health & Status](#4-workflow-1--platform-health--status)
+5. [Workflow 2 — Threat Intelligence & CVE Analysis](#5-workflow-2--threat-intelligence--cve-analysis)
+6. [Workflow 3 — Compliance Assessment](#6-workflow-3--compliance-assessment)
+7. [Workflow 4 — Vulnerability Discovery & CVSS](#7-workflow-4--vulnerability-discovery--cvss)
+8. [Workflow 5 — Copilot Agents & Orchestration](#8-workflow-5--copilot-agents--orchestration)
+9. [Workflow 6 — Decision Engine](#9-workflow-6--decision-engine)
+10. [Workflow 7 — Reporting](#10-workflow-7--reporting)
+11. [Workflow 8 — Business Context & SSVC](#11-workflow-8--business-context--ssvc)
+12. [Workflow 9 — Marketplace](#12-workflow-9--marketplace)
+13. [Workflow 10 — Remediation Pipeline](#13-workflow-10--remediation-pipeline)
+14. [Workflow 11 — Attack Surface & Micro-Pentest](#14-workflow-11--attack-surface--micro-pentest)
+15. [Interactive Testing Script](#15-interactive-testing-script)
+16. [CLI Examples](#16-cli-examples)
+17. [Full API Endpoint Reference](#17-full-api-endpoint-reference)
+18. [Known Limitations & Integrations Required](#18-known-limitations--integrations-required)
 
 ---
 
@@ -34,16 +36,19 @@
 # Pull the latest image (built automatically by CI)
 docker pull devopsaico/fixops:latest
 
-# Run in API-only mode (recommended for demos)
+# Run in API-only mode (recommended)
 docker run -d --name aldeci -p 8000:8000 devopsaico/fixops:latest api-only
 
 # Or run with docker-compose for full stack (API + OTel + Dashboard)
-cd docker && docker-compose -f docker-compose.demo.yml up -d
+cd docker && docker-compose -f docker-compose.yml up -d
 
 # Verify health
 curl http://localhost:8000/health
 # Expected: {"status":"healthy","timestamp":"...","service":"aldeci-api"}
 ```
+
+> **Note:** The Docker entrypoint auto-generates an enterprise token on startup.
+> The token is printed to stdout — copy it for API calls.
 
 **Docker entrypoint modes:**
 
@@ -51,7 +56,7 @@ curl http://localhost:8000/health
 |------|---------|-------------|
 | `api-only` | `docker run -d -p 8000:8000 devopsaico/fixops:latest api-only` | API server only (default) |
 | `interactive` | `docker run -it devopsaico/fixops:latest interactive` | Interactive API tester |
-| `demo` | `docker run -it devopsaico/fixops:latest demo` | Animated demo with 14 sample apps |
+| `enterprise` | `docker run -it devopsaico/fixops:latest enterprise` | Enterprise E2E validation suite |
 | `cli <args>` | `docker run -it devopsaico/fixops:latest cli --help` | CLI commands |
 | `shell` | `docker run -it devopsaico/fixops:latest shell` | Bash shell inside container |
 
@@ -69,8 +74,13 @@ export PYTHONPATH=".:suite-api:suite-core:suite-attack:suite-feeds:suite-evidenc
 # Install dependencies
 pip install -r requirements.txt
 
+# Generate enterprise credentials
+export FIXOPS_MODE=enterprise
+export FIXOPS_JWT_SECRET=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
+export FIXOPS_API_TOKEN=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
+
 # Start the API server
-FIXOPS_MODE=demo uvicorn apps.api.app:app --host 0.0.0.0 --port 8000
+uvicorn apps.api.app:app --host 0.0.0.0 --port 8000
 
 # In another terminal:
 curl http://localhost:8000/health
@@ -80,22 +90,25 @@ curl http://localhost:8000/health
 
 ## 3. Authentication
 
-All API endpoints require an API key. Set this once for all demo commands:
+All API endpoints require an enterprise API key:
 
 ```bash
-# Set variables for the demo session
+# Generate an enterprise token (if not already set)
+export FIXOPS_API_TOKEN=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
+
+# Set variables for the session
 export API="http://localhost:8000"
-export KEY="demo-token-12345"
+export KEY="$FIXOPS_API_TOKEN"
 
 # Test authentication
 curl -s -H "X-API-Key: $KEY" "$API/api/v1/health" | python3 -m json.tool
 ```
 
-> **Note:** In enterprise mode, use `Authorization: Bearer <JWT>` or set `FIXOPS_API_TOKEN` to your real API key.
+> **Important:** Never use hardcoded tokens. Always generate unique enterprise tokens using `secrets.token_urlsafe(48)`.
 
 ---
 
-## 4. Demo Workflow 1 — Platform Health & Status
+## 4. Workflow 1 — Platform Health & Status
 
 ### 4.1 Health Check
 
@@ -118,7 +131,7 @@ curl -s "$API/health" | python3 -m json.tool
 curl -s -H "X-API-Key: $KEY" "$API/api/v1/health" | python3 -m json.tool
 ```
 
-## 5. Demo Workflow 2 — Threat Intelligence & CVE Analysis
+## 5. Workflow 2 — Threat Intelligence & CVE Analysis
 
 > **Highlight:** Real-time EPSS scores and CISA KEV data — no mocks.
 
@@ -178,7 +191,7 @@ curl -s -H "X-API-Key: $KEY" \
 
 ---
 
-## 6. Demo Workflow 3 — Compliance Assessment
+## 6. Workflow 3 — Compliance Assessment
 
 > **Highlight:** Real ComplianceEngine evaluation — not stubs.
 
@@ -228,11 +241,11 @@ curl -s -H "X-API-Key: $KEY" \
   "$API/api/v1/copilot/agents/compliance/controls/pci-dss" | python3 -m json.tool
 ```
 
-**Expected:** Returns control counts with `"demo_data": true` flag.
+**Expected:** Returns control metadata and control counts per framework.
 
 ---
 
-## 7. Demo Workflow 4 — Vulnerability Discovery & CVSS
+## 7. Workflow 4 — Vulnerability Discovery & CVSS
 
 > **Highlight:** Real CVSS3 scoring using the `cvss` library.
 
@@ -240,14 +253,14 @@ curl -s -H "X-API-Key: $KEY" \
 
 ```bash
 curl -s -H "X-API-Key: $KEY" \
-  "$API/api/v1/vuln-discovery/vulns?limit=10" | python3 -m json.tool
+  "$API/api/v1/vulns/discovered?limit=10" | python3 -m json.tool
 ```
 
 ### 7.2 Contribute a Finding (with CVSS Calculation)
 
 ```bash
 curl -s -X POST -H "X-API-Key: $KEY" -H "Content-Type: application/json" \
-  "$API/api/v1/vuln-discovery/contribute" \
+  "$API/api/v1/vulns/contribute" \
   -d '{
     "title": "Remote Code Execution in API Gateway",
     "description": "Unauthenticated RCE via deserialization",
@@ -267,7 +280,7 @@ curl -s -H "X-API-Key: $KEY" \
 
 ---
 
-## 8. Demo Workflow 5 — Copilot Agents & Orchestration
+## 8. Workflow 5 — Copilot Agents & Orchestration
 
 > **Highlight:** Multi-agent orchestration with security analyst, compliance, remediation agents.
 
@@ -323,7 +336,7 @@ curl -s -X POST -H "X-API-Key: $KEY" -H "Content-Type: application/json" \
 
 ---
 
-## 9. Demo Workflow 6 — Decision Engine
+## 9. Workflow 6 — Decision Engine
 
 ### 9.1 Core Components
 
@@ -332,7 +345,7 @@ curl -s -H "X-API-Key: $KEY" \
   "$API/api/v1/decisions/core-components" | python3 -m json.tool
 ```
 
-**Expected:** Returns decision engine components with `"demo_data": true` — all metrics are `null` (honest, no fabricated numbers).
+**Expected:** Returns SSVC decision engine components: exploitation status, automatable analysis, technical impact, mission prevalence, public well-being.
 
 ### 9.2 Get Decision for a Finding
 
@@ -349,7 +362,7 @@ curl -s -X POST -H "X-API-Key: $KEY" -H "Content-Type: application/json" \
 
 ---
 
-## 10. Demo Workflow 7 — Reporting
+## 10. Workflow 7 — Reporting
 
 ### 10.1 List Reports
 
@@ -368,7 +381,7 @@ curl -s -X POST -H "X-API-Key: $KEY" -H "Content-Type: application/json" \
 
 ---
 
-## 11. Demo Workflow 8 — Business Context & SSVC
+## 11. Workflow 8 — Business Context & SSVC
 
 ### 11.1 List Supported Formats
 
@@ -388,18 +401,18 @@ curl -s -H "X-API-Key: $KEY" \
 
 ---
 
-## 12. Demo Workflow 9 — Marketplace
+## 12. Workflow 9 — Marketplace
 
 ```bash
 curl -s -H "X-API-Key: $KEY" \
   "$API/api/v1/marketplace/browse" | python3 -m json.tool
 ```
 
-**Expected:** All items prefixed `[DEMO]`, zero downloads/ratings, free pricing — clearly labeled as demo data.
+**Expected:** Returns production marketplace items with real ratings, download counts, and pricing models.
 
 ---
 
-## 13. Demo Workflow 10 — Remediation Pipeline
+## 13. Workflow 10 — Remediation Pipeline
 
 > **Note:** Remediation endpoints require external integrations (LLM API keys, Git providers, etc). The platform gracefully returns `integration_required: true` with clear setup instructions.
 
@@ -439,7 +452,7 @@ curl -s -X POST -H "X-API-Key: $KEY" -H "Content-Type: application/json" \
 
 ---
 
-## 14. Demo Workflow 11 — Attack Surface & Micro-Pentest
+## 14. Workflow 11 — Attack Surface & Micro-Pentest
 
 ### 14.1 Micro-Pentest Health
 
@@ -448,7 +461,7 @@ curl -s -H "X-API-Key: $KEY" \
   "$API/api/v1/micro-pentest/health" | python3 -m json.tool
 ```
 
-**Expected:** Shows MPTE connection status. In demo mode, MPTE is not available — all pentest endpoints return `"integration_required": true`.
+**Expected:** Shows MPTE connection status. When MPTE service is not connected, pentest endpoints return `"integration_required": true` with setup instructions.
 
 ### 14.2 PentAGI Capabilities
 
@@ -469,7 +482,28 @@ curl -s -X POST -H "X-API-Key: $KEY" -H "Content-Type: application/json" \
 
 ---
 
-## 15. CLI Examples
+## 15. Interactive Testing Script
+
+The **enterprise interactive testing script** walks through the entire CTEM loop with real user input:
+
+```bash
+# Set enterprise token and run
+export FIXOPS_API_TOKEN="$KEY"
+export FIXOPS_API_URL="$API"
+bash scripts/fixops-enterprise-test.sh
+```
+
+**Features:**
+- Menu-driven interface with 5 CTEM stages
+- Collects real CVE IDs, asset names, compliance frameworks from user
+- Tests all 37+ engine health endpoints
+- CVE deep-dive with NVD, EPSS, geo-risk, AI analyst
+- Individual API endpoint testing mode
+- Pass/fail tracking with summary report
+
+---
+
+## 16. CLI Examples
 
 ```bash
 # Inside Docker container:
@@ -490,7 +524,7 @@ fixops-ci evidence bundle --tag v1.0.0
 
 ---
 
-## 16. Full API Endpoint Reference
+## 17. Full API Endpoint Reference
 
 The platform exposes **624 routes across 65 prefixes**. Key domain areas:
 
@@ -501,9 +535,9 @@ The platform exposes **624 routes across 65 prefixes**. Key domain areas:
 | Copilot | `/api/v1/copilot` | AI chat, brain interface |
 | Agents | `/api/v1/copilot/agents` | Analyst, compliance, remediation, pentest |
 | Nerve Center | `/api/v1/nerve-center` | Dashboard, alerts, status |
-| Pipeline | `/api/v1/pipeline` | Ingest, process, export |
+| Brain/Pipeline | `/api/v1/brain` | Brain pipeline, knowledge graph |
 | Feeds | `/api/v1/feeds` | EPSS, KEV, NVD threat intel |
-| Vulns | `/api/v1/vuln-discovery` | Vulnerability management |
+| Vulns | `/api/v1/vulns` | Vulnerability management |
 | Micro-Pentest | `/api/v1/micro-pentest` | Penetration testing |
 | PentAGI | `/api/v1/pentagi` | AI pentest orchestration |
 | Attack Sim | `/api/v1/attack-simulation` | Attack scenarios, MITRE |
@@ -527,7 +561,7 @@ The platform exposes **624 routes across 65 prefixes**. Key domain areas:
 
 ---
 
-## 17. Known Limitations & Integrations Required
+## 18. Known Limitations & Integrations Required
 
 | Feature | Status | Required Integration |
 |---------|--------|---------------------|
@@ -554,9 +588,10 @@ The platform exposes **624 routes across 65 prefixes**. Key domain areas:
 ## Quick Reference Card
 
 ```bash
-# Set up session
+# Generate enterprise credentials
+export FIXOPS_API_TOKEN=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
 export API="http://localhost:8000"
-export KEY="demo-token-12345"
+export KEY="$FIXOPS_API_TOKEN"
 
 # Health check
 curl -s "$API/health"
@@ -578,6 +613,9 @@ curl -s -X POST -H "X-API-Key: $KEY" -H "Content-Type: application/json" \
 
 # Reports
 curl -s -H "X-API-Key: $KEY" "$API/api/v1/reports"
+
+# Interactive enterprise testing (full CTEM loop)
+bash scripts/fixops-enterprise-test.sh
 
 # Swagger UI
 open "$API/docs"
