@@ -26,8 +26,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Mapping, Optional, Tuple
 
 from core.configuration import OverlayConfig
-from core.paths import ensure_secure_directory
-from fixops.utils.paths import resolve_within_root
+from core.paths import ensure_secure_directory, resolve_within_root
 
 logger = logging.getLogger(__name__)
 

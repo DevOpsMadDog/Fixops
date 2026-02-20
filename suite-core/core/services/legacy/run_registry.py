@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
-from fixops.utils.paths import resolve_within_root
+from core.paths import resolve_within_root
 
 ARTEFACTS_ROOT = Path("artefacts")
 
