@@ -137,12 +137,13 @@ jobs:
       - name: Verify suite architecture in container
         run: |
           IMAGE="fixops-test:${{ github.sha }}"
+          DEMO="-e FIXOPS_MODE=demo"
           echo "=== Verifying suite directories ==="
-          docker run --rm $IMAGE ls -d /app/suite-api /app/suite-core /app/suite-attack /app/suite-feeds /app/suite-evidence-risk /app/suite-integrations
+          docker run --rm $DEMO $IMAGE ls -d /app/suite-api /app/suite-core /app/suite-attack /app/suite-feeds /app/suite-evidence-risk /app/suite-integrations
           echo "=== Verifying PYTHONPATH ==="
-          docker run --rm $IMAGE python -c "import sys; print([p for p in sys.path if 'suite' in p])"
+          docker run --rm $DEMO $IMAGE python -c "import sys; print([p for p in sys.path if 'suite' in p])"
           echo "=== Verifying docs ==="
-          docker run --rm $IMAGE ls -la /app/docs/
+          docker run --rm $DEMO $IMAGE ls -la /app/docs/
 
       - name: Test API server starts
         run: |
