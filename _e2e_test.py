@@ -360,12 +360,12 @@ print("=" * 80)
 
 # Generate markdown report
 report = []
-report.append(f"# FixOps E2E API Test Report\n")
+report.append("# FixOps E2E API Test Report\n")
 report.append(
     f"**Date**: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}"
 )
 report.append(f"**Server**: {BASE}")
-report.append(f"**Mode**: FIXOPS_MODE=demo")
+report.append("**Mode**: FIXOPS_MODE=demo")
 report.append(f"**Result**: {passed}/{total} passed ({failed} failed)\n")
 report.append("| Status | Method | Path | HTTP | Description |")
 report.append("|--------|--------|------|------|-------------|")
@@ -376,7 +376,7 @@ for s, m, p, c, d, b in results:
         note = f" — `{b[:80]}`"
     report.append(f"| {icon} | {m} | `{p}` | {c} | {d}{note} |")
 
-report.append(f"\n## Summary\n")
+report.append("\n## Summary\n")
 report.append(f"- **Total endpoints tested**: {total}")
 report.append(f"- **Passed**: {passed}")
 report.append(f"- **Failed**: {failed}")
@@ -385,6 +385,6 @@ report.append(f"- **Pass rate**: {passed/total*100:.1f}%")
 # Write report
 with open("docs/E2E_TEST_REPORT.md", "w") as f:
     f.write("\n".join(report) + "\n")
-print(f"\nReport written to docs/E2E_TEST_REPORT.md")
+print("\nReport written to docs/E2E_TEST_REPORT.md")
 
 sys.exit(0 if failed == 0 else 1)
