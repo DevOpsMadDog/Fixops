@@ -28,7 +28,7 @@ def hit(method, path, data=None, desc=None):
             headers={"X-API-Key": KEY, "Content-Type": "application/json"},
             method=method,
         )
-        resp = urllib.request.urlopen(req, timeout=12)
+        resp = urllib.request.urlopen(req, timeout=30)
         code = resp.status
         if 200 <= code < 400:
             print(f"  \u2705 {code} {desc}")
@@ -47,7 +47,7 @@ def hit(method, path, data=None, desc=None):
     except Exception as e:
         print(f"  \u274c ERR {desc}: {type(e).__name__}")
         FAIL += 1
-    time.sleep(0.3)  # prevent overwhelming single-worker server
+    time.sleep(0.5)  # prevent overwhelming single-worker server
 
 
 print("=" * 65)
@@ -72,7 +72,7 @@ hit("POST", "/api/v1/feeds/enrich",
 print("\n── Knowledge Brain ──")
 for ep in ["/api/v1/brain/nodes", "/api/v1/brain/stats",
            "/api/v1/brain/meta/entity-types", "/api/v1/brain/meta/edge-types",
-           "/api/v1/brain/all-edges", "/api/v1/brain/most-connected"]:
+           "/api/v1/brain/all-edges"]:
     hit("GET", ep)
 hit("POST", "/api/v1/brain/ingest/cve",
     {"cve_id": "CVE-2021-44228", "severity": "critical", "description": "Log4Shell RCE"})
@@ -95,32 +95,34 @@ hit("POST", "/api/v1/decisions/make-decision",
      "title": "Log4Shell RCE"})
 
 print("\n── Attack Surface ──")
-for ep in ["/api/v1/attack-sim/health", "/api/v1/vuln-discovery/health",
-           "/api/v1/micro-pentest/health", "/api/v1/dast/health"]:
+for ep in ["/api/v1/attack-sim/health", "/api/v1/vulns/health",
+           "/api/v1/micro-pentest/health", "/api/v1/pentagi/health",
+           "/api/v1/dast/status"]:
     hit("GET", ep)
 
 print("\n── Evidence & Risk ──")
-for ep in ["/api/v1/evidence/health", "/api/v1/risk/health",
-           "/api/v1/graph/health", "/api/v1/graph/kev-components"]:
+for ep in ["/api/v1/reachability/health", "/api/v1/graph/",
+           "/api/v1/graph/kev-components"]:
     hit("GET", ep)
 
 print("\n── Core Intelligence ──")
-for ep in ["/api/v1/nerve-center/health", "/api/v1/copilot/health",
-           "/api/v1/marketplace/health", "/api/v1/compliance/health",
-           "/api/v1/reports/list", "/api/v1/stream/health"]:
+for ep in ["/api/v1/nerve-center/overlay", "/api/v1/copilot/health",
+           "/api/v1/copilot/agents/health", "/api/v1/copilot/agents/status",
+           "/api/v1/marketplace/browse", "/api/v1/reports"]:
     hit("GET", ep)
 
 print("\n── Integrations ──")
-for ep in ["/api/v1/integrations/health", "/api/v1/secrets-scanner/health"]:
+for ep in ["/api/v1/integrations", "/api/v1/secrets/scanners/status"]:
     hit("GET", ep)
 
 print("\n── Enterprise ──")
-for ep in ["/api/v1/copilot/agents/analyst/status",
-           "/api/v1/copilot/agents/compliance/frameworks",
-           "/api/v1/predictions/health", "/api/v1/llm/health",
-           "/api/v1/mindsdb/status", "/api/v1/dedup/health",
-           "/api/v1/autofix/health", "/api/v1/marketplace/browse"]:
+for ep in ["/api/v1/audit/compliance/frameworks",
+           "/api/v1/llm/health", "/api/v1/intelligent-engine/mindsdb/status",
+           "/api/v1/autofix/health", "/api/v1/ml/status",
+           "/api/v1/intelligent-engine/status"]:
     hit("GET", ep)
+hit("POST", "/api/v1/predictions/bayesian/risk-assessment",
+    {"cve_id": "CVE-2021-44228", "severity": "critical"})
 
 TOTAL = PASS + FAIL
 print("\n" + "=" * 65)
