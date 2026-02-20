@@ -1,9 +1,9 @@
 # ALdeci — Comprehensive Application Context
 
-> **Last updated**: 2026-02-19
+> **Last updated**: 2026-02-21
 > **Branch**: `features/intermediate-stage`
 > **Formerly known as**: FixOps
-> **Related docs**: [API_REFERENCE.md](docs/API_REFERENCE.md) · [SUITE_ARCHITECTURE.md](docs/SUITE_ARCHITECTURE.md) · [DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md)
+> **Related docs**: [API_REFERENCE.md](docs/API_REFERENCE.md) · [SUITE_ARCHITECTURE.md](docs/SUITE_ARCHITECTURE.md) · [DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) · [CLIENT_DEMO_GUIDE.md](docs/CLIENT_DEMO_GUIDE.md)
 
 ---
 
@@ -25,7 +25,10 @@
 14. [Inter-Suite Dependency Map](#14-inter-suite-dependency-map)
 15. [Database Files & Storage](#15-database-files--storage)
 16. [Cleanup History](#16-cleanup-history)
-17. [Guidelines for AI Agents & Developers](#17-guidelines-for-ai-agents--developers)
+17. [Enterprise Mode & Authentication](#17-enterprise-mode--authentication)
+18. [CTEM Loop — 5-Stage Flow](#18-ctem-loop--5-stage-flow)
+19. [Testing & Validation Scripts](#19-testing--validation-scripts)
+20. [Guidelines for AI Agents & Developers](#20-guidelines-for-ai-agents--developers)
 
 ---
 
@@ -617,7 +620,114 @@ The `docker/Dockerfile` previously had hardcoded `COPY` for 18+ legacy root dire
 
 ---
 
-## 17. Guidelines for AI Agents & Developers
+## 17. Enterprise Mode & Authentication
+
+### Mode Configuration
+
+```bash
+# Enterprise mode (production/client demos)
+export FIXOPS_MODE=enterprise
+export FIXOPS_JWT_SECRET=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+export FIXOPS_API_TOKEN=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
+export FIXOPS_DEMO_MODE=false
+```
+
+### Key Settings
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `FIXOPS_MODE` | Runtime mode | `enterprise` |
+| `FIXOPS_JWT_SECRET` | JWT signing key | **Required** (no default) |
+| `FIXOPS_API_TOKEN` | API authentication token | **Required** (no default) |
+| `FIXOPS_DEMO_MODE` | Enable simulated data | `false` |
+
+### Authentication Flow
+
+All API calls require the `X-API-Key` header:
+```bash
+curl -H "X-API-Key: $FIXOPS_API_TOKEN" http://localhost:8000/api/v1/feeds/health
+```
+
+### Critical: No Demo Defaults
+
+- `DEMO_MODE` defaults to `false` in `suite-core/config/enterprise/settings.py`
+- No `demo-token` fallbacks anywhere in the codebase
+- All scripts require `FIXOPS_API_TOKEN` environment variable
+- Zero `[DEMO]` prefixes, zero `demo_data` flags in API responses
+
+---
+
+## 18. CTEM Loop — 5-Stage Flow
+
+ALdeci implements the full **Continuous Threat Exposure Management** (CTEM) loop:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    CTEM LOOP (5 Stages)                         │
+│                                                                 │
+│  ┌─────────┐   ┌──────────┐   ┌────────────┐   ┌──────────┐  │
+│  │ 1.SCOPE │──▶│2.DISCOVER│──▶│3.PRIORITIZE│──▶│4.VALIDATE│  │
+│  └─────────┘   └──────────┘   └────────────┘   └──────────┘  │
+│       ▲                                              │         │
+│       │         ┌──────────┐                         │         │
+│       └─────────│5.MOBILIZE│◀────────────────────────┘         │
+│                 └──────────┘                                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Stage → API Endpoint Mapping
+
+| Stage | Endpoints | Status |
+|---|---|---|
+| **1. SCOPE** | `/api/v1/brain/health`, `/api/v1/business-context/*`, `/api/v1/copilot/agents/status` | ✅ 4/4 |
+| **2. DISCOVER** | `/api/v1/feeds/*`, `/api/v1/vulns/*`, `/api/v1/feeds/exploit-confidence/*` | ✅ 7/8 |
+| **3. PRIORITIZE** | `/api/v1/decisions/*`, `/api/v1/brain/stats`, `/api/v1/audit/compliance/*`, `/api/v1/ml/*` | ✅ 6/8 |
+| **4. VALIDATE** | `/api/v1/micro-pentest/*`, `/api/v1/pentagi/*`, `/api/v1/attack-sim/*`, `/api/v1/reachability/*`, `/api/v1/dast/*`, `/api/v1/brain/evidence/*` | ✅ 7/7 |
+| **5. MOBILIZE** | `/api/v1/autofix/*`, `/api/v1/integrations`, `/api/v1/marketplace/*`, `/api/v1/reports`, `/api/v1/copilot/agents/*`, `/api/v1/llm/*` | ✅ 7/8 |
+
+**Total: 31/35 endpoints working across all 5 CTEM stages (88.6%)**
+
+---
+
+## 19. Testing & Validation Scripts
+
+### Interactive Enterprise Testing
+
+```bash
+# Start server
+export FIXOPS_MODE=enterprise FIXOPS_JWT_SECRET="your-secret" FIXOPS_API_TOKEN="your-token"
+uvicorn apps.api.app:app --host 0.0.0.0 --port 8000 --workers 2
+
+# Run interactive testing script (menu-driven, all 5 CTEM stages)
+bash scripts/fixops-enterprise-test.sh
+```
+
+### Automated Smoke Test
+
+```bash
+# 47 endpoints, 100% pass rate
+export FIXOPS_API_TOKEN="your-token" FIXOPS_API_URL=http://localhost:8000
+python3 scripts/_enterprise_smoke.py
+```
+
+### Docker Enterprise Mode
+
+```bash
+docker run -it -e FIXOPS_MODE=enterprise -p 8000:8000 devopsaico/fixops:latest enterprise
+```
+
+### Script Inventory
+
+| Script | Purpose | Type |
+|---|---|---|
+| `scripts/fixops-enterprise-test.sh` | Interactive CTEM testing (688 lines) | Bash, interactive |
+| `scripts/_enterprise_smoke.py` | Automated 47-endpoint smoke test | Python, automated |
+| `scripts/docker-entrypoint.sh` | Docker entrypoint with enterprise mode | Bash |
+| `scripts/_smoke_test.sh` | Quick bash smoke test | Bash, automated |
+
+---
+
+## 20. Guidelines for AI Agents & Developers
 
 1. **ONLY edit files under `suite-*/`** — that's the active codebase
 2. **Never add `__init__.py`** to any `api/` directory (breaks namespace packages across suites)
@@ -627,10 +737,11 @@ The `docker/Dockerfile` previously had hardcoded `COPY` for 18+ legacy root dire
 6. **Adding a new feed**: Add to `suite-feeds/api/feeds_router.py` or create a new file in `suite-feeds/`
 7. **Dockerfile** at `docker/Dockerfile` copies only `suite-*` dirs — no legacy code
 8. **Legacy code** preserved in `clutter-legacy` branch for reference only
-9. **⚠️ 4 workflows** (provenance, release-sign, repro-verify, fixops_pipeline) reference deleted dirs and need fixing
-10. **Database files** (`.db`) are gitignored — never commit them
-11. **Python version**: 3.11+ | **Node.js**: 18+
-12. **Frontend components**: shadcn/ui are copy/paste components, NOT an npm-installed library
-13. **Configuration**: Use `suite-core/core/configuration.py` `load_overlay()` — supports YAML overlays + env vars
-14. **LLM providers**: Use `suite-core/core/llm_providers.py` — supports OpenAI, Anthropic, Google with fallback
-15. **Cross-reference**: See [docs/API_REFERENCE.md](docs/API_REFERENCE.md), [docs/SUITE_ARCHITECTURE.md](docs/SUITE_ARCHITECTURE.md), [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) for detailed documentation
+9. **Database files** (`.db`) are gitignored — never commit them
+10. **Python version**: 3.11+ | **Node.js**: 18+
+11. **Frontend components**: shadcn/ui are copy/paste components, NOT an npm-installed library
+12. **Configuration**: Use `suite-core/core/configuration.py` `load_overlay()` — supports YAML overlays + env vars
+13. **LLM providers**: Use `suite-core/core/llm_providers.py` — supports OpenAI, Anthropic, Google with fallback
+14. **Enterprise mode**: Always use `FIXOPS_MODE=enterprise` — never demo mode for client-facing work
+15. **Authentication**: All API calls need `X-API-Key` header — generate with `secrets.token_urlsafe(48)`
+16. **Cross-reference**: See [API_REFERENCE.md](docs/API_REFERENCE.md), [SUITE_ARCHITECTURE.md](docs/SUITE_ARCHITECTURE.md), [DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md), [CLIENT_DEMO_GUIDE.md](docs/CLIENT_DEMO_GUIDE.md)
