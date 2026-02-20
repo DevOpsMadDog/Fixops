@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """FixOps End-to-End API Test Suite — routes verified against OpenAPI spec."""
 import json
+import os
 import sys
 import urllib.parse
 from datetime import datetime, timezone
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-BASE = "http://localhost:8000"
-API_KEY = "demo-token-12345"
+BASE = os.environ.get("FIXOPS_BASE_URL", "http://localhost:8000")
+API_KEY = os.environ.get("FIXOPS_API_TOKEN", "")
+if not API_KEY:
+    print("ERROR: FIXOPS_API_TOKEN environment variable is required.")
+    sys.exit(1)
 results = []
 
 
