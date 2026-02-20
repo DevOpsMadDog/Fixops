@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from compliance.mapping import ComplianceMappingResult
-
 from apps.api.normalizers import CVERecordSummary, NormalizedCVEFeed
+from compliance.mapping import ComplianceMappingResult
 from core.decision_tree import DecisionTreeOrchestrator, DecisionTreeResult
 from risk.enrichment import EnrichmentEvidence
 from risk.forecasting import ForecastResult

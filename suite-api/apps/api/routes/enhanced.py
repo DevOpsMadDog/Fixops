@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Mapping, Optional
 
+from core.enhanced_decision import EnhancedDecisionEngine
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
-
-from core.enhanced_decision import EnhancedDecisionEngine
 
 router = APIRouter(prefix="/api/v1/enhanced", tags=["enhanced"])
 

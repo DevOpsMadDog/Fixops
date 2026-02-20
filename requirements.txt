@@ -23,3 +23,4 @@ bcrypt>=4.0.0
 tenacity>=8.2.0,<9.0
 ssvc>=1.2.0,<2.0
 sarif-om>=1.0.4,<2.0
+python-dotenv>=1.0.0,<2.0

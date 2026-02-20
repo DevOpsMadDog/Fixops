@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any, Dict, Mapping, MutableMapping, Optional
 
 import structlog
-
 from core.configuration import OverlayConfig
 from core.enhanced_decision import EnhancedDecisionEngine
 from core.overlay_runtime import prepare_overlay

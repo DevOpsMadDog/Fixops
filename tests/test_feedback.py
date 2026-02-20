@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from core.configuration import OverlayConfig
 from core.connectors import ConnectorOutcome
 from core.feedback import FeedbackRecorder

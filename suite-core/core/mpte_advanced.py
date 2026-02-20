@@ -24,8 +24,6 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import aiohttp
-from tenacity import retry, stop_after_attempt, wait_exponential
-
 from core.llm_providers import LLMProviderManager, LLMResponse
 from core.mpte_db import MPTEDB
 from core.mpte_models import (
@@ -36,6 +34,7 @@ from core.mpte_models import (
     PenTestResult,
     PenTestStatus,
 )
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger(__name__)
 

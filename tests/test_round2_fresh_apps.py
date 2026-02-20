@@ -22,11 +22,10 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
 import pytest
-from fastapi.testclient import TestClient
-
 from apps.api.normalizers import InputNormalizer
 from apps.api.pipeline import PipelineOrchestrator
 from core.configuration import load_overlay
+from fastapi.testclient import TestClient
 
 os.environ["FIXOPS_MODE"] = "demo"
 os.environ["FIXOPS_API_TOKEN"] = "demo-token-12345"

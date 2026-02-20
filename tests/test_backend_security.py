@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 
 import pytest
-
 from apps.api import app as backend_app
 from core.configuration import OverlayConfig
 

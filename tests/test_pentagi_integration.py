@@ -3,7 +3,6 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from core.automated_remediation import (
     AutomatedRemediationEngine,
     RemediationPriority,

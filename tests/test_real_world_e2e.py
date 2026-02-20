@@ -558,9 +558,8 @@ class TestRealWorldAPI:
         os.environ["FIXOPS_MODE"] = "demo"
 
         try:
-            from fastapi.testclient import TestClient
-
             from apps.api.app import create_app
+            from fastapi.testclient import TestClient
         except ImportError:
             return
 
@@ -632,9 +631,8 @@ class TestRealWorldAPI:
         os.environ["FIXOPS_MODE"] = "demo"
 
         try:
-            from fastapi.testclient import TestClient
-
             from apps.api.app import create_app
+            from fastapi.testclient import TestClient
         except ImportError:
             return
 
@@ -685,10 +683,9 @@ class TestRealWorldIaC:
         tfplan_file = tmp_path / "tfplan.json"
         tfplan_file.write_text(json.dumps(tfplan))
 
+        from core.stage_runner import StageRunner
         from src.services import id_allocator, signing
         from src.services.run_registry import RunRegistry
-
-        from core.stage_runner import StageRunner
 
         registry = RunRegistry()
         runner = StageRunner(registry, id_allocator, signing)

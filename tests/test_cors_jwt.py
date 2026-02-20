@@ -1,9 +1,8 @@
 from datetime import datetime, timedelta
 
 import jwt
-from fastapi.middleware.cors import CORSMiddleware
-
 from apps.api import app as app_module
+from fastapi.middleware.cors import CORSMiddleware
 
 
 def test_cors_origins_applied(monkeypatch):

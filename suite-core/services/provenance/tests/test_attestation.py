@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from cli.fixops_provenance import main as provenance_main
 from services.provenance import (
     ProvenanceVerificationError,

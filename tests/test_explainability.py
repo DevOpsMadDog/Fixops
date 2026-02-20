@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import pytest
+from new_apps.api.processing.explanation import ExplanationError, ExplanationGenerator
 from src.services.compliance import ComplianceEngine
 from src.services.decision_engine import DecisionEngine
 from src.services.evidence import EvidenceStore
-
-from new_apps.api.processing.explanation import ExplanationError, ExplanationGenerator
 
 
 def test_top_factors_deterministic(signing_env: None) -> None:

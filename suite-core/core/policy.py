@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence
 
 import requests  # type: ignore[import-untyped]
-
 from core.configuration import OverlayConfig
 from core.connectors import AutomationConnectors
 from core.paths import ensure_secure_directory

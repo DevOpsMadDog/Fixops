@@ -18,7 +18,6 @@ except Exception:  # pragma: no cover - optional dependency
     nx = None  # type: ignore[assignment]
 
 from packaging.version import InvalidVersion, Version
-
 from services.provenance.attestation import ProvenanceAttestation, load_attestation
 from telemetry import get_meter, get_tracer
 

@@ -2,9 +2,8 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastapi.testclient import TestClient
-
 from apps.api.app import create_app
+from fastapi.testclient import TestClient
 
 API_TOKEN = "demo-token-12345"
 AUTH_HEADERS = {"X-API-Key": API_TOKEN}

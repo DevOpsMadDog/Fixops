@@ -17,6 +17,18 @@ from types import SimpleNamespace
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 import jwt
+from apps.api.analytics_router import router as analytics_router
+from apps.api.audit_router import router as audit_router
+from apps.api.auth_router import router as auth_router
+from apps.api.bulk_router import router as bulk_router
+from apps.api.collaboration_router import router as collaboration_router
+from apps.api.inventory_router import router as inventory_router
+from apps.api.policies_router import router as policies_router
+from apps.api.remediation_router import router as remediation_router
+from apps.api.reports_router import router as reports_router
+from apps.api.teams_router import router as teams_router
+from apps.api.users_router import router as users_router
+from apps.api.workflows_router import router as workflows_router
 from fastapi import (
     APIRouter,
     Body,
@@ -30,19 +42,6 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
-
-from apps.api.analytics_router import router as analytics_router
-from apps.api.audit_router import router as audit_router
-from apps.api.auth_router import router as auth_router
-from apps.api.bulk_router import router as bulk_router
-from apps.api.collaboration_router import router as collaboration_router
-from apps.api.inventory_router import router as inventory_router
-from apps.api.policies_router import router as policies_router
-from apps.api.remediation_router import router as remediation_router
-from apps.api.reports_router import router as reports_router
-from apps.api.teams_router import router as teams_router
-from apps.api.users_router import router as users_router
-from apps.api.workflows_router import router as workflows_router
 
 # Validation router - compatibility checking for security tool outputs
 validation_router: Optional[APIRouter] = None

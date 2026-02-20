@@ -10,10 +10,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
-
 from core.event_bus import Event, EventType, get_event_bus
 from core.knowledge_brain import EdgeType, EntityType, GraphEdge, GraphNode, get_brain
+from fastapi import APIRouter, HTTPException, Query
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/brain", tags=["knowledge-brain"])

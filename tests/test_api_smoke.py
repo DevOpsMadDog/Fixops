@@ -24,9 +24,8 @@ os.environ["FIXOPS_DISABLE_TELEMETRY"] = "1"
 os.environ["FIXOPS_MODE"] = os.getenv("FIXOPS_MODE", "demo")
 os.environ["FIXOPS_JWT_SECRET"] = "test-jwt-secret-smoke-test-do-not-use-in-production"
 
-from fastapi.testclient import TestClient
-
 from apps.api.app import create_app
+from fastapi.testclient import TestClient
 
 
 def get_openapi_schema_safely(app):

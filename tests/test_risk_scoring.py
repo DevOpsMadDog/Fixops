@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from cli import fixops_risk
 from risk.feeds.epss import load_epss_scores
 from risk.feeds.kev import load_kev_catalog

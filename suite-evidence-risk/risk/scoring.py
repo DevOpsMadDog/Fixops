@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, Mapping, MutableMapping, Optional, Sequence
 
 from packaging.version import InvalidVersion, Version
-
 from telemetry import get_meter, get_tracer
 
 EXPOSURE_ALIASES = {

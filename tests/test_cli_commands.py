@@ -3,7 +3,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from core import cli
 from core.configuration import OverlayConfig
 

@@ -14,7 +14,6 @@ import shutil
 import uuid
 
 import pytest
-
 from core.safe_path_ops import (
     TRUSTED_ROOT,
     PathContainmentError,

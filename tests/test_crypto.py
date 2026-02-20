@@ -13,7 +13,6 @@ import tempfile
 from unittest.mock import patch
 
 import pytest
-
 from core.crypto import (
     CryptoError,
     KeyGenerationError,

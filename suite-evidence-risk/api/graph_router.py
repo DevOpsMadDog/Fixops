@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, Request
-
 from services.graph.graph import GraphSources, build_graph_from_sources
 
 router = APIRouter(prefix="/graph", tags=["graph"])

@@ -4,7 +4,6 @@ import os
 import tempfile
 
 import pytest
-
 from core.cli import build_parser
 from core.mpte_db import MPTEDB
 from core.mpte_models import PenTestConfig, PenTestPriority, PenTestRequest

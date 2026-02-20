@@ -3,10 +3,9 @@
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
 
+from core.services.deduplication import ClusterStatus, DeduplicationService
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-
-from core.services.deduplication import ClusterStatus, DeduplicationService
 
 router = APIRouter(prefix="/api/v1/deduplication", tags=["deduplication"])
 

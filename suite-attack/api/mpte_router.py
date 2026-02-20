@@ -4,9 +4,6 @@ import os
 from typing import List, Optional
 
 import httpx
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from core.mpte_db import MPTEDB
 from core.mpte_models import (
     ExploitabilityLevel,
@@ -16,7 +13,9 @@ from core.mpte_models import (
     PenTestResult,
     PenTestStatus,
 )
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from integrations.mpte_service import AdvancedMPTEService
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

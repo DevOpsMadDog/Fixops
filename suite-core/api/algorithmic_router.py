@@ -10,9 +10,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
-
 from core.attack_graph_gnn import (
     EdgeType,
     GraphNeuralPredictor,
@@ -24,6 +21,8 @@ from core.causal_inference import CausalInferenceEngine, analyze_vulnerability_c
 
 # Import algorithmic engines
 from core.monte_carlo import FAIRInputs, MonteCarloRiskEngine, quantify_cve_risk
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/algorithms", tags=["ALdeci Algorithms"])
 

@@ -4,10 +4,9 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from core.services.collaboration import ActivityType, CollaborationService, EntityType
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
-
-from core.services.collaboration import ActivityType, CollaborationService, EntityType
 
 # SSRF protection: Slack webhook URL must be configured via environment variable
 # This prevents SSRF attacks by not accepting user-provided URLs

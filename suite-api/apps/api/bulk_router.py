@@ -13,9 +13,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
-from pydantic import BaseModel, Field
-
 from core.connectors import (
     AzureDevOpsConnector,
     GitHubConnector,
@@ -26,6 +23,8 @@ from core.connectors import (
 from core.integration_db import IntegrationDB
 from core.integration_models import IntegrationType
 from core.services.deduplication import ClusterStatus, DeduplicationService
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

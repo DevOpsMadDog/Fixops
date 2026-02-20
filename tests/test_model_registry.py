@@ -3,7 +3,6 @@
 from typing import Any, Mapping, Optional, Sequence
 
 import pytest
-
 from core.model_factory import create_model_registry_from_config
 from core.model_registry import (
     ModelMetadata,

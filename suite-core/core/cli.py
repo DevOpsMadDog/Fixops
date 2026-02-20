@@ -730,10 +730,9 @@ def _handle_get_evidence(args: argparse.Namespace) -> int:
 
 
 def _handle_stage_run(args: argparse.Namespace) -> int:
+    from core.stage_runner import StageRunner  # noqa: F811
     from src.services import id_allocator, signing  # noqa: F811
     from src.services.run_registry import RunRegistry  # noqa: F811
-
-    from core.stage_runner import StageRunner  # noqa: F811
 
     input_path: Optional[Path] = args.input
     if input_path is not None:
@@ -1094,7 +1093,6 @@ def _handle_demo(args: argparse.Namespace) -> int:
 def _handle_train_bn_lr(args: argparse.Namespace) -> int:
     import numpy as np
     import pandas as pd
-
     from core.bn_lr import save_model, train
 
     data_path = args.data
@@ -1189,7 +1187,6 @@ def _handle_predict_bn_lr(args: argparse.Namespace) -> int:
 
 def _handle_backtest_bn_lr(args: argparse.Namespace) -> int:
     import pandas as pd
-
     from core.bn_lr import backtest, load_model
 
     model_path = args.model

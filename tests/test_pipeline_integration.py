@@ -2,7 +2,6 @@ import json
 import os
 
 import pytest
-
 from apps.api.normalizers import InputNormalizer
 from apps.api.pipeline import PipelineOrchestrator
 from core.configuration import load_overlay
