@@ -18,7 +18,7 @@ services:
       - ./fixtures:/app/fixtures
     environment:
       - FIXOPS_MODE=enterprise
-      - FIXOPS_API_TOKEN=enterprise-token
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:?Set FIXOPS_API_TOKEN before starting}
       - FIXOPS_DISABLE_TELEMETRY=1
       - VECTOR_STORE_PROVIDER=chromadb
       - VECTOR_STORE_PERSIST_DIR=/app/data/chroma_db
@@ -48,7 +48,7 @@ services:
       echo 'ChromaDB persistence: /app/data/chroma_db' &&
       echo 'Vector embeddings: sentence-transformers/all-MiniLM-L6-v2' &&
       echo '' &&
-      python demo_api_server.py
+      python -c 'import os; os.environ.setdefault(\"FIXOPS_MODE\", \"enterprise\"); from apps.api.app import create_app; import uvicorn; uvicorn.run(create_app(), host=\"0.0.0.0\", port=8000, log_level=\"warning\")'
       "
     stdin_open: true
     tty: true

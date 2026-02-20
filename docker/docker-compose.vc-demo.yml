@@ -13,8 +13,8 @@ services:
       - ./demo_decision_outputs:/app/demo_decision_outputs
       - ./demo_decision_inputs:/app/demo_decision_inputs
     environment:
-      - FIXOPS_MODE=demo
-      - FIXOPS_API_TOKEN=demo-token
+      - FIXOPS_MODE=enterprise
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:?Set FIXOPS_API_TOKEN before starting}
       - FIXOPS_DISABLE_TELEMETRY=1
     command: >
       bash -c "
