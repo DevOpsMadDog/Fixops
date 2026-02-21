@@ -125,85 +125,85 @@ async def get_core_components_status(current_user: Dict = Depends(get_current_us
         # Get real component status
         components = {}
 
-            # Real Vector DB status
-            if hasattr(decision_engine, "real_vector_db_stats"):
-                vector_stats = decision_engine.real_vector_db_stats
-                components["vector_db"] = {
-                    "status": "production_active"
-                    if vector_stats.get("connection_status") == "connected"
-                    else "error",
-                    "type": vector_stats.get("type", "ChromaDB"),
-                    "patterns_loaded": vector_stats.get("patterns_loaded", False),
-                    "search_functional": vector_stats.get(
-                        "test_search_successful", False
-                    ),
-                }
-            else:
-                components["vector_db"] = {
-                    "status": "not_initialized",
-                    "type": "ChromaDB",
-                }
-
-            # Real LLM integration status
-            components["llm_rag"] = {
+        # Real Vector DB status
+        if hasattr(decision_engine, "real_vector_db_stats"):
+            vector_stats = decision_engine.real_vector_db_stats
+            components["vector_db"] = {
                 "status": "production_active"
-                if decision_engine.chatgpt_client
-                else "not_configured",
-                "model": "ChatGPT"
-                if decision_engine.chatgpt_client
-                else "not_available",
-                "integration_type": "OpenAI ChatGPT",
+                if vector_stats.get("connection_status") == "connected"
+                else "error",
+                "type": vector_stats.get("type", "ChromaDB"),
+                "patterns_loaded": vector_stats.get("patterns_loaded", False),
+                "search_functional": vector_stats.get(
+                    "test_search_successful", False
+                ),
+            }
+        else:
+            components["vector_db"] = {
+                "status": "not_initialized",
+                "type": "ChromaDB",
             }
 
-            # Real consensus checker status
-            components["consensus_checker"] = {
+        # Real LLM integration status
+        components["llm_rag"] = {
+            "status": "production_active"
+            if decision_engine.chatgpt_client
+            else "not_configured",
+            "model": "ChatGPT"
+            if decision_engine.chatgpt_client
+            else "not_available",
+            "integration_type": "OpenAI ChatGPT",
+        }
+
+        # Real consensus checker status
+        components["consensus_checker"] = {
+            "status": "production_active",
+            "algorithm": "weighted_consensus",
+            "threshold": 0.85,
+            "components_integrated": [
+                "vector_db",
+                "policy_engine",
+                "golden_regression",
+            ],
+        }
+
+        # Real golden regression using database
+        async with DatabaseManager.get_session_context() as session:
+            from sqlalchemy import text
+
+            # Count real policy decisions for validation
+            result = await session.execute(
+                text("SELECT COUNT(*) FROM policy_decision_logs")
+            )
+            decision_count = result.scalar() or 0
+
+            components["golden_regression"] = {
                 "status": "production_active",
-                "algorithm": "weighted_consensus",
-                "threshold": 0.85,
-                "components_integrated": [
-                    "vector_db",
-                    "policy_engine",
-                    "golden_regression",
-                ],
+                "real_cases": decision_count,
+                "data_source": "policy_decision_logs",
+                "validation_method": "historical_decisions",
             }
 
-            # Real golden regression using database
-            async with DatabaseManager.get_session_context() as session:
-                from sqlalchemy import text
+        # Real policy engine status
+        from core.services.enterprise.real_opa_engine import get_opa_engine
 
-                # Count real policy decisions for validation
-                result = await session.execute(
-                    text("SELECT COUNT(*) FROM policy_decision_logs")
-                )
-                decision_count = result.scalar() or 0
+        opa_engine = await get_opa_engine()
+        opa_healthy = await opa_engine.health_check()
 
-                components["golden_regression"] = {
-                    "status": "production_active",
-                    "real_cases": decision_count,
-                    "data_source": "policy_decision_logs",
-                    "validation_method": "historical_decisions",
-                }
+        components["policy_engine"] = {
+            "status": "production_active" if opa_healthy else "opa_unavailable",
+            "type": "Production OPA Engine",
+            "opa_server_healthy": opa_healthy,
+            "policies_loaded": ["vulnerability", "sbom"],
+        }
 
-            # Real policy engine status
-            from core.services.enterprise.real_opa_engine import get_opa_engine
-
-            opa_engine = await get_opa_engine()
-            opa_healthy = await opa_engine.health_check()
-
-            components["policy_engine"] = {
-                "status": "production_active" if opa_healthy else "opa_unavailable",
-                "type": "Production OPA Engine",
-                "opa_server_healthy": opa_healthy,
-                "policies_loaded": ["vulnerability", "sbom"],
-            }
-
-            # Real SBOM injection status
-            components["sbom_injection"] = {
-                "status": "production_active",
-                "library": "lib4sbom",
-                "criticality_assessment": "enabled",
-                "metadata_sources": ["Real CycloneDX SBOM", "Real Component Analysis"],
-            }
+        # Real SBOM injection status
+        components["sbom_injection"] = {
+            "status": "production_active",
+            "library": "lib4sbom",
+            "criticality_assessment": "enabled",
+            "metadata_sources": ["Real CycloneDX SBOM", "Real Component Analysis"],
+        }
 
         # Add system-wide metrics
         components["system_info"] = {
