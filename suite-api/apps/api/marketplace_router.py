@@ -94,8 +94,8 @@ def _get_enterprise_service_safe():
         return None
 
 
-# TypedDict definitions for demo data to satisfy mypy
-class _DemoMarketplaceItem(TypedDict):
+# TypedDict definitions for built-in catalog items
+class _MarketplaceItem(TypedDict):
     id: str
     name: str
     description: str
@@ -114,7 +114,7 @@ class _DemoMarketplaceItem(TypedDict):
     updated_at: str
 
 
-class _DemoContributor(TypedDict):
+class _MarketplaceContributor(TypedDict):
     author: str
     organization: str
     contributions: int
@@ -124,7 +124,7 @@ class _DemoContributor(TypedDict):
 
 # Built-in marketplace catalog — ships with the platform.
 # Customers can extend via the /contribute endpoint.
-_BUILTIN_MARKETPLACE_ITEMS: List[_DemoMarketplaceItem] = [
+_BUILTIN_MARKETPLACE_ITEMS: List[_MarketplaceItem] = [
     {
         "id": "remediation-pack-sqli-001",
         "name": "SQL Injection Remediation Pack",
@@ -181,7 +181,7 @@ _BUILTIN_MARKETPLACE_ITEMS: List[_DemoMarketplaceItem] = [
     },
 ]
 
-_BUILTIN_CONTRIBUTORS: List[_DemoContributor] = [
+_BUILTIN_CONTRIBUTORS: List[_MarketplaceContributor] = [
     {
         "author": "FixOps Engineering",
         "organization": "FixOps",
@@ -342,34 +342,34 @@ async def browse_marketplace(
     """Browse and search marketplace items with optional filters."""
     service = _get_enterprise_service_safe()
 
-    # Return demo data if enterprise service is unavailable
+    # Return built-in catalog if enterprise service is unavailable
     if service is None:
-        demo_items = list(_BUILTIN_MARKETPLACE_ITEMS)
-        # Apply basic filtering on demo data
+        items = list(_BUILTIN_MARKETPLACE_ITEMS)
+        # Apply basic filtering on built-in catalog
         if content_type:
-            demo_items = [i for i in demo_items if i["content_type"] == content_type]
+            items = [i for i in items if i["content_type"] == content_type]
         if compliance_framework:
-            demo_items = [
+            items = [
                 i
-                for i in demo_items
+                for i in items
                 if compliance_framework in i["compliance_frameworks"]
             ]
         if ssdlc_stage:
-            demo_items = [i for i in demo_items if ssdlc_stage in i["ssdlc_stages"]]
+            items = [i for i in items if ssdlc_stage in i["ssdlc_stages"]]
         if pricing_model:
-            demo_items = [i for i in demo_items if i["pricing_model"] == pricing_model]
+            items = [i for i in items if i["pricing_model"] == pricing_model]
         if query:
             query_lower = query.lower()
-            demo_items = [
+            items = [
                 i
-                for i in demo_items
+                for i in items
                 if query_lower in i["name"].lower()
                 or query_lower in i["description"].lower()
             ]
         return {
-            "items": demo_items,
-            "total": len(demo_items),
-            "marketplace_mode": "production",
+            "items": items,
+            "total": len(items),
+            "marketplace_mode": "builtin_catalog",
         }
 
     ct = ContentType(content_type) if content_type else None
@@ -420,7 +420,7 @@ async def get_recommendations(
     """Get recommended marketplace content based on organization profile."""
     service = _get_enterprise_service_safe()
 
-    # Return demo data if enterprise service is unavailable
+    # Return built-in catalog if enterprise service is unavailable
     if service is None:
         recommendations = []
         for item in _BUILTIN_MARKETPLACE_ITEMS:
@@ -467,7 +467,7 @@ async def get_item(item_id: str) -> Dict[str, Any]:
     """Get details of a specific marketplace item."""
     service = _get_enterprise_service_safe()
 
-    # Return demo data if enterprise service is unavailable
+    # Return built-in catalog item if enterprise service is unavailable
     if service is None:
         for catalog_item in _BUILTIN_MARKETPLACE_ITEMS:
             if catalog_item["id"] == item_id:
@@ -513,11 +513,11 @@ async def contribute_content(
     """Submit new content to the marketplace."""
     service = _get_enterprise_service_safe()
 
-    # Return 403 in demo mode - contributions require enterprise service
+    # Contributions require enterprise marketplace service
     if service is None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Contributions are not available in demo mode. Configure enterprise marketplace service to enable contributions.",
+            detail="Contributions require enterprise marketplace service. Configure the enterprise module to enable contributions.",
         )
 
     try:
@@ -541,11 +541,11 @@ async def update_item(
     """Update an existing marketplace item."""
     service = _get_enterprise_service_safe()
 
-    # Return 403 in demo mode - updates require enterprise service
+    # Updates require enterprise marketplace service
     if service is None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Item updates are not available in demo mode. Configure enterprise marketplace service to enable updates.",
+            detail="Item updates require enterprise marketplace service. Configure the enterprise module to enable updates.",
         )
 
     try:
@@ -567,11 +567,11 @@ async def rate_item(
     """Rate a marketplace item."""
     service = _get_enterprise_service_safe()
 
-    # Return 403 in demo mode - ratings require enterprise service
+    # Ratings require enterprise marketplace service
     if service is None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ratings are not available in demo mode. Configure enterprise marketplace service to enable ratings.",
+            detail="Ratings require enterprise marketplace service. Configure the enterprise module to enable ratings.",
         )
 
     try:
@@ -592,11 +592,11 @@ async def purchase_item(
     """Purchase a marketplace item and get download token."""
     service = _get_enterprise_service_safe()
 
-    # Return 403 in demo mode - purchases require enterprise service
+    # Purchases require enterprise marketplace service
     if service is None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Purchases are not available in demo mode. Configure enterprise marketplace service to enable purchases.",
+            detail="Purchases require enterprise marketplace service. Configure the enterprise module to enable purchases.",
         )
 
     try:
@@ -615,11 +615,11 @@ async def download_content(token: str) -> Dict[str, Any]:
     """Download purchased content using a valid token."""
     service = _get_enterprise_service_safe()
 
-    # Return 403 in demo mode - downloads require enterprise service
+    # Downloads require enterprise marketplace service
     if service is None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Downloads are not available in demo mode. Configure enterprise marketplace service to enable downloads.",
+            detail="Downloads require enterprise marketplace service. Configure the enterprise module to enable downloads.",
         )
 
     try:
@@ -639,7 +639,7 @@ async def get_contributors(
     """Get contributor leaderboard and metrics."""
     service = _get_enterprise_service_safe()
 
-    # Return demo data if enterprise service is unavailable
+    # Return built-in contributors if enterprise service is unavailable
     if service is None:
         contributors = _BUILTIN_CONTRIBUTORS
         if author:
@@ -651,7 +651,7 @@ async def get_contributors(
         return {
             "contributors": contributors,
             "total": len(contributors),
-            "marketplace_mode": "production",
+            "marketplace_mode": "builtin_catalog",
         }
 
     contributors = await service.get_contributor_metrics(author, organization)
@@ -666,10 +666,10 @@ async def get_compliance_content(
     """Get marketplace content for a specific SSDLC stage and frameworks."""
     service = _get_enterprise_service_safe()
 
-    # Return demo data if enterprise service is unavailable
+    # Return built-in catalog if enterprise service is unavailable
     if service is None:
         framework_list = [f.strip() for f in frameworks.split(",") if f.strip()]
-        # Filter demo items by stage and frameworks
+        # Filter built-in items by stage and frameworks
         items = [
             i
             for i in _BUILTIN_MARKETPLACE_ITEMS
@@ -681,7 +681,7 @@ async def get_compliance_content(
             "frameworks": framework_list,
             "items": items,
             "total": len(items),
-            "marketplace_mode": "production",
+            "marketplace_mode": "builtin_catalog",
         }
 
     framework_list = [f.strip() for f in frameworks.split(",") if f.strip()]
@@ -694,7 +694,7 @@ async def get_marketplace_stats() -> Dict[str, Any]:
     """Get marketplace statistics and quality summary."""
     service = _get_enterprise_service_safe()
 
-    # Return demo stats if enterprise service is unavailable
+    # Return built-in stats if enterprise service is unavailable
     if service is None:
         return _MARKETPLACE_STATS
 

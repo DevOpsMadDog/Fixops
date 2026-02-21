@@ -3,12 +3,17 @@
 
 Tests every feature area with the correct API key.
 """
+import os
 import sys
 
 import requests
 
-BASE = "http://localhost:8000"
-H = {"X-API-Key": "test-token-123", "Content-Type": "application/json"}
+_token = os.environ.get("FIXOPS_API_TOKEN", "")
+if not _token:
+    print("ERROR: FIXOPS_API_TOKEN env var not set. Export your enterprise token first.")
+    sys.exit(2)
+BASE = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
+H = {"X-API-Key": _token, "Content-Type": "application/json"}
 
 passed = 0
 failed = 0

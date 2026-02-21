@@ -1,5 +1,14 @@
 #!/bin/bash
-H="X-API-Key: test-token-123"
+# Read token from env or token file
+TOKEN="${FIXOPS_API_TOKEN:-}"
+if [ -z "$TOKEN" ] && [ -f /tmp/fixops_enterprise_token.txt ]; then
+    TOKEN=$(cat /tmp/fixops_enterprise_token.txt | grep -v '^#' | head -1 | sed 's/.*=//')
+fi
+if [ -z "$TOKEN" ]; then
+    echo "ERROR: FIXOPS_API_TOKEN not set. Export it or write to /tmp/fixops_enterprise_token.txt"
+    exit 1
+fi
+H="X-API-Key: $TOKEN"
 CT="Content-Type: application/json"
 BASE="http://localhost:8000/api/v1/vulns/discovered"
 

@@ -62,7 +62,9 @@ class Settings(BaseSettings):
     ENABLED_RSS_SIDECAR: bool = Field(default=False)
 
     # Security Configuration
-    SECRET_KEY: str = Field(default=os.getenv("SECRET_KEY"))
+    SECRET_KEY: str = Field(
+        default=os.getenv("SECRET_KEY") or os.getenv("FIXOPS_JWT_SECRET") or "dev-insecure-key"
+    )
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
@@ -208,6 +210,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "ignore"
 
 
 def _ensure_list(value: Union[List[str], FieldInfo, None]) -> List[str]:

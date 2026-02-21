@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
 """Seed real vulnerability data into ALdeci via the RUNNING API server.
 
-Usage:  python scripts/seed_via_api.py
+Usage:  FIXOPS_API_TOKEN=<token> python scripts/seed_via_api.py
 """
+
+import os
+import sys
 
 import requests
 
-BASE = "http://localhost:8000"
-HEADERS = {"X-API-Key": "test-token-123", "Content-Type": "application/json"}
+_token = os.environ.get("FIXOPS_API_TOKEN", "")
+if not _token:
+    print("ERROR: FIXOPS_API_TOKEN env var not set. Export your enterprise token first.")
+    sys.exit(2)
+BASE = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
+HEADERS = {"X-API-Key": _token, "Content-Type": "application/json"}
 
 
 def post(path, data):

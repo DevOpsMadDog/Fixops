@@ -13,7 +13,7 @@
     },
     {
       "key": "apiToken",
-      "value": "demo-token",
+      "value": "{{FIXOPS_API_TOKEN}}",
       "type": "string"
     }
   ],

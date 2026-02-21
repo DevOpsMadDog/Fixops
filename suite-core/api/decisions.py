@@ -122,51 +122,8 @@ async def get_core_components_status(current_user: Dict = Depends(get_current_us
     try:
         settings = get_settings()
 
-        if settings.DEMO_MODE:
-            # Standalone mode — no external integrations configured yet
-            components = {
-                "vector_db": {
-                    "status": "standalone",
-                    "type": "ChromaDB (embedded)",
-                    "security_patterns": "pending_configuration",
-                    "threat_models": "pending_configuration",
-                    "context_match_rate": "pending_configuration",
-                },
-                "llm_rag": {
-                    "status": "standalone",
-                    "model": "awaiting_api_key",
-                    "enrichment_rate": "pending_configuration",
-                    "business_impact_correlation": "pending_configuration",
-                    "threat_intel_enrichment": "pending_configuration",
-                },
-                "consensus_checker": {
-                    "status": "standalone",
-                    "current_rate": "pending_configuration",
-                    "threshold": 0.85,
-                    "threshold_met": "pending_configuration",
-                },
-                "golden_regression": {
-                    "status": "standalone",
-                    "total_cases": 0,
-                    "validation_accuracy": "pending_configuration",
-                    "last_validation": "pending_configuration",
-                },
-                "policy_engine": {
-                    "status": "standalone",
-                    "type": "OPA Engine (embedded)",
-                    "active_policies": 0,
-                    "enforcement_rate": "pending_configuration",
-                    "compliance_score": "pending_configuration",
-                },
-                "sbom_injection": {
-                    "status": "standalone",
-                    "criticality_assessment": "enabled",
-                    "metadata_sources": [],
-                },
-            }
-        else:
-            # Production mode - get real component status
-            components = {}
+        # Get real component status
+        components = {}
 
             # Real Vector DB status
             if hasattr(decision_engine, "real_vector_db_stats"):
@@ -250,7 +207,7 @@ async def get_core_components_status(current_user: Dict = Depends(get_current_us
 
         # Add system-wide metrics
         components["system_info"] = {
-            "mode": "standalone" if settings.DEMO_MODE else "production",
+            "mode": "production",
             "processing_layer_available": decision_engine.processing_layer is not None,
             "oss_integrations_available": decision_engine.oss_integrations is not None,
         }
@@ -278,26 +235,25 @@ async def get_evidence_record(
     try:
         settings = get_settings()
 
-        # Try Evidence Lake first (production mode)
-        if not settings.DEMO_MODE:
-            from core.services.enterprise.evidence_lake import EvidenceLake
+        # Try Evidence Lake first
+        from core.services.enterprise.evidence_lake import EvidenceLake
 
-            evidence = await EvidenceLake.retrieve_evidence(evidence_id)
+        evidence = await EvidenceLake.retrieve_evidence(evidence_id)
 
-            if evidence:
-                source = "lake"
-                FixOpsMetrics.record_evidence_request(
-                    source=source,
-                    status="hit",
-                    duration_seconds=time.perf_counter() - start_time,
-                )
-                return {
-                    "status": "success",
-                    "data": evidence,
-                    "source": "evidence_lake",
-                }
+        if evidence:
+            source = "lake"
+            FixOpsMetrics.record_evidence_request(
+                source=source,
+                status="hit",
+                duration_seconds=time.perf_counter() - start_time,
+            )
+            return {
+                "status": "success",
+                "data": evidence,
+                "source": "evidence_lake",
+            }
 
-        # Fallback to cache (standalone mode or if not found in Evidence Lake)
+        # Fallback to cache if not found in Evidence Lake
         from core.services.enterprise.cache_service import CacheService
 
         cache = CacheService.get_instance()

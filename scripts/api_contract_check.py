@@ -105,9 +105,11 @@ def get_openapi_endpoints_from_introspect() -> set[tuple[str, str]]:
     sys.path.insert(0, str(project_root))
     sys.path.insert(0, str(project_root / "suite-api"))
 
-    # Set minimal environment for app creation
-    os.environ.setdefault("FIXOPS_JWT_SECRET", "test-secret")
-    os.environ.setdefault("FIXOPS_API_TOKEN", "test-token")
+    # Set minimal environment for app creation (introspection only - not live calls)
+    import secrets as _secrets
+
+    os.environ.setdefault("FIXOPS_JWT_SECRET", _secrets.token_hex(32))
+    os.environ.setdefault("FIXOPS_API_TOKEN", _secrets.token_urlsafe(32))
     os.environ.setdefault("FIXOPS_DEMO_MODE", "false")
 
     from apps.api.app import create_app

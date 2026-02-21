@@ -1,9 +1,8 @@
 """
-FixOps Decision & Verification Engine - Dual Mode Implementation
-Supports both Demo Mode (simulated data) and Production Mode (real integrations)
+FixOps Decision & Verification Engine - Production Implementation
+Enterprise-grade decision engine with real integrations and data sources.
 """
 
-import asyncio
 import json
 import time
 from dataclasses import dataclass
@@ -60,28 +59,27 @@ class DecisionResult:
     validation_results: Dict[str, Any]
     processing_time_us: float
     context_sources: List[str]
-    demo_mode: bool
+    demo_mode: bool = False
     explainability: Optional[Dict[str, Any]] = None
     rl_policy: Optional[Dict[str, Any]] = None
 
 
 class DecisionEngine:
     """
-    FixOps Decision & Verification Engine - Dual Mode
+    FixOps Decision & Verification Engine - Production
 
-    Demo Mode: Uses simulated data for showcase/testing
-    Production Mode: Uses real integrations and data sources
+    Uses real integrations and data sources for enterprise security decisions.
+    Components initialize gracefully — unavailable integrations are logged as not_configured.
     """
 
     def __init__(self):
         self.cache = CacheService.get_instance()
         self.chatgpt_client: Optional[ChatGPTClient] = None
-        self.demo_mode = settings.DEMO_MODE
         self.risk_scorer = ContextualRiskScorer()
         self.explainability_service = ExplainabilityService()
         self.rl_controller = ReinforcementLearningController.get_instance()
 
-        # Real production components (only initialized in production mode)
+        # Production components (initialized during startup)
         self.real_vector_db = None
         self.real_jira_client = None
         self.real_confluence_client = None
@@ -89,15 +87,10 @@ class DecisionEngine:
         self.oss_integrations = None
         self.processing_layer = None
 
-        # Demo mode data
-        self.demo_data = {}
-
     async def initialize(self):
-        """Initialize decision engine components based on mode"""
+        """Initialize decision engine production components"""
         try:
-            logger.info(
-                f"Initializing Decision Engine in {'DEMO' if self.demo_mode else 'PRODUCTION'} mode"
-            )
+            logger.info("Initializing Decision Engine in PRODUCTION mode")
 
             api_key = settings.primary_llm_api_key
             if api_key:
@@ -108,60 +101,13 @@ class DecisionEngine:
                     logger.error(f"ChatGPT initialization failed: {str(exc)}")
                     self.chatgpt_client = None
 
-            if self.demo_mode:
-                await self._initialize_demo_mode()
-            else:
-                await self._initialize_production_mode()
+            await self._initialize_production_mode()
 
             logger.info("Decision Engine initialized successfully")
 
         except Exception as e:
             logger.error(f"Decision Engine initialization failed: {str(e)}")
             raise
-
-    async def _initialize_demo_mode(self):
-        """Initialize with simulated data for demo/showcase"""
-        self.demo_data = {
-            "vector_db": {
-                "security_patterns": settings.DEMO_VECTOR_DB_PATTERNS,
-                "threat_models": 156,
-                "business_contexts": settings.DEMO_BUSINESS_CONTEXTS,
-                "vulnerability_patterns": 1923,
-                "deployment_patterns": 567,
-                "context_match_rate": 0.94,
-                "status": "demo_active",
-            },
-            "golden_regression": {
-                "total_cases": settings.DEMO_GOLDEN_REGRESSION_CASES,
-                "validation_accuracy": 0.987,
-                "last_update": datetime.now(timezone.utc).isoformat(),
-                "categories": {
-                    "sql_injection": 234,
-                    "xss": 189,
-                    "auth_bypass": 156,
-                    "crypto_misuse": 167,
-                    "dependency_vulns": 298,
-                    "iac_misconfig": 203,
-                },
-                "status": "demo_validated",
-            },
-            "policy_engine": {
-                "active_policies": 24,
-                "policy_categories": [
-                    "critical_data_exposure",
-                    "authentication_bypass",
-                    "crypto_standards",
-                    "dependency_security",
-                    "runtime_security",
-                    "compliance_nist_ssdf",
-                    "compliance_soc2",
-                ],
-                "enforcement_rate": 0.98,
-                "status": "demo_active",
-            },
-        }
-
-        logger.info("Demo mode initialized with simulated data")
 
     async def _initialize_production_mode(self):
         """Initialize with real integrations for production"""
@@ -209,10 +155,10 @@ class DecisionEngine:
 
         except Exception as e:
             logger.error(f"Production mode initialization failed: {str(e)}")
-            # Fallback to demo mode if production setup fails
-            logger.warning("Falling back to demo mode due to production setup failure")
-            self.demo_mode = True
-            await self._initialize_demo_mode()
+            logger.warning(
+                "Engine will operate with reduced functionality — "
+                "unconfigured integrations will return not_configured status"
+            )
 
     async def _initialize_real_vector_db(self):
         """Initialize real Vector DB with security patterns"""
@@ -229,7 +175,7 @@ class DecisionEngine:
             # Get actual statistics
             stats = {
                 "connection_status": "connected",
-                "type": "ChromaDB" if not settings.DEMO_MODE else "Demo",
+                "type": "ChromaDB",
                 "patterns_loaded": len(test_results) > 0,
                 "test_search_successful": len(test_results) >= 0,
             }
@@ -375,12 +321,9 @@ class DecisionEngine:
             explainability_bundle: Optional[Dict[str, Any]] = None
             if settings.ENABLE_SHAP_EXPERIMENTS:
                 explainability_bundle = self._generate_explainability(context)
-            if self.demo_mode:
-                result = await self._make_demo_decision(context, start_time)
-            else:
-                result = await self._make_production_decision(context, start_time)
+            result = await self._make_production_decision(context, start_time)
 
-            result.demo_mode = self.demo_mode
+            result.demo_mode = False
             if explainability_bundle:
                 result.explainability = explainability_bundle
             if settings.ENABLE_RL_EXPERIMENTS:
@@ -396,61 +339,6 @@ class DecisionEngine:
         except Exception as e:
             logger.error(f"Decision making failed: {str(e)}")
             return self._create_error_decision(context, start_time, str(e))
-
-    async def _make_demo_decision(
-        self, context: DecisionContext, start_time: float
-    ) -> DecisionResult:
-        """Make decision using simulated data (demo mode)"""
-
-        # Demo mode: Use simulated processing
-        await asyncio.sleep(0.1)  # Simulate processing time
-
-        # Simulated consensus checking
-        demo_consensus = {
-            "confidence": 0.92 if "payment" in context.service_name else 0.78,
-            "threshold_met": "payment" in context.service_name,
-            "component_scores": {
-                "vector_db": 0.94,
-                "golden_regression": 0.98
-                if "payment" in context.service_name
-                else 0.67,
-                "policy_engine": 0.91,
-                "criticality_factor": 1.1,
-            },
-            "validation_summary": {
-                "vector_db_passed": True,
-                "regression_passed": "payment" in context.service_name,
-                "policy_passed": True,
-                "criticality_acceptable": True,
-            },
-        }
-
-        # Demo decision logic
-        if demo_consensus["confidence"] >= 0.85 and demo_consensus["threshold_met"]:
-            decision = DecisionOutcome.ALLOW
-            reasoning = f"Consensus threshold met ({demo_consensus['confidence']:.1%}), all validations passed"
-        else:
-            decision = (
-                DecisionOutcome.BLOCK
-                if demo_consensus["confidence"] < 0.75
-                else DecisionOutcome.DEFER
-            )
-            reasoning = f"{'Critical validation failed' if decision == DecisionOutcome.BLOCK else 'Below consensus threshold, manual review required'}"
-
-        evidence_id = f"DEMO-EVD-{int(time.time())}"
-        processing_time_us = (time.perf_counter() - start_time) * 1_000_000
-
-        return DecisionResult(
-            decision=decision,
-            confidence_score=demo_consensus["confidence"],
-            consensus_details=demo_consensus,
-            evidence_id=evidence_id,
-            reasoning=reasoning,
-            validation_results={"standalone_evaluation": True},
-            processing_time_us=processing_time_us,
-            context_sources=["Local Business Context", "Security Scanners"],
-            demo_mode=True,
-        )
 
     async def _make_production_decision(
         self, context: DecisionContext, start_time: float
@@ -754,7 +642,8 @@ class DecisionEngine:
             return {"sources": ["LLM Error"], "error": str(e)}
 
     async def get_decision_metrics(self) -> Dict[str, Any]:
-        """Get decision engine metrics with mode indicator"""
+        """Get decision engine metrics"""
+        real_vdb = getattr(self, "real_vector_db", None)
         base_metrics = {
             "total_decisions": 234,
             "pending_review": 18,
@@ -764,35 +653,8 @@ class DecisionEngine:
             "consensus_rate": 0.87,
             "evidence_records": 847,
             "audit_compliance": 1.0,
-            "mode": "standalone" if self.demo_mode else "production",
-        }
-
-        if self.demo_mode and self.demo_data:
-            vdb = self.demo_data.get("vector_db", {})
-            gr = self.demo_data.get("golden_regression", {})
-            pe = self.demo_data.get("policy_engine", {})
-            base_metrics["core_components"] = {
-                "vector_db": f"demo_active ({vdb.get('security_patterns', 0)} patterns)",
-                "llm_rag": "demo_active (simulated enrichment)",
-                "consensus_checker": "demo_active (85% threshold)",
-                "golden_regression": f"demo_validated ({gr.get('total_cases', 0)} cases)",
-                "policy_engine": f"demo_active ({pe.get('active_policies', 0)} policies)",
-                "sbom_injection": "demo_active (simulated metadata)",
-            }
-        elif self.demo_mode:
-            # Demo mode but not yet initialized
-            base_metrics["core_components"] = {
-                "vector_db": "demo_pending",
-                "llm_rag": "demo_pending",
-                "consensus_checker": "demo_pending",
-                "golden_regression": "demo_pending",
-                "policy_engine": "demo_pending",
-                "sbom_injection": "demo_pending",
-            }
-        else:
-            # Real production component status
-            real_vdb = getattr(self, "real_vector_db", None)
-            base_metrics["core_components"] = {
+            "mode": "production",
+            "core_components": {
                 "vector_db": f"production_active ({real_vdb.get('security_patterns', 0)} patterns)"
                 if real_vdb
                 else "not_configured",
@@ -807,7 +669,8 @@ class DecisionEngine:
                 if settings.JIRA_URL
                 else "not_configured",
                 "sbom_injection": "production_active (real metadata)",
-            }
+            },
+        }
 
         return base_metrics
 
@@ -826,7 +689,7 @@ class DecisionEngine:
             validation_results={"error": True},
             processing_time_us=processing_time_us,
             context_sources=["Error Handler"],
-            demo_mode=self.demo_mode,
+            demo_mode=False,
         )
 
     # Real production methods with OSS tools integration
@@ -905,7 +768,7 @@ class DecisionEngine:
                 "categories_found": categories,
                 "mitre_techniques": unique_techniques[:10],  # Top 10 techniques
                 "matched_patterns": matched_patterns[:5],  # Top 5 detailed patterns
-                "database_type": "ChromaDB" if not settings.DEMO_MODE else "Demo",
+                "database_type": "ChromaDB",
             }
 
             logger.info(
@@ -1008,7 +871,7 @@ class DecisionEngine:
 
             # Check OPA health first
             opa_healthy = await opa_engine.health_check()
-            if not opa_healthy and not settings.DEMO_MODE:
+            if not opa_healthy:
                 logger.warning(
                     "OPA server unhealthy, falling back to basic policy logic"
                 )
@@ -1337,7 +1200,7 @@ class DecisionEngine:
                     "policy_evaluations", "not_evaluated"
                 ),
                 "vector_db_matches": consensus_result.get("patterns_matched", 0),
-                "processing_mode": "production" if not self.demo_mode else "demo",
+                "processing_mode": "production",
                 "compliance_data": {
                     "audit_required": context.environment == "production",
                     "retention_days": 2555
@@ -1347,30 +1210,22 @@ class DecisionEngine:
                 },
             }
 
-            # Store in real Evidence Lake if available
-            if not self.demo_mode:
-                try:
-                    from core.services.enterprise.evidence_lake import EvidenceLake
+            # Store in Evidence Lake
+            try:
+                from core.services.enterprise.evidence_lake import EvidenceLake
 
-                    stored_id = await EvidenceLake.store_evidence(evidence_record)
-                    logger.info(f"✅ Evidence stored in Evidence Lake: {stored_id}")
-                except Exception as e:
-                    logger.error(
-                        f"Evidence Lake storage failed, using cache fallback: {e}"
-                    )
-                    # Fallback to cache storage
-                    await self.cache.set(
-                        f"evidence:{evidence_id}",
-                        json.dumps(evidence_record),
-                        ttl=86400 * 30,
-                    )
-            else:
-                # Demo mode - use cache
+                stored_id = await EvidenceLake.store_evidence(evidence_record)
+                logger.info(f"✅ Evidence stored in Evidence Lake: {stored_id}")
+            except Exception as e:
+                logger.error(
+                    f"Evidence Lake storage failed, using cache fallback: {e}"
+                )
+                # Fallback to cache storage
                 await self.cache.set(
                     f"evidence:{evidence_id}",
                     json.dumps(evidence_record),
-                    ttl=86400 * 7,
-                )  # 7 days for demo
+                    ttl=86400 * 30,
+                )
 
             return evidence_id
 
@@ -1389,42 +1244,30 @@ class DecisionEngine:
             return evidence_id
 
     async def get_recent_decisions(self, limit: int = 10) -> List[Dict[str, Any]]:
-        """Get recent decisions from database or cache"""
+        """Get recent decisions from Evidence Lake or cache"""
         try:
-            if self.demo_mode:
-                # Return demo decisions
-                return [
-                    {
-                        "evidence_id": f"DEMO-EVD-{i}",
-                        "service_name": ["payment-service", "user-auth", "api-gateway"][
-                            i % 3
-                        ],
-                        "environment": "production",
-                        "decision": ["ALLOW", "DEFER", "BLOCK"][i % 3],
-                        "confidence": 0.9 - (i * 0.1),
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
-                    }
-                    for i in range(min(limit, 3))
-                ]
-            else:
-                # Get real decisions from Evidence Lake
-                try:
-                    pass
+            # Get real decisions from Evidence Lake
+            try:
+                from core.services.enterprise.evidence_lake import EvidenceLake
 
-                    # In a real implementation, Evidence Lake would have a method to get recent records
-                    # For now, return simplified recent decisions
-                    return [
-                        {
-                            "evidence_id": f"PROD-EVD-{int(time.time()) - 3600}",
-                            "service_name": "real-service-name",
-                            "environment": "production",
-                            "decision": "ALLOW",
-                            "confidence": 0.87,
-                            "timestamp": datetime.now(timezone.utc).isoformat(),
-                        }
-                    ]
-                except ImportError:
-                    return []
+                records = await EvidenceLake.get_recent(limit=limit)
+                if records:
+                    return records
+            except Exception as el_err:
+                logger.warning(f"Evidence Lake query failed: {el_err}")
+
+            # Fallback: scan cache for recent evidence keys
+            cached = []
+            try:
+                cached_keys = await self.cache.keys("evidence:PROD-EVD-*")
+                for key in (cached_keys or [])[:limit]:
+                    raw = await self.cache.get(key)
+                    if raw:
+                        cached.append(json.loads(raw))
+            except Exception:
+                pass
+
+            return cached
 
         except Exception as e:
             logger.error(f"Failed to get recent decisions: {e}")
@@ -1433,143 +1276,89 @@ class DecisionEngine:
     async def get_ssdlc_stage_data(self) -> Dict[str, Any]:
         """Get SSDLC stage data with real database queries"""
         try:
-            if self.demo_mode:
-                # Return demo SSDLC data
+            # Get real SSDLC data from database
+            async with DatabaseManager.get_session_context() as session:
+                from sqlalchemy import text
+
+                # Count real data points by stage
+                findings_result = await session.execute(
+                    text(
+                        "SELECT scanner_type, COUNT(*) FROM security_findings GROUP BY scanner_type"
+                    )
+                )
+                findings_by_scanner = dict(findings_result.fetchall())
+
+                # Count services
+                services_result = await session.execute(
+                    text("SELECT COUNT(*) FROM services")
+                )
+                total_services = services_result.scalar() or 0
+
+                # Count policy decisions
+                policy_result = await session.execute(
+                    text("SELECT COUNT(*) FROM policy_decision_logs")
+                )
+                total_policies = policy_result.scalar() or 0
+
                 return {
                     "plan_stage": {
                         "name": "Plan",
                         "data_type": "Business Context",
-                        "sources": ["Jira Demo", "Confluence Demo"],
-                        "status": "demo_active",
-                        "data_points": 47,
+                        "sources": [
+                            "Jira Integration",
+                            "Confluence Integration",
+                        ]
+                        if self.real_jira_client
+                        else ["Business Context API"],
+                        "status": "production_active",
+                        "data_points": total_services,
                     },
                     "code_stage": {
                         "name": "Code",
                         "data_type": "SAST + SARIF Findings",
-                        "sources": ["SonarQube Demo", "CodeQL Demo"],
-                        "status": "demo_active",
-                        "data_points": 23,
+                        "sources": [
+                            "SARIF Processing",
+                            "Scanner Integration",
+                        ],
+                        "status": "production_active",
+                        "data_points": findings_by_scanner.get("sast", 0),
                     },
                     "build_stage": {
                         "name": "Build",
                         "data_type": "SCA + SBOM",
-                        "sources": ["CycloneDX Demo", "SLSA Demo"],
-                        "status": "demo_active",
-                        "data_points": 156,
+                        "sources": ["lib4sbom", "Component Analysis"],
+                        "status": "production_active",
+                        "data_points": findings_by_scanner.get("sca", 0),
                     },
                     "test_stage": {
                         "name": "Test",
                         "data_type": "DAST + Exploitability",
-                        "sources": ["OWASP ZAP Demo"],
-                        "status": "demo_active",
-                        "data_points": 12,
+                        "sources": ["DAST Integration"],
+                        "status": "production_active",
+                        "data_points": findings_by_scanner.get("dast", 0),
                     },
                     "release_stage": {
                         "name": "Release",
                         "data_type": "Policy Decisions",
-                        "sources": ["OPA/Rego Demo"],
-                        "status": "demo_active",
-                        "data_points": 24,
+                        "sources": ["OPA Integration", "Policy Engine"],
+                        "status": "production_active",
+                        "data_points": total_policies,
                     },
                     "deploy_stage": {
                         "name": "Deploy",
                         "data_type": "IBOM/SBOM/CNAPP",
-                        "sources": ["Runtime Validation Demo"],
-                        "status": "demo_active",
-                        "data_points": 34,
+                        "sources": ["Runtime Validation"],
+                        "status": "production_active",
+                        "data_points": findings_by_scanner.get("container", 0),
                     },
                     "operate_stage": {
                         "name": "Operate",
                         "data_type": "Runtime Correlation",
-                        "sources": ["VM Correlation Demo"],
-                        "status": "demo_active",
-                        "data_points": 89,
+                        "sources": ["Correlation Engine"],
+                        "status": "production_active",
+                        "data_points": sum(findings_by_scanner.values()),
                     },
                 }
-            else:
-                # Get real SSDLC data from database
-                async with DatabaseManager.get_session_context() as session:
-                    from sqlalchemy import text
-
-                    # Count real data points by stage
-                    findings_result = await session.execute(
-                        text(
-                            "SELECT scanner_type, COUNT(*) FROM security_findings GROUP BY scanner_type"
-                        )
-                    )
-                    findings_by_scanner = dict(findings_result.fetchall())
-
-                    # Count services
-                    services_result = await session.execute(
-                        text("SELECT COUNT(*) FROM services")
-                    )
-                    total_services = services_result.scalar() or 0
-
-                    # Count policy decisions
-                    policy_result = await session.execute(
-                        text("SELECT COUNT(*) FROM policy_decision_logs")
-                    )
-                    total_policies = policy_result.scalar() or 0
-
-                    return {
-                        "plan_stage": {
-                            "name": "Plan",
-                            "data_type": "Business Context",
-                            "sources": [
-                                "Real Jira Integration",
-                                "Real Confluence Integration",
-                            ]
-                            if self.real_jira_client
-                            else ["Business Context API"],
-                            "status": "production_active",
-                            "data_points": total_services,
-                        },
-                        "code_stage": {
-                            "name": "Code",
-                            "data_type": "SAST + SARIF Findings",
-                            "sources": [
-                                "Real SARIF Processing",
-                                "Real Scanner Integration",
-                            ],
-                            "status": "production_active",
-                            "data_points": findings_by_scanner.get("sast", 0),
-                        },
-                        "build_stage": {
-                            "name": "Build",
-                            "data_type": "SCA + SBOM",
-                            "sources": ["Real lib4sbom", "Real Component Analysis"],
-                            "status": "production_active",
-                            "data_points": findings_by_scanner.get("sca", 0),
-                        },
-                        "test_stage": {
-                            "name": "Test",
-                            "data_type": "DAST + Exploitability",
-                            "sources": ["Real DAST Integration"],
-                            "status": "production_active",
-                            "data_points": findings_by_scanner.get("dast", 0),
-                        },
-                        "release_stage": {
-                            "name": "Release",
-                            "data_type": "Policy Decisions",
-                            "sources": ["Real OPA Integration", "Real Policy Engine"],
-                            "status": "production_active",
-                            "data_points": total_policies,
-                        },
-                        "deploy_stage": {
-                            "name": "Deploy",
-                            "data_type": "IBOM/SBOM/CNAPP",
-                            "sources": ["Real Runtime Validation"],
-                            "status": "production_active",
-                            "data_points": findings_by_scanner.get("container", 0),
-                        },
-                        "operate_stage": {
-                            "name": "Operate",
-                            "data_type": "Runtime Correlation",
-                            "sources": ["Real Correlation Engine"],
-                            "status": "production_active",
-                            "data_points": sum(findings_by_scanner.values()),
-                        },
-                    }
 
         except Exception as e:
             logger.error(f"Failed to get SSDLC stage data: {e}")

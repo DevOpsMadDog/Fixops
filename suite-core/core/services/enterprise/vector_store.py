@@ -1,7 +1,7 @@
 """
-Real Vector Store Implementation with ChromaDB for Production Mode
-- Demo Mode: Uses in-memory fallback with mock data
+Vector Store Implementation for FixOps Security Pattern Matching
 - Production Mode: Uses ChromaDB with real embeddings and similarity search
+- Fallback Mode: Uses in-memory store with hash-based embeddings when ChromaDB unavailable
 """
 from __future__ import annotations
 
@@ -64,19 +64,19 @@ class VectorStore:
         raise NotImplementedError
 
 
-class DemoVectorStore(VectorStore):
-    """Demo mode with in-memory storage and mock embeddings"""
+class InMemoryVectorStore(VectorStore):
+    """In-memory vector store fallback when ChromaDB is unavailable"""
 
     def __init__(self):
         self._memory_store: List[VectorRecord] = []
         self._initialized = False
 
     async def initialize(self):
-        """Initialize with demo security patterns"""
+        """Initialize with baseline security patterns"""
         if self._initialized:
             return
 
-        demo_patterns = [
+        baseline_patterns = [
             {
                 "id": "sql_injection_pattern_1",
                 "text": "SQL injection vulnerability in database query",
@@ -111,9 +111,9 @@ class DemoVectorStore(VectorStore):
             },
         ]
 
-        # Add demo patterns
+        # Add baseline patterns
         records = []
-        for pattern in demo_patterns:
+        for pattern in baseline_patterns:
             embedding = await self._generate_embedding(pattern["text"])
             record = VectorRecord(
                 id=pattern["id"], embedding=embedding, metadata=pattern
@@ -123,12 +123,12 @@ class DemoVectorStore(VectorStore):
         await self.upsert(records)
         self._initialized = True
         logger.info(
-            "🎭 Demo Vector Store initialized with security patterns",
-            count=len(demo_patterns),
+            "In-memory Vector Store initialized with security patterns",
+            count=len(baseline_patterns),
         )
 
     async def upsert(self, records: List[VectorRecord]):
-        """Store records in memory for demo"""
+        """Store records in memory"""
         for record in records:
             # Remove existing record with same ID
             self._memory_store = [r for r in self._memory_store if r.id != record.id]
@@ -136,7 +136,7 @@ class DemoVectorStore(VectorStore):
             self._memory_store.append(record)
 
         logger.info(
-            "Demo Vector Store upsert",
+            "In-memory Vector Store upsert",
             count=len(records),
             total=len(self._memory_store),
         )
@@ -144,7 +144,7 @@ class DemoVectorStore(VectorStore):
     async def search(
         self, embedding: List[float], top_k: int = 5
     ) -> List[VectorRecord]:
-        """Demo cosine similarity search in memory"""
+        """Cosine similarity search in memory"""
         if not self._memory_store:
             return []
 
@@ -172,8 +172,8 @@ class DemoVectorStore(VectorStore):
         return scored_records[:top_k]
 
     async def _generate_embedding(self, text: str) -> List[float]:
-        """Generate mock embedding for demo mode"""
-        # Create deterministic mock embedding based on text hash
+        """Generate hash-based embedding (fallback when sentence-transformers unavailable)"""
+        # Create deterministic embedding based on text hash
         import hashlib
 
         text_hash = hashlib.md5(text.encode()).hexdigest()
@@ -428,16 +428,20 @@ class VectorStoreFactory:
 
     @staticmethod
     def create(settings=None) -> VectorStore:
-        """Create vector store based on demo mode setting"""
+        """Create vector store — ChromaDB if available, in-memory fallback otherwise"""
         if settings is None:
             settings = get_settings()
 
-        if settings.DEMO_MODE:
-            logger.info("🎭 Creating Demo Vector Store (in-memory)")
-            return DemoVectorStore()
-        else:
-            logger.info("🏭 Creating Production Vector Store (ChromaDB)")
+        try:
+            import chromadb  # noqa: F401
+
+            logger.info("Creating Production Vector Store (ChromaDB)")
             return ChromaDBVectorStore()
+        except ImportError:
+            logger.warning(
+                "ChromaDB not available, using in-memory Vector Store fallback"
+            )
+            return InMemoryVectorStore()
 
 
 # Global vector store instance

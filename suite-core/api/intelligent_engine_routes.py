@@ -266,16 +266,17 @@ async def run_scan_background(session_id: str, request: IntelligentScanRequest, 
             _sessions[session_id]["state"] = "completed"
             _sessions[session_id]["progress"] = 1.0
         else:
-            # Simulate scan when engine not available
-            await asyncio.sleep(5)
+            # Engine not available — report error, don't fake results
             _results[session_id] = {
                 "session_id": session_id,
                 "target": request.target,
-                "status": "simulated",
+                "status": "engine_unavailable",
+                "error": "Intelligent Security Engine not initialized",
                 "findings": [],
             }
-            _sessions[session_id]["state"] = "completed"
-            _sessions[session_id]["progress"] = 1.0
+            _sessions[session_id]["state"] = "error"
+            _sessions[session_id]["error"] = "Engine not available"
+            _sessions[session_id]["progress"] = 0.0
 
     except Exception as e:
         logger.error("intelligent_scan.error", session_id=session_id, error=str(e))

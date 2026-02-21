@@ -346,7 +346,6 @@ async def get_current_user(
     Authentication precedence:
       1. Authorization: Bearer <JWT> — validated by JWTManager
       2. X-API-Key header — validated against FIXOPS_API_TOKEN
-      3. Demo / dev fallback — returns admin context when DEMO_MODE is active
     """
     start_time = time.perf_counter()
 
@@ -383,21 +382,10 @@ async def get_current_user(
                 "role": "admin",
                 "type": "access",
             }
-        # In enforced mode, reject invalid keys
-        if not settings.DEMO_MODE:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid API key",
-            )
-
-    # --- 3. Demo / dev fallback ---
-    if settings.DEMO_MODE:
-        return {
-            "sub": "demo-user",
-            "email": "demo@fixops.local",
-            "role": "admin",
-            "type": "access",
-        }
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid API key",
+        )
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

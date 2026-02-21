@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 """Phase 18 verification - check all endpoints return real data."""
 import json
+import os
 import sys
 import urllib.request
 
-BASE = "http://localhost:8000"
-HEADERS = {"X-API-Key": "test-token-123"}
+_token = os.environ.get("FIXOPS_API_TOKEN", "")
+if not _token:
+    print("ERROR: FIXOPS_API_TOKEN env var not set. Export your enterprise token first.")
+    sys.exit(2)
+BASE = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
+HEADERS = {"X-API-Key": _token}
 
 
 def get(path):

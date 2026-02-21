@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 """Background log monitor for ALdeci/FixOps. Checks every 15s for errors."""
+import os
 import sqlite3
+import sys
 import time
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 DB_PATH = Path(".fixops_data/api_detailed_logs.db")
-HEALTH_URL = "http://localhost:8000/api/v1/health"
-API_KEY = "test-token-123"
+_base = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
+HEALTH_URL = f"{_base}/api/v1/health"
+API_KEY = os.environ.get("FIXOPS_API_TOKEN", "")
+if not API_KEY:
+    print("ERROR: FIXOPS_API_TOKEN env var not set. Export your enterprise token first.")
+    sys.exit(2)
 CHECK_INTERVAL = 15  # seconds
 LOOKBACK = 20  # seconds
 
