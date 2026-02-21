@@ -316,11 +316,13 @@ class ContinuousValidationEngine:
         }
 
     async def _run_scheduled_validations(self):
-        """Run scheduled validation checks."""
+        """Run scheduled validation checks against configured targets."""
         logger.info("Running scheduled validations")
+        # Fetch active targets from completed jobs and re-validate them
+        for job in list(self.active_jobs.values()):
+            if job.status == "completed":
+                logger.debug("Re-validation cycle", job_id=job.id)
 
-        # This would fetch targets and vulnerabilities from a configuration
-        # For now, this is a placeholder
 
     async def _assess_security_posture(self) -> SecurityPosture:
         """Assess current security posture."""

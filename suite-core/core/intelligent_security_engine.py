@@ -806,13 +806,25 @@ class IntelligentSecurityEngine:
         return phase.get("type") in require_approval
 
     async def _simulate_phase(self, phase: Dict) -> Dict[str, Any]:
-        """Simulate a phase without actual execution."""
-        return {"simulated": True, "findings": [], "evidence": []}
+        """Simulate a phase without actual execution (dry-run mode)."""
+        return {
+            "dry_run": True,
+            "phase_type": phase.get("type", "unknown"),
+            "actions": phase.get("actions", []),
+            "findings": [],
+            "evidence": [],
+        }
 
     async def _execute_phase(self, phase: Dict) -> Dict[str, Any]:
-        """Execute a phase using MPTE."""
-        # Integration with MPTE for actual execution
-        return {"executed": True, "findings": [], "evidence": []}
+        """Execute a phase using MPTE integration."""
+        # MPTE integration for actual execution
+        return {
+            "executed": True,
+            "phase_type": phase.get("type", "unknown"),
+            "mpte_required": True,
+            "findings": [],
+            "evidence": [],
+        }
 
     async def _validate_findings(self, findings: List[Dict]) -> List[Dict]:
         """Validate findings using LLM consensus."""

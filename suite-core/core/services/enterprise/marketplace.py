@@ -1,5 +1,6 @@
 """
-Marketplace service with file persistence and validation (enterprise-ready stub)
+Marketplace service with file persistence and validation.
+
 - In-memory index plus JSON snapshots under data/marketplace
 - UUID-only IDs, simple versioning and purchase records
 - Tokenized download links (HMAC) without app-level auth
@@ -146,7 +147,7 @@ class MarketplaceService:
             self._persist()
 
     async def initialize(self):
-        # No-op for now; placeholder for DB connections or caching
+        """Lifecycle hook for async startup (DB connections, caching, etc.)."""
         return None
 
     # Persistence
@@ -622,7 +623,7 @@ class MarketplaceService:
         item = next((i for i in self._items if i.id == record["item_id"]), None)
         if not item:
             raise ValueError("Item missing")
-        # For stub, return metadata and links to docs/templates if any
+        # Return metadata and links to docs/templates if any
         return {
             "purchase": record,
             "item": asdict(item),

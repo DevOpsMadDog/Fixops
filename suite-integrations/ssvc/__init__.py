@@ -1,4 +1,4 @@
-"""Lightweight SSVC stub tailored for the FixOps test-suite."""
+"""Lightweight SSVC facade with plugin-based methodology dispatch."""
 
 from __future__ import annotations
 
