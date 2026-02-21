@@ -1,9 +1,8 @@
-"""Tests for PentAGI integration."""
+"""Tests for MPTE integration."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from core.automated_remediation import (
     AutomatedRemediationEngine,
     RemediationPriority,
@@ -21,22 +20,22 @@ from core.exploit_generator import (
     PayloadComplexity,
 )
 from core.llm_providers import LLMProviderManager
-from core.pentagi_advanced import (
-    AdvancedPentagiClient,
+from core.mpte_advanced import (
+    AdvancedMPTEClient,
     AIDecision,
     AIRole,
     MultiAIOrchestrator,
 )
-from core.pentagi_models import PenTestConfig, PenTestPriority, PenTestRequest
+from core.mpte_models import PenTestConfig, PenTestPriority, PenTestRequest
 
 
 @pytest.fixture
-def pentagi_config():
-    """Create a test PentAGI configuration."""
+def mpte_config():
+    """Create a test MPTE configuration."""
     return PenTestConfig(
         id="test-config",
-        name="Test PentAGI",
-        pentagi_url="http://localhost:8443",
+        name="Test MPTE",
+        mpte_url="http://localhost:8443",
         api_key="test-key",
         enabled=True,
         max_concurrent_tests=5,
@@ -167,19 +166,17 @@ class TestMultiAIOrchestrator:
         assert len(consensus.execution_plan) > 0
 
 
-class TestAdvancedPentagiClient:
-    """Test Advanced PentAGI client."""
+class TestAdvancedMPTEClient:
+    """Test Advanced MPTE client."""
 
     @pytest.mark.asyncio
-    async def test_execute_pentest(self, pentagi_config, llm_manager, sample_context):
+    async def test_execute_pentest(self, mpte_config, llm_manager, sample_context):
         """Test basic pentest execution."""
-        with patch("core.pentagi_db.PentagiDB") as mock_db:
+        with patch("core.mpte_db.MPTEDB") as mock_db:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
-            client = AdvancedPentagiClient(
-                pentagi_config, llm_manager, mock_db_instance
-            )
+            client = AdvancedMPTEClient(mpte_config, llm_manager, mock_db_instance)
 
             request = PenTestRequest(
                 id="test-request",
@@ -191,7 +188,7 @@ class TestAdvancedPentagiClient:
             )
 
             # Mock the API call
-            client._call_pentagi_api = AsyncMock(
+            client._call_mpte_api = AsyncMock(
                 return_value={
                     "job_id": "test-job",
                     "status": "completed",
@@ -206,16 +203,14 @@ class TestAdvancedPentagiClient:
 
     @pytest.mark.asyncio
     async def test_execute_pentest_with_consensus(
-        self, pentagi_config, llm_manager, sample_vulnerability, sample_context
+        self, mpte_config, llm_manager, sample_vulnerability, sample_context
     ):
         """Test consensus-based pentest execution."""
-        with patch("core.pentagi_db.PentagiDB") as mock_db:
+        with patch("core.mpte_db.MPTEDB") as mock_db:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
-            client = AdvancedPentagiClient(
-                pentagi_config, llm_manager, mock_db_instance
-            )
+            client = AdvancedMPTEClient(mpte_config, llm_manager, mock_db_instance)
 
             result = await client.execute_pentest_with_consensus(
                 sample_vulnerability, sample_context
@@ -292,16 +287,14 @@ class TestContinuousValidation:
 
     @pytest.mark.asyncio
     async def test_trigger_validation(
-        self, pentagi_config, llm_manager, sample_vulnerability
+        self, mpte_config, llm_manager, sample_vulnerability
     ):
         """Test validation triggering."""
-        with patch("core.pentagi_db.PentagiDB") as mock_db:
+        with patch("core.mpte_db.MPTEDB") as mock_db:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
-            client = AdvancedPentagiClient(
-                pentagi_config, llm_manager, mock_db_instance
-            )
+            client = AdvancedMPTEClient(mpte_config, llm_manager, mock_db_instance)
             orchestrator = MultiAIOrchestrator(llm_manager)
             engine = ContinuousValidationEngine(client, orchestrator)
 
@@ -317,15 +310,13 @@ class TestContinuousValidation:
             assert len(job.vulnerabilities) == 1
 
     @pytest.mark.asyncio
-    async def test_security_posture_assessment(self, pentagi_config, llm_manager):
+    async def test_security_posture_assessment(self, mpte_config, llm_manager):
         """Test security posture assessment."""
-        with patch("core.pentagi_db.PentagiDB") as mock_db:
+        with patch("core.mpte_db.MPTEDB") as mock_db:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
-            client = AdvancedPentagiClient(
-                pentagi_config, llm_manager, mock_db_instance
-            )
+            client = AdvancedMPTEClient(mpte_config, llm_manager, mock_db_instance)
             orchestrator = MultiAIOrchestrator(llm_manager)
             engine = ContinuousValidationEngine(client, orchestrator)
 
@@ -343,16 +334,14 @@ class TestAutomatedRemediation:
 
     @pytest.mark.asyncio
     async def test_generate_remediation_suggestions(
-        self, pentagi_config, llm_manager, sample_vulnerability, sample_context
+        self, mpte_config, llm_manager, sample_vulnerability, sample_context
     ):
         """Test remediation suggestion generation."""
-        with patch("core.pentagi_db.PentagiDB") as mock_db:
+        with patch("core.mpte_db.MPTEDB") as mock_db:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
-            client = AdvancedPentagiClient(
-                pentagi_config, llm_manager, mock_db_instance
-            )
+            client = AdvancedMPTEClient(mpte_config, llm_manager, mock_db_instance)
             engine = AutomatedRemediationEngine(llm_manager, client)
 
             suggestions = await engine.generate_remediation_suggestions(
@@ -369,16 +358,14 @@ class TestAutomatedRemediation:
 
     @pytest.mark.asyncio
     async def test_generate_remediation_plan(
-        self, pentagi_config, llm_manager, sample_vulnerability, sample_context
+        self, mpte_config, llm_manager, sample_vulnerability, sample_context
     ):
         """Test remediation plan generation."""
-        with patch("core.pentagi_db.PentagiDB") as mock_db:
+        with patch("core.mpte_db.MPTEDB") as mock_db:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
-            client = AdvancedPentagiClient(
-                pentagi_config, llm_manager, mock_db_instance
-            )
+            client = AdvancedMPTEClient(mpte_config, llm_manager, mock_db_instance)
             engine = AutomatedRemediationEngine(llm_manager, client)
 
             findings = [
@@ -396,17 +383,13 @@ class TestAutomatedRemediation:
             assert "estimated_total_effort" in plan
 
     @pytest.mark.asyncio
-    async def test_verify_remediation(
-        self, pentagi_config, llm_manager, sample_context
-    ):
+    async def test_verify_remediation(self, mpte_config, llm_manager, sample_context):
         """Test remediation verification."""
-        with patch("core.pentagi_db.PentagiDB") as mock_db:
+        with patch("core.mpte_db.MPTEDB") as mock_db:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
-            client = AdvancedPentagiClient(
-                pentagi_config, llm_manager, mock_db_instance
-            )
+            client = AdvancedMPTEClient(mpte_config, llm_manager, mock_db_instance)
             client.validate_remediation = AsyncMock(
                 return_value=(True, "Vulnerability fixed")
             )
@@ -433,17 +416,15 @@ class TestIntegrationWorkflow:
 
     @pytest.mark.asyncio
     async def test_complete_pentest_workflow(
-        self, pentagi_config, llm_manager, sample_vulnerability, sample_context
+        self, mpte_config, llm_manager, sample_vulnerability, sample_context
     ):
         """Test complete pentesting workflow."""
-        with patch("core.pentagi_db.PentagiDB") as mock_db:
+        with patch("core.mpte_db.MPTEDB") as mock_db:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
             # Initialize components
-            client = AdvancedPentagiClient(
-                pentagi_config, llm_manager, mock_db_instance
-            )
+            client = AdvancedMPTEClient(mpte_config, llm_manager, mock_db_instance)
             generator = IntelligentExploitGenerator(llm_manager)
 
             # 1. Generate custom exploit
@@ -462,17 +443,15 @@ class TestIntegrationWorkflow:
 
     @pytest.mark.asyncio
     async def test_complete_remediation_workflow(
-        self, pentagi_config, llm_manager, sample_vulnerability, sample_context
+        self, mpte_config, llm_manager, sample_vulnerability, sample_context
     ):
         """Test complete remediation workflow."""
-        with patch("core.pentagi_db.PentagiDB") as mock_db:
+        with patch("core.mpte_db.MPTEDB") as mock_db:
             mock_db_instance = MagicMock()
             mock_db.return_value = mock_db_instance
 
             # Initialize components
-            client = AdvancedPentagiClient(
-                pentagi_config, llm_manager, mock_db_instance
-            )
+            client = AdvancedMPTEClient(mpte_config, llm_manager, mock_db_instance)
             engine = AutomatedRemediationEngine(llm_manager, client)
 
             # 1. Generate remediation suggestions

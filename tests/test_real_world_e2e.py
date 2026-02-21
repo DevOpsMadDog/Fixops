@@ -555,12 +555,11 @@ class TestRealWorldAPI:
         os.environ["FIXOPS_API_TOKEN"] = "test-token"
         os.environ["FIXOPS_JWT_SECRET"] = secrets.token_hex(32)
         os.environ["FIXOPS_EVIDENCE_KEY"] = Fernet.generate_key().decode()
-        os.environ["FIXOPS_MODE"] = "demo"
+        os.environ["FIXOPS_MODE"] = "enterprise"
 
         try:
-            from fastapi.testclient import TestClient
-
             from apps.api.app import create_app
+            from fastapi.testclient import TestClient
         except ImportError:
             return
 
@@ -629,12 +628,11 @@ class TestRealWorldAPI:
         os.environ["FIXOPS_API_TOKEN"] = "test-token"
         os.environ["FIXOPS_JWT_SECRET"] = secrets.token_hex(32)
         os.environ["FIXOPS_EVIDENCE_KEY"] = secrets.token_hex(32)
-        os.environ["FIXOPS_MODE"] = "demo"
+        os.environ["FIXOPS_MODE"] = "enterprise"
 
         try:
-            from fastapi.testclient import TestClient
-
             from apps.api.app import create_app
+            from fastapi.testclient import TestClient
         except ImportError:
             return
 
@@ -685,9 +683,8 @@ class TestRealWorldIaC:
         tfplan_file = tmp_path / "tfplan.json"
         tfplan_file.write_text(json.dumps(tfplan))
 
-        from src.services import id_allocator, signing
-        from src.services.run_registry import RunRegistry
-
+        from core.services.enterprise import id_allocator, signing
+        from core.services.enterprise.run_registry import RunRegistry
         from core.stage_runner import StageRunner
 
         registry = RunRegistry()
@@ -804,7 +801,7 @@ class TestRealWorldMarketplace:
         if str(enterprise_path) not in sys.path:
             sys.path.insert(0, str(enterprise_path))
 
-        from src.services.marketplace import get_recommendations
+        from core.services.enterprise.marketplace import get_recommendations
 
         control_ids = ["ISO27001:AC-2", "PCI:8.3"]
         recommendations = get_recommendations(control_ids)
@@ -822,7 +819,7 @@ class TestRealWorldMarketplace:
         if str(enterprise_path) not in sys.path:
             sys.path.insert(0, str(enterprise_path))
 
-        from src.services.marketplace import get_pack
+        from core.services.enterprise.marketplace import get_pack
 
         pack = get_pack("ISO27001", "AC-2")
 

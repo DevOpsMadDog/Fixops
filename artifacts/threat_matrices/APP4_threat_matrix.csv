@@ -1,7 +1,0 @@
-threat_id,framework,category,description,attacker_objective,attack_vector,mitigation,test_reference
-APP4-T1,STRIDE,spoofing,Impersonate store device to submit fraudulent transactions,Financial fraud,Stolen device certificates,Mutual TLS + device attestation,tests/APP4/authz_tests/matrix.csv
-APP4-T2,STRIDE,tampering,Alter settlement batch totals,Financial manipulation,Compromise batch job container,Immutable infrastructure + signed artifacts,policy/APP4/security_controls.rego
-APP4-T3,STRIDE,information disclosure,Exfiltrate PAN tokens,Data breach,Plaintext HSM credentials in lambda,Secrets manager + KMS integration,artifacts/APP4/tf_plan.json
-APP4-T4,STRIDE,denial of service,Take down checkout API,Service outage,Botnet hitting /checkout,Rate limiting + WAF,tests/APP4/perf_k6.js
-APP4-L1,LINDDUN,linkability,Link purchases to individuals,Privacy violation,Correlate inventory + receipt events,Tokenization + anonymized analytics,tests/APP4/contract_tests/openapi.yaml
-APP4-L2,LINDDUN,non-compliance,Breach PCI logging rules,Regulatory penalty,Unmasked card tokens in logs,Log scrubbing + tests,tests/APP4/idempotency_tests/audit_logs.yaml

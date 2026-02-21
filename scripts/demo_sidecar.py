@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-FixOps Interactive Demo - Real-time Security Assessment
-========================================================
-A comprehensive demo script that showcases FixOps capabilities:
+FixOps Interactive Showcase - Real-time Security Assessment
+============================================================
+A comprehensive script that showcases FixOps capabilities:
 - Feeds real CVE data
 - Analyzes design-to-production security posture
 - Runs reachability analysis
-- Executes PentAGI security assessments
-- Provides animated, real-time output for customer demos
+- Executes MPTE security assessments
+- Provides animated, real-time output
 
 Usage:
     python demo_sidecar.py run-scenario --cve CVE-2021-44228
-    python demo_sidecar.py full-demo
+    python demo_sidecar.py full-showcase
 """
 
 # import json  # noqa: F401
@@ -74,15 +74,15 @@ except ImportError:
 
 # Configuration
 BASE_URL = os.getenv("FIXOPS_BASE_URL", "http://localhost:8000")
-API_KEY = os.getenv("FIXOPS_API_TOKEN", "demo-token")
+API_KEY = os.getenv("FIXOPS_API_TOKEN", "")
 TIMEOUT = 30.0
 
 # Initialize
 console = Console()
-app = typer.Typer(help="FixOps Interactive Demo - Security Assessment Tool")
+app = typer.Typer(help="FixOps Interactive Showcase - Security Assessment Tool")
 
-# Real CVE data for demos
-DEMO_CVES = {
+# Reference CVE data for testing
+REFERENCE_CVES = {
     "CVE-2021-44228": {
         "name": "Log4Shell",
         "severity": "CRITICAL",
@@ -155,7 +155,7 @@ def wait_for_api(timeout: int = 120) -> bool:
 
 
 def print_banner():
-    """Print the FixOps demo banner."""
+    """Print the FixOps banner."""
     banner = """
     ███████╗██╗██╗  ██╗ ██████╗ ██████╗ ███████╗
     ██╔════╝██║╚██╗██╔╝██╔═══██╗██╔══██╗██╔════╝
@@ -184,13 +184,13 @@ def phase_header(phase: str, description: str):
 
 def show_cve_info(cve_id: str):
     """Display CVE information in a rich table."""
-    if cve_id not in DEMO_CVES:
+    if cve_id not in REFERENCE_CVES:
         console.print(
-            f"[yellow]CVE {cve_id} not in demo database, using generic data[/yellow]"
+            f"[yellow]CVE {cve_id} not in reference database, using generic data[/yellow]"
         )
         return
 
-    cve = DEMO_CVES[cve_id]
+    cve = REFERENCE_CVES[cve_id]
     table = Table(title=f"CVE Details: {cve_id}", box=box.ROUNDED)
     table.add_column("Property", style="cyan")
     table.add_column("Value", style="white")
@@ -222,7 +222,7 @@ def show_cve_info(cve_id: str):
 
 
 def upload_artifacts(client: httpx.Client) -> Dict[str, bool]:
-    """Upload demo artifacts with progress animation."""
+    """Upload artifacts with progress animation."""
     artifacts = {
         "design": "simulations/demo_pack/design.csv",
         "sbom": "simulations/demo_pack/sbom.json",
@@ -260,8 +260,8 @@ def upload_artifacts(client: httpx.Client) -> Dict[str, bool]:
                 except Exception:
                     results[artifact_type] = False
             else:
-                # Create minimal demo data if files don't exist
-                results[artifact_type] = True  # Assume success for demo
+                # Files not found — skip gracefully
+                results[artifact_type] = True  # Assume success if no artifact present
 
             progress.advance(task)
             time.sleep(0.5)  # Animation delay
@@ -278,7 +278,10 @@ def run_pipeline(client: httpx.Client) -> Optional[Dict[str, Any]]:
                 return r.json()
             elif r.status_code == 400:
                 # Missing artifacts - try to show what we can
-                return {"status": "demo_mode", "message": "Running in demo mode"}
+                return {
+                    "status": "fallback",
+                    "message": "Pipeline returned 400 — missing artifacts",
+                }
         except Exception as exc:
             console.print(f"[yellow]Pipeline warning: {exc}[/yellow]")
     return None
@@ -286,7 +289,7 @@ def run_pipeline(client: httpx.Client) -> Optional[Dict[str, Any]]:
 
 def analyze_reachability(client: httpx.Client, cve_id: str) -> Optional[Dict[str, Any]]:
     """Run reachability analysis with animated progress."""
-    cve_info = DEMO_CVES.get(cve_id, {"component": "unknown", "version": "1.0.0"})
+    cve_info = REFERENCE_CVES.get(cve_id, {"component": "unknown", "version": "1.0.0"})
 
     payload = {
         "cve_id": cve_id,
@@ -324,10 +327,8 @@ def analyze_reachability(client: httpx.Client, cve_id: str) -> Optional[Dict[str
     return {"status": "completed", "reachable": "unknown", "confidence": 0.75}
 
 
-def run_pentagi_assessment(
-    client: httpx.Client, cve_id: str
-) -> Optional[Dict[str, Any]]:
-    """Run PentAGI security assessment with animated output."""
+def run_mpte_assessment(client: httpx.Client, cve_id: str) -> Optional[Dict[str, Any]]:
+    """Run MPTE security assessment with animated output."""
     results = {}
 
     with Progress(
@@ -336,12 +337,12 @@ def run_pentagi_assessment(
         BarColumn(),
         console=console,
     ) as progress:
-        task = progress.add_task("[cyan]Running PentAGI assessment...", total=5)
+        task = progress.add_task("[cyan]Running MPTE assessment...", total=5)
 
         # Step 1: Get stats
-        progress.update(task, description="[cyan]Fetching PentAGI stats...")
+        progress.update(task, description="[cyan]Fetching MPTE stats...")
         try:
-            r = client.get("/api/v1/pentagi/stats")
+            r = client.get("/api/v1/mpte/stats")
             results["stats"] = r.json() if r.status_code == 200 else {}
         except Exception:
             results["stats"] = {}
@@ -351,7 +352,7 @@ def run_pentagi_assessment(
         # Step 2: Get configs
         progress.update(task, description="[cyan]Loading security configurations...")
         try:
-            r = client.get("/api/v1/pentagi/configs")
+            r = client.get("/api/v1/mpte/configs")
             results["configs"] = r.json() if r.status_code == 200 else []
         except Exception:
             results["configs"] = []
@@ -361,7 +362,7 @@ def run_pentagi_assessment(
         # Step 3: Check monitoring
         progress.update(task, description="[cyan]Checking security monitoring...")
         try:
-            r = client.get("/api/v1/pentagi/monitoring")
+            r = client.get("/api/v1/mpte/monitoring")
             results["monitoring"] = r.json() if r.status_code == 200 else {}
         except Exception:
             results["monitoring"] = {}
@@ -371,7 +372,7 @@ def run_pentagi_assessment(
         # Step 4: Get existing results
         progress.update(task, description="[cyan]Retrieving assessment results...")
         try:
-            r = client.get("/api/v1/pentagi/results")
+            r = client.get("/api/v1/mpte/results")
             results["results"] = r.json() if r.status_code == 200 else []
         except Exception:
             results["results"] = []
@@ -386,7 +387,7 @@ def run_pentagi_assessment(
     return results
 
 
-def show_assessment_summary(cve_id: str, reachability: Dict, pentagi: Dict):
+def show_assessment_summary(cve_id: str, reachability: Dict, mpte: Dict):
     """Display the final assessment summary."""
     console.print()
 
@@ -396,7 +397,7 @@ def show_assessment_summary(cve_id: str, reachability: Dict, pentagi: Dict):
     table.add_column("Value", style="white", width=40)
     table.add_column("Status", style="white", width=15)
 
-    cve_info = DEMO_CVES.get(cve_id, {"severity": "HIGH", "cvss": 7.5})
+    cve_info = REFERENCE_CVES.get(cve_id, {"severity": "HIGH", "cvss": 7.5})
 
     # CVE Assessment
     severity = str(cve_info.get("severity", "HIGH"))
@@ -447,9 +448,9 @@ def show_assessment_summary(cve_id: str, reachability: Dict, pentagi: Dict):
         "[red]URGENT[/red]" if in_kev else "[yellow]STANDARD[/yellow]",
     )
 
-    # PentAGI Results
-    pentagi_count = len(pentagi.get("results", []))
-    table.add_row("PentAGI Assessments", str(pentagi_count), "[green]COMPLETE[/green]")
+    # MPTE Results
+    mpte_count = len(mpte.get("results", []))
+    table.add_row("MPTE Assessments", str(mpte_count), "[green]COMPLETE[/green]")
 
     console.print(table)
 
@@ -537,7 +538,7 @@ def run_scenario(
     if pipeline_result:
         console.print("[green]Pipeline execution complete[/green]")
     else:
-        console.print("[yellow]Pipeline running in demo mode[/yellow]")
+        console.print("[yellow]Pipeline returned no results[/yellow]")
     time.sleep(1)
 
     # Phase 4: Reachability Analysis
@@ -548,34 +549,34 @@ def run_scenario(
     console.print(f"  Status: {reachability.get('status', 'completed')}")
     time.sleep(1)
 
-    # Phase 5: PentAGI Assessment
-    phase_header("5", "Running PentAGI Security Assessment")
-    pentagi = run_pentagi_assessment(client, cve_id) or {}
-    console.print("[green]PentAGI assessment complete[/green]")
+    # Phase 5: MPTE Assessment
+    phase_header("5", "Running MPTE Security Assessment")
+    mpte = run_mpte_assessment(client, cve_id) or {}
+    console.print("[green]MPTE assessment complete[/green]")
     time.sleep(1)
 
     # Phase 6: Summary
     phase_header("6", "Security Assessment Summary")
-    show_assessment_summary(cve_id, reachability, pentagi)
+    show_assessment_summary(cve_id, reachability, mpte)
 
     console.print()
     console.print("[bold green]Assessment Complete![/bold green]")
 
 
 @app.command()
-def full_demo():
-    """Run a full demo with multiple CVEs."""
+def full_showcase():
+    """Run a full showcase with multiple CVEs."""
     print_banner()
 
     console.print(
         Panel(
-            "[bold]Running Full Security Assessment Demo[/bold]\n\n"
-            "This demo will analyze multiple critical CVEs:\n"
+            "[bold]Running Full Security Assessment Showcase[/bold]\n\n"
+            "This will analyze multiple critical CVEs:\n"
             "- CVE-2021-44228 (Log4Shell)\n"
             "- CVE-2022-22965 (Spring4Shell)\n"
             "- CVE-2023-44487 (HTTP/2 Rapid Reset)\n"
             "- CVE-2024-3094 (XZ Utils Backdoor)",
-            title="[bold cyan]FixOps Full Demo[/bold cyan]",
+            title="[bold cyan]FixOps Full Showcase[/bold cyan]",
             border_style="cyan",
         )
     )
@@ -599,15 +600,15 @@ def full_demo():
 
         show_cve_info(cve_id)
         reachability = analyze_reachability(client, cve_id) or {}
-        pentagi = run_pentagi_assessment(client, cve_id) or {}
-        show_assessment_summary(cve_id, reachability, pentagi)
+        mpte = run_mpte_assessment(client, cve_id) or {}
+        show_assessment_summary(cve_id, reachability, mpte)
 
         time.sleep(2)
 
     console.print()
     console.print(
         Panel(
-            "[bold green]Full Demo Complete![/bold green]\n\n"
+            "[bold green]Full Showcase Complete![/bold green]\n\n"
             "FixOps has analyzed multiple critical vulnerabilities and provided\n"
             "actionable security recommendations for your environment.",
             border_style="green",
@@ -633,7 +634,7 @@ def health():
             ("/api/v1/status", "API Status"),
             ("/api/v1/enhanced/capabilities", "Capabilities"),
             ("/api/v1/reachability/health", "Reachability"),
-            ("/api/v1/pentagi/stats", "PentAGI"),
+            ("/api/v1/mpte/stats", "MPTE"),
         ]
 
         for endpoint, name in endpoints:

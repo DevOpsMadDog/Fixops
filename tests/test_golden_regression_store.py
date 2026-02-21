@@ -14,7 +14,7 @@ SRC_PATH = ROOT / "enterprise"
 if str(SRC_PATH) not in sys.path:
     sys.path.insert(0, str(SRC_PATH))
 
-from src.services.golden_regression_store import GoldenRegressionStore
+from core.services.enterprise.golden_regression_store import GoldenRegressionStore
 
 
 class FakeDecisionEngine:

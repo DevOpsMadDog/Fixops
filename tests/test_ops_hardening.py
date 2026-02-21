@@ -3,9 +3,9 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-from src.config.settings import get_settings
-from src.core.middleware import RateLimitMiddleware
-from src.main import create_app
+from apps.api.app import create_app
+from config.enterprise.settings import get_settings
+from core.enterprise.middleware import RateLimitMiddleware
 
 
 def test_rate_limit_enforced(

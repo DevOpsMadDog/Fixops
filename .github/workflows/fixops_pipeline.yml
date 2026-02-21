@@ -71,8 +71,7 @@ jobs:
           # Run the comprehensive 6-step orchestrator
           python scripts/demo_orchestrator.py \
             --snyk /tmp/snyk_results.json \
-            --design inputs/demo/design.csv \
-            --overlay configs/overlays/client.yaml \
+            --design tests/fixtures/real_world/design.csv \
             --out artifacts/ci_run_manifest.json || true
           
           # Create fallback manifest if orchestrator failed

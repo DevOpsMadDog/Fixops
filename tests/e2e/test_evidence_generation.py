@@ -12,7 +12,7 @@ class TestEvidenceGeneration:
     """Test evidence generation with real CLI execution."""
 
     def test_evidence_bundle_created(
-        self, cli_runner, demo_fixtures, fixture_manager, evidence_validator
+        self, cli_runner, test_fixtures, fixture_manager, evidence_validator
     ):
         """Test that evidence bundle is created when evidence module is enabled."""
         output_file = fixture_manager.temp_dir / "pipeline-evidence.json"
@@ -20,10 +20,10 @@ class TestEvidenceGeneration:
         evidence_dir.mkdir(exist_ok=True)
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             output=output_file,
             evidence_dir=evidence_dir,
             enable=["evidence"],
@@ -36,7 +36,7 @@ class TestEvidenceGeneration:
         assert len(bundles) > 0, "No evidence bundles created"
 
     def test_evidence_bundle_structure(
-        self, cli_runner, demo_fixtures, fixture_manager, evidence_validator
+        self, cli_runner, test_fixtures, fixture_manager, evidence_validator
     ):
         """Test that evidence bundle has correct structure (manifest, payload, metadata)."""
         output_file = fixture_manager.temp_dir / "pipeline-structure.json"
@@ -44,10 +44,10 @@ class TestEvidenceGeneration:
         evidence_dir.mkdir(exist_ok=True)
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             output=output_file,
             evidence_dir=evidence_dir,
             enable=["evidence"],
@@ -70,7 +70,7 @@ class TestEvidenceGeneration:
         assert "run_id" in bundle.payload, "Payload missing run_id"
 
     def test_evidence_bundle_validation(
-        self, cli_runner, demo_fixtures, fixture_manager, evidence_validator
+        self, cli_runner, test_fixtures, fixture_manager, evidence_validator
     ):
         """Test that evidence bundle passes validation checks."""
         output_file = fixture_manager.temp_dir / "pipeline-validation.json"
@@ -78,10 +78,10 @@ class TestEvidenceGeneration:
         evidence_dir.mkdir(exist_ok=True)
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             output=output_file,
             evidence_dir=evidence_dir,
             enable=["evidence"],
@@ -98,7 +98,7 @@ class TestEvidenceGeneration:
         assert len(errors) == 0, f"Bundle validation errors: {errors}"
 
     def test_evidence_bundle_no_secrets(
-        self, cli_runner, demo_fixtures, fixture_manager, evidence_validator
+        self, cli_runner, test_fixtures, fixture_manager, evidence_validator
     ):
         """Test that evidence bundle doesn't contain secrets or PII."""
         output_file = fixture_manager.temp_dir / "pipeline-no-secrets.json"
@@ -106,10 +106,10 @@ class TestEvidenceGeneration:
         evidence_dir.mkdir(exist_ok=True)
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             output=output_file,
             evidence_dir=evidence_dir,
             enable=["evidence"],
@@ -128,7 +128,7 @@ class TestEvidenceGeneration:
     def test_evidence_retention_days_set_correctly(
         self,
         cli_runner,
-        demo_fixtures,
+        test_fixtures,
         fixture_manager,
         flag_config_manager,
         evidence_validator,
@@ -149,10 +149,10 @@ class TestEvidenceGeneration:
         evidence_dir.mkdir(exist_ok=True)
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             evidence_dir=evidence_dir,
@@ -171,7 +171,7 @@ class TestEvidenceGeneration:
     def test_evidence_encryption_disabled(
         self,
         cli_runner,
-        demo_fixtures,
+        test_fixtures,
         fixture_manager,
         flag_config_manager,
         evidence_validator,
@@ -192,10 +192,10 @@ class TestEvidenceGeneration:
         evidence_dir.mkdir(exist_ok=True)
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             evidence_dir=evidence_dir,
@@ -212,7 +212,7 @@ class TestEvidenceGeneration:
             ), "Bundle should not be encrypted when flag is False"
 
     def test_evidence_bundle_contains_pipeline_result(
-        self, cli_runner, demo_fixtures, fixture_manager, evidence_validator
+        self, cli_runner, test_fixtures, fixture_manager, evidence_validator
     ):
         """Test that evidence bundle contains complete pipeline result."""
         output_file = fixture_manager.temp_dir / "pipeline-complete.json"
@@ -220,10 +220,10 @@ class TestEvidenceGeneration:
         evidence_dir.mkdir(exist_ok=True)
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             output=output_file,
             evidence_dir=evidence_dir,
             enable=["evidence"],
@@ -242,7 +242,7 @@ class TestEvidenceGeneration:
         assert "mode" in bundle.payload, "Payload missing mode"
 
     def test_evidence_bundle_unique_run_ids(
-        self, cli_runner, demo_fixtures, fixture_manager, evidence_validator
+        self, cli_runner, test_fixtures, fixture_manager, evidence_validator
     ):
         """Test that each evidence bundle has a unique run ID."""
         evidence_dir = fixture_manager.temp_dir / "evidence"
@@ -254,10 +254,10 @@ class TestEvidenceGeneration:
             output_file = fixture_manager.temp_dir / f"pipeline-unique-{i}.json"
 
             result = cli_runner.run_pipeline(
-                design=demo_fixtures["design"],
-                sbom=demo_fixtures["sbom"],
-                cve=demo_fixtures["cve"],
-                sarif=demo_fixtures["sarif"],
+                design=test_fixtures["design"],
+                sbom=test_fixtures["sbom"],
+                cve=test_fixtures["cve"],
+                sarif=test_fixtures["sarif"],
                 output=output_file,
                 evidence_dir=evidence_dir,
                 enable=["evidence"],
@@ -278,7 +278,7 @@ class TestEvidenceGeneration:
     def test_evidence_bundle_with_branding(
         self,
         cli_runner,
-        demo_fixtures,
+        test_fixtures,
         fixture_manager,
         flag_config_manager,
         evidence_validator,
@@ -300,10 +300,10 @@ class TestEvidenceGeneration:
         evidence_dir.mkdir(exist_ok=True)
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             evidence_dir=evidence_dir,
@@ -320,7 +320,7 @@ class TestEvidenceGeneration:
             ), f"Expected 'Aldeci' in producer field, got '{bundle.producer}'"
 
     def test_evidence_bundle_extractable(
-        self, cli_runner, demo_fixtures, fixture_manager, evidence_validator
+        self, cli_runner, test_fixtures, fixture_manager, evidence_validator
     ):
         """Test that evidence bundle can be extracted and read."""
         output_file = fixture_manager.temp_dir / "pipeline-extractable.json"
@@ -328,10 +328,10 @@ class TestEvidenceGeneration:
         evidence_dir.mkdir(exist_ok=True)
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             output=output_file,
             evidence_dir=evidence_dir,
             enable=["evidence"],
@@ -351,7 +351,7 @@ class TestEvidenceGeneration:
                 pytest.fail(f"Failed to extract bundle {bundle_path}: {e}")
 
     def test_multiple_evidence_bundles_no_conflicts(
-        self, cli_runner, demo_fixtures, fixture_manager, evidence_validator
+        self, cli_runner, test_fixtures, fixture_manager, evidence_validator
     ):
         """Test that multiple evidence bundles can be created without conflicts."""
         evidence_dir = fixture_manager.temp_dir / "evidence"
@@ -361,10 +361,10 @@ class TestEvidenceGeneration:
             output_file = fixture_manager.temp_dir / f"pipeline-multi-{i}.json"
 
             result = cli_runner.run_pipeline(
-                design=demo_fixtures["design"],
-                sbom=demo_fixtures["sbom"],
-                cve=demo_fixtures["cve"],
-                sarif=demo_fixtures["sarif"],
+                design=test_fixtures["design"],
+                sbom=test_fixtures["sbom"],
+                cve=test_fixtures["cve"],
+                sarif=test_fixtures["sarif"],
                 output=output_file,
                 evidence_dir=evidence_dir,
                 enable=["evidence"],
@@ -382,7 +382,7 @@ class TestEvidenceGeneration:
             assert len(errors) == 0, f"Bundle {bundle_path} validation errors: {errors}"
 
     def test_evidence_bundle_timestamp_present(
-        self, cli_runner, demo_fixtures, fixture_manager, evidence_validator
+        self, cli_runner, test_fixtures, fixture_manager, evidence_validator
     ):
         """Test that evidence bundle contains run_id (which serves as timestamp)."""
         output_file = fixture_manager.temp_dir / "pipeline-timestamp.json"
@@ -390,10 +390,10 @@ class TestEvidenceGeneration:
         evidence_dir.mkdir(exist_ok=True)
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             output=output_file,
             evidence_dir=evidence_dir,
             enable=["evidence"],

@@ -10,7 +10,7 @@ set -e
 # CONFIGURATION
 # ============================================================================
 FIXOPS_API_URL="${FIXOPS_API_URL:-http://127.0.0.1:8000}"
-FIXOPS_API_TOKEN="${FIXOPS_API_TOKEN:-demo-token}"
+FIXOPS_API_TOKEN="${FIXOPS_API_TOKEN:?ERROR: FIXOPS_API_TOKEN must be set}"
 TEMP_DIR="${FIXOPS_TEMP_DIR:-/tmp/fixops-interactive}"
 EDITOR="${EDITOR:-nano}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

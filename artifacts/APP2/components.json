@@ -1,9 +1,0 @@
-{
-  "app": "APP2",
-  "components": [
-    {"name": "shell", "framework": "Next.js", "owner": "experience-team"},
-    {"name": "graphql-gateway", "language": "TypeScript", "owner": "api-team"},
-    {"name": "partner-transformer", "language": "Python", "owner": "platform-team"},
-    {"name": "kong-gateway", "language": "Lua", "owner": "platform-team"}
-  ]
-}

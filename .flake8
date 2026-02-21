@@ -9,6 +9,7 @@ exclude =
     build,
     dist,
     WIP,
-    archive
+    archive,
+    archive_not_needed
 per-file-ignores =
     tests/conftest.py:E402

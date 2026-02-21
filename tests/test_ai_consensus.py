@@ -11,9 +11,8 @@ import os
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from core.llm_providers import LLMProviderManager, LLMResponse
-from core.pentagi_advanced import (
+from core.mpte_advanced import (
     AIDecision,
     AIRole,
     ConsensusConfig,
@@ -171,7 +170,7 @@ class TestMultiAIOrchestrator:
     async def test_call_llm_timeout_with_fallback(self, mock_llm_manager, caplog):
         """Test _call_llm handles asyncio.TimeoutError with fallback.
 
-        Covers lines 458, 461 in pentagi_advanced.py - the timeout error handling
+        Covers lines 458, 461 in mpte_advanced.py - the timeout error handling
         that creates a TimeoutError with message and logs a warning.
         """
         import asyncio
@@ -191,7 +190,7 @@ class TestMultiAIOrchestrator:
             coro.close()
             raise asyncio.TimeoutError()
 
-        with patch("core.pentagi_advanced.asyncio.wait_for", mock_wait_for):
+        with patch("core.mpte_advanced.asyncio.wait_for", mock_wait_for):
             result = await orchestrator._call_llm("openai", "test prompt")
 
         # Should return fallback response

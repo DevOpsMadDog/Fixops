@@ -1,0 +1,8 @@
+{
+  "id": "d354fde1f5324d309eb8f52a3246ecff",
+  "stage": "sarif",
+  "stored_at": "2026-02-07T12:36:39.059179Z",
+  "original_filename": "fixops_master_sbom_10arch_4000vulns.cdx-2.json",
+  "raw_path": "/Users/devops.ai/developement/fixops/Fixops/suite-core/data/data/archive/sarif/2026-02-07T123639.059179Z-d354fde1f5324d309eb8f52a3246ecff.raw",
+  "normalized_path": "/Users/devops.ai/developement/fixops/Fixops/suite-core/data/data/archive/sarif/2026-02-07T123639.059179Z-d354fde1f5324d309eb8f52a3246ecff.json"
+}

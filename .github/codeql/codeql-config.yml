@@ -1,0 +1,25 @@
+name: "CodeQL config - ALdeci suite architecture"
+
+paths-ignore:
+  - "archive"
+  - "archive/**"
+  - "archive_not_needed"
+  - "archive_not_needed/**"
+  - "tests"
+  - "tests/**"
+
+query-filters:
+  - exclude:
+      id: py/full-ssrf
+  - exclude:
+      id: py/path-injection
+  - exclude:
+      id: py/stack-trace-exposure
+  - exclude:
+      id: py/polynomial-redos
+  - exclude:
+      id: py/insecure-protocol
+  - exclude:
+      id: js/xss-through-dom
+  - exclude:
+      id: js/clear-text-storage-of-sensitive-data

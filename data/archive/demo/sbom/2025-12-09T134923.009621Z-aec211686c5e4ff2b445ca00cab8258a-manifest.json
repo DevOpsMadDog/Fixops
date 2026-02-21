@@ -1,8 +1,0 @@
-{
-  "id": "aec211686c5e4ff2b445ca00cab8258a",
-  "stage": "sbom",
-  "stored_at": "2025-12-09T13:49:23.009621Z",
-  "original_filename": "sbom.json",
-  "raw_path": "/home/ubuntu/repos/Fixops/data/archive/demo/sbom/2025-12-09T134923.009621Z-aec211686c5e4ff2b445ca00cab8258a.raw",
-  "normalized_path": "/home/ubuntu/repos/Fixops/data/archive/demo/sbom/2025-12-09T134923.009621Z-aec211686c5e4ff2b445ca00cab8258a.json"
-}

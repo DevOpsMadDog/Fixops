@@ -98,8 +98,8 @@ class FlagConfigManager:
         sensible defaults if no feature_flags are specified.
 
         Args:
-            feature_flags: Feature flag values (defaults to demo config if None)
-            modules: Module enablement settings (merged with demo defaults if
+            feature_flags: Feature flag values (defaults to test config if None)
+            modules: Module enablement settings (merged with test defaults if
                      feature_flags is None)
             dest: Destination path
 
@@ -107,8 +107,8 @@ class FlagConfigManager:
             Path to created config file
         """
         if feature_flags is None:
-            # Use demo config defaults, but allow custom modules to override
-            return self.create_demo_config(dest=dest, modules_override=modules)
+            # Use test config defaults, but allow custom modules to override
+            return self.create_test_config(dest=dest, modules_override=modules)
 
         return self.create_overlay_config(
             feature_flags=feature_flags,
@@ -116,17 +116,17 @@ class FlagConfigManager:
             dest=dest,
         )
 
-    def create_demo_config(
+    def create_test_config(
         self,
         dest: Optional[Path] = None,
         modules_override: Optional[dict[str, bool]] = None,
     ) -> Path:
         """
-        Create a demo overlay configuration.
+        Create a test overlay configuration.
 
         Args:
             dest: Destination path
-            modules_override: Optional module settings to override demo defaults
+            modules_override: Optional module settings to override test defaults
 
         Returns:
             Path to created config file

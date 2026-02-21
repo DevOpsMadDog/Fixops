@@ -1,0 +1,2456 @@
+from __future__ import annotations
+
+import csv
+import hashlib
+import importlib.util
+import io
+import json
+import logging
+import os
+import secrets
+import shutil
+import uuid
+from contextlib import suppress
+from datetime import datetime, timedelta
+from pathlib import Path
+from tempfile import SpooledTemporaryFile
+from types import SimpleNamespace
+from typing import Any, Dict, List, Mapping, Optional, Tuple
+
+import jwt
+from apps.api.analytics_router import router as analytics_router
+from apps.api.audit_router import router as audit_router
+from apps.api.auth_router import router as auth_router
+from apps.api.bulk_router import router as bulk_router
+from apps.api.collaboration_router import router as collaboration_router
+from apps.api.inventory_router import router as inventory_router
+from apps.api.policies_router import router as policies_router
+from apps.api.remediation_router import router as remediation_router
+from apps.api.reports_router import router as reports_router
+from apps.api.teams_router import router as teams_router
+from apps.api.users_router import router as users_router
+from apps.api.workflows_router import router as workflows_router
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    FastAPI,
+    File,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+)
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import APIKeyHeader
+
+# Validation router - compatibility checking for security tool outputs
+validation_router: Optional[APIRouter] = None
+try:
+    from apps.api.validation_router import router as validation_router
+except ImportError:
+    logging.getLogger(__name__).warning("Validation router not available")
+
+
+# Enterprise reachability analysis
+reachability_router: Optional[APIRouter] = None
+try:
+    from risk.reachability.api import router as reachability_router
+except ImportError:
+    logging.getLogger(__name__).warning("Reachability analysis API not available")
+
+# ---------------------------------------------------------------------------
+# Suite-Attack routers (offensive security — from suite-attack/api/)
+# ---------------------------------------------------------------------------
+_logger = logging.getLogger(__name__)
+
+mpte_router: Optional[APIRouter] = None
+try:
+    from api.mpte_router import router as mpte_router
+
+    _logger.info("Loaded MPTE (MPTE Enhanced) router from suite-attack")
+except ImportError as e:
+    _logger.warning("MPTE router not available: %s", e)
+
+micro_pentest_router: Optional[APIRouter] = None
+try:
+    from api.micro_pentest_router import router as micro_pentest_router
+
+    _logger.info("Loaded Micro Pentest router from suite-attack")
+except ImportError as e:
+    _logger.warning("Micro Pentest router not available: %s", e)
+
+vuln_discovery_router: Optional[APIRouter] = None
+try:
+    from api.vuln_discovery_router import router as vuln_discovery_router
+
+    _logger.info("Loaded Vulnerability Discovery router from suite-attack")
+except ImportError as e:
+    _logger.warning("Vulnerability Discovery router not available: %s", e)
+
+pentagi_router: Optional[APIRouter] = None
+try:
+    from api.pentagi_router import router as pentagi_router
+
+    _logger.info("Loaded PentAGI unified router from suite-attack")
+except ImportError as e:
+    _logger.warning("PentAGI router not available: %s", e)
+
+secrets_router: Optional[APIRouter] = None
+try:
+    from api.secrets_router import router as secrets_router
+
+    _logger.info("Loaded Secrets Scanner router from suite-attack")
+except ImportError as e:
+    _logger.warning("Secrets Scanner router not available: %s", e)
+
+# ---------------------------------------------------------------------------
+# Suite-Feeds router (real-time vulnerability intelligence — from suite-feeds/api/)
+# ---------------------------------------------------------------------------
+feeds_router: Optional[APIRouter] = None
+try:
+    from api.feeds_router import router as feeds_router
+
+    _logger.info("Loaded Feeds router from suite-feeds")
+except ImportError as e:
+    _logger.warning("Feeds router not available: %s", e)
+
+# Enterprise marketplace router
+marketplace_router: Optional[APIRouter] = None
+try:
+    from apps.api.marketplace_router import router as marketplace_router
+
+    logging.getLogger(__name__).info("Loaded enterprise marketplace router")
+except ImportError as e:
+    logging.getLogger(__name__).warning(
+        f"Enterprise marketplace router not available: {e}"
+    )
+
+# ---------------------------------------------------------------------------
+# Suite-Core routers (intelligence, brain, ML — from suite-core/api/)
+# ---------------------------------------------------------------------------
+nerve_center_router: Optional[APIRouter] = None
+try:
+    from api.nerve_center import router as nerve_center_router
+
+    _logger.info("Loaded Nerve Center router from suite-core")
+except ImportError as e:
+    _logger.warning("Nerve Center router not available: %s", e)
+
+decisions_router: Optional[APIRouter] = None
+try:
+    from api.decisions import router as decisions_router
+
+    _logger.info("Loaded Decisions router from suite-core")
+except ImportError as e:
+    _logger.warning("Decisions router not available: %s", e)
+
+deduplication_router: Optional[APIRouter] = None
+try:
+    from api.deduplication_router import router as deduplication_router
+
+    _logger.info("Loaded Deduplication router from suite-core")
+except ImportError as e:
+    _logger.warning("Deduplication router not available: %s", e)
+
+ml_router: Optional[APIRouter] = None
+try:
+    from api.mindsdb_router import router as ml_router
+
+    _logger.info("Loaded ML/MindsDB router from suite-core")
+except ImportError as e:
+    _logger.warning("ML/MindsDB router not available: %s", e)
+
+autofix_router: Optional[APIRouter] = None
+try:
+    from api.autofix_router import router as autofix_router
+
+    _logger.info("Loaded AutoFix router from suite-core")
+except ImportError as e:
+    _logger.warning("AutoFix router not available: %s", e)
+
+fuzzy_identity_router: Optional[APIRouter] = None
+try:
+    from api.fuzzy_identity_router import router as fuzzy_identity_router
+
+    _logger.info("Loaded Fuzzy Identity router from suite-core")
+except ImportError as e:
+    _logger.warning("Fuzzy Identity router not available: %s", e)
+
+exposure_case_router: Optional[APIRouter] = None
+try:
+    from api.exposure_case_router import router as exposure_case_router
+
+    _logger.info("Loaded Exposure Case router from suite-core")
+except ImportError as e:
+    _logger.warning("Exposure Case router not available: %s", e)
+
+pipeline_router: Optional[APIRouter] = None
+try:
+    from api.pipeline_router import router as pipeline_router
+
+    _logger.info("Loaded Pipeline router from suite-core")
+except ImportError as e:
+    _logger.warning("Pipeline router not available: %s", e)
+
+copilot_router: Optional[APIRouter] = None
+try:
+    from api.copilot_router import router as copilot_router
+
+    _logger.info("Loaded Copilot router from suite-core")
+except ImportError as e:
+    _logger.warning("Copilot router not available: %s", e)
+
+agents_router: Optional[APIRouter] = None
+try:
+    from api.agents_router import router as agents_router
+
+    _logger.info("Loaded Agents router from suite-core")
+except ImportError as e:
+    _logger.warning("Agents router not available: %s", e)
+
+predictions_router: Optional[APIRouter] = None
+try:
+    from api.predictions_router import router as predictions_router
+
+    _logger.info("Loaded Predictions router from suite-core")
+except ImportError as e:
+    _logger.warning("Predictions router not available: %s", e)
+
+llm_router: Optional[APIRouter] = None
+try:
+    from api.llm_router import router as llm_router
+
+    _logger.info("Loaded LLM router from suite-core")
+except ImportError as e:
+    _logger.warning("LLM router not available: %s", e)
+
+algorithmic_router: Optional[APIRouter] = None
+try:
+    from api.algorithmic_router import router as algorithmic_router
+
+    _logger.info("Loaded Algorithmic router from suite-core")
+except ImportError as e:
+    _logger.warning("Algorithmic router not available: %s", e)
+
+intelligent_engine_router: Optional[APIRouter] = None
+try:
+    from api.intelligent_engine_routes import router as intelligent_engine_router
+
+    _logger.info("Loaded Intelligent Engine router from suite-core")
+except ImportError as e:
+    _logger.warning("Intelligent Engine router not available: %s", e)
+
+llm_monitor_router: Optional[APIRouter] = None
+try:
+    from api.llm_monitor_router import router as llm_monitor_router
+
+    _logger.info("Loaded LLM Monitor router from suite-core")
+except ImportError as e:
+    _logger.warning("LLM Monitor router not available: %s", e)
+
+streaming_router: Optional[APIRouter] = None
+try:
+    from api.streaming_router import router as streaming_router
+
+    _logger.info("Loaded Streaming/SSE router from suite-core")
+except ImportError as e:
+    _logger.warning("Streaming/SSE router not available: %s", e)
+
+code_to_cloud_router: Optional[APIRouter] = None
+try:
+    from api.code_to_cloud_router import router as code_to_cloud_router
+
+    _logger.info("Loaded Code-to-Cloud router from suite-core")
+except ImportError as e:
+    _logger.warning("Code-to-Cloud router not available: %s", e)
+
+# ---------------------------------------------------------------------------
+# Suite-Attack routers (additional offensive security — from suite-attack/api/)
+# ---------------------------------------------------------------------------
+attack_sim_router: Optional[APIRouter] = None
+try:
+    from api.attack_sim_router import router as attack_sim_router
+
+    _logger.info("Loaded Attack Simulation router from suite-attack")
+except ImportError as e:
+    _logger.warning("Attack Simulation router not available: %s", e)
+
+sast_router: Optional[APIRouter] = None
+try:
+    from api.sast_router import router as sast_router
+
+    _logger.info("Loaded SAST router from suite-attack")
+except ImportError as e:
+    _logger.warning("SAST router not available: %s", e)
+
+container_router: Optional[APIRouter] = None
+try:
+    from api.container_router import router as container_router
+
+    _logger.info("Loaded Container Security router from suite-attack")
+except ImportError as e:
+    _logger.warning("Container Security router not available: %s", e)
+
+dast_router: Optional[APIRouter] = None
+try:
+    from api.dast_router import router as dast_router
+
+    _logger.info("Loaded DAST router from suite-attack")
+except ImportError as e:
+    _logger.warning("DAST router not available: %s", e)
+
+cspm_router: Optional[APIRouter] = None
+try:
+    from api.cspm_router import router as cspm_router
+
+    _logger.info("Loaded CSPM router from suite-attack")
+except ImportError as e:
+    _logger.warning("CSPM router not available: %s", e)
+
+api_fuzzer_router: Optional[APIRouter] = None
+try:
+    from api.api_fuzzer_router import router as api_fuzzer_router
+
+    _logger.info("Loaded API Fuzzer router from suite-attack")
+except ImportError as e:
+    _logger.warning("API Fuzzer router not available: %s", e)
+
+malware_router: Optional[APIRouter] = None
+try:
+    from api.malware_router import router as malware_router
+
+    _logger.info("Loaded Malware Analysis router from suite-attack")
+except ImportError as e:
+    _logger.warning("Malware Analysis router not available: %s", e)
+
+# ---------------------------------------------------------------------------
+# Suite-Evidence-Risk routers (compliance, risk, evidence — from suite-evidence-risk/api/)
+# ---------------------------------------------------------------------------
+evidence_router: Optional[APIRouter] = None
+try:
+    from api.evidence_router import router as evidence_router
+
+    _logger.info("Loaded Evidence router from suite-evidence-risk")
+except ImportError as e:
+    _logger.warning("Evidence router not available: %s", e)
+
+risk_router_ext: Optional[APIRouter] = None
+try:
+    from api.risk_router import router as risk_router_ext
+
+    _logger.info("Loaded Risk router from suite-evidence-risk")
+except ImportError as e:
+    _logger.warning("Risk router not available: %s", e)
+
+graph_router: Optional[APIRouter] = None
+try:
+    from api.graph_router import router as graph_router
+
+    _logger.info("Loaded Graph router from suite-evidence-risk")
+except ImportError as e:
+    _logger.warning("Graph router not available: %s", e)
+
+provenance_router: Optional[APIRouter] = None
+try:
+    from api.provenance_router import router as provenance_router
+
+    _logger.info("Loaded Provenance router from suite-evidence-risk")
+except ImportError as e:
+    _logger.warning("Provenance router not available: %s", e)
+
+biz_ctx_router: Optional[APIRouter] = None
+try:
+    from api.business_context import router as biz_ctx_router
+
+    _logger.info("Loaded Business Context router from suite-evidence-risk")
+except ImportError as e:
+    _logger.warning("Business Context router not available: %s", e)
+
+biz_ctx_enhanced_router: Optional[APIRouter] = None
+try:
+    from api.business_context_enhanced import router as biz_ctx_enhanced_router
+
+    _logger.info("Loaded Business Context Enhanced router from suite-evidence-risk")
+except ImportError as e:
+    _logger.warning("Business Context Enhanced router not available: %s", e)
+
+# ---------------------------------------------------------------------------
+# Suite-Integrations routers (external tools — from suite-integrations/api/)
+# ---------------------------------------------------------------------------
+integrations_router_ext: Optional[APIRouter] = None
+try:
+    from api.integrations_router import router as integrations_router_ext
+
+    _logger.info("Loaded Integrations router from suite-integrations")
+except ImportError as e:
+    _logger.warning("Integrations router not available: %s", e)
+
+webhooks_router: Optional[APIRouter] = None
+webhooks_receiver_router: Optional[APIRouter] = None
+try:
+    from api.webhooks_router import receiver_router as webhooks_receiver_router
+    from api.webhooks_router import router as webhooks_router
+
+    _logger.info("Loaded Webhooks routers from suite-integrations")
+except ImportError as e:
+    _logger.warning("Webhooks routers not available: %s", e)
+
+iac_router: Optional[APIRouter] = None
+try:
+    from api.iac_router import router as iac_router
+
+    _logger.info("Loaded IaC router from suite-integrations")
+except ImportError as e:
+    _logger.warning("IaC router not available: %s", e)
+
+ide_router: Optional[APIRouter] = None
+try:
+    from api.ide_router import router as ide_router
+
+    _logger.info("Loaded IDE router from suite-integrations")
+except ImportError as e:
+    _logger.warning("IDE router not available: %s", e)
+
+oss_tools_router: Optional[APIRouter] = None
+try:
+    from api.oss_tools import router as oss_tools_router
+
+    _logger.info("Loaded OSS Tools router from suite-integrations")
+except ImportError as e:
+    _logger.warning("OSS Tools router not available: %s", e)
+
+mcp_router: Optional[APIRouter] = None
+try:
+    from api.mcp_router import router as mcp_router
+
+    _logger.info("Loaded MCP router from suite-integrations")
+except ImportError as e:
+    _logger.warning("MCP router not available: %s", e)
+
+from core.analytics import AnalyticsStore
+from core.configuration import OverlayConfig, load_overlay
+from core.enhanced_decision import EnhancedDecisionEngine
+from core.feedback import FeedbackRecorder
+from core.flags.provider_factory import create_flag_provider
+from core.paths import ensure_secure_directory, verify_allowlisted_path
+from core.storage import ArtefactArchive
+from telemetry import configure as configure_telemetry
+
+if importlib.util.find_spec("opentelemetry.instrumentation.fastapi"):
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+else:  # pragma: no cover - fallback when instrumentation is unavailable
+    from telemetry.fastapi_noop import FastAPIInstrumentor  # type: ignore[assignment]
+
+from .middleware import CorrelationIdMiddleware, RequestLoggingMiddleware
+
+# ML Learning Middleware — captures all API traffic for anomaly detection & threat scoring
+try:
+    from core.learning_middleware import LearningMiddleware
+except ImportError:
+    LearningMiddleware = None  # type: ignore[assignment,misc]
+from .normalizers import (
+    InputNormalizer,
+    NormalizedBusinessContext,
+    NormalizedCNAPP,
+    NormalizedCVEFeed,
+    NormalizedSARIF,
+    NormalizedSBOM,
+    NormalizedVEX,
+)
+from .pipeline import PipelineOrchestrator
+from .routes.enhanced import router as enhanced_router
+from .upload_manager import ChunkUploadManager
+
+logger = logging.getLogger(__name__)
+
+JWT_ALGORITHM = "HS256"
+JWT_EXP_MINUTES = int(os.getenv("FIXOPS_JWT_EXP_MINUTES", "120"))
+_JWT_SECRET_FILE = Path(os.getenv("FIXOPS_DATA_DIR", ".fixops_data")) / ".jwt_secret"
+
+
+def _load_or_generate_jwt_secret() -> str:
+    """
+    Load JWT secret from environment or generate an ephemeral one for local dev.
+
+    Priority:
+    1. FIXOPS_JWT_SECRET environment variable (required for production)
+    2. Generate ephemeral secret for local development (tokens won't survive restarts)
+
+    Returns:
+        str: The JWT secret key
+    """
+    # Priority 1: Environment variable (required for production)
+    env_secret = os.getenv("FIXOPS_JWT_SECRET")
+    if env_secret:
+        logger.info("Using JWT signing key from environment variable")
+        return env_secret
+
+    # Priority 2: Generate ephemeral secret for local development
+    # Note: We intentionally do NOT persist secrets to disk to avoid clear-text storage
+    secret = secrets.token_hex(32)
+    logger.warning(
+        "FIXOPS_JWT_SECRET not set — generated ephemeral JWT signing key. "
+        "Tokens will be invalid after restart. "
+        "For production, set FIXOPS_JWT_SECRET environment variable."
+    )
+    return secret
+
+
+JWT_SECRET = _load_or_generate_jwt_secret()
+
+
+def generate_access_token(data: Dict[str, Any]) -> str:
+    """Generate a signed JWT access token with an expiry."""
+
+    exp = datetime.utcnow() + timedelta(minutes=JWT_EXP_MINUTES)
+    payload = {**data, "exp": exp}
+    token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return token
+
+
+def decode_access_token(token: str) -> Dict[str, Any]:
+    """Decode and validate a JWT access token."""
+
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except jwt.ExpiredSignatureError as exc:  # pragma: no cover - depends on wall clock
+        raise HTTPException(status_code=401, detail="Token expired") from exc
+    except jwt.InvalidTokenError as exc:
+        raise HTTPException(status_code=401, detail="Invalid token") from exc
+    return payload
+
+
+def create_app() -> FastAPI:
+    """Create and configure FastAPI application."""
+    """Create the FastAPI application with file-upload ingestion endpoints."""
+
+    # Honour FIXOPS_MODE env-var so the overlay config file's "mode: enterprise"
+    # can be overridden at runtime (e.g. FIXOPS_MODE=enterprise).
+    _mode_env = os.getenv("FIXOPS_MODE", "").strip() or None
+    try:
+        overlay = load_overlay(
+            allow_ephemeral_token_fallback=False,
+            mode_override=_mode_env,
+        )
+    except TypeError:
+        overlay = load_overlay()
+
+    flag_provider = create_flag_provider(overlay.raw_config)
+
+    branding = flag_provider.json(
+        "fixops.branding",
+        default={
+            "product_name": "FixOps",
+            "short_name": "FixOps",
+            "org_name": "FixOps",
+            "telemetry_namespace": "fixops",
+        },
+    )
+
+    configure_telemetry(service_name=f"{branding['telemetry_namespace']}-api")
+
+    # Health router with /api/v1 prefix
+    from apps.api.health import router as health_v1_router
+
+    app = FastAPI(
+        title=f"{branding['product_name']} Enterprise API",
+        description=f"Security decision engine by {branding['org_name']}",
+        version="0.1.0",
+    )
+    FastAPIInstrumentor.instrument_app(app)
+    if not hasattr(app, "state"):
+        app.state = SimpleNamespace()  # type: ignore[assignment]
+
+    app.state.branding = branding
+    app.state.flag_provider = flag_provider
+
+    app.add_middleware(CorrelationIdMiddleware)
+
+    app.add_middleware(RequestLoggingMiddleware)
+
+    # Detailed Logging Middleware — captures full request/response payloads
+    try:
+        from apps.api.detailed_logging import DetailedLoggingMiddleware
+
+        app.add_middleware(DetailedLoggingMiddleware)
+        logger.info("DetailedLoggingMiddleware enabled — full payload capture active")
+    except Exception as _dl_err:
+        logger.warning("DetailedLoggingMiddleware not available: %s", _dl_err)
+
+    # ML Learning Middleware — must be added after logging middleware (outer → inner)
+    if LearningMiddleware is not None:
+        app.add_middleware(LearningMiddleware)
+        logger.info("LearningMiddleware enabled — API traffic will be captured for ML")
+
+    @app.middleware("http")
+    async def add_product_header(request, call_next):
+        """Add X-Product-Name header to all responses."""
+        response = await call_next(request)
+        response.headers["X-Product-Name"] = branding["product_name"]
+        response.headers["X-Product-Version"] = "0.1.0"
+        return response
+
+    origins_env = os.getenv("FIXOPS_ALLOWED_ORIGINS", "")
+    origins = [origin.strip() for origin in origins_env.split(",") if origin.strip()]
+    if not origins:
+        origins = [
+            "http://localhost:3000",
+            "http://localhost:3001",  # Vite dev server (ui/aldeci) - alternate port
+            "http://localhost:5173",  # Vite dev server (ui/aldeci)
+            "http://localhost:8000",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:3001",  # Vite dev server (ui/aldeci) - alternate port
+            "http://127.0.0.1:5173",  # Vite dev server (ui/aldeci)
+            "http://127.0.0.1:8000",
+            "https://*.devinapps.com",
+        ]
+        logger.warning(
+            "FIXOPS_ALLOWED_ORIGINS not set. "
+            "Using default localhost origins. "
+            "Set FIXOPS_ALLOWED_ORIGINS for production deployments."
+        )
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    normalizer = InputNormalizer()
+    orchestrator = PipelineOrchestrator()
+
+    # API authentication setup
+    auth_strategy = overlay.auth.get("strategy", "").lower()
+    header_name = overlay.auth.get(
+        "header", "X-API-Key" if auth_strategy != "jwt" else "Authorization"
+    )
+    api_key_header = APIKeyHeader(name=header_name, auto_error=False)
+    expected_tokens = overlay.auth_tokens if auth_strategy == "token" else tuple()
+
+    async def _verify_api_key(
+        request: Request,
+        api_key: Optional[str] = Depends(api_key_header),
+    ) -> None:
+        # Also accept token via ?api_key= query parameter (for browser-opened
+        # URLs like report view/download where headers cannot be sent).
+        if not api_key:
+            api_key = request.query_params.get("api_key")
+        if auth_strategy == "token":
+            if not api_key or api_key not in expected_tokens:
+                raise HTTPException(
+                    status_code=401, detail="Invalid or missing API token"
+                )
+            return
+        if auth_strategy == "jwt":
+            if not api_key:
+                raise HTTPException(
+                    status_code=401, detail="Missing Authorization header"
+                )
+            token = api_key
+            if token.lower().startswith("bearer "):
+                token = token[7:].strip()
+            decode_access_token(token)
+
+    allowlist = overlay.allowed_data_roots or (Path("data").resolve(),)
+    for directory in overlay.data_directories.values():
+        secure_path = verify_allowlisted_path(directory, allowlist)
+        ensure_secure_directory(secure_path)
+
+    archive_dir = overlay.data_directories.get("archive_dir")
+    if archive_dir is None:
+        root = allowlist[0]
+        root = verify_allowlisted_path(root, allowlist)
+        archive_dir = (root / "archive" / overlay.mode).resolve()
+    archive_dir = verify_allowlisted_path(archive_dir, allowlist)
+    archive = ArtefactArchive(archive_dir, allowlist=allowlist)
+
+    analytics_dir = overlay.data_directories.get("analytics_dir")
+    if analytics_dir is None:
+        root = allowlist[0]
+        root = verify_allowlisted_path(root, allowlist)
+        analytics_dir = (root / "analytics" / overlay.mode).resolve()
+    analytics_dir = verify_allowlisted_path(analytics_dir, allowlist)
+    analytics_store = AnalyticsStore(analytics_dir, allowlist=allowlist)
+
+    provenance_dir = overlay.data_directories.get("provenance_dir")
+    if provenance_dir is None:
+        root = allowlist[0]
+        root = verify_allowlisted_path(root, allowlist)
+        provenance_dir = (root / "artifacts" / "attestations" / overlay.mode).resolve()
+    provenance_dir = verify_allowlisted_path(provenance_dir, allowlist)
+    provenance_dir = ensure_secure_directory(provenance_dir)
+
+    risk_dir = overlay.data_directories.get("risk_dir")
+    if risk_dir is None:
+        root = allowlist[0]
+        root = verify_allowlisted_path(root, allowlist)
+        risk_dir = (root / "artifacts").resolve()
+    risk_dir = verify_allowlisted_path(risk_dir, allowlist)
+    risk_dir = ensure_secure_directory(risk_dir)
+
+    app.state.normalizer = normalizer
+    app.state.orchestrator = orchestrator
+    app.state.artifacts: Dict[str, Any] = {}  # type: ignore[misc]
+    app.state.overlay = overlay
+    app.state.archive = archive
+    app.state.archive_records: Dict[str, Dict[str, Any]] = {}  # type: ignore[misc]
+    app.state.analytics_store = analytics_store
+    app.state.last_pipeline_result: Optional[Dict[str, Any]] = None  # type: ignore[misc]
+    app.state.feedback = (
+        FeedbackRecorder(overlay, analytics_store=analytics_store)
+        if overlay.toggles.get("capture_feedback")
+        else None
+    )
+    app.state.enhanced_engine = EnhancedDecisionEngine(
+        overlay.enhanced_decision_settings
+    )
+    sbom_dir = overlay.data_directories.get("sbom_dir")
+    if sbom_dir is None:
+        root = allowlist[0]
+        root = verify_allowlisted_path(root, allowlist)
+        sbom_dir = (root / "artifacts" / "sbom").resolve()
+    sbom_dir = verify_allowlisted_path(sbom_dir, allowlist)
+    sbom_dir = ensure_secure_directory(sbom_dir)
+
+    graph_dir = overlay.data_directories.get("graph_dir")
+    if graph_dir is None:
+        root = allowlist[0]
+        root = verify_allowlisted_path(root, allowlist)
+        graph_dir = (root / "analysis").resolve()
+    graph_dir = verify_allowlisted_path(graph_dir, allowlist)
+    graph_dir = ensure_secure_directory(graph_dir)
+
+    evidence_dir = overlay.data_directories.get("evidence_dir")
+    if evidence_dir is None:
+        root = allowlist[0]
+        root = verify_allowlisted_path(root, allowlist)
+        evidence_dir = (root / "evidence").resolve()
+    evidence_dir = verify_allowlisted_path(evidence_dir, allowlist)
+    evidence_dir = ensure_secure_directory(evidence_dir)
+    evidence_manifest_dir = ensure_secure_directory(evidence_dir / "manifests")
+    evidence_bundle_dir = ensure_secure_directory(evidence_dir / "bundles")
+
+    app.state.provenance_dir = provenance_dir
+    app.state.risk_dir = risk_dir
+    app.state.sbom_dir = sbom_dir
+    app.state.graph_config = {
+        "repo_path": Path(".").resolve(),
+        "attestation_dir": provenance_dir,
+        "sbom_dir": sbom_dir,
+        "risk_dir": risk_dir,
+        "releases_path": graph_dir / "releases.json",
+    }
+    app.state.evidence_manifest_dir = evidence_manifest_dir
+    app.state.evidence_bundle_dir = evidence_bundle_dir
+    uploads_dir = overlay.data_directories.get("uploads_dir")
+    if uploads_dir is None:
+        root = allowlist[0]
+        uploads_dir = (root / "uploads" / overlay.mode).resolve()
+    uploads_dir = verify_allowlisted_path(uploads_dir, allowlist)
+    upload_manager = ChunkUploadManager(uploads_dir)
+    app.state.upload_manager = upload_manager
+
+    app.include_router(health_v1_router)  # Health endpoints with /api/v1 prefix
+
+    # Legacy /health endpoint — required by Dockerfile HEALTHCHECK and
+    # scripts/docker-entrypoint.sh readiness probes that poll /health directly.
+    @app.get("/health", tags=["health"])
+    def legacy_health_check() -> Dict[str, Any]:
+        """Legacy health endpoint for backward-compatible probes."""
+        return {
+            "status": "healthy",
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "service": "aldeci-api",
+        }
+
+    @app.get("/api/v1/status", dependencies=[Depends(_verify_api_key)])
+    async def authenticated_status() -> Dict[str, Any]:
+        """Authenticated status endpoint."""
+        return {
+            "status": "ok",
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "service": "fixops-api",
+            "version": os.getenv("FIXOPS_VERSION", "0.1.0"),
+        }
+
+    @app.get("/api/v1/search", dependencies=[Depends(_verify_api_key)])
+    async def global_search(
+        q: str = Query("", description="Search query")
+    ) -> Dict[str, Any]:
+        """Global search across findings, CVEs, assets, and more."""
+        from core.analytics import AnalyticsStore
+
+        db = AnalyticsStore()
+        results: list[Dict[str, Any]] = []
+        if q:
+            # Search findings
+            findings = db.list_findings(limit=500)
+            for f in findings:
+                fd = f.to_dict()
+                searchable = " ".join(str(v) for v in fd.values() if v).lower()
+                if q.lower() in searchable:
+                    results.append(
+                        {
+                            "type": "finding",
+                            "id": fd.get("id"),
+                            "title": fd.get("title", ""),
+                            "severity": fd.get("severity", ""),
+                            "match": "finding",
+                        }
+                    )
+                    if len(results) >= 50:
+                        break
+        return {"query": q, "results": results, "total": len(results)}
+
+    app.include_router(enhanced_router, dependencies=[Depends(_verify_api_key)])
+    # Enterprise reachability analysis API
+    if reachability_router:
+        app.include_router(reachability_router, dependencies=[Depends(_verify_api_key)])
+
+    app.include_router(inventory_router, dependencies=[Depends(_verify_api_key)])
+
+    app.include_router(users_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(teams_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(policies_router, dependencies=[Depends(_verify_api_key)])
+
+    app.include_router(analytics_router, dependencies=[Depends(_verify_api_key)])
+
+    app.include_router(reports_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(audit_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(workflows_router, dependencies=[Depends(_verify_api_key)])
+
+    app.include_router(auth_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(bulk_router, dependencies=[Depends(_verify_api_key)])
+
+    # Enterprise features - Remediation, Collaboration
+    app.include_router(remediation_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(collaboration_router, dependencies=[Depends(_verify_api_key)])
+
+    # Validation router - compatibility checking for security tool outputs
+    if validation_router:
+        app.include_router(validation_router, dependencies=[Depends(_verify_api_key)])
+
+    # Enterprise marketplace API
+    if marketplace_router:
+        app.include_router(
+            marketplace_router,
+            prefix="/api/v1/marketplace",
+            dependencies=[Depends(_verify_api_key)],
+        )
+
+    # Suite-Attack routers (offensive security)
+    for _r, _name in [
+        (mpte_router, "MPTE"),
+        (micro_pentest_router, "Micro Pentest"),
+        (vuln_discovery_router, "Vulnerability Discovery"),
+        (pentagi_router, "PentAGI"),
+        (secrets_router, "Secrets Scanner"),
+    ]:
+        if _r:
+            app.include_router(_r, dependencies=[Depends(_verify_api_key)])
+
+    # Suite-Feeds router (real-time vulnerability intelligence)
+    if feeds_router:
+        app.include_router(feeds_router, dependencies=[Depends(_verify_api_key)])
+
+    # Knowledge Brain router (central intelligence graph — from suite-core/api/)
+    try:
+        from api.brain_router import router as brain_router
+
+        app.include_router(brain_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Loaded Knowledge Brain router from suite-core")
+    except ImportError as e:
+        _logger.warning("Knowledge Brain router not available: %s", e)
+
+    # -------------------------------------------------------------------
+    # Suite-Core routers (intelligence, ML, copilot, pipeline)
+    # -------------------------------------------------------------------
+    _core_routers = [
+        (nerve_center_router, "Nerve Center", None),
+        (decisions_router, "Decisions", "/api/v1"),
+        (deduplication_router, "Deduplication", None),
+        (ml_router, "ML/MindsDB", None),
+        (autofix_router, "AutoFix", None),
+        (fuzzy_identity_router, "Fuzzy Identity", None),
+        (exposure_case_router, "Exposure Case", None),
+        (pipeline_router, "Pipeline", None),
+        (copilot_router, "Copilot", None),
+        (agents_router, "Agents", None),
+        (predictions_router, "Predictions", None),
+        (llm_router, "LLM", None),
+        (algorithmic_router, "Algorithmic", None),
+        (intelligent_engine_router, "Intelligent Engine", "/api/v1"),
+        (llm_monitor_router, "LLM Monitor", None),
+        (code_to_cloud_router, "Code-to-Cloud", None),
+        (streaming_router, "SSE Streaming", None),
+    ]
+    for _r, _name, _prefix in _core_routers:
+        if _r:
+            kwargs: Dict[str, Any] = {"dependencies": [Depends(_verify_api_key)]}
+            if _prefix:
+                kwargs["prefix"] = _prefix
+            app.include_router(_r, **kwargs)
+            _logger.info("Mounted %s router from suite-core", _name)
+
+    # -------------------------------------------------------------------
+    # Suite-Attack routers (additional offensive security engines)
+    # -------------------------------------------------------------------
+    _attack_extra_routers = [
+        (attack_sim_router, "Attack Simulation"),
+        (sast_router, "SAST"),
+        (container_router, "Container Security"),
+        (dast_router, "DAST"),
+        (cspm_router, "CSPM"),
+        (api_fuzzer_router, "API Fuzzer"),
+        (malware_router, "Malware Analysis"),
+    ]
+    for _r, _name in _attack_extra_routers:
+        if _r:
+            app.include_router(_r, dependencies=[Depends(_verify_api_key)])
+            _logger.info("Mounted %s router from suite-attack", _name)
+
+    # -------------------------------------------------------------------
+    # Suite-Evidence-Risk routers (compliance, risk, evidence, graph)
+    # -------------------------------------------------------------------
+    _evidence_routers = [
+        (evidence_router, "Evidence", "/api/v1"),
+        (risk_router_ext, "Risk", "/api/v1"),
+        (graph_router, "Graph", "/api/v1"),
+        (provenance_router, "Provenance", "/api/v1"),
+        (biz_ctx_router, "Business Context", "/api/v1"),
+        (biz_ctx_enhanced_router, "Business Context Enhanced", "/api/v1"),
+    ]
+    for _r, _name, _prefix in _evidence_routers:
+        if _r:
+            app.include_router(
+                _r, prefix=_prefix, dependencies=[Depends(_verify_api_key)]
+            )
+            _logger.info("Mounted %s router from suite-evidence-risk", _name)
+
+    # -------------------------------------------------------------------
+    # Suite-Integrations routers (external tools, webhooks, IaC, IDE)
+    # -------------------------------------------------------------------
+    _integration_routers = [
+        (integrations_router_ext, "Integrations"),
+        (webhooks_router, "Webhooks"),
+        (iac_router, "IaC"),
+        (ide_router, "IDE"),
+        (mcp_router, "MCP"),
+    ]
+    for _r, _name in _integration_routers:
+        if _r:
+            app.include_router(_r, dependencies=[Depends(_verify_api_key)])
+            _logger.info("Mounted %s router from suite-integrations", _name)
+
+    # Webhooks receiver — no API key auth (uses signature verification)
+    if webhooks_receiver_router:
+        app.include_router(webhooks_receiver_router)
+        _logger.info("Mounted Webhooks Receiver router (no API key auth)")
+
+    # OSS Tools — needs /api/v1 prefix normalization
+    if oss_tools_router:
+        app.include_router(
+            oss_tools_router, prefix="/api/v1", dependencies=[Depends(_verify_api_key)]
+        )
+        _logger.info("Mounted OSS Tools router from suite-integrations")
+
+    # Detailed Logging REST API — query/stream/clear logs
+    try:
+        from apps.api.detailed_logging import logs_router as detailed_logs_router
+
+        app.include_router(
+            detailed_logs_router,
+            prefix="/api/v1",
+            dependencies=[Depends(_verify_api_key)],
+        )
+        _logger.info("Mounted Detailed Logs router at /api/v1/logs")
+    except Exception as _lr_err:
+        _logger.warning("Detailed Logs router not available: %s", _lr_err)
+
+    _CHUNK_SIZE = 1024 * 1024
+    _RAW_BYTES_THRESHOLD = 4 * 1024 * 1024
+
+    async def _read_limited(
+        file: UploadFile, stage: str
+    ) -> Tuple[SpooledTemporaryFile, int]:
+        """Stream an upload into a spooled file respecting the configured limit."""
+
+        limit = overlay.upload_limit(stage)
+        total = 0
+        try:
+            buffer = SpooledTemporaryFile(max_size=_CHUNK_SIZE, mode="w+b")
+            while total < limit:
+                remaining = limit - total
+                chunk = await file.read(min(_CHUNK_SIZE, remaining))
+                if not chunk:
+                    break
+                if total + len(chunk) > limit:
+                    buffer.close()
+                    raise HTTPException(
+                        status_code=413,
+                        detail={
+                            "message": f"Upload for stage '{stage}' exceeded limit",
+                            "max_bytes": limit,
+                            "received_bytes": total + len(chunk),
+                        },
+                    )
+                buffer.write(chunk)
+                total += len(chunk)
+        except HTTPException:
+            raise
+        except Exception:
+            buffer.close()
+            raise
+        buffer.seek(0)
+        return buffer, total
+
+    def _maybe_materialise_raw(
+        buffer: SpooledTemporaryFile,
+        total: int,
+        *,
+        threshold: int = _RAW_BYTES_THRESHOLD,
+    ) -> Optional[bytes]:
+        if total > threshold:
+            return None
+        buffer.seek(0)
+        data = buffer.read()
+        buffer.seek(0)
+        return data
+
+    def _validate_content_type(file: UploadFile, expected: tuple[str, ...]) -> None:
+        if file.content_type and file.content_type not in expected:
+            raise HTTPException(
+                status_code=415,
+                detail={
+                    "message": "Unsupported content type",
+                    "received": file.content_type,
+                    "expected": list(expected),
+                },
+            )
+
+    def _store(
+        stage: str,
+        payload: Any,
+        *,
+        original_filename: Optional[str] = None,
+        raw_bytes: Optional[bytes] = None,
+    ) -> None:
+        logger.debug("Storing stage %s", stage)
+        app.state.artifacts[stage] = payload
+        try:
+            record = app.state.archive.persist(
+                stage,
+                payload,
+                original_filename=original_filename,
+                raw_bytes=raw_bytes,
+            )
+        except (
+            Exception
+        ) as exc:  # pragma: no cover - persistence must not break ingestion
+            logger.exception("Failed to persist artefact stage %s", stage)
+            record = {"stage": stage, "error": str(exc)}
+        app.state.archive_records[stage] = record
+
+    supported_stages = {
+        "design",
+        "sbom",
+        "sarif",
+        "cve",
+        "vex",
+        "cnapp",
+        "context",
+    }
+
+    def _process_design(
+        buffer: SpooledTemporaryFile, total: int, filename: str
+    ) -> Dict[str, Any]:
+        text_stream = io.TextIOWrapper(
+            buffer, encoding="utf-8", errors="ignore", newline=""  # type: ignore[arg-type]
+        )
+        try:
+            reader = csv.DictReader(text_stream)
+            rows = [
+                row
+                for row in reader
+                if any((value or "").strip() for value in row.values())
+            ]
+            columns = reader.fieldnames or []
+        finally:
+            buffer = text_stream.detach()  # type: ignore[assignment]
+        if not rows:
+            raise HTTPException(status_code=400, detail="Design CSV contained no rows")
+
+        overlay: OverlayConfig = app.state.overlay
+        strict_validation = overlay.toggles.get("strict_validation", False)
+
+        if strict_validation:
+            required_columns = {
+                "component",
+                "subcomponent",
+                "owner",
+                "data_class",
+                "description",
+                "control_scope",
+            }
+            missing_columns = required_columns - set(columns)
+            if missing_columns:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "message": "Design CSV missing required columns (strict mode)",
+                        "missing_columns": sorted(missing_columns),
+                        "required_columns": sorted(required_columns),
+                    },
+                )
+
+        dataset = {"columns": columns, "rows": rows}
+        raw_bytes = _maybe_materialise_raw(buffer, total)
+        _store("design", dataset, original_filename=filename, raw_bytes=raw_bytes)
+        return {
+            "status": "ok",
+            "stage": "design",
+            "input_filename": filename,
+            "row_count": len(rows),
+            "columns": columns,
+            "data": dataset,
+        }
+
+    def _process_sbom(
+        buffer: SpooledTemporaryFile, total: int, filename: str
+    ) -> Dict[str, Any]:
+        buffer.seek(0)
+        try:
+            sbom_data = json.load(buffer)
+        except json.JSONDecodeError as exc:
+            raise HTTPException(
+                status_code=400, detail=f"Invalid JSON in SBOM: {exc}"
+            ) from exc
+
+        overlay: OverlayConfig = app.state.overlay
+        strict_validation = overlay.toggles.get("strict_validation", False)
+
+        bom_format = sbom_data.get("bomFormat")
+        if bom_format and bom_format not in ("CycloneDX", "SPDX"):
+            if strict_validation:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "message": f"Unsupported SBOM format: {bom_format}",
+                        "supported_formats": ["CycloneDX", "SPDX"],
+                    },
+                )
+            else:
+                logger.warning(
+                    "SBOM has unsupported bomFormat: %s, continuing with provider fallback",
+                    bom_format,
+                )
+
+        if not bom_format:
+            components = sbom_data.get("components")
+            detected_manifests = sbom_data.get("detectedManifests")
+            artifacts = sbom_data.get("artifacts")
+            descriptor = sbom_data.get("descriptor")
+
+            has_known_format = (
+                isinstance(components, list)
+                or isinstance(detected_manifests, dict)
+                or isinstance(artifacts, list)
+                or isinstance(descriptor, dict)
+            )
+
+            if not has_known_format and strict_validation:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "message": "SBOM missing bomFormat and has unrecognized structure",
+                        "hint": "Provide bomFormat field or use a known format (CycloneDX, GitHub dependency snapshot, Syft)",
+                    },
+                )
+
+        buffer.seek(0)
+        try:
+            sbom: NormalizedSBOM = normalizer.load_sbom(buffer)
+        except Exception as exc:
+            logger.exception("SBOM normalisation failed")
+            raise HTTPException(
+                status_code=400, detail=f"Failed to parse SBOM: {exc}"
+            ) from exc
+        raw_bytes = _maybe_materialise_raw(buffer, total)
+        _store("sbom", sbom, original_filename=filename, raw_bytes=raw_bytes)
+        return {
+            "status": "ok",
+            "stage": "sbom",
+            "input_filename": filename,
+            "metadata": sbom.metadata,
+            "component_preview": [
+                component.to_dict() for component in sbom.components[:5]
+            ],
+            "format": sbom.format,
+        }
+
+    def _process_cve(
+        buffer: SpooledTemporaryFile, total: int, filename: str
+    ) -> Dict[str, Any]:
+        try:
+            cve_feed: NormalizedCVEFeed = normalizer.load_cve_feed(buffer)
+        except Exception as exc:
+            logger.exception("CVE feed normalisation failed")
+            raise HTTPException(
+                status_code=400, detail=f"Failed to parse CVE feed: {exc}"
+            ) from exc
+
+        overlay: OverlayConfig = app.state.overlay
+        strict_validation = overlay.toggles.get("strict_validation", False)
+
+        if cve_feed.errors and strict_validation:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": "CVE feed contains validation errors (strict mode)",
+                    "record_count": cve_feed.metadata.get("record_count", 0),
+                    "validation_errors": cve_feed.errors[:10],
+                    "total_errors": len(cve_feed.errors),
+                    "hint": "Use official CVE JSON 5.1.1 format or ensure all required fields are present",
+                },
+            )
+
+        raw_bytes = _maybe_materialise_raw(buffer, total)
+        _store("cve", cve_feed, original_filename=filename, raw_bytes=raw_bytes)
+        return {
+            "status": "ok",
+            "stage": "cve",
+            "input_filename": filename,
+            "record_count": cve_feed.metadata.get("record_count", 0),
+            "validation_errors": cve_feed.errors,
+        }
+
+    def _process_vex(
+        buffer: SpooledTemporaryFile, total: int, filename: str
+    ) -> Dict[str, Any]:
+        try:
+            vex_doc: NormalizedVEX = normalizer.load_vex(buffer)
+        except Exception as exc:
+            logger.exception("VEX normalisation failed")
+            raise HTTPException(
+                status_code=400, detail=f"Failed to parse VEX document: {exc}"
+            ) from exc
+        raw_bytes = _maybe_materialise_raw(buffer, total)
+        _store("vex", vex_doc, original_filename=filename, raw_bytes=raw_bytes)
+        return {
+            "status": "ok",
+            "stage": "vex",
+            "input_filename": filename,
+            "assertions": vex_doc.metadata.get("assertion_count", 0),
+            "not_affected": len(vex_doc.suppressed_refs),
+        }
+
+    def _process_cnapp(
+        buffer: SpooledTemporaryFile, total: int, filename: str
+    ) -> Dict[str, Any]:
+        try:
+            cnapp_payload: NormalizedCNAPP = normalizer.load_cnapp(buffer)
+        except Exception as exc:
+            logger.exception("CNAPP normalisation failed")
+            raise HTTPException(
+                status_code=400, detail=f"Failed to parse CNAPP payload: {exc}"
+            ) from exc
+        raw_bytes = _maybe_materialise_raw(buffer, total)
+        _store("cnapp", cnapp_payload, original_filename=filename, raw_bytes=raw_bytes)
+        return {
+            "status": "ok",
+            "stage": "cnapp",
+            "input_filename": filename,
+            "asset_count": cnapp_payload.metadata.get(
+                "asset_count", len(cnapp_payload.assets)
+            ),
+            "finding_count": cnapp_payload.metadata.get(
+                "finding_count", len(cnapp_payload.findings)
+            ),
+        }
+
+    def _process_sarif(
+        buffer: SpooledTemporaryFile, total: int, filename: str
+    ) -> Dict[str, Any]:
+        try:
+            sarif: NormalizedSARIF = normalizer.load_sarif(buffer)
+        except Exception as exc:
+            logger.exception("SARIF normalisation failed")
+            raise HTTPException(
+                status_code=400, detail=f"Failed to parse SARIF: {exc}"
+            ) from exc
+        raw_bytes = _maybe_materialise_raw(buffer, total)
+        _store("sarif", sarif, original_filename=filename, raw_bytes=raw_bytes)
+        return {
+            "status": "ok",
+            "stage": "sarif",
+            "input_filename": filename,
+            "metadata": sarif.metadata,
+            "tools": sarif.tool_names,
+        }
+
+    def _process_context(
+        buffer: SpooledTemporaryFile,
+        total: int,
+        filename: str,
+        content_type: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        try:
+            context: NormalizedBusinessContext = normalizer.load_business_context(
+                buffer, content_type=content_type
+            )
+        except Exception as exc:
+            logger.exception("Business context normalisation failed")
+            raise HTTPException(
+                status_code=400, detail=f"Failed to parse business context: {exc}"
+            ) from exc
+        raw_bytes = _maybe_materialise_raw(buffer, total)
+        _store("context", context, original_filename=filename, raw_bytes=raw_bytes)
+        return {
+            "status": "ok",
+            "stage": "context",
+            "input_filename": filename,
+            "format": context.format,
+            "ssvc_factors": context.ssvc,
+            "components": context.components,
+        }
+
+    def _process_from_buffer(
+        stage: str,
+        buffer: SpooledTemporaryFile,
+        total: int,
+        filename: str,
+        content_type: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        if stage == "design":
+            return _process_design(buffer, total, filename)
+        if stage == "sbom":
+            return _process_sbom(buffer, total, filename)
+        if stage == "cve":
+            return _process_cve(buffer, total, filename)
+        if stage == "vex":
+            return _process_vex(buffer, total, filename)
+        if stage == "cnapp":
+            return _process_cnapp(buffer, total, filename)
+        if stage == "sarif":
+            return _process_sarif(buffer, total, filename)
+        if stage == "context":
+            return _process_context(buffer, total, filename, content_type)
+        raise HTTPException(status_code=400, detail=f"Unsupported stage '{stage}'")
+
+    def _process_from_path(
+        stage: str, path: Path, filename: str, content_type: Optional[str] = None
+    ) -> Dict[str, Any]:
+        buffer = SpooledTemporaryFile(max_size=_CHUNK_SIZE, mode="w+b")
+        try:
+            with path.open("rb") as handle:
+                shutil.copyfileobj(handle, buffer)  # type: ignore[misc]
+            total = buffer.tell()
+            buffer.seek(0)
+            return _process_from_buffer(stage, buffer, total, filename, content_type)
+        finally:
+            with suppress(Exception):
+                buffer.close()
+
+    @app.post("/inputs/design", dependencies=[Depends(_verify_api_key)])
+    async def ingest_design(file: UploadFile = File(...)) -> Dict[str, Any]:
+        _validate_content_type(
+            file, ("text/csv", "application/vnd.ms-excel", "application/csv")
+        )
+        buffer, total = await _read_limited(file, "design")
+        try:
+            return _process_design(buffer, total, file.filename or "design.csv")
+        finally:
+            with suppress(Exception):
+                buffer.close()
+
+    @app.post("/inputs/sbom", dependencies=[Depends(_verify_api_key)])
+    async def ingest_sbom(file: UploadFile = File(...)) -> Dict[str, Any]:
+        _validate_content_type(
+            file,
+            (
+                "application/json",
+                "text/json",
+                "application/zip",
+                "application/x-zip-compressed",
+                "application/gzip",
+            ),
+        )
+        buffer, total = await _read_limited(file, "sbom")
+        try:
+            # Validate JSON structure if content-type is JSON
+            if file.content_type in ("application/json", "text/json"):
+                buffer.seek(0)
+                try:
+                    json.load(buffer)
+                    buffer.seek(0)
+                except json.JSONDecodeError as exc:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=f"Invalid JSON payload: {exc}",
+                    ) from exc
+            return _process_sbom(buffer, total, file.filename or "sbom.json")
+        finally:
+            with suppress(Exception):
+                buffer.close()
+
+    @app.post("/inputs/cve", dependencies=[Depends(_verify_api_key)])
+    async def ingest_cve(file: UploadFile = File(...)) -> Dict[str, Any]:
+        _validate_content_type(
+            file,
+            (
+                "application/json",
+                "text/json",
+                "application/zip",
+                "application/x-zip-compressed",
+                "application/gzip",
+            ),
+        )
+        buffer, total = await _read_limited(file, "cve")
+        try:
+            return _process_cve(buffer, total, file.filename or "cve.json")
+        finally:
+            with suppress(Exception):
+                buffer.close()
+
+    @app.post("/inputs/vex", dependencies=[Depends(_verify_api_key)])
+    async def ingest_vex(file: UploadFile = File(...)) -> Dict[str, Any]:
+        _validate_content_type(file, ("application/json", "text/json"))
+        buffer, total = await _read_limited(file, "vex")
+        try:
+            return _process_vex(buffer, total, file.filename or "vex.json")
+        finally:
+            with suppress(Exception):
+                buffer.close()
+
+    @app.post("/inputs/cnapp", dependencies=[Depends(_verify_api_key)])
+    async def ingest_cnapp(file: UploadFile = File(...)) -> Dict[str, Any]:
+        _validate_content_type(file, ("application/json", "text/json"))
+        buffer, total = await _read_limited(file, "cnapp")
+        try:
+            return _process_cnapp(buffer, total, file.filename or "cnapp.json")
+        finally:
+            with suppress(Exception):
+                buffer.close()
+
+    @app.post("/inputs/sarif", dependencies=[Depends(_verify_api_key)])
+    async def ingest_sarif(file: UploadFile = File(...)) -> Dict[str, Any]:
+        _validate_content_type(
+            file,
+            (
+                "application/json",
+                "text/json",
+                "application/zip",
+                "application/x-zip-compressed",
+                "application/gzip",
+            ),
+        )
+        buffer, total = await _read_limited(file, "sarif")
+        try:
+            return _process_sarif(buffer, total, file.filename or "scan.sarif")
+        finally:
+            with suppress(Exception):
+                buffer.close()
+
+    @app.post("/inputs/context", dependencies=[Depends(_verify_api_key)])
+    async def ingest_context(file: UploadFile = File(...)) -> Dict[str, Any]:
+        _validate_content_type(
+            file,
+            (
+                "application/json",
+                "text/json",
+                "application/x-yaml",
+                "text/yaml",
+                "application/yaml",
+                "text/plain",
+            ),
+        )
+        buffer, total = await _read_limited(file, "context")
+        try:
+            return _process_context(
+                buffer, total, file.filename or "context.yaml", file.content_type
+            )
+        finally:
+            with suppress(Exception):
+                buffer.close()
+
+    @app.post("/api/v1/ingest/multipart", dependencies=[Depends(_verify_api_key)])
+    async def ingest_multipart(
+        files: List[UploadFile] = File(...),
+        format_hint: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Scanner-agnostic multipart ingestion endpoint.
+
+        Accepts multiple files in various formats (SARIF, CycloneDX, SPDX, VEX, CNAPP,
+        dark web intel, etc.) and normalizes them into a unified Finding model.
+
+        Features:
+        - Auto-detection of format variants
+        - Parallel processing for multiple files
+        - Format drift handling with lenient parsing
+        - Performance: 10K findings in <2 min
+
+        Args:
+            files: One or more files to ingest
+            format_hint: Optional format hint (sarif, cyclonedx, spdx, vex, cnapp, dark_web_intel)
+
+        Returns:
+            Ingestion results with normalized findings and asset inventory
+        """
+        import asyncio
+
+        from apps.api.ingestion import get_ingestion_service
+
+        service = get_ingestion_service()
+
+        # Limit concurrent file processing to prevent resource exhaustion
+        MAX_CONCURRENT_FILES = 10
+        semaphore = asyncio.Semaphore(MAX_CONCURRENT_FILES)
+
+        async def process_file(file: UploadFile) -> Dict[str, Any]:
+            """Process a single file and return result dict."""
+            async with semaphore:
+                try:
+                    buffer, total = await _read_limited(file, "sarif")
+                    buffer.seek(0)
+                    content = buffer.read()
+                    buffer.close()
+                    result = await service.ingest(
+                        content=content,
+                        filename=file.filename,
+                        content_type=file.content_type,
+                        format_hint=format_hint,
+                    )
+                    return {
+                        "filename": file.filename,
+                        "status": result.status,
+                        "format_detected": result.format_detected,
+                        "detection_confidence": result.detection_confidence,
+                        "findings_count": result.findings_count,
+                        "assets_count": result.assets_count,
+                        "processing_time_ms": result.processing_time_ms,
+                        "errors": result.errors,
+                        "warnings": result.warnings,
+                        "_findings_count": result.findings_count,
+                        "_assets_count": result.assets_count,
+                        "_errors": result.errors,
+                    }
+                except Exception as e:
+                    logger.error(f"Failed to ingest {file.filename}: {e}")
+                    error_type = type(e).__name__
+                    safe_error = f"Ingestion failed: {error_type}"
+                    return {
+                        "filename": file.filename,
+                        "status": "error",
+                        "error": safe_error,
+                        "_findings_count": 0,
+                        "_assets_count": 0,
+                        "_errors": [f"{file.filename}: {safe_error}"],
+                    }
+
+        # Process all files in parallel using asyncio.gather
+        raw_results = await asyncio.gather(*[process_file(f) for f in files])
+
+        # Aggregate results
+        results = []
+        total_findings = 0
+        total_assets = 0
+        errors = []
+
+        for raw in raw_results:
+            total_findings += raw.pop("_findings_count", 0)
+            total_assets += raw.pop("_assets_count", 0)
+            file_errors = raw.pop("_errors", [])
+            if file_errors:
+                errors.extend(file_errors)
+            results.append(raw)
+
+        return {
+            "status": "success" if not errors else "partial",
+            "files_processed": len(files),
+            "total_findings": total_findings,
+            "total_assets": total_assets,
+            "results": results,
+            "errors": errors,
+        }
+
+    @app.get("/api/v1/ingest/assets", dependencies=[Depends(_verify_api_key)])
+    async def get_asset_inventory() -> Dict[str, Any]:
+        """
+        Get the dynamic asset inventory.
+
+        Returns all discovered assets from ingested security data.
+        """
+        from apps.api.ingestion import get_ingestion_service
+
+        service = get_ingestion_service()
+        assets = service.get_asset_inventory()
+
+        return {
+            "total": len(assets),
+            "assets": [asset.model_dump() for asset in assets],
+        }
+
+    @app.get("/api/v1/ingest/formats", dependencies=[Depends(_verify_api_key)])
+    async def list_supported_formats() -> Dict[str, Any]:
+        """
+        List all supported ingestion formats.
+
+        Returns the available normalizers and their configuration.
+        """
+        from apps.api.ingestion import get_registry
+
+        registry = get_registry()
+        normalizers = []
+
+        for name in registry.list_normalizers():
+            normalizer = registry.get_normalizer(name)
+            if normalizer:
+                normalizers.append(
+                    {
+                        "name": name,
+                        "enabled": normalizer.enabled,
+                        "priority": normalizer.priority,
+                        "description": normalizer.config.description,
+                        "supported_versions": normalizer.config.supported_versions,
+                    }
+                )
+
+        return {
+            "total": len(normalizers),
+            "normalizers": normalizers,
+        }
+
+    @app.post("/inputs/{stage}/chunks/start", dependencies=[Depends(_verify_api_key)])
+    async def initialise_chunk_upload(
+        stage: str, payload: Dict[str, Any] = Body(...)
+    ) -> Dict[str, Any]:
+        if stage not in supported_stages:
+            raise HTTPException(
+                status_code=404, detail=f"Stage '{stage}' not recognised"
+            )
+        filename = str(
+            payload.get("file_name") or payload.get("filename") or f"{stage}.bin"
+        )
+        try:
+            total_bytes = (
+                int(payload.get("total_size"))  # type: ignore[arg-type]
+                if payload.get("total_size") is not None
+                else None
+            )
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="total_size must be an integer")
+        checksum = payload.get("checksum")
+        content_type = payload.get("content_type")
+        session = upload_manager.create_session(
+            stage,
+            filename=filename,
+            total_bytes=total_bytes,
+            checksum=checksum,
+            content_type=content_type,
+        )
+        return {"status": "initialised", "session": session.to_dict()}
+
+    @app.put(
+        "/inputs/{stage}/chunks/{session_id}", dependencies=[Depends(_verify_api_key)]
+    )
+    async def upload_chunk(
+        stage: str,
+        session_id: str,
+        chunk: UploadFile = File(...),
+        offset: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        if stage not in supported_stages:
+            raise HTTPException(
+                status_code=404, detail=f"Stage '{stage}' not recognised"
+            )
+
+        # Validate offset parameter
+        if offset is not None and offset < 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid offset: {offset}. Offset must be non-negative.",
+            )
+
+        data = await chunk.read()
+        try:
+            session = upload_manager.append_chunk(session_id, data, offset=offset)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="Upload session not found")
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        return {"status": "chunk_received", "session": session.to_dict()}
+
+    @app.post(
+        "/inputs/{stage}/chunks/{session_id}/complete",
+        dependencies=[Depends(_verify_api_key)],
+    )
+    async def complete_upload(stage: str, session_id: str) -> Dict[str, Any]:
+        if stage not in supported_stages:
+            raise HTTPException(
+                status_code=404, detail=f"Stage '{stage}' not recognised"
+            )
+        try:
+            session = upload_manager.finalise(session_id)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="Upload session not found")
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        path = session.path
+        if path is None:
+            raise HTTPException(status_code=500, detail="Upload payload missing")
+        response = _process_from_path(
+            stage, path, session.filename, session.content_type
+        )
+        response["upload_session"] = session.to_dict()
+        return response
+
+    @app.get(
+        "/inputs/{stage}/chunks/{session_id}", dependencies=[Depends(_verify_api_key)]
+    )
+    async def upload_status(stage: str, session_id: str) -> Dict[str, Any]:
+        if stage not in supported_stages:
+            raise HTTPException(
+                status_code=404, detail=f"Stage '{stage}' not recognised"
+            )
+        try:
+            session = upload_manager.status(session_id)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="Upload session not found")
+        return {"status": "ok", "session": session.to_dict()}
+
+    @app.api_route(
+        "/pipeline/run",
+        methods=["GET", "POST"],
+        dependencies=[Depends(_verify_api_key)],
+    )
+    async def run_pipeline() -> Dict[str, Any]:
+        overlay: OverlayConfig = app.state.overlay
+        required = overlay.required_inputs
+        missing = [stage for stage in required if stage not in app.state.artifacts]
+        if missing:
+            raise HTTPException(
+                status_code=400,
+                detail={"message": "Missing required artefacts", "missing": missing},
+            )
+
+        if overlay.toggles.get("enforce_ticket_sync") and not overlay.jira.get(
+            "project_key"
+        ):
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "message": "Ticket synchronisation enforced but Jira project_key missing",
+                    "integration": overlay.jira,
+                },
+            )
+
+        run_id = uuid.uuid4().hex
+
+        result = orchestrator.run(
+            design_dataset=app.state.artifacts.get(
+                "design", {"columns": [], "rows": []}
+            ),
+            sbom=app.state.artifacts["sbom"],
+            sarif=app.state.artifacts["sarif"],
+            cve=app.state.artifacts["cve"],
+            overlay=overlay,
+            vex=app.state.artifacts.get("vex"),
+            cnapp=app.state.artifacts.get("cnapp"),
+            context=app.state.artifacts.get("context"),
+        )
+        result["run_id"] = run_id
+
+        severity_overview = result.get("severity_overview", {})
+        guardrail_evaluation = result.get("guardrail_evaluation", {})
+        result["highest_severity"] = severity_overview.get("highest")
+        result["guardrail_status"] = guardrail_evaluation.get("status")
+        analytics_store = getattr(app.state, "analytics_store", None)
+        if analytics_store is not None:
+            try:
+                persistence = analytics_store.persist_run(run_id, result)
+            except (
+                Exception
+            ):  # pragma: no cover - analytics persistence must not block pipeline
+                logger.exception(
+                    "Failed to persist analytics artefacts for run %s", run_id
+                )
+                persistence = {}
+            if persistence:
+                result["analytics_persistence"] = persistence
+                analytics_section = result.get("analytics")
+                if isinstance(analytics_section, dict):
+                    analytics_section["persistence"] = persistence
+        if app.state.archive_records:
+            result["artifact_archive"] = ArtefactArchive.summarise(
+                app.state.archive_records
+            )
+            app.state.archive_records = {}
+        if overlay.toggles.get("auto_attach_overlay_metadata", True):
+            result["overlay"] = overlay.to_sanitised_dict()
+            result["overlay"]["required_inputs"] = list(required)
+
+        app.state.last_pipeline_result = result
+
+        return result
+
+    @app.get("/api/v1/triage", dependencies=[Depends(_verify_api_key)])
+    async def get_triage(
+        view: str = "events",
+        cluster_status: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Transform last pipeline result into triage inbox format.
+
+        Args:
+            view: View mode - 'events' (individual findings) or 'clusters' (deduplicated groups)
+            cluster_status: Filter clusters by status (only applies when view=clusters)
+
+        Returns:
+            Triage data with rows and summary. When view=clusters, rows represent
+            deduplicated finding groups with event counts.
+        """
+        last_result = app.state.last_pipeline_result
+
+        if last_result is None:
+            raise HTTPException(
+                status_code=404,
+                detail="No pipeline results available. Run /api/v1/brain/pipeline/run first.",
+            )
+
+        # If view=clusters, return deduplicated cluster view
+        if view == "clusters":
+            return await _get_triage_clusters(cluster_status)
+
+        rows = []
+        crosswalk = last_result.get("crosswalk", [])
+        evidence_bundle = last_result.get("evidence_bundle", {})
+        compliance_status = last_result.get("compliance_status", {})
+        exploitability_insights = last_result.get("exploitability_insights", {})
+
+        retention_days = 2555
+
+        for idx, entry in enumerate(crosswalk):
+            design_row = entry.get("design_row", {})
+            findings = entry.get("findings", [])
+            cves = entry.get("cves", [])
+
+            component_name = design_row.get("component", "unknown")
+            exposure = design_row.get("exposure", "internal")
+            internet_facing = exposure == "internet"
+
+            for finding in findings:
+                rule_id = finding.get("rule_id", "unknown")
+                message = finding.get("message", "No description")
+                level = finding.get("level", "warning")
+                file_path = finding.get("file", "")
+                line = finding.get("line", 0)
+
+                severity_map = {"error": "high", "warning": "medium", "note": "low"}
+                severity = severity_map.get(level, "medium")
+
+                location = f"{file_path}:{line}" if file_path else component_name
+
+                row_id = f"sarif-{idx}-{rule_id}"
+
+                rows.append(
+                    {
+                        "id": row_id,
+                        "severity": severity,
+                        "title": f"{rule_id} - {message[:80]}",
+                        "source": "SAST",
+                        "repo": component_name,
+                        "location": location,
+                        "exploitability": {"kev": False, "epss": 0.0},
+                        "age_days": 0,
+                        "internet_facing": internet_facing,
+                        "description": message,
+                        "remediation": f"Review and fix {rule_id} in {location}",
+                        "evidence_bundle": {
+                            "id": evidence_bundle.get("bundle_id", "unknown"),
+                            "signature_algorithm": "RSA-SHA256",
+                            "retention_days": retention_days,
+                            "retained_until": (
+                                datetime.utcnow() + timedelta(days=retention_days)
+                            ).strftime("%m/%d/%Y"),
+                            "sha256": hashlib.sha256(
+                                evidence_bundle.get("bundle_id", "unknown").encode()
+                            ).hexdigest(),
+                        },
+                        "decision": {
+                            "verdict": "review" if severity == "high" else "allow",
+                            "confidence": 0.75,
+                            "ssvc_outcome": "scheduled",
+                            "rationale": f"SAST finding with {severity} severity in {component_name}",
+                            "signals": {
+                                "severity": severity,
+                                "internet_facing": internet_facing,
+                                "source": "SAST",
+                            },
+                        },
+                        "compliance_mappings": _get_compliance_mappings(
+                            compliance_status, "SAST"
+                        ),
+                    }
+                )
+
+            for cve in cves:
+                cve_id = cve.get("cve_id", "unknown")
+                cve_severity = cve.get("severity", "medium")
+                exploited = cve.get("exploited", False)
+                raw_cve = cve.get("raw", {})
+                short_desc = raw_cve.get("shortDescription", "No description")
+
+                epss_score = 0.0
+                if exploitability_insights:
+                    epss_data = exploitability_insights.get("epss", {})
+                    epss_score = epss_data.get(cve_id, 0.0)
+
+                age_days = 7
+
+                verdict = (
+                    "block"
+                    if (exploited or epss_score > 0.7) and cve_severity == "critical"
+                    else "review"
+                )
+                ssvc_outcome = "immediate" if verdict == "block" else "scheduled"
+
+                row_id = f"cve-{idx}-{cve_id}"
+
+                rows.append(
+                    {
+                        "id": row_id,
+                        "severity": cve_severity,
+                        "title": f"{cve_id} - {short_desc[:80]}",
+                        "source": "CVE",
+                        "repo": component_name,
+                        "location": component_name,
+                        "exploitability": {"kev": exploited, "epss": epss_score},
+                        "age_days": age_days,
+                        "internet_facing": internet_facing,
+                        "description": short_desc,
+                        "remediation": f"Update {component_name} to patch {cve_id}",
+                        "evidence_bundle": {
+                            "id": evidence_bundle.get("bundle_id", "unknown"),
+                            "signature_algorithm": "RSA-SHA256",
+                            "retention_days": retention_days,
+                            "retained_until": (
+                                datetime.utcnow() + timedelta(days=retention_days)
+                            ).strftime("%m/%d/%Y"),
+                            "sha256": hashlib.sha256(
+                                evidence_bundle.get("bundle_id", "unknown").encode()
+                            ).hexdigest(),
+                        },
+                        "decision": {
+                            "verdict": verdict,
+                            "confidence": 0.95 if exploited else 0.80,
+                            "ssvc_outcome": ssvc_outcome,
+                            "rationale": f"CVE with {cve_severity} severity, KEV={exploited}, EPSS={epss_score:.2f}",
+                            "signals": {
+                                "kev": exploited,
+                                "epss": epss_score,
+                                "severity": cve_severity,
+                                "internet_facing": internet_facing,
+                                "age_days": age_days,
+                            },
+                        },
+                        "compliance_mappings": _get_compliance_mappings(
+                            compliance_status, "CVE"
+                        ),
+                    }
+                )
+
+        new_7d = sum(1 for r in rows if r["age_days"] <= 7)
+        high_critical = sum(1 for r in rows if r["severity"] in ["high", "critical"])
+        exploitable = sum(
+            1
+            for r in rows
+            if r["exploitability"]["kev"] or r["exploitability"]["epss"] > 0.7
+        )
+        internet_facing_count = sum(1 for r in rows if r["internet_facing"])
+
+        return {
+            "rows": rows,
+            "summary": {
+                "total": len(rows),
+                "new_7d": new_7d,
+                "high_critical": high_critical,
+                "exploitable": exploitable,
+                "internet_facing": internet_facing_count,
+            },
+        }
+
+    @app.get("/api/v1/triage/export", dependencies=[Depends(_verify_api_key)])
+    async def export_triage(format: str = "csv") -> Any:
+        """Export triage data as CSV or JSON."""
+        last_result = app.state.last_pipeline_result
+
+        if last_result is None:
+            raise HTTPException(
+                status_code=404,
+                detail="No pipeline results available. Run /api/v1/brain/pipeline/run first.",
+            )
+
+        triage_data = await get_triage()
+        rows = triage_data["rows"]
+
+        if format == "json":
+            from fastapi.responses import JSONResponse
+
+            return JSONResponse(
+                content={"data": rows, "summary": triage_data["summary"]},
+                headers={
+                    "Content-Disposition": 'attachment; filename="fixops-triage-export.json"',
+                    "Access-Control-Expose-Headers": "Content-Disposition",
+                },
+            )
+        elif format == "csv":
+            import io
+
+            from fastapi.responses import StreamingResponse
+
+            output = io.StringIO()
+            if rows:
+                fieldnames = [
+                    "id",
+                    "severity",
+                    "title",
+                    "source",
+                    "repo",
+                    "location",
+                    "age_days",
+                    "internet_facing",
+                ]
+                writer = csv.DictWriter(output, fieldnames=fieldnames)
+                writer.writeheader()
+                for row in rows:
+                    writer.writerow(
+                        {
+                            "id": row["id"],
+                            "severity": row["severity"],
+                            "title": row["title"],
+                            "source": row["source"],
+                            "repo": row["repo"],
+                            "location": row["location"],
+                            "age_days": row["age_days"],
+                            "internet_facing": row["internet_facing"],
+                        }
+                    )
+
+            output.seek(0)
+            return StreamingResponse(
+                iter([output.getvalue()]),
+                media_type="text/csv",
+                headers={
+                    "Content-Disposition": 'attachment; filename="fixops-triage-export.csv"',
+                    "Access-Control-Expose-Headers": "Content-Disposition",
+                },
+            )
+        else:
+            raise HTTPException(
+                status_code=400, detail="Invalid format. Use 'csv' or 'json'."
+            )
+
+    async def _get_triage_clusters(
+        cluster_status: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Get triage data in cluster (deduplicated) view.
+
+        Returns finding clusters instead of individual events, showing
+        deduplicated groups with event counts and representative info.
+        """
+        from pathlib import Path
+
+        from core.services.deduplication import DeduplicationService
+
+        db_path = (
+            Path(os.environ.get("FIXOPS_DATA_DIR", "data"))
+            / "deduplication"
+            / "dedup.db"
+        )
+        dedup_service = DeduplicationService(db_path=db_path)
+        clusters = dedup_service.get_clusters(
+            org_id="default",
+            status=cluster_status,
+            limit=1000,
+            offset=0,
+        )
+
+        # Batch fetch events for all clusters to avoid N+1 query pattern
+        cluster_ids = [c["cluster_id"] for c in clusters]
+        events_by_cluster = dedup_service.get_events_for_clusters(
+            cluster_ids, limit_per_cluster=100
+        )
+
+        rows = []
+        for cluster in clusters:
+            # Get events for this cluster from the batch result
+            events: List[Dict[str, Any]] = events_by_cluster.get(
+                cluster["cluster_id"], []
+            )
+
+            # Compute severity (highest among events, fallback to cluster metadata)
+            severity_order = {"critical": 4, "high": 3, "medium": 2, "low": 1}
+            max_severity = cluster.get("severity", "low")
+            for event in events:
+                event_severity = event.get("severity", "low")
+                if severity_order.get(event_severity, 0) > severity_order.get(
+                    max_severity, 0
+                ):
+                    max_severity = event_severity
+
+            # Compute exploitability (any KEV or max EPSS)
+            has_kev = any(event.get("kev", False) for event in events)
+            max_epss = max((event.get("epss", 0.0) for event in events), default=0.0)
+
+            # Get representative event for title/description
+            representative = events[0] if events else {}
+
+            rows.append(
+                {
+                    "id": cluster["cluster_id"],
+                    "cluster_id": cluster["cluster_id"],
+                    "severity": max_severity,
+                    "title": cluster.get(
+                        "title", representative.get("title", "Unknown")
+                    ),
+                    "source": cluster.get(
+                        "source", representative.get("source", "Unknown")
+                    ),
+                    "event_count": cluster.get("event_count", len(events)),
+                    "first_seen": cluster.get("first_seen"),
+                    "last_seen": cluster.get("last_seen"),
+                    "status": cluster.get("status", "open"),
+                    "exploitability": {"kev": has_kev, "epss": max_epss},
+                    "correlation_key": cluster.get("correlation_key"),
+                    "fingerprint": cluster.get("fingerprint"),
+                    "stages": list(set(e.get("stage", "unknown") for e in events)),
+                    "locations": list(
+                        set(e.get("location", "") for e in events if e.get("location"))
+                    ),
+                }
+            )
+
+        # Compute summary
+        high_critical = sum(1 for r in rows if r["severity"] in ["high", "critical"])
+        exploitable = sum(
+            1
+            for r in rows
+            if r["exploitability"]["kev"] or r["exploitability"]["epss"] > 0.7
+        )
+        open_count = sum(1 for r in rows if r["status"] == "open")
+
+        return {
+            "view": "clusters",
+            "rows": rows,
+            "summary": {
+                "total_clusters": len(rows),
+                "total_events": sum(r["event_count"] for r in rows),
+                "high_critical": high_critical,
+                "exploitable": exploitable,
+                "open": open_count,
+                "noise_reduction": f"{(1 - len(rows) / max(sum(r['event_count'] for r in rows), 1)) * 100:.1f}%"
+                if rows
+                else "0%",
+            },
+        }
+
+    def _get_compliance_mappings(
+        compliance_status: Dict[str, Any], source_type: str
+    ) -> list:
+        """Extract compliance mappings from compliance_status."""
+        mappings = []
+        frameworks = compliance_status.get("frameworks", [])
+
+        for framework in frameworks[:3]:
+            framework_name = framework.get("name", "")
+            controls = framework.get("controls", [])
+
+            if source_type == "CVE" and controls:
+                for control in controls[:2]:
+                    mappings.append(
+                        {
+                            "framework": framework_name,
+                            "control": control.get("id", ""),
+                            "description": control.get("title", ""),
+                        }
+                    )
+            elif source_type == "SAST" and controls:
+                for control in controls[:1]:
+                    mappings.append(
+                        {
+                            "framework": framework_name,
+                            "control": control.get("id", ""),
+                            "description": control.get("title", ""),
+                        }
+                    )
+
+        return mappings
+
+    @app.get("/api/v1/graph", dependencies=[Depends(_verify_api_key)])
+    async def get_graph() -> Dict[str, Any]:
+        """Transform last pipeline result into interactive graph format."""
+        last_result = app.state.last_pipeline_result
+
+        if last_result is None:
+            raise HTTPException(
+                status_code=404,
+                detail="No pipeline results available. Run /api/v1/brain/pipeline/run first.",
+            )
+
+        nodes = []
+        edges = []
+        crosswalk = last_result.get("crosswalk", [])
+        context_summary = last_result.get("context_summary", {})
+        exploitability_insights = last_result.get("exploitability_insights", {})
+
+        services_seen = set()
+        components_seen = set()
+
+        context_components = {}
+        for comp in context_summary.get("components", []):
+            name = comp.get("component", "")
+            if name:
+                context_components[name] = comp
+
+        for idx, entry in enumerate(crosswalk):
+            design_row = entry.get("design_row", {})
+            findings = entry.get("findings", [])
+            cves = entry.get("cves", [])
+
+            component_name = design_row.get("component", f"component-{idx}")
+            service_name = design_row.get("service", component_name)
+            exposure = design_row.get("exposure", "internal")
+
+            context = context_components.get(component_name, {})
+            criticality = context.get("criticality", "standard")
+            data_classification = context.get("data_classification", [])
+
+            if service_name not in services_seen:
+                services_seen.add(service_name)
+                nodes.append(
+                    {
+                        "id": f"service-{service_name}",
+                        "type": "service",
+                        "label": service_name,
+                        "criticality": criticality,
+                        "exposure": exposure,
+                        "internet_facing": exposure == "internet",
+                        "has_pii": "pii" in data_classification,
+                    }
+                )
+
+            if component_name not in components_seen:
+                components_seen.add(component_name)
+                nodes.append(
+                    {
+                        "id": f"component-{component_name}",
+                        "type": "component",
+                        "label": component_name,
+                        "criticality": criticality,
+                        "exposure": exposure,
+                        "internet_facing": exposure == "internet",
+                        "has_pii": "pii" in data_classification,
+                    }
+                )
+
+                edges.append(
+                    {
+                        "id": f"edge-service-{service_name}-{component_name}",
+                        "source": f"service-{service_name}",
+                        "target": f"component-{component_name}",
+                        "type": "contains",
+                    }
+                )
+
+            for finding_idx, finding in enumerate(findings):
+                rule_id = finding.get("rule_id", f"finding-{finding_idx}")
+                level = finding.get("level", "warning")
+                message = finding.get("message", "No description")
+                file_path = finding.get("file", "")
+
+                severity_map = {"error": "high", "warning": "medium", "note": "low"}
+                severity = severity_map.get(level, "medium")
+
+                finding_id = f"finding-{component_name}-{rule_id}-{finding_idx}"
+                nodes.append(
+                    {
+                        "id": finding_id,
+                        "type": "finding",
+                        "label": rule_id,
+                        "severity": severity,
+                        "message": message[:100],
+                        "file": file_path,
+                        "source": "SAST",
+                        "kev": False,
+                        "epss": 0.0,
+                    }
+                )
+
+                edges.append(
+                    {
+                        "id": f"edge-{component_name}-{finding_id}",
+                        "source": f"component-{component_name}",
+                        "target": finding_id,
+                        "type": "has_issue",
+                    }
+                )
+
+            for cve_idx, cve in enumerate(cves):
+                cve_id = cve.get("cve_id", f"cve-{cve_idx}")
+                cve_severity = cve.get("severity", "medium")
+                exploited = cve.get("exploited", False)
+                raw_cve = cve.get("raw", {})
+                short_desc = raw_cve.get("shortDescription", "No description")
+
+                epss_score = 0.0
+                if exploitability_insights:
+                    epss_data = exploitability_insights.get("epss", {})
+                    epss_score = epss_data.get(cve_id, 0.0)
+
+                cve_node_id = f"cve-{component_name}-{cve_id}"
+                nodes.append(
+                    {
+                        "id": cve_node_id,
+                        "type": "cve",
+                        "label": cve_id,
+                        "severity": cve_severity,
+                        "message": short_desc[:100],
+                        "source": "CVE",
+                        "kev": exploited,
+                        "epss": epss_score,
+                    }
+                )
+
+                edges.append(
+                    {
+                        "id": f"edge-{component_name}-{cve_node_id}",
+                        "source": f"component-{component_name}",
+                        "target": cve_node_id,
+                        "type": "has_issue",
+                    }
+                )
+
+        return {
+            "nodes": nodes,
+            "edges": edges,
+            "summary": {
+                "services": len(services_seen),
+                "components": len(components_seen),
+                "issues": len([n for n in nodes if n["type"] in ["finding", "cve"]]),
+                "kev_count": len([n for n in nodes if n.get("kev", False)]),
+            },
+        }
+
+    @app.get("/analytics/dashboard", dependencies=[Depends(_verify_api_key)])
+    async def analytics_dashboard(limit: int = 10) -> Dict[str, Any]:
+        store: Optional[AnalyticsStore] = getattr(app.state, "analytics_store", None)
+        if store is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Analytics persistence disabled for this profile",
+            )
+        try:
+            return store.load_dashboard(limit=limit)
+        except ValueError as exc:  # pragma: no cover - defensive guard
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.get("/analytics/runs/{run_id}", dependencies=[Depends(_verify_api_key)])
+    async def analytics_run(run_id: str) -> Dict[str, Any]:
+        store: Optional[AnalyticsStore] = getattr(app.state, "analytics_store", None)
+        if store is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Analytics persistence disabled for this profile",
+            )
+        try:
+            data = store.load_run(run_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        has_content = bool(
+            data.get("forecasts")
+            or data.get("exploit_snapshots")
+            or data.get("ticket_metrics")
+        )
+        feedback_section = data.get("feedback")
+        if isinstance(feedback_section, Mapping):
+            has_content = has_content or bool(
+                feedback_section.get("events") or feedback_section.get("outcomes")
+            )
+        if not has_content:
+            raise HTTPException(
+                status_code=404, detail="No analytics persisted for run"
+            )
+        return data
+
+    @app.post("/feedback", dependencies=[Depends(_verify_api_key)])
+    async def submit_feedback(payload: Dict[str, Any]) -> Dict[str, Any]:
+        recorder: Optional[FeedbackRecorder] = app.state.feedback
+        if recorder is None:
+            raise HTTPException(
+                status_code=400, detail="Feedback capture disabled in this profile"
+            )
+        try:
+            entry = recorder.record(payload)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return entry
+
+    # ------------------------------------------------------------------
+    # Startup hooks: wire EventBus subscribers + log routes
+    # ------------------------------------------------------------------
+    @app.on_event("startup")
+    async def _wire_event_subscribers():
+        """Register EventBus subscribers so emitted events trigger handlers."""
+        try:
+            from core.event_subscribers import register_all_subscribers
+
+            count = register_all_subscribers()
+            _logger.info("EventBus: %d subscribers registered at startup", count)
+        except Exception as exc:
+            _logger.warning("EventBus subscriber registration failed: %s", exc)
+
+    @app.on_event("startup")
+    async def _log_mounted_routes():
+        """Log all mounted routes and optionally fail-fast if critical routes missing."""
+        routes = [r for r in app.routes if hasattr(r, "path")]
+        prefixes = {
+            "/".join(r.path.split("/")[:4])
+            for r in routes
+            if r.path.startswith("/api/")
+        }
+        _logger.info(
+            "API startup complete: %d routes mounted across %d prefixes",
+            len(routes),
+            len(prefixes),
+        )
+
+        # Critical prefixes that must exist for a functional deployment
+        critical = [
+            "/api/v1/nerve-center",
+            "/api/v1/copilot",
+            "/api/v1/brain",
+            "/api/v1/attack-sim",
+            "/api/v1/feeds",
+            "/api/v1/evidence",
+            "/api/v1/risk",
+            "/api/v1/stream",
+        ]
+        missing = [p for p in critical if p not in prefixes]
+
+        if missing:
+            _logger.warning("MISSING CRITICAL PREFIXES: %s", missing)
+            if os.getenv("FIXOPS_FAIL_FAST", "").lower() in ("1", "true", "yes"):
+                _logger.error("FAIL_FAST enabled — aborting due to missing routes")
+                import sys
+
+                sys.exit(1)
+        else:
+            _logger.info("All %d critical route prefixes verified OK", len(critical))
+
+    return app
+
+
+app = create_app()

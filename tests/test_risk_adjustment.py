@@ -26,8 +26,8 @@ FIXOPS_ROOT = REPO_ROOT / "enterprise"
 if str(FIXOPS_ROOT) not in sys.path:
     sys.path.insert(0, str(FIXOPS_ROOT))
 
-from src.services.compliance_engine import ComplianceEngine  # noqa: E402
-from src.services.risk_scorer import ContextualRiskScorer  # noqa: E402
+from core.services.enterprise.compliance_engine import ComplianceEngine  # noqa: E402
+from core.services.enterprise.risk_scorer import ContextualRiskScorer  # noqa: E402
 
 
 @pytest.fixture()

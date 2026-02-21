@@ -1,0 +1,90 @@
+{
+  "sprint": {
+    "name": "Sprint 1 — Funding Ready",
+    "goal": "Complete ALdeci MVP to investor-demo quality",
+    "startDate": "2025-01-27",
+    "endDate": "2025-02-07",
+    "status": "active"
+  },
+  "backlog": [
+    {
+      "id": "FUND-001",
+      "title": "Investor Demo Dashboard — polish UI for live demo",
+      "priority": "P0",
+      "status": "in-progress",
+      "assignee": "enterprise-architect",
+      "estimate": "5d",
+      "labels": ["funding", "ui"]
+    },
+    {
+      "id": "FUND-002",
+      "title": "One-click security posture report (PDF export)",
+      "priority": "P0",
+      "status": "todo",
+      "assignee": "context-engineer",
+      "estimate": "3d",
+      "labels": ["funding", "feature"]
+    },
+    {
+      "id": "FUND-003",
+      "title": "Competitive positioning document — ready for deck",
+      "priority": "P0",
+      "status": "todo",
+      "assignee": "marketing-head",
+      "estimate": "2d",
+      "labels": ["funding", "marketing"]
+    },
+    {
+      "id": "FUND-004",
+      "title": "Architecture Decision Records — document key decisions",
+      "priority": "P1",
+      "status": "todo",
+      "assignee": "enterprise-architect",
+      "estimate": "2d",
+      "labels": ["architecture", "docs"]
+    },
+    {
+      "id": "FUND-005",
+      "title": "CVE intelligence pipeline — daily automated enrichment",
+      "priority": "P1",
+      "status": "todo",
+      "assignee": "ai-researcher",
+      "estimate": "3d",
+      "labels": ["feature", "research"]
+    },
+    {
+      "id": "FUND-006",
+      "title": "PentAGI integration — end-to-end smoke test",
+      "priority": "P1",
+      "status": "todo",
+      "assignee": "context-engineer",
+      "estimate": "2d",
+      "labels": ["testing", "integration"]
+    },
+    {
+      "id": "FUND-007",
+      "title": "Pitch deck content — TAM/SAM/SOM, traction metrics",
+      "priority": "P0",
+      "status": "todo",
+      "assignee": "marketing-head",
+      "estimate": "3d",
+      "labels": ["funding", "marketing"]
+    },
+    {
+      "id": "FUND-008",
+      "title": "Tech debt audit — identify top 10 blockers",
+      "priority": "P2",
+      "status": "todo",
+      "assignee": "enterprise-architect",
+      "estimate": "1d",
+      "labels": ["tech-debt", "quality"]
+    }
+  ],
+  "velocity": {
+    "pointsCompleted": 0,
+    "pointsRemaining": 21,
+    "burndownData": []
+  },
+  "lastUpdated": "2025-01-27T00:00:00Z",
+  "updatedBy": "scrum-master"
+}

@@ -4,7 +4,7 @@ Tests for integrations CLI commands.
 These tests are skipped because the 'integrations' CLI command is not yet implemented.
 The CLI currently supports: stage-run, run, ingest, make-decision, analyze, health,
 get-evidence, show-overlay, train-forecast, demo, train-bn-lr, predict-bn-lr,
-backtest-bn-lr, teams, users, pentagi
+backtest-bn-lr, teams, users, mpte
 """
 import json
 import subprocess

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import pytest
-from src.config.settings import get_settings
-from src.services import signing
+from config.enterprise.settings import get_settings
+from core.services.enterprise import signing
 
 
 def test_sign_verify_roundtrip(signing_env: None) -> None:

@@ -4,7 +4,7 @@ import asyncio
 import types
 
 import pytest
-from src.core import security
+from core.enterprise import security
 
 
 def test_user_has_tenant_role(monkeypatch: pytest.MonkeyPatch) -> None:

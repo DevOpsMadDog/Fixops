@@ -10,20 +10,31 @@ NC='\033[0m'
 
 echo -e "${CYAN}"
 cat << 'BANNER'
-    ███████╗██╗██╗  ██╗ ██████╗ ██████╗ ███████╗
-    ██╔════╝██║╚██╗██╔╝██╔═══██╗██╔══██╗██╔════╝
-    █████╗  ██║ ╚███╔╝ ██║   ██║██████╔╝███████╗
-    ██╔══╝  ██║ ██╔██╗ ██║   ██║██╔═══╝ ╚════██║
-    ██║     ██║██╔╝ ██╗╚██████╔╝██║     ███████║
-    ╚═╝     ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚══════╝
+     █████╗ ██╗     ██████╗ ███████╗ ██████╗██╗
+    ██╔══██╗██║     ██╔══██╗██╔════╝██╔════╝██║
+    ███████║██║     ██║  ██║█████╗  ██║     ██║
+    ██╔══██║██║     ██║  ██║██╔══╝  ██║     ██║
+    ██║  ██║███████╗██████╔╝███████╗╚██████╗██║
+    ╚═╝  ╚═╝╚══════╝╚═════╝ ╚══════╝ ╚═════╝╚═╝
 BANNER
 echo -e "${NC}"
-echo -e "${GREEN}Interactive API & CLI Testing Suite${NC}"
+echo -e "${GREEN}ALdeci — Security Vulnerability Management Platform${NC}"
 echo ""
+
+# --- Enterprise defaults ---
+export FIXOPS_MODE="${FIXOPS_MODE:-enterprise}"
+export FIXOPS_LOCAL_DEV="${FIXOPS_LOCAL_DEV:-false}"
+if [[ -z "${FIXOPS_JWT_SECRET:-}" ]]; then
+    export FIXOPS_JWT_SECRET=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
+fi
+if [[ -z "${FIXOPS_API_TOKEN:-}" ]]; then
+    export FIXOPS_API_TOKEN=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
+    echo -e "${GREEN}Generated enterprise token: ${FIXOPS_API_TOKEN}${NC}"
+fi
 
 # Check if we should start the API server
 if [[ "${START_API_SERVER:-true}" == "true" ]]; then
-    echo -e "${YELLOW}Starting FixOps API server in background...${NC}"
+    echo -e "${YELLOW}Starting ALdeci API server (${FIXOPS_MODE} mode)...${NC}"
     uvicorn apps.api.app:app --host 0.0.0.0 --port 8000 --log-level warning &
     API_PID=$!
     
@@ -98,10 +109,11 @@ case "${1:-interactive}" in
         echo -e "${YELLOW}Use 'docker exec -it <container> /app/scripts/fixops-interactive.sh' to start tester${NC}"
         wait $API_PID
         ;;
-    demo)
-        echo -e "${CYAN}Starting ALDECI demo runner...${NC}"
+    enterprise)
+        echo -e "${CYAN}Running enterprise E2E validation...${NC}"
         echo ""
-        exec /app/scripts/aldeci-demo-runner.sh
+        export FIXOPS_API_URL="http://localhost:8000"
+        exec /app/scripts/enterprise-e2e-demo.sh
         ;;
     test-all)
         echo -e "${CYAN}Running all API tests...${NC}"
@@ -127,7 +139,7 @@ case "${1:-interactive}" in
             echo "Available modes:"
             echo "  interactive  - Start interactive API tester (default)"
             echo "  api-only     - Start only the API server"
-            echo "  demo         - Start ALDECI animated demo runner"
+            echo "  enterprise   - Run enterprise E2E validation suite"
             echo "  test-all     - Run all API tests automatically"
             echo "  cli <args>   - Run FixOps CLI with arguments"
             echo "  shell        - Start a bash shell"

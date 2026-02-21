@@ -1,8 +1,0 @@
-{
-  "scenario": "spike",
-  "vus_max": 400,
-  "requests": 28000,
-  "http_req_duration": {"avg": 260, "p95": 430, "max": 750},
-  "http_req_failed": 0.015,
-  "notes": "Rate limiter tuning required"
-}

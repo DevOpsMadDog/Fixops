@@ -30,7 +30,10 @@ if "structlog" not in sys.modules:
     structlog_stub.get_logger = get_logger
     sys.modules["structlog"] = structlog_stub
 
-from src.services.golden_regression_store import GoldenRegressionStore, RegressionCase
+from core.services.enterprise.golden_regression_store import (
+    GoldenRegressionStore,
+    RegressionCase,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -42,7 +45,7 @@ def reset_store():
 
 
 def test_golden_regression_store_loads_dataset():
-    """Test that the golden regression store loads the demo dataset."""
+    """Test that the golden regression store loads the reference dataset."""
     store = GoldenRegressionStore.get_instance()
 
     assert len(store._cases_by_id) > 0, "No cases loaded from dataset"
@@ -135,13 +138,13 @@ def test_regression_case_from_dict():
     print(f"✅ Created RegressionCase from dict: {case.case_id}")
 
 
-def test_demo_dataset_structure():
-    """Test that the demo dataset has the expected structure."""
+def test_reference_dataset_structure():
+    """Test that the reference dataset has the expected structure."""
     dataset_path = (
         Path(__file__).resolve().parents[1] / "data" / "golden_regression_cases.json"
     )
 
-    assert dataset_path.exists(), f"Demo dataset not found at {dataset_path}"
+    assert dataset_path.exists(), f"Reference dataset not found at {dataset_path}"
 
     with open(dataset_path) as f:
         data = json.load(f)
@@ -154,7 +157,7 @@ def test_demo_dataset_structure():
     for field in required_fields:
         assert field in case, f"Case missing required field: {field}"
 
-    print(f"✅ Demo dataset has {len(data['cases'])} cases with correct structure")
+    print(f"✅ Reference dataset has {len(data['cases'])} cases with correct structure")
 
 
 def test_no_coverage_scenario():

@@ -1,12 +1,19 @@
+"""Tests for the enhanced multi-LLM decision API.
+
+The enhanced routes inject the engine via ``request.app.state.enhanced_engine``
+(see ``suite-api/apps/api/routes/enhanced.py``).  We create the app, attach
+an ``EnhancedDecisionEngine`` instance to ``app.state``, and exercise the
+``/api/v1/enhanced/*`` endpoints.
+"""
+
 from __future__ import annotations
 
 from typing import Dict
 
 import pytest
+from apps.api.app import create_app
+from core.enhanced_decision import EnhancedDecisionEngine
 from fastapi.testclient import TestClient
-from src.config.settings import get_settings
-from src.main import create_app
-from src.services.enhanced_decision_engine import EnhancedDecisionService
 
 API_TOKEN = "enterprise-token"
 
@@ -14,6 +21,7 @@ API_TOKEN = "enterprise-token"
 @pytest.fixture()
 def enterprise_enhanced_client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     monkeypatch.setenv("FIXOPS_API_KEY", API_TOKEN)
+    monkeypatch.setenv("FIXOPS_API_TOKEN", API_TOKEN)
     monkeypatch.setenv("FIXOPS_ALLOWED_ORIGINS", "http://localhost")
     monkeypatch.setenv(
         "FIXOPS_EVIDENCE_KEY",
@@ -24,19 +32,14 @@ def enterprise_enhanced_client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     monkeypatch.setenv("FIXOPS_CONFLUENCE_TOKEN", "confluence-token")
     monkeypatch.setenv("FIXOPS_CONFLUENCE_ENDPOINT", "https://confluence.example.com")
     monkeypatch.setenv("ENVIRONMENT", "development")
-    get_settings.cache_clear()
-    service = EnhancedDecisionService()
-    monkeypatch.setattr("src.api.v1.enhanced.enhanced_decision_service", service)
-    monkeypatch.setattr(
-        "src.services.enhanced_decision_engine.enhanced_decision_service", service
-    )
+    engine = EnhancedDecisionEngine()
     app = create_app()
+    app.state.enhanced_engine = engine
     client = TestClient(app)
     try:
         yield client
     finally:
         client.close()
-        get_settings.cache_clear()
 
 
 @pytest.fixture()
@@ -44,8 +47,8 @@ def enterprise_enhanced_client_missing_tokens(
     monkeypatch: pytest.MonkeyPatch,
 ) -> TestClient:
     monkeypatch.setenv("FIXOPS_API_KEY", API_TOKEN)
+    monkeypatch.setenv("FIXOPS_API_TOKEN", API_TOKEN)
     monkeypatch.setenv("FIXOPS_ALLOWED_ORIGINS", "http://localhost")
-    monkeypatch.setenv("FIXOPS_API_TOKEN", "demo-token")
     monkeypatch.setenv(
         "FIXOPS_EVIDENCE_KEY",
         "Zz6A0n4P3skS8F6edSxE2xe50Tzw9uQWGWp9JYG1ChE=",
@@ -55,23 +58,18 @@ def enterprise_enhanced_client_missing_tokens(
     monkeypatch.delenv("FIXOPS_CONFLUENCE_TOKEN", raising=False)
     monkeypatch.setenv("FIXOPS_CONFLUENCE_ENDPOINT", "https://confluence.example.com")
     monkeypatch.setenv("ENVIRONMENT", "development")
-    get_settings.cache_clear()
-    service = EnhancedDecisionService()
-    monkeypatch.setattr("src.api.v1.enhanced.enhanced_decision_service", service)
-    monkeypatch.setattr(
-        "src.services.enhanced_decision_engine.enhanced_decision_service", service
-    )
+    engine = EnhancedDecisionEngine()
     app = create_app()
+    app.state.enhanced_engine = engine
     client = TestClient(app)
     try:
         yield client
     finally:
         client.close()
-        get_settings.cache_clear()
 
 
 def _auth() -> Dict[str, str]:
-    return {"Authorization": f"Bearer {API_TOKEN}"}
+    return {"X-API-Key": API_TOKEN}
 
 
 def test_capabilities_return_signals(enterprise_enhanced_client: TestClient) -> None:

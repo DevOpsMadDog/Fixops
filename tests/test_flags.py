@@ -76,9 +76,9 @@ class TestEvaluationContext:
 
     def test_mode_alias_for_environment(self):
         """Test that mode is an alias for environment."""
-        context = EvaluationContext(mode="demo")
+        context = EvaluationContext(mode="enterprise")
         result = context.to_dict()
-        assert result["environment"] == "demo"
+        assert result["environment"] == "enterprise"
 
 
 class TestLocalOverlayProvider:

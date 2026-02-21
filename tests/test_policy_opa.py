@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, Dict
 
 import pytest
-from src.api.v1 import policy
+from api.v1 import policy
 
 from tests.test_policy_kevs import run_with_session
 

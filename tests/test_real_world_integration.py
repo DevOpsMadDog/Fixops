@@ -17,15 +17,14 @@ from pathlib import Path
 import pytest
 
 # Set environment variables BEFORE importing create_app
-API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "demo-token-12345")
+API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "test-token-12345")
 os.environ["FIXOPS_API_TOKEN"] = API_TOKEN
 os.environ["FIXOPS_DISABLE_TELEMETRY"] = "1"
-os.environ["FIXOPS_MODE"] = os.getenv("FIXOPS_MODE", "demo")
+os.environ["FIXOPS_MODE"] = os.getenv("FIXOPS_MODE", "enterprise")
 os.environ["FIXOPS_JWT_SECRET"] = "test-jwt-secret-real-world-do-not-use-in-production"
 
-from fastapi.testclient import TestClient
-
 from apps.api.app import create_app
+from fastapi.testclient import TestClient
 
 # Path to real-world test fixtures
 FIXTURES_DIR = Path(__file__).parent / "fixtures" / "real_world"
@@ -413,7 +412,7 @@ class TestRealWorldAPIServerIntegration:
         env = os.environ.copy()
         env["FIXOPS_DISABLE_TELEMETRY"] = "1"
         env["FIXOPS_API_TOKEN"] = API_TOKEN
-        env["FIXOPS_MODE"] = "demo"
+        env["FIXOPS_MODE"] = "enterprise"
         # Ensure the repo root is in PYTHONPATH so services package can be found
         env["PYTHONPATH"] = str(repo_root)
 

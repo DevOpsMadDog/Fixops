@@ -3,7 +3,7 @@
 # Tests all API endpoints based on actual OpenAPI spec
 
 BASE_URL="http://localhost:8000"
-API_KEY="demo-token-12345"
+API_KEY="${FIXOPS_API_TOKEN:?ERROR: FIXOPS_API_TOKEN must be set}"
 HEADER="X-API-Key: $API_KEY"
 RESULTS_FILE="/tmp/api_test_results_v2.json"
 FAILED_FILE="/tmp/api_test_failures_v2.txt"

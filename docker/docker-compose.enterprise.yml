@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  fixops-enterprise:
+    build:
+      context: .
+      dockerfile: Dockerfile.enterprise
+    container_name: fixops-enterprise
+    ports:
+      - "8000:8000"
+    volumes:
+      # Output directories
+      - ./demo_decision_outputs:/app/demo_decision_outputs
+      - ./data:/app/data
+      # Persistent vector store
+      - fixops-chroma-data:/app/data/chroma_db
+      # Optional: Mount your own fixtures
+      - ./fixtures:/app/fixtures
+    environment:
+      - FIXOPS_MODE=enterprise
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:?Set FIXOPS_API_TOKEN before starting}
+      - FIXOPS_DISABLE_TELEMETRY=1
+      - VECTOR_STORE_PROVIDER=chromadb
+      - VECTOR_STORE_PERSIST_DIR=/app/data/chroma_db
+      # LLM API keys - Use Docker secrets or external secret management in production
+      # For local dev: export these in your shell before running docker-compose
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: >
+      bash -c "
+      echo '=== FixOps Enterprise Mode with ChromaDB ===' &&
+      echo 'Starting API server on port 8000...' &&
+      echo 'ChromaDB persistence: /app/data/chroma_db' &&
+      echo 'Vector embeddings: sentence-transformers/all-MiniLM-L6-v2' &&
+      echo '' &&
+      python -c 'import os; os.environ.setdefault(\"FIXOPS_MODE\", \"enterprise\"); from apps.api.app import create_app; import uvicorn; uvicorn.run(create_app(), host=\"0.0.0.0\", port=8000, log_level=\"warning\")'
+      "
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+volumes:
+  fixops-chroma-data:
+    driver: local

@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-
 from apps.api.normalizers import (
     CVERecordSummary,
     NormalizedCVEFeed,

@@ -16,7 +16,7 @@ class TestBrandingNamespace:
     """Test branding and namespace aliasing with real CLI/API execution."""
 
     def test_branded_product_name_in_api_header(
-        self, fixture_manager, flag_config_manager, demo_fixtures
+        self, fixture_manager, flag_config_manager, test_fixtures
     ):
         """Test that branded product name appears in X-Product-Name header."""
         overlay_config = flag_config_manager.create_branded_config(
@@ -79,7 +79,7 @@ class TestBrandingNamespace:
     def test_branded_product_name_in_evidence_bundle(
         self,
         cli_runner,
-        demo_fixtures,
+        test_fixtures,
         fixture_manager,
         flag_config_manager,
         evidence_validator,
@@ -101,10 +101,10 @@ class TestBrandingNamespace:
         evidence_dir.mkdir(exist_ok=True)
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             evidence_dir=evidence_dir,
@@ -121,7 +121,7 @@ class TestBrandingNamespace:
         ), f"Expected 'Aldeci' in producer field, got '{bundle.producer}'"
 
     def test_namespace_aliasing_aldeci_keys(
-        self, cli_runner, demo_fixtures, fixture_manager, flag_config_manager
+        self, cli_runner, test_fixtures, fixture_manager, flag_config_manager
     ):
         """Test that aldeci.* flag keys work with namespace aliasing."""
         overlay_config = flag_config_manager.create_overlay_config(
@@ -144,10 +144,10 @@ class TestBrandingNamespace:
         output_file = fixture_manager.temp_dir / "pipeline-aldeci-keys.json"
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             timeout=120,
@@ -168,7 +168,7 @@ class TestBrandingNamespace:
         ), "Evidence should be enabled via aldeci.* key"
 
     def test_namespace_aliasing_fallback_to_fixops_keys(
-        self, cli_runner, demo_fixtures, fixture_manager, flag_config_manager
+        self, cli_runner, test_fixtures, fixture_manager, flag_config_manager
     ):
         """Test that namespace aliasing falls back to fixops.* keys when aldeci.* not found."""
         overlay_config = flag_config_manager.create_overlay_config(
@@ -191,10 +191,10 @@ class TestBrandingNamespace:
         output_file = fixture_manager.temp_dir / "pipeline-fallback.json"
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             timeout=120,
@@ -215,7 +215,7 @@ class TestBrandingNamespace:
         ), "Evidence should be enabled via fallback to fixops.* key"
 
     def test_namespace_aliasing_branded_key_overrides_canonical(
-        self, cli_runner, demo_fixtures, fixture_manager, flag_config_manager
+        self, cli_runner, test_fixtures, fixture_manager, flag_config_manager
     ):
         """Test that branded keys (aldeci.*) override canonical keys (fixops.*)."""
         overlay_config = flag_config_manager.create_overlay_config(
@@ -240,10 +240,10 @@ class TestBrandingNamespace:
         output_file = fixture_manager.temp_dir / "pipeline-override.json"
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             timeout=120,
@@ -261,7 +261,7 @@ class TestBrandingNamespace:
         ), "Guardrails should be enabled (aldeci.* = True overrides fixops.* = False)"
 
     def test_namespace_aliasing_with_custom_namespace(
-        self, cli_runner, demo_fixtures, fixture_manager, flag_config_manager
+        self, cli_runner, test_fixtures, fixture_manager, flag_config_manager
     ):
         """Test namespace aliasing with a custom namespace (not fixops or aldeci)."""
         overlay_config = flag_config_manager.create_overlay_config(
@@ -284,10 +284,10 @@ class TestBrandingNamespace:
         output_file = fixture_manager.temp_dir / "pipeline-custom.json"
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             timeout=120,
@@ -310,7 +310,7 @@ class TestBrandingNamespace:
     def test_branding_config_from_flag(
         self,
         cli_runner,
-        demo_fixtures,
+        test_fixtures,
         fixture_manager,
         flag_config_manager,
         evidence_validator,
@@ -338,10 +338,10 @@ class TestBrandingNamespace:
         evidence_dir.mkdir(exist_ok=True)
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             evidence_dir=evidence_dir,
@@ -358,7 +358,7 @@ class TestBrandingNamespace:
         ), f"Expected 'TestBrand' in producer field, got '{bundle.producer}'"
 
     def test_branding_persists_across_api_requests(
-        self, fixture_manager, flag_config_manager, demo_fixtures
+        self, fixture_manager, flag_config_manager, test_fixtures
     ):
         """Test that branding persists correctly across multiple API requests."""
         overlay_config = flag_config_manager.create_branded_config(
@@ -391,7 +391,7 @@ class TestBrandingNamespace:
                 ), f"Request {i}: Expected 'aldeci' in product name, got '{product_name}'"
 
     def test_namespace_env_var_takes_precedence(
-        self, cli_runner, demo_fixtures, fixture_manager, flag_config_manager
+        self, cli_runner, test_fixtures, fixture_manager, flag_config_manager
     ):
         """Test that PRODUCT_NAMESPACE env var takes precedence over config."""
         overlay_config = flag_config_manager.create_overlay_config(
@@ -415,10 +415,10 @@ class TestBrandingNamespace:
         output_file = fixture_manager.temp_dir / "pipeline-env-namespace.json"
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             timeout=120,

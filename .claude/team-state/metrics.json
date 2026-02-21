@@ -1,0 +1,80 @@
+{
+  "project": "ALdeci",
+  "lastUpdated": "2025-01-27T00:00:00Z",
+  "fundingReadiness": {
+    "score": 35,
+    "target": 90,
+    "breakdown": {
+      "product": 45,
+      "architecture": 40,
+      "marketing": 15,
+      "documentation": 30,
+      "testing": 35,
+      "demo": 25
+    }
+  },
+  "codebase": {
+    "totalFiles": 0,
+    "totalLines": 0,
+    "languages": {},
+    "testCoverage": 0,
+    "lintScore": 0,
+    "typeCheckScore": 0,
+    "securityScore": 0
+  },
+  "agentPerformance": {
+    "context-engineer": {
+      "runsCompleted": 0,
+      "lastRun": null,
+      "avgDuration": 0,
+      "artifactsProduced": 0,
+      "successRate": 0
+    },
+    "ai-researcher": {
+      "runsCompleted": 0,
+      "lastRun": null,
+      "avgDuration": 0,
+      "artifactsProduced": 0,
+      "successRate": 0
+    },
+    "scrum-master": {
+      "runsCompleted": 0,
+      "lastRun": null,
+      "avgDuration": 0,
+      "artifactsProduced": 0,
+      "successRate": 0
+    },
+    "marketing-head": {
+      "runsCompleted": 0,
+      "lastRun": null,
+      "avgDuration": 0,
+      "artifactsProduced": 0,
+      "successRate": 0
+    },
+    "enterprise-architect": {
+      "runsCompleted": 0,
+      "lastRun": null,
+      "avgDuration": 0,
+      "artifactsProduced": 0,
+      "successRate": 0
+    }
+  },
+  "sprint": {
+    "currentSprint": 1,
+    "velocity": 0,
+    "burndown": [],
+    "blockers": 0
+  },
+  "research": {
+    "competitorUpdates": 0,
+    "cveTracked": 0,
+    "marketInsights": 0,
+    "lastPulseDate": null
+  },
+  "marketing": {
+    "contentPieces": 0,
+    "battlecards": 0,
+    "positioningScore": 0,
+    "investorNarrativeVersion": 0
+  }
+}

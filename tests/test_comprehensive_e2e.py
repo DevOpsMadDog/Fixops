@@ -26,13 +26,12 @@ class TestAPIEndpointsE2E:
     @pytest.fixture
     def api_client(self):
         """Create FastAPI test client."""
-        from fastapi.testclient import TestClient
-
         from apps.api.app import create_app
+        from fastapi.testclient import TestClient
 
         os.environ["FIXOPS_API_TOKEN"] = "test-token"
         os.environ["FIXOPS_DISABLE_TELEMETRY"] = "1"
-        os.environ["FIXOPS_MODE"] = "demo"
+        os.environ["FIXOPS_MODE"] = "enterprise"
         os.environ[
             "FIXOPS_JWT_SECRET"
         ] = "test-jwt-secret-for-testing-purposes-only-do-not-use-in-production"
@@ -370,16 +369,16 @@ class TestCLICommandsE2E:
         assert exit_code in [0, 1, 2]
 
     def test_cli_demo_command(self):
-        """Test CLI demo command."""
+        """Test CLI pipeline command."""
         from core.cli import main
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            output_file = Path(tmpdir) / "demo.json"
+            output_file = Path(tmpdir) / "pipeline.json"
 
             args = [
                 "demo",
                 "--mode",
-                "demo",
+                "enterprise",
                 "--output",
                 str(output_file),
                 "--pretty",
@@ -454,13 +453,12 @@ class TestSecurityFixes:
     @pytest.fixture
     def api_client(self):
         """Create FastAPI test client."""
-        from fastapi.testclient import TestClient
-
         from apps.api.app import create_app
+        from fastapi.testclient import TestClient
 
         os.environ["FIXOPS_API_TOKEN"] = "test-secret-api-key-12345"
         os.environ["FIXOPS_DISABLE_TELEMETRY"] = "1"
-        os.environ["FIXOPS_MODE"] = "demo"
+        os.environ["FIXOPS_MODE"] = "enterprise"
         os.environ[
             "FIXOPS_JWT_SECRET"
         ] = "test-jwt-secret-for-testing-purposes-only-do-not-use-in-production"

@@ -18,8 +18,6 @@ import time
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
-
 from apps.api.ingestion import (
     Asset,
     AssetType,
@@ -40,6 +38,7 @@ from apps.api.ingestion import (
     get_ingestion_service,
     get_registry,
 )
+from fastapi.testclient import TestClient
 
 
 class TestUnifiedFinding:
@@ -698,7 +697,7 @@ class TestAPIEndpoints:
             response = client.post(
                 "/api/v1/ingest/multipart",
                 files={"files": ("test.sarif", upload_file, "application/json")},
-                headers={"X-API-Key": "demo-token-12345"},
+                headers={"X-API-Key": "test-token-12345"},
             )
 
         assert response.status_code == 200
@@ -710,7 +709,7 @@ class TestAPIEndpoints:
         """Test GET /api/v1/ingest/assets endpoint."""
         response = client.get(
             "/api/v1/ingest/assets",
-            headers={"X-API-Key": "demo-token-12345"},
+            headers={"X-API-Key": "test-token-12345"},
         )
 
         assert response.status_code == 200
@@ -722,7 +721,7 @@ class TestAPIEndpoints:
         """Test GET /api/v1/ingest/formats endpoint."""
         response = client.get(
             "/api/v1/ingest/formats",
-            headers={"X-API-Key": "demo-token-12345"},
+            headers={"X-API-Key": "test-token-12345"},
         )
 
         assert response.status_code == 200
@@ -1666,8 +1665,8 @@ class TestAPIMultipartEdgeCases:
     def client(self):
         import os
 
-        os.environ["FIXOPS_API_TOKEN"] = "demo-token-12345"
-        os.environ["FIXOPS_JWT_SECRET"] = "demo-secret-key-for-testing-only-12345678"
+        os.environ["FIXOPS_API_TOKEN"] = "test-token-12345"
+        os.environ["FIXOPS_JWT_SECRET"] = "test-secret-key-for-testing-only-12345678"
         from apps.api.app import create_app
 
         app = create_app()
@@ -1686,7 +1685,7 @@ class TestAPIMultipartEdgeCases:
             response = client.post(
                 "/api/v1/ingest/multipart",
                 files={"files": ("test.sarif", upload_file, "application/json")},
-                headers={"X-API-Key": "demo-token-12345"},
+                headers={"X-API-Key": "test-token-12345"},
             )
 
         assert response.status_code == 200
@@ -1723,7 +1722,7 @@ class TestAPIMultipartEdgeCases:
             response = client.post(
                 "/api/v1/ingest/multipart",
                 files={"files": ("test.sarif", upload_file, "application/json")},
-                headers={"X-API-Key": "demo-token-12345"},
+                headers={"X-API-Key": "test-token-12345"},
             )
 
         assert response.status_code == 200
@@ -2105,9 +2104,8 @@ class TestFinalCoverage:
 
     def test_multipart_endpoint_with_result_errors_extend(self):
         """Test multipart endpoint extends errors from result (lines 1032)."""
-        from fastapi.testclient import TestClient
-
         from apps.api.app import create_app
+        from fastapi.testclient import TestClient
 
         app = create_app()
         test_client = TestClient(app)
@@ -2148,7 +2146,7 @@ class TestFinalCoverage:
                 response = test_client.post(
                     "/api/v1/ingest/multipart",
                     files={"files": ("test.sarif", upload_file, "application/json")},
-                    headers={"X-API-Key": "demo-token-12345"},
+                    headers={"X-API-Key": "test-token-12345"},
                 )
 
         assert response.status_code == 200
@@ -2162,9 +2160,8 @@ class TestFinalCoverage:
         """Test multipart endpoint handles exceptions (lines 1033-1044)."""
         from unittest.mock import patch
 
-        from fastapi.testclient import TestClient
-
         from apps.api.app import create_app
+        from fastapi.testclient import TestClient
 
         app = create_app()
         test_client = TestClient(app)
@@ -2188,7 +2185,7 @@ class TestFinalCoverage:
                 response = test_client.post(
                     "/api/v1/ingest/multipart",
                     files={"files": ("test.sarif", upload_file, "application/json")},
-                    headers={"X-API-Key": "demo-token-12345"},
+                    headers={"X-API-Key": "test-token-12345"},
                 )
 
         assert response.status_code == 200
@@ -3004,7 +3001,6 @@ class TestMissingCoverageLines:
         from pathlib import Path
 
         import yaml
-
         from apps.api.ingestion import NormalizerRegistry
 
         # Create a temporary YAML config with invalid plugin config
@@ -3032,7 +3028,6 @@ class TestMissingCoverageLines:
         from pathlib import Path
 
         import yaml
-
         from apps.api.ingestion import NormalizerRegistry
 
         config = {
@@ -3064,7 +3059,6 @@ class TestMissingCoverageLines:
         from pathlib import Path
 
         import yaml
-
         from apps.api.ingestion import NormalizerRegistry
 
         config = {
@@ -3096,7 +3090,6 @@ class TestMissingCoverageLines:
         from pathlib import Path
 
         import yaml
-
         from apps.api.ingestion import NormalizerRegistry
 
         config = {
@@ -3128,7 +3121,6 @@ class TestMissingCoverageLines:
         from pathlib import Path
 
         import yaml
-
         from apps.api.ingestion import NormalizerRegistry
 
         config = {
@@ -3161,7 +3153,6 @@ class TestMissingCoverageLines:
         from unittest.mock import patch
 
         import yaml
-
         from apps.api.ingestion import NormalizerRegistry
 
         config = {
@@ -3263,7 +3254,6 @@ class TestMissingCoverageLines:
         from pathlib import Path
 
         import yaml
-
         from apps.api.ingestion import NormalizerRegistry
 
         # Create a temporary module with a valid normalizer

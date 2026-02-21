@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 import pytest
-
 from core.configuration import OverlayConfig
 from core.policy import PolicyAutomation
 

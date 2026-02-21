@@ -1,0 +1,555 @@
+{
+	"info": {
+		"_postman_id": "fixops-bank-api-collection",
+		"name": "FixOps Decision Engine - Bank Integration",
+		"description": "Complete API testing suite for FixOps Decision Engine deployment in bank infrastructure. No authentication required - free tool.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "FixOps Enterprise"
+	},
+	"item": [
+		{
+			"name": "🏥 Health & Monitoring",
+			"item": [
+				{
+					"name": "Health Check (Liveness Probe)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Health check returns 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Service is healthy', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql('healthy');",
+									"    pm.expect(jsonData.service).to.eql('fixops-decision-engine');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{BASE_URL}}/health",
+							"host": ["{{BASE_URL}}"],
+							"path": ["health"]
+						}
+					}
+				},
+				{
+					"name": "Readiness Check (K8s Probe)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Readiness check returns 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('All components ready', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql('ready');",
+									"    pm.expect(jsonData.checks.database).to.be.true;",
+									"    pm.expect(jsonData.checks.cache).to.be.true;",
+									"    pm.expect(jsonData.checks.decision_engine).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{BASE_URL}}/ready",
+							"host": ["{{BASE_URL}}"],
+							"path": ["ready"]
+						}
+					}
+				},
+				{
+					"name": "Prometheus Metrics",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Metrics endpoint responds', function () {",
+									"    pm.response.to.have.status(200);",
+									"    pm.expect(pm.response.headers.get('Content-Type')).to.include('text/plain');",
+									"});",
+									"",
+									"pm.test('Prometheus metrics format', function () {",
+									"    const responseText = pm.response.text();",
+									"    pm.expect(responseText).to.include('fixops_decisions_total');",
+									"    pm.expect(responseText).to.include('fixops_decision_latency_seconds');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{BASE_URL}}/metrics",
+							"host": ["{{BASE_URL}}"],
+							"path": ["metrics"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "⚖️ Decision Engine",
+			"item": [
+				{
+					"name": "Make Security Decision (Payment Service)",
+					"event": [
+						{
+							"listen": "pre-request",
+							"script": {
+								"exec": [
+									"// Set correlation ID for tracking",
+									"pm.request.headers.add({",
+									"    key: 'X-Correlation-ID',",
+									"    value: 'postman-test-' + Date.now()",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Decision made successfully', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Valid decision response', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.decision).to.be.oneOf(['ALLOW', 'BLOCK', 'DEFER']);",
+									"    pm.expect(jsonData.confidence_score).to.be.within(0, 1);",
+									"    pm.expect(jsonData.evidence_id).to.match(/^(EVD|DEMO-EVD)-\\d{4}-\\d+$/);",
+									"    pm.expect(jsonData.processing_time_us).to.be.above(0);",
+									"});",
+									"",
+									"// Store evidence ID for later tests",
+									"const jsonData = pm.response.json();",
+									"pm.environment.set('LAST_EVIDENCE_ID', jsonData.evidence_id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"service_name\": \"payment-processor\",\n  \"environment\": \"production\",\n  \"business_context\": {\n    \"jira_ticket\": \"PAY-2847\",\n    \"business_criticality\": \"critical\",\n    \"data_classification\": \"pii_financial\",\n    \"compliance_requirements\": [\"pci_dss\", \"sox\"]\n  },\n  \"security_findings\": [\n    {\n      \"severity\": \"medium\",\n      \"category\": \"injection\",\n      \"title\": \"Potential SQL injection in payment endpoint\",\n      \"source\": \"sonarqube\",\n      \"confidence\": 0.8\n    }\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/api/v1/decisions/make-decision",
+							"host": ["{{BASE_URL}}"],
+							"path": ["api", "v1", "decisions", "make-decision"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Decision Engine Metrics",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Metrics retrieved successfully', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Valid metrics structure', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('status');",
+									"    pm.expect(jsonData.data).to.have.property('total_decisions');",
+									"    pm.expect(jsonData.data).to.have.property('enterprise_mode');",
+									"    pm.expect(jsonData.data).to.have.property('core_components');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{BASE_URL}}/api/v1/decisions/metrics",
+							"host": ["{{BASE_URL}}"],
+							"path": ["api", "v1", "decisions", "metrics"]
+						}
+					}
+				},
+				{
+					"name": "Get Recent Decisions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{BASE_URL}}/api/v1/decisions/recent?limit=5",
+							"host": ["{{BASE_URL}}"],
+							"path": ["api", "v1", "decisions", "recent"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Evidence Record",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Evidence retrieved or not found', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    pm.test('Valid evidence structure', function () {",
+									"        const jsonData = pm.response.json();",
+									"        pm.expect(jsonData.status).to.eql('success');",
+									"        pm.expect(jsonData.data).to.have.property('evidence_id');",
+									"        pm.expect(jsonData.data).to.have.property('immutable_hash');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{BASE_URL}}/api/v1/decisions/evidence/{{LAST_EVIDENCE_ID}}",
+							"host": ["{{BASE_URL}}"],
+							"path": ["api", "v1", "decisions", "evidence", "{{LAST_EVIDENCE_ID}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🏦 CI/CD Bank Integration",
+			"item": [
+				{
+					"name": "CI/CD Decision - Payment Service (SonarQube + Snyk)",
+					"event": [
+						{
+							"listen": "pre-request",
+							"script": {
+								"exec": [
+									"// Set pipeline tracking headers",
+									"pm.request.headers.add({",
+									"    key: 'X-Pipeline-ID',",
+									"    value: 'jenkins-build-' + Date.now()",
+									"});",
+									"pm.request.headers.add({",
+									"    key: 'X-Correlation-ID',",
+									"    value: 'payment-service-deploy-' + Date.now()",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('CI/CD decision successful', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('CI/CD response format', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('deployment_approved');",
+									"    pm.expect(jsonData).to.have.property('exit_code');",
+									"    pm.expect(jsonData).to.have.property('recommended_actions');",
+									"    pm.expect(jsonData).to.have.property('compliance_status');",
+									"    pm.expect(jsonData.exit_code).to.be.oneOf([0, 1, 2]);",
+									"});",
+									"",
+									"// Log decision for bank audit",
+									"const jsonData = pm.response.json();",
+									"console.log('🏦 Bank CI/CD Decision:', jsonData.decision);",
+									"console.log('📊 Confidence:', jsonData.confidence_score);",
+									"console.log('🗃️ Evidence:', jsonData.evidence_id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"service_name\": \"payment-processor\",\n  \"environment\": \"production\",\n  \"repository_url\": \"https://git.bank.internal/payments/payment-processor\",\n  \"commit_sha\": \"abc123def456\",\n  \"branch_name\": \"main\",\n  \"sarif_results\": {\n    \"runs\": [\n      {\n        \"tool\": {\n          \"driver\": {\n            \"name\": \"SonarQube\"\n          }\n        },\n        \"results\": [\n          {\n            \"ruleId\": \"sql-injection-risk\",\n            \"level\": \"warning\",\n            \"message\": {\n              \"text\": \"Potential SQL injection vulnerability\"\n            }\n          }\n        ]\n      }\n    ]\n  },\n  \"sca_results\": {\n    \"vulnerabilities\": [\n      {\n        \"id\": \"SNYK-001\",\n        \"severity\": \"medium\",\n        \"title\": \"Dependency vulnerability in jackson-core\",\n        \"packageName\": \"jackson-core\"\n      }\n    ]\n  },\n  \"business_criticality\": \"critical\",\n  \"compliance_requirements\": [\"pci_dss\", \"sox\", \"ffiec\"]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/api/v1/cicd/decision",
+							"host": ["{{BASE_URL}}"],
+							"path": ["api", "v1", "cicd", "decision"]
+						}
+					}
+				},
+				{
+					"name": "CI/CD Decision - User Auth Service (High Risk)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"service_name\": \"user-auth-service\",\n  \"environment\": \"production\",\n  \"repository_url\": \"https://git.bank.internal/auth/user-auth\",\n  \"commit_sha\": \"def456ghi789\",\n  \"branch_name\": \"feature/auth-upgrade\",\n  \"sarif_results\": {\n    \"runs\": [\n      {\n        \"tool\": {\n          \"driver\": {\n            \"name\": \"CodeQL\"\n          }\n        },\n        \"results\": [\n          {\n            \"ruleId\": \"sql-injection\",\n            \"level\": \"error\",\n            \"message\": {\n              \"text\": \"SQL injection vulnerability in authentication endpoint\"\n            }\n          }\n        ]\n      }\n    ]\n  },\n  \"sca_results\": {\n    \"vulnerabilities\": [\n      {\n        \"id\": \"CVE-2024-001\",\n        \"severity\": \"critical\",\n        \"title\": \"Authentication bypass in spring-security\",\n        \"packageName\": \"spring-security\"\n      }\n    ]\n  },\n  \"business_criticality\": \"critical\",\n  \"compliance_requirements\": [\"pci_dss\", \"sox\", \"gdpr\"]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/api/v1/cicd/decision",
+							"host": ["{{BASE_URL}}"],
+							"path": ["api", "v1", "cicd", "decision"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "📤 File Upload & Scan Ingestion",
+			"item": [
+				{
+					"name": "Upload SARIF File (SonarQube Results)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('File upload successful', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Valid upload response', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql('success');",
+									"    pm.expect(jsonData.data).to.have.property('findings_processed');",
+									"    pm.expect(jsonData.data).to.have.property('correlations_found');",
+									"    pm.expect(jsonData.data).to.have.property('processing_time_ms');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "sample-sarif.json",
+									"description": "SARIF file from SonarQube scan"
+								},
+								{
+									"key": "service_name",
+									"value": "payment-processor",
+									"type": "text"
+								},
+								{
+									"key": "environment",
+									"value": "production",
+									"type": "text"
+								},
+								{
+									"key": "scan_type",
+									"value": "sarif",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/api/v1/scans/upload",
+							"host": ["{{BASE_URL}}"],
+							"path": ["api", "v1", "scans", "upload"]
+						}
+					}
+				},
+				{
+					"name": "Upload SBOM File (CycloneDX)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "sample-sbom.json",
+									"description": "CycloneDX SBOM file"
+								},
+								{
+									"key": "service_name",
+									"value": "api-gateway",
+									"type": "text"
+								},
+								{
+									"key": "environment",
+									"value": "staging",
+									"type": "text"
+								},
+								{
+									"key": "scan_type",
+									"value": "sbom",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/api/v1/scans/upload",
+							"host": ["{{BASE_URL}}"],
+							"path": ["api", "v1", "scans", "upload"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🏢 Business Context Integration",
+			"item": [
+				{
+					"name": "Get Jira Context",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{BASE_URL}}/api/v1/business-context/jira-context/PAY-2847",
+							"host": ["{{BASE_URL}}"],
+							"path": ["api", "v1", "business-context", "jira-context", "PAY-2847"]
+						}
+					}
+				},
+				{
+					"name": "Get Confluence Threat Model",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{BASE_URL}}/api/v1/business-context/confluence-context/payment-security-reqs",
+							"host": ["{{BASE_URL}}"],
+							"path": ["api", "v1", "business-context", "confluence-context", "payment-security-reqs"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "📊 Analytics & Reporting",
+			"item": [
+				{
+					"name": "Get Dashboard Analytics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{BASE_URL}}/api/v1/analytics/dashboard",
+							"host": ["{{BASE_URL}}"],
+							"path": ["api", "v1", "analytics", "dashboard"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Global pre-request script for FixOps API testing",
+					"console.log('🏦 FixOps Bank API Test - No Authentication Required');",
+					"console.log('Testing against:', pm.environment.get('BASE_URL'));"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Global test script for all requests",
+					"pm.test('Response time acceptable for bank SLA', function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(5000);",
+					"});",
+					"",
+					"pm.test('Security headers present', function () {",
+					"    // Banks expect security headers",
+					"    const headers = pm.response.headers;",
+					"    console.log('Security check - headers available for bank compliance');",
+					"});"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "BASE_URL",
+			"value": "http://localhost:8001",
+			"type": "string"
+		}
+	]
+}

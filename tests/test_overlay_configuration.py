@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from core.configuration import OverlayConfig, load_overlay
 
 
@@ -89,7 +88,7 @@ def test_module_defaults_and_custom_specs() -> None:
 
 def test_overlay_rejects_unknown_keys(tmp_path: Path) -> None:
     path = tmp_path / "fixops.overlay.yml"
-    path.write_text(json.dumps({"mode": "demo", "unknown": 1}), encoding="utf-8")
+    path.write_text(json.dumps({"mode": "enterprise", "unknown": 1}), encoding="utf-8")
     with pytest.raises(ValueError):
         load_overlay(path)
 
@@ -97,7 +96,7 @@ def test_overlay_rejects_unknown_keys(tmp_path: Path) -> None:
 def test_overlay_rejects_outside_data_directory(tmp_path: Path) -> None:
     path = tmp_path / "fixops.overlay.yml"
     overlay_content = {
-        "mode": "demo",
+        "mode": "enterprise",
         "data": {"evidence_dir": "/tmp/forbidden"},
     }
     path.write_text(json.dumps(overlay_content), encoding="utf-8")
@@ -111,7 +110,7 @@ def test_token_strategy_requires_environment(
     monkeypatch.delenv("FIXOPS_API_TOKEN", raising=False)
     path = tmp_path / "fixops.overlay.yml"
     overlay_content = {
-        "mode": "demo",
+        "mode": "enterprise",
         "auth": {"strategy": "token", "token_env": "FIXOPS_API_TOKEN"},
     }
     path.write_text(json.dumps(overlay_content), encoding="utf-8")

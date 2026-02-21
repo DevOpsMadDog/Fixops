@@ -1,9 +1,0 @@
-{
-  "app": "APP4",
-  "components": [
-    {"name": "checkout-api", "language": "Go", "owner": "payments-team"},
-    {"name": "settlement-batch", "language": "Python", "owner": "finance-team"},
-    {"name": "pos-frontend", "language": "TypeScript", "owner": "device-team"},
-    {"name": "edge-gateway", "language": "Rust", "owner": "platform-team"}
-  ]
-}

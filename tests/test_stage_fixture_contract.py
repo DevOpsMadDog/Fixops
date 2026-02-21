@@ -3,10 +3,9 @@ import zipfile
 from pathlib import Path
 
 import pytest
-from src.services import id_allocator, signing
-from src.services.run_registry import RunRegistry
-
 from apps.api.normalizers import InputNormalizer
+from core.services.enterprise import id_allocator, signing
+from core.services.enterprise.run_registry import RunRegistry
 from core.stage_runner import StageRunner
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -42,7 +41,7 @@ def test_sample_stage_outputs_match_expected(
             stage,
             input_path,
             app_name="life-claims-portal",
-            mode="demo",
+            mode="enterprise",
         )
         actual_payload = json.loads(summary.output_file.read_text(encoding="utf-8"))
         expected_payload = json.loads(

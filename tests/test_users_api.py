@@ -4,13 +4,12 @@ Tests for user management API endpoints.
 import os
 
 import pytest
-from fastapi.testclient import TestClient
-
 from apps.api.app import create_app
 from core.user_db import UserDB
+from fastapi.testclient import TestClient
 
 # Use shared API token from conftest.py
-API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "demo-token")
+API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "test-token")
 
 
 @pytest.fixture

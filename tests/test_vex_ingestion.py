@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from src.services import vex_ingestion
-from src.services.vex_ingestion import VEXIngestor
+from core.services.enterprise import vex_ingestion
+from core.services.enterprise.vex_ingestion import VEXIngestor
 
 
 def test_vex_ingestion_suppresses_not_affected(

@@ -7,8 +7,8 @@ from typing import Any, Dict
 from zipfile import ZipFile
 
 import pytest
-from src.services import evidence_export
-from src.services.evidence_export import EvidenceExportService
+from core.services.enterprise import evidence_export
+from core.services.enterprise.evidence_export import EvidenceExportService
 
 
 def test_evidence_export_creates_signed_bundle(monkeypatch: pytest.MonkeyPatch) -> None:

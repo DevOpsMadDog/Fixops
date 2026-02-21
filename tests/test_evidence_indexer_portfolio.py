@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from core.evidence_indexer import EvidenceBundleIndexer
 from core.portfolio_search import PortfolioSearchEngine, PortfolioSearchResult
 

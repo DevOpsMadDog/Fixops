@@ -1,13 +1,12 @@
-"""Tests for Pentagi CLI commands."""
+"""Tests for MPTE CLI commands."""
 import json
 import os
 import tempfile
 
 import pytest
-
 from core.cli import build_parser
-from core.pentagi_db import PentagiDB
-from core.pentagi_models import PenTestConfig, PenTestPriority, PenTestRequest
+from core.mpte_db import MPTEDB
+from core.mpte_models import PenTestConfig, PenTestPriority, PenTestRequest
 
 
 @pytest.fixture
@@ -16,16 +15,16 @@ def db():
     fd, path = tempfile.mkstemp(suffix=".db")
     os.close(fd)
 
-    db = PentagiDB(db_path=path)
+    db = MPTEDB(db_path=path)
     yield db
 
     os.unlink(path)
 
 
 def test_list_requests_command(db, monkeypatch, capsys):
-    """Test pentagi list-requests command."""
-    # PentagiDB is imported inside _handle_pentagi, so monkeypatch the source module
-    monkeypatch.setattr("core.pentagi_db.PentagiDB", lambda db_path=None: db)
+    """Test mpte list-requests command."""
+    # MPTEDB is imported inside _handle_mpte, so monkeypatch the source module
+    monkeypatch.setattr("core.mpte_db.MPTEDB", lambda db_path=None: db)
 
     request = PenTestRequest(
         id="",
@@ -38,7 +37,7 @@ def test_list_requests_command(db, monkeypatch, capsys):
     db.create_request(request)
 
     parser = build_parser()
-    args = parser.parse_args(["pentagi", "list-requests", "--format", "json"])
+    args = parser.parse_args(["mpte", "list-requests", "--format", "json"])
     result = args.func(args)
 
     captured = capsys.readouterr()
@@ -49,14 +48,14 @@ def test_list_requests_command(db, monkeypatch, capsys):
 
 
 def test_create_request_command(db, monkeypatch, capsys):
-    """Test pentagi create-request command."""
-    # PentagiDB is imported inside _handle_pentagi, so monkeypatch the source module
-    monkeypatch.setattr("core.pentagi_db.PentagiDB", lambda db_path=None: db)
+    """Test mpte create-request command."""
+    # MPTEDB is imported inside _handle_mpte, so monkeypatch the source module
+    monkeypatch.setattr("core.mpte_db.MPTEDB", lambda db_path=None: db)
 
     parser = build_parser()
     args = parser.parse_args(
         [
-            "pentagi",
+            "mpte",
             "create-request",
             "--finding-id",
             "new-finding",
@@ -78,12 +77,12 @@ def test_create_request_command(db, monkeypatch, capsys):
 
 
 def test_list_results_command(db, monkeypatch, capsys):
-    """Test pentagi list-results command."""
-    # PentagiDB is imported inside _handle_pentagi, so monkeypatch the source module
-    monkeypatch.setattr("core.pentagi_db.PentagiDB", lambda db_path=None: db)
+    """Test mpte list-results command."""
+    # MPTEDB is imported inside _handle_mpte, so monkeypatch the source module
+    monkeypatch.setattr("core.mpte_db.MPTEDB", lambda db_path=None: db)
 
     parser = build_parser()
-    args = parser.parse_args(["pentagi", "list-results", "--format", "json"])
+    args = parser.parse_args(["mpte", "list-results", "--format", "json"])
     result = args.func(args)
 
     captured = capsys.readouterr()
@@ -93,17 +92,15 @@ def test_list_results_command(db, monkeypatch, capsys):
 
 
 def test_list_configs_command(db, monkeypatch, capsys):
-    """Test pentagi list-configs command."""
-    # PentagiDB is imported inside _handle_pentagi, so monkeypatch the source module
-    monkeypatch.setattr("core.pentagi_db.PentagiDB", lambda db_path=None: db)
+    """Test mpte list-configs command."""
+    # MPTEDB is imported inside _handle_mpte, so monkeypatch the source module
+    monkeypatch.setattr("core.mpte_db.MPTEDB", lambda db_path=None: db)
 
-    config = PenTestConfig(
-        id="", name="Test Config", pentagi_url="https://pentagi.test.com"
-    )
+    config = PenTestConfig(id="", name="Test Config", mpte_url="https://mpte.test.com")
     db.create_config(config)
 
     parser = build_parser()
-    args = parser.parse_args(["pentagi", "list-configs", "--format", "json"])
+    args = parser.parse_args(["mpte", "list-configs", "--format", "json"])
     result = args.func(args)
 
     captured = capsys.readouterr()
@@ -114,19 +111,19 @@ def test_list_configs_command(db, monkeypatch, capsys):
 
 
 def test_create_config_command(db, monkeypatch, capsys):
-    """Test pentagi create-config command."""
-    # PentagiDB is imported inside _handle_pentagi, so monkeypatch the source module
-    monkeypatch.setattr("core.pentagi_db.PentagiDB", lambda db_path=None: db)
+    """Test mpte create-config command."""
+    # MPTEDB is imported inside _handle_mpte, so monkeypatch the source module
+    monkeypatch.setattr("core.mpte_db.MPTEDB", lambda db_path=None: db)
 
     parser = build_parser()
     args = parser.parse_args(
         [
-            "pentagi",
+            "mpte",
             "create-config",
             "--name",
             "New Config",
             "--url",
-            "https://pentagi.example.com",
+            "https://mpte.example.com",
             "--api-key",
             "secret-123",
         ]
@@ -134,5 +131,5 @@ def test_create_config_command(db, monkeypatch, capsys):
     result = args.func(args)
 
     captured = capsys.readouterr()
-    assert "✅ Created Pentagi config:" in captured.out
+    assert "✅ Created MPTE config:" in captured.out
     assert result == 0

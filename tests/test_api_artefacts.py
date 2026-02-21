@@ -18,7 +18,7 @@ def api_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     # Ensure settings pick up the patched environment
     settings_module = importlib.import_module("src.config.settings")
     importlib.reload(settings_module)
-    from src.main import create_app
+    from apps.api.app import create_app
 
     app = create_app()
     return TestClient(app)

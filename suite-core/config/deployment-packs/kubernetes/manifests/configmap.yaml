@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fixops-config
+  namespace: fixops
+  labels:
+    app.kubernetes.io/name: fixops
+    app.kubernetes.io/component: config
+data:
+  FIXOPS_ENVIRONMENT: "production"
+  FIXOPS_LOCAL_DEV: "false"
+  FIXOPS_AUTH_DISABLED: "false"
+  MONGO_URL: "mongodb://mongodb.fixops:27017/fixops_production"
+  REDIS_URL: "redis://redis.fixops:6379/0"
+  FIXOPS_LOG_LEVEL: "info"

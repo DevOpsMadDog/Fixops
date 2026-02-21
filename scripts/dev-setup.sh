@@ -24,7 +24,7 @@ echo "[2/4] Backend ready!"
 # Frontend setup
 echo ""
 echo "[3/4] Installing frontend dependencies..."
-cd "$PROJECT_ROOT/ui/aldeci"
+cd "$PROJECT_ROOT/suite-ui/aldeci"
 npm install
 
 echo ""
@@ -42,7 +42,7 @@ echo "    cd $PROJECT_ROOT"
 echo "    python -m uvicorn backend.app:create_app --factory --reload --port 8000"
 echo ""
 echo "  Frontend (Terminal 2):"
-echo "    cd $PROJECT_ROOT/ui/aldeci"
+echo "    cd $PROJECT_ROOT/suite-ui/aldeci"
 echo "    npm run dev"
 echo ""
 echo "API Documentation: http://localhost:8000/docs"

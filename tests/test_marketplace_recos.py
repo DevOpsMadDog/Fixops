@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.services.marketplace import get_recommendations
+from core.services.enterprise.marketplace import get_recommendations
 
 
 def test_marketplace_returns_pack_for_ac2() -> None:

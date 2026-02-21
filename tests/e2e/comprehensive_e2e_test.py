@@ -42,7 +42,7 @@ import requests
 
 # Configuration
 BASE_URL = os.environ.get("FIXOPS_API_URL", "http://localhost:8002")
-API_KEY = os.environ.get("FIXOPS_API_TOKEN", "demo-token")
+API_KEY = os.environ.get("FIXOPS_API_TOKEN", "test-token")
 OUTPUT_DIR = os.environ.get(
     "FIXOPS_TEST_OUTPUT",
     os.path.join(os.path.expanduser("~"), "fixops_comprehensive_test", "results"),
@@ -1329,11 +1329,11 @@ class ComprehensiveTestRunner:
         # Server errors - check for optional integration unavailability
         if status_code >= 500:
             detail = str(response.get("detail", response))
-            # 503 from optional integrations (pentagi, external services) is expected
+            # 503 from optional integrations (mpte, external services) is expected
             # when those services are not configured - treat as PASS in platform-readiness
             if status_code == 503:
                 optional_integration_patterns = [
-                    "pentagi",
+                    "mpte",
                     "external",
                     "service unavailable",
                     "not configured",
@@ -1838,36 +1838,36 @@ class ComprehensiveTestRunner:
                 )
             )
 
-        # 4. Seed PentAGI configs (per CreatePenTestConfigModel schema)
-        print("\n[1.5.4] Seeding PentAGI Configs")
-        pentagi_configs = [
+        # 4. Seed MPTE configs (per CreatePenTestConfigModel schema)
+        print("\n[1.5.4] Seeding MPTE Configs")
+        mpte_configs = [
             {
                 "name": f"web-app-scan-{ts}",
-                "pentagi_url": "https://pentagi.acme.com",
+                "mpte_url": "https://mpte.acme.com",
                 "enabled": True,
                 "target_environments": ["staging", "production"],
             },
             {
                 "name": f"api-security-{ts}",
-                "pentagi_url": "https://pentagi-api.acme.com",
+                "mpte_url": "https://mpte-api.acme.com",
                 "enabled": True,
                 "target_environments": ["dev", "staging"],
             },
         ]
-        for cfg in pentagi_configs:
+        for cfg in mpte_configs:
             status, response, elapsed = self.client.call(
-                "POST", "/api/v1/pentagi/configs", json=cfg
+                "POST", "/api/v1/mpte/configs", json=cfg
             )
             if status in [200, 201]:
-                self.client.resource_registry.setdefault(
-                    "pentagi_config_ids", []
-                ).append(response.get("id", cfg["name"]))
+                self.client.resource_registry.setdefault("mpte_config_ids", []).append(
+                    response.get("id", cfg["name"])
+                )
             self.add_result(
                 E2ETestCase(
-                    endpoint="/api/v1/pentagi/configs",
+                    endpoint="/api/v1/mpte/configs",
                     method="POST",
                     group="seeding",
-                    description=f"Seed pentagi config: {cfg['name']}",
+                    description=f"Seed mpte config: {cfg['name']}",
                     result=E2ETestResult.PASS
                     if status in [200, 201, 409]
                     else E2ETestResult.NEEDS_SEEDING,
@@ -1882,9 +1882,9 @@ class ComprehensiveTestRunner:
                 )
             )
 
-        # 5. Seed PentAGI requests
-        print("\n[1.5.5] Seeding PentAGI Requests")
-        pentagi_requests = [
+        # 5. Seed MPTE requests
+        print("\n[1.5.5] Seeding MPTE Requests")
+        mpte_requests = [
             {
                 "target": "https://payment-gateway.acme.com",
                 "scan_type": "vulnerability",
@@ -1896,20 +1896,20 @@ class ComprehensiveTestRunner:
                 "priority": "medium",
             },
         ]
-        for req in pentagi_requests:
+        for req in mpte_requests:
             status, response, elapsed = self.client.call(
-                "POST", "/api/v1/pentagi/requests", json=req
+                "POST", "/api/v1/mpte/requests", json=req
             )
             if status in [200, 201]:
-                self.client.resource_registry.setdefault(
-                    "pentagi_request_ids", []
-                ).append(response.get("id", response.get("request_id")))
+                self.client.resource_registry.setdefault("mpte_request_ids", []).append(
+                    response.get("id", response.get("request_id"))
+                )
             self.add_result(
                 E2ETestCase(
-                    endpoint="/api/v1/pentagi/requests",
+                    endpoint="/api/v1/mpte/requests",
                     method="POST",
                     group="seeding",
-                    description=f"Seed pentagi request: {req['target'][:30]}",
+                    description=f"Seed mpte request: {req['target'][:30]}",
                     result=E2ETestResult.PASS
                     if status in [200, 201, 409]
                     else E2ETestResult.NEEDS_SEEDING,
@@ -1924,9 +1924,9 @@ class ComprehensiveTestRunner:
                 )
             )
 
-        # 6. Seed PentAGI results
-        print("\n[1.5.6] Seeding PentAGI Results")
-        pentagi_results = [
+        # 6. Seed MPTE results
+        print("\n[1.5.6] Seeding MPTE Results")
+        mpte_results = [
             {
                 "request_id": "test-request-1",
                 "finding_type": "sql_injection",
@@ -1942,16 +1942,16 @@ class ComprehensiveTestRunner:
                 "details": {"payload": "<script>alert(1)</script>"},
             },
         ]
-        for res in pentagi_results:
+        for res in mpte_results:
             status, response, elapsed = self.client.call(
-                "POST", "/api/v1/pentagi/results", json=res
+                "POST", "/api/v1/mpte/results", json=res
             )
             self.add_result(
                 E2ETestCase(
-                    endpoint="/api/v1/pentagi/results",
+                    endpoint="/api/v1/mpte/results",
                     method="POST",
                     group="seeding",
-                    description=f"Seed pentagi result: {res['finding_type']}",
+                    description=f"Seed mpte result: {res['finding_type']}",
                     result=E2ETestResult.PASS
                     if status in [200, 201, 409]
                     else E2ETestResult.NEEDS_SEEDING,
@@ -2693,11 +2693,11 @@ class ComprehensiveTestRunner:
                 ("GET", "/api/v1/reachability/health"),
                 ("GET", "/api/v1/reachability/metrics"),
             ],
-            "pentagi": [
-                ("GET", "/api/v1/pentagi/configs"),
-                ("GET", "/api/v1/pentagi/requests"),
-                ("GET", "/api/v1/pentagi/results"),
-                ("GET", "/api/v1/pentagi/stats"),
+            "mpte": [
+                ("GET", "/api/v1/mpte/configs"),
+                ("GET", "/api/v1/mpte/requests"),
+                ("GET", "/api/v1/mpte/results"),
+                ("GET", "/api/v1/mpte/stats"),
             ],
             "remediation": [
                 ("GET", "/api/v1/remediation/tasks?org_id=acme-financial"),
@@ -3029,17 +3029,17 @@ class ComprehensiveTestRunner:
             # Inputs endpoints - multipart file upload, return None to skip JSON
             "/inputs/vex": None,
             "/inputs/context": None,
-            # PentAGI endpoints
-            "/api/v1/pentagi/requests": {
-                "config_id": reg.get("pentagi_config_ids", ["web-app-scan"])[0]
-                if reg.get("pentagi_config_ids")
+            # MPTE endpoints
+            "/api/v1/mpte/requests": {
+                "config_id": reg.get("mpte_config_ids", ["web-app-scan"])[0]
+                if reg.get("mpte_config_ids")
                 else "web-app-scan",
                 "target_url": "https://payment-gateway.acme-corp.com",
                 "scan_type": "comprehensive",
             },
-            "/api/v1/pentagi/results": {
-                "request_id": reg.get("pentagi_request_ids", ["req-001"])[0]
-                if reg.get("pentagi_request_ids")
+            "/api/v1/mpte/results": {
+                "request_id": reg.get("mpte_request_ids", ["req-001"])[0]
+                if reg.get("mpte_request_ids")
                 else "req-001",
                 "findings": [
                     {
@@ -3050,7 +3050,7 @@ class ComprehensiveTestRunner:
                 ],
                 "status": "completed",
             },
-            # PentAGI and Reachability endpoints moved to CORRECTED section below
+            # MPTE and Reachability endpoints moved to CORRECTED section below
             # Bulk endpoints - CORRECTED per actual schemas
             "/api/v1/bulk/findings": {
                 "findings": [
@@ -3155,22 +3155,22 @@ class ComprehensiveTestRunner:
                 "entity_id": "https://acme-corp.okta.com",
                 "sso_url": "https://acme-corp.okta.com/sso",
             },
-            # PentAGI endpoints - CORRECTED per actual schemas
-            "/api/v1/pentagi/verify": {
+            # MPTE endpoints - CORRECTED per actual schemas
+            "/api/v1/mpte/verify": {
                 "finding_id": finding_id,
                 "target_url": "https://payment-gateway.acme-corp.com/api/checkout",
                 "vulnerability_type": "sql_injection",
                 "evidence": "Parameter 'id' is vulnerable to SQL injection",
             },
-            # PentAGI monitoring - targets should be array of strings
-            "/api/v1/pentagi/monitoring": {
+            # MPTE monitoring - targets should be array of strings
+            "/api/v1/mpte/monitoring": {
                 "targets": [
                     "https://payment-gateway.acme-corp.com",
                     "https://api-gateway.acme-corp.com",
                 ],
                 "interval_minutes": 1440,
             },
-            "/api/v1/pentagi/scan/comprehensive": {
+            "/api/v1/mpte/scan/comprehensive": {
                 "target": "https://payment-gateway.acme-corp.com",
                 "scan_types": ["web_application", "api_security", "network_scan"],
             },
@@ -3514,20 +3514,18 @@ class ComprehensiveTestRunner:
                     # Try to substitute with real IDs from registry
                     substituted_path = path
                     if "{config_id}" in path and self.client.resource_registry.get(
-                        "pentagi_config_ids"
+                        "mpte_config_ids"
                     ):
                         substituted_path = path.replace(
                             "{config_id}",
-                            str(self.client.resource_registry["pentagi_config_ids"][0]),
+                            str(self.client.resource_registry["mpte_config_ids"][0]),
                         )
                     elif "{request_id}" in path and self.client.resource_registry.get(
-                        "pentagi_request_ids"
+                        "mpte_request_ids"
                     ):
                         substituted_path = path.replace(
                             "{request_id}",
-                            str(
-                                self.client.resource_registry["pentagi_request_ids"][0]
-                            ),
+                            str(self.client.resource_registry["mpte_request_ids"][0]),
                         )
                     elif "{workflow_id}" in path and self.client.resource_registry.get(
                         "workflow_ids"

@@ -41,11 +41,11 @@ def test_import_inventory_router():
     assert inventory_router.router is not None
 
 
-def test_import_pentagi_router():
-    """Test that pentagi_router can be imported."""
-    from apps.api import pentagi_router
+def test_import_mpte_router():
+    """Test that mpte_router can be imported."""
+    from apps.api import mpte_router
 
-    assert pentagi_router.router is not None
+    assert mpte_router.router is not None
 
 
 def test_import_policies_router():

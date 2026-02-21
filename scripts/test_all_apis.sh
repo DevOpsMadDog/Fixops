@@ -3,7 +3,7 @@
 # Tests all 267+ API endpoints and tracks failures
 
 BASE_URL="http://localhost:8000"
-API_KEY="demo-token-12345"
+API_KEY="${FIXOPS_API_TOKEN:?ERROR: FIXOPS_API_TOKEN must be set}"
 HEADER="X-API-Key: $API_KEY"
 RESULTS_FILE="/tmp/api_test_results.json"
 FAILED_FILE="/tmp/api_test_failures.txt"

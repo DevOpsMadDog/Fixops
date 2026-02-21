@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import pytest
-from src.services import real_opa_engine
-from src.services.real_opa_engine import (
-    DemoOPAEngine,
+from core.services.enterprise import real_opa_engine
+from core.services.enterprise.real_opa_engine import (
+    LocalOPAEngine,
     OPAEngineFactory,
     ProductionOPAEngine,
 )
 
 
 class _Settings:
-    DEMO_MODE = False
     OPA_SERVER_URL = "http://opa:8181"
     OPA_POLICY_PACKAGE = "fixops"
     OPA_HEALTH_PATH = "/health"
@@ -25,12 +24,12 @@ def test_factory_uses_production_engine(monkeypatch: pytest.MonkeyPatch) -> None
     assert isinstance(engine, ProductionOPAEngine)
 
 
-def test_factory_returns_demo_when_flag_enabled(
+def test_factory_returns_local_when_no_opa_url(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    class DemoSettings(_Settings):
-        DEMO_MODE = True
+    class NoOPASettings(_Settings):
+        OPA_SERVER_URL = None
 
-    monkeypatch.setattr(real_opa_engine, "get_settings", lambda: DemoSettings())
+    monkeypatch.setattr(real_opa_engine, "get_settings", lambda: NoOPASettings())
     engine = OPAEngineFactory.create()
-    assert isinstance(engine, DemoOPAEngine)
+    assert isinstance(engine, LocalOPAEngine)

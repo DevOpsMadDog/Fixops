@@ -1,36 +1,46 @@
 # ruff: noqa: E402
+"""Golden regression validation tests.
+
+These tests exercise ``DecisionEngine._real_golden_regression_validation``
+and ``GoldenRegressionStore``.  Lightweight in-process stubs replace the
+real database / cache / settings modules so the tests run without Redis,
+PostgreSQL, or external config.
+"""
 
 import asyncio
 import sys
 import types
-from pathlib import Path
 
 import pytest
 
-PROJECT_ROOT = (
-    Path(__file__).resolve().parents[1] / "WIP" / "code" / "enterprise_legacy"
-)
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
+# ---------------------------------------------------------------------------
+# Lightweight stubs for heavy infrastructure modules
+# ---------------------------------------------------------------------------
 
 if "structlog" not in sys.modules:
-    structlog_stub = types.ModuleType("structlog")
+    _structlog = types.ModuleType("structlog")
 
     class _Logger:
         def __getattr__(self, _name):
-            def _noop(*_args, **_kwargs):
+            def _noop(*_a, **_kw):
                 return None
 
             return _noop
 
-    def get_logger(*_args, **_kwargs):
+    def _get_logger(*_a, **_kw):
         return _Logger()
 
-    structlog_stub.get_logger = get_logger
-    sys.modules["structlog"] = structlog_stub
+    _structlog.get_logger = _get_logger
+    sys.modules["structlog"] = _structlog
 
-if "src.config.settings" not in sys.modules:
-    settings_module = types.ModuleType("src.config.settings")
+# config.enterprise.settings — pydantic-free stub
+if "config.enterprise.settings" not in sys.modules:
+    _cfg_pkg = sys.modules.setdefault("config", types.ModuleType("config"))
+    _cfg_ent = types.ModuleType("config.enterprise")
+    _cfg_pkg.enterprise = _cfg_ent
+    sys.modules["config.enterprise"] = _cfg_ent
+
+    _settings_mod = types.ModuleType("config.enterprise.settings")
 
     class _Settings:
         DEMO_MODE = False
@@ -48,20 +58,19 @@ if "src.config.settings" not in sys.modules:
         DEMO_GOLDEN_REGRESSION_CASES = 0
         DEMO_BUSINESS_CONTEXTS = 0
 
-    def get_settings():
+    def _get_settings():
         return _Settings()
 
-    settings_module.get_settings = get_settings
-    sys.modules["src.config.settings"] = settings_module
-    config_package = sys.modules.setdefault(
-        "src.config", types.ModuleType("src.config")
-    )
-    config_package.settings = settings_module
+    _settings_mod.get_settings = _get_settings
+    _settings_mod.Settings = _Settings
+    _cfg_ent.settings = _settings_mod
+    sys.modules["config.enterprise.settings"] = _settings_mod
 
-if "src.services.cache_service" not in sys.modules:
-    cache_module = types.ModuleType("src.services.cache_service")
+# core.services.enterprise.cache_service — in-memory no-op
+if "core.services.enterprise.cache_service" not in sys.modules:
+    _cache_mod = types.ModuleType("core.services.enterprise.cache_service")
 
-    class CacheService:
+    class _CacheService:
         _instance = None
 
         @classmethod
@@ -70,23 +79,29 @@ if "src.services.cache_service" not in sys.modules:
                 cls._instance = cls()
             return cls._instance
 
-        async def get(self, *_args, **_kwargs):
+        async def get(self, *_a, **_kw):
             return None
 
-        async def set(self, *_args, **_kwargs):
+        async def set(self, *_a, **_kw):
             return None
 
-    cache_module.CacheService = CacheService
-    sys.modules["src.services.cache_service"] = cache_module
+    _cache_mod.CacheService = _CacheService
+    sys.modules["core.services.enterprise.cache_service"] = _cache_mod
 
-if "src.db.session" not in sys.modules:
-    session_module = types.ModuleType("src.db.session")
+# core.db.enterprise.session — no-op database manager
+if "core.db.enterprise.session" not in sys.modules:
+    _db_pkg = sys.modules.setdefault("core.db", types.ModuleType("core.db"))
+    _db_ent = types.ModuleType("core.db.enterprise")
+    _db_pkg.enterprise = _db_ent
+    sys.modules["core.db.enterprise"] = _db_ent
+
+    _session_mod = types.ModuleType("core.db.enterprise.session")
 
     class _AsyncSession:
         async def __aenter__(self):
             return self
 
-        async def __aexit__(self, *_args):
+        async def __aexit__(self, *_a):
             return False
 
         async def commit(self):
@@ -98,7 +113,7 @@ if "src.db.session" not in sys.modules:
         async def close(self):
             return None
 
-    class DatabaseManager:
+    class _DatabaseManager:
         @classmethod
         async def get_session(cls):
             return _AsyncSession()
@@ -107,11 +122,12 @@ if "src.db.session" not in sys.modules:
         async def get_session_context(cls):
             return _AsyncSession()
 
-    session_module.DatabaseManager = DatabaseManager
-    sys.modules["src.db.session"] = session_module
+    _session_mod.DatabaseManager = _DatabaseManager
+    sys.modules["core.db.enterprise.session"] = _session_mod
 
-from src.services.decision_engine import DecisionContext, DecisionEngine
-from src.services.golden_regression_store import GoldenRegressionStore
+# ---------------------------------------------------------------------------
+from core.services.enterprise.decision_engine import DecisionContext, DecisionEngine
+from core.services.enterprise.golden_regression_store import GoldenRegressionStore
 
 
 @pytest.fixture(autouse=True)

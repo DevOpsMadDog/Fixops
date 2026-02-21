@@ -7,14 +7,14 @@ import pytest
 
 pytest.importorskip("cryptography")
 
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
-from src.utils.crypto import (
+from core.utils.enterprise.crypto import (
     get_key_provider,
     reset_key_provider_cache,
     rsa_sign,
     rsa_verify,
 )
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 
 
 def _generate_rsa_keypair() -> Tuple[str, str]:

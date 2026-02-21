@@ -62,7 +62,7 @@ except ImportError:
 
 # Configuration
 BASE_URL = os.getenv("FIXOPS_BASE_URL", "http://localhost:8000")
-API_KEY = os.getenv("FIXOPS_API_TOKEN", "demo-token")
+API_KEY = os.getenv("FIXOPS_API_TOKEN", "")
 TIMEOUT = 60.0
 
 # External feed URLs

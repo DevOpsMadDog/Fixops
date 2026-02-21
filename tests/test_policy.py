@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-
 from core.configuration import OverlayConfig
 from core.policy import PolicyAutomation
 

@@ -27,7 +27,7 @@ structlog.configure(
 # Skip tests that import missing enterprise modules or use missing CLI commands
 # These modules exist only in archive/enterprise_legacy and are not in the Python path
 collect_ignore = [
-    # Missing enterprise modules - these import from src.services or src.core which don't exist
+    # Missing enterprise modules - these import enterprise modules that may not be available
     "test_risk_adjustment.py",  # imports src.services.risk_scorer
     "test_rl_controller.py",  # imports src.services.rl_controller
     "test_tenant_rbac.py",  # imports src.core.security
@@ -85,7 +85,7 @@ collect_ignore = [
     "test_feature_matrix.py",  # missing ai_agent_analysis feature
     "test_feeds_enrichment.py",  # FeedsService missing _path attribute
     "test_golden_regression_integration.py",  # GoldenRegressionStore missing _cases_by_id
-    "test_pentagi_integration.py",  # pentagi orchestrator issues
+    "test_mpte_integration.py",  # mpte orchestrator issues
     # E2E tests requiring external services or full evidence pipeline not available in CI
     "e2e/test_critical_decision_policy.py",  # requires external policy engine on 127.0.0.1:8765
     "e2e/test_evidence_generation.py",  # evidence bundle creation not wired in CI profile
@@ -99,17 +99,17 @@ collect_ignore = [
 import os
 from unittest.mock import MagicMock, patch
 
-# Use demo mode for testing to match Docker image configuration
+# Use enterprise mode for testing to match Docker image configuration
 # This ensures consistent behavior between local tests and CI
 if "FIXOPS_MODE" not in os.environ:
-    os.environ["FIXOPS_MODE"] = "demo"
+    os.environ["FIXOPS_MODE"] = "enterprise"
 
-# Set JWT secret for non-demo mode (required for app initialization)
+# Set JWT secret for enterprise mode (required for app initialization)
 if "FIXOPS_JWT_SECRET" not in os.environ:
     os.environ["FIXOPS_JWT_SECRET"] = "test-jwt-secret-for-ci-testing"
 
-# Shared API token for tests - uses env var or default (matches Docker image default)
-API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "demo-token-12345")
+# Shared API token for tests - uses env var or default
+API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "test-token-12345")
 
 # Ensure API token is set in environment
 if "FIXOPS_API_TOKEN" not in os.environ:
@@ -194,16 +194,15 @@ def mock_all_connectors(
 
 
 @pytest.fixture
-def demo_client(monkeypatch):
-    """Create a test client in demo mode for health endpoint tests."""
-    monkeypatch.setenv("FIXOPS_MODE", "demo")
+def app_client(monkeypatch):
+    """Create a test client for health endpoint tests."""
+    monkeypatch.setenv("FIXOPS_MODE", "enterprise")
     monkeypatch.setenv("FIXOPS_API_TOKEN", API_TOKEN)
     monkeypatch.setenv("FIXOPS_DISABLE_TELEMETRY", "1")
 
     try:
-        from fastapi.testclient import TestClient
-
         from apps.api.app import create_app
+        from fastapi.testclient import TestClient
 
         app = create_app()
         return TestClient(app)
@@ -217,9 +216,8 @@ def authenticated_client(monkeypatch):
     monkeypatch.setenv("FIXOPS_API_TOKEN", API_TOKEN)
 
     try:
-        from fastapi.testclient import TestClient
-
         from apps.api.app import create_app
+        from fastapi.testclient import TestClient
 
         app = create_app()
         client = TestClient(app)
