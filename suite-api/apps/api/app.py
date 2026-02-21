@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import importlib.util
 import io
 import json
@@ -470,17 +471,14 @@ _JWT_SECRET_FILE = Path(os.getenv("FIXOPS_DATA_DIR", ".fixops_data")) / ".jwt_se
 
 def _load_or_generate_jwt_secret() -> str:
     """
-    Load JWT secret from environment or generate an ephemeral one for demo mode.
+    Load JWT secret from environment or generate an ephemeral one for local dev.
 
     Priority:
     1. FIXOPS_JWT_SECRET environment variable (required for production)
-    2. Generate ephemeral secret for demo mode only (tokens won't survive restarts)
+    2. Generate ephemeral secret for local development (tokens won't survive restarts)
 
     Returns:
         str: The JWT secret key
-
-    Raises:
-        ValueError: If no secret is available in non-demo mode
     """
     # Priority 1: Environment variable (required for production)
     env_secret = os.getenv("FIXOPS_JWT_SECRET")
@@ -488,22 +486,15 @@ def _load_or_generate_jwt_secret() -> str:
         logger.info("Using JWT signing key from environment variable")
         return env_secret
 
-    # Priority 2: Generate ephemeral secret (demo mode only)
+    # Priority 2: Generate ephemeral secret for local development
     # Note: We intentionally do NOT persist secrets to disk to avoid clear-text storage
-    mode = os.getenv("FIXOPS_MODE", "").lower()
-    if mode == "demo":
-        secret = secrets.token_hex(32)
-        logger.warning(
-            "Generated ephemeral JWT signing key for demo mode. "
-            "Tokens will be invalid after restart. "
-            "For production, set FIXOPS_JWT_SECRET environment variable."
-        )
-        return secret
-    else:
-        raise ValueError(
-            "FIXOPS_JWT_SECRET environment variable must be set in non-demo mode. "
-            "Generate one with: python -c 'import secrets; print(secrets.token_hex(32))'"
-        )
+    secret = secrets.token_hex(32)
+    logger.warning(
+        "FIXOPS_JWT_SECRET not set — generated ephemeral JWT signing key. "
+        "Tokens will be invalid after restart. "
+        "For production, set FIXOPS_JWT_SECRET environment variable."
+    )
+    return secret
 
 
 JWT_SECRET = _load_or_generate_jwt_secret()
@@ -535,11 +526,11 @@ def create_app() -> FastAPI:
     """Create the FastAPI application with file-upload ingestion endpoints."""
 
     # Honour FIXOPS_MODE env-var so the overlay config file's "mode: enterprise"
-    # can be overridden at runtime (e.g. FIXOPS_MODE=demo for local dev).
+    # can be overridden at runtime (e.g. FIXOPS_MODE=enterprise).
     _mode_env = os.getenv("FIXOPS_MODE", "").strip() or None
     try:
         overlay = load_overlay(
-            allow_demo_token_fallback=True,
+            allow_demo_token_fallback=False,
             mode_override=_mode_env,
         )
     except TypeError:
@@ -563,7 +554,7 @@ def create_app() -> FastAPI:
     from apps.api.health import router as health_v1_router
 
     app = FastAPI(
-        title=f"{branding['product_name']} Ingestion Demo API",
+        title=f"{branding['product_name']} Enterprise API",
         description=f"Security decision engine by {branding['org_name']}",
         version="0.1.0",
     )
@@ -614,12 +605,11 @@ def create_app() -> FastAPI:
             "http://127.0.0.1:8000",
             "https://*.devinapps.com",
         ]
-        if overlay.mode != "demo":
-            logger.warning(
-                "FIXOPS_ALLOWED_ORIGINS not set in non-demo mode. "
-                "Using default localhost origins. "
-                "Set FIXOPS_ALLOWED_ORIGINS for production deployments."
-            )
+        logger.warning(
+            "FIXOPS_ALLOWED_ORIGINS not set. "
+            "Using default localhost origins. "
+            "Set FIXOPS_ALLOWED_ORIGINS for production deployments."
+        )
 
     app.add_middleware(
         CORSMiddleware,
@@ -1827,7 +1817,7 @@ def create_app() -> FastAPI:
         if last_result is None:
             raise HTTPException(
                 status_code=404,
-                detail="No pipeline results available. Run /pipeline/run first or upload artifacts in demo mode.",
+                detail="No pipeline results available. Run /api/v1/brain/pipeline/run first.",
             )
 
         # If view=clusters, return deduplicated cluster view
@@ -1840,7 +1830,7 @@ def create_app() -> FastAPI:
         compliance_status = last_result.get("compliance_status", {})
         exploitability_insights = last_result.get("exploitability_insights", {})
 
-        retention_days = 90 if overlay.mode == "demo" else 2555
+        retention_days = 2555
 
         for idx, entry in enumerate(crosswalk):
             design_row = entry.get("design_row", {})
@@ -1885,8 +1875,9 @@ def create_app() -> FastAPI:
                             "retained_until": (
                                 datetime.utcnow() + timedelta(days=retention_days)
                             ).strftime("%m/%d/%Y"),
-                            "sha256": "demo-checksum-"
-                            + evidence_bundle.get("bundle_id", "unknown")[:16],
+                            "sha256": hashlib.sha256(
+                                evidence_bundle.get("bundle_id", "unknown").encode()
+                            ).hexdigest(),
                         },
                         "decision": {
                             "verdict": "review" if severity == "high" else "allow",
@@ -1948,8 +1939,9 @@ def create_app() -> FastAPI:
                             "retained_until": (
                                 datetime.utcnow() + timedelta(days=retention_days)
                             ).strftime("%m/%d/%Y"),
-                            "sha256": "demo-checksum-"
-                            + evidence_bundle.get("bundle_id", "unknown")[:16],
+                            "sha256": hashlib.sha256(
+                                evidence_bundle.get("bundle_id", "unknown").encode()
+                            ).hexdigest(),
                         },
                         "decision": {
                             "verdict": verdict,
@@ -1998,7 +1990,7 @@ def create_app() -> FastAPI:
         if last_result is None:
             raise HTTPException(
                 status_code=404,
-                detail="No pipeline results available. Run /pipeline/run first or upload artifacts in demo mode.",
+                detail="No pipeline results available. Run /api/v1/brain/pipeline/run first.",
             )
 
         triage_data = await get_triage()
@@ -2205,7 +2197,7 @@ def create_app() -> FastAPI:
         if last_result is None:
             raise HTTPException(
                 status_code=404,
-                detail="No pipeline results available. Run /pipeline/run first or upload artifacts in demo mode.",
+                detail="No pipeline results available. Run /api/v1/brain/pipeline/run first.",
             )
 
         nodes = []

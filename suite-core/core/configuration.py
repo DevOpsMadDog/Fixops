@@ -584,7 +584,7 @@ def _validate_policy_engine_config(raw: Optional[Mapping[str, Any]]) -> Dict[str
 class _OverlayDocument(BaseModel):
     """Pydantic schema for validating overlay documents."""
 
-    mode: Optional[str] = Field(default="demo")
+    mode: Optional[str] = Field(default="enterprise")
     jira: Optional[Dict[str, Any]] = None
     confluence: Optional[Dict[str, Any]] = None
     git: Optional[Dict[str, Any]] = None
@@ -656,7 +656,7 @@ def _ensure_within_allowlist(path: Path, allowlist: Iterable[Path]) -> Path:
 class OverlayConfig:
     """Validated overlay configuration with convenience helpers."""
 
-    mode: str = "demo"
+    mode: str = "enterprise"
     jira: Dict[str, Any] = field(default_factory=dict)
     confluence: Dict[str, Any] = field(default_factory=dict)
     git: Dict[str, Any] = field(default_factory=dict)
@@ -1273,17 +1273,16 @@ def load_overlay(
     """Load the overlay configuration and merge profile overrides.
 
     The optional ``mode_override`` parameter allows callers to select a
-    specific overlay profile (for example, switching between the bundled
-    ``demo`` and ``enterprise`` presets) without mutating the source
-    configuration file on disk. When provided, the override takes
-    precedence over the ``mode`` value declared in the file and ensures
-    the downstream profile merge logic operates on the desired mode.
+    specific overlay profile (for example, switching between bundled
+    presets) without mutating the source configuration file on disk.
+    When provided, the override takes precedence over the ``mode`` value
+    declared in the file and ensures the downstream profile merge logic
+    operates on the desired mode.
 
-    When ``allow_demo_token_fallback`` is set, token-based authentication
-    will generate an ephemeral token if the configured environment
-    variable is missing **and** the overlay mode resolves to ``demo``.
-    This keeps the sample API runnable without secrets while continuing
-    to enforce strict checks for enterprise profiles.
+    The ``allow_demo_token_fallback`` parameter is retained for backward
+    compatibility but should always be ``False`` in production. When set,
+    token-based authentication may generate an ephemeral token if the
+    configured environment variable is missing.
     """
 
     override_path = os.getenv(_OVERRIDDEN_PATH_ENV)
@@ -1332,7 +1331,7 @@ def load_overlay(
 
     profiles = document.profiles or {}
     base = {
-        "mode": document.mode or "demo",
+        "mode": document.mode or "enterprise",
         "jira": document.jira or {},
         "confluence": document.confluence or {},
         "git": document.git or {},
@@ -1500,9 +1499,9 @@ def load_overlay(
         if token_env:
             secret = os.getenv(str(token_env))
             if not secret:
-                if allow_demo_token_fallback and (config.mode or "").lower() == "demo":
+                if allow_demo_token_fallback and (config.mode or "").lower() in ("demo", "local"):
                     logger.warning(
-                        "Token auth configured without %s in demo mode; generating ephemeral token",
+                        "Token auth configured without %s; generating ephemeral token",
                         token_env,
                     )
                     auth_tokens.append(secrets.token_urlsafe(32))

@@ -1,6 +1,6 @@
 # core/
 
-**Purpose:** Shared libraries for FixOps demos. Currently hosts the overlay configuration loader and
+**Purpose:** Shared libraries for FixOps. Hosts the overlay configuration loader and
 SSVC design context injector.
 
 **Key Files**
@@ -16,5 +16,5 @@ SSVC design context injector.
 - Emits sanitized overlay metadata and SSVC probability structures.
 
 **Gotchas**
-- Overlay loader defaults to Demo mode; remember to update `mode` when deploying Enterprise setups.
+- Overlay loader defaults to Enterprise mode; ensure `FIXOPS_MODE` env var is set appropriately.
 - SSVC injector requires methodology-specific plugins from the `ssvc` package.
