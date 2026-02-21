@@ -52,7 +52,7 @@ def hit(method, path, data=None, desc=None):
 
 print("=" * 65)
 print(f"  FixOps Enterprise Smoke Test — {datetime.now():%Y-%m-%d %H:%M:%S}")
-print(f"  Server: {API}  |  Token: {KEY[:8]}...")
+print(f"  Server: {API}  |  Auth: {'configured' if KEY else 'MISSING'}")
 print("=" * 65)
 
 print("\n── Health ──")
