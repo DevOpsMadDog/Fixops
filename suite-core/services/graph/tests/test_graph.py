@@ -11,13 +11,13 @@ def _write_json(path: Path, payload: dict) -> Path:
 
 
 def test_graph_queries(tmp_path: Path) -> None:
-    artefact = tmp_path / "demo-artifact.tar.gz"
-    artefact.write_bytes(b"demo")
+    artefact = tmp_path / "test-artifact.tar.gz"
+    artefact.write_bytes(b"test")
 
     attestation = generate_attestation(
         artefact,
-        builder_id="builder://ci/demo",
-        source_uri="git+https://example.com/demo.git",
+        builder_id="builder://ci/test",
+        source_uri="git+https://example.com/test.git",
         build_type="https://example.com/schema/build",
     )
     attestation.metadata["buildInvocationID"] = "job-42"

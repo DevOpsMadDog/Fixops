@@ -15,7 +15,7 @@ from core.paths import ensure_secure_directory
 
 
 class _OPAClient:
-    """Best-effort OPA/Rego client supporting remote and demo evaluation."""
+    """Best-effort OPA/Rego client supporting remote and local evaluation."""
 
     def __init__(self, settings: Mapping[str, Any] | None) -> None:
         self.settings = dict(settings or {})

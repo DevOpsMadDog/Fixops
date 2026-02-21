@@ -22,11 +22,11 @@ class EvaluationContext:
     tenant_id: Optional[str] = None
     user_email: Optional[str] = None
 
-    environment: Optional[str] = None  # demo, enterprise, staging, production
+    environment: Optional[str] = None  # enterprise, staging, production, local
     mode: Optional[str] = None  # Alias for environment
     region: Optional[str] = None  # us-east-1, eu-west-1, etc.
 
-    plan: Optional[str] = None  # demo, enterprise, premium
+    plan: Optional[str] = None  # enterprise, premium, starter
 
     service_name: Optional[str] = None  # API service name
     request_id: Optional[str] = None  # Correlation ID

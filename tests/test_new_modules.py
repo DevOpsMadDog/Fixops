@@ -5,7 +5,7 @@ from core.performance import PerformanceSimulator
 from core.tenancy import TenantLifecycleManager
 
 
-def _overlay_stub(mode: str = "demo") -> object:
+def _overlay_stub(mode: str = "enterprise") -> object:
     return types.SimpleNamespace(mode=mode, metadata={"profile_applied": mode})
 
 
@@ -43,7 +43,7 @@ def test_roi_dashboard_calculates_value() -> None:
 
     assert analytics["overview"]["estimated_value"] > 0
     assert analytics["roi"]["noise_hours_saved"] >= 0
-    assert analytics["overlay"]["mode"] == "demo"
+    assert analytics["overlay"]["mode"] == "enterprise"
     assert any(
         entry["module"] == "guardrails" for entry in analytics["value_by_module"]
     )
@@ -82,7 +82,7 @@ def test_tenant_lifecycle_summary() -> None:
     tenant = result["tenants"][0]
     assert tenant["modules_required"]
     assert "performance" in tenant["modules_required"]
-    assert result["overlay"]["mode"] == "demo"
+    assert result["overlay"]["mode"] == "enterprise"
 
 
 def test_performance_simulation_estimates_latency() -> None:
@@ -107,4 +107,4 @@ def test_performance_simulation_estimates_latency() -> None:
     assert profile["summary"]["total_estimated_latency_ms"] > 0
     assert profile["summary"]["threshold_ms"] == 4000
     assert "recommendations" in profile
-    assert profile["overlay"]["mode"] == "demo"
+    assert profile["overlay"]["mode"] == "enterprise"

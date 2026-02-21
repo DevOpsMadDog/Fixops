@@ -112,7 +112,7 @@ class StageRunner:
         app_name: Optional[str] = None,
         app_id: Optional[str] = None,
         output_path: Optional[Path] = None,
-        mode: str = "demo",
+        mode: str = "enterprise",
         sign: bool = False,
         verify: bool = False,
         verbose: bool = False,

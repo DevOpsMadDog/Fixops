@@ -1,8 +1,8 @@
 """
-Demo data seeding for FixOps.
+Sample data seeding for FixOps.
 
-This module provides realistic demo data for all FixOps features.
-Demo data is seeded on startup when FIXOPS_MODE=demo.
+This module provides realistic sample data for all FixOps features.
+Sample data can be seeded on startup for local development environments.
 """
 
 import os
@@ -429,5 +429,5 @@ def seed_demo_reports(reports_dir: Path) -> List[dict]:
 
 
 def is_demo_mode() -> bool:
-    """Check if running in demo mode."""
-    return os.getenv("FIXOPS_MODE", "demo").lower() == "demo"
+    """Check if running in local/sandbox mode (for sample data seeding)."""
+    return os.getenv("FIXOPS_MODE", "enterprise").lower() in ("local", "sandbox")

@@ -67,7 +67,7 @@ class CLIRunner:
         Run CLI command with given arguments.
 
         Args:
-            args: CLI arguments (e.g., ["demo", "--mode", "demo"])
+            args: CLI arguments (e.g., ["pipeline", "--mode", "enterprise"])
             timeout: Timeout in seconds
             check: Raise exception if exit code is non-zero
             parse_json: Try to parse stdout as JSON
@@ -92,7 +92,7 @@ class CLIRunner:
             env["FIXOPS_API_TOKEN"] = secrets.token_hex(32)
 
         if "FIXOPS_MODE" not in env:
-            env["FIXOPS_MODE"] = "demo"
+            env["FIXOPS_MODE"] = "enterprise"
 
         repo_root = Path(__file__).parent.parent.parent
         if "PYTHONPATH" in env:
@@ -136,16 +136,16 @@ class CLIRunner:
 
     def run_demo(
         self,
-        mode: str = "demo",
+        mode: str = "enterprise",
         output: Optional[Path] = None,
         pretty: bool = True,
         timeout: int = 60,
     ) -> CLIResult:
         """
-        Run CLI demo command.
+        Run CLI pipeline command.
 
         Args:
-            mode: Mode to run (demo or enterprise)
+            mode: Mode to run (enterprise by default)
             output: Output file path
             pretty: Pretty print JSON
             timeout: Timeout in seconds

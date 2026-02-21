@@ -996,7 +996,7 @@ class PlaybookRunner:
                 }
         except Exception as exc:
             logger.warning(f"Evidence collection failed: {exc}")
-        return {"collected": True, "evidence_id": "ev-demo"}
+        return {"collected": True, "evidence_id": "ev-placeholder"}
 
     async def _handle_evidence_sign(
         self, params: Dict[str, Any], context: PlaybookExecutionContext

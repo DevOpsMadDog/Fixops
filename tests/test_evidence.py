@@ -94,15 +94,15 @@ class TestEvidenceHubCoverageGaps:
             hub = EvidenceHub(overlay)
             assert hub is not None
 
-    def test_sign_bundles_disabled_in_demo_mode_when_rsa_unavailable(
+    def test_sign_bundles_disabled_in_test_mode_when_rsa_unavailable(
         self, tmp_path: Path
     ) -> None:
-        """Test that signing is disabled in demo mode when RSA module unavailable.
+        """Test that signing is disabled in test mode when RSA module unavailable.
 
         Covers lines 189-190, 193-194, 199 in evidence.py.
         """
         overlay = OverlayConfig(
-            mode="demo",
+            mode="test",
             data={"evidence_dir": str(tmp_path / "evidence")},
             limits={
                 "evidence": {
@@ -118,7 +118,7 @@ class TestEvidenceHubCoverageGaps:
         # Patch _rsa_sign to None to simulate RSA module unavailable
         with patch("core.evidence._rsa_sign", None):
             hub = EvidenceHub(overlay)
-            # In demo mode, signing should be disabled gracefully
+            # In test mode, signing should be disabled gracefully
             assert hub.sign_bundles is False
 
     def test_sign_bundles_raises_in_production_when_rsa_unavailable(

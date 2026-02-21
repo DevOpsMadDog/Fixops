@@ -1,6 +1,6 @@
 """
-Real OPA (Open Policy Agent) Engine for Production Mode
-- Demo Mode: Uses local rego evaluation
+Real OPA (Open Policy Agent) Engine
+- Local Mode: Uses local rego-style evaluation (no OPA server required)
 - Production Mode: Connects to real OPA server and evaluates policies
 """
 
@@ -29,15 +29,15 @@ class OPAEngine:
         raise NotImplementedError
 
 
-class DemoOPAEngine(OPAEngine):
-    """Demo OPA Engine with local rego evaluation"""
+class LocalOPAEngine(OPAEngine):
+    """Local OPA Engine with built-in rego-style policy evaluation (no OPA server required)"""
 
     def __init__(self):
         self.policies = {}
-        self._load_demo_policies()
+        self._load_builtin_policies()
 
-    def _load_demo_policies(self):
-        """Load demo policies for local evaluation"""
+    def _load_builtin_policies(self):
+        """Load built-in policies for local evaluation"""
         self.policies = {
             "vulnerability": {
                 "rules": [
@@ -69,12 +69,12 @@ class DemoOPAEngine(OPAEngine):
             },
         }
 
-        logger.info("🎭 Demo OPA policies loaded", policies=list(self.policies.keys()))
+        logger.info("📋 Local OPA policies loaded", policies=list(self.policies.keys()))
 
     async def evaluate_policy(
         self, policy_name: str, input_data: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Evaluate policy using demo logic"""
+        """Evaluate policy using local built-in logic"""
         try:
             start_time = time.perf_counter()
 
@@ -93,7 +93,7 @@ class DemoOPAEngine(OPAEngine):
             return result
 
         except Exception as e:
-            logger.error(f"Demo OPA evaluation failed: {e}")
+            logger.error(f"Local OPA evaluation failed: {e}")
             return {
                 "decision": "defer",
                 "rationale": f"Policy evaluation error: {str(e)}",
@@ -103,7 +103,7 @@ class DemoOPAEngine(OPAEngine):
     async def _evaluate_vulnerability_policy(
         self, input_data: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Demo vulnerability policy evaluation"""
+        """Local vulnerability policy evaluation"""
         vulnerabilities = input_data.get("vulnerabilities", [])
 
         if not vulnerabilities:
@@ -140,7 +140,7 @@ class DemoOPAEngine(OPAEngine):
             }
 
     async def _evaluate_sbom_policy(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Demo SBOM policy evaluation"""
+        """Local SBOM policy evaluation"""
         sbom_present = input_data.get("sbom_present", False)
         sbom_valid = input_data.get("sbom_valid", False)
 
@@ -192,7 +192,7 @@ class DemoOPAEngine(OPAEngine):
         }
 
     async def health_check(self) -> bool:
-        """Demo health check always returns True"""
+        """Local health check always returns True"""
         return True
 
 
@@ -407,27 +407,28 @@ class ProductionOPAEngine(OPAEngine):
 
 
 class OPAEngineFactory:
-    """Factory for creating OPA engines based on mode"""
+    """Factory for creating OPA engines based on OPA server availability"""
 
     @staticmethod
     def create(settings=None) -> OPAEngine:
-        """Create OPA engine based on demo mode setting"""
+        """Create OPA engine — uses ProductionOPAEngine if OPA_SERVER_URL is set, otherwise LocalOPAEngine"""
         if settings is None:
             settings = get_settings()
 
-        if settings.DEMO_MODE:
-            logger.info("🎭 Creating Demo OPA Engine (local evaluation)")
-            return DemoOPAEngine()
-        opa_url = getattr(settings, "OPA_SERVER_URL", None) or "http://localhost:8181"
-        logger.info(f"🏭 Creating Production OPA Engine opa_url={opa_url}")
-        return ProductionOPAEngine(
-            opa_url,
-            policy_package=getattr(settings, "OPA_POLICY_PACKAGE", "fixops"),
-            health_path=getattr(settings, "OPA_HEALTH_PATH", "/health"),
-            bundle_status_path=getattr(settings, "OPA_BUNDLE_STATUS_PATH", None),
-            auth_token=getattr(settings, "OPA_AUTH_TOKEN", None),
-            request_timeout=getattr(settings, "OPA_REQUEST_TIMEOUT", 5),
-        )
+        opa_url = getattr(settings, "OPA_SERVER_URL", None)
+        if opa_url:
+            logger.info(f"🏭 Creating Production OPA Engine opa_url={opa_url}")
+            return ProductionOPAEngine(
+                opa_url,
+                policy_package=getattr(settings, "OPA_POLICY_PACKAGE", "fixops"),
+                health_path=getattr(settings, "OPA_HEALTH_PATH", "/health"),
+                bundle_status_path=getattr(settings, "OPA_BUNDLE_STATUS_PATH", None),
+                auth_token=getattr(settings, "OPA_AUTH_TOKEN", None),
+                request_timeout=getattr(settings, "OPA_REQUEST_TIMEOUT", 5),
+            )
+
+        logger.info("📋 Creating Local OPA Engine (no OPA_SERVER_URL configured)")
+        return LocalOPAEngine()
 
 
 # Global OPA engine instance

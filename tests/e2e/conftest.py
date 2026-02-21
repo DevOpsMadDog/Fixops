@@ -51,8 +51,8 @@ def server_manager():
 
 
 @pytest.fixture
-def demo_fixtures(fixture_manager):
-    """Generate demo test fixtures."""
+def test_fixtures(fixture_manager):
+    """Generate test fixtures for pipeline testing."""
     design = fixture_manager.generate_design_csv(
         components=[
             {
@@ -103,7 +103,7 @@ def demo_fixtures(fixture_manager):
     sarif = fixture_manager.generate_sarif_json(
         results=[
             {
-                "ruleId": "DEMO001",
+                "ruleId": "TEST001",
                 "level": "error",
                 "message": {"text": "SQL injection risk"},
                 "locations": [

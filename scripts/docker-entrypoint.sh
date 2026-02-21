@@ -23,7 +23,7 @@ echo ""
 
 # --- Enterprise defaults ---
 export FIXOPS_MODE="${FIXOPS_MODE:-enterprise}"
-export FIXOPS_DEMO_MODE="${FIXOPS_DEMO_MODE:-false}"
+export FIXOPS_LOCAL_DEV="${FIXOPS_LOCAL_DEV:-false}"
 if [[ -z "${FIXOPS_JWT_SECRET:-}" ]]; then
     export FIXOPS_JWT_SECRET=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
 fi

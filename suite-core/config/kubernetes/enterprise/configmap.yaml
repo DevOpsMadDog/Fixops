@@ -7,7 +7,7 @@ data:
   # FixOps Configuration
   FIXOPS_ENVIRONMENT: "production"
   FIXOPS_LOG_LEVEL: "info"
-  FIXOPS_DEMO_MODE: "false"
+  FIXOPS_LOCAL_DEV: "false"
   
   # Database Configuration
   DATABASE_POOL_SIZE: "10"

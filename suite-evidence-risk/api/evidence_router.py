@@ -181,7 +181,7 @@ async def download_evidence_bundle(bundle_id: str, request: Request):
     for run_dir in evidence_base.glob("*"):
         if run_dir.is_dir():
             # Hardcoded filename - safe by design
-            potential_bundle = run_dir / "fixops-demo-run-bundle.json.gz"
+            potential_bundle = run_dir / "fixops-run-bundle.json.gz"
             if potential_bundle.exists():
                 # Use verify_allowlisted_path to validate (CodeQL-recognized sanitizer)
                 try:

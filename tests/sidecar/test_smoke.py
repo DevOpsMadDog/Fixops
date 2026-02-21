@@ -12,7 +12,7 @@ import httpx
 import pytest
 
 BASE_URL = os.getenv("FIXOPS_BASE_URL", "http://fixops:8000")
-API_KEY = os.getenv("FIXOPS_API_TOKEN", "demo-token")
+API_KEY = os.getenv("FIXOPS_API_TOKEN", "test-token")
 TIMEOUT = 30.0
 
 # Skip all tests in this module if FIXOPS_BASE_URL is not explicitly set

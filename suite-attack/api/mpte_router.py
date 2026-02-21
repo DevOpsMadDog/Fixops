@@ -27,36 +27,36 @@ _mpte_service: Optional[AdvancedMPTEService] = None
 # MPTE service URL from environment
 MPTE_URL = os.environ.get("MPTE_BASE_URL", "https://localhost:8443")
 # Demo mode disabled by default - all calls go to real MPTE service
-DEMO_MODE = os.environ.get("FIXOPS_DEMO_MODE", "false").lower() == "true"
+_BOOTSTRAP_MODE = os.environ.get("FIXOPS_BOOTSTRAP_MPTE", "false").lower() == "true"
 
 
-def _ensure_demo_config():
-    """Ensure a demo MPTE config exists."""
+def _ensure_seed_config():
+    """Ensure a seed MPTE config exists for bootstrapping."""
     configs = db.list_configs(limit=1)
     if not configs:
         from core.mpte_models import PenTestConfig
 
-        demo_config = PenTestConfig(
+        seed_config = PenTestConfig(
             id="",
-            name="demo-config",
-            mpte_url="http://localhost:9000",  # Demo URL
-            api_key="demo-key",
+            name="seed-config",
+            mpte_url="http://localhost:9000",
+            api_key="change-me",
             enabled=True,
             max_concurrent_tests=5,
             timeout_seconds=60,
             auto_trigger=False,
-            target_environments=["demo"],
+            target_environments=["staging"],
         )
-        db.create_config(demo_config)
-        logger.info("Created demo MPTE configuration")
+        db.create_config(seed_config)
+        logger.info("Created seed MPTE configuration")
 
 
 def get_mpte_service() -> Optional[AdvancedMPTEService]:
     """Get or create MPTE service instance."""
     global _mpte_service
     if _mpte_service is None:
-        # Auto-create demo config if needed
-        _ensure_demo_config()
+        # Auto-create seed config if needed
+        _ensure_seed_config()
         # Get config from database
         configs = db.list_configs(limit=1)
         if configs and configs[0].enabled:
@@ -500,7 +500,7 @@ async def verify_vulnerability(data: VerifyVulnerabilityModel):
         service = get_mpte_service()
         if not service:
             # Auto-create config and retry
-            _ensure_demo_config()
+            _ensure_seed_config()
             service = get_mpte_service()
 
         if service:

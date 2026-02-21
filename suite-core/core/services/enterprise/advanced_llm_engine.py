@@ -75,7 +75,7 @@ class AdvancedLLMEngine:
                 logger.error(f"ChatGPT client initialization failed: {exc}")
                 self.llm_client = None
         else:
-            logger.warning("No ChatGPT API key configured, using demo providers")
+            logger.warning("No ChatGPT API key configured, using fallback providers")
 
         if not self.enabled_providers:
             self.enabled_providers = [
@@ -191,7 +191,7 @@ class AdvancedLLMEngine:
                     recommended_action,
                     confidence,
                     reasoning,
-                ) = self._generate_demo_analysis(provider, context, findings)
+                ) = self._generate_fallback_analysis(provider, context, findings)
 
             processing_time = (time.time() - start_time) * 1000
 
@@ -260,10 +260,10 @@ class AdvancedLLMEngine:
         else:
             return "defer", 0.5, "Manual review recommended"
 
-    def _generate_demo_analysis(
+    def _generate_fallback_analysis(
         self, provider: str, context: Dict[str, Any], findings: List[Dict[str, Any]]
     ) -> Tuple[str, float, str]:
-        """Generate demo analysis for providers"""
+        """Generate fallback analysis when LLM provider is unavailable."""
         high_severity = any(
             f.get("severity", "").upper() in ["CRITICAL", "HIGH"] for f in findings
         )
@@ -298,7 +298,7 @@ class AdvancedLLMEngine:
                 )
             return "allow", 0.9, "Cyber threat assessment passed"
 
-        else:  # specialized cyber demo
+        else:  # specialized cyber fallback
             if high_severity:
                 return (
                     "defer",

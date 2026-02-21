@@ -198,7 +198,7 @@ class MarketplaceService:
             logger.error("Failed to persist marketplace data", error=str(e))
 
     def _seed_items(self):
-        demo_items = [
+        seed_items = [
             MarketplaceItem(
                 id=str(uuid.uuid4()),
                 name="PCI DSS Payment Gateway Policy Pack",
@@ -249,7 +249,7 @@ class MarketplaceService:
                 qa_summary="Scenario requires manual validation of TTP coverage",
             ),
         ]
-        self._items.extend(demo_items)
+        self._items.extend(seed_items)
 
     # Validation
     def _validate_content(self, content: Dict[str, Any]):

@@ -191,7 +191,7 @@
 									"    const jsonData = pm.response.json();",
 									"    pm.expect(jsonData).to.have.property('status');",
 									"    pm.expect(jsonData.data).to.have.property('total_decisions');",
-									"    pm.expect(jsonData.data).to.have.property('demo_mode');",
+									"    pm.expect(jsonData.data).to.have.property('enterprise_mode');",
 									"    pm.expect(jsonData.data).to.have.property('core_components');",
 									"});"
 								],

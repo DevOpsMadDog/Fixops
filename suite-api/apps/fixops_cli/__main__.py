@@ -69,8 +69,8 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     stage_parser.add_argument(
         "--mode",
-        choices=["demo", "enterprise"],
-        default="demo",
+        choices=["enterprise", "local"],
+        default="enterprise",
         help="Processing mode hint (affects scoring heuristics)",
     )
     stage_parser.add_argument(

@@ -16,16 +16,16 @@ from core.audit_models import (
 from fastapi.testclient import TestClient
 
 # Use the API token from environment or default (matches Docker image default)
-API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "demo-token-12345")
+API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "test-token-12345")
 
 
 @pytest.fixture
 def client(monkeypatch):
     """Create test client with proper environment variables."""
     monkeypatch.setenv(
-        "FIXOPS_API_TOKEN", os.getenv("FIXOPS_API_TOKEN", "demo-token-12345")
+        "FIXOPS_API_TOKEN", os.getenv("FIXOPS_API_TOKEN", "test-token-12345")
     )
-    monkeypatch.setenv("FIXOPS_MODE", os.getenv("FIXOPS_MODE", "demo"))
+    monkeypatch.setenv("FIXOPS_MODE", os.getenv("FIXOPS_MODE", "enterprise"))
     app = create_app()
     return TestClient(app)
 

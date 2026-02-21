@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     )
     from apps.api.pipeline import PipelineOrchestrator  # noqa: F401
     from core.configuration import OverlayConfig  # noqa: F401
-    from core.demo_runner import run_demo_pipeline  # noqa: F401
+    from core.demo_runner import run_demo_pipeline as run_showcase_pipeline  # noqa: F401
     from core.evidence import EvidenceHub  # noqa: F401
     from core.probabilistic import ProbabilisticForecastEngine  # noqa: F401
     from core.processing_layer import ProcessingLayer  # noqa: F401
@@ -1081,7 +1081,7 @@ def _handle_train_forecast(args: argparse.Namespace) -> int:
     return 0
 
 
-def _handle_demo(args: argparse.Namespace) -> int:
+def _handle_showcase(args: argparse.Namespace) -> int:
     from core.demo_runner import run_demo_pipeline  # noqa: F811
 
     _result, summary_lines = run_demo_pipeline(
@@ -1094,7 +1094,7 @@ def _handle_demo(args: argparse.Namespace) -> int:
         for line in summary_lines:
             print(line)
     if args.output is not None and not args.output.exists():
-        raise FileNotFoundError(f"Failed to persist demo output to {args.output}")
+        raise FileNotFoundError(f"Failed to persist output to {args.output}")
     return 0
 
 
@@ -4506,8 +4506,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     stage_parser.add_argument(
         "--mode",
-        choices=["demo", "enterprise"],
-        default="demo",
+        choices=["enterprise", "local"],
+        default="enterprise",
         help="Optional hint influencing local processing (reserved)",
     )
     stage_parser.add_argument(
@@ -4783,32 +4783,32 @@ def build_parser() -> argparse.ArgumentParser:
     )
     train_parser.set_defaults(func=_handle_train_forecast)
 
-    demo_parser = subparsers.add_parser(
-        "demo",
-        help="Run the FixOps pipeline with bundled demo or enterprise fixtures",
+    showcase_parser = subparsers.add_parser(
+        "showcase",
+        help="Run the FixOps pipeline with bundled sample fixtures",
     )
-    demo_parser.add_argument(
+    showcase_parser.add_argument(
         "--mode",
-        choices=["demo", "enterprise"],
-        default="demo",
+        choices=["enterprise", "local"],
+        default="enterprise",
         help="Overlay profile to apply when running the bundled fixtures",
     )
-    demo_parser.add_argument(
+    showcase_parser.add_argument(
         "--output",
         type=Path,
         help="Optional path to write the pipeline response JSON",
     )
-    demo_parser.add_argument(
+    showcase_parser.add_argument(
         "--pretty",
         action="store_true",
         help="Pretty-print JSON output when saving to disk",
     )
-    demo_parser.add_argument(
+    showcase_parser.add_argument(
         "--quiet",
         action="store_true",
-        help="Suppress the demo summary",
+        help="Suppress the showcase summary",
     )
-    demo_parser.set_defaults(func=_handle_demo)
+    showcase_parser.set_defaults(func=_handle_showcase)
 
     train_bn_lr_parser = subparsers.add_parser(
         "train-bn-lr",

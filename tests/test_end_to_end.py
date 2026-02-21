@@ -26,7 +26,7 @@ from apps.api.normalizers import InputNormalizer
 from apps.api.pipeline import PipelineOrchestrator
 
 
-def test_end_to_end_demo_pipeline():
+def test_end_to_end_pipeline():
     design_csv = """component,owner,criticality,notes\npayment-service,app-team,high,Handles card processing\nnotification-service,platform,medium,Sends emails\nai-orchestrator,ml-team,high,LangChain agent orchestrator for support bots\n"""
 
     sbom_document = {
@@ -68,10 +68,10 @@ def test_end_to_end_demo_pipeline():
         "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
         "runs": [
             {
-                "tool": {"driver": {"name": "DemoScanner"}},
+                "tool": {"driver": {"name": "TestScanner"}},
                 "results": [
                     {
-                        "ruleId": "DEMO001",
+                        "ruleId": "TEST001",
                         "level": "error",
                         "message": {"text": "SQL injection risk"},
                         "locations": [
@@ -91,13 +91,13 @@ def test_end_to_end_demo_pipeline():
     }
 
     if TestClient is not None and create_app is not None:
-        os.environ["FIXOPS_API_TOKEN"] = "demo-token"
+        os.environ["FIXOPS_API_TOKEN"] = "test-token"
         app = create_app()
         client = TestClient(app)
 
         response = client.post(
             "/inputs/design",
-            headers={"X-API-Key": "demo-token"},
+            headers={"X-API-Key": "test-token"},
             files={"file": ("design.csv", design_csv, "text/csv")},
         )
         assert response.status_code == 200
@@ -106,7 +106,7 @@ def test_end_to_end_demo_pipeline():
 
         response = client.post(
             "/inputs/sbom",
-            headers={"X-API-Key": "demo-token"},
+            headers={"X-API-Key": "test-token"},
             files={
                 "file": (
                     "sbom.json",
@@ -121,7 +121,7 @@ def test_end_to_end_demo_pipeline():
 
         response = client.post(
             "/inputs/cve",
-            headers={"X-API-Key": "demo-token"},
+            headers={"X-API-Key": "test-token"},
             files={
                 "file": (
                     "kev.json",
@@ -136,7 +136,7 @@ def test_end_to_end_demo_pipeline():
 
         response = client.post(
             "/inputs/sarif",
-            headers={"X-API-Key": "demo-token"},
+            headers={"X-API-Key": "test-token"},
             files={
                 "file": (
                     "scan.sarif",
@@ -149,11 +149,11 @@ def test_end_to_end_demo_pipeline():
         sarif_payload = response.json()
         assert sarif_payload["metadata"]["finding_count"] == 1
 
-        response = client.post("/pipeline/run", headers={"X-API-Key": "demo-token"})
+        response = client.post("/pipeline/run", headers={"X-API-Key": "test-token"})
         assert response.status_code == 200
         pipeline_payload = response.json()
 
-        get_response = client.get("/pipeline/run", headers={"X-API-Key": "demo-token"})
+        get_response = client.get("/pipeline/run", headers={"X-API-Key": "test-token"})
         assert get_response.status_code == 200
         pipeline_payload_via_get = get_response.json()
         assert pipeline_payload_via_get["status"] == pipeline_payload["status"]
@@ -175,7 +175,7 @@ def test_end_to_end_demo_pipeline():
         assert (
             pipeline_payload["context_summary"]["summary"]["components_evaluated"] >= 1
         )
-        assert pipeline_payload["onboarding"]["mode"] == "demo"
+        assert pipeline_payload["onboarding"]["mode"] == "enterprise"
         assert pipeline_payload["compliance_status"]["frameworks"]
         policy_payload = pipeline_payload["policy_automation"]
         assert "execution" in policy_payload
@@ -208,15 +208,15 @@ def test_end_to_end_demo_pipeline():
         analytics = pipeline_payload["analytics"]
         assert analytics.get("persistence") == pipeline_payload["analytics_persistence"]
         assert analytics["overview"]["estimated_value"] >= 0
-        assert analytics["overlay"]["mode"] == "demo"
+        assert analytics["overlay"]["mode"] == "enterprise"
         dashboard_response = client.get(
-            "/analytics/dashboard", headers={"X-API-Key": "demo-token"}
+            "/analytics/dashboard", headers={"X-API-Key": "test-token"}
         )
         assert dashboard_response.status_code == 200
         dashboard = dashboard_response.json()
         assert dashboard["forecasts"]["totals"]["entries"] >= 1
         run_response = client.get(
-            f"/analytics/runs/{run_id}", headers={"X-API-Key": "demo-token"}
+            f"/analytics/runs/{run_id}", headers={"X-API-Key": "test-token"}
         )
         assert run_response.status_code == 200
         run_details = run_response.json()
@@ -227,8 +227,8 @@ def test_end_to_end_demo_pipeline():
         performance = pipeline_payload["performance_profile"]
         assert performance["summary"]["total_estimated_latency_ms"] >= 0
         overlay = pipeline_payload["overlay"]
-        assert overlay["mode"] == "demo"
-        assert overlay["metadata"]["profile_applied"] == "demo"
+        assert overlay["mode"] == "enterprise"
+        assert overlay["metadata"]["profile_applied"] == "enterprise"
         assert "required_inputs" in overlay
         os.environ.pop("FIXOPS_API_TOKEN", None)
     else:
@@ -305,7 +305,7 @@ def test_api_rejects_missing_token(tmp_path):
     if TestClient is None or create_app is None:
         return
 
-    os.environ["FIXOPS_API_TOKEN"] = "demo-token"
+    os.environ["FIXOPS_API_TOKEN"] = "test-token"
     try:
         app = create_app()
         client = TestClient(app)
@@ -328,8 +328,8 @@ def test_feedback_endpoint_rejects_invalid_payload(monkeypatch, tmp_path):
     safe_root.mkdir(parents=True, exist_ok=True)
 
     overlay_payload = {
-        "mode": "demo",
-        "auth": {"strategy": "token", "tokens": ["demo-token"]},
+        "mode": "enterprise",
+        "auth": {"strategy": "token", "tokens": ["test-token"]},
         "data": {"feedback_dir": str(safe_root / "feedback")},
         "toggles": {"capture_feedback": True},
     }
@@ -338,14 +338,14 @@ def test_feedback_endpoint_rejects_invalid_payload(monkeypatch, tmp_path):
 
     monkeypatch.setenv("FIXOPS_OVERLAY_PATH", str(overlay_path))
     monkeypatch.setenv("FIXOPS_DATA_ROOT_ALLOWLIST", str(safe_root))
-    monkeypatch.setenv("FIXOPS_API_TOKEN", "demo-token")
+    monkeypatch.setenv("FIXOPS_API_TOKEN", "test-token")
 
     try:
         app = create_app()
         client = TestClient(app)
         response = client.post(
             "/feedback",
-            headers={"X-API-Key": "demo-token"},
+            headers={"X-API-Key": "test-token"},
             json={"run_id": "../escape", "decision": "accepted"},
         )
         assert response.status_code == 400
@@ -455,8 +455,8 @@ def test_large_compressed_uploads_stream_to_disk(monkeypatch, tmp_path):
     safe_root.mkdir(parents=True, exist_ok=True)
 
     overlay_payload = {
-        "mode": "demo",
-        "auth": {"strategy": "token", "tokens": ["demo-token"]},
+        "mode": "enterprise",
+        "auth": {"strategy": "token", "tokens": ["test-token"]},
         "data": {"archive_dir": str((safe_root / "archive").resolve())},
         "limits": {
             "max_upload_bytes": {
@@ -472,12 +472,12 @@ def test_large_compressed_uploads_stream_to_disk(monkeypatch, tmp_path):
 
     monkeypatch.setenv("FIXOPS_OVERLAY_PATH", str(overlay_path))
     monkeypatch.setenv("FIXOPS_DATA_ROOT_ALLOWLIST", str(safe_root))
-    monkeypatch.setenv("FIXOPS_API_TOKEN", "demo-token")
+    monkeypatch.setenv("FIXOPS_API_TOKEN", "test-token")
 
     try:
         app = create_app()
         client = TestClient(app)
-        headers = {"X-API-Key": "demo-token"}
+        headers = {"X-API-Key": "test-token"}
 
         components = []
         sbom_document = {

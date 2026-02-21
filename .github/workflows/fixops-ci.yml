@@ -74,7 +74,7 @@ jobs:
       - name: Tests
         env:
           FIXOPS_DISABLE_TELEMETRY: '1'
-          FIXOPS_API_TOKEN: 'demo-token-12345'
+          FIXOPS_API_TOKEN: 'test-token-12345'
           FIXOPS_JWT_SECRET: 'test-jwt-secret-for-ci-testing'
           FIXOPS_MODE: 'enterprise'
           FIXOPS_EVIDENCE_KEY: 'Zz6A0n4P3skS8F6edSxE2xe50Tzw9uQWGWp9JYG1ChE='
@@ -82,9 +82,9 @@ jobs:
       - name: Comprehensive API smoke tests
         env:
           FIXOPS_DISABLE_TELEMETRY: '1'
-          FIXOPS_API_TOKEN: 'demo-token-12345'
+          FIXOPS_API_TOKEN: 'test-token-12345'
           FIXOPS_JWT_SECRET: 'test-jwt-secret-for-ci-testing'
-          FIXOPS_MODE: 'demo'
+          FIXOPS_MODE: 'enterprise'
         run: |
           echo "=== Running comprehensive API smoke tests ==="
           echo "Testing all 169 API paths (208 endpoints) from OpenAPI schema"
@@ -93,9 +93,9 @@ jobs:
       - name: Real-world CVE integration tests
         env:
           FIXOPS_DISABLE_TELEMETRY: '1'
-          FIXOPS_API_TOKEN: 'demo-token-12345'
+          FIXOPS_API_TOKEN: 'test-token-12345'
           FIXOPS_JWT_SECRET: 'test-jwt-secret-for-ci-testing'
-          FIXOPS_MODE: 'demo'
+          FIXOPS_MODE: 'enterprise'
           FIXOPS_EVIDENCE_KEY: 'Zz6A0n4P3skS8F6edSxE2xe50Tzw9uQWGWp9JYG1ChE='
         run: |
           echo "=== Running real-world CVE integration tests ==="

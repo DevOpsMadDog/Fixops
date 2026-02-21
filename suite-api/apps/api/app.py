@@ -530,7 +530,7 @@ def create_app() -> FastAPI:
     _mode_env = os.getenv("FIXOPS_MODE", "").strip() or None
     try:
         overlay = load_overlay(
-            allow_demo_token_fallback=False,
+            allow_ephemeral_token_fallback=False,
             mode_override=_mode_env,
         )
     except TypeError:

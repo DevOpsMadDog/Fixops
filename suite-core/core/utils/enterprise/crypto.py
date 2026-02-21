@@ -94,7 +94,7 @@ class EnvKeyProvider:
             logger.debug("Loaded RSA private key from environment")
         else:
             logger.warning(
-                "SIGNING_PRIVATE_KEY not provided; generating ephemeral demo key"
+                "SIGNING_PRIVATE_KEY not provided; generating ephemeral key"
             )
             self._private_key = rsa.generate_private_key(
                 public_exponent=65537, key_size=2048

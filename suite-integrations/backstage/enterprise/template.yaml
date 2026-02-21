@@ -59,17 +59,17 @@ spec:
     - title: Configuration
       required:
         - llm_integration
-        - demo_mode
+        - sandbox_mode
       properties:
         llm_integration:
           title: LLM Integration
           type: boolean
           description: Enable real LLM processing with Emergent key
           default: true
-        demo_mode:
-          title: Demo Mode
+        sandbox_mode:
+          title: Sandbox Mode
           type: boolean
-          description: Use simulated data (demo) or real integrations (production)
+          description: Use simulated data (sandbox) or real integrations (production)
           default: false
         storage_size:
           title: Evidence Lake Storage Size
@@ -120,7 +120,7 @@ spec:
           environment: ${{ parameters.environment }}
           cluster: ${{ parameters.cluster }}
           llm_integration: ${{ parameters.llm_integration }}
-          demo_mode: ${{ parameters.demo_mode }}
+          sandbox_mode: ${{ parameters.sandbox_mode }}
           storage_size: ${{ parameters.storage_size }}
           replicas: ${{ parameters.replicas }}
           enable_jira: ${{ parameters.enable_jira }}
@@ -270,7 +270,7 @@ spec:
             # Configuration
             config = {
               FIXOPS_ENVIRONMENT = local.environment
-              FIXOPS_DEMO_MODE   = tostring(${{ parameters.demo_mode }})
+              FIXOPS_SANDBOX_MODE = tostring(${{ parameters.sandbox_mode }})
               FIXOPS_AUTH_DISABLED = "true"
               MONGO_URL          = "mongodb://mongodb.${local.namespace}:27017/fixops_${local.environment}"
               REDIS_URL          = "redis://redis.${local.namespace}:6379/0"

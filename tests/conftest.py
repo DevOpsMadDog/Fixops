@@ -99,17 +99,17 @@ collect_ignore = [
 import os
 from unittest.mock import MagicMock, patch
 
-# Use demo mode for testing to match Docker image configuration
+# Use enterprise mode for testing to match Docker image configuration
 # This ensures consistent behavior between local tests and CI
 if "FIXOPS_MODE" not in os.environ:
-    os.environ["FIXOPS_MODE"] = "demo"
+    os.environ["FIXOPS_MODE"] = "enterprise"
 
-# Set JWT secret for non-demo mode (required for app initialization)
+# Set JWT secret for enterprise mode (required for app initialization)
 if "FIXOPS_JWT_SECRET" not in os.environ:
     os.environ["FIXOPS_JWT_SECRET"] = "test-jwt-secret-for-ci-testing"
 
-# Shared API token for tests - uses env var or default (matches Docker image default)
-API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "demo-token-12345")
+# Shared API token for tests - uses env var or default
+API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "test-token-12345")
 
 # Ensure API token is set in environment
 if "FIXOPS_API_TOKEN" not in os.environ:
@@ -194,9 +194,9 @@ def mock_all_connectors(
 
 
 @pytest.fixture
-def demo_client(monkeypatch):
-    """Create a test client in demo mode for health endpoint tests."""
-    monkeypatch.setenv("FIXOPS_MODE", "demo")
+def app_client(monkeypatch):
+    """Create a test client for health endpoint tests."""
+    monkeypatch.setenv("FIXOPS_MODE", "enterprise")
     monkeypatch.setenv("FIXOPS_API_TOKEN", API_TOKEN)
     monkeypatch.setenv("FIXOPS_DISABLE_TELEMETRY", "1")
 

@@ -13,10 +13,10 @@ def _build_overlay(tmp_path: Path) -> Path:
     os.environ["FIXOPS_DATA_ROOT_ALLOWLIST"] = os.pathsep.join(allowlist)
     overlay_path = tmp_path / "overlay.json"
     overlay_content = {
-        "mode": "demo",
+        "mode": "enterprise",
         "data": {
-            "design_context_dir": str(tmp_path / "design-demo"),
-            "evidence_dir": str(tmp_path / "evidence-demo"),
+            "design_context_dir": str(tmp_path / "design-context"),
+            "evidence_dir": str(tmp_path / "evidence"),
         },
         "guardrails": {
             "maturity": "foundational",
@@ -94,9 +94,9 @@ def _build_overlay(tmp_path: Path) -> Path:
     return overlay_path
 
 
-def test_demo_mode_downgrades_severity(tmp_path: Path) -> None:
+def test_enterprise_mode_downgrades_severity(tmp_path: Path) -> None:
     overlay_path = _build_overlay(tmp_path)
-    result = run_simulation(mode="demo", overlay_path=overlay_path)
+    result = run_simulation(mode="enterprise", overlay_path=overlay_path)
 
     assert result.adjusted_severity == "MEDIUM"
     assert result.risk_adjustment == -1

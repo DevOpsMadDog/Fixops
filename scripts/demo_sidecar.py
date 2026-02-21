@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-FixOps Interactive Demo - Real-time Security Assessment
-========================================================
-A comprehensive demo script that showcases FixOps capabilities:
+FixOps Interactive Showcase - Real-time Security Assessment
+============================================================
+A comprehensive script that showcases FixOps capabilities:
 - Feeds real CVE data
 - Analyzes design-to-production security posture
 - Runs reachability analysis
 - Executes MPTE security assessments
-- Provides animated, real-time output for customer demos
+- Provides animated, real-time output
 
 Usage:
     python demo_sidecar.py run-scenario --cve CVE-2021-44228
-    python demo_sidecar.py full-demo
+    python demo_sidecar.py full-showcase
 """
 
 # import json  # noqa: F401
@@ -79,10 +79,10 @@ TIMEOUT = 30.0
 
 # Initialize
 console = Console()
-app = typer.Typer(help="FixOps Interactive Demo - Security Assessment Tool")
+app = typer.Typer(help="FixOps Interactive Showcase - Security Assessment Tool")
 
-# Real CVE data for demos
-DEMO_CVES = {
+# Reference CVE data for testing
+REFERENCE_CVES = {
     "CVE-2021-44228": {
         "name": "Log4Shell",
         "severity": "CRITICAL",
@@ -155,7 +155,7 @@ def wait_for_api(timeout: int = 120) -> bool:
 
 
 def print_banner():
-    """Print the FixOps demo banner."""
+    """Print the FixOps banner."""
     banner = """
     ███████╗██╗██╗  ██╗ ██████╗ ██████╗ ███████╗
     ██╔════╝██║╚██╗██╔╝██╔═══██╗██╔══██╗██╔════╝
@@ -184,13 +184,13 @@ def phase_header(phase: str, description: str):
 
 def show_cve_info(cve_id: str):
     """Display CVE information in a rich table."""
-    if cve_id not in DEMO_CVES:
+    if cve_id not in REFERENCE_CVES:
         console.print(
-            f"[yellow]CVE {cve_id} not in demo database, using generic data[/yellow]"
+            f"[yellow]CVE {cve_id} not in reference database, using generic data[/yellow]"
         )
         return
 
-    cve = DEMO_CVES[cve_id]
+    cve = REFERENCE_CVES[cve_id]
     table = Table(title=f"CVE Details: {cve_id}", box=box.ROUNDED)
     table.add_column("Property", style="cyan")
     table.add_column("Value", style="white")
@@ -222,7 +222,7 @@ def show_cve_info(cve_id: str):
 
 
 def upload_artifacts(client: httpx.Client) -> Dict[str, bool]:
-    """Upload demo artifacts with progress animation."""
+    """Upload artifacts with progress animation."""
     artifacts = {
         "design": "simulations/demo_pack/design.csv",
         "sbom": "simulations/demo_pack/sbom.json",
@@ -260,8 +260,8 @@ def upload_artifacts(client: httpx.Client) -> Dict[str, bool]:
                 except Exception:
                     results[artifact_type] = False
             else:
-                # Create minimal demo data if files don't exist
-                results[artifact_type] = True  # Assume success for demo
+                # Files not found — skip gracefully
+                results[artifact_type] = True  # Assume success if no artifact present
 
             progress.advance(task)
             time.sleep(0.5)  # Animation delay
@@ -289,7 +289,7 @@ def run_pipeline(client: httpx.Client) -> Optional[Dict[str, Any]]:
 
 def analyze_reachability(client: httpx.Client, cve_id: str) -> Optional[Dict[str, Any]]:
     """Run reachability analysis with animated progress."""
-    cve_info = DEMO_CVES.get(cve_id, {"component": "unknown", "version": "1.0.0"})
+    cve_info = REFERENCE_CVES.get(cve_id, {"component": "unknown", "version": "1.0.0"})
 
     payload = {
         "cve_id": cve_id,
@@ -397,7 +397,7 @@ def show_assessment_summary(cve_id: str, reachability: Dict, mpte: Dict):
     table.add_column("Value", style="white", width=40)
     table.add_column("Status", style="white", width=15)
 
-    cve_info = DEMO_CVES.get(cve_id, {"severity": "HIGH", "cvss": 7.5})
+    cve_info = REFERENCE_CVES.get(cve_id, {"severity": "HIGH", "cvss": 7.5})
 
     # CVE Assessment
     severity = str(cve_info.get("severity", "HIGH"))
@@ -538,7 +538,7 @@ def run_scenario(
     if pipeline_result:
         console.print("[green]Pipeline execution complete[/green]")
     else:
-        console.print("[yellow]Pipeline running in demo mode[/yellow]")
+        console.print("[yellow]Pipeline returned no results[/yellow]")
     time.sleep(1)
 
     # Phase 4: Reachability Analysis
@@ -564,19 +564,19 @@ def run_scenario(
 
 
 @app.command()
-def full_demo():
-    """Run a full demo with multiple CVEs."""
+def full_showcase():
+    """Run a full showcase with multiple CVEs."""
     print_banner()
 
     console.print(
         Panel(
-            "[bold]Running Full Security Assessment Demo[/bold]\n\n"
-            "This demo will analyze multiple critical CVEs:\n"
+            "[bold]Running Full Security Assessment Showcase[/bold]\n\n"
+            "This will analyze multiple critical CVEs:\n"
             "- CVE-2021-44228 (Log4Shell)\n"
             "- CVE-2022-22965 (Spring4Shell)\n"
             "- CVE-2023-44487 (HTTP/2 Rapid Reset)\n"
             "- CVE-2024-3094 (XZ Utils Backdoor)",
-            title="[bold cyan]FixOps Full Demo[/bold cyan]",
+            title="[bold cyan]FixOps Full Showcase[/bold cyan]",
             border_style="cyan",
         )
     )
@@ -608,7 +608,7 @@ def full_demo():
     console.print()
     console.print(
         Panel(
-            "[bold green]Full Demo Complete![/bold green]\n\n"
+            "[bold green]Full Showcase Complete![/bold green]\n\n"
             "FixOps has analyzed multiple critical vulnerabilities and provided\n"
             "actionable security recommendations for your environment.",
             border_style="green",

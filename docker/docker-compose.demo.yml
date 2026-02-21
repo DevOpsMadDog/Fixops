@@ -14,7 +14,7 @@ services:
       - .:/workspace:Z
     environment:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://collector:4318
-      # Restrict CORS to localhost in demo mode — override for production
+      # Restrict CORS to localhost in local mode — override for production
       FIXOPS_ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:5173"
     command: >-
       bash -c "pip install -r requirements.txt && uvicorn apps.api.app:create_app --factory --host 0.0.0.0 --port 8000"

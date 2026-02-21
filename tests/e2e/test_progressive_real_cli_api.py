@@ -304,7 +304,7 @@ class TestProgressiveRealCLIAPI:
         progressive_results,
     ):
         """Stage A (Baseline): Scanner + SBOM via API (no KEV enrichment)."""
-        class_flag_config_manager.create_demo_config()
+        class_flag_config_manager.create_test_config()
 
         env = {
             "FIXOPS_API_TOKEN": "test-token-progressive",
@@ -398,7 +398,7 @@ class TestProgressiveRealCLIAPI:
         progressive_results,
     ):
         """Stage B (+KEV): Scanner + SBOM + KEV enrichment via API - severity promotion."""
-        class_flag_config_manager.create_demo_config()
+        class_flag_config_manager.create_test_config()
 
         env = {
             "FIXOPS_API_TOKEN": "test-token-progressive",

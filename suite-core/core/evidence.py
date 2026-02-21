@@ -117,7 +117,7 @@ class EvidenceHub:
                     os.getenv("CI") == "true" or os.getenv("GITHUB_ACTIONS") == "true"
                 )
 
-                if mode in ("demo", "test", "ci", "vc-demo") or is_ci_env:
+                if mode in ("test", "ci", "sandbox", "local") or is_ci_env:
                     logger.warning(
                         f"Evidence encryption requested but {encryption_env} not set. "
                         f"Running in mode={mode} (CI={is_ci_env}) - disabling encryption. "
@@ -180,7 +180,7 @@ class EvidenceHub:
             is_ci_env = (
                 os.getenv("CI") == "true" or os.getenv("GITHUB_ACTIONS") == "true"
             )
-            if mode in ("demo", "test", "ci", "vc-demo") or is_ci_env:
+            if mode in ("test", "ci", "sandbox", "local") or is_ci_env:
                 logger.warning(
                     "Evidence signing requested but RSA signing module not available. "
                     f"Running in mode={mode} (CI={is_ci_env}) - disabling signing. "

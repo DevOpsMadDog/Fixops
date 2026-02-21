@@ -1,4 +1,4 @@
-"""Utilities for running the FixOps pipeline with bundled demo fixtures."""
+"""Utilities for running the FixOps pipeline with bundled sample fixtures."""
 
 from __future__ import annotations
 
@@ -13,17 +13,17 @@ from apps.api.pipeline import PipelineOrchestrator
 from core.overlay_runtime import prepare_overlay
 from core.paths import ensure_output_directory
 
-_DEMO_ENV_DEFAULTS: Dict[str, str] = {
-    "FIXOPS_API_TOKEN": "demo-api-token",
-    "FIXOPS_JIRA_TOKEN": "demo-jira-token",
-    "FIXOPS_CONFLUENCE_TOKEN": "demo-confluence-token",
+_SHOWCASE_ENV_DEFAULTS: Dict[str, str] = {
+    "FIXOPS_API_TOKEN": "showcase-api-token",
+    "FIXOPS_JIRA_TOKEN": "showcase-jira-token",
+    "FIXOPS_CONFLUENCE_TOKEN": "showcase-confluence-token",
 }
 
 _FIXTURE_DIR = Path(__file__).resolve().parent.parent / "demo" / "fixtures"
 
 
 def _ensure_env_defaults() -> None:
-    for key, value in _DEMO_ENV_DEFAULTS.items():
+    for key, value in _SHOWCASE_ENV_DEFAULTS.items():
         os.environ.setdefault(key, value)
 
 
@@ -41,7 +41,7 @@ def _read_design(path: Path) -> Dict[str, Any]:
 def _fixture_path(filename: str) -> Path:
     candidate = _FIXTURE_DIR / filename
     if not candidate.exists():
-        raise FileNotFoundError(f"Demo fixture '{filename}' is missing at {candidate}")
+        raise FileNotFoundError(f"Sample fixture '{filename}' is missing at {candidate}")
     return candidate
 
 
@@ -124,18 +124,18 @@ def _format_summary(
 
 
 def run_demo_pipeline(
-    mode: str = "demo",
+    mode: str = "enterprise",
     *,
     output_path: Optional[Path] = None,
     pretty: bool = True,
     include_summary: bool = True,
 ) -> Tuple[Dict[str, Any], List[str]]:
-    """Execute the pipeline using bundled demo artefacts.
+    """Execute the pipeline using bundled sample artefacts.
 
     Parameters
     ----------
     mode:
-        Overlay profile to load (``"demo"`` or ``"enterprise"``).
+        Overlay profile to load (``"enterprise"`` or ``"local"``).
     output_path:
         Optional file to persist the raw pipeline response as JSON.
     pretty:
@@ -145,7 +145,7 @@ def run_demo_pipeline(
         Print a short human-readable summary when ``True``.
     """
 
-    selected_mode = mode.lower().strip() or "demo"
+    selected_mode = mode.lower().strip() or "enterprise"
     _ensure_env_defaults()
     overlay = prepare_overlay(mode=selected_mode)
 

@@ -1268,7 +1268,7 @@ def load_overlay(
     path: Optional[Path | str] = None,
     *,
     mode_override: Optional[str] = None,
-    allow_demo_token_fallback: bool = False,
+    allow_ephemeral_token_fallback: bool = False,
 ) -> OverlayConfig:
     """Load the overlay configuration and merge profile overrides.
 
@@ -1279,7 +1279,7 @@ def load_overlay(
     declared in the file and ensures the downstream profile merge logic
     operates on the desired mode.
 
-    The ``allow_demo_token_fallback`` parameter is retained for backward
+    The ``allow_ephemeral_token_fallback`` parameter is retained for backward
     compatibility but should always be ``False`` in production. When set,
     token-based authentication may generate an ephemeral token if the
     configured environment variable is missing.
@@ -1499,7 +1499,7 @@ def load_overlay(
         if token_env:
             secret = os.getenv(str(token_env))
             if not secret:
-                if allow_demo_token_fallback and (config.mode or "").lower() in ("demo", "local"):
+                if allow_ephemeral_token_fallback and (config.mode or "").lower() in ("local", "sandbox"):
                     logger.warning(
                         "Token auth configured without %s; generating ephemeral token",
                         token_env,

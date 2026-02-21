@@ -14,7 +14,7 @@ from tests.harness import ServerManager
 @pytest.fixture
 def api_server(fixture_manager, flag_config_manager):
     """Start a real uvicorn server for testing."""
-    flag_config_manager.create_demo_config()
+    flag_config_manager.create_test_config()
 
     env = {
         "FIXOPS_API_TOKEN": "test-token-e2e",
@@ -69,11 +69,11 @@ class TestAPIGoldenPath:
         )
         assert response.status_code == 200
 
-    def test_upload_design_csv(self, api_server, demo_fixtures):
+    def test_upload_design_csv(self, api_server, test_fixtures):
         """Test uploading design CSV via POST /inputs/design."""
         headers = {"X-API-Key": "test-token-e2e"}
 
-        with open(demo_fixtures["design"], "rb") as f:
+        with open(test_fixtures["design"], "rb") as f:
             files = {"file": ("design.csv", f, "text/csv")}
             response = requests.post(
                 f"{api_server.base_url}/inputs/design",
@@ -86,11 +86,11 @@ class TestAPIGoldenPath:
         data = response.json()
         assert "message" in data or "status" in data
 
-    def test_upload_sbom_json(self, api_server, demo_fixtures):
+    def test_upload_sbom_json(self, api_server, test_fixtures):
         """Test uploading SBOM JSON via POST /inputs/sbom."""
         headers = {"X-API-Key": "test-token-e2e"}
 
-        with open(demo_fixtures["sbom"], "rb") as f:
+        with open(test_fixtures["sbom"], "rb") as f:
             files = {"file": ("sbom.json", f, "application/json")}
             response = requests.post(
                 f"{api_server.base_url}/inputs/sbom",
@@ -103,11 +103,11 @@ class TestAPIGoldenPath:
         data = response.json()
         assert "message" in data or "status" in data
 
-    def test_upload_cve_json(self, api_server, demo_fixtures):
+    def test_upload_cve_json(self, api_server, test_fixtures):
         """Test uploading CVE JSON via POST /inputs/cve."""
         headers = {"X-API-Key": "test-token-e2e"}
 
-        with open(demo_fixtures["cve"], "rb") as f:
+        with open(test_fixtures["cve"], "rb") as f:
             files = {"file": ("cve.json", f, "application/json")}
             response = requests.post(
                 f"{api_server.base_url}/inputs/cve",
@@ -120,11 +120,11 @@ class TestAPIGoldenPath:
         data = response.json()
         assert "message" in data or "status" in data
 
-    def test_upload_sarif_json(self, api_server, demo_fixtures):
+    def test_upload_sarif_json(self, api_server, test_fixtures):
         """Test uploading SARIF JSON via POST /inputs/sarif."""
         headers = {"X-API-Key": "test-token-e2e"}
 
-        with open(demo_fixtures["sarif"], "rb") as f:
+        with open(test_fixtures["sarif"], "rb") as f:
             files = {"file": ("scan.sarif", f, "application/json")}
             response = requests.post(
                 f"{api_server.base_url}/inputs/sarif",
@@ -137,11 +137,11 @@ class TestAPIGoldenPath:
         data = response.json()
         assert "message" in data or "status" in data
 
-    def test_run_pipeline_end_to_end(self, api_server, demo_fixtures):
+    def test_run_pipeline_end_to_end(self, api_server, test_fixtures):
         """Test complete pipeline execution end-to-end."""
         headers = {"X-API-Key": "test-token-e2e"}
 
-        with open(demo_fixtures["design"], "rb") as f:
+        with open(test_fixtures["design"], "rb") as f:
             files = {"file": ("design.csv", f, "text/csv")}
             response = requests.post(
                 f"{api_server.base_url}/inputs/design",
@@ -151,7 +151,7 @@ class TestAPIGoldenPath:
             )
             assert response.status_code == 200
 
-        with open(demo_fixtures["sbom"], "rb") as f:
+        with open(test_fixtures["sbom"], "rb") as f:
             files = {"file": ("sbom.json", f, "application/json")}
             response = requests.post(
                 f"{api_server.base_url}/inputs/sbom",
@@ -161,7 +161,7 @@ class TestAPIGoldenPath:
             )
             assert response.status_code == 200
 
-        with open(demo_fixtures["cve"], "rb") as f:
+        with open(test_fixtures["cve"], "rb") as f:
             files = {"file": ("cve.json", f, "application/json")}
             response = requests.post(
                 f"{api_server.base_url}/inputs/cve",
@@ -171,7 +171,7 @@ class TestAPIGoldenPath:
             )
             assert response.status_code == 200
 
-        with open(demo_fixtures["sarif"], "rb") as f:
+        with open(test_fixtures["sarif"], "rb") as f:
             files = {"file": ("scan.sarif", f, "application/json")}
             response = requests.post(
                 f"{api_server.base_url}/inputs/sarif",
@@ -262,14 +262,14 @@ class TestAPIGoldenPath:
 
         assert response.status_code in [400, 422]
 
-    def test_concurrent_api_requests(self, api_server, demo_fixtures):
+    def test_concurrent_api_requests(self, api_server, test_fixtures):
         """Test that API handles concurrent requests correctly."""
         import concurrent.futures
 
         headers = {"X-API-Key": "test-token-e2e"}
 
         def upload_design():
-            with open(demo_fixtures["design"], "rb") as f:
+            with open(test_fixtures["design"], "rb") as f:
                 files = {"file": ("design.csv", f, "text/csv")}
                 response = requests.post(
                     f"{api_server.base_url}/inputs/design",
@@ -285,11 +285,11 @@ class TestAPIGoldenPath:
 
         assert all(status == 200 for status in results)
 
-    def test_server_logs_no_secrets(self, api_server, demo_fixtures):
+    def test_server_logs_no_secrets(self, api_server, test_fixtures):
         """Test that server logs don't contain secrets or PII."""
         headers = {"X-API-Key": "test-token-e2e"}
 
-        with open(demo_fixtures["design"], "rb") as f:
+        with open(test_fixtures["design"], "rb") as f:
             files = {"file": ("design.csv", f, "text/csv")}
             requests.post(
                 f"{api_server.base_url}/inputs/design",

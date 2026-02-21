@@ -24,7 +24,7 @@ class EvidenceStore:
         mode = (
             overlay.mode
             if isinstance(overlay, OverlayConfig)
-            else str(overlay.get("mode", "demo"))
+            else str(overlay.get("mode", "enterprise"))
         )
         run_id = uuid.uuid4().hex
         run = EvidenceRun(run_id=run_id, overlay_mode=mode)

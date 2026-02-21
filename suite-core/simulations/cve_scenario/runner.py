@@ -372,7 +372,7 @@ def _build_cli() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--mode",
-        choices=["demo", "enterprise"],
+        choices=["enterprise", "local"],
         help="Overlay mode to execute. Defaults to the mode encoded in the overlay file.",
     )
     parser.add_argument(

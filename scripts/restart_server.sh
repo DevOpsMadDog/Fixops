@@ -12,7 +12,7 @@ echo "=== Starting server ==="
 export PYTHONPATH=".:suite-api:suite-core:suite-attack:suite-feeds:suite-integrations:suite-evidence-risk:archive/legacy:archive/enterprise_legacy"
 export PYTHONDONTWRITEBYTECODE=1
 export FIXOPS_MODE=enterprise
-export FIXOPS_DEMO_MODE=false
+export FIXOPS_LOCAL_DEV=false
 export FIXOPS_JWT_SECRET="${FIXOPS_JWT_SECRET:-$(python3 -c 'import secrets; print(secrets.token_hex(32))')}"
 export FIXOPS_API_TOKEN="${FIXOPS_API_TOKEN:-$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')}"
 echo "API Token: ${FIXOPS_API_TOKEN:0:8}..."

@@ -113,9 +113,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      FIXOPS_MODE: "demo"
+      FIXOPS_MODE: "enterprise"
       START_API_SERVER: "false"
-      FIXOPS_JWT_SECRET: "${FIXOPS_JWT_SECRET:-aldeci-jwt-secret-demo}"
+      FIXOPS_JWT_SECRET: "${FIXOPS_JWT_SECRET}"
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
       ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
       GOOGLE_AI_API_KEY: "${GOOGLE_AI_API_KEY:-}"

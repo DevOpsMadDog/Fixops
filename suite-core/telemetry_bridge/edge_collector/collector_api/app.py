@@ -159,7 +159,7 @@ async def ingest_telemetry(payload: TelemetryPayload):
 
         elif mode == "file":
             output_path = os.environ.get(
-                "TELEMETRY_OUTPUT_PATH", "/app/demo_decision_inputs/ops-telemetry.json"
+                "TELEMETRY_OUTPUT_PATH", "/app/decision_inputs/ops-telemetry.json"
             )
 
             Path(output_path).parent.mkdir(parents=True, exist_ok=True)

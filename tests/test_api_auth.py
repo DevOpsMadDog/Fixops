@@ -20,14 +20,14 @@ except Exception:  # pragma: no cover - degrade gracefully when FastAPI is missi
     TestClient is None or create_app is None, reason="FastAPI not available"
 )
 def test_api_key_header_enforcement(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("FIXOPS_API_TOKEN", "demo-token")
+    monkeypatch.setenv("FIXOPS_API_TOKEN", "test-token")
     app = create_app()
     client = TestClient(app)
 
     missing = client.post("/pipeline/run")
     assert missing.status_code == 401
 
-    lowercase = client.post("/pipeline/run", headers={"x-api-key": "demo-token"})
+    lowercase = client.post("/pipeline/run", headers={"x-api-key": "test-token"})
     assert lowercase.status_code == 200
 
     invalid = client.post("/pipeline/run", headers={"X-API-Key": "wrong"})

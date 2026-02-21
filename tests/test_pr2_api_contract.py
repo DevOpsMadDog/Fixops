@@ -22,7 +22,7 @@ def client():
     # Set environment before importing the app
     os.environ["FIXOPS_API_TOKEN"] = API_TOKEN
     os.environ["FIXOPS_JWT_SECRET"] = "test-secret"
-    os.environ["FIXOPS_DEMO_MODE"] = "true"
+    os.environ["FIXOPS_LOCAL_DEV"] = "false"
 
     from backend.app import create_app
     from fastapi.testclient import TestClient

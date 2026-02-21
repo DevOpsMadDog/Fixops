@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/component: config
 data:
   FIXOPS_ENVIRONMENT: "production"
-  FIXOPS_DEMO_MODE: "false"
+  FIXOPS_LOCAL_DEV: "false"
   FIXOPS_AUTH_DISABLED: "false"
   MONGO_URL: "mongodb://mongodb.fixops:27017/fixops_production"
   REDIS_URL: "redis://redis.fixops:6379/0"

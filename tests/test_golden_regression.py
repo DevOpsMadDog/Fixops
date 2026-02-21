@@ -43,7 +43,7 @@ if "config.enterprise.settings" not in sys.modules:
     _settings_mod = types.ModuleType("config.enterprise.settings")
 
     class _Settings:
-        DEMO_MODE = True
+        DEMO_MODE = False
         EMERGENT_LLM_KEY = None
         VECTOR_DB_URL = None
         SECURITY_PATTERNS_DB_URL = None

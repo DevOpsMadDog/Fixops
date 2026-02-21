@@ -697,7 +697,7 @@ class TestAPIEndpoints:
             response = client.post(
                 "/api/v1/ingest/multipart",
                 files={"files": ("test.sarif", upload_file, "application/json")},
-                headers={"X-API-Key": "demo-token-12345"},
+                headers={"X-API-Key": "test-token-12345"},
             )
 
         assert response.status_code == 200
@@ -709,7 +709,7 @@ class TestAPIEndpoints:
         """Test GET /api/v1/ingest/assets endpoint."""
         response = client.get(
             "/api/v1/ingest/assets",
-            headers={"X-API-Key": "demo-token-12345"},
+            headers={"X-API-Key": "test-token-12345"},
         )
 
         assert response.status_code == 200
@@ -721,7 +721,7 @@ class TestAPIEndpoints:
         """Test GET /api/v1/ingest/formats endpoint."""
         response = client.get(
             "/api/v1/ingest/formats",
-            headers={"X-API-Key": "demo-token-12345"},
+            headers={"X-API-Key": "test-token-12345"},
         )
 
         assert response.status_code == 200
@@ -1665,8 +1665,8 @@ class TestAPIMultipartEdgeCases:
     def client(self):
         import os
 
-        os.environ["FIXOPS_API_TOKEN"] = "demo-token-12345"
-        os.environ["FIXOPS_JWT_SECRET"] = "demo-secret-key-for-testing-only-12345678"
+        os.environ["FIXOPS_API_TOKEN"] = "test-token-12345"
+        os.environ["FIXOPS_JWT_SECRET"] = "test-secret-key-for-testing-only-12345678"
         from apps.api.app import create_app
 
         app = create_app()
@@ -1685,7 +1685,7 @@ class TestAPIMultipartEdgeCases:
             response = client.post(
                 "/api/v1/ingest/multipart",
                 files={"files": ("test.sarif", upload_file, "application/json")},
-                headers={"X-API-Key": "demo-token-12345"},
+                headers={"X-API-Key": "test-token-12345"},
             )
 
         assert response.status_code == 200
@@ -1722,7 +1722,7 @@ class TestAPIMultipartEdgeCases:
             response = client.post(
                 "/api/v1/ingest/multipart",
                 files={"files": ("test.sarif", upload_file, "application/json")},
-                headers={"X-API-Key": "demo-token-12345"},
+                headers={"X-API-Key": "test-token-12345"},
             )
 
         assert response.status_code == 200
@@ -2146,7 +2146,7 @@ class TestFinalCoverage:
                 response = test_client.post(
                     "/api/v1/ingest/multipart",
                     files={"files": ("test.sarif", upload_file, "application/json")},
-                    headers={"X-API-Key": "demo-token-12345"},
+                    headers={"X-API-Key": "test-token-12345"},
                 )
 
         assert response.status_code == 200
@@ -2185,7 +2185,7 @@ class TestFinalCoverage:
                 response = test_client.post(
                     "/api/v1/ingest/multipart",
                     files={"files": ("test.sarif", upload_file, "application/json")},
-                    headers={"X-API-Key": "demo-token-12345"},
+                    headers={"X-API-Key": "test-token-12345"},
                 )
 
         assert response.status_code == 200

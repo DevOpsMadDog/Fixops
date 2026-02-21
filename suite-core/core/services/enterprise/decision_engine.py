@@ -59,7 +59,7 @@ class DecisionResult:
     validation_results: Dict[str, Any]
     processing_time_us: float
     context_sources: List[str]
-    demo_mode: bool = False
+    enterprise_mode: bool = True
     explainability: Optional[Dict[str, Any]] = None
     rl_policy: Optional[Dict[str, Any]] = None
 
@@ -185,7 +185,7 @@ class DecisionEngine:
 
         except Exception as e:
             logger.error(f"Real Vector DB initialization failed: {str(e)}")
-            # Fallback to demo data
+            # Fallback to in-memory data
             self.real_vector_db = None
             self.real_vector_db_stats = {
                 "connection_status": "fallback",
@@ -308,7 +308,7 @@ class DecisionEngine:
             self.processing_layer = None
 
     async def make_decision(self, context: DecisionContext) -> DecisionResult:
-        """Make a security decision based on mode (demo vs production)"""
+        """Make a security decision using the production pipeline."""
         start_time = time.perf_counter()
 
         try:
@@ -323,7 +323,7 @@ class DecisionEngine:
                 explainability_bundle = self._generate_explainability(context)
             result = await self._make_production_decision(context, start_time)
 
-            result.demo_mode = False
+            result.enterprise_mode = True
             if explainability_bundle:
                 result.explainability = explainability_bundle
             if settings.ENABLE_RL_EXPERIMENTS:
@@ -375,7 +375,7 @@ class DecisionEngine:
                         "SSVC Fusion",
                         "SARIF Analysis",
                     ],
-                    demo_mode=False,
+                    enterprise_mode=True,
                 )
             except Exception as e:
                 logger.error(
@@ -423,7 +423,7 @@ class DecisionEngine:
             context_sources=enriched_context.get(
                 "sources", ["Real Business Context", "Real Security Scanners"]
             ),
-            demo_mode=False,
+            enterprise_mode=True,
         )
 
     def _generate_explainability(
@@ -689,7 +689,7 @@ class DecisionEngine:
             validation_results={"error": True},
             processing_time_us=processing_time_us,
             context_sources=["Error Handler"],
-            demo_mode=False,
+            enterprise_mode=True,
         )
 
     # Real production methods with OSS tools integration

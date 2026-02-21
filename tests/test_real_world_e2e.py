@@ -555,7 +555,7 @@ class TestRealWorldAPI:
         os.environ["FIXOPS_API_TOKEN"] = "test-token"
         os.environ["FIXOPS_JWT_SECRET"] = secrets.token_hex(32)
         os.environ["FIXOPS_EVIDENCE_KEY"] = Fernet.generate_key().decode()
-        os.environ["FIXOPS_MODE"] = "demo"
+        os.environ["FIXOPS_MODE"] = "enterprise"
 
         try:
             from apps.api.app import create_app
@@ -628,7 +628,7 @@ class TestRealWorldAPI:
         os.environ["FIXOPS_API_TOKEN"] = "test-token"
         os.environ["FIXOPS_JWT_SECRET"] = secrets.token_hex(32)
         os.environ["FIXOPS_EVIDENCE_KEY"] = secrets.token_hex(32)
-        os.environ["FIXOPS_MODE"] = "demo"
+        os.environ["FIXOPS_MODE"] = "enterprise"
 
         try:
             from apps.api.app import create_app

@@ -11,12 +11,12 @@ import json
 class TestCLIGoldenPath:
     """Test CLI golden path with real subprocess execution."""
 
-    def test_cli_demo_mode_executes(self, cli_runner, fixture_manager):
-        """Test that CLI demo mode executes successfully."""
-        output_file = fixture_manager.temp_dir / "pipeline-demo.json"
+    def test_cli_enterprise_mode_executes(self, cli_runner, fixture_manager):
+        """Test that CLI enterprise mode executes successfully."""
+        output_file = fixture_manager.temp_dir / "pipeline-enterprise-basic.json"
 
         result = cli_runner.run_demo(
-            mode="demo",
+            mode="enterprise",
             output=output_file,
             pretty=True,
             timeout=60,
@@ -61,17 +61,17 @@ class TestCLIGoldenPath:
             "final_decision" in data["enhanced_decision"]
         ), "Missing 'final_decision' in enhanced_decision"
 
-    def test_cli_run_with_fixtures(self, cli_runner, demo_fixtures, fixture_manager):
+    def test_cli_run_with_fixtures(self, cli_runner, test_fixtures, fixture_manager):
         """Test CLI run command with explicit fixtures."""
         output_file = fixture_manager.temp_dir / "pipeline-run.json"
         evidence_dir = fixture_manager.temp_dir / "evidence"
         evidence_dir.mkdir(exist_ok=True)
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             output=output_file,
             evidence_dir=evidence_dir,
             timeout=120,
@@ -93,7 +93,7 @@ class TestCLIGoldenPath:
 
     def test_cli_show_overlay(self, cli_runner, flag_config_manager):
         """Test CLI show-overlay command."""
-        overlay_config = flag_config_manager.create_demo_config()
+        overlay_config = flag_config_manager.create_test_config()
 
         result = cli_runner.show_overlay(
             overlay=overlay_config,
@@ -103,15 +103,15 @@ class TestCLIGoldenPath:
         assert result.success, f"CLI failed: {result.stderr}"
         assert len(result.stdout) > 0, "No output from show-overlay"
 
-    def test_cli_offline_mode(self, cli_runner, demo_fixtures, fixture_manager):
+    def test_cli_offline_mode(self, cli_runner, test_fixtures, fixture_manager):
         """Test CLI offline mode (no external API calls)."""
         output_file = fixture_manager.temp_dir / "pipeline-offline.json"
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             output=output_file,
             offline=True,
             timeout=120,
@@ -120,15 +120,15 @@ class TestCLIGoldenPath:
         assert result.success, f"CLI failed: {result.stderr}"
         assert output_file.exists(), "Output file not created"
 
-    def test_cli_module_enablement(self, cli_runner, demo_fixtures, fixture_manager):
+    def test_cli_module_enablement(self, cli_runner, test_fixtures, fixture_manager):
         """Test CLI with selective module enablement."""
         output_file = fixture_manager.temp_dir / "pipeline-selective.json"
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             output=output_file,
             enable=["guardrails", "evidence"],
             timeout=120,
@@ -149,15 +149,15 @@ class TestCLIGoldenPath:
         ), f"guardrails not in executed modules: {executed}"
         assert "evidence" in executed, f"evidence not in executed modules: {executed}"
 
-    def test_cli_module_disablement(self, cli_runner, demo_fixtures, fixture_manager):
+    def test_cli_module_disablement(self, cli_runner, test_fixtures, fixture_manager):
         """Test CLI with selective module disablement."""
         output_file = fixture_manager.temp_dir / "pipeline-disabled.json"
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             output=output_file,
             disable=["compliance", "policy_automation"],
             timeout=120,
@@ -167,7 +167,7 @@ class TestCLIGoldenPath:
         assert output_file.exists(), "Output file not created"
 
     def test_cli_handles_missing_input_file(
-        self, cli_runner, demo_fixtures, fixture_manager
+        self, cli_runner, test_fixtures, fixture_manager
     ):
         """Test that CLI handles missing input files gracefully."""
         missing_file = fixture_manager.temp_dir / "nonexistent.json"
@@ -175,8 +175,8 @@ class TestCLIGoldenPath:
 
         result = cli_runner.run_pipeline(
             sbom=missing_file,
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             output=output_file,
             timeout=30,
         )
@@ -205,7 +205,7 @@ class TestCLIGoldenPath:
         assert not result.success, "CLI should fail with invalid JSON"
 
     def test_cli_creates_evidence_bundle(
-        self, cli_runner, demo_fixtures, fixture_manager, evidence_validator
+        self, cli_runner, test_fixtures, fixture_manager, evidence_validator
     ):
         """Test that CLI creates evidence bundles."""
         output_file = fixture_manager.temp_dir / "pipeline-evidence.json"
@@ -213,10 +213,10 @@ class TestCLIGoldenPath:
         evidence_dir.mkdir(exist_ok=True)
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             output=output_file,
             evidence_dir=evidence_dir,
             timeout=120,
@@ -236,7 +236,7 @@ class TestCLIGoldenPath:
         output_file = fixture_manager.temp_dir / "pipeline-branded.json"
 
         result = cli_runner.run_demo(
-            mode="demo",
+            mode="enterprise",
             output=output_file,
             pretty=True,
             timeout=60,
@@ -247,15 +247,15 @@ class TestCLIGoldenPath:
         output_text = result.stdout + result.stderr
         assert "fixops" in output_text.lower() or "aldeci" in output_text.lower()
 
-    def test_cli_no_secrets_in_output(self, cli_runner, demo_fixtures, fixture_manager):
+    def test_cli_no_secrets_in_output(self, cli_runner, test_fixtures, fixture_manager):
         """Test that CLI output doesn't contain actual secret values."""
         output_file = fixture_manager.temp_dir / "pipeline-secrets.json"
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             output=output_file,
             timeout=120,
         )
@@ -274,17 +274,17 @@ class TestCLIGoldenPath:
         if api_token:
             assert api_token not in output_text, "Found API_TOKEN in CLI output"
 
-    def test_cli_concurrent_execution(self, cli_runner, demo_fixtures, fixture_manager):
+    def test_cli_concurrent_execution(self, cli_runner, test_fixtures, fixture_manager):
         """Test that multiple CLI processes can run concurrently."""
         import concurrent.futures
 
         def run_cli(index):
             output_file = fixture_manager.temp_dir / f"pipeline-concurrent-{index}.json"
             result = cli_runner.run_pipeline(
-                design=demo_fixtures["design"],
-                sbom=demo_fixtures["sbom"],
-                cve=demo_fixtures["cve"],
-                sarif=demo_fixtures["sarif"],
+                design=test_fixtures["design"],
+                sbom=test_fixtures["sbom"],
+                cve=test_fixtures["cve"],
+                sarif=test_fixtures["sarif"],
                 output=output_file,
                 timeout=120,
             )
@@ -296,16 +296,16 @@ class TestCLIGoldenPath:
 
         assert all(results), "Some concurrent CLI executions failed"
 
-    def test_cli_large_sbom_handling(self, cli_runner, demo_fixtures, fixture_manager):
+    def test_cli_large_sbom_handling(self, cli_runner, test_fixtures, fixture_manager):
         """Test that CLI handles large SBOM files."""
         large_sbom = fixture_manager.generate_large_sbom(num_components=1000)
         output_file = fixture_manager.temp_dir / "pipeline-large.json"
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
+            design=test_fixtures["design"],
             sbom=large_sbom,
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             output=output_file,
             timeout=180,
         )

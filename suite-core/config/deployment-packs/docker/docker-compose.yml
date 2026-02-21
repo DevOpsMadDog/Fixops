@@ -75,7 +75,7 @@ services:
     environment:
       # Core Configuration
       FIXOPS_ENVIRONMENT: ${ENVIRONMENT:-production}
-      FIXOPS_DEMO_MODE: ${DEMO_MODE:-false}
+      FIXOPS_LOCAL_DEV: ${LOCAL_DEV:-false}
       FIXOPS_AUTH_DISABLED: ${AUTH_DISABLED:-false}
       FIXOPS_LOG_LEVEL: ${LOG_LEVEL:-info}
       

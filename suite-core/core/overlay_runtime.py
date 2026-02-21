@@ -23,7 +23,7 @@ def prepare_overlay(
     mode: Optional[str] = None,
     path: Optional[Path | str] = None,
     ensure_directories: bool = True,
-    allow_demo_token_fallback: bool = False,
+    allow_ephemeral_token_fallback: bool = False,
 ) -> OverlayConfig:
     """Load an overlay and apply runtime safeguards.
 
@@ -39,7 +39,7 @@ def prepare_overlay(
     overlay = load_overlay(
         path,
         mode_override=mode,
-        allow_demo_token_fallback=allow_demo_token_fallback,
+        allow_ephemeral_token_fallback=allow_ephemeral_token_fallback,
     )
 
     limits = dict(getattr(overlay, "limits", {}) or {})

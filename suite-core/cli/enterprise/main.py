@@ -679,33 +679,27 @@ def create_parser():
         description="FixOps Enterprise CLI - Decision & Verification Engine (NOT Fix Engine)",
         epilog="""
 Examples:
-  # Make security decision for CI/CD pipeline (Demo Mode)
+  # Make security decision for CI/CD pipeline
   fixops make-decision --service-name payment-service --environment production --scan-file sarif-results.json
-
-  # Production mode with real integrations
-  fixops make-decision --service-name payment-service --production-mode --scan-file sarif-results.json
-
-  # Toggle to production mode for real data
-  export FIXOPS_DEMO_MODE=false
 
   # Get evidence record
   fixops get-evidence --evidence-id EVD-2024-0847
 
-  ⚠️  MODES:
-  🎭 DEMO MODE (default): Uses simulated data for showcase/testing
-  🏭 PRODUCTION MODE: Uses real Jira/Confluence/Vector DB integrations
+  # Run policy check
+  fixops policy-check --service-id svc-001 --severity critical --environment production
+
+  ⚠️  MODE:
+  🏭 ENTERPRISE MODE: Uses real Jira/Confluence/Vector DB integrations
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    # Global demo mode flag
+    # Enterprise mode is the only supported mode
     parser.add_argument(
-        "--demo-mode", action="store_true", help="Force demo mode (simulated data)"
-    )
-    parser.add_argument(
-        "--production-mode",
+        "--enterprise-mode",
         action="store_true",
-        help="Force production mode (real integrations)",
+        default=True,
+        help="Enterprise mode with real integrations (default)",
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -846,20 +840,8 @@ async def main():
         parser.print_help()
         sys.exit(1)
 
-    # Handle mode flags
-    if hasattr(args, "demo_mode") and args.demo_mode:
-        import os
-
-        os.environ["FIXOPS_DEMO_MODE"] = "true"
-        print("🎭 Running in DEMO MODE (simulated data)")
-    elif hasattr(args, "production_mode") and args.production_mode:
-        import os
-
-        os.environ["FIXOPS_DEMO_MODE"] = "false"
-        print("🏭 Running in PRODUCTION MODE (real integrations)")
-    else:
-        mode = "DEMO" if settings.DEMO_MODE else "PRODUCTION"
-        print(f"🔄 Running in {mode} MODE")
+    # Always enterprise mode
+    print("🏭 Running in ENTERPRISE MODE (real integrations)")
 
     cli = FixOpsCLI()
 

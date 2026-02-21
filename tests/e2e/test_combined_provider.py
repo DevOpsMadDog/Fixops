@@ -12,7 +12,7 @@ class TestCombinedProviderFallback:
     """Test CombinedProvider fallback behavior with real CLI execution."""
 
     def test_fallback_when_launchdarkly_offline(
-        self, cli_runner, demo_fixtures, fixture_manager, flag_config_manager
+        self, cli_runner, test_fixtures, fixture_manager, flag_config_manager
     ):
         """Test that provider falls back to local overlay when LaunchDarkly is offline."""
         overlay_config = flag_config_manager.create_overlay_config(
@@ -35,10 +35,10 @@ class TestCombinedProviderFallback:
         output_file = fixture_manager.temp_dir / "pipeline-ld-offline.json"
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             timeout=120,
@@ -59,7 +59,7 @@ class TestCombinedProviderFallback:
         ), "Evidence should be enabled via local overlay fallback"
 
     def test_fallback_when_launchdarkly_returns_default(
-        self, cli_runner, demo_fixtures, fixture_manager, flag_config_manager
+        self, cli_runner, test_fixtures, fixture_manager, flag_config_manager
     ):
         """Test that provider falls back to local overlay when LD returns default values."""
         overlay_config = flag_config_manager.create_overlay_config(
@@ -84,10 +84,10 @@ class TestCombinedProviderFallback:
         output_file = fixture_manager.temp_dir / "pipeline-ld-default.json"
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             timeout=120,
@@ -108,7 +108,7 @@ class TestCombinedProviderFallback:
         ), "Evidence should be enabled via local overlay"
 
     def test_no_fallback_when_launchdarkly_returns_explicit_value(
-        self, cli_runner, demo_fixtures, fixture_manager, flag_config_manager
+        self, cli_runner, test_fixtures, fixture_manager, flag_config_manager
     ):
         """Test that provider does NOT fall back when LD returns explicit (non-default) values."""
         overlay_config = flag_config_manager.create_overlay_config(
@@ -131,10 +131,10 @@ class TestCombinedProviderFallback:
         output_file = fixture_manager.temp_dir / "pipeline-ld-explicit.json"
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             timeout=120,
@@ -143,7 +143,7 @@ class TestCombinedProviderFallback:
         assert result.success, f"CLI failed: {result.stderr}"
 
     def test_fallback_chain_order(
-        self, cli_runner, demo_fixtures, fixture_manager, flag_config_manager
+        self, cli_runner, test_fixtures, fixture_manager, flag_config_manager
     ):
         """Test that fallback chain follows correct order: LD → Local → Registry Defaults."""
         overlay_config = flag_config_manager.create_overlay_config(
@@ -164,10 +164,10 @@ class TestCombinedProviderFallback:
         output_file = fixture_manager.temp_dir / "pipeline-fallback-chain.json"
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             timeout=120,
@@ -181,7 +181,7 @@ class TestCombinedProviderFallback:
         assert "modules" in data
 
     def test_fallback_with_mixed_flag_types(
-        self, cli_runner, demo_fixtures, fixture_manager, flag_config_manager
+        self, cli_runner, test_fixtures, fixture_manager, flag_config_manager
     ):
         """Test fallback behavior with different flag types (bool, string, number, json)."""
         overlay_config = flag_config_manager.create_overlay_config(
@@ -208,10 +208,10 @@ class TestCombinedProviderFallback:
         output_file = fixture_manager.temp_dir / "pipeline-mixed-types.json"
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             timeout=120,
@@ -226,7 +226,7 @@ class TestCombinedProviderFallback:
         assert "risk_score" in data
 
     def test_fallback_persists_across_multiple_evaluations(
-        self, cli_runner, demo_fixtures, fixture_manager, flag_config_manager
+        self, cli_runner, test_fixtures, fixture_manager, flag_config_manager
     ):
         """Test that fallback behavior persists correctly across multiple flag evaluations."""
         overlay_config = flag_config_manager.create_overlay_config(
@@ -254,10 +254,10 @@ class TestCombinedProviderFallback:
             )
 
             result = cli_runner.run_pipeline(
-                design=demo_fixtures["design"],
-                sbom=demo_fixtures["sbom"],
-                cve=demo_fixtures["cve"],
-                sarif=demo_fixtures["sarif"],
+                design=test_fixtures["design"],
+                sbom=test_fixtures["sbom"],
+                cve=test_fixtures["cve"],
+                sarif=test_fixtures["sarif"],
                 overlay=overlay_config,
                 output=output_file,
                 timeout=120,

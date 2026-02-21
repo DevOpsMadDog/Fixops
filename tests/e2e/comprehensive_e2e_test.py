@@ -42,7 +42,7 @@ import requests
 
 # Configuration
 BASE_URL = os.environ.get("FIXOPS_API_URL", "http://localhost:8002")
-API_KEY = os.environ.get("FIXOPS_API_TOKEN", "demo-token")
+API_KEY = os.environ.get("FIXOPS_API_TOKEN", "test-token")
 OUTPUT_DIR = os.environ.get(
     "FIXOPS_TEST_OUTPUT",
     os.path.join(os.path.expanduser("~"), "fixops_comprehensive_test", "results"),

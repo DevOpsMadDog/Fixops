@@ -73,7 +73,7 @@ class ServerManager:
         self._server_api_token = env["FIXOPS_API_TOKEN"]
 
         if "FIXOPS_MODE" not in env:
-            env["FIXOPS_MODE"] = "demo"
+            env["FIXOPS_MODE"] = "enterprise"
 
         repo_root = Path(__file__).parent.parent.parent
         if "PYTHONPATH" in env:

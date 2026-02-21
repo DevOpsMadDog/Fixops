@@ -251,50 +251,16 @@ async def get_report_file(id: str):
 
     file_path = Path(report.file_path)
     if not file_path.exists():
-        # Only generate fallback files in demo mode
-        from config.enterprise.settings import get_settings as _get_settings
-
-        demo_mode = _get_settings().DEMO_MODE
-
-        if not demo_mode:
-            raise HTTPException(
-                status_code=503,
-                detail={
-                    "error": {
-                        "code": "INTEGRATION_UNAVAILABLE",
-                        "message": "Report file not generated - report generation service unavailable",
-                        "details": {"report_id": id, "expected_path": str(file_path)},
-                    }
-                },
-            )
-
-        # Demo mode: Generate fallback file on-the-fly
-        from apps.api.demo_data import (
-            generate_demo_csv_report,
-            generate_demo_json_report,
-            generate_demo_pdf_report,
-            generate_demo_sarif_report,
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": {
+                    "code": "REPORT_FILE_NOT_FOUND",
+                    "message": "Report file not generated - report generation service unavailable",
+                    "details": {"report_id": id, "expected_path": str(file_path)},
+                }
+            },
         )
-
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-
-        if report.format == ReportFormat.PDF:
-            content = generate_demo_pdf_report(report.name, report.report_type.value)
-        elif report.format == ReportFormat.JSON:
-            content = generate_demo_json_report(report.name, report.report_type.value)
-        elif report.format == ReportFormat.CSV:
-            content = generate_demo_csv_report(report.name, report.report_type.value)
-        elif report.format == ReportFormat.SARIF:
-            content = generate_demo_sarif_report(report.name, report.report_type.value)
-        elif report.format == ReportFormat.HTML:
-            raise HTTPException(
-                status_code=501,
-                detail="HTML report generation is not yet supported",
-            )
-        else:
-            content = generate_demo_json_report(report.name, report.report_type.value)
-
-        file_path.write_bytes(content)
 
     # Determine media type
     media_types = {

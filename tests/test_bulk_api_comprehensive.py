@@ -5,7 +5,7 @@ import pytest
 from apps.api.app import create_app
 from fastapi.testclient import TestClient
 
-API_TOKEN = "demo-token-12345"
+API_TOKEN = "test-token-12345"
 AUTH_HEADERS = {"X-API-Key": API_TOKEN}
 
 
@@ -13,7 +13,7 @@ AUTH_HEADERS = {"X-API-Key": API_TOKEN}
 def client(monkeypatch):
     """Create test client with proper environment variables."""
     monkeypatch.setenv("FIXOPS_API_TOKEN", API_TOKEN)
-    monkeypatch.setenv("FIXOPS_MODE", "demo")
+    monkeypatch.setenv("FIXOPS_MODE", "enterprise")
     app = create_app()
     return TestClient(app)
 

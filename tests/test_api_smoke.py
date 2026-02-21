@@ -18,10 +18,10 @@ from typing import Any
 import pytest
 
 # Set environment variables BEFORE importing create_app
-API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "demo-token-12345")
+API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "test-token-12345")
 os.environ["FIXOPS_API_TOKEN"] = API_TOKEN
 os.environ["FIXOPS_DISABLE_TELEMETRY"] = "1"
-os.environ["FIXOPS_MODE"] = os.getenv("FIXOPS_MODE", "demo")
+os.environ["FIXOPS_MODE"] = os.getenv("FIXOPS_MODE", "enterprise")
 os.environ["FIXOPS_JWT_SECRET"] = "test-jwt-secret-smoke-test-do-not-use-in-production"
 
 from apps.api.app import create_app

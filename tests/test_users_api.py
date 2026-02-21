@@ -9,7 +9,7 @@ from core.user_db import UserDB
 from fastapi.testclient import TestClient
 
 # Use shared API token from conftest.py
-API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "demo-token")
+API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "test-token")
 
 
 @pytest.fixture

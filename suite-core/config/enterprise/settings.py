@@ -28,15 +28,15 @@ class Settings(BaseSettings):
 
     # FixOps Operation Mode
     DEMO_MODE: bool = Field(
-        default=False, description="Enable demo mode with simulated data"
+        default=False, description="Legacy flag — kept for backward compat; always False in enterprise"
     )
 
-    # Demo Mode Configuration
+    # Seed data sizing hints (used by in-memory stores when no external DB is configured)
     DEMO_VECTOR_DB_PATTERNS: int = Field(default=2847)
     DEMO_GOLDEN_REGRESSION_CASES: int = Field(default=1247)
     DEMO_BUSINESS_CONTEXTS: int = Field(default=342)
 
-    # Real Integration Settings (used when DEMO_MODE=False)
+    # Integration Settings
     JIRA_URL: Optional[str] = Field(default=None)
     JIRA_USERNAME: Optional[str] = Field(default=None)
     JIRA_API_TOKEN: Optional[str] = Field(default=None)

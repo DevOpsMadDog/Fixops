@@ -41,7 +41,7 @@ def test_sample_stage_outputs_match_expected(
             stage,
             input_path,
             app_name="life-claims-portal",
-            mode="demo",
+            mode="enterprise",
         )
         actual_payload = json.loads(summary.output_file.read_text(encoding="utf-8"))
         expected_payload = json.loads(

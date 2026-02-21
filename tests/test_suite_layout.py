@@ -227,7 +227,7 @@ class TestCreateAppWorks:
         # Set minimal environment
         os.environ.setdefault("FIXOPS_JWT_SECRET", "test-secret")
         os.environ.setdefault("FIXOPS_API_TOKEN", "test-token")
-        os.environ.setdefault("FIXOPS_DEMO_MODE", "true")
+        os.environ.setdefault("FIXOPS_LOCAL_DEV", "false")
         os.environ.setdefault("FIXOPS_SKIP_PATH_SECURITY", "1")
 
         try:

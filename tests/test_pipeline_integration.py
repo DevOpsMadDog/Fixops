@@ -11,9 +11,9 @@ from core.configuration import load_overlay
 def set_env_vars(monkeypatch):
     """Set required environment variables for overlay loading."""
     monkeypatch.setenv(
-        "FIXOPS_API_TOKEN", os.getenv("FIXOPS_API_TOKEN", "demo-token-12345")
+        "FIXOPS_API_TOKEN", os.getenv("FIXOPS_API_TOKEN", "test-token-12345")
     )
-    monkeypatch.setenv("FIXOPS_MODE", os.getenv("FIXOPS_MODE", "demo"))
+    monkeypatch.setenv("FIXOPS_MODE", os.getenv("FIXOPS_MODE", "enterprise"))
 
 
 def test_pipeline_emits_compliance_results(tmp_path):

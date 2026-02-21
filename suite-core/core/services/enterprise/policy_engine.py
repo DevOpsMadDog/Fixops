@@ -548,8 +548,8 @@ class PolicyEngine:
     ) -> Dict[str, Any]:
         """Evaluate OPA/Rego policy rule (simplified implementation)"""
 
-        # Note: This is a simplified Rego evaluator for demo purposes
-        # In production, you would integrate with actual OPA server or py-rego library
+        # Note: Simplified built-in Rego evaluator
+        # For full OPA, configure OPA_SERVER_URL to connect to an actual OPA server
 
         try:
             # Parse basic Rego-like rules

@@ -302,7 +302,7 @@ class SecurityPatternMatcher:
                     ),
                     persist_directory=self._resolve_persist_directory(),
                 )
-            elif provider in {"memory", "demo"}:
+            elif provider in {"memory", "local"}:
                 store = InMemoryVectorStore(  # type: ignore[assignment]
                     dimensions=int(self.settings.get("dimensions", 32))
                 )

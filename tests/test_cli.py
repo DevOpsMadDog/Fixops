@@ -11,7 +11,7 @@ def _write_json(path: Path, payload: dict) -> None:
 
 
 def test_cli_run_pipeline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys):
-    monkeypatch.setenv("FIXOPS_API_TOKEN", "demo-token")
+    monkeypatch.setenv("FIXOPS_API_TOKEN", "test-token")
     monkeypatch.delenv("SIGNING_PROVIDER", raising=False)
     monkeypatch.delenv("KEY_ID", raising=False)
     monkeypatch.delenv("AWS_REGION", raising=False)
@@ -69,10 +69,10 @@ def test_cli_run_pipeline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsy
         "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
         "runs": [
             {
-                "tool": {"driver": {"name": "DemoScanner"}},
+                "tool": {"driver": {"name": "TestScanner"}},
                 "results": [
                     {
-                        "ruleId": "DEMO001",
+                        "ruleId": "TEST001",
                         "level": "error",
                         "message": {"text": "SQL injection risk"},
                         "locations": [
@@ -125,7 +125,7 @@ def test_cli_run_pipeline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsy
             "--opa-url",
             "https://opa.internal",
             "--opa-token",
-            "demo-token",
+            "test-token",
             "--opa-package",
             "core.security",
             "--opa-health-path",
@@ -145,7 +145,7 @@ def test_cli_run_pipeline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsy
     assert os.getenv("AWS_REGION") == "us-east-1"
     assert os.getenv("SIGNING_ROTATION_SLA_DAYS") == "60"
     assert os.getenv("OPA_SERVER_URL") == "https://opa.internal"
-    assert os.getenv("OPA_AUTH_TOKEN") == "demo-token"
+    assert os.getenv("OPA_AUTH_TOKEN") == "test-token"
     assert os.getenv("OPA_POLICY_PACKAGE") == "core.security"
     assert os.getenv("OPA_HEALTH_PATH") == "/healthz"
     assert os.getenv("OPA_BUNDLE_STATUS_PATH") == "/bundles/core/status"
@@ -167,7 +167,7 @@ def test_cli_run_pipeline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsy
 
 
 def test_cli_show_overlay(monkeypatch: pytest.MonkeyPatch, capsys):
-    monkeypatch.setenv("FIXOPS_API_TOKEN", "demo-token")
+    monkeypatch.setenv("FIXOPS_API_TOKEN", "test-token")
     monkeypatch.delenv("FIXOPS_JIRA_TOKEN", raising=False)
     monkeypatch.delenv("FIXOPS_CONFLUENCE_TOKEN", raising=False)
     monkeypatch.setattr("core.overlay_runtime.Fernet", None)
@@ -183,7 +183,7 @@ def test_cli_show_overlay(monkeypatch: pytest.MonkeyPatch, capsys):
     assert exit_code == 0
     captured = capsys.readouterr()
     overlay_payload = json.loads(captured.out)
-    assert overlay_payload["mode"] in {"demo", "enterprise"}
+    assert overlay_payload["mode"] in {"enterprise", "test"}
     assert "guardrails" in overlay_payload
     assert overlay_payload.get("limits", {}).get("evidence", {}).get("encrypt") is False
     metadata = overlay_payload.get("metadata", {})
@@ -228,7 +228,7 @@ def test_cli_train_forecast(tmp_path: Path, capsys):
 def test_cli_demo_command(
     tmp_path: Path, capsys, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("FIXOPS_API_TOKEN", "demo-token")
+    monkeypatch.setenv("FIXOPS_API_TOKEN", "test-token")
 
     output_path = tmp_path / "demo.json"
     exit_code = cli.main(

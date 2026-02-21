@@ -9,7 +9,7 @@ mirroring the minimal interface expected by existing services.
 
 The helpers in this module intentionally avoid pulling in optional dependencies
 at import time.  They only raise clear, actionable errors when the OpenAI SDK is
-unavailable or an API key has not been provided.  This keeps the demo workflow
+unavailable or an API key has not been provided.  This keeps the local workflow
 usable in environments without network access, while still providing rich
 ChatGPT-backed analysis when an ``OPENAI_API_KEY`` (or legacy
 ``EMERGENT_LLM_KEY``) is present.

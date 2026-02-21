@@ -16,7 +16,7 @@ class TestFlagWiring:
     """Test feature flag wiring with real CLI/API execution."""
 
     def test_module_flags_control_pipeline_execution(
-        self, cli_runner, demo_fixtures, fixture_manager, flag_config_manager
+        self, cli_runner, test_fixtures, fixture_manager, flag_config_manager
     ):
         """Test that module flags control which modules execute in pipeline."""
         overlay_config = flag_config_manager.create_overlay_config(
@@ -37,10 +37,10 @@ class TestFlagWiring:
         output_file = fixture_manager.temp_dir / "pipeline-flags.json"
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             timeout=120,
@@ -60,7 +60,7 @@ class TestFlagWiring:
         assert "evidence" in modules.get("enabled", []), "Evidence should be enabled"
 
     def test_risk_model_flag_controls_model_selection(
-        self, cli_runner, demo_fixtures, fixture_manager, flag_config_manager
+        self, cli_runner, test_fixtures, fixture_manager, flag_config_manager
     ):
         """Test that risk model flags control which model is used."""
         overlay_config = flag_config_manager.create_overlay_config(
@@ -73,10 +73,10 @@ class TestFlagWiring:
         output_file = fixture_manager.temp_dir / "pipeline-model.json"
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             timeout=120,
@@ -93,7 +93,7 @@ class TestFlagWiring:
     def test_evidence_encryption_flag(
         self,
         cli_runner,
-        demo_fixtures,
+        test_fixtures,
         fixture_manager,
         flag_config_manager,
         evidence_validator,
@@ -114,10 +114,10 @@ class TestFlagWiring:
         evidence_dir.mkdir(exist_ok=True)
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             evidence_dir=evidence_dir,
@@ -134,7 +134,7 @@ class TestFlagWiring:
     def test_evidence_retention_flag(
         self,
         cli_runner,
-        demo_fixtures,
+        test_fixtures,
         fixture_manager,
         flag_config_manager,
         evidence_validator,
@@ -155,10 +155,10 @@ class TestFlagWiring:
         evidence_dir.mkdir(exist_ok=True)
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             evidence_dir=evidence_dir,
@@ -175,7 +175,7 @@ class TestFlagWiring:
             ), f"Expected retention_days=90, got {bundle.retention_days}"
 
     def test_connector_flags_control_connector_execution(
-        self, cli_runner, demo_fixtures, fixture_manager, flag_config_manager
+        self, cli_runner, test_fixtures, fixture_manager, flag_config_manager
     ):
         """Test that connector flags control whether connectors execute."""
         overlay_config = flag_config_manager.create_overlay_config(
@@ -193,10 +193,10 @@ class TestFlagWiring:
         output_file = fixture_manager.temp_dir / "pipeline-connectors.json"
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             timeout=120,
@@ -205,7 +205,7 @@ class TestFlagWiring:
         assert result.success, f"CLI failed: {result.stderr}"
 
     def test_llm_provider_flags(
-        self, cli_runner, demo_fixtures, fixture_manager, flag_config_manager
+        self, cli_runner, test_fixtures, fixture_manager, flag_config_manager
     ):
         """Test that LLM provider flags control which LLMs are used."""
         overlay_config = flag_config_manager.create_overlay_config(
@@ -224,10 +224,10 @@ class TestFlagWiring:
         output_file = fixture_manager.temp_dir / "pipeline-llm.json"
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             timeout=120,
@@ -236,7 +236,7 @@ class TestFlagWiring:
         assert result.success, f"CLI failed: {result.stderr}"
 
     def test_percentage_rollout_flag(
-        self, cli_runner, demo_fixtures, fixture_manager, flag_config_manager
+        self, cli_runner, test_fixtures, fixture_manager, flag_config_manager
     ):
         """Test that percentage rollout flags work correctly."""
         overlay_config = flag_config_manager.create_overlay_config(
@@ -251,10 +251,10 @@ class TestFlagWiring:
         output_file = fixture_manager.temp_dir / "pipeline-rollout.json"
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             timeout=120,
@@ -263,7 +263,7 @@ class TestFlagWiring:
         assert result.success, f"CLI failed: {result.stderr}"
 
     def test_flag_provider_fallback_chain(
-        self, cli_runner, demo_fixtures, fixture_manager, flag_config_manager
+        self, cli_runner, test_fixtures, fixture_manager, flag_config_manager
     ):
         """Test that flag provider fallback chain works (LD offline → Local → Defaults)."""
         flag_config_manager.set_env_vars(
@@ -286,10 +286,10 @@ class TestFlagWiring:
         output_file = fixture_manager.temp_dir / "pipeline-fallback.json"
 
         result = cli_runner.run_pipeline(
-            design=demo_fixtures["design"],
-            sbom=demo_fixtures["sbom"],
-            cve=demo_fixtures["cve"],
-            sarif=demo_fixtures["sarif"],
+            design=test_fixtures["design"],
+            sbom=test_fixtures["sbom"],
+            cve=test_fixtures["cve"],
+            sarif=test_fixtures["sarif"],
             overlay=overlay_config,
             output=output_file,
             timeout=120,
@@ -304,9 +304,9 @@ class TestFlagWiring:
         modules = data["modules"]
         assert "guardrails" in modules.get("enabled", [])
 
-    def test_api_flag_wiring(self, fixture_manager, flag_config_manager, demo_fixtures):
+    def test_api_flag_wiring(self, fixture_manager, flag_config_manager, test_fixtures):
         """Test that flags are wired into API endpoints."""
-        flag_config_manager.create_demo_config()
+        flag_config_manager.create_test_config()
 
         env = {
             "FIXOPS_API_TOKEN": "test-token-flags",
@@ -316,7 +316,7 @@ class TestFlagWiring:
         with ServerManager(host="127.0.0.1", port=8766, env=env, timeout=30) as server:
             headers = {"X-API-Key": "test-token-flags"}
 
-            with open(demo_fixtures["design"], "rb") as f:
+            with open(test_fixtures["design"], "rb") as f:
                 files = {"file": ("design.csv", f, "text/csv")}
                 response = requests.post(
                     f"{server.base_url}/inputs/design",
@@ -326,7 +326,7 @@ class TestFlagWiring:
                 )
                 assert response.status_code == 200
 
-            with open(demo_fixtures["sbom"], "rb") as f:
+            with open(test_fixtures["sbom"], "rb") as f:
                 files = {"file": ("sbom.json", f, "application/json")}
                 response = requests.post(
                     f"{server.base_url}/inputs/sbom",
@@ -336,7 +336,7 @@ class TestFlagWiring:
                 )
                 assert response.status_code == 200
 
-            with open(demo_fixtures["cve"], "rb") as f:
+            with open(test_fixtures["cve"], "rb") as f:
                 files = {"file": ("cve.json", f, "application/json")}
                 response = requests.post(
                     f"{server.base_url}/inputs/cve",
@@ -346,7 +346,7 @@ class TestFlagWiring:
                 )
                 assert response.status_code == 200
 
-            with open(demo_fixtures["sarif"], "rb") as f:
+            with open(test_fixtures["sarif"], "rb") as f:
                 files = {"file": ("scan.sarif", f, "application/json")}
                 response = requests.post(
                     f"{server.base_url}/inputs/sarif",
@@ -368,7 +368,7 @@ class TestFlagWiring:
             assert "modules" in data
 
     def test_flags_persist_across_multiple_runs(
-        self, cli_runner, demo_fixtures, fixture_manager, flag_config_manager
+        self, cli_runner, test_fixtures, fixture_manager, flag_config_manager
     ):
         """Test that flag values persist correctly across multiple pipeline runs."""
         overlay_config = flag_config_manager.create_overlay_config(
@@ -386,10 +386,10 @@ class TestFlagWiring:
             output_file = fixture_manager.temp_dir / f"pipeline-persist-{i}.json"
 
             result = cli_runner.run_pipeline(
-                design=demo_fixtures["design"],
-                sbom=demo_fixtures["sbom"],
-                cve=demo_fixtures["cve"],
-                sarif=demo_fixtures["sarif"],
+                design=test_fixtures["design"],
+                sbom=test_fixtures["sbom"],
+                cve=test_fixtures["cve"],
+                sarif=test_fixtures["sarif"],
                 overlay=overlay_config,
                 output=output_file,
                 timeout=120,

@@ -110,7 +110,7 @@ def get_openapi_endpoints_from_introspect() -> set[tuple[str, str]]:
 
     os.environ.setdefault("FIXOPS_JWT_SECRET", _secrets.token_hex(32))
     os.environ.setdefault("FIXOPS_API_TOKEN", _secrets.token_urlsafe(32))
-    os.environ.setdefault("FIXOPS_DEMO_MODE", "false")
+    os.environ.setdefault("FIXOPS_LOCAL_DEV", "false")
 
     from apps.api.app import create_app
 

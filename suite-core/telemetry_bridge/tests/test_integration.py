@@ -67,7 +67,7 @@ def test_telemetry_ingestion_file_mode(docker_compose_up):
     assert "file" in data
 
     output_file = (
-        Path(__file__).parent.parent / "demo_decision_inputs" / "ops-telemetry.json"
+        Path(__file__).parent.parent / "decision_inputs" / "ops-telemetry.json"
     )
     assert output_file.exists()
 
@@ -120,7 +120,7 @@ def test_evidence_with_asset_filter(docker_compose_up):
 def test_cli_integration_with_telemetry():
     """Test FixOps CLI integration with telemetry data."""
     telemetry_file = (
-        Path(__file__).parent.parent / "demo_decision_inputs" / "ops-telemetry.json"
+        Path(__file__).parent.parent / "decision_inputs" / "ops-telemetry.json"
     )
     telemetry_file.parent.mkdir(parents=True, exist_ok=True)
 
@@ -137,9 +137,9 @@ def test_cli_integration_with_telemetry():
             "python",
             "-m",
             "core.cli",
-            "demo",
+            "showcase",
             "--mode",
-            "demo",
+            "enterprise",
             "--output",
             "/tmp/pipeline-test.json",
         ],
@@ -149,7 +149,7 @@ def test_cli_integration_with_telemetry():
         env={**os.environ, "FIXOPS_DISABLE_TELEMETRY": "1"},
     )
 
-    assert result.returncode == 0 or "demo" in result.stdout.lower()
+    assert result.returncode == 0 or "showcase" in result.stdout.lower()
 
 
 def test_aws_lambda_handler_simulation():
@@ -231,7 +231,7 @@ def test_end_to_end_telemetry_flow(docker_compose_up):
     assert response.status_code == 200
 
     output_file = (
-        Path(__file__).parent.parent / "demo_decision_inputs" / "ops-telemetry.json"
+        Path(__file__).parent.parent / "decision_inputs" / "ops-telemetry.json"
     )
     assert output_file.exists()
 

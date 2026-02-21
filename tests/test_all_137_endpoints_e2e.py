@@ -9,11 +9,11 @@ import os
 import pytest
 
 # Set environment variables BEFORE importing create_app
-# Use the same token as the Docker image (demo-token-12345) for consistency
-API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "demo-token-12345")
+# Use the same token as the Docker image (test-token-12345) for consistency
+API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "test-token-12345")
 os.environ["FIXOPS_API_TOKEN"] = API_TOKEN
 os.environ["FIXOPS_DISABLE_TELEMETRY"] = "1"
-os.environ["FIXOPS_MODE"] = os.getenv("FIXOPS_MODE", "demo")
+os.environ["FIXOPS_MODE"] = os.getenv("FIXOPS_MODE", "enterprise")
 os.environ["FIXOPS_JWT_SECRET"] = "test-jwt-secret-e2e-do-not-use-in-production"
 
 from apps.api.app import create_app
