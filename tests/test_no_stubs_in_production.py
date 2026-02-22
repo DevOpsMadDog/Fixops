@@ -87,9 +87,7 @@ def _check_no_stubs(data, endpoint: str):
     if isinstance(data, dict):
         for key in FORBIDDEN_TRUE_KEYS:
             if data.get(key) is True:
-                pytest.fail(
-                    f"STUB DETECTED at {endpoint}: '{key}' is True in response"
-                )
+                pytest.fail(f"STUB DETECTED at {endpoint}: '{key}' is True in response")
 
 
 # ── Critical endpoints that were previously stubbed ──────────────────────
@@ -115,9 +113,9 @@ class TestNoStubsInPentest:
             assert r.status_code == 200
             data = r.json()
             controls = data.get("controls", [])
-            assert len(controls) > 0, (
-                f"STUB: /compliance/controls/{fw} returned empty controls[]"
-            )
+            assert (
+                len(controls) > 0
+            ), f"STUB: /compliance/controls/{fw} returned empty controls[]"
             _check_no_stubs(data, f"/compliance/controls/{fw}")
 
     def test_pentest_generate_poc(self, client, headers):
@@ -129,9 +127,9 @@ class TestNoStubsInPentest:
         assert r.status_code in [200, 422]
         if r.status_code == 200:
             data = r.json()
-            assert data.get("status") != "integration_required", (
-                "STUB: generate-poc still returns integration_required"
-            )
+            assert (
+                data.get("status") != "integration_required"
+            ), "STUB: generate-poc still returns integration_required"
             _check_no_stubs(data, "/pentest/generate-poc")
 
 
@@ -177,4 +175,3 @@ class TestNoStubsInHealth:
         r = client.get("/api/v1/pentest/capabilities", headers=headers)
         if r.status_code == 200:
             _check_no_stubs(r.json(), "/pentest/capabilities")
-
