@@ -107,3 +107,7 @@ data/data/
 real_cve_*.json
 terraform.tfvars
 .coverage
+
+# Temporary agent/debug scripts (auto-generated)
+_*.py
+_*.txt
