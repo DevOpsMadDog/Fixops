@@ -23,7 +23,7 @@ jobs:
       FIXOPS_MODE: 'enterprise'
       FIXOPS_SKIP_PATH_SECURITY: "1"
       FIXOPS_EVIDENCE_KEY: ${{ secrets.FIXOPS_EVIDENCE_KEY || 'Zz6A0n4P3skS8F6edSxE2xe50Tzw9uQWGWp9JYG1ChE=' }}
-      SKIP_UNIT_TESTS: 'true'
+      SKIP_UNIT_TESTS: 'false'
       PYTHONPATH: suite-api:suite-core:suite-attack:suite-feeds:suite-evidence-risk:suite-integrations:.
     steps:
       - uses: actions/checkout@v4
@@ -42,7 +42,7 @@ jobs:
       - name: Test with Coverage (fail if below 18% baseline)
         if: ${{ env.SKIP_UNIT_TESTS != 'true' }}
         run: |
-          pytest --cov=core --cov=apps --cov=risk --cov=evidence --cov-branch --cov-report=xml --cov-report=term-missing --cov-fail-under=18 -q --ignore=tests/e2e --ignore=tests/harness --ignore=tests/sidecar
+          pytest tests/ --override-ini "addopts=" --cov=core --cov=apps --cov=risk --cov=evidence --cov-branch --cov-report=xml --cov-report=term-missing --cov-fail-under=18 -q --ignore=tests/e2e --ignore=tests/harness --ignore=tests/sidecar
       - name: API Contract Check
         continue-on-error: true
         run: |

@@ -18,7 +18,7 @@ jobs:
       options: --user root
     env:
       FIXOPS_SKIP_PATH_SECURITY: "1"
-      SKIP_UNIT_TESTS: 'true'
+      SKIP_UNIT_TESTS: 'false'
       PYTHONPATH: suite-api:suite-core:suite-attack:suite-feeds:suite-evidence-risk:suite-integrations:.
     steps:
       - uses: actions/checkout@v4
