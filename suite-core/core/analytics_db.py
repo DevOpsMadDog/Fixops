@@ -188,6 +188,16 @@ class AnalyticsDB:
         finally:
             conn.close()
 
+    def delete_finding(self, finding_id: str) -> bool:
+        """Delete finding by ID. Returns True if a row was deleted."""
+        conn = self._get_connection()
+        try:
+            cursor = conn.execute("DELETE FROM findings WHERE id = ?", (finding_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+        finally:
+            conn.close()
+
     def create_decision(self, decision: Decision) -> Decision:
         """Create new decision."""
         if not decision.id:

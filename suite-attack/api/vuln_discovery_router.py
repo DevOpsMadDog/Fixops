@@ -282,9 +282,25 @@ class RetrainResponse(BaseModel):
 _discovered_vulns: Dict[str, Dict[str, Any]] = {}
 _contributions: Dict[str, Dict[str, Any]] = {}
 _retrain_jobs: Dict[str, Dict[str, Any]] = {}
+_trained_models: Dict[str, Any] = {}  # Stores trained sklearn model objects
 
 # Counter for internal IDs
 _vuln_counter = 0
+
+# ML library availability
+try:
+    import numpy as np
+    from sklearn.ensemble import (
+        GradientBoostingRegressor,
+        IsolationForest,
+        RandomForestClassifier,
+    )
+    from sklearn.model_selection import cross_val_score
+    from sklearn.preprocessing import LabelEncoder
+
+    _SKLEARN_AVAILABLE = True
+except ImportError:
+    _SKLEARN_AVAILABLE = False
 
 
 # =============================================================================
@@ -712,6 +728,7 @@ async def retrain_ml_models(
         "models_queued": models,
         "data_points": total_data_points,
         "include_external": request.include_external,
+        "_vuln_ids": request.vuln_ids,  # stored for _build_training_dataset
         "started_at": None,
         "completed_at": None,
         "created_at": now,
@@ -733,10 +750,119 @@ async def retrain_ml_models(
     )
 
 
-async def _run_training(job_id: str) -> None:
-    """Run ML model training.
+# ---------------------------------------------------------------------------
+# Feature engineering helpers for ML training
+# ---------------------------------------------------------------------------
 
-    Requires MindsDB integration for actual training.
+_ATTACK_VECTOR_MAP = {"network": 4, "adjacent": 3, "local": 2, "physical": 1}
+_DIFFICULTY_MAP = {"trivial": 4, "low": 3, "medium": 2, "high": 1}
+_SEVERITY_MAP = {"critical": 4, "high": 3, "medium": 2, "low": 1, "info": 0}
+_IMPACT_TYPES = [
+    "remote_code_execution",
+    "sql_injection",
+    "cross_site_scripting",
+    "server_side_request_forgery",
+    "xml_external_entity",
+    "insecure_direct_object_reference",
+    "authentication_bypass",
+    "privilege_escalation",
+    "information_disclosure",
+    "denial_of_service",
+    "other",
+]
+
+
+def _enum_val(v: Any) -> str:
+    """Extract string value from a potential enum or string."""
+    return v.value if hasattr(v, "value") else str(v).lower()
+
+
+def _vuln_to_features(vuln: Dict[str, Any]) -> List[float]:
+    """Convert a vulnerability dict to a numeric feature vector."""
+    av = _enum_val(vuln.get("attack_vector", "network"))
+    av_val = _ATTACK_VECTOR_MAP.get(av, 2)
+
+    diff = _enum_val(vuln.get("exploitation_difficulty", "medium"))
+    diff_val = _DIFFICULTY_MAP.get(diff, 2)
+
+    cvss = float(vuln.get("cvss_score", 0) or 0)
+    has_poc = 1.0 if vuln.get("proof_of_concept") else 0.0
+    comp_count = float(len(vuln.get("affected_components", [])))
+
+    # One-hot encode impact_type
+    impact = _enum_val(vuln.get("impact_type", "other"))
+    impact_vec = [1.0 if t == impact else 0.0 for t in _IMPACT_TYPES]
+
+    return [av_val, diff_val, cvss, has_poc, comp_count] + impact_vec
+
+
+def _build_training_dataset(
+    job: Dict[str, Any],
+) -> tuple:
+    """Build feature matrix X and label arrays from internal vulns + EPSS."""
+    vuln_ids = job.get("_vuln_ids") or []
+    include_external = job.get("include_external", True)
+
+    # Gather internal vulnerability data
+    if vuln_ids:
+        vulns = [_discovered_vulns[vid] for vid in vuln_ids if vid in _discovered_vulns]
+    else:
+        vulns = list(_discovered_vulns.values())
+
+    # Gather external EPSS data as synthetic training samples
+    epss_records: Dict[str, float] = {}
+    if include_external:
+        try:
+            from feeds_service import FeedsService as _FS
+
+            epss_records = _FS._load_epss_scores()
+        except Exception:
+            pass
+
+    # Build feature matrix from internal vulns
+    X_rows: List[List[float]] = []
+    severity_labels: List[str] = []
+    exploitability_scores: List[float] = []
+
+    for v in vulns:
+        X_rows.append(_vuln_to_features(v))
+        raw_sev = v.get("severity", "medium")
+        sev = raw_sev.value if hasattr(raw_sev, "value") else str(raw_sev).lower()
+        severity_labels.append(sev)
+        epss = float(v.get("epss_score", 0) or 0)
+        diff_key = _enum_val(v.get("exploitation_difficulty", "medium"))
+        exploitability_scores.append(
+            epss if epss > 0 else _DIFFICULTY_MAP.get(diff_key, 2) / 4.0
+        )
+
+    # Augment with EPSS data as synthetic rows (severity inferred from score)
+    for cve_id, epss_score in list(epss_records.items())[:2000]:
+        # Infer severity from EPSS score ranges
+        if epss_score >= 0.7:
+            sev = "critical"
+        elif epss_score >= 0.4:
+            sev = "high"
+        elif epss_score >= 0.1:
+            sev = "medium"
+        else:
+            sev = "low"
+
+        cvss_est = epss_score * 10.0  # Rough EPSS→CVSS mapping
+        synth = [4, 3, cvss_est, 0.0, 1.0] + [0.0] * len(_IMPACT_TYPES)
+        X_rows.append(synth)
+        severity_labels.append(sev)
+        exploitability_scores.append(epss_score)
+
+    return X_rows, severity_labels, exploitability_scores
+
+
+async def _run_training(job_id: str) -> None:
+    """Run ML model training using scikit-learn.
+
+    Trains real models on vulnerability data:
+    - severity_predictor: RandomForestClassifier
+    - exploitability_predictor: GradientBoostingRegressor
+    - zero_day_detector: IsolationForest anomaly detector
     """
     job = _retrain_jobs.get(job_id)
     if not job:
@@ -745,38 +871,167 @@ async def _run_training(job_id: str) -> None:
     job["status"] = "training"
     job["started_at"] = _now()
 
-    # Check if MindsDB is configured
-    import os
-
-    mindsdb_url = os.environ.get("MINDSDB_URL", "")
-
-    if not mindsdb_url:
-        # Cannot train without MindsDB
+    if not _SKLEARN_AVAILABLE:
         job["status"] = "failed"
         job["completed_at"] = _now()
         job["results"] = {
             model: {
-                "status": "pending_integration",
-                "message": "Training requires MindsDB configuration (MINDSDB_URL)",
+                "status": "failed",
+                "message": "scikit-learn not installed (pip install scikit-learn numpy)",
             }
             for model in job["models_queued"]
         }
-        logger.warning(f"ML training job {job_id} failed: MindsDB not configured")
+        logger.warning(f"ML training job {job_id} failed: scikit-learn not available")
         return
 
-    # MindsDB URL is set but actual training call is not yet wired.
-    # Mark as "awaiting_integration" so callers know it's not silently dropped.
-    job["status"] = "awaiting_integration"
-    job["completed_at"] = _now()
-    job["results"] = {
-        model: {
-            "status": "awaiting_integration",
-            "message": f"MindsDB reachable at {mindsdb_url} but training API call not yet wired",
-        }
-        for model in job["models_queued"]
-    }
+    try:
+        X_rows, severity_labels, exploitability_scores = _build_training_dataset(job)
 
-    logger.info(f"ML training job {job_id} - pending MindsDB integration")
+        if len(X_rows) < 5:
+            job["status"] = "failed"
+            job["completed_at"] = _now()
+            job["results"] = {
+                model: {
+                    "status": "insufficient_data",
+                    "message": f"Need ≥5 data points, have {len(X_rows)}. "
+                    "Add vulnerabilities via POST /vulns/discovered or enable "
+                    "include_external to pull EPSS feed data.",
+                }
+                for model in job["models_queued"]
+            }
+            logger.warning(
+                f"ML training job {job_id} failed: only {len(X_rows)} samples"
+            )
+            return
+
+        X = np.array(X_rows, dtype=np.float64)
+        results: Dict[str, Dict[str, Any]] = {}
+
+        for model_name in job["models_queued"]:
+            try:
+                result = _train_single_model(
+                    model_name, X, severity_labels, exploitability_scores
+                )
+                results[model_name] = result
+            except Exception as e:
+                results[model_name] = {
+                    "status": "failed",
+                    "message": str(e),
+                }
+                logger.error(f"Training {model_name} failed: {e}")
+
+        all_ok = all(r.get("status") == "trained" for r in results.values())
+        job["status"] = "completed" if all_ok else "partial"
+        job["completed_at"] = _now()
+        job["results"] = results
+        job["training_samples"] = len(X_rows)
+
+        logger.info(
+            f"ML training job {job_id} {'completed' if all_ok else 'partial'}: "
+            f"{len(X_rows)} samples, {len(job['models_queued'])} models"
+        )
+
+    except Exception as e:
+        job["status"] = "failed"
+        job["completed_at"] = _now()
+        job["results"] = {
+            model: {"status": "failed", "message": str(e)}
+            for model in job["models_queued"]
+        }
+        logger.error(f"ML training job {job_id} failed: {e}")
+
+
+def _train_single_model(
+    model_name: str,
+    X: "np.ndarray",
+    severity_labels: List[str],
+    exploitability_scores: List[float],
+) -> Dict[str, Any]:
+    """Train a single ML model and return metrics."""
+    if model_name == "severity_predictor":
+        le = LabelEncoder()
+        y = le.fit_transform(severity_labels)
+        clf = RandomForestClassifier(
+            n_estimators=100, max_depth=10, random_state=42, n_jobs=-1
+        )
+        clf.fit(X, y)
+        # Cross-validate if enough samples; fall back on class-imbalance errors
+        if len(X) >= 10:
+            try:
+                from collections import Counter
+
+                min_class_count = min(Counter(y).values())
+                n_splits = max(2, min(5, len(X), min_class_count))
+                scores = cross_val_score(clf, X, y, cv=n_splits, scoring="accuracy")
+                accuracy = float(np.mean(scores))
+            except ValueError:
+                # Stratified k-fold can still fail with extreme imbalance
+                accuracy = float(clf.score(X, y))
+        else:
+            accuracy = float(clf.score(X, y))
+
+        _trained_models["severity_predictor"] = {"model": clf, "encoder": le}
+        return {
+            "status": "trained",
+            "algorithm": "RandomForestClassifier",
+            "samples": len(X),
+            "features": X.shape[1],
+            "classes": list(le.classes_),
+            "accuracy": round(accuracy, 4),
+            "n_estimators": 100,
+        }
+
+    elif model_name == "exploitability_predictor":
+        y = np.array(exploitability_scores, dtype=np.float64)
+        reg = GradientBoostingRegressor(
+            n_estimators=100, max_depth=5, learning_rate=0.1, random_state=42
+        )
+        reg.fit(X, y)
+        if len(X) >= 10:
+            try:
+                n_splits = max(2, min(5, len(X)))
+                scores = cross_val_score(reg, X, y, cv=n_splits, scoring="r2")
+                r2 = float(np.mean(scores))
+            except ValueError:
+                r2 = float(reg.score(X, y))
+        else:
+            r2 = float(reg.score(X, y))
+
+        _trained_models["exploitability_predictor"] = {"model": reg}
+        return {
+            "status": "trained",
+            "algorithm": "GradientBoostingRegressor",
+            "samples": len(X),
+            "features": X.shape[1],
+            "r2_score": round(r2, 4),
+            "n_estimators": 100,
+        }
+
+    elif model_name == "zero_day_detector":
+        iso = IsolationForest(
+            n_estimators=100, contamination=0.05, random_state=42, n_jobs=-1
+        )
+        iso.fit(X)
+        preds = iso.predict(X)
+        anomaly_count = int(np.sum(preds == -1))
+
+        _trained_models["zero_day_detector"] = {"model": iso}
+        return {
+            "status": "trained",
+            "algorithm": "IsolationForest",
+            "samples": len(X),
+            "features": X.shape[1],
+            "contamination": 0.05,
+            "anomalies_detected": anomaly_count,
+            "anomaly_rate": round(anomaly_count / len(X), 4) if len(X) > 0 else 0,
+        }
+
+    else:
+        return {
+            "status": "failed",
+            "message": f"Unknown model type: {model_name}. "
+            "Supported: severity_predictor, exploitability_predictor, zero_day_detector",
+        }
 
 
 @router.get("/train/{job_id}")

@@ -1499,7 +1499,10 @@ def load_overlay(
         if token_env:
             secret = os.getenv(str(token_env))
             if not secret:
-                if allow_ephemeral_token_fallback and (config.mode or "").lower() in ("local", "sandbox"):
+                if allow_ephemeral_token_fallback and (config.mode or "").lower() in (
+                    "local",
+                    "sandbox",
+                ):
                     logger.warning(
                         "Token auth configured without %s; generating ephemeral token",
                         token_env,

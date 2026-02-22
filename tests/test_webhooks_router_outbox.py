@@ -218,7 +218,7 @@ def test_execute_outbox_item_failure_max_retries(client, outbox_db, monkeypatch)
 
 def test_get_connector_settings_jira(monkeypatch):
     """Test _get_connector_settings with Jira env vars."""
-    from apps.api.webhooks_router import _get_connector_settings
+    from api.webhooks_router import _get_connector_settings
 
     monkeypatch.setenv("FIXOPS_JIRA_URL", "https://test.atlassian.net")
     monkeypatch.setenv("FIXOPS_JIRA_USER", "test@example.com")
@@ -234,7 +234,7 @@ def test_get_connector_settings_jira(monkeypatch):
 
 def test_get_connector_settings_servicenow(monkeypatch):
     """Test _get_connector_settings with ServiceNow env vars."""
-    from apps.api.webhooks_router import _get_connector_settings
+    from api.webhooks_router import _get_connector_settings
 
     monkeypatch.setenv("FIXOPS_SERVICENOW_URL", "https://test.service-now.com")
     monkeypatch.setenv("FIXOPS_SERVICENOW_USER", "admin")
@@ -248,7 +248,7 @@ def test_get_connector_settings_servicenow(monkeypatch):
 
 def test_get_connector_settings_gitlab(monkeypatch):
     """Test _get_connector_settings with GitLab env vars."""
-    from apps.api.webhooks_router import _get_connector_settings
+    from api.webhooks_router import _get_connector_settings
 
     monkeypatch.setenv("FIXOPS_GITLAB_URL", "https://gitlab.com")
     monkeypatch.setenv("FIXOPS_GITLAB_PROJECT_ID", "12345")
@@ -262,7 +262,7 @@ def test_get_connector_settings_gitlab(monkeypatch):
 
 def test_get_connector_settings_github(monkeypatch):
     """Test _get_connector_settings with GitHub env vars."""
-    from apps.api.webhooks_router import _get_connector_settings
+    from api.webhooks_router import _get_connector_settings
 
     monkeypatch.setenv("FIXOPS_GITHUB_OWNER", "test-owner")
     monkeypatch.setenv("FIXOPS_GITHUB_REPO", "test-repo")
@@ -276,7 +276,7 @@ def test_get_connector_settings_github(monkeypatch):
 
 def test_get_connector_settings_azure_devops(monkeypatch):
     """Test _get_connector_settings with Azure DevOps env vars."""
-    from apps.api.webhooks_router import _get_connector_settings
+    from api.webhooks_router import _get_connector_settings
 
     monkeypatch.setenv("FIXOPS_AZURE_DEVOPS_ORG", "test-org")
     monkeypatch.setenv("FIXOPS_AZURE_DEVOPS_PROJECT", "test-project")
@@ -290,7 +290,7 @@ def test_get_connector_settings_azure_devops(monkeypatch):
 
 def test_get_connector_settings_slack(monkeypatch):
     """Test _get_connector_settings with Slack env vars."""
-    from apps.api.webhooks_router import _get_connector_settings
+    from api.webhooks_router import _get_connector_settings
 
     monkeypatch.setenv(
         "FIXOPS_SLACK_WEBHOOK_URL", "https://hooks.slack.com/services/xxx"
@@ -307,7 +307,7 @@ def test_get_connector_settings_slack(monkeypatch):
 
 def test_get_connector_settings_confluence(monkeypatch):
     """Test _get_connector_settings with Confluence env vars."""
-    from apps.api.webhooks_router import _get_connector_settings
+    from api.webhooks_router import _get_connector_settings
 
     monkeypatch.setenv("FIXOPS_CONFLUENCE_URL", "https://test.atlassian.net/wiki")
     monkeypatch.setenv("FIXOPS_CONFLUENCE_USER", "test@example.com")

@@ -28,7 +28,8 @@ class Settings(BaseSettings):
 
     # FixOps Operation Mode
     DEMO_MODE: bool = Field(
-        default=False, description="Legacy flag — kept for backward compat; always False in enterprise"
+        default=False,
+        description="Legacy flag — kept for backward compat; always False in enterprise",
     )
 
     # Seed data sizing hints (used by in-memory stores when no external DB is configured)
@@ -63,7 +64,9 @@ class Settings(BaseSettings):
 
     # Security Configuration
     SECRET_KEY: str = Field(
-        default=os.getenv("SECRET_KEY") or os.getenv("FIXOPS_JWT_SECRET") or "dev-insecure-key"
+        default=os.getenv("SECRET_KEY")
+        or os.getenv("FIXOPS_JWT_SECRET")
+        or "dev-insecure-key"
     )
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30

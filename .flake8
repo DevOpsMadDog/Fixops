@@ -10,6 +10,7 @@ exclude =
     dist,
     WIP,
     archive,
-    archive_not_needed
+    archive_not_needed,
+    node_modules
 per-file-ignores =
     tests/conftest.py:E402

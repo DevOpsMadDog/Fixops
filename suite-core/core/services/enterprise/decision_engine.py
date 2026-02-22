@@ -1217,9 +1217,7 @@ class DecisionEngine:
                 stored_id = await EvidenceLake.store_evidence(evidence_record)
                 logger.info(f"✅ Evidence stored in Evidence Lake: {stored_id}")
             except Exception as e:
-                logger.error(
-                    f"Evidence Lake storage failed, using cache fallback: {e}"
-                )
+                logger.error(f"Evidence Lake storage failed, using cache fallback: {e}")
                 # Fallback to cache storage
                 await self.cache.set(
                     f"evidence:{evidence_id}",

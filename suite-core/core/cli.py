@@ -29,7 +29,6 @@ if TYPE_CHECKING:
     )
     from apps.api.pipeline import PipelineOrchestrator  # noqa: F401
     from core.configuration import OverlayConfig  # noqa: F401
-    from core.demo_runner import run_demo_pipeline as run_showcase_pipeline  # noqa: F401
     from core.evidence import EvidenceHub  # noqa: F401
     from core.probabilistic import ProbabilisticForecastEngine  # noqa: F401
     from core.processing_layer import ProcessingLayer  # noqa: F401

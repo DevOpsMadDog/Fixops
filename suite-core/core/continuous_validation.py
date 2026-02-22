@@ -323,7 +323,6 @@ class ContinuousValidationEngine:
             if job.status == "completed":
                 logger.debug("Re-validation cycle", job_id=job.id)
 
-
     async def _assess_security_posture(self) -> SecurityPosture:
         """Assess current security posture."""
         logger.info("Assessing security posture")

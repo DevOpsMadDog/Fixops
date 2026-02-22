@@ -5,7 +5,6 @@ This module provides real bulk operations that interact with the DeduplicationSe
 for cluster management and external connectors for ticket creation.
 """
 
-import asyncio
 import logging
 import uuid
 from datetime import datetime, timezone
@@ -13,6 +12,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+from core.analytics_db import AnalyticsDB
+from core.analytics_models import FindingStatus
 from core.connectors import (
     AzureDevOpsConnector,
     GitHubConnector,
@@ -22,6 +23,7 @@ from core.connectors import (
 )
 from core.integration_db import IntegrationDB
 from core.integration_models import IntegrationType
+from core.policy_db import PolicyDB
 from core.services.deduplication import ClusterStatus, DeduplicationService
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -32,8 +34,12 @@ router = APIRouter(prefix="/api/v1/bulk", tags=["bulk"])
 
 # Initialize services
 _DATA_DIR = Path("data/deduplication")
+_EXPORTS_DIR = Path("data/exports")
+_EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
 _dedup_service: Optional[DeduplicationService] = None
 _integration_db: Optional[IntegrationDB] = None
+_analytics_db: Optional[AnalyticsDB] = None
+_policy_db: Optional[PolicyDB] = None
 
 
 def get_dedup_service() -> DeduplicationService:
@@ -50,6 +56,22 @@ def get_integration_db() -> IntegrationDB:
     if _integration_db is None:
         _integration_db = IntegrationDB()
     return _integration_db
+
+
+def get_analytics_db() -> AnalyticsDB:
+    """Get or create analytics database instance."""
+    global _analytics_db
+    if _analytics_db is None:
+        _analytics_db = AnalyticsDB()
+    return _analytics_db
+
+
+def get_policy_db() -> PolicyDB:
+    """Get or create policy database instance."""
+    global _policy_db
+    if _policy_db is None:
+        _policy_db = PolicyDB()
+    return _policy_db
 
 
 class JobStatus(str, Enum):
@@ -141,6 +163,13 @@ class BulkExportRequest(BaseModel):
     format: str = "json"
     include_fields: Optional[List[str]] = None
     org_id: str
+
+
+class BulkApplyPoliciesRequest(BaseModel):
+    """Request model for bulk policy application."""
+
+    policy_ids: List[str] = Field(..., min_length=1)
+    target_ids: List[str] = Field(..., min_length=1)
 
 
 class BulkOperationResponse(BaseModel):
@@ -651,39 +680,132 @@ def _severity_to_priority(severity: str) -> str:
 async def _process_bulk_export(
     job_id: str,
     ids: List[str],
-    format: str,
+    fmt: str,
     org_id: str,
     include_fields: Optional[List[str]],
 ):
-    """Process bulk export in background."""
+    """Process bulk export in background — creates a real file on disk."""
+    import csv
+    import io
+    import json as _json
+
     if _is_job_cancelled(job_id):
         return
     _jobs[job_id]["status"] = JobStatus.IN_PROGRESS.value
 
     try:
-        await asyncio.sleep(0.1 * len(ids) / 100)
+        db = get_analytics_db()
+        findings_data: List[Dict[str, Any]] = []
 
-        if _is_job_cancelled(job_id):
-            _complete_job(job_id, JobStatus.CANCELLED.value)
-            return
+        for idx, fid in enumerate(ids):
+            if _is_job_cancelled(job_id):
+                _complete_job(job_id, JobStatus.CANCELLED.value)
+                return
+
+            finding = db.get_finding(fid)
+            if finding is None:
+                _jobs[job_id]["errors"].append(
+                    {"id": fid, "error": "Finding not found"}
+                )
+                _jobs[job_id]["failure_count"] = (
+                    _jobs[job_id].get("failure_count", 0) + 1
+                )
+                continue
+
+            record: Dict[str, Any] = {
+                "id": finding.id,
+                "title": finding.title,
+                "severity": finding.severity.value,
+                "status": finding.status.value,
+                "source": finding.source,
+                "rule_id": finding.rule_id,
+                "cve_id": finding.cve_id,
+                "cvss_score": finding.cvss_score,
+                "epss_score": finding.epss_score,
+                "exploitable": finding.exploitable,
+                "description": finding.description,
+                "created_at": finding.created_at.isoformat(),
+                "updated_at": finding.updated_at.isoformat(),
+            }
+            if include_fields:
+                record = {k: v for k, v in record.items() if k in include_fields}
+            findings_data.append(record)
+
+            _jobs[job_id]["processed_items"] = idx + 1
+            _jobs[job_id]["progress_percent"] = round((idx + 1) / len(ids) * 100, 1)
 
         export_id = str(uuid.uuid4())[:8]
-        download_url = f"/api/v1/bulk/exports/{export_id}.{format}"
+        filename = f"{export_id}.{fmt}"
+        filepath = _EXPORTS_DIR / filename
+
+        if fmt == "json":
+            filepath.write_text(
+                _json.dumps(
+                    {
+                        "org_id": org_id,
+                        "findings": findings_data,
+                        "count": len(findings_data),
+                    },
+                    indent=2,
+                )
+            )
+        elif fmt == "csv":
+            if findings_data:
+                buf = io.StringIO()
+                writer = csv.DictWriter(buf, fieldnames=findings_data[0].keys())
+                writer.writeheader()
+                writer.writerows(findings_data)
+                filepath.write_text(buf.getvalue())
+            else:
+                filepath.write_text("")
+        elif fmt == "sarif":
+            sarif = {
+                "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+                "version": "2.1.0",
+                "runs": [
+                    {
+                        "tool": {"driver": {"name": "FixOps", "version": "1.0.0"}},
+                        "results": [
+                            {
+                                "ruleId": f.get("rule_id", ""),
+                                "level": "error"
+                                if f.get("severity") in ("critical", "high")
+                                else "warning",
+                                "message": {"text": f.get("title", "")},
+                            }
+                            for f in findings_data
+                        ],
+                    }
+                ],
+            }
+            filepath.write_text(_json.dumps(sarif, indent=2))
+        else:
+            filepath.write_text(_json.dumps(findings_data, indent=2))
+
+        file_size = filepath.stat().st_size
+        download_url = f"/api/v1/bulk/exports/{filename}"
 
         _jobs[job_id]["results"] = [
             {
                 "export_id": export_id,
-                "format": format,
-                "item_count": len(ids),
+                "format": fmt,
+                "item_count": len(findings_data),
+                "file_size": file_size,
                 "download_url": download_url,
             }
         ]
-        _jobs[job_id]["processed_items"] = len(ids)
-        _jobs[job_id]["success_count"] = len(ids)
+        _jobs[job_id]["success_count"] = len(findings_data)
         _jobs[job_id]["progress_percent"] = 100.0
-
         _complete_job(job_id, JobStatus.COMPLETED.value)
+        logger.info(
+            "Export %s completed: %d findings → %s (%d bytes)",
+            export_id,
+            len(findings_data),
+            filepath,
+            file_size,
+        )
     except Exception as e:
+        logger.exception("Export job %s failed", job_id)
         _jobs[job_id]["errors"].append({"error": str(e)})
         _complete_job(job_id, JobStatus.FAILED.value)
 
@@ -831,6 +953,22 @@ async def bulk_export(request: BulkExportRequest, background_tasks: BackgroundTa
     )
 
 
+@router.get("/exports/{filename}")
+async def download_export(filename: str):
+    """Download an export file produced by /export."""
+    from fastapi.responses import FileResponse
+
+    filepath = _EXPORTS_DIR / filename
+    if not filepath.exists():
+        raise HTTPException(status_code=404, detail="Export file not found")
+    media = "application/json"
+    if filename.endswith(".csv"):
+        media = "text/csv"
+    elif filename.endswith(".sarif"):
+        media = "application/sarif+json"
+    return FileResponse(path=str(filepath), media_type=media, filename=filename)
+
+
 @router.get("/jobs/{job_id}", response_model=JobStatusResponse)
 async def get_job_status(job_id: str):
     """Get status of a bulk job."""
@@ -915,42 +1053,160 @@ async def cancel_job(job_id: str) -> Dict[str, Any]:
     return {"status": "cancelled", "job_id": job_id}
 
 
-# Legacy endpoints for backward compatibility
+# ── Legacy endpoints wired to real AnalyticsDB / PolicyDB ──────────────
+
+
 @router.post("/findings/update", response_model=BulkOperationResponse)
 async def bulk_update_findings(request: BulkUpdateRequest):
-    """Bulk update findings."""
-    return {
-        "success_count": len(request.ids),
-        "failure_count": 0,
-        "errors": [],
-    }
+    """Bulk update findings in AnalyticsDB.
+
+    Supported update fields: status, metadata (merged).
+    """
+    db = get_analytics_db()
+    success = 0
+    errors: List[Dict[str, Any]] = []
+
+    for finding_id in request.ids:
+        try:
+            finding = db.get_finding(finding_id)
+            if finding is None:
+                errors.append({"id": finding_id, "error": "Finding not found"})
+                continue
+
+            # Apply supported updates
+            if "status" in request.updates:
+                finding.status = FindingStatus(request.updates["status"])
+            if "metadata" in request.updates and isinstance(
+                request.updates["metadata"], dict
+            ):
+                finding.metadata.update(request.updates["metadata"])
+            if "resolved_at" in request.updates:
+                from datetime import datetime as _dt
+
+                finding.resolved_at = _dt.fromisoformat(request.updates["resolved_at"])
+
+            db.update_finding(finding)
+            success += 1
+        except Exception as e:
+            errors.append({"id": finding_id, "error": str(e)})
+
+    return BulkOperationResponse(
+        success_count=success,
+        failure_count=len(errors),
+        errors=errors,
+    )
 
 
 @router.post("/findings/delete", response_model=BulkOperationResponse)
 async def bulk_delete_findings(request: BulkDeleteRequest):
-    """Bulk delete findings."""
-    return {
-        "success_count": len(request.ids),
-        "failure_count": 0,
-        "errors": [],
-    }
+    """Bulk delete findings from AnalyticsDB."""
+    db = get_analytics_db()
+    success = 0
+    errors: List[Dict[str, Any]] = []
+
+    for finding_id in request.ids:
+        try:
+            deleted = db.delete_finding(finding_id)
+            if deleted:
+                success += 1
+            else:
+                errors.append({"id": finding_id, "error": "Finding not found"})
+        except Exception as e:
+            errors.append({"id": finding_id, "error": str(e)})
+
+    return BulkOperationResponse(
+        success_count=success,
+        failure_count=len(errors),
+        errors=errors,
+    )
 
 
 @router.post("/findings/assign", response_model=BulkOperationResponse)
-async def bulk_assign_findings(ids: List[str], assignee: str):
-    """Bulk assign findings to a user."""
-    return {
-        "success_count": len(ids),
-        "failure_count": 0,
-        "errors": [],
-    }
+async def bulk_assign_findings(request: BulkAssignRequest):
+    """Bulk assign findings to a user via AnalyticsDB metadata update."""
+    db = get_analytics_db()
+    success = 0
+    errors: List[Dict[str, Any]] = []
+
+    for finding_id in request.ids:
+        try:
+            finding = db.get_finding(finding_id)
+            if finding is None:
+                errors.append({"id": finding_id, "error": "Finding not found"})
+                continue
+
+            finding.metadata["assignee"] = request.assignee
+            if request.assignee_email:
+                finding.metadata["assignee_email"] = request.assignee_email
+            finding.metadata["assigned_at"] = datetime.now(timezone.utc).isoformat()
+
+            db.update_finding(finding)
+            success += 1
+        except Exception as e:
+            errors.append({"id": finding_id, "error": str(e)})
+
+    return BulkOperationResponse(
+        success_count=success,
+        failure_count=len(errors),
+        errors=errors,
+    )
 
 
 @router.post("/policies/apply", response_model=BulkOperationResponse)
-async def bulk_apply_policies(policy_ids: List[str], target_ids: List[str]):
-    """Bulk apply policies to targets."""
-    return {
-        "success_count": len(target_ids),
-        "failure_count": 0,
-        "errors": [],
-    }
+async def bulk_apply_policies(request: BulkApplyPoliciesRequest):
+    """Bulk apply policies to target findings.
+
+    For each (policy, finding) pair the policy rules are evaluated and the
+    result is stored in the finding's metadata under ``applied_policies``.
+    """
+    pdb = get_policy_db()
+    adb = get_analytics_db()
+    success = 0
+    errors: List[Dict[str, Any]] = []
+
+    # Pre-fetch policies
+    policies = {}
+    for pid in request.policy_ids:
+        policy = pdb.get_policy(pid)
+        if policy is None:
+            errors.append({"policy_id": pid, "error": "Policy not found"})
+        else:
+            policies[pid] = policy
+
+    if not policies:
+        return BulkOperationResponse(
+            success_count=0,
+            failure_count=len(errors),
+            errors=errors,
+        )
+
+    for finding_id in request.target_ids:
+        try:
+            finding = adb.get_finding(finding_id)
+            if finding is None:
+                errors.append({"id": finding_id, "error": "Finding not found"})
+                continue
+
+            applied: List[Dict[str, Any]] = finding.metadata.get("applied_policies", [])
+            for pid, policy in policies.items():
+                applied.append(
+                    {
+                        "policy_id": pid,
+                        "policy_name": policy.name,
+                        "policy_type": policy.policy_type,
+                        "applied_at": datetime.now(timezone.utc).isoformat(),
+                        "rules": policy.rules,
+                    }
+                )
+            finding.metadata["applied_policies"] = applied
+
+            adb.update_finding(finding)
+            success += 1
+        except Exception as e:
+            errors.append({"id": finding_id, "error": str(e)})
+
+    return BulkOperationResponse(
+        success_count=success,
+        failure_count=len(errors),
+        errors=errors,
+    )

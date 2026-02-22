@@ -21,7 +21,7 @@ class TestIDERouterCoverage:
 
     def test_calculate_cyclomatic_complexity(self):
         """Test cyclomatic complexity calculation."""
-        from apps.api.ide_router import calculate_cyclomatic_complexity
+        from api.ide_router import calculate_cyclomatic_complexity
 
         code = """
 def example():
@@ -36,7 +36,7 @@ def example():
 
     def test_calculate_cognitive_complexity_python(self):
         """Test cognitive complexity for Python code."""
-        from apps.api.ide_router import calculate_cognitive_complexity
+        from api.ide_router import calculate_cognitive_complexity
 
         code = """
 def recursive_func():
@@ -50,7 +50,7 @@ def recursive_func():
 
     def test_calculate_cognitive_complexity_non_python(self):
         """Test cognitive complexity for non-Python code."""
-        from apps.api.ide_router import calculate_cognitive_complexity
+        from api.ide_router import calculate_cognitive_complexity
 
         code = """
 function recursive_func() {
@@ -66,7 +66,7 @@ function recursive_func() {
 
     def test_calculate_cognitive_complexity_syntax_error(self):
         """Test cognitive complexity with invalid Python syntax."""
-        from apps.api.ide_router import calculate_cognitive_complexity
+        from api.ide_router import calculate_cognitive_complexity
 
         code = "def broken( { invalid syntax"
         complexity = calculate_cognitive_complexity(code, "python")
@@ -74,21 +74,21 @@ function recursive_func() {
 
     def test_calculate_maintainability_index(self):
         """Test maintainability index calculation."""
-        from apps.api.ide_router import calculate_maintainability_index
+        from api.ide_router import calculate_maintainability_index
 
         mi = calculate_maintainability_index(100, 10, 20)
         assert 0 <= mi <= 100
 
     def test_calculate_maintainability_index_zero_loc(self):
         """Test maintainability index with zero lines of code."""
-        from apps.api.ide_router import calculate_maintainability_index
+        from api.ide_router import calculate_maintainability_index
 
         mi = calculate_maintainability_index(0, 0, 0)
         assert mi == 100.0
 
     def test_count_nesting_depth(self):
         """Test nesting depth counting."""
-        from apps.api.ide_router import count_nesting_depth
+        from api.ide_router import count_nesting_depth
 
         code = "{ { { } } }"
         depth = count_nesting_depth(code)
@@ -96,7 +96,7 @@ function recursive_func() {
 
     def test_analyze_python_ast(self):
         """Test Python AST analysis."""
-        from apps.api.ide_router import analyze_python_ast
+        from api.ide_router import analyze_python_ast
 
         code = """
 import os
@@ -118,7 +118,7 @@ async def async_func():
 
     def test_analyze_python_ast_syntax_error(self):
         """Test Python AST analysis with syntax error."""
-        from apps.api.ide_router import analyze_python_ast
+        from api.ide_router import analyze_python_ast
 
         code = "def broken( { invalid"
         func_count, class_count, import_count = analyze_python_ast(code)
@@ -126,7 +126,7 @@ async def async_func():
 
     def test_calculate_metrics_python(self):
         """Test metrics calculation for Python."""
-        from apps.api.ide_router import calculate_metrics
+        from api.ide_router import calculate_metrics
 
         code = '''
 # Comment line
@@ -145,7 +145,7 @@ class MyClass:
 
     def test_calculate_metrics_javascript(self):
         """Test metrics calculation for JavaScript."""
-        from apps.api.ide_router import calculate_metrics
+        from api.ide_router import calculate_metrics
 
         code = """
 // Single line comment
@@ -161,7 +161,7 @@ function test() {
 
     def test_find_security_issues(self):
         """Test security issue detection."""
-        from apps.api.ide_router import find_security_issues
+        from api.ide_router import find_security_issues
 
         code = """
 password = "hardcoded_secret"
@@ -173,7 +173,7 @@ exec(dangerous_code)
 
     def test_find_security_issues_with_threshold(self):
         """Test security issue detection with severity threshold."""
-        from apps.api.ide_router import find_security_issues
+        from api.ide_router import find_security_issues
 
         code = "password = 'secret'"
         findings = find_security_issues(code, "python", "high")
@@ -181,7 +181,7 @@ exec(dangerous_code)
 
     def test_find_security_issues_typescript(self):
         """Test security issue detection for TypeScript."""
-        from apps.api.ide_router import find_security_issues
+        from api.ide_router import find_security_issues
 
         code = "eval(userInput);"
         findings = find_security_issues(code, "typescript")
@@ -189,7 +189,7 @@ exec(dangerous_code)
 
     def test_generate_suggestions_high_complexity(self):
         """Test suggestion generation for high complexity code."""
-        from apps.api.ide_router import CodeMetrics, generate_suggestions
+        from api.ide_router import CodeMetrics, generate_suggestions
 
         metrics = CodeMetrics(
             lines_of_code=100,
@@ -209,7 +209,7 @@ exec(dangerous_code)
 
     def test_generate_suggestions_long_function(self):
         """Test suggestion generation for long functions."""
-        from apps.api.ide_router import CodeMetrics, generate_suggestions
+        from api.ide_router import CodeMetrics, generate_suggestions
 
         metrics = CodeMetrics(
             lines_of_code=200,

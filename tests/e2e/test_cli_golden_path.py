@@ -36,8 +36,8 @@ class TestCLIGoldenPath:
             "final_decision" in data["enhanced_decision"]
         ), "Missing 'final_decision' in enhanced_decision"
 
-    def test_cli_enterprise_mode_executes(self, cli_runner, fixture_manager):
-        """Test that CLI enterprise mode executes successfully."""
+    def test_cli_enterprise_mode_full_output(self, cli_runner, fixture_manager):
+        """Test that CLI enterprise mode produces full output."""
         output_file = fixture_manager.temp_dir / "pipeline-enterprise.json"
 
         result = cli_runner.run_demo(

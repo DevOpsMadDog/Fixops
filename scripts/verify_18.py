@@ -7,7 +7,9 @@ import urllib.request
 
 _token = os.environ.get("FIXOPS_API_TOKEN", "")
 if not _token:
-    print("ERROR: FIXOPS_API_TOKEN env var not set. Export your enterprise token first.")
+    print(
+        "ERROR: FIXOPS_API_TOKEN env var not set. Export your enterprise token first."
+    )
     sys.exit(2)
 BASE = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
 HEADERS = {"X-API-Key": _token}

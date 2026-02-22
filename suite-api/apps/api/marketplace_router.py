@@ -350,9 +350,7 @@ async def browse_marketplace(
             items = [i for i in items if i["content_type"] == content_type]
         if compliance_framework:
             items = [
-                i
-                for i in items
-                if compliance_framework in i["compliance_frameworks"]
+                i for i in items if compliance_framework in i["compliance_frameworks"]
             ]
         if ssdlc_stage:
             items = [i for i in items if ssdlc_stage in i["ssdlc_stages"]]

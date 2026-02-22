@@ -548,6 +548,7 @@ class AttackSimulationEngine:
         self,
         scenario_id: str,
         org_id: Optional[str] = None,
+        skip_llm_enrichment: bool = False,
     ) -> CampaignResult:
         """Execute a full attack simulation campaign."""
         scenario = self._scenarios.get(scenario_id)
@@ -591,7 +592,12 @@ class AttackSimulationEngine:
             # Execute each kill chain phase
             all_steps: List[AttackStep] = []
             for phase in scenario.kill_chain_phases:
-                phase_steps = await self._execute_phase(phase, scenario, campaign)
+                phase_steps = await self._execute_phase(
+                    phase,
+                    scenario,
+                    campaign,
+                    skip_llm_enrichment=skip_llm_enrichment,
+                )
                 all_steps.extend(phase_steps)
 
             # Build attack paths from successful steps
@@ -604,21 +610,24 @@ class AttackSimulationEngine:
             # Assess breach impact
             campaign.breach_impact = self._assess_breach_impact(all_steps, scenario)
 
-            # Generate executive summary
-            campaign.executive_summary = await self._generate_executive_summary(
-                campaign
-            )
-
-            # Generate recommendations
-            campaign.recommendations = self._generate_recommendations(campaign)
-
-            # Finalize
+            # Calculate stats before summary/recommendations (they reference these)
             campaign.steps_executed = len(all_steps)
             campaign.steps_succeeded = sum(
                 1 for s in all_steps if s.status == "succeeded"
             )
             campaign.steps_failed = sum(1 for s in all_steps if s.status == "failed")
             campaign.risk_score = self._calculate_risk_score(campaign)
+
+            # Generate executive summary
+            campaign.executive_summary = await self._generate_executive_summary(
+                campaign,
+                skip_llm=skip_llm_enrichment,
+            )
+
+            # Generate recommendations
+            campaign.recommendations = self._generate_recommendations(campaign)
+
+            # Finalize
             campaign.status = CampaignStatus.COMPLETED
             campaign.completed_at = datetime.now(timezone.utc).isoformat()
             campaign.total_duration_seconds = (
@@ -676,6 +685,7 @@ class AttackSimulationEngine:
         phase: KillChainPhase,
         scenario: AttackScenario,
         campaign: CampaignResult,
+        skip_llm_enrichment: bool = False,
     ) -> List[AttackStep]:
         """Execute a single kill chain phase, returning steps."""
         techniques = [
@@ -699,8 +709,19 @@ class AttackSimulationEngine:
                 impact_score=technique_info["severity"],
             )
 
-            # Use LLM for intelligent step analysis
-            step = await self._llm_enrich_step(step, scenario)
+            if skip_llm_enrichment:
+                # Deterministic enrichment — no LLM call, keeps all real sim logic
+                step.description = (
+                    f"Simulate {step.technique_name} ({step.technique_id}) "
+                    f"against {step.target_asset}"
+                )
+                step.mitigations = [
+                    f"Monitor for {step.technique_name} indicators",
+                    f"Implement detection rules for {step.technique_id}",
+                ]
+            else:
+                # Use LLM for intelligent step analysis
+                step = await self._llm_enrich_step(step, scenario)
 
             # Simulate execution
             step = self._simulate_step_execution(step, scenario)
@@ -947,9 +968,13 @@ class AttackSimulationEngine:
 
     # ---- Executive Summary ----
 
-    async def _generate_executive_summary(self, campaign: CampaignResult) -> str:
+    async def _generate_executive_summary(
+        self,
+        campaign: CampaignResult,
+        skip_llm: bool = False,
+    ) -> str:
         """Generate executive summary using LLM or fallback."""
-        llm = self._get_llm()
+        llm = self._get_llm() if not skip_llm else None
         if llm and campaign.steps_executed > 0:
             prompt = (
                 f"Generate a 3-sentence executive summary of this attack simulation:\n"

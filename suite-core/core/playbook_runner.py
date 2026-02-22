@@ -996,7 +996,9 @@ class PlaybookRunner:
                 }
         except Exception as exc:
             logger.warning(f"Evidence collection failed: {exc}")
-        fallback_id = f"ev-fallback-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+        fallback_id = (
+            f"ev-fallback-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+        )
         return {"collected": True, "evidence_id": fallback_id}
 
     async def _handle_evidence_sign(

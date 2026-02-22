@@ -7,7 +7,6 @@ import time
 from typing import Any, Dict, List, Optional
 
 import structlog
-from config.enterprise.settings import get_settings
 from core.db.enterprise.session import DatabaseManager
 from core.enterprise.security import get_current_user
 from core.services.enterprise.decision_engine import DecisionContext, decision_engine
@@ -120,8 +119,6 @@ async def get_ssdlc_stage_data(current_user: Dict = Depends(get_current_user)):
 async def get_core_components_status(current_user: Dict = Depends(get_current_user)):
     """Get Decision & Verification Core components status with real data"""
     try:
-        settings = get_settings()
-
         # Get real component status
         components = {}
 
@@ -134,9 +131,7 @@ async def get_core_components_status(current_user: Dict = Depends(get_current_us
                 else "error",
                 "type": vector_stats.get("type", "ChromaDB"),
                 "patterns_loaded": vector_stats.get("patterns_loaded", False),
-                "search_functional": vector_stats.get(
-                    "test_search_successful", False
-                ),
+                "search_functional": vector_stats.get("test_search_successful", False),
             }
         else:
             components["vector_db"] = {
@@ -149,9 +144,7 @@ async def get_core_components_status(current_user: Dict = Depends(get_current_us
             "status": "production_active"
             if decision_engine.chatgpt_client
             else "not_configured",
-            "model": "ChatGPT"
-            if decision_engine.chatgpt_client
-            else "not_available",
+            "model": "ChatGPT" if decision_engine.chatgpt_client else "not_available",
             "integration_type": "OpenAI ChatGPT",
         }
 
@@ -233,8 +226,6 @@ async def get_evidence_record(
     source = "none"
 
     try:
-        settings = get_settings()
-
         # Try Evidence Lake first
         from core.services.enterprise.evidence_lake import EvidenceLake
 

@@ -41,7 +41,9 @@ def _read_design(path: Path) -> Dict[str, Any]:
 def _fixture_path(filename: str) -> Path:
     candidate = _FIXTURE_DIR / filename
     if not candidate.exists():
-        raise FileNotFoundError(f"Sample fixture '{filename}' is missing at {candidate}")
+        raise FileNotFoundError(
+            f"Sample fixture '{filename}' is missing at {candidate}"
+        )
     return candidate
 
 

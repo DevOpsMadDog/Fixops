@@ -13,7 +13,9 @@ _base = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
 HEALTH_URL = f"{_base}/api/v1/health"
 API_KEY = os.environ.get("FIXOPS_API_TOKEN", "")
 if not API_KEY:
-    print("ERROR: FIXOPS_API_TOKEN env var not set. Export your enterprise token first.")
+    print(
+        "ERROR: FIXOPS_API_TOKEN env var not set. Export your enterprise token first."
+    )
     sys.exit(2)
 CHECK_INTERVAL = 15  # seconds
 LOOKBACK = 20  # seconds

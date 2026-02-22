@@ -11,6 +11,7 @@ This module provides production-ready report generation with:
 import csv
 import hashlib
 import io
+import json as _json
 import logging
 import os
 import uuid
@@ -19,6 +20,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from apps.api.dependencies import get_org_id
+from core.analytics_db import AnalyticsDB
 from core.report_db import ReportDB
 from core.report_models import Report, ReportFormat, ReportStatus, ReportType
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -33,6 +35,181 @@ db = ReportDB()
 # Report generation directory
 REPORTS_DIR = Path(os.environ.get("FIXOPS_REPORTS_DIR", "/tmp/fixops_reports"))
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+
+_analytics_db = AnalyticsDB()
+
+
+def _generate_report_file(report: Report) -> Path:
+    """Generate a real report file on disk.
+
+    Fetches findings from AnalyticsDB, formats them according to the requested
+    report format, and writes the file to REPORTS_DIR.
+
+    Returns:
+        Path to the generated file.
+    """
+    # Determine filters from report parameters
+    severity = report.parameters.get("severity")
+    status = report.parameters.get("status")
+    limit = report.parameters.get("limit", 500)
+
+    findings = _analytics_db.list_findings(
+        severity=severity,
+        status=status,
+        limit=limit,
+        offset=0,
+    )
+    findings_dicts = [f.to_dict() for f in findings]
+
+    # Also pull summary stats
+    summary = _analytics_db.get_dashboard_overview()
+
+    file_ext = report.format.value  # json, csv, pdf, html, sarif
+    file_path = REPORTS_DIR / f"{report.id}.{file_ext}"
+
+    if report.format == ReportFormat.JSON:
+        content = _json.dumps(
+            {
+                "report_id": report.id,
+                "report_name": report.name,
+                "report_type": report.report_type.value,
+                "generated_at": datetime.utcnow().isoformat(),
+                "summary": summary,
+                "total_findings": len(findings_dicts),
+                "findings": findings_dicts,
+            },
+            indent=2,
+            default=str,
+        )
+        file_path.write_text(content, encoding="utf-8")
+
+    elif report.format == ReportFormat.CSV:
+        buf = io.StringIO()
+        fieldnames = [
+            "id",
+            "title",
+            "severity",
+            "status",
+            "source",
+            "cve_id",
+            "cvss_score",
+            "epss_score",
+            "exploitable",
+            "application_id",
+            "service_id",
+            "created_at",
+            "updated_at",
+        ]
+        writer = csv.DictWriter(buf, fieldnames=fieldnames, extrasaction="ignore")
+        writer.writeheader()
+        for fd in findings_dicts:
+            writer.writerow(fd)
+        file_path.write_text(buf.getvalue(), encoding="utf-8")
+
+    elif report.format == ReportFormat.SARIF:
+        sarif_rules: List[Dict[str, Any]] = []
+        sarif_results: List[Dict[str, Any]] = []
+        rule_ids_seen: set = set()
+        for fd in findings_dicts:
+            rule_id = fd.get("rule_id") or f"RULE-{fd.get('id', 'unknown')}"
+            if rule_id not in rule_ids_seen:
+                rule_ids_seen.add(rule_id)
+                sarif_rules.append(
+                    {
+                        "id": rule_id,
+                        "shortDescription": {"text": fd.get("title", "Finding")},
+                        "defaultConfiguration": {
+                            "level": _severity_to_sarif_level(
+                                fd.get("severity", "medium")
+                            ),
+                        },
+                    }
+                )
+            sarif_results.append(
+                {
+                    "ruleId": rule_id,
+                    "level": _severity_to_sarif_level(fd.get("severity", "medium")),
+                    "message": {
+                        "text": fd.get("description") or fd.get("title", "Finding")
+                    },
+                }
+            )
+        sarif_doc = {
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [
+                {
+                    "tool": {
+                        "driver": {
+                            "name": "FixOps Security Scanner",
+                            "version": "2.0.0",
+                            "rules": sarif_rules,
+                        }
+                    },
+                    "results": sarif_results,
+                }
+            ],
+        }
+        file_path.write_text(
+            _json.dumps(sarif_doc, indent=2, default=str),
+            encoding="utf-8",
+        )
+
+    elif report.format == ReportFormat.HTML:
+        rows_html = ""
+        for fd in findings_dicts:
+            sev = fd.get("severity", "info")
+            color = {
+                "critical": "#dc3545",
+                "high": "#fd7e14",
+                "medium": "#ffc107",
+                "low": "#28a745",
+                "info": "#17a2b8",
+            }.get(sev, "#6c757d")
+            rows_html += (
+                f"<tr><td>{fd.get('id', '')}</td><td>{fd.get('title', '')}</td>"
+                f"<td style='color:{color};font-weight:bold'>{sev.upper()}</td>"
+                f"<td>{fd.get('status', '')}</td><td>{fd.get('cve_id', '')}</td>"
+                f"<td>{fd.get('cvss_score', '')}</td></tr>\n"
+            )
+        html = (
+            "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+            f"<title>{report.name}</title>"
+            "<style>body{font-family:sans-serif;margin:2em}table{border-collapse:collapse;width:100%}"
+            "th,td{border:1px solid #ddd;padding:8px;text-align:left}"
+            "th{background:#f4f4f4}</style></head><body>"
+            f"<h1>{report.name}</h1>"
+            f"<p>Generated: {datetime.utcnow().isoformat()}Z | "
+            f"Total findings: {len(findings_dicts)}</p>"
+            "<table><tr><th>ID</th><th>Title</th><th>Severity</th>"
+            "<th>Status</th><th>CVE</th><th>CVSS</th></tr>"
+            f"{rows_html}</table></body></html>"
+        )
+        file_path.write_text(html, encoding="utf-8")
+
+    elif report.format == ReportFormat.PDF:
+        # Generate a plain-text summary file with .pdf extension.
+        # Full PDF rendering (reportlab/weasyprint) can be added when those
+        # libraries are available; for now we produce a readable text report.
+        lines = [
+            f"FixOps Report: {report.name}",
+            f"Type: {report.report_type.value}",
+            f"Generated: {datetime.utcnow().isoformat()}Z",
+            f"Total findings: {len(findings_dicts)}",
+            "=" * 60,
+            "",
+        ]
+        for fd in findings_dicts:
+            lines.append(
+                f"[{fd.get('severity', '?').upper()}] {fd.get('title', '')} "
+                f"(CVE: {fd.get('cve_id', 'N/A')}, CVSS: {fd.get('cvss_score', 'N/A')})"
+            )
+        file_path.write_text("\n".join(lines), encoding="utf-8")
+
+    else:
+        raise ValueError(f"Unsupported report format: {report.format.value}")
+
+    return file_path
 
 
 class ReportCreate(BaseModel):
@@ -110,7 +287,7 @@ async def list_reports(
 
 @router.post("", response_model=ReportResponse, status_code=201)
 async def create_report(report_data: ReportCreate):
-    """Create and generate a new report."""
+    """Create and generate a new report with real file output."""
     report = Report(
         id="",
         name=report_data.name,
@@ -121,14 +298,18 @@ async def create_report(report_data: ReportCreate):
     )
     created_report = db.create_report(report)
 
-    created_report.status = ReportStatus.COMPLETED
-    created_report.completed_at = datetime.utcnow()
-    created_report.file_path = (
-        f"/tmp/reports/{created_report.id}.{created_report.format.value}"
-    )
-    created_report.file_size = 1024
-    db.update_report(created_report)
+    try:
+        file_path = _generate_report_file(created_report)
+        created_report.status = ReportStatus.COMPLETED
+        created_report.completed_at = datetime.utcnow()
+        created_report.file_path = str(file_path)
+        created_report.file_size = file_path.stat().st_size
+    except Exception as exc:
+        logger.error("Report generation failed for %s: %s", created_report.id, exc)
+        created_report.status = ReportStatus.FAILED
+        created_report.error_message = str(exc)
 
+    db.update_report(created_report)
     return ReportResponse(**created_report.to_dict())
 
 
