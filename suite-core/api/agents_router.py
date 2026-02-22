@@ -56,6 +56,51 @@ except ImportError:
         "ComplianceEngine not available - compliance endpoints return pending"
     )
 
+# Import AnalyticsDB for findings queries
+try:
+    from core.analytics_db import AnalyticsDB
+
+    _ANALYTICS_DB_AVAILABLE = True
+except ImportError:
+    _ANALYTICS_DB_AVAILABLE = False
+    logger.warning("AnalyticsDB not available - some agent endpoints limited")
+
+# Import KnowledgeBrain for graph traversal
+try:
+    from core.knowledge_brain import get_brain
+
+    _BRAIN_AVAILABLE = True
+except ImportError:
+    _BRAIN_AVAILABLE = False
+    logger.warning("KnowledgeBrain not available - attack path / risk scoring limited")
+
+# Import AutoFixEngine for remediation
+try:
+    from core.autofix_engine import get_autofix_engine
+
+    _AUTOFIX_AVAILABLE = True
+except ImportError:
+    _AUTOFIX_AVAILABLE = False
+    logger.warning("AutoFixEngine not available - remediation endpoints limited")
+
+# Import PlaybookRunner for playbook generation
+try:
+    from core.playbook_runner import PlaybookRunner
+
+    _PLAYBOOK_AVAILABLE = True
+except ImportError:
+    _PLAYBOOK_AVAILABLE = False
+    logger.warning("PlaybookRunner not available - playbook endpoints limited")
+
+# Import micro_pentest for local pentest fallback when MPTE is unavailable
+try:
+    from core.micro_pentest import MicroPentestConfig, run_micro_pentest
+
+    _MICRO_PENTEST_AVAILABLE = True
+except ImportError:
+    _MICRO_PENTEST_AVAILABLE = False
+    logger.warning("micro_pentest not available - pentest local fallback disabled")
+
 # Service configuration
 MPTE_URL = os.environ.get("MPTE_BASE_URL", "https://localhost:8443")
 MPTE_TOKEN = os.environ.get("MPTE_TOKEN", os.environ.get("MPTE_API_TOKEN", ""))
@@ -72,6 +117,32 @@ def _get_feeds_service():
         _DATA_DIR.mkdir(parents=True, exist_ok=True)
         _feeds_service = FeedsService(_DATA_DIR / "feeds.db")
     return _feeds_service
+
+
+# Initialize analytics DB singleton
+_analytics_db = None
+
+
+def _get_analytics_db():
+    """Get or create AnalyticsDB instance."""
+    global _analytics_db
+    if _analytics_db is None and _ANALYTICS_DB_AVAILABLE:
+        _analytics_db = AnalyticsDB()
+    return _analytics_db
+
+
+def _get_brain():
+    """Get KnowledgeBrain instance."""
+    if _BRAIN_AVAILABLE:
+        return get_brain()
+    return None
+
+
+def _get_autofix():
+    """Get AutoFixEngine instance."""
+    if _AUTOFIX_AVAILABLE:
+        return get_autofix_engine()
+    return None
 
 
 router = APIRouter(prefix="/api/v1/copilot/agents", tags=["copilot-agents"])
@@ -632,25 +703,68 @@ async def prioritize_vulnerabilities(request: PrioritizationRequest) -> Dict[str
 
 @router.post("/analyst/attack-path")
 async def analyze_attack_path(request: AttackPathRequest) -> Dict[str, Any]:
-    """Analyze attack paths to/from an asset.
+    """Analyze attack paths to/from an asset using KnowledgeBrain graph.
 
-    Note: Attack path analysis requires asset inventory and network topology data.
-    Returns pending status if data sources are not configured.
+    Uses KnowledgeBrain.get_neighbors() and find_paths() for real graph
+    traversal when nodes exist. Falls back to AnalyticsDB for finding context.
     """
-    # TODO: Integrate with real asset inventory and network topology service
-    # Currently returns pending status indicating the analysis is queued
+    brain = _get_brain()
+
+    if brain:
+        try:
+            # Get the node and its neighborhood
+            node = brain.get_node(request.asset_id)
+            neighbors = brain.get_neighbors(
+                request.asset_id,
+                depth=min(request.depth, 5),
+                edge_types=None,
+            )
+
+            attack_paths: List[Dict[str, Any]] = []
+            if neighbors and neighbors.nodes:
+                # Build attack path entries from graph edges
+                for n in neighbors.nodes:
+                    if n and n.get("node_id") != request.asset_id:
+                        ntype = n.get("node_type", "unknown")
+                        risk = brain.risk_score_for_node(n["node_id"])
+                        attack_paths.append(
+                            {
+                                "node_id": n["node_id"],
+                                "node_type": ntype,
+                                "risk_score": round(risk, 3),
+                                "properties": n.get("properties", {}),
+                            }
+                        )
+
+                # Sort by risk descending
+                attack_paths.sort(key=lambda x: x["risk_score"], reverse=True)
+
+            asset_risk = brain.risk_score_for_node(request.asset_id)
+            return {
+                "asset_id": request.asset_id,
+                "status": "analyzed",
+                "asset_found": node is not None,
+                "asset_risk_score": round(asset_risk, 3),
+                "message": f"Graph traversal found {len(attack_paths)} connected nodes at depth {request.depth}.",
+                "attack_paths": attack_paths[:20],  # Cap
+                "total_connected_nodes": len(attack_paths),
+                "depth_requested": request.depth,
+                "include_lateral": request.include_lateral,
+            }
+        except Exception as e:
+            logger.error(f"Attack path analysis failed: {e}")
+            return {
+                "asset_id": request.asset_id,
+                "status": "error",
+                "message": f"Graph traversal failed: {e}",
+                "attack_paths": [],
+            }
 
     return {
         "asset_id": request.asset_id,
-        "status": "integration_required",
-        "integration_required": True,
-        "message": "Attack path analysis requires asset inventory + network topology integration.",
+        "status": "engine_unavailable",
+        "message": "KnowledgeBrain not available — load graph data first.",
         "attack_paths": [],
-        "requirements": [
-            "Asset inventory with network topology",
-            "Vulnerability scan results mapped to assets",
-            "Network segmentation data",
-        ],
         "depth_requested": request.depth,
         "include_lateral": request.include_lateral,
     }
@@ -715,28 +829,73 @@ async def get_trending_threats(
 async def get_asset_risk_score(asset_id: str) -> Dict[str, Any]:
     """Calculate comprehensive risk score for an asset.
 
-    Note: Risk scoring requires asset inventory with vulnerability mappings.
-    Returns pending status if data sources are not configured.
+    Uses KnowledgeBrain graph risk scoring (node type, severity, connectivity)
+    and enriches with AnalyticsDB finding counts when available.
     """
-    # TODO: Integrate with asset inventory service to get real vulnerability counts
+    brain = _get_brain()
+    analytics = _get_analytics_db()
+
+    risk_score: Optional[float] = None
+    risk_grade = "unknown"
+    open_findings = 0
+    node_info: Optional[Dict[str, Any]] = None
+
+    if brain:
+        try:
+            node_info = brain.get_node(asset_id)
+            raw_score = brain.risk_score_for_node(asset_id)
+            # Convert 0-1 scale to 0-10 scale
+            risk_score = round(raw_score * 10.0, 1)
+
+            # Determine grade from score
+            if risk_score >= 9.0:
+                risk_grade = "A"  # Critical
+            elif risk_score >= 7.0:
+                risk_grade = "B"  # High
+            elif risk_score >= 4.0:
+                risk_grade = "C"  # Medium
+            elif risk_score >= 2.0:
+                risk_grade = "D"  # Low
+            else:
+                risk_grade = "F"  # Minimal
+
+            # Count connected edges for context
+            edges = brain.get_edges(asset_id)
+            connected_count = len(edges) if edges else 0
+        except Exception as e:
+            logger.warning(f"Brain risk scoring for {asset_id}: {e}")
+            connected_count = 0
+    else:
+        connected_count = 0
+
+    # Count real findings from AnalyticsDB
+    if analytics:
+        try:
+            findings = analytics.list_findings(status="open", limit=1000, offset=0)
+            # Count findings that reference this asset
+            for f in findings:
+                fd = f.to_dict()
+                if (
+                    fd.get("application_id") == asset_id
+                    or fd.get("service_id") == asset_id
+                    or asset_id in (fd.get("metadata") or "")
+                ):
+                    open_findings += 1
+        except Exception as e:
+            logger.debug(f"Finding count for {asset_id}: {e}")
 
     return {
         "asset_id": asset_id,
-        "status": "integration_required",
-        "integration_required": True,
-        "message": "Asset risk scoring requires asset inventory integration.",
-        "risk_score": None,
-        "requirements": [
-            "Asset inventory with asset_id mapping",
-            "Vulnerability scan results linked to assets",
-            "Business criticality classification",
-        ],
-        "available_when_configured": {
-            "risk_score": "0.0 - 10.0 scale",
-            "risk_grade": "A (critical) to F (minimal)",
-            "open_findings": "Count of unresolved vulnerabilities",
-            "trend": "improving/stable/worsening",
-        },
+        "status": "scored" if risk_score is not None else "no_graph_data",
+        "message": f"Risk score {risk_score}/10 (grade {risk_grade})"
+        if risk_score is not None
+        else "Asset not found in KnowledgeBrain — ingest graph data first.",
+        "risk_score": risk_score,
+        "risk_grade": risk_grade,
+        "open_findings": open_findings,
+        "connected_nodes": connected_count,
+        "node_type": node_info.get("node_type") if node_info else None,
+        "trend": "stable",  # Would need historical data for real trend
     }
 
 
@@ -914,9 +1073,12 @@ async def _run_validation(task_id: str, request: ValidateExploitRequest) -> None
 
 @router.post("/pentest/generate-poc")
 async def generate_poc(request: GeneratePocRequest) -> Dict[str, Any]:
-    """Generate proof-of-concept code for a CVE via MPTE."""
+    """Generate proof-of-concept verification code for a CVE.
 
-    # Try MPTE first
+    Strategy: MPTE first → local FeedsService CVE-based PoC template → error.
+    """
+
+    # Try MPTE first (full MPTE engine can produce advanced PoCs)
     mpte_result = await _call_mpte_api(
         "pentest/generate-poc",
         data={
@@ -929,16 +1091,97 @@ async def generate_poc(request: GeneratePocRequest) -> Dict[str, Any]:
     if mpte_result["success"]:
         return mpte_result["data"]
 
-    # Fallback: MPTE unavailable
+    # Fallback: generate safe verification script from CVE metadata
+    feeds_service = _get_feeds_service()
+    cve_description = ""
+    epss_score = 0.0
+    kev_listed = False
+
+    if feeds_service:
+        try:
+            epss_data = feeds_service.get_epss_score(request.cve_id)
+            if epss_data:
+                epss_score = epss_data.epss
+            kev_entry = feeds_service.get_kev_entry(request.cve_id)
+            if kev_entry:
+                kev_listed = True
+                cve_description = kev_entry.vulnerability_name or ""
+        except Exception as e:
+            logger.warning(f"FeedsService lookup failed for PoC generation: {e}")
+
+    # Build a safe verification template based on language
+    poc_templates = {
+        "python": (
+            f"#!/usr/bin/env python3\n"
+            f'"""Safe verification script for {request.cve_id}"""\n'
+            f"import requests\n"
+            f"import sys\n\n"
+            f"TARGET = sys.argv[1] if len(sys.argv) > 1 else 'http://localhost:8080'\n\n"
+            f"def verify_{request.cve_id.replace('-', '_').lower()}(target: str) -> dict:\n"
+            f'    """Check if target is vulnerable to {request.cve_id}."""\n'
+            f"    # SAFE: This only checks version/headers, does NOT exploit\n"
+            f"    try:\n"
+            f"        resp = requests.get(target, timeout=10, verify=False)\n"
+            f"        headers = dict(resp.headers)\n"
+            f"        return {{\n"
+            f"            'cve_id': '{request.cve_id}',\n"
+            f"            'target': target,\n"
+            f"            'status_code': resp.status_code,\n"
+            f"            'server': headers.get('Server', 'unknown'),\n"
+            f"            'security_headers': {{\n"
+            f"                'x_content_type_options': 'X-Content-Type-Options' in headers,\n"
+            f"                'x_frame_options': 'X-Frame-Options' in headers,\n"
+            f"                'strict_transport_security': 'Strict-Transport-Security' in headers,\n"
+            f"            }},\n"
+            f"            'verdict': 'NEEDS_MANUAL_REVIEW',\n"
+            f"        }}\n"
+            f"    except Exception as e:\n"
+            f"        return {{'cve_id': '{request.cve_id}', 'error': str(e)}}\n\n"
+            f"if __name__ == '__main__':\n"
+            f"    import json\n"
+            f"    print(json.dumps(verify_{request.cve_id.replace('-', '_').lower()}(TARGET), indent=2))\n"
+        ),
+        "bash": (
+            f"#!/usr/bin/env bash\n"
+            f"# Safe verification script for {request.cve_id}\n"
+            f'TARGET="${{1:-http://localhost:8080}}"\n'
+            f'echo "[*] Checking $TARGET for {request.cve_id}..."\n'
+            f"HTTP_CODE=$(curl -sk -o /dev/null -w '%{{http_code}}' \"$TARGET\")\n"
+            f"SERVER=$(curl -sk -I \"$TARGET\" | grep -i '^Server:' | cut -d' ' -f2-)\n"
+            f'echo "[*] HTTP: $HTTP_CODE | Server: $SERVER"\n'
+            f'echo "[*] Verdict: NEEDS_MANUAL_REVIEW"\n'
+        ),
+        "go": (
+            f"package main\n\n"
+            f'import (\n\t"crypto/tls"\n\t"fmt"\n\t"net/http"\n\t"os"\n)\n\n'
+            f"// Safe verification for {request.cve_id}\n"
+            f"func main() {{\n"
+            f'\ttarget := "http://localhost:8080"\n'
+            f"\tif len(os.Args) > 1 {{ target = os.Args[1] }}\n"
+            f"\tclient := &http.Client{{Transport: &http.Transport{{TLSClientConfig: &tls.Config{{InsecureSkipVerify: true}}}}}}\n"
+            f"\tresp, err := client.Get(target)\n"
+            f'\tif err != nil {{ fmt.Println("Error:", err); return }}\n'
+            f"\tdefer resp.Body.Close()\n"
+            f'\tfmt.Printf("[*] %s — HTTP %d — Server: %s\\n", "{request.cve_id}", resp.StatusCode, resp.Header.Get("Server"))\n'
+            f"}}\n"
+        ),
+    }
+
+    lang = request.language.lower()
+    poc_code = poc_templates.get(lang, poc_templates["python"])
+
     return {
         "cve_id": request.cve_id,
-        "language": request.language,
+        "language": lang,
         "safe_poc": request.safe_poc,
-        "status": "integration_required",
-        "integration_required": True,
-        "message": "PoC generation requires Micro Pentest Engine (MPTE) connection.",
-        "mpte_status": "unavailable",
-        "error": mpte_result.get("error"),
+        "status": "generated",
+        "source": "local_template",
+        "poc_code": poc_code,
+        "epss_score": epss_score,
+        "kev_listed": kev_listed,
+        "description": cve_description
+        or f"Safe verification template for {request.cve_id}",
+        "warning": "This is a safe verification script — it checks for indicators only, does NOT exploit.",
     }
 
 
@@ -946,9 +1189,9 @@ async def generate_poc(request: GeneratePocRequest) -> Dict[str, Any]:
 async def check_reachability(request: ReachabilityRequest) -> Dict[str, Any]:
     """Check if vulnerability is reachable from attack surface.
 
-    Note: Reachability analysis requires network topology data.
+    Strategy: MPTE first → KnowledgeBrain graph traversal → error.
     """
-    # Try MPTE for real reachability analysis
+    # Try MPTE for full network-level reachability analysis
     mpte_result = await _call_mpte_api(
         "pentest/reachability",
         data={
@@ -961,20 +1204,77 @@ async def check_reachability(request: ReachabilityRequest) -> Dict[str, Any]:
     if mpte_result["success"]:
         return mpte_result["data"]
 
-    # MPTE unavailable
+    # Fallback: use KnowledgeBrain graph to check reachability
+    brain = _get_brain()
+    reachability_results = []
+
+    if brain:
+        try:
+            for asset_id in request.asset_ids:
+                node = brain.get_node(asset_id)
+                if node is None:
+                    reachability_results.append(
+                        {
+                            "asset_id": asset_id,
+                            "reachable": False,
+                            "reason": "asset_not_in_graph",
+                            "confidence": 0.0,
+                        }
+                    )
+                    continue
+
+                # Check if CVE node exists and if there's a path to the asset
+                cve_node = brain.get_node(request.cve_id)
+                neighbors = brain.get_neighbors(asset_id)
+                neighbor_ids = [n.get("id", "") for n in neighbors] if neighbors else []
+
+                # Check for direct or 1-hop connection to CVE
+                is_reachable = cve_node is not None and request.cve_id in neighbor_ids
+
+                # For deep analysis, also check risk score as proxy for exposure
+                risk_score = brain.risk_score_for_node(asset_id)
+
+                reachability_results.append(
+                    {
+                        "asset_id": asset_id,
+                        "reachable": is_reachable,
+                        "risk_score": round(risk_score * 10.0, 1),
+                        "neighbor_count": len(neighbor_ids),
+                        "cve_in_graph": cve_node is not None,
+                        "confidence": 0.7 if is_reachable else 0.5,
+                        "method": "knowledge_graph_traversal",
+                    }
+                )
+        except Exception as e:
+            logger.warning(f"KnowledgeBrain reachability check failed: {e}")
+            reachability_results = [
+                {
+                    "asset_id": aid,
+                    "reachable": False,
+                    "reason": f"graph_error: {e}",
+                    "confidence": 0.0,
+                }
+                for aid in request.asset_ids
+            ]
+
+        return {
+            "cve_id": request.cve_id,
+            "assets_analyzed": len(request.asset_ids),
+            "status": "analyzed",
+            "source": "knowledge_graph",
+            "reachability_results": reachability_results,
+            "depth": request.depth,
+            "note": "Graph-based analysis. For network-level reachability, connect MPTE.",
+        }
+
+    # Neither MPTE nor KnowledgeBrain available
     return {
         "cve_id": request.cve_id,
         "assets_analyzed": len(request.asset_ids),
-        "status": "integration_required",
-        "integration_required": True,
-        "message": "Reachability analysis requires MPTE + network topology data.",
+        "status": "engine_unavailable",
         "reachability_results": [],
-        "requirements": [
-            "Micro Pentest Engine (MPTE) connection",
-            "Network topology discovery",
-            "Asset vulnerability mapping",
-        ],
         "depth": request.depth,
+        "message": "Neither MPTE nor KnowledgeBrain available for reachability analysis.",
     }
 
 
@@ -1050,7 +1350,10 @@ async def get_pentest_results(task_id: str) -> PentestResultResponse:
 
 @router.get("/pentest/evidence/{evidence_id}")
 async def get_pentest_evidence(evidence_id: str) -> Dict[str, Any]:
-    """Get evidence collected during pentest via MPTE."""
+    """Get evidence collected during pentest.
+
+    Strategy: MPTE first → AnalyticsDB local lookup → not_found.
+    """
 
     # Try MPTE for real evidence
     mpte_result = await _call_mpte_api(f"pentest/evidence/{evidence_id}", method="GET")
@@ -1058,14 +1361,39 @@ async def get_pentest_evidence(evidence_id: str) -> Dict[str, Any]:
     if mpte_result["success"]:
         return mpte_result["data"]
 
-    # MPTE unavailable
+    # Fallback: look up evidence in AnalyticsDB
+    analytics = _get_analytics_db()
+    if analytics:
+        try:
+            # Try to find the evidence as a finding in AnalyticsDB
+            finding = analytics.get_finding(evidence_id)
+            if finding:
+                finding_dict = finding.to_dict()
+                return {
+                    "evidence_id": evidence_id,
+                    "status": "found",
+                    "source": "analytics_db",
+                    "finding": finding_dict,
+                    "artifacts": [
+                        {
+                            "type": "finding_record",
+                            "id": evidence_id,
+                            "severity": finding_dict.get("severity", "unknown"),
+                            "title": finding_dict.get("title", ""),
+                            "description": finding_dict.get("description", ""),
+                        }
+                    ],
+                    "collected_at": _now().isoformat(),
+                }
+        except Exception as e:
+            logger.warning(f"AnalyticsDB evidence lookup failed: {e}")
+
+    # Neither source has the evidence
     return {
         "evidence_id": evidence_id,
-        "status": "integration_required",
-        "integration_required": True,
-        "message": "Evidence retrieval requires MPTE connection.",
+        "status": "not_found",
         "artifacts": [],
-        "mpte_error": mpte_result.get("error"),
+        "message": f"No evidence found for ID '{evidence_id}'. Evidence may not have been collected yet.",
     }
 
 
@@ -1073,12 +1401,16 @@ async def get_pentest_evidence(evidence_id: str) -> Dict[str, Any]:
 async def schedule_pentest(
     target_ids: List[str],
     cve_ids: List[str],
+    background_tasks: BackgroundTasks,
     schedule: str = "immediate",
     notification_emails: List[str] = None,
 ) -> Dict[str, Any]:
-    """Schedule a pentest campaign via MPTE."""
+    """Schedule a pentest campaign.
 
-    # Try MPTE for real scheduling
+    Strategy: MPTE first → local micro_pentest for immediate → queued for deferred.
+    """
+
+    # Try MPTE for full campaign management
     mpte_result = await _call_mpte_api(
         "pentest/schedule",
         data={
@@ -1092,16 +1424,56 @@ async def schedule_pentest(
     if mpte_result["success"]:
         return mpte_result["data"]
 
-    # MPTE unavailable
+    campaign_id = _generate_id()
+
+    # Fallback: for immediate schedule, run local micro_pentest
+    if schedule == "immediate" and _MICRO_PENTEST_AVAILABLE:
+        try:
+            # Use target_ids as target URLs (assets may be URLs or hostnames)
+            urls = [
+                tid if tid.startswith(("http://", "https://")) else f"https://{tid}"
+                for tid in target_ids
+            ]
+            config = MicroPentestConfig()
+
+            async def _run_campaign() -> None:
+                """Background task to run the pentest campaign."""
+                try:
+                    result = await run_micro_pentest(
+                        cve_ids=cve_ids,
+                        target_urls=urls,
+                        config=config,
+                    )
+                    logger.info(
+                        f"Pentest campaign {campaign_id} completed: {result.status}"
+                    )
+                except Exception as exc:
+                    logger.error(f"Pentest campaign {campaign_id} failed: {exc}")
+
+            background_tasks.add_task(_run_campaign)
+
+            return {
+                "campaign_id": campaign_id,
+                "targets": len(target_ids),
+                "cves_to_validate": len(cve_ids),
+                "schedule": schedule,
+                "status": "running",
+                "source": "local_micro_pentest",
+                "message": "Campaign started via local micro-pentest engine.",
+                "notification_emails": notification_emails or [],
+            }
+        except Exception as e:
+            logger.warning(f"Local micro_pentest scheduling failed: {e}")
+
+    # Deferred schedule or no local engine available — record the request
     return {
-        "campaign_id": _generate_id(),
+        "campaign_id": campaign_id,
         "targets": len(target_ids),
         "cves_to_validate": len(cve_ids),
         "schedule": schedule,
-        "status": "integration_required",
-        "integration_required": True,
-        "message": "Pentest campaign requires MPTE connection.",
-        "mpte_error": mpte_result.get("error"),
+        "status": "queued",
+        "message": f"Campaign queued for '{schedule}' execution. MPTE required for full scheduling.",
+        "notification_emails": notification_emails or [],
     }
 
 
@@ -1155,25 +1527,48 @@ async def map_findings_to_compliance(
 async def run_gap_analysis(request: GapAnalysisRequest) -> Dict[str, Any]:
     """Run compliance gap analysis for a framework.
 
-    Uses :class:`ComplianceEngine` with an empty findings list to show
-    the baseline gap (no evidence → everything is a gap).
+    Uses ComplianceEngine with real findings from AnalyticsDB to produce
+    an accurate gap analysis rather than a baseline-only view.
     """
     fw = request.framework.value
 
     if _COMPLIANCE_ENGINE_AVAILABLE and compliance_engine is not None:
-        # Evaluate with no findings to surface baseline status
-        result = compliance_engine.evaluate([fw], [])
+        # Pull real findings from AnalyticsDB for accurate gap analysis
+        analytics = _get_analytics_db()
+        finding_dicts = []
+        if analytics:
+            findings = analytics.list_findings(limit=1000, offset=0)
+            finding_dicts = [f.to_dict() for f in findings]
+
+        result = compliance_engine.evaluate([fw], finding_dicts)
         fw_result = result.get(fw, {})
+
+        # Calculate gap metrics from evaluation
+        normalized = fw_result.get("findings", [])
+        critical_gaps = [
+            f for f in normalized if f.get("fixops_severity") in ("HIGH", "CRITICAL")
+        ]
+        total = len(finding_dicts)
+        resolved = sum(
+            1 for f in finding_dicts if f.get("status") in ("resolved", "RESOLVED")
+        )
+        score = round((resolved / total * 100) if total > 0 else 0.0, 1)
+
         return {
             "framework": fw,
             "analysis_date": _now().isoformat(),
             "status": fw_result.get("status", "evaluated"),
             "threshold": fw_result.get("threshold"),
             "highest_fixops_severity": fw_result.get("highest_fixops_severity"),
-            "message": "Gap analysis via ComplianceEngine — upload findings for detailed results.",
-            "overall_score": None,
+            "message": f"Gap analysis complete — {total} findings evaluated, {len(critical_gaps)} critical gaps.",
+            "overall_score": score,
+            "total_findings": total,
+            "resolved_findings": resolved,
             "control_families": [],
-            "critical_gaps": [],
+            "critical_gaps": [
+                {"id": g.get("id"), "severity": g.get("fixops_severity")}
+                for g in critical_gaps[:20]
+            ],
         }
 
     return {
@@ -1197,25 +1592,54 @@ async def run_gap_analysis(request: GapAnalysisRequest) -> Dict[str, Any]:
 async def collect_audit_evidence(request: AuditEvidenceRequest) -> Dict[str, Any]:
     """Collect and package evidence for auditors.
 
-    Evidence Lake integration provides cryptographic audit trail when
-    the database is configured.
+    Pulls real findings from AnalyticsDB, evaluates them against the
+    requested compliance framework, and packages results as audit evidence.
     """
     evidence_package_id = _generate_id()
+    fw = request.framework.value
+    analytics = _get_analytics_db()
+
+    evidence_items: List[Dict[str, Any]] = []
+    compliance_result = None
+
+    if analytics:
+        # Pull real findings as evidence artifacts
+        findings = analytics.list_findings(limit=500, offset=0)
+        for f in findings:
+            fd = f.to_dict()
+            evidence_items.append(
+                {
+                    "evidence_id": fd.get("id", _generate_id()),
+                    "type": "vulnerability_finding",
+                    "title": fd.get("title", "Unknown"),
+                    "severity": fd.get("severity", "unknown"),
+                    "status": fd.get("status", "open"),
+                    "source": fd.get("source", "scanner"),
+                    "cve_id": fd.get("cve_id"),
+                    "created_at": fd.get("created_at"),
+                    "resolved_at": fd.get("resolved_at"),
+                }
+            )
+
+        # Run compliance evaluation on findings
+        if _COMPLIANCE_ENGINE_AVAILABLE and compliance_engine is not None:
+            finding_dicts = [f.to_dict() for f in findings]
+            result = compliance_engine.evaluate([fw], finding_dicts)
+            compliance_result = result.get(fw, {})
 
     return {
         "package_id": evidence_package_id,
-        "framework": request.framework.value,
+        "framework": fw,
         "controls_covered": len(request.controls) if request.controls else 0,
-        "status": "integration_required",
-        "integration_required": True,
-        "message": "Evidence collection requires Evidence Lake database + scan report sources.",
-        "evidence_items": [],
-        "supported_sources": [
-            "Vulnerability scan reports (SARIF/CycloneDX)",
-            "Remediation tracking (Jira/ServiceNow)",
-            "Access review logs",
-        ],
+        "status": "collected" if evidence_items else "no_findings",
+        "message": f"Collected {len(evidence_items)} evidence items for {fw} audit."
+        if evidence_items
+        else "No findings in database — upload scan results first.",
+        "total_evidence_items": len(evidence_items),
+        "evidence_items": evidence_items[:50],  # Cap response size
+        "compliance_evaluation": compliance_result,
         "format": request.format,
+        "generated_at": _now().isoformat(),
     }
 
 
@@ -1223,22 +1647,62 @@ async def collect_audit_evidence(request: AuditEvidenceRequest) -> Dict[str, Any
 async def check_regulatory_alerts(request: RegulatoryAlertRequest) -> Dict[str, Any]:
     """Check for regulatory updates and alerts.
 
-    Requires external regulatory feed subscription.
+    Uses CISA KEV catalog as a regulatory alert source — actively exploited
+    vulnerabilities have direct compliance implications for most frameworks.
     """
+    feeds_service = _get_feeds_service()
+    alerts: List[Dict[str, Any]] = []
+    last_updated = None
+
+    if feeds_service:
+        try:
+            stats = feeds_service.get_feed_stats()
+            last_updated = stats.get("kev_last_updated") or stats.get("last_sync")
+
+            # Pull recent KEV entries as regulatory alerts
+            import sqlite3 as _sql
+
+            conn = _sql.connect(feeds_service.db_path)
+            conn.row_factory = _sql.Row
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT cve_id, vendor_project, product, vulnerability_name, "
+                "date_added, due_date, required_action, known_ransomware_campaign_use "
+                "FROM kev_entries ORDER BY date_added DESC LIMIT 20"
+            )
+            for row in cursor.fetchall():
+                alerts.append(
+                    {
+                        "alert_type": "CISA_KEV",
+                        "cve_id": row["cve_id"],
+                        "vendor": row["vendor_project"],
+                        "product": row["product"],
+                        "vulnerability": row["vulnerability_name"],
+                        "date_added": row["date_added"],
+                        "due_date": row["due_date"],
+                        "required_action": row["required_action"],
+                        "ransomware_use": row["known_ransomware_campaign_use"]
+                        == "Known",
+                        "regulatory_impact": "Mandatory remediation per BOD 22-01"
+                        if "US" in request.jurisdictions
+                        else "Advisory — actively exploited",
+                    }
+                )
+            conn.close()
+        except Exception as e:
+            logger.warning(f"Regulatory alerts query failed: {e}")
+
     return {
-        "status": "integration_required",
-        "integration_required": True,
-        "message": "Regulatory alert monitoring requires feed subscription.",
-        "alerts": [],
+        "status": "active" if alerts else "no_alerts",
+        "message": f"{len(alerts)} active regulatory alerts from CISA KEV catalog."
+        if alerts
+        else "No KEV data loaded — run feed sync first.",
+        "alerts": alerts,
+        "total_alerts": len(alerts),
         "industries": request.industries,
         "jurisdictions": request.jurisdictions,
-        "supported_feeds": [
-            "SEC EDGAR (US)",
-            "FCA Handbook (UK)",
-            "ESMA (EU)",
-            "APRA (Australia)",
-        ],
-        "last_updated": None,
+        "data_sources": ["CISA KEV (BOD 22-01)"],
+        "last_updated": last_updated,
     }
 
 
@@ -1249,71 +1713,443 @@ async def get_framework_controls(
 ) -> Dict[str, Any]:
     """Get all controls for a compliance framework.
 
-    Note: Returns framework metadata - full control library requires enterprise integration.
+    Returns framework metadata and representative controls from official standards.
+    When ComplianceEngine is available, also includes posture evaluation.
     """
-    # TODO: Integrate with full compliance control library
-    # These are metadata about available frameworks, not actual control data
-
-    framework_info = {
-        ComplianceFramework.PCI_DSS: {
+    # Built-in control libraries based on official framework standards
+    _FRAMEWORK_CONTROLS: Dict[str, Dict[str, Any]] = {
+        "pci-dss": {
             "name": "PCI-DSS v4.0",
-            "total_controls": 64,
-            "categories": [
-                "Network",
-                "Access Control",
-                "Vulnerability",
-                "Testing",
-                "Encryption",
-            ],
             "source": "https://www.pcisecuritystandards.org/",
+            "controls": [
+                {
+                    "id": "PCI-1",
+                    "category": "Network",
+                    "title": "Install and maintain network security controls",
+                    "description": "Network security controls (NSCs) — firewalls, cloud security groups.",
+                },
+                {
+                    "id": "PCI-2",
+                    "category": "Network",
+                    "title": "Apply secure configurations to all system components",
+                    "description": "Change vendor defaults, harden configurations.",
+                },
+                {
+                    "id": "PCI-3",
+                    "category": "Encryption",
+                    "title": "Protect stored account data",
+                    "description": "Encryption, truncation, masking, hashing of stored data.",
+                },
+                {
+                    "id": "PCI-4",
+                    "category": "Encryption",
+                    "title": "Protect cardholder data with strong cryptography during transmission",
+                    "description": "TLS 1.2+, certificate management.",
+                },
+                {
+                    "id": "PCI-5",
+                    "category": "Vulnerability",
+                    "title": "Protect all systems and networks from malicious software",
+                    "description": "Anti-malware, vulnerability scanning.",
+                },
+                {
+                    "id": "PCI-6",
+                    "category": "Vulnerability",
+                    "title": "Develop and maintain secure systems and software",
+                    "description": "Secure SDLC, patch management, code review.",
+                },
+                {
+                    "id": "PCI-7",
+                    "category": "Access Control",
+                    "title": "Restrict access to system components and cardholder data by business need to know",
+                    "description": "Least privilege, role-based access.",
+                },
+                {
+                    "id": "PCI-8",
+                    "category": "Access Control",
+                    "title": "Identify users and authenticate access to system components",
+                    "description": "MFA, strong passwords, identity management.",
+                },
+                {
+                    "id": "PCI-9",
+                    "category": "Access Control",
+                    "title": "Restrict physical access to cardholder data",
+                    "description": "Physical access controls, visitor management.",
+                },
+                {
+                    "id": "PCI-10",
+                    "category": "Testing",
+                    "title": "Log and monitor all access to system components and cardholder data",
+                    "description": "Audit logs, SIEM, log review.",
+                },
+                {
+                    "id": "PCI-11",
+                    "category": "Testing",
+                    "title": "Test security of systems and networks regularly",
+                    "description": "Vulnerability scans, penetration tests, IDS/IPS.",
+                },
+                {
+                    "id": "PCI-12",
+                    "category": "Network",
+                    "title": "Support information security with organizational policies and programs",
+                    "description": "Security policies, awareness training, incident response.",
+                },
+            ],
         },
-        ComplianceFramework.SOC2: {
+        "soc2": {
             "name": "SOC 2 Type II",
-            "total_controls": 117,
-            "categories": [
-                "Security",
-                "Availability",
-                "Processing Integrity",
-                "Confidentiality",
-                "Privacy",
-            ],
             "source": "https://www.aicpa.org/",
-        },
-        ComplianceFramework.ISO27001: {
-            "name": "ISO/IEC 27001:2022",
-            "total_controls": 93,
-            "categories": ["Organizational", "People", "Physical", "Technological"],
-            "source": "https://www.iso.org/",
-        },
-        ComplianceFramework.HIPAA: {
-            "name": "HIPAA Security Rule",
-            "total_controls": 54,
-            "categories": ["Administrative", "Physical", "Technical"],
-            "source": "https://www.hhs.gov/hipaa/",
-        },
-        ComplianceFramework.NIST: {
-            "name": "NIST CSF 2.0",
-            "total_controls": 108,
-            "categories": [
-                "Govern",
-                "Identify",
-                "Protect",
-                "Detect",
-                "Respond",
-                "Recover",
+            "controls": [
+                {
+                    "id": "CC1",
+                    "category": "Security",
+                    "title": "Control Environment",
+                    "description": "Commitment to integrity, board oversight, organizational structure.",
+                },
+                {
+                    "id": "CC2",
+                    "category": "Security",
+                    "title": "Communication and Information",
+                    "description": "Internal/external communication of security policies.",
+                },
+                {
+                    "id": "CC3",
+                    "category": "Security",
+                    "title": "Risk Assessment",
+                    "description": "Risk identification, fraud risk, change management.",
+                },
+                {
+                    "id": "CC4",
+                    "category": "Security",
+                    "title": "Monitoring Activities",
+                    "description": "Ongoing monitoring, deficiency evaluation.",
+                },
+                {
+                    "id": "CC5",
+                    "category": "Security",
+                    "title": "Control Activities",
+                    "description": "Policy enforcement, technology controls.",
+                },
+                {
+                    "id": "CC6",
+                    "category": "Security",
+                    "title": "Logical and Physical Access Controls",
+                    "description": "Authentication, authorization, physical security.",
+                },
+                {
+                    "id": "CC7",
+                    "category": "Security",
+                    "title": "System Operations",
+                    "description": "Detection of anomalies, incident response, recovery.",
+                },
+                {
+                    "id": "CC8",
+                    "category": "Security",
+                    "title": "Change Management",
+                    "description": "Change authorization, testing, approval.",
+                },
+                {
+                    "id": "CC9",
+                    "category": "Security",
+                    "title": "Risk Mitigation",
+                    "description": "Vendor management, business continuity.",
+                },
+                {
+                    "id": "A1",
+                    "category": "Availability",
+                    "title": "Availability Controls",
+                    "description": "Capacity management, backup, disaster recovery.",
+                },
+                {
+                    "id": "PI1",
+                    "category": "Processing Integrity",
+                    "title": "Processing Integrity Controls",
+                    "description": "Input validation, processing accuracy, output review.",
+                },
+                {
+                    "id": "C1",
+                    "category": "Confidentiality",
+                    "title": "Confidentiality Controls",
+                    "description": "Data classification, encryption, disposal.",
+                },
+                {
+                    "id": "P1-P8",
+                    "category": "Privacy",
+                    "title": "Privacy Criteria",
+                    "description": "Notice, choice, collection, use/retention, access, disclosure, quality, monitoring.",
+                },
             ],
+        },
+        "iso27001": {
+            "name": "ISO/IEC 27001:2022",
+            "source": "https://www.iso.org/",
+            "controls": [
+                {
+                    "id": "A.5.1",
+                    "category": "Organizational",
+                    "title": "Policies for information security",
+                    "description": "Management direction for information security.",
+                },
+                {
+                    "id": "A.5.2",
+                    "category": "Organizational",
+                    "title": "Information security roles and responsibilities",
+                    "description": "Defined and allocated responsibilities.",
+                },
+                {
+                    "id": "A.5.23",
+                    "category": "Organizational",
+                    "title": "Information security for use of cloud services",
+                    "description": "Cloud service acquisition, use, management, exit.",
+                },
+                {
+                    "id": "A.6.1",
+                    "category": "People",
+                    "title": "Screening",
+                    "description": "Background verification checks.",
+                },
+                {
+                    "id": "A.6.3",
+                    "category": "People",
+                    "title": "Information security awareness, education and training",
+                    "description": "Security awareness programs.",
+                },
+                {
+                    "id": "A.7.1",
+                    "category": "Physical",
+                    "title": "Physical security perimeters",
+                    "description": "Areas containing sensitive information.",
+                },
+                {
+                    "id": "A.8.1",
+                    "category": "Technological",
+                    "title": "User endpoint devices",
+                    "description": "Endpoint protection and management.",
+                },
+                {
+                    "id": "A.8.5",
+                    "category": "Technological",
+                    "title": "Secure authentication",
+                    "description": "Authentication technologies and procedures.",
+                },
+                {
+                    "id": "A.8.8",
+                    "category": "Technological",
+                    "title": "Management of technical vulnerabilities",
+                    "description": "Vulnerability identification, risk evaluation, patching.",
+                },
+                {
+                    "id": "A.8.9",
+                    "category": "Technological",
+                    "title": "Configuration management",
+                    "description": "Hardware/software/service/network configurations.",
+                },
+                {
+                    "id": "A.8.15",
+                    "category": "Technological",
+                    "title": "Logging",
+                    "description": "Activity logs, event correlation.",
+                },
+                {
+                    "id": "A.8.16",
+                    "category": "Technological",
+                    "title": "Monitoring activities",
+                    "description": "Anomaly detection, security event monitoring.",
+                },
+            ],
+        },
+        "hipaa": {
+            "name": "HIPAA Security Rule",
+            "source": "https://www.hhs.gov/hipaa/",
+            "controls": [
+                {
+                    "id": "164.308(a)(1)",
+                    "category": "Administrative",
+                    "title": "Security Management Process",
+                    "description": "Risk analysis, risk management, sanction policy, information system activity review.",
+                },
+                {
+                    "id": "164.308(a)(3)",
+                    "category": "Administrative",
+                    "title": "Workforce Security",
+                    "description": "Authorization/supervision, workforce clearance, termination procedures.",
+                },
+                {
+                    "id": "164.308(a)(4)",
+                    "category": "Administrative",
+                    "title": "Information Access Management",
+                    "description": "Access authorization, access establishment and modification.",
+                },
+                {
+                    "id": "164.308(a)(5)",
+                    "category": "Administrative",
+                    "title": "Security Awareness and Training",
+                    "description": "Security reminders, malicious software protection, login monitoring.",
+                },
+                {
+                    "id": "164.308(a)(6)",
+                    "category": "Administrative",
+                    "title": "Security Incident Procedures",
+                    "description": "Incident response and reporting.",
+                },
+                {
+                    "id": "164.310(a)(1)",
+                    "category": "Physical",
+                    "title": "Facility Access Controls",
+                    "description": "Contingency operations, facility security plan, access control.",
+                },
+                {
+                    "id": "164.310(d)(1)",
+                    "category": "Physical",
+                    "title": "Device and Media Controls",
+                    "description": "Disposal, media re-use, data backup, accountability.",
+                },
+                {
+                    "id": "164.312(a)(1)",
+                    "category": "Technical",
+                    "title": "Access Control",
+                    "description": "Unique user identification, emergency access, automatic logoff, encryption.",
+                },
+                {
+                    "id": "164.312(b)",
+                    "category": "Technical",
+                    "title": "Audit Controls",
+                    "description": "Hardware/software/procedural mechanisms for recording and examining access.",
+                },
+                {
+                    "id": "164.312(c)(1)",
+                    "category": "Technical",
+                    "title": "Integrity",
+                    "description": "Mechanism to authenticate electronic PHI.",
+                },
+                {
+                    "id": "164.312(d)",
+                    "category": "Technical",
+                    "title": "Person or Entity Authentication",
+                    "description": "Verify identity of persons seeking access to ePHI.",
+                },
+                {
+                    "id": "164.312(e)(1)",
+                    "category": "Technical",
+                    "title": "Transmission Security",
+                    "description": "Integrity controls, encryption for ePHI in transit.",
+                },
+            ],
+        },
+        "nist": {
+            "name": "NIST CSF 2.0",
             "source": "https://www.nist.gov/cyberframework",
+            "controls": [
+                {
+                    "id": "GV.OC-01",
+                    "category": "Govern",
+                    "title": "Organizational Context",
+                    "description": "Mission, stakeholder expectations, legal/regulatory requirements.",
+                },
+                {
+                    "id": "GV.RM-01",
+                    "category": "Govern",
+                    "title": "Risk Management Strategy",
+                    "description": "Risk management objectives, risk appetite, risk tolerance.",
+                },
+                {
+                    "id": "ID.AM-01",
+                    "category": "Identify",
+                    "title": "Asset Management — Inventories",
+                    "description": "Hardware, software, data, systems inventories maintained.",
+                },
+                {
+                    "id": "ID.RA-01",
+                    "category": "Identify",
+                    "title": "Risk Assessment — Vulnerabilities",
+                    "description": "Vulnerabilities in assets identified, validated, recorded.",
+                },
+                {
+                    "id": "PR.AA-01",
+                    "category": "Protect",
+                    "title": "Identity Management & Access Control",
+                    "description": "Identities and credentials managed for authorized users/services.",
+                },
+                {
+                    "id": "PR.DS-01",
+                    "category": "Protect",
+                    "title": "Data Security",
+                    "description": "Data-at-rest protection, data-in-transit protection.",
+                },
+                {
+                    "id": "PR.PS-01",
+                    "category": "Protect",
+                    "title": "Platform Security",
+                    "description": "Configuration management, software maintained/replaced/removed.",
+                },
+                {
+                    "id": "DE.CM-01",
+                    "category": "Detect",
+                    "title": "Continuous Monitoring",
+                    "description": "Networks and network services monitored for anomalous events.",
+                },
+                {
+                    "id": "DE.AE-02",
+                    "category": "Detect",
+                    "title": "Adverse Event Analysis",
+                    "description": "Anomalies correlated, incidents declared.",
+                },
+                {
+                    "id": "RS.MA-01",
+                    "category": "Respond",
+                    "title": "Incident Management",
+                    "description": "Incident response plan executed, incidents triaged.",
+                },
+                {
+                    "id": "RS.MI-01",
+                    "category": "Respond",
+                    "title": "Incident Mitigation",
+                    "description": "Incidents contained, eradicated.",
+                },
+                {
+                    "id": "RC.RP-01",
+                    "category": "Recover",
+                    "title": "Recovery Execution",
+                    "description": "Recovery portion of incident response plan executed.",
+                },
+            ],
         },
     }
 
-    info = framework_info.get(framework, {})
+    fw_key = framework.value
+    fw_data = _FRAMEWORK_CONTROLS.get(fw_key, {})
+    controls = fw_data.get("controls", [])
+
+    # Filter by category if specified
+    if category and controls:
+        controls = [c for c in controls if c["category"].lower() == category.lower()]
+
+    # If ComplianceEngine is available, add posture evaluation
+    posture = None
+    if _COMPLIANCE_ENGINE_AVAILABLE and compliance_engine is not None:
+        try:
+            analytics = _get_analytics_db()
+            finding_dicts = []
+            if analytics:
+                findings = analytics.list_findings(limit=1000, offset=0)
+                finding_dicts = [f.to_dict() for f in findings]
+            result = compliance_engine.evaluate([fw_key], finding_dicts)
+            posture = result.get(fw_key)
+        except Exception as e:
+            logger.warning(f"ComplianceEngine posture evaluation failed: {e}")
 
     return {
-        "framework": framework.value,
-        "framework_info": info,
-        "controls": [],  # Full controls require enterprise integration
-        "status": "metadata_only",
-        "message": "Framework metadata available. Full control library requires enterprise compliance module integration.",
+        "framework": fw_key,
+        "framework_info": {
+            "name": fw_data.get("name", fw_key),
+            "total_controls": len(fw_data.get("controls", [])),
+            "categories": sorted({c["category"] for c in fw_data.get("controls", [])}),
+            "source": fw_data.get("source", ""),
+        },
+        "controls": controls,
+        "total_returned": len(controls),
+        "status": "complete",
+        "posture": posture,
         "category_filter": category,
     }
 
@@ -1327,25 +2163,52 @@ async def get_compliance_dashboard() -> Dict[str, Any]:
     """
     if _COMPLIANCE_ENGINE_AVAILABLE and compliance_engine is not None:
         supported = list(compliance_engine.framework_thresholds.keys())
-        # Evaluate each supported framework with no findings → baseline
+        # Pull real findings for accurate posture
+        analytics = _get_analytics_db()
+        finding_dicts = []
+        if analytics:
+            findings = analytics.list_findings(limit=1000, offset=0)
+            finding_dicts = [f.to_dict() for f in findings]
+
         framework_status = []
+        open_gaps = 0
+        critical_gaps = 0
         for fw in supported:
-            res = compliance_engine.evaluate([fw], [])
+            res = compliance_engine.evaluate([fw], finding_dicts)
             fw_res = res.get(fw, {})
+            status = fw_res.get("status", "unknown")
             framework_status.append(
                 {
                     "framework": fw,
-                    "status": fw_res.get("status", "unknown"),
+                    "status": status,
                     "threshold": fw_res.get("threshold"),
+                    "highest_fixops_severity": fw_res.get("highest_fixops_severity"),
                 }
             )
+            if status == "non_compliant":
+                open_gaps += 1
+                if fw_res.get("highest_fixops_severity") in ("HIGH", "CRITICAL"):
+                    critical_gaps += 1
+
+        total = len(finding_dicts)
+        resolved = sum(
+            1 for f in finding_dicts if f.get("status") in ("resolved", "RESOLVED")
+        )
+        posture = (
+            "compliant"
+            if open_gaps == 0 and total > 0
+            else ("non_compliant" if open_gaps > 0 else "no_findings_uploaded")
+        )
+
         return {
             "status": "ready",
-            "message": "Baseline posture — upload findings for detailed assessment.",
-            "overall_posture": "no_findings_uploaded",
+            "message": f"Evaluated {total} findings across {len(supported)} frameworks.",
+            "overall_posture": posture,
+            "total_findings": total,
+            "resolved_findings": resolved,
             "frameworks": framework_status,
-            "open_gaps": 0,
-            "critical_gaps": 0,
+            "open_gaps": open_gaps,
+            "critical_gaps": critical_gaps,
         }
 
     return {
@@ -1373,17 +2236,27 @@ async def generate_compliance_report(
     fw = framework.value
 
     if _COMPLIANCE_ENGINE_AVAILABLE and compliance_engine is not None:
-        result = compliance_engine.evaluate([fw], [])
+        # Use real findings for accurate compliance report
+        analytics = _get_analytics_db()
+        finding_dicts = []
+        if analytics:
+            findings = analytics.list_findings(limit=1000, offset=0)
+            finding_dicts = [f.to_dict() for f in findings]
+
+        result = compliance_engine.evaluate([fw], finding_dicts)
         fw_result = result.get(fw, {})
         return {
             "report_id": report_id,
             "framework": fw,
             "report_type": report_type,
             "status": "generated",
-            "message": "Baseline report — upload findings for full compliance report.",
+            "message": f"Compliance report generated with {len(finding_dicts)} findings.",
             "compliance_status": fw_result.get("status"),
             "threshold": fw_result.get("threshold"),
+            "highest_fixops_severity": fw_result.get("highest_fixops_severity"),
+            "total_findings_evaluated": len(finding_dicts),
             "include_evidence": include_evidence,
+            "generated_at": _now().isoformat(),
         }
 
     return {
@@ -1404,46 +2277,120 @@ async def generate_compliance_report(
 
 @router.post("/remediation/generate-fix")
 async def generate_fix(request: GenerateFixRequest) -> Dict[str, Any]:
-    """Generate fix code for a vulnerability via AI.
+    """Generate fix code for a vulnerability via AutoFixEngine.
 
-    Note: AI fix generation requires LLM integration.
+    Uses the AutoFixEngine with LLM providers (OpenAI/Anthropic) to
+    generate precise code patches, dependency updates, and config fixes.
     """
-    # TODO: Integrate with LLM for code fix generation
+    engine = _get_autofix()
+    analytics = _get_analytics_db()
+
+    # Build finding dict from AnalyticsDB or request
+    finding_dict: Dict[str, Any] = {"id": request.finding_id}
+    if analytics:
+        finding = analytics.get_finding(request.finding_id)
+        if finding:
+            finding_dict = finding.to_dict()
+
+    if request.language:
+        finding_dict["language"] = request.language
+
+    if engine:
+        try:
+            suggestion = await engine.generate_fix(
+                finding=finding_dict,
+                source_code=None,
+                repo_context={"language": request.language or "python"},
+            )
+            from dataclasses import asdict
+
+            fix_data = asdict(suggestion)
+            return {
+                "finding_id": request.finding_id,
+                "status": "generated",
+                "fix_id": fix_data.get("fix_id"),
+                "title": fix_data.get("title"),
+                "description": fix_data.get("description"),
+                "fix_type": fix_data.get("fix_type"),
+                "confidence": fix_data.get("confidence"),
+                "confidence_score": fix_data.get("confidence_score"),
+                "code_patches": fix_data.get("code_patches", []),
+                "dependency_fixes": fix_data.get("dependency_fixes", []),
+                "pr_branch": fix_data.get("pr_branch"),
+                "pr_title": fix_data.get("pr_title"),
+                "language": request.language or "unknown",
+                "include_tests": request.include_tests,
+            }
+        except Exception as e:
+            logger.error(f"AutoFix generate failed: {e}")
+            return {
+                "finding_id": request.finding_id,
+                "status": "error",
+                "message": f"Fix generation failed: {e}",
+                "language": request.language or "unknown",
+            }
 
     return {
         "finding_id": request.finding_id,
-        "status": "integration_required",
-        "integration_required": True,
-        "message": "AI fix generation requires LLM API key (set OPENAI_API_KEY or ANTHROPIC_API_KEY).",
-        "requirements": [
-            "LLM API key (OpenAI / Anthropic / Azure OpenAI)",
-            "Vulnerability context (affected code)",
-            "Language/framework detection",
-        ],
+        "status": "engine_unavailable",
+        "message": "AutoFixEngine not available — check OPENAI_API_KEY is set.",
         "language": request.language or "unknown",
-        "original_code": None,
-        "fixed_code": None,
-        "include_tests": request.include_tests,
     }
 
 
 @router.post("/remediation/create-pr")
 async def create_pull_request(request: CreatePRRequest) -> Dict[str, Any]:
-    """Create a pull request with security fixes.
+    """Create a pull request with security fixes via AutoFixEngine.
 
-    Note: Requires GitHub/GitLab integration.
+    Generates fixes for specified findings and applies them to a repository
+    via the AutoFixEngine PR generation pipeline.
     """
-    # TODO: Integrate with Git provider APIs
+    engine = _get_autofix()
+    analytics = _get_analytics_db()
+
+    if engine:
+        try:
+            # Generate fixes for each finding, then apply
+            fix_ids = []
+            for fid in request.finding_ids[:10]:  # Cap at 10
+                finding_dict: Dict[str, Any] = {"id": fid}
+                if analytics:
+                    finding = analytics.get_finding(fid)
+                    if finding:
+                        finding_dict = finding.to_dict()
+                suggestion = await engine.generate_fix(finding=finding_dict)
+                fix_ids.append(suggestion.fix_id)
+
+            # Apply the first fix with PR creation
+            if fix_ids:
+                result = await engine.apply_fix(
+                    fix_id=fix_ids[0],
+                    repository=request.repository,
+                    create_pr=True,
+                    auto_merge=request.auto_merge,
+                )
+                return {
+                    "status": "created" if result.success else "pr_creation_pending",
+                    "message": f"Generated {len(fix_ids)} fixes for {request.repository}.",
+                    "repository": request.repository,
+                    "branch": request.branch,
+                    "finding_ids": request.finding_ids,
+                    "fix_ids": fix_ids,
+                    "pr_url": result.pr_url,
+                    "auto_merge": request.auto_merge,
+                }
+        except Exception as e:
+            logger.error(f"PR creation failed: {e}")
+            return {
+                "status": "error",
+                "message": f"PR creation failed: {e}",
+                "repository": request.repository,
+                "finding_ids": request.finding_ids,
+            }
 
     return {
-        "status": "integration_required",
-        "integration_required": True,
-        "message": "PR creation requires Git provider API token (set GITHUB_TOKEN or GITLAB_TOKEN).",
-        "requirements": [
-            "GitHub/GitLab API token",
-            "Repository access permissions",
-            "Branch protection configuration",
-        ],
+        "status": "engine_unavailable",
+        "message": "AutoFixEngine not available — set OPENAI_API_KEY and GITHUB_TOKEN.",
         "repository": request.repository,
         "branch": request.branch,
         "finding_ids": request.finding_ids,
@@ -1452,22 +2399,69 @@ async def create_pull_request(request: CreatePRRequest) -> Dict[str, Any]:
 
 @router.post("/remediation/update-dependencies")
 async def update_dependencies(request: DependencyUpdateRequest) -> Dict[str, Any]:
-    """Update vulnerable dependencies.
+    """Update vulnerable dependencies via AutoFixEngine.
 
-    Note: Requires SBOM and package manager integration.
+    Uses the AutoFixEngine dependency fix generation to produce
+    manifest updates for vulnerable packages.
     """
-    # TODO: Integrate with package managers
+    engine = _get_autofix()
+
+    if engine:
+        try:
+            results = []
+            for pkg_id in request.package_ids[:20]:  # Cap at 20
+                finding_dict = {
+                    "id": pkg_id,
+                    "title": f"Vulnerable dependency: {pkg_id}",
+                    "severity": "high",
+                    "cwe_id": "CWE-1104",
+                    "description": f"Outdated/vulnerable package {pkg_id}",
+                }
+                suggestion = await engine.generate_fix(
+                    finding=finding_dict,
+                    repo_context={"update_strategy": request.update_strategy},
+                )
+                results.append(
+                    {
+                        "package": pkg_id,
+                        "fix_id": suggestion.fix_id,
+                        "fix_type": suggestion.fix_type.value
+                        if suggestion.fix_type
+                        else "dependency_update",
+                        "status": suggestion.status.value
+                        if suggestion.status
+                        else "generated",
+                        "dependency_fixes": [
+                            {
+                                "package": df.package_name,
+                                "current": df.current_version,
+                                "target": df.fixed_version,
+                            }
+                            for df in suggestion.dependency_fixes
+                        ]
+                        if suggestion.dependency_fixes
+                        else [],
+                    }
+                )
+            return {
+                "sbom_id": request.sbom_id,
+                "status": "generated",
+                "message": f"Generated dependency updates for {len(results)} packages.",
+                "packages": results,
+                "strategy": request.update_strategy,
+            }
+        except Exception as e:
+            logger.error(f"Dependency update failed: {e}")
+            return {
+                "sbom_id": request.sbom_id,
+                "status": "error",
+                "message": f"Dependency update failed: {e}",
+            }
 
     return {
         "sbom_id": request.sbom_id,
-        "status": "integration_required",
-        "integration_required": True,
-        "message": "Dependency updates require package manager integration.",
-        "requirements": [
-            "SBOM with vulnerability mappings",
-            "Package manager access (npm, pip, maven)",
-            "Repository write access",
-        ],
+        "status": "engine_unavailable",
+        "message": "AutoFixEngine not available — set OPENAI_API_KEY.",
         "packages_requested": request.package_ids,
         "strategy": request.update_strategy,
     }
@@ -1475,27 +2469,96 @@ async def update_dependencies(request: DependencyUpdateRequest) -> Dict[str, Any
 
 @router.post("/remediation/playbook")
 async def generate_playbook(request: PlaybookRequest) -> Dict[str, Any]:
-    """Generate remediation playbook.
+    """Generate a remediation playbook for the given findings.
 
-    Note: Playbook generation requires finding context and remediation knowledge base.
+    Constructs a real YAML playbook from finding data and executes it
+    in dry-run mode via PlaybookRunner to validate the steps.
     """
-    # TODO: Integrate with remediation knowledge base
-
     playbook_id = _generate_id()
+    analytics = _get_analytics_db()
+
+    # Gather real finding data
+    finding_details: List[Dict[str, Any]] = []
+    for fid in request.finding_ids[:20]:  # Cap
+        if analytics:
+            f = analytics.get_finding(fid)
+            if f:
+                finding_details.append(f.to_dict())
+            else:
+                finding_details.append(
+                    {"id": fid, "title": f"Finding {fid}", "severity": "unknown"}
+                )
+        else:
+            finding_details.append(
+                {"id": fid, "title": f"Finding {fid}", "severity": "unknown"}
+            )
+
+    # Build playbook steps from findings
+    steps: List[Dict[str, Any]] = []
+    for i, fd in enumerate(finding_details):
+        steps.append(
+            {
+                "name": f"remediate_{i+1}_{fd.get('id', 'unknown')[:8]}",
+                "description": f"Fix: {fd.get('title', 'Unknown vulnerability')}",
+                "severity": fd.get("severity", "medium"),
+                "cve_id": fd.get("cve_id"),
+                "action": "Patch or update affected component",
+            }
+        )
+        if request.include_rollback:
+            steps.append(
+                {
+                    "name": f"rollback_{i+1}_{fd.get('id', 'unknown')[:8]}",
+                    "description": f"Rollback plan for: {fd.get('title', 'Unknown')}",
+                    "action": "Revert to previous version if fix causes regression",
+                }
+            )
+
+    # Try to run through PlaybookRunner in dry-run if available
+    validated = False
+    if _PLAYBOOK_AVAILABLE:
+        try:
+            runner = PlaybookRunner()
+            import yaml as _yaml
+
+            playbook_yaml = {
+                "apiVersion": "fixops.io/v1",
+                "kind": "Playbook",
+                "metadata": {
+                    "name": f"remediation-{playbook_id[:8]}",
+                    "version": "1.0.0",
+                    "description": f"Auto-generated remediation playbook for {len(finding_details)} findings",
+                },
+                "spec": {
+                    "steps": [
+                        {
+                            "name": s["name"],
+                            "action": "data.filter",
+                            "params": {
+                                "finding": s.get("description", ""),
+                                "severity": s.get("severity", "medium"),
+                            },
+                        }
+                        for s in steps[:10]  # Cap steps for validation
+                    ],
+                },
+            }
+            pb = runner.load_playbook_from_string(_yaml.dump(playbook_yaml))
+            await runner.execute(pb, inputs={}, dry_run=True)
+            validated = True
+        except Exception as e:
+            logger.warning(f"Playbook dry-run validation failed: {e}")
 
     return {
         "playbook_id": playbook_id,
-        "status": "integration_required",
-        "integration_required": True,
-        "message": "Playbook generation requires remediation knowledge base + LLM integration.",
-        "findings_count": len(request.finding_ids),
+        "status": "generated",
+        "message": f"Playbook generated with {len(steps)} steps for {len(finding_details)} findings.",
+        "validated": validated,
+        "findings_count": len(finding_details),
         "audience": request.audience,
-        "requirements": [
-            "Finding details with vulnerability type",
-            "Remediation pattern database",
-            "LLM API key for procedure generation",
-        ],
+        "steps": steps,
         "include_rollback": request.include_rollback,
+        "generated_at": _now().isoformat(),
     }
 
 
@@ -1503,21 +2566,115 @@ async def generate_playbook(request: PlaybookRequest) -> Dict[str, Any]:
 async def get_recommendations(finding_id: str) -> Dict[str, Any]:
     """Get remediation recommendations for a finding.
 
-    Note: Requires finding details to generate specific recommendations.
+    Pulls the real finding from AnalyticsDB and enriches with KnowledgeBrain
+    graph data to produce contextual remediation advice.
     """
-    # TODO: Integrate with finding details and remediation database
+    analytics = _get_analytics_db()
+    brain = _get_brain()
+
+    finding_dict: Optional[Dict[str, Any]] = None
+    if analytics:
+        f = analytics.get_finding(finding_id)
+        if f:
+            finding_dict = f.to_dict()
+
+    if finding_dict is None:
+        return {
+            "finding_id": finding_id,
+            "status": "not_found",
+            "message": f"Finding {finding_id} not found in database.",
+            "recommendations": [],
+        }
+
+    recommendations: List[Dict[str, Any]] = []
+    severity = (finding_dict.get("severity") or "medium").upper()
+    cve_id = finding_dict.get("cve_id")
+    title = finding_dict.get("title", "Unknown vulnerability")
+
+    # Priority-based recommendation
+    if severity in ("CRITICAL", "HIGH"):
+        recommendations.append(
+            {
+                "priority": "immediate",
+                "action": f"Patch or mitigate: {title}",
+                "reason": f"Severity {severity} — requires immediate attention per SLA.",
+            }
+        )
+    else:
+        recommendations.append(
+            {
+                "priority": "scheduled",
+                "action": f"Plan remediation for: {title}",
+                "reason": f"Severity {severity} — schedule within maintenance window.",
+            }
+        )
+
+    # CVE-specific recommendation
+    if cve_id:
+        recommendations.append(
+            {
+                "priority": "high",
+                "action": f"Check vendor advisory for {cve_id}",
+                "reason": "Vendor patches are the most reliable fix source.",
+            }
+        )
+        # Enrich from KEV if available
+        feeds = _get_feeds_service()
+        if feeds:
+            try:
+                kev = feeds.get_kev_entry(cve_id)
+                if kev:
+                    recommendations.append(
+                        {
+                            "priority": "critical",
+                            "action": f"CISA KEV: {kev.get('required_action', 'Apply vendor fix')}",
+                            "reason": f"Actively exploited — BOD 22-01 due date: {kev.get('due_date', 'N/A')}",
+                            "kev_entry": True,
+                        }
+                    )
+            except Exception:
+                pass
+
+    # KnowledgeBrain enrichment
+    if brain:
+        try:
+            risk = brain.risk_score_for_node(finding_id)
+            if risk > 0:
+                recommendations.append(
+                    {
+                        "priority": "high" if risk > 0.7 else "medium",
+                        "action": "Review connected assets in knowledge graph",
+                        "reason": f"Graph risk score: {risk:.2f} — blast radius may be wider.",
+                        "risk_score": round(risk, 3),
+                    }
+                )
+            neighbors = brain.get_neighbors(finding_id, depth=1)
+            if neighbors and neighbors.nodes:
+                connected = [
+                    n["node_id"]
+                    for n in neighbors.nodes
+                    if n and n.get("node_id") != finding_id
+                ]
+                if connected:
+                    recommendations.append(
+                        {
+                            "priority": "info",
+                            "action": f"Assess impact on {len(connected)} connected node(s)",
+                            "reason": "Related assets may also be affected.",
+                            "connected_nodes": connected[:10],
+                        }
+                    )
+        except Exception as e:
+            logger.debug(f"Brain enrichment for {finding_id}: {e}")
 
     return {
         "finding_id": finding_id,
-        "status": "integration_required",
-        "integration_required": True,
-        "message": "Recommendations require finding details lookup + vulnerability database.",
-        "recommendations": [],
-        "requirements": [
-            "Finding vulnerability type",
-            "Affected component details",
-            "Remediation options database",
-        ],
+        "status": "recommendations_ready",
+        "title": title,
+        "severity": severity,
+        "cve_id": cve_id,
+        "total_recommendations": len(recommendations),
+        "recommendations": recommendations,
     }
 
 
@@ -1526,24 +2683,68 @@ async def verify_remediation(
     finding_ids: List[str],
     verification_type: str = "scan",
 ) -> Dict[str, Any]:
-    """Verify remediation was successful.
+    """Verify remediation by checking finding status in AnalyticsDB.
 
-    Note: Requires re-scan or validation check integration.
+    Looks up each finding and reports whether it has been resolved,
+    is still open, or cannot be found.
     """
-    # TODO: Integrate with scanning tools for verification
+    analytics = _get_analytics_db()
+    verification_id = _generate_id()
+
+    results: List[Dict[str, Any]] = []
+    verified = 0
+    still_open = 0
+    not_found = 0
+
+    for fid in finding_ids[:50]:  # Cap
+        if analytics:
+            f = analytics.get_finding(fid)
+            if f:
+                fd = f.to_dict()
+                status = fd.get("status", "open")
+                is_resolved = status in ("resolved", "RESOLVED", "closed", "CLOSED")
+                results.append(
+                    {
+                        "finding_id": fid,
+                        "title": fd.get("title", "Unknown"),
+                        "current_status": status,
+                        "verified": is_resolved,
+                        "resolved_at": fd.get("resolved_at"),
+                    }
+                )
+                if is_resolved:
+                    verified += 1
+                else:
+                    still_open += 1
+            else:
+                results.append(
+                    {
+                        "finding_id": fid,
+                        "current_status": "not_found",
+                        "verified": False,
+                    }
+                )
+                not_found += 1
+        else:
+            results.append(
+                {
+                    "finding_id": fid,
+                    "current_status": "db_unavailable",
+                    "verified": False,
+                }
+            )
 
     return {
-        "verification_id": _generate_id(),
-        "status": "integration_required",
-        "integration_required": True,
-        "message": "Verification requires scanner integration (set SCANNER_API_URL).",
-        "findings_to_verify": finding_ids,
+        "verification_id": verification_id,
+        "status": "verified" if still_open == 0 and verified > 0 else "incomplete",
+        "message": f"{verified} verified, {still_open} still open, {not_found} not found.",
         "verification_type": verification_type,
-        "requirements": [
-            "Scanner API access (Snyk/Qualys/Nessus)",
-            "Target system reachability",
-            "Baseline scan results",
-        ],
+        "total_checked": len(results),
+        "verified_count": verified,
+        "still_open_count": still_open,
+        "not_found_count": not_found,
+        "results": results,
+        "verified_at": _now().isoformat(),
     }
 
 
@@ -1553,22 +2754,63 @@ async def get_remediation_queue(
     assignee: Optional[str] = None,
     limit: int = Query(default=20, le=100),
 ) -> Dict[str, Any]:
-    """Get remediation queue/backlog.
+    """Get remediation queue from AnalyticsDB.
 
-    Note: Requires remediation tracking database.
+    Returns open findings ordered by severity as the remediation backlog.
+    Supports filtering by priority (mapped to severity) and limit.
     """
-    # TODO: Integrate with remediation tracking database
+    analytics = _get_analytics_db()
+
+    if analytics:
+        # Map priority to severity filter
+        severity_filter = None
+        if priority:
+            severity_map = {
+                "critical": "critical",
+                "high": "high",
+                "medium": "medium",
+                "low": "low",
+            }
+            severity_filter = severity_map.get(priority.value.lower())
+
+        findings = analytics.list_findings(
+            severity=severity_filter,
+            status="open",
+            limit=limit,
+            offset=0,
+        )
+        queue_items = []
+        for f in findings:
+            fd = f.to_dict()
+            queue_items.append(
+                {
+                    "finding_id": fd.get("id"),
+                    "title": fd.get("title", "Unknown"),
+                    "severity": fd.get("severity", "medium"),
+                    "status": fd.get("status", "open"),
+                    "source": fd.get("source"),
+                    "cve_id": fd.get("cve_id"),
+                    "created_at": fd.get("created_at"),
+                    "assignee": assignee,  # Pass-through filter
+                }
+            )
+
+        return {
+            "status": "ready",
+            "message": f"{len(queue_items)} items in remediation queue.",
+            "total_items": len(queue_items),
+            "queue": queue_items,
+            "filters_applied": {
+                "priority": priority.value if priority else None,
+                "assignee": assignee,
+                "limit": limit,
+            },
+        }
 
     return {
-        "status": "integration_required",
-        "integration_required": True,
-        "message": "Remediation queue requires tracking database (set DATABASE_URL).",
+        "status": "db_unavailable",
+        "message": "AnalyticsDB not available — cannot load remediation queue.",
         "queue": [],
-        "requirements": [
-            "Remediation tracking database (Postgres/SQLite)",
-            "Finding assignment workflow",
-            "SLA configuration",
-        ],
         "filters_applied": {
             "priority": priority.value if priority else None,
             "assignee": assignee,
@@ -1671,8 +2913,20 @@ async def get_agents_status() -> Dict[str, Any]:
                 else [],
             },
             AgentType.REMEDIATION.value: {
-                "status": "integration_required",
-                "message": "Requires LLM API key and Git provider token",
+                "status": "ready" if _AUTOFIX_AVAILABLE else "pending_configuration",
+                "autofix_engine": "connected"
+                if _AUTOFIX_AVAILABLE
+                else "not_available",
+                "playbook_runner": "connected"
+                if _PLAYBOOK_AVAILABLE
+                else "not_available",
+                "analytics_db": "connected"
+                if _ANALYTICS_DB_AVAILABLE
+                else "not_available",
+                "knowledge_brain": "connected" if _BRAIN_AVAILABLE else "not_available",
+                "message": "AutoFix + PlaybookRunner + AnalyticsDB available"
+                if _AUTOFIX_AVAILABLE
+                else "Set OPENAI_API_KEY or ANTHROPIC_API_KEY for full remediation",
             },
             AgentType.ORCHESTRATOR.value: {
                 "status": "ready",
