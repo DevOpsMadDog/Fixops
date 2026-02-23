@@ -6,6 +6,10 @@
 
 **Your scanners found 10,000 vulnerabilities. Which 5 actually matter?**
 
+[![Status](https://img.shields.io/badge/status-work_in_progress-orange)]()
+&nbsp;
+[![Beta](https://img.shields.io/badge/beta-March_2026-brightgreen)]()
+&nbsp;
 [![GitHub stars](https://img.shields.io/github/stars/DevOpsMadDog/Fixops?style=social)](https://github.com/DevOpsMadDog/Fixops/stargazers)
 &nbsp;
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/DevOpsMadDog/Fixops)
@@ -19,6 +23,8 @@
 [![Endpoints](https://img.shields.io/badge/API_endpoints-600+-blue)]()
 &nbsp;
 [![LLM Consensus](https://img.shields.io/badge/AI-Multi--LLM_Consensus-blueviolet)]()
+
+> **⚠️ Work in Progress** — ALdeci is under active development. **Public beta planned for March 2026.** APIs may change. Star the repo to get notified when beta drops.
 
 <br/>
 
