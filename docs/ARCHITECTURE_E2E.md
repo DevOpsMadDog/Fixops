@@ -149,7 +149,7 @@ flowchart TB
     subgraph MPTE["⚔️ STEP 10: MICRO-PENTEST ENGINE"]
         direction TB
         SCANNER["19-Phase Deterministic Scanner\n• Port scan • Service detection\n• CVE validation • SSRF check"]
-        AI_ORCH["Multi-AI Orchestrator\n(PentAGI-powered)"]
+        AI_ORCH["Multi-AI Orchestrator\n(MPTE-powered)"]
         VERDICT["4-State Verdict:\n✅ VULNERABLE_VERIFIED\n❌ NOT_VULNERABLE_VERIFIED\n⊘ NOT_APPLICABLE\n❓ UNVERIFIED"]
         METRICS["3 Confidence Metrics:\n• Applicability Score\n• Test Coverage Score\n• Confidence Score"]
     end

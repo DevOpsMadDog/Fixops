@@ -18,12 +18,12 @@ help:
 	@echo "  make inventory      Rebuild the file usage inventory artefacts"
 	@echo "  make clean          Remove cached artefacts and the virtual environment"
 	@echo ""
-	@echo "PentAGI Integration (layer for any compose file):"
-	@echo "  make up-pentagi              Start ALdeci + PentAGI (default compose)"
-	@echo "  make up-pentagi-enterprise   Start ALdeci Enterprise + PentAGI"
-	@echo "  make up-pentagi-demo         Start ALdeci Demo + PentAGI"
-	@echo "  make down-pentagi            Stop services (use BASE_COMPOSE for variants)"
-	@echo "  make logs-pentagi            View PentAGI container logs"
+	@echo "MPTE Integration (layer for any compose file):"
+	@echo "  make up-mpte              Start ALdeci + MPTE (default compose)"
+	@echo "  make up-mpte-enterprise   Start ALdeci Enterprise + MPTE"
+	@echo "  make up-mpte-demo         Start ALdeci Demo + MPTE"
+	@echo "  make down-mpte            Stop services (use BASE_COMPOSE for variants)"
+	@echo "  make logs-mpte            View MPTE container logs"
 
 $(VENV):
 	$(PYTHON) -m venv $(VENV)
@@ -155,72 +155,72 @@ demo-clean:
 	@echo "✓ Demo artifacts cleaned (feeds preserved)"
 
 # ===================================================================
-# PentAGI Integration Targets
+# MPTE Integration Targets
 # ===================================================================
-# PentAGI can be added as a layer to ANY docker-compose file:
-#   make up-pentagi                    # with docker/docker-compose.yml (default)
-#   make up-pentagi-enterprise         # with docker/docker-compose.enterprise.yml
-#   make up-pentagi-demo               # with docker/docker-compose.demo.yml
+# MPTE can be added as a layer to ANY docker-compose file:
+#   make up-mpte                    # with docker/docker-compose.yml (default)
+#   make up-mpte-enterprise         # with docker/docker-compose.enterprise.yml
+#   make up-mpte-demo               # with docker/docker-compose.demo.yml
 #
 # Or use BASE_COMPOSE variable:
-#   make up-pentagi BASE_COMPOSE=docker/docker-compose.enterprise.yml
+#   make up-mpte BASE_COMPOSE=docker/docker-compose.enterprise.yml
 
 BASE_COMPOSE ?= docker/docker-compose.yml
-PENTAGI_COMPOSE := docker/docker-compose.pentagi.yml
+MPTE_COMPOSE := docker/docker-compose.mpte.yml
 
-.PHONY: up-pentagi down-pentagi logs-pentagi
-.PHONY: up-pentagi-enterprise down-pentagi-enterprise
-.PHONY: up-pentagi-demo down-pentagi-demo
-.PHONY: up-pentagi-deployment down-pentagi-deployment
+.PHONY: up-mpte down-mpte logs-mpte
+.PHONY: up-mpte-enterprise down-mpte-enterprise
+.PHONY: up-mpte-demo down-mpte-demo
+.PHONY: up-mpte-deployment down-mpte-deployment
 
-_pentagi-env-check:
-	@if [ ! -f .env.pentagi ]; then \
-		echo "Creating .env.pentagi from template..."; \
-		cp env.pentagi.example .env.pentagi; \
-		echo "⚠️  Please configure LLM API keys in .env.pentagi"; \
+_mpte-env-check:
+	@if [ ! -f .env.mpte ]; then \
+		echo "Creating .env.mpte from template..."; \
+		cp env.mpte.example .env.mpte 2>/dev/null || echo "⚠️  No env.mpte.example found — create .env.mpte manually"; \
+		echo "⚠️  Please configure LLM API keys in .env.mpte"; \
 	fi
 
-_pentagi-start-msg:
+_mpte-start-msg:
 	@echo ""
-	@echo "✓ ALdeci + PentAGI started"
-	@echo "  PentAGI:    https://localhost:8443 (self-signed SSL)"
+	@echo "✓ ALdeci + MPTE started"
+	@echo "  MPTE:       https://localhost:8443 (self-signed SSL)"
 	@echo ""
-	@echo "To use your fork's image (no VXControl Cloud SDK):"
-	@echo "  export PENTAGI_IMAGE=ghcr.io/devopsmaddog/pentagi_fork:latest"
+	@echo "To use your fork's image:"
+	@echo "  export MPTE_IMAGE=ghcr.io/devopsmaddog/mpte:latest"
 
-up-pentagi: _pentagi-env-check
-	@echo "Starting ALdeci ($(BASE_COMPOSE)) with PentAGI integration..."
-	docker compose -f $(BASE_COMPOSE) -f $(PENTAGI_COMPOSE) --env-file .env.pentagi up -d
-	@$(MAKE) _pentagi-start-msg
+up-mpte: _mpte-env-check
+	@echo "Starting ALdeci ($(BASE_COMPOSE)) with MPTE integration..."
+	docker compose -f $(BASE_COMPOSE) -f $(MPTE_COMPOSE) --env-file .env.mpte up -d
+	@$(MAKE) _mpte-start-msg
 	@echo "  ALdeci API: http://localhost:8000"
 
-down-pentagi:
-	@echo "Stopping ALdeci + PentAGI..."
-	docker compose -f $(BASE_COMPOSE) -f $(PENTAGI_COMPOSE) down
+down-mpte:
+	@echo "Stopping ALdeci + MPTE..."
+	docker compose -f $(BASE_COMPOSE) -f $(MPTE_COMPOSE) down
 	@echo "✓ Services stopped"
 
-logs-pentagi:
-	docker compose -f $(BASE_COMPOSE) -f $(PENTAGI_COMPOSE) logs -f pentagi
+logs-mpte:
+	docker compose -f $(BASE_COMPOSE) -f $(MPTE_COMPOSE) logs -f mpte
 
-up-pentagi-enterprise: _pentagi-env-check
-	@echo "Starting ALdeci Enterprise with PentAGI integration..."
-	docker compose -f docker/docker-compose.enterprise.yml -f $(PENTAGI_COMPOSE) --env-file .env.pentagi up -d
-	@$(MAKE) _pentagi-start-msg
+up-mpte-enterprise: _mpte-env-check
+	@echo "Starting ALdeci Enterprise with MPTE integration..."
+	docker compose -f docker/docker-compose.enterprise.yml -f $(MPTE_COMPOSE) --env-file .env.mpte up -d
+	@$(MAKE) _mpte-start-msg
 	@echo "  ALdeci Enterprise: http://localhost:8000"
 
-down-pentagi-enterprise:
-	@echo "Stopping ALdeci Enterprise + PentAGI..."
-	docker compose -f docker/docker-compose.enterprise.yml -f $(PENTAGI_COMPOSE) down
+down-mpte-enterprise:
+	@echo "Stopping ALdeci Enterprise + MPTE..."
+	docker compose -f docker/docker-compose.enterprise.yml -f $(MPTE_COMPOSE) down
 	@echo "✓ Services stopped"
 
-up-pentagi-demo: _pentagi-env-check
-	@echo "Starting ALdeci Demo with PentAGI integration..."
-	docker compose -f docker/docker-compose.demo.yml -f $(PENTAGI_COMPOSE) --env-file .env.pentagi up -d
-	@$(MAKE) _pentagi-start-msg
+up-mpte-demo: _mpte-env-check
+	@echo "Starting ALdeci Demo with MPTE integration..."
+	docker compose -f docker/docker-compose.demo.yml -f $(MPTE_COMPOSE) --env-file .env.mpte up -d
+	@$(MAKE) _mpte-start-msg
 	@echo "  ALdeci Demo API: http://localhost:8000"
 	@echo "  Dashboard:       http://localhost:8080"
 
-down-pentagi-demo:
-	@echo "Stopping ALdeci Demo + PentAGI..."
-	docker compose -f docker/docker-compose.demo.yml -f $(PENTAGI_COMPOSE) down
+down-mpte-demo:
+	@echo "Stopping ALdeci Demo + MPTE..."
+	docker compose -f docker/docker-compose.demo.yml -f $(MPTE_COMPOSE) down
 	@echo "✓ Services stopped"

@@ -993,15 +993,15 @@
 
 ---
 
-### 3.5 pentagi_router.py (313 lines, 8 endpoints)
+### 3.5 mpte_orchestrator_router.py (313 lines, 8 endpoints)
 
-**Prefix**: `/api/v1/pentagi`  
+**Prefix**: `/api/v1/mpte-orchestrator`  
 **Dependencies**: None (self-contained, mostly hardcoded responses)
 
 | Method | Path | Purpose | Data |
 |--------|------|---------|------|
 | GET | `/health` | Health check | None |
-| GET | `/capabilities` | PentAGI capabilities | R: Static |
+| GET | `/capabilities` | MPTE Orchestrator capabilities | R: Static |
 | POST | `/threat-intel` | Threat intel for CVE | R: **Hardcoded response** |
 | POST | `/business-impact` | Business impact analysis | R: **Hardcoded response** |
 | POST | `/simulate` | Simulate attack chain | R: **Hardcoded response** |
@@ -1376,7 +1376,7 @@ All items below are **lost on service restart**:
 | Router | Endpoints | Issue |
 |--------|-----------|-------|
 | `agents_router.py` | 7 remediation agent endpoints | All return `{"status": "integration_required"}` |
-| `pentagi_router.py` | 6 POST endpoints | All return hardcoded/synthetic responses |
+| `mpte_orchestrator_router.py` | 6 POST endpoints | All return hardcoded/synthetic responses |
 | `bulk_router.py` | `GET /findings`, `POST /findings/{id}/status` | Legacy stubs returning fake success |
 | `reports_router.py` | `POST /generate` | Report generation mostly stubbed |
 | `vuln_discovery_router.py` | `POST /train` | ML training requires MindsDB — always fails without it |

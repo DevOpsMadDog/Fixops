@@ -707,7 +707,7 @@ FalkorDB's `code-graph.falkordb.com` provides interactive graph visualization:
 │                                                 │
 │  Step 10: MICRO-PENTEST (MPTE)                  │
 │  • 19-phase deterministic scanner               │
-│  • AI orchestrator (PentAGI-powered)            │
+│  • AI orchestrator (MPTE-powered)                │
 │  • 4-state verdict:                             │
 │    VULNERABLE_VERIFIED / NOT_VULNERABLE_VERIFIED│
 │    NOT_APPLICABLE / UNVERIFIED                  │
@@ -1199,7 +1199,7 @@ ALdeci:              Design → Develop → Merge → Build → Deploy → Monit
 |--------|-----------|-------|---------------|
 | [micro_pentest_router.py](suite-attack/api/micro_pentest_router.py) | `/api/v1/micro-pentest/*` | 18 | 19-phase MPTE: scan launch, phase status, verdicts, evidence artifacts |
 | [mpte_router.py](suite-attack/api/mpte_router.py) | `/api/v1/mpte/*` | 19 | MPTE management: profiles, scan history, confidence metrics, campaign management |
-| [pentagi_router.py](suite-attack/api/pentagi_router.py) | `/api/v1/pentagi/*` | 8 | PentAGI AI orchestrator: agent tasks, autonomous pentest sessions |
+| [mpte_orchestrator_router.py](suite-attack/api/mpte_orchestrator_router.py) | `/api/v1/mpte-orchestrator/*` | 8 | MPTE Orchestrator: AI-powered pentest orchestration |
 | [attack_sim_router.py](suite-attack/api/attack_sim_router.py) | `/api/v1/attack-sim/*` | 13 | Attack simulation: scenario builder, MITRE ATT&CK mapping, kill chain analysis |
 | [malware_router.py](suite-attack/api/malware_router.py) | `/api/v1/malware/*` | 4 | Malware analysis engine: sample submission, behavioral analysis |
 

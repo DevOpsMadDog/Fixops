@@ -1,13 +1,13 @@
-"""PentAGI unified API router — advanced pentest capabilities as REST endpoints.
+"""MPTE Orchestrator API router — unified pentest & decision capabilities as REST endpoints.
 
 Exposes threat intelligence, business impact analysis, attack simulation,
 remediation guidance, and capability introspection that were previously
 CLI-only via ``advanced-pentest`` subcommands.
 
-Prefix: ``/api/v1/pentagi``
+Prefix: ``/api/v1/mpte-orchestrator``
 
 This router bridges the gap between the CLI-side ``advanced-pentest`` commands
-and the HTTP API surface so that the web UI and external integrations can
+and the HTTP API surface so that external integrations can
 access the same features.
 """
 
@@ -23,7 +23,7 @@ from pydantic import BaseModel, Field
 
 logger = structlog.get_logger(__name__)
 
-router = APIRouter(prefix="/api/v1/pentagi", tags=["pentagi"])
+router = APIRouter(prefix="/api/v1/mpte-orchestrator", tags=["mpte-orchestrator"])
 
 
 # ---------------------------------------------------------------------------
@@ -43,9 +43,9 @@ def _get_feeds():
             from feeds_service import FeedsService
 
             _feeds_service = FeedsService()
-            logger.info("pentagi.feeds_service.loaded")
+            logger.info("mpte_orchestrator.feeds_service.loaded")
         except Exception as exc:
-            logger.warning("pentagi.feeds_service.unavailable", error=str(exc))
+            logger.warning("mpte_orchestrator.feeds_service.unavailable", error=str(exc))
     return _feeds_service
 
 
@@ -57,9 +57,9 @@ def _get_attack_engine():
             from core.attack_simulation_engine import AttackSimulationEngine
 
             _attack_engine = AttackSimulationEngine()
-            logger.info("pentagi.attack_engine.loaded")
+            logger.info("mpte_orchestrator.attack_engine.loaded")
         except Exception as exc:
-            logger.warning("pentagi.attack_engine.unavailable", error=str(exc))
+            logger.warning("mpte_orchestrator.attack_engine.unavailable", error=str(exc))
     return _attack_engine
 
 
@@ -71,9 +71,9 @@ def _get_autofix_engine():
             from core.autofix_engine import AutoFixEngine
 
             _autofix_engine = AutoFixEngine()
-            logger.info("pentagi.autofix_engine.loaded")
+            logger.info("mpte_orchestrator.autofix_engine.loaded")
         except Exception as exc:
-            logger.warning("pentagi.autofix_engine.unavailable", error=str(exc))
+            logger.warning("mpte_orchestrator.autofix_engine.unavailable", error=str(exc))
     return _autofix_engine
 
 
@@ -115,13 +115,13 @@ class PentestRunRequest(BaseModel):
 
 @router.get("/health")
 async def health():
-    """PentAGI health check — dynamically checks availability of sub-engines."""
+    """MPTE Orchestrator health check — dynamically checks availability of sub-engines."""
     feeds_ok = _get_feeds() is not None
     attack_ok = _get_attack_engine() is not None
     autofix_ok = _get_autofix_engine() is not None
     return {
         "status": "healthy" if (feeds_ok or attack_ok) else "degraded",
-        "service": "pentagi",
+        "service": "mpte-orchestrator",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "mpte_url": os.environ.get("MPTE_BASE_URL", "https://localhost:8443"),
         "engines": {
@@ -134,7 +134,7 @@ async def health():
 
 @router.get("/capabilities")
 async def get_capabilities():
-    """List PentAGI capabilities — dynamically reflects loaded engines."""
+    """List MPTE Orchestrator capabilities — dynamically reflects loaded engines."""
     feeds = _get_feeds()
     attack = _get_attack_engine()
     autofix = _get_autofix_engine()
@@ -429,7 +429,7 @@ async def simulate_attack(body: SimulateRequest):
     try:
         # Create a scenario from the request
         scenario = engine.create_scenario(
-            name=f"pentagi-sim-{body.target}",
+            name=f"mpte-sim-{body.target}",
             description=f"{body.attack_type} simulation against {body.target}",
             target_assets=[body.target],
             initial_access_vector=body.attack_type,
@@ -479,7 +479,7 @@ async def simulate_attack(body: SimulateRequest):
     except HTTPException:
         raise
     except Exception as exc:
-        logger.error("pentagi.simulate.error", error=str(exc))
+        logger.error("mpte_orchestrator.simulate.error", error=str(exc))
         raise HTTPException(500, detail=f"Simulation failed: {str(exc)}")
 
 
@@ -540,7 +540,7 @@ async def remediation(body: RemediationRequest):
                 ],
             }
         except Exception as exc:
-            logger.warning("pentagi.autofix.error", error=str(exc))
+            logger.warning("mpte_orchestrator.autofix.error", error=str(exc))
             fix_result = {"status": "autofix_unavailable", "error": str(exc)}
 
     # Build smart remediation steps from real data
@@ -621,12 +621,12 @@ async def run_pentest(body: PentestRunRequest):
             "target": body.target,
             "cve_ids": body.cve_ids or [],
             "steps_executed": campaign.steps_executed,
-            "message": f"Advanced pentest {test_id} completed. Use GET /api/v1/pentagi/status/{test_id} for details.",
+            "message": f"Advanced pentest {test_id} completed. Use GET /api/v1/mpte-orchestrator/status/{test_id} for details.",
         }
     except HTTPException:
         raise
     except Exception as exc:
-        logger.error("pentagi.run.error", error=str(exc))
+        logger.error("mpte_orchestrator.run.error", error=str(exc))
         raise HTTPException(500, detail=f"Pentest run failed: {str(exc)}")
 
 

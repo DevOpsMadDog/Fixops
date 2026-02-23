@@ -203,7 +203,7 @@ suite-attack/
 │   ├── app.py                       # Suite sub-app (unused in monolith mode)
 │   ├── mpte_router.py               # /api/v1/mpte (19 endpoints)
 │   ├── micro_pentest_router.py      # /api/v1/micro-pentest (18 endpoints)
-│   ├── pentagi_router.py            # /api/v1/pentagi (8 endpoints)
+│   ├── mpte_orchestrator_router.py   # /api/v1/mpte-orchestrator (8 endpoints)
 │   ├── vuln_discovery_router.py     # /api/v1/vuln-discovery (12 endpoints)
 │   ├── attack_sim_router.py         # /api/v1/attack-simulation (14 endpoints)
 │   ├── secrets_router.py            # /api/v1/secrets (8 endpoints)
@@ -359,7 +359,7 @@ suite-ui/aldeci/
 │   │   ├── EvidenceVault.tsx        # Evidence bundles
 │   │   ├── Copilot.tsx / Settings.tsx
 │   │   ├── ai-engine/              # Multi-LLM, Algorithmic Lab, Predictions, Policies, ML
-│   │   ├── attack/                 # MPTE Chat, PentAGI, Vuln Discovery, SecOps
+│   │   ├── attack/                 # MPTE Chat, MPTE Orchestrator, Vuln Discovery, SecOps
 │   │   ├── cloud/                  # Container Security, Runtime, CSPM, Attack Path
 │   │   ├── code/                   # SAST, Secrets, SBOM, API Security
 │   │   ├── core/                   # Knowledge Graph, Brain Pipeline, Exposure Cases
@@ -441,7 +441,7 @@ suite-ui ──(HTTP)──► suite-api ──(Python import)──► suite-co
 
 | Source Suite | Routers Imported | Count |
 |---|---|---|
-| **suite-attack** | mpte, micro_pentest, vuln_discovery, pentagi, secrets, attack_sim, sast, container, dast, cspm, api_fuzzer, malware | 12 |
+| **suite-attack** | mpte, micro_pentest, vuln_discovery, mpte_orchestrator, secrets, attack_sim, sast, container, dast, cspm, api_fuzzer, malware | 12 |
 | **suite-core** | nerve_center, decisions, deduplication, mindsdb, autofix, fuzzy_identity, exposure_case, pipeline, copilot, agents, predictions, llm, algorithmic, intelligent_engine, llm_monitor, code_to_cloud, streaming, brain | 18 |
 | **suite-feeds** | feeds | 1 |
 | **suite-evidence-risk** | evidence, risk, graph, provenance, business_context, business_context_enhanced | 6 |
@@ -578,14 +578,14 @@ External Tool (SARIF/SBOM/VEX)
   └──────────┬─────────────────┘
              │
              ▼
-  ┌─── PentAGI Engine ─────────┐
-  │  Stage 1: Reconnaissance    │
-  │  Stage 2: Vulnerability     │
-  │           Confirmation      │
-  │  Stage 3: Exploitation      │
-  │           Attempt           │
-  │  Stage 4: Impact Analysis   │
-  └──────────┬─────────────────┘
+  ┌─── MPTE Orchestrator Engine ─┐
+  │  Stage 1: Reconnaissance     │
+  │  Stage 2: Vulnerability      │
+  │           Confirmation       │
+  │  Stage 3: Exploitation       │
+  │           Attempt            │
+  │  Stage 4: Impact Analysis    │
+  └──────────┬──────────────────┘
              │
              ▼
   ┌─── 4-State Verdict ────────┐

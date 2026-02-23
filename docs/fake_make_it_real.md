@@ -8,7 +8,7 @@
 
 ## Table of Contents
 
-1. [PentaGI — 8 Fully Fake Endpoints](#1-pentagi--8-fully-fake-endpoints)
+1. [MPTE Orchestrator — 8 Fully Fake Endpoints](#1-mpte-orchestrator--8-fully-fake-endpoints)
 2. [Agent Remediation — 20 Stub Endpoints](#2-agent-remediation--20-stub-endpoints)
 3. [Bulk Router — 5 Legacy Stubs](#3-bulk-router--5-legacy-stubs)
 4. [Reports Router — Stub Generation](#4-reports-router--stub-generation)
@@ -20,10 +20,10 @@
 
 ---
 
-## 1. PentaGI — 8 Fully Fake Endpoints
+## 1. MPTE Orchestrator — 8 Fully Fake Endpoints
 
-**File**: `suite-attack/api/pentagi_router.py`  
-**Prefix**: `/api/v1/pentagi`  
+**File**: `suite-attack/api/mpte_orchestrator_router.py`  
+**Prefix**: `/api/v1/mpte-orchestrator`  
 **Original Status**: Every endpoint returns 100% hardcoded/synthetic data. No real logic.
 
 ### STATUS: 8/8 FIXED (as of 2026-02-22)
@@ -43,7 +43,7 @@
 
 | # | Method | Path | Lines | What It Returned | What Was Fake |
 |---|--------|------|-------|----------------|-------------|
-| 1 | `GET` | `/health` | 68–74 | `{"status": "healthy", "service": "pentagi"}` | Only reads env var — no actual service check |
+| 1 | `GET` | `/health` | 68–74 | `{"status": "healthy", "service": "mpte-orchestrator"}` | Only reads env var — no actual service check |
 | 2 | `GET` | `/capabilities` | 77–130 | Static JSON capability list | Hardcoded — doesn't reflect actual capabilities |
 | 3 | `POST` | `/threat-intel` | 133–165 | `cvss_v3: 9.8, severity: "critical", epss: 0.89, exploits_available: 3, public_poc: True` | **Always same values regardless of CVE input** |
 | 4 | `POST` | `/business-impact` | 168–207 | `estimated_breach_cost: $4,240,000, pii_records: 150,000, gdpr_fines: $20,000,000` | **Entirely fabricated numbers** — same for any input |
@@ -469,16 +469,16 @@ app = create_app()
 | Decide: integrate or delete `new_backend/api.py` | 1 file | 30 min |
 | Document `collector_api` deployment | 1 doc file | 30 min |
 
-### Phase 2: Wire PentaGI to Real Engines (Week 2, ~16 hours)
+### Phase 2: Wire MPTE Orchestrator to Real Engines (Week 2, ~16 hours)
 
 | Endpoint | Wire To | Effort |
 |----------|---------|--------|
-| `/pentagi/threat-intel` | `FeedsService` (EPSS, KEV, NVD) | 2 hr |
-| `/pentagi/business-impact` | `InventoryDB` + `risk.scoring` | 3 hr |
-| `/pentagi/simulate` | `AttackSimEngine` | 3 hr |
-| `/pentagi/remediation` | `AutoFixEngine` | 2 hr |
-| `/pentagi/run` + `/status/{id}` | `AdvancedMPTEClient` | 4 hr |
-| `/pentagi/capabilities` + `/health` | Dynamic introspection | 2 hr |
+| `/mpte-orchestrator/threat-intel` | `FeedsService` (EPSS, KEV, NVD) | 2 hr |
+| `/mpte-orchestrator/business-impact` | `InventoryDB` + `risk.scoring` | 3 hr |
+| `/mpte-orchestrator/simulate` | `AttackSimEngine` | 3 hr |
+| `/mpte-orchestrator/remediation` | `AutoFixEngine` | 2 hr |
+| `/mpte-orchestrator/run` + `/status/{id}` | `AdvancedMPTEClient` | 4 hr |
+| `/mpte-orchestrator/capabilities` + `/health` | Dynamic introspection | 2 hr |
 
 ### Phase 3: Wire Remediation Agent (Week 3, ~24 hours)
 
@@ -506,7 +506,7 @@ app = create_app()
 | Phase | Effort | Impact |
 |-------|--------|--------|
 | Phase 1: Delete dead code | 2 hours | Remove 3,973 lines of confusion |
-| Phase 2: PentaGI real | 16 hours | 8 endpoints go from fake → functional |
+| Phase 2: MPTE Orchestrator real | 16 hours | 8 endpoints go from fake → functional |
 | Phase 3: Remediation agent | 24 hours | 20 endpoints go from stub → functional |
 | Phase 4: Remaining stubs | 18 hours | 6 endpoints go from stub → functional |
 | **Total** | **~60 hours** | **34 stubs become real, 49 dead endpoints removed** |
@@ -515,7 +515,7 @@ app = create_app()
 
 ```
 Phase 1 (dead code cleanup) ← no dependencies, do first
-Phase 2 (PentaGI) ← needs FeedsService, MPTE running
+Phase 2 (MPTE Orchestrator) ← needs FeedsService, MPTE running
 Phase 3 (Remediation) ← needs LLM API keys, Git tokens (env vars)
 Phase 4 (Bulk/Reports/Training) ← needs FindingsDB, MindsDB (optional)
 ```
@@ -526,7 +526,7 @@ Phase 4 (Bulk/Reports/Training) ← needs FindingsDB, MindsDB (optional)
 
 | Category | Endpoints | Status | Details |
 |----------|-----------|--------|----------|
-| **PentaGI** | 8 | ✅ 8 FIXED | All wired to real engines. `/capabilities` now has dynamic runtime detection. |
+| **MPTE Orchestrator** | 8 | ✅ 8 FIXED | All wired to real engines. `/capabilities` now has dynamic runtime detection. |
 | **Agent — Security Analyst** | 2 | ✅ 2 FIXED | Real graph traversal + risk scoring |
 | **Agent — Pentest** | 4 | ✅ 4 FIXED | Local fallbacks via micro_pentest, KnowledgeBrain, AnalyticsDB, FeedsService |
 | **Agent — Compliance** | 7 | ✅ 7 FIXED | ComplianceEngine loaded (fixed __init__.py). 61 real controls across 5 frameworks. |

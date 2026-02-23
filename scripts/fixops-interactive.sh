@@ -417,7 +417,7 @@ declare -A MENU_CATEGORIES=(
     ["11"]="Advanced Pen Testing"
     ["12"]="Reachability"
     ["13"]="Teams & Users"
-    ["14"]="PentAGI"
+    ["14"]="MPTE Orchestrator"
     ["15"]="Evidence"
     ["16"]="Health & Status"
     ["17"]="Deduplication & Correlation"
@@ -949,8 +949,8 @@ EOF
     echo "$TEMP_DIR/user_sample.json"
 }
 
-generate_pentagi_sample() {
-    cat > "$TEMP_DIR/pentagi_sample.json" << 'EOF'
+generate_mpte_orchestrator_sample() {
+    cat > "$TEMP_DIR/mpte_orchestrator_sample.json" << 'EOF'
 {
   "target_type": "api",
   "target_url": "https://api.example.com/v1",
@@ -968,7 +968,7 @@ generate_pentagi_sample() {
   }
 }
 EOF
-    echo "$TEMP_DIR/pentagi_sample.json"
+    echo "$TEMP_DIR/mpte_orchestrator_sample.json"
 }
 
 generate_dedup_sample() {
@@ -1755,16 +1755,16 @@ handle_teams_users() {
     done
 }
 
-handle_pentagi() {
+handle_mpte_orchestrator() {
     while true; do
         clear_screen
-        draw_box "PentAGI" 70 "$CYAN"
-        draw_box_line "${YELLOW}[1]${NC} GET  /api/v1/pentagi/requests - List" 70 "$CYAN"
-        draw_box_line "${YELLOW}[2]${NC} GET  /api/v1/pentagi/requests/{id}" 70 "$CYAN"
-        draw_box_line "${YELLOW}[3]${NC} POST /api/v1/pentagi/requests - Create" 70 "$CYAN"
-        draw_box_line "${YELLOW}[4]${NC} GET  /api/v1/pentagi/results/{id}" 70 "$CYAN"
-        draw_box_line "${YELLOW}[5]${NC} GET  /api/v1/pentagi/capabilities" 70 "$CYAN"
-        draw_box_line "${YELLOW}[6]${NC} GET  /api/v1/pentagi/config" 70 "$CYAN"
+        draw_box "MPTE Orchestrator" 70 "$CYAN"
+        draw_box_line "${YELLOW}[1]${NC} POST /api/v1/mpte-orchestrator/threat-intel" 70 "$CYAN"
+        draw_box_line "${YELLOW}[2]${NC} POST /api/v1/mpte-orchestrator/business-impact" 70 "$CYAN"
+        draw_box_line "${YELLOW}[3]${NC} POST /api/v1/mpte-orchestrator/simulate" 70 "$CYAN"
+        draw_box_line "${YELLOW}[4]${NC} POST /api/v1/mpte-orchestrator/remediation" 70 "$CYAN"
+        draw_box_line "${YELLOW}[5]${NC} GET  /api/v1/mpte-orchestrator/capabilities" 70 "$CYAN"
+        draw_box_line "${YELLOW}[6]${NC} GET  /api/v1/mpte-orchestrator/health" 70 "$CYAN"
         draw_box_line "" 70 "$CYAN"
         draw_box_line "${RED}[b]${NC} Back to main menu" 70 "$CYAN"
         draw_box_bottom 70 "$CYAN"
@@ -1773,20 +1773,12 @@ handle_pentagi() {
         read -r choice
         
         case "$choice" in
-            1) simple_get "/api/v1/pentagi/requests" "List Requests" ;;
-            2)
-                printf "${CYAN}Enter request ID:${NC} "
-                read -r req_id
-                simple_get "/api/v1/pentagi/requests/$req_id" "Request Details"
-                ;;
-            3) edit_and_send "$(generate_pentagi_sample)" "POST" "/api/v1/pentagi/requests" ;;
-            4)
-                printf "${CYAN}Enter request ID:${NC} "
-                read -r req_id
-                simple_get "/api/v1/pentagi/results/$req_id" "Results"
-                ;;
-            5) simple_get "/api/v1/pentagi/capabilities" "Capabilities" ;;
-            6) simple_get "/api/v1/pentagi/config" "Configuration" ;;
+            1) edit_and_send "$(generate_mpte_orchestrator_sample)" "POST" "/api/v1/mpte-orchestrator/threat-intel" ;;
+            2) edit_and_send "$(generate_mpte_orchestrator_sample)" "POST" "/api/v1/mpte-orchestrator/business-impact" ;;
+            3) edit_and_send "$(generate_mpte_orchestrator_sample)" "POST" "/api/v1/mpte-orchestrator/simulate" ;;
+            4) edit_and_send "$(generate_mpte_orchestrator_sample)" "POST" "/api/v1/mpte-orchestrator/remediation" ;;
+            5) simple_get "/api/v1/mpte-orchestrator/capabilities" "Capabilities" ;;
+            6) simple_get "/api/v1/mpte-orchestrator/health" "Health" ;;
             b|B) return ;;
             *) println_color "$RED" "Invalid choice" ;;
         esac
@@ -2120,7 +2112,7 @@ run_all_tests() {
         "GET:/api/v1/pentest/capabilities"
         "GET:/api/v1/teams"
         "GET:/api/v1/users"
-        "GET:/api/v1/pentagi/requests"
+        "GET:/api/v1/mpte-orchestrator/capabilities"
         "GET:/api/v1/evidence/bundles"
         "GET:/api/v1/deduplication/clusters"
         "GET:/api/v1/remediation/tasks"
@@ -2202,7 +2194,7 @@ main() {
             11) handle_pentest ;;
             12) handle_reachability ;;
             13) handle_teams_users ;;
-            14) handle_pentagi ;;
+            14) handle_mpte_orchestrator ;;
             15) handle_evidence ;;
             16) handle_health ;;
             17) handle_deduplication ;;

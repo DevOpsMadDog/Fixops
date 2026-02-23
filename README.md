@@ -232,7 +232,7 @@ ALdeci is a **Decision Intelligence Platform** for security teams. One platform 
 | **Advanced MPTE** | Full Micro-Pentest Testing Engine — configure, verify CVE exploitability, run pentests, manage test queue. | `POST /api/v1/mpte/verify` · `POST /api/v1/mpte/run` · `GET /api/v1/mpte/results/{id}` |
 | **Enterprise Micro-Pentest** | 8-phase testing: init → recon → threat model → vuln scan → exploit → compliance → risk score → attack path. MITRE ATT&CK aligned. Batch testing. | `POST /api/v1/micro-pentest/scan` · `POST /api/v1/micro-pentest/batch` |
 | **Breach & Attack Simulation** | Create/manage attack scenarios. AI-generate via LLM. MITRE ATT&CK heatmap. Breach impact assessment. | `POST /api/v1/attack-sim/scenarios` · `POST /api/v1/attack-sim/scenarios/generate` |
-| **PentAGI Unified API** | Gateway for threat intel, business impact, attack simulation, remediation guidance. | `POST /api/v1/pentagi/threat-intel` · `POST /api/v1/pentagi/attack-sim` |
+| **MPTE Orchestrator API** | Unified gateway for threat intel, business impact, attack simulation, remediation guidance. | `POST /api/v1/mpte-orchestrator/threat-intel` · `POST /api/v1/mpte-orchestrator/simulate` |
 | **Vulnerability Discovery & CVE Contribution** | Report pentested vulns, submit to CVE/MITRE programs, retrain ML models from discoveries. | `POST /api/v1/vulns/report` · `POST /api/v1/vulns/submit-cve` · `POST /api/v1/vulns/retrain` |
 
 ### 9. Integrations & Connectors
