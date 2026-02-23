@@ -22,8 +22,8 @@ jobs:
         run: git config --global --add safe.directory /__w/Fixops/Fixops
       - name: Install test dependencies
         run: |
-          pip install --upgrade requests urllib3
           pip install -r requirements-test.txt
+          pip install --upgrade requests urllib3
       - name: Lint & Compile
         run: |
           python -m compileall suite-api suite-core suite-attack suite-feeds suite-evidence-risk suite-integrations tests
