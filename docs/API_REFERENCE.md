@@ -570,7 +570,7 @@ Source: `suite-attack/api/attack_sim_router.py`
 
 | Router | Prefix | Endpoints | Key Endpoints |
 |--------|--------|-----------|---------------|
-| PentAGI | `/api/v1/pentagi` | 8 | `GET /health`, `GET /capabilities`, `POST /threat-intel`, `POST /business-impact`, `POST /simulate`, `POST /remediation`, `POST /run`, `GET /status/{test_id}` |
+| MPTE Orchestrator | `/api/v1/mpte-orchestrator` | 8 | `GET /health`, `GET /capabilities`, `POST /threat-intel`, `POST /business-impact`, `POST /simulate`, `POST /remediation`, `POST /run`, `GET /status/{test_id}` |
 | Vuln Discovery | `/api/v1/vuln-discovery` | 11 | `GET/POST /discovered`, `POST /contribute`, `GET /internal`, `GET /internal/{id}`, `PATCH /internal/{id}`, `POST /train`, `GET /train/{job_id}`, `GET /stats`, `GET /contributions`, `GET /health` |
 | Secrets | `/api/v1/secrets` | 7 | `GET /status`, `GET /`, `POST /`, `GET /{id}`, `POST /{id}/resolve`, `GET /scanners/status`, `POST /scan/content` |
 | SAST | `/api/v1/sast` | 4 | `POST /scan/code`, `POST /scan/files`, `GET /rules`, `GET /status` |

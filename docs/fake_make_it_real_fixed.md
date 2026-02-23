@@ -25,7 +25,7 @@ No endpoint returns `integration_required` or empty `controls: []` anymore.
 | 7 | `GET /compliance/controls/{fw}` | `controls: []` (always empty) | `controls: [12 items]` | Built-in control libraries (5 frameworks, 61 controls) |
 | 8 | `GET /compliance/dashboard` | `integration_required` (ComplianceEngine) | `status: ready` | ComplianceEngine + AnalyticsDB |
 | 9 | `POST /compliance/generate-report` | `integration_required` (ComplianceEngine) | `status: generated` | ComplianceEngine + AnalyticsDB |
-| 10 | `GET /pentagi/capabilities` | Static `available: true` | Dynamic detection | Runtime checks for micro_pentest, ComplianceEngine, AI models |
+| 10 | `GET /mpte-orchestrator/capabilities` | Static `available: true` | Dynamic detection | Runtime checks for micro_pentest, ComplianceEngine, AI models |
 
 ---
 
@@ -34,7 +34,7 @@ No endpoint returns `integration_required` or empty `controls: []` anymore.
 | File | Change | Lines |
 |------|--------|-------|
 | `suite-core/api/agents_router.py` | Added local fallbacks for 4 pentest + 5 compliance endpoints | ~300 lines added |
-| `suite-attack/api/pentagi_router.py` | Dynamic capability detection | ~40 lines changed |
+| `suite-attack/api/mpte_orchestrator_router.py` | Dynamic capability detection | ~40 lines changed |
 | `suite-core/core/services/enterprise/__init__.py` | **NEW** — enables ComplianceEngine import | 1 line |
 
 ---
@@ -178,7 +178,7 @@ HTTP 200 | status=generated
 message: Compliance report generated with 24 findings.
 ```
 
-### Fix 10: `GET /pentagi/capabilities`
+### Fix 10: `GET /mpte-orchestrator/capabilities`
 
 **Root Cause**: All capability `available` flags were hardcoded to `true`.
 

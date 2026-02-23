@@ -255,7 +255,7 @@ phase_health() {
         "/api/v1/micro-pentest/enterprise/health|Enterprise pentest health" \
         "/api/v1/attack-sim/health|Attack simulation health" \
         "/api/v1/vulns/health|Vulnerability discovery health" \
-        "/api/v1/pentagi/health|PentAGI health"
+        "/api/v1/mpte-orchestrator/health|MPTE Orchestrator health"
     subsec "Scanner & Tool Status"
     batch_get \
         "/api/v1/sast/status|SAST status" \
@@ -652,20 +652,20 @@ phase_validate() {
         '{"target":"payment-gateway","depth":"standard"}' \
         "MPTE comprehensive scan"
 
-    subsec "PentAGI (8 endpoints — known slow, short timeout)"
-    call_fast GET  "/api/v1/pentagi/capabilities" "" "PentAGI capabilities"
-    call_fast POST "/api/v1/pentagi/run" \
+    subsec "MPTE Orchestrator (8 endpoints — known slow, short timeout)"
+    call_fast GET  "/api/v1/mpte-orchestrator/capabilities" "" "MPTE Orchestrator capabilities"
+    call_fast POST "/api/v1/mpte-orchestrator/run" \
         '{"target":"payment-gateway","objective":"identify_vulnerabilities"}' \
-        "PentAGI: autonomous pentest"
-    call_fast POST "/api/v1/pentagi/simulate" \
+        "MPTE Orchestrator: autonomous pentest"
+    call_fast POST "/api/v1/mpte-orchestrator/simulate" \
         '{"scenario":"ransomware","target":"data-warehouse"}' \
-        "PentAGI: ransomware simulation"
-    call_fast POST "/api/v1/pentagi/threat-intel" \
+        "MPTE Orchestrator: ransomware simulation"
+    call_fast POST "/api/v1/mpte-orchestrator/threat-intel" \
         '{"cve_id":"CVE-2024-3094","enrichment_level":"deep"}' \
-        "PentAGI: threat intel enrichment"
-    call_fast POST "/api/v1/pentagi/business-impact" \
+        "MPTE Orchestrator: threat intel enrichment"
+    call_fast POST "/api/v1/mpte-orchestrator/business-impact" \
         '{"asset":"payment-gateway","threat":"CVE-2021-44228"}' \
-        "PentAGI: business impact"
+        "MPTE Orchestrator: business impact"
 
     subsec "Reachability Analysis (7 endpoints)"
     call_fast POST "/api/v1/reachability/analyze" \

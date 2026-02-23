@@ -463,11 +463,11 @@ curl -s -H "X-API-Key: $KEY" \
 
 **Expected:** Shows MPTE connection status. When MPTE service is not connected, pentest endpoints return `"integration_required": true` with setup instructions.
 
-### 14.2 PentAGI Capabilities
+### 14.2 MPTE Orchestrator Capabilities
 
 ```bash
 curl -s -H "X-API-Key: $KEY" \
-  "$API/api/v1/pentagi/capabilities" | python3 -m json.tool
+  "$API/api/v1/mpte-orchestrator/capabilities" | python3 -m json.tool
 ```
 
 **Expected:** Lists all AI-powered penetration testing capabilities: threat intelligence, AI consensus, attack simulation, business impact analysis.
@@ -539,7 +539,7 @@ The platform exposes **624 routes across 65 prefixes**. Key domain areas:
 | Feeds | `/api/v1/feeds` | EPSS, KEV, NVD threat intel |
 | Vulns | `/api/v1/vulns` | Vulnerability management |
 | Micro-Pentest | `/api/v1/micro-pentest` | Penetration testing |
-| PentAGI | `/api/v1/pentagi` | AI pentest orchestration |
+| MPTE Orchestrator | `/api/v1/mpte-orchestrator` | AI pentest orchestration |
 | Attack Sim | `/api/v1/attack-simulation` | Attack scenarios, MITRE |
 | Compliance | `/api/v1/copilot/agents/compliance` | Framework assessment |
 | Reports | `/api/v1/reports` | Report generation |

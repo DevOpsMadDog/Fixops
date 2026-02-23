@@ -43,14 +43,14 @@
 ## ✅ Phase 9: Smoke Test — 47/47 ALL PASSING (commit af38d07a)
 - [x] scripts/_enterprise_smoke.py — 47 endpoints, 30s timeout, 0.5s delays
 - [x] Fixed paths: vulns/health, dast/status, graph/, predictions (POST)
-- [x] Added: pentagi, reachability, ml, intelligent-engine endpoints
+- [x] Added: mpte-orchestrator, reachability, ml, intelligent-engine endpoints
 - [x] Removed: brain/most-connected (slow), stream/events (SSE)
 
 ## ✅ Phase 10: CTEM Loop Audit — All 5 Stages Functional
 - [x] Stage 1 (SCOPE): 4/4 — brain, business-context, agents
 - [x] Stage 2 (DISCOVER): 7/8 — feeds, EPSS, KEV, exploit-confidence, vulns
 - [x] Stage 3 (PRIORITIZE): 6/8 — decisions, brain stats, compliance, ML
-- [x] Stage 4 (VALIDATE): 7/7 — micro-pentest, pentagi, attack-sim, reachability, DAST, evidence, graph
+- [x] Stage 4 (VALIDATE): 7/7 — micro-pentest, mpte-orchestrator, attack-sim, reachability, DAST, evidence, graph
 - [x] Stage 5 (MOBILIZE): 7/8 — autofix, integrations, marketplace, reports, copilot, intelligent-engine, LLM
 
 ## 🔄 Phase 11: E2E Validation + Docs Update (in progress)

@@ -589,7 +589,7 @@ refactor: extract risk scoring to separate module
 | `integrations.db` | Integration configs (webhooks, Jira, etc.) |
 | `inventory.db` | Asset inventory |
 | `mpte.db` | Micro-pentest results |
-| `pentagi.db` | PentAGI agent data |
+| `pentagi.db` | MPTE Orchestrator agent data |
 | `policies.db` | Security policies |
 | `reports.db` | Generated reports |
 | `secrets.db` | Secret scanning results |

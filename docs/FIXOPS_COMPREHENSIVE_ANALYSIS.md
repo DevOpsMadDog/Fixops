@@ -783,7 +783,7 @@ Delegates to `core.sast_engine`. Uses pattern-matching with CWE mapping. Support
 
 | Router | Lines | Purpose | Notes |
 |--------|-------|---------|-------|
-| `pentagi_router.py` | ~300 | PentAGI integration | Autonomous pen testing via AI agents |
+| `mpte_orchestrator_router.py` | ~300 | MPTE Orchestrator integration | Autonomous pen testing via AI agents |
 | `cspm_router.py` | ~200 | Cloud Security Posture Management | AWS/Azure/GCP misconfig detection |
 | `vuln_discovery_router.py` | ~250 | Vulnerability discovery | Nmap/Nuclei-style scanning |
 | `attack_sim_router.py` | ~300 | Attack simulation | Breach & attack simulation (BAS) |
@@ -1714,7 +1714,7 @@ POST /api/v1/bulk/clusters/{id}/create-ticket  (create ticket)
 | **MPTE calls** | ~15 | agents pentest, mpte_router/*, micro_pentest_router/*, mpte_integration/* |
 | **SQLite CRUD** | ~250 | analytics/*, audit/*, inventory/*, findings/*, policies/* |
 | **In-memory only** | ~50 | copilot/sessions, agents/tasks, vuln_discovery/*, bulk/jobs |
-| **Stub/hardcoded** | ~20 | pentagi/* (6), remediation agent endpoints (7), bulk legacy (3+) |
+| **Stub/hardcoded** | ~20 | mpte-orchestrator/* (6), remediation agent endpoints (7), bulk legacy (3+) |
 | **Aggregation/read-only** | ~40 | nerve-center/*, health/*, stats endpoints, dashboards |
 | **Feed operations** | ~30 | feeds/* (refresh, enrich, categories, health) |
 | **External connector calls** | ~20 | integrations/test, webhooks/*, Jira/Slack/GitHub actions |
@@ -1760,7 +1760,7 @@ POST /api/v1/bulk/clusters/{id}/create-ticket  (create ticket)
 | ~~18~~ | ~~`core/connectors.py`~~ | ~~`ConnectorOutcome.success` only checks `"sent"`~~ | **VERIFIED FALSE** — checks `("sent", "success", "fetched")` |
 | 19 | `suite-ui/lib/api.ts` | Default API key `"test-token-123"` in source | Credential in source code |
 | 32 | `agents_router.py` | 7 remediation agent endpoints all return `{"status": "integration_required"}` | Stubs that appear functional but do nothing |
-| 33 | `pentagi_router.py` | 6 POST endpoints return hardcoded/synthetic responses | PentaGI integration is entirely fake |
+| 33 | `mpte_orchestrator_router.py` | 6 POST endpoints return hardcoded/synthetic responses | MPTE Orchestrator integration is entirely fake |
 | 34 | `reports_router.py` | `POST /generate` report generation mostly stubbed | Reports promise but don't deliver |
 | 35 | 5 router pairs | Duplicate routers in suite-api and suite-integrations (webhooks, IDE, integrations, IaC, MCP) — identical files (49 endpoints × 2) | Maintenance burden; changes to one copy not reflected in other |
 | 36 | 5 routers | Prefix inconsistencies: `decisions.py` → `/decisions` (not `/api/v1/decisions`), `pipeline_router.py` → `/api/v1/brain` (conflicts with brain_router), `mpte_integration.py` → `/mpte` (conflicts with mpte_router) | Route conflicts, inconsistent API surface |
@@ -1928,7 +1928,7 @@ No OpenAPI schema validation between frontend and backend:
 
 17. **Remove duplicate router files** — Delete the 5 identical copies in `suite-integrations/api/` (webhooks, IDE, integrations, IaC, MCP) — they're dead code since only `suite-api` copies load in `app.py`.
 
-18. **Implement stub endpoints** — Either wire the ~20 stub endpoints (agents remediation, PentaGI, bulk legacy) to real backends or remove them from the API surface to avoid confusion.
+18. **Implement stub endpoints** — Either wire the ~20 stub endpoints (agents remediation, MPTE Orchestrator, bulk legacy) to real backends or remove them from the API surface to avoid confusion.
 
 19. **Fix prefix inconsistencies** — Standardize `decisions.py` → `/api/v1/decisions`, resolve `pipeline_router` ↔ `brain_router` prefix conflict on `/api/v1/brain`.
 
@@ -1983,7 +1983,7 @@ No OpenAPI schema validation between frontend and backend:
 │                                                                     │
 │  ┌─── SUITE-ATTACK (12 routers, ~65 endpoints) ────────────────┐   │
 │  │ micro_pentest(20) mpte(22) vuln_discovery(11)               │   │
-│  │ attack_sim(14) pentagi(8*stub) secrets(8) sast(4)           │   │
+│  │ attack_sim(14) mpte_orchestrator(8*stub) secrets(8) sast(4)           │   │
 │  │ cspm(4) container(3) malware(4) dast(2) api_fuzzer(3)      │   │
 │  └─────────────────────────────────────────────────────────────┘   │
 │                                                                     │
@@ -2061,7 +2061,7 @@ Pattern 5: Integration/Webhook (20 endpoints)
 
 Pattern 6: Stub (20 endpoints)
   Client → FastAPI → Hardcoded response (no actual work)
-  Example: POST /api/v1/pentagi/analyze → {"status": "stub", ...}
+  Example: POST /api/v1/mpte-orchestrator/analyze → {"status": "stub", ...}
 ```
 
 ### 16.3 The Complete Endpoint Count
@@ -2145,7 +2145,7 @@ Pattern 6: Stub (20 endpoints)
 |------|-------|---------|
 | micro_pentest_router.py | 1,818 | Enterprise pen testing |
 | mpte_router.py | 726 | MPTE orchestration |
-| pentagi_router.py | ~300 | PentAGI integration |
+| mpte_orchestrator_router.py | ~300 | MPTE Orchestrator integration |
 | attack_sim_router.py | ~300 | Attack simulation |
 | vuln_discovery_router.py | ~250 | Vulnerability discovery |
 | api_fuzzer_router.py | ~250 | API fuzzing |

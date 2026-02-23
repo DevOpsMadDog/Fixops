@@ -299,16 +299,16 @@ test_endpoint "GET" "/evidence/"
 test_endpoint "POST" "/evidence/verify" '{"bundle_id": "test-bundle"}'
 
 # ============================================
-# SECTION 26: PENTAGI APIs
+# SECTION 26: MPTE ORCHESTRATOR APIs
 # ============================================
-echo -e "${YELLOW}=== Section 26: PentAGI APIs ===${NC}"
-test_endpoint "GET" "/api/v1/pentagi/configs"
-test_endpoint "GET" "/api/v1/pentagi/requests"
-test_endpoint "GET" "/api/v1/pentagi/results"
-test_endpoint "GET" "/api/v1/pentagi/stats"
-test_endpoint "POST" "/api/v1/pentagi/monitoring" '{"targets": ["https://httpbin.org"], "interval_minutes": 60}'
-test_endpoint "POST" "/api/v1/pentagi/verify" '{"target_url": "https://httpbin.org"}'
-test_endpoint "POST" "/api/v1/pentagi/scan/comprehensive" '{"target": "https://httpbin.org", "scan_type": "quick"}' "200,201,422,503"
+echo -e "${YELLOW}=== Section 26: MPTE Orchestrator APIs ===${NC}"
+test_endpoint "GET" "/api/v1/mpte-orchestrator/configs"
+test_endpoint "GET" "/api/v1/mpte-orchestrator/requests"
+test_endpoint "GET" "/api/v1/mpte-orchestrator/results"
+test_endpoint "GET" "/api/v1/mpte-orchestrator/stats"
+test_endpoint "POST" "/api/v1/mpte-orchestrator/monitoring" '{"targets": ["https://httpbin.org"], "interval_minutes": 60}'
+test_endpoint "POST" "/api/v1/mpte-orchestrator/verify" '{"target_url": "https://httpbin.org"}'
+test_endpoint "POST" "/api/v1/mpte-orchestrator/scan/comprehensive" '{"target": "https://httpbin.org", "scan_type": "quick"}' "200,201,422,503"
 
 # ============================================
 # SECTION 27: INPUT/PIPELINE APIs

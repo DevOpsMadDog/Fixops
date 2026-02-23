@@ -209,7 +209,7 @@ $(collect_codebase)
 1. **Open ALdeci Dashboard** — \`http://localhost:3001\`
 2. **Show Security Posture** — Unified vulnerability view with CVSS/EPSS scoring
 3. **Run Micro-PenTest** — \`http://localhost:3001/attack/micro-pentest\`
-4. **Show PentAGI Integration** — \`curl http://localhost:8000/api/v1/pentagi/health\`
+4. **Show MPTE Orchestrator Integration** — \`curl http://localhost:8000/api/v1/mpte-orchestrator/health\`
 5. **Present Investor Deck** — Key metrics, TAM/SAM/SOM, competitive moat
 
 ## What's Next

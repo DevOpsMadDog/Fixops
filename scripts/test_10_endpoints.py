@@ -52,7 +52,7 @@ tests = [
         "/copilot/agents/compliance/generate-report?framework=pci-dss",
         {"framework": "pci-dss"},
     ),
-    ("10 capabilities", "GET", "/pentagi/capabilities", None),
+    ("10 capabilities", "GET", "/mpte-orchestrator/capabilities", None),
 ]
 
 results = []

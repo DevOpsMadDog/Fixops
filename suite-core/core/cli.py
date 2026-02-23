@@ -3508,18 +3508,18 @@ def _handle_advanced_pentest(args: argparse.Namespace) -> int:
 
 
 # ============================================================================
-# PENTAGI UNIFIED COMMANDS (wraps micro-pentest + mpte + advanced-pentest)
+# MPTE ORCHESTRATOR UNIFIED COMMANDS (wraps micro-pentest + mpte + advanced-pentest)
 # ============================================================================
 
 
-def _handle_pentagi(args: argparse.Namespace) -> int:
-    """Handle unified PentAGI commands — delegates to micro-pentest, mpte, and
-    advanced-pentest handlers for a single cohesive 'pentagi' CLI."""
+def _handle_mpte_orchestrator(args: argparse.Namespace) -> int:
+    """Handle unified MPTE Orchestrator commands — delegates to micro-pentest, mpte, and
+    advanced-pentest handlers for a single cohesive 'mpte-orchestrator' CLI."""
     import argparse as _argparse
     import json
     import os
 
-    cmd = args.pentagi_command
+    cmd = args.mpte_orchestrator_command
 
     # --- scan: delegates to micro-pentest run ---
     if cmd == "scan":
@@ -3542,7 +3542,7 @@ def _handle_pentagi(args: argparse.Namespace) -> int:
             )
             return _handle_micro_pentest(proxy)
         else:
-            # General PentAGI system status
+            # General MPTE Orchestrator system status
             from core.mpte_db import MPTEDB
 
             db = MPTEDB()
@@ -3552,7 +3552,7 @@ def _handle_pentagi(args: argparse.Namespace) -> int:
             failed = [r for r in pending if r.status.value == "failed"]
 
             result = {
-                "pentagi_status": "operational",
+                "mpte_orchestrator_status": "operational",
                 "mpte_url": os.environ.get("MPTE_BASE_URL", "http://mpte:8443"),
                 "requests": {
                     "total": len(pending),
@@ -3821,7 +3821,7 @@ def _handle_pentagi(args: argparse.Namespace) -> int:
         return 0
 
     else:
-        print(f"Unknown pentagi command: {cmd}", file=sys.stderr)
+        print(f"Unknown mpte-orchestrator command: {cmd}", file=sys.stderr)
         return 1
 
 
@@ -5734,16 +5734,16 @@ def build_parser() -> argparse.ArgumentParser:
     playbook_parser.set_defaults(func=_handle_playbook)
 
     # =========================================================================
-    # PENTAGI UNIFIED COMMANDS
+    # MPTE ORCHESTRATOR UNIFIED COMMANDS
     # =========================================================================
-    pentagi_parser = subparsers.add_parser(
-        "pentagi",
-        help="Unified PentAGI — AI-powered penetration testing (wraps micro-pentest + mpte + advanced-pentest)",
+    mpte_orch_parser = subparsers.add_parser(
+        "mpte-orchestrator",
+        help="Unified MPTE Orchestrator — AI-powered penetration testing (wraps micro-pentest + mpte + advanced-pentest)",
     )
-    pentagi_subparsers = pentagi_parser.add_subparsers(dest="pentagi_command")
+    mpte_orch_subparsers = mpte_orch_parser.add_subparsers(dest="mpte_orchestrator_command")
 
-    # pentagi scan — run a micro penetration test
-    ptg_scan = pentagi_subparsers.add_parser(
+    # mpte-orchestrator scan — run a micro penetration test
+    ptg_scan = mpte_orch_subparsers.add_parser(
         "scan", help="Run a micro penetration test for specific CVEs"
     )
     ptg_scan.add_argument(
@@ -5757,9 +5757,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--format", choices=["json", "text"], default="text", help="Output format"
     )
 
-    # pentagi status — overall status or specific flow status
-    ptg_status = pentagi_subparsers.add_parser(
-        "status", help="Get PentAGI system status or check a specific flow"
+    # mpte-orchestrator status — overall status or specific flow status
+    ptg_status = mpte_orch_subparsers.add_parser(
+        "status", help="Get MPTE Orchestrator system status or check a specific flow"
     )
     ptg_status.add_argument(
         "flow_id", nargs="?", type=int, default=None, help="Flow ID (optional)"
@@ -5768,8 +5768,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--format", choices=["json", "text"], default="text", help="Output format"
     )
 
-    # pentagi list — list all pen test requests
-    ptg_list = pentagi_subparsers.add_parser("list", help="List pen test requests")
+    # mpte-orchestrator list — list all pen test requests
+    ptg_list = mpte_orch_subparsers.add_parser("list", help="List pen test requests")
     ptg_list.add_argument("--finding-id", help="Filter by finding ID")
     ptg_list.add_argument(
         "--status",
@@ -5782,8 +5782,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--format", choices=["table", "json"], default="table", help="Output format"
     )
 
-    # pentagi batch — run batch tests from config file
-    ptg_batch = pentagi_subparsers.add_parser(
+    # mpte-orchestrator batch — run batch tests from config file
+    ptg_batch = mpte_orch_subparsers.add_parser(
         "batch", help="Run batch micro penetration tests from a config file"
     )
     ptg_batch.add_argument("config_file", help="Path to JSON config file")
@@ -5791,21 +5791,21 @@ def build_parser() -> argparse.ArgumentParser:
         "--format", choices=["json", "text"], default="text", help="Output format"
     )
 
-    # pentagi threat-intel — get threat intelligence for a CVE
-    ptg_threat = pentagi_subparsers.add_parser(
+    # mpte-orchestrator threat-intel — get threat intelligence for a CVE
+    ptg_threat = mpte_orch_subparsers.add_parser(
         "threat-intel", help="Get threat intelligence for a CVE"
     )
     ptg_threat.add_argument("cve", help="CVE ID")
 
-    # pentagi business-impact — analyze business impact
-    ptg_biz = pentagi_subparsers.add_parser(
+    # mpte-orchestrator business-impact — analyze business impact
+    ptg_biz = mpte_orch_subparsers.add_parser(
         "business-impact", help="Analyze business impact of vulnerabilities"
     )
     ptg_biz.add_argument("--target", help="Target service name")
     ptg_biz.add_argument("--cves", help="Comma-separated CVE IDs")
 
-    # pentagi simulate — simulate attack chain
-    ptg_sim = pentagi_subparsers.add_parser("simulate", help="Simulate attack chain")
+    # mpte-orchestrator simulate — simulate attack chain
+    ptg_sim = mpte_orch_subparsers.add_parser("simulate", help="Simulate attack chain")
     ptg_sim.add_argument("--target", required=True, help="Target URL")
     ptg_sim.add_argument(
         "--attack-type",
@@ -5818,17 +5818,17 @@ def build_parser() -> argparse.ArgumentParser:
         default="chained_exploit",
     )
 
-    # pentagi remediation — generate remediation guidance
-    ptg_rem = pentagi_subparsers.add_parser(
+    # mpte-orchestrator remediation — generate remediation guidance
+    ptg_rem = mpte_orch_subparsers.add_parser(
         "remediation", help="Generate remediation guidance for a CVE"
     )
     ptg_rem.add_argument("cve", help="CVE ID")
 
-    # pentagi capabilities — list all capabilities
-    pentagi_subparsers.add_parser("capabilities", help="List PentAGI capabilities")
+    # mpte-orchestrator capabilities — list all capabilities
+    mpte_orch_subparsers.add_parser("capabilities", help="List MPTE Orchestrator capabilities")
 
-    # pentagi enterprise-scan — run enterprise-grade scan
-    ptg_escan = pentagi_subparsers.add_parser(
+    # mpte-orchestrator enterprise-scan — run enterprise-grade scan
+    ptg_escan = mpte_orch_subparsers.add_parser(
         "enterprise-scan", help="Run enterprise-grade penetration scan"
     )
     ptg_escan.add_argument("--target", required=True, help="Target URL")
@@ -5843,32 +5843,32 @@ def build_parser() -> argparse.ArgumentParser:
         help="Comma-separated compliance frameworks (PCI_DSS,SOC2,HIPAA,GDPR)",
     )
 
-    # pentagi enterprise-scans — list enterprise scans
-    pentagi_subparsers.add_parser(
+    # mpte-orchestrator enterprise-scans — list enterprise scans
+    mpte_orch_subparsers.add_parser(
         "enterprise-scans", help="List enterprise penetration scans"
     )
 
-    # pentagi audit-logs — view enterprise audit logs
-    pentagi_subparsers.add_parser("audit-logs", help="View enterprise audit logs")
+    # mpte-orchestrator audit-logs — view enterprise audit logs
+    mpte_orch_subparsers.add_parser("audit-logs", help="View enterprise audit logs")
 
-    # pentagi attack-vectors — list attack vectors
-    pentagi_subparsers.add_parser(
+    # mpte-orchestrator attack-vectors — list attack vectors
+    mpte_orch_subparsers.add_parser(
         "attack-vectors", help="List supported attack vectors"
     )
 
-    # pentagi threat-categories — list threat categories
-    pentagi_subparsers.add_parser("threat-categories", help="List threat categories")
+    # mpte-orchestrator threat-categories — list threat categories
+    mpte_orch_subparsers.add_parser("threat-categories", help="List threat categories")
 
-    # pentagi compliance-frameworks — list compliance frameworks
-    pentagi_subparsers.add_parser(
+    # mpte-orchestrator compliance-frameworks — list compliance frameworks
+    mpte_orch_subparsers.add_parser(
         "compliance-frameworks", help="List supported compliance frameworks"
     )
 
-    # pentagi scan-modes — list scan modes
-    pentagi_subparsers.add_parser("scan-modes", help="List available scan modes")
+    # mpte-orchestrator scan-modes — list scan modes
+    mpte_orch_subparsers.add_parser("scan-modes", help="List available scan modes")
 
-    # pentagi generate-report — generate pentest report
-    ptg_report = pentagi_subparsers.add_parser(
+    # mpte-orchestrator generate-report — generate pentest report
+    ptg_report = mpte_orch_subparsers.add_parser(
         "generate-report", help="Generate penetration test report"
     )
     ptg_report.add_argument("--target", required=True, help="Target URL for report")
@@ -5879,10 +5879,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Report format",
     )
 
-    # pentagi report-data — get latest report data
-    pentagi_subparsers.add_parser("report-data", help="Get latest report data")
+    # mpte-orchestrator report-data — get latest report data
+    mpte_orch_subparsers.add_parser("report-data", help="Get latest report data")
 
-    pentagi_parser.set_defaults(func=_handle_pentagi)
+    mpte_orch_parser.set_defaults(func=_handle_mpte_orchestrator)
 
     return parser
 

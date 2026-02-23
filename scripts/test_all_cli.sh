@@ -81,12 +81,12 @@ test_cli "users" "list" "" "List users"
 test_cli "users" "create" "--help" "Create user help"
 
 # ============================================
-# SECTION 3: PENTAGI & PENTEST
+# SECTION 3: MPTE ORCHESTRATOR & PENTEST
 # ============================================
-echo -e "${YELLOW}=== Section 3: Pentagi & Pentest ===${NC}"
-test_cli "pentagi" "" "--help" "Pentagi help"
-test_cli "pentagi" "status" "" "Pentagi status"
-test_cli "pentagi" "list" "" "List pentagi requests"
+echo -e "${YELLOW}=== Section 3: MPTE Orchestrator & Pentest ===${NC}"
+test_cli "mpte-orchestrator" "" "--help" "MPTE Orchestrator help"
+test_cli "mpte-orchestrator" "status" "" "MPTE Orchestrator status"
+test_cli "mpte-orchestrator" "list" "" "List MPTE Orchestrator requests"
 test_cli "micro-pentest" "" "--help" "Micro pentest help"
 test_cli "micro-pentest" "run" "--help" "Micro pentest run help"
 test_cli "advanced-pentest" "" "--help" "Advanced pentest help"

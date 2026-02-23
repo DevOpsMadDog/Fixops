@@ -323,15 +323,15 @@ test_endpoint "GET" "/api/v1/compliance/assessments"
 test_endpoint "POST" "/api/v1/compliance/assessments" '{"framework_id": "pci-dss", "scope": "full"}'
 
 # ============================================
-# SECTION 28: PENTAGI APIs
+# SECTION 28: MPTE ORCHESTRATOR APIs
 # ============================================
-echo -e "${YELLOW}=== Section 28: PentAGI APIs ===${NC}"
+echo -e "${YELLOW}=== Section 28: MPTE Orchestrator APIs ===${NC}"
 
-test_endpoint "GET" "/api/v1/pentagi/jobs"
-test_endpoint "GET" "/api/v1/pentagi/config"
-test_endpoint "GET" "/api/v1/pentagi/health"
-test_endpoint "GET" "/api/v1/pentagi/enhanced/playbooks"
-test_endpoint "GET" "/api/v1/pentagi/enhanced/campaigns"
+test_endpoint "GET" "/api/v1/mpte-orchestrator/jobs"
+test_endpoint "GET" "/api/v1/mpte-orchestrator/config"
+test_endpoint "GET" "/api/v1/mpte-orchestrator/health"
+test_endpoint "GET" "/api/v1/mpte-orchestrator/enhanced/playbooks"
+test_endpoint "GET" "/api/v1/mpte-orchestrator/enhanced/campaigns"
 
 # ============================================
 # SECTION 29: PIPELINE/INPUTS APIs

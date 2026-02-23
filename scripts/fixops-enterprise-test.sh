@@ -356,8 +356,8 @@ stage_validate() {
   banner "4.2 Attack Simulation"
   call GET /api/v1/attack-sim/health "" "Attack simulation (BAS)"
   call GET /api/v1/attack-simulation/health "" "Attack simulation health"
-  call GET /api/v1/pentagi/health "" "PentAGI engine"
-  call GET /api/v1/pentagi/capabilities "" "PentAGI capabilities"
+  call GET /api/v1/mpte-orchestrator/health "" "MPTE Orchestrator engine"
+  call GET /api/v1/mpte-orchestrator/capabilities "" "MPTE Orchestrator capabilities"
   showbrief
   ask_continue || return
 
@@ -522,7 +522,7 @@ test_all_health() {
     "/api/v1/micro-pentest/health"
     "/api/v1/attack-sim/health"
     "/api/v1/attack-simulation/health"
-    "/api/v1/pentagi/health"
+    "/api/v1/mpte-orchestrator/health"
     "/api/v1/vulns/health"
     "/api/v1/evidence/health"
     "/api/v1/risk/health"

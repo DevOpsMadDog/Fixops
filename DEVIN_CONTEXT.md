@@ -39,7 +39,7 @@ ALdeci is a **security vulnerability management and risk assessment platform**. 
 **Key capabilities:**
 - Real-time vulnerability feed ingestion and correlation
 - Knowledge Graph Brain for CVE/CWE/CPE relationship mapping
-- AI-powered micro-pentesting (MPTE engine + PentAGI)
+- AI-powered micro-pentesting (MPTE engine + MPTE Orchestrator)
 - Attack simulation, DAST, SAST, container scanning, API fuzzing
 - Evidence bundling and compliance reporting (SOC2, ISO27001)
 - SBOM normalization (CycloneDX, SPDX) and dependency analysis
@@ -183,7 +183,7 @@ from core.configuration import OverlayConfig, load_overlay  # → suite-core/cor
 |-------------|--------|-----------|--------|
 | `mpte_router.py` | `/api/v1/mpte` | 20 | MPTE requests, configs, verify, monitoring |
 | `micro_pentest_router.py` | `/api/v1/micro-pentest` | 18 | Pentest start/status/verify, reports |
-| `pentagi_router.py` | `/api/v1/pentagi` | 8 | PentAGI threat-intel, simulate, remediation |
+| `mpte_orchestrator_router.py` | `/api/v1/mpte-orchestrator` | 8 | MPTE Orchestrator threat-intel, simulate, remediation |
 | `vuln_discovery_router.py` | `/api/v1/vuln-discovery` | 12 | Discovered vulns, contribute, train |
 | `attack_sim_router.py` | `/api/v1/attack-simulation` | 14 | Scenarios, campaigns, MITRE heatmap |
 | `secrets_router.py` | `/api/v1/secrets` | 8 | Secrets scanning, resolve |
@@ -682,7 +682,7 @@ ALdeci implements the full **Continuous Threat Exposure Management** (CTEM) loop
 | **1. SCOPE** | `/api/v1/brain/health`, `/api/v1/business-context/*`, `/api/v1/copilot/agents/status` | ✅ 4/4 |
 | **2. DISCOVER** | `/api/v1/feeds/*`, `/api/v1/vulns/*`, `/api/v1/feeds/exploit-confidence/*` | ✅ 7/8 |
 | **3. PRIORITIZE** | `/api/v1/decisions/*`, `/api/v1/brain/stats`, `/api/v1/audit/compliance/*`, `/api/v1/ml/*` | ✅ 6/8 |
-| **4. VALIDATE** | `/api/v1/micro-pentest/*`, `/api/v1/pentagi/*`, `/api/v1/attack-sim/*`, `/api/v1/reachability/*`, `/api/v1/dast/*`, `/api/v1/brain/evidence/*` | ✅ 7/7 |
+| **4. VALIDATE** | `/api/v1/micro-pentest/*`, `/api/v1/mpte-orchestrator/*`, `/api/v1/attack-sim/*`, `/api/v1/reachability/*`, `/api/v1/dast/*`, `/api/v1/brain/evidence/*` | ✅ 7/7 |
 | **5. MOBILIZE** | `/api/v1/autofix/*`, `/api/v1/integrations`, `/api/v1/marketplace/*`, `/api/v1/reports`, `/api/v1/copilot/agents/*`, `/api/v1/llm/*` | ✅ 7/8 |
 
 **Total: 31/35 endpoints working across all 5 CTEM stages (88.6%)**

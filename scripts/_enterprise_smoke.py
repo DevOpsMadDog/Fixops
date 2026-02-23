@@ -146,7 +146,7 @@ for ep in [
     "/api/v1/attack-sim/health",
     "/api/v1/vulns/health",
     "/api/v1/micro-pentest/health",
-    "/api/v1/pentagi/health",
+    "/api/v1/mpte-orchestrator/health",
     "/api/v1/dast/status",
 ]:
     hit("GET", ep)

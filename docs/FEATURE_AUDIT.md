@@ -339,10 +339,10 @@
 - **Endpoints:** `POST /api/v1/attack-sim/scenarios`, `POST /api/v1/attack-sim/scenarios/generate`, `POST /api/v1/attack-sim/scenarios/{id}/run`, `GET /api/v1/attack-sim/scenarios/{id}/results`, `GET /api/v1/attack-sim/mitre-heatmap`
 - **Personas:** Red Team Lead, SOC Manager
 
-### 8d. PentAGI Unified API
-- **What:** Unified gateway for PentAGI capabilities: threat intelligence, business impact analysis, attack simulation, remediation guidance, capability introspection. Bridges CLI and HTTP.
-- **File:** `suite-attack/api/pentagi_router.py` (~670 lines)
-- **Endpoints:** `POST /api/v1/pentagi/threat-intel`, `POST /api/v1/pentagi/impact-analysis`, `POST /api/v1/pentagi/attack-sim`, `POST /api/v1/pentagi/remediation`, `GET /api/v1/pentagi/capabilities`
+### 8d. MPTE Orchestrator Unified API
+- **What:** Unified gateway for MPTE Orchestrator capabilities: threat intelligence, business impact analysis, attack simulation, remediation guidance, capability introspection. Bridges CLI and HTTP.
+- **File:** `suite-attack/api/mpte_orchestrator_router.py` (~670 lines)
+- **Endpoints:** `POST /api/v1/mpte-orchestrator/threat-intel`, `POST /api/v1/mpte-orchestrator/impact-analysis`, `POST /api/v1/mpte-orchestrator/attack-sim`, `POST /api/v1/mpte-orchestrator/remediation`, `GET /api/v1/mpte-orchestrator/capabilities`
 - **Personas:** Pen Tester, Security Architect
 
 ### 8e. Vulnerability Discovery & CVE Contribution
@@ -684,7 +684,7 @@
 |---------|----------------------|
 | **CISO** | Analytics (3a), Nerve Center (4c), Risk Quantification (10b), Risk Scoring (7e), Compliance Reports (7b) |
 | **Security Analyst** | Triage (17c), Copilot Chat (2a), Agents (2b), Deduplication (14a), Exposure Cases (14d), Feeds (6a-g) |
-| **Pen Tester / Red Team** | MPTE (8a), Micro-Pentest (8b), BAS (8c), PentAGI (8d), Vuln Discovery (8e), DAST (15b), API Fuzzing (15e) |
+| **Pen Tester / Red Team** | MPTE (8a), Micro-Pentest (8b), BAS (8c), MPTE Orchestrator (8d), Vuln Discovery (8e), DAST (15b), API Fuzzing (15e) |
 | **Developer** | Auto-Fix (4b), IDE Support (9d), SAST (15a), Secrets (15g), Remediation Tasks (13a) |
 | **Compliance Officer / Auditor** | Audit Chain (7a), Evidence Vault (7d), Compliance Reports (7b), Provenance (7f), Policies (12a) |
 | **DevSecOps Engineer** | Pipeline (4d), Workflows (4a), Data Ingestion (16a), Validation (16c), IaC (9c), Bulk Ops (4f) |
