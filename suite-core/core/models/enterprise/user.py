@@ -2,7 +2,7 @@
 Enterprise user model with security, compliance, and RBAC
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Dict, List, Optional
 

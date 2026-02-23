@@ -849,9 +849,3 @@ async def update_overlay_config(config: Dict[str, Any]):
         "message": "Overlay configuration updated successfully",
         "requires_restart": False,
     }
-
-
-@router.get("/overlay")
-async def get_overlay_config() -> Dict[str, Any]:
-    """Retrieve current overlay configuration."""
-    return dict(_overlay_config)

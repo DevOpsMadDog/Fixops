@@ -1,6 +1,7 @@
 """Enhanced API router for advanced MPTE pen testing integration."""
 import logging
 import os
+from datetime import datetime, timezone
 from typing import List, Optional
 
 import httpx
@@ -79,7 +80,6 @@ def get_mpte_service() -> Optional[AdvancedMPTEService]:
 async def _call_real_mpte_verify(data) -> dict:
     """Call real MPTE verification service."""
     import uuid
-    from datetime import datetime
 
     async with httpx.AsyncClient(verify=tls_verify(), timeout=30.0) as client:
         try:
@@ -119,7 +119,6 @@ async def _call_real_mpte_verify(data) -> dict:
 async def _call_real_mpte_scan(data) -> dict:
     """Call real MPTE comprehensive scan service."""
     import uuid
-    from datetime import datetime
 
     async with httpx.AsyncClient(verify=tls_verify(), timeout=30.0) as client:
         try:
@@ -326,8 +325,6 @@ def start_pen_test(request_id: str):
         raise HTTPException(status_code=404, detail="Pen test request not found")
 
     request.status = PenTestStatus.RUNNING
-    from datetime import datetime
-
     request.started_at = datetime.now(timezone.utc)
     updated = db.update_request(request)
 
@@ -342,8 +339,6 @@ def cancel_pen_test(request_id: str):
         raise HTTPException(status_code=404, detail="Pen test request not found")
 
     request.status = PenTestStatus.CANCELLED
-    from datetime import datetime
-
     request.completed_at = datetime.now(timezone.utc)
     updated = db.update_request(request)
 
@@ -390,8 +385,6 @@ def create_pen_test_result(data: CreatePenTestResultModel):
     request = db.get_request(data.request_id)
     if request:
         request.status = PenTestStatus.COMPLETED
-        from datetime import datetime
-
         request.completed_at = datetime.now(timezone.utc)
         db.update_request(request)
 

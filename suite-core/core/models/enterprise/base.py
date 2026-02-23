@@ -3,7 +3,7 @@ Base model with common fields and enterprise patterns
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 import structlog

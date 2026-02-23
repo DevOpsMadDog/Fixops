@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from fastapi import status
@@ -67,8 +68,6 @@ def create_error_response(
     Returns:
         Error response dictionary
     """
-    from datetime import datetime
-
     response = {
         "error": error_code,
         "message": message,
