@@ -1,46 +1,210 @@
+<div align="center">
+
 # ALdeci — A Day in the Life
 
-> *How a real team uses ALdeci, told as a story.*
+### How a Real Security Team Goes from Drowning in Alerts to Sleeping at Night
+
+[![25 Personas](https://img.shields.io/badge/personas-25-blue)]()
+&nbsp;
+[![28 Chapters](https://img.shields.io/badge/chapters-28-blue)]()
+&nbsp;
+[![72 Features](https://img.shields.io/badge/features-72-blue)]()
+&nbsp;
+[![Read Time](https://img.shields.io/badge/read_time-~40_min-orange)]()
+
+**This is not a feature list. This is a story.**
+
+*Follow 25 real personas — from a panicking junior developer to a skeptical CFO to a Big 4 auditor — through a single day, a single week, and a single quarter with ALdeci. See exactly how every feature solves a real problem for a real person.*
+
+</div>
+
+---
+
+> **Why this document exists:** Most security tools show you a feature grid. We think you deserve to see *how it actually feels* to use one. This story follows HealthPay — a fictional healthcare fintech startup — as they go from 14,000 unmanageable vulnerability alerts to a security program that runs itself.
+
+---
+
+## Table of Contents
+
+<details>
+<summary><strong>Click to expand full chapter list</strong></summary>
+
+| # | Chapter | Who Stars In It | What You'll See |
+|:---:|---|---|---|
+| — | [The Characters](#the-characters) | Everyone | Meet all 25 personas |
+| — | [The Company](#the-company) | — | HealthPay's security nightmare |
+| 1 | [Getting Started](#chapter-1-getting-started-day-1) | Sarah, Ethan | 60-second setup, first scan, 11,300 → 340 |
+| 2 | [Raj's Morning](#chapter-2-rajs-morning-daily-use) | Raj | Smart dashboard, overnight CVE, AI copilot |
+| 3 | [Mike Fixes It](#chapter-3-mike-fixes-it-developer-experience) | Mike | PR check, auto-fix, post-deploy verify |
+| 4 | [Lisa's Cloud Check](#chapter-4-lisas-cloud-check-infrastructure) | Lisa | S3 bucket + IAM + attack path |
+| 5 | [The Risk Graph](#chapter-5-the-risk-graph-seeing-the-invisible) | David, Tom | Attack surface map, GNN prediction, supply chain |
+| 6 | [SBOM & Inventory](#chapter-6-sbom--asset-inventory-knowing-what-you-have) | Anika | SBOM generation, unified asset inventory |
+| 7 | [The Audit](#chapter-7-the-audit-compliance) | Sarah, Raj, Karen | HIPAA evidence bundle, 3 weeks → 2 hours |
+| 8 | [Board Meeting](#chapter-8-the-board-meeting-reporting) | Sarah | One-page executive report |
+| 9 | [Playbooks](#chapter-9-automation--playbooks-rajs-superpower) | Raj | 25 hours → 90 seconds, nerve center |
+| 10 | [Threat Intel](#chapter-10-threat-intelligence-anikas-early-warning-system) | Anika, Sana | 50+ threat feeds, curated daily brief |
+| 11 | [Collaboration](#chapter-11-collaboration-the-whole-team-one-place) | Mike, Raj, Anika | Comments, activity feed, evidence promotion |
+| 12 | [Learning Loop](#chapter-12-the-learning-loop-over-time) | Chen, Raj | 5 ML feedback loops, self-learning |
+| 13 | [The Incident](#chapter-13-the-incident-when-things-go-wrong) | Raj, Tom | 2 AM attack attempt, auto-response |
+| 14 | [CISO View](#chapter-14-davids-ciso-view-risk-ownership) | David | Risk register, policy enforcement |
+| 15 | [CFO View](#chapter-15-priyas-cfo-view-proving-roi) | Priya | ROI dashboard, $110K saved, tool consolidation |
+| 16 | [VM Team](#chapter-16-anika--toms-day-vulnerability-management-team) | Anika, Tom | 80% data janitoring → 0%, triage inbox |
+| 17 | [AppSec Engineering](#chapter-17-ninas-appsec-engineering-shifting-left) | Nina | 8 → 20 PRs/week, security champions |
+| 18 | [Red Team](#chapter-18-jakes-red-team-offensive-security) | Jake | 1 → 365 pen-tests/year, MPTE engine |
+| 19 | [Compliance World](#chapter-19-karens-compliance-world-audit-ready-every-day) | Karen | Always audit-ready, gap tracking |
+| 20 | [Sprint Planning](#chapter-20-derek--olivias-sprint-where-security-meets-delivery) | Derek, Olivia | Sprint security budget, velocity protection |
+| 21 | [Threat Analyst](#chapter-21-sanas-threat-intelligence-knowing-the-enemy) | Sana | TTP correlation, threat hunts |
+| 22 | [Security Pipeline](#chapter-22-ethan-builds-the-security-pipeline-security-engineering) | Ethan | Connector config, 60% → 10% maintenance |
+| 23 | [Data & AI Team](#chapter-23-the-data--ai-team-making-aldeci-smarter) | Farid, Maya, Ravi, Chen | LLM tuning, RAG, ML models, context engine |
+| 24 | [Junior Dev](#chapter-24-alexs-first-security-ticket-the-junior-dev-experience) | Alex | Terrified → confident in one ticket |
+| 25 | [External Audit](#chapter-25-dianas-audit-the-external-auditors-experience) | Diana | 3 days → 4 hours, cryptographic proof |
+| 26 | [Architecture Review](#chapter-26-lenas-architecture-review-security-by-design) | Lena | Risk simulation, pattern analysis |
+| 27 | [SOC Operations](#chapter-27-victors-soc-operations-managing-the-security-team) | Victor | SOC metrics, shift handoff, staffing data |
+| 28 | [Platform Admin](#chapter-28-hasans-admin-day-running-the-platform) | Hasan | RBAC, SSO, platform health, 2 hr/month |
+| — | [Before & After](#the-transformation) | Everyone | The full before/after comparison |
+| — | [Competitor Comparison](#how-aldeci-compares-to-existing-tools) | — | Why not just use Snyk/Wiz/ArmorCode? |
+| — | [Feature × Persona Map](#complete-feature--persona-map) | All 25 | Every feature, every persona, one table |
+
+</details>
+
+---
+
+## The Vision
+
+<div align="center">
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                                                                     │
+│   Your scanners found 14,000 vulnerabilities.                       │
+│                                                                     │
+│   ALdeci tells you which 12 actually matter,                        │
+│   who should fix them,                                              │
+│   exactly how to fix them,                                          │
+│   proves to auditors that you did,                                  │
+│   and gets smarter every week.                                      │
+│                                                                     │
+│   It doesn't replace your tools. It makes them 10x more useful.     │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+</div>
+
+```mermaid
+graph LR
+    subgraph "Your Existing Tools"
+        S[Snyk] --> A((ALdeci))
+        T[Trivy] --> A
+        Q[Qualys] --> A
+        G[GitHub] --> A
+        AW[AWS] --> A
+    end
+
+    subgraph "ALdeci Brain"
+        A --> D[Deduplicate]
+        D --> R[Reachability Check]
+        R --> TI[Threat Intel Enrichment]
+        TI --> ML[ML Prioritization]
+        ML --> V[MPTE Verification]
+    end
+
+    subgraph "Outcomes"
+        V --> J[Jira Tickets<br/>with exact fixes]
+        V --> SL[Slack Alerts<br/>to right people]
+        V --> C[Compliance Evidence<br/>signed & sealed]
+        V --> RG[Risk Graph<br/>for the board]
+    end
+
+    style A fill:#6366f1,stroke:#4f46e5,color:#fff
+    style D fill:#22c55e,stroke:#16a34a,color:#fff
+    style R fill:#22c55e,stroke:#16a34a,color:#fff
+    style TI fill:#22c55e,stroke:#16a34a,color:#fff
+    style ML fill:#22c55e,stroke:#16a34a,color:#fff
+    style V fill:#22c55e,stroke:#16a34a,color:#fff
+```
 
 ---
 
 ## The Characters
 
-### Leadership
-- **Sarah** — VP of Engineering, 40 engineers, owns delivery velocity and engineering culture
-- **David** — CISO, reports to the CEO, owns the security program and regulatory risk
-- **Priya** — CFO, controls the budget, needs to justify every security dollar
-- **Karen** — Compliance Manager, owns HIPAA/PCI-DSS/SOC 2 audit readiness, lives in spreadsheets
+> *25 people. 5 teams. One platform. Every character is someone you know.*
 
-### Security Team
-- **Raj** — Application Security Lead, runs the AppSec program, bridges security and engineering
-- **Nina** — AppSec Engineer, does code reviews, SAST/DAST configuration, dev security training
-- **Anika** — Vulnerability Management Analyst, triages findings across all scanners
-- **Tom** — Security Analyst (SOC & VM), monitors alerts, handles incident triage, feeds data to VM
-- **Victor** — SOC Manager, runs the SOC team, tracks MTTD/MTTR, manages shift schedules and alert routing
-- **Jake** — Offensive Team Lead (Red Team), runs pen-tests, simulates adversaries, validates defenses
-- **Sana** — Threat Analyst, tracks threat actors, analyzes TTPs, produces intelligence briefings
-- **Ethan** — Security Engineer, builds security tooling, integrates scanners into CI/CD, maintains SIEM
-- **Lena** — Security Architect, designs defense-in-depth, threat modelling, architecture security reviews
+<details>
+<summary><strong>Leadership</strong> — The 4 people who need answers, not alerts</summary>
 
-### Engineering & Product
-- **Mike** — Senior Developer on the payments team, 8 years experience, mentors junior devs
-- **Alex** — Junior Developer, 6 months in, just joined the patient-records team, nervous about security
-- **Lisa** — DevOps Lead, manages CI/CD, Kubernetes, cloud infrastructure, Terraform
-- **Derek** — Scrum Master, runs sprints, removes blockers, tracks velocity, hates unplanned security work
-- **Olivia** — Product Owner, prioritizes the backlog, balances features vs. security debt
-- **Hasan** — Platform Admin / IT Ops, provisions user accounts, manages the ALdeci instance, handles SSO and backups
+| Name | Role | Their Problem |
+|---|---|---|
+| **Sarah** | VP of Engineering | Board asks "are we safe?" and she doesn't know |
+| **David** | CISO | Personally liable if they get breached. Can't sleep. |
+| **Priya** | CFO | Spending $180K/year on security tools. Can't prove ROI. |
+| **Karen** | Compliance Manager | Lives in spreadsheets. 3 weeks of panic before every audit. |
 
-### Data & AI Team
-- **Farid** — LLM Analyst, manages ALdeci's multi-LLM configuration, prompt tuning, model evaluation
-- **Maya** — Context Engineer, designs the prompts, enrichment pipelines, and context windows that feed the AI
-- **Ravi** — Data Engineer, builds ingestion pipelines, manages data quality, ETL from 12 scanner sources
-- **Chen** — Data Scientist, builds ML models for risk prediction, false-positive detection, anomaly scoring
+</details>
 
-### External
-- **Diana** — External Auditor from a Big 4 firm, reviews HIPAA/PCI-DSS evidence, verifies controls
+<details>
+<summary><strong>Security Team</strong> — The 9 people fighting 14,000 alerts with 8 hours a day</summary>
 
-HealthPay processes medical payments. They handle sensitive patient data (HIPAA) and credit cards (PCI-DSS). They have 12 microservices, 3 cloud accounts, and use GitHub, Jira, and Slack. They already pay for Snyk ($42K/year) and run Trivy in their pipelines. Priya also approved Qualys ($28K/year) for infrastructure scanning. **They're drowning in 14,000 security findings across all their tools and have no idea which ones actually matter. David is personally liable if they get breached. Priya is spending $180K/year on security tools and can't prove ROI.**
+| Name | Role | Their Problem |
+|---|---|---|
+| **Raj** | AppSec Lead | 30 hours/week copy-pasting CVE descriptions into Jira |
+| **Nina** | AppSec Engineer | Can only review 8 of 20 security PRs per week |
+| **Anika** | VM Analyst | 80% of her week is exporting CSVs and deduplicating in Excel |
+| **Tom** | Security Analyst | Alert fatigue from 3 uncorrelated dashboards |
+| **Victor** | SOC Manager | Can't measure MTTD/MTTR. Verbal shift handoffs. |
+| **Jake** | Red Team Lead | 1 pen-test per year. 150-page PDF nobody reads. |
+| **Sana** | Threat Analyst | Manually checks 15 RSS feeds. Briefings are generic, not actionable. |
+| **Ethan** | Security Engineer | 60% of his time maintaining custom ETL scripts between tools |
+| **Lena** | Security Architect | Makes architecture decisions on gut feel, not data |
+
+</details>
+
+<details>
+<summary><strong>Engineering & Product</strong> — The 6 people who just want to ship code</summary>
+
+| Name | Role | Their Problem |
+|---|---|---|
+| **Mike** | Senior Developer | Gets vague Jira tickets with just a CVE number. Spends 2 hours researching. |
+| **Alex** | Junior Developer | Got a security ticket. Doesn't know what SQL injection is. Terrified. |
+| **Lisa** | DevOps Lead | Cloud misconfigs found after deployment, never before |
+| **Derek** | Scrum Master | Unplanned security work blows up 30% of sprint velocity |
+| **Olivia** | Product Owner | Security vs. features is a constant fight with no visibility |
+| **Hasan** | Platform Admin | User provisioning via helpdesk tickets. SSH to fix things. |
+
+</details>
+
+<details>
+<summary><strong>Data & AI Team</strong> — The 4 people making the AI actually work</summary>
+
+| Name | Role | Their Problem |
+|---|---|---|
+| **Farid** | LLM Analyst | Managing multi-LLM consensus across 3 providers |
+| **Maya** | Context Engineer | Making sure the AI gets the right context for good answers |
+| **Ravi** | Data Engineer | 50% of his time fixing broken parsers for 12 scanner formats |
+| **Chen** | Data Scientist | Training ML models on stale data with no feedback loops |
+
+</details>
+
+<details>
+<summary><strong>External</strong></summary>
+
+| Name | Role | Their Problem |
+|---|---|---|
+| **Diana** | Big 4 Auditor | 3 days on-site per client. Evidence is screenshots and verbal promises. |
+
+</details>
+
+---
+
+## The Company
+
+**HealthPay** processes medical payments. They handle sensitive patient data (HIPAA) and credit cards (PCI-DSS). They have 12 microservices, 3 cloud accounts, and use GitHub, Jira, and Slack. They already pay for Snyk ($42K/year) and run Trivy in their pipelines. Priya also approved Qualys ($28K/year) for infrastructure scanning.
+
+<div align="center">
+
+> **They're drowning in 14,000 security findings across all their tools and have no idea which ones actually matter. David is personally liable if they get breached. Priya is spending $180K/year on security tools and can't prove ROI.**
+
+</div>
 
 ---
 
@@ -75,6 +239,22 @@ Sarah clicks **"Run First Analysis."** ALdeci's brain kicks in:
 5. It checks their business context: *"Which services handle payments or patient data?"* — The `payment-gateway` and `patient-records` services get extra weight
 
 **Result: 11,300 findings become 340 that actually matter. 47 are critical. 12 need action this week.**
+
+```mermaid
+graph LR
+    A["11,300 raw findings"] --> B["Deduplication<br/>-2,400"]
+    B --> C["Reachability<br/>-3,100"]
+    C --> D["Threat Intel<br/>47 active exploits"]
+    D --> E["Business Context<br/>crown jewel weighting"]
+    E --> F["340 that matter<br/>12 need action NOW"]
+
+    style A fill:#ef4444,color:#fff
+    style B fill:#f97316,color:#fff
+    style C fill:#eab308,color:#000
+    style D fill:#22c55e,color:#fff
+    style E fill:#3b82f6,color:#fff
+    style F fill:#6366f1,color:#fff
+```
 
 Sarah stares at the screen. For the first time, she can see the real picture.
 
@@ -165,6 +345,22 @@ ALdeci notices the deployment, re-scans `payment-gateway` in staging, confirms C
 - Generates a compliance evidence record with a timestamp and digital signature (for the next HIPAA audit)
 
 **Mike's total time: 20 minutes of actual work.** He didn't need to become a security expert. ALdeci told him exactly what to do.
+
+```mermaid
+graph LR
+    CVE["CVE Discovered"] --> TRIAGE["Auto-triage<br/>+ Jira ticket"]
+    TRIAGE --> DEV["Developer sees<br/>clear fix instructions"]
+    DEV --> PR["Opens PR"]
+    PR --> GATE["Pre-merge gate<br/>4 automated checks"]
+    GATE --> MERGE["Merge + deploy"]
+    MERGE --> VERIFY["Auto re-scan<br/>confirms fix"]
+    VERIFY --> CLOSE["Ticket closed<br/>Evidence signed<br/>Risk score updated"]
+
+    style CVE fill:#ef4444,color:#fff
+    style TRIAGE fill:#f97316,color:#fff
+    style GATE fill:#3b82f6,color:#fff
+    style CLOSE fill:#22c55e,color:#fff
+```
 
 ---
 
@@ -368,6 +564,25 @@ THEN:
 
 This playbook fires automatically. Raj didn't lift a finger. The entire 25-hour workflow happens in 90 seconds.
 
+```mermaid
+graph TD
+    TRIGGER["Critical CVE Detected<br/>CVSS ≥ 9.0 + EPSS ≥ 0.7 + Reachable"] --> MPTE["MPTE Micro-Pentest<br/>Verify exploitability"]
+    MPTE --> GRAPH["Risk Graph<br/>Calculate attack paths"]
+    GRAPH --> AI["Multi-LLM Consensus<br/>Generate fix recommendation"]
+    AI --> JIRA["Create Jira Ticket<br/>P1, assigned to code owner"]
+    AI --> SLACK["Slack Alert<br/>#security-critical"]
+    AI --> CISO["CISO Dashboard<br/>Immediate attention"]
+    JIRA --> RESCAN["Auto re-scan<br/>in 24 hours"]
+    RESCAN -->|Not fixed in 72h| ESC["Escalate to<br/>VP Engineering"]
+    RESCAN -->|Fixed| CLOSE["Auto-close ticket<br/>Update risk score"]
+
+    style TRIGGER fill:#ef4444,color:#fff
+    style MPTE fill:#f97316,color:#fff
+    style GRAPH fill:#eab308,color:#000
+    style AI fill:#6366f1,color:#fff
+    style CLOSE fill:#22c55e,color:#fff
+```
+
 Raj has built 8 playbooks:
 - **Critical CVE Response** — auto-triage, ticket, notify, escalate
 - **New Deploy Check** — scan + verify after every deployment
@@ -405,7 +620,7 @@ Before ALdeci, the team found out about new threats from Twitter, or worse — f
 
 ### After: real-time threat feeds
 
-ALdeci continuously pulls from **30+ threat intelligence sources** across 8 categories:
+ALdeci continuously pulls from **50+ threat intelligence sources** across 8 categories:
 
 | Feed Category | Sources | What It Tells You |
 |---|---|---|
@@ -485,6 +700,22 @@ Three months in, something interesting happens. ALdeci has learned HealthPay's p
 **Loop 5 — Deployment Pattern Recognition**: ALdeci notices that every Friday afternoon deployment introduces new vulnerabilities. It recommends a policy: *"Consider blocking Friday deployments or adding an extra security check for end-of-week releases."* David adds it as an enforced policy.
 
 Raj used to spend 30 hours a week on security triage. Now he spends 6. The other 24 hours? He's actually improving their security architecture instead of playing whack-a-mole.
+
+```mermaid
+graph TD
+    subgraph "5 Self-Learning Feedback Loops"
+        L1["Triage Accuracy<br/>Learns from Raj's overrides<br/>94% match rate"] --> BRAIN((ALdeci<br/>Brain))
+        L2["Fix Time Prediction<br/>Routes to fastest fixer<br/>per vulnerability type"]--> BRAIN
+        L3["False Positive Detection<br/>Auto-suppresses unreachable code<br/>91% precision"] --> BRAIN
+        L4["Risk Trajectory<br/>Monte Carlo breach forecast<br/>6-month projection"] --> BRAIN
+        L5["Deployment Patterns<br/>Detects Friday deploy risk<br/>Policy recommendation"] --> BRAIN
+    end
+
+    BRAIN --> BETTER["Gets smarter<br/>every week"]
+
+    style BRAIN fill:#6366f1,color:#fff
+    style BETTER fill:#22c55e,color:#fff
+```
 
 ---
 
@@ -1296,63 +1527,73 @@ Hasan tells Lisa: *"This is the first security tool I've administered that has a
 
 ---
 
-### Before ALdeci
-| Metric | Before |
-|---|---|
-| Findings to triage | 14,000 |
-| Time to understand one finding | 45 min |
-| Time to fix | 38 days average |
-| Audit prep | 3 weeks |
-| Raj's weekly triage hours | 30 |
-| Nina's PR coverage | 8 of 20 PRs/week |
-| Anika & Tom's weekly spreadsheet hours | 35 |
-| Jake's pen-tests per year | 1 (point-in-time, $45K) |
-| Sana's threat briefing relevance | Generic, not mapped to assets |
-| Ethan's integration maintenance | 60% of his time |
-| Derek's sprint disruption from security | 30% velocity loss |
-| Karen's audit prep | 3 weeks of gathering screenshots |
-| Ravi's parser maintenance | 50% of his time |
-| Alex's time per security fix | 2+ hours (confused, Googling, wrong fixes) |
-| Diana's audit duration per client | 3 days on-site |
-| Lena's architecture security decisions | Gut feel, no data |
-| Victor's SOC metrics | Unmeasurable (no common clock) |
-| Hasan's ALdeci admin overhead | N/A (no tool to administer) |
-| Board report prep | 2 days |
-| David's confidence in risk posture | Low (stale spreadsheets) |
-| Priya's security ROI visibility | None |
-| Annual security tool spend | $180K (no cross-correlation) |
+---
 
-### After ALdeci
-| Metric | After |
-|---|---|
-| Findings that matter | 340 |
-| Time to understand one finding | 0 min (ALdeci explains it) |
-| Time to fix | 4.2 days average |
-| Audit prep | 2 hours |
-| Raj's weekly triage hours | 6 |
-| Nina's PR coverage | All 20 PRs (AI first pass, she handles 3-4) |
-| Anika & Tom's weekly triage hours | 4 (rest spent on proactive work) |
-| Jake's pen-tests per year | 365 (continuous MPTE) |
-| Sana's threat briefing relevance | Stack-specific, TTP-mapped, actionable |
-| Ethan's integration maintenance | 10% of his time |
-| Derek's sprint disruption from security | 0% — planned in sprint budget |
-| Karen's audit prep | 2 hours (auto-generated evidence bundle) |
-| Ravi's parser maintenance | 0% — 7 native formats |
-| Alex's time per security fix | 20 min (copy-paste fix + learning note) |
-| Diana's audit duration per client | 4 hours ($9K saved per audit) |
-| Lena's architecture security decisions | Data-driven (risk graph simulation + historical patterns) |
-| Victor's SOC metrics | MTTD: 14 min, MTTR: 4.2 days, FP rate: 6% |
-| Hasan's ALdeci admin overhead | 2 hours/month (SSO auto-provision, health API) |
-| Board report prep | 5 minutes |
-| David's confidence in risk posture | High (live dashboard + signed evidence) |
-| Priya's security ROI visibility | Full (cost savings + risk reduction quantified) |
-| Annual security tool spend | $164K (consolidated, 10x more effective) |
+## The Transformation
+
+<div align="center">
+
+### What Changes When You Stop Drowning and Start Deciding
+
+</div>
+
+<details>
+<summary><strong>Click to expand the full before/after comparison (22 metrics)</strong></summary>
+
+| Metric | Before ALdeci | After ALdeci | Change |
+|---|---|---|:---:|
+| Findings to triage | 14,000 | **340** | **97% noise eliminated** |
+| Time to understand one finding | 45 min | **0 min** (ALdeci explains it) | **100%** |
+| Time to fix | 38 days avg | **4.2 days** avg | **9x faster** |
+| Audit prep | 3 weeks | **2 hours** | **99.4%** |
+| Raj's weekly triage hours | 30 | **6** | **80%** |
+| Nina's PR coverage | 8 of 20 PRs/week | **All 20** | **2.5x** |
+| Anika & Tom's weekly spreadsheet hours | 35 | **4** (rest = proactive work) | **89%** |
+| Jake's pen-tests per year | 1 (point-in-time, $45K) | **365** (continuous MPTE) | **365x** |
+| Sana's threat briefing | Generic, not mapped | **Stack-specific, TTP-mapped** | Actionable |
+| Ethan's integration maintenance | 60% of his time | **10%** | **83%** |
+| Derek's sprint disruption | 30% velocity loss | **0%** — planned in budget | **100%** |
+| Karen's audit prep | 3 weeks of screenshots | **2 hours** (auto-evidence) | **99.4%** |
+| Ravi's parser maintenance | 50% of his time | **0%** — 7 native formats | **100%** |
+| Alex's time per security fix | 2+ hours (confused) | **20 min** (guided) | **85%** |
+| Diana's audit duration | 3 days on-site | **4 hours** ($9K saved) | **83%** |
+| Lena's architecture decisions | Gut feel | **Data-driven** (graph sim) | Quantified |
+| Victor's SOC metrics | Unmeasurable | **MTTD: 14min, MTTR: 4.2d** | Visible |
+| Hasan's admin overhead | N/A | **2 hours/month** | Minimal |
+| Board report prep | 2 days | **5 minutes** | **99.6%** |
+| David's confidence in posture | Low (stale spreadsheets) | **High** (live + signed) | Night & day |
+| Priya's ROI visibility | None | **Full** (quantified) | First time ever |
+| Annual security tool spend | $180K (no correlation) | **$164K** (10x effective) | **$16K saved** |
+
+</details>
+
+<div align="center">
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                                                                     │
+│   14,000 findings  ──────►  340 that matter                         │
+│   38-day fix time  ──────►  4.2 days                                │
+│   3-week audit prep ─────►  2 hours                                 │
+│   1 pen-test/year  ──────►  365                                     │
+│   $180K/year blind ──────►  $164K with 10x ROI                      │
+│                                                                     │
+│   Same team. Same tools. Different brain.                           │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+</div>
 
 ---
 
 ## One Sentence
 
+<div align="center">
+
 > **ALdeci is the brain that sits between all your security tools and your engineering team — it figures out what actually matters, tells developers exactly how to fix it, proves to auditors that you did it, and gets smarter every week.**
+
+</div>
 
 ---
 
@@ -1370,7 +1611,7 @@ Hasan tells Lisa: *"This is the first security tool I've administered that has a
 | 4 | **Reachability Analysis** (code path tracing, call-graph) | Ch 1: First Scan | Raj (3,100 deprioritized), Nina (code context), Chen (ML features), Lena (architecture risk) |
 | 5 | **Business Context / APP_ID** (service tagging, crown jewel identification) | Ch 1: First Scan | David (what matters most), Olivia (business risk), Maya (context enrichment), Lena (threat modeling) |
 | 6 | **Dashboard & Analytics** (risk score, trends, burndown, pipeline analytics) | Ch 2: Raj's Morning | Raj, David, Sarah, Priya, Derek (velocity), Olivia (backlog), Victor (SOC metrics) |
-| 7 | **Threat Intel Feeds** (NVD, EPSS, CISA KEV, MITRE ATT&CK, 30+ sources) | Ch 2, Ch 21 | Sana (daily brief), Anika (enriched findings), Raj (exploit data), David (landscape) |
+| 7 | **Threat Intel Feeds** (NVD, EPSS, CISA KEV, MITRE ATT&CK, 50+ sources) | Ch 2, Ch 21 | Sana (daily brief), Anika (enriched findings), Raj (exploit data), David (landscape) |
 | 8 | **AI Copilot / NLP Chat** (natural language Q&A across all platform data) | Ch 2: Ask the AI | Raj (impact), David (quick answers), Anika (research), Mike (fix guidance), Lena (graph queries), Alex (learning) |
 | 9 | **Multi-LLM Consensus** (GPT-4 + Claude + Gemini, 85% threshold) | Ch 2, Ch 23 | Farid (tuning), Maya (context), Raj (triage accuracy), Mike (code review) |
 | 10 | **Auto Jira Ticket Creation** (context + fix + owner + SLA deadline) | Ch 2, Ch 24 | Raj (saves 30 min), Mike (useful tickets), Alex (guided fix), Derek (planned), Olivia (backlog) |
@@ -1567,14 +1808,45 @@ This is a fundamentally different value proposition:
 | **Chen (Data Scientist)** | Models trained on stale exported data. No feedback loop from users. | Live training data from user triage. 4 production ML models. Monte Carlo simulation. |
 | **Diana (External Auditor)** | 3 days on-site per client. Evidence is screenshots and verbal explanations. Can't verify independently. | Read-only auditor portal. Cryptographic signature verification. 4 hours instead of 3 days. |
 
-### The 30-Second Investor Pitch
+### The 30-Second Pitch
+
+<div align="center">
 
 > Companies spend **$180K+/year on 4-5 security tools** that don't talk to each other. They get **14,000 alerts** and have no idea which ones matter. Their CISO can't answer "are we safe?" Their CFO can't prove ROI. Their developers ignore security tickets because they're useless.
 >
 > **ALdeci is the intelligence layer** that sits on top of all these tools, deduplicates findings, verifies exploitability with automated pen-testing, prioritizes by business impact, auto-generates developer-ready fixes, produces audit-ready compliance evidence, and gets smarter every week through 5 ML feedback loops.
 >
 > We don't replace any tool. We make them all 10x more useful. **$4K/month. 60-second setup. Value on Day 1.**
->
-> Market: $7.2B AppSec market, growing 24% CAGR. Comparable exit: NopSec acquired for ~$150M with $6M ARR.
->
-> **We're 70% built. 16 weeks to v1.0. 25 personas, 72 features, one platform. Looking for 10 design partners now.**
+
+</div>
+
+---
+
+<div align="center">
+
+## You Just Read 28 Chapters. Here's What Comes Next.
+
+**ALdeci is 70% built. 16 weeks to v1.0.**
+
+25 personas. 72 features. One platform.
+
+Every feature described in this story is backed by real code — not mockups, not wireframes, not "planned for Q4."
+
+If you read this far, you either:
+- **Have this problem** — your team is Raj, Anika, and David, drowning in 14,000 alerts
+- **Build solutions** — and you see what a complete platform looks like
+- **Invest in builders** — and you see a $7.2B market with a 24% CAGR waiting for this
+
+Whatever brought you here:
+
+[![Star this repo](https://img.shields.io/badge/Star_this_repo-⭐-yellow?style=for-the-badge)](https://github.com/DevOpsMadDog/Fixops)
+&nbsp;&nbsp;
+[![Ask DeepWiki](https://img.shields.io/badge/Ask_DeepWiki-💬-blue?style=for-the-badge)](https://deepwiki.com/DevOpsMadDog/Fixops)
+
+---
+
+*Built by one person. Designed for every security team.*
+
+*This is not a future dream. This is code running today.*
+
+</div>

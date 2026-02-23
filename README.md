@@ -34,6 +34,8 @@
 
 [Get Started](#-quick-start) · [Features (75+)](#-complete-feature-catalog) · [Architecture](#-architecture) · [API & CLI](#-api--cli) · [Deploy](#-deployment) · [Roadmap](#-roadmap) · [Docs](https://deepwiki.com/DevOpsMadDog/Fixops)
 
+**[📖 Read "A Day in the Life" — How 25 real personas use ALdeci](docs/USER_STORY_APP_FLOW.md)**
+
 </div>
 
 ---
