@@ -5,7 +5,6 @@ from typing import List, Optional
 
 import httpx
 from core.mpte_db import MPTEDB
-from core.tls_config import tls_verify
 from core.mpte_models import (
     ExploitabilityLevel,
     PenTestConfig,
@@ -14,6 +13,7 @@ from core.mpte_models import (
     PenTestResult,
     PenTestStatus,
 )
+from core.tls_config import tls_verify
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from integrations.mpte_service import AdvancedMPTEService
 from pydantic import BaseModel, Field

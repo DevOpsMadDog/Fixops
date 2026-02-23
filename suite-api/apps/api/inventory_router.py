@@ -14,8 +14,8 @@ from typing import Any, Dict, List, Optional, Set
 
 from apps.api.dependencies import get_org_id
 from core.inventory_db import InventoryDB
-from core.persistent_store import PersistentDict
 from core.inventory_models import Application, ApplicationCriticality, ApplicationStatus
+from core.persistent_store import PersistentDict
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 

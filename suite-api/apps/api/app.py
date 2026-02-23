@@ -11,7 +11,7 @@ import secrets
 import shutil
 import uuid
 from contextlib import suppress
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import SpooledTemporaryFile
 from types import SimpleNamespace
@@ -647,10 +647,19 @@ def create_app() -> FastAPI:
 
     # Default scopes for token-based auth (service accounts get admin)
     _ALL_SCOPES = [
-        "read:sbom", "write:sbom", "read:findings", "write:findings",
-        "read:graph", "write:graph", "read:feeds", "read:evidence",
-        "write:evidence", "read:integrations", "write:integrations",
-        "attack:execute", "admin:all",
+        "read:sbom",
+        "write:sbom",
+        "read:findings",
+        "write:findings",
+        "read:graph",
+        "write:graph",
+        "read:feeds",
+        "read:evidence",
+        "write:evidence",
+        "read:integrations",
+        "write:integrations",
+        "attack:execute",
+        "admin:all",
     ]
 
     async def _verify_api_key(
@@ -689,6 +698,7 @@ def create_app() -> FastAPI:
 
     def _require_scope(scope: str):
         """Factory returning a dependency that checks for a required scope."""
+
         async def _check(request: Request):
             user_scopes = getattr(request.state, "user_scopes", [])
             if scope not in user_scopes and "admin:all" not in user_scopes:
@@ -696,6 +706,7 @@ def create_app() -> FastAPI:
                     status_code=403,
                     detail=f"Forbidden — missing required scope: {scope}",
                 )
+
         return _check
 
     allowlist = overlay.allowed_data_roots or (Path("data").resolve(),)
@@ -856,9 +867,21 @@ def create_app() -> FastAPI:
 
     app.include_router(inventory_router, dependencies=[Depends(_verify_api_key)])
 
-    app.include_router(users_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
-    app.include_router(teams_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
-    app.include_router(policies_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
+    app.include_router(
+        users_router,
+        dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
+    )
+    app.include_router(
+        teams_router,
+        dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
+    )
+    app.include_router(
+        policies_router,
+        dependencies=[
+            Depends(_verify_api_key),
+            Depends(_require_scope("write:findings")),
+        ],
+    )
 
     app.include_router(analytics_router, dependencies=[Depends(_verify_api_key)])
 
@@ -866,8 +889,17 @@ def create_app() -> FastAPI:
     app.include_router(audit_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(workflows_router, dependencies=[Depends(_verify_api_key)])
 
-    app.include_router(auth_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
-    app.include_router(bulk_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
+    app.include_router(
+        auth_router,
+        dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
+    )
+    app.include_router(
+        bulk_router,
+        dependencies=[
+            Depends(_verify_api_key),
+            Depends(_require_scope("write:findings")),
+        ],
+    )
 
     # Enterprise features - Remediation, Collaboration
     app.include_router(remediation_router, dependencies=[Depends(_verify_api_key)])
@@ -894,7 +926,13 @@ def create_app() -> FastAPI:
         (secrets_router, "Secrets Scanner"),
     ]:
         if _r:
-            app.include_router(_r, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
+            app.include_router(
+                _r,
+                dependencies=[
+                    Depends(_verify_api_key),
+                    Depends(_require_scope("attack:execute")),
+                ],
+            )
 
     # Suite-Feeds router (real-time vulnerability intelligence)
     if feeds_router:
@@ -953,7 +991,13 @@ def create_app() -> FastAPI:
     ]
     for _r, _name in _attack_extra_routers:
         if _r:
-            app.include_router(_r, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
+            app.include_router(
+                _r,
+                dependencies=[
+                    Depends(_verify_api_key),
+                    Depends(_require_scope("attack:execute")),
+                ],
+            )
             _logger.info("Mounted %s router from suite-attack", _name)
 
     # -------------------------------------------------------------------
@@ -970,7 +1014,12 @@ def create_app() -> FastAPI:
     for _r, _name, _prefix in _evidence_routers:
         if _r:
             app.include_router(
-                _r, prefix=_prefix, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))]
+                _r,
+                prefix=_prefix,
+                dependencies=[
+                    Depends(_verify_api_key),
+                    Depends(_require_scope("read:evidence")),
+                ],
             )
             _logger.info("Mounted %s router from suite-evidence-risk", _name)
 
@@ -986,7 +1035,13 @@ def create_app() -> FastAPI:
     ]
     for _r, _name in _integration_routers:
         if _r:
-            app.include_router(_r, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))])
+            app.include_router(
+                _r,
+                dependencies=[
+                    Depends(_verify_api_key),
+                    Depends(_require_scope("write:integrations")),
+                ],
+            )
             _logger.info("Mounted %s router from suite-integrations", _name)
 
     # Webhooks receiver — no API key auth (uses signature verification)
@@ -1917,7 +1972,8 @@ def create_app() -> FastAPI:
                             "signature_algorithm": "RSA-SHA256",
                             "retention_days": retention_days,
                             "retained_until": (
-                                datetime.now(timezone.utc) + timedelta(days=retention_days)
+                                datetime.now(timezone.utc)
+                                + timedelta(days=retention_days)
                             ).strftime("%m/%d/%Y"),
                             "sha256": hashlib.sha256(
                                 evidence_bundle.get("bundle_id", "unknown").encode()
@@ -1981,7 +2037,8 @@ def create_app() -> FastAPI:
                             "signature_algorithm": "RSA-SHA256",
                             "retention_days": retention_days,
                             "retained_until": (
-                                datetime.now(timezone.utc) + timedelta(days=retention_days)
+                                datetime.now(timezone.utc)
+                                + timedelta(days=retention_days)
                             ).strftime("%m/%d/%Y"),
                             "sha256": hashlib.sha256(
                                 evidence_bundle.get("bundle_id", "unknown").encode()

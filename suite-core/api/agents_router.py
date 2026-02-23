@@ -38,6 +38,7 @@ except ImportError:
     def tls_verify():
         return os.environ.get("FIXOPS_TLS_VERIFY", "true").lower() != "false"
 
+
 logger = logging.getLogger(__name__)
 
 # Import FeedsService from suite-feeds (has proper __init__ with db_path param)

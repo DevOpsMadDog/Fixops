@@ -7,7 +7,7 @@ Sample data can be seeded on startup for local development environments.
 
 import os
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import List
 
@@ -320,10 +320,14 @@ def generate_demo_csv_report(report_name: str, report_type: str) -> bytes:
                 ["Critical", "High", "Medium", "Low"][i % 4],
                 f"Security Finding {i}",
                 "Open" if i % 3 == 0 else "Remediated",
-                (datetime.now(timezone.utc) - timedelta(days=i * 2)).strftime("%Y-%m-%d"),
+                (datetime.now(timezone.utc) - timedelta(days=i * 2)).strftime(
+                    "%Y-%m-%d"
+                ),
                 ""
                 if i % 3 == 0
-                else (datetime.now(timezone.utc) - timedelta(days=i)).strftime("%Y-%m-%d"),
+                else (datetime.now(timezone.utc) - timedelta(days=i)).strftime(
+                    "%Y-%m-%d"
+                ),
             ]
         )
     return output.getvalue().encode("utf-8")

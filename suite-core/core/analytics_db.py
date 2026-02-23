@@ -4,7 +4,7 @@ Analytics database manager using SQLite.
 import json
 import sqlite3
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -308,7 +308,9 @@ class AnalyticsDB:
                 "SELECT COUNT(*) FROM findings WHERE severity = 'critical' AND status = 'open'"
             ).fetchone()[0]
 
-            thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+            thirty_days_ago = (
+                datetime.now(timezone.utc) - timedelta(days=30)
+            ).isoformat()
             recent_findings = conn.execute(
                 "SELECT COUNT(*) FROM findings WHERE created_at >= ?",
                 (thirty_days_ago,),

@@ -3,7 +3,7 @@ SQLite-compatible user model with security, compliance, and RBAC
 """
 
 import json
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Dict, List, Optional
 
@@ -225,7 +225,9 @@ class User(BaseModel, AuditMixin, SoftDeleteMixin, EncryptedFieldMixin):
         # Lock account after 5 failed attempts
         if self.failed_login_attempts >= 5:
             self.status = UserStatus.LOCKED.value
-            self.account_locked_until = datetime.now(timezone.utc) + timedelta(minutes=30)
+            self.account_locked_until = datetime.now(timezone.utc) + timedelta(
+                minutes=30
+            )
 
     def reset_failed_logins(self) -> None:
         """Reset failed login counter on successful login"""

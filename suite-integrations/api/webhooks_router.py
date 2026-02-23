@@ -380,7 +380,9 @@ def receive_servicenow_webhook(
                 status_code=401,
                 detail="Missing X-ServiceNow-Signature header",
             )
-        if not _verify_jira_signature(raw_body, x_servicenow_signature, expected_secret):
+        if not _verify_jira_signature(
+            raw_body, x_servicenow_signature, expected_secret
+        ):
             raise HTTPException(
                 status_code=401,
                 detail="Invalid webhook signature",

@@ -12,7 +12,7 @@ import logging
 import os
 import secrets
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 import jwt
@@ -195,7 +195,8 @@ async def login(credentials: LoginRequest, request: Request):
             "role": user.role.value,
             "jti": token_id,  # JWT ID for token revocation
             "iat": datetime.now(timezone.utc),
-            "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_ACCESS_TOKEN_EXPIRE_HOURS),
+            "exp": datetime.now(timezone.utc)
+            + timedelta(hours=JWT_ACCESS_TOKEN_EXPIRE_HOURS),
         },
         jwt_secret,
         algorithm=JWT_ALGORITHM,

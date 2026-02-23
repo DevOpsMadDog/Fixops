@@ -40,7 +40,9 @@ class FlagMetadata:
     owner: str  # Team or person responsible
     tags: List[str] = field(default_factory=list)
     expiry: Optional[str] = None  # ISO date when flag should be removed
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
     def is_expired(self) -> bool:
         """Check if flag has expired."""

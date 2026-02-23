@@ -207,7 +207,9 @@ class User(BaseModel, AuditMixin, SoftDeleteMixin, EncryptedFieldMixin):
         # Lock account after 5 failed attempts
         if self.failed_login_attempts >= 5:
             self.status = UserStatus.LOCKED
-            self.account_locked_until = datetime.now(timezone.utc) + timedelta(minutes=30)
+            self.account_locked_until = datetime.now(timezone.utc) + timedelta(
+                minutes=30
+            )
 
     def reset_failed_logins(self) -> None:
         """Reset failed login counter on successful login"""

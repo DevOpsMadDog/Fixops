@@ -26,7 +26,6 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 import structlog
-
 from core.tls_config import tls_verify
 
 logger = structlog.get_logger(__name__)

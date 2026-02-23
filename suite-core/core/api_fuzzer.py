@@ -25,7 +25,6 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 import httpx
-
 from core.tls_config import tls_verify
 
 

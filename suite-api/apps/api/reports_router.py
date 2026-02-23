@@ -334,7 +334,9 @@ async def get_report_stats(
             if start_date
             else datetime.now(timezone.utc) - timedelta(days=30)
         )
-        end_dt = datetime.fromisoformat(end_date) if end_date else datetime.now(timezone.utc)
+        end_dt = (
+            datetime.fromisoformat(end_date) if end_date else datetime.now(timezone.utc)
+        )
     except ValueError:
         raise HTTPException(
             status_code=400, detail="Invalid date format, expected ISO 8601"
@@ -520,7 +522,9 @@ async def export_sarif(
         if start_date
         else datetime.now(timezone.utc) - timedelta(days=30)
     )
-    end_dt = datetime.fromisoformat(end_date) if end_date else datetime.now(timezone.utc)
+    end_dt = (
+        datetime.fromisoformat(end_date) if end_date else datetime.now(timezone.utc)
+    )
 
     # Get reports within date range
     reports = db.list_reports(limit=1000, offset=0)
@@ -659,7 +663,9 @@ async def export_csv(
         if start_date
         else datetime.now(timezone.utc) - timedelta(days=30)
     )
-    end_dt = datetime.fromisoformat(end_date) if end_date else datetime.now(timezone.utc)
+    end_dt = (
+        datetime.fromisoformat(end_date) if end_date else datetime.now(timezone.utc)
+    )
 
     # Get reports within date range
     reports = db.list_reports(limit=1000, offset=0)
@@ -811,7 +817,9 @@ async def export_json(
         if start_date
         else datetime.now(timezone.utc) - timedelta(days=30)
     )
-    end_dt = datetime.fromisoformat(end_date) if end_date else datetime.now(timezone.utc)
+    end_dt = (
+        datetime.fromisoformat(end_date) if end_date else datetime.now(timezone.utc)
+    )
 
     # Get reports within date range
     reports = db.list_reports(limit=1000, offset=0)

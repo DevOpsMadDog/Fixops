@@ -24,7 +24,9 @@ router = APIRouter(prefix="/api/v1/policies", tags=["policies"])
 db = PolicyDB()
 
 # Persistent violation store
-_violation_store: PersistentDict = PersistentDict("policy_violations")  # policy_id -> violations
+_violation_store: PersistentDict = PersistentDict(
+    "policy_violations"
+)  # policy_id -> violations
 
 
 class PolicyCreate(BaseModel):

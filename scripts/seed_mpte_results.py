@@ -2,7 +2,7 @@
 """Seed MPTE pen_test_results table with realistic data."""
 import sys
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent

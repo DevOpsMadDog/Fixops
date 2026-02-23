@@ -23,7 +23,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterator, Optional, Tuple
 
-
 _DEFAULT_DB = "data/state.db"
 
 
@@ -52,9 +51,7 @@ class PersistentDict:
 
     def _load_all(self) -> None:
         with self._conn() as conn:
-            for key, raw in conn.execute(
-                f"SELECT key, value FROM [{self._table}]"
-            ):
+            for key, raw in conn.execute(f"SELECT key, value FROM [{self._table}]"):
                 self._cache[key] = json.loads(raw)
 
     def _write(self, key: str, value: Any) -> None:
@@ -130,4 +127,3 @@ class PersistentDict:
                     f"INSERT OR REPLACE INTO [{self._table}] (key, value) VALUES (?, ?)",
                     (key, json.dumps(value, default=str)),
                 )
-
