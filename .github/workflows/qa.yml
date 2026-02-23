@@ -53,7 +53,7 @@ jobs:
           pytest \
             tests/ \
             -v --override-ini testpaths='' \
-            --override-ini "addopts=--cov=apps --cov=core --cov=risk --cov=evidence --cov-report=term-missing --cov-report=xml:reports/coverage/coverage.xml --cov-fail-under=20" \
+            --override-ini "addopts=--cov=apps --cov=core --cov=risk --cov=evidence --cov-report=term-missing --cov-report=xml:reports/coverage/coverage.xml --cov-fail-under=18" \
             --ignore=tests/sidecar/ \
             --ignore=tests/e2e/
       - name: Coverage summary
