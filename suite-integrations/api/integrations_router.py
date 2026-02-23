@@ -23,6 +23,7 @@ from core.security_connectors import (
     DependabotConnector,
     SnykConnector,
     SonarQubeConnector,
+    ThreatMapperConnector,
 )
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -281,6 +282,29 @@ async def test_integration(id: str):
                 },
             }
 
+        elif integration.integration_type == IntegrationType.THREATMAPPER:
+            tm_connector = ThreatMapperConnector(integration.config)
+            if not tm_connector.configured:
+                return {
+                    "integration_id": id,
+                    "success": False,
+                    "message": "ThreatMapper connector not fully configured",
+                }
+            health = tm_connector.health_check()
+            return {
+                "integration_id": id,
+                "success": health.healthy,
+                "message": (
+                    "ThreatMapper connection test successful"
+                    if health.healthy
+                    else f"ThreatMapper connection failed: {health.message}"
+                ),
+                "details": {
+                    "console_url": tm_connector.console_url,
+                    "latency_ms": health.latency_ms,
+                },
+            }
+
         else:
             return {
                 "integration_id": id,
@@ -452,6 +476,20 @@ async def trigger_sync(id: str):
                 sync_details = outcome.to_dict()
             else:
                 sync_details["error"] = "Azure Security Center connector not configured"
+
+        elif integration.integration_type == IntegrationType.THREATMAPPER:
+            tm_conn = ThreatMapperConnector(integration.config)
+            if tm_conn.configured:
+                outcome = tm_conn.health_check()
+                sync_success = outcome.healthy
+                sync_details = outcome.to_dict()
+                if sync_success:
+                    vulns = tm_conn.get_vulnerabilities(limit=100)
+                    sync_details["vulnerability_count"] = vulns.details.get("count", 0)
+                    secrets = tm_conn.get_secrets(limit=100)
+                    sync_details["secret_count"] = secrets.details.get("count", 0)
+            else:
+                sync_details["error"] = "ThreatMapper connector not configured"
 
         else:
             sync_details[

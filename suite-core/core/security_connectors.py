@@ -997,6 +997,276 @@ class LaceworkConnector(_BaseConnector):
         return ConnectorHealth(healthy=False, latency_ms=ms, message="Auth failed")
 
 
+# ---------------------------------------------------------------------------
+# 10. Deepfence ThreatMapper Connector
+# ---------------------------------------------------------------------------
+
+
+class ThreatMapperConnector(_BaseConnector):
+    """Fetch runtime vulnerability, secret, malware and compliance data from Deepfence ThreatMapper.
+
+    ThreatMapper is an open-source CNAPP that deploys sensor agents across
+    Kubernetes, Docker, ECS, Fargate and bare-metal hosts.  It discovers
+    running workloads and scans them for:
+      - Vulnerabilities (OS packages, language libs, container images)
+      - Secrets (leaked credentials, API keys, tokens)
+      - Malware (YARA-based runtime detection)
+      - Compliance posture (CIS benchmarks for Linux, K8s, Docker, cloud)
+
+    API: Deepfence Console REST API v2 (/deepfence/v2.0/)
+    Auth: API key obtained after initial admin registration
+    Docs: https://threatmapper.org/threatmapper/docs/v2.5/
+    """
+
+    def __init__(self, settings: Mapping[str, Any]):
+        super().__init__(timeout=float(settings.get("timeout", 30.0) or 30.0))
+        console_url = str(
+            settings.get("console_url")
+            or settings.get("base_url")
+            or settings.get("url", "")
+        ).rstrip("/")
+        self.console_url = console_url
+        self.base_url = f"{console_url}/deepfence/v2.0" if console_url else ""
+        api_key = settings.get("api_key")
+        api_key_env = settings.get("api_key_env", "THREATMAPPER_API_KEY")
+        if api_key_env:
+            api_key = os.getenv(str(api_key_env)) or api_key
+        self.api_key = api_key
+        self._token: Optional[str] = None
+        self._token_expires: float = 0
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.console_url and self.api_key)
+
+    # -- auth ---------------------------------------------------------------
+
+    def _authenticate(self) -> Optional[str]:
+        """Exchange API key for a short-lived JWT access token."""
+        if self._token and time.time() < self._token_expires:
+            return self._token
+        try:
+            resp = self._request(
+                "POST",
+                f"{self.base_url}/auth/token",
+                json={"api_token": self.api_key},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            self._token = data.get("access_token") or data.get("token")
+            # ThreatMapper tokens typically last 24 h; refresh at 23 h
+            self._token_expires = time.time() + 82800
+            return self._token
+        except Exception as exc:
+            logger.warning(f"ThreatMapper auth failed: {exc}")
+            return None
+
+    def _headers(self) -> Dict[str, str]:
+        token = self._authenticate()
+        return {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+
+    # -- vulnerability scans ------------------------------------------------
+
+    def get_vulnerabilities(
+        self,
+        severity: Optional[str] = None,
+        limit: int = 500,
+    ) -> ConnectorOutcome:
+        """Fetch vulnerability scan results across all nodes."""
+        if not self.configured:
+            return ConnectorOutcome("skipped", {"reason": "threatmapper not configured"})
+        try:
+            body: Dict[str, Any] = {
+                "node_filter": {"filters": {"compare_filter": []}, "in_field_filter": []},
+                "window": {"offset": 0, "size": limit},
+            }
+            if severity:
+                body["node_filter"]["filters"]["compare_filter"].append(
+                    {"field_name": "cve_severity", "field_value": severity.lower(), "filter_type": "eq"}
+                )
+            resp = self._request(
+                "POST",
+                f"{self.base_url}/search/vulnerability",
+                headers=self._headers(),
+                json=body,
+            )
+            resp.raise_for_status()
+            vulns = resp.json() if isinstance(resp.json(), list) else resp.json().get("data", [])
+            return ConnectorOutcome(
+                "fetched", {"vulnerabilities": vulns, "count": len(vulns)}
+            )
+        except Exception as exc:
+            return ConnectorOutcome("failed", {"error": str(exc)})
+
+    # -- secret scans -------------------------------------------------------
+
+    def get_secrets(self, limit: int = 500) -> ConnectorOutcome:
+        """Fetch secret scan results (leaked creds, API keys, tokens)."""
+        if not self.configured:
+            return ConnectorOutcome("skipped", {"reason": "threatmapper not configured"})
+        try:
+            body: Dict[str, Any] = {
+                "node_filter": {"filters": {"compare_filter": []}, "in_field_filter": []},
+                "window": {"offset": 0, "size": limit},
+            }
+            resp = self._request(
+                "POST",
+                f"{self.base_url}/search/secret",
+                headers=self._headers(),
+                json=body,
+            )
+            resp.raise_for_status()
+            secrets = resp.json() if isinstance(resp.json(), list) else resp.json().get("data", [])
+            return ConnectorOutcome(
+                "fetched", {"secrets": secrets, "count": len(secrets)}
+            )
+        except Exception as exc:
+            return ConnectorOutcome("failed", {"error": str(exc)})
+
+    # -- malware scans ------------------------------------------------------
+
+    def get_malware(self, limit: int = 500) -> ConnectorOutcome:
+        """Fetch malware scan results (YARA-based detections)."""
+        if not self.configured:
+            return ConnectorOutcome("skipped", {"reason": "threatmapper not configured"})
+        try:
+            body: Dict[str, Any] = {
+                "node_filter": {"filters": {"compare_filter": []}, "in_field_filter": []},
+                "window": {"offset": 0, "size": limit},
+            }
+            resp = self._request(
+                "POST",
+                f"{self.base_url}/search/malware",
+                headers=self._headers(),
+                json=body,
+            )
+            resp.raise_for_status()
+            malware = resp.json() if isinstance(resp.json(), list) else resp.json().get("data", [])
+            return ConnectorOutcome(
+                "fetched", {"malware": malware, "count": len(malware)}
+            )
+        except Exception as exc:
+            return ConnectorOutcome("failed", {"error": str(exc)})
+
+    # -- compliance ---------------------------------------------------------
+
+    def get_compliance_results(
+        self, benchmark: Optional[str] = None, limit: int = 500
+    ) -> ConnectorOutcome:
+        """Fetch compliance scan results (CIS benchmarks)."""
+        if not self.configured:
+            return ConnectorOutcome("skipped", {"reason": "threatmapper not configured"})
+        try:
+            body: Dict[str, Any] = {
+                "node_filter": {"filters": {"compare_filter": []}, "in_field_filter": []},
+                "window": {"offset": 0, "size": limit},
+            }
+            if benchmark:
+                body["node_filter"]["filters"]["compare_filter"].append(
+                    {"field_name": "compliance_check_type", "field_value": benchmark, "filter_type": "eq"}
+                )
+            resp = self._request(
+                "POST",
+                f"{self.base_url}/search/compliance",
+                headers=self._headers(),
+                json=body,
+            )
+            resp.raise_for_status()
+            results = resp.json() if isinstance(resp.json(), list) else resp.json().get("data", [])
+            return ConnectorOutcome(
+                "fetched", {"compliance_results": results, "count": len(results)}
+            )
+        except Exception as exc:
+            return ConnectorOutcome("failed", {"error": str(exc)})
+
+    # -- topology / inventory -----------------------------------------------
+
+    def get_topology(self) -> ConnectorOutcome:
+        """Fetch runtime topology (hosts, containers, pods, processes)."""
+        if not self.configured:
+            return ConnectorOutcome("skipped", {"reason": "threatmapper not configured"})
+        try:
+            resp = self._request(
+                "GET",
+                f"{self.base_url}/topology",
+                headers=self._headers(),
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            return ConnectorOutcome("fetched", {"topology": data})
+        except Exception as exc:
+            return ConnectorOutcome("failed", {"error": str(exc)})
+
+    # -- trigger scans ------------------------------------------------------
+
+    def trigger_vulnerability_scan(
+        self, node_ids: List[str], node_type: str = "host"
+    ) -> ConnectorOutcome:
+        """Start a new vulnerability scan on specified nodes."""
+        if not self.configured:
+            return ConnectorOutcome("skipped", {"reason": "threatmapper not configured"})
+        try:
+            resp = self._request(
+                "POST",
+                f"{self.base_url}/scan/start/vulnerability",
+                headers=self._headers(),
+                json={
+                    "node_ids": [{"node_id": nid, "node_type": node_type} for nid in node_ids],
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            return ConnectorOutcome(
+                "success",
+                {"scan_ids": data.get("scan_ids", []), "message": "Scan started"},
+            )
+        except Exception as exc:
+            return ConnectorOutcome("failed", {"error": str(exc)})
+
+    def trigger_secret_scan(
+        self, node_ids: List[str], node_type: str = "host"
+    ) -> ConnectorOutcome:
+        """Start a new secret scan on specified nodes."""
+        if not self.configured:
+            return ConnectorOutcome("skipped", {"reason": "threatmapper not configured"})
+        try:
+            resp = self._request(
+                "POST",
+                f"{self.base_url}/scan/start/secret",
+                headers=self._headers(),
+                json={
+                    "node_ids": [{"node_id": nid, "node_type": node_type} for nid in node_ids],
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            return ConnectorOutcome(
+                "success",
+                {"scan_ids": data.get("scan_ids", []), "message": "Scan started"},
+            )
+        except Exception as exc:
+            return ConnectorOutcome("failed", {"error": str(exc)})
+
+    # -- health check -------------------------------------------------------
+
+    def health_check(self) -> ConnectorHealth:
+        if not self.configured:
+            return ConnectorHealth(
+                healthy=False, latency_ms=0, message="Not configured"
+            )
+        start = time.time()
+        token = self._authenticate()
+        ms = (time.time() - start) * 1000
+        if token:
+            return ConnectorHealth(
+                healthy=True, latency_ms=ms, message="Authenticated OK"
+            )
+        return ConnectorHealth(healthy=False, latency_ms=ms, message="Auth failed")
+
+
 __all__ = [
     "SnykConnector",
     "SonarQubeConnector",
@@ -1007,4 +1277,5 @@ __all__ = [
     "PrismaCloudConnector",
     "OrcaSecurityConnector",
     "LaceworkConnector",
+    "ThreatMapperConnector",
 ]

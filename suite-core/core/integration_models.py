@@ -23,6 +23,7 @@ class IntegrationType(str, Enum):
     DEPENDABOT = "dependabot"
     AWS_SECURITY_HUB = "aws_security_hub"
     AZURE_SECURITY_CENTER = "azure_security_center"
+    THREATMAPPER = "threatmapper"
 
 
 class IntegrationStatus(str, Enum):
