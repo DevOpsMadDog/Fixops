@@ -47,6 +47,7 @@ jobs:
           FIXOPS_JWT_SECRET: ${{ secrets.FIXOPS_JWT_SECRET || 'test-jwt-secret-for-ci-testing' }}
           FIXOPS_MODE: enterprise
           FIXOPS_EVIDENCE_KEY: ${{ secrets.FIXOPS_EVIDENCE_KEY || 'Zz6A0n4P3skS8F6edSxE2xe50Tzw9uQWGWp9JYG1ChE=' }}
+          FIXOPS_DISABLE_RATE_LIMIT: "1"
         run: |
           mkdir -p reports/coverage
           # Run comprehensive tests covering all 300+ API endpoints, CLI commands, and UI tests

@@ -563,24 +563,28 @@ def create_app() -> FastAPI:
     app.add_middleware(CorrelationIdMiddleware)
 
     # Rate-limit middleware — token bucket per client IP
-    try:
-        from apps.api.rate_limiter import RateLimitMiddleware
+    # Disabled when FIXOPS_DISABLE_RATE_LIMIT=1 (e.g. in CI/test environments)
+    if os.getenv("FIXOPS_DISABLE_RATE_LIMIT") != "1":
+        try:
+            from apps.api.rate_limiter import RateLimitMiddleware
 
-        app.add_middleware(
-            RateLimitMiddleware,
-            requests_per_minute=120,
-            burst_size=20,
-            exempt_paths=[
-                "/api/v1/health",
-                "/api/v1/ready",
-                "/api/v1/version",
-                "/api/v1/metrics",
-                "/api/v1/feeds/refresh",
-            ],
-        )
-        logger.info("RateLimitMiddleware enabled (120 req/min, burst 20)")
-    except Exception as _rl_err:
-        logger.warning("RateLimitMiddleware not available: %s", _rl_err)
+            app.add_middleware(
+                RateLimitMiddleware,
+                requests_per_minute=120,
+                burst_size=20,
+                exempt_paths=[
+                    "/api/v1/health",
+                    "/api/v1/ready",
+                    "/api/v1/version",
+                    "/api/v1/metrics",
+                    "/api/v1/feeds/refresh",
+                ],
+            )
+            logger.info("RateLimitMiddleware enabled (120 req/min, burst 20)")
+        except Exception as _rl_err:
+            logger.warning("RateLimitMiddleware not available: %s", _rl_err)
+    else:
+        logger.info("RateLimitMiddleware disabled (FIXOPS_DISABLE_RATE_LIMIT=1)")
 
     app.add_middleware(RequestLoggingMiddleware)
 

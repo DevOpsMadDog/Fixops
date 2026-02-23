@@ -2,7 +2,7 @@
 
 > **Scope**: ~109 endpoints (17% of API surface) — ~60 stubs returning fake data + ~49 dead code duplicates  
 > **Date**: 2025-02 | **Source**: Code-verified audit of all 55 unique router files  
-> **Last Validated**: 2026-02-22 | **Result**: **84/84 FIXED (100%)** — all endpoints wired to real engines with graceful degradation
+> **Last Validated**: 2026-02-23 | **Result**: **84/84 original stubs FIXED** + **2 newly found stubs** still open (see §9)
 
 ---
 
@@ -16,6 +16,7 @@
 6. [Dead Code — 5 Duplicate Router Files (49 endpoints)](#6-dead-code--5-duplicate-router-files-49-endpoints)
 7. [Orphaned Standalone Apps](#7-orphaned-standalone-apps)
 8. [Implementation Roadmap](#8-implementation-roadmap)
+9. [Re-Validation — 2026-02-23 (Newly Found Issues)](#9-re-validation--2026-02-23-newly-found-issues)
 
 ---
 
@@ -521,7 +522,7 @@ Phase 4 (Bulk/Reports/Training) ← needs FindingsDB, MindsDB (optional)
 
 ---
 
-### Summary (Updated 2026-02-22)
+### Summary (Updated 2026-02-23)
 
 | Category | Endpoints | Status | Details |
 |----------|-----------|--------|----------|
@@ -534,7 +535,11 @@ Phase 4 (Bulk/Reports/Training) ← needs FindingsDB, MindsDB (optional)
 | **Report generation** | 1 | ✅ 1 FIXED | Real file generation in 5 formats |
 | **Vuln training** | 1 | ✅ 1 FIXED | scikit-learn (RandomForest, GradientBoosting, IsolationForest) |
 | **Dead duplicates** | 49 | ✅ 49 REMOVED | All 5 duplicate files deleted |
-| **Total** | **84** | **✅ 84/84 FIXED (100%)** | |
+| **Orphaned apps** | 2 | ✅ 2 REMOVED | `intelligent_engine_routes.py` + `new_backend/api.py` deleted (`.pyc` cache remains for routes) |
+| **Marketplace** | — | ⚠️ OPEN | `_BUILTIN_MARKETPLACE_ITEMS` has fabricated download counts/ratings (see §9) |
+| **MPTE PoC fallback** | — | ⚠️ ACCEPTABLE | `_hardcoded_poc` is intentional LLM fallback, clearly labeled (see §9) |
+| **Total (original)** | **84** | **✅ 84/84 FIXED** | |
+| **Newly found** | **2** | **⚠️ 1 open, 1 acceptable** | See §9 below |
 
 ### ~~Remaining Work~~ — COMPLETE (2026-02-22)
 
@@ -542,4 +547,103 @@ All 10 previously NOT FIXED endpoints have been resolved. See `docs/fake_make_it
 
 ---
 
-*For hardening issues on the ~280 functional endpoints, see [need_hardening.md](need_hardening.md). For the full endpoint-by-endpoint inventory, see [ROUTER_ENDPOINT_INVENTORY.md](ROUTER_ENDPOINT_INVENTORY.md).*
+## 9. Re-Validation — 2026-02-23 (Newly Found Issues)
+
+Full codebase re-validation on 2026-02-23 confirmed all 84 original stubs are fixed. However, 2 additional stub-like patterns were found that were **NOT in the original audit scope**.
+
+### Status of Previously Flagged Items
+
+| Item | Previous Flag | Current (2026-02-23) | Delta |
+|------|--------------|---------------------|-------|
+| `intelligent_engine_routes.py` — consensus endpoint with hardcoded LLM scores | Flagged in re-validation | ✅ **Source file deleted** — only `.pyc` cache remains in `suite-core/api/__pycache__/`. Not importable. | RESOLVED |
+| `new_backend/api.py` — orphaned standalone app | Flagged as dead code | ✅ **Deleted** — only `__init__.py` and `processing/` dir remain in `suite-core/new_backend/`. | RESOLVED |
+| `risk/runtime/cloud.py` — AWS analyzers | Flagged as `return []` stub | ✅ **FIXED** — `_analyze_aws_s3` (L135-228), `_analyze_aws_rds` (L230+) now have full boto3 logic (public access, encryption, versioning, backup checks). `return []` only on boto3 import failure (correct behavior). | RESOLVED |
+
+### NEW-1: Marketplace Fabricated Counts — ⚠️ OPEN (P2)
+
+**File**: `suite-api/apps/api/marketplace_router.py` lines 127–215  
+**Issue**: `_BUILTIN_MARKETPLACE_ITEMS` contains fabricated social proof data:
+
+```python
+# L143-144:
+"rating": 4.8,
+"rating_count": 127,
+"downloads": 3842,
+
+# L160-161:
+"rating": 4.6,
+"rating_count": 89,
+"downloads": 2156,
+
+# L177-178:
+"rating": 4.7,
+"rating_count": 156,
+"downloads": 5631,
+
+# L189-190 (contributors):
+"total_downloads": 11629,
+"total_downloads": 4520,
+
+# L203 (stats):
+"total_downloads": 11629,
+```
+
+**Why it matters**: These are bundled content items (remediation packs, policy templates) that ship with the platform. The download counts and ratings are fabricated — no one has downloaded or rated these. A POC customer or investor inspecting the marketplace would see inflated engagement metrics.
+
+**Risk**: P2 — clearly "builtin" items (not labeled "demo"), but fabricated social proof could mislead during evaluation.
+
+**Fix options**:
+1. **Zero out counts**: `"downloads": 0, "rating": null, "rating_count": 0` — honest but looks empty
+2. **Add source field**: `"source": "builtin"` — consumers can filter/distinguish
+3. **Use reasonable defaults**: `"downloads": 0, "rating": 4.5, "rating_count": 0` with a note that rating is editorial
+
+**Recommended**: Option 2 — add `"source": "builtin"` to each item and `"data_source": "builtin_catalog"` to stats. Keeps the catalog useful while being transparent.
+
+### NEW-2: MPTE Hardcoded PoC Fallback — ⚠️ ACCEPTABLE (no fix needed)
+
+**File**: `suite-attack/api/micro_pentest_router.py` lines 896–910  
+**What it does**: `_hardcoded_poc()` returns static PoC strings for SQLi and XSS:
+
+```python
+# L896-910:
+def _hardcoded_poc(finding: MicroFinding) -> str:
+    if finding.attack_vector == AttackVector.SQL_INJECTION:
+        return "curl -X POST '{url}' -d \"id=1' OR '1'='1\""
+    elif finding.attack_vector == AttackVector.XSS:
+        return "curl '{url}?q=<script>alert(1)</script>'"
+    return f"# No PoC template for {finding.attack_vector.value}"
+```
+
+**Why it's acceptable**: This is a **clearly labeled fallback** (L887: `# Hardcoded fallback if LLM didn't produce a PoC`). The primary path (L872-886) attempts LLM-generated PoCs via OpenAI/Anthropic. The static PoCs are only used when:
+1. No LLM API key is configured, OR
+2. LLM failed to produce a PoC
+
+The PoCs are parameterized with the actual `finding.affected_endpoint` URL, so they're target-specific (not completely generic). This is a reasonable fallback pattern.
+
+**No fix needed** — document and accept.
+
+### Orphan `.pyc` Cleanup (housekeeping)
+
+`suite-core/api/__pycache__/intelligent_engine_routes.cpython-314.pyc` still exists after the source `.py` file was deleted. Not functional (Python won't load a `.pyc` without a matching `.py` in normal operation), but should be cleaned:
+
+```bash
+rm suite-core/api/__pycache__/intelligent_engine_routes.cpython-314.pyc
+```
+
+---
+
+### Final Scorecard (2026-02-23)
+
+| Metric | Count |
+|--------|-------|
+| Original stubs tracked | 84 |
+| Original stubs fixed | **84 (100%)** |
+| Newly found issues | 2 |
+| Newly found — open | **1** (marketplace fabricated counts, P2) |
+| Newly found — acceptable | **1** (MPTE PoC fallback, intentional) |
+| Previously flagged — now resolved | 3 (intelligent_engine_routes deleted, new_backend/api deleted, cloud.py implemented) |
+| Dead code `.pyc` to clean | 1 (housekeeping) |
+
+---
+
+*For hardening issues on the ~280 functional endpoints, see [need_hardening.md](need_hardening.md). For the full endpoint-by-endpoint inventory, see [ROUTER_ENDPOINT_INVENTORY.md](ROUTER_ENDPOINT_INVENTORY.md). For the comprehensive re-validation report, see [BACKEND_STUB_AUDIT_2026-02-23.md](BACKEND_STUB_AUDIT_2026-02-23.md).*

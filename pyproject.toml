@@ -62,5 +62,6 @@ filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning",
     "ignore::pytest.PytestUnraisableExceptionWarning",
+    "ignore::pytest.PytestConfigWarning",
     "ignore:Unclosed.*MemoryObject.*:ResourceWarning",
 ]

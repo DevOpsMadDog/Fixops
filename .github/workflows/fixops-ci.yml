@@ -15,6 +15,7 @@ jobs:
       options: --user root
     env:
       FIXOPS_SKIP_PATH_SECURITY: "1"
+      FIXOPS_DISABLE_RATE_LIMIT: "1"
       PYTHONPATH: suite-api:suite-core:suite-attack:suite-feeds:suite-evidence-risk:suite-integrations:.
     steps:
       - uses: actions/checkout@v4
