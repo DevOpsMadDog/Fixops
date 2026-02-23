@@ -1,4 +1,17 @@
 """Pytest configuration for FixOps tests."""
+# ── Must run before ANY library import that touches requests/urllib3 ──
+import warnings
+
+warnings.filterwarnings(
+    "ignore",
+    message=r".*urllib3.*doesn't match a supported version",
+)
+warnings.filterwarnings(
+    "ignore",
+    message=r".*chardet.*doesn't match a supported version",
+)
+# ── End early warning suppression ──
+
 import sys
 from pathlib import Path
 

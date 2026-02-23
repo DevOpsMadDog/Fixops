@@ -35,7 +35,7 @@ jobs:
         run: |
           pip install -r requirements-test.txt
           pip install black==23.7.0 isort==5.12.0 flake8 pytest pytest-cov
-          pip install --upgrade requests urllib3
+          pip install --force-reinstall --no-deps "requests>=2.32,<3"
       - name: Run format check
         run: |
           black --check . --exclude '(archive/|archive_not_needed/|\.git/)'

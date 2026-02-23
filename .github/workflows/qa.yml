@@ -28,7 +28,7 @@ jobs:
         run: |
           pip install -r requirements-test.txt
           pip install black==23.7.0 isort==5.12.0 flake8 mypy
-          pip install --upgrade requests urllib3
+          pip install --force-reinstall --no-deps "requests>=2.32,<3"
       - name: Formatting checks
         run: |
           black --check . --exclude '(archive/|archive_not_needed/)'
