@@ -8,7 +8,7 @@ import os
 import re
 import time
 from collections import deque
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from threading import Lock
 from typing import Any, Dict, List, Optional
@@ -119,7 +119,7 @@ app = FastAPI(
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
+    return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
 
 
 @app.post("/telemetry")
@@ -210,7 +210,7 @@ async def generate_evidence(
         sha256_hash = hashlib.sha256(compressed).hexdigest()
 
         metadata = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "line_count": len(lines),
             "since_seconds": since,
             "asset": asset,
@@ -253,7 +253,7 @@ def upload_evidence_bundle(
     """
     cloud_provider = os.environ.get("CLOUD_PROVIDER", "").lower()
 
-    timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     sha256_prefix = sanitize_filename(metadata["sha256"][:8])
     filename = f"evidence-{timestamp}-{sha256_prefix}.jsonl.gz"
 

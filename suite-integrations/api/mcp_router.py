@@ -5,7 +5,7 @@ This provides endpoints for managing MCP servers that enable AI agents
 to connect to and interact with FixOps.
 """
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -120,7 +120,7 @@ class MCPConfigureRequest(BaseModel):
 
 _mcp_config = MCPServerConfig()
 _mcp_clients: Dict[str, MCPClient] = {}
-_mcp_start_time = datetime.utcnow()
+_mcp_start_time = datetime.now(timezone.utc)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -320,7 +320,7 @@ MCP_PROMPTS: List[MCPPrompt] = [
 @router.get("/status", response_model=MCPStatusResponse)
 async def get_mcp_status():
     """Get MCP server status and statistics."""
-    uptime = (datetime.utcnow() - _mcp_start_time).total_seconds()
+    uptime = (datetime.now(timezone.utc) - _mcp_start_time).total_seconds()
 
     return MCPStatusResponse(
         enabled=_mcp_config.enabled,

@@ -26,6 +26,8 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
+from core.tls_config import tls_verify
+
 
 class FuzzSeverity(str, Enum):
     CRITICAL = "critical"
@@ -217,7 +219,7 @@ class ApiFuzzerEngine:
         async with httpx.AsyncClient(
             timeout=self._timeout,
             headers=headers or {},
-            verify=False,
+            verify=tls_verify(),
         ) as client:
             for ep in endpoints[:50]:
                 fuzzed += 1

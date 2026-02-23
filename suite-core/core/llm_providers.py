@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, Mapping, Optional, Sequence
+
+logger = logging.getLogger(__name__)
 
 import requests  # type: ignore[import-untyped]
 from dotenv import load_dotenv
@@ -242,6 +245,11 @@ class OpenAIChatProvider(BaseLLMProvider):
                 metadata=metadata,
             )
         except Exception as exc:  # noqa: BLE001 - capture provider error
+            logger.warning(
+                "OpenAI provider %s failed, falling back to deterministic: %s",
+                self.name,
+                exc,
+            )
             metadata = {
                 "mode": "fallback",
                 "provider": self.name,
@@ -334,14 +342,11 @@ class AnthropicMessagesProvider(BaseLLMProvider):
             "model": self.model,
             "max_tokens": 400,
             "temperature": 0,
+            "system": (
+                "Return a JSON object with recommended_action, confidence, reasoning, "
+                "mitre_techniques, compliance_concerns, attack_vectors."
+            ),
             "messages": [
-                {
-                    "role": "system",
-                    "content": (
-                        "Return a JSON object with recommended_action, confidence, reasoning, "
-                        "mitre_techniques, compliance_concerns, attack_vectors."
-                    ),
-                },
                 {"role": "user", "content": prompt},
             ],
         }
@@ -362,6 +367,11 @@ class AnthropicMessagesProvider(BaseLLMProvider):
             content = response.json()["content"][0]["text"]
             parsed = json.loads(content)
         except Exception as exc:  # noqa: BLE001 - capture provider error
+            logger.warning(
+                "Anthropic provider %s failed, falling back to deterministic: %s",
+                self.name,
+                exc,
+            )
             metadata = {
                 "mode": "fallback",
                 "provider": self.name,
@@ -479,6 +489,11 @@ class GeminiProvider(BaseLLMProvider):
             content = candidates[0]["content"]["parts"][0]["text"]
             parsed = json.loads(content)
         except Exception as exc:  # noqa: BLE001 - capture provider error
+            logger.warning(
+                "Gemini provider %s failed, falling back to deterministic: %s",
+                self.name,
+                exc,
+            )
             metadata = {
                 "mode": "fallback",
                 "provider": self.name,

@@ -2,7 +2,7 @@
 """Seed MPTE pen_test_results table with realistic data."""
 import sys
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -126,7 +126,7 @@ for i, (cve, url, vuln_type, exploit_lvl, success, conf, exec_t, prio) in enumer
     scenarios
 ):
     req_id = str(uuid.uuid4())
-    now = datetime.utcnow() - timedelta(hours=len(scenarios) - i)
+    now = datetime.now(timezone.utc) - timedelta(hours=len(scenarios) - i)
 
     req = PenTestRequest(
         id=req_id,
@@ -182,8 +182,8 @@ config = PenTestConfig(
     timeout_seconds=300,
     auto_trigger=True,
     target_environments=["staging", "production"],
-    created_at=datetime.utcnow(),
-    updated_at=datetime.utcnow(),
+    created_at=datetime.now(timezone.utc),
+    updated_at=datetime.now(timezone.utc),
 )
 db.create_config(config)
 print("  ✅ Production config created")

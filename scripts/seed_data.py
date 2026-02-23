@@ -9,7 +9,7 @@ import json
 import os
 import sys
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 # Ensure suite paths are importable
@@ -27,7 +27,7 @@ for p in [
     sys.path.insert(0, str(ROOT / p))
 os.chdir(ROOT)
 
-NOW = datetime.utcnow()
+NOW = datetime.now(timezone.utc)
 
 
 def ts(days_ago: int = 0, hours_ago: int = 0) -> str:

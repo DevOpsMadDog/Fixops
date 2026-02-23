@@ -4,7 +4,7 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, List
 
@@ -372,7 +372,7 @@ Respond in JSON format with key "suggestions" containing an array of remediation
         """Verify that a remediation was effective."""
         logger.info(f"Verifying remediation: {suggestion.id}")
 
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
 
         try:
             # Use MPTE to retest the vulnerability
@@ -383,7 +383,7 @@ Respond in JSON format with key "suggestions" containing an array of remediation
             # Check for regressions
             regressions = await self._check_for_regressions(suggestion, context)
 
-            execution_time = (datetime.utcnow() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             verification = RemediationVerification(
                 id=self._generate_verification_id(),

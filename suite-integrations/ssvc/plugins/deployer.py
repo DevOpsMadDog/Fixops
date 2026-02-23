@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict
 
@@ -155,7 +155,7 @@ class DecisionDeployer:
 
     @staticmethod
     def _timestamp() -> str:
-        return datetime.utcnow().isoformat(timespec="seconds")
+        return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
 __all__ = [

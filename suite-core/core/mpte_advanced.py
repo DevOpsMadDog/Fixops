@@ -19,7 +19,7 @@ import json
 import logging
 import os
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -342,7 +342,7 @@ Respond in JSON format with keys: action, confidence, reasoning, execution_plan 
                 execution_plan=result.get("execution_plan", []),
                 metadata={
                     "composer_confidence": result.get("confidence", 0.8),
-                    "decision_timestamp": datetime.utcnow().isoformat(),
+                    "decision_timestamp": datetime.now(timezone.utc).isoformat(),
                 },
             )
 
@@ -576,7 +576,7 @@ Respond in JSON format with keys: action, confidence, reasoning, execution_plan 
         IMPORTANT: This is a deterministic fallback - NOT an AI-generated decision.
         The response is explicitly labeled for audit trail compliance.
         """
-        fallback_timestamp = datetime.utcnow().isoformat() + "Z"
+        fallback_timestamp = datetime.now(timezone.utc).isoformat() + "Z"
         vuln_id = vulnerability.get("id", "unknown")
 
         logger.warning(
@@ -614,7 +614,7 @@ Respond in JSON format with keys: action, confidence, reasoning, execution_plan 
         IMPORTANT: This is a deterministic fallback - NOT an AI-composed consensus.
         The response is explicitly labeled for audit trail compliance.
         """
-        fallback_timestamp = datetime.utcnow().isoformat() + "Z"
+        fallback_timestamp = datetime.now(timezone.utc).isoformat() + "Z"
         avg_confidence = (
             architect.confidence + developer.confidence + lead.confidence
         ) / 3
@@ -846,7 +846,7 @@ class AdvancedMPTEClient:
             "status": "completed",
             "consensus": consensus,
             "result": result,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
     async def _execute_consensus_plan(
@@ -900,7 +900,7 @@ class AdvancedMPTEClient:
         try:
             # Update status to running
             request.status = PenTestStatus.RUNNING
-            request.started_at = datetime.utcnow()
+            request.started_at = datetime.now(timezone.utc)
             self.db.update_request(request)
 
             # Call MPTE API
@@ -908,7 +908,7 @@ class AdvancedMPTEClient:
 
             # Update status to completed
             request.status = PenTestStatus.COMPLETED
-            request.completed_at = datetime.utcnow()
+            request.completed_at = datetime.now(timezone.utc)
             request.mpte_job_id = result.get("job_id")
             self.db.update_request(request)
 
@@ -921,7 +921,7 @@ class AdvancedMPTEClient:
         except Exception as e:
             logger.error(f"Pentest execution failed: {e}")
             request.status = PenTestStatus.FAILED
-            request.completed_at = datetime.utcnow()
+            request.completed_at = datetime.now(timezone.utc)
             self.db.update_request(request)
             raise
 

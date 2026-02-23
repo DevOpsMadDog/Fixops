@@ -7,7 +7,7 @@ import asyncio
 import json
 import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
 import structlog
@@ -503,7 +503,7 @@ class CorrelationEngine:
         self, time_window_hours: int = 24
     ) -> Dict[str, float]:
         """Calculate noise reduction metrics over time window"""
-        cutoff_time = datetime.utcnow() - timedelta(hours=time_window_hours)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=time_window_hours)
 
         async with DatabaseManager.get_session_context() as session:
             # Total findings in window
@@ -568,7 +568,7 @@ class CorrelationEngine:
                                 SecurityFinding.id != finding_id,
                                 SecurityFinding.status.in_(["open", "in_progress"]),
                                 SecurityFinding.created_at
-                                >= datetime.utcnow() - timedelta(days=7),
+                                >= datetime.now(timezone.utc) - timedelta(days=7),
                             )
                         )
                         .limit(5)
@@ -638,7 +638,7 @@ class CorrelationEngine:
                         "finding_id": finding_id,
                         "ai_analysis": ai_insights,
                         "context_count": len(context_findings_objs),
-                        "analysis_timestamp": datetime.utcnow().isoformat(),
+                        "analysis_timestamp": datetime.now(timezone.utc).isoformat(),
                     }
                 except json.JSONDecodeError:
                     # Return raw text if JSON parsing fails
@@ -646,7 +646,7 @@ class CorrelationEngine:
                         "finding_id": finding_id,
                         "ai_analysis": {"raw_analysis": ai_response},
                         "context_count": len(context_findings_objs),
-                        "analysis_timestamp": datetime.utcnow().isoformat(),
+                        "analysis_timestamp": datetime.now(timezone.utc).isoformat(),
                     }
 
         except Exception as e:

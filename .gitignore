@@ -111,3 +111,9 @@ terraform.tfvars
 # Temporary agent/debug scripts (auto-generated)
 _*.py
 _*.txt
+_*.sh
+
+# Runtime data directories
+data/archive/
+data/exports/
+data/reachability/

@@ -117,7 +117,7 @@ _optional_routers = {
     "algorithmic_router": "Algorithmic Engines",
     "copilot_router": "Copilot Chat",
     "agents_router": "Copilot Agents",
-    "intelligent_engine_routes": "Intelligent Security Engine",
+    # intelligent_engine_routes deleted — replaced by mindsdb_router
     "llm_monitor_router": "LLM Monitor",
     "code_to_cloud_router": "Code-to-Cloud Tracer",
 }

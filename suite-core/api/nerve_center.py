@@ -16,6 +16,8 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
 
+from core.persistent_store import PersistentDict
+
 _log = logging.getLogger(__name__)
 
 
@@ -834,12 +836,23 @@ async def get_overlay_config():
     }
 
 
+_overlay_config: PersistentDict = PersistentDict("nerve_center_overlay")
+
+
 @router.put("/overlay")
 async def update_overlay_config(config: Dict[str, Any]):
     """Update overlay configuration — validates and applies changes."""
+    for key, value in config.items():
+        _overlay_config[key] = value
     return {
         "status": "applied",
         "changes": len(config),
         "message": "Overlay configuration updated successfully",
         "requires_restart": False,
     }
+
+
+@router.get("/overlay")
+async def get_overlay_config() -> Dict[str, Any]:
+    """Retrieve current overlay configuration."""
+    return dict(_overlay_config)

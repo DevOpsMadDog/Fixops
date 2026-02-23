@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -40,7 +40,7 @@ class FlagMetadata:
     owner: str  # Team or person responsible
     tags: List[str] = field(default_factory=list)
     expiry: Optional[str] = None  # ISO date when flag should be removed
-    created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def is_expired(self) -> bool:
         """Check if flag has expired."""
@@ -48,7 +48,7 @@ class FlagMetadata:
             return False
         try:
             expiry_date = datetime.fromisoformat(self.expiry)
-            return datetime.utcnow() > expiry_date
+            return datetime.now(timezone.utc) > expiry_date
         except (ValueError, TypeError):
             return False
 

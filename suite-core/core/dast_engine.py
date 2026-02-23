@@ -24,6 +24,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import httpx
 
+from core.tls_config import tls_verify
+
 
 class DastSeverity(str, Enum):
     CRITICAL = "critical"
@@ -237,7 +239,7 @@ class DASTEngine:
             follow_redirects=True,
             headers=headers or {},
             cookies=cookies or {},
-            verify=False,
+            verify=tls_verify(),
         ) as client:
             # Phase 1: Crawl
             if crawl:

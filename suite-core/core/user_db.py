@@ -3,7 +3,7 @@ User and team database manager using SQLite.
 """
 import sqlite3
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -149,7 +149,7 @@ class UserDB:
 
     def update_user(self, user: User) -> User:
         """Update user."""
-        user.updated_at = datetime.utcnow()
+        user.updated_at = datetime.now(timezone.utc)
         conn = self._get_connection()
         try:
             conn.execute(
@@ -231,7 +231,7 @@ class UserDB:
 
     def update_team(self, team: Team) -> Team:
         """Update team."""
-        team.updated_at = datetime.utcnow()
+        team.updated_at = datetime.now(timezone.utc)
         conn = self._get_connection()
         try:
             conn.execute(

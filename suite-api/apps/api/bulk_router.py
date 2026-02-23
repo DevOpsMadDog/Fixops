@@ -12,6 +12,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+from core.persistent_store import PersistentDict
 from core.analytics_db import AnalyticsDB
 from core.analytics_models import FindingStatus
 from core.connectors import (
@@ -103,8 +104,8 @@ class ActionType(str, Enum):
     DELETE = "delete"
 
 
-# In-memory job store (in production, use Redis or database)
-_jobs: Dict[str, Dict[str, Any]] = {}
+# Persistent job store — survives restarts
+_jobs: PersistentDict = PersistentDict("bulk_jobs")
 
 
 class BulkUpdateRequest(BaseModel):
@@ -252,6 +253,7 @@ def _update_job_progress(
         job["results"].append(result)
     if error:
         job["errors"].append(error)
+    _jobs.persist(job_id)
 
 
 def _complete_job(job_id: str, status: str):
@@ -271,6 +273,7 @@ def _complete_job(job_id: str, status: str):
 
     job["status"] = status
     job["completed_at"] = datetime.now(timezone.utc).isoformat()
+    _jobs.persist(job_id)
 
 
 async def _process_bulk_status(
@@ -284,6 +287,7 @@ async def _process_bulk_status(
     if _is_job_cancelled(job_id):
         return
     _jobs[job_id]["status"] = JobStatus.IN_PROGRESS.value
+    _jobs.persist(job_id)
     success = 0
     failure = 0
 
@@ -357,6 +361,7 @@ async def _process_bulk_assign(
     if _is_job_cancelled(job_id):
         return
     _jobs[job_id]["status"] = JobStatus.IN_PROGRESS.value
+    _jobs.persist(job_id)
     success = 0
     failure = 0
 
@@ -424,6 +429,7 @@ async def _process_bulk_accept_risk(
     if _is_job_cancelled(job_id):
         return
     _jobs[job_id]["status"] = JobStatus.IN_PROGRESS.value
+    _jobs.persist(job_id)
     success = 0
     failure = 0
 
@@ -507,6 +513,7 @@ async def _process_bulk_tickets(
     if _is_job_cancelled(job_id):
         return
     _jobs[job_id]["status"] = JobStatus.IN_PROGRESS.value
+    _jobs.persist(job_id)
     success = 0
     failure = 0
 
@@ -692,6 +699,7 @@ async def _process_bulk_export(
     if _is_job_cancelled(job_id):
         return
     _jobs[job_id]["status"] = JobStatus.IN_PROGRESS.value
+    _jobs.persist(job_id)
 
     try:
         db = get_analytics_db()
@@ -710,6 +718,7 @@ async def _process_bulk_export(
                 _jobs[job_id]["failure_count"] = (
                     _jobs[job_id].get("failure_count", 0) + 1
                 )
+                _jobs.persist(job_id)
                 continue
 
             record: Dict[str, Any] = {
@@ -733,6 +742,7 @@ async def _process_bulk_export(
 
             _jobs[job_id]["processed_items"] = idx + 1
             _jobs[job_id]["progress_percent"] = round((idx + 1) / len(ids) * 100, 1)
+            _jobs.persist(job_id)
 
         export_id = str(uuid.uuid4())[:8]
         filename = f"{export_id}.{fmt}"
@@ -1050,6 +1060,7 @@ async def cancel_job(job_id: str) -> Dict[str, Any]:
         job["status"] = JobStatus.CANCELLED.value
         job["completed_at"] = datetime.now(timezone.utc).isoformat()
 
+    _jobs.persist(job_id)
     return {"status": "cancelled", "job_id": job_id}
 
 

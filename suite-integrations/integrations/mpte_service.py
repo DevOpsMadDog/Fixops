@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from core.mpte_db import MPTEDB
@@ -109,7 +109,7 @@ class AdvancedMPTEService:
             # Update request with MPTE job ID
             request.mpte_job_id = mpte_test_id
             request.status = PenTestStatus.RUNNING
-            request.started_at = datetime.utcnow()
+            request.started_at = datetime.now(timezone.utc)
             request = self.db.update_request(request)
 
             # Start async monitoring
@@ -126,9 +126,9 @@ class AdvancedMPTEService:
         """Monitor test progress and update status."""
         max_wait = 600  # 10 minutes
         check_interval = 10  # Check every 10 seconds
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
 
-        while (datetime.utcnow() - start_time).total_seconds() < max_wait:
+        while (datetime.now(timezone.utc) - start_time).total_seconds() < max_wait:
             try:
                 status = await self.client.get_test_status(mpte_test_id)
                 test_status = status.get("status", "").lower()
@@ -144,7 +144,7 @@ class AdvancedMPTEService:
                     break
                 elif test_status in ["failed", "error"]:
                     request.status = PenTestStatus.FAILED
-                    request.completed_at = datetime.utcnow()
+                    request.completed_at = datetime.now(timezone.utc)
                     self.db.update_request(request)
                     break
 
@@ -215,7 +215,7 @@ class AdvancedMPTEService:
 
         # Update request status
         request.status = PenTestStatus.COMPLETED
-        request.completed_at = datetime.utcnow()
+        request.completed_at = datetime.now(timezone.utc)
         self.db.update_request(request)
 
     def _map_vulnerability_to_test_type(
@@ -348,8 +348,8 @@ class AdvancedMPTEService:
                 test_case=f"Verification test for {vulnerability_type}",
                 priority=PenTestPriority.HIGH,
                 status=PenTestStatus.COMPLETED,
-                started_at=datetime.utcnow(),
-                completed_at=datetime.utcnow(),
+                started_at=datetime.now(timezone.utc),
+                completed_at=datetime.now(timezone.utc),
             )
             request = self.db.create_request(request)
 
@@ -443,7 +443,7 @@ class AdvancedMPTEService:
                     priority=PenTestPriority.HIGH,
                     status=PenTestStatus.RUNNING,
                     mpte_job_id=test_id,
-                    started_at=datetime.utcnow(),
+                    started_at=datetime.now(timezone.utc),
                 )
                 request = self.db.create_request(request)
                 requests.append(request)

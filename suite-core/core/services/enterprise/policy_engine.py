@@ -9,7 +9,7 @@ import json
 import operator
 import time
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -269,7 +269,7 @@ class PolicyEngine:
         if (
             cached_policies
             and self._last_policy_refresh
-            and (datetime.utcnow() - self._last_policy_refresh).seconds < 300
+            and (datetime.now(timezone.utc) - self._last_policy_refresh).seconds < 300
         ):  # 5 min cache
             policies = [PolicyRule(**p) for p in cached_policies]
         else:
@@ -285,7 +285,7 @@ class PolicyEngine:
                 # Cache for performance
                 policy_dicts = [p.__dict__ for p in policies]
                 await self.cache.set(cache_key, policy_dicts, ttl=300)
-                self._last_policy_refresh = datetime.utcnow()
+                self._last_policy_refresh = datetime.now(timezone.utc)
 
         # Filter policies based on context
         applicable_policies = []

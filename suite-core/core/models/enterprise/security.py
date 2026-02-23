@@ -272,7 +272,7 @@ class KevFindingWaiver(BaseModel, AuditMixin, SoftDeleteMixin):
             return False
 
         if now is None:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
 
         # Normalize timezone aware timestamps to naive UTC for comparison
         expiry = self.expires_at

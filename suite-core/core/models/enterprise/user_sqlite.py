@@ -3,7 +3,7 @@ SQLite-compatible user model with security, compliance, and RBAC
 """
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from enum import Enum
 from typing import Dict, List, Optional
 
@@ -146,7 +146,7 @@ class User(BaseModel, AuditMixin, SoftDeleteMixin, EncryptedFieldMixin):
             return True
 
         if self.account_locked_until:
-            return datetime.utcnow() < self.account_locked_until
+            return datetime.now(timezone.utc) < self.account_locked_until
 
         return False
 
@@ -225,7 +225,7 @@ class User(BaseModel, AuditMixin, SoftDeleteMixin, EncryptedFieldMixin):
         # Lock account after 5 failed attempts
         if self.failed_login_attempts >= 5:
             self.status = UserStatus.LOCKED.value
-            self.account_locked_until = datetime.utcnow() + timedelta(minutes=30)
+            self.account_locked_until = datetime.now(timezone.utc) + timedelta(minutes=30)
 
     def reset_failed_logins(self) -> None:
         """Reset failed login counter on successful login"""
@@ -236,7 +236,7 @@ class User(BaseModel, AuditMixin, SoftDeleteMixin, EncryptedFieldMixin):
 
     def record_login(self, ip_address: str) -> None:
         """Record successful login"""
-        self.last_login_at = datetime.utcnow()
+        self.last_login_at = datetime.now(timezone.utc)
         self.last_login_ip = ip_address
         self.reset_failed_logins()
 
@@ -303,7 +303,7 @@ class UserSession(BaseModel):
     @property
     def is_expired(self) -> bool:
         """Check if session is expired"""
-        return datetime.utcnow() > self.expires_at
+        return datetime.now(timezone.utc) > self.expires_at
 
     @property
     def is_valid(self) -> bool:

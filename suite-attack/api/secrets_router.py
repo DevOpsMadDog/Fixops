@@ -5,7 +5,7 @@ Provides enterprise-grade secrets scanning with gitleaks and trufflehog integrat
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from core.secrets_db import SecretsDB
@@ -85,7 +85,7 @@ async def get_secrets_status():
             "gitleaks": {"available": True, "status": "ready"},
             "trufflehog": {"available": True, "status": "ready"},
         },
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -168,7 +168,7 @@ async def resolve_secret_finding(id: str):
         raise HTTPException(status_code=404, detail="Secret finding not found")
 
     finding.status = SecretStatus.RESOLVED
-    finding.resolved_at = datetime.utcnow()
+    finding.resolved_at = datetime.now(timezone.utc)
     updated_finding = db.update_finding(finding)
     return SecretFindingResponse(**updated_finding.to_dict())
 

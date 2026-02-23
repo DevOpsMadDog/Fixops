@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+from core.persistent_store import PersistentDict
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel, Field, validator
 
@@ -275,14 +276,14 @@ class RetrainResponse(BaseModel):
 
 
 # =============================================================================
-# In-Memory Storage (Replace with MongoDB)
+# Persistent Storage (SQLite-backed)
 # =============================================================================
 
 
-_discovered_vulns: Dict[str, Dict[str, Any]] = {}
-_contributions: Dict[str, Dict[str, Any]] = {}
-_retrain_jobs: Dict[str, Dict[str, Any]] = {}
-_trained_models: Dict[str, Any] = {}  # Stores trained sklearn model objects
+_discovered_vulns: PersistentDict = PersistentDict("discovered_vulns")
+_contributions: PersistentDict = PersistentDict("cve_contributions")
+_retrain_jobs: PersistentDict = PersistentDict("retrain_jobs")
+_trained_models: Dict[str, Any] = {}  # sklearn model objects (not serialisable)
 
 # Counter for internal IDs
 _vuln_counter = 0
@@ -477,6 +478,7 @@ async def _notify_vendor(vuln_id: str) -> None:
     logger.info(f"Notifying vendor about vulnerability {vuln['internal_id']}")
     vuln["status"] = VulnStatus.REPORTED_VENDOR
     vuln["updated_at"] = _now()
+    _discovered_vulns.persist(vuln_id)
 
 
 @router.post("/contribute", response_model=ContributeResponse)
@@ -539,6 +541,7 @@ async def contribute_to_cve_program(
     # Update vulnerability status
     vuln["status"] = VulnStatus.CVE_REQUESTED
     vuln["updated_at"] = now
+    _discovered_vulns.persist(request.vuln_id)
 
     # Estimate based on program
     estimated_days = {
@@ -673,6 +676,7 @@ async def update_internal_vulnerability(
             vuln[key] = value
 
     vuln["updated_at"] = _now()
+    _discovered_vulns.persist(vuln_id)
 
     return vuln
 
@@ -870,6 +874,7 @@ async def _run_training(job_id: str) -> None:
 
     job["status"] = "training"
     job["started_at"] = _now()
+    _retrain_jobs.persist(job_id)
 
     if not _SKLEARN_AVAILABLE:
         job["status"] = "failed"
@@ -881,6 +886,7 @@ async def _run_training(job_id: str) -> None:
             }
             for model in job["models_queued"]
         }
+        _retrain_jobs.persist(job_id)
         logger.warning(f"ML training job {job_id} failed: scikit-learn not available")
         return
 
@@ -899,6 +905,7 @@ async def _run_training(job_id: str) -> None:
                 }
                 for model in job["models_queued"]
             }
+            _retrain_jobs.persist(job_id)
             logger.warning(
                 f"ML training job {job_id} failed: only {len(X_rows)} samples"
             )
@@ -925,6 +932,7 @@ async def _run_training(job_id: str) -> None:
         job["completed_at"] = _now()
         job["results"] = results
         job["training_samples"] = len(X_rows)
+        _retrain_jobs.persist(job_id)
 
         logger.info(
             f"ML training job {job_id} {'completed' if all_ok else 'partial'}: "
@@ -938,6 +946,7 @@ async def _run_training(job_id: str) -> None:
             model: {"status": "failed", "message": str(e)}
             for model in job["models_queued"]
         }
+        _retrain_jobs.persist(job_id)
         logger.error(f"ML training job {job_id} failed: {e}")
 
 

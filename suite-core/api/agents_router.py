@@ -19,6 +19,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from core.persistent_store import PersistentDict
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -29,6 +30,13 @@ try:
     _HTTPX_AVAILABLE = True
 except ImportError:
     _HTTPX_AVAILABLE = False
+
+try:
+    from core.tls_config import tls_verify
+except ImportError:
+
+    def tls_verify():
+        return os.environ.get("FIXOPS_TLS_VERIFY", "true").lower() != "false"
 
 logger = logging.getLogger(__name__)
 
@@ -433,8 +441,8 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-# In-memory task storage
-_agent_tasks: Dict[str, Dict[str, Any]] = {}
+# Persistent task storage — survives restarts
+_agent_tasks: PersistentDict = PersistentDict("agent_tasks")
 
 
 # =============================================================================
@@ -540,6 +548,7 @@ async def _run_analysis(task_id: str, request: AnalyzeVulnRequest) -> None:
         "recommendation": recommendation,
     }
     task["status"] = AgentStatus.COMPLETED
+    _agent_tasks.persist(task_id)
 
 
 @router.post("/analyst/threat-intel")
@@ -995,7 +1004,7 @@ async def _call_mpte_api(
     headers = {"Authorization": f"Bearer {MPTE_TOKEN}"} if MPTE_TOKEN else {}
 
     try:
-        async with httpx.AsyncClient(verify=False, timeout=30.0) as client:
+        async with httpx.AsyncClient(verify=tls_verify(), timeout=30.0) as client:
             if method == "POST":
                 response = await client.post(url, json=data or {}, headers=headers)
             else:
@@ -1069,6 +1078,7 @@ async def _run_validation(task_id: str, request: ValidateExploitRequest) -> None
             "mpte_error": mpte_result.get("error"),
         }
         task["status"] = AgentStatus.WAITING
+    _agent_tasks.persist(task_id)
 
 
 @router.post("/pentest/generate-poc")
@@ -1121,7 +1131,7 @@ async def generate_poc(request: GeneratePocRequest) -> Dict[str, Any]:
             f'    """Check if target is vulnerable to {request.cve_id}."""\n'
             f"    # SAFE: This only checks version/headers, does NOT exploit\n"
             f"    try:\n"
-            f"        resp = requests.get(target, timeout=10, verify=False)\n"
+            f"        resp = requests.get(target, timeout=10, verify=True)\n"
             f"        headers = dict(resp.headers)\n"
             f"        return {{\n"
             f"            'cve_id': '{request.cve_id}',\n"

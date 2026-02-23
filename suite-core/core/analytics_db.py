@@ -4,7 +4,7 @@ Analytics database manager using SQLite.
 import json
 import sqlite3
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -170,7 +170,7 @@ class AnalyticsDB:
 
     def update_finding(self, finding: Finding) -> Finding:
         """Update finding."""
-        finding.updated_at = datetime.utcnow()
+        finding.updated_at = datetime.now(timezone.utc)
         conn = self._get_connection()
         try:
             conn.execute(
@@ -308,7 +308,7 @@ class AnalyticsDB:
                 "SELECT COUNT(*) FROM findings WHERE severity = 'critical' AND status = 'open'"
             ).fetchone()[0]
 
-            thirty_days_ago = (datetime.utcnow() - timedelta(days=30)).isoformat()
+            thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
             recent_findings = conn.execute(
                 "SELECT COUNT(*) FROM findings WHERE created_at >= ?",
                 (thirty_days_ago,),
@@ -319,7 +319,7 @@ class AnalyticsDB:
                 "open_findings": open_findings,
                 "critical_findings": critical_findings,
                 "recent_findings_30d": recent_findings,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         finally:
             conn.close()

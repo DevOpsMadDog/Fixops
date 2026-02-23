@@ -4,7 +4,7 @@ Inventory database manager using SQLite.
 import json
 import sqlite3
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -156,7 +156,7 @@ class InventoryDB:
 
     def update_application(self, app: Application) -> Application:
         """Update application."""
-        app.updated_at = datetime.utcnow()
+        app.updated_at = datetime.now(timezone.utc)
         conn = self._get_connection()
         try:
             conn.execute(

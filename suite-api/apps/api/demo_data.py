@@ -7,7 +7,7 @@ Sample data can be seeded on startup for local development environments.
 
 import os
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import List
 
@@ -207,7 +207,7 @@ DEMO_MARKETPLACE_ITEMS = [
 def generate_demo_pdf_report(report_name: str, report_type: str) -> bytes:
     """Generate a realistic demo PDF report with properly calculated offsets."""
     # Build PDF objects with dynamic content
-    timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
     # Build the stream content first to calculate its length
     stream_content = f"""BT
@@ -280,7 +280,7 @@ def generate_demo_json_report(report_name: str, report_type: str) -> bytes:
     report_data = {
         "report_name": report_name,
         "report_type": report_type,
-        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "generated_at": datetime.now(timezone.utc).isoformat() + "Z",
         "summary": {
             "total_findings": 42,
             "critical": 3,
@@ -320,10 +320,10 @@ def generate_demo_csv_report(report_name: str, report_type: str) -> bytes:
                 ["Critical", "High", "Medium", "Low"][i % 4],
                 f"Security Finding {i}",
                 "Open" if i % 3 == 0 else "Remediated",
-                (datetime.utcnow() - timedelta(days=i * 2)).strftime("%Y-%m-%d"),
+                (datetime.now(timezone.utc) - timedelta(days=i * 2)).strftime("%Y-%m-%d"),
                 ""
                 if i % 3 == 0
-                else (datetime.utcnow() - timedelta(days=i)).strftime("%Y-%m-%d"),
+                else (datetime.now(timezone.utc) - timedelta(days=i)).strftime("%Y-%m-%d"),
             ]
         )
     return output.getvalue().encode("utf-8")
@@ -417,10 +417,10 @@ def seed_demo_reports(reports_dir: Path) -> List[dict]:
                 "file_path": str(file_path),
                 "file_size": len(content),
                 "created_at": (
-                    datetime.utcnow() - timedelta(days=30 - i * 3)
+                    datetime.now(timezone.utc) - timedelta(days=30 - i * 3)
                 ).isoformat(),
                 "completed_at": (
-                    datetime.utcnow() - timedelta(days=29 - i * 3)
+                    datetime.now(timezone.utc) - timedelta(days=29 - i * 3)
                 ).isoformat(),
             }
         )

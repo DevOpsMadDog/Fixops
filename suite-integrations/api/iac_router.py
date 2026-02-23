@@ -5,7 +5,7 @@ Provides enterprise-grade IaC security scanning with checkov and tfsec integrati
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from core.iac_db import IaCDB
@@ -120,7 +120,7 @@ async def resolve_iac_finding(id: str):
         raise HTTPException(status_code=404, detail="IaC finding not found")
 
     finding.status = IaCFindingStatus.RESOLVED
-    finding.resolved_at = datetime.utcnow()
+    finding.resolved_at = datetime.now(timezone.utc)
     updated_finding = db.update_finding(finding)
     return IaCFindingResponse(**updated_finding.to_dict())
 
@@ -133,7 +133,7 @@ async def remediate_iac_finding(id: str):
         raise HTTPException(status_code=404, detail="IaC finding not found")
 
     finding.status = IaCFindingStatus.RESOLVED
-    finding.resolved_at = datetime.utcnow()
+    finding.resolved_at = datetime.now(timezone.utc)
     updated_finding = db.update_finding(finding)
     return IaCFindingResponse(**updated_finding.to_dict())
 

@@ -73,7 +73,7 @@ def create_error_response(
         "error": error_code,
         "message": message,
         "status_code": status_code,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
     }
 
     if details:

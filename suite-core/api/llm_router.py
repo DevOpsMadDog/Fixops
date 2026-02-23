@@ -10,9 +10,10 @@ This router provides endpoints for:
 from __future__ import annotations
 
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from core.persistent_store import PersistentDict
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
@@ -84,13 +85,17 @@ class LLMSettings(BaseModel):
     temperature: float
 
 
-# In-memory settings (in production, these would be persisted)
-_settings: Dict[str, Any] = {
+# Persistent LLM settings — seed defaults on first run
+_settings: PersistentDict = PersistentDict("llm_settings")
+_LLM_DEFAULTS: Dict[str, Any] = {
     "default_provider": "openai",
     "timeout_seconds": 30,
     "max_tokens": 1024,
     "temperature": 0.0,
 }
+for _k, _v in _LLM_DEFAULTS.items():
+    if _k not in _settings:
+        _settings[_k] = _v
 
 
 def _check_provider_status(
@@ -422,7 +427,7 @@ async def list_providers() -> Dict[str, Any]:
                 "env_vars": [],
             },
         ],
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
     }
 
 
@@ -473,5 +478,5 @@ async def llm_health() -> Dict[str, Any]:
             if any_available
             else "No LLM providers configured - using deterministic fallback"
         ),
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
     }

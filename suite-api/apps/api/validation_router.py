@@ -17,7 +17,7 @@ import hashlib
 import io
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from tempfile import SpooledTemporaryFile
 from typing import Any, Dict, List, Optional
 
@@ -414,7 +414,7 @@ async def validate_batch(
                 )
 
     return CompatibilityReport(
-        timestamp=datetime.utcnow().isoformat() + "Z",
+        timestamp=datetime.now(timezone.utc).isoformat() + "Z",
         validation_results=results,
         overall_compatible=overall_compatible,
         recommendations=recommendations,

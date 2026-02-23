@@ -73,7 +73,7 @@ def _generate_report_file(report: Report) -> Path:
                 "report_id": report.id,
                 "report_name": report.name,
                 "report_type": report.report_type.value,
-                "generated_at": datetime.utcnow().isoformat(),
+                "generated_at": datetime.now(timezone.utc).isoformat(),
                 "summary": summary,
                 "total_findings": len(findings_dicts),
                 "findings": findings_dicts,
@@ -179,7 +179,7 @@ def _generate_report_file(report: Report) -> Path:
             "th,td{border:1px solid #ddd;padding:8px;text-align:left}"
             "th{background:#f4f4f4}</style></head><body>"
             f"<h1>{report.name}</h1>"
-            f"<p>Generated: {datetime.utcnow().isoformat()}Z | "
+            f"<p>Generated: {datetime.now(timezone.utc).isoformat()}Z | "
             f"Total findings: {len(findings_dicts)}</p>"
             "<table><tr><th>ID</th><th>Title</th><th>Severity</th>"
             "<th>Status</th><th>CVE</th><th>CVSS</th></tr>"
@@ -194,7 +194,7 @@ def _generate_report_file(report: Report) -> Path:
         lines = [
             f"FixOps Report: {report.name}",
             f"Type: {report.report_type.value}",
-            f"Generated: {datetime.utcnow().isoformat()}Z",
+            f"Generated: {datetime.now(timezone.utc).isoformat()}Z",
             f"Total findings: {len(findings_dicts)}",
             "=" * 60,
             "",
@@ -229,7 +229,7 @@ class ReportCreate(BaseModel):
             self.name = (
                 f"{fw} {self.report_type.value} Report".strip()
                 if fw
-                else f"{self.report_type.value} Report {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}"
+                else f"{self.report_type.value} Report {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}"
             )
 
 
@@ -301,7 +301,7 @@ async def create_report(report_data: ReportCreate):
     try:
         file_path = _generate_report_file(created_report)
         created_report.status = ReportStatus.COMPLETED
-        created_report.completed_at = datetime.utcnow()
+        created_report.completed_at = datetime.now(timezone.utc)
         created_report.file_path = str(file_path)
         created_report.file_size = file_path.stat().st_size
     except Exception as exc:
@@ -332,9 +332,9 @@ async def get_report_stats(
         start_dt = (
             datetime.fromisoformat(start_date)
             if start_date
-            else datetime.utcnow() - timedelta(days=30)
+            else datetime.now(timezone.utc) - timedelta(days=30)
         )
-        end_dt = datetime.fromisoformat(end_date) if end_date else datetime.utcnow()
+        end_dt = datetime.fromisoformat(end_date) if end_date else datetime.now(timezone.utc)
     except ValueError:
         raise HTTPException(
             status_code=400, detail="Invalid date format, expected ISO 8601"
@@ -518,9 +518,9 @@ async def export_sarif(
     start_dt = (
         datetime.fromisoformat(start_date)
         if start_date
-        else datetime.utcnow() - timedelta(days=30)
+        else datetime.now(timezone.utc) - timedelta(days=30)
     )
-    end_dt = datetime.fromisoformat(end_date) if end_date else datetime.utcnow()
+    end_dt = datetime.fromisoformat(end_date) if end_date else datetime.now(timezone.utc)
 
     # Get reports within date range
     reports = db.list_reports(limit=1000, offset=0)
@@ -657,9 +657,9 @@ async def export_csv(
     start_dt = (
         datetime.fromisoformat(start_date)
         if start_date
-        else datetime.utcnow() - timedelta(days=30)
+        else datetime.now(timezone.utc) - timedelta(days=30)
     )
-    end_dt = datetime.fromisoformat(end_date) if end_date else datetime.utcnow()
+    end_dt = datetime.fromisoformat(end_date) if end_date else datetime.now(timezone.utc)
 
     # Get reports within date range
     reports = db.list_reports(limit=1000, offset=0)
@@ -809,9 +809,9 @@ async def export_json(
     start_dt = (
         datetime.fromisoformat(start_date)
         if start_date
-        else datetime.utcnow() - timedelta(days=30)
+        else datetime.now(timezone.utc) - timedelta(days=30)
     )
-    end_dt = datetime.fromisoformat(end_date) if end_date else datetime.utcnow()
+    end_dt = datetime.fromisoformat(end_date) if end_date else datetime.now(timezone.utc)
 
     # Get reports within date range
     reports = db.list_reports(limit=1000, offset=0)
@@ -820,7 +820,7 @@ async def export_json(
     # Build JSON export
     export_data = {
         "export_metadata": {
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "start_date": start_dt.isoformat(),
             "end_date": end_dt.isoformat(),
             "total_reports": len(filtered_reports),

@@ -181,6 +181,16 @@ def _get_jira_webhook_secret() -> Optional[str]:
     return os.environ.get("FIXOPS_JIRA_WEBHOOK_SECRET")
 
 
+def _get_servicenow_webhook_secret() -> Optional[str]:
+    """Get ServiceNow webhook secret from environment."""
+    return os.environ.get("FIXOPS_SERVICENOW_WEBHOOK_SECRET")
+
+
+def _get_azure_devops_webhook_secret() -> Optional[str]:
+    """Get Azure DevOps webhook secret from environment."""
+    return os.environ.get("FIXOPS_AZURE_DEVOPS_WEBHOOK_SECRET")
+
+
 def _map_jira_status_to_fixops(jira_status: str) -> str:
     status_map = {
         "To Do": "open",
@@ -356,8 +366,26 @@ def receive_jira_webhook(
 
 
 @receiver_router.post("/servicenow")
-def receive_servicenow_webhook(payload: ServiceNowWebhookPayload) -> Dict[str, Any]:
+def receive_servicenow_webhook(
+    payload: ServiceNowWebhookPayload,
+    x_servicenow_signature: Optional[str] = Header(None),
+) -> Dict[str, Any]:
     """Receive webhook events from ServiceNow for bidirectional sync."""
+    # Validate ServiceNow webhook signature if configured
+    expected_secret = _get_servicenow_webhook_secret()
+    if expected_secret:
+        raw_body = json.dumps(payload.model_dump()).encode()
+        if not x_servicenow_signature:
+            raise HTTPException(
+                status_code=401,
+                detail="Missing X-ServiceNow-Signature header",
+            )
+        if not _verify_jira_signature(raw_body, x_servicenow_signature, expected_secret):
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid webhook signature",
+            )
+
     event_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
     payload_dict = payload.model_dump()
@@ -1482,11 +1510,30 @@ def _map_azure_state_to_fixops(state: str) -> str:
 
 
 @receiver_router.post("/azure-devops")
-def receive_azure_devops_webhook(payload: AzureDevOpsWebhookPayload) -> Dict[str, Any]:
+def receive_azure_devops_webhook(
+    payload: AzureDevOpsWebhookPayload,
+    authorization: Optional[str] = Header(None),
+) -> Dict[str, Any]:
     """Receive webhook events from Azure DevOps for bidirectional sync.
 
     Supports Azure DevOps work item events for ALM integration.
     """
+    # Validate Azure DevOps webhook token if configured
+    expected_secret = _get_azure_devops_webhook_secret()
+    if expected_secret:
+        if not authorization:
+            raise HTTPException(
+                status_code=401,
+                detail="Missing Authorization header",
+            )
+        # Azure DevOps sends Basic auth — compare raw token
+        token = authorization.removeprefix("Basic ").strip()
+        if not hmac.compare_digest(token, expected_secret):
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid webhook authorization",
+            )
+
     event_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
     payload_dict = payload.model_dump()

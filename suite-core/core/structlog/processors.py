@@ -14,7 +14,7 @@ class TimeStamper:
     def __call__(
         self, logger, method_name: str, event_dict: Dict[str, Any]
     ) -> Dict[str, Any]:
-        timestamp = _dt.datetime.utcnow()
+        timestamp = _dt.datetime.now(_dt.timezone.utc)
         if self.fmt == "iso":
             event_dict.setdefault("timestamp", timestamp.isoformat())
         else:

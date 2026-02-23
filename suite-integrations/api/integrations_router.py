@@ -2,7 +2,7 @@
 Integration management API endpoints.
 """
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from apps.api.dependencies import get_org_id
@@ -463,7 +463,7 @@ async def trigger_sync(id: str):
         sync_success = False
         sync_details["error"] = str(e)
 
-    integration.last_sync_at = datetime.utcnow()
+    integration.last_sync_at = datetime.now(timezone.utc)
     integration.last_sync_status = "success" if sync_success else "failed"
     db.update_integration(integration)
 

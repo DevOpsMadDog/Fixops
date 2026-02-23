@@ -9,7 +9,7 @@ import json
 import sys
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator, List, Mapping, Sequence, Set, Tuple
 
@@ -349,7 +349,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"Skipping {path}: {exc}")
 
     index_payload = {
-        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "generated_at": datetime.now(timezone.utc).isoformat() + "Z",
         "files": {
             report.path.relative_to(REPO_ROOT).as_posix(): serialise_module(report)
             for report in reports

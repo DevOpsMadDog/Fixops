@@ -19,7 +19,7 @@ that can be addressed in a future refactor.
 import hashlib
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -126,7 +126,7 @@ def train(
         "class_weight": class_weight,
         "cv_folds": cv,
         "sklearn_version": "1.3+",
-        "trained_at": datetime.utcnow().isoformat(),
+        "trained_at": datetime.now(timezone.utc).isoformat(),
         "n_samples": len(X),
         "n_features": X.shape[1],
     }

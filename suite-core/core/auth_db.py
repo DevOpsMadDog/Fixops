@@ -6,7 +6,7 @@ Manages: SSO configs, SAML assertions, users, and scoped API keys.
 import json
 import sqlite3
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
@@ -142,7 +142,7 @@ class AuthDB:
 
     def update_sso_config(self, config: SSOConfig) -> SSOConfig:
         """Update SSO configuration."""
-        config.updated_at = datetime.utcnow()
+        config.updated_at = datetime.now(timezone.utc)
         conn = self._get_connection()
         try:
             conn.execute(
@@ -335,7 +335,7 @@ class AuthDB:
         try:
             conn.execute(
                 "UPDATE api_keys SET last_used_at = ? WHERE id = ?",
-                (datetime.utcnow().isoformat(), key_id),
+                (datetime.now(timezone.utc).isoformat(), key_id),
             )
             conn.commit()
         finally:

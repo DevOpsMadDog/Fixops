@@ -176,7 +176,7 @@ async def get_dashboard_trends(
     days: int = Query(30, ge=1, le=365),
 ):
     """Get trend data for the specified number of days."""
-    end_time = datetime.utcnow()
+    end_time = datetime.now(timezone.utc)
     start_time = end_time - timedelta(days=days)
 
     metrics = db.list_metrics(
@@ -229,7 +229,7 @@ async def get_compliance_status(
         "total_findings": total,
         "open_findings": open_count,
         "critical_findings": critical_count,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -296,7 +296,7 @@ async def update_finding(id: str, finding_data: FindingUpdate):
             FindingStatus.RESOLVED,
             FindingStatus.FALSE_POSITIVE,
         ]:
-            finding.resolved_at = datetime.utcnow()
+            finding.resolved_at = datetime.now(timezone.utc)
 
     if finding_data.metadata is not None:
         finding.metadata.update(finding_data.metadata)
@@ -356,7 +356,7 @@ async def get_mttr():
     return {
         "mttr_hours": round(mttr_hours, 2),
         "mttr_days": round(mttr_hours / 24, 2),
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -378,7 +378,7 @@ async def get_coverage():
         "scanned_applications": scanned_apps,
         "scanned_services": scanned_services,
         "sources": sources,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -404,7 +404,7 @@ async def get_roi():
         "critical_blocked": critical_blocked,
         "estimated_prevented_cost": round(prevented_cost, 2),
         "currency": "USD",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -432,7 +432,7 @@ async def get_noise_reduction():
         "noise_reduction_percentage": round(noise_reduction_pct, 2),
         "blocked_decisions": blocked_decisions,
         "alert_decisions": alert_decisions,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -525,7 +525,7 @@ async def get_analytics_stats(org_id: str = Depends(get_org_id)):
         "total_decisions": len(decisions),
         "severity_breakdown": severity_counts,
         "status_breakdown": status_counts,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 

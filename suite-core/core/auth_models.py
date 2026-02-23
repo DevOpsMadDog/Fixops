@@ -2,7 +2,7 @@
 Database models for FixOps authentication, SSO/SAML, users, roles, and API keys.
 """
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -99,8 +99,8 @@ class SSOConfig:
     entity_id: Optional[str] = None
     sso_url: Optional[str] = None
     certificate: Optional[str] = None
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -124,7 +124,7 @@ class SAMLAssertion:
     id: str
     user_id: str
     assertion_data: Dict[str, Any]
-    issued_at: datetime = field(default_factory=datetime.utcnow)
+    issued_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     expires_at: Optional[datetime] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -148,8 +148,8 @@ class User:
     password_hash: str = ""
     is_active: bool = True
     org_id: str = "default"
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -177,7 +177,7 @@ class APIKey:
     is_active: bool = True
     expires_at: Optional[datetime] = None
     last_used_at: Optional[datetime] = None
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def to_dict(self) -> Dict[str, Any]:
         return {

@@ -4,7 +4,7 @@ Workflow database manager using SQLite.
 import json
 import sqlite3
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
@@ -118,7 +118,7 @@ class WorkflowDB:
 
     def update_workflow(self, workflow: Workflow) -> Workflow:
         """Update workflow."""
-        workflow.updated_at = datetime.utcnow()
+        workflow.updated_at = datetime.now(timezone.utc)
         conn = self._get_connection()
         try:
             conn.execute(

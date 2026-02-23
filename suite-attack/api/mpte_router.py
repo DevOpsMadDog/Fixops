@@ -5,6 +5,7 @@ from typing import List, Optional
 
 import httpx
 from core.mpte_db import MPTEDB
+from core.tls_config import tls_verify
 from core.mpte_models import (
     ExploitabilityLevel,
     PenTestConfig,
@@ -80,7 +81,7 @@ async def _call_real_mpte_verify(data) -> dict:
     import uuid
     from datetime import datetime
 
-    async with httpx.AsyncClient(verify=False, timeout=30.0) as client:
+    async with httpx.AsyncClient(verify=tls_verify(), timeout=30.0) as client:
         try:
             # Call real MPTE API for verification
             payload = {
@@ -111,7 +112,7 @@ async def _call_real_mpte_verify(data) -> dict:
         "status": "pending",
         "message": f"Verification queued for {data.vulnerability_type} at {data.target_url}",
         "source": "queued",
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -120,7 +121,7 @@ async def _call_real_mpte_scan(data) -> dict:
     import uuid
     from datetime import datetime
 
-    async with httpx.AsyncClient(verify=False, timeout=30.0) as client:
+    async with httpx.AsyncClient(verify=tls_verify(), timeout=30.0) as client:
         try:
             # Call real MPTE API for scanning
             payload = {
@@ -150,7 +151,7 @@ async def _call_real_mpte_scan(data) -> dict:
         "status": "pending",
         "message": f"Scan queued for {data.target}",
         "source": "queued",
-        "started_at": datetime.utcnow().isoformat(),
+        "started_at": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -327,7 +328,7 @@ def start_pen_test(request_id: str):
     request.status = PenTestStatus.RUNNING
     from datetime import datetime
 
-    request.started_at = datetime.utcnow()
+    request.started_at = datetime.now(timezone.utc)
     updated = db.update_request(request)
 
     return {"status": "started", "request": updated.to_dict()}
@@ -343,7 +344,7 @@ def cancel_pen_test(request_id: str):
     request.status = PenTestStatus.CANCELLED
     from datetime import datetime
 
-    request.completed_at = datetime.utcnow()
+    request.completed_at = datetime.now(timezone.utc)
     updated = db.update_request(request)
 
     return {"status": "cancelled", "request": updated.to_dict()}
@@ -391,7 +392,7 @@ def create_pen_test_result(data: CreatePenTestResultModel):
         request.status = PenTestStatus.COMPLETED
         from datetime import datetime
 
-        request.completed_at = datetime.utcnow()
+        request.completed_at = datetime.now(timezone.utc)
         db.update_request(request)
 
     return created.to_dict()

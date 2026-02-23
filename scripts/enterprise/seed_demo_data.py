@@ -6,7 +6,7 @@ Creates realistic enterprise data for testing and demonstration
 
 import asyncio
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add project root to path
@@ -100,8 +100,8 @@ async def create_demo_users():
                 notification_email=True,
                 notification_sms=False,
                 notification_slack=True,
-                terms_accepted_at=datetime.utcnow(),
-                privacy_policy_accepted_at=datetime.utcnow(),
+                terms_accepted_at=datetime.now(timezone.utc),
+                privacy_policy_accepted_at=datetime.now(timezone.utc),
             )
 
             session.add(user)

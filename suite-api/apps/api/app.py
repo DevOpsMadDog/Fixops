@@ -11,7 +11,7 @@ import secrets
 import shutil
 import uuid
 from contextlib import suppress
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from tempfile import SpooledTemporaryFile
 from types import SimpleNamespace
@@ -233,13 +233,8 @@ try:
 except ImportError as e:
     _logger.warning("Algorithmic router not available: %s", e)
 
+# intelligent_engine_routes.py deleted — replaced by mindsdb_router.py
 intelligent_engine_router: Optional[APIRouter] = None
-try:
-    from api.intelligent_engine_routes import router as intelligent_engine_router
-
-    _logger.info("Loaded Intelligent Engine router from suite-core")
-except ImportError as e:
-    _logger.warning("Intelligent Engine router not available: %s", e)
 
 llm_monitor_router: Optional[APIRouter] = None
 try:
@@ -503,7 +498,7 @@ JWT_SECRET = _load_or_generate_jwt_secret()
 def generate_access_token(data: Dict[str, Any]) -> str:
     """Generate a signed JWT access token with an expiry."""
 
-    exp = datetime.utcnow() + timedelta(minutes=JWT_EXP_MINUTES)
+    exp = datetime.now(timezone.utc) + timedelta(minutes=JWT_EXP_MINUTES)
     payload = {**data, "exp": exp}
     token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
     return token
@@ -566,6 +561,26 @@ def create_app() -> FastAPI:
     app.state.flag_provider = flag_provider
 
     app.add_middleware(CorrelationIdMiddleware)
+
+    # Rate-limit middleware — token bucket per client IP
+    try:
+        from apps.api.rate_limiter import RateLimitMiddleware
+
+        app.add_middleware(
+            RateLimitMiddleware,
+            requests_per_minute=120,
+            burst_size=20,
+            exempt_paths=[
+                "/api/v1/health",
+                "/api/v1/ready",
+                "/api/v1/version",
+                "/api/v1/metrics",
+                "/api/v1/feeds/refresh",
+            ],
+        )
+        logger.info("RateLimitMiddleware enabled (120 req/min, burst 20)")
+    except Exception as _rl_err:
+        logger.warning("RateLimitMiddleware not available: %s", _rl_err)
 
     app.add_middleware(RequestLoggingMiddleware)
 
@@ -630,6 +645,14 @@ def create_app() -> FastAPI:
     api_key_header = APIKeyHeader(name=header_name, auto_error=False)
     expected_tokens = overlay.auth_tokens if auth_strategy == "token" else tuple()
 
+    # Default scopes for token-based auth (service accounts get admin)
+    _ALL_SCOPES = [
+        "read:sbom", "write:sbom", "read:findings", "write:findings",
+        "read:graph", "write:graph", "read:feeds", "read:evidence",
+        "write:evidence", "read:integrations", "write:integrations",
+        "attack:execute", "admin:all",
+    ]
+
     async def _verify_api_key(
         request: Request,
         api_key: Optional[str] = Depends(api_key_header),
@@ -643,6 +666,9 @@ def create_app() -> FastAPI:
                 raise HTTPException(
                     status_code=401, detail="Invalid or missing API token"
                 )
+            # Token auth = service account → admin scopes
+            request.state.user_role = "admin"
+            request.state.user_scopes = _ALL_SCOPES
             return
         if auth_strategy == "jwt":
             if not api_key:
@@ -652,7 +678,25 @@ def create_app() -> FastAPI:
             token = api_key
             if token.lower().startswith("bearer "):
                 token = token[7:].strip()
-            decode_access_token(token)
+            claims = decode_access_token(token)
+            # Extract role/scopes from JWT claims
+            request.state.user_role = claims.get("role", "viewer")
+            request.state.user_scopes = claims.get("scopes", ["read:findings"])
+            return
+        # Fallback — no auth strategy → admin (dev mode)
+        request.state.user_role = "admin"
+        request.state.user_scopes = _ALL_SCOPES
+
+    def _require_scope(scope: str):
+        """Factory returning a dependency that checks for a required scope."""
+        async def _check(request: Request):
+            user_scopes = getattr(request.state, "user_scopes", [])
+            if scope not in user_scopes and "admin:all" not in user_scopes:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Forbidden — missing required scope: {scope}",
+                )
+        return _check
 
     allowlist = overlay.allowed_data_roots or (Path("data").resolve(),)
     for directory in overlay.data_directories.values():
@@ -762,7 +806,7 @@ def create_app() -> FastAPI:
         """Legacy health endpoint for backward-compatible probes."""
         return {
             "status": "healthy",
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
             "service": "aldeci-api",
         }
 
@@ -771,7 +815,7 @@ def create_app() -> FastAPI:
         """Authenticated status endpoint."""
         return {
             "status": "ok",
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
             "service": "fixops-api",
             "version": os.getenv("FIXOPS_VERSION", "0.1.0"),
         }
@@ -812,9 +856,9 @@ def create_app() -> FastAPI:
 
     app.include_router(inventory_router, dependencies=[Depends(_verify_api_key)])
 
-    app.include_router(users_router, dependencies=[Depends(_verify_api_key)])
-    app.include_router(teams_router, dependencies=[Depends(_verify_api_key)])
-    app.include_router(policies_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(users_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
+    app.include_router(teams_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
+    app.include_router(policies_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
 
     app.include_router(analytics_router, dependencies=[Depends(_verify_api_key)])
 
@@ -822,8 +866,8 @@ def create_app() -> FastAPI:
     app.include_router(audit_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(workflows_router, dependencies=[Depends(_verify_api_key)])
 
-    app.include_router(auth_router, dependencies=[Depends(_verify_api_key)])
-    app.include_router(bulk_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(auth_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
+    app.include_router(bulk_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
 
     # Enterprise features - Remediation, Collaboration
     app.include_router(remediation_router, dependencies=[Depends(_verify_api_key)])
@@ -841,7 +885,7 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key)],
         )
 
-    # Suite-Attack routers (offensive security)
+    # Suite-Attack routers (offensive security) — require attack:execute scope
     for _r, _name in [
         (mpte_router, "MPTE"),
         (micro_pentest_router, "Micro Pentest"),
@@ -850,7 +894,7 @@ def create_app() -> FastAPI:
         (secrets_router, "Secrets Scanner"),
     ]:
         if _r:
-            app.include_router(_r, dependencies=[Depends(_verify_api_key)])
+            app.include_router(_r, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
 
     # Suite-Feeds router (real-time vulnerability intelligence)
     if feeds_router:
@@ -882,7 +926,7 @@ def create_app() -> FastAPI:
         (predictions_router, "Predictions", None),
         (llm_router, "LLM", None),
         (algorithmic_router, "Algorithmic", None),
-        (intelligent_engine_router, "Intelligent Engine", "/api/v1"),
+        # intelligent_engine_router removed — replaced by mindsdb_router
         (llm_monitor_router, "LLM Monitor", None),
         (code_to_cloud_router, "Code-to-Cloud", None),
         (streaming_router, "SSE Streaming", None),
@@ -909,7 +953,7 @@ def create_app() -> FastAPI:
     ]
     for _r, _name in _attack_extra_routers:
         if _r:
-            app.include_router(_r, dependencies=[Depends(_verify_api_key)])
+            app.include_router(_r, dependencies=[Depends(_verify_api_key), Depends(_require_scope("attack:execute"))])
             _logger.info("Mounted %s router from suite-attack", _name)
 
     # -------------------------------------------------------------------
@@ -926,7 +970,7 @@ def create_app() -> FastAPI:
     for _r, _name, _prefix in _evidence_routers:
         if _r:
             app.include_router(
-                _r, prefix=_prefix, dependencies=[Depends(_verify_api_key)]
+                _r, prefix=_prefix, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))]
             )
             _logger.info("Mounted %s router from suite-evidence-risk", _name)
 
@@ -942,7 +986,7 @@ def create_app() -> FastAPI:
     ]
     for _r, _name in _integration_routers:
         if _r:
-            app.include_router(_r, dependencies=[Depends(_verify_api_key)])
+            app.include_router(_r, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))])
             _logger.info("Mounted %s router from suite-integrations", _name)
 
     # Webhooks receiver — no API key auth (uses signature verification)
@@ -1873,7 +1917,7 @@ def create_app() -> FastAPI:
                             "signature_algorithm": "RSA-SHA256",
                             "retention_days": retention_days,
                             "retained_until": (
-                                datetime.utcnow() + timedelta(days=retention_days)
+                                datetime.now(timezone.utc) + timedelta(days=retention_days)
                             ).strftime("%m/%d/%Y"),
                             "sha256": hashlib.sha256(
                                 evidence_bundle.get("bundle_id", "unknown").encode()
@@ -1937,7 +1981,7 @@ def create_app() -> FastAPI:
                             "signature_algorithm": "RSA-SHA256",
                             "retention_days": retention_days,
                             "retained_until": (
-                                datetime.utcnow() + timedelta(days=retention_days)
+                                datetime.now(timezone.utc) + timedelta(days=retention_days)
                             ).strftime("%m/%d/%Y"),
                             "sha256": hashlib.sha256(
                                 evidence_bundle.get("bundle_id", "unknown").encode()

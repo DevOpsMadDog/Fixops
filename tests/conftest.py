@@ -103,6 +103,7 @@ collect_ignore = [
     "test_micro_pentest_router.py",  # imports apps.api.micro_pentest_router (not created)
     "test_policy_kevs.py",  # imports api.v1.policy (module doesn't exist)
     "test_signing_verify.py",  # imports core.services.enterprise.signing (not exported)
+    "test_new_backend_api.py",  # new_backend/api.py deleted (dead stub)
 ]
 
 import os

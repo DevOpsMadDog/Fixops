@@ -4,7 +4,7 @@ Policy database manager using SQLite.
 import json
 import sqlite3
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
@@ -114,7 +114,7 @@ class PolicyDB:
 
     def update_policy(self, policy: Policy) -> Policy:
         """Update policy."""
-        policy.updated_at = datetime.utcnow()
+        policy.updated_at = datetime.now(timezone.utc)
         conn = self._get_connection()
         try:
             conn.execute(

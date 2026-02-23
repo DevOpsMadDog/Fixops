@@ -18,7 +18,7 @@ import logging
 import os
 import sys
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
 # Configure logging
@@ -130,7 +130,7 @@ def fetch_cisa_kev() -> Optional[Dict[str, Any]]:
 
 def fetch_nvd_recent(days: int = 7) -> Optional[List[Dict[str, Any]]]:
     """Fetch recent CVEs from NVD."""
-    end_date = datetime.utcnow()
+    end_date = datetime.now(timezone.utc)
     start_date = end_date - timedelta(days=days)
 
     params = {
@@ -363,7 +363,7 @@ def continuous(
     while True:
         iteration += 1
         console.print(f"\n[bold cyan]--- Iteration {iteration} ---[/bold cyan]")
-        console.print(f"[dim]Time: {datetime.utcnow().isoformat()}[/dim]")
+        console.print(f"[dim]Time: {datetime.now(timezone.utc).isoformat()}[/dim]")
 
         if kev:
             console.print("\n[bold]Fetching KEV catalog...[/bold]")

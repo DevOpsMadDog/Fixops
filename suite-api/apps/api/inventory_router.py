@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional, Set
 
 from apps.api.dependencies import get_org_id
 from core.inventory_db import InventoryDB
+from core.persistent_store import PersistentDict
 from core.inventory_models import Application, ApplicationCriticality, ApplicationStatus
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -21,8 +22,8 @@ from pydantic import BaseModel, Field
 router = APIRouter(prefix="/api/v1/inventory", tags=["inventory"])
 db = InventoryDB()
 
-# In-memory stores for enrichment data (prod would be DB-backed)
-_dependency_store: Dict[str, List[Dict[str, Any]]] = {}  # app_id -> deps
+# Persistent stores for enrichment data
+_dependency_store: PersistentDict = PersistentDict("inventory_deps")  # app_id -> deps
 _license_db: Dict[str, str] = {
     "MIT": "permissive",
     "Apache-2.0": "permissive",
@@ -347,9 +348,9 @@ async def get_application_dependencies(id: str, include_transitive: bool = Query
     }
 
 
-# In-memory service/API stores
-_service_store: Dict[str, Dict[str, Any]] = {}
-_api_store: Dict[str, Dict[str, Any]] = {}
+# Persistent service/API stores
+_service_store: PersistentDict = PersistentDict("inventory_services")
+_api_store: PersistentDict = PersistentDict("inventory_apis")
 
 
 @router.get("/services")

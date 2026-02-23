@@ -4,7 +4,7 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from enum import Enum
 from typing import Dict, List, Optional
 
@@ -182,7 +182,7 @@ class ContinuousValidationEngine:
             self.posture_history.append(posture)
 
             # Keep only last 30 days of history
-            cutoff = datetime.utcnow() - timedelta(days=30)
+            cutoff = datetime.now(timezone.utc) - timedelta(days=30)
             self.posture_history = [
                 p for p in self.posture_history if p.timestamp > cutoff
             ]
@@ -195,7 +195,7 @@ class ContinuousValidationEngine:
         logger.info(f"Executing validation job: {job.id}")
 
         job.status = ValidationStatus.IN_PROGRESS
-        job.started_at = datetime.utcnow()
+        job.started_at = datetime.now(timezone.utc)
 
         try:
             # Group vulnerabilities by type for efficient testing
@@ -226,14 +226,14 @@ class ContinuousValidationEngine:
             }
 
             job.status = ValidationStatus.COMPLETED
-            job.completed_at = datetime.utcnow()
+            job.completed_at = datetime.now(timezone.utc)
 
             logger.info(f"Validation job {job.id} completed: {job.result['summary']}")
 
         except Exception as e:
             logger.error(f"Validation job {job.id} failed: {e}")
             job.status = ValidationStatus.FAILED
-            job.completed_at = datetime.utcnow()
+            job.completed_at = datetime.now(timezone.utc)
             job.result = {"error": str(e)}
 
         finally:
@@ -352,7 +352,7 @@ class ContinuousValidationEngine:
         )
 
         return SecurityPosture(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             total_vulnerabilities=total_vulns,
             confirmed_exploitable=exploitable,
             risk_score=risk_score,

@@ -12,11 +12,12 @@ import logging
 import os
 import secrets
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
 import jwt
 from apps.api.dependencies import get_org_id
+from core.persistent_store import PersistentDict
 from core.user_db import UserDB
 from core.user_models import User, UserRole, UserStatus
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -54,8 +55,8 @@ JWT_ALGORITHM = "HS256"
 JWT_ACCESS_TOKEN_EXPIRE_HOURS = int(os.environ.get("FIXOPS_JWT_EXPIRE_HOURS", "2"))
 JWT_REFRESH_TOKEN_EXPIRE_DAYS = int(os.environ.get("FIXOPS_JWT_REFRESH_DAYS", "7"))
 
-# Rate limiting for login attempts
-_login_attempts: Dict[str, List[float]] = {}
+# Rate limiting for login attempts — persisted so restarts don't reset lockouts
+_login_attempts: PersistentDict = PersistentDict("login_attempts")
 MAX_LOGIN_ATTEMPTS = 5
 LOGIN_LOCKOUT_SECONDS = 300  # 5 minutes
 
@@ -142,9 +143,9 @@ def _check_rate_limit(email: str) -> None:
 
 def _record_failed_attempt(email: str) -> None:
     """Record a failed login attempt."""
-    if email not in _login_attempts:
-        _login_attempts[email] = []
-    _login_attempts[email].append(time.time())
+    attempts = _login_attempts.get(email, [])
+    attempts.append(time.time())
+    _login_attempts[email] = attempts  # write-through to SQLite
 
 
 def _clear_failed_attempts(email: str) -> None:
@@ -180,7 +181,7 @@ async def login(credentials: LoginRequest, request: Request):
     # Clear failed attempts on successful login
     _clear_failed_attempts(credentials.email)
 
-    user.last_login_at = datetime.utcnow()
+    user.last_login_at = datetime.now(timezone.utc)
     db.update_user(user)
 
     # Generate JWT token with secure secret
@@ -193,8 +194,8 @@ async def login(credentials: LoginRequest, request: Request):
             "email": user.email,
             "role": user.role.value,
             "jti": token_id,  # JWT ID for token revocation
-            "iat": datetime.utcnow(),
-            "exp": datetime.utcnow() + timedelta(hours=JWT_ACCESS_TOKEN_EXPIRE_HOURS),
+            "iat": datetime.now(timezone.utc),
+            "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_ACCESS_TOKEN_EXPIRE_HOURS),
         },
         jwt_secret,
         algorithm=JWT_ALGORITHM,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 from fastapi import APIRouter, Request, Response, status
@@ -26,7 +26,7 @@ def health_check() -> Dict[str, Any]:
     """
     return {
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
         "service": "fixops-api",
         "version": VERSION,
     }
@@ -105,7 +105,7 @@ def readiness_check(request: Request, response: Response) -> Dict[str, Any]:
 
     return {
         "status": "ready" if overall_ready else "not_ready",
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
         "service": "fixops-api",
         "version": VERSION,
         "checks": checks,
@@ -138,7 +138,7 @@ def metrics_endpoint(request: Request) -> Dict[str, Any]:
     This endpoint provides application-level metrics in JSON format.
     """
     metrics: Dict[str, Any] = {
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
         "service": "fixops-api",
         "version": VERSION,
     }

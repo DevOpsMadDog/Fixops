@@ -23,6 +23,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+from core.persistent_store import PersistentDict
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -214,9 +215,9 @@ class QuickReportRequest(BaseModel):
 # =============================================================================
 
 
-_sessions: Dict[str, Dict[str, Any]] = {}
-_messages: Dict[str, List[Dict[str, Any]]] = {}
-_actions: Dict[str, Dict[str, Any]] = {}
+_sessions: PersistentDict = PersistentDict("copilot_sessions")
+_messages: PersistentDict = PersistentDict("copilot_messages")
+_actions: PersistentDict = PersistentDict("copilot_actions")
 
 
 # =============================================================================
@@ -504,7 +505,9 @@ async def send_message(
         "metadata": {},
         "actions": [],
     }
-    _messages[session_id].append(user_message)
+    msgs = _messages.get(session_id, [])
+    msgs.append(user_message)
+    _messages[session_id] = msgs  # write-through
 
     # Emit copilot query event
     if _HAS_BRAIN:
@@ -537,7 +540,9 @@ async def send_message(
         "metadata": {"confidence": response.get("confidence", 0.0)},
         "actions": response.get("actions", []),
     }
-    _messages[session_id].append(assistant_message)
+    msgs = _messages.get(session_id, [])
+    msgs.append(assistant_message)
+    _messages[session_id] = msgs  # write-through
 
     # Emit copilot response event
     if _HAS_BRAIN:
@@ -557,7 +562,8 @@ async def send_message(
 
     # Update session
     session["updated_at"] = _now()
-    session["message_count"] = len(_messages[session_id])
+    session["message_count"] = len(_messages.get(session_id, []))
+    _sessions.persist(session_id)
 
     return MessageResponse(**assistant_message)
 
@@ -798,6 +804,7 @@ async def add_context(
 
     session["context"] = context
     session["updated_at"] = _now()
+    _sessions.persist(session_id)
 
     return {
         "status": "added",

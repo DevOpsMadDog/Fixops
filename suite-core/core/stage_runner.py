@@ -12,7 +12,7 @@ import shutil
 import zipfile
 from collections import Counter
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, Mapping, Optional
 
@@ -26,11 +26,11 @@ def _current_utc_timestamp() -> str:
     if override:
         candidate = override.strip()
         if not candidate:
-            return datetime.utcnow().isoformat() + "Z"
+            return datetime.now(timezone.utc).isoformat() + "Z"
         if candidate.endswith("Z"):
             return candidate
         return f"{candidate}Z"
-    return datetime.utcnow().isoformat() + "Z"
+    return datetime.now(timezone.utc).isoformat() + "Z"
 
 
 def _zip_date_time_tuple() -> tuple[int, int, int, int, int, int]:
@@ -41,7 +41,7 @@ def _zip_date_time_tuple() -> tuple[int, int, int, int, int, int]:
     try:
         parsed = datetime.fromisoformat(trimmed)
     except ValueError:
-        parsed = datetime.utcnow()
+        parsed = datetime.now(timezone.utc)
     return (
         parsed.year,
         parsed.month,

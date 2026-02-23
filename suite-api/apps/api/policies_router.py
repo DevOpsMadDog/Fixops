@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from apps.api.dependencies import get_org_id
+from core.persistent_store import PersistentDict
 from core.policy_db import PolicyDB
 from core.policy_models import Policy, PolicyStatus
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -22,8 +23,8 @@ from pydantic import BaseModel, Field
 router = APIRouter(prefix="/api/v1/policies", tags=["policies"])
 db = PolicyDB()
 
-# In-memory violation store (prod would be DB-backed)
-_violation_store: Dict[str, List[Dict[str, Any]]] = {}  # policy_id -> violations
+# Persistent violation store
+_violation_store: PersistentDict = PersistentDict("policy_violations")  # policy_id -> violations
 
 
 class PolicyCreate(BaseModel):
@@ -373,7 +374,9 @@ async def enforce_policy(id: str):
         pass
 
     violations = _evaluate_policy(policy, findings_data)
-    _violation_store.setdefault(id, []).extend(violations)
+    existing = _violation_store.get(id, [])
+    existing.extend(violations)
+    _violation_store[id] = existing  # write-through
 
     return {
         "policy_id": id,

@@ -2,7 +2,7 @@
 import json
 import sqlite3
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
@@ -463,7 +463,7 @@ class MPTEDB:
 
     def update_config(self, config: PenTestConfig) -> PenTestConfig:
         """Update MPTE configuration."""
-        config.updated_at = datetime.utcnow()
+        config.updated_at = datetime.now(timezone.utc)
 
         conn = self._get_connection()
         cursor = conn.cursor()

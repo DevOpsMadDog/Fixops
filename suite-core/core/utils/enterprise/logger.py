@@ -3,7 +3,7 @@ Enterprise structured logging with compliance and security features
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 import structlog
@@ -92,7 +92,7 @@ async def log_security_event(
             ip_address=ip_address,
             resource=resource,
             success=success,
-            timestamp=datetime.utcnow().isoformat(),
+            timestamp=datetime.now(timezone.utc).isoformat(),
         )
 
     except Exception as e:
@@ -120,7 +120,7 @@ class PerformanceLogger:
             "target_us": settings.HOT_PATH_TARGET_LATENCY_US,
             "exceeded_target": latency_us > settings.HOT_PATH_TARGET_LATENCY_US,
             "user_id": user_id,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         if additional_context:
@@ -145,7 +145,7 @@ class PerformanceLogger:
             "operation": operation,
             "duration_ms": duration_ms,
             "table": table,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         if additional_context:
@@ -172,7 +172,7 @@ class PerformanceLogger:
             cache_hit=cache_hit,
             duration_us=duration_us,
             key=key,
-            timestamp=datetime.utcnow().isoformat(),
+            timestamp=datetime.now(timezone.utc).isoformat(),
         )
 
 

@@ -112,7 +112,7 @@ class SoftDeleteMixin:
     def soft_delete(self, deleted_by: str) -> None:
         """Perform soft delete"""
         self.is_active = False
-        self.deleted_at = datetime.utcnow()
+        self.deleted_at = datetime.now(timezone.utc)
         self.deleted_by = deleted_by
 
     def restore(self) -> None:

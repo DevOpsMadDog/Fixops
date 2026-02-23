@@ -8,7 +8,7 @@ import csv
 import json
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -23,7 +23,7 @@ class ComprehensiveValidator:
     def __init__(self, base_dir: Path):
         self.base_dir = base_dir
         self.results = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "apps": {},
             "functional_tests": {},
             "non_functional_tests": {},
@@ -33,7 +33,7 @@ class ComprehensiveValidator:
 
     def log(self, message: str, level: str = "INFO"):
         """Log message with timestamp"""
-        timestamp = datetime.utcnow().strftime("%H:%M:%S")
+        timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
         print(f"[{timestamp}] [{level}] {message}")
 
     def validate_app(self, app_id: str, app_name: str, app_dir: Path) -> Dict[str, Any]:

@@ -20,12 +20,14 @@ import asyncio
 import json
 import os
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
 import httpx
 import structlog
+
+from core.tls_config import tls_verify
 
 logger = structlog.get_logger(__name__)
 
@@ -318,7 +320,7 @@ class IntelligentSecurityEngine:
 
         self.mpte_client = httpx.AsyncClient(
             base_url=self.config.mpte_url,
-            verify=False,
+            verify=tls_verify(),
             timeout=self.config.timeout_seconds,
         )
 
@@ -514,7 +516,7 @@ class IntelligentSecurityEngine:
         - Compliance validation at each step
         """
         self.state = EngineState.EXECUTING
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
 
         findings = []
         evidence = []
@@ -567,7 +569,7 @@ class IntelligentSecurityEngine:
             validated_findings, intelligence=None
         )
 
-        duration = (datetime.utcnow() - start_time).total_seconds()
+        duration = (datetime.now(timezone.utc) - start_time).total_seconds()
 
         result = ExecutionResult(
             plan_id=plan.id,

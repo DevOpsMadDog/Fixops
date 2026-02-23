@@ -435,7 +435,11 @@ async def get_recommendations(
                     "downloads": item["downloads"],
                 }
             )
-        return {"recommendations": recommendations, "marketplace_mode": "production"}
+        return {
+            "recommendations": recommendations,
+            "marketplace_mode": "builtin_catalog",
+            "source": "builtin_defaults",
+        }
 
     requirements = [r.strip() for r in compliance_requirements.split(",") if r.strip()]
     items = await service.get_recommended_content(
@@ -469,7 +473,11 @@ async def get_item(item_id: str) -> Dict[str, Any]:
     if service is None:
         for catalog_item in _BUILTIN_MARKETPLACE_ITEMS:
             if catalog_item["id"] == item_id:
-                return {**catalog_item, "marketplace_mode": "production"}
+                return {
+                    **catalog_item,
+                    "marketplace_mode": "builtin_catalog",
+                    "source": "builtin_defaults",
+                }
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Item not found"
         )
@@ -694,7 +702,7 @@ async def get_marketplace_stats() -> Dict[str, Any]:
 
     # Return built-in stats if enterprise service is unavailable
     if service is None:
-        return _MARKETPLACE_STATS
+        return {**_MARKETPLACE_STATS, "source": "builtin_defaults"}
 
     stats = await service.get_stats()
     return stats

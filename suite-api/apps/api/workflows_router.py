@@ -14,6 +14,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from apps.api.dependencies import get_org_id
+from core.persistent_store import PersistentDict
 from core.workflow_db import WorkflowDB
 from core.workflow_models import Workflow, WorkflowExecution, WorkflowStatus
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -22,10 +23,10 @@ from pydantic import BaseModel, Field
 router = APIRouter(prefix="/api/v1/workflows", tags=["workflows"])
 db = WorkflowDB()
 
-# In-memory SLA / execution state stores
-_sla_store: Dict[str, Dict[str, Any]] = {}  # workflow_id -> sla config
-_execution_steps: Dict[str, List[Dict]] = {}  # execution_id -> step results
-_paused_executions: Dict[str, Dict[str, Any]] = {}  # execution_id -> pause state
+# Persistent SLA / execution state stores
+_sla_store: PersistentDict = PersistentDict("workflow_sla")
+_execution_steps: PersistentDict = PersistentDict("workflow_steps")
+_paused_executions: PersistentDict = PersistentDict("workflow_paused")
 
 
 class WorkflowCreate(BaseModel):
@@ -262,11 +263,28 @@ async def _execute_action(action: str, params: Dict, context: Dict) -> Any:
             "message": params.get("message", ""),
         }
     elif action == "http_call":
+        import ipaddress
+        import urllib.parse
+
         import httpx
+
+        # --- SSRF protection: block private/internal IPs ---
+        raw_url = params.get("url", "")
+        parsed = urllib.parse.urlparse(raw_url)
+        hostname = parsed.hostname or ""
+        try:
+            addr = ipaddress.ip_address(hostname)
+            if addr.is_private or addr.is_loopback or addr.is_link_local:
+                return {"error": "SSRF blocked: private/internal IP not allowed"}
+        except ValueError:
+            # hostname is a DNS name — block known metadata endpoints
+            blocked = {"metadata.google.internal", "169.254.169.254"}
+            if hostname.lower() in blocked:
+                return {"error": "SSRF blocked: cloud metadata endpoint not allowed"}
 
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.request(
-                params.get("method", "GET"), params["url"], json=params.get("body")
+                params.get("method", "GET"), raw_url, json=params.get("body")
             )
             return {"status_code": resp.status_code, "body": resp.text[:500]}
     elif action == "evaluate_policy":
@@ -339,7 +357,7 @@ async def execute_workflow(id: str, input_data: Optional[Dict[str, Any]] = None)
     created_execution.status = (
         WorkflowStatus.FAILED if failed else WorkflowStatus.COMPLETED
     )
-    created_execution.completed_at = datetime.utcnow()
+    created_execution.completed_at = datetime.now(timezone.utc)
     created_execution.output_data = {
         "result": "failure" if failed else "success",
         "steps_completed": sum(1 for s in step_results if s["status"] == "completed"),

@@ -408,7 +408,7 @@ async def collect_evidence(bundle_id: str, request: Request) -> dict[str, Any]:
     target = bundle_dir / safe_id
     target.mkdir(parents=True, exist_ok=True)
 
-    collected_at = __import__("datetime").datetime.utcnow().isoformat()
+    collected_at = __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()
 
     # Write a collection manifest
     manifest = {

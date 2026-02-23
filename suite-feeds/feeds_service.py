@@ -1070,7 +1070,7 @@ class FeedsService:
                     epss = float(row.get("epss", 0))
                     percentile = float(row.get("percentile", 0))
                     date = row.get(
-                        "model_version", datetime.utcnow().strftime("%Y-%m-%d")
+                        "model_version", datetime.now(timezone.utc).strftime("%Y-%m-%d")
                     )
 
                     if cve_id and cve_id.startswith("CVE-"):

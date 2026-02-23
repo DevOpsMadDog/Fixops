@@ -9,7 +9,7 @@ import asyncio
 import json
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -589,8 +589,8 @@ class FixOpsCLI:
                     cwe_id=finding_data.get("cwe_id"),
                     cve_id=finding_data.get("cve_id"),
                     cvss_score=finding_data.get("cvss_score"),
-                    first_seen=datetime.utcnow(),
-                    last_seen=datetime.utcnow(),
+                    first_seen=datetime.now(timezone.utc),
+                    last_seen=datetime.now(timezone.utc),
                     status="open",
                 )
 
@@ -661,8 +661,8 @@ class FixOpsCLI:
                 cwe_id=finding_data.get("cwe_id"),
                 cve_id=finding_data.get("cve_id"),
                 cvss_score=finding_data.get("cvss_score"),
-                first_seen=datetime.utcnow(),
-                last_seen=datetime.utcnow(),
+                first_seen=datetime.now(timezone.utc),
+                last_seen=datetime.now(timezone.utc),
                 status="open",
             )
 

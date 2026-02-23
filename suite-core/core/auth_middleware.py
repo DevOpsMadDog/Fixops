@@ -125,6 +125,10 @@ class AuthContext:
         self.scopes = scopes
         self.auth_method = auth_method
 
+    def has_scope(self, scope: str) -> bool:
+        """Check if user has a specific scope."""
+        return scope in self.scopes or "admin:all" in self.scopes
+
 
 async def require_auth(
     request: Request,
@@ -186,7 +190,7 @@ def _validate_api_key(raw_key: str) -> Optional[AuthContext]:
         return None
     if not verify_api_key_hash(raw_key, stored.key_hash):
         return None
-    if stored.expires_at and stored.expires_at < datetime.utcnow():
+    if stored.expires_at and stored.expires_at < datetime.now(timezone.utc):
         return None
     # Touch last_used_at (fire-and-forget)
     try:
