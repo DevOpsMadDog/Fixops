@@ -5740,7 +5740,9 @@ def build_parser() -> argparse.ArgumentParser:
         "mpte-orchestrator",
         help="Unified MPTE Orchestrator — AI-powered penetration testing (wraps micro-pentest + mpte + advanced-pentest)",
     )
-    mpte_orch_subparsers = mpte_orch_parser.add_subparsers(dest="mpte_orchestrator_command")
+    mpte_orch_subparsers = mpte_orch_parser.add_subparsers(
+        dest="mpte_orchestrator_command"
+    )
 
     # mpte-orchestrator scan — run a micro penetration test
     ptg_scan = mpte_orch_subparsers.add_parser(
@@ -5825,7 +5827,9 @@ def build_parser() -> argparse.ArgumentParser:
     ptg_rem.add_argument("cve", help="CVE ID")
 
     # mpte-orchestrator capabilities — list all capabilities
-    mpte_orch_subparsers.add_parser("capabilities", help="List MPTE Orchestrator capabilities")
+    mpte_orch_subparsers.add_parser(
+        "capabilities", help="List MPTE Orchestrator capabilities"
+    )
 
     # mpte-orchestrator enterprise-scan — run enterprise-grade scan
     ptg_escan = mpte_orch_subparsers.add_parser(
