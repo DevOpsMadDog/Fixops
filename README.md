@@ -59,7 +59,7 @@ Security teams are drowning:
 
 ## The Solution
 
-ALdeci is a **Decision Intelligence Platform** for security teams. One platform that replaces the gap between your scanners and your decisions.
+ALdeci is a **Decision Intelligence Platform** for security teams. It fills the gap between your scanners and your decisions — augmenting your existing tools and teams, never replacing them.
 
 <table>
 <tr>
@@ -262,7 +262,7 @@ ALdeci is a **Decision Intelligence Platform** for security teams. One platform 
 
 | Feature | What It Does | Key Endpoints |
 |---|---|---|
-| **Local ML Training** | Anomaly detection, threat assessment, response time prediction, API health scoring. Replaces external ML services. | `POST /api/v1/ml/train` · `POST /api/v1/ml/predict` · `GET /api/v1/ml/anomalies` |
+| **Local ML Training** | Anomaly detection, threat assessment, response time prediction, API health scoring. Runs alongside your existing ML stack. | `POST /api/v1/ml/train` · `POST /api/v1/ml/predict` · `GET /api/v1/ml/anomalies` |
 | **Monte Carlo Risk Quantification (FAIR)** | Financial risk via simulation — VaR, Expected Annual Loss, loss exceedance curves. CVE-specific and portfolio-level. | `POST /api/v1/algorithms/monte-carlo` · `POST /api/v1/algorithms/portfolio-risk` |
 | **Causal Inference (Root Cause)** | Statistical causal inference to separate correlation from causation in incidents. | `POST /api/v1/algorithms/causal-inference` |
 | **SSVC Assessment** | Stakeholder-Specific Vulnerability Categorization via Bayesian network — Track/Track*/Attend/Act priority. | `POST /api/v1/predictions/ssvc-risk` |

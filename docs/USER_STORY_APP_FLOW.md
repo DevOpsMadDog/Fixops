@@ -790,15 +790,15 @@ Raj shows her ALdeci's **Financial Impact** view:
 
 | Metric | Before ALdeci | After ALdeci | Savings |
 |---|---|---|---|
-| Annual pen-test | $45K (1x/year, point-in-time) | $0 — ALdeci's MPTE runs continuous pen-tests | **$45K saved** |
-| Audit prep consultants | $35K (3 weeks of billable hours) | $0 — ALdeci auto-generates evidence bundles | **$35K saved** |
-| Raj's overtime | $30K (manual triage, weekends) | $0 — ALdeci triages automatically | **$30K saved** |
+| Annual pen-test | $45K (1x/year, point-in-time) | $20K — ALdeci's MPTE fills the gaps between annual engagements, human red team focuses on creative scenarios | **$25K optimized** |
+| Audit prep consultants | $35K (3 weeks of billable hours) | $8K — ALdeci pre-assembles evidence bundles, consultants validate & sign off faster | **$27K saved** |
+| Raj's overtime | $30K (manual triage, weekends) | $5K — ALdeci handles first-pass triage, Raj focuses on complex decisions | **$25K saved** |
 | Mean-time-to-remediate | 38 days (= prolonged breach exposure) | 4.2 days | **$2.1M risk reduction** |
 | Breach probability (estimated) | 14% annual | 3% annual | **$1.3M expected value saved** |
 
-**ALdeci costs $48K/year and saves $110K in direct costs + reduces risk exposure by $3.4M.**
+**ALdeci costs $48K/year and saves $77K in direct costs + reduces risk exposure by $3.4M.**
 
-Priya approves the purchase in one meeting. She also cancels the annual pen-test contract — ALdeci's micro-pentest engine runs every week, not once a year.
+Priya approves the purchase in one meeting. The annual pen-test engagement is restructured — not canceled. ALdeci's MPTE provides continuous validation between engagements, so Jake's red team and external consultants can focus on the creative, high-value testing that only humans can do.
 
 ### Tool consolidation
 
@@ -806,9 +806,9 @@ Three months later, Priya notices something else:
 - Snyk and Trivy overlap on 40% of findings. ALdeci shows exactly where.
 - Qualys is only used for infrastructure scanning — ALdeci + Trivy already covers this.
 
-Priya downgrades Qualys from Enterprise to Basic tier, saving $16K/year. She now has **one dashboard (ALdeci) that shows the combined output of all tools**, instead of three dashboards that nobody cross-references.
+Priya right-sizes Qualys to a tier that better fits their actual usage, saving $16K/year. She now has **one dashboard (ALdeci) that shows the combined output of all tools** — every scanner, every human finding, cross-referenced in one place.
 
-**Net result: Security spending stays flat, but effectiveness increases 10x.**
+**Net result: Same tools, same teams, 10x the effectiveness. ALdeci doesn't replace anything — it makes everything work together.**
 
 ---
 
@@ -881,7 +881,7 @@ Nina tells Sarah: *"I went from reviewing 8 PRs a week to covering all 20, and t
 
 ## Chapter 18: Jake's Red Team (Offensive Security)
 
-### The annual pen-test is dead
+### The annual pen-test evolves
 
 Jake is the Offensive Team Lead — HealthPay's one-person red team. Before ALdeci, his life looked like this:
 
@@ -889,6 +889,8 @@ Jake is the Offensive Team Lead — HealthPay's one-person red team. Before ALde
 - Produce a 150-page PDF report that's outdated by the time it's delivered
 - Wait 6 months for findings to be fixed (if ever)
 - Have no visibility into whether the fixes actually worked
+
+**Pen testing can never be replaced — human creativity, intuition, and adversarial thinking are irreplaceable.** But Jake was drowning in routine validation work that left no time for the creative stuff.
 
 ### Continuous offensive validation
 
@@ -913,7 +915,7 @@ New exploit confirmed:
   ⚠️ Auto-escalated to P0 — Jira ticket PAT-0912 created
 ```
 
-Jake used to spend 2 weeks finding what MPTE finds overnight. Now he focuses on **creative attack scenarios** that automation can't do — social engineering simulations, physical security assessments, and novel attack chains.
+MPTE handles the routine vulnerability verification that used to consume Jake's first week. Now he focuses on **creative attack scenarios** that only humans can do — social engineering simulations, physical security assessments, novel attack chains, and adversarial thinking that no AI can replicate. The human red team is more valuable than ever.
 
 **Breach & Attack Simulation (BAS)**: Jake configures attack scenarios in ALdeci:
 - *"Simulate: external attacker with stolen employee credentials"*
@@ -924,7 +926,7 @@ ALdeci traces the attack path through the risk graph and tells Jake exactly how 
 
 **Red team → remediation loop**: When Jake finds something, he doesn't write a CSV row. He clicks **"Convert to Finding"** — ALdeci creates a finding with the full exploit evidence, attack path, CVSS score, and suggested fix. It auto-creates a Jira ticket assigned to the right developer. Jake can track remediation in real-time instead of asking Raj for updates 3 months later.
 
-Jake tells David: *"We went from one pen-test per year to 365. The annual pen-test was a snapshot. This is a live movie."*
+Jake tells David: *"The annual pen-test used to be our only window into exploitability. Now MPTE gives us continuous signal between engagements, and I spend my pen-test time on the hard problems — the ones that actually need a human. We're not doing less pen testing. We're doing better pen testing."*
 
 ---
 
@@ -1083,7 +1085,7 @@ Ethan is the Security Engineer — the one who makes all the tools actually work
 **Connector configuration**: Instead of writing custom integrations for each tool, Ethan configures connectors in ALdeci's UI:
 
 ```yaml
-# ALdeci connector config — replaces 3 weeks of custom scripting
+# ALdeci connector config — complements your existing tool integrations
 connectors:
   - type: snyk
     token: ${SNYK_API_KEY}
@@ -1543,18 +1545,18 @@ Hasan tells Lisa: *"This is the first security tool I've administered that has a
 | Metric | Before ALdeci | After ALdeci | Change |
 |---|---|---|:---:|
 | Findings to triage | 14,000 | **340** | **97% noise eliminated** |
-| Time to understand one finding | 45 min | **0 min** (ALdeci explains it) | **100%** |
+| Time to understand one finding | 45 min | **3 min** (ALdeci pre-analyzes, human validates) | **93%** |
 | Time to fix | 38 days avg | **4.2 days** avg | **9x faster** |
 | Audit prep | 3 weeks | **2 hours** | **99.4%** |
 | Raj's weekly triage hours | 30 | **6** | **80%** |
 | Nina's PR coverage | 8 of 20 PRs/week | **All 20** | **2.5x** |
 | Anika & Tom's weekly spreadsheet hours | 35 | **4** (rest = proactive work) | **89%** |
-| Jake's pen-tests per year | 1 (point-in-time, $45K) | **365** (continuous MPTE) | **365x** |
+| Jake's pen-tests per year | 1 (point-in-time, $45K) | **1 annual + continuous MPTE validation** | **Always-on signal** |
 | Sana's threat briefing | Generic, not mapped | **Stack-specific, TTP-mapped** | Actionable |
 | Ethan's integration maintenance | 60% of his time | **10%** | **83%** |
 | Derek's sprint disruption | 30% velocity loss | **0%** — planned in budget | **100%** |
 | Karen's audit prep | 3 weeks of screenshots | **2 hours** (auto-evidence) | **99.4%** |
-| Ravi's parser maintenance | 50% of his time | **0%** — 7 native formats | **100%** |
+| Ravi's parser maintenance | 50% of his time | **10%** — 7 native formats, Ravi focuses on data quality | **80%** |
 | Alex's time per security fix | 2+ hours (confused) | **20 min** (guided) | **85%** |
 | Diana's audit duration | 3 days on-site | **4 hours** ($9K saved) | **83%** |
 | Lena's architecture decisions | Gut feel | **Data-driven** (graph sim) | Quantified |
