@@ -45,7 +45,9 @@ def _get_feeds():
             _feeds_service = FeedsService()
             logger.info("mpte_orchestrator.feeds_service.loaded")
         except Exception as exc:
-            logger.warning("mpte_orchestrator.feeds_service.unavailable", error=str(exc))
+            logger.warning(
+                "mpte_orchestrator.feeds_service.unavailable", error=str(exc)
+            )
     return _feeds_service
 
 
@@ -59,7 +61,9 @@ def _get_attack_engine():
             _attack_engine = AttackSimulationEngine()
             logger.info("mpte_orchestrator.attack_engine.loaded")
         except Exception as exc:
-            logger.warning("mpte_orchestrator.attack_engine.unavailable", error=str(exc))
+            logger.warning(
+                "mpte_orchestrator.attack_engine.unavailable", error=str(exc)
+            )
     return _attack_engine
 
 
@@ -73,7 +77,9 @@ def _get_autofix_engine():
             _autofix_engine = AutoFixEngine()
             logger.info("mpte_orchestrator.autofix_engine.loaded")
         except Exception as exc:
-            logger.warning("mpte_orchestrator.autofix_engine.unavailable", error=str(exc))
+            logger.warning(
+                "mpte_orchestrator.autofix_engine.unavailable", error=str(exc)
+            )
     return _autofix_engine
 
 

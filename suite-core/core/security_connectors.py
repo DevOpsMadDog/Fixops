@@ -1077,15 +1077,24 @@ class ThreatMapperConnector(_BaseConnector):
     ) -> ConnectorOutcome:
         """Fetch vulnerability scan results across all nodes."""
         if not self.configured:
-            return ConnectorOutcome("skipped", {"reason": "threatmapper not configured"})
+            return ConnectorOutcome(
+                "skipped", {"reason": "threatmapper not configured"}
+            )
         try:
             body: Dict[str, Any] = {
-                "node_filter": {"filters": {"compare_filter": []}, "in_field_filter": []},
+                "node_filter": {
+                    "filters": {"compare_filter": []},
+                    "in_field_filter": [],
+                },
                 "window": {"offset": 0, "size": limit},
             }
             if severity:
                 body["node_filter"]["filters"]["compare_filter"].append(
-                    {"field_name": "cve_severity", "field_value": severity.lower(), "filter_type": "eq"}
+                    {
+                        "field_name": "cve_severity",
+                        "field_value": severity.lower(),
+                        "filter_type": "eq",
+                    }
                 )
             resp = self._request(
                 "POST",
@@ -1094,7 +1103,11 @@ class ThreatMapperConnector(_BaseConnector):
                 json=body,
             )
             resp.raise_for_status()
-            vulns = resp.json() if isinstance(resp.json(), list) else resp.json().get("data", [])
+            vulns = (
+                resp.json()
+                if isinstance(resp.json(), list)
+                else resp.json().get("data", [])
+            )
             return ConnectorOutcome(
                 "fetched", {"vulnerabilities": vulns, "count": len(vulns)}
             )
@@ -1106,10 +1119,15 @@ class ThreatMapperConnector(_BaseConnector):
     def get_secrets(self, limit: int = 500) -> ConnectorOutcome:
         """Fetch secret scan results (leaked creds, API keys, tokens)."""
         if not self.configured:
-            return ConnectorOutcome("skipped", {"reason": "threatmapper not configured"})
+            return ConnectorOutcome(
+                "skipped", {"reason": "threatmapper not configured"}
+            )
         try:
             body: Dict[str, Any] = {
-                "node_filter": {"filters": {"compare_filter": []}, "in_field_filter": []},
+                "node_filter": {
+                    "filters": {"compare_filter": []},
+                    "in_field_filter": [],
+                },
                 "window": {"offset": 0, "size": limit},
             }
             resp = self._request(
@@ -1119,7 +1137,11 @@ class ThreatMapperConnector(_BaseConnector):
                 json=body,
             )
             resp.raise_for_status()
-            secrets = resp.json() if isinstance(resp.json(), list) else resp.json().get("data", [])
+            secrets = (
+                resp.json()
+                if isinstance(resp.json(), list)
+                else resp.json().get("data", [])
+            )
             return ConnectorOutcome(
                 "fetched", {"secrets": secrets, "count": len(secrets)}
             )
@@ -1131,10 +1153,15 @@ class ThreatMapperConnector(_BaseConnector):
     def get_malware(self, limit: int = 500) -> ConnectorOutcome:
         """Fetch malware scan results (YARA-based detections)."""
         if not self.configured:
-            return ConnectorOutcome("skipped", {"reason": "threatmapper not configured"})
+            return ConnectorOutcome(
+                "skipped", {"reason": "threatmapper not configured"}
+            )
         try:
             body: Dict[str, Any] = {
-                "node_filter": {"filters": {"compare_filter": []}, "in_field_filter": []},
+                "node_filter": {
+                    "filters": {"compare_filter": []},
+                    "in_field_filter": [],
+                },
                 "window": {"offset": 0, "size": limit},
             }
             resp = self._request(
@@ -1144,7 +1171,11 @@ class ThreatMapperConnector(_BaseConnector):
                 json=body,
             )
             resp.raise_for_status()
-            malware = resp.json() if isinstance(resp.json(), list) else resp.json().get("data", [])
+            malware = (
+                resp.json()
+                if isinstance(resp.json(), list)
+                else resp.json().get("data", [])
+            )
             return ConnectorOutcome(
                 "fetched", {"malware": malware, "count": len(malware)}
             )
@@ -1158,15 +1189,24 @@ class ThreatMapperConnector(_BaseConnector):
     ) -> ConnectorOutcome:
         """Fetch compliance scan results (CIS benchmarks)."""
         if not self.configured:
-            return ConnectorOutcome("skipped", {"reason": "threatmapper not configured"})
+            return ConnectorOutcome(
+                "skipped", {"reason": "threatmapper not configured"}
+            )
         try:
             body: Dict[str, Any] = {
-                "node_filter": {"filters": {"compare_filter": []}, "in_field_filter": []},
+                "node_filter": {
+                    "filters": {"compare_filter": []},
+                    "in_field_filter": [],
+                },
                 "window": {"offset": 0, "size": limit},
             }
             if benchmark:
                 body["node_filter"]["filters"]["compare_filter"].append(
-                    {"field_name": "compliance_check_type", "field_value": benchmark, "filter_type": "eq"}
+                    {
+                        "field_name": "compliance_check_type",
+                        "field_value": benchmark,
+                        "filter_type": "eq",
+                    }
                 )
             resp = self._request(
                 "POST",
@@ -1175,7 +1215,11 @@ class ThreatMapperConnector(_BaseConnector):
                 json=body,
             )
             resp.raise_for_status()
-            results = resp.json() if isinstance(resp.json(), list) else resp.json().get("data", [])
+            results = (
+                resp.json()
+                if isinstance(resp.json(), list)
+                else resp.json().get("data", [])
+            )
             return ConnectorOutcome(
                 "fetched", {"compliance_results": results, "count": len(results)}
             )
@@ -1187,7 +1231,9 @@ class ThreatMapperConnector(_BaseConnector):
     def get_topology(self) -> ConnectorOutcome:
         """Fetch runtime topology (hosts, containers, pods, processes)."""
         if not self.configured:
-            return ConnectorOutcome("skipped", {"reason": "threatmapper not configured"})
+            return ConnectorOutcome(
+                "skipped", {"reason": "threatmapper not configured"}
+            )
         try:
             resp = self._request(
                 "GET",
@@ -1207,14 +1253,18 @@ class ThreatMapperConnector(_BaseConnector):
     ) -> ConnectorOutcome:
         """Start a new vulnerability scan on specified nodes."""
         if not self.configured:
-            return ConnectorOutcome("skipped", {"reason": "threatmapper not configured"})
+            return ConnectorOutcome(
+                "skipped", {"reason": "threatmapper not configured"}
+            )
         try:
             resp = self._request(
                 "POST",
                 f"{self.base_url}/scan/start/vulnerability",
                 headers=self._headers(),
                 json={
-                    "node_ids": [{"node_id": nid, "node_type": node_type} for nid in node_ids],
+                    "node_ids": [
+                        {"node_id": nid, "node_type": node_type} for nid in node_ids
+                    ],
                 },
             )
             resp.raise_for_status()
@@ -1231,14 +1281,18 @@ class ThreatMapperConnector(_BaseConnector):
     ) -> ConnectorOutcome:
         """Start a new secret scan on specified nodes."""
         if not self.configured:
-            return ConnectorOutcome("skipped", {"reason": "threatmapper not configured"})
+            return ConnectorOutcome(
+                "skipped", {"reason": "threatmapper not configured"}
+            )
         try:
             resp = self._request(
                 "POST",
                 f"{self.base_url}/scan/start/secret",
                 headers=self._headers(),
                 json={
-                    "node_ids": [{"node_id": nid, "node_type": node_type} for nid in node_ids],
+                    "node_ids": [
+                        {"node_id": nid, "node_type": node_type} for nid in node_ids
+                    ],
                 },
             )
             resp.raise_for_status()
