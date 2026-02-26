@@ -12,7 +12,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     container:
       image: devopsaico/fixops:latest
       options: --user root
@@ -47,7 +47,7 @@ jobs:
       - name: Test with Coverage (fail if below 18% baseline)
         if: ${{ env.SKIP_UNIT_TESTS != 'true' }}
         run: |
-          pytest tests/ --override-ini "addopts=" --timeout=60 --cov=core --cov=apps --cov=risk --cov=evidence --cov-branch --cov-report=xml --cov-report=term-missing --cov-fail-under=18 -q --ignore=tests/e2e --ignore=tests/harness --ignore=tests/sidecar
+          pytest tests/ --override-ini "addopts=" --timeout=10 --cov=core --cov=apps --cov=risk --cov=evidence --cov-branch --cov-report=xml --cov-report=term-missing --cov-fail-under=18 -q --ignore=tests/e2e --ignore=tests/harness --ignore=tests/sidecar
       - name: API Contract Check
         continue-on-error: true
         run: |

@@ -13,7 +13,7 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     container:
       image: devopsaico/fixops:latest
       options: --user root
@@ -54,7 +54,7 @@ jobs:
           # Run comprehensive tests covering all 300+ API endpoints, CLI commands, and UI tests
           pytest \
             tests/ \
-            -v --override-ini testpaths='' --timeout=60 \
+            -v --override-ini testpaths='' --timeout=10 \
             --override-ini "addopts=--cov=apps --cov=core --cov=risk --cov=evidence --cov-report=term-missing --cov-report=xml:reports/coverage/coverage.xml --cov-fail-under=18" \
             --ignore=tests/sidecar/ \
             --ignore=tests/e2e/

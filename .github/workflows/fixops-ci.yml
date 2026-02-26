@@ -10,7 +10,7 @@ permissions:
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     container:
       image: devopsaico/fixops:latest
       options: --user root
@@ -83,7 +83,7 @@ jobs:
           FIXOPS_JWT_SECRET: 'test-jwt-secret-for-ci-testing'
           FIXOPS_MODE: 'enterprise'
           FIXOPS_EVIDENCE_KEY: 'Zz6A0n4P3skS8F6edSxE2xe50Tzw9uQWGWp9JYG1ChE='
-        run: pytest -q --timeout=60
+        run: pytest -q --timeout=10
       - name: Comprehensive API smoke tests
         env:
           FIXOPS_DISABLE_TELEMETRY: '1'
@@ -93,7 +93,7 @@ jobs:
         run: |
           echo "=== Running comprehensive API smoke tests ==="
           echo "Testing all 169 API paths (208 endpoints) from OpenAPI schema"
-          pytest tests/test_api_smoke.py -v --tb=short --timeout=60
+          pytest tests/test_api_smoke.py -v --tb=short --timeout=10
           echo "API smoke tests completed successfully"
       - name: Real-world CVE integration tests
         env:
