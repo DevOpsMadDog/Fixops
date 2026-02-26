@@ -13,6 +13,7 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     container:
       image: devopsaico/fixops:latest
       options: --user root
@@ -27,7 +28,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements-test.txt
-          pip install black==23.7.0 isort==5.12.0 flake8 mypy
+          pip install black==23.7.0 isort==5.12.0 flake8 mypy pytest-timeout
           pip install --force-reinstall --no-deps "requests>=2.32,<3"
       - name: Formatting checks
         run: |
@@ -53,7 +54,7 @@ jobs:
           # Run comprehensive tests covering all 300+ API endpoints, CLI commands, and UI tests
           pytest \
             tests/ \
-            -v --override-ini testpaths='' \
+            -v --override-ini testpaths='' --timeout=60 \
             --override-ini "addopts=--cov=apps --cov=core --cov=risk --cov=evidence --cov-report=term-missing --cov-report=xml:reports/coverage/coverage.xml --cov-fail-under=18" \
             --ignore=tests/sidecar/ \
             --ignore=tests/e2e/
