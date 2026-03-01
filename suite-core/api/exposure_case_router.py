@@ -204,3 +204,15 @@ async def get_valid_transitions(case_id: str):
         "current_status": case.status.value,
         "valid_transitions": [s.value for s in allowed],
     }
+
+
+@router.get("/health")
+async def exposure_case_health():
+    """Exposure case manager health check."""
+    return {"status": "healthy", "engine": "exposure-case", "version": "1.0.0"}
+
+
+@router.get("/status")
+async def exposure_case_status():
+    """Exposure case status (alias for /health)."""
+    return await exposure_case_health()

@@ -1,0 +1,82 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "ALdeci Scanner",
+          "version": "2.0.0",
+          "informationUri": "https://aldeci.ai",
+          "rules": [
+            {
+              "id": "SQL-INJ-001",
+              "name": "SQLInjection",
+              "shortDescription": {"text": "SQL Injection vulnerability detected"},
+              "defaultConfiguration": {"level": "error"},
+              "properties": {"severity": "critical", "cwe": "CWE-89"}
+            },
+            {
+              "id": "XSS-001",
+              "name": "CrossSiteScripting",
+              "shortDescription": {"text": "Cross-site scripting (XSS) vulnerability"},
+              "defaultConfiguration": {"level": "warning"},
+              "properties": {"severity": "high", "cwe": "CWE-79"}
+            },
+            {
+              "id": "HARDCODED-SECRET-001",
+              "name": "HardcodedSecret",
+              "shortDescription": {"text": "Hardcoded secret or credential"},
+              "defaultConfiguration": {"level": "error"},
+              "properties": {"severity": "critical", "cwe": "CWE-798"}
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "SQL-INJ-001",
+          "level": "error",
+          "message": {"text": "SQL injection via unsanitized user input in query parameter 'id'"},
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {"uri": "src/api/users.py"},
+                "region": {"startLine": 42, "startColumn": 12}
+              }
+            }
+          ],
+          "properties": {"severity": "critical", "cve": "CWE-89"}
+        },
+        {
+          "ruleId": "XSS-001",
+          "level": "warning",
+          "message": {"text": "Reflected XSS in template rendering"},
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {"uri": "src/templates/profile.html"},
+                "region": {"startLine": 15, "startColumn": 1}
+              }
+            }
+          ],
+          "properties": {"severity": "high"}
+        },
+        {
+          "ruleId": "HARDCODED-SECRET-001",
+          "level": "error",
+          "message": {"text": "AWS access key hardcoded in source code"},
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {"uri": "src/config/settings.py"},
+                "region": {"startLine": 23, "startColumn": 1}
+              }
+            }
+          ],
+          "properties": {"severity": "critical"}
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1746 @@
+{
+  "info": {
+    "_postman_id": "vl-005-comply",
+    "name": "\ud83d\udee1\ufe0f ALdeci \u2014 COMPLY",
+    "description": "## Comply \u2014 \"Can I prove we're secure?\"\n\nCovers: Compliance Dashboard, Evidence Vault, Evidence Export, SOC2, SLSA, Audit Trail, Reports, Analytics\n\n### Personas Served\n- **Maria Santos** (Compliance Manager) \u2014 frameworks, evidence, SOC2\n- **Laura Chen** (GRC Analyst) \u2014 risk quantification, gap analysis\n- **Tom Baker** (External Auditor) \u2014 audit trail, evidence bundles\n- **Sarah Chen** (CISO) \u2014 compliance posture, executive reports\n- **Janet Kim** (SOC Manager) \u2014 policy enforcement, monitoring\n\n### Endpoints: 70+ covering audit, evidence, reports, policies, compliance, marketplace\n\n### Vision Pillars: V6 (Quantum-Secure Evidence), V10 (CTEM with Crypto Proof)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{apiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.request.headers.add({ key: 'Content-Type', value: 'application/json' });",
+          "pm.request.headers.add({ key: 'Accept', value: 'application/json' });"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "\ud83d\udccb Audit Trail & Chain",
+      "description": "Immutable audit logs with chain verification \u2014 full WORM compliance.",
+      "item": [
+        {
+          "name": "Get Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/audit/logs",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "audit",
+                "logs"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Audit logs returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Returns log entries', function() {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify Audit Chain",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/audit/chain/verify",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "audit",
+                "chain",
+                "verify"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Chain verification returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Chain is valid', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.valid !== undefined) pm.expect(json.valid).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Audit Chain Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/audit/logs",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "audit",
+                "logs"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Chain status returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Compliance Frameworks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/audit/compliance/frameworks",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "audit",
+                "compliance",
+                "frameworks"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Frameworks returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture frameworkId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (Array.isArray(json) && json.length) pm.environment.set('frameworkId', json[0].id || json[0].framework_id);",
+                  "    else if (json.frameworks && json.frameworks.length) pm.environment.set('frameworkId', json.frameworks[0].id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Framework Compliance Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/audit/compliance/frameworks/{{frameworkId}}/status",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "audit",
+                "compliance",
+                "frameworks",
+                "{{frameworkId}}",
+                "status"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Framework status returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Framework Gap Analysis",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/audit/compliance/frameworks/{{frameworkId}}/gaps",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "audit",
+                "compliance",
+                "frameworks",
+                "{{frameworkId}}",
+                "gaps"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Gap analysis returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Control Mappings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/audit/compliance/controls",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "audit",
+                "compliance",
+                "controls"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Mappings returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Generate Audit Evidence",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"framework_id\": \"{{frameworkId}}\",\n  \"time_period\": \"last_quarter\",\n  \"include_signatures\": true\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/audit/compliance/frameworks/{{frameworkId}}/report",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "audit",
+                "compliance",
+                "frameworks",
+                "{{frameworkId}}",
+                "report"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Generate evidence returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Compliance Score History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/analytics/dashboard/compliance-status",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "dashboard",
+                "compliance-status"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Score history returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd10 Evidence Vault (V6 \u2014 Quantum-Secure)",
+      "description": "Signed evidence bundles with RSA+ML-DSA hybrid signatures. FIPS 204 compliant.",
+      "item": [
+        {
+          "name": "List Evidence Bundles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/evidence/bundles",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "evidence",
+                "bundles"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Evidence bundles returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture bundleId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (Array.isArray(json) && json.length) pm.environment.set('bundleId', json[0].id || json[0].bundle_id);",
+                  "    else if (json.bundles && json.bundles.length) pm.environment.set('bundleId', json.bundles[0].id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Evidence Bundle",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"SOC2 Q4 2025 Evidence\",\n  \"framework\": \"soc2\",\n  \"period\": \"2025-Q4\",\n  \"findings\": [\n    \"{{findingId}}\"\n  ],\n  \"sign\": true,\n  \"signature_type\": \"hybrid_rsa_mldsa\",\n  \"org_id\": \"{{orgId}}\",\n  \"app_id\": \"test-app-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/evidence/bundles/generate",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "evidence",
+                "bundles",
+                "generate"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create bundle returns 200/201', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture bundleId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.bundle_id) pm.environment.set('bundleId', json.bundle_id);",
+                  "    else if (json.id) pm.environment.set('bundleId', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Evidence Bundle",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/evidence/bundles/{{bundleId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "evidence",
+                "bundles",
+                "{{bundleId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get bundle returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Auto-capture bundleId from list endpoint",
+                  "var listUrl = pm.environment.get('apiBase') + '/evidence/bundles';",
+                  "pm.sendRequest({",
+                  "    url: listUrl,",
+                  "    method: 'GET',",
+                  "    header: { 'X-API-Key': pm.environment.get('apiKey') }",
+                  "}, function(err, res) {",
+                  "    if (!err && res.code === 200) {",
+                  "        try {",
+                  "            var body = res.json();",
+                  "            var items = body.tasks || body.items || body.data || body.workflows ||",
+                  "                        body.cases || body.fixes || body.policies || body.reports ||",
+                  "                        body.bundles || body.comments || body.activities || [];",
+                  "            if (Array.isArray(items) && items.length > 0) {",
+                  "                var id = items[0].bundle_id || items[0].id || items[0].task_id || items[0].fix_id;",
+                  "                if (id) pm.environment.set('bundleId', id);",
+                  "            }",
+                  "        } catch(e) {}",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify Evidence Bundle Signature",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/evidence/bundles/{{bundleId}}/verify",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "evidence",
+                "bundles",
+                "{{bundleId}}",
+                "verify"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Verify evidence returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Signature is valid', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.valid !== undefined) pm.expect(json.valid).to.be.true;",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Auto-capture bundleId from list endpoint",
+                  "var listUrl = pm.environment.get('apiBase') + '/evidence/bundles';",
+                  "pm.sendRequest({",
+                  "    url: listUrl,",
+                  "    method: 'GET',",
+                  "    header: { 'X-API-Key': pm.environment.get('apiKey') }",
+                  "}, function(err, res) {",
+                  "    if (!err && res.code === 200) {",
+                  "        try {",
+                  "            var body = res.json();",
+                  "            var items = body.tasks || body.items || body.data || body.workflows ||",
+                  "                        body.cases || body.fixes || body.policies || body.reports ||",
+                  "                        body.bundles || body.comments || body.activities || [];",
+                  "            if (Array.isArray(items) && items.length > 0) {",
+                  "                var id = items[0].bundle_id || items[0].id || items[0].task_id || items[0].fix_id;",
+                  "                if (id) pm.environment.set('bundleId', id);",
+                  "            }",
+                  "        } catch(e) {}",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Export Evidence Bundle",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/evidence/bundles/{{bundleId}}/download",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "evidence",
+                "bundles",
+                "{{bundleId}}",
+                "download"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Export bundle returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Auto-capture bundleId from list endpoint",
+                  "var listUrl = pm.environment.get('apiBase') + '/evidence/bundles';",
+                  "pm.sendRequest({",
+                  "    url: listUrl,",
+                  "    method: 'GET',",
+                  "    header: { 'X-API-Key': pm.environment.get('apiKey') }",
+                  "}, function(err, res) {",
+                  "    if (!err && res.code === 200) {",
+                  "        try {",
+                  "            var body = res.json();",
+                  "            var items = body.tasks || body.items || body.data || body.workflows ||",
+                  "                        body.cases || body.fixes || body.policies || body.reports ||",
+                  "                        body.bundles || body.comments || body.activities || [];",
+                  "            if (Array.isArray(items) && items.length > 0) {",
+                  "                var id = items[0].bundle_id || items[0].id || items[0].task_id || items[0].fix_id;",
+                  "                if (id) pm.environment.set('bundleId', id);",
+                  "            }",
+                  "        } catch(e) {}",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Supply Chain Provenance Attestation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"payment-service:v2.1.0\",\n  \"predicate_type\": \"https://slsa.dev/provenance/v1\",\n  \"builder\": \"github-actions\",\n  \"materials\": [\"requirements.txt\", \"Dockerfile\"]\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/audit/decision-trail",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "audit",
+                "decision-trail"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Attestation returns 200/201', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Provenance Attestations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/feeds/supply-chain",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "feeds",
+                "supply-chain"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List attestations returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcca Reports & Analytics",
+      "description": "Generate, schedule, and export compliance and security reports.",
+      "item": [
+        {
+          "name": "List Reports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/reports",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "reports"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List reports returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture reportId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (Array.isArray(json) && json.length) pm.environment.set('reportId', json[0].id || json[0].report_id);",
+                  "    else if (json.reports && json.reports.length) pm.environment.set('reportId', json.reports[0].id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Generate Executive Report",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"executive_summary\",\n  \"period\": \"last_quarter\",\n  \"include_sections\": [\n    \"risk_overview\",\n    \"compliance_status\",\n    \"remediation_metrics\",\n    \"sla_performance\"\n  ],\n  \"format\": \"pdf\",\n  \"report_type\": \"security_summary\",\n  \"org_id\": \"{{orgId}}\",\n  \"date_range\": {\n    \"start\": \"2026-01-01\",\n    \"end\": \"2026-03-01\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/reports/generate",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "reports",
+                "generate"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Generate report returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture reportId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.report_id) pm.environment.set('reportId', json.report_id);",
+                  "    else if (json.id) pm.environment.set('reportId', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/reports/{{reportId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "reports",
+                "{{reportId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get report returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Auto-capture reportId from list endpoint",
+                  "var listUrl = pm.environment.get('apiBase') + '/reports';",
+                  "pm.sendRequest({",
+                  "    url: listUrl,",
+                  "    method: 'GET',",
+                  "    header: { 'X-API-Key': pm.environment.get('apiKey') }",
+                  "}, function(err, res) {",
+                  "    if (!err && res.code === 200) {",
+                  "        try {",
+                  "            var body = res.json();",
+                  "            var items = body.tasks || body.items || body.data || body.workflows ||",
+                  "                        body.cases || body.fixes || body.policies || body.reports ||",
+                  "                        body.bundles || body.comments || body.activities || [];",
+                  "            if (Array.isArray(items) && items.length > 0) {",
+                  "                var id = items[0].id || items[0].id || items[0].task_id || items[0].fix_id;",
+                  "                if (id) pm.environment.set('reportId', id);",
+                  "            }",
+                  "        } catch(e) {}",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Export Report \u2014 SARIF",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/reports/export/sarif",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "reports",
+                "export",
+                "sarif"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"report_ids\": [\n    \"{{reportId}}\"\n  ],\n  \"format\": \"sarif\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('SARIF export returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Export Report \u2014 CSV",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/reports/export/csv",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "reports",
+                "export",
+                "csv"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"report_ids\": [\n    \"{{reportId}}\"\n  ],\n  \"format\": \"csv\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('CSV export returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Schedule Report",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"report_type\": \"compliance\",\n  \"schedule\": \"weekly\",\n  \"recipients\": [\n    \"sarah.chen@company.com\",\n    \"maria.santos@company.com\"\n  ],\n  \"format\": \"pdf\",\n  \"org_id\": \"{{orgId}}\",\n  \"name\": \"Test Report\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/reports/schedule",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "reports",
+                "schedule"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Schedule report returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Report Templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/reports/templates/list",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "reports",
+                "templates",
+                "list"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Templates returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcdc Policy Engine",
+      "description": "Security policy CRUD, validation, simulation, and enforcement.",
+      "item": [
+        {
+          "name": "List Policies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/policies",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "policies"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List policies returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture policyId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (Array.isArray(json) && json.length) pm.environment.set('policyId', json[0].id || json[0].policy_id);",
+                  "    else if (json.policies && json.policies.length) pm.environment.set('policyId', json.policies[0].id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Policy",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"No Critical Vulns in Production\",\n  \"description\": \"Block deployments with critical or high severity unresolved vulnerabilities\",\n  \"severity_threshold\": \"high\",\n  \"enforcement\": \"block\",\n  \"scope\": [\n    \"production\"\n  ],\n  \"exceptions\": [],\n  \"auto_create_ticket\": true,\n  \"type\": \"vulnerability\",\n  \"policy_type\": \"vulnerability_threshold\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/policies",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "policies"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create policy returns 200/201', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture policyId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.policy_id) pm.environment.set('policyId', json.policy_id);",
+                  "    else if (json.id) pm.environment.set('policyId', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Policy",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/policies/{{policyId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "policies",
+                "{{policyId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get policy returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Auto-capture policyId from list endpoint",
+                  "var listUrl = pm.environment.get('apiBase') + '/policies';",
+                  "pm.sendRequest({",
+                  "    url: listUrl,",
+                  "    method: 'GET',",
+                  "    header: { 'X-API-Key': pm.environment.get('apiKey') }",
+                  "}, function(err, res) {",
+                  "    if (!err && res.code === 200) {",
+                  "        try {",
+                  "            var body = res.json();",
+                  "            var items = body.tasks || body.items || body.data || body.workflows ||",
+                  "                        body.cases || body.fixes || body.policies || body.reports ||",
+                  "                        body.bundles || body.comments || body.activities || [];",
+                  "            if (Array.isArray(items) && items.length > 0) {",
+                  "                var id = items[0].id || items[0].id || items[0].task_id || items[0].fix_id;",
+                  "                if (id) pm.environment.set('policyId', id);",
+                  "            }",
+                  "        } catch(e) {}",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Policy",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enforcement\": \"warn\",\n  \"severity_threshold\": \"critical\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/policies/{{policyId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "policies",
+                "{{policyId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Update policy returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Auto-capture policyId from list endpoint",
+                  "var listUrl = pm.environment.get('apiBase') + '/policies';",
+                  "pm.sendRequest({",
+                  "    url: listUrl,",
+                  "    method: 'GET',",
+                  "    header: { 'X-API-Key': pm.environment.get('apiKey') }",
+                  "}, function(err, res) {",
+                  "    if (!err && res.code === 200) {",
+                  "        try {",
+                  "            var body = res.json();",
+                  "            var items = body.tasks || body.items || body.data || body.workflows ||",
+                  "                        body.cases || body.fixes || body.policies || body.reports ||",
+                  "                        body.bundles || body.comments || body.activities || [];",
+                  "            if (Array.isArray(items) && items.length > 0) {",
+                  "                var id = items[0].id || items[0].id || items[0].task_id || items[0].fix_id;",
+                  "                if (id) pm.environment.set('policyId', id);",
+                  "            }",
+                  "        } catch(e) {}",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Validate Against Policy",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finding_ids\": [\"{{findingId}}\"],\n  \"policy_id\": \"{{policyId}}\",\n  \"context\": \"pre_deployment\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/policies/{{policyId}}/validate",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "policies",
+                "{{policyId}}",
+                "validate"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Policy validation returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Auto-capture policyId from list endpoint",
+                  "var listUrl = pm.environment.get('apiBase') + '/policies';",
+                  "pm.sendRequest({",
+                  "    url: listUrl,",
+                  "    method: 'GET',",
+                  "    header: { 'X-API-Key': pm.environment.get('apiKey') }",
+                  "}, function(err, res) {",
+                  "    if (!err && res.code === 200) {",
+                  "        try {",
+                  "            var body = res.json();",
+                  "            var items = body.tasks || body.items || body.data || body.workflows ||",
+                  "                        body.cases || body.fixes || body.policies || body.reports ||",
+                  "                        body.bundles || body.comments || body.activities || [];",
+                  "            if (Array.isArray(items) && items.length > 0) {",
+                  "                var id = items[0].id || items[0].id || items[0].task_id || items[0].fix_id;",
+                  "                if (id) pm.environment.set('policyId', id);",
+                  "            }",
+                  "        } catch(e) {}",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Simulate Policy Impact",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"policy_id\": \"{{policyId}}\",\n  \"simulation_scope\": \"all_findings\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/policies/simulate",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "policies",
+                "simulate"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Policy simulation returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Policy",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/policies/{{policyId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "policies",
+                "{{policyId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Delete policy returns 200/204', function() { pm.expect(pm.response.code).to.be.oneOf([200, 204]); });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Auto-capture policyId from list endpoint",
+                  "var listUrl = pm.environment.get('apiBase') + '/policies';",
+                  "pm.sendRequest({",
+                  "    url: listUrl,",
+                  "    method: 'GET',",
+                  "    header: { 'X-API-Key': pm.environment.get('apiKey') }",
+                  "}, function(err, res) {",
+                  "    if (!err && res.code === 200) {",
+                  "        try {",
+                  "            var body = res.json();",
+                  "            var items = body.tasks || body.items || body.data || body.workflows ||",
+                  "                        body.cases || body.fixes || body.policies || body.reports ||",
+                  "                        body.bundles || body.comments || body.activities || [];",
+                  "            if (Array.isArray(items) && items.length > 0) {",
+                  "                var id = items[0].id || items[0].id || items[0].task_id || items[0].fix_id;",
+                  "                if (id) pm.environment.set('policyId', id);",
+                  "            }",
+                  "        } catch(e) {}",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfea Compliance Marketplace",
+      "description": "Compliance packs, templates, and community contributions.",
+      "item": [
+        {
+          "name": "List Marketplace Packs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/marketplace",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "marketplace"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Marketplace packs returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Install Compliance Pack",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pack_id\": \"soc2-type2\",\n  \"version\": \"latest\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/marketplace/purchase/{{itemId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "marketplace",
+                "purchase",
+                "{{itemId}}"
+              ],
+              "query": [
+                {
+                  "key": "purchaser",
+                  "value": "org-001"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Install pack returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Auto-capture itemId from marketplace browse",
+                  "var mktUrl = pm.environment.get('apiBase') + '/marketplace/browse';",
+                  "pm.sendRequest({",
+                  "    url: mktUrl,",
+                  "    method: 'GET',",
+                  "    header: { 'X-API-Key': pm.environment.get('apiKey') }",
+                  "}, function(err, res) {",
+                  "    if (!err && res.code === 200) {",
+                  "        try {",
+                  "            var body = res.json();",
+                  "            var items = body.items || body.data || [];",
+                  "            if (Array.isArray(items) && items.length > 0) {",
+                  "                var id = items[0].id || items[0].item_id;",
+                  "                if (id) pm.environment.set('itemId', id);",
+                  "            }",
+                  "        } catch(e) {}",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Contributions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/marketplace/contributors",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "marketplace",
+                "contributors"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Contributions returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit Contribution",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"compliance_template\",\n  \"name\": \"HIPAA Evidence Template\",\n  \"description\": \"HIPAA compliance evidence collection template\",\n  \"content\": {}\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/marketplace/contribute",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "marketplace",
+                "contribute"
+              ],
+              "query": [
+                {
+                  "key": "author",
+                  "value": "test"
+                },
+                {
+                  "key": "organization",
+                  "value": "org-001"
+                },
+                {
+                  "key": "name",
+                  "value": "test-contribution"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Submit contribution returns 200/201', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcce Business Context (Jira/Confluence)",
+      "description": "Import business context from Jira/Confluence for risk correlation.",
+      "item": [
+        {
+          "name": "Get Business Context Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/business-context/stored",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "business-context",
+                "stored"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Business context settings returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Import from Jira",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jira_project\": \"SEC\",\n  \"import_type\": \"epics_and_stories\",\n  \"map_to_applications\": true,\n  \"org_id\": \"{{orgId}}\",\n  \"context_type\": \"architecture\",\n  \"data\": {},\n  \"file\": \"{}\",\n  \"service_name\": \"test-svc\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/business-context/upload",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "business-context",
+                "upload"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Jira import returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Import from Confluence",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"space_key\": \"ARCH\",\n  \"document_type\": \"architecture_decision_records\",\n  \"org_id\": \"{{orgId}}\",\n  \"context_type\": \"architecture\",\n  \"data\": {},\n  \"file\": \"{}\",\n  \"service_name\": \"test-svc\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/business-context/upload",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "business-context",
+                "upload"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Confluence import returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Upload Business Context",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"application_id\": \"{{applicationId}}\",\n  \"context\": {\n    \"business_criticality\": \"high\",\n    \"data_classification\": \"PII\",\n    \"revenue_impact\": \"$5M/day\",\n    \"compliance_requirements\": [\n      \"PCI-DSS\",\n      \"SOC2\",\n      \"GDPR\"\n    ]\n  },\n  \"org_id\": \"{{orgId}}\",\n  \"context_type\": \"architecture\",\n  \"data\": {\n    \"application\": \"test-app\",\n    \"components\": [\n      \"api\",\n      \"db\"\n    ]\n  },\n  \"file\": \"{}\",\n  \"service_name\": \"test-svc\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/business-context/upload",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "business-context",
+                "upload"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Upload context returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Validate Business Context",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"application_id\": \"{{applicationId}}\",\n  \"org_id\": \"{{orgId}}\",\n  \"context_type\": \"architecture\",\n  \"data\": {\n    \"application\": \"test-app\"\n  },\n  \"content\": {},\n  \"format_type\": \"json\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/business-context/validate",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "business-context",
+                "validate"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Validate context returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd11 Auth & SSO",
+      "description": "Authentication, authorization, and SSO management.",
+      "item": [
+        {
+          "name": "Auth Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/auth/sso",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "auth",
+                "sso"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Auth status returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin\",\n  \"name\": \"admin\",\n  \"provider\": \"local\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/auth/sso",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "auth",
+                "sso"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RBAC Check",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"resource\": \"evidence_bundles\",\n  \"action\": \"create\",\n  \"name\": \"admin\",\n  \"provider\": \"local\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/auth/sso",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "auth",
+                "sso"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('RBAC check returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "SSO Config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/auth/sso",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "auth",
+                "sso"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('SSO config returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

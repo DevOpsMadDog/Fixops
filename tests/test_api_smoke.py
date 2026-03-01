@@ -18,9 +18,10 @@ from typing import Any
 import pytest
 
 # Set environment variables BEFORE importing create_app
-API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "test-token-12345")
+API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh")
 os.environ["FIXOPS_API_TOKEN"] = API_TOKEN
 os.environ["FIXOPS_DISABLE_TELEMETRY"] = "1"
+os.environ["FIXOPS_DISABLE_RATE_LIMIT"] = "1"  # Disable rate limiting for smoke tests
 os.environ["FIXOPS_MODE"] = os.getenv("FIXOPS_MODE", "enterprise")
 os.environ["FIXOPS_JWT_SECRET"] = "test-jwt-secret-smoke-test-do-not-use-in-production"
 
@@ -65,26 +66,26 @@ SKIP_ENDPOINTS = {
 }
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def app():
-    """Create FastAPI app instance."""
+    """Create FastAPI app instance per test class to avoid state pollution."""
     return create_app()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def api_client(app):
-    """Create FastAPI test client with proper cleanup."""
+    """Create FastAPI test client with proper cleanup per test class."""
     with TestClient(app, raise_server_exceptions=False) as client:
         yield client
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def auth_headers():
     """Standard authentication headers."""
     return {"X-API-Key": API_TOKEN}
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def openapi_schema(app):
     """Load OpenAPI schema directly from the app.
 

@@ -1,0 +1,11 @@
+{
+  "total_decisions": 1965,
+  "recent": [
+    "RESULT: SUCCESS",
+    "[2026-03-01 23:50] agent:agent-doctor DECISION: System status GREEN for enterprise demo",
+    "CONTEXT: All 19 engines importable, all 4 MOATs pass, 16/16 agents completed successfully, sprint 9/12 done. 3 P0 blockers remain but all assignees ha",
+    "ACTION: Set overall health to GREEN. Documented 3 P0 blockers in recommendations. All systems GO for demo preparation.",
+    "RESULT: SUCCESS"
+  ],
+  "instruction": "APPEND to .claude/team-state/decisions.log (never overwrite)"
+}

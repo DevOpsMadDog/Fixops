@@ -21,7 +21,7 @@ import pytest
 
 # Ensure enterprise mode
 os.environ.setdefault("FIXOPS_MODE", "enterprise")
-os.environ.setdefault("FIXOPS_API_TOKEN", "test-token-12345")
+os.environ.setdefault("FIXOPS_API_TOKEN", "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh")
 os.environ.setdefault("FIXOPS_DISABLE_TELEMETRY", "1")
 os.environ.setdefault("FIXOPS_JWT_SECRET", "test-jwt-stub-detection")
 

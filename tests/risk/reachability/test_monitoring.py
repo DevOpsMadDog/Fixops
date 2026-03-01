@@ -10,11 +10,19 @@ from risk.reachability.monitoring import AnalysisMetrics, ReachabilityMonitor
 @pytest.fixture(autouse=True)
 def disable_tracing_for_tests(monkeypatch):
     """Disable tracing for all tests in this module."""
+
+    def _patched_init(self, config=None):
+        self.config = config or {}
+        self.enable_tracing = False
+        self.enable_metrics = self.config.get("enable_metrics", True)
+        self._analyses_total = 0
+        self._cache_hits = 0
+        self._cache_misses = 0
+        self._total_duration = 0.0
+
     monkeypatch.setattr(
         "risk.reachability.monitoring.ReachabilityMonitor.__init__",
-        lambda self, config=None: setattr(self, "config", config or {})
-        or setattr(self, "enable_tracing", False)
-        or setattr(self, "enable_metrics", (config or {}).get("enable_metrics", True)),
+        _patched_init,
     )
 
 

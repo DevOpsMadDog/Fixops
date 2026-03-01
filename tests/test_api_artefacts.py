@@ -7,6 +7,14 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+try:
+    importlib.import_module("src.config.settings")
+    _HAS_SRC = True
+except ModuleNotFoundError:
+    _HAS_SRC = False
+
+pytestmark = pytest.mark.skipif(not _HAS_SRC, reason="src.config.settings not available in this layout")
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SIM_ROOT = REPO_ROOT / "simulations" / "demo_pack"
 

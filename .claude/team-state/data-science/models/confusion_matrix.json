@@ -1,0 +1,121 @@
+{
+  "model_version": "1.0.0",
+  "confusion_matrix": {
+    "FP": {
+      "FP": 5,
+      "P0": 0,
+      "P1": 0,
+      "P2": 0,
+      "P3": 0,
+      "P4": 0
+    },
+    "P0": {
+      "FP": 0,
+      "P0": 25,
+      "P1": 1,
+      "P2": 0,
+      "P3": 0,
+      "P4": 0
+    },
+    "P1": {
+      "FP": 0,
+      "P0": 0,
+      "P1": 7,
+      "P2": 1,
+      "P3": 0,
+      "P4": 0
+    },
+    "P2": {
+      "FP": 0,
+      "P0": 0,
+      "P1": 0,
+      "P2": 6,
+      "P3": 0,
+      "P4": 0
+    },
+    "P3": {
+      "FP": 0,
+      "P0": 0,
+      "P1": 0,
+      "P2": 0,
+      "P3": 2,
+      "P4": 2
+    },
+    "P4": {
+      "FP": 0,
+      "P0": 0,
+      "P1": 0,
+      "P2": 0,
+      "P3": 0,
+      "P4": 1
+    }
+  },
+  "predicted_distribution": {
+    "P0": 25,
+    "P1": 8,
+    "P2": 7,
+    "P4": 3,
+    "P3": 2,
+    "FP": 5
+  },
+  "true_distribution": {
+    "P0": 26,
+    "P1": 8,
+    "P2": 6,
+    "P3": 4,
+    "P4": 1,
+    "FP": 5
+  },
+  "accuracy": 1.0,
+  "total_cases": 50,
+  "metrics": {
+    "mae": 0.2162,
+    "rmse": 0.2886,
+    "r2": 0.9999,
+    "within_range_pct": 1.0,
+    "precision_by_priority": {
+      "FP": 1.0,
+      "P0": 1.0,
+      "P1": 0.875,
+      "P2": 0.8571,
+      "P3": 1.0,
+      "P4": 0.3333
+    },
+    "recall_by_priority": {
+      "FP": 1.0,
+      "P0": 0.9615,
+      "P1": 0.875,
+      "P2": 1.0,
+      "P3": 0.5,
+      "P4": 1.0
+    },
+    "f1_by_priority": {
+      "FP": 1.0,
+      "P0": 0.9804,
+      "P1": 0.875,
+      "P2": 0.9231,
+      "P3": 0.6667,
+      "P4": 0.5
+    },
+    "training_samples": 50,
+    "test_samples": 50,
+    "cv_scores": [
+      -4.1261,
+      0.7719,
+      0.0165,
+      -23.2719,
+      0.8702
+    ],
+    "feature_importances": {
+      "asset_criticality": 0.5721,
+      "epss_score": 0.1871,
+      "network_exposure": 0.1437,
+      "in_kev": 0.0611,
+      "exploit_maturity": 0.0263,
+      "cvss_score": 0.0086,
+      "reachable": 0.001,
+      "exploit_available": 0.0,
+      "has_chain": 0.0
+    }
+  }
+}

@@ -1,0 +1,221 @@
+newman
+
+🔍 ALdeci — DISCOVER
+
+❏ 📋 Finding Explorer
+↳ List Findings
+  GET http://localhost:8000/api/v1/analytics/findings [401 Unauthorized, 353B, 21ms]
+  1. List findings returns 200
+  ✓  Returns findings array
+
+↳ Create Finding
+  POST http://localhost:8000/api/v1/analytics/findings [401 Unauthorized, 353B, 8ms]
+  2. Create finding returns 200/201
+  ✓  Capture findingId
+
+↳ Get Finding by ID
+  GET http://localhost:8000/api/v1/analytics/findings/ [401 Unauthorized, 353B, 13ms]
+  3. Get finding returns 200
+  4. Finding has required fields
+
+↳ Update Finding
+  PUT http://localhost:8000/api/v1/analytics/findings/ [405 Method Not Allowed, 361B, 16ms]
+  5. Update finding returns 200
+
+↳ Custom Analytics Query
+  POST http://localhost:8000/api/v1/analytics/custom-query [401 Unauthorized, 353B, 4ms]
+  6. Custom query returns 200
+
+❏ 🧩 Deduplication & Correlation
+↳ Process Finding for Dedup
+  POST http://localhost:8000/api/v1/deduplication/process [401 Unauthorized, 353B, 9ms]
+  7. Dedup process returns 200
+  ✓  Capture clusterId
+
+↳ List Clusters
+  GET http://localhost:8000/api/v1/deduplication/clusters [401 Unauthorized, 353B, 8ms]
+  8. List clusters returns 200
+  ✓  Capture first clusterId
+
+↳ Get Cluster
+  GET http://localhost:8000/api/v1/deduplication/clusters/ [401 Unauthorized, 353B, 10ms]
+  9. Get cluster returns 200
+
+↳ Related Clusters
+  GET http://localhost:8000/api/v1/deduplication/clusters//related [404 Not Found, 331B, 8ms]
+ 10. Related clusters returns 200
+
+↳ List Correlations
+  GET http://localhost:8000/api/v1/deduplication/correlations [401 Unauthorized, 353B, 12ms]
+ 11. Correlations returns 200
+
+↳ Correlation Graph
+  GET http://localhost:8000/api/v1/deduplication/graph [401 Unauthorized, 353B, 10ms]
+ 12. Correlation graph returns 200
+
+↳ Deduplication Stats (Global)
+  GET http://localhost:8000/api/v1/deduplication/stats [401 Unauthorized, 353B, 10ms]
+ 13. Dedup stats returns 200
+
+↳ Cross-Stage Correlation
+  POST http://localhost:8000/api/v1/deduplication/correlate/cross-stage [401 Unauthorized, 353B, 12ms]
+ 14. Cross-stage correlation returns 200
+
+❏ 🧠 Knowledge Brain Graph
+↳ Create Node
+  POST http://localhost:8000/api/v1/brain/nodes [401 Unauthorized, 353B, 11ms]
+ 15. Create node returns 200/201
+  ✓  Capture nodeId
+
+↳ Query Nodes
+  GET http://localhost:8000/api/v1/brain/nodes [401 Unauthorized, 353B, 10ms]
+ 16. Query nodes returns 200
+
+↳ Get Node
+  GET http://localhost:8000/api/v1/brain/nodes/ [401 Unauthorized, 353B, 17ms]
+ 17. Get node returns 200
+
+↳ Create Edge
+  POST http://localhost:8000/api/v1/brain/edges [401 Unauthorized, 353B, 13ms]
+ 18. Create edge returns 200/201
+
+↳ Get Neighbors (2 hops)
+  GET http://localhost:8000/api/v1/brain/neighbors/?hops=2 [404 Not Found, 331B, 6ms]
+ 19. Neighbors returns 200
+
+↳ Graph Stats
+  GET http://localhost:8000/api/v1/brain/stats [401 Unauthorized, 353B, 9ms]
+ 20. Graph stats returns 200
+
+↳ Most Connected Nodes
+  GET http://localhost:8000/api/v1/brain/most-connected [401 Unauthorized, 353B, 5ms]
+ 21. Most connected returns 200
+
+↳ Node Risk Score
+  GET http://localhost:8000/api/v1/brain/risk/ [404 Not Found, 331B, 9ms]
+ 22. Node risk returns 200
+
+↳ Entity Types
+  GET http://localhost:8000/api/v1/brain/meta/entity-types [401 Unauthorized, 353B, 6ms]
+ 23. Entity types returns 200
+
+↳ Edge Types
+  GET http://localhost:8000/api/v1/brain/meta/edge-types [401 Unauthorized, 353B, 9ms]
+ 24. Edge types returns 200
+
+↳ Ingest CVE into Brain
+  POST http://localhost:8000/api/v1/brain/ingest/cve [401 Unauthorized, 353B, 10ms]
+ 25. Ingest CVE returns 200/201
+
+↳ Ingest Finding into Brain
+  POST http://localhost:8000/api/v1/brain/ingest/finding [401 Unauthorized, 353B, 12ms]
+ 26. Ingest finding returns 200/201
+
+❏ 🔬 Security Scanners
+↳ SAST — Scan Code
+  POST http://localhost:8000/api/v1/sast/scan/code [401 Unauthorized, 353B, 12ms]
+ 27. SAST scan returns 200
+  ✓  Returns scan results
+
+↳ SAST — List Rules
+  GET http://localhost:8000/api/v1/sast/rules [401 Unauthorized, 353B, 6ms]
+ 28. SAST rules returns 200
+
+↳ SAST — Status
+  GET http://localhost:8000/api/v1/sast/status [401 Unauthorized, 353B, 9ms]
+ 29. SAST status returns 200
+
+↳ DAST — Scan
+  POST http://localhost:8000/api/v1/dast/scan [401 Unauthorized, 353B, 6ms]
+ 30. DAST scan returns 200
+
+↳ DAST — Status
+  GET http://localhost:8000/api/v1/dast/status [401 Unauthorized, 353B, 9ms]
+ 31. DAST status returns 200
+
+↳ CSPM — Scan Terraform
+  POST http://localhost:8000/api/v1/cspm/scan/terraform [401 Unauthorized, 353B, 7ms]
+ 32. CSPM Terraform scan returns 200
+
+↳ CSPM — Rules
+  GET http://localhost:8000/api/v1/cspm/rules [401 Unauthorized, 353B, 8ms]
+ 33. CSPM rules returns 200
+
+↳ Container — Scan Dockerfile
+  POST http://localhost:8000/api/v1/container/scan/dockerfile [401 Unauthorized, 353B, 11ms]
+ 34. Container scan returns 200
+
+↳ Secrets — List Findings
+  GET http://localhost:8000/api/v1/secrets [401 Unauthorized, 353B, 11ms]
+ 35. Secrets list returns 200
+
+↳ Secrets — Scan Content
+  POST http://localhost:8000/api/v1/secrets/scan/content [401 Unauthorized, 353B, 12ms]
+ 36. Secrets scan returns 200
+
+↳ IaC — Scan Content
+  POST http://localhost:8000/api/v1/iac/scan/content [401 Unauthorized, 353B, 14ms]
+ 37. IaC scan returns 200
+
+↳ API Fuzzer — Discover APIs
+  POST http://localhost:8000/api/v1/api-fuzzer/discover [401 Unauthorized, 353B, 8ms]
+ 38. API fuzzer discover returns 200
+
+↳ Malware — Scan Content
+  POST http://localhost:8000/api/v1/malware/scan/content [401 Unauthorized, 353B, 8ms]
+ 39. Malware scan returns 200
+
+❏ 📡 Threat Intelligence Feeds
+↳ EPSS Scores
+  GET http://localhost:8000/api/v1/feeds/epss [401 Unauthorized, 353B, 11ms]
+ 40. EPSS scores returns 200
+
+↳ KEV Entries
+  GET http://localhost:8000/api/v1/feeds/kev [401 Unauthorized, 353B, 10ms]
+ 41. KEV entries returns 200
+
+↳ Recent NVD CVEs
+  GET http://localhost:8000/api/v1/feeds/nvd/recent [401 Unauthorized, 353B, 3ms]
+ 42. NVD recent returns 200
+
+↳ Get NVD CVE by ID
+  GET http://localhost:8000/api/v1/feeds/nvd/CVE-2024-3094 [401 Unauthorized, 353B, 3ms]
+ 43. NVD CVE lookup returns 200
+
+↳ List All Exploits
+  GET http://localhost:8000/api/v1/feeds/exploits [401 Unauthorized, 353B, 6ms]
+ 44. Exploits list returns 200
+
+↳ Exploits for CVE
+  GET http://localhost:8000/api/v1/feeds/exploits/CVE-2024-3094 [401 Unauthorized, 353B, 6ms]
+ 45. CVE exploits returns 200
+
+↳ Threat Actors
+  GET http://localhost:8000/api/v1/feeds/threat-actors [401 Unauthorized, 353B, 4ms]
+ 46. Threat actors returns 200
+
+↳ Supply Chain Vulns
+  GET http://localhost:8000/api/v1/feeds/supply-chain [401 Unauthorized, 353B, 8ms]
+ 47. Supply chain returns 200
+
+↳ Exploit Confidence Score
+  GET http://localhost:8000/api/v1/feeds/exploit-confidence/CVE-2024-3094 [401 Unauthorized, 353B, 8ms]
+ 48. Exploit confidence returns 200
+
+↳ Geo-Weighted Risk
+  GET http://localhost:8000/api/v1/feeds/geo-risk/CVE-2024-3094 [401 Unauthorized, 355B, 427ms]
+ 49. Geo risk returns 200
+
+↳ Feed Stats
+  GET http://localhost:8000/api/v1/feeds/stats [401 Unauthorized, 353B, 7ms]
+ 50. Feed stats returns 200
+
+↳ Feed Categories
+  GET http://localhost:8000/api/v1/feeds/categories [401 Unauthorized, 353B, 10ms]
+ 51. Feed categories returns 200
+
+↳ Feed Sources
+  GET http://localhost:8000/api/v1/feeds/sources [401 Unauthorized, 353B, 9ms]
+ 52. Feed sources returns 200
+
+↳ Enrich Findings with Feed Data

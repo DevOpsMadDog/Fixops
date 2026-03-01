@@ -385,7 +385,7 @@ class TestConfigurationSystem:
 
         # Ensure FIXOPS_API_TOKEN is set before loading overlay
         monkeypatch.setenv(
-            "FIXOPS_API_TOKEN", os.getenv("FIXOPS_API_TOKEN", "test-token-12345")
+            "FIXOPS_API_TOKEN", os.getenv("FIXOPS_API_TOKEN", "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh")
         )
 
         from core.configuration import load_overlay
@@ -403,7 +403,7 @@ class TestConfigurationSystem:
 
         # Ensure FIXOPS_API_TOKEN is set before loading overlay
         monkeypatch.setenv(
-            "FIXOPS_API_TOKEN", os.getenv("FIXOPS_API_TOKEN", "test-token-12345")
+            "FIXOPS_API_TOKEN", os.getenv("FIXOPS_API_TOKEN", "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh")
         )
 
         from core.overlay_runtime import prepare_overlay

@@ -35,6 +35,7 @@ class EventType(str, Enum):
     FINDING_UPDATED = "finding.updated"
     CVE_DISCOVERED = "cve.discovered"
     CVE_ENRICHED = "cve.enriched"
+    ASSET_DISCOVERED = "asset.discovered"
 
     # Attack & Pentest
     PENTEST_STARTED = "pentest.started"

@@ -2,9 +2,10 @@
 import json
 import sys
 
+import os
 import requests
 
-TOKEN = "test-api-token-for-testing-12345"
+TOKEN = os.getenv("FIXOPS_API_TOKEN", "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh")
 BASE = "http://localhost:8000/api/v1"
 H = {"X-API-Key": TOKEN, "Content-Type": "application/json"}
 

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import threading
 from pathlib import Path
 from typing import Any, Dict, Iterator
 
@@ -32,6 +33,7 @@ class PersistentDict:
         self._table = table
         self._db_path = db_path
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+        self._local = threading.local()
         self._init_table()
         self._cache: Dict[str, Any] = {}
         self._load_all()
@@ -39,7 +41,24 @@ class PersistentDict:
     # -- SQLite helpers -------------------------------------------------------
 
     def _conn(self) -> sqlite3.Connection:
-        return sqlite3.connect(self._db_path)
+        conn = getattr(self._local, "conn", None)
+        if conn is None:
+            conn = sqlite3.connect(self._db_path)
+            self._local.conn = conn
+        return conn
+
+    def close(self) -> None:
+        """Close the current thread's database connection."""
+        conn = getattr(self._local, "conn", None)
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
+            self._local.conn = None
+
+    def __del__(self) -> None:
+        self.close()
 
     def _init_table(self) -> None:
         with self._conn() as conn:
@@ -110,6 +129,21 @@ class PersistentDict:
 
     def items(self):  # noqa: ANN201
         return self._cache.items()
+
+    def clear(self) -> None:
+        """Remove all entries from the dict and the backing store."""
+        self._cache.clear()
+        with self._conn() as conn:
+            conn.execute(f"DELETE FROM [{self._table}]")
+
+    def update(self, mapping: Any = (), **kwargs: Any) -> None:
+        """Bulk update from a mapping or keyword arguments."""
+        if hasattr(mapping, "items"):
+            mapping = mapping.items()
+        for key, value in mapping:
+            self[key] = value
+        for key, value in kwargs.items():
+            self[key] = value
 
     # -- mutation helper ------------------------------------------------------
 

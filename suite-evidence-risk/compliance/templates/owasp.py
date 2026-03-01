@@ -15,7 +15,7 @@ from compliance.templates.base import ComplianceRule, ComplianceTemplate
 class OWASPRule(ComplianceRule):
     """OWASP compliance rule."""
 
-    owasp_category: str  # A01, A02, etc.
+    owasp_category: str = ""  # A01, A02, etc.
     cwe_ids: List[str] = None
 
 

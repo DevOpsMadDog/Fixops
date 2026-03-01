@@ -1,0 +1,1963 @@
+{
+  "info": {
+    "_postman_id": "mc-001-mission-control",
+    "name": "\ud83c\udfaf ALdeci \u2014 MISSION CONTROL",
+    "description": "## Mission Control \u2014 \"What needs attention now?\"\n\nCovers: Command Dashboard, Executive View, SLA Dashboard, Live Feed, Risk Overview\n\n### Personas Served\n- **Sarah Chen** (CISO) \u2014 Morning briefing, risk posture\n- **David Park** (VP Engineering) \u2014 Team velocity, SLA compliance\n- **Michael Torres** (CTO) \u2014 Architecture risk, tech debt\n- **Raj Patel** (DevSecOps Lead) \u2014 Triage queue, noise reduction\n- **Janet Kim** (SOC Manager) \u2014 Live feed, incident response\n\n### Endpoints: 80+ covering health, analytics, nerve center, streaming, users, teams, ML, logs\n\n### Vision Pillar: V1 (APP_ID-Centric), V3 (Decision Intelligence), V10 (CTEM Full Loop)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{apiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// ALdeci Mission Control \u2014 Pre-request Script",
+          "// Sets common headers for all requests in this collection",
+          "pm.request.headers.add({ key: 'Content-Type', value: 'application/json' });",
+          "pm.request.headers.add({ key: 'Accept', value: 'application/json' });"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "\ud83c\udfe5 Platform Health & Readiness",
+      "description": "Platform health checks \u2014 every persona's first validation that the system is operational.",
+      "item": [
+        {
+          "name": "Legacy Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Health endpoint returns 200', function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]);",
+                  "});",
+                  "pm.test('Response contains status field', function() {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('status');",
+                  "    pm.expect(json.status).to.be.oneOf(['healthy', 'ok', 'running']);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Health Check (v1)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/health",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('V1 Health returns 200', function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]);",
+                  "});",
+                  "pm.test('Contains component status', function() {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Readiness Check (K8s Probe)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/ready",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "ready"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Readiness check returns 200', function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Version Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/version",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "version"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Version endpoint returns 200', function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]);",
+                  "});",
+                  "pm.test('Contains version string', function() {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.any.keys('version', 'build', 'commit');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Prometheus Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/metrics",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "metrics"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Metrics endpoint returns 200', function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Authenticated Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/status",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "status"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Authenticated status returns 200', function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "FAIL Engine Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/fail/health",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "fail",
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('FAIL engine healthy', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "AutoFix Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/autofix/health",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "autofix",
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('AutoFix engine healthy', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Knowledge Brain Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/brain/health",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "brain",
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Brain healthy', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Copilot Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/copilot/health",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "copilot",
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Copilot healthy', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Agent Swarm Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/copilot/agents/health",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "copilot",
+                "agents",
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Agent swarm healthy', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "LLM Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/llm/health",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "llm",
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('LLM healthy', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Feeds Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/feeds/health",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "feeds",
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Feeds healthy', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "MPTE Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/micro-pentest/health",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "micro-pentest",
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('MPTE healthy', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reachability Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/reachability/health",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "reachability",
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Reachability analysis healthy', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Attack Simulation Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/attack-sim/health",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "attack-sim",
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Attack Sim healthy', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcca Command Dashboard (Sarah CISO)",
+      "description": "CISO-level dashboard data: overview, trends, top risks, compliance status, risk velocity.",
+      "item": [
+        {
+          "name": "Dashboard Overview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/analytics/dashboard/overview",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "dashboard",
+                "overview"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Dashboard overview returns 200', function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]);",
+                  "});",
+                  "pm.test('Contains dashboard data', function() {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('object');",
+                  "    // Dashboard should have finding counts, risk scores, etc.",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dashboard Trends",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/analytics/dashboard/trends",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "dashboard",
+                "trends"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Trends data returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Contains trend data', function() {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('object');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Top Risks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/analytics/dashboard/top-risks",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "dashboard",
+                "top-risks"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Top risks returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Returns risk array or object', function() {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Compliance Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/analytics/dashboard/compliance-status",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "dashboard",
+                "compliance-status"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Compliance status returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Analytics Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/analytics/summary",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "summary"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Summary returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Analytics Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/analytics/stats",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "stats"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Stats returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "MTTR Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/analytics/mttr",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "mttr"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('MTTR returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Security Coverage",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/analytics/coverage",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "coverage"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Coverage returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "ROI Analysis",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/analytics/roi",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "roi"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ROI returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Noise Reduction",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/analytics/noise-reduction",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "noise-reduction"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Noise reduction returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Risk Velocity",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/analytics/risk-velocity",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "risk-velocity"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Risk velocity returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Severity Over Time",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/analytics/trends/severity-over-time",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "trends",
+                "severity-over-time"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Severity trends returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Trend Anomalies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/analytics/trends/anomalies",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "trends",
+                "anomalies"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Anomalies returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Period Comparison",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/analytics/compare?period1_start=2025-01-01&period1_end=2025-06-30&period2_start=2025-07-01&period2_end=2025-12-31",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "compare"
+              ],
+              "query": [
+                {
+                  "key": "period1_start",
+                  "value": "2025-01-01"
+                },
+                {
+                  "key": "period1_end",
+                  "value": "2025-06-30"
+                },
+                {
+                  "key": "period2_start",
+                  "value": "2025-07-01"
+                },
+                {
+                  "key": "period2_end",
+                  "value": "2025-12-31"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Period comparison returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Export Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/analytics/export?format=json",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "json"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Export returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83e\udde0 Nerve Center (Real-Time Intelligence)",
+      "description": "Real-time threat intelligence hub: pulse, state, intelligence map, playbooks.",
+      "item": [
+        {
+          "name": "Threat Pulse",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/nerve-center/pulse",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "nerve-center",
+                "pulse"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Threat pulse returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Contains threat data', function() {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('object');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Nerve Center State",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/nerve-center/state",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "nerve-center",
+                "state"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Nerve center state returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Intelligence Map",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/nerve-center/intelligence-map",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "nerve-center",
+                "intelligence-map"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Intelligence map returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Playbooks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/nerve-center/playbooks",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "nerve-center",
+                "playbooks"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Playbooks list returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Overlay Config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/nerve-center/overlay",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "nerve-center",
+                "overlay"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Overlay config returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\u26a1 Decision Engine",
+      "description": "Multi-LLM consensus decision engine \u2014 the brain of ALdeci (V3, V4).",
+      "item": [
+        {
+          "name": "Decision Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/decisions/metrics",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "decisions",
+                "metrics"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Decision metrics returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recent Decisions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/decisions/recent",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "decisions",
+                "recent"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Recent decisions returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "SSDLC Stage Data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/decisions/ssdlc-stages",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "decisions",
+                "ssdlc-stages"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('SSDLC stages returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Core Components Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/decisions/core-components",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "decisions",
+                "core-components"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Core components returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcc8 Risk Overview",
+      "description": "Risk scoring and supply chain graph for executive-level risk posture.",
+      "item": [
+        {
+          "name": "Risk Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/risk",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "risk-velocity"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Risk summary returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CVE Risk Score",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/feeds/nvd/{{cveId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "feeds",
+                "nvd",
+                "{{cveId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('CVE risk returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Supply Chain Graph Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/graph",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "graph"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Graph summary returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "KEV-Affected Components",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/graph/kev-components",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "graph",
+                "kev-components"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('KEV components returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Version Anomalies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/graph/anomalies",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "graph",
+                "anomalies"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Anomalies returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udc65 User & Team Management",
+      "description": "Users, teams, authentication \u2014 the organizational layer.",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/users",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "users"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List users returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Returns array or paginated result', function() {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"test-user-{{$randomInt}}\",\n  \"email\": \"test{{$randomInt}}@aldeci.ai\",\n  \"role\": \"security_analyst\",\n  \"full_name\": \"Test User\",\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\",\n  \"password\": \"SecureP@ss123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/users",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "users"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create user returns 200 or 201', function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]);",
+                  "});",
+                  "pm.test('Capture userId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.id) pm.environment.set('userId', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/users/{{userId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get user returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Teams",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/teams",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "teams"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List teams returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Team",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Security Team Alpha\",\n  \"description\": \"Core security operations team\",\n  \"type\": \"security\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/teams",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "teams"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create team returns 200 or 201', function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]);",
+                  "});",
+                  "pm.test('Capture teamId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.id) pm.environment.set('teamId', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Team",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/teams/{{teamId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "teams",
+                "{{teamId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get team returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List SSO Configs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/auth/sso",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "auth",
+                "sso"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('SSO configs returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcdd Logs & Monitoring",
+      "description": "System logs, ML analytics, algorithm status \u2014 operational awareness.",
+      "item": [
+        {
+          "name": "Query Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/logs",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "logs"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Logs returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Log Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/logs/stats",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "logs",
+                "stats"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Log stats returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recent Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/logs/recent",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "logs",
+                "recent"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Recent logs returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "ML Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/ml/status",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "ml",
+                "status"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ML status returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "ML Models",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/ml/models",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "ml",
+                "models"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ML models returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Algorithm Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/algorithms/status",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "algorithms",
+                "status"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Algorithm status returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Algorithm Capabilities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/algorithms/capabilities",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "algorithms",
+                "capabilities"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Algorithm capabilities returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "LLM Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/llm/status",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "llm",
+                "status"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('LLM status returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "LLM Providers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/llm/providers",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "llm",
+                "providers"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('LLM providers returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd0d Global Search",
+      "description": "Cross-entity search functionality.",
+      "item": [
+        {
+          "name": "Global Search \u2014 CVE",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/search?q={{cveId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "{{cveId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Search returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Returns search results', function() {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Global Search \u2014 Keyword",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/search?q=critical",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "critical"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Keyword search returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

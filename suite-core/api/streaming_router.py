@@ -178,3 +178,15 @@ async def stream_events(
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@router.get("/health")
+async def streaming_health():
+    """Streaming/SSE service health check."""
+    return {"status": "healthy", "engine": "streaming", "version": "1.0.0"}
+
+
+@router.get("/status")
+async def streaming_status():
+    """Streaming/SSE service status (alias for /health)."""
+    return await streaming_health()

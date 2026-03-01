@@ -792,7 +792,8 @@ class AttackSimulationEngine:
 
         # Deterministic simulation based on hash (reproducible)
         seed = hashlib.md5(
-            f"{step.step_id}:{step.technique_id}:{scenario.scenario_id}".encode()
+            f"{step.step_id}:{step.technique_id}:{scenario.scenario_id}".encode(),
+            usedforsecurity=False,
         ).hexdigest()
         hash_value = int(seed[:8], 16) / 0xFFFFFFFF
 

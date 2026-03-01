@@ -489,3 +489,15 @@ async def get_supported_formats() -> Dict[str, Any]:
         "validation_endpoint": "/api/v1/validate/input",
         "batch_endpoint": "/api/v1/validate/batch",
     }
+
+
+@router.get("/health")
+async def validation_health():
+    """Validation service health check."""
+    return {"status": "healthy", "engine": "validation", "version": "1.0.0"}
+
+
+@router.get("/status")
+async def validation_status():
+    """Validation service status (alias for /health)."""
+    return await validation_health()

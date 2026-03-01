@@ -1,0 +1,15 @@
+{
+  "agent": "frontend-craftsman",
+  "generated": "2026-03-01T20:06:08.620507",
+  "your_last_status": "# frontend-craftsman Status\n- **Status:** \ud83d\udfe2 Ready\n- **Runtime:** claude-opus-4-6-fast (Enterprise Demo Sprint)\n- **Mode:** Enterprise Demo (5-Day Sprint)\n- **Date:** 2026-03-01\n- **Duration:** \u2014\n- **Attempts:** 0/3\n- **Run ID:** enterprise-demo-sprint\n- **Reset by:** CEO directive \u2014 enterprise demo ",
+  "role_files": [
+    {
+      "file": ".claude/team-state/qa-regression-report.md",
+      "purpose": "UI bugs to fix"
+    },
+    {
+      "file": ".claude/team-state/frontend-inventory.json",
+      "purpose": "your page inventory"
+    }
+  ]
+}

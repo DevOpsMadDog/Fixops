@@ -132,7 +132,7 @@ if "FIXOPS_JWT_SECRET" not in os.environ:
     os.environ["FIXOPS_JWT_SECRET"] = "test-jwt-secret-for-ci-testing"
 
 # Shared API token for tests - uses env var or default
-API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "test-token-12345")
+API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh")
 
 # Ensure API token is set in environment
 if "FIXOPS_API_TOKEN" not in os.environ:

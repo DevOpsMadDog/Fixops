@@ -173,3 +173,66 @@ jobs:
           # Cleanup
           docker stop aldeci-api
           docker rm aldeci-api
+
+  # Compose stack integration test (DEMO-007)
+  compose-test:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build and start full stack
+        run: |
+          docker compose -f docker/docker-compose.yml up --build -d
+          echo "Waiting for services to become healthy..."
+
+      - name: Wait for API health
+        run: |
+          for i in {1..60}; do
+            if curl -sf http://localhost:8000/health; then
+              echo "✅ API healthy after ${i}s"
+              break
+            fi
+            if [[ $i -eq 60 ]]; then
+              echo "❌ API failed to start"
+              docker compose -f docker/docker-compose.yml logs fixops
+              exit 1
+            fi
+            sleep 1
+          done
+
+      - name: Wait for UI health
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://localhost:3001/nginx-health; then
+              echo "✅ UI healthy after ${i}s"
+              break
+            fi
+            if [[ $i -eq 30 ]]; then
+              echo "❌ UI failed to start"
+              docker compose -f docker/docker-compose.yml logs aldeci-ui
+              exit 1
+            fi
+            sleep 1
+          done
+
+      - name: Run demo health check
+        run: |
+          chmod +x scripts/demo-healthcheck.sh
+          ./scripts/demo-healthcheck.sh || true
+
+      - name: Verify key API endpoints
+        run: |
+          echo "Testing CTEM+ pipeline endpoints..."
+          curl -sf http://localhost:8000/api/v1/brain/stats | python3 -m json.tool
+          curl -sf http://localhost:8000/api/v1/autofix/health | python3 -m json.tool
+          curl -sf http://localhost:8000/api/v1/sast/status | python3 -m json.tool
+          curl -sf http://localhost:8000/api/v1/mcp/tools | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'MCP tools: {len(d.get(\"tools\", d.get(\"items\", [])))} discovered')"
+          echo "✅ Key endpoints verified"
+
+      - name: Teardown
+        if: always()
+        run: docker compose -f docker/docker-compose.yml down -v

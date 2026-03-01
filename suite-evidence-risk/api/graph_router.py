@@ -96,3 +96,15 @@ async def version_anomalies(request: Request) -> list[dict[str, Any]]:
         return graph.detect_version_anomalies()
     finally:
         graph.close()
+
+
+@router.get("/health")
+async def graph_health():
+    """Dependency graph health check."""
+    return {"status": "healthy", "engine": "graph", "version": "1.0.0"}
+
+
+@router.get("/status")
+async def graph_status():
+    """Dependency graph status (alias for /health)."""
+    return await graph_health()

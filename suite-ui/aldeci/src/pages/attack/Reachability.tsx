@@ -72,7 +72,7 @@ const Reachability = () => {
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <div className="text-sm text-muted-foreground">Reachable</div>
-                <div className={`text-2xl font-bold ${results.reachable ? 'text-red-600' : 'text-green-600'}`}>
+                <div className={`text-2xl font-bold ${results.reachable ? 'text-red-400' : 'text-green-400'}`}>
                   {results.reachable ? 'YES' : 'NO'}
                 </div>
               </div>
@@ -86,7 +86,7 @@ const Reachability = () => {
                 <h4 className="font-semibold mb-2">Attack Paths</h4>
                 <div className="space-y-2">
                   {results.paths.map((path: any, idx: number) => (
-                    <div key={idx} className="p-3 bg-gray-50 rounded text-sm font-mono">
+                    <div key={idx} className="p-3 bg-gray-950/50 rounded text-sm font-mono">
                       {path.join(' → ')}
                     </div>
                   ))}

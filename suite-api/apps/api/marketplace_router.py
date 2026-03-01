@@ -708,4 +708,16 @@ async def get_marketplace_stats() -> Dict[str, Any]:
     return stats
 
 
+@router.get("/health")
+async def marketplace_health():
+    """Marketplace health check."""
+    return {"status": "healthy", "engine": "marketplace", "version": "1.0.0"}
+
+
+@router.get("/status")
+async def marketplace_status():
+    """Marketplace status (alias for /health)."""
+    return await marketplace_health()
+
+
 __all__ = ["router"]

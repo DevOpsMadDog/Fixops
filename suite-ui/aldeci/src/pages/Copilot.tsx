@@ -109,7 +109,7 @@ const Copilot = () => {
                 className={`max-w-[70%] p-3 rounded-lg ${
                   msg.role === 'user'
                     ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-900'
+                    : 'bg-gray-800/60 text-gray-100'
                 }`}
               >
                 <div className="whitespace-pre-wrap">{msg.content}</div>
@@ -121,7 +121,7 @@ const Copilot = () => {
           ))}
           {loading && (
             <div className="flex justify-start">
-              <div className="bg-gray-100 p-3 rounded-lg">
+              <div className="bg-gray-800/60 p-3 rounded-lg">
                 <div className="animate-pulse">Thinking...</div>
               </div>
             </div>

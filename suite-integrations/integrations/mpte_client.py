@@ -92,8 +92,8 @@ class MPTEClient:
         self,
         base_url: str,
         api_key: Optional[str] = None,
-        timeout: int = 300,
-        max_retries: int = 3,
+        timeout: int = 15,
+        max_retries: int = 1,
     ):
         """
         Initialize MPTE client.

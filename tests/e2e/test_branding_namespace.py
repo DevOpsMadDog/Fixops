@@ -65,7 +65,7 @@ class TestBrandingNamespace:
         output_file = fixture_manager.temp_dir / "pipeline-branded.json"
 
         result = cli_runner.run_demo(
-            mode="demo",
+            mode="enterprise",
             output=output_file,
             pretty=True,
             timeout=60,

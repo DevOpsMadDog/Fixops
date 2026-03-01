@@ -1556,6 +1556,9 @@ class NormalizerRegistry:
         # Load custom plugins from config
         self._load_custom_plugins()
 
+        # Auto-register scanner parser normalizers (15 third-party scanners)
+        self._register_scanner_parsers()
+
     def _load_custom_plugins(self) -> None:
         """
         Load custom normalizer plugins from YAML configuration.
@@ -1628,6 +1631,18 @@ class NormalizerRegistry:
                 )
             except Exception as e:
                 logger.warning(f"Failed to load plugin {name}: {e}")
+
+    def _register_scanner_parsers(self) -> None:
+        """Auto-register 15 third-party scanner normalizers from scanner_parsers module."""
+        try:
+            from core.scanner_parsers import register_scanner_normalizers
+
+            count = register_scanner_normalizers(self)
+            logger.info(f"Auto-registered {count} scanner parser normalizers")
+        except ImportError:
+            logger.debug("Scanner parsers module not available — skipping")
+        except Exception as e:
+            logger.warning(f"Failed to register scanner parsers: {e}")
 
     def register(self, name: str, normalizer: BaseNormalizer) -> None:
         """Register a custom normalizer."""

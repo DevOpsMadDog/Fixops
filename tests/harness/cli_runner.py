@@ -153,7 +153,7 @@ class CLIRunner:
         Returns:
             CLIResult
         """
-        args = ["demo", "--mode", mode]
+        args = ["showcase", "--mode", mode]
         if output:
             args.extend(["--output", str(output)])
         if pretty:

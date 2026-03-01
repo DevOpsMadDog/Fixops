@@ -28,7 +28,7 @@ from core.configuration import load_overlay
 from fastapi.testclient import TestClient
 
 os.environ["FIXOPS_MODE"] = "enterprise"
-os.environ["FIXOPS_API_TOKEN"] = "test-token-12345"
+os.environ["FIXOPS_API_TOKEN"] = "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh"
 os.environ["FIXOPS_DISABLE_TELEMETRY"] = "1"
 os.environ["FIXOPS_EVIDENCE_KEY"] = "eeJif8vWhRR5Y04TVl-38wjFglUDSPLOS0V2DOJrSGQ="
 
@@ -36,7 +36,7 @@ os.environ["FIXOPS_EVIDENCE_KEY"] = "eeJif8vWhRR5Y04TVl-38wjFglUDSPLOS0V2DOJrSGQ
 @pytest.fixture(autouse=True)
 def set_env_vars(monkeypatch):
     """Ensure environment variables are set before each test."""
-    monkeypatch.setenv("FIXOPS_API_TOKEN", "test-token-12345")
+    monkeypatch.setenv("FIXOPS_API_TOKEN", "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh")
     monkeypatch.setenv("FIXOPS_MODE", "enterprise")
 
 
@@ -345,7 +345,7 @@ def round2_generator():
 def test_client(monkeypatch):
     """Fixture providing FastAPI test client."""
     monkeypatch.setenv("FIXOPS_MODE", "enterprise")
-    monkeypatch.setenv("FIXOPS_API_TOKEN", "test-token-12345")
+    monkeypatch.setenv("FIXOPS_API_TOKEN", "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh")
     monkeypatch.setenv("FIXOPS_DISABLE_TELEMETRY", "1")
 
     from apps.api.app import create_app
@@ -394,7 +394,7 @@ class TestRound2StreamHub:
         response = test_client.post(
             "/inputs/sbom",
             files={"file": ("sbom.json", json.dumps(sbom), "application/json")},
-            headers={"X-API-Key": "test-token-12345"},
+            headers={"X-API-Key": "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh"},
         )
 
         assert response.status_code == 200
@@ -497,7 +497,7 @@ class TestRound2EdgeCases:
         response = test_client.post(
             "/inputs/sbom",
             files={"file": ("sbom.json", b"{}", "application/json")},
-            headers={"X-API-Key": "test-token-12345"},
+            headers={"X-API-Key": "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh"},
         )
 
         assert response.status_code in [200, 400]
@@ -515,7 +515,7 @@ class TestRound2EdgeCases:
                     "application/json",
                 )
             },
-            headers={"X-API-Key": "test-token-12345"},
+            headers={"X-API-Key": "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh"},
         )
 
         assert response.status_code in [200, 400]
@@ -581,7 +581,7 @@ class TestRound2RecentChanges:
         response = test_client.post(
             "/inputs/sbom",
             files={"file": ("sbom.json", b"{}", "application/json")},
-            headers={"X-API-Key": "test-token-12345"},
+            headers={"X-API-Key": "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh"},
         )
         assert response.status_code in [200, 400]  # 200 for success, 400 for validation
 

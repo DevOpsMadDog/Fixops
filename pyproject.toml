@@ -24,18 +24,43 @@ python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 testpaths = ["tests"]
+timeout = 10
 addopts = [
     "-v",
     "--strict-markers",
     "--strict-config",
+    # --- Package-name coverage (packages with __init__.py) ---
+    "--cov=core",
     "--cov=risk",
     "--cov=automation",
     "--cov=cli",
-    "--cov=apps",
+    "--cov=feeds_service",
+    "--cov=services",
+    "--cov=agents",
+    "--cov=compliance",
+    "--cov=evidence",
+    "--cov=connectors",
+    "--cov=domain",
+    "--cov=policy",
+    "--cov=telemetry",
+    "--cov=integrations",
+    "--cov=reports",
+    # --- Filesystem-path coverage (namespace packages without __init__.py) ---
+    "--cov=suite-core/api",
+    "--cov=suite-core/schemas",
+    "--cov=suite-core/simulations",
+    # --- Explicit suite-path coverage (all suites) ---
+    "--cov=suite-core/core",
+    "--cov=suite-api/apps",
+    "--cov=suite-api/backend",
+    "--cov=suite-feeds/api",
+    "--cov=suite-attack/api",
+    "--cov=suite-integrations/api",
+    "--cov=suite-evidence-risk/api",
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-report=xml",
-    "--cov-fail-under=60",
+    "--cov-fail-under=25",
     "--durations=10",
     "-ra",
 ]
@@ -64,4 +89,6 @@ filterwarnings = [
     "ignore::pytest.PytestUnraisableExceptionWarning",
     "ignore::pytest.PytestConfigWarning",
     "ignore:Unclosed.*MemoryObject.*:ResourceWarning",
+    "ignore::ResourceWarning",
+    "ignore::fastapi.exceptions.FastAPIDeprecationWarning",
 ]

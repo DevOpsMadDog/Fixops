@@ -4,9 +4,9 @@
 
 # ALdeci
 
-### The Decision Layer Your Security Stack Is Missing
+### CTEM+ Decision Intelligence Platform with 8 Built-in Native Scanners
 
-**Your scanners found 10,000 vulnerabilities. Which 5 actually matter?**
+**Your scanners found 10,000 vulnerabilities. ALdeci tells you which 5 actually matter — and fixes them.**
 
 [![Status](https://img.shields.io/badge/status-work_in_progress-orange)]()
 &nbsp;
@@ -22,7 +22,11 @@
 &nbsp;
 [![License](https://img.shields.io/badge/license-proprietary-red)](LICENSE)
 &nbsp;
-[![Endpoints](https://img.shields.io/badge/API_endpoints-600+-blue)]()
+[![Endpoints](https://img.shields.io/badge/API_endpoints-704-blue)]()
+&nbsp;
+[![Scanners](https://img.shields.io/badge/native_scanners-8-green)]()
+&nbsp;
+[![Parsers](https://img.shields.io/badge/scanner_parsers-25+-green)]()
 &nbsp;
 [![LLM Consensus](https://img.shields.io/badge/AI-Multi--LLM_Consensus-blueviolet)]()
 
@@ -30,7 +34,7 @@
 
 <br/>
 
-*ALdeci ingests your security chaos — SBOM, SARIF, CVE, CNAPP — correlates it through an AI Knowledge Graph, produces auditable decisions via multi-LLM consensus, verifies exploitability with a built-in pentest engine, and generates cryptographically signed evidence your auditor will actually accept.*
+*ALdeci is a **CTEM+ (Continuous Threat Exposure Management Plus)** platform that ingests your security chaos — SBOM, SARIF, CVE, CNAPP — normalizes it through 25+ scanner parsers, correlates via an AI Knowledge Graph, verifies exploitability with a 19-phase pentest engine, auto-fixes with 10 remediation types, and generates cryptographically signed evidence bundles. 8 built-in native scanners work fully air-gapped.*
 
 <br/>
 
@@ -61,7 +65,7 @@ Security teams are drowning:
 
 ## The Solution
 
-ALdeci is a **Decision Intelligence Platform** for security teams. It fills the gap between your scanners and your decisions — augmenting your existing tools and teams, never replacing them.
+ALdeci is a **CTEM+ Decision Intelligence Platform** for application security. It doesn't just aggregate findings — it scans, deduplicates, verifies exploitability, auto-fixes, and proves compliance with cryptographic evidence. Works with your existing tools (Switzerland model) AND ships 8 native scanners for air-gapped deployments.
 
 <table>
 <tr>

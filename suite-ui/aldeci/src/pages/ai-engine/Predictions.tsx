@@ -58,12 +58,12 @@ const Predictions = () => {
               </div>
               <div>
                 <div className="text-sm text-muted-foreground">Trend</div>
-                <div className={`text-3xl font-bold ${trajectory.trend === 'increasing' ? 'text-red-600' : trajectory.trend === 'decreasing' ? 'text-green-600' : 'text-yellow-600'}`}>
+                <div className={`text-3xl font-bold ${trajectory.trend === 'increasing' ? 'text-red-400' : trajectory.trend === 'decreasing' ? 'text-green-400' : 'text-yellow-400'}`}>
                   {trajectory.trend || 'Stable'}
                 </div>
               </div>
             </div>
-            <pre className="text-xs bg-gray-50 p-4 rounded overflow-auto max-h-64">
+            <pre className="text-xs bg-gray-950/50 p-4 rounded overflow-auto max-h-64">
               {JSON.stringify(trajectory, null, 2)}
             </pre>
           </CardContent>

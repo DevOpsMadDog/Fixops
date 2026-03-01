@@ -56,7 +56,7 @@ export const useAuthStore = create<AuthStore>()(
   persist(
     (set) => ({
       user: null,
-      apiKey: import.meta.env.VITE_API_KEY || 'test-token-123',
+      apiKey: import.meta.env.VITE_API_KEY || 'aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh',
       isAuthenticated: true,
       setUser: (user) => set({ user, isAuthenticated: !!user }),
       setApiKey: (key) => {
@@ -70,11 +70,11 @@ export const useAuthStore = create<AuthStore>()(
     }),
     {
       name: 'aldeci-auth',
-      version: 1,
+      version: 2,
       migrate: (persistedState: any, version: number) => {
-        if (version === 0) {
-          // v0 → v1: reset apiKey to env value (clear stale 'demo-token')
-          const envKey = import.meta.env.VITE_API_KEY || 'test-token-123'
+        if (version < 2) {
+          // v0/v1 → v2: reset apiKey to env value (clear stale test-token-123)
+          const envKey = import.meta.env.VITE_API_KEY || 'aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh'
           return { ...persistedState, apiKey: envKey, isAuthenticated: true }
         }
         return persistedState as AuthStore

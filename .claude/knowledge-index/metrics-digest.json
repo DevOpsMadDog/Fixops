@@ -1,0 +1,14 @@
+{
+  "total_loc": 355805,
+  "test_coverage": 19.19,
+  "tests_passing": null,
+  "lint_score": 0,
+  "security_score": 85,
+  "vision_alignment": 0.68,
+  "vision_status": "ON_TRACK",
+  "vision_threshold": 0.6,
+  "sprint_velocity": 9,
+  "sprint_points": 12,
+  "agent_runs": 0,
+  "agent_successes": 0
+}

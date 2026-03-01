@@ -342,12 +342,15 @@ async def get_report_stats(
             status_code=400, detail="Invalid date format, expected ISO 8601"
         )
 
-    from datetime import timezone
-
+    # Normalize to naive UTC for comparison with stored (naive) datetimes
     if start_dt.tzinfo is not None:
         start_dt = start_dt.astimezone(timezone.utc).replace(tzinfo=None)
+    else:
+        start_dt = start_dt
     if end_dt.tzinfo is not None:
         end_dt = end_dt.astimezone(timezone.utc).replace(tzinfo=None)
+    else:
+        end_dt = end_dt
 
     reports = db.list_reports(limit=10000, offset=0)
     filtered_reports = [r for r in reports if start_dt <= r.created_at <= end_dt]
@@ -526,6 +529,12 @@ async def export_sarif(
         datetime.fromisoformat(end_date) if end_date else datetime.now(timezone.utc)
     )
 
+    # Normalize to naive UTC for comparison with stored (naive) datetimes
+    if start_dt.tzinfo is not None:
+        start_dt = start_dt.astimezone(timezone.utc).replace(tzinfo=None)
+    if end_dt.tzinfo is not None:
+        end_dt = end_dt.astimezone(timezone.utc).replace(tzinfo=None)
+
     # Get reports within date range
     reports = db.list_reports(limit=1000, offset=0)
     filtered_reports = [r for r in reports if start_dt <= r.created_at <= end_dt]
@@ -666,6 +675,12 @@ async def export_csv(
     end_dt = (
         datetime.fromisoformat(end_date) if end_date else datetime.now(timezone.utc)
     )
+
+    # Normalize to naive UTC for comparison with stored (naive) datetimes
+    if start_dt.tzinfo is not None:
+        start_dt = start_dt.astimezone(timezone.utc).replace(tzinfo=None)
+    if end_dt.tzinfo is not None:
+        end_dt = end_dt.astimezone(timezone.utc).replace(tzinfo=None)
 
     # Get reports within date range
     reports = db.list_reports(limit=1000, offset=0)
@@ -820,6 +835,12 @@ async def export_json(
     end_dt = (
         datetime.fromisoformat(end_date) if end_date else datetime.now(timezone.utc)
     )
+
+    # Normalize to naive UTC for comparison with stored (naive) datetimes
+    if start_dt.tzinfo is not None:
+        start_dt = start_dt.astimezone(timezone.utc).replace(tzinfo=None)
+    if end_dt.tzinfo is not None:
+        end_dt = end_dt.astimezone(timezone.utc).replace(tzinfo=None)
 
     # Get reports within date range
     reports = db.list_reports(limit=1000, offset=0)

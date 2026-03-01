@@ -1,0 +1,218 @@
+{
+  "metadata": {
+    "name": "E-Commerce Platform (AWS)",
+    "date": "2026-03-01",
+    "version": "2.4.1",
+    "architect": "ALdeci Threat Architect",
+    "cloud_provider": "AWS",
+    "region": "us-east-1",
+    "compliance": ["PCI-DSS-v4.0", "SOC2-Type-II", "GDPR"]
+  },
+  "trust_boundaries": [
+    {
+      "id": "TB-INTERNET",
+      "name": "Internet / Public Zone",
+      "description": "Untrusted external network"
+    },
+    {
+      "id": "TB-DMZ",
+      "name": "DMZ / Edge Layer",
+      "description": "WAF, CloudFront CDN, ALB — public-facing but filtered"
+    },
+    {
+      "id": "TB-APP",
+      "name": "Application Zone (VPC Private Subnets)",
+      "description": "ECS/Fargate microservices — not directly internet-accessible"
+    },
+    {
+      "id": "TB-DATA",
+      "name": "Data Zone (VPC Isolated Subnets)",
+      "description": "RDS, ElastiCache, S3 — database and storage tier"
+    }
+  ],
+  "components": [
+    {
+      "id": "COMP-SPA",
+      "name": "React SPA Frontend",
+      "type": "web_application",
+      "technology": "React 18, TypeScript 5, Vite",
+      "trust_boundary": "TB-INTERNET",
+      "data_classification": "public",
+      "ports": [443],
+      "deployment": "CloudFront CDN + S3 static hosting"
+    },
+    {
+      "id": "COMP-CDN",
+      "name": "CloudFront CDN",
+      "type": "cdn",
+      "technology": "AWS CloudFront",
+      "trust_boundary": "TB-DMZ",
+      "data_classification": "public",
+      "deployment": "AWS managed, 400+ edge locations"
+    },
+    {
+      "id": "COMP-WAF",
+      "name": "AWS WAF",
+      "type": "waf",
+      "technology": "AWS WAF v2",
+      "trust_boundary": "TB-DMZ",
+      "data_classification": "metadata",
+      "deployment": "Attached to ALB and CloudFront"
+    },
+    {
+      "id": "COMP-ALB",
+      "name": "Application Load Balancer",
+      "type": "load_balancer",
+      "technology": "AWS ALB",
+      "trust_boundary": "TB-DMZ",
+      "data_classification": "metadata",
+      "ports": [443, 80],
+      "deployment": "Public subnets, TLS termination"
+    },
+    {
+      "id": "COMP-APIGW",
+      "name": "API Gateway (Express)",
+      "type": "api_gateway",
+      "technology": "Node.js 20, Express 4.18, JWT auth",
+      "trust_boundary": "TB-APP",
+      "data_classification": "mixed",
+      "ports": [3000],
+      "deployment": "ECS Fargate, 6 replicas"
+    },
+    {
+      "id": "COMP-PAYMENT",
+      "name": "Payment Service",
+      "type": "microservice",
+      "technology": "Spring Boot 3.2, Java 21",
+      "trust_boundary": "TB-APP",
+      "data_classification": "PCI",
+      "ports": [8080],
+      "deployment": "ECS Fargate, 4 replicas"
+    },
+    {
+      "id": "COMP-USER",
+      "name": "User Service",
+      "type": "microservice",
+      "technology": "Spring Boot 3.2, Java 21",
+      "trust_boundary": "TB-APP",
+      "data_classification": "PII",
+      "ports": [8081],
+      "deployment": "ECS Fargate, 3 replicas"
+    },
+    {
+      "id": "COMP-CATALOG",
+      "name": "Catalog Service",
+      "type": "microservice",
+      "technology": "Spring Boot 3.2, Java 21",
+      "trust_boundary": "TB-APP",
+      "data_classification": "public",
+      "ports": [8082],
+      "deployment": "ECS Fargate, 3 replicas"
+    },
+    {
+      "id": "COMP-ORDER",
+      "name": "Order Service",
+      "type": "microservice",
+      "technology": "Spring Boot 3.2, Java 21",
+      "trust_boundary": "TB-APP",
+      "data_classification": "confidential",
+      "ports": [8083],
+      "deployment": "ECS Fargate, 3 replicas"
+    },
+    {
+      "id": "COMP-ANALYTICS",
+      "name": "Analytics Service",
+      "type": "microservice",
+      "technology": "Python 3.11, FastAPI 0.109",
+      "trust_boundary": "TB-APP",
+      "data_classification": "internal",
+      "ports": [8084],
+      "deployment": "ECS Fargate, 2 replicas"
+    },
+    {
+      "id": "COMP-RDS",
+      "name": "PostgreSQL RDS",
+      "type": "database",
+      "technology": "AWS RDS PostgreSQL 15.4",
+      "trust_boundary": "TB-DATA",
+      "data_classification": "PCI",
+      "ports": [5432],
+      "deployment": "Multi-AZ, db.r5.xlarge, encrypted at rest"
+    },
+    {
+      "id": "COMP-REDIS",
+      "name": "ElastiCache Redis",
+      "type": "cache",
+      "technology": "AWS ElastiCache Redis 7.x",
+      "trust_boundary": "TB-DATA",
+      "data_classification": "session",
+      "ports": [6379],
+      "deployment": "Cluster mode, 3 nodes, in-transit encryption"
+    },
+    {
+      "id": "COMP-S3",
+      "name": "S3 Media Storage",
+      "type": "object_storage",
+      "technology": "AWS S3",
+      "trust_boundary": "TB-DATA",
+      "data_classification": "public",
+      "deployment": "Standard tier, versioning enabled"
+    },
+    {
+      "id": "COMP-LAMBDA",
+      "name": "Lambda Event Processors",
+      "type": "serverless",
+      "technology": "AWS Lambda, Python 3.11",
+      "trust_boundary": "TB-APP",
+      "data_classification": "internal",
+      "deployment": "Event-driven, SQS triggers"
+    },
+    {
+      "id": "COMP-SQS",
+      "name": "SQS/SNS Messaging",
+      "type": "message_queue",
+      "technology": "AWS SQS (FIFO) + SNS",
+      "trust_boundary": "TB-APP",
+      "data_classification": "internal",
+      "deployment": "FIFO queues for orders, Standard for notifications"
+    },
+    {
+      "id": "COMP-SECRETS",
+      "name": "AWS Secrets Manager",
+      "type": "secrets_management",
+      "technology": "AWS Secrets Manager",
+      "trust_boundary": "TB-DATA",
+      "data_classification": "critical",
+      "deployment": "Auto-rotation enabled, IAM-gated access"
+    },
+    {
+      "id": "COMP-CLOUDWATCH",
+      "name": "CloudWatch Monitoring",
+      "type": "monitoring",
+      "technology": "AWS CloudWatch + CloudTrail",
+      "trust_boundary": "TB-APP",
+      "data_classification": "internal",
+      "deployment": "Full metrics, alarms, and log groups"
+    }
+  ],
+  "connections": [
+    {"from": "COMP-SPA", "to": "COMP-CDN", "protocol": "HTTPS", "data_flow": "static assets, API proxy"},
+    {"from": "COMP-CDN", "to": "COMP-ALB", "protocol": "HTTPS", "data_flow": "API requests"},
+    {"from": "COMP-ALB", "to": "COMP-APIGW", "protocol": "HTTP", "data_flow": "routed API requests"},
+    {"from": "COMP-APIGW", "to": "COMP-PAYMENT", "protocol": "HTTP", "data_flow": "payment operations"},
+    {"from": "COMP-APIGW", "to": "COMP-USER", "protocol": "HTTP", "data_flow": "user CRUD, auth"},
+    {"from": "COMP-APIGW", "to": "COMP-CATALOG", "protocol": "HTTP", "data_flow": "product queries"},
+    {"from": "COMP-APIGW", "to": "COMP-ORDER", "protocol": "HTTP", "data_flow": "order lifecycle"},
+    {"from": "COMP-PAYMENT", "to": "COMP-RDS", "protocol": "TLS/PostgreSQL", "data_flow": "transaction data"},
+    {"from": "COMP-USER", "to": "COMP-RDS", "protocol": "TLS/PostgreSQL", "data_flow": "user data, PII"},
+    {"from": "COMP-CATALOG", "to": "COMP-RDS", "protocol": "TLS/PostgreSQL", "data_flow": "product catalog"},
+    {"from": "COMP-ORDER", "to": "COMP-RDS", "protocol": "TLS/PostgreSQL", "data_flow": "order records"},
+    {"from": "COMP-APIGW", "to": "COMP-REDIS", "protocol": "TLS/Redis", "data_flow": "session, rate-limit"},
+    {"from": "COMP-PAYMENT", "to": "COMP-REDIS", "protocol": "TLS/Redis", "data_flow": "payment cache"},
+    {"from": "COMP-ORDER", "to": "COMP-SQS", "protocol": "HTTPS/SQS", "data_flow": "order events"},
+    {"from": "COMP-SQS", "to": "COMP-LAMBDA", "protocol": "event", "data_flow": "async processing"},
+    {"from": "COMP-CATALOG", "to": "COMP-S3", "protocol": "HTTPS/S3", "data_flow": "product images"},
+    {"from": "COMP-PAYMENT", "to": "COMP-SECRETS", "protocol": "HTTPS/API", "data_flow": "Stripe API keys"},
+    {"from": "COMP-WAF", "to": "COMP-ALB", "protocol": "inline", "data_flow": "filtered requests"}
+  ]
+}

@@ -12,7 +12,7 @@ import pytest
 import requests
 
 API_BASE_URL = "http://localhost:8000"
-API_KEY = os.getenv("FIXOPS_API_TOKEN", "test-api-key-12345")
+API_KEY = os.getenv("FIXOPS_API_TOKEN", "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh")
 
 
 @pytest.fixture

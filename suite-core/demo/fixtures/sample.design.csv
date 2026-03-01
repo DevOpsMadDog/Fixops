@@ -1,0 +1,7 @@
+component,feature,security_requirements,data_classification,compliance_scope,threat_model_status
+api-gateway,authentication,mfa_required|rate_limiting|jwt_validation,confidential,"SOC2|HIPAA",completed
+user-service,user-management,input_validation|authorization|audit_logging,pii,"SOC2|GDPR",completed
+payment-service,payment-processing,encryption_at_rest|encryption_in_transit|pci_compliance,restricted,"PCI-DSS|SOC2",in_progress
+notification-service,notifications,input_validation|rate_limiting,internal,"SOC2",not_started
+analytics-service,data-analytics,access_control|data_masking,confidential,"SOC2|HIPAA",completed
+storage-service,file-storage,encryption_at_rest|access_control|malware_scanning,confidential,"SOC2",in_progress

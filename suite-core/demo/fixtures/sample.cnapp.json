@@ -1,0 +1,48 @@
+{
+  "source": "wiz",
+  "scan_type": "cloud_posture",
+  "timestamp": "2026-01-15T10:00:00Z",
+  "target": {
+    "cloud_provider": "aws",
+    "account_id": "123456789012",
+    "region": "us-east-1"
+  },
+  "findings": [
+    {
+      "id": "CNAPP-001",
+      "title": "S3 bucket publicly accessible",
+      "severity": "critical",
+      "category": "cloud_misconfiguration",
+      "resource_type": "aws_s3_bucket",
+      "resource_id": "arn:aws:s3:::demo-public-bucket",
+      "description": "S3 bucket has public access enabled allowing anonymous reads",
+      "recommendation": "Enable S3 Block Public Access at the bucket level",
+      "compliance": ["CIS AWS 2.1.5.1", "SOC2 CC6.1"],
+      "first_seen": "2025-12-01T08:00:00Z"
+    },
+    {
+      "id": "CNAPP-002",
+      "title": "EC2 instance with overly permissive security group",
+      "severity": "high",
+      "category": "network_exposure",
+      "resource_type": "aws_security_group",
+      "resource_id": "sg-0123456789abcdef0",
+      "description": "Security group allows inbound traffic from 0.0.0.0/0 on port 22 (SSH)",
+      "recommendation": "Restrict SSH access to specific IP ranges or use SSM Session Manager",
+      "compliance": ["CIS AWS 5.2", "SOC2 CC6.6"],
+      "first_seen": "2025-11-15T12:00:00Z"
+    },
+    {
+      "id": "CNAPP-003",
+      "title": "IAM role with wildcard permissions",
+      "severity": "high",
+      "category": "iam_misconfiguration",
+      "resource_type": "aws_iam_role",
+      "resource_id": "arn:aws:iam::123456789012:role/demo-admin-role",
+      "description": "IAM role has Action: '*' and Resource: '*' policy attached",
+      "recommendation": "Apply principle of least privilege to IAM policies",
+      "compliance": ["CIS AWS 1.16", "SOC2 CC6.3"],
+      "first_seen": "2025-10-20T09:30:00Z"
+    }
+  ]
+}

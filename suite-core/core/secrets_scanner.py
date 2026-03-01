@@ -568,6 +568,63 @@ class SecretsDetector:
         except Exception:
             return str(path), "main"
 
+    async def _scan_content_builtin(
+        self,
+        content: str,
+        filename: str,
+        repository: str = "inline",
+        branch: str = "main",
+    ) -> "SecretsScanResult":
+        """Built-in secrets scanner fallback (no external tools or filesystem)."""
+        from core.real_scanner import get_real_secrets_scanner
+
+        scan_id = str(uuid4())
+        started_at = datetime.now()
+
+        builtin_scanner = get_real_secrets_scanner()
+        real_findings = builtin_scanner.scan_content(content, filename)
+
+        findings = []
+        for rf in real_findings:
+            finding = SecretFinding(
+                id=rf.finding_id,
+                secret_type=self._map_secret_type(
+                    rf.evidence.get("secret_type", "generic"),
+                    rf.description,
+                ),
+                status=SecretStatus.ACTIVE,
+                file_path=filename,
+                line_number=rf.evidence.get("line_number", 0),
+                repository=repository,
+                branch=branch,
+                commit_hash=None,
+                matched_pattern=rf.evidence.get("redacted_match"),
+                entropy_score=None,
+                metadata={
+                    "scanner": "builtin",
+                    "verified": rf.verified,
+                    "evidence": rf.evidence,
+                },
+            )
+            findings.append(finding)
+
+        completed_at = datetime.now()
+        duration = (completed_at - started_at).total_seconds()
+
+        return SecretsScanResult(
+            scan_id=scan_id,
+            status=SecretsScanStatus.COMPLETED,
+            scanner=SecretsScanner.GITLEAKS,
+            target_path=filename,
+            repository=repository,
+            branch=branch,
+            findings=findings,
+            started_at=started_at,
+            completed_at=completed_at,
+            duration_seconds=duration,
+            metadata={"fallback": "builtin_scanner", "reason": "scan_path_unavailable"},
+        )
+
     async def scan_content(
         self,
         content: str,
@@ -630,6 +687,19 @@ class SecretsDetector:
         # This ensures the temp directory is created under a validated base path
         # Use hardcoded SCAN_BASE_PATH constant - NOT configurable
         base_path = SCAN_BASE_PATH
+
+        # If SCAN_BASE_PATH doesn't exist (dev/air-gapped mode), fall back to
+        # built-in scanner immediately instead of crashing with PermissionError.
+        try:
+            os.makedirs(base_path, exist_ok=True)
+        except (PermissionError, OSError):
+            logger.info(
+                "Cannot create scan base path %s — using built-in scanner", base_path
+            )
+            return await self._scan_content_builtin(
+                content, filename, repository, branch
+            )
+
         with safe_tempdir(base_path) as temp_dir:
             # Use os.path.join instead of Path() to avoid CodeQL sink
             temp_file = os.path.join(temp_dir, safe_filename)

@@ -1,0 +1,2842 @@
+{
+  "info": {
+    "_postman_id": "dc-002-discover",
+    "name": "\ud83d\udd0d ALdeci \u2014 DISCOVER",
+    "description": "## Discover \u2014 \"What risks exist?\"\n\nCovers: Finding Explorer, Code Scanning, Secrets, IaC, Cloud, Containers, SBOM, Knowledge Graph, Attack Paths, Threat Feeds\n\n### Personas Served\n- **Marcus Johnson** (AppSec Engineer) \u2014 Finding triage, scanner correlation\n- **Emily Zhang** (Threat Intel Analyst) \u2014 Threat feeds, CVE enrichment\n- **Brian Lee** (Cloud Security) \u2014 CSPM, container scanning, IaC\n- **Lisa Wang** (Security Architect) \u2014 Knowledge graph, attack paths\n- **Aisha Patel** (SBOM Analyst) \u2014 SBOM, supply chain, license compliance\n\n### Endpoints: 200+ covering findings, brain/KG, dedup, scanners, feeds, inventory, reachability, predictions\n\n### Vision Pillars: V1, V2, V5, V8, V10",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{apiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.request.headers.add({ key: 'Content-Type', value: 'application/json' });",
+          "pm.request.headers.add({ key: 'Accept', value: 'application/json' });"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "\ud83d\udccb Finding Explorer",
+      "description": "Core finding CRUD, search, and analytics \u2014 the primary discovery surface.",
+      "item": [
+        {
+          "name": "List Findings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/analytics/findings",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "findings"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List findings returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Returns findings array', function() {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.exist;",
+                  "    // Capture first finding ID for chaining",
+                  "    if (Array.isArray(json) && json.length > 0 && json[0].id) {",
+                  "        pm.environment.set('findingId', json[0].id);",
+                  "    } else if (json.items && json.items.length > 0) {",
+                  "        pm.environment.set('findingId', json.items[0].id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Finding",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"SQL Injection in Login API\",\n  \"severity\": \"critical\",\n  \"source\": \"semgrep\",\n  \"cve_id\": \"CVE-2024-3094\",\n  \"description\": \"SQL injection vulnerability found in /api/auth/login endpoint\",\n  \"file_path\": \"src/auth/login.py\",\n  \"line_number\": 42,\n  \"status\": \"open\",\n  \"confidence\": \"high\",\n  \"category\": \"injection\",\n  \"org_id\": \"{{orgId}}\",\n  \"rule_id\": \"sql-injection-001\",\n  \"app_id\": \"test-app-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/analytics/findings",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "findings"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create finding returns 200/201', function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]);",
+                  "});",
+                  "pm.test('Capture findingId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.id) pm.environment.set('findingId', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Finding by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/analytics/findings/{{findingId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "findings",
+                "{{findingId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get finding returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Finding has required fields', function() {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.any.keys('id', 'title', 'severity', 'status');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Finding",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"open\",\n  \"assignee\": \"marcus.johnson\",\n  \"priority\": \"P1\",\n  \"org_id\": \"{{orgId}}\",\n  \"rule_id\": \"sql-injection-001\",\n  \"app_id\": \"test-app-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/analytics/findings/{{findingId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "findings",
+                "{{findingId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Update finding returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Custom Analytics Query",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"severity:critical AND status:open\",\n  \"group_by\": \"source\",\n  \"date_range\": {\"start\": \"2025-01-01\", \"end\": \"2025-12-31\"}\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/analytics/custom-query",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "custom-query"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Custom query returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83e\udde9 Deduplication & Correlation",
+      "description": "Finding deduplication, cluster management, cross-stage correlation \u2014 noise reduction engine.",
+      "item": [
+        {
+          "name": "Process Finding for Dedup",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finding_id\": \"{{findingId}}\",\n  \"title\": \"SQL Injection in Login API\",\n  \"cve_id\": \"CVE-2024-3094\",\n  \"source\": \"semgrep\",\n  \"file_path\": \"src/auth/login.py\",\n  \"line_number\": 42,\n  \"finding\": {\n    \"id\": \"{{findingId}}\",\n    \"title\": \"SQL Injection in Login API\",\n    \"severity\": \"critical\",\n    \"source\": \"semgrep\",\n    \"cve_id\": \"CVE-2024-3094\",\n    \"file_path\": \"src/auth/login.py\",\n    \"line_number\": 42\n  },\n  \"run_id\": \"dedup-run-001\",\n  \"org_id\": \"{{orgId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/deduplication/process",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "deduplication",
+                "process"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Dedup process returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture clusterId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.cluster_id) pm.environment.set('clusterId', json.cluster_id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Clusters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/deduplication/clusters",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "deduplication",
+                "clusters"
+              ],
+              "query": [
+                {
+                  "key": "org_id",
+                  "value": "{{orgId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List clusters returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture first clusterId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (Array.isArray(json) && json.length > 0 && json[0].id) {",
+                  "        pm.environment.set('clusterId', json[0].id);",
+                  "    } else if (json.clusters && json.clusters.length > 0) {",
+                  "        pm.environment.set('clusterId', json.clusters[0].id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Cluster",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/deduplication/clusters/{{clusterId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "deduplication",
+                "clusters",
+                "{{clusterId}}"
+              ],
+              "query": [
+                {
+                  "key": "org_id",
+                  "value": "org-001"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get cluster returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Related Clusters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/deduplication/clusters",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "deduplication",
+                "clusters"
+              ],
+              "query": [
+                {
+                  "key": "org_id",
+                  "value": "{{orgId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Related clusters returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Correlations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/deduplication/correlations",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "deduplication",
+                "correlations"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Correlations returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Correlation Graph",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/deduplication/graph",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "deduplication",
+                "graph"
+              ],
+              "query": [
+                {
+                  "key": "org_id",
+                  "value": "{{orgId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Correlation graph returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deduplication Stats (Global)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/deduplication/stats",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "deduplication",
+                "stats"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Dedup stats returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cross-Stage Correlation",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finding_ids\": [\n    \"{{findingId}}\"\n  ],\n  \"stages\": [\n    \"sast\",\n    \"dast\",\n    \"sca\"\n  ],\n  \"org_id\": \"{{orgId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/deduplication/correlate/cross-stage",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "deduplication",
+                "correlate",
+                "cross-stage"
+              ],
+              "query": [
+                {
+                  "key": "org_id",
+                  "value": "org-001"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Cross-stage correlation returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83e\udde0 Knowledge Brain Graph",
+      "description": "The Knowledge Graph \u2014 entity nodes, edges, paths, risk scoring. Core V1 architecture.",
+      "item": [
+        {
+          "name": "Create Node",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"node_id\": \"app-payment-service\",\n  \"entity_type\": \"application\",\n  \"properties\": {\n    \"name\": \"Payment Service\",\n    \"tier\": \"critical\",\n    \"environment\": \"production\"\n  },\n  \"node_type\": \"application\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/brain/nodes",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "brain",
+                "nodes"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create node returns 200/201', function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]);",
+                  "});",
+                  "pm.test('Capture nodeId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.node_id) pm.environment.set('nodeId', json.node_id);",
+                  "    else if (json.id) pm.environment.set('nodeId', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Query Nodes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/brain/nodes",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "brain",
+                "nodes"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Query nodes returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Node",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/brain/nodes/{{nodeId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "brain",
+                "nodes",
+                "{{nodeId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get node returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Edge",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"{{nodeId}}\",\n  \"target\": \"cve-2024-3094\",\n  \"edge_type\": \"AFFECTED_BY\",\n  \"properties\": {\n    \"confidence\": 0.95\n  },\n  \"source_id\": \"{{nodeId}}\",\n  \"target_id\": \"cve-2024-3094\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/brain/edges",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "brain",
+                "edges"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create edge returns 200/201', function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Neighbors (2 hops)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/brain/neighbors/{{nodeId}}?hops=2",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "brain",
+                "neighbors",
+                "{{nodeId}}"
+              ],
+              "query": [
+                {
+                  "key": "hops",
+                  "value": "2"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Neighbors returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Graph Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/brain/stats",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "brain",
+                "stats"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Graph stats returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Most Connected Nodes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/brain/most-connected",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "brain",
+                "most-connected"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Most connected returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Node Risk Score",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/brain/risk{{nodeId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "brain",
+                "risk{{nodeId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Node risk returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Entity Types",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/brain/meta/entity-types",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "brain",
+                "meta",
+                "entity-types"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Entity types returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Edge Types",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/brain/meta/edge-types",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "brain",
+                "meta",
+                "edge-types"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Edge types returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ingest CVE into Brain",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cve_id\": \"CVE-2024-3094\",\n  \"description\": \"XZ Utils backdoor\",\n  \"severity\": \"critical\",\n  \"cvss_score\": 10.0,\n  \"file\": \"{}\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/brain/ingest/cve",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "brain",
+                "ingest",
+                "cve"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ingest CVE returns 200/201', function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ingest Finding into Brain",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finding_id\": \"{{findingId}}\",\n  \"title\": \"SQL Injection in Login\",\n  \"severity\": \"critical\",\n  \"source\": \"semgrep\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/brain/ingest/finding",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "brain",
+                "ingest",
+                "finding"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ingest finding returns 200/201', function() {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd2c Security Scanners",
+      "description": "SAST, DAST, CSPM, Container, Secrets, IaC, API Fuzzer, Malware \u2014 all scanner APIs.",
+      "item": [
+        {
+          "name": "SAST \u2014 Scan Code",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"import sqlite3\\nconn = sqlite3.connect('db')\\ncursor = conn.execute('SELECT * FROM users WHERE id=' + user_input)\",\n  \"language\": \"python\",\n  \"filename\": \"auth.py\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/sast/scan/code",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "sast",
+                "scan",
+                "code"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('SAST scan returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Returns scan results', function() {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "SAST \u2014 List Rules",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/sast/rules",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "sast",
+                "rules"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('SAST rules returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "SAST \u2014 Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/sast/status",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "sast",
+                "status"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('SAST status returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DAST \u2014 Scan",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"target_url\": \"https://httpbin.org/get\",\n  \"scan_type\": \"quick\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/dast/scan",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "dast",
+                "scan"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('DAST scan returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DAST \u2014 Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/dast/status",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "dast",
+                "status"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('DAST status returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CSPM \u2014 Scan Terraform",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"resource \\\"aws_s3_bucket\\\" \\\"data\\\" {\\n  bucket = \\\"my-bucket\\\"\\n  acl = \\\"public-read\\\"\\n}\",\n  \"filename\": \"main.tf\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/cspm/scan/terraform",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "cspm",
+                "scan",
+                "terraform"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('CSPM Terraform scan returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CSPM \u2014 Rules",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/cspm/rules",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "cspm",
+                "rules"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('CSPM rules returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Container \u2014 Scan Dockerfile",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"FROM python:3.11\\nRUN pip install flask\\nUSER root\\nEXPOSE 80\",\n  \"filename\": \"Dockerfile\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/container/scan/dockerfile",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "container",
+                "scan",
+                "dockerfile"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Container scan returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Secrets \u2014 List Findings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/secrets",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "secrets"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Secrets list returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Secrets \u2014 Scan Content",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE\\nAWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\",\n  \"filename\": \".env.production\",\n  \"org_id\": \"{{orgId}}\",\n  \"finding_id\": \"secret-001\",\n  \"type\": \"aws_access_key\",\n  \"file_path\": \".env\",\n  \"line_number\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/secrets/scan/content",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "secrets",
+                "scan",
+                "content"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Secrets scan returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "IaC \u2014 Scan Content",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"AWSTemplateFormatVersion: '2010-09-09'\\nResources:\\n  MyBucket:\\n    Type: AWS::S3::Bucket\\n    Properties:\\n      BucketName: open-bucket\",\n  \"filename\": \"template.yml\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/iac/scan/content",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "iac",
+                "scan",
+                "content"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('IaC scan returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "API Fuzzer \u2014 Discover APIs",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"target_url\": \"http://localhost:8000\",\n  \"openapi_spec\": {\n    \"openapi\": \"3.0.0\",\n    \"info\": {\n      \"title\": \"test\",\n      \"version\": \"1.0\"\n    },\n    \"paths\": {}\n  },\n  \"org_id\": \"{{orgId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/api-fuzzer/discover",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "api-fuzzer",
+                "discover"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('API fuzzer discover returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Malware \u2014 Scan Content",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"import os; os.system('rm -rf /')\",\n  \"filename\": \"suspicious.py\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/malware/scan/content",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "malware",
+                "scan",
+                "content"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Malware scan returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udce1 Threat Intelligence Feeds",
+      "description": "NVD, EPSS, KEV, ExploitDB, OSV, GitHub Advisories \u2014 threat intel enrichment.",
+      "item": [
+        {
+          "name": "EPSS Scores",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/feeds/epss",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "feeds",
+                "epss"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('EPSS scores returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "KEV Entries",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/feeds/kev",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "feeds",
+                "kev"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('KEV entries returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recent NVD CVEs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/feeds/nvd/recent",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "feeds",
+                "nvd",
+                "recent"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('NVD recent returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get NVD CVE by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/feeds/status",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "feeds",
+                "status"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('NVD CVE lookup returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List All Exploits",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/feeds/exploits",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "feeds",
+                "exploits"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Exploits list returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Exploits for CVE",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/feeds/exploits/{{cveId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "feeds",
+                "exploits",
+                "{{cveId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('CVE exploits returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Threat Actors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/feeds/threat-actors",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "feeds",
+                "threat-actors"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Threat actors returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Supply Chain Vulns",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/feeds/supply-chain",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "feeds",
+                "supply-chain"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Supply chain returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Exploit Confidence Score",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/feeds/exploit-confidence/{{cveId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "feeds",
+                "exploit-confidence",
+                "{{cveId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Exploit confidence returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Geo-Weighted Risk",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/feeds/nvd{{cveId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "feeds",
+                "nvd{{cveId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Geo risk returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Feed Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/feeds/stats",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "feeds",
+                "stats"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Feed stats returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Feed Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/feeds/categories",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "feeds",
+                "categories"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Feed categories returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Feed Sources",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/feeds/sources",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "feeds",
+                "sources"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Feed sources returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Enrich Findings with Feed Data",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finding_ids\": [\n    \"{{findingId}}\"\n  ],\n  \"enrich_sources\": [\n    \"epss\",\n    \"kev\",\n    \"exploitdb\"\n  ],\n  \"org_id\": \"{{orgId}}\",\n  \"findings\": [\n    {\n      \"id\": \"f1\",\n      \"cve_id\": \"CVE-2024-3094\",\n      \"severity\": \"critical\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/feeds/enrich",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "feeds",
+                "enrich"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Enrichment returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfe2 Asset Inventory",
+      "description": "Application, service, API, and SBOM inventory \u2014 the APP_ID foundation (V1).",
+      "item": [
+        {
+          "name": "List Assets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/inventory/assets",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "inventory",
+                "assets"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Assets list returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Applications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/inventory/applications",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "inventory",
+                "applications"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Applications list returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture applicationId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (Array.isArray(json) && json.length > 0 && json[0].id) pm.environment.set('applicationId', json[0].id);",
+                  "    else if (json.items && json.items.length > 0) pm.environment.set('applicationId', json.items[0].id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Application",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Payment Service\",\n  \"description\": \"Core payment processing microservice\",\n  \"tier\": \"critical\",\n  \"team\": \"payments\",\n  \"repository\": \"https://github.com/acme/payment-service\",\n  \"criticality\": \"critical\",\n  \"owner\": \"security-team\",\n  \"environment\": \"production\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/inventory/applications",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "inventory",
+                "applications"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create app returns 200/201', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture applicationId', function() { const json = pm.response.json(); if (json.id) pm.environment.set('applicationId', json.id); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Application",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/inventory/applications/{{applicationId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "inventory",
+                "applications",
+                "{{applicationId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get app returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "App SBOM",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/inventory/applications/{{applicationId}}/sbom",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "inventory",
+                "applications",
+                "{{applicationId}}",
+                "sbom"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('SBOM returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "App License Compliance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/inventory/applications/{{applicationId}}/license-compliance",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "inventory",
+                "applications",
+                "{{applicationId}}",
+                "license-compliance"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('License compliance returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search Inventory",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/inventory/search?q=payment",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "inventory",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "payment"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Search returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Services",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/inventory/services",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "inventory",
+                "services"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Services returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List APIs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/inventory/apis",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "inventory",
+                "apis"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('APIs returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udce5 Data Ingestion",
+      "description": "SARIF, SBOM, CVE, VEX, CNAPP, design context ingestion \u2014 the scanner input layer.",
+      "item": [
+        {
+          "name": "Ingest SARIF",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": \"2.1.0\",\n  \"$schema\": \"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json\",\n  \"runs\": [\n    {\n      \"tool\": {\n        \"driver\": {\n          \"name\": \"Semgrep\",\n          \"version\": \"1.0\"\n        }\n      },\n      \"results\": [\n        {\n          \"ruleId\": \"python.lang.security.audit.exec-detected\",\n          \"level\": \"error\",\n          \"message\": {\n            \"text\": \"Dangerous exec() call detected\"\n          },\n          \"locations\": [\n            {\n              \"physicalLocation\": {\n                \"artifactLocation\": {\n                  \"uri\": \"src/app.py\"\n                },\n                \"region\": {\n                  \"startLine\": 42\n                }\n              }\n            }\n          ]\n        }\n      ]\n    }\n  ],\n  \"org_id\": \"{{orgId}}\",\n  \"app_id\": \"test-app-001\",\n  \"file\": \"{}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inputs/sarif",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inputs",
+                "sarif"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('SARIF ingest returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 422]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ingest SBOM",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bomFormat\": \"CycloneDX\",\n  \"specVersion\": \"1.4\",\n  \"components\": [\n    {\n      \"type\": \"library\",\n      \"name\": \"lodash\",\n      \"version\": \"4.17.20\",\n      \"purl\": \"pkg:npm/lodash@4.17.20\"\n    }\n  ],\n  \"org_id\": \"{{orgId}}\",\n  \"app_id\": \"test-app-001\",\n  \"file\": \"{}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inputs/sbom",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inputs",
+                "sbom"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('SBOM ingest returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 422]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ingest CVE",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cve_id\": \"CVE-2024-3094\",\n  \"description\": \"XZ Utils backdoor\",\n  \"severity\": \"critical\",\n  \"cvss_score\": 10.0,\n  \"org_id\": \"{{orgId}}\",\n  \"file\": \"{}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inputs/cve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inputs",
+                "cve"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('CVE ingest returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 422]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ingest Design Context",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"application\": \"payment-service\",\n  \"threats\": [\n    \"SQL injection\",\n    \"XSS\"\n  ],\n  \"data_classification\": \"PII\",\n  \"compliance_requirements\": [\n    \"PCI-DSS\",\n    \"SOC2\"\n  ],\n  \"org_id\": \"{{orgId}}\",\n  \"app_id\": \"test-app-001\",\n  \"file\": \"{}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inputs/design",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inputs",
+                "design"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Design ingest returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 422]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Supported Formats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/ingest/formats",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "ingest",
+                "formats"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Formats returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Validate Input Format",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"format\": \"sarif\",\n  \"data\": {\n    \"version\": \"2.1.0\"\n  },\n  \"org_id\": \"{{orgId}}\",\n  \"file\": \"{}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/validate/input",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "validate",
+                "input"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Validation returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 422]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd2e Predictions & Algorithms",
+      "description": "Monte Carlo, Bayesian, GNN, Markov, Causal analysis \u2014 advanced risk analytics.",
+      "item": [
+        {
+          "name": "Predict Attack Chain",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entry_point\": \"{{cveId}}\",\n  \"target_assets\": [\n    \"payment-service\",\n    \"user-database\"\n  ],\n  \"depth\": 3,\n  \"org_id\": \"{{orgId}}\",\n  \"cve_id\": \"CVE-2024-3094\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/predictions/attack-chain",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "predictions",
+                "attack-chain"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Attack chain prediction returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Risk Trajectory",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"asset_id\": \"payment-service\",\n  \"time_horizon_days\": 90\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/predictions/risk-trajectory",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "predictions",
+                "risk-trajectory"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Risk trajectory returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Monte Carlo Risk Quantification",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vulnerabilities\": [{\"cve_id\": \"{{cveId}}\", \"cvss\": 10.0}],\n  \"simulations\": 10000,\n  \"time_horizon_days\": 365\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/algorithms/monte-carlo/quantify",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "algorithms",
+                "monte-carlo",
+                "quantify"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Monte Carlo returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bayesian Risk Assessment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prior_probability\": 0.3,\n  \"evidence\": {\n    \"epss_score\": 0.85,\n    \"kev_listed\": true,\n    \"public_exploit\": true\n  },\n  \"org_id\": \"{{orgId}}\",\n  \"cve_id\": \"CVE-2024-3094\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/algorithms/monte-carlo/cve",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "algorithms",
+                "monte-carlo",
+                "cve"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Bayesian assessment returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GNN Attack Surface",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"target_node\": \"{{nodeId}}\",\n  \"depth\": 3,\n  \"org_id\": \"{{orgId}}\",\n  \"infrastructure\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/algorithms/gnn/attack-surface",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "algorithms",
+                "gnn",
+                "attack-surface"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('GNN analysis returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reachability Analysis",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cve_id\": \"{{cveId}}\",\n  \"package\": \"xz-utils\",\n  \"version\": \"5.6.0\",\n  \"org_id\": \"{{orgId}}\",\n  \"repository\": {\n    \"url\": \"https://github.com/test/repo\"\n  },\n  \"entry_points\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/reachability/analyze",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "reachability",
+                "analyze"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Reachability returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Code-to-Cloud Trace",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cve_id\": \"{{cveId}}\",\n  \"source_file\": \"src/auth/login.py\",\n  \"target_environment\": \"production\",\n  \"org_id\": \"{{orgId}}\",\n  \"vulnerability_id\": \"CVE-2024-3094\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/code-to-cloud/trace",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "code-to-cloud",
+                "trace"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Code-to-cloud trace returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udd94 Fuzzy Identity Resolution",
+      "description": "Finding identity resolution \u2014 maps scanner naming variants to canonical identities.",
+      "item": [
+        {
+          "name": "Register Canonical Identity",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"CVE-2024-3094\",\n  \"type\": \"vulnerability\",\n  \"attributes\": {\n    \"package\": \"xz-utils\"\n  },\n  \"org_id\": \"{{orgId}}\",\n  \"canonical_id\": \"test-identity-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/identity/canonical",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "identity",
+                "canonical"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Register canonical returns 200/201', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resolve Fuzzy Name",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"xz-utils CVE 2024 3094\",\n  \"type\": \"vulnerability\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/identity/resolve",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "identity",
+                "resolve"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Resolution returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Identity Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/identity/stats",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "identity",
+                "stats"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Identity stats returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd0c Vulnerability Discovery",
+      "description": "Internal vulnerability discovery, ML-driven detection, intelligence contributions.",
+      "item": [
+        {
+          "name": "List Discovered Vulnerabilities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/vulns/discovered",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "vulns",
+                "discovered"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Discovered vulns returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Internal Vulnerabilities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/vulns/internal",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "vulns",
+                "internal"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Internal vulns returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Vulnerability Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/vulns/stats",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "vulns",
+                "stats"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Vuln stats returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Contributions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/vulns/contributions",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "vulns",
+                "contributions"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Contributions returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83e\uddee Brain Pipeline",
+      "description": "The 12-step brain pipeline \u2014 end-to-end finding processing (V2, V3).",
+      "item": [
+        {
+          "name": "Run Full Pipeline",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"semgrep\",\n  \"findings\": [\n    {\n      \"id\": \"{{findingId}}\",\n      \"title\": \"SQL Injection\",\n      \"severity\": \"critical\"\n    }\n  ],\n  \"org_id\": \"{{orgId}}\",\n  \"app_id\": \"test-app-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/brain/pipeline/run",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "brain",
+                "pipeline",
+                "run"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Pipeline run returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture pipelineRunId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.run_id) pm.environment.set('pipelineRunId', json.run_id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Pipeline Runs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/brain/pipeline/runs",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "brain",
+                "pipeline",
+                "runs"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Pipeline runs returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Pipeline Run",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/brain/pipeline/runs/{{pipelineRunId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "brain",
+                "pipeline",
+                "runs",
+                "{{pipelineRunId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get pipeline run returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

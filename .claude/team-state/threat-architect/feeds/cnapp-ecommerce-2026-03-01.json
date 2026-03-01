@@ -1,0 +1,363 @@
+{
+  "metadata": {
+    "provider": "aws",
+    "account_id": "123456789012",
+    "account_alias": "acme-ecommerce-prod",
+    "region": "us-east-1",
+    "scan_timestamp": "2026-03-01T00:00:00Z",
+    "scanner": "ALdeci-ThreatArchitect/1.0.0",
+    "total_findings": 8,
+    "severity_summary": {
+      "CRITICAL": 2,
+      "HIGH": 3,
+      "MEDIUM": 2,
+      "LOW": 1
+    }
+  },
+  "findings": [
+    {
+      "id": "CNAPP-AWS-001",
+      "title": "S3 Bucket Allows Public Read Access",
+      "resource_type": "AWS::S3::Bucket",
+      "resource_id": "arn:aws:s3:::acme-ecommerce-media-prod",
+      "resource_name": "acme-ecommerce-media-prod",
+      "resource_region": "us-east-1",
+      "rule_id": "S3_BUCKET_PUBLIC_READ_PROHIBITED",
+      "severity": "HIGH",
+      "status": "FAILED",
+      "description": "The S3 bucket 'acme-ecommerce-media-prod' has a bucket policy that allows s3:GetObject from principal '*'. While this bucket serves product images, the policy is overly permissive and does not restrict access to the /public/ prefix. Internal invoice PDFs stored in /invoices/ are also publicly accessible, exposing customer billing information.",
+      "remediation": {
+        "recommendation": "Enable S3 Block Public Access at the account level. Restrict the bucket policy to only allow public read access to the /public/images/ prefix. Use CloudFront with Origin Access Control (OAC) for public content distribution. Move invoice PDFs to a separate private bucket.",
+        "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html"
+      },
+      "compliance": [
+        {
+          "standard": "CIS-AWS-Foundations-Benchmark",
+          "version": "1.4.0",
+          "control": "2.1.1",
+          "description": "Ensure S3 Bucket Policy does not grant public access"
+        },
+        {
+          "standard": "PCI-DSS",
+          "version": "4.0",
+          "control": "1.3.1",
+          "description": "Inbound traffic restricted to system components that provide authorized publicly accessible services"
+        },
+        {
+          "standard": "SOC2",
+          "version": "2017",
+          "control": "CC6.1",
+          "description": "Logical access security"
+        }
+      ],
+      "evidence": {
+        "bucket_policy_principal": "*",
+        "bucket_policy_action": "s3:GetObject",
+        "block_public_access": false,
+        "exposed_prefixes": ["/public/images/", "/invoices/", "/exports/"]
+      },
+      "first_observed": "2025-11-15T08:30:00Z",
+      "last_observed": "2026-03-01T00:00:00Z"
+    },
+    {
+      "id": "CNAPP-AWS-002",
+      "title": "IAM Role Has AdministratorAccess Policy",
+      "resource_type": "AWS::IAM::Role",
+      "resource_id": "arn:aws:iam::123456789012:role/acme-ecommerce-api-role",
+      "resource_name": "acme-ecommerce-api-role",
+      "resource_region": "global",
+      "rule_id": "IAM_POLICY_NO_STATEMENTS_WITH_ADMIN_ACCESS",
+      "severity": "CRITICAL",
+      "status": "FAILED",
+      "description": "The IAM role 'acme-ecommerce-api-role' used by ECS Fargate tasks has the AWS managed policy 'AdministratorAccess' (arn:aws:iam::aws:policy/AdministratorAccess) attached. This grants unrestricted access to all AWS services and resources. If any microservice is compromised, the attacker gains full control over the AWS account including access to RDS databases containing cardholder data.",
+      "remediation": {
+        "recommendation": "Replace AdministratorAccess with a least-privilege custom policy. Create separate IAM roles per microservice with only the permissions each service requires. Use IAM Access Analyzer to generate least-privilege policies based on CloudTrail activity.",
+        "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html#grant-least-privilege"
+      },
+      "compliance": [
+        {
+          "standard": "CIS-AWS-Foundations-Benchmark",
+          "version": "1.4.0",
+          "control": "1.16",
+          "description": "Ensure IAM policies that allow full \"*:*\" administrative privileges are not attached"
+        },
+        {
+          "standard": "PCI-DSS",
+          "version": "4.0",
+          "control": "7.2.1",
+          "description": "Access is assigned based on individual personnel's job classification and function"
+        },
+        {
+          "standard": "NIST-800-53",
+          "version": "rev5",
+          "control": "AC-6",
+          "description": "Least Privilege"
+        }
+      ],
+      "evidence": {
+        "attached_policies": [
+          "arn:aws:iam::aws:policy/AdministratorAccess"
+        ],
+        "trust_policy_principals": [
+          "ecs-tasks.amazonaws.com"
+        ],
+        "last_used": "2026-02-28T23:45:00Z"
+      },
+      "first_observed": "2025-09-01T10:00:00Z",
+      "last_observed": "2026-03-01T00:00:00Z"
+    },
+    {
+      "id": "CNAPP-AWS-003",
+      "title": "RDS Instance Not Encrypted At Rest",
+      "resource_type": "AWS::RDS::DBInstance",
+      "resource_id": "arn:aws:rds:us-east-1:123456789012:db:acme-payments-db",
+      "resource_name": "acme-payments-db",
+      "resource_region": "us-east-1",
+      "rule_id": "RDS_STORAGE_ENCRYPTED",
+      "severity": "CRITICAL",
+      "status": "FAILED",
+      "description": "The RDS PostgreSQL instance 'acme-payments-db' does not have storage encryption enabled. This database stores payment transactions and cardholder data. Without encryption at rest, an attacker with access to the underlying EBS volumes (via snapshot sharing, account compromise, or physical access) can read cardholder data in plaintext.",
+      "remediation": {
+        "recommendation": "Create an encrypted snapshot of the existing database, then restore a new encrypted RDS instance from that snapshot. Enable encryption using AWS KMS customer-managed key (CMK) for auditability. Note: encryption cannot be enabled on an existing RDS instance without migration.",
+        "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Encryption.html"
+      },
+      "compliance": [
+        {
+          "standard": "PCI-DSS",
+          "version": "4.0",
+          "control": "3.5.1",
+          "description": "PAN is secured with strong cryptography wherever it is stored"
+        },
+        {
+          "standard": "CIS-AWS-Foundations-Benchmark",
+          "version": "1.4.0",
+          "control": "2.3.1",
+          "description": "Ensure RDS instances have encryption at-rest enabled"
+        },
+        {
+          "standard": "SOC2",
+          "version": "2017",
+          "control": "CC6.7",
+          "description": "Data-at-rest protection"
+        }
+      ],
+      "evidence": {
+        "storage_encrypted": false,
+        "engine": "postgres",
+        "engine_version": "15.4",
+        "instance_class": "db.r6g.xlarge",
+        "multi_az": true,
+        "database_name": "payments"
+      },
+      "first_observed": "2025-08-20T14:00:00Z",
+      "last_observed": "2026-03-01T00:00:00Z"
+    },
+    {
+      "id": "CNAPP-AWS-004",
+      "title": "Security Group Allows Unrestricted SSH Access",
+      "resource_type": "AWS::EC2::SecurityGroup",
+      "resource_id": "arn:aws:ec2:us-east-1:123456789012:security-group/sg-0a1b2c3d4e5f6a7b8",
+      "resource_name": "acme-bastion-sg",
+      "resource_region": "us-east-1",
+      "rule_id": "RESTRICTED_SSH",
+      "severity": "HIGH",
+      "status": "FAILED",
+      "description": "Security group 'acme-bastion-sg' allows inbound SSH (port 22) access from 0.0.0.0/0. This exposes the bastion host to brute-force attacks from the entire internet. The bastion host has network access to the private subnet containing the payments database.",
+      "remediation": {
+        "recommendation": "Restrict SSH access to known corporate IP ranges or VPN CIDR blocks. Consider replacing the bastion host with AWS Systems Manager Session Manager, which requires no inbound ports. Enable AWS GuardDuty for anomaly detection on SSH activity.",
+        "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/security-group-rules-reference.html"
+      },
+      "compliance": [
+        {
+          "standard": "CIS-AWS-Foundations-Benchmark",
+          "version": "1.4.0",
+          "control": "5.2",
+          "description": "Ensure no security groups allow ingress from 0.0.0.0/0 to port 22"
+        },
+        {
+          "standard": "PCI-DSS",
+          "version": "4.0",
+          "control": "1.3.2",
+          "description": "Inbound traffic to the CDE is restricted to only necessary traffic"
+        }
+      ],
+      "evidence": {
+        "inbound_rules": [
+          {
+            "protocol": "tcp",
+            "from_port": 22,
+            "to_port": 22,
+            "cidr": "0.0.0.0/0",
+            "description": "SSH access"
+          }
+        ],
+        "vpc_id": "vpc-0a1b2c3d4e5f6a7b8",
+        "associated_instances": ["i-0a1b2c3d4e5f6a7b8"]
+      },
+      "first_observed": "2025-10-05T09:00:00Z",
+      "last_observed": "2026-03-01T00:00:00Z"
+    },
+    {
+      "id": "CNAPP-AWS-005",
+      "title": "CloudTrail Logging Disabled in Region",
+      "resource_type": "AWS::CloudTrail::Trail",
+      "resource_id": "arn:aws:cloudtrail:us-west-2:123456789012:trail/acme-audit-trail",
+      "resource_name": "acme-audit-trail",
+      "resource_region": "us-west-2",
+      "rule_id": "CLOUD_TRAIL_ENABLED",
+      "severity": "HIGH",
+      "status": "FAILED",
+      "description": "CloudTrail logging is not enabled in the us-west-2 region. While the primary trail in us-east-1 is active, the disaster recovery environment in us-west-2 has no API activity logging. An attacker operating in this region would leave no audit trail, making incident response and forensics impossible.",
+      "remediation": {
+        "recommendation": "Enable a multi-region CloudTrail trail to capture API activity across all AWS regions. Configure log file validation, encrypt logs with KMS, and send to a centralized S3 bucket with object lock for tamper protection.",
+        "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-create-and-update-a-trail.html"
+      },
+      "compliance": [
+        {
+          "standard": "CIS-AWS-Foundations-Benchmark",
+          "version": "1.4.0",
+          "control": "3.1",
+          "description": "Ensure CloudTrail is enabled in all regions"
+        },
+        {
+          "standard": "PCI-DSS",
+          "version": "4.0",
+          "control": "10.2.1",
+          "description": "Audit logs capture all individual user access to cardholder data"
+        },
+        {
+          "standard": "SOC2",
+          "version": "2017",
+          "control": "CC7.2",
+          "description": "System monitoring"
+        }
+      ],
+      "evidence": {
+        "multi_region_enabled": false,
+        "is_logging": false,
+        "log_file_validation": false,
+        "regions_without_trail": ["us-west-2", "eu-west-1", "ap-southeast-1"]
+      },
+      "first_observed": "2025-12-01T16:00:00Z",
+      "last_observed": "2026-03-01T00:00:00Z"
+    },
+    {
+      "id": "CNAPP-AWS-006",
+      "title": "EBS Volumes Not Encrypted",
+      "resource_type": "AWS::EC2::Volume",
+      "resource_id": "arn:aws:ec2:us-east-1:123456789012:volume/vol-0a1b2c3d4e5f6a7b8",
+      "resource_name": "acme-app-server-vol",
+      "resource_region": "us-east-1",
+      "rule_id": "EC2_EBS_ENCRYPTION_BY_DEFAULT",
+      "severity": "MEDIUM",
+      "status": "FAILED",
+      "description": "EBS volume 'acme-app-server-vol' attached to an ECS host instance is not encrypted. The volume contains application logs that may include PII from error messages, and temporary files from container workloads. Account-level EBS encryption by default is not enabled.",
+      "remediation": {
+        "recommendation": "Enable EBS encryption by default at the account level for all regions. Create encrypted snapshots of existing unencrypted volumes and replace them. Use AWS KMS customer-managed keys for encryption.",
+        "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html"
+      },
+      "compliance": [
+        {
+          "standard": "CIS-AWS-Foundations-Benchmark",
+          "version": "1.4.0",
+          "control": "2.2.1",
+          "description": "Ensure EBS volume encryption is enabled by default"
+        },
+        {
+          "standard": "PCI-DSS",
+          "version": "4.0",
+          "control": "3.5.1",
+          "description": "PAN is secured with strong cryptography wherever it is stored"
+        }
+      ],
+      "evidence": {
+        "encrypted": false,
+        "volume_type": "gp3",
+        "size_gb": 100,
+        "state": "in-use",
+        "attached_instance": "i-0b2c3d4e5f6a7b8c9"
+      },
+      "first_observed": "2025-10-20T11:00:00Z",
+      "last_observed": "2026-03-01T00:00:00Z"
+    },
+    {
+      "id": "CNAPP-AWS-007",
+      "title": "Lambda Function Has Public Access",
+      "resource_type": "AWS::Lambda::Function",
+      "resource_id": "arn:aws:lambda:us-east-1:123456789012:function:acme-order-processor",
+      "resource_name": "acme-order-processor",
+      "resource_region": "us-east-1",
+      "rule_id": "LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED",
+      "severity": "MEDIUM",
+      "status": "FAILED",
+      "description": "Lambda function 'acme-order-processor' has a resource-based policy that allows invocation from principal '*'. This function processes order events from SQS and has access to the payments database. An attacker can invoke this function directly to trigger unauthorized order processing or extract order data.",
+      "remediation": {
+        "recommendation": "Remove the wildcard principal from the Lambda resource-based policy. Restrict invocation to the specific SQS queue ARN and API Gateway source. Enable Lambda function URL authentication if direct HTTPS invocation is needed.",
+        "url": "https://docs.aws.amazon.com/lambda/latest/dg/access-control-resource-based.html"
+      },
+      "compliance": [
+        {
+          "standard": "CIS-AWS-Foundations-Benchmark",
+          "version": "1.4.0",
+          "control": "1.22",
+          "description": "Ensure Lambda functions are not publicly accessible"
+        },
+        {
+          "standard": "PCI-DSS",
+          "version": "4.0",
+          "control": "7.2.1",
+          "description": "Access control model restricts access based on business need"
+        }
+      ],
+      "evidence": {
+        "resource_policy_principal": "*",
+        "runtime": "java17",
+        "memory_mb": 512,
+        "timeout_seconds": 300,
+        "vpc_configured": true,
+        "environment_variables_encrypted": true
+      },
+      "first_observed": "2025-11-28T13:00:00Z",
+      "last_observed": "2026-03-01T00:00:00Z"
+    },
+    {
+      "id": "CNAPP-AWS-008",
+      "title": "ECR Repository Has No Image Scanning",
+      "resource_type": "AWS::ECR::Repository",
+      "resource_id": "arn:aws:ecr:us-east-1:123456789012:repository/acme-ecommerce/payment-service",
+      "resource_name": "acme-ecommerce/payment-service",
+      "resource_region": "us-east-1",
+      "rule_id": "ECR_PRIVATE_IMAGE_SCANNING_ENABLED",
+      "severity": "LOW",
+      "status": "FAILED",
+      "description": "The ECR repository 'acme-ecommerce/payment-service' does not have image scanning on push enabled. Container images deployed to ECS may contain known vulnerabilities in OS packages or application dependencies that would be detected by ECR's built-in scanning or Amazon Inspector.",
+      "remediation": {
+        "recommendation": "Enable ECR image scanning on push for all repositories. Configure Amazon Inspector for enhanced scanning that covers both OS and programming language packages. Set up EventBridge rules to alert on CRITICAL/HIGH findings.",
+        "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/image-scanning.html"
+      },
+      "compliance": [
+        {
+          "standard": "CIS-AWS-Foundations-Benchmark",
+          "version": "1.4.0",
+          "control": "7.1",
+          "description": "Ensure Image Vulnerability Scanning is enabled"
+        },
+        {
+          "standard": "PCI-DSS",
+          "version": "4.0",
+          "control": "6.3.1",
+          "description": "Security vulnerabilities are identified and managed"
+        }
+      ],
+      "evidence": {
+        "scan_on_push": false,
+        "image_tag_mutability": "MUTABLE",
+        "encryption_type": "AES256",
+        "latest_image_tag": "v2.4.1-20260228",
+        "total_images": 47
+      },
+      "first_observed": "2025-09-15T07:00:00Z",
+      "last_observed": "2026-03-01T00:00:00Z"
+    }
+  ]
+}

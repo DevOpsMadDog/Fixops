@@ -832,6 +832,12 @@ class KnowledgeBrain:
             self._conn.close()
         logger.info("KnowledgeBrain closed")
 
+    def __del__(self) -> None:
+        try:
+            self._conn.close()
+        except Exception:
+            pass
+
 
 # ---------------------------------------------------------------------------
 # Module-level singleton accessor

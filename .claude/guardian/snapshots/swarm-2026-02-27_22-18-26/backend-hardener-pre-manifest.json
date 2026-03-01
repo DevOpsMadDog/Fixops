@@ -1,0 +1,8 @@
+{
+  "agent": "backend-hardener",
+  "timestamp": "2026-02-27T11:18:27Z",
+  "run_id": "swarm-2026-02-27_22-18-26",
+
+[0;31m[CRASH RECOVERY] Swarm interrupted (exit code: 1)[0m
+[1;33m[CRASH RECOVERY] Saving state to .claude/team-state/crash-state.json[0m
+[0;32m[CRASH RECOVERY] State saved. Resume with: ./scripts/run-ctem-swarm.sh --resume[0m

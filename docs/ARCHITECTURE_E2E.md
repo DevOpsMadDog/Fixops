@@ -157,7 +157,7 @@ flowchart TB
     subgraph AUTOMATE["⚡ STEP 11: PLAYBOOKS & AUTOFIX"]
         direction TB
         PLAYBOOKS["YAML Playbook Runner\n• Auto-remediation flows\n• Jira ticket creation\n• Slack notifications\n• GitHub PR auto-fix"]
-        AUTOFIX["AST-Based AutoFix\n(Roadmap: tree-sitter\ncode transforms)"]
+        AUTOFIX["LLM-Powered AutoFix\n(10 fix types, code generation)\n(Roadmap: tree-sitter AST)"]
     end
 
     subgraph EVIDENCE["📄 STEP 12: EVIDENCE & REPORTING"]

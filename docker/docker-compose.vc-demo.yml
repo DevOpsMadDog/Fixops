@@ -14,7 +14,7 @@ services:
       - ./demo_decision_inputs:/app/demo_decision_inputs
     environment:
       - FIXOPS_MODE=enterprise
-      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:?Set FIXOPS_API_TOKEN before starting}
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-vc-demo-token}
       - FIXOPS_DISABLE_TELEMETRY=1
     command: >
       bash -c "

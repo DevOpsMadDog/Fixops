@@ -16,7 +16,7 @@ from dataclasses import asdict
 from typing import List, Optional
 
 from core.attack_simulation_engine import get_attack_simulation_engine
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field, validator
 
 # Knowledge Brain + Event Bus integration (graceful degradation)
@@ -214,8 +214,17 @@ async def get_scenario(scenario_id: str):
 
 
 @router.post("/campaigns/run")
-async def run_campaign(req: RunCampaignRequest, background_tasks: BackgroundTasks):
-    """Run an attack simulation campaign (async)."""
+async def run_campaign(req: RunCampaignRequest):
+    """Run an attack simulation campaign.
+
+    Returns immediately with campaign metadata. The campaign executes
+    in a background thread to avoid blocking the event loop (LLM enrichment
+    uses synchronous HTTP calls). Poll GET /campaigns/{id} for results.
+    """
+    import asyncio
+    import threading
+    import uuid
+
     engine = get_attack_simulation_engine()
     scenario = engine.get_scenario(req.scenario_id)
     if not scenario:
@@ -223,22 +232,34 @@ async def run_campaign(req: RunCampaignRequest, background_tasks: BackgroundTask
             status_code=404, detail=f"Scenario {req.scenario_id} not found"
         )
 
-    # Run campaign (async, may take time for LLM calls)
-    campaign = await engine.run_campaign(
-        scenario_id=req.scenario_id,
-        org_id=req.org_id,
-    )
+    campaign_id = str(uuid.uuid4())
+
+    def _run_campaign_thread():
+        """Execute campaign in a daemon thread with its own event loop."""
+        loop = asyncio.new_event_loop()
+        try:
+            loop.run_until_complete(
+                engine.run_campaign(
+                    scenario_id=req.scenario_id,
+                    org_id=req.org_id,
+                )
+            )
+        except Exception as e:
+            logger.error(f"Background campaign {campaign_id} failed: {e}")
+        finally:
+            loop.close()
+
+    # Run in a daemon thread — completely isolated from the main event loop.
+    # This prevents sync LLM calls inside run_campaign() from blocking the server.
+    thread = threading.Thread(target=_run_campaign_thread, daemon=True)
+    thread.start()
 
     return {
-        "campaign_id": campaign.campaign_id,
-        "status": campaign.status.value,
-        "risk_score": campaign.risk_score,
-        "steps_executed": campaign.steps_executed,
-        "steps_succeeded": campaign.steps_succeeded,
-        "steps_failed": campaign.steps_failed,
-        "attack_paths": len(campaign.attack_paths),
-        "executive_summary": campaign.executive_summary,
-        "total_duration_seconds": campaign.total_duration_seconds,
+        "campaign_id": campaign_id,
+        "status": "running",
+        "message": "Campaign started in background. Use GET /campaigns/{campaign_id} to check status.",
+        "scenario_id": req.scenario_id,
+        "org_id": req.org_id,
     }
 
 

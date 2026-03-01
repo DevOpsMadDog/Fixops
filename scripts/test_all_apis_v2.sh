@@ -118,8 +118,8 @@ test_endpoint "GET" "/api/v1/feeds/geo-risk/CVE-2024-1234"
 # ============================================
 echo -e "${YELLOW}=== Section 5: Enhanced/LLM APIs ===${NC}"
 test_endpoint "GET" "/api/v1/enhanced/capabilities"
-test_endpoint "POST" "/api/v1/enhanced/analysis" '{"findings": [{"id": "test-1", "severity": "high", "description": "SQL Injection"}], "service_name": "test-api"}'
-test_endpoint "POST" "/api/v1/enhanced/compare-llms" '{"service_name": "test-api", "security_findings": [{"rule_id": "SQL001", "severity": "high"}], "business_context": {"environment": "production"}}'
+test_endpoint "POST" "/api/v1/enhanced/analysis" '{"findings": [{"id": "test-1", "severity": "high", "description": "SQL Injection"}], "service_name": "aldeci-core"}'
+test_endpoint "POST" "/api/v1/enhanced/compare-llms" '{"service_name": "aldeci-core", "security_findings": [{"rule_id": "SQL001", "severity": "high"}], "business_context": {"environment": "production"}}'
 test_endpoint "GET" "/api/v1/enhanced/signals"
 
 # ============================================

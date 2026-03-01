@@ -1,0 +1,1221 @@
+{
+  "nodes": [
+    {
+      "id": "app:acme-banking-portal",
+      "type": "App",
+      "properties": {
+        "id": "acme-banking-portal",
+        "name": "ACME Banking Portal",
+        "tier": "Tier-1"
+      }
+    },
+    {
+      "id": "app:acme-customer-api",
+      "type": "App",
+      "properties": {
+        "id": "acme-customer-api",
+        "name": "ACME Customer API",
+        "tier": "Tier-1"
+      }
+    },
+    {
+      "id": "app:acme-payment-gateway",
+      "type": "App",
+      "properties": {
+        "id": "acme-payment-gateway",
+        "name": "ACME Payment Gateway",
+        "tier": "Tier-1"
+      }
+    },
+    {
+      "id": "app:acme-internal-tools",
+      "type": "App",
+      "properties": {
+        "id": "acme-internal-tools",
+        "name": "ACME Internal Admin Tools",
+        "tier": "Tier-2"
+      }
+    },
+    {
+      "id": "app:acme-mobile-bff",
+      "type": "App",
+      "properties": {
+        "id": "acme-mobile-bff",
+        "name": "ACME Mobile BFF",
+        "tier": "Tier-1"
+      }
+    },
+    {
+      "id": "comp:auth-service",
+      "type": "Component",
+      "properties": {
+        "name": "Authentication Service"
+      }
+    },
+    {
+      "id": "comp:session-mgr",
+      "type": "Component",
+      "properties": {
+        "name": "Session Manager"
+      }
+    },
+    {
+      "id": "comp:react-frontend",
+      "type": "Component",
+      "properties": {
+        "name": "React Frontend"
+      }
+    },
+    {
+      "id": "comp:user-api",
+      "type": "Component",
+      "properties": {
+        "name": "User Management API"
+      }
+    },
+    {
+      "id": "comp:data-layer",
+      "type": "Component",
+      "properties": {
+        "name": "Data Access Layer"
+      }
+    },
+    {
+      "id": "comp:cache-layer",
+      "type": "Component",
+      "properties": {
+        "name": "Redis Cache Layer"
+      }
+    },
+    {
+      "id": "comp:payment-processor",
+      "type": "Component",
+      "properties": {
+        "name": "Payment Processor"
+      }
+    },
+    {
+      "id": "comp:card-vault",
+      "type": "Component",
+      "properties": {
+        "name": "Card Vault (HSM)"
+      }
+    },
+    {
+      "id": "comp:webhook-handler",
+      "type": "Component",
+      "properties": {
+        "name": "Webhook Handler"
+      }
+    },
+    {
+      "id": "comp:admin-panel",
+      "type": "Component",
+      "properties": {
+        "name": "Admin Panel"
+      }
+    },
+    {
+      "id": "comp:log-aggregator",
+      "type": "Component",
+      "properties": {
+        "name": "Log Aggregator"
+      }
+    },
+    {
+      "id": "comp:mobile-gateway",
+      "type": "Component",
+      "properties": {
+        "name": "Mobile API Gateway"
+      }
+    },
+    {
+      "id": "comp:graphql-layer",
+      "type": "Component",
+      "properties": {
+        "name": "GraphQL Federation"
+      }
+    },
+    {
+      "id": "finding:VULN-001",
+      "type": "Finding",
+      "properties": {
+        "title": "SQL Injection in User Search",
+        "severity": "critical",
+        "cwe": "CWE-89",
+        "cvss": 9.8,
+        "status": "open"
+      }
+    },
+    {
+      "id": "cwe:CWE-89",
+      "type": "CWE",
+      "properties": {
+        "cwe_id": "CWE-89"
+      }
+    },
+    {
+      "id": "cve:CVE-2025-44123",
+      "type": "CVE",
+      "properties": {
+        "cve_id": "CVE-2025-44123",
+        "cvss": 9.8
+      }
+    },
+    {
+      "id": "finding:VULN-002",
+      "type": "Finding",
+      "properties": {
+        "title": "Hardcoded API Key in Payment Processor",
+        "severity": "critical",
+        "cwe": "CWE-798",
+        "cvss": 9.1,
+        "status": "open"
+      }
+    },
+    {
+      "id": "cwe:CWE-798",
+      "type": "CWE",
+      "properties": {
+        "cwe_id": "CWE-798"
+      }
+    },
+    {
+      "id": "finding:VULN-003",
+      "type": "Finding",
+      "properties": {
+        "title": "Remote Code Execution via Log4Shell",
+        "severity": "critical",
+        "cwe": "CWE-917",
+        "cvss": 10.0,
+        "status": "open"
+      }
+    },
+    {
+      "id": "cwe:CWE-917",
+      "type": "CWE",
+      "properties": {
+        "cwe_id": "CWE-917"
+      }
+    },
+    {
+      "id": "cve:CVE-2021-44228",
+      "type": "CVE",
+      "properties": {
+        "cve_id": "CVE-2021-44228",
+        "cvss": 10.0
+      }
+    },
+    {
+      "id": "finding:VULN-004",
+      "type": "Finding",
+      "properties": {
+        "title": "Insecure Deserialization in Session Manager",
+        "severity": "critical",
+        "cwe": "CWE-502",
+        "cvss": 9.6,
+        "status": "open"
+      }
+    },
+    {
+      "id": "cwe:CWE-502",
+      "type": "CWE",
+      "properties": {
+        "cwe_id": "CWE-502"
+      }
+    },
+    {
+      "id": "cve:CVE-2024-29025",
+      "type": "CVE",
+      "properties": {
+        "cve_id": "CVE-2024-29025",
+        "cvss": 9.6
+      }
+    },
+    {
+      "id": "finding:VULN-005",
+      "type": "Finding",
+      "properties": {
+        "title": "Broken Authentication - JWT None Algorithm",
+        "severity": "high",
+        "cwe": "CWE-287",
+        "cvss": 8.2,
+        "status": "open"
+      }
+    },
+    {
+      "id": "cwe:CWE-287",
+      "type": "CWE",
+      "properties": {
+        "cwe_id": "CWE-287"
+      }
+    },
+    {
+      "id": "finding:VULN-006",
+      "type": "Finding",
+      "properties": {
+        "title": "SSRF via Webhook URL Validation Bypass",
+        "severity": "high",
+        "cwe": "CWE-918",
+        "cvss": 8.6,
+        "status": "open"
+      }
+    },
+    {
+      "id": "cwe:CWE-918",
+      "type": "CWE",
+      "properties": {
+        "cwe_id": "CWE-918"
+      }
+    },
+    {
+      "id": "cve:CVE-2025-31001",
+      "type": "CVE",
+      "properties": {
+        "cve_id": "CVE-2025-31001",
+        "cvss": 8.6
+      }
+    },
+    {
+      "id": "finding:VULN-007",
+      "type": "Finding",
+      "properties": {
+        "title": "Privilege Escalation in Admin Panel",
+        "severity": "high",
+        "cwe": "CWE-269",
+        "cvss": 8.0,
+        "status": "open"
+      }
+    },
+    {
+      "id": "cwe:CWE-269",
+      "type": "CWE",
+      "properties": {
+        "cwe_id": "CWE-269"
+      }
+    },
+    {
+      "id": "finding:VULN-008",
+      "type": "Finding",
+      "properties": {
+        "title": "XSS Stored in User Comments",
+        "severity": "high",
+        "cwe": "CWE-79",
+        "cvss": 7.5,
+        "status": "open"
+      }
+    },
+    {
+      "id": "cwe:CWE-79",
+      "type": "CWE",
+      "properties": {
+        "cwe_id": "CWE-79"
+      }
+    },
+    {
+      "id": "finding:VULN-009",
+      "type": "Finding",
+      "properties": {
+        "title": "GraphQL Introspection Enabled in Production",
+        "severity": "high",
+        "cwe": "CWE-200",
+        "cvss": 7.2,
+        "status": "open"
+      }
+    },
+    {
+      "id": "cwe:CWE-200",
+      "type": "CWE",
+      "properties": {
+        "cwe_id": "CWE-200"
+      }
+    },
+    {
+      "id": "finding:VULN-010",
+      "type": "Finding",
+      "properties": {
+        "title": "Weak TLS Configuration (TLS 1.0 Enabled)",
+        "severity": "high",
+        "cwe": "CWE-326",
+        "cvss": 7.4,
+        "status": "open"
+      }
+    },
+    {
+      "id": "cwe:CWE-326",
+      "type": "CWE",
+      "properties": {
+        "cwe_id": "CWE-326"
+      }
+    },
+    {
+      "id": "finding:VULN-011",
+      "type": "Finding",
+      "properties": {
+        "title": "Missing Rate Limiting on Login",
+        "severity": "medium",
+        "cwe": "CWE-307",
+        "cvss": 6.5,
+        "status": "open"
+      }
+    },
+    {
+      "id": "cwe:CWE-307",
+      "type": "CWE",
+      "properties": {
+        "cwe_id": "CWE-307"
+      }
+    },
+    {
+      "id": "finding:VULN-012",
+      "type": "Finding",
+      "properties": {
+        "title": "Verbose Error Messages Expose Stack Traces",
+        "severity": "medium",
+        "cwe": "CWE-209",
+        "cvss": 5.3,
+        "status": "open"
+      }
+    },
+    {
+      "id": "cwe:CWE-209",
+      "type": "CWE",
+      "properties": {
+        "cwe_id": "CWE-209"
+      }
+    },
+    {
+      "id": "finding:VULN-013",
+      "type": "Finding",
+      "properties": {
+        "title": "Outdated Redis Client (Known DoS)",
+        "severity": "medium",
+        "cwe": "CWE-400",
+        "cvss": 6.2,
+        "status": "open"
+      }
+    },
+    {
+      "id": "cwe:CWE-400",
+      "type": "CWE",
+      "properties": {
+        "cwe_id": "CWE-400"
+      }
+    },
+    {
+      "id": "cve:CVE-2024-31449",
+      "type": "CVE",
+      "properties": {
+        "cve_id": "CVE-2024-31449",
+        "cvss": 6.2
+      }
+    },
+    {
+      "id": "finding:VULN-014",
+      "type": "Finding",
+      "properties": {
+        "title": "CORS Wildcard in Customer API",
+        "severity": "medium",
+        "cwe": "CWE-942",
+        "cvss": 5.8,
+        "status": "open"
+      }
+    },
+    {
+      "id": "cwe:CWE-942",
+      "type": "CWE",
+      "properties": {
+        "cwe_id": "CWE-942"
+      }
+    },
+    {
+      "id": "finding:VULN-015",
+      "type": "Finding",
+      "properties": {
+        "title": "Dependency Confusion Risk \u2014 Internal Package",
+        "severity": "medium",
+        "cwe": "CWE-427",
+        "cvss": 6.8,
+        "status": "open"
+      }
+    },
+    {
+      "id": "cwe:CWE-427",
+      "type": "CWE",
+      "properties": {
+        "cwe_id": "CWE-427"
+      }
+    },
+    {
+      "id": "finding:VULN-016",
+      "type": "Finding",
+      "properties": {
+        "title": "Insufficient Logging of Payment Transactions",
+        "severity": "medium",
+        "cwe": "CWE-778",
+        "cvss": 5.5,
+        "status": "open"
+      }
+    },
+    {
+      "id": "cwe:CWE-778",
+      "type": "CWE",
+      "properties": {
+        "cwe_id": "CWE-778"
+      }
+    },
+    {
+      "id": "finding:VULN-017",
+      "type": "Finding",
+      "properties": {
+        "title": "Missing Security Headers (X-Frame-Options)",
+        "severity": "low",
+        "cwe": "CWE-1021",
+        "cvss": 3.7,
+        "status": "open"
+      }
+    },
+    {
+      "id": "cwe:CWE-1021",
+      "type": "CWE",
+      "properties": {
+        "cwe_id": "CWE-1021"
+      }
+    },
+    {
+      "id": "finding:VULN-018",
+      "type": "Finding",
+      "properties": {
+        "title": "Debug Mode Enabled in Django Settings",
+        "severity": "low",
+        "cwe": "CWE-489",
+        "cvss": 3.3,
+        "status": "open"
+      }
+    },
+    {
+      "id": "cwe:CWE-489",
+      "type": "CWE",
+      "properties": {
+        "cwe_id": "CWE-489"
+      }
+    },
+    {
+      "id": "finding:VULN-019",
+      "type": "Finding",
+      "properties": {
+        "title": "Outdated ESLint Configuration",
+        "severity": "low",
+        "cwe": "CWE-1104",
+        "cvss": 2.1,
+        "status": "open"
+      }
+    },
+    {
+      "id": "cwe:CWE-1104",
+      "type": "CWE",
+      "properties": {
+        "cwe_id": "CWE-1104"
+      }
+    },
+    {
+      "id": "finding:VULN-020",
+      "type": "Finding",
+      "properties": {
+        "title": "Log File Contains PII (Email Addresses)",
+        "severity": "low",
+        "cwe": "CWE-532",
+        "cvss": 3.9,
+        "status": "open"
+      }
+    },
+    {
+      "id": "cwe:CWE-532",
+      "type": "CWE",
+      "properties": {
+        "cwe_id": "CWE-532"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "app:acme-banking-portal",
+      "target": "comp:auth-service",
+      "type": "HAS_COMPONENT",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "app:acme-banking-portal",
+      "target": "comp:session-mgr",
+      "type": "HAS_COMPONENT",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "app:acme-banking-portal",
+      "target": "comp:react-frontend",
+      "type": "HAS_COMPONENT",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "app:acme-customer-api",
+      "target": "comp:user-api",
+      "type": "HAS_COMPONENT",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "app:acme-customer-api",
+      "target": "comp:data-layer",
+      "type": "HAS_COMPONENT",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "app:acme-customer-api",
+      "target": "comp:cache-layer",
+      "type": "HAS_COMPONENT",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "app:acme-payment-gateway",
+      "target": "comp:payment-processor",
+      "type": "HAS_COMPONENT",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "app:acme-payment-gateway",
+      "target": "comp:card-vault",
+      "type": "HAS_COMPONENT",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "app:acme-payment-gateway",
+      "target": "comp:webhook-handler",
+      "type": "HAS_COMPONENT",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "app:acme-internal-tools",
+      "target": "comp:admin-panel",
+      "type": "HAS_COMPONENT",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "app:acme-internal-tools",
+      "target": "comp:log-aggregator",
+      "type": "HAS_COMPONENT",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "app:acme-mobile-bff",
+      "target": "comp:mobile-gateway",
+      "type": "HAS_COMPONENT",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "app:acme-mobile-bff",
+      "target": "comp:graphql-layer",
+      "type": "HAS_COMPONENT",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:user-api",
+      "target": "finding:VULN-001",
+      "type": "HAS_FINDING",
+      "weight": 0.1,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-001",
+      "target": "cwe:CWE-89",
+      "type": "MAPS_TO",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-001",
+      "target": "cve:CVE-2025-44123",
+      "type": "EXPLOITS",
+      "weight": 0.1,
+      "properties": {}
+    },
+    {
+      "source": "comp:payment-processor",
+      "target": "finding:VULN-002",
+      "type": "HAS_FINDING",
+      "weight": 0.1,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-002",
+      "target": "cwe:CWE-798",
+      "type": "MAPS_TO",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:auth-service",
+      "target": "finding:VULN-003",
+      "type": "HAS_FINDING",
+      "weight": 0.1,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-003",
+      "target": "cwe:CWE-917",
+      "type": "MAPS_TO",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-003",
+      "target": "cve:CVE-2021-44228",
+      "type": "EXPLOITS",
+      "weight": 0.1,
+      "properties": {}
+    },
+    {
+      "source": "comp:session-mgr",
+      "target": "finding:VULN-004",
+      "type": "HAS_FINDING",
+      "weight": 0.1,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-004",
+      "target": "cwe:CWE-502",
+      "type": "MAPS_TO",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-004",
+      "target": "cve:CVE-2024-29025",
+      "type": "EXPLOITS",
+      "weight": 0.1,
+      "properties": {}
+    },
+    {
+      "source": "comp:auth-service",
+      "target": "finding:VULN-005",
+      "type": "HAS_FINDING",
+      "weight": 0.3,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-005",
+      "target": "cwe:CWE-287",
+      "type": "MAPS_TO",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:webhook-handler",
+      "target": "finding:VULN-006",
+      "type": "HAS_FINDING",
+      "weight": 0.3,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-006",
+      "target": "cwe:CWE-918",
+      "type": "MAPS_TO",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-006",
+      "target": "cve:CVE-2025-31001",
+      "type": "EXPLOITS",
+      "weight": 0.3,
+      "properties": {}
+    },
+    {
+      "source": "comp:admin-panel",
+      "target": "finding:VULN-007",
+      "type": "HAS_FINDING",
+      "weight": 0.3,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-007",
+      "target": "cwe:CWE-269",
+      "type": "MAPS_TO",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:react-frontend",
+      "target": "finding:VULN-008",
+      "type": "HAS_FINDING",
+      "weight": 0.3,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-008",
+      "target": "cwe:CWE-79",
+      "type": "MAPS_TO",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:graphql-layer",
+      "target": "finding:VULN-009",
+      "type": "HAS_FINDING",
+      "weight": 0.3,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-009",
+      "target": "cwe:CWE-200",
+      "type": "MAPS_TO",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:mobile-gateway",
+      "target": "finding:VULN-010",
+      "type": "HAS_FINDING",
+      "weight": 0.3,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-010",
+      "target": "cwe:CWE-326",
+      "type": "MAPS_TO",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:auth-service",
+      "target": "finding:VULN-011",
+      "type": "HAS_FINDING",
+      "weight": 0.6,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-011",
+      "target": "cwe:CWE-307",
+      "type": "MAPS_TO",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:user-api",
+      "target": "finding:VULN-012",
+      "type": "HAS_FINDING",
+      "weight": 0.6,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-012",
+      "target": "cwe:CWE-209",
+      "type": "MAPS_TO",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:cache-layer",
+      "target": "finding:VULN-013",
+      "type": "HAS_FINDING",
+      "weight": 0.6,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-013",
+      "target": "cwe:CWE-400",
+      "type": "MAPS_TO",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-013",
+      "target": "cve:CVE-2024-31449",
+      "type": "EXPLOITS",
+      "weight": 0.6,
+      "properties": {}
+    },
+    {
+      "source": "comp:user-api",
+      "target": "finding:VULN-014",
+      "type": "HAS_FINDING",
+      "weight": 0.6,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-014",
+      "target": "cwe:CWE-942",
+      "type": "MAPS_TO",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:mobile-gateway",
+      "target": "finding:VULN-015",
+      "type": "HAS_FINDING",
+      "weight": 0.6,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-015",
+      "target": "cwe:CWE-427",
+      "type": "MAPS_TO",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:payment-processor",
+      "target": "finding:VULN-016",
+      "type": "HAS_FINDING",
+      "weight": 0.6,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-016",
+      "target": "cwe:CWE-778",
+      "type": "MAPS_TO",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:react-frontend",
+      "target": "finding:VULN-017",
+      "type": "HAS_FINDING",
+      "weight": 0.8,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-017",
+      "target": "cwe:CWE-1021",
+      "type": "MAPS_TO",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:admin-panel",
+      "target": "finding:VULN-018",
+      "type": "HAS_FINDING",
+      "weight": 0.8,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-018",
+      "target": "cwe:CWE-489",
+      "type": "MAPS_TO",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:graphql-layer",
+      "target": "finding:VULN-019",
+      "type": "HAS_FINDING",
+      "weight": 0.8,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-019",
+      "target": "cwe:CWE-1104",
+      "type": "MAPS_TO",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:log-aggregator",
+      "target": "finding:VULN-020",
+      "type": "HAS_FINDING",
+      "weight": 0.8,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-020",
+      "target": "cwe:CWE-532",
+      "type": "MAPS_TO",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:auth-service",
+      "target": "comp:session-mgr",
+      "type": "DEPENDS_ON",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:session-mgr",
+      "target": "comp:data-layer",
+      "type": "DEPENDS_ON",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:react-frontend",
+      "target": "comp:auth-service",
+      "type": "DEPENDS_ON",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:auth-service",
+      "target": "comp:user-api",
+      "type": "DEPENDS_ON",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:user-api",
+      "target": "comp:data-layer",
+      "type": "DEPENDS_ON",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:user-api",
+      "target": "comp:cache-layer",
+      "type": "DEPENDS_ON",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:payment-processor",
+      "target": "comp:card-vault",
+      "type": "DEPENDS_ON",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:payment-processor",
+      "target": "comp:user-api",
+      "type": "DEPENDS_ON",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:webhook-handler",
+      "target": "comp:payment-processor",
+      "type": "DEPENDS_ON",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:mobile-gateway",
+      "target": "comp:graphql-layer",
+      "type": "DEPENDS_ON",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:graphql-layer",
+      "target": "comp:user-api",
+      "type": "DEPENDS_ON",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:graphql-layer",
+      "target": "comp:payment-processor",
+      "type": "DEPENDS_ON",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:admin-panel",
+      "target": "comp:data-layer",
+      "type": "DEPENDS_ON",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:admin-panel",
+      "target": "comp:log-aggregator",
+      "type": "DEPENDS_ON",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "comp:log-aggregator",
+      "target": "comp:cache-layer",
+      "type": "DEPENDS_ON",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-003",
+      "target": "comp:auth-service",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "comp:auth-service",
+      "target": "finding:VULN-005",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-005",
+      "target": "comp:session-mgr",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "comp:session-mgr",
+      "target": "finding:VULN-004",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-004",
+      "target": "comp:data-layer",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-001",
+      "target": "comp:data-layer",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "comp:data-layer",
+      "target": "comp:payment-processor",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "comp:payment-processor",
+      "target": "finding:VULN-002",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-002",
+      "target": "comp:card-vault",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-008",
+      "target": "comp:react-frontend",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "comp:react-frontend",
+      "target": "comp:auth-service",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "comp:auth-service",
+      "target": "comp:admin-panel",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "comp:admin-panel",
+      "target": "finding:VULN-007",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-006",
+      "target": "comp:webhook-handler",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "comp:webhook-handler",
+      "target": "comp:admin-panel",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "comp:admin-panel",
+      "target": "comp:log-aggregator",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "comp:log-aggregator",
+      "target": "finding:VULN-020",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-009",
+      "target": "comp:graphql-layer",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "comp:graphql-layer",
+      "target": "comp:user-api",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "comp:user-api",
+      "target": "finding:VULN-001",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-010",
+      "target": "comp:mobile-gateway",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "comp:mobile-gateway",
+      "target": "comp:graphql-layer",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "finding:VULN-015",
+      "target": "comp:mobile-gateway",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    },
+    {
+      "source": "comp:mobile-gateway",
+      "target": "comp:graphql-layer",
+      "type": "ATTACK_STEP",
+      "weight": 0.2,
+      "properties": {}
+    }
+  ]
+}

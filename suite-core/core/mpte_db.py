@@ -287,6 +287,35 @@ class MPTEDB:
         conn.close()
         return result
 
+    def get_result(self, result_id: str) -> Optional[PenTestResult]:
+        """Get pen test result by result ID."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT * FROM pen_test_results WHERE id = ?", (result_id,)
+        )
+        row = cursor.fetchone()
+        conn.close()
+
+        if not row:
+            return None
+
+        return PenTestResult(
+            id=row["id"],
+            request_id=row["request_id"],
+            finding_id=row["finding_id"],
+            exploitability=ExploitabilityLevel(row["exploitability"]),
+            exploit_successful=bool(row["exploit_successful"]),
+            evidence=row["evidence"],
+            steps_taken=json.loads(row["steps_taken"]) if row["steps_taken"] else [],
+            artifacts=json.loads(row["artifacts"]) if row["artifacts"] else [],
+            confidence_score=row["confidence_score"],
+            execution_time_seconds=row["execution_time_seconds"],
+            created_at=datetime.fromisoformat(row["created_at"]),
+            metadata=json.loads(row["metadata"]) if row["metadata"] else {},
+        )
+
     def get_result_by_request(self, request_id: str) -> Optional[PenTestResult]:
         """Get pen test result by request ID."""
         conn = self._get_connection()

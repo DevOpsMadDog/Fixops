@@ -3,7 +3,7 @@ import pytest
 from apps.api.app import create_app
 from fastapi.testclient import TestClient
 
-API_TOKEN = "test-token-12345"
+API_TOKEN = "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh"
 AUTH_HEADERS = {"X-API-Key": API_TOKEN}
 
 
@@ -808,7 +808,7 @@ class TestIntegrationsSyncCoverage:
         mock_connector.health_check.return_value = mock_outcome
 
         with patch(
-            "apps.api.integrations_router.JiraConnector", return_value=mock_connector
+            "apps.api.integrations.JiraConnector", return_value=mock_connector
         ):
             # First create a Jira integration with unique name
             create_response = client.post(
@@ -843,7 +843,7 @@ class TestIntegrationsSyncCoverage:
         mock_connector.health_check.return_value = mock_outcome
 
         with patch(
-            "apps.api.integrations_router.ServiceNowConnector",
+            "apps.api.integrations.ServiceNowConnector",
             return_value=mock_connector,
         ):
             create_response = client.post(
@@ -877,7 +877,7 @@ class TestIntegrationsSyncCoverage:
         mock_connector.health_check.return_value = mock_outcome
 
         with patch(
-            "apps.api.integrations_router.GitLabConnector", return_value=mock_connector
+            "apps.api.integrations.GitLabConnector", return_value=mock_connector
         ):
             create_response = client.post(
                 "/api/v1/integrations",
@@ -910,7 +910,7 @@ class TestIntegrationsSyncCoverage:
         mock_connector.health_check.return_value = mock_outcome
 
         with patch(
-            "apps.api.integrations_router.GitHubConnector", return_value=mock_connector
+            "apps.api.integrations.GitHubConnector", return_value=mock_connector
         ):
             create_response = client.post(
                 "/api/v1/integrations",
@@ -943,7 +943,7 @@ class TestIntegrationsSyncCoverage:
         mock_connector.health_check.return_value = mock_outcome
 
         with patch(
-            "apps.api.integrations_router.AzureDevOpsConnector",
+            "apps.api.integrations.AzureDevOpsConnector",
             return_value=mock_connector,
         ):
             create_response = client.post(
@@ -977,7 +977,7 @@ class TestIntegrationsSyncCoverage:
         mock_connector.post_message.return_value = mock_outcome
 
         with patch(
-            "apps.api.integrations_router.SlackConnector", return_value=mock_connector
+            "apps.api.integrations.SlackConnector", return_value=mock_connector
         ):
             create_response = client.post(
                 "/api/v1/integrations",
@@ -1010,7 +1010,7 @@ class TestIntegrationsSyncCoverage:
         mock_connector.health_check.return_value = mock_outcome
 
         with patch(
-            "apps.api.integrations_router.ConfluenceConnector",
+            "apps.api.integrations.ConfluenceConnector",
             return_value=mock_connector,
         ):
             create_response = client.post(
@@ -1039,7 +1039,7 @@ class TestIntegrationsSyncCoverage:
         from unittest.mock import patch
 
         with patch(
-            "apps.api.integrations_router.JiraConnector",
+            "apps.api.integrations.JiraConnector",
             side_effect=Exception("Connection failed"),
         ):
             create_response = client.post(
@@ -1443,7 +1443,7 @@ class TestIntegrationsSyncNotConfigured:
         mock_connector.configured = False
 
         with patch(
-            "apps.api.integrations_router.JiraConnector", return_value=mock_connector
+            "apps.api.integrations.JiraConnector", return_value=mock_connector
         ):
             create_response = client.post(
                 "/api/v1/integrations",
@@ -1471,7 +1471,7 @@ class TestIntegrationsSyncNotConfigured:
         mock_connector.configured = False
 
         with patch(
-            "apps.api.integrations_router.ServiceNowConnector",
+            "apps.api.integrations.ServiceNowConnector",
             return_value=mock_connector,
         ):
             create_response = client.post(
@@ -1500,7 +1500,7 @@ class TestIntegrationsSyncNotConfigured:
         mock_connector.configured = False
 
         with patch(
-            "apps.api.integrations_router.GitLabConnector", return_value=mock_connector
+            "apps.api.integrations.GitLabConnector", return_value=mock_connector
         ):
             create_response = client.post(
                 "/api/v1/integrations",
@@ -1528,7 +1528,7 @@ class TestIntegrationsSyncNotConfigured:
         mock_connector.configured = False
 
         with patch(
-            "apps.api.integrations_router.GitHubConnector", return_value=mock_connector
+            "apps.api.integrations.GitHubConnector", return_value=mock_connector
         ):
             create_response = client.post(
                 "/api/v1/integrations",
@@ -1556,7 +1556,7 @@ class TestIntegrationsSyncNotConfigured:
         mock_connector.configured = False
 
         with patch(
-            "apps.api.integrations_router.AzureDevOpsConnector",
+            "apps.api.integrations.AzureDevOpsConnector",
             return_value=mock_connector,
         ):
             create_response = client.post(
@@ -1585,7 +1585,7 @@ class TestIntegrationsSyncNotConfigured:
         mock_connector.default_webhook = None
 
         with patch(
-            "apps.api.integrations_router.SlackConnector", return_value=mock_connector
+            "apps.api.integrations.SlackConnector", return_value=mock_connector
         ):
             create_response = client.post(
                 "/api/v1/integrations",
@@ -1613,7 +1613,7 @@ class TestIntegrationsSyncNotConfigured:
         mock_connector.configured = False
 
         with patch(
-            "apps.api.integrations_router.ConfluenceConnector",
+            "apps.api.integrations.ConfluenceConnector",
             return_value=mock_connector,
         ):
             create_response = client.post(
@@ -1848,7 +1848,7 @@ class TestIntegrationsSyncUnsupportedType:
         mock_db = MagicMock()
         mock_db.get_integration.return_value = mock_integration
 
-        with patch("apps.api.integrations_router.db", mock_db):
+        with patch("apps.api.integrations.db", mock_db):
             response = client.post(
                 f"/api/v1/integrations/{mock_integration.id}/sync",
                 headers=AUTH_HEADERS,
@@ -2288,12 +2288,12 @@ class TestActualCodePathCoverage:
         mock_integration.last_sync_at = None
         mock_integration.last_sync_status = None
 
-        with patch("apps.api.integrations_router.db") as mock_db:
+        with patch("apps.api.integrations.db") as mock_db:
             mock_db.get_integration.return_value = mock_integration
 
             response = client.post(
                 f"/api/v1/integrations/{mock_integration.id}/sync",
-                headers={"X-API-Key": "test-token-12345"},
+                headers={"X-API-Key": "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh"},
             )
 
             # Should succeed but with error in details about unsupported type

@@ -9,6 +9,7 @@ execution timeline visualization.
 from __future__ import annotations
 
 import asyncio
+import sqlite3
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
@@ -113,7 +114,15 @@ async def create_workflow(workflow_data: WorkflowCreate):
         triggers=workflow_data.triggers,
         enabled=workflow_data.enabled,
     )
-    created_workflow = db.create_workflow(workflow)
+    try:
+        created_workflow = db.create_workflow(workflow)
+    except (sqlite3.IntegrityError, Exception) as exc:
+        if "UNIQUE" in str(exc).upper():
+            raise HTTPException(
+                status_code=409,
+                detail=f"Workflow with name '{workflow_data.name}' already exists",
+            )
+        raise
     return WorkflowResponse(**created_workflow.to_dict())
 
 

@@ -76,6 +76,11 @@ class ReachabilityMonitor:
         self.config = config or {}
         self.enable_tracing = self.config.get("enable_tracing", True)
         self.enable_metrics = self.config.get("enable_metrics", True)
+        # In-process counters for metrics summary (OTel counters lack sync read)
+        self._analyses_total: int = 0
+        self._cache_hits: int = 0
+        self._cache_misses: int = 0
+        self._total_duration: float = 0.0
 
     @contextmanager
     def track_analysis(
@@ -118,6 +123,7 @@ class ReachabilityMonitor:
             yield metrics
 
             # Record success
+            self._analyses_total += 1
             if self.enable_metrics:
                 _ANALYSIS_COUNTER.add(
                     1,
@@ -154,6 +160,7 @@ class ReachabilityMonitor:
         finally:
             metrics.analysis_duration = time.time() - start_time
 
+            self._total_duration += metrics.analysis_duration
             if self.enable_metrics:
                 _ANALYSIS_DURATION.record(
                     metrics.analysis_duration,
@@ -207,11 +214,13 @@ class ReachabilityMonitor:
 
     def record_cache_hit(self, cve_id: str) -> None:
         """Record cache hit."""
+        self._cache_hits += 1
         if self.enable_metrics:
             _CACHE_HITS.add(1, {"cve_id": cve_id})
 
     def record_cache_miss(self, cve_id: str) -> None:
         """Record cache miss."""
+        self._cache_misses += 1
         if self.enable_metrics:
             _CACHE_MISSES.add(1, {"cve_id": cve_id})
 
@@ -234,12 +243,21 @@ class ReachabilityMonitor:
         return {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "status": "configured",
+            "analyses_total": self._analyses_total,
+            "cache_hits": self._cache_hits,
+            "cache_misses": self._cache_misses,
+            "cache_hit_rate": (
+                self._cache_hits / max(self._cache_hits + self._cache_misses, 1)
+            ),
+            "average_duration": (
+                self._total_duration / max(self._analyses_total, 1)
+            ),
             "instruments": {
-                "analyses_total": _ANALYSIS_COUNTER.name,
-                "analysis_duration_seconds": _ANALYSIS_DURATION.name,
-                "analysis_errors_total": _ANALYSIS_ERRORS.name,
-                "cache_hits_total": _CACHE_HITS.name,
-                "cache_misses_total": _CACHE_MISSES.name,
+                "analyses_total": getattr(_ANALYSIS_COUNTER, "name", "fixops_reachability_analyses_total"),
+                "analysis_duration_seconds": getattr(_ANALYSIS_DURATION, "name", "fixops_reachability_analysis_duration_seconds"),
+                "analysis_errors_total": getattr(_ANALYSIS_ERRORS, "name", "fixops_reachability_analysis_errors_total"),
+                "cache_hits_total": getattr(_CACHE_HITS, "name", "fixops_reachability_cache_hits_total"),
+                "cache_misses_total": getattr(_CACHE_MISSES, "name", "fixops_reachability_cache_misses_total"),
             },
             "scrape_endpoint": "/metrics",
             "message": "Use the Prometheus /metrics endpoint or OTLP exporter for real-time values",

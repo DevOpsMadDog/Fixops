@@ -1,0 +1,214 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "updated": "2026-03-01",
+    "author": "sales-engineer",
+    "sources": [
+      "docs/CTEM_PLUS_IDENTITY.md",
+      "docs/COMPETITIVE_ANALYSIS_GROK_RESPONSE.md",
+      ".claude/team-state/research/"
+    ]
+  },
+  "competitors": [
+    {
+      "name": "Snyk",
+      "category": "Developer Security Platform",
+      "wins": [],
+      "losses": [],
+      "strengths": [
+        "Strong developer experience and IDE integration",
+        "Large vulnerability database (Snyk Intel)",
+        "Established brand and market presence",
+        "Good SCA/dependency scanning"
+      ],
+      "weaknesses": [
+        "Only 2 fix types (dependency update, patch)",
+        "No exploit verification (MPTE equivalent)",
+        "No knowledge graph or attack path analysis",
+        "No air-gapped deployment option",
+        "No multi-LLM consensus",
+        "No compliance evidence signing"
+      ],
+      "differentiators": "ALdeci ingests Snyk output AND runs 8 native scanners. 10 AutoFix types vs 2. MPTE exploit verification proves what Snyk only detects. Full air-gapped operation.",
+      "threat_level": "HIGH",
+      "overlap": "SAST, SCA, Container scanning"
+    },
+    {
+      "name": "Wiz",
+      "category": "Cloud Security Platform",
+      "wins": [],
+      "losses": [],
+      "strengths": [
+        "Best-in-class cloud posture management",
+        "Agentless scanning across cloud environments",
+        "Graph-based attack path analysis",
+        "Strong product-led growth"
+      ],
+      "weaknesses": [
+        "Cloud-only (no on-prem application security)",
+        "No code-level fixes or AutoFix",
+        "No air-gapped deployment",
+        "No multi-LLM consensus",
+        "No active exploit verification (graph-based only)",
+        "No compliance evidence cryptographic signing"
+      ],
+      "differentiators": "ALdeci normalizes Wiz cloud findings AND adds MPTE active verification, AutoFix code patches, and signed evidence. Works air-gapped where Wiz cannot.",
+      "threat_level": "MEDIUM",
+      "overlap": "Cloud posture, container scanning"
+    },
+    {
+      "name": "Semgrep",
+      "category": "Static Analysis",
+      "wins": [],
+      "losses": [],
+      "strengths": [
+        "Fast, lightweight SAST with custom rules",
+        "Open-source community and rule ecosystem",
+        "Good CI/CD integration",
+        "Semgrep Supply Chain for SCA"
+      ],
+      "weaknesses": [
+        "SAST only — no DAST, container, secrets, CSPM",
+        "No exploit verification",
+        "No knowledge graph or correlation",
+        "Limited fix generation (1 type)",
+        "No compliance evidence generation"
+      ],
+      "differentiators": "ALdeci has its own SAST plus 7 more scanner types. Ingests Semgrep output for enrichment. Adds MPTE verification, Brain Pipeline correlation, 10 AutoFix types.",
+      "threat_level": "LOW",
+      "overlap": "SAST scanning"
+    },
+    {
+      "name": "Vulcan Cyber",
+      "category": "Vulnerability Risk Management",
+      "wins": [],
+      "losses": [],
+      "strengths": [
+        "Strong Jira/ServiceNow integration",
+        "Good vulnerability lifecycle management",
+        "Risk-based prioritization"
+      ],
+      "weaknesses": [
+        "No native scanners — pure aggregator",
+        "No active exploit verification",
+        "No AI consensus engine",
+        "No code-level AutoFix",
+        "No air-gapped deployment",
+        "No MCP gateway for AI agents"
+      ],
+      "differentiators": "ALdeci has 8 native scanners (Vulcan has 0), MPTE verification, AI consensus, AutoFix code patches, and MCP gateway. We can scan without any external tool.",
+      "threat_level": "MEDIUM",
+      "overlap": "Vulnerability prioritization, ticket routing"
+    },
+    {
+      "name": "ArmorCode",
+      "category": "Application Security Posture Management (ASPM)",
+      "wins": [],
+      "losses": [],
+      "strengths": [
+        "Good multi-scanner correlation",
+        "Compliance dashboard",
+        "Risk-based prioritization"
+      ],
+      "weaknesses": [
+        "No native scanning capability",
+        "No exploit verification",
+        "No AI-powered fix generation",
+        "No knowledge graph with attack paths",
+        "No air-gapped deployment",
+        "No MCP protocol"
+      ],
+      "differentiators": "Same parser coverage but with Brain Pipeline + AI-powered decisions. ALdeci scans, verifies, fixes, and proves — ArmorCode only aggregates and prioritizes.",
+      "threat_level": "MEDIUM",
+      "overlap": "Finding aggregation, compliance reporting"
+    },
+    {
+      "name": "Seemplicity",
+      "category": "Remediation Operations",
+      "wins": [],
+      "losses": [],
+      "strengths": [
+        "Good remediation workflow automation",
+        "Strong dedup and grouping",
+        "SLA tracking"
+      ],
+      "weaknesses": [
+        "No native scanners",
+        "No exploit verification",
+        "No AI-powered code fixes",
+        "No knowledge graph",
+        "No air-gapped deployment"
+      ],
+      "differentiators": "ALdeci does everything Seemplicity does for remediation tracking, PLUS native scanning, MPTE verification, AI code fixes, and compliance evidence signing.",
+      "threat_level": "LOW",
+      "overlap": "Remediation workflow, SLA tracking"
+    },
+    {
+      "name": "Checkmarx",
+      "category": "Application Security Testing",
+      "wins": [],
+      "losses": [],
+      "strengths": [
+        "Enterprise-grade SAST with AST analysis",
+        "Strong DAST capabilities",
+        "Established enterprise relationships",
+        "Good compliance reporting"
+      ],
+      "weaknesses": [
+        "Expensive ($100K+ annual)",
+        "No multi-scanner aggregation (their tools only)",
+        "No MPTE exploit verification",
+        "No multi-LLM consensus",
+        "No MCP gateway",
+        "Vendor lock-in"
+      ],
+      "differentiators": "ALdeci's Switzerland positioning — we work WITH Checkmarx, not against it. Ingest Checkmarx results, add MPTE verification, AI consensus, and AutoFix on top. No vendor lock-in.",
+      "threat_level": "LOW",
+      "overlap": "SAST, DAST scanning"
+    },
+    {
+      "name": "DeepAudit",
+      "category": "AI-Powered Vulnerability Verification",
+      "wins": [],
+      "losses": [],
+      "strengths": [
+        "Sandbox PoC verification (49 real CVEs tested)",
+        "AI-driven audit methodology"
+      ],
+      "weaknesses": [
+        "Limited pipeline (scan → verify only)",
+        "No 12-step Brain Pipeline",
+        "No compliance evidence generation",
+        "No AutoFix or code generation",
+        "No knowledge graph",
+        "No MCP protocol"
+      ],
+      "differentiators": "Same sandbox PoC concept, but with 12-step pipeline, enterprise compliance, AutoFix, knowledge graph, and MCP gateway. DeepAudit verifies; ALdeci verifies + decides + fixes + proves.",
+      "threat_level": "LOW",
+      "overlap": "Exploit verification"
+    }
+  ],
+  "winRate": 0,
+  "topWinReason": "Native scanning + MPTE verification + air-gapped deployment (no competitor has all three)",
+  "topLossReason": "Brand recognition and established enterprise relationships (incumbents)",
+  "uniqueCapabilities": {
+    "noCompetitorHas": [
+      "8 native scanners that work air-gapped",
+      "19-phase MPTE exploit verification",
+      "12-step Brain Pipeline (full CTEM lifecycle)",
+      "Multi-LLM consensus with 85% agreement threshold",
+      "10 AutoFix types with confidence-based auto-apply",
+      "MCP gateway with 650+ auto-discovered tools",
+      "Cryptographically signed compliance evidence",
+      "Self-hosted AI (zero API token cost)"
+    ]
+  },
+  "marketSize": {
+    "total_addressable": "$8.2B",
+    "segments": {
+      "air_gapped_defense": "$2.3B",
+      "ai_native_security": "$1.8B",
+      "decision_intelligence": "$4.1B"
+    }
+  }
+}

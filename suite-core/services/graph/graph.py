@@ -221,6 +221,15 @@ class ProvenanceGraph:
         else:
             self.graph = nx.MultiDiGraph()
 
+
+    def __del__(self):
+        """Close SQLite connection on garbage collection."""
+        try:
+            if hasattr(self, 'connection') and self.connection:
+                self.connection.close()
+        except Exception:
+            pass
+
     def close(self) -> None:
         self.connection.close()
 

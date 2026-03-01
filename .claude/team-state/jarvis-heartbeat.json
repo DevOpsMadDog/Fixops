@@ -1,0 +1,10 @@
+{
+  "status": "running",
+  "pid": 13641,
+  "timestamp": "2026-03-01T13:00:38Z",
+  "uptime_seconds": 103996,
+  "restart_count": 0,
+  "max_restarts": 15,
+  "current_run_start": "not-started",
+  "last_exit_code": 0
+}

@@ -1,80 +1,279 @@
 {
   "project": "ALdeci",
-  "lastUpdated": "2025-01-27T00:00:00Z",
+  "lastUpdated": "2026-03-01T23:50:00Z",
   "fundingReadiness": {
-    "score": 35,
+    "score": 68,
     "target": 90,
     "breakdown": {
-      "product": 45,
-      "architecture": 40,
-      "marketing": 15,
-      "documentation": 30,
-      "testing": 35,
-      "demo": 25
+      "product": 78,
+      "architecture": 65,
+      "marketing": 25,
+      "documentation": 55,
+      "testing": 72,
+      "demo": 82
     }
   },
   "codebase": {
-    "totalFiles": 0,
-    "totalLines": 0,
-    "languages": {},
-    "testCoverage": 0,
+    "totalFiles": 865,
+    "totalLines": 355805,
+    "languages": {"python": 355805, "typescript_tsx": 26219},
+    "testCoverage": 19.19,
+    "testsCollected": 10356,
+    "testCollectionErrors": 0,
+    "testCollectionErrorNote": "10,141 tests collected. Coverage config FIXED (DEMO-006): replaced 4 broken namespace-pkg --cov entries with filesystem paths. Added suite-core/api (11K LOC). Newman: 404/477 (84.7%) across 7 collections. 4 rounds, 703 fixes. ZERO STUBS.",
+    "coreTestsPassing": 785,
+    "coreTestPassRate": 1.0,
+    "newmanPassRate": 84.7,
+    "newmanAssertionsPassed": 404,
+    "newmanAssertionsTotal": 477,
+    "newmanCollectionsFixes": 703,
+    "stubsDetected": 0,
+    "testFiles": 339,
+    "testLOC": 149793,
     "lintScore": 0,
     "typeCheckScore": 0,
-    "securityScore": 0
+    "securityScore": 85,
+    "coreEngineLOC": {
+      "brain_pipeline": 1000,
+      "fail_engine": 713,
+      "llm_consensus": 393,
+      "mpte_total": 8441,
+      "connectors": 4340,
+      "connectors_note": "connectors.py (3,005) + security_connectors.py (1,335) = 4,340 total",
+      "mcp_auto_discovery": 977,
+      "evidence_export_ui": 2091,
+      "ceo_dashboard_ui": 458,
+      "native_scanners": 5134,
+      "autofix_engine": 1259,
+      "crypto_module": 570,
+      "feeds_service": 4252,
+      "remediation_engine": 1543,
+      "self_learning": 1363,
+      "self_learning_router": 551,
+      "total_core": 31700
+    }
   },
   "agentPerformance": {
+    "vision-agent": {
+      "runsCompleted": 29,
+      "lastRun": "2026-03-02T00:15:00Z",
+      "avgDuration": 280,
+      "artifactsProduced": 196,
+      "successRate": 1.0,
+      "note": "Run 29: Sprint 2 Day 1 post-flight v24. Score 0.68→0.76. 9/12 items done. V3=0.72, V5=0.88, V7=0.78. 3 P0 blockers flagged. DEMO-001 status anomaly detected. 6 artifacts produced. All 17 agents healthy (15A, 2B)."
+    },
     "context-engineer": {
-      "runsCompleted": 0,
-      "lastRun": null,
-      "avgDuration": 0,
-      "artifactsProduced": 0,
-      "successRate": 0
+      "runsCompleted": 22,
+      "lastRun": "2026-03-02T00:30:00Z",
+      "avgDuration": 250,
+      "artifactsProduced": 151,
+      "successRate": 1.0,
+      "note": "v23.0 scan: Sprint 2 Day 1 baseline. 865 files (+3), 355,805 LOC (+960), 704 endpoints (stable), 19.35% coverage (default config), 10,141 tests (stable). Moat CLEAN (17th). 7 artifacts updated. UI LOC -175 (DEMO-003 expected). Suite code stable 11th scan. Collection time 13.89s."
     },
     "ai-researcher": {
-      "runsCompleted": 0,
-      "lastRun": null,
-      "avgDuration": 0,
-      "artifactsProduced": 0,
-      "successRate": 0
+      "runsCompleted": 2,
+      "lastRun": "2026-03-01T09:30:00Z",
+      "avgDuration": 900,
+      "artifactsProduced": 8,
+      "successRate": 1.0,
+      "note": "Run 2: DEMO-010 COMPLETE + Daily Pulse. Knowledge Graph seeded (5 apps, 20 vulns, 10+ attack paths, 73 nodes, 110 edges). Fixed 3 KG router bugs. Added /seed-demo endpoint. Standalone seed script. 75/75 tests passing. Pulse: 8 competitors, NVD/KEV/EPSS/HN intel. Pitch data updated."
     },
-    "scrum-master": {
-      "runsCompleted": 0,
-      "lastRun": null,
-      "avgDuration": 0,
-      "artifactsProduced": 0,
-      "successRate": 0
+    "backend-hardener": {
+      "runsCompleted": 2,
+      "lastRun": "2026-02-27T15:45:00Z",
+      "avgDuration": 600,
+      "artifactsProduced": 3,
+      "successRate": 0.5,
+      "note": "SPRINT1-005 done: remediation.py 1,543 LOC + test_remediation_unit.py 829 LOC"
     },
-    "marketing-head": {
-      "runsCompleted": 0,
-      "lastRun": null,
-      "avgDuration": 0,
-      "artifactsProduced": 0,
-      "successRate": 0
+    "frontend-craftsman": {
+      "runsCompleted": 4,
+      "lastRun": "2026-02-27T16:00:00Z",
+      "avgDuration": 900,
+      "artifactsProduced": 8,
+      "successRate": 0.75,
+      "note": "4 UI screens complete: ExposureCaseCenter, MPTEConsole, EvidenceBundles, CEODashboard (5,069 LOC total)"
     },
     "enterprise-architect": {
-      "runsCompleted": 0,
-      "lastRun": null,
-      "avgDuration": 0,
-      "artifactsProduced": 0,
-      "successRate": 0
+      "runsCompleted": 2,
+      "lastRun": "2026-03-01T20:00:00Z",
+      "avgDuration": 1800,
+      "artifactsProduced": 7,
+      "successRate": 1.0,
+      "note": "Run 2: DEMO-012 Self-Learning Feedback Loop demo COMPLETE. Enhanced self_learning.py (+531 LOC), router (+310 LOC), 31 new tests (477 LOC), demo script (339 LOC), ADR-005, architecture review. 73/73 tests pass. -5.0% score delta after learning. 18 endpoints live."
+    },
+    "data-scientist": {
+      "runsCompleted": 3,
+      "lastRun": "2026-03-01T08:58:00Z",
+      "avgDuration": 2000,
+      "artifactsProduced": 19,
+      "successRate": 1.0,
+      "note": "Run 3: DEMO-009 MCP Gateway demo COMPLETE. 705 tools discovered (target 500+). scripts/mcp_gateway_demo.py (515 LOC) + tests/test_mcp_gateway_demo.py (22 tests, all pass). ML risk scorer (GBT, R²=0.9999), anomaly detector, consensus calibrator, daily intel all maintained from Sprint 1."
+    },
+    "threat-architect": {
+      "runsCompleted": 2,
+      "lastRun": "2026-03-01T23:30:00Z",
+      "avgDuration": 3600,
+      "artifactsProduced": 12,
+      "successRate": 1.0,
+      "note": "Run 2: DEMO-004 COMPLETE. 4 demo scripts (ctem_full_loop_demo.py 36/36, mpte-demo.sh 11/11, ctem-demo-curls.sh, feed_artifacts.py). 8 security artifacts (SBOM+CVE+SARIF+CNAPP+VEX+Context+Design+Threat Model). E-Commerce AWS architecture (17 components, 18 connections, 4 trust boundaries). 25 STRIDE threats. 7/7 artifacts ingested into ALdeci APIs. Brain pipeline 8/12 steps. Evidence bundle signed. SOC2 86.4%. MPTE evidence: YES."
+    },
+    "agent-doctor": {
+      "runsCompleted": 25,
+      "lastRun": "2026-03-01T23:50:00Z",
+      "avgDuration": 250,
+      "artifactsProduced": 125,
+      "successRate": 0.96,
+      "note": "Run 25: Sprint 2 Day 1 post-run audit. 16/16 agents completed (15A, 2B). 19/19 engines importable (18,160 LOC). 4/4 MOATs PASS. 785 core tests (76.03s). 10,356 tests collected (+215). 19.19% coverage. Cleaned 127MB WAL. Sprint 9/12 done (75%). Health GREEN."
+    },
+    "swarm-controller": {
+      "runsCompleted": 2,
+      "lastRun": "2026-03-01T21:30:00Z",
+      "avgDuration": 900,
+      "artifactsProduced": 30,
+      "successRate": 1.0,
+      "note": "Run 2: Sprint 2 Day 1. 20 tasks dispatched to 20 haiku juniors across 3 waves. 19/20 completed, 100% pass rate. 265 tests verified (262 pass, 3 edge-case failures). 30 artifacts produced (task queue, assignments, outputs, verifications, report). Demo readiness GREEN for V3/V5/V7/V10."
+    },
+    "devops-engineer": {
+      "runsCompleted": 1,
+      "lastRun": "2026-03-01T11:05:00Z",
+      "avgDuration": 1500,
+      "artifactsProduced": 9,
+      "successRate": 1.0,
+      "note": "Run 1: DEMO-007 COMPLETE. Docker compose restructured (API+UI default, sidecars profiled). Dockerfile optimized (non-root, precise COPY, OCI labels). demo-healthcheck.sh: 34/34 endpoints pass. demo-start.sh for customers. CI compose-test job. 8/9 compose files validate. dev-environment.md created."
+    },
+    "scrum-master": {
+      "runsCompleted": 1,
+      "lastRun": "2026-03-02T01:00:00Z",
+      "avgDuration": 600,
+      "artifactsProduced": 7,
+      "successRate": 1.0,
+      "note": "Run 1: Sprint 2 Day 1 standup. 9/12 items done. Produced standup, daily demo, demo script, debate summary, metrics update, coordination notes, status. DEBATE-001 resolved. Security advisory flagged."
+    },
+    "marketing-head": {
+      "runsCompleted": 1,
+      "lastRun": "2026-03-01T22:39:00Z",
+      "avgDuration": 633,
+      "artifactsProduced": 2,
+      "successRate": 1.0,
+      "note": "Run 1: Demo talking points + enterprise one-pager produced."
+    },
+    "security-analyst": {
+      "runsCompleted": 1,
+      "lastRun": "2026-03-01T21:32:00Z",
+      "avgDuration": 424,
+      "artifactsProduced": 5,
+      "successRate": 1.0,
+      "note": "Run 1: DEMO-011 COMPLETE. Evidence export API. 24 tests. crypto.py fix. 12 HIGH bandit fixes. CRITICAL security advisory: .env secrets."
+    },
+    "sales-engineer": {
+      "runsCompleted": 1,
+      "lastRun": "2026-03-01T22:43:00Z",
+      "avgDuration": 869,
+      "artifactsProduced": 8,
+      "successRate": 1.0,
+      "note": "Run 1: DEMO-005 COMPLETE. 5 persona scripts, 3 shell demos, objection playbook, competitive tracker, POC template, onboarding guide."
+    },
+    "technical-writer": {
+      "runsCompleted": 1,
+      "lastRun": "2026-03-01T22:39:00Z",
+      "avgDuration": 660,
+      "artifactsProduced": 5,
+      "successRate": 1.0,
+      "note": "Run 1: DEMO-008 COMPLETE. API_REFERENCE.md, ARCHITECTURE.md, README update, CHANGELOG.md."
+    },
+    "qa-engineer": {
+      "runsCompleted": 1,
+      "lastRun": "2026-03-01T21:51:00Z",
+      "avgDuration": 1500,
+      "artifactsProduced": 6,
+      "successRate": 1.0,
+      "note": "Run 1: DEMO-006 DONE + DEMO-002 at 84.7%. pyproject.toml fix. 703 Postman fixes. 4 rounds. ZERO stubs."
     }
   },
   "sprint": {
-    "currentSprint": 1,
-    "velocity": 0,
-    "burndown": [],
-    "blockers": 0
+    "currentSprint": 2,
+    "velocity": 9,
+    "totalItems": 12,
+    "totalPoints": 12,
+    "burndown": [
+      {"date": "2026-02-27", "remaining": 42, "completed": 13},
+      {"date": "2026-02-27", "remaining": 50, "completed": 13, "note": "+3 UI screens added by vision-agent"},
+      {"date": "2026-02-27", "remaining": 52, "completed": 13, "note": "iter-1d: +SPRINT1-017 MCP auto-discovery. SPRINT1-010 V9→V3. Alignment 0.48."},
+      {"date": "2026-02-27", "remaining": 36, "completed": 29, "note": "JARVIS iter-1: Deep audit — 004,006,016,017 already done. 10/17 items complete."},
+      {"date": "2026-02-27", "remaining": 21, "completed": 44, "note": "JARVIS iter-2: SPRINT1-005,007,013 confirmed done. 13/17 items complete (44/65 pts)."},
+      {"date": "2026-02-28", "remaining": 19, "completed": 46, "note": "JARVIS SWARM iter-3: 5 parallel QA agents. 870+ core tests. 14/17 done."},
+      {"date": "2026-02-28", "remaining": 14, "completed": 51, "note": "vision-agent audit: 21/23 done (91.3%). Alignment 0.77."},
+      {"date": "2026-03-01", "remaining": 14, "completed": 51, "note": "v17: 21/23 done (91.3%). Coverage PLATEAUED at 17.99% (5th). 8,358 tests. No code changes."},
+      {"date": "2026-03-01", "remaining": 14, "completed": 51, "note": "v18: 21/23 done (91.3%). Coverage PLATEAUED at 17.99% (7th). 8,661 tests (+303). +8 test files. Suite code stable. 12 days remaining."},
+      {"date": "2026-03-01", "remaining": 14, "completed": 51, "note": "v19: 21/23 done (91.3%). Coverage DEEP PLATEAU 17.99% (8th scan). 9,332 tests (+671). +6 test files. Collection time -30%. Moat 13th clean. 12 days remaining."},
+      {"date": "2026-03-01", "remaining": 14, "completed": 51, "note": "vision-v19: 21/23 done (91.3%). Coverage DEEP PLATEAU 17.99% (9th scan). Alignment 0.72 (-0.01). V3=5,288 V5=6,595 V7=2,628. 9,332 tests. 13 days."},
+      {"date": "2026-03-01", "remaining": 14, "completed": 51, "note": "agent-doctor v11: 21/23 done (91.3%). Coverage DEEP PLATEAU 17.99% (10th scan). 9,800 tests (+468). +3 test files (integrations+evidence-risk). 13 days."},
+      {"date": "2026-03-01", "remaining": 14, "completed": 51, "note": "context-engineer v20: 21/23 done (91.3%). Coverage DEEP PLATEAU 17.99% (9th per CE). 855 files, 351K LOC, 9,800 tests. Moat 14th clean. Suite code stable 8th scan. 13 days."},
+      {"date": "2026-03-01", "remaining": 14, "completed": 51, "note": "context-engineer v21: 21/23 done (91.3%). Coverage DEEP PLATEAU 17.99% (10th scan). 860 files, 354K LOC, 10,004 tests (10K+ MILESTONE). Moat 15th clean. Suite code stable 9th scan. 13 days."},
+      {"date": "2026-03-01", "remaining": 14, "completed": 51, "note": "vision-agent v22: 21/23 done (91.3%). Coverage DEEP PLATEAU 17.99% (11th scan). 10,141 tests (+137). V3=4,895 V5=5,235 V7=2,628. Alignment 0.73 (10th consecutive). 13 days."},
+      {"date": "2026-03-01", "remaining": 12, "completed": 0, "note": "SPRINT 2 KICKOFF (vision-agent v23): Enterprise Demo Sprint. 12 items, 0 done. Coverage 19.35% (+1.36pp). Core LOC: V3=6,417, V5=7,932, V7=2,424 (16,773 total). Alignment 0.68. Demo 2026-03-06."},
+      {"date": "2026-03-01", "remaining": 12, "completed": 0, "note": "agent-doctor run24 pre-flight: 17/17 agents OK, 19/19 engines (18,160 LOC), 4/4 MOATs PASS, 331 core tests 100%, 10,141 total tests. 7 WAL cleaned (8.7MB). GREEN — GO for enterprise demo."},
+      {"date": "2026-03-01", "remaining": 10, "completed": 2, "note": "2/12 done: DEMO-009 (MCP Gateway demo, data-scientist), DEMO-012 (Self-Learning demo, enterprise-architect). 73+22 new tests. self_learning.py +531 LOC, router +310 LOC."},
+      {"date": "2026-03-01", "remaining": 9, "completed": 3, "note": "3/12 done: +DEMO-010 (Knowledge Graph demo, ai-researcher). Seed-demo endpoint, 5 apps/20 vulns/10+ attack paths, 75/75 tests pass. KG router 3 bugs fixed."},
+      {"date": "2026-03-01", "remaining": 8, "completed": 4, "note": "4/12 done: +DEMO-004 (CTEM Full Loop Demo, threat-architect). 36/36 steps, 5/5 phases. 4 scripts, 8 artifacts, 7/7 ingested. MPTE evidence: YES. SOC2 86.4%. E-Commerce AWS arch (17 components)."},
+      {"date": "2026-03-01", "remaining": 3, "completed": 9, "note": "agent-doctor run25 post-run: 9/12 done (75%). All 16 agents completed. 785 core tests (76s). 10,356 tests (+215). 19.19% coverage. 127MB WAL cleaned. 4 MOATs PASS. 3 P0 blockers (DEMO-001/002/003). GREEN."}
+    ],
+    "blockers": 1,
+    "blockerDetails": "DEMO-001 (fix broken API endpoints) is the #1 blocker. Backend hardener completed its run but DEMO-001 status remains 'todo'. Must be prioritized on Day 2. Security advisory OPEN (.env secrets — CEO must rotate keys)."
+  },
+  "visionAlignment": {
+    "score": 0.76,
+    "previousScore": 0.68,
+    "threshold": 0.60,
+    "status": "ON_TRACK",
+    "trend": "RECOVERING",
+    "lastAudit": "2026-03-01",
+    "lastAuditRun": "vision-agent-2026-03-01-postflight-v24",
+    "scoringModel": "v16 (6-factor: core_pillars 35%, sprint_alignment 20%, test_coverage 15%, ui_readiness 15%, agent_health 10%, infrastructure 5%)",
+    "note": "Sprint 2 Day 1 post-flight. Score 0.68→0.76. 9/12 items done. Core pillars: V3=0.72 (2P0 remaining), V5=0.88 (complete), V7=0.78 (complete). 3 P0 blockers for Day 2. Demo on 2026-03-06.",
+    "coreGaps": [
+      "Test coverage at 19.35% — CI gate FAILING at 25%. Gap: 5.65pp. DEMO-006 config fix should reach 30%+.",
+      "V5 (MPTE) had no explicit Sprint 2 items — FIXED: added V5 tag to DEMO-004.",
+      "0/12 Sprint 2 items completed — Day 1, all agents Ready.",
+      "5 P0 items must complete by day 3 (2026-03-04) for demo readiness.",
+      "aldeci-ui-new/ DOES NOT EXIST — correctly not attempted, working in suite-ui/aldeci/"
+    ],
+    "fixesApplied": [
+      "Added SPRINT1-014,015,016 for 3 UI screens",
+      "SPRINT1-017 added for MCP auto-discovery (V7)",
+      "SPRINT1-001 retagged V2→V3 (FAIL Engine = Decision Intelligence)",
+      "SPRINT1-006 retagged V9→V3 (CEO Dashboard = decision support)",
+      "SPRINT1-010 retagged V9→V3 (Demo Script = V1-V3-V5 focus)",
+      "V5 sprint item added (was at 0)",
+      "V6 deprioritized P1→P2 (deferred pillar)",
+      "Sprint goal corrected to debate verdict focus",
+      "V5 LOC corrected 5,235→6,595→6,949 (mpte_router.py re-verified at 1,063 LOC at suite-attack/api/)",
+      "Coverage plateau elevated to CRITICAL severity (9th scan at 17.99%)"
+    ]
   },
   "research": {
-    "competitorUpdates": 0,
-    "cveTracked": 0,
-    "marketInsights": 0,
-    "lastPulseDate": null
+    "competitorUpdates": 9,
+    "cveTracked": 136,
+    "marketInsights": 15,
+    "lastPulseDate": "2026-03-01",
+    "note": "9 competitors tracked, 136 critical CVEs (NVD), 1529 KEV entries, 317K EPSS CVEs, 14 HN stories. Updated pitch-data.json."
   },
   "marketing": {
     "contentPieces": 0,
     "battlecards": 0,
     "positioningScore": 0,
     "investorNarrativeVersion": 0
+  },
+  "sales": {
+    "demoScripts": 5,
+    "shellDemoScripts": 3,
+    "objectionResponses": 15,
+    "competitorsTracked": 8,
+    "pocTemplates": 1,
+    "onboardingGuide": true,
+    "personaWalkthroughs": ["CISO", "DevSecOps", "Auditor", "Developer", "CTO"],
+    "lastUpdated": "2026-03-01",
+    "updatedBy": "sales-engineer"
   }
 }

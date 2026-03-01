@@ -717,7 +717,7 @@ FalkorDB's `code-graph.falkordb.com` provides interactive graph visualization:
 │                                                 │
 │  Step 11: RUN PLAYBOOKS & AUTOFIX               │
 │  • YAML playbook execution                      │
-│  • AST-based AutoFix (tree-sitter transforms)  │
+│  • LLM-powered AutoFix (code generation)        │
 │  • Jira ticket creation (linked to APP_ID)      │
 │  • Slack/Teams/PagerDuty notifications          │
 │  • GitHub/GitLab auto-fix PR generation         │
@@ -769,7 +769,7 @@ Decision Engine Output
 │  Remediation Orchestrator                     │
 │                                               │
 │  IF decision = AUTO_FIX:                     │
-│    → AST-based code fix (tree-sitter)        │
+│    → LLM-powered code fix (code generation)  │
 │    → Generate PR with fix + test             │
 │    → Link PR to Jira ticket                  │
 │    → Update FalkorDB: Finding.status = FIXING│
@@ -1212,7 +1212,7 @@ ALdeci:              Design → Develop → Merge → Build → Deploy → Monit
 | Router | Endpoints | Count | What It Powers |
 |--------|-----------|-------|---------------|
 | [remediation_router.py](suite-api/apps/api/remediation_router.py) | `/api/v1/remediation/*` | 15 | Remediation tasks: CRUD, SLA tracking, bulk assignment, status workflow |
-| [autofix_router.py](suite-core/api/autofix_router.py) | `/api/v1/autofix/*` | 12 | AST-based AutoFix: generate fix, preview diff, apply fix, create PR |
+| [autofix_router.py](suite-core/api/autofix_router.py) | `/api/v1/autofix/*` | 12 | LLM-powered AutoFix: generate fix, preview diff, apply fix, create PR |
 | [workflows_router.py](suite-api/apps/api/workflows_router.py) | `/api/v1/workflows/*` | 13 | Workflow automation: YAML playbook execution, workflow templates, triggers |
 | [bulk_router.py](suite-api/apps/api/bulk_router.py) | `/api/v1/bulk/*` | 13 | Bulk operations: mass triage, mass assign, mass status change, mass export |
 | [policies_router.py](suite-api/apps/api/policies_router.py) | `/api/v1/policies/*` | 11 | Policy management: CRUD, SLA rules, auto-triage rules, severity overrides |

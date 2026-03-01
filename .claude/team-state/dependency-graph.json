@@ -1,0 +1,126 @@
+{
+  "_meta": {
+    "version": "23.0",
+    "generated": "2026-03-02T00:30:00Z",
+    "generated_by": "context-engineer",
+    "note": "No dependency changes from v22.0. Production code and requirements stable since v13.0 (11th consecutive stable scan). Sprint 2 enterprise demo mode."
+  },
+  "python": {
+    "production": {
+      "source": "requirements.txt",
+      "count": 30,
+      "packages": {
+        "fastapi": ">=0.115,<0.128",
+        "uvicorn": ">=0.30.0,<1.0",
+        "pydantic": ">=2.6,<3.0",
+        "email-validator": ">=2.0.0,<3.0",
+        "python-multipart": ">=0.0.9,<1.0",
+        "requests": ">=2.32,<3.0",
+        "httpx": ">=0.27.0,<1.0",
+        "pgmpy": "==0.1.24",
+        "PyJWT": ">=2.8,<3.0",
+        "cryptography": ">=46.0.3,<47.0.0",
+        "cffi": ">=2.0.0",
+        "structlog": ">=25.4.0,<26.0.0",
+        "PyYAML": ">=6.0.1,<7.0",
+        "networkx": ">=3.5,<4.0 (py>=3.10)",
+        "apscheduler": ">=3.10,<4.0",
+        "opentelemetry-sdk": ">=1.25,<2.0",
+        "opentelemetry-exporter-otlp": ">=1.25,<2.0",
+        "opentelemetry-instrumentation-fastapi": ">=0.46b0,<1.0",
+        "scikit-learn": ">=1.3.0,<2.0",
+        "bcrypt": ">=4.0.0",
+        "passlib[bcrypt]": ">=1.7.4,<2.0",
+        "tenacity": ">=8.2.0,<9.0",
+        "ssvc": ">=1.2.0,<2.0",
+        "sarif-om": ">=1.0.4,<2.0",
+        "python-dotenv": ">=1.0.0,<2.0",
+        "sqlalchemy": ">=2.0.0,<3.0",
+        "pyotp": ">=2.9.0,<3.0",
+        "cvss": ">=3.6,<4.0"
+      }
+    },
+    "testing": {
+      "source": "requirements-test.txt",
+      "inherits": "requirements.txt",
+      "additionalPackages": {
+        "pytest": ">=7.4.0",
+        "pytest-cov": ">=4.1.0",
+        "pytest-asyncio": ">=0.21.0",
+        "pytest-mock": ">=3.11.0",
+        "pytest-timeout": ">=2.2.0",
+        "aiohttp": ">=3.9.0",
+        "aiosqlite": ">=0.19.0",
+        "httpx": ">=0.24.0",
+        "responses": ">=0.23.0",
+        "faker": ">=19.0.0",
+        "freezegun": ">=1.2.2",
+        "coverage": ">=7.3.0",
+        "diff-cover": ">=8.0.0",
+        "types-requests": ">=2.31.0",
+        "types-python-dateutil": ">=2.8.19",
+        "types-PyYAML": ">=6.0.0"
+      }
+    }
+  },
+  "npm": {
+    "legacy_ui": {
+      "source": "suite-ui/aldeci/package.json",
+      "status": "FROZEN",
+      "dependencies": 41,
+      "devDependencies": 15,
+      "keyPackages": {
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "react-router-dom": "^6.21.2",
+        "@tanstack/react-query": "^5.17.9",
+        "@xyflow/react": "^12.0.0",
+        "recharts": "^2.10.4",
+        "zustand": "^4.4.7",
+        "axios": "^1.6.5",
+        "framer-motion": "^10.18.0",
+        "lucide-react": "^0.309.0",
+        "zod": "^3.22.4"
+      },
+      "uiLibrary": "Radix UI (19 @radix-ui packages)"
+    },
+    "new_ui": {"status": "DOES NOT EXIST"}
+  },
+  "internalDependencies": {
+    "suite-core": {
+      "imports_from": ["apps.api.normalizers (suite-api)"],
+      "role": "HUB - all suites import from suite-core"
+    },
+    "suite-api": {
+      "imports_from": ["core.* (suite-core)", "api.* (all suites)"],
+      "role": "GATEWAY - mounts all routers, imports from all suites"
+    },
+    "suite-attack": {
+      "imports_from": ["core.micro_pentest, core.persistent_store, core.real_scanner, core.tls_config (suite-core)"]
+    },
+    "suite-feeds": {
+      "imports_from": ["apps.api.dependencies (suite-api)"]
+    },
+    "suite-evidence-risk": {
+      "imports_from": ["core.enterprise.security, core.paths, core.services.enterprise (suite-core)", "apps.api.normalizers (suite-api)"]
+    },
+    "suite-integrations": {
+      "imports_from": ["core.mpte_db, core.mpte_models, core.enhanced_decision (suite-core)", "apps.api.dependencies (suite-api)"]
+    }
+  },
+  "externalServices": {
+    "MPTE": {"url": "MPTE_BASE_URL", "purpose": "Micro-pentest engine"},
+    "OpenAI": {"env": "OPENAI_API_KEY", "purpose": "LLM provider for AutoFix/consensus"},
+    "Anthropic": {"env": "ANTHROPIC_API_KEY", "purpose": "LLM provider for AutoFix/consensus"},
+    "NVD": {"url": "https://services.nvd.nist.gov/rest/json/cves/2.0", "purpose": "CVE data"},
+    "CISA_KEV": {"purpose": "Known Exploited Vulnerabilities"},
+    "EPSS": {"purpose": "Exploit prediction scoring"},
+    "FalkorDB": {"optional": true, "purpose": "Knowledge graph (V3)"},
+    "MindsDB": {"optional": true, "purpose": "ML model serving"}
+  },
+  "importMechanism": {
+    "file": "sitecustomize.py",
+    "description": "Auto-prepends all suite dirs to sys.path at startup",
+    "fragility": "HIGH - relies on Python startup hook"
+  }
+}

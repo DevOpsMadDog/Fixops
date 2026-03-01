@@ -1,0 +1,77 @@
+{"ts":"2026-02-27T01:06:03Z","type":"agent_failure","agent":"context-engineer","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T01:12:21Z","type":"agent_failure","agent":"data-scientist","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T01:12:23Z","type":"agent_failure","agent":"ai-researcher","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T01:12:24Z","type":"agent_failure","agent":"enterprise-architect","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T01:18:45Z","type":"agent_failure","agent":"frontend-craftsman","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T01:18:46Z","type":"agent_failure","agent":"backend-hardener","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T01:18:47Z","type":"agent_failure","agent":"threat-architect","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T01:24:58Z","type":"agent_failure","agent":"swarm-controller","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T01:31:13Z","type":"agent_failure","agent":"qa-engineer","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T01:31:14Z","type":"agent_failure","agent":"security-analyst","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T01:37:25Z","type":"agent_failure","agent":"devops-engineer","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T01:44:46Z","type":"agent_failure","agent":"marketing-head","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T01:44:47Z","type":"agent_failure","agent":"technical-writer","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T01:44:48Z","type":"agent_failure","agent":"sales-engineer","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T01:59:17Z","type":"agent_failure","agent":"vision-agent","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T02:13:27Z","type":"agent_failure","agent":"context-engineer","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T02:19:43Z","type":"agent_failure","agent":"data-scientist","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T02:19:44Z","type":"agent_failure","agent":"enterprise-architect","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T02:19:45Z","type":"agent_failure","agent":"ai-researcher","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T02:26:01Z","type":"agent_failure","agent":"backend-hardener","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T02:26:01Z","type":"agent_failure","agent":"threat-architect","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T02:26:03Z","type":"agent_failure","agent":"frontend-craftsman","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T02:32:12Z","type":"agent_failure","agent":"swarm-controller","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T02:38:24Z","type":"agent_failure","agent":"qa-engineer","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T02:38:25Z","type":"agent_failure","agent":"security-analyst","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T02:44:33Z","type":"agent_failure","agent":"devops-engineer","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T02:51:50Z","type":"agent_failure","agent":"marketing-head","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T02:51:51Z","type":"agent_failure","agent":"sales-engineer","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T02:51:53Z","type":"agent_failure","agent":"technical-writer","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T02:58:00Z","type":"agent_failure","agent":"scrum-master","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T03:04:08Z","type":"agent_failure","agent":"agent-doctor","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T03:10:16Z","type":"agent_failure","agent":"vision-agent","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T03:11:18Z","type":"fix_agent","target":"context-engineer","cycle":1,"exit_code":137,"output_bytes":0,"reason":"- **Status:** ❌ Failed (5 attempts exhausted)"}
+{"ts":"2026-02-27T03:12:19Z","type":"fix_agent","target":"context-engineer","cycle":2,"exit_code":137,"output_bytes":0,"reason":"- **Status:** ❌ Failed (5 attempts exhausted)"}
+{"ts":"2026-02-27T03:13:21Z","type":"fix_agent","target":"context-engineer","cycle":3,"exit_code":137,"output_bytes":0,"reason":"- **Status:** ❌ Failed (5 attempts exhausted)"}
+{"ts":"2026-02-27T03:19:30Z","type":"agent_failure","agent":"context-engineer","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T03:19:30Z","type":"reconcile_failed","agent":"context-engineer","cycles":3}
+{"ts":"2026-02-27T03:20:31Z","type":"fix_agent","target":"swarm-controller","cycle":1,"exit_code":137,"output_bytes":0,"reason":"- **Status:** ❌ Failed (5 attempts exhausted)"}
+{"ts":"2026-02-27T03:21:32Z","type":"fix_agent","target":"swarm-controller","cycle":2,"exit_code":137,"output_bytes":0,"reason":"- **Status:** ❌ Failed (5 attempts exhausted)"}
+{"ts":"2026-02-27T03:22:34Z","type":"fix_agent","target":"swarm-controller","cycle":3,"exit_code":137,"output_bytes":0,"reason":"- **Status:** ❌ Failed (5 attempts exhausted)"}
+{"ts":"2026-02-27T03:28:42Z","type":"agent_failure","agent":"swarm-controller","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T03:28:42Z","type":"reconcile_failed","agent":"swarm-controller","cycles":3}
+{"ts":"2026-02-27T03:29:44Z","type":"fix_agent","target":"devops-engineer","cycle":1,"exit_code":137,"output_bytes":0,"reason":"- **Status:** ❌ Failed (5 attempts exhausted)"}
+{"ts":"2026-02-27T03:30:45Z","type":"fix_agent","target":"devops-engineer","cycle":2,"exit_code":137,"output_bytes":0,"reason":"- **Status:** ❌ Failed (5 attempts exhausted)"}
+{"ts":"2026-02-27T03:31:47Z","type":"fix_agent","target":"devops-engineer","cycle":3,"exit_code":137,"output_bytes":0,"reason":"- **Status:** ❌ Failed (5 attempts exhausted)"}
+{"ts":"2026-02-27T03:37:55Z","type":"agent_failure","agent":"devops-engineer","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T03:37:55Z","type":"reconcile_failed","agent":"devops-engineer","cycles":3}
+{"ts":"2026-02-27T03:38:56Z","type":"fix_agent","target":"scrum-master","cycle":1,"exit_code":137,"output_bytes":0,"reason":"- **Status:** ❌ Failed (5 attempts exhausted)"}
+{"ts":"2026-02-27T03:39:58Z","type":"fix_agent","target":"scrum-master","cycle":2,"exit_code":137,"output_bytes":0,"reason":"- **Status:** ❌ Failed (5 attempts exhausted)"}
+{"ts":"2026-02-27T03:40:59Z","type":"fix_agent","target":"scrum-master","cycle":3,"exit_code":137,"output_bytes":0,"reason":"- **Status:** ❌ Failed (5 attempts exhausted)"}
+{"ts":"2026-02-27T03:47:07Z","type":"agent_failure","agent":"scrum-master","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T03:47:07Z","type":"reconcile_failed","agent":"scrum-master","cycles":3}
+{"ts":"2026-02-27T03:48:09Z","type":"fix_agent","target":"agent-doctor","cycle":1,"exit_code":137,"output_bytes":0,"reason":"- **Status:** ❌ Failed (5 attempts exhausted)"}
+{"ts":"2026-02-27T03:49:10Z","type":"fix_agent","target":"agent-doctor","cycle":2,"exit_code":137,"output_bytes":0,"reason":"- **Status:** ❌ Failed (5 attempts exhausted)"}
+{"ts":"2026-02-27T03:50:12Z","type":"fix_agent","target":"agent-doctor","cycle":3,"exit_code":137,"output_bytes":0,"reason":"- **Status:** ❌ Failed (5 attempts exhausted)"}
+{"ts":"2026-02-27T03:56:20Z","type":"agent_failure","agent":"agent-doctor","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T03:56:20Z","type":"reconcile_failed","agent":"agent-doctor","cycles":3}
+{"ts":"2026-02-27T03:57:21Z","type":"fix_agent","target":"vision-agent","cycle":1,"exit_code":137,"output_bytes":0,"reason":"- **Status:** ❌ Failed (5 attempts exhausted)"}
+{"ts":"2026-02-27T03:58:23Z","type":"fix_agent","target":"vision-agent","cycle":2,"exit_code":137,"output_bytes":0,"reason":"- **Status:** ❌ Failed (5 attempts exhausted)"}
+{"ts":"2026-02-27T03:59:24Z","type":"fix_agent","target":"vision-agent","cycle":3,"exit_code":137,"output_bytes":0,"reason":"- **Status:** ❌ Failed (5 attempts exhausted)"}
+{"ts":"2026-02-27T04:05:33Z","type":"agent_failure","agent":"vision-agent","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T04:05:33Z","type":"reconcile_failed","agent":"vision-agent","cycles":3}
+{"ts":"2026-02-27T04:14:31Z","type":"fix_agent","target":"vision-agent","cycle":1,"exit_code":0,"output_bytes":1529,"reason":"Persona verification failed — agent not performing at world-class level"}
+{"ts":"2026-02-27T07:21:25Z","type":"agent_failure","agent":"agent-doctor","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T07:25:22Z","type":"agent_failure","agent":"vision-agent","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T07:37:20Z","type":"agent_failure","agent":"agent-doctor","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T07:37:20Z","type":"agent_failure","agent":"vision-agent","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T07:41:32Z","type":"agent_failure","agent":"context-engineer","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T08:16:03Z","type":"agent_failure","agent":"agent-doctor","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T08:20:00Z","type":"agent_failure","agent":"vision-agent","reason":"exhausted 5 retries"}
+{"ts":"2026-02-27T08:35:00Z","type":"fix_agent","target":"context-engineer","cycle":1,"exit_code":124,"output_bytes":0,"reason":"- **Status:** ❌ Failed (5 attempts exhausted)"}
+{"ts":"2026-02-27T08:35:13Z","type":"api_recovery","pid":26957,"status":"recovered"}
+{"ts":"2026-02-27T08:50:13Z","type":"fix_agent","target":"context-engineer","cycle":2,"exit_code":124,"output_bytes":0,"reason":"- **Status:** ❌ Failed (5 attempts exhausted)"}
+{"ts":"2026-02-27T09:05:24Z","type":"fix_agent","target":"context-engineer","cycle":3,"exit_code":124,"output_bytes":0,"reason":"- **Status:** ❌ Failed (5 attempts exhausted)"}
+{"ts":"2026-03-01T12:30:21Z","type":"grade_a_cycle","cycle":1,"grade":"D","score":34,"fix_targets":"persona ui ","health":87,"persona":0,"ui":0}
+{"ts":"2026-03-01T12:45:37Z","type":"grade_a_cycle","cycle":2,"grade":"D","score":34,"fix_targets":"persona ui ","health":87,"persona":0,"ui":0}
+{"ts":"2026-03-01T13:00:53Z","type":"grade_a_cycle","cycle":3,"grade":"D","score":34,"fix_targets":"persona ui ","health":87,"persona":0,"ui":0}

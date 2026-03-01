@@ -19,6 +19,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
 import { attackGraphApi, reachabilityApi, graphApi } from '../../lib/api';
+import AttackPathGraph, { GraphNode, GraphEdge } from '../../components/aldeci/AttackPathGraph';
 import { toast } from 'sonner';
 
 interface AttackPath {
@@ -374,20 +375,92 @@ export default function AttackPaths() {
         </CardContent>
       </Card>
 
-      {/* Graph Visualization Placeholder */}
+      {/* Interactive Graph Visualization */}
       <Card className="glass-card">
         <CardHeader>
           <CardTitle>Graph Visualization</CardTitle>
-          <CardDescription>Interactive attack path graph (GNN-powered)</CardDescription>
+          <CardDescription>Interactive attack path graph — click nodes to inspect, scroll to zoom, drag to pan</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-64 rounded-lg bg-background/50 border border-dashed border-border flex items-center justify-center">
-            <div className="text-center text-muted-foreground">
-              <Network className="w-12 h-12 mx-auto mb-2 opacity-30" />
-              <p>Graph visualization would render here</p>
-              <p className="text-xs">Nodes: {graphVizData?.nodes?.length || 0} | Edges: {graphVizData?.edges?.length || 0}</p>
-            </div>
-          </div>
+          <AttackPathGraph
+            nodes={(() => {
+              // Build graph nodes from attack paths
+              const nodeSet = new Map<string, GraphNode>();
+              filteredPaths.forEach(path => {
+                if (!nodeSet.has(path.source)) {
+                  nodeSet.set(path.source, {
+                    id: path.source,
+                    label: path.source,
+                    type: 'entry_point',
+                    risk_score: path.risk_score,
+                  });
+                }
+                if (!nodeSet.has(path.target)) {
+                  nodeSet.set(path.target, {
+                    id: path.target,
+                    label: path.target,
+                    type: 'target',
+                    risk_score: path.risk_score,
+                  });
+                }
+                // Add intermediate hops as nodes
+                const hops = path.name.split(' → ').slice(1, -1);
+                hops.forEach(hop => {
+                  const hopId = hop.trim();
+                  if (!nodeSet.has(hopId)) {
+                    nodeSet.set(hopId, {
+                      id: hopId,
+                      label: hopId,
+                      type: 'hop',
+                      risk_score: Math.round(path.risk_score * 0.7),
+                    });
+                  }
+                });
+              });
+              // Also merge in API graph data if available
+              (graphVizData?.nodes || []).forEach((n: any) => {
+                if (!nodeSet.has(n.id)) {
+                  nodeSet.set(n.id, {
+                    id: n.id,
+                    label: n.label || n.id,
+                    type: n.type || 'asset',
+                    risk_score: Math.round((n.risk_score || 0.5) * 100),
+                  });
+                }
+              });
+              return Array.from(nodeSet.values());
+            })()}
+            edges={(() => {
+              const edgeList: GraphEdge[] = [];
+              filteredPaths.forEach((path, pi) => {
+                const segments = path.name.split(' → ').map(s => s.trim());
+                for (let i = 0; i < segments.length - 1; i++) {
+                  edgeList.push({
+                    id: `e-${pi}-${i}`,
+                    source: segments[i],
+                    target: segments[i + 1],
+                    risk_score: path.risk_score,
+                    type: i === 0 ? 'exploit' : 'lateral',
+                  });
+                }
+              });
+              // Merge in API edges
+              (graphVizData?.edges || []).forEach((e: any, idx: number) => {
+                edgeList.push({
+                  id: e.id || `api-e-${idx}`,
+                  source: e.source,
+                  target: e.target,
+                  label: e.label,
+                  risk_score: e.risk_score,
+                  type: e.type || 'lateral',
+                });
+              });
+              return edgeList;
+            })()}
+            selectedNodeId={selectedPath}
+            onNodeSelect={(id) => setSelectedPath(id)}
+            height={420}
+          />
         </CardContent>
       </Card>
     </div>

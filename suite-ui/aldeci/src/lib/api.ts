@@ -8,7 +8,7 @@ import { toast } from 'sonner'
 // @ts-ignore - Vite env types
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000'
 // @ts-ignore - Vite env types
-const API_KEY = (import.meta as any).env?.VITE_API_KEY || 'test-token-123'
+const API_KEY = (import.meta as any).env?.VITE_API_KEY || 'aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh'
 
 // Module-level mutable API key (updated via Settings page)
 let _activeApiKey = API_KEY
@@ -667,7 +667,7 @@ const evidence = {
     complianceFrameworks: () => api.get('/api/v1/audit/compliance/frameworks').then(r => r.data),
   },
   reports: {
-    list: () => api.get('/api/v1/reports').then(r => r.data),
+    list: () => api.get('/api/v1/reports').then(r => r.data?.items || r.data || []),
     // Fixed: POST to /api/v1/reports not /reports/generate
     generate: (data: { name?: string, report_type?: string, type?: string, format: string }) => api.post('/api/v1/reports', { 
       name: data.name || `Report ${new Date().toISOString()}`,
@@ -690,8 +690,8 @@ const evidence = {
 
 const settings = {
   access: {
-    users: () => api.get('/api/v1/users').then(r => r.data),
-    teams: () => api.get('/api/v1/teams').then(r => r.data),
+    users: () => api.get('/api/v1/users').then(r => r.data?.items || r.data || []),
+    teams: () => api.get('/api/v1/teams').then(r => r.data?.items || r.data || []),
     sso: () => api.get('/api/v1/auth/sso').then(r => r.data),
   },
   integrations: {
@@ -749,7 +749,7 @@ const brainPipeline = {
 
 const exposureCases = {
   list: (params?: { org_id?: string, status?: string, priority?: string }) =>
-    api.get('/api/v1/cases', { params }).then(r => r.data),
+    api.get('/api/v1/cases', { params }).then(r => r.data?.cases || r.data || []),
   get: (caseId: string) => api.get(`/api/v1/cases/${caseId}`).then(r => r.data),
   create: (data: { case_id: string, org_id: string, title: string, priority: string, clusters?: unknown[] }) =>
     api.post('/api/v1/cases', data).then(r => r.data),
@@ -1060,6 +1060,70 @@ export const secretsApi = {
   getScannersStatus: () => api.get('/api/v1/secrets/scanners/status').then(r => r.data),
 }
 
+// SAST API — ALdeci native SAST engine
+export const sastApi = {
+  scanCode: (code: string, filename = 'input.py') =>
+    api.post('/api/v1/sast/scan/code', { code, filename }).then(r => r.data),
+  scanFiles: (files: Record<string, string>) =>
+    api.post('/api/v1/sast/scan/files', { files }).then(r => r.data),
+  getRules: () => api.get('/api/v1/sast/rules').then(r => r.data),
+  getStatus: () => api.get('/api/v1/sast/status').then(r => r.data),
+}
+
+// DAST API — ALdeci native DAST engine
+export const dastApi = {
+  scan: (data: { target_url: string; scan_type?: string }) =>
+    api.post('/api/v1/dast/scan', data).then(r => r.data),
+  getStatus: () => api.get('/api/v1/dast/status').then(r => r.data),
+}
+
+// Container Scanner API — ALdeci native container engine
+export const containerScanApi = {
+  scanDockerfile: (data: { dockerfile: string; filename?: string }) =>
+    api.post('/api/v1/container/scan/dockerfile', data).then(r => r.data),
+  scanImage: (data: { image: string }) =>
+    api.post('/api/v1/container/scan/image', data).then(r => r.data),
+  getStatus: () => api.get('/api/v1/container/status').then(r => r.data),
+}
+
+// CSPM/IaC Scanner API — ALdeci native CSPM engine
+export const cspmScanApi = {
+  scanTerraform: (data: { content: string; filename?: string }) =>
+    api.post('/api/v1/cspm/scan/terraform', data).then(r => r.data),
+  scanCloudFormation: (data: { content: string; filename?: string }) =>
+    api.post('/api/v1/cspm/scan/cloudformation', data).then(r => r.data),
+  getRules: () => api.get('/api/v1/cspm/rules').then(r => r.data),
+  getStatus: () => api.get('/api/v1/cspm/status').then(r => r.data),
+}
+
+// Scanner Ingest API — 3rd-party scanner output ingestion (25 normalizers)
+// 15 normalizers cherry-picked from ArcherySec research (clean-room): ZAP, Burp, Nessus, OpenVAS, Bandit, Checkmarx, SonarQube, Fortify, Veracode, Nikto, Nuclei, Nmap, Snyk, Prowler, Checkov
+export const scannerIngestApi = {
+  upload: (file: File, scannerType?: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (scannerType) formData.append('scanner_type', scannerType);
+    return api.post('/api/v1/scanner-ingest/upload', formData).then(r => r.data);
+  },
+  detect: (data: unknown) =>
+    api.post('/api/v1/scanner-ingest/detect', data).then(r => r.data),
+  supported: () => api.get('/api/v1/scanner-ingest/supported').then(r => r.data),
+  stats: () => api.get('/api/v1/scanner-ingest/stats').then(r => r.data),
+}
+
+// Sandbox PoC Verifier API — Docker-isolated exploit verification (cherry-picked from DeepAudit research, clean-room reimplemented)
+export const sandboxApi = {
+  verifyPoC: (data: { language: string; code: string; cve_id?: string; target_url?: string; expected_indicators?: string[]; timeout_seconds?: number; requires_network?: boolean; finding_id?: string }) =>
+    api.post('/api/v1/sandbox/verify', data).then(r => r.data),
+  verifyFinding: (data: { finding: Record<string, unknown>; target_url?: string }) =>
+    api.post('/api/v1/sandbox/verify-finding', data).then(r => r.data),
+  getResults: () => api.get('/api/v1/sandbox/results').then(r => r.data),
+  getStats: () => api.get('/api/v1/sandbox/stats').then(r => r.data),
+  health: () => api.get('/api/v1/sandbox/health').then(r => r.data),
+  probeReachability: (data: { targets: string[]; cve_id?: string; asset_ids?: string[] }) =>
+    api.post('/api/v1/sandbox/reachability', data).then(r => r.data),
+}
+
 // CNAPP API - CSPM router doesn't exist, use IaC and Analytics instead
 export const cnappApi = {
   ingest: cloudSuite.cspm.ingestCNAPP,
@@ -1218,8 +1282,10 @@ export const mcpApi = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const cnappConnectorsApi = {
-  // Available connector types with display metadata
+  // Available connector types — matches backend IntegrationType enum (14 types)
+  // Plus 3 CNAPP connectors (Wiz, Prisma, Orca) from security_connectors.py
   getConnectorTypes: () => Promise.resolve([
+    // CNAPP
     { id: 'wiz', name: 'Wiz', icon: '🛡️', category: 'cnapp', 
       description: 'Cloud-native application protection platform', configFields: ['client_id', 'client_secret'] },
     { id: 'prisma-cloud', name: 'Prisma Cloud', icon: '🔺', category: 'cnapp',
@@ -1228,22 +1294,35 @@ export const cnappConnectorsApi = {
       description: 'Agentless cloud security platform', configFields: ['api_token'] },
     { id: 'lacework', name: 'Lacework', icon: '🔒', category: 'cnapp',
       description: 'Cloud security and compliance automation', configFields: ['account', 'key_id', 'secret'] },
-    { id: 'aws-security-hub', name: 'AWS Security Hub', icon: '☁️', category: 'cloud-native',
+    // Cloud Native
+    { id: 'aws_security_hub', name: 'AWS Security Hub', icon: '☁️', category: 'cloud-native',
       description: 'AWS-native security findings aggregator', configFields: ['access_key_id', 'secret_access_key', 'region'] },
-    { id: 'azure-security-center', name: 'Azure Security Center', icon: '🔷', category: 'cloud-native',
+    { id: 'azure_security_center', name: 'Azure Security Center', icon: '🔷', category: 'cloud-native',
       description: 'Azure-native unified security management', configFields: ['tenant_id', 'client_id', 'client_secret', 'subscription_id'] },
+    // Security Tools
     { id: 'snyk', name: 'Snyk', icon: '🐍', category: 'sast-sca',
-      description: 'Developer security platform for code & dependencies', configFields: ['api_key', 'org_id'] },
+      description: 'Developer security platform for code & dependencies', configFields: ['token', 'org_id'] },
     { id: 'sonarqube', name: 'SonarQube', icon: '📊', category: 'sast-sca',
-      description: 'Code quality and security analysis', configFields: ['url', 'token'] },
+      description: 'Code quality and security analysis', configFields: ['base_url', 'token'] },
     { id: 'dependabot', name: 'Dependabot', icon: '🤖', category: 'sast-sca',
-      description: 'GitHub dependency vulnerability scanner', configFields: ['github_token'] },
+      description: 'GitHub dependency vulnerability scanner', configFields: ['github_token', 'owner', 'repo'] },
+    { id: 'threatmapper', name: 'ThreatMapper', icon: '🔍', category: 'sast-sca',
+      description: 'Deepfence ThreatMapper runtime security', configFields: ['console_url', 'api_key'] },
+    // DevOps (also in main integrations page)
+    { id: 'jira', name: 'Jira', icon: '🎫', category: 'devops',
+      description: 'Atlassian Jira for issue tracking', configFields: ['url', 'username', 'api_token', 'project_key'] },
+    { id: 'github', name: 'GitHub', icon: '🐙', category: 'devops',
+      description: 'GitHub for repository integration', configFields: ['owner', 'repo', 'token'] },
+    { id: 'gitlab', name: 'GitLab', icon: '🦊', category: 'devops',
+      description: 'GitLab for repository integration', configFields: ['base_url', 'project_id', 'private_token'] },
+    { id: 'slack', name: 'Slack', icon: '💬', category: 'notification',
+      description: 'Slack for notifications', configFields: ['webhook_url', 'channel'] },
   ]),
 
   // Connector CRUD via integrations API
   list: () => api.get('/api/v1/integrations').then(r => r.data),
   get: (id: string) => api.get(`/api/v1/integrations/${id}`).then(r => r.data),
-  create: (data: { type: string, name: string, config: Record<string, unknown> }) => 
+  create: (data: { integration_type: string, name: string, config: Record<string, unknown> }) => 
     api.post('/api/v1/integrations', data).then(r => r.data),
   update: (id: string, data: Record<string, unknown>) => 
     api.put(`/api/v1/integrations/${id}`, data).then(r => r.data),
@@ -1254,4 +1333,28 @@ export const cnappConnectorsApi = {
   // Fetch findings from a specific connector
   getFindings: (connectorId: string, params?: { severity?: string, limit?: number }) => 
     api.get(`/api/v1/integrations/${connectorId}/findings`, { params }).then(r => r.data),
+}
+
+// ---------------------------------------------------------------------------
+// FAIL Engine API — Evidence-based risk scoring
+// ---------------------------------------------------------------------------
+export const failApi = {
+  score: (data: Record<string, unknown>) =>
+    api.post('/api/v1/fail/score', data).then(r => r.data),
+  scoreBatch: (findings: Record<string, unknown>[]) =>
+    api.post('/api/v1/fail/score/batch', { findings }).then(r => r.data),
+  getScore: (scoreId: string) =>
+    api.get(`/api/v1/fail/score/${scoreId}`).then(r => r.data),
+  listScores: (params?: { grade?: string; limit?: number; offset?: number }) =>
+    api.get('/api/v1/fail/scores', { params }).then(r => r.data),
+  topRisks: (limit = 20) =>
+    api.get('/api/v1/fail/top-risks', { params: { limit } }).then(r => r.data),
+  stats: () =>
+    api.get('/api/v1/fail/stats').then(r => r.data),
+  scoreByCve: (cveId: string) =>
+    api.get(`/api/v1/fail/cve/${cveId}`).then(r => r.data),
+  deleteScore: (scoreId: string) =>
+    api.delete(`/api/v1/fail/score/${scoreId}`).then(r => r.data),
+  health: () =>
+    api.get('/api/v1/fail/health').then(r => r.data),
 }

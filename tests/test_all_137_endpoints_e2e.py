@@ -9,8 +9,8 @@ import os
 import pytest
 
 # Set environment variables BEFORE importing create_app
-# Use the same token as the Docker image (test-token-12345) for consistency
-API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "test-token-12345")
+# Use the same token as the Docker image (aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh) for consistency
+API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh")
 os.environ["FIXOPS_API_TOKEN"] = API_TOKEN
 os.environ["FIXOPS_DISABLE_TELEMETRY"] = "1"
 os.environ["FIXOPS_MODE"] = os.getenv("FIXOPS_MODE", "enterprise")
@@ -1052,7 +1052,7 @@ class TestPhase6MPTEEndpoints:
             json={
                 "name": "E2E MPTE Config",
                 "mpte_url": "https://mpte.example.com",
-                "api_key": "test-api-key",
+                "api_key": "mpte-service-credential-e2e",
                 "enabled": True,
             },
             headers=auth_headers,

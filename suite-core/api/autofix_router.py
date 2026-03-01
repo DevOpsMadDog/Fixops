@@ -245,6 +245,12 @@ async def health():
     }
 
 
+@router.get("/status", summary="AutoFix status")
+async def autofix_status():
+    """AutoFix engine status (alias for /health)."""
+    return await health()
+
+
 @router.get("/fix-types", summary="List supported fix types")
 async def list_fix_types():
     """List all supported fix types."""

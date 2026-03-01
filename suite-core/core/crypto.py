@@ -163,13 +163,25 @@ class RSAKeyManager:
 
     def _load_or_generate_keys(self) -> None:
         """Load existing keys or generate new ones."""
-        # Try to load existing keys
-        if self.private_key_path and self.private_key_path.exists():
+        # Guard: Path() with no args resolves to '.' (current dir) which
+        # would pass .exists() but fail on read_bytes(). Only attempt
+        # loading when the path points to an actual file.
+        private_path_valid = (
+            self.private_key_path
+            and str(self.private_key_path) not in ("", ".")
+            and self.private_key_path.is_file()
+        )
+        public_path_valid = (
+            self.public_key_path
+            and str(self.public_key_path) not in ("", ".")
+            and self.public_key_path.is_file()
+        )
+        if private_path_valid:
             self._load_private_key()
-        elif self.public_key_path and self.public_key_path.exists():
+        elif public_path_valid:
             self._load_public_key()
         else:
-            # Generate new key pair
+            # Generate new ephemeral key pair (in-memory)
             self._generate_key_pair()
 
     def _load_private_key(self) -> None:

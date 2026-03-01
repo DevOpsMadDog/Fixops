@@ -936,7 +936,7 @@ class SARIFProcessor:
         }
 
         fingerprint_str = json.dumps(fingerprint_data, sort_keys=True)
-        return hashlib.md5(fingerprint_str.encode()).hexdigest()[:12]
+        return hashlib.md5(fingerprint_str.encode(), usedforsecurity=False).hexdigest()[:12]
 
     def _create_sarif_rule(
         self, finding: Dict[str, Any], rule_id: str

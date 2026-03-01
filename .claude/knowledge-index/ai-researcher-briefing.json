@@ -1,0 +1,13 @@
+{
+  "agent": "ai-researcher",
+  "generated": "2026-02-27T17:35:43.182247",
+  "your_last_status": "# ai-researcher Status\n- **Status:** \u274c Failed (5 attempts exhausted)\n- **Runtime:** claude-opus-4-6-fast (CTEM+ Swarm)\n- **Mode:** Standard\n- **Date:** 2026-02-27\n- **Duration:** 126s\n- **Attempts:** 5/5\n- **Run ID:** swarm-2026-02-27_13-02-15\n- **Log:** logs/ai-team/2026-02-27_ai-researcher_swarm-2",
+  "last_failure": {
+    "agent": "ai-researcher",
+    "ts": "2026-02-27T02:19:45Z",
+    "retries": 5,
+    "reason": "exhausted 5 retries",
+    "log": "/Users/devops.ai/developement/fixops/Fixops/logs/ai-team/2026-02-27_ai-researcher_swarm-2026-02-27_13-02-15.log",
+    "run_id": "swarm-2026-02-27_13-02-15"
+  }
+}

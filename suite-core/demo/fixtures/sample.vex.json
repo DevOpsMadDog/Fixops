@@ -1,0 +1,47 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://aldeci.ai/vex/fixops-demo/2026-01-15",
+  "author": "ALdeci Security Team",
+  "role": "vendor",
+  "timestamp": "2026-01-15T10:00:00Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2021-44228",
+        "@id": "https://nvd.nist.gov/vuln/detail/CVE-2021-44228"
+      },
+      "products": [
+        {"@id": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1"}
+      ],
+      "status": "affected",
+      "justification": "",
+      "action_statement": "Upgrade log4j-core to version 2.17.1 or later",
+      "action_statement_timestamp": "2026-01-15T10:00:00Z"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2021-23337",
+        "@id": "https://nvd.nist.gov/vuln/detail/CVE-2021-23337"
+      },
+      "products": [
+        {"@id": "pkg:npm/lodash@4.17.20"}
+      ],
+      "status": "affected",
+      "justification": "",
+      "action_statement": "Upgrade lodash to version 4.17.21 or later"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2023-44487",
+        "@id": "https://nvd.nist.gov/vuln/detail/CVE-2023-44487"
+      },
+      "products": [
+        {"@id": "pkg:npm/express@4.18.2"}
+      ],
+      "status": "not_affected",
+      "justification": "component_not_present",
+      "impact_statement": "The application does not use HTTP/2; Express defaults to HTTP/1.1"
+    }
+  ]
+}

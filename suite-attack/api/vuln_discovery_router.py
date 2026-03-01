@@ -359,11 +359,25 @@ async def list_discovered_vulnerabilities(
     """List discovered vulnerabilities (GET alias for /internal)."""
     vulns = list(_discovered_vulns.values())
     if status:
-        vulns = [v for v in vulns if v["status"] == status]
+        vulns = [v for v in vulns if str(v.get("status", "")) == status.value or v.get("status") == status]
     if severity:
-        vulns = [v for v in vulns if v["severity"] == severity]
-    vulns = sorted(vulns, key=lambda v: v["discovered_date"], reverse=True)
-    return [DiscoveredVulnResponse(**v) for v in vulns[offset : offset + limit]]
+        vulns = [v for v in vulns if str(v.get("severity", "")) == severity.value or v.get("severity") == severity]
+
+    def _sort_key(v: Dict) -> str:
+        dd = v.get("discovered_date", "")
+        if isinstance(dd, str):
+            return dd
+        return dd.isoformat() if dd else ""
+
+    vulns = sorted(vulns, key=_sort_key, reverse=True)
+    results = []
+    for v in vulns[offset : offset + limit]:
+        try:
+            results.append(DiscoveredVulnResponse(**v))
+        except Exception:
+            # Gracefully skip entries that fail Pydantic validation (stale data)
+            pass
+    return results
 
 
 @router.post("/discovered", response_model=DiscoveredVulnResponse)
@@ -1062,37 +1076,64 @@ async def get_discovery_stats() -> Dict[str, Any]:
     """Get vulnerability discovery statistics."""
     vulns = list(_discovered_vulns.values())
 
+    def _sev(v: Dict) -> str:
+        """Get severity as string for comparison (handles both enum and str)."""
+        s = v.get("severity", "")
+        return s.value if hasattr(s, "value") else str(s)
+
+    def _status(v: Dict) -> str:
+        """Get status as string for comparison."""
+        s = v.get("status", "")
+        return s.value if hasattr(s, "value") else str(s)
+
+    def _source(v: Dict) -> str:
+        """Get discovery_source as string for comparison."""
+        s = v.get("discovery_source", "")
+        return s.value if hasattr(s, "value") else str(s)
+
+    def _created_month(v: Dict) -> int:
+        """Safely extract month from created_at (handles str or datetime)."""
+        ca = v.get("created_at")
+        if ca is None:
+            return 0
+        if isinstance(ca, str):
+            try:
+                return datetime.fromisoformat(ca).month
+            except (ValueError, TypeError):
+                return 0
+        return ca.month
+
+    now_month = datetime.now().month
+
     return {
         "total_discovered": len(vulns),
         "by_severity": {
-            "critical": len(
-                [v for v in vulns if v["severity"] == VulnSeverity.CRITICAL]
-            ),
-            "high": len([v for v in vulns if v["severity"] == VulnSeverity.HIGH]),
-            "medium": len([v for v in vulns if v["severity"] == VulnSeverity.MEDIUM]),
-            "low": len([v for v in vulns if v["severity"] == VulnSeverity.LOW]),
+            "critical": len([v for v in vulns if _sev(v) == "critical"]),
+            "high": len([v for v in vulns if _sev(v) == "high"]),
+            "medium": len([v for v in vulns if _sev(v) == "medium"]),
+            "low": len([v for v in vulns if _sev(v) == "low"]),
         },
         "by_status": {
-            "draft": len([v for v in vulns if v["status"] == VulnStatus.DRAFT]),
-            "internal": len([v for v in vulns if v["status"] == VulnStatus.INTERNAL]),
+            "draft": len([v for v in vulns if _status(v) == "draft"]),
+            "internal": len([v for v in vulns if _status(v) == "internal"]),
             "cve_requested": len(
-                [v for v in vulns if v["status"] == VulnStatus.CVE_REQUESTED]
+                [v for v in vulns if _status(v) == "cve_requested"]
             ),
             "cve_assigned": len(
-                [v for v in vulns if v["status"] == VulnStatus.CVE_ASSIGNED]
+                [v for v in vulns if _status(v) == "cve_assigned"]
             ),
-            "public": len([v for v in vulns if v["status"] == VulnStatus.PUBLIC]),
+            "public": len([v for v in vulns if _status(v) == "public"]),
         },
         "by_source": {
-            source.value: len([v for v in vulns if v["discovery_source"] == source])
+            source.value: len([v for v in vulns if _source(v) == source.value])
             for source in DiscoverySource
         },
         "cves_contributed": len([v for v in vulns if v.get("cve_id")]),
         "pending_disclosure": len(
-            [v for v in vulns if v["status"] == VulnStatus.CVE_REQUESTED]
+            [v for v in vulns if _status(v) == "cve_requested"]
         ),
         "this_month": len(
-            [v for v in vulns if v["created_at"].month == datetime.now().month]
+            [v for v in vulns if _created_month(v) == now_month]
         ),
     }
 

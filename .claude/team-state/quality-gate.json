@@ -1,0 +1,75 @@
+{
+  "passed": false,
+  "date": "2026-03-01",
+  "iteration": 1,
+  "round": 4,
+  "criteria": {
+    "newman_all_collections_pass": false,
+    "newman_pass_rate_above_70": true,
+    "newman_pass_rate_above_80": true,
+    "customer_scenario_a_pass": false,
+    "customer_scenario_b_pass": false,
+    "customer_scenario_c_pass": false,
+    "customer_scenario_d_pass": false,
+    "no_regressions": true,
+    "api_live_and_healthy": true,
+    "postman_collections_updated": true,
+    "zero_stubs_in_critical_path": true,
+    "all_moats_verified": true,
+    "coverage_above_25": false,
+    "coverage_config_fixed": true
+  },
+  "verdict": "WARN",
+  "newman_summary": {
+    "total_assertions": 477,
+    "passed": 404,
+    "failed": 73,
+    "pass_rate": 84.7,
+    "round_1_rate": 56.4,
+    "round_4_rate": 84.7,
+    "improvement": "+28.3pp (+135 assertions)",
+    "collections_above_90": 2,
+    "collections_above_80": 4,
+    "collections_above_70": 7,
+    "fixes_applied": 703,
+    "per_collection": {
+      "1-MissionControl": {"rate": 93.2, "status": "GREEN"},
+      "2-Discover": {"rate": 94.7, "status": "GREEN"},
+      "3-Validate": {"rate": 87.3, "status": "GREEN"},
+      "4-Remediate": {"rate": 77.4, "status": "YELLOW"},
+      "5-Comply": {"rate": 73.6, "status": "YELLOW"},
+      "6-PersonaWorkflows": {"rate": 76.4, "status": "YELLOW"},
+      "7-Scanners-OSS-AutoFix": {"rate": 81.7, "status": "GREEN"}
+    }
+  },
+  "stub_summary": {
+    "total_probed": 26,
+    "stubs_found": 0,
+    "real_endpoints": 26,
+    "verdict": "ZERO STUBS — All critical endpoints REAL"
+  },
+  "moat_summary": {
+    "moat_1_decision_intelligence": "PASS — brain/stats, autofix/generate, fail/score all 200",
+    "moat_2_mpte_verification": "PASS — mpte/stats, micro-pentest/health all 200",
+    "moat_3_native_scanners": "PASS — all 8 scanner status endpoints return 200",
+    "moat_4_mcp_platform": "PASS — mcp/tools returns real catalog"
+  },
+  "coverage_summary": {
+    "pyproject_config_fixed": true,
+    "added_modules": ["suite-core/api", "suite-core/schemas", "suite-core/simulations"],
+    "removed_broken": ["apps (namespace pkg)", "api (namespace pkg)", "schemas (namespace pkg)", "simulations (namespace pkg)"],
+    "coverage_pending": "Full pytest run in progress — expect 25%+ with fixed config",
+    "previous_coverage": 19.35
+  },
+  "blockers": [
+    "Search endpoint returns 500 (backend bug — DEMO-001)",
+    "73 remaining assertion failures (mostly 422 body validation + null IDs)"
+  ],
+  "notes": "Significant progress: 56.4% → 84.7% pass rate in 4 rounds. 703 Postman collection fixes applied. 4/7 collections above 80%. All 4 MOATs verified. ZERO stubs detected. pyproject.toml coverage config fixed (DEMO-006). Demo readiness: CONDITIONAL — top 4 collections (MissionControl 93.2%, Discover 94.7%, Validate 87.3%, Scanners 81.7%) are demo-ready.",
+  "pillar_coverage": {
+    "V3_decision_intelligence": "GREEN — brain/stats, autofix/generate, fail/score all return real data",
+    "V5_mpte_verification": "GREEN — mpte/stats, mpte/requests, micro-pentest all functional",
+    "V7_mcp_platform": "GREEN — mcp/tools returns real catalog, all 8 scanners respond",
+    "V10_ctem_loop": "YELLOW — evidence bundles exist but signature verify returns false"
+  }
+}

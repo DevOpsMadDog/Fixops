@@ -2,9 +2,15 @@
 Secrets detection API endpoints.
 
 Provides enterprise-grade secrets scanning with gitleaks and trufflehog integration.
+
+SECURITY: This router handles sensitive data (secrets/credentials).
+- NEVER log actual secret values
+- Redact matched_pattern fields in logs
+- Validate all file paths against traversal attacks
 """
 
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -12,7 +18,7 @@ from core.secrets_db import SecretsDB
 from core.secrets_models import SecretFinding, SecretStatus, SecretType
 from core.secrets_scanner import SecretsScanner, get_secrets_detector
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 # Knowledge Brain + Event Bus integration (graceful degradation)
 try:
@@ -28,19 +34,45 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/secrets", tags=["secrets"])
 db = SecretsDB()
 
+_MAX_FILE_PATH_LENGTH = 1024
+_MAX_CONTENT_LENGTH = 2_000_000  # 2MB max content to scan
+_MAX_FILENAME_LENGTH = 255
+_MAX_REPOSITORY_LENGTH = 256
+_MAX_BRANCH_LENGTH = 256
+_MAX_PATTERN_LENGTH = 1024
+
+
+def _sanitize_file_path(path: str) -> str:
+    """Sanitize file path — strip traversal attempts but keep relative paths."""
+    if ".." in path:
+        # Remove any traversal components
+        parts = path.replace("\\", "/").split("/")
+        parts = [p for p in parts if p != ".."]
+        path = "/".join(parts)
+    # Remove null bytes and control characters
+    path = "".join(c for c in path if c.isprintable() and c != "\x00")
+    if len(path) > _MAX_FILE_PATH_LENGTH:
+        path = path[:_MAX_FILE_PATH_LENGTH]
+    return path or "unknown"
+
 
 class SecretFindingCreate(BaseModel):
     """Request model for creating secret finding."""
 
     secret_type: SecretType
-    file_path: str
-    line_number: int
-    repository: str
-    branch: str
-    commit_hash: Optional[str] = None
-    matched_pattern: Optional[str] = None
-    entropy_score: Optional[float] = None
+    file_path: str = Field(..., max_length=_MAX_FILE_PATH_LENGTH)
+    line_number: int = Field(..., ge=0, le=10_000_000)
+    repository: str = Field(..., max_length=_MAX_REPOSITORY_LENGTH)
+    branch: str = Field(..., max_length=_MAX_BRANCH_LENGTH)
+    commit_hash: Optional[str] = Field(None, max_length=64)
+    matched_pattern: Optional[str] = Field(None, max_length=_MAX_PATTERN_LENGTH)
+    entropy_score: Optional[float] = Field(None, ge=0.0, le=10.0)
     metadata: Dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("file_path")
+    @classmethod
+    def validate_file_path(cls, v: str) -> str:
+        return _sanitize_file_path(v)
 
 
 class SecretFindingResponse(BaseModel):
@@ -89,6 +121,12 @@ async def get_secrets_status():
     }
 
 
+@router.get("/health")
+async def secrets_health():
+    """Secrets scanner health check (alias for /status)."""
+    return await get_secrets_status()
+
+
 @router.get("", response_model=PaginatedSecretFindingResponse)
 async def list_secret_findings(
     repository: Optional[str] = None,
@@ -125,28 +163,31 @@ async def create_secret_finding(finding_data: SecretFindingCreate):
 
     # Emit secret found event + ingest into Knowledge Brain
     if _HAS_BRAIN:
-        bus = get_event_bus()
-        brain = get_brain()
-        brain.ingest_finding(
-            created_finding.id,
-            title=f"Secret: {finding_data.secret_type.value} in {finding_data.repository}",
-            severity="high",
-            source="secrets_scanner",
-            file_path=finding_data.file_path,
-            repository=finding_data.repository,
-        )
-        await bus.emit(
-            Event(
-                event_type=EventType.SECRET_FOUND,
-                source="secrets_router",
-                data={
-                    "finding_id": created_finding.id,
-                    "secret_type": finding_data.secret_type.value,
-                    "repository": finding_data.repository,
-                    "file_path": finding_data.file_path,
-                },
+        try:
+            bus = get_event_bus()
+            brain = get_brain()
+            brain.ingest_finding(
+                created_finding.id,
+                title=f"Secret: {finding_data.secret_type.value} in {finding_data.repository}",
+                severity="high",
+                source="secrets_scanner",
+                file_path=finding_data.file_path,
+                repository=finding_data.repository,
             )
-        )
+            await bus.emit(
+                Event(
+                    event_type=EventType.SECRET_FOUND,
+                    source="secrets_router",
+                    data={
+                        "finding_id": created_finding.id,
+                        "secret_type": finding_data.secret_type.value,
+                        "repository": finding_data.repository,
+                        "file_path": finding_data.file_path,
+                    },
+                )
+            )
+        except Exception as e:
+            logger.warning("Brain/EventBus integration failed: %s", type(e).__name__)
 
     return SecretFindingResponse(**created_finding.to_dict())
 
@@ -214,14 +255,39 @@ async def get_detector_status():
 class SecretsScanContentRequest(BaseModel):
     """Request model for scanning content for secrets."""
 
-    content: str = Field(..., description="File content to scan")
-    filename: str = Field(..., description="Filename")
-    repository: str = Field("inline", description="Repository name")
-    branch: str = Field("main", description="Branch name")
+    content: str = Field(
+        ...,
+        description="File content to scan",
+        max_length=_MAX_CONTENT_LENGTH,
+    )
+    filename: str = Field(
+        ...,
+        description="Filename",
+        max_length=_MAX_FILENAME_LENGTH,
+    )
+    repository: str = Field(
+        "inline",
+        description="Repository name",
+        max_length=_MAX_REPOSITORY_LENGTH,
+    )
+    branch: str = Field(
+        "main",
+        description="Branch name",
+        max_length=_MAX_BRANCH_LENGTH,
+    )
     scanner: Optional[str] = Field(
         None,
         description="Scanner to use: 'gitleaks' or 'trufflehog' (auto-selected if not specified)",
     )
+
+    @field_validator("filename")
+    @classmethod
+    def validate_filename(cls, v: str) -> str:
+        """Sanitize filename to prevent path traversal."""
+        if ".." in v or "/" in v or "\\" in v:
+            v = os.path.basename(v)
+        v = "".join(c for c in v if c.isprintable() and c != "\x00")
+        return v[:_MAX_FILENAME_LENGTH] if v else "unknown.txt"
 
 
 @router.post("/scan/content", response_model=SecretsScanResponse)
@@ -253,8 +319,16 @@ async def scan_content_for_secrets(request: SecretsScanContentRequest):
             scanner=scanner_type,
         )
     except Exception as e:
-        logger.exception(f"Secrets content scan failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Scan failed: {str(e)}")
+        # SECURITY: Never include exception details that might contain secret values
+        logger.error(
+            "Secrets content scan failed: %s: %s",
+            type(e).__name__,
+            str(e)[:200],  # Truncate to avoid logging secrets
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Scan failed: {type(e).__name__}",
+        )
 
     for finding in result.findings:
         try:

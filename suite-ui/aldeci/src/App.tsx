@@ -10,6 +10,7 @@ import { logNavigation, logClick } from './lib/api';
 
 // Lazy load pages for better performance
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const CEODashboard = lazy(() => import('./pages/CEODashboard'));
 const DataFabric = lazy(() => import('./pages/DataFabric'));
 const IntelligenceHub = lazy(() => import('./pages/IntelligenceHub'));
 const DecisionEngine = lazy(() => import('./pages/DecisionEngine'));
@@ -89,6 +90,9 @@ const BrainPipelineDashboard = lazy(() => import('./pages/core/BrainPipelineDash
 const ExposureCaseCenter = lazy(() => import('./pages/core/ExposureCaseCenter'));
 const SOC2EvidenceUI = lazy(() => import('./pages/evidence/SOC2EvidenceUI'));
 
+// Discover Space — Scanner Dashboard (CTEM+ Identity)
+const ScannerDashboard = lazy(() => import('./pages/discover/ScannerDashboard'));
+
 // Loading fallback
 const PageLoader = () => (
   <div className="flex items-center justify-center h-full">
@@ -157,6 +161,8 @@ function AnimatedRoutes() {
             {/* Core Pages */}
             <Route path="/" element={<Dashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/executive" element={<CEODashboard />} />
+            <Route path="/ceo" element={<CEODashboard />} />
             <Route path="/nerve-center" element={<NerveCenter />} />
             <Route path="/ingest" element={<DataFabric />} />
             <Route path="/intelligence" element={<IntelligenceHub />} />
@@ -232,6 +238,10 @@ function AnimatedRoutes() {
             <Route path="/core/brain-pipeline" element={<BrainPipelineDashboard />} />
             <Route path="/core/exposure-cases" element={<ExposureCaseCenter />} />
             <Route path="/evidence/soc2" element={<SOC2EvidenceUI />} />
+
+            {/* Discover Space — Scanner Dashboard */}
+            <Route path="/discover/scanners" element={<ScannerDashboard />} />
+            <Route path="/scanners" element={<ScannerDashboard />} />
 
             {/* Legacy routes for backwards compatibility */}
             <Route path="/data-fabric" element={<DataFabric />} />

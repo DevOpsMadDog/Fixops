@@ -42,15 +42,25 @@ const IntegrationsSettings = () => {
     queryFn: () => cnappConnectorsApi.getConnectorTypes(),
   });
 
-  // Fetch configured integrations
-  const { data: integrations = [], isLoading, refetch } = useQuery({
+  // Fetch configured integrations — backend returns {items: [...], total, limit, offset}
+  const { data: integrationsData, isLoading, refetch } = useQuery({
     queryKey: ['integrations'],
     queryFn: () => integrationsApi.list(),
   });
 
+  // Map backend response → array with UI status
+  const integrations: ConfiguredConnector[] = (integrationsData?.items || []).map((item: any) => ({
+    id: item.id,
+    type: item.integration_type,
+    name: item.name,
+    status: item.status === 'active' ? 'connected' : item.status === 'error' ? 'error' : 'disconnected',
+    last_sync: item.last_sync_at,
+    config: item.config,
+  }));
+
   // Create integration mutation
   const createMutation = useMutation({
-    mutationFn: (data: { type: string; name: string; config: Record<string, unknown> }) =>
+    mutationFn: (data: { integration_type: string; name: string; config: Record<string, unknown> }) =>
       cnappConnectorsApi.create(data),
     onSuccess: () => {
       toast.success('Connector created successfully');
@@ -114,7 +124,7 @@ const IntegrationsSettings = () => {
   const handleSaveConnector = () => {
     if (!selectedType || !connectorName.trim()) return;
     createMutation.mutate({
-      type: selectedType.id,
+      integration_type: selectedType.id,
       name: connectorName,
       config: configValues,
     });
@@ -160,7 +170,7 @@ const IntegrationsSettings = () => {
       <Tabs defaultValue="available" className="space-y-6">
         <TabsList>
           <TabsTrigger value="available">Available Connectors</TabsTrigger>
-          <TabsTrigger value="configured">Configured ({Array.isArray(integrations) ? integrations.length : 0})</TabsTrigger>
+          <TabsTrigger value="configured">Configured ({integrations.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="available" className="space-y-6">
@@ -210,7 +220,7 @@ const IntegrationsSettings = () => {
         <TabsContent value="configured" className="space-y-4">
           {isLoading ? (
             <div className="text-center py-8 text-muted-foreground">Loading integrations...</div>
-          ) : !Array.isArray(integrations) || integrations.length === 0 ? (
+          ) : !integrations.length ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <Plug className="w-12 h-12 mx-auto text-muted-foreground mb-4" />

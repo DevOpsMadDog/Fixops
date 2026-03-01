@@ -1,0 +1,81 @@
+{
+  "sprint": "Sprint 2 — Enterprise Demo",
+  "date_range": "2026-03-01 to 2026-03-06",
+  "owner": "marketing-head",
+  "week_1": [
+    {
+      "type": "one_pager",
+      "title": "Enterprise Demo Talking Points — 9 Differentiators",
+      "status": "done",
+      "file": ".claude/team-state/marketing/enterprise-demo-talking-points.md",
+      "pillar": "V3, V5, V7",
+      "due": "2026-03-01"
+    },
+    {
+      "type": "blog",
+      "title": "Why Multi-AI Consensus Beats Single-Model Security Decisions",
+      "status": "done",
+      "file": ".claude/team-state/marketing/content/blog-multi-ai-consensus.md",
+      "pillar": "V3",
+      "due": "2026-03-02"
+    },
+    {
+      "type": "linkedin",
+      "title": "The 11,300 Finding Problem — And How We Solved It",
+      "status": "done",
+      "file": ".claude/team-state/marketing/content/linkedin-11300-finding-problem.md",
+      "pillar": "V3",
+      "due": "2026-03-03"
+    },
+    {
+      "type": "demo_video_script",
+      "title": "ALdeci 5-Min Enterprise Demo Script",
+      "status": "planned",
+      "file": "",
+      "pillar": "V3, V5, V7",
+      "due": "2026-03-04"
+    },
+    {
+      "type": "email",
+      "title": "Post-Demo Follow-Up Email Template",
+      "status": "planned",
+      "file": "",
+      "pillar": "V3",
+      "due": "2026-03-06"
+    }
+  ],
+  "week_2": [
+    {
+      "type": "blog",
+      "title": "CTEM+ vs. ASPM: Why Gartner's Framework Isn't Enough",
+      "status": "planned",
+      "file": "",
+      "pillar": "V3, V10",
+      "due": "2026-03-09"
+    },
+    {
+      "type": "linkedin",
+      "title": "Wiz Goes to Google — What It Means for Security Neutrality",
+      "status": "planned",
+      "file": "",
+      "pillar": "V3",
+      "due": "2026-03-10"
+    },
+    {
+      "type": "twitter_thread",
+      "title": "19 Phases of MPTE — How Automated Pentesting Works",
+      "status": "planned",
+      "file": "",
+      "pillar": "V5",
+      "due": "2026-03-11"
+    },
+    {
+      "type": "investor_one_pager",
+      "title": "ALdeci Pre-Seed One-Pager for Investor Outreach",
+      "status": "planned",
+      "file": "",
+      "pillar": "V3, V5, V7",
+      "due": "2026-03-12"
+    }
+  ]
+}

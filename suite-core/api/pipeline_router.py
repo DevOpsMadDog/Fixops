@@ -198,3 +198,15 @@ def _collect_platform_data(req: EvidenceGenerateRequest) -> Dict[str, Any]:
         pass
 
     return data
+
+
+@router.get("/health")
+async def pipeline_health():
+    """Pipeline engine health check."""
+    return {"status": "healthy", "engine": "pipeline", "version": "1.0.0"}
+
+
+@router.get("/status")
+async def pipeline_status():
+    """Pipeline engine status (alias for /health)."""
+    return await pipeline_health()

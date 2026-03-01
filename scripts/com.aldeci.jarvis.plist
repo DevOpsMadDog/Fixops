@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  JARVIS — macOS LaunchAgent (Immortal Daemon)
+  
+  Runs the JARVIS launcher which auto-restarts the CTEM+ AI Swarm on crash.
+  macOS launchd provides an EXTRA layer of resurrection — if even the launcher
+  dies, launchd will restart it.
+
+  INSTALL:
+    cp scripts/com.aldeci.jarvis.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.aldeci.jarvis.plist
+
+  START NOW:
+    launchctl start com.aldeci.jarvis
+
+  STOP:
+    launchctl stop com.aldeci.jarvis
+
+  UNINSTALL:
+    launchctl unload ~/Library/LaunchAgents/com.aldeci.jarvis.plist
+    rm ~/Library/LaunchAgents/com.aldeci.jarvis.plist
+
+  STATUS:
+    ./scripts/jarvis-launcher.sh --status
+
+  VIEW LOGS:
+    tail -f /Users/devops.ai/developement/fixops/Fixops/logs/jarvis/launchd-stdout.log
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.aldeci.jarvis</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/devops.ai/developement/fixops/Fixops/scripts/jarvis-launcher.sh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/devops.ai/developement/fixops/Fixops</string>
+
+    <!-- KeepAlive: restart if the launcher itself crashes (exit != 0) -->
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+
+    <!-- Don't restart too fast — wait 30s between launchd-level restarts -->
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/devops.ai/developement/fixops/Fixops/logs/jarvis/launchd-stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/devops.ai/developement/fixops/Fixops/logs/jarvis/launchd-stderr.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:/Users/devops.ai/.nvm/versions/node/v22.14.0/bin:/Users/devops.ai/.npm-global/bin</string>
+        <key>HOME</key>
+        <string>/Users/devops.ai</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+    </dict>
+
+    <!-- Don't start automatically on login — manual trigger only -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <!-- Lower priority so it doesn't starve interactive work -->
+    <key>Nice</key>
+    <integer>5</integer>
+
+    <!-- Prevent launchd timeout kill (default is 20s which is way too short) -->
+    <key>ExitTimeOut</key>
+    <integer>0</integer>
+
+    <!-- Process type: background (won't appear in Dock) -->
+    <key>ProcessType</key>
+    <string>Background</string>
+</dict>
+</plist>

@@ -1679,14 +1679,14 @@ class TestRemainingModulesComplete:
         self, temp_cache_dir: Path, monkeypatch: pytest.MonkeyPatch
     ):
         """Test NVD fetch_recent_cves with API key."""
-        feed = NVDFeed(api_key="test-api-key", cache_dir=temp_cache_dir)
+        feed = NVDFeed(api_key="nvd-feed-credential", cache_dir=temp_cache_dir)
 
         def mock_fetcher(url):
             from urllib.parse import parse_qs, urlparse
 
             parsed = urlparse(url)
             query_params = parse_qs(parsed.query)
-            assert query_params.get("apiKey") == ["test-api-key"]
+            assert query_params.get("apiKey") == ["nvd-feed-credential"]
             return json.dumps(
                 {
                     "vulnerabilities": [

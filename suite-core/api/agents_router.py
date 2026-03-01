@@ -1279,13 +1279,50 @@ async def check_reachability(request: ReachabilityRequest) -> Dict[str, Any]:
         }
 
     # Neither MPTE nor KnowledgeBrain available
+    # Tier 3: Sandboxed reachability probes (Docker-isolated network checks)
+    try:
+        from core.sandbox_verifier import SandboxedReachabilityProbe
+
+        probe = SandboxedReachabilityProbe()
+        if probe.docker_available:
+            # Use asset_ids as probe targets (may be URLs or host:port)
+            probe_results = probe.probe_multiple(request.asset_ids)
+            return {
+                "cve_id": request.cve_id,
+                "assets_analyzed": len(request.asset_ids),
+                "status": "analyzed",
+                "source": "sandboxed_probe",
+                "reachability_results": [
+                    {
+                        "asset_id": request.asset_ids[i] if i < len(request.asset_ids) else "",
+                        "reachable": r.reachable,
+                        "http_status": r.http_status,
+                        "open_ports": r.open_ports,
+                        "tls_valid": r.tls_valid,
+                        "server_header": r.server_header,
+                        "latency_ms": r.latency_ms,
+                        "confidence": r.confidence,
+                        "method": "sandboxed_docker_probe",
+                        "evidence_hash": r.evidence_hash,
+                    }
+                    for i, r in enumerate(probe_results)
+                ],
+                "depth": request.depth,
+                "note": "Network-level reachability via Docker sandbox. MPTE and KnowledgeBrain unavailable.",
+            }
+    except ImportError:
+        pass
+    except Exception as e:
+        logger.warning(f"Sandboxed reachability probe failed: {e}")
+
+    # Tier 4: Nothing available
     return {
         "cve_id": request.cve_id,
         "assets_analyzed": len(request.asset_ids),
         "status": "engine_unavailable",
         "reachability_results": [],
         "depth": request.depth,
-        "message": "Neither MPTE nor KnowledgeBrain available for reachability analysis.",
+        "message": "Neither MPTE, KnowledgeBrain, nor Docker sandbox available for reachability analysis.",
     }
 
 

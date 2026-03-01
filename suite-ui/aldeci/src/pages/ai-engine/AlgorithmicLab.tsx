@@ -78,7 +78,7 @@ const AlgorithmicLab = () => {
                     <div className="text-2xl font-bold">${monteCarloResult.p95?.toLocaleString() || 'N/A'}</div>
                   </div>
                 </div>
-                <pre className="text-xs bg-gray-50 p-2 rounded overflow-auto max-h-48">
+                <pre className="text-xs bg-gray-950/50 p-2 rounded overflow-auto max-h-48">
                   {JSON.stringify(monteCarloResult, null, 2)}
                 </pre>
               </div>
@@ -96,14 +96,14 @@ const AlgorithmicLab = () => {
                     <div className="text-sm text-muted-foreground mb-2">Root Causes</div>
                     <div className="space-y-2">
                       {causalResult.root_causes.map((cause: any, idx: number) => (
-                        <div key={idx} className="p-2 bg-purple-50 rounded text-sm">
+                        <div key={idx} className="p-2 bg-purple-500/10 rounded text-sm">
                           {cause.name || cause} - Impact: {cause.impact || 'Unknown'}
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
-                <pre className="text-xs bg-gray-50 p-2 rounded overflow-auto max-h-48">
+                <pre className="text-xs bg-gray-950/50 p-2 rounded overflow-auto max-h-48">
                   {JSON.stringify(causalResult, null, 2)}
                 </pre>
               </div>

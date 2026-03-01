@@ -1,0 +1,6 @@
+{
+  "summary": "Inter-agent data-flow contracts. Defines what each agent reads/writes.",
+  "size_bytes": 4904,
+  "instruction": "Read .claude/team-state/coordination-notes.md ONLY if you need to know data-flow contracts for a specific agent.",
+  "is_static": true
+}

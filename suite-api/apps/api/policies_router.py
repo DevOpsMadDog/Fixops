@@ -97,6 +97,8 @@ async def list_policies(
 @router.post("", response_model=PolicyResponse, status_code=201)
 async def create_policy(policy_data: PolicyCreate):
     """Create a new policy."""
+    import sqlite3
+
     policy = Policy(
         id="",
         name=policy_data.name,
@@ -106,7 +108,15 @@ async def create_policy(policy_data: PolicyCreate):
         rules=policy_data.rules,
         metadata=policy_data.metadata,
     )
-    created_policy = db.create_policy(policy)
+    try:
+        created_policy = db.create_policy(policy)
+    except (sqlite3.IntegrityError, Exception) as exc:
+        if "UNIQUE" in str(exc) or "unique" in str(exc).lower():
+            raise HTTPException(
+                status_code=409,
+                detail=f"Policy with name '{policy_data.name}' already exists",
+            )
+        raise
     return PolicyResponse(**created_policy.to_dict())
 
 

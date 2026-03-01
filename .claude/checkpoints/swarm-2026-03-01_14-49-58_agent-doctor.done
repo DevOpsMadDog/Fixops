@@ -1,0 +1,13 @@
+{
+  "agent": "agent-doctor",
+  "status": "completed",
+  "run_id": "swarm-2026-03-01_14-49-58",
+  "timestamp": "2026-03-01T04:12:46Z",
+  "duration_s": 1368,
+  "attempts": 1,
+  "output_bytes": 964,
+  "confidence": "HIGH",
+  "free_ram_mb": 7592,
+  "git_changes": " tests/test_security_evidence_bundles_api.py        |   579 +  tests/test_storage_backends_unit.py                |   542 +  tests/test_universal_connector_comprehensive.py    |  1279 +  tests/test_vuln_discovery_unit.py                  |   523 +  2227 files changed, 954533 insertions(+), 3912 deletions(-) ",
+  "log_file": "/Users/devops.ai/developement/fixops/Fixops/logs/ai-team/2026-03-01_agent-doctor_swarm-2026-03-01_14-49-58.log"
+}

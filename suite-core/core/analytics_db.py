@@ -363,13 +363,24 @@ class AnalyticsDB:
                 return None
 
             total_hours = 0.0
+            valid_count = 0
             for row in rows:
-                created = datetime.fromisoformat(row["created_at"])
-                resolved = datetime.fromisoformat(row["resolved_at"])
-                hours = (resolved - created).total_seconds() / 3600
-                total_hours += hours
+                try:
+                    created = datetime.fromisoformat(row["created_at"])
+                    resolved = datetime.fromisoformat(row["resolved_at"])
+                    # Normalize both to naive UTC to avoid offset-naive vs offset-aware errors
+                    if created.tzinfo is not None:
+                        created = created.replace(tzinfo=None)
+                    if resolved.tzinfo is not None:
+                        resolved = resolved.replace(tzinfo=None)
+                    hours = (resolved - created).total_seconds() / 3600
+                    if hours >= 0:
+                        total_hours += hours
+                        valid_count += 1
+                except (ValueError, TypeError):
+                    continue
 
-            return total_hours / len(rows)
+            return total_hours / valid_count if valid_count > 0 else None
         finally:
             conn.close()
 

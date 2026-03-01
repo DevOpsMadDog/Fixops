@@ -55,7 +55,7 @@ const Policies = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
-                      <span className={`px-2 py-1 rounded text-xs ${policy.enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                      <span className={`px-2 py-1 rounded text-xs ${policy.enabled ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}`}>
                         {policy.enabled ? 'Active' : 'Inactive'}
                       </span>
                       <Button variant="outline" size="sm" onClick={() => handleValidate(policy.id)}>Validate</Button>

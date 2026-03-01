@@ -1,0 +1,30 @@
+# ============================================
+# ALdeci Demo Sidecar — Interactive Testing
+# ============================================
+# A lightweight container for running interactive
+# demos, API tests, and micro-pentests against ALdeci.
+# ============================================
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install dependencies
+RUN pip install --no-cache-dir \
+    httpx \
+    rich \
+    typer \
+    pytest
+
+# Copy demo and test scripts
+COPY scripts/demo_sidecar.py ./demo_sidecar.py
+COPY scripts/micropentest_sidecar.py ./scripts/micropentest_sidecar.py
+COPY tests/sidecar/ ./tests/sidecar/
+
+# Environment variables
+ENV FIXOPS_BASE_URL=http://fixops:8000
+ENV FIXOPS_API_TOKEN=demo-token
+ENV PYTHONUNBUFFERED=1
+
+# Default command — run full demo
+CMD ["python", "demo_sidecar.py", "full-demo"]

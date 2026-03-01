@@ -48,3 +48,15 @@ async def fetch_attestation(artifact_name: str, request: Request) -> dict:
         raise HTTPException(status_code=404, detail="Attestation not found")
     statement = load_attestation(attestation_path)
     return statement.to_dict()
+
+
+@router.get("/health")
+async def provenance_health():
+    """Provenance service health check."""
+    return {"status": "healthy", "engine": "provenance", "version": "1.0.0"}
+
+
+@router.get("/status")
+async def provenance_status():
+    """Provenance service status (alias for /health)."""
+    return await provenance_health()

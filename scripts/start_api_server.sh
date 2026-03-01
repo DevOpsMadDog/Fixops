@@ -6,7 +6,7 @@ set -e
 echo "🚀 Starting FixOps API Server..."
 
 # Set environment variables
-export FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-"test-api-key-12345"}
+export FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-"aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh"}
 export FIXOPS_ENABLE_OPENAI=${FIXOPS_ENABLE_OPENAI:-"false"}
 export FIXOPS_ENABLE_ANTHROPIC=${FIXOPS_ENABLE_ANTHROPIC:-"false"}
 export FIXOPS_ENABLE_GEMINI=${FIXOPS_ENABLE_GEMINI:-"false"}

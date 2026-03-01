@@ -556,7 +556,7 @@ class LLMExplanationEngine:
         import hashlib
 
         key_data = f"{request.context_type}_{request.audience}_{request.detail_level}_{json.dumps(request.technical_data, sort_keys=True)}"
-        return hashlib.md5(key_data.encode()).hexdigest()
+        return hashlib.md5(key_data.encode(), usedforsecurity=False).hexdigest()
 
     async def explain_vulnerability_findings(
         self, findings: List[Dict[str, Any]], audience: str = "security_analyst"

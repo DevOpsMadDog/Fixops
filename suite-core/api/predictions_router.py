@@ -482,4 +482,16 @@ def _combine_verdicts(markov_result: Dict, bayesian_result: Dict) -> Dict[str, A
     }
 
 
+@router.get("/health")
+async def predictions_health():
+    """Predictions engine health check."""
+    return {"status": "healthy", "engine": "predictions", "version": "1.0.0"}
+
+
+@router.get("/status")
+async def predictions_status():
+    """Predictions engine status (alias for /health)."""
+    return await predictions_health()
+
+
 __all__ = ["router"]

@@ -1,0 +1,75 @@
+{
+  "CVE_data_type": "CVE",
+  "CVE_data_format": "MITRE",
+  "CVE_data_version": "4.0",
+  "CVE_data_numberOfCVEs": "3",
+  "CVE_Items": [
+    {
+      "cve": {
+        "CVE_data_meta": {"ID": "CVE-2021-44228", "ASSIGNER": "security@apache.org"},
+        "description": {
+          "description_data": [
+            {"lang": "en", "value": "Apache Log4j2 <= 2.14.1 JNDI features used in configuration, log messages, and parameters do not protect against attacker controlled LDAP and other JNDI related endpoints. An attacker who can control log messages or log message parameters can execute arbitrary code loaded from LDAP servers when message lookup substitution is enabled."}
+          ]
+        },
+        "references": {
+          "reference_data": [
+            {"url": "https://logging.apache.org/log4j/2.x/security.html", "name": "Apache Advisory"}
+          ]
+        }
+      },
+      "impact": {
+        "baseMetricV3": {
+          "cvssV3": {"baseScore": 10.0, "baseSeverity": "CRITICAL", "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H"}
+        }
+      },
+      "configurations": {},
+      "publishedDate": "2021-12-10T10:15Z",
+      "lastModifiedDate": "2023-04-03T20:15Z"
+    },
+    {
+      "cve": {
+        "CVE_data_meta": {"ID": "CVE-2023-44487", "ASSIGNER": "cve@mitre.org"},
+        "description": {
+          "description_data": [
+            {"lang": "en", "value": "The HTTP/2 protocol allows a denial of service (server resource consumption) because request cancellation can reset many streams quickly, as exploited in the wild in August through October 2023."}
+          ]
+        },
+        "references": {
+          "reference_data": [
+            {"url": "https://www.cve.org/CVERecord?id=CVE-2023-44487", "name": "CVE Record"}
+          ]
+        }
+      },
+      "impact": {
+        "baseMetricV3": {
+          "cvssV3": {"baseScore": 7.5, "baseSeverity": "HIGH", "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"}
+        }
+      },
+      "publishedDate": "2023-10-10T14:15Z",
+      "lastModifiedDate": "2024-01-16T18:15Z"
+    },
+    {
+      "cve": {
+        "CVE_data_meta": {"ID": "CVE-2024-3094", "ASSIGNER": "cve@mitre.org"},
+        "description": {
+          "description_data": [
+            {"lang": "en", "value": "Malicious code was discovered in the upstream tarballs of xz, starting with version 5.6.0. Through a series of complex obfuscations, the liblzma build process extracts a prebuilt object file that modifies specific functions in the code."}
+          ]
+        },
+        "references": {
+          "reference_data": [
+            {"url": "https://www.openwall.com/lists/oss-security/2024/03/29/4", "name": "oss-security"}
+          ]
+        }
+      },
+      "impact": {
+        "baseMetricV3": {
+          "cvssV3": {"baseScore": 10.0, "baseSeverity": "CRITICAL", "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H"}
+        }
+      },
+      "publishedDate": "2024-03-29T17:15Z",
+      "lastModifiedDate": "2024-04-12T12:43Z"
+    }
+  ]
+}

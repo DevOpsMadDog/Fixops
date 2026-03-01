@@ -448,3 +448,9 @@ async def brain_health() -> Dict[str, Any]:
         "edges": stats.get("total_edges", 0),
         "entity_types": stats.get("entity_types", []),
     }
+
+
+@router.get("/status")
+async def brain_status() -> Dict[str, Any]:
+    """Knowledge Brain status (alias for /health)."""
+    return await brain_health()

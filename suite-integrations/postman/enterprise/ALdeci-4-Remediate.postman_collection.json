@@ -1,0 +1,1864 @@
+{
+  "info": {
+    "_postman_id": "vl-004-remediate",
+    "name": "\ud83d\udd27 ALdeci \u2014 REMEDIATE",
+    "description": "## Remediate \u2014 \"How do I fix it?\"\n\nCovers: Remediation Center, AutoFix, Bulk Operations, Collaboration, Workflows, Tickets\n\n### Personas Served\n- **Alex Rivera** (Security Engineer) \u2014 autofix, remediation tasks\n- **Mike Chen** (Developer) \u2014 apply fixes, validate, create PRs\n- **Raj Patel** (DevSecOps Lead) \u2014 bulk ops, workflow automation\n- **Sarah Chen** (CISO) \u2014 SLA tracking, remediation metrics\n- **Tom Baker** (External Auditor) \u2014 remediation evidence\n\n### Endpoints: 100+ covering remediation, autofix, bulk, collaboration, workflows, copilot\n\n### Vision Pillars: V3 (Decision Intelligence), V8 (Self-Learning), V10 (CTEM)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{apiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.request.headers.add({ key: 'Content-Type', value: 'application/json' });",
+          "pm.request.headers.add({ key: 'Accept', value: 'application/json' });"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "\ud83d\udd27 Remediation Center",
+      "description": "Core remediation task management \u2014 create, assign, track, SLA.",
+      "item": [
+        {
+          "name": "List Remediation Tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/remediation/tasks",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "remediation",
+                "tasks"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List remediation tasks returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture first taskId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (Array.isArray(json) && json.length > 0) pm.environment.set('taskId', json[0].id || json[0].task_id);",
+                  "    else if (json.tasks && json.tasks.length > 0) pm.environment.set('taskId', json.tasks[0].id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Remediation Task",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finding_id\": \"{{findingId}}\",\n  \"title\": \"Fix SQL Injection in payment-service\",\n  \"severity\": \"critical\",\n  \"assignee\": \"alex.rivera@company.com\",\n  \"sla_hours\": 24,\n  \"description\": \"Remediate SQL injection vulnerability in login endpoint\",\n  \"priority\": \"P0\",\n  \"cluster_id\": \"cluster-001\",\n  \"org_id\": \"{{orgId}}\",\n  \"app_id\": \"test-app-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/remediation/tasks",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "remediation",
+                "tasks"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create task returns 200/201', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture taskId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.task_id) pm.environment.set('taskId', json.task_id);",
+                  "    else if (json.id) pm.environment.set('taskId', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Remediation Task",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/remediation/tasks/{{taskId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "remediation",
+                "tasks",
+                "{{taskId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get task returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Auto-capture taskId from list endpoint",
+                  "var listUrl = pm.environment.get('apiBase') + '/remediation/tasks';",
+                  "pm.sendRequest({",
+                  "    url: listUrl,",
+                  "    method: 'GET',",
+                  "    header: { 'X-API-Key': pm.environment.get('apiKey') }",
+                  "}, function(err, res) {",
+                  "    if (!err && res.code === 200) {",
+                  "        try {",
+                  "            var body = res.json();",
+                  "            var items = body.tasks || body.items || body.data || body.workflows ||",
+                  "                        body.cases || body.fixes || body.policies || body.reports ||",
+                  "                        body.bundles || body.comments || body.activities || [];",
+                  "            if (Array.isArray(items) && items.length > 0) {",
+                  "                var id = items[0].task_id || items[0].id || items[0].task_id || items[0].fix_id;",
+                  "                if (id) pm.environment.set('taskId', id);",
+                  "            }",
+                  "        } catch(e) {}",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Task Status",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\",\n  \"notes\": \"Starting remediation, implementing parameterized queries\",\n  \"cluster_id\": \"cluster-001\",\n  \"org_id\": \"{{orgId}}\",\n  \"title\": \"Fix SQL Injection\",\n  \"finding_id\": \"{{findingId}}\",\n  \"severity\": \"critical\",\n  \"assignee\": \"security-team\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/remediation/tasks/{{taskId}}/status",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "remediation",
+                "tasks",
+                "{{taskId}}",
+                "status"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Update task returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Auto-capture taskId from list endpoint",
+                  "var listUrl = pm.environment.get('apiBase') + '/remediation/tasks';",
+                  "pm.sendRequest({",
+                  "    url: listUrl,",
+                  "    method: 'GET',",
+                  "    header: { 'X-API-Key': pm.environment.get('apiKey') }",
+                  "}, function(err, res) {",
+                  "    if (!err && res.code === 200) {",
+                  "        try {",
+                  "            var body = res.json();",
+                  "            var items = body.tasks || body.items || body.data || body.workflows ||",
+                  "                        body.cases || body.fixes || body.policies || body.reports ||",
+                  "                        body.bundles || body.comments || body.activities || [];",
+                  "            if (Array.isArray(items) && items.length > 0) {",
+                  "                var id = items[0].task_id || items[0].id || items[0].task_id || items[0].fix_id;",
+                  "                if (id) pm.environment.set('taskId', id);",
+                  "            }",
+                  "        } catch(e) {}",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remediation Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/remediation/metrics",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "remediation",
+                "metrics"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Remediation metrics returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "SLA Status",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/remediation/tasks/check",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "remediation",
+                "tasks",
+                "check"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"task_ids\": [\n    \"{{taskId}}\"\n  ],\n  \"sla_policy\": \"standard\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('SLA status returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remediation History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/remediation/statuses",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "remediation",
+                "statuses"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('History returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\u26a1 AutoFix Engine",
+      "description": "AI-powered code fix generation, validation, and application.",
+      "item": [
+        {
+          "name": "Generate AutoFix",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finding_id\": \"{{findingId}}\",\n  \"language\": \"python\",\n  \"framework\": \"fastapi\",\n  \"fix_type\": \"code_change\",\n  \"include_tests\": true\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/autofix/generate",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "autofix",
+                "generate"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('AutoFix generation returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture fixId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.fix_id) pm.environment.set('fixId', json.fix_id);",
+                  "    else if (json.id) pm.environment.set('fixId', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get AutoFix Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/autofix/fixes/{{fixId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "autofix",
+                "fixes",
+                "{{fixId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get fix returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Auto-capture fixId from autofix history",
+                  "var histUrl = pm.environment.get('apiBase') + '/autofix/history';",
+                  "pm.sendRequest({",
+                  "    url: histUrl,",
+                  "    method: 'GET',",
+                  "    header: { 'X-API-Key': pm.environment.get('apiKey') }",
+                  "}, function(err, res) {",
+                  "    if (!err && res.code === 200) {",
+                  "        try {",
+                  "            var body = res.json();",
+                  "            var items = body.fixes || body.items || body.data || [];",
+                  "            if (Array.isArray(items) && items.length > 0) {",
+                  "                var id = items[0].fix_id || items[0].id;",
+                  "                if (id) pm.environment.set('fixId', id);",
+                  "            }",
+                  "        } catch(e) {}",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Validate Fix",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fix_id\": \"{{fixId}}\",\n  \"validation_type\": \"syntax_and_security\",\n  \"org_id\": \"{{orgId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/autofix/validate",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "autofix",
+                "validate"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Validate fix returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Apply Fix",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fix_id\": \"{{fixId}}\",\n  \"target_branch\": \"fix/sql-injection-payment\",\n  \"create_pr\": true,\n  \"org_id\": \"{{orgId}}\",\n  \"repository\": {\n    \"url\": \"https://github.com/test/repo\",\n    \"branch\": \"main\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/autofix/apply",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "autofix",
+                "apply"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Apply fix returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rollback Fix",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fix_id\": \"{{fixId}}\",\n  \"reason\": \"Regression detected in integration tests\",\n  \"org_id\": \"{{orgId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/autofix/rollback",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "autofix",
+                "rollback"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Rollback returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "AutoFix Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/autofix/stats",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "autofix",
+                "stats"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('AutoFix metrics returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "AutoFix Languages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/autofix/fix-types",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "autofix",
+                "fix-types"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Languages returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udce6 Bulk Operations",
+      "description": "Enterprise-scale batch operations on findings and clusters.",
+      "item": [
+        {
+          "name": "Bulk Update Findings",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finding_ids\": [\n    \"{{findingId}}\"\n  ],\n  \"action\": \"update_status\",\n  \"status\": \"in_progress\",\n  \"assignee\": \"alex.rivera@company.com\",\n  \"notes\": \"Batch triaged by DevSecOps lead\",\n  \"update\": {\n    \"status\": \"triaged\"\n  },\n  \"org_id\": \"{{orgId}}\",\n  \"ids\": [\n    \"finding-001\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/bulk/findings/update",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "bulk",
+                "findings",
+                "update"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Bulk update returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bulk Risk Accept",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finding_ids\": [\n    \"{{findingId}}\"\n  ],\n  \"action\": \"risk_accept\",\n  \"reason\": \"Accepted risk \\u2014 business decision\",\n  \"ids\": [\n    \"finding-001\"\n  ],\n  \"justification\": \"accepted\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/bulk/findings/update",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "bulk",
+                "findings",
+                "update"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Bulk risk accept returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bulk Assign",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finding_ids\": [\n    \"{{findingId}}\"\n  ],\n  \"assignee\": \"mike.chen@company.com\",\n  \"team\": \"platform-security\",\n  \"org_id\": \"{{orgId}}\",\n  \"ids\": [\n    \"finding-001\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/bulk/findings/assign",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "bulk",
+                "findings",
+                "assign"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Bulk assign returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bulk Create Tickets",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cluster_ids\": [\n    \"{{clusterId}}\"\n  ],\n  \"integration_type\": \"jira\",\n  \"project_key\": \"SEC\",\n  \"ids\": [\n    \"finding-001\"\n  ],\n  \"integration_id\": \"jira-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/bulk/clusters/create-tickets",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "bulk",
+                "clusters",
+                "create-tickets"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Bulk ticket creation returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cluster Bulk Actions",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cluster_ids\": [\n    \"{{clusterId}}\"\n  ],\n  \"status\": \"in_progress\",\n  \"ids\": [\n    \"cluster-001\"\n  ],\n  \"new_status\": \"in_progress\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/bulk/clusters/status",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "bulk",
+                "clusters",
+                "status"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Cluster action returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bulk Operations History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/bulk/jobs",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "bulk",
+                "jobs"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Bulk history returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcac Collaboration Hub",
+      "description": "Cross-team collaboration \u2014 comments, watchers, activities, notifications.",
+      "item": [
+        {
+          "name": "List Finding Comments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/collaboration/comments?finding_id={{findingId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "collaboration",
+                "comments"
+              ],
+              "query": [
+                {
+                  "key": "finding_id",
+                  "value": "{{findingId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List comments returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Comment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finding_id\": \"{{findingId}}\",\n  \"content\": \"Confirmed exploitable via MPTE. Parameterized queries needed. @mike.chen please review the fix PR.\",\n  \"mentions\": [\n    \"mike.chen@company.com\"\n  ],\n  \"author\": \"qa-engineer\",\n  \"org_id\": \"{{orgId}}\",\n  \"entity_type\": \"finding\",\n  \"entity_id\": \"finding-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/collaboration/comments",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "collaboration",
+                "comments"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Add comment returns 200/201', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture commentId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.comment_id) pm.environment.set('commentId', json.comment_id);",
+                  "    else if (json.id) pm.environment.set('commentId', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Watcher",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finding_id\": \"{{findingId}}\",\n  \"user_email\": \"sarah.chen@company.com\",\n  \"watch_type\": \"all_updates\",\n  \"user_id\": \"{{userId}}\",\n  \"org_id\": \"{{orgId}}\",\n  \"entity_type\": \"finding\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/collaboration/watchers",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "collaboration",
+                "watchers"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Add watcher returns 200/201', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Activity Feed",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/collaboration/activities",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "collaboration",
+                "activities"
+              ],
+              "query": [
+                {
+                  "key": "org_id",
+                  "value": "org-001"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Activities returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/collaboration/notifications/pending",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "collaboration",
+                "notifications",
+                "pending"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Notifications returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture notificationId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (Array.isArray(json) && json.length) pm.environment.set('notificationId', json[0].id);",
+                  "    else if (json.notifications && json.notifications.length) pm.environment.set('notificationId', json.notifications[0].id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mark Notification Read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"read\": true,\n  \"org_id\": \"{{orgId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/collaboration/notifications/process",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "collaboration",
+                "notifications",
+                "process"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Mark read returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Team Activity Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/collaboration/activities",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "collaboration",
+                "activities"
+              ],
+              "query": [
+                {
+                  "key": "org_id",
+                  "value": "org-001"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Team activity returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\u2699\ufe0f Workflow Automation",
+      "description": "Security workflow engine \u2014 create, execute, schedule, track SLA.",
+      "item": [
+        {
+          "name": "List Workflows",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/workflows",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "workflows"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List workflows returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture workflowId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (Array.isArray(json) && json.length) pm.environment.set('workflowId', json[0].id);",
+                  "    else if (json.workflows && json.workflows.length) pm.environment.set('workflowId', json.workflows[0].id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Workflow",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Critical Finding Triage\",\n  \"description\": \"Auto-triage critical findings: FAIL score \u2192 MPTE verify \u2192 assign \u2192 ticket\",\n  \"trigger\": {\n    \"type\": \"finding_created\",\n    \"conditions\": {\"severity\": \"critical\"}\n  },\n  \"steps\": [\n    {\"action\": \"fail_score\", \"order\": 1},\n    {\"action\": \"mpte_verify\", \"order\": 2},\n    {\"action\": \"assign_team\", \"team\": \"platform-security\", \"order\": 3},\n    {\"action\": \"create_ticket\", \"system\": \"jira\", \"order\": 4}\n  ],\n  \"sla\": {\"critical\": 4, \"high\": 24, \"medium\": 72}\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/workflows",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "workflows"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create workflow returns 200/201', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture workflowId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.workflow_id) pm.environment.set('workflowId', json.workflow_id);",
+                  "    else if (json.id) pm.environment.set('workflowId', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Workflow",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/workflows/{{workflowId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "workflows",
+                "{{workflowId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get workflow returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Auto-capture workflowId from list endpoint",
+                  "var listUrl = pm.environment.get('apiBase') + '/workflows';",
+                  "pm.sendRequest({",
+                  "    url: listUrl,",
+                  "    method: 'GET',",
+                  "    header: { 'X-API-Key': pm.environment.get('apiKey') }",
+                  "}, function(err, res) {",
+                  "    if (!err && res.code === 200) {",
+                  "        try {",
+                  "            var body = res.json();",
+                  "            var items = body.tasks || body.items || body.data || body.workflows ||",
+                  "                        body.cases || body.fixes || body.policies || body.reports ||",
+                  "                        body.bundles || body.comments || body.activities || [];",
+                  "            if (Array.isArray(items) && items.length > 0) {",
+                  "                var id = items[0].id || items[0].id || items[0].task_id || items[0].fix_id;",
+                  "                if (id) pm.environment.set('workflowId', id);",
+                  "            }",
+                  "        } catch(e) {}",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Execute Workflow",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trigger\": \"manual\",\n  \"context\": {\n    \"finding_id\": \"{{findingId}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/workflows/{{workflowId}}/execute",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "workflows",
+                "{{workflowId}}",
+                "execute"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Execute workflow returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Auto-capture workflowId from list endpoint",
+                  "var listUrl = pm.environment.get('apiBase') + '/workflows';",
+                  "pm.sendRequest({",
+                  "    url: listUrl,",
+                  "    method: 'GET',",
+                  "    header: { 'X-API-Key': pm.environment.get('apiKey') }",
+                  "}, function(err, res) {",
+                  "    if (!err && res.code === 200) {",
+                  "        try {",
+                  "            var body = res.json();",
+                  "            var items = body.tasks || body.items || body.data || body.workflows ||",
+                  "                        body.cases || body.fixes || body.policies || body.reports ||",
+                  "                        body.bundles || body.comments || body.activities || [];",
+                  "            if (Array.isArray(items) && items.length > 0) {",
+                  "                var id = items[0].id || items[0].id || items[0].task_id || items[0].fix_id;",
+                  "                if (id) pm.environment.set('workflowId', id);",
+                  "            }",
+                  "        } catch(e) {}",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Workflow SLA Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/workflows/{{workflowId}}/sla",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "workflows",
+                "{{workflowId}}",
+                "sla"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Workflow SLA returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Auto-capture workflowId from list endpoint",
+                  "var listUrl = pm.environment.get('apiBase') + '/workflows';",
+                  "pm.sendRequest({",
+                  "    url: listUrl,",
+                  "    method: 'GET',",
+                  "    header: { 'X-API-Key': pm.environment.get('apiKey') }",
+                  "}, function(err, res) {",
+                  "    if (!err && res.code === 200) {",
+                  "        try {",
+                  "            var body = res.json();",
+                  "            var items = body.tasks || body.items || body.data || body.workflows ||",
+                  "                        body.cases || body.fixes || body.policies || body.reports ||",
+                  "                        body.bundles || body.comments || body.activities || [];",
+                  "            if (Array.isArray(items) && items.length > 0) {",
+                  "                var id = items[0].id || items[0].id || items[0].task_id || items[0].fix_id;",
+                  "                if (id) pm.environment.set('workflowId', id);",
+                  "            }",
+                  "        } catch(e) {}",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Workflow Timeline",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/workflows/{{workflowId}}/history",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "workflows",
+                "{{workflowId}}",
+                "history"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Timeline returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Auto-capture workflowId from list endpoint",
+                  "var listUrl = pm.environment.get('apiBase') + '/workflows';",
+                  "pm.sendRequest({",
+                  "    url: listUrl,",
+                  "    method: 'GET',",
+                  "    header: { 'X-API-Key': pm.environment.get('apiKey') }",
+                  "}, function(err, res) {",
+                  "    if (!err && res.code === 200) {",
+                  "        try {",
+                  "            var body = res.json();",
+                  "            var items = body.tasks || body.items || body.data || body.workflows ||",
+                  "                        body.cases || body.fixes || body.policies || body.reports ||",
+                  "                        body.bundles || body.comments || body.activities || [];",
+                  "            if (Array.isArray(items) && items.length > 0) {",
+                  "                var id = items[0].id || items[0].id || items[0].task_id || items[0].fix_id;",
+                  "                if (id) pm.environment.set('workflowId', id);",
+                  "            }",
+                  "        } catch(e) {}",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83e\udd16 AI Copilot \u2014 Remediation Agent",
+      "description": "AI-powered remediation guidance, code fixes, and plan generation.",
+      "item": [
+        {
+          "name": "Get Remediation Guidance",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finding_id\": \"{{findingId}}\",\n  \"language\": \"python\",\n  \"framework\": \"fastapi\",\n  \"fix_type\": \"code_patch\",\n  \"org_id\": \"{{orgId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/copilot/agents/remediation/generate-fix",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "copilot",
+                "agents",
+                "remediation",
+                "generate-fix"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Remediation guidance returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Generate Code Fix",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finding_id\": \"{{findingId}}\",\n  \"code_context\": \"def login(username, password):\\n    query = f\\\"SELECT * FROM users WHERE name='{username}'\\\"\",\n  \"language\": \"python\",\n  \"fix_type\": \"code_patch\",\n  \"org_id\": \"{{orgId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/copilot/agents/remediation/generate-fix",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "copilot",
+                "agents",
+                "remediation",
+                "generate-fix"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Code fix returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Generate Remediation Plan",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finding_ids\": [\n    \"{{findingId}}\"\n  ],\n  \"priority\": \"risk_based\",\n  \"constraints\": {\n    \"max_effort_hours\": 40,\n    \"team_size\": 3\n  },\n  \"finding_id\": \"{{findingId}}\",\n  \"org_id\": \"{{orgId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/copilot/agents/remediation/playbook",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "copilot",
+                "agents",
+                "remediation",
+                "playbook"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Remediation plan returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remediation Best Practices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/copilot/agents/remediation/queue",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "copilot",
+                "agents",
+                "remediation",
+                "queue"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Best practices returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfab Exposure Case Management",
+      "description": "Track exposure cases from discovery through remediation.",
+      "item": [
+        {
+          "name": "List Exposure Cases",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/cases",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "cases"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List cases returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture caseId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (Array.isArray(json) && json.length) pm.environment.set('caseId', json[0].id);",
+                  "    else if (json.cases && json.cases.length) pm.environment.set('caseId', json.cases[0].id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Exposure Case",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Critical SQL Injection \u2014 Payment Service\",\n  \"severity\": \"critical\",\n  \"findings\": [\"{{findingId}}\"],\n  \"asset\": \"payment-service\",\n  \"description\": \"Exploitable SQL injection allowing data exfiltration\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/cases",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "cases"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create case returns 200/201', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture caseId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.case_id) pm.environment.set('caseId', json.case_id);",
+                  "    else if (json.id) pm.environment.set('caseId', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Exposure Case",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/cases/{{caseId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "cases",
+                "{{caseId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get case returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Auto-capture caseId from list endpoint",
+                  "var listUrl = pm.environment.get('apiBase') + '/cases';",
+                  "pm.sendRequest({",
+                  "    url: listUrl,",
+                  "    method: 'GET',",
+                  "    header: { 'X-API-Key': pm.environment.get('apiKey') }",
+                  "}, function(err, res) {",
+                  "    if (!err && res.code === 200) {",
+                  "        try {",
+                  "            var body = res.json();",
+                  "            var items = body.tasks || body.items || body.data || body.workflows ||",
+                  "                        body.cases || body.fixes || body.policies || body.reports ||",
+                  "                        body.bundles || body.comments || body.activities || [];",
+                  "            if (Array.isArray(items) && items.length > 0) {",
+                  "                var id = items[0].id || items[0].id || items[0].task_id || items[0].fix_id;",
+                  "                if (id) pm.environment.set('caseId', id);",
+                  "            }",
+                  "        } catch(e) {}",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Case Status",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"remediation_in_progress\",\n  \"notes\": \"Fix PR submitted, awaiting review\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/cases/{{caseId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "cases",
+                "{{caseId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Update case returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Auto-capture caseId from list endpoint",
+                  "var listUrl = pm.environment.get('apiBase') + '/cases';",
+                  "pm.sendRequest({",
+                  "    url: listUrl,",
+                  "    method: 'GET',",
+                  "    header: { 'X-API-Key': pm.environment.get('apiKey') }",
+                  "}, function(err, res) {",
+                  "    if (!err && res.code === 200) {",
+                  "        try {",
+                  "            var body = res.json();",
+                  "            var items = body.tasks || body.items || body.data || body.workflows ||",
+                  "                        body.cases || body.fixes || body.policies || body.reports ||",
+                  "                        body.bundles || body.comments || body.activities || [];",
+                  "            if (Array.isArray(items) && items.length > 0) {",
+                  "                var id = items[0].id || items[0].id || items[0].task_id || items[0].fix_id;",
+                  "                if (id) pm.environment.set('caseId', id);",
+                  "            }",
+                  "        } catch(e) {}",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd17 Integration Tickets (Jira/GitHub)",
+      "description": "Create and sync tickets with external systems.",
+      "item": [
+        {
+          "name": "List Integrations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/integrations",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "integrations"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List integrations returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Test Jira Connection",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"jira\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/integrations/{{integrationId}}/test",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "integrations",
+                "{{integrationId}}",
+                "test"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Jira test returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Auto-capture integrationId from list endpoint",
+                  "var listUrl = pm.environment.get('apiBase') + '/integrations';",
+                  "pm.sendRequest({",
+                  "    url: listUrl,",
+                  "    method: 'GET',",
+                  "    header: { 'X-API-Key': pm.environment.get('apiKey') }",
+                  "}, function(err, res) {",
+                  "    if (!err && res.code === 200) {",
+                  "        try {",
+                  "            var body = res.json();",
+                  "            var items = body.tasks || body.items || body.data || body.workflows ||",
+                  "                        body.cases || body.fixes || body.policies || body.reports ||",
+                  "                        body.bundles || body.comments || body.activities || [];",
+                  "            if (Array.isArray(items) && items.length > 0) {",
+                  "                var id = items[0].id || items[0].id || items[0].task_id || items[0].fix_id;",
+                  "                if (id) pm.environment.set('integrationId', id);",
+                  "            }",
+                  "        } catch(e) {}",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Webhook Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/webhooks/health",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "webhooks",
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Webhook health returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

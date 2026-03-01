@@ -1,0 +1,34 @@
+{
+  "model_version": "1.0.0",
+  "feature_importances": {
+    "asset_criticality": 0.572127,
+    "epss_score": 0.18706,
+    "network_exposure": 0.143679,
+    "in_kev": 0.061134,
+    "exploit_maturity": 0.0263,
+    "cvss_score": 0.008592,
+    "reachable": 0.001046,
+    "exploit_available": 3.1e-05,
+    "has_chain": 3e-05
+  },
+  "top_3_features": [
+    [
+      "asset_criticality",
+      0.5721273283617403
+    ],
+    [
+      "epss_score",
+      0.1870601734617155
+    ],
+    [
+      "network_exposure",
+      0.14367863342029275
+    ]
+  ],
+  "interpretation": {
+    "asset_criticality": "Most important \u2014 business context dominates. CVSS alone is a poor predictor.",
+    "epss_score": "Second \u2014 EPSS probability of exploitation is the strongest empirical predictor.",
+    "network_exposure": "Third \u2014 internet-facing assets get priority over internal.",
+    "in_kev": "KEV membership provides strong binary signal for active exploitation."
+  }
+}

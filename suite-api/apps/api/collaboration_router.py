@@ -584,3 +584,15 @@ def process_pending_notifications(
         email_config=email_config,
         limit=request.limit,
     )
+
+
+@router.get("/health")
+async def collaboration_health():
+    """Collaboration service health check."""
+    return {"status": "healthy", "engine": "collaboration", "version": "1.0.0"}
+
+
+@router.get("/status")
+async def collaboration_status():
+    """Collaboration service status (alias for /health)."""
+    return await collaboration_health()

@@ -5,7 +5,7 @@ import pytest
 from apps.api.app import create_app
 from fastapi.testclient import TestClient
 
-API_TOKEN = "test-token-12345"
+API_TOKEN = "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh"
 AUTH_HEADERS = {"X-API-Key": API_TOKEN}
 
 

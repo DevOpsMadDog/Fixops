@@ -1,0 +1,39 @@
+{
+  "wave": 3,
+  "verified_at": "2026-03-01T21:30:00Z",
+  "verified_by": "swarm-controller (self-verification for read-only tasks)",
+  "tasks": [
+    {
+      "task_id": "swarm-116",
+      "status": "verified",
+      "verification_agent": "threat-architect",
+      "junior_confidence": 0.98,
+      "result": "8/8 threat artifacts valid (7 JSON, 1 YAML, 161 KB total)",
+      "files_changed": []
+    },
+    {
+      "task_id": "swarm-117",
+      "status": "verified",
+      "verification_agent": "enterprise-architect",
+      "junior_confidence": 0.98,
+      "result": "Self-learning demo script valid — 339 LOC, 10 functions, 5 feedback loops",
+      "files_changed": []
+    },
+    {
+      "task_id": "swarm-119",
+      "status": "verified",
+      "verification_agent": "frontend-craftsman",
+      "junior_confidence": 0.95,
+      "result": "UI inventory: 81 TSX files, 30,581 LOC, 59 pages, 19 components",
+      "files_changed": []
+    },
+    {
+      "task_id": "swarm-120",
+      "status": "verified",
+      "verification_agent": "technical-writer",
+      "junior_confidence": 0.99,
+      "result": "API inventory: 766 routes, 77 prefixes, V3=54, V5=42, V7=68 endpoints",
+      "files_changed": []
+    }
+  ]
+}

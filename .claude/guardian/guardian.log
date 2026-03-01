@@ -1,0 +1,209 @@
+[2026-02-27T07:40:56Z] Guardian initialized for run unknown
+[2026-02-27T07:40:58Z] Guardian initialized for run unknown
+[2026-02-27T07:41:07Z] Guardian initialized for run test-001
+[2026-02-27T07:41:15Z] Guardian initialized for run test-001
+[2026-02-27T07:41:15Z] PRE-AGENT: backend-hardener — starting safety snapshot
+[2026-02-27T07:41:17Z]   Stash ref: stash@{0}
+[2026-02-27T07:41:17Z] PRE-AGENT: backend-hardener — manifest saved (19 critical + 5 frozen files tracked)
+[2026-02-27T07:41:20Z] Guardian initialized for run test-001
+[2026-02-27T07:41:20Z] PRE-AGENT: backend-hardener — starting safety snapshot
+[2026-02-27T07:41:21Z]   Stash ref: stash@{0}
+[2026-02-27T07:41:21Z] PRE-AGENT: backend-hardener — manifest saved (19 critical + 5 frozen files tracked)
+[2026-02-27T07:41:38Z] Guardian initialized for run test-002
+[2026-02-27T07:41:38Z] PRE-AGENT: backend-hardener — starting safety snapshot
+[2026-02-27T07:41:38Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-27T07:41:38Z] PRE-AGENT: backend-hardener — manifest saved (19 critical + 5 frozen files tracked)
+[2026-02-27T07:52:56Z] Guardian initialized for run swarm-2026-02-27_18-52-56
+[2026-02-27T07:52:56Z] PRE-AGENT: vision-agent — starting safety snapshot
+[2026-02-27T07:52:56Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-27T09:24:23Z] Guardian initialized for run swarm-2026-02-27_20-24-23
+[2026-02-27T09:24:23Z] PRE-AGENT: vision-agent — starting safety snapshot
+[2026-02-27T09:24:23Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-27T09:24:37Z] Guardian initialized for run swarm-2026-02-27_20-24-37
+[2026-02-27T09:24:38Z] PRE-AGENT: vision-agent — starting safety snapshot
+[2026-02-27T09:24:38Z] PRE-AGENT: agent-doctor — starting safety snapshot
+[2026-02-27T09:24:38Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-27T09:24:38Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-27T09:24:43Z] PRE-AGENT: context-engineer — starting safety snapshot
+[2026-02-27T09:24:43Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-27T09:25:00Z] Guardian initialized for run swarm-2026-02-27_20-25-00
+[2026-02-27T09:25:00Z] PRE-AGENT: vision-agent — starting safety snapshot
+[2026-02-27T09:25:00Z] PRE-AGENT: agent-doctor — starting safety snapshot
+[2026-02-27T09:25:00Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-27T09:25:00Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-27T09:25:05Z] PRE-AGENT: context-engineer — starting safety snapshot
+[2026-02-27T09:25:05Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-27T09:37:55Z] Guardian initialized for run swarm-2026-02-27_20-37-51
+[2026-02-27T09:37:59Z] PRE-AGENT: agent-doctor — starting safety snapshot
+[2026-02-27T09:37:59Z] PRE-AGENT: vision-agent — starting safety snapshot
+[2026-02-27T09:37:59Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-27T09:37:59Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-27T09:39:02Z] Guardian initialized for run swarm-2026-02-27_20-39-02
+[2026-02-27T09:39:02Z] PRE-AGENT: agent-doctor — starting safety snapshot
+[2026-02-27T09:39:02Z] PRE-AGENT: vision-agent — starting safety snapshot
+[2026-02-27T09:39:02Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-27T09:39:02Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-27T09:39:07Z] PRE-AGENT: context-engineer — starting safety snapshot
+[2026-02-27T09:39:07Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-27T11:18:22Z] Guardian initialized for run swarm-2026-02-27_22-18-22
+[2026-02-27T11:18:23Z] PRE-AGENT: backend-hardener — starting safety snapshot
+[2026-02-27T11:18:23Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-27T11:18:26Z] Guardian initialized for run swarm-2026-02-27_22-18-26
+[2026-02-27T11:18:27Z] PRE-AGENT: backend-hardener — starting safety snapshot
+[2026-02-27T11:18:27Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-28T04:29:22Z] Guardian initialized for run swarm-2026-02-28_15-29-22
+[2026-02-28T04:30:49Z] Guardian initialized for run swarm-2026-02-28_15-30-49
+[2026-02-28T04:30:50Z] PRE-AGENT: agent-doctor — starting safety snapshot
+[2026-02-28T04:30:50Z] PRE-AGENT: vision-agent — starting safety snapshot
+[2026-02-28T04:30:50Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-28T04:30:50Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-28T04:30:58Z] PRE-AGENT: context-engineer — starting safety snapshot
+[2026-02-28T04:30:58Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-28T04:34:11Z] Guardian initialized for run swarm-2026-02-28_15-34-11
+[2026-02-28T04:34:11Z] PRE-AGENT: vision-agent — starting safety snapshot
+[2026-02-28T04:34:11Z] PRE-AGENT: agent-doctor — starting safety snapshot
+[2026-02-28T04:34:11Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-28T04:34:11Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-28T04:40:39Z] Guardian initialized for run swarm-2026-02-28_15-40-39
+[2026-02-28T04:40:40Z] PRE-AGENT: agent-doctor — starting safety snapshot
+[2026-02-28T04:40:40Z] PRE-AGENT: vision-agent — starting safety snapshot
+[2026-02-28T04:40:40Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-28T04:40:40Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-28T04:40:48Z] PRE-AGENT: context-engineer — starting safety snapshot
+[2026-02-28T04:40:48Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-28T05:07:29Z] Guardian initialized for run swarm-2026-02-28_16-07-29
+[2026-02-28T05:07:30Z] PRE-AGENT: vision-agent — starting safety snapshot
+[2026-02-28T05:07:30Z] PRE-AGENT: agent-doctor — starting safety snapshot
+[2026-02-28T05:07:30Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-28T05:07:30Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-28T05:07:38Z] PRE-AGENT: context-engineer — starting safety snapshot
+[2026-02-28T05:07:38Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-28T05:16:45Z] Guardian initialized for run swarm-2026-02-28_16-16-45
+[2026-02-28T05:16:45Z] PRE-AGENT: vision-agent — starting safety snapshot
+[2026-02-28T05:16:45Z] PRE-AGENT: agent-doctor — starting safety snapshot
+[2026-02-28T05:16:45Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-28T05:16:45Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-28T05:16:53Z] PRE-AGENT: context-engineer — starting safety snapshot
+[2026-02-28T05:16:53Z]   Git HEAD: 157deaa9aeb0c5eaa9f5420ac3c136efd565324f
+[2026-02-28T05:22:49Z] Guardian initialized for run swarm-2026-02-28_16-22-49
+[2026-02-28T05:23:38Z] Guardian initialized for run swarm-2026-02-28_16-23-38
+[2026-02-28T08:07:22Z] Guardian initialized for run swarm-2026-02-28_19-07-22
+[2026-02-28T09:10:19Z] Guardian initialized for run swarm-2026-02-28_20-10-19
+[2026-02-28T11:08:56Z] Guardian initialized for run swarm-2026-02-28_22-08-56
+[2026-02-28T11:18:35Z] POST-AGENT: vision-agent (exit: 0, risk: )
+[2026-02-28T11:26:09Z] POST-AGENT: agent-doctor (exit: 0, risk: )
+[2026-02-28T11:38:09Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-02-28T11:38:29Z] Guardian initialized for run swarm-2026-02-28_22-38-29
+[2026-02-28T11:48:12Z] POST-AGENT: vision-agent (exit: 0, risk: )
+[2026-02-28T11:50:32Z] POST-AGENT: agent-doctor (exit: 0, risk: )
+[2026-02-28T12:03:00Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-02-28T12:03:27Z] Guardian initialized for run swarm-2026-02-28_23-03-27
+[2026-02-28T12:14:18Z] POST-AGENT: vision-agent (exit: 0, risk: )
+[2026-02-28T12:19:33Z] POST-AGENT: agent-doctor (exit: 0, risk: )
+[2026-02-28T12:35:24Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-02-28T12:36:09Z] Guardian initialized for run swarm-2026-02-28_23-36-09
+[2026-02-28T12:47:07Z] POST-AGENT: vision-agent (exit: 0, risk: )
+[2026-02-28T12:48:10Z] POST-AGENT: agent-doctor (exit: 0, risk: )
+[2026-02-28T13:01:31Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-02-28T13:02:56Z] Guardian initialized for run swarm-2026-03-01_00-02-56
+[2026-02-28T13:10:31Z] POST-AGENT: vision-agent (exit: 0, risk: )
+[2026-02-28T22:12:55Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-02-28T22:15:00Z] Guardian initialized for run swarm-2026-03-01_09-15-00
+[2026-02-28T22:23:27Z] POST-AGENT: vision-agent (exit: 0, risk: )
+[2026-02-28T22:49:52Z] POST-AGENT: agent-doctor (exit: 0, risk: )
+[2026-02-28T23:01:36Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-02-28T23:03:41Z] Guardian initialized for run swarm-2026-03-01_10-03-41
+[2026-02-28T23:11:42Z] POST-AGENT: vision-agent (exit: 0, risk: )
+[2026-02-28T23:14:34Z] POST-AGENT: agent-doctor (exit: 0, risk: )
+[2026-02-28T23:29:35Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-02-28T23:31:40Z] Guardian initialized for run swarm-2026-03-01_10-31-40
+[2026-02-28T23:40:49Z] POST-AGENT: vision-agent (exit: 0, risk: )
+[2026-02-28T23:47:25Z] POST-AGENT: agent-doctor (exit: 0, risk: )
+[2026-02-28T23:56:04Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-02-28T23:58:09Z] Guardian initialized for run swarm-2026-03-01_10-58-09
+[2026-03-01T00:07:47Z] POST-AGENT: vision-agent (exit: 0, risk: )
+[2026-03-01T00:11:17Z] POST-AGENT: agent-doctor (exit: 0, risk: )
+[2026-03-01T00:21:08Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-03-01T00:23:13Z] Guardian initialized for run swarm-2026-03-01_11-23-13
+[2026-03-01T00:30:42Z] POST-AGENT: vision-agent (exit: 0, risk: )
+[2026-03-01T01:04:10Z] POST-AGENT: agent-doctor (exit: 0, risk: )
+[2026-03-01T01:15:21Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-03-01T01:17:26Z] Guardian initialized for run swarm-2026-03-01_12-17-26
+[2026-03-01T01:23:21Z] POST-AGENT: vision-agent (exit: 0, risk: )
+[2026-03-01T01:37:08Z] POST-AGENT: agent-doctor (exit: 0, risk: )
+[2026-03-01T02:00:19Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-03-01T02:02:24Z] Guardian initialized for run swarm-2026-03-01_13-02-24
+[2026-03-01T02:09:09Z] POST-AGENT: vision-agent (exit: 0, risk: )
+[2026-03-01T02:44:16Z] POST-AGENT: agent-doctor (exit: 0, risk: )
+[2026-03-01T02:55:14Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-03-01T02:57:19Z] Guardian initialized for run swarm-2026-03-01_13-57-19
+[2026-03-01T03:05:37Z] POST-AGENT: vision-agent (exit: 0, risk: )
+[2026-03-01T03:36:39Z] POST-AGENT: agent-doctor (exit: 0, risk: )
+[2026-03-01T03:47:53Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-03-01T03:49:58Z] Guardian initialized for run swarm-2026-03-01_14-49-58
+[2026-03-01T03:57:49Z] POST-AGENT: vision-agent (exit: 0, risk: )
+[2026-03-01T04:12:46Z] POST-AGENT: agent-doctor (exit: 0, risk: )
+[2026-03-01T04:23:38Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-03-01T04:25:43Z] Guardian initialized for run swarm-2026-03-01_15-25-43
+[2026-03-01T04:36:24Z] POST-AGENT: vision-agent (exit: 0, risk: )
+[2026-03-01T05:06:09Z] POST-AGENT: agent-doctor (exit: 0, risk: )
+[2026-03-01T05:16:42Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-03-01T05:18:47Z] Guardian initialized for run swarm-2026-03-01_16-18-47
+[2026-03-01T05:33:17Z] POST-AGENT: agent-doctor (exit: 0, risk: )
+[2026-03-01T05:42:00Z] POST-AGENT: vision-agent (exit: 0, risk: )
+[2026-03-01T05:53:35Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-03-01T08:30:59Z] Guardian initialized for run swarm-2026-03-01_19-30-59
+[2026-03-01T08:40:52Z] POST-AGENT: vision-agent (exit: 0, risk: )
+[2026-03-01T08:40:55Z] POST-AGENT: vision-agent — ACCEPTED (impact: 98505, pillars: NONE, violations: 0)
+[2026-03-01T08:40:55Z]   ⚠️  HIGH IMPACT SCORE (98505) — review recommended
+[2026-03-01T08:41:04Z] POST-AGENT: agent-doctor (exit: 0, risk: )
+[2026-03-01T08:41:08Z] POST-AGENT: agent-doctor — ACCEPTED (impact: 98504, pillars: NONE, violations: 0)
+[2026-03-01T08:41:08Z]   ⚠️  HIGH IMPACT SCORE (98504) — review recommended
+[2026-03-01T08:50:11Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-03-01T08:50:14Z] POST-AGENT: context-engineer — ACCEPTED (impact: 100764, pillars: NONE, violations: 0)
+[2026-03-01T08:50:14Z]   ⚠️  HIGH IMPACT SCORE (100764) — review recommended
+[2026-03-01T09:02:37Z] POST-AGENT: data-scientist (exit: 0, risk: medium)
+[2026-03-01T09:02:40Z] POST-AGENT: data-scientist — ACCEPTED (impact: 100776, pillars: NONE, violations: 0)
+[2026-03-01T09:02:40Z]   ⚠️  HIGH IMPACT SCORE (100776) — review recommended
+[2026-03-01T09:04:15Z] POST-AGENT: enterprise-architect (exit: 0, risk: medium)
+[2026-03-01T09:04:19Z] POST-AGENT: enterprise-architect — ACCEPTED (impact: 100780, pillars: NONE, violations: 0)
+[2026-03-01T09:04:19Z]   ⚠️  HIGH IMPACT SCORE (100780) — review recommended
+[2026-03-01T09:05:59Z] POST-AGENT: ai-researcher (exit: 0, risk: medium)
+[2026-03-01T09:06:03Z] POST-AGENT: ai-researcher — ACCEPTED (impact: 100780, pillars: NONE, violations: 0)
+[2026-03-01T09:06:03Z]   ⚠️  HIGH IMPACT SCORE (100780) — review recommended
+[2026-03-01T09:30:10Z] POST-AGENT: threat-architect (exit: 0, risk: medium)
+[2026-03-01T09:30:14Z] POST-AGENT: threat-architect — ACCEPTED (impact: 101211, pillars: NONE, violations: 0)
+[2026-03-01T09:30:14Z]   ⚠️  HIGH IMPACT SCORE (101211) — review recommended
+[2026-03-01T09:40:48Z] POST-AGENT: backend-hardener (exit: 0, risk: medium)
+[2026-03-01T09:40:52Z] POST-AGENT: backend-hardener — ACCEPTED (impact: 101627, pillars: NONE, violations: 0)
+[2026-03-01T09:40:52Z]   ⚠️  HIGH IMPACT SCORE (101627) — review recommended
+[2026-03-01T09:41:27Z] POST-AGENT: frontend-craftsman (exit: 0, risk: medium)
+[2026-03-01T09:41:31Z] POST-AGENT: frontend-craftsman — ACCEPTED (impact: 101624, pillars: NONE, violations: 0)
+[2026-03-01T09:41:31Z]   ⚠️  HIGH IMPACT SCORE (101624) — review recommended
+[2026-03-01T09:55:12Z] POST-AGENT: swarm-controller (exit: 0, risk: medium)
+[2026-03-01T09:55:16Z] POST-AGENT: swarm-controller — ACCEPTED (impact: 101644, pillars: NONE, violations: 0)
+[2026-03-01T09:55:16Z]   ⚠️  HIGH IMPACT SCORE (101644) — review recommended
+[2026-03-01T10:32:24Z] POST-AGENT: security-analyst (exit: 0, risk: medium)
+[2026-03-01T10:32:28Z] POST-AGENT: security-analyst — ACCEPTED (impact: 172856, pillars: NONE, violations: 0)
+[2026-03-01T10:32:28Z]   ⚠️  HIGH IMPACT SCORE (172856) — review recommended
+[2026-03-01T10:58:46Z] POST-AGENT: devops-engineer (exit: 0, risk: medium)
+[2026-03-01T10:58:50Z] POST-AGENT: devops-engineer — ACCEPTED (impact: 172965, pillars: NONE, violations: 0)
+[2026-03-01T10:58:50Z]   ⚠️  HIGH IMPACT SCORE (172965) — review recommended
+[2026-03-01T11:39:26Z] POST-AGENT: marketing-head (exit: 0, risk: medium)
+[2026-03-01T11:39:30Z] POST-AGENT: marketing-head — ACCEPTED (impact: 173282, pillars: NONE, violations: 0)
+[2026-03-01T11:39:30Z]   ⚠️  HIGH IMPACT SCORE (173282) — review recommended
+[2026-03-01T11:39:53Z] POST-AGENT: technical-writer (exit: 0, risk: medium)
+[2026-03-01T11:39:57Z] POST-AGENT: technical-writer — ACCEPTED (impact: 173279, pillars: NONE, violations: 0)
+[2026-03-01T11:39:57Z]   ⚠️  HIGH IMPACT SCORE (173279) — review recommended
+[2026-03-01T11:43:23Z] POST-AGENT: sales-engineer (exit: 0, risk: medium)
+[2026-03-01T11:43:27Z] POST-AGENT: sales-engineer — ACCEPTED (impact: 173287, pillars: NONE, violations: 0)
+[2026-03-01T11:43:27Z]   ⚠️  HIGH IMPACT SCORE (173287) — review recommended
+[2026-03-01T11:53:15Z] POST-AGENT: scrum-master (exit: 0, risk: medium)
+[2026-03-01T11:53:19Z] POST-AGENT: scrum-master — ACCEPTED (impact: 173299, pillars: NONE, violations: 0)
+[2026-03-01T11:53:19Z]   ⚠️  HIGH IMPACT SCORE (173299) — review recommended
+[2026-03-01T12:07:49Z] POST-AGENT: agent-doctor (exit: 0, risk: medium)
+[2026-03-01T12:07:53Z] POST-AGENT: agent-doctor — ACCEPTED (impact: 173321, pillars: NONE, violations: 0)
+[2026-03-01T12:07:53Z]   ⚠️  HIGH IMPACT SCORE (173321) — review recommended
+[2026-03-01T12:15:17Z] POST-AGENT: vision-agent (exit: 0, risk: medium)
+[2026-03-01T12:15:21Z] POST-AGENT: vision-agent — ACCEPTED (impact: 173326, pillars: NONE, violations: 0)
+[2026-03-01T12:15:21Z]   ⚠️  HIGH IMPACT SCORE (173326) — review recommended

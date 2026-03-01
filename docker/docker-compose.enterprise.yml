@@ -18,7 +18,7 @@ services:
       - ./fixtures:/app/fixtures
     environment:
       - FIXOPS_MODE=enterprise
-      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:?Set FIXOPS_API_TOKEN before starting}
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-enterprise-demo-token}
       - FIXOPS_DISABLE_TELEMETRY=1
       - VECTOR_STORE_PROVIDER=chromadb
       - VECTOR_STORE_PERSIST_DIR=/app/data/chroma_db

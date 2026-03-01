@@ -8,14 +8,14 @@ from core.secrets_db import SecretsDB
 from fastapi.testclient import TestClient
 
 # Use the API token from environment or default (matches Docker image default)
-API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "test-token-12345")
+API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh")
 
 
 @pytest.fixture
 def client(monkeypatch):
     """Create test client with proper environment variables."""
     monkeypatch.setenv(
-        "FIXOPS_API_TOKEN", os.getenv("FIXOPS_API_TOKEN", "test-token-12345")
+        "FIXOPS_API_TOKEN", os.getenv("FIXOPS_API_TOKEN", "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh")
     )
     monkeypatch.setenv("FIXOPS_MODE", os.getenv("FIXOPS_MODE", "enterprise"))
     app = create_app()

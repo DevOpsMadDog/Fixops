@@ -1849,3 +1849,15 @@ def list_alm_work_items(
         }
     finally:
         conn.close()
+
+
+@router.get("/health")
+async def webhooks_health():
+    """Webhooks service health check."""
+    return {"status": "healthy", "engine": "webhooks", "version": "1.0.0"}
+
+
+@router.get("/status")
+async def webhooks_status():
+    """Webhooks service status (alias for /health)."""
+    return await webhooks_health()

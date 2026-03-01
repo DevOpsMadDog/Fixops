@@ -124,4 +124,16 @@ async def cve_risk(cve_id: str, request: Request) -> Dict[str, Any]:
     return entry
 
 
+@router.get("/health")
+async def risk_health():
+    """Risk analysis service health check."""
+    return {"status": "healthy", "engine": "risk", "version": "1.0.0"}
+
+
+@router.get("/status")
+async def risk_status():
+    """Risk analysis service status (alias for /health)."""
+    return await risk_health()
+
+
 __all__ = ["router"]

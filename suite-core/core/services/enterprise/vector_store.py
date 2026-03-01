@@ -176,7 +176,7 @@ class InMemoryVectorStore(VectorStore):
         # Create deterministic embedding based on text hash
         import hashlib
 
-        text_hash = hashlib.md5(text.encode()).hexdigest()
+        text_hash = hashlib.md5(text.encode(), usedforsecurity=False).hexdigest()
 
         # Convert hash to embedding vector
         embedding = []
@@ -406,7 +406,7 @@ class ChromaDBVectorStore(VectorStore):
         """Fallback embedding generation using hash"""
         import hashlib
 
-        text_hash = hashlib.md5(text.encode()).hexdigest()
+        text_hash = hashlib.md5(text.encode(), usedforsecurity=False).hexdigest()
 
         # Convert hash to embedding vector (384 dimensions like sentence transformers)
         embedding = []

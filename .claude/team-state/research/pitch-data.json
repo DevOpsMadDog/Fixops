@@ -1,0 +1,147 @@
+{
+  "last_updated": "2026-03-01",
+  "analyst": "ai-researcher",
+  "market_size": {
+    "tam": "$380B — Global cybersecurity market (2026 est.)",
+    "sam": "$28.5B — Application Security Testing + DevSecOps + CTEM (2026 est.)",
+    "som": "$2.5B — Mid-market and enterprise CTEM/Decision Intelligence platforms (initial addressable)"
+  },
+  "market_growth": {
+    "cybersecurity_vc_2025": "$20.7B across 820 deals (52% YoY growth)",
+    "cybersecurity_ma_2025": "$84B+ disclosed, 426 deals total",
+    "ma_jan_2026": "38 deals — 3rd highest monthly count ever",
+    "gartner_ctem_prediction": "3x breach reduction for CTEM adopters by 2026",
+    "agentic_ai_adoption": "67% of orgs (Kiteworks 2026 report), 100% of security leaders have it on roadmap",
+    "mcp_adoption_forecast": "30% of enterprise app vendors will launch MCP servers in 2026 (Forrester)"
+  },
+  "competitors": [
+    {
+      "name": "Snyk",
+      "category": "SCA + SAST",
+      "funding": "$1.3B+",
+      "valuation": "$3.7B (down from $8.5B peak)",
+      "arr": "$300-340M (est.)",
+      "key_features": ["SCA/SAST", "IDE integration", "Snyk Studio (agentic dev)", "Package Health Check"],
+      "status": "IPO uncertain, growth decelerated to ~12%",
+      "aldeci_advantage": "Full CTEM lifecycle vs. SCA+SAST only. Multi-LLM consensus vs. single model."
+    },
+    {
+      "name": "Wiz",
+      "category": "CNAPP / Cloud Security",
+      "funding": "$1.9B+",
+      "valuation": "$32B (Google acquisition price)",
+      "arr": "$500M+ (est.)",
+      "key_features": ["Agentless cloud scanning", "DSPM", "CDR", "Code scanning", "MCP integration"],
+      "status": "Google acquisition closing March 2026. EU approved.",
+      "aldeci_advantage": "Scanner-neutral Switzerland vs. Google lock-in. AppSec-focused vs. cloud-only."
+    },
+    {
+      "name": "Semgrep",
+      "category": "SAST + AI Triage",
+      "funding": "$100M+",
+      "valuation": "Unknown (private)",
+      "arr": "Unknown",
+      "key_features": ["Multimodal AppSec engine (SAST+LLM)", "18K orgs", "740K auto-fixes", "StackHawk DAST integration"],
+      "status": "Growing. Semgrep Secure 2026 event (Feb 25). Claims zero false positives.",
+      "aldeci_advantage": "Multi-LLM consensus (3+ models) vs. single-model. Full CTEM lifecycle vs. SAST-only."
+    },
+    {
+      "name": "Checkmarx",
+      "category": "Enterprise AST",
+      "funding": "PE-backed (H&F, $1.15B acquisition in 2020)",
+      "valuation": "$1.5-2.5B (for sale)",
+      "arr": "$150M+ (Checkmarx One)",
+      "key_features": ["SAST/DAST/SCA/IaC", "Checkmarx Assist (AI agents via Tromzo)", "Gartner Leader 7x"],
+      "status": "Acquired Tromzo (Dec 2025). Sale process unclear/stalled.",
+      "aldeci_advantage": "We already have AI agents (Brain Pipeline). They just acquired them. Air-gapped capable."
+    },
+    {
+      "name": "Endor Labs",
+      "category": "SCA + OSS Security",
+      "funding": "$188M",
+      "valuation": "Unknown",
+      "arr": "Unknown (30x ARR growth, 166% NRR)",
+      "key_features": ["Reachability analysis", "97% noise reduction (SCA)", "Autonomous Plane (containers)", "Citi Ventures backed"],
+      "status": "Acquired Autonomous Plane (Feb 2026). Strong growth.",
+      "aldeci_advantage": "97% noise reduction across ALL scanner types (not just SCA). MPTE verification vs. static analysis."
+    },
+    {
+      "name": "CrowdStrike",
+      "category": "Endpoint + Cloud Security",
+      "funding": "Public (CRWD)",
+      "valuation": "$90B+ market cap",
+      "arr": "$4B+",
+      "key_features": ["Falcon XDR", "SGNL (identity)", "Seraphic (browser)", "Cloud workload security"],
+      "status": "Aggressive M&A. SGNL ($740M) + Seraphic in Jan 2026.",
+      "aldeci_advantage": "AppSec-focused vs. endpoint-first. CTEM lifecycle vs. detection-only. Developer-centric."
+    },
+    {
+      "name": "Orca Security",
+      "category": "Agentless CNAPP",
+      "funding": "$732M",
+      "valuation": "$1.8B",
+      "arr": "Unknown",
+      "key_features": ["Agentless scanning", "Static reachability analysis (90% reduction)", "CIEM", "CDR"],
+      "status": "Forrester Strong Performer. Settled Wiz lawsuit.",
+      "aldeci_advantage": "MPTE proves exploitability vs. static analysis. Full AppSec vs. cloud-workload-only."
+    },
+    {
+      "name": "ArmorCode",
+      "category": "ASPM + AI",
+      "funding": "$100M+",
+      "valuation": "Unknown",
+      "arr": "Unknown",
+      "key_features": ["Anya agentic AI", "320+ integrations", "40B findings processed", "MCP Server", "IDC Leader"],
+      "status": "Closest ASPM competitor. MCP integration validates our V7.",
+      "aldeci_advantage": "Native scanners (they aggregate only). MPTE verification. Multi-LLM consensus. Air-gapped capable."
+    },
+    {
+      "name": "Cyera",
+      "category": "Data Security / DSPM",
+      "funding": "$1.7B+",
+      "valuation": "$9B (Series F, Jan 2026)",
+      "arr": "Unknown (3.4x revenue growth)",
+      "key_features": ["AI-native data security", "~20% Fortune 500 customers", "DSPM"],
+      "status": "One of most heavily funded cybersecurity companies ever. Different category from ALdeci.",
+      "aldeci_advantage": "Different market (DSPM vs. CTEM). Potential integration partner."
+    }
+  ],
+  "trends": [
+    "Agentic AI is the defining theme of 2026 — every vendor embedding autonomous agents",
+    "MCP (Model Context Protocol) becoming dominant standard for agent-tool connectivity",
+    "Platform consolidation via aggressive M&A (38 deals in Jan 2026 alone)",
+    "AI-generated code security emerging as new category (ArmorCode, Semgrep, Endor Labs)",
+    "Wiz → Google creates Switzerland opportunity for independent vendors",
+    "Browser + identity security expansion by endpoint vendors (CrowdStrike)",
+    "AI-enabled adversary operations up 89% YoY (CrowdStrike 2026 Threat Report)",
+    "Cybersecurity VC funding remains strong at $20.7B in 2025 (52% YoY growth)",
+    "Premium valuations for AI-native security startups vs. non-AI peers"
+  ],
+  "differentiators": [
+    "8 built-in fallback scanners (works air-gapped, no external tools needed)",
+    "12-step Brain Pipeline (full CTEM lifecycle — no competitor has full loop)",
+    "Multi-LLM Consensus (3+ LLMs vote, 85% threshold — beats single-model confidence)",
+    "19-phase MPTE Verification (proves exploitability, doesn't just detect)",
+    "FAIL Engine (chaos engineering for AppSec — industry first, zero competitors)",
+    "Air-gapped deployment with full scanner capability (defense/critical infra ready)",
+    "AI-powered AutoFix with 10 fix types and confidence-based auto-apply",
+    "MCP-native with 650+ auto-discovered tools (first-mover in AI-native AppSec)",
+    "Scanner-neutral Switzerland positioning (no vendor lock-in, day 1 value)",
+    "Quantum-secure evidence (FIPS 204 ML-DSA + RSA hybrid — 5-year head start)"
+  ],
+  "demo_010_data": {
+    "status": "COMPLETED",
+    "applications": 5,
+    "vulnerabilities": 20,
+    "attack_paths": 10,
+    "graph_nodes": 73,
+    "graph_edges": 110,
+    "blast_radius_demo": {
+      "source": "VULN-003 (Log4Shell)",
+      "affected_nodes": 41,
+      "risk_multiplier": 9.1
+    },
+    "top_attack_path_risk": 9.2,
+    "endpoint": "POST /api/v1/knowledge-graph/seed-demo"
+  }
+}

@@ -613,6 +613,12 @@ class FuzzyIdentityResolver:
         with self._conn_lock:
             self._conn.close()
 
+    def __del__(self) -> None:
+        try:
+            self._conn.close()
+        except Exception:
+            pass
+
 
 def get_fuzzy_resolver(db_path: str = "fixops_identity.db") -> FuzzyIdentityResolver:
     """Get the global FuzzyIdentityResolver instance."""

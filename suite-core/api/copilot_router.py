@@ -442,7 +442,11 @@ async def list_sessions(
 
     Returns paginated list of sessions sorted by last update time.
     """
-    sessions = sorted(_sessions.values(), key=lambda s: s["updated_at"], reverse=True)
+    sessions = sorted(
+        _sessions.values(),
+        key=lambda s: str(s["updated_at"]) if s.get("updated_at") else "",
+        reverse=True,
+    )
 
     return [SessionResponse(**s) for s in sessions[offset : offset + limit]]
 

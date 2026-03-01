@@ -393,6 +393,49 @@ class ExposureCaseManager:
         self._persist_to_brain(case)
         return case
 
+    def find_case_by_cluster(self, cluster_id: str) -> Optional[ExposureCase]:
+        """Find an existing Exposure Case that already contains this cluster_id.
+
+        Uses a JSON LIKE query on the cluster_ids column to find any case
+        that already groups this dedup cluster, preventing duplicate case creation.
+        """
+        with self._conn_lock:
+            # cluster_ids is stored as JSON array, e.g. '["abc", "def"]'
+            row = self._conn.execute(
+                "SELECT * FROM exposure_cases WHERE cluster_ids LIKE ? LIMIT 1",
+                (f'%"{cluster_id}"%',),
+            ).fetchone()
+        if not row:
+            return None
+        return self._row_to_case(row)
+
+    def purge_empty_cases(self, dry_run: bool = False) -> Dict[str, Any]:
+        """Delete phantom cases with finding_count=0 AND no enrichment data.
+
+        These are hollow auto-generated cases that were never enriched.
+        """
+        with self._conn_lock:
+            count = self._conn.execute(
+                """SELECT COUNT(*) FROM exposure_cases
+                   WHERE finding_count = 0
+                     AND risk_score = 0.0
+                     AND root_cve IS NULL
+                     AND root_cwe IS NULL
+                     AND root_component IS NULL"""
+            ).fetchone()[0]
+            if not dry_run and count > 0:
+                self._conn.execute(
+                    """DELETE FROM exposure_cases
+                       WHERE finding_count = 0
+                         AND risk_score = 0.0
+                         AND root_cve IS NULL
+                         AND root_cwe IS NULL
+                         AND root_component IS NULL"""
+                )
+                self._conn.commit()
+                logger.info("Purged %d phantom exposure cases", count)
+        return {"purged": count, "dry_run": dry_run}
+
     def add_clusters(
         self, case_id: str, cluster_ids: List[str], finding_count_delta: int = 0
     ) -> ExposureCase:
@@ -570,6 +613,32 @@ class ExposureCaseManager:
     def close(self) -> None:
         with self._conn_lock:
             self._conn.close()
+
+    def __del__(self) -> None:
+        try:
+            self._conn.close()
+        except Exception:
+            pass
+
+
+# ------------------------------------------------------------------
+# Severity → Priority mapper
+# ------------------------------------------------------------------
+_SEVERITY_TO_PRIORITY = {
+    "critical": CasePriority.CRITICAL,
+    "high": CasePriority.HIGH,
+    "medium": CasePriority.MEDIUM,
+    "low": CasePriority.LOW,
+    "info": CasePriority.INFO,
+    "informational": CasePriority.INFO,
+}
+
+
+def severity_to_priority(severity: str) -> CasePriority:
+    """Map a scanner severity string to a CasePriority enum."""
+    return _SEVERITY_TO_PRIORITY.get(
+        (severity or "medium").lower().strip(), CasePriority.MEDIUM
+    )
 
 
 def get_case_manager(db_path: str = "fixops_exposure_cases.db") -> ExposureCaseManager:

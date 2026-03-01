@@ -434,3 +434,15 @@ def split_cluster(cluster_id: str, request: SplitClusterRequest) -> Dict[str, An
         "event_ids": request.event_ids,
         "message": "Split feedback recorded. Events will be separated on next processing.",
     }
+
+
+@router.get("/health")
+async def deduplication_health():
+    """Deduplication engine health check."""
+    return {"status": "healthy", "engine": "deduplication", "version": "1.0.0"}
+
+
+@router.get("/status")
+async def deduplication_status():
+    """Deduplication engine status (alias for /health)."""
+    return await deduplication_health()

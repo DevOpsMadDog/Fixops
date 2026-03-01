@@ -1,0 +1,25 @@
+{
+  "task_id": "swarm-unit-threat-model",
+  "worker_id": "junior-01",
+  "status": "completed",
+  "files_modified": [],
+  "files_created": [
+    "tests/test_threat_model_unit.py"
+  ],
+  "summary": "Wrote 140 unit tests for suite-evidence-risk/risk/threat_model.py covering all 5 functions and the ThreatModelResult dataclass. All 140 tests pass in 0.16s with no external suite dependencies (EnrichmentEvidence is stubbed via sys.modules patching).",
+  "issues": [],
+  "needs_senior_review": false,
+  "confidence": 0.98,
+  "duration_turns": 6,
+  "test_count": 140,
+  "test_result": "140 passed in 0.16s",
+  "coverage_breakdown": {
+    "TestThreatModelResultDefaults": 11,
+    "TestThreatModelResultToDict": 14,
+    "TestParseCVSSVector": 19,
+    "TestCalculateReachabilityScore": 18,
+    "TestFindAffectedComponents": 16,
+    "TestDetermineExposureLevel": 14,
+    "TestComputeThreatModel": 48
+  }
+}

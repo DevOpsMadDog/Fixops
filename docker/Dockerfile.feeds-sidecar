@@ -1,0 +1,27 @@
+# ============================================
+# ALdeci Feed Sidecar — Threat Intel Fetcher
+# ============================================
+# Lightweight container for fetching CVE/KEV/EPSS
+# feeds and pushing them to the ALdeci API.
+# ============================================
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install minimal dependencies
+RUN pip install --no-cache-dir \
+    httpx \
+    rich \
+    tenacity
+
+# Copy only the feed sidecar script
+COPY scripts/feed_sidecar.py ./feed_sidecar.py
+
+# Environment variables
+ENV FIXOPS_BASE_URL=http://fixops:8000
+ENV FIXOPS_API_TOKEN=demo-token
+ENV PYTHONUNBUFFERED=1
+
+# Default: continuous feed polling every hour
+CMD ["python", "feed_sidecar.py", "continuous", "--interval", "3600"]

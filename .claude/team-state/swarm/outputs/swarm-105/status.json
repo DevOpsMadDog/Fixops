@@ -1,0 +1,188 @@
+{
+  "task_id": "swarm-105",
+  "worker_id": "junior-worker",
+  "status": "completed",
+  "task_type": "config-audit",
+  "priority": "high",
+  "pillar": "V9",
+  "files_modified": [],
+  "files_created": [
+    ".claude/team-state/swarm/outputs/swarm-105/result.md"
+  ],
+  "summary": "Comprehensive Docker security audit completed. Analyzed 28 Docker configuration files across Dockerfiles, docker-compose, and Kubernetes manifests. Found 1 critical issue (docker socket mount with root user), 3 high-risk issues (hardcoded credentials, weak secrets), and 4 medium-risk issues (missing USER directives, DEBUG mode, health checks).",
+  "audit_results": {
+    "files_audited": 28,
+    "dockerfiles_examined": 8,
+    "docker_compose_files": 9,
+    "kubernetes_manifests": 8,
+    "critical_issues": 1,
+    "high_risk_issues": 3,
+    "medium_risk_issues": 4,
+    "low_risk_issues": 7,
+    "overall_risk_level": "MEDIUM"
+  },
+  "critical_findings": [
+    {
+      "id": "CRITICAL-001",
+      "title": "Docker Socket Mount Without Privilege Boundary",
+      "file": "docker/docker-compose.aldeci-complete.yml:54",
+      "description": "aldeci-ui service mounts /var/run/docker.sock with user: root:root, granting complete Docker daemon access and host compromise capability",
+      "risk_score": 9.5,
+      "mitigation": "Use Docker API via TCP+TLS, or run as non-root with Docker group, or remove mount if not essential"
+    }
+  ],
+  "high_risk_findings": [
+    {
+      "id": "HIGH-001",
+      "title": "Hardcoded Database Password",
+      "files": [
+        "docker/docker-compose.aldeci-complete.yml:33",
+        "docker/docker-compose.aldeci-complete.yml:78"
+      ],
+      "password": "mpte",
+      "risk": "Plaintext PostgreSQL credential in version control, visible in logs and docker-compose output"
+    },
+    {
+      "id": "HIGH-002",
+      "title": "Weak Default Kubernetes Secret",
+      "file": "docker/kubernetes/fixops-6suite/values.yaml:11",
+      "secret_value": "CHANGE_ME",
+      "risk": "Human-readable default secret would make all JWT tokens forgeable if deployed unchanged"
+    },
+    {
+      "id": "HIGH-003",
+      "title": "Database URL with Embedded Credentials",
+      "file": "docker/docker-compose.aldeci-complete.yml:28",
+      "url": "postgresql://mpte:mpte@aldeci-db:5432/mpte?sslmode=disable",
+      "risk": "Credentials visible in container inspect; sslmode=disable means plaintext database connection"
+    }
+  ],
+  "medium_risk_findings": [
+    {
+      "id": "MEDIUM-001",
+      "title": "Missing USER Directives (Root Execution)",
+      "files": [
+        "docker/Dockerfile",
+        "docker/Dockerfile.demo",
+        "docker/Dockerfile.enterprise",
+        "docker/Dockerfile.interactive",
+        "docker/Dockerfile.sidecar"
+      ],
+      "count": 5,
+      "risk": "Python containers run as root; RCE vulnerability + docker socket = host compromise"
+    },
+    {
+      "id": "MEDIUM-002",
+      "title": "DEBUG Mode Enabled in Integration Tests",
+      "file": "docker/docker-compose.integration.yml:18",
+      "risk": "DEBUG=1 may leak sensitive information in logs; verbose LocalStack output"
+    },
+    {
+      "id": "MEDIUM-003",
+      "title": "Missing Health Checks",
+      "files": [
+        "fixops-feeds",
+        "fixops-demo",
+        "fixops-smoke",
+        "fixops-micropentest",
+        "aldeci-mindsdb",
+        "aldeci-redis",
+        "and others"
+      ],
+      "count": 9,
+      "risk": "Docker Compose cannot detect service failures; orchestration issues"
+    },
+    {
+      "id": "MEDIUM-004",
+      "title": "Hardcoded Demo Tokens in Dockerfiles",
+      "files": [
+        "docker/Dockerfile.simple:43",
+        "docker/Dockerfile.interactive:88",
+        "docker/Dockerfile.sidecar:30"
+      ],
+      "tokens": [
+        "demo-token",
+        "demo-token-12345"
+      ],
+      "risk": "Tokens embedded in image layers; if images used in production without rebuild, security is compromised"
+    }
+  ],
+  "best_practices_score": {
+    "multi_stage_builds": "PASS",
+    "non_root_user_production": "FAIL",
+    "health_checks": "PARTIAL",
+    "secrets_in_env_vars": "PARTIAL",
+    "docker_socket_isolation": "FAIL",
+    "dockerignore_coverage": "PASS",
+    "minimal_base_images": "PASS",
+    "no_install_recommends": "PASS",
+    "explicit_version_pins": "PASS",
+    "build_cache_optimization": "PASS",
+    "overall_score": "6.5/10"
+  },
+  "secrets_inventory": {
+    "demo_tokens": 3,
+    "hardcoded_passwords": 2,
+    "default_secrets": 2,
+    "test_credentials": 2,
+    "total_hardcoded": 9
+  },
+  "compliance": {
+    "cis_docker_benchmark_4_1_non_root": "FAIL",
+    "cis_docker_benchmark_5_4_privileged": "FAIL",
+    "cis_docker_benchmark_5_3_cap_drop": "MISSING",
+    "cis_docker_benchmark_5_25_no_new_priv": "MISSING",
+    "pci_dss_secret_management": "PARTIAL",
+    "owasp_hardcoded_secrets": "FAIL"
+  },
+  "issues": [
+    "Docker socket mounted to aldeci-ui with root user access — critical host compromise risk",
+    "PostgreSQL password hardcoded in docker-compose.aldeci-complete.yml (line 33, 78, 28)",
+    "Kubernetes deployment secret = 'CHANGE_ME' — will be forgeable if not customized",
+    "5 Python Dockerfiles run as root — violates CIS Docker Benchmark 4.1",
+    "9 services missing health checks — reduces resilience and auto-recovery",
+    "3 demo Dockerfiles have hardcoded tokens — acceptable for demo but risk if reused",
+    "Database connection uses sslmode=disable — plaintext over network",
+    "LocalStack credentials visible in docker-compose output — acceptable for test, but pattern risk",
+    "No --cap-drop=ALL or security_opt in any compose file",
+    "DEBUG=1 in integration tests may leak sensitive logs"
+  ],
+  "recommendations": {
+    "immediate_critical": [
+      "Remove /var/run/docker.sock mount from docker-compose.aldeci-complete.yml or run as non-root",
+      "Enforce POSTGRES_PASSWORD via environment variable (use :? syntax)",
+      "Add Helm pre-install hook to reject FIXOPS_JWT_SECRET=CHANGE_ME"
+    ],
+    "high_priority": [
+      "Add USER directives to all 5 Python production Dockerfiles",
+      "Change DATABASE_URL sslmode to 'require' for TLS encryption",
+      "Add health checks to 9 missing services",
+      "Document in README that demo Dockerfiles should not go to production registry"
+    ],
+    "medium_priority": [
+      "Disable DEBUG=1 by default in docker-compose.integration.yml",
+      "Add --security-opt=no-new-privileges:true to all services",
+      "Use Docker secrets for sensitive config instead of env vars",
+      "Add apt-get clean to all apt-get RUN commands",
+      "Exclude test/ and docs/ from COPY to reduce image size"
+    ],
+    "low_priority": [
+      "Update .dockerignore to exclude *.db and data/ directories",
+      "Consider Alpine variant for Python images (python:3.11-alpine)",
+      "Document port mapping rationale (currently all reasonable)",
+      "Add LABEL metadata to all Dockerfiles for traceability"
+    ]
+  },
+  "confidence": 0.92,
+  "duration_turns": 8,
+  "needs_senior_review": true,
+  "senior_review_reason": "Critical docker socket security issue and multiple hardcoded credentials require architectural decision on how to resolve. Recommend security-analyst review.",
+  "audit_timestamp": "2026-03-01T00:00:00Z",
+  "audit_tool": "grep + Docker security best practices checklist (CIS Docker Benchmark)",
+  "cis_violations": [
+    "4.1: Ensure a user for the container has been created (5 Dockerfiles)",
+    "5.4: Ensure privileged containers are not used (docker socket + root)",
+    "5.3: Ensure Linux kernel capabilities are restricted (no --cap-drop)",
+    "5.25: Ensure container is restricted from acquiring additional privileges"
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "_meta": {
+    "generated": "2026-03-01T23:07:53.202379",
+    "total_loc": "~693K (424 Python + 4116 TypeScript)",
+    "api_endpoints": "641+"
+  },
+  "suites": {
+    "suite-api": "FastAPI gateway, 61 routers, auth (apps/api/app.py)",
+    "suite-core": "Brain pipeline, decisions, connectors, 8 native scanners, AutoFix",
+    "suite-attack": "MPTE, attack sim, FAIL engine, API fuzzer, malware scanner",
+    "suite-feeds": "Threat intel (NVD, KEV, EPSS, OSV, ExploitDB, GitHub)",
+    "suite-evidence-risk": "Compliance, evidence bundles, risk scoring",
+    "suite-integrations": "Jira, Slack, GitHub, MCP, OSS tools",
+    "suite-ui": "aldeci/ (FROZEN legacy) + aldeci-ui-new/ (ACTIVE \u2014 5 Workflow Spaces)"
+  },
+  "critical_engines": {
+    "brain_pipeline": {
+      "file": "suite-core/core/brain_pipeline.py",
+      "loc": 863,
+      "purpose": "12-step CTEM pipeline"
+    },
+    "sast_engine": {
+      "file": "suite-core/core/sast_engine.py",
+      "loc": 465,
+      "purpose": "Static analysis scanner"
+    },
+    "dast_engine": {
+      "file": "suite-core/core/dast_engine.py",
+      "loc": 533,
+      "purpose": "Dynamic analysis scanner"
+    },
+    "secrets_scanner": {
+      "file": "suite-core/core/secrets_scanner.py",
+      "loc": 775,
+      "purpose": "Secrets detection"
+    },
+    "container_scanner": {
+      "file": "suite-core/core/container_scanner.py",
+      "loc": 410,
+      "purpose": "Container vuln scanning"
+    },
+    "cspm_analyzer": {
+      "file": "suite-core/core/cspm_analyzer.py",
+      "loc": 586,
+      "purpose": "Cloud security posture"
+    },
+    "autofix_engine": {
+      "file": "suite-core/core/autofix_engine.py",
+      "loc": 1260,
+      "purpose": "10-type auto-remediation"
+    },
+    "micro_pentest": {
+      "file": "suite-core/core/micro_pentest.py",
+      "loc": 2008,
+      "purpose": "MPTE exploitation proof"
+    },
+    "fail_engine": {
+      "file": "suite-core/core/fail_engine.py",
+      "loc": 713,
+      "purpose": "FAIL risk scoring"
+    },
+    "exposure_case": {
+      "file": "suite-core/core/exposure_case.py",
+      "loc": 577,
+      "purpose": "Triage case management"
+    },
+    "connectors": {
+      "file": "suite-core/core/connectors.py",
+      "loc": 3006,
+      "purpose": "17 external tool connectors"
+    },
+    "mcp_router": {
+      "file": "suite-integrations/api/mcp_router.py",
+      "loc": 468,
+      "purpose": "MCP gateway (9/650 tools)"
+    }
+  },
+  "ui_active": {
+    "root": "suite-ui/aldeci-ui-new/",
+    "stack": "React 19 + Vite 6 + TypeScript 5 + Tailwind 4 + shadcn/ui",
+    "spaces": [
+      "Mission Control",
+      "Discover",
+      "Validate",
+      "Remediate",
+      "Comply"
+    ],
+    "frozen_legacy": "suite-ui/aldeci/ (DO NOT MODIFY)"
+  },
+  "key_config": {
+    "entry_point": "apps/api/app.py",
+    "imports": "sitecustomize.py auto-prepends all suite paths",
+    "db_mode": "SQLite WAL",
+    "event_bus": "core/event_bus.py (no external MQ)",
+    "crypto": "core/crypto.py (RSA-SHA256 signatures)"
+  }
+}

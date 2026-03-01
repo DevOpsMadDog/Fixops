@@ -27,8 +27,8 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>/bin/bash</string>
-        <string>/Users/devops.ai/developement/fixops/Fixops/scripts/run-ai-team.sh</string>
+        <string>/opt/homebrew/bin/bash</string>
+        <string>/Users/devops.ai/developement/fixops/Fixops/scripts/jarvis-launcher.sh</string>
     </array>
 
     <key>WorkingDirectory</key>

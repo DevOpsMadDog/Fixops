@@ -1,0 +1,125 @@
+{
+  "last_updated": "2026-03-01T10:10:00Z",
+  "updated_by": "security-analyst",
+  "frameworks": {
+    "SOC2-Type-II": {
+      "controls_total": 22,
+      "controls_mapped": 22,
+      "controls_satisfied": 16,
+      "controls_partially_satisfied": 4,
+      "controls_not_assessed": 2,
+      "coverage_pct": 81.8,
+      "status": "in-progress",
+      "gaps": [
+        "CC1.2: Board Independence — manual assessment needed",
+        "CC2.1: Information Quality Objectives — manual assessment needed",
+        "CC3.2: Fraud Risk Assessment — partial coverage",
+        "CC4.2: Deficiency Communication — partial coverage",
+        "CC6.3: Access Termination — partial coverage",
+        "CC7.3: Security Event Evaluation — partial coverage"
+      ],
+      "evidence_types_covered": [
+        "scan_result (SAST/DAST/Secrets/Container/CSPM)",
+        "config_audit (Brain Pipeline + CSPM)",
+        "access_review (JWT auth + role-based)",
+        "risk_assessment (FAIL Engine)",
+        "change_record (Git + Event Bus)",
+        "code_review (SAST + AutoFix)",
+        "incident_response (Brain Pipeline alerts)"
+      ],
+      "ctem_coverage": "12-step Brain Pipeline provides continuous monitoring (CC4.1, CC7.1, CC7.2)"
+    },
+    "PCI-DSS-v4.0": {
+      "requirements_total": 13,
+      "requirements_met": 11,
+      "requirements_partial": 1,
+      "requirements_na": 1,
+      "coverage_pct": 84.6,
+      "status": "in-progress",
+      "gaps": [
+        "Req 9.1: Physical Access — not applicable (cloud-native)",
+        "Req 12.1: Security Policies — partially documented"
+      ],
+      "ctem_coverage": "Req 6.2 covered by native SAST+DAST, Req 11.1 by MPTE micro-pentests"
+    },
+    "HIPAA": {
+      "safeguards_total": 11,
+      "safeguards_met": 9,
+      "safeguards_partial": 1,
+      "safeguards_na": 1,
+      "coverage_pct": 81.8,
+      "status": "in-progress",
+      "gaps": [
+        "164.308(a)(5): Security Training — partial (no training records)",
+        "164.310(a)(1): Facility Access — not applicable"
+      ],
+      "ctem_coverage": "164.312(b) Audit Controls covered by cryptographic evidence bundles"
+    },
+    "OWASP-Top-10-2024": {
+      "categories_total": 10,
+      "categories_mitigated": 10,
+      "categories_partial": 0,
+      "categories_remaining": 0,
+      "coverage_pct": 100.0,
+      "status": "complete",
+      "sast_rules_total": 110,
+      "sast_rules_by_category": {
+        "A01_BrokenAccessControl": "13 rules (SAST-005..024, 104, 110)",
+        "A02_CryptographicFailures": "12 rules (SAST-008, 025..034, 101)",
+        "A03_Injection": "27 rules (SAST-001..004, 012, 015..016, 035..048, 093..095, 098..099, 107)",
+        "A04_InsecureDesign": "6 rules (SAST-049..054)",
+        "A05_SecurityMisconfiguration": "11 rules (SAST-055..064, 105)",
+        "A06_VulnerableComponents": "4 rules (SAST-065..068)",
+        "A07_AuthenticationFailures": "13 rules (SAST-006, 013, 069..076, 103, 108..109)",
+        "A08_IntegrityFailures": "9 rules (SAST-007, 077..082, 100, 106)",
+        "A09_LoggingFailures": "9 rules (SAST-014, 083..088, 096..097)",
+        "A10_SSRF": "6 rules (SAST-011, 089..092, 102)"
+      },
+      "mitigated": [
+        "A01: Broken Access Control — JWT auth + role scopes + 13 SAST rules",
+        "A02: Cryptographic Failures — RSA-SHA256 + 12 SAST rules",
+        "A03: Injection — 27 SAST rules (SQLi, XSS, NoSQL, SSTI, LDAP, XPath, GraphQL, etc)",
+        "A04: Insecure Design — MPTE + 6 SAST rules (type safety, TOCTOU, rate limits)",
+        "A05: Security Misconfiguration — CSPM + 11 SAST rules (debug, CORS, CSP, etc)",
+        "A06: Vulnerable Components — Container scanner + pip-audit + 4 SAST rules",
+        "A07: Authentication Failures — JWT + API key + 13 SAST rules",
+        "A08: Integrity Failures — Crypto signatures + 9 SAST rules (eval, pickle, mass-assign)",
+        "A09: Logging Failures — Audit logs + Event Bus + 9 SAST rules",
+        "A10: SSRF — DAST + 6 SAST rules (cloud metadata, internal IP, URL scheme bypass)"
+      ],
+      "partial": [],
+      "remaining": []
+    },
+    "NIST-800-53-Rev5": {
+      "control_families_total": 20,
+      "control_families_assessed": 14,
+      "coverage_pct": 70.0,
+      "status": "in-progress",
+      "key_mappings": {
+        "AC (Access Control)": "JWT auth + API key + role scopes",
+        "AU (Audit)": "Event Bus + audit logs + evidence bundles",
+        "CA (Assessment)": "SAST + DAST + MPTE + Brain Pipeline",
+        "CM (Config Mgmt)": "CSPM analyzer + Brain Pipeline",
+        "IA (Identification)": "JWT + API key authentication",
+        "RA (Risk Assessment)": "FAIL Engine + Brain Pipeline scoring",
+        "SA (System Acquisition)": "Container scanner + SCA",
+        "SC (System Communications)": "TLS + RSA-SHA256 signing",
+        "SI (System Integrity)": "SAST + secrets scanner + evidence hashing"
+      }
+    }
+  },
+  "evidence_export": {
+    "endpoint": "/api/v1/evidence/export",
+    "signing": "RSA-SHA256 (PKCS1v15) via core.crypto",
+    "verification": "/api/v1/evidence/export/verify",
+    "status": "/api/v1/evidence/export/status",
+    "frameworks_supported": ["SOC2", "PCI-DSS", "HIPAA", "ISO27001", "NIST-CSF", "NIST-800-53"],
+    "retention": "7-year WORM",
+    "demo_ready": true
+  },
+  "audit_schedule": {
+    "last_audit": "2026-03-01",
+    "next_audit": "2026-03-06",
+    "audit_type": "enterprise_demo"
+  }
+}

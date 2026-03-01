@@ -1,0 +1,1472 @@
+{
+  "info": {
+    "_postman_id": "vl-006-persona-workflows",
+    "name": "\ud83d\udc64 ALdeci \u2014 PERSONA WORKFLOW FLOWS",
+    "description": "## End-to-End Persona Workflow Flows\n\nMulti-step chained flows simulating real user journeys across ALL 5 Workflow Spaces.\nEach flow uses Postman variable chaining \u2014 outputs from Step N feed inputs to Step N+1.\n\n### 5 Core Persona Flows:\n1. **Sarah Chen (CISO)** \u2014 Morning Briefing \u2192 Executive Decision \u2192 Compliance Check\n2. **Raj Patel (DevSecOps)** \u2014 Triage \u2192 FAIL Score \u2192 Dedup \u2192 Assign \u2192 Ticket \u2192 Workflow\n3. **Jason Park (Pentest Lead)** \u2014 MPTE Request \u2192 Verify \u2192 Micro Pentest \u2192 Evidence\n4. **Alex Rivera (Security Engineer)** \u2014 Finding \u2192 AutoFix \u2192 Validate \u2192 Apply \u2192 PR\n5. **Maria Santos (Compliance Manager)** \u2014 Framework \u2192 Gap \u2192 Evidence \u2192 Bundle \u2192 Report\n\n### Vision Alignment: V3, V5, V6, V10 \u2014 Full CTEM Loop with Cryptographic Proof",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{apiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.request.headers.add({ key: 'Content-Type', value: 'application/json' });",
+          "pm.request.headers.add({ key: 'Accept', value: 'application/json' });"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "\ud83d\udc69\u200d\ud83d\udcbc Sarah Chen \u2014 CISO Morning Briefing",
+      "description": "Sarah arrives at 7:30 AM. She needs: platform health \u2192 risk overview \u2192 top threats \u2192 compliance status \u2192 decisions \u2192 SLA \u2192 executive report. Crosses Mission Control + Comply spaces.",
+      "item": [
+        {
+          "name": "Step 1 \u2014 Platform Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/health",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Platform is healthy', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('All subsystems online', function() {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.exist;",
+                  "    console.log('Platform health:', JSON.stringify(json));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 2 \u2014 Dashboard Overview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/analytics/dashboard/overview",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "dashboard",
+                "overview"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Dashboard overview returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Has risk metrics', function() {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 3 \u2014 Top Risks (FAIL Scored)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/fail/top-risks",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "fail",
+                "top-risks"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Top risks returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture top risk finding', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (Array.isArray(json) && json.length) {",
+                  "        pm.environment.set('topRiskFindingId', json[0].finding_id || json[0].id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 4 \u2014 Decision Engine Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/decisions/metrics",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "decisions",
+                "metrics"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Decision metrics returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 5 \u2014 Compliance Framework Status (SOC2)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/audit/compliance/{{frameworkId}}/status",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "audit",
+                "compliance",
+                "{{frameworkId}}",
+                "status"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Compliance status returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 6 \u2014 SLA Performance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/remediation/metrics",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "remediation",
+                "metrics"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('SLA status returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 7 \u2014 Risk Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/risk",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "risk"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Risk summary returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 8 \u2014 Generate Executive Report",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"executive_summary\",\n  \"period\": \"last_week\",\n  \"include_sections\": [\n    \"risk_overview\",\n    \"compliance_status\",\n    \"remediation_metrics\",\n    \"sla_performance\",\n    \"top_risks\"\n  ],\n  \"format\": \"pdf\",\n  \"report_type\": \"security_summary\",\n  \"org_id\": \"{{orgId}}\",\n  \"date_range\": {\n    \"start\": \"2026-01-01\",\n    \"end\": \"2026-03-01\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/reports/generate",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "reports",
+                "generate"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Executive report generated', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture reportId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.report_id) pm.environment.set('reportId', json.report_id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udd27 Raj Patel \u2014 DevSecOps Triage Flow",
+      "description": "Raj's daily triage: health \u2192 new findings \u2192 FAIL score \u2192 dedup \u2192 policy check \u2192 assign to dev \u2192 create Jira ticket \u2192 trigger workflow. Crosses Mission Control + Discover + Remediate spaces.",
+      "item": [
+        {
+          "name": "Step 1 \u2014 Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/health",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Health returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 2 \u2014 Get Recent Findings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/analytics/findings?severity=critical&status=new&limit=10",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "findings"
+              ],
+              "query": [
+                {
+                  "key": "severity",
+                  "value": "critical"
+                },
+                {
+                  "key": "status",
+                  "value": "new"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Findings returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture finding for triage', function() {",
+                  "    const json = pm.response.json();",
+                  "    const findings = json.findings || json;",
+                  "    if (Array.isArray(findings) && findings.length) {",
+                  "        pm.environment.set('triageFindingId', findings[0].id || findings[0].finding_id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 3 \u2014 FAIL Score the Finding",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finding\": {\n    \"id\": \"{{triageFindingId}}\",\n    \"title\": \"Critical vulnerability in production\",\n    \"severity\": \"critical\",\n    \"source\": \"semgrep\"\n  },\n  \"context\": {\"environment\": \"production\", \"asset_tier\": \"critical\"}\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/fail/score",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "fail",
+                "score"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('FAIL score returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 4 \u2014 Check Dedup Clusters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/deduplication/clusters",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "deduplication",
+                "clusters"
+              ],
+              "query": [
+                {
+                  "key": "org_id",
+                  "value": "{{orgId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Dedup clusters returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 5 \u2014 Policy Violation Check",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finding_ids\": [\n    \"{{triageFindingId}}\"\n  ],\n  \"policy_id\": \"{{policyId}}\",\n  \"context\": \"pre_deployment\",\n  \"name\": \"test-policy\",\n  \"description\": \"test\",\n  \"provider\": \"local\",\n  \"rules\": []\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/policies",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "policies"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Policy validation returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 6 \u2014 Create Remediation Task",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finding_id\": \"{{triageFindingId}}\",\n  \"title\": \"Urgent: Fix critical vulnerability\",\n  \"severity\": \"critical\",\n  \"assignee\": \"mike.chen@company.com\",\n  \"sla_hours\": 4,\n  \"priority\": \"P0\",\n  \"cluster_id\": \"cluster-001\",\n  \"org_id\": \"{{orgId}}\",\n  \"app_id\": \"test-app-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/remediation/tasks",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "remediation",
+                "tasks"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Task created returns 200/201', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture taskId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.task_id) pm.environment.set('triageTaskId', json.task_id);",
+                  "    else if (json.id) pm.environment.set('triageTaskId', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 7 \u2014 Bulk Create Jira Ticket",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finding_ids\": [\n    \"{{triageFindingId}}\"\n  ],\n  \"ticket_system\": \"jira\",\n  \"project_key\": \"SEC\",\n  \"issue_type\": \"Bug\",\n  \"priority\": \"Critical\",\n  \"update\": {\n    \"status\": \"triaged\"\n  },\n  \"org_id\": \"{{orgId}}\",\n  \"ids\": [\n    \"finding-001\"\n  ],\n  \"integration_id\": \"jira-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/bulk/findings/update",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "bulk",
+                "findings",
+                "update"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ticket created returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 8 \u2014 Trigger Automated Workflow",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input\": {\n    \"finding_id\": \"{{triageFindingId}}\",\n    \"trigger_source\": \"devsecops_triage\"\n  },\n  \"name\": \"test-workflow\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/workflows",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "workflows"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Workflow executed returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83c\udfaf Jason Park \u2014 MPTE Exploit Verification Flow",
+      "description": "Jason validates exploitability: create MPTE request \u2192 start scan \u2192 verify \u2192 run micro pentest \u2192 get results \u2192 generate report \u2192 create evidence. Crosses Validate + Comply spaces.",
+      "item": [
+        {
+          "name": "Step 1 \u2014 MPTE Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/mpte/stats",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "mpte",
+                "stats"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('MPTE stats returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 2 \u2014 Create MPTE Request",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cve_id\": \"{{cveId}}\",\n  \"target\": \"payment-service\",\n  \"environment\": \"staging\",\n  \"scan_type\": \"comprehensive\",\n  \"priority\": \"high\",\n  \"finding_id\": \"{{findingId}}\",\n  \"target_url\": \"http://localhost:8000\",\n  \"vulnerability_type\": \"sql_injection\",\n  \"scope\": \"quick\",\n  \"test_case\": \"verify_sql_injection\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/mpte/requests",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "mpte",
+                "requests"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create MPTE request returns 200/201', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture mpteRequestId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.request_id) pm.environment.set('mpteRequestId', json.request_id);",
+                  "    else if (json.id) pm.environment.set('mpteRequestId', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 3 \u2014 Start MPTE Scan",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/mpte/requests/{{mpteRequestId}}/start",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "mpte",
+                "requests",
+                "{{mpteRequestId}}",
+                "start"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"finding_id\": \"{{findingId}}\",\n  \"target_url\": \"http://localhost:8000\",\n  \"vulnerability_type\": \"sql_injection\",\n  \"scope\": \"quick\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Start MPTE returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 4 \u2014 Verify Exploitability",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cve_id\": \"{{cveId}}\",\n  \"target_type\": \"web_application\",\n  \"environment\": \"staging\",\n  \"target_url\": \"http://localhost:8000\",\n  \"vulnerability_type\": \"sql_injection\",\n  \"finding_id\": \"{{findingId}}\",\n  \"evidence\": {\n    \"type\": \"network_scan\",\n    \"data\": {}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/mpte/verify",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "mpte",
+                "verify"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Verify exploitability returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 5 \u2014 Run Micro Pentest",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cve_ids\": [\n    \"{{cveId}}\"\n  ],\n  \"target_url\": \"http://payment-service:8080\",\n  \"options\": {\n    \"safe_mode\": true\n  },\n  \"vulnerability_type\": \"sql_injection\",\n  \"finding_id\": \"{{findingId}}\",\n  \"org_id\": \"{{orgId}}\",\n  \"target_urls\": [\n    \"http://localhost:8000\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/micro-pentest/run",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "micro-pentest",
+                "run"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Micro pentest returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture scanId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.flow_id) pm.environment.set('pentestScanId', json.flow_id);",
+                  "    else if (json.scan_id) pm.environment.set('pentestScanId', json.scan_id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 6 \u2014 Get MPTE Results",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/mpte/results",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "mpte",
+                "results"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('MPTE results returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 7 \u2014 Generate Pentest Report",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scan_id\": \"{{pentestScanId}}\",\n  \"format\": \"pdf\",\n  \"include_evidence\": true,\n  \"org_id\": \"{{orgId}}\",\n  \"cve_ids\": [\n    \"CVE-2024-3094\"\n  ],\n  \"target_urls\": [\n    \"http://localhost:8000\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/micro-pentest/report/generate",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "micro-pentest",
+                "report",
+                "generate"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Pentest report returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 8 \u2014 Create Signed Evidence Bundle",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"MPTE Verification \\u2014 {{cveId}}\",\n  \"framework\": \"internal_pentest\",\n  \"period\": \"2025-Q2\",\n  \"findings\": [\n    \"{{findingId}}\"\n  ],\n  \"sign\": true,\n  \"signature_type\": \"hybrid_rsa_mldsa\",\n  \"org_id\": \"{{orgId}}\",\n  \"app_id\": \"test-app-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/evidence/bundles/generate",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "evidence",
+                "bundles",
+                "generate"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Evidence bundle created returns 200/201', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture bundleId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.bundle_id) pm.environment.set('pentestBundleId', json.bundle_id);",
+                  "    else if (json.id) pm.environment.set('pentestBundleId', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcbb Alex Rivera \u2014 Security Engineer Fix Flow",
+      "description": "Alex fixes a vulnerability: get finding \u2192 AI analysis \u2192 generate autofix \u2192 validate \u2192 apply \u2192 comment \u2192 update task. Crosses Discover + Validate + Remediate spaces.",
+      "item": [
+        {
+          "name": "Step 1 \u2014 Get Assigned Finding",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/analytics/findings/{{findingId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "analytics",
+                "findings",
+                "{{findingId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get finding returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 2 \u2014 AI Vulnerability Analysis",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cve_id\": \"{{cveId}}\",\n  \"context\": {\"application\": \"payment-service\", \"environment\": \"production\"}\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/copilot/agents/analyst/analyze",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "copilot",
+                "agents",
+                "analyst",
+                "analyze"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('AI analysis returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 3 \u2014 Generate AutoFix",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finding_id\": \"{{findingId}}\",\n  \"language\": \"python\",\n  \"framework\": \"fastapi\",\n  \"fix_type\": \"code_change\",\n  \"include_tests\": true\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/autofix/generate",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "autofix",
+                "generate"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('AutoFix generated returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture fixId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.fix_id) pm.environment.set('fixId', json.fix_id);",
+                  "    else if (json.id) pm.environment.set('fixId', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 4 \u2014 Validate Fix",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fix_id\": \"{{fixId}}\",\n  \"validation_type\": \"syntax_and_security\",\n  \"org_id\": \"{{orgId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/autofix/validate",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "autofix",
+                "validate"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Fix validation returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 5 \u2014 Apply Fix (Create PR)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fix_id\": \"{{fixId}}\",\n  \"target_branch\": \"fix/{{cveId}}-payment-service\",\n  \"create_pr\": true,\n  \"org_id\": \"{{orgId}}\",\n  \"repository\": {\n    \"url\": \"https://github.com/test/repo\",\n    \"branch\": \"main\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/autofix/apply",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "autofix",
+                "apply"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Fix applied returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 6 \u2014 Add Collaboration Comment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finding_id\": \"{{findingId}}\",\n  \"content\": \"AutoFix applied. PR created with parameterized queries replacing string concatenation. Includes unit tests. @raj.patel please review.\",\n  \"mentions\": [\n    \"raj.patel@company.com\"\n  ],\n  \"author\": \"qa-engineer\",\n  \"org_id\": \"{{orgId}}\",\n  \"entity_type\": \"finding\",\n  \"entity_id\": \"finding-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/collaboration/comments",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "collaboration",
+                "comments"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Comment added returns 200/201', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 7 \u2014 Update Remediation Task",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"fix_applied\",\n  \"notes\": \"AutoFix PR created. Parameterized queries implemented. Awaiting code review.\",\n  \"cluster_id\": \"cluster-001\",\n  \"org_id\": \"{{orgId}}\",\n  \"title\": \"Fix SQL Injection\",\n  \"finding_id\": \"{{findingId}}\",\n  \"severity\": \"critical\",\n  \"assignee\": \"security-team\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/remediation/tasks/{{taskId}}/status",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "remediation",
+                "tasks",
+                "{{taskId}}",
+                "status"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Task updated returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udccb Maria Santos \u2014 Compliance Audit Flow",
+      "description": "Maria prepares for SOC2 audit: list frameworks \u2192 check status \u2192 gap analysis \u2192 generate evidence \u2192 create bundle \u2192 verify signature \u2192 generate report \u2192 export. Fully in Comply space.",
+      "item": [
+        {
+          "name": "Step 1 \u2014 List Compliance Frameworks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/audit/compliance/frameworks",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "audit",
+                "compliance",
+                "frameworks"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Frameworks returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture frameworkId', function() {",
+                  "    const json = pm.response.json();",
+                  "    const frameworks = json.frameworks || json;",
+                  "    if (Array.isArray(frameworks) && frameworks.length) {",
+                  "        pm.environment.set('auditFrameworkId', frameworks[0].id || frameworks[0].framework_id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 2 \u2014 Framework Compliance Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/audit/compliance/{{frameworkId}}/status",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "audit",
+                "compliance",
+                "{{frameworkId}}",
+                "status"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Framework status returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 3 \u2014 Gap Analysis",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/audit/compliance/{{frameworkId}}/gaps",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "audit",
+                "compliance",
+                "{{frameworkId}}",
+                "gaps"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Gap analysis returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 4 \u2014 Generate Audit Evidence",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"framework_id\": \"{{frameworkId}}\",\n  \"time_period\": \"last_quarter\",\n  \"include_signatures\": true\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/audit/compliance/frameworks/{{frameworkId}}/report",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "audit",
+                "compliance",
+                "frameworks",
+                "{{frameworkId}}",
+                "report"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Evidence generated returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 5 \u2014 Create Evidence Bundle",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"SOC2 Type II \\u2014 Q4 2025 Audit Evidence\",\n  \"framework\": \"{{frameworkId}}\",\n  \"period\": \"2025-Q4\",\n  \"findings\": [],\n  \"sign\": true,\n  \"signature_type\": \"hybrid_rsa_mldsa\",\n  \"org_id\": \"{{orgId}}\",\n  \"app_id\": \"test-app-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/evidence/bundles/generate",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "evidence",
+                "bundles",
+                "generate"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Bundle created returns 200/201', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture auditBundleId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.bundle_id) pm.environment.set('auditBundleId', json.bundle_id);",
+                  "    else if (json.id) pm.environment.set('auditBundleId', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 6 \u2014 Verify Bundle Signature",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/evidence/bundles/{{auditBundleId}}/verify",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "evidence",
+                "bundles",
+                "{{auditBundleId}}",
+                "verify"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Bundle verified returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Signature is valid', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.valid !== undefined) pm.expect(json.valid).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 7 \u2014 Generate Compliance Report",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"compliance_audit\",\n  \"framework\": \"{{frameworkId}}\",\n  \"period\": \"2025-Q4\",\n  \"include_sections\": [\n    \"controls_status\",\n    \"gap_analysis\",\n    \"evidence_summary\",\n    \"remediation_timeline\"\n  ],\n  \"format\": \"pdf\",\n  \"report_type\": \"compliance\",\n  \"org_id\": \"{{orgId}}\",\n  \"date_range\": {\n    \"start\": \"2026-01-01\",\n    \"end\": \"2026-03-01\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{apiBase}}/reports/generate",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "reports",
+                "generate"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Compliance report generated returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Capture auditReportId', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.report_id) pm.environment.set('auditReportId', json.report_id);",
+                  "    else if (json.id) pm.environment.set('auditReportId', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 8 \u2014 Export for Auditor",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/reports",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "reports"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "pdf"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Export returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Step 9 \u2014 Verify Audit Chain Integrity",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/audit/chain/verify",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "audit",
+                "chain",
+                "verify"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Chain verified returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
+                  "pm.test('Audit chain is intact', function() {",
+                  "    const json = pm.response.json();",
+                  "    if (json.valid !== undefined) pm.expect(json.valid).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

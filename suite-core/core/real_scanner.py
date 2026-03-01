@@ -810,7 +810,7 @@ class RealVulnerabilityScanner:
             return
         params = parse_qs(parsed.query)
         # Use a unique canary token so we don't match static page content
-        canary = f"ALDECI{hashlib.md5(url.encode()).hexdigest()[:8]}"
+        canary = f"ALDECI{hashlib.md5(url.encode(), usedforsecurity=False).hexdigest()[:8]}"
         for param_name in params:
             # Step 1: Check if the parameter reflects values at all using a unique canary
             canary_params = dict(params)

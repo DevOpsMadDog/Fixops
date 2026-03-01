@@ -1,0 +1,87 @@
+{
+  "policy_summary": {
+    "actions": [
+      {
+        "context": {
+          "counts": {
+            "high": 1
+          },
+          "highest": "high",
+          "metadata": {
+            "file": "pom.xml",
+            "location": "pom.xml:42",
+            "message": "CVE-2021-44228 in log4j-core 2.14.1",
+            "rule_id": "SNYK-JAVA-LOG4J-2314726",
+            "type": "sast"
+          },
+          "sources": {
+            "cve": {},
+            "sarif": {
+              "high": 1
+            }
+          },
+          "trigger": {
+            "file": "pom.xml",
+            "level": "error",
+            "rule_id": "SNYK-JAVA-LOG4J-2314726",
+            "source": "sarif"
+          }
+        },
+        "description": "FixOps detected a guardrail failure and created this ticket automatically.",
+        "id": "jira-guardrail-fail",
+        "issue_type": "Task",
+        "priority": "High",
+        "project_key": "SEC",
+        "summary": "Guardrail failure detected",
+        "type": "jira_issue"
+      }
+    ],
+    "execution": {
+      "delivery_results": [
+        {
+          "endpoint": "https://jira.example.com/rest/api/3/issue",
+          "error": "HTTPSConnectionPool(host='jira.example.com', port=443): Max retries exceeded with url: /rest/api/3/issue (Caused by NameResolutionError(\"HTTPSConnection(host='jira.example.com', port=443): Failed to resolve 'jira.example.com' ([Errno 8] nodename nor servname provided, or not known)\"))",
+          "reason": "jira delivery failed",
+          "status": "failed"
+        }
+      ],
+      "dispatched_count": 1,
+      "failed_count": 0,
+      "results": [
+        {
+          "delivery": {
+            "endpoint": "https://jira.example.com/rest/api/3/issue",
+            "error": "HTTPSConnectionPool(host='jira.example.com', port=443): Max retries exceeded with url: /rest/api/3/issue (Caused by NameResolutionError(\"HTTPSConnection(host='jira.example.com', port=443): Failed to resolve 'jira.example.com' ([Errno 8] nodename nor servname provided, or not known)\"))",
+            "reason": "jira delivery failed",
+            "status": "failed"
+          },
+          "id": "jira-guardrail-fail",
+          "path": "/Users/devops.ai/developement/fixops/Fixops/data/automation/20260226T203747-jira-guardrail-fail.json",
+          "status": "dispatched"
+        }
+      ],
+      "status": "completed"
+    },
+    "skipped": [
+      {
+        "id": "confluence-guardrail-warn",
+        "reason": "trigger 'guardrail:warn' not met"
+      }
+    ],
+    "status": "ready"
+  },
+  "run_id": "230291e1d8424503a7e35f5f2fdb120a",
+  "summary": {
+    "connector_usage": {
+      "unknown": 1
+    },
+    "delivery_status": {
+      "failed": 1
+    },
+    "dispatched_count": 1,
+    "execution_status": "completed",
+    "failed_count": 0,
+    "planned_actions": 1
+  },
+  "timestamp": 1772138273
+}

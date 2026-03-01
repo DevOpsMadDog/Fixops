@@ -176,3 +176,15 @@ async def list_canonical(
 async def get_stats(org_id: Optional[str] = Query(None)):
     resolver = get_fuzzy_resolver()
     return resolver.get_resolution_stats(org_id=org_id)
+
+
+@router.get("/health")
+async def fuzzy_identity_health():
+    """Fuzzy identity resolver health check."""
+    return {"status": "healthy", "engine": "fuzzy-identity", "version": "1.0.0"}
+
+
+@router.get("/status")
+async def fuzzy_identity_status():
+    """Fuzzy identity resolver status (alias for /health)."""
+    return await fuzzy_identity_health()

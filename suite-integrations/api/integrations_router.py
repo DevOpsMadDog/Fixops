@@ -2,6 +2,7 @@
 Integration management API endpoints.
 """
 import logging
+import sqlite3
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -98,15 +99,20 @@ async def list_integrations(
 @router.post("", response_model=IntegrationResponse, status_code=201)
 async def create_integration(integration_data: IntegrationCreate):
     """Create a new integration."""
-    integration = Integration(
-        id="",
-        name=integration_data.name,
-        integration_type=integration_data.integration_type,
-        status=integration_data.status,
-        config=integration_data.config,
-    )
-    created_integration = db.create_integration(integration)
-    return IntegrationResponse(**created_integration.to_dict())
+    try:
+        integration = Integration(
+            id="",
+            name=integration_data.name,
+            integration_type=integration_data.integration_type,
+            status=integration_data.status,
+            config=integration_data.config,
+        )
+        created_integration = db.create_integration(integration)
+        return IntegrationResponse(**created_integration.to_dict())
+    except (sqlite3.IntegrityError, Exception) as exc:
+        if "UNIQUE constraint" in str(exc) or "IntegrityError" in type(exc).__name__:
+            raise HTTPException(status_code=409, detail=f"Integration '{integration_data.name}' already exists")
+        raise
 
 
 @router.get("/{id}", response_model=IntegrationResponse)

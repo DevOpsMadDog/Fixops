@@ -1084,6 +1084,12 @@ def get_feed_health() -> Dict[str, Any]:
     }
 
 
+@router.get("/status")
+def feeds_status() -> Dict[str, Any]:
+    """Feed service status (alias for /health)."""
+    return get_feed_health()
+
+
 @router.get("/scheduler/status")
 def get_scheduler_status() -> Dict[str, Any]:
     """Get feed scheduler status.

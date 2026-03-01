@@ -17,16 +17,43 @@ from tempfile import SpooledTemporaryFile
 from types import SimpleNamespace
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
+# Auto-load .env file so FIXOPS_API_TOKEN, FIXOPS_JWT_SECRET etc. are
+# available without manual `export` commands.
+try:
+    from dotenv import load_dotenv
+
+    # Walk up from this file to find the repo-root .env
+    _dotenv_path = Path(__file__).resolve().parents[2] / ".env"
+    if _dotenv_path.is_file():
+        load_dotenv(_dotenv_path, override=False)
+    else:
+        load_dotenv(override=False)  # searches cwd / parents
+except ImportError:
+    pass  # python-dotenv not installed — rely on shell env
+
 import jwt
 from apps.api.analytics_router import router as analytics_router
 from apps.api.audit_router import router as audit_router
 from apps.api.auth_router import router as auth_router
 from apps.api.bulk_router import router as bulk_router
 from apps.api.collaboration_router import router as collaboration_router
+from apps.api.fail_router import router as fail_router
+
+# Universal Connectors router (Jira + GitHub + Slack fan-out)
+connectors_router: Optional[APIRouter] = None
+try:
+    from apps.api.connectors_router import router as connectors_router
+
+    logging.getLogger(__name__).info("Loaded Universal Connectors router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Connectors router not available: %s", e)
+
 from apps.api.inventory_router import router as inventory_router
 from apps.api.policies_router import router as policies_router
 from apps.api.remediation_router import router as remediation_router
 from apps.api.reports_router import router as reports_router
+from apps.api.admin_router import router as admin_router
+from apps.api.system_router import router as system_router
 from apps.api.teams_router import router as teams_router
 from apps.api.users_router import router as users_router
 from apps.api.workflows_router import router as workflows_router
@@ -114,6 +141,29 @@ try:
     _logger.info("Loaded Feeds router from suite-feeds")
 except ImportError as e:
     _logger.warning("Feeds router not available: %s", e)
+
+# ---------------------------------------------------------------------------
+# Scanner Ingest router (25+ scanner parsers — from apps/api/)
+# ---------------------------------------------------------------------------
+scanner_ingest_router: Optional[APIRouter] = None
+try:
+    from apps.api.scanner_ingest_router import router as scanner_ingest_router
+
+    _logger.info("Loaded Scanner Ingest router (15 new parsers)")
+except ImportError as e:
+    _logger.warning("Scanner Ingest router not available: %s", e)
+
+# ---------------------------------------------------------------------------
+# Sandbox PoC Verifier router (Docker-isolated exploit verification)
+# ---------------------------------------------------------------------------
+sandbox_router: Optional[APIRouter] = None
+try:
+    from core.sandbox_verifier import create_sandbox_router
+
+    sandbox_router = create_sandbox_router()
+    _logger.info("Loaded Sandbox PoC Verifier router")
+except ImportError as e:
+    _logger.warning("Sandbox PoC Verifier router not available: %s", e)
 
 # Enterprise marketplace router
 marketplace_router: Optional[APIRouter] = None
@@ -261,6 +311,57 @@ except ImportError as e:
     _logger.warning("Code-to-Cloud router not available: %s", e)
 
 # ---------------------------------------------------------------------------
+# Vision V4-V9 routers (new engines — from suite-core/api/)
+# ---------------------------------------------------------------------------
+quantum_crypto_router: Optional[APIRouter] = None
+try:
+    from api.quantum_crypto_router import router as quantum_crypto_router
+
+    _logger.info("Loaded Quantum Crypto router from suite-core (V6)")
+except ImportError as e:
+    _logger.warning("Quantum Crypto router not available: %s", e)
+
+zero_gravity_router: Optional[APIRouter] = None
+try:
+    from api.zero_gravity_router import router as zero_gravity_router
+
+    _logger.info("Loaded Zero-Gravity router from suite-core (V9)")
+except ImportError as e:
+    _logger.warning("Zero-Gravity router not available: %s", e)
+
+single_agent_router: Optional[APIRouter] = None
+try:
+    from api.single_agent_router import router as single_agent_router
+
+    _logger.info("Loaded Single Agent router from suite-core (V4)")
+except ImportError as e:
+    _logger.warning("Single Agent router not available: %s", e)
+
+knowledge_graph_router: Optional[APIRouter] = None
+try:
+    from api.knowledge_graph_router import router as knowledge_graph_router
+
+    _logger.info("Loaded Knowledge Graph router from suite-core (V3)")
+except ImportError as e:
+    _logger.warning("Knowledge Graph router not available: %s", e)
+
+mcp_protocol_router: Optional[APIRouter] = None
+try:
+    from api.mcp_protocol_router import router as mcp_protocol_router
+
+    _logger.info("Loaded MCP Protocol router from suite-core (V7)")
+except ImportError as e:
+    _logger.warning("MCP Protocol router not available: %s", e)
+
+self_learning_router: Optional[APIRouter] = None
+try:
+    from api.self_learning_router import router as self_learning_router
+
+    _logger.info("Loaded Self-Learning router from suite-core (V8)")
+except ImportError as e:
+    _logger.warning("Self-Learning router not available: %s", e)
+
+# ---------------------------------------------------------------------------
 # Suite-Attack routers (additional offensive security — from suite-attack/api/)
 # ---------------------------------------------------------------------------
 attack_sim_router: Optional[APIRouter] = None
@@ -354,6 +455,14 @@ try:
 except ImportError as e:
     _logger.warning("Provenance router not available: %s", e)
 
+compliance_engine_router: Optional[APIRouter] = None
+try:
+    from api.compliance_engine_router import router as compliance_engine_router
+
+    _logger.info("Loaded Compliance Engine router from suite-evidence-risk (V10)")
+except ImportError as e:
+    _logger.warning("Compliance Engine router not available: %s", e)
+
 biz_ctx_router: Optional[APIRouter] = None
 try:
     from api.business_context import router as biz_ctx_router
@@ -422,6 +531,10 @@ try:
     _logger.info("Loaded MCP router from suite-integrations")
 except ImportError as e:
     _logger.warning("MCP router not available: %s", e)
+
+# MCP Auto-Discovery router (auto-generates tool catalog from all FastAPI routes)
+from apps.api.mcp_router import register_startup_hook as _mcp_register_startup
+from apps.api.mcp_router import router as mcp_discovery_router
 
 from core.analytics import AnalyticsStore
 from core.configuration import OverlayConfig, load_overlay
@@ -841,8 +954,9 @@ def create_app() -> FastAPI:
     ) -> Dict[str, Any]:
         """Global search across findings, CVEs, assets, and more."""
         from core.analytics import AnalyticsStore
+        from pathlib import Path
 
-        db = AnalyticsStore()
+        db = AnalyticsStore(base_directory=Path("data/analytics"))
         results: list[Dict[str, Any]] = []
         if q:
             # Search findings
@@ -879,6 +993,16 @@ def create_app() -> FastAPI:
         teams_router,
         dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
     )
+    # Admin-prefixed routes for Platform Admin (Hasan) persona
+    app.include_router(
+        admin_router,
+        dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
+    )
+    # System administration routes — health, info, config
+    app.include_router(
+        system_router,
+        dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
+    )
     app.include_router(
         policies_router,
         dependencies=[
@@ -888,6 +1012,17 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(analytics_router, dependencies=[Depends(_verify_api_key)])
+
+    # FAIL Engine — evidence-based risk scoring (Pillar V2)
+    app.include_router(fail_router, dependencies=[Depends(_verify_api_key)])
+
+    # Universal Connectors — Jira + GitHub + Slack fan-out (Pillar V1)
+    if connectors_router:
+        app.include_router(
+            connectors_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+        _logger.info("Mounted Universal Connectors router")
 
     app.include_router(reports_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(audit_router, dependencies=[Depends(_verify_api_key)])
@@ -908,6 +1043,25 @@ def create_app() -> FastAPI:
     # Enterprise features - Remediation, Collaboration
     app.include_router(remediation_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(collaboration_router, dependencies=[Depends(_verify_api_key)])
+
+    # Scanner Ingest — 25+ scanner parsers (ZAP, Burp, Nessus, Checkmarx, etc.)
+    if scanner_ingest_router:
+        app.include_router(
+            scanner_ingest_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+        _logger.info("Mounted Scanner Ingest router")
+
+    # Sandbox PoC Verifier — Docker-isolated exploit verification
+    if sandbox_router:
+        app.include_router(
+            sandbox_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("attack:execute")),
+            ],
+        )
+        _logger.info("Mounted Sandbox PoC Verifier router")
 
     # Validation router - compatibility checking for security tool outputs
     if validation_router:
@@ -972,6 +1126,12 @@ def create_app() -> FastAPI:
         (llm_monitor_router, "LLM Monitor", None),
         (code_to_cloud_router, "Code-to-Cloud", None),
         (streaming_router, "SSE Streaming", None),
+        (quantum_crypto_router, "Quantum Crypto", None),
+        (zero_gravity_router, "Zero-Gravity Data", None),
+        (single_agent_router, "AI Agent", None),
+        (knowledge_graph_router, "Knowledge Graph", None),
+        (mcp_protocol_router, "MCP Protocol", None),
+        (self_learning_router, "Self-Learning", None),
     ]
     for _r, _name, _prefix in _core_routers:
         if _r:
@@ -1012,6 +1172,7 @@ def create_app() -> FastAPI:
         (risk_router_ext, "Risk", "/api/v1"),
         (graph_router, "Graph", "/api/v1"),
         (provenance_router, "Provenance", "/api/v1"),
+        (compliance_engine_router, "Compliance Engine", "/api/v1"),
         (biz_ctx_router, "Business Context", "/api/v1"),
         (biz_ctx_enhanced_router, "Business Context Enhanced", "/api/v1"),
     ]
@@ -1035,7 +1196,11 @@ def create_app() -> FastAPI:
         (webhooks_router, "Webhooks"),
         (iac_router, "IaC"),
         (ide_router, "IDE"),
-        (mcp_router, "MCP"),
+        # Legacy mcp_router removed — superseded by MCP Auto-Discovery
+        # router (apps.api.mcp_router) which auto-generates tools from
+        # all FastAPI routes instead of 9 hard-coded definitions.
+        # Client management endpoints (/clients, /manifest, /config)
+        # are preserved via the new router's broader coverage.
     ]
     for _r, _name in _integration_routers:
         if _r:
@@ -1825,12 +1990,7 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=404, detail="Upload session not found")
         return {"status": "ok", "session": session.to_dict()}
 
-    @app.api_route(
-        "/pipeline/run",
-        methods=["GET", "POST"],
-        dependencies=[Depends(_verify_api_key)],
-    )
-    async def run_pipeline() -> Dict[str, Any]:
+    async def _run_legacy_pipeline_impl() -> Dict[str, Any]:
         overlay: OverlayConfig = app.state.overlay
         required = overlay.required_inputs
         missing = [stage for stage in required if stage not in app.state.artifacts]
@@ -1899,6 +2059,16 @@ def create_app() -> FastAPI:
         app.state.last_pipeline_result = result
 
         return result
+
+    @app.get("/pipeline/run", dependencies=[Depends(_verify_api_key)])
+    async def get_legacy_pipeline_run() -> Dict[str, Any]:
+        """Legacy pipeline trigger (GET)."""
+        return await _run_legacy_pipeline_impl()
+
+    @app.post("/pipeline/run", dependencies=[Depends(_verify_api_key)])
+    async def post_legacy_pipeline_run() -> Dict[str, Any]:
+        """Legacy pipeline trigger (POST)."""
+        return await _run_legacy_pipeline_impl()
 
     @app.get("/api/v1/triage", dependencies=[Depends(_verify_api_key)])
     async def get_triage(
@@ -2502,6 +2672,17 @@ def create_app() -> FastAPI:
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return entry
+
+    # ------------------------------------------------------------------
+    # MCP Auto-Discovery router (must be mounted after all other routers
+    # so that the startup hook can introspect the full route table)
+    # ------------------------------------------------------------------
+    app.include_router(
+        mcp_discovery_router,
+        dependencies=[Depends(_verify_api_key)],
+    )
+    _mcp_register_startup(app)
+    _logger.info("Mounted MCP Auto-Discovery router at /api/v1/mcp")
 
     # ------------------------------------------------------------------
     # Startup hooks: wire EventBus subscribers + log routes

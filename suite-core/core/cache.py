@@ -219,7 +219,7 @@ def cached(ttl: int = 300, prefix: str = "default"):
             key_data = (
                 f"{fn.__module__}.{fn.__qualname__}:{args}:{sorted(kwargs.items())}"
             )
-            key_hash = hashlib.md5(key_data.encode()).hexdigest()[:12]
+            key_hash = hashlib.md5(key_data.encode(), usedforsecurity=False).hexdigest()[:12]
             cache_key = f"{prefix}:{fn.__name__}:{key_hash}"
 
             # Try cache
