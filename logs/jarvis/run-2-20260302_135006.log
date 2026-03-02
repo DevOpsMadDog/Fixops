@@ -3244,3 +3244,126 @@ Terminated: 15             $debate_cmd --print --output-format text --max-turns 
     [1;33m└─ MPTEConsole.tsx[0m
   [1;33m→ Spawning frontend-craftsman fix agent to rebuild these pages...[0m
 [0;34m[17:28:44][0m GRADE-A: Spawning fix agent for , , Grade, CodeScanning.tsx, SecretsDetection.tsx, IaCScanning.tsx, KnowledgeGraphExplorer.tsx, AttackPaths.tsx, ThreatFeeds.tsx, MPTEConsole.tsx UI pages
+  [1m✅ Fix cycle 2 complete. Targets addressed: persona ui [0m
+
+[0;34m[17:43:59][0m GRADE-A: Enforcement cycle 3/3
+
+[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1m[0;35m  🎭 AGENT PERSONA VERIFICATION — Who did their job? Who didn't?              [0m
+[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+  [2mAGENT                  PERSONA                        GRADE  SCORE  REASON[0m
+  [2m───────────────────── ──────────────────────────── ───── ──────  ──────────────────────────────────────[0m
+  vision-agent           Chief Vision Officer           [0;36m    B[0m    82%  ✅ Persona file OK (14844B). ✅ Status OK. ⚠️ Output light (2080B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs. 
+  agent-doctor           System Reliability Engineer    [0;36m    B[0m    82%  ✅ Persona file OK (14967B). ✅ Status OK. ⚠️ Output light (2205B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs. 
+  context-engineer       Codebase Intelligence Architect [0;32m    A[0m    92%  ✅ Persona file OK (10904B). ✅ Status OK. ⚠️ Output light (1416B). ✅ Persona match 100%. ✅ Completed. ✅ No stubs. 
+  ai-researcher          AI/ML Research Scientist       [0;36m    B[0m    77%  ✅ Persona file OK (11737B). ✅ Status OK. ⚠️ Output light (2551B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs. 
+  data-scientist         Data Analytics Lead            [0;36m    B[0m    72%  ✅ Persona file OK (10693B). ✅ Status OK. ⚠️ Output light (2403B). ❌ Low match 33%. ✅ Completed. ✅ No stubs. 
+  enterprise-architect   Enterprise Solutions Architect [0;36m    B[0m    74%  ✅ Persona file OK (13101B). ✅ Status OK. ⚠️ Output light (1966B). ⚠️ Partial match 40%. ✅ Completed. ✅ No stubs. 
+  backend-hardener       Backend Security Engineer      [0;36m    B[0m    77%  ✅ Persona file OK (11886B). ✅ Status OK. ⚠️ Output light (2909B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs. 
+  [2m  └─ APIs: core/brain_pipeline.py,core/dast_engine.py,core/sandbox_verifier.py,core/sast_engine.py,core/scanner_parsers.py,core/secrets_scanner.py[0m
+  frontend-craftsman     UI/UX Engineering Lead         [0;36m    B[0m    80%  ✅ Persona file OK (12953B). ✅ Status OK. ⚠️ Output light (1220B). ⚠️ Partial match 62%. ✅ Completed. ✅ No stubs. 
+  threat-architect       Offensive Security Architect   [0;36m    B[0m    77%  ✅ Persona file OK (26112B). ✅ Status OK. ⚠️ Output light (1696B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs. 
+  swarm-controller       Swarm Orchestration Lead       [0;36m    B[0m    77%  ✅ Persona file OK (12678B). ✅ Status OK. ⚠️ Output light (1651B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs. 
+  [2m  └─ APIs: router.py[0m
+  security-analyst       Security Analyst & Pentester   [0;36m    B[0m    77%  ✅ Persona file OK (12357B). ✅ Status OK. ⚠️ Output light (2172B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs. 
+  qa-engineer            Quality Assurance Lead         [0;36m    B[0m    82%  ✅ Persona file OK (19354B). ✅ Status OK. ⚠️ Output light (1017B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs. 
+  devops-engineer        DevOps & Infrastructure Lead   [0;36m    B[0m    82%  ✅ Persona file OK (11300B). ✅ Status OK. ⚠️ Output light (2302B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs. 
+  marketing-head         Product Marketing Lead         [0;36m    B[0m    77%  ✅ Persona file OK (9919B). ✅ Status OK. ⚠️ Output light (2004B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs. 
+  technical-writer       Technical Documentation Lead   [0;36m    B[0m    82%  ✅ Persona file OK (10085B). ✅ Status OK. ⚠️ Output light (1923B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs. 
+  sales-engineer         Solutions Engineering Lead     [0;36m    B[0m    82%  ✅ Persona file OK (11150B). ✅ Status OK. ⚠️ Output light (1874B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs. 
+  scrum-master           Agile Delivery Lead            [0;36m    B[0m    77%  ✅ Persona file OK (13225B). ✅ Status OK. ⚠️ Output light (1809B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs. 
+
+  [1m━━━ PERSONA SUMMARY ━━━[0m
+  Verified (B+ grade): [0;32m17/17[0m ([0;32m100%[0m) | Failed: [0;31m0[0m | Stubs: [0;31m0[0m
+
+
+[1m[0;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1m[0;36m  🖥️  UI WORKFLOW SPACE VERIFICATION — Every page scored, every stub exposed    [0m
+[1m[0;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+  [1m🎯 MISSION-CONTROL[0m
+    [0;32m✅ Dashboard.tsx                 A    571 LOC   85%[0m
+    [0;32m✅ CEODashboard.tsx              A    497 LOC   85%[0m
+    [0;32m✅ NerveCenter.tsx               A    348 LOC   85%[0m
+  [1m[0;32m╰── mission-control:[0m Grade [0;32mA[0m — 3/3 real, 0 stubs, 0 missing ([0;32m100%[0m)
+
+  [1m🔍 DISCOVER[0m
+    [1;33m⚠️  CodeScanning.tsx             STUB   738 LOC   65%  [placeholder ][0m
+    [1;33m⚠️  SecretsDetection.tsx         STUB   400 LOC   65%  [placeholder ][0m
+    [1;33m⚠️  IaCScanning.tsx              STUB   335 LOC   65%  [placeholder ][0m
+    [0;32m✅ ContainerSecurity.tsx         B    134 LOC   75%[0m
+    [0;32m✅ SBOMGeneration.tsx            B    136 LOC   75%[0m
+    [1;33m⚠️  KnowledgeGraphExplorer.tsx   STUB   589 LOC   65%  [placeholder ][0m
+    [1;33m⚠️  AttackPaths.tsx              STUB   474 LOC   65%  [placeholder ][0m
+    [1;33m⚠️  ThreatFeeds.tsx              STUB   354 LOC   65%  [placeholder ][0m
+  [1m[0;31m╰── discover:[0m Grade [0;31mF[0m — 2/8 real, 6 stubs, 0 missing ([0;31m25%[0m)
+
+  [1m⚡ VALIDATE[0m
+    [1;33m⚠️  MPTEConsole.tsx              STUB  2070 LOC   65%  [placeholder ][0m
+    [0;32m✅ AttackSimulation.tsx          B    153 LOC   75%[0m
+    [1;33m⚠️  MicroPentest.tsx             STUB   395 LOC   65%  [placeholder ][0m
+    [1;33m⚠️  Reachability.tsx             STUB   614 LOC   65%  [placeholder ][0m
+  [1m[0;31m╰── validate:[0m Grade [0;31mF[0m — 1/4 real, 3 stubs, 0 missing ([0;31m25%[0m)
+
+  [1m🔧 REMEDIATE[0m
+    [1;33m⚠️  Remediation.tsx              STUB   421 LOC   65%  [placeholder ][0m
+    [0;32m✅ AutoFixDashboard.tsx          A    624 LOC   85%[0m
+    [1;33m⚠️  BulkOperations.tsx           STUB   412 LOC   65%  [placeholder ][0m
+    [1;33m⚠️  Collaboration.tsx            STUB   411 LOC   65%  [placeholder ][0m
+    [1;33m⚠️  Workflows.tsx                STUB   488 LOC   65%  [placeholder ][0m
+    [1;33m⚠️  Playbooks.tsx                STUB   504 LOC   65%  [placeholder ][0m
+  [1m[0;31m╰── remediate:[0m Grade [0;31mF[0m — 1/6 real, 5 stubs, 0 missing ([0;31m16%[0m)
+
+  [1m🛡️ COMPLY[0m
+    [1;33m⚠️  EvidenceBundles.tsx          STUB  2091 LOC   65%  [placeholder ][0m
+    [0;32m✅ ComplianceReports.tsx         A    626 LOC   85%[0m
+    [0;32m✅ SOC2EvidenceUI.tsx            A    337 LOC   85%[0m
+    [0;32m✅ EvidenceAnalytics.tsx         B    151 LOC   75%[0m
+    [1;33m⚠️  AuditLogs.tsx                STUB   356 LOC   65%  [placeholder ][0m
+    [1;33m⚠️  Reports.tsx                  STUB   431 LOC   65%  [placeholder ][0m
+    [0;32m✅ SLSAProvenance.tsx            B    142 LOC   75%[0m
+  [1m[1;33m╰── comply:[0m Grade [1;33mC[0m — 4/7 real, 3 stubs, 0 missing ([1;33m57%[0m)
+
+  [1m━━━ UI FLOW SUMMARY ━━━[0m
+  Real pages: [0;31m11/28[0m ([0;31m39%[0m) | Stubs: [0;31m17[0m | Missing: [0;31m0[0m
+  [0;31m⚠ 17 stub + 0 missing pages need work for Grade A![0m
+
+  Cycle 3: Health=90% Persona=0% UI=0% → Combined=36% → Grade [1mD[0m
+
+    ✅ [0;32mHealth     (40% weight): 90%[0m  ← Enterprise health scoring
+    ❌ [0;31mPersonas   (30% weight): 0%[0m  ← Agent persona keyword matches + output quality
+    ❌ [0;31mUI Flows   (30% weight): 0%[0m  ← Real pages vs stubs/missing
+    ──────────────────────────────────────────────────
+    [1;33m⚠ RESULT: Grade D (36%) — need 85%+ for Grade A[0m
+    [0;31m  └─ Persona below 70% → will re-run failed agents[0m
+    [0;31m  └─ UI below 70% → will spawn frontend-craftsman to fix stubs[0m
+
+[1;33m[!][0m GRADE-A: Grade is D (36%) — targeting weak areas...
+  [1m🔧 FIX CYCLE 3 — What's being fixed and why:[0m
+  [1;33m🖥️  UI pages needing fix (stubs/missing):[0m
+    [1;33m└─ Grade[0m
+    [1;33m└─ CodeScanning.tsx[0m
+    [1;33m└─ SecretsDetection.tsx[0m
+    [1;33m└─ IaCScanning.tsx[0m
+    [1;33m└─ KnowledgeGraphExplorer.tsx[0m
+    [1;33m└─ AttackPaths.tsx[0m
+    [1;33m└─ ThreatFeeds.tsx[0m
+    [1;33m└─ MPTEConsole.tsx[0m
+  [1;33m→ Spawning frontend-craftsman fix agent to rebuild these pages...[0m
+[0;34m[17:44:00][0m GRADE-A: Spawning fix agent for , , Grade, CodeScanning.tsx, SecretsDetection.tsx, IaCScanning.tsx, KnowledgeGraphExplorer.tsx, AttackPaths.tsx, ThreatFeeds.tsx, MPTEConsole.tsx UI pages
+  [1m✅ Fix cycle 3 complete. Targets addressed: persona ui [0m
+
+
+[1m[0;31m━━━ GRADE-A LOOP RESULT: NOT ACHIEVED ━━━[0m
+  [0;31mCould not reach Grade A after 3 cycle(s)[0m
+  [0;31mBest result: Grade D (36%)[0m
+  [0;31mBreakdown: Health=90% Persona=0% UI=0%[0m
+  [0;31m  └─ Personas need [0;32m85% more[0m — agents must produce real persona-matched output
+  [0;31m  └─ UI Flows need [0;32m85% more[0m — rebuild stub pages with real components
+[1;33m[!][0m GRADE-A: Could not reach Grade A after 3 cycles (best: D 36%)
+  [1;33m🔄 NEVER-GIVE-UP mode is ON — will retry in next swarm iteration[0m
+[1;33m[!][0m GRADE-A: NEVER-GIVE-UP mode — will retry in next iteration
+
+[0;32m[✓][0m Guardian daily report: 
+[0;34m[17:59:02][0m Auto-committing 15 changes (15 modified, 0 new)...
