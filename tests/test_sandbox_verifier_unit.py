@@ -7,14 +7,9 @@ edge cases, and error handling. Docker is mocked for CI/CD environments.
 Vision Pillar: V5 (MPTE Verification), MOAT2 (MPTE + Sandbox PoC)
 """
 
-import json
-import os
 import subprocess
-import tempfile
-from unittest.mock import patch, MagicMock, PropertyMock
-from pathlib import Path
+from unittest.mock import patch, MagicMock
 
-import pytest
 
 from core.sandbox_verifier import (
     VerificationStatus,
@@ -367,7 +362,7 @@ class TestSandboxVerifierVerify:
 
         sv = SandboxVerifier(docker_available=True, max_attempts=3)
         poc = PoCScript(language=PoCLanguage.PYTHON, code="broken")
-        result = sv.verify(poc)
+        sv.verify(poc)
         assert mock_exec.call_count == 1  # No retry
 
     @patch.object(SandboxVerifier, '_execute_in_sandbox')
@@ -375,7 +370,7 @@ class TestSandboxVerifierVerify:
         mock_exec.return_value = VerificationResult(status=VerificationStatus.ERROR)
         sv = SandboxVerifier(docker_available=True, max_attempts=1)
         poc = PoCScript(language=PoCLanguage.PYTHON, code="fail")
-        result = sv.verify(poc)
+        sv.verify(poc)
         assert mock_exec.call_count == 1
 
 

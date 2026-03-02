@@ -16,7 +16,6 @@ At least 25 real test functions.
 
 from __future__ import annotations
 
-import asyncio
 import time
 from typing import Any, Dict
 from unittest.mock import AsyncMock, MagicMock, patch

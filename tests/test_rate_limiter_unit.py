@@ -299,7 +299,7 @@ class TestRateLimitMiddlewareExemptPaths:
 
     def test_default_exempt_paths(self):
         """When no exempt_paths specified, defaults include health/ready/version/metrics."""
-        middleware = RateLimitMiddleware.__new__(RateLimitMiddleware)
+        RateLimitMiddleware.__new__(RateLimitMiddleware)
         # Manually check what the init would set as defaults
         default_exempt = ["/api/v1/health", "/api/v1/ready", "/api/v1/version", "/api/v1/metrics"]
         # Just verifying the default list matches expectations

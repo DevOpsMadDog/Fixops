@@ -14,10 +14,7 @@ Target: 80%+ coverage of mcp_server.py (979 LOC).
 """
 
 import json
-import re
-import time
-import uuid
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -29,13 +26,11 @@ from core.mcp_server import (
     PARSE_ERROR,
     MCPMethod,
     MCPPromptLibrary,
-    MCPPromptTemplate,
     MCPProtocolHandler,
     MCPRequest,
     MCPResourceDefinition,
     MCPResourceServer,
     MCPResponse,
-    MCPSession,
     MCPSessionManager,
     MCPToolDefinition,
     MCPToolRegistry,
@@ -474,7 +469,6 @@ class TestMCPSessionManager:
     def test_touch_session(self):
         mgr = MCPSessionManager()
         session = mgr.create_session("client")
-        old_activity = session.last_activity
         mgr.touch_session(session.session_id)
         assert session.request_count == 1
 
@@ -500,8 +494,8 @@ class TestMCPSessionManager:
 
     def test_eviction_when_max_reached(self):
         mgr = MCPSessionManager(max_clients=2)
-        s1 = mgr.create_session("client1")
-        s2 = mgr.create_session("client2")
+        mgr.create_session("client1")
+        mgr.create_session("client2")
         s3 = mgr.create_session("client3")  # should evict oldest
         assert len(mgr.active_sessions()) == 2
         assert mgr.get_session(s3.session_id) is not None

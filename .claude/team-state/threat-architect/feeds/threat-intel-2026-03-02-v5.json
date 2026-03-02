@@ -1,0 +1,151 @@
+{
+  "source": "ALdeci Threat Intelligence — ai-researcher Pass 5",
+  "generated_at": "2026-03-02T23:00:00Z",
+  "analyst": "threat-architect",
+  "classification": "TLP:GREEN",
+  "alerts": [
+    {
+      "id": "INTEL-2026-001",
+      "severity": "CRITICAL",
+      "category": "AI-Powered Attack",
+      "title": "Claude AI Weaponized in Mexican Government Cyberattack",
+      "description": "Hacker used 1,000+ Claude Code prompts combined with GPT-4.1 to breach 10 Mexican government agencies and 1 financial institution between December 2025 and March 2026. This represents the first documented large-scale AI-powered government cyberattack using commercial LLMs.",
+      "indicators": {
+        "attack_tool": "Claude Code + GPT-4.1",
+        "target_sector": "Government",
+        "target_country": "Mexico",
+        "scope": "10 government agencies + 1 financial institution",
+        "timeline": "December 2025 - March 2026"
+      },
+      "mitre_techniques": ["T1059.006", "T1566.001", "T1078", "T1190"],
+      "aldeci_relevance": {
+        "pillar": "V5",
+        "impact": "MPTE must simulate AI-assisted attack chains",
+        "action": "Add AI-powered attack scenarios to MPTE playbooks"
+      },
+      "sources": [
+        "https://www.securityweek.com/hackers-weaponize-claude-code-in-mexican-government-cyberattack/",
+        "https://securityboulevard.com/2026/03/hacker-uses-claude-chatgpt-ai-chatbots-to-breach-mexican-government-systems/"
+      ]
+    },
+    {
+      "id": "INTEL-2026-002",
+      "severity": "CRITICAL",
+      "category": "MCP Security Crisis",
+      "title": "30 CVEs in MCP Ecosystem — 36.7% SSRF Exposure",
+      "description": "Analysis of 7,000+ MCP servers found 36.7% vulnerable to SSRF attacks. 30 CVEs in ~15 months. Microsoft MarkItDown MCP had severe SSRF enabling AWS key theft. Root cause: MCP designed for functionality — auth optional, authz 'left to implementation,' encryption not required.",
+      "indicators": {
+        "affected_servers": "7,000+ MCP servers analyzed",
+        "ssrf_rate": "36.7%",
+        "cve_count": 30,
+        "cve_period": "15 months",
+        "critical_example": "Microsoft MarkItDown MCP — AWS key theft via SSRF"
+      },
+      "mitre_techniques": ["T1190", "T1078.004", "T1552.005"],
+      "aldeci_relevance": {
+        "pillar": "V7",
+        "impact": "ALdeci's 705+ MCP tools must be SSRF-protected",
+        "action": "Security-analyst to review mcp_server.py and mcp_router.py"
+      },
+      "sources": [
+        "https://dev.to/darbogach/30-cves-and-counting-the-mcp-security-crisis-nobodys-talking-about-28ml",
+        "https://www.darkreading.com/application-security/microsoft-anthropic-mcp-servers-risk-takeovers"
+      ]
+    },
+    {
+      "id": "INTEL-2026-003",
+      "severity": "CRITICAL",
+      "category": "AI Workflow RCE",
+      "title": "n8n CVE-2026-21858 — CVSS 10.0 Unauthenticated RCE",
+      "description": "Critical unauthenticated remote code execution in n8n workflow automation platform (CVSS 10.0). Approximately 100,000 servers affected. Content-Type confusion in Form Webhook file upload enables arbitrary code execution without authentication.",
+      "indicators": {
+        "cve_id": "CVE-2026-21858",
+        "cvss": 10.0,
+        "affected_servers": "~100,000",
+        "attack_vector": "Content-Type confusion in Form Webhook",
+        "authentication_required": false,
+        "fix_version": "v1.121.0+"
+      },
+      "mitre_techniques": ["T1190", "T1059"],
+      "aldeci_relevance": {
+        "pillar": "V5",
+        "impact": "Validates MPTE for AI toolchain testing",
+        "action": "Add n8n-style RCE patterns to MPTE verification"
+      },
+      "sources": [
+        "https://www.aikido.dev/blog/n8n-rce-vulnerability-cve-2026-21858",
+        "https://thehackernews.com/2026/01/critical-n8n-vulnerability-cvss-100.html"
+      ]
+    },
+    {
+      "id": "INTEL-2026-004",
+      "severity": "HIGH",
+      "category": "Supply Chain",
+      "title": "Wiz/Google $32B Acquisition Closing March 2026",
+      "description": "Wiz acquisition by Google for $32B closing end of March 2026. All major regulatory approvals secured. Staff payout $2-2.5B. CISPE publicly alarmed about Google controlling both cloud infra and security scanning. Creates 'Switzerland' market opportunity.",
+      "indicators": {
+        "deal_value": "$32B",
+        "closing_date": "End of March 2026",
+        "regulatory_status": "All approvals secured",
+        "market_impact": "CNAPP consolidation under cloud hyperscaler"
+      },
+      "aldeci_relevance": {
+        "pillar": "V3",
+        "impact": "Scanner-neutral positioning is critical differentiator",
+        "action": "Marketing to prepare 'Switzerland' messaging for March 6 demo"
+      },
+      "sources": [
+        "https://www.calcalistech.com/ctechnews/article/b14vizivzl"
+      ]
+    },
+    {
+      "id": "INTEL-2026-005",
+      "severity": "HIGH",
+      "category": "New CVEs",
+      "title": "3 Critical Unauthenticated RCE CVEs Published (Mar 1-2)",
+      "description": "Three new critical unauthenticated RCE vulnerabilities published in NVD: CVE-2026-2999 (IDExpert arbitrary executable download), CVE-2026-3000 (IDExpert arbitrary DLL download), CVE-2026-3422 (U-Office Force insecure deserialization). All enable unauthenticated remote code execution.",
+      "cves": [
+        {"id": "CVE-2026-2999", "cvss": 9.8, "product": "IDExpert Windows Logon Agent", "vector": "Arbitrary executable download"},
+        {"id": "CVE-2026-3000", "cvss": 9.8, "product": "IDExpert Windows Logon Agent", "vector": "Arbitrary DLL download"},
+        {"id": "CVE-2026-3422", "cvss": 9.8, "product": "U-Office Force", "vector": "Insecure deserialization"}
+      ],
+      "mitre_techniques": ["T1190", "T1574.001", "T1502"],
+      "aldeci_relevance": {
+        "pillar": "V3",
+        "impact": "Brain pipeline CVE enrichment should flag these",
+        "action": "Feed into ALdeci CVE correlation engine"
+      }
+    },
+    {
+      "id": "INTEL-2026-006",
+      "severity": "HIGH",
+      "category": "Market Intelligence",
+      "title": "Gartner CTEM Validation + CrowdStrike Q4 Tomorrow",
+      "description": "Gartner predicts organizations with CTEM programs are 3x less likely to suffer a breach by 2026. CrowdStrike Q4 FY2026 results releasing March 3 after market close. eCrime breakout time now 29 minutes average, 27 seconds fastest. AI adversary operations up 89% YoY.",
+      "market_data": {
+        "gartner_ctem": "3x less likely to suffer breach",
+        "ecrime_breakout": "29 min avg, 27 sec fastest",
+        "ai_adversary_growth": "89% YoY",
+        "mcp_adoption": "30% of enterprise app vendors launching MCP in 2026",
+        "agentic_ai": "67% of orgs using, 48% see as top attack vector"
+      },
+      "aldeci_relevance": {
+        "pillar": "V3",
+        "impact": "CTEM validation from Gartner strengthens ALdeci positioning",
+        "action": "Include in investor pitch materials"
+      }
+    }
+  ],
+  "epss_highlights": {
+    "database_size": 317858,
+    "high_risk_count": 1339,
+    "top_2026_cve": "CVE-2026-24061",
+    "top_2026_epss": 0.78,
+    "cves_over_50pct": 7079
+  },
+  "kev_stats": {
+    "total_entries": 1529,
+    "2026_pace": "~270/year (45 in Jan-Feb)",
+    "as_of": "2026-02-26"
+  }
+}

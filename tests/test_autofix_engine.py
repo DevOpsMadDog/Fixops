@@ -8,7 +8,6 @@ only external dependencies (LLM providers, PR generators) are mocked.
 
 from __future__ import annotations
 
-import hashlib
 import sys
 import os
 
@@ -1163,10 +1162,12 @@ class TestValidateFix:
         assert "checks_passed" in result
         assert "total_checks" in result
 
-    def test_total_checks_is_4(self):
+    def test_total_checks_is_7(self):
+        """Validate all 7 safety checks run: artifacts, dangerous patterns,
+        path traversal, dangerous imports, patch validity, dep versions, patch size."""
         s = AutoFixSuggestion()
         result = self.engine._validate_fix(s)
-        assert result["total_checks"] == 4
+        assert result["total_checks"] == 7
 
     def test_perfect_validation(self):
         s = AutoFixSuggestion(
@@ -1175,7 +1176,7 @@ class TestValidateFix:
         )
         result = self.engine._validate_fix(s)
         assert result["valid"] is True
-        assert result["checks_passed"] == 4
+        assert result["checks_passed"] == 7
         assert result["score"] == 1.0
         assert result["issues"] == []
 

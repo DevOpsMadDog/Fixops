@@ -33,6 +33,8 @@ import { toast } from 'sonner';
 import CTEMProgressRing from '../components/dashboard/CTEMProgressRing';
 import MultiLLMConsensusPanel from '../components/dashboard/MultiLLMConsensusPanel';
 import RiskScoreGauge from '../components/dashboard/RiskScoreGauge';
+import LivePipelineIndicator from '../components/dashboard/LivePipelineIndicator';
+import BrainPipelineLiveFeed from '../components/dashboard/BrainPipelineLiveFeed';
 
 // Stagger animation variants
 const containerVariants = {
@@ -393,8 +395,11 @@ export default function Dashboard() {
         <MultiLLMConsensusPanel />
       </motion.div>
 
-      {/* Native Scanner Status — CTEM+ Identity */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
+      {/* Brain Pipeline — Live Feed (V3) */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32 }}
+        className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <LivePipelineIndicator />
+        {/* Native Scanner Status — CTEM+ Identity */}
         <Card className="glass-card backdrop-blur-md bg-gray-900/40 border-gray-700/40 hover:border-primary/20 transition-all duration-300">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -409,7 +414,7 @@ export default function Dashboard() {
         </Card>
       </motion.div>
 
-      {/* Main Content Grid */}
+      {/* Algorithm Capabilities + Service Health */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
         className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Algorithm Capabilities */}
@@ -515,6 +520,12 @@ export default function Dashboard() {
         </Card>
       </motion.div>
 
+      {/* Brain Pipeline Live Feed [V3] */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}
+        className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <BrainPipelineLiveFeed compact showStepIndicators />
+        <MultiLLMConsensusPanel compact />
+      </motion.div>
       {/* Quick Actions */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
         <Card className="glass-card backdrop-blur-md bg-gray-900/40 border-gray-700/40">

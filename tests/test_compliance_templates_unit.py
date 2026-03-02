@@ -6,7 +6,6 @@ HIPAA, PCI DSS, SOC2, and NIST templates.
 Pillar: V10 (CTEM + Crypto Evidence)
 """
 
-import pytest
 
 from compliance.templates.base import ComplianceCheck, ComplianceRule, ComplianceTemplate
 from compliance.templates.hipaa import HIPAATemplate

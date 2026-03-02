@@ -29,7 +29,7 @@ import hashlib
 import urllib.request
 import urllib.error
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 # ── Config ──────────────────────────────────────────────────────────────
 
@@ -85,7 +85,6 @@ def api_json(
 
 def api_multipart(path: str, filepath: str, content_type: str = "application/json") -> Tuple[int, Any, float]:
     """Upload file via multipart/form-data. Returns (status_code, data, elapsed_ms)."""
-    import mimetypes
     boundary = "----ALdeciRegression" + hashlib.md5(filepath.encode()).hexdigest()[:12]
     filename = os.path.basename(filepath)
 

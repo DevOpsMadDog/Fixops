@@ -13,7 +13,6 @@ Written by agent-doctor run14 for SPRINT1-008 (test coverage).
 import pytest
 import os
 import sys
-import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'suite-core'))
 

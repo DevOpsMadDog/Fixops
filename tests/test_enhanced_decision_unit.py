@@ -4,7 +4,6 @@ Tests the MultiLLMConsensusEngine and EnhancedDecisionEngine that powers
 ALdeci's multi-LLM voting and decision intelligence.
 """
 
-import pytest
 from core.enhanced_decision import (
     EnhancedDecisionEngine,
     ModelAnalysis,

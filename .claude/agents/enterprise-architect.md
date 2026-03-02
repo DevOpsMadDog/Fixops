@@ -66,9 +66,9 @@ ALdeci is a **CTEM+ (Continuous Threat Exposure Management Plus) platform** — 
 > **Priority**: P0 — Remove Day-1 procurement objection
 
 ### Your Mission: 5 Inbound Scanner Parsers
-**Key Metric**: Connector count: 7 → 12
+**Key Metric**: Connector count: 17 → 22
 
-**Current state**: ALdeci has only **7 connectors** (Jira, Confluence, Slack, ServiceNow, GitLab, AzureDevOps, GitHub). Enterprise RFPs require "Do you support Checkmarx?" as a yes/no gate.
+**Current state**: ALdeci has **17 connectors** (7 integration in connectors.py + 10 security tool in security_connectors.py). Enterprise RFPs require "Do you support Checkmarx?" as a yes/no gate.
 
 **Build these 5 JSON webhook receivers** (~200 LOC each):
 1. **Checkmarx** — Parse Checkmarx SAST/SCA JSON results
@@ -80,7 +80,7 @@ ALdeci is a **CTEM+ (Continuous Threat Exposure Management Plus) platform** — 
 **Architecture pattern**: These are NOT full connectors inheriting `_BaseConnector`. They are **inbound parsers** — REST webhook endpoints that receive scanner output and normalize it into ALdeci's finding format for the Brain Pipeline.
 
 **Honesty corrections to enforce in ADRs**:
-- Connectors: 7, not 17 (only 7 inherit `_BaseConnector`)
+- Connectors: 17 total (7 integration connectors inheriting `_BaseConnector` in connectors.py + 10 security tool connectors in security_connectors.py)
 - SAST: regex-based, not AST-based (16 `re.search()` rules)
 - AutoFix: LLM-powered, not AST-based (sends prompts, parses JSON diffs)
 - MCP tools: 665 self-discovered from own API endpoints (real auto-discovery, but self-referential)

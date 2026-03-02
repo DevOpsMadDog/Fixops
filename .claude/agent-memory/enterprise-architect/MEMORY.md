@@ -16,21 +16,31 @@
 risk = min((cvss/10 * 0.4 + epss * 0.3 + 0.3) * kev_boost * asset_crit, 1.0)
 ```
 - kev_boost = 1.5 if in_kev else 1.0
-- This is the deterministic fallback in brain_pipeline.py:893-905
+- This is the deterministic fallback in brain_pipeline.py (Step 7)
 - ML path uses GBT model from core.ml.risk_scorer (preferred when trained)
-- Memory leak FIXED: MAX_RUNS_HISTORY=1000 + eviction at line 247-253
+- Memory leak FIXED: MAX_RUNS_HISTORY=1000 + eviction
+
+### Brain Pipeline Performance (Run 7 review)
+- Overall: O(12n) for n findings — each step is O(n) except LLM O(1) and MPTE O(1)
+- Bottleneck at scale: Step 4 (Dedup) creates N DB connections — TD-020
+- Steps 9+10 independent but sequential — could save 60-120s if parallelized — TD-021
+- AutoFixEngine was created per-finding in Step 11 — FIXED (hoisted outside loop) — TD-022
+- All memory bounds enforced: findings 50K, assets 10K, strings 10K, runs 1K, metrics 100
+- Pipeline timeout 300s, step timeouts: dedup 60s, LLM 60s, MPTE 120s
+- Peak memory: ~300MB at 50K findings (well-bounded)
+- Thread safety: _cancelled set read without lock is benign (Python GIL + cooperative cancellation)
+- Parallelization blueprint: steps 6-8 parallel, then steps 9+10 parallel → 50% I/O improvement
 
 ### Brain Pipeline Reliability (ADR-008)
 - 12-step pipeline with global 300s timeout
 - Step-level exception handling: catches Exception, logs with exc_info, continues
 - Error messages sanitized: `f"{type(e).__name__}: pipeline step failed"` — no PII leakage
 - Graceful degradation: every external dependency has a fallback chain
-- Memory bounds: _runs(1000), _metrics(100), findings(50K), assets(10K), strings(10K chars)
 - LLM batch cap: top 100 findings by risk score
 - Async: run_async() offloads to thread pool, step_micro_pentest handles event loop correctly
 
 ### Scanner Ingest Architecture
-- 15 parsers in `suite-core/core/scanner_parsers.py` (1,224 LOC)
+- 15 parsers in `suite-core/core/scanner_parsers.py` (1,238 LOC)
 - Router: `suite-api/apps/api/scanner_ingest_router.py` (466 LOC)
 - 5 enterprise-critical: Checkmarx, SonarQube, Snyk, Fortify, Veracode
 - Auto-detection via confidence scoring across all parsers
@@ -47,7 +57,6 @@ risk = min((cvss/10 * 0.4 + epss * 0.3 + 0.3) * kev_boost * asset_crit, 1.0)
 ### Import Mechanism
 - `sitecustomize.py` auto-prepends all suite dirs to sys.path
 - Cross-suite imports work without pip install -e
-- Tests add sys.path manually: `sys.path.insert(0, os.path.join(...))`
 - E402 ruff warnings (77) are caused by this pattern — architectural, not bugs
 
 ### File Organization
@@ -56,7 +65,7 @@ risk = min((cvss/10 * 0.4 + epss * 0.3 + 0.3) * kev_boost * asset_crit, 1.0)
 - App wiring: `suite-api/apps/api/app.py` (34 router mounts, 2742 LOC)
 - Tests: `tests/` (flat directory)
 - Demo scripts: `scripts/`
-- ADRs: `.claude/team-state/architecture/adrs/` (8 ADRs)
+- ADRs: `.claude/team-state/architecture/adrs/` (9 ADRs)
 
 ### Team State Protocol
 - Status: `.claude/team-state/{agent-name}-status.md`
@@ -67,6 +76,7 @@ risk = min((cvss/10 * 0.4 + epss * 0.3 + 0.3) * kev_boost * asset_crit, 1.0)
 - ADRs: `.claude/team-state/architecture/adrs/`
 - Tech debt: `.claude/team-state/architecture/tech-debt.json`
 - Roadmap: `.claude/team-state/architecture/roadmap.md`
+- Reviews: `.claude/team-state/architecture/reviews/`
 
 ## Testing
 - pytest with --timeout=10 by default (30 for slow tests)
@@ -76,16 +86,17 @@ risk = min((cvss/10 * 0.4 + epss * 0.3 + 0.3) * kev_boost * asset_crit, 1.0)
 - Test files: test_brain_pipeline.py, test_self_learning_unit.py, test_self_learning_demo.py, test_scanner_parsers_unit.py, test_scanner_parsers.py
 - Always run existing tests before writing new ones to verify no breakage
 
-## Quality Metrics (2026-03-02 evening, verified)
-- Bandit (core files): 0 HIGH, 1 MEDIUM (test-only), 8 LOW ✅
+## Quality Metrics (2026-03-02 Run 7, verified)
+- Bandit (core files): 0 HIGH, 2 MEDIUM (bind-all + xml.etree), 9 LOW
 - Bandit (full suite): 456 issues (0 HIGH, 63 MEDIUM, 393 LOW)
-- Top findings: B101(185), B110(101), B105(34), B608(27), B603(26)
-- Ruff: 87 warnings (10 actionable, 77 E402 architectural pattern)
-- Test coverage: 5.09% (gate: 25%)
-- Core tests: 288/288 PASS
+- Ruff: 77 warnings (0 actionable, all E402 architectural pattern)
+- Test coverage: 4.99% (gate: 25%)
+- Core tests: 288/288 PASS (21.40s)
+- ADRs: 9/9 validated (25 file refs, 100% exist)
+- Tech debt: 22 items (5 done)
 
-## Reliability Patterns (from Run 5 review)
-- SQLite connections: MUST use try/finally (history.py was leaking, now fixed)
+## Reliability Patterns
+- SQLite connections: MUST use try/finally (history.py + deduplication.py both fixed)
 - Circuit breaker: exists in universal_connector.py, missing in Brain Pipeline
 - Retries: exist in exploit_signals.py (urllib3) and playbook_runner.py
 - Bare except count: 71 in core (30 files), 72 in API (20 files)
@@ -102,6 +113,26 @@ risk = min((cvss/10 * 0.4 + epss * 0.3 + 0.3) * kev_boost * asset_crit, 1.0)
 - ADR-006: scanner ingest architecture and honest connector counts
 - ADR-007: API gateway security architecture
 - ADR-008: reliability patterns (graceful degradation, DB safety, circuit breaker)
+- ADR-009: MCP auto-discovery (two subsystems, startup-time catalog, self-referential)
 - XML parsing uses defusedxml.defuse_stdlib() + defusedxml.ElementTree.fromstring
 - CORS wildcard *.devinapps.com flagged as TD-016 for production removal
 - history.py connection leak FIXED (5 methods, try/finally pattern)
+- deduplication.py connection leak FIXED (process_finding, try/finally)
+- AutoFixEngine loop hoist FIXED (brain_pipeline.py Step 11, O(n)→O(1))
+- 5 F401 unused imports FIXED (enterprise service files)
+- 2 F821 undefined-name FIXED (eventbus_integration.py, TYPE_CHECKING import)
+
+### MCP Auto-Discovery Architecture (ADR-009, V7)
+- Two subsystems: Auto-Discovery Router (/api/v1/mcp/*) + Protocol Engine (/api/v1/mcp-protocol/*)
+- Router: `suite-api/apps/api/mcp_router.py` (977 LOC) — startup-time catalog generation
+- Engine: `suite-core/core/mcp_server.py` (979 LOC) — JSON-RPC 2.0 MCP 2024-11-05
+- 705 tools from 769 routes (self-discovered, not manually maintained)
+- Name deduplication: method suffix + counter for conflicts
+- Honesty note: self-referential discovery (ALdeci's own endpoints, not external)
+
+## Review History
+1. 2026-03-01: Self-learning architecture review
+2. 2026-03-02: API gateway security review (ADR-007)
+3. 2026-03-02: Brain pipeline data flow review
+4. 2026-03-02: Reliability review (ADR-008, Grade B-)
+5. 2026-03-02: Performance & data flow review (Grade B, updated Run 7)

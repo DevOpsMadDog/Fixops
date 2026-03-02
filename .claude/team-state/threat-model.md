@@ -1,4 +1,4 @@
-# ALdeci Threat Model — 2026-03-02
+# ALdeci Threat Model — 2026-03-03
 
 > **Updated by**: security-analyst
 > **Methodology**: STRIDE + Risk Matrix (Likelihood x Impact, 1-5 scale)
@@ -14,8 +14,9 @@
 | HIGH risks | 2 | ↓ Improving |
 | MEDIUM risks | 4 | Stable |
 | LOW risks | 2 | Stable |
-| Dependency CVEs | 0 (was 3) | ✅ Fixed today |
+| Dependency CVEs | 0 (4th clean day) | ✅ Fixed |
 | Bandit HIGH findings | 0 | ✅ Clean |
+| Security headers | 7 (NEW) | ✅ Added |
 
 ## Attack Surfaces
 
@@ -24,8 +25,10 @@
 |-----------------|-------------|---|---|------|------------|--------|
 | Spoofing | API key / JWT bypass | 2 | 5 | 10/HIGH | JWT + X-API-Key auth on all routes | ✅ Mitigated |
 | Tampering | Request body manipulation | 3 | 4 | 12/HIGH | Pydantic v2 input validation + type coercion | ✅ Mitigated |
+| Tampering | Clickjacking via iframe embed | 1 | 3 | 3/LOW | X-Frame-Options: DENY + SecurityHeadersMiddleware | ✅ Mitigated (NEW) |
 | Repudiation | Action denial | 2 | 3 | 6/MED | Audit logging via Event Bus + structlog | ✅ Mitigated |
 | Info Disclosure | Error messages leak internals | 2 | 3 | 6/MED | Custom error handlers (backend-hardener) | ✅ Mitigated |
+| Info Disclosure | MIME sniffing attacks | 1 | 3 | 3/LOW | X-Content-Type-Options: nosniff | ✅ Mitigated (NEW) |
 | DoS | Rate limiting bypass | 2 | 4 | 8/MED | Rate limiter middleware (120 req/min) | ✅ Mitigated |
 | Elevation | Scope escalation | 2 | 5 | 10/HIGH | Scope-based access control | ✅ Mitigated |
 
@@ -70,6 +73,8 @@
 |--------|-------------|---|---|------|------------|--------|
 | Elevation | Container runs as root | 1 | 4 | 4/LOW | ✅ Dockerfile uses `USER aldeci` (non-root) | ✅ Mitigated |
 | Info Disclosure | Secrets in Docker env | 1 | 4 | 4/LOW | ✅ .dockerignore excludes .env, entrypoint generates random tokens | ✅ Mitigated |
+| Spoofing | Weak default passwords | 1 | 4 | 4/LOW | ✅ Removed weak defaults from compose (SECRET_KEY, JWT_SECRET, ADMIN_PASSWORD) | ✅ Mitigated (NEW) |
+| Elevation | Docker socket mount | 2 | 5 | 10/HIGH | MPTE design requirement — accepted risk with network isolation | ⚠️ Accepted |
 
 ### 8. MPTE Micro-Pentest Engine [V5]
 | Threat | Description | L | I | Risk | Mitigation | Status |
@@ -78,7 +83,7 @@
 | Info Disclosure | Target system data leakage | 2 | 4 | 8/MED | Scoped test execution with cleanup | ✅ Mitigated |
 | DoS | Resource exhaustion during pentest | 2 | 3 | 6/MED | Timeout controls (10s default) | ✅ Mitigated |
 
-## Risk Heat Map (2026-03-02)
+## Risk Heat Map (2026-03-03)
 ```
 Impact 5 |  .  ■  .  .  .     ■=Mitigated HIGH (API auth, path traversal, sandbox)
 Impact 4 |  ■  ■  .  .  .     ■=Mitigated MEDIUM (secrets pending rotation)
@@ -88,6 +93,17 @@ Impact 1 |  .  .  .  .  .
            L1  L2  L3  L4  L5
            Likelihood →
 ```
+
+## Changes Since Last Session (2026-03-03)
+1. **SecurityHeadersMiddleware ADDED**: 7 OWASP-recommended security headers on ALL API responses (9 tests pass)
+   - X-Content-Type-Options: nosniff, X-Frame-Options: DENY, Referrer-Policy, Permissions-Policy, Cache-Control, Pragma, X-Permitted-Cross-Domain-Policies
+2. **Docker compose hardened**: Removed weak default passwords (ADMIN_PASSWORD:"admin", weak SECRET_KEY/JWT_SECRET defaults) from docker-compose.aldeci-complete.yml
+3. **Bandit scan STABLE**: 477 findings, 0 HIGH, 0 CRITICAL (unchanged from 2026-03-02)
+4. **Dependency scan CLEAN**: 171 packages, 0 vulnerable (4th consecutive clean day)
+5. **Native SAST dogfooding**: 476 findings, 38 CRITICAL/HIGH all triaged as false positives (pattern strings in SAST rules)
+6. **DEMO-011 regression verified**: 24/24 evidence export tests pass
+7. **SAST engine tests verified**: 108/108 tests pass
+8. **Security Advisory 002 published**: Docker hardening recommendations
 
 ## Changes Since Last Session (2026-03-02 Afternoon)
 1. **B324 HIGH fixed**: MD5 usedforsecurity=False added to id_allocator.py:23 — 0 HIGH bandit findings
@@ -111,8 +127,9 @@ Impact 1 |  .  .  .  .  .
 4. ⚠️ Scanner ingest upload size limit — verify FastAPI body size config
 
 ## Mitigations Linked to Other Agents
+- **Security Analyst** (self): SecurityHeadersMiddleware, Docker compose hardening, daily scans
 - **Backend Hardener**: Path traversal fix, input validation, XXE protection, 11 security hardening fixes
-- **DevOps Engineer**: .gitignore, .dockerignore, non-root container, Docker entrypoint token generation
+- **DevOps Engineer**: .gitignore, .dockerignore, non-root container, Docker entrypoint token generation — verify compose changes
 - **Agent Doctor**: Remediation audit on Advisory 001
-- **Threat Architect**: MITRE ATT&CK mapping, threat intelligence feed integration
+- **Threat Architect**: MITRE ATT&CK mapping, threat intelligence feed integration — confirm MPTE Docker socket requirement
 - **QA Engineer**: Postman collection security verification (401 enforcement confirmed)

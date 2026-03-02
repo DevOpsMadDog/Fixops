@@ -5,7 +5,7 @@
 - Evidence router: `suite-evidence-risk/api/evidence_router.py` (1,116 LOC, 10 routes)
 - Tests: `tests/` directory, run with `PYTHONPATH=suite-evidence-risk:suite-core:suite-api`
 - Evidence router is mounted at prefix `/api/v1` in app.py, with internal prefix `/evidence`
-- Brain pipeline: `suite-core/core/brain_pipeline.py` (~1016 LOC, 12 steps)
+- Brain pipeline: `suite-core/core/brain_pipeline.py` (~1600 LOC, 12 steps + progress + cancellation + batch async)
 - E2E test: `scripts/enterprise_e2e_test.py` (uses token from `TOKEN` variable, not env)
 
 ## Key Patterns
@@ -53,24 +53,44 @@ sleep 10 && python scripts/enterprise_e2e_test.py
 12. **Error message pattern**: step.error = f"{type(e).__name__}: pipeline step failed" — NEVER include str(e) as it may leak DB creds, file paths, or API keys.
 13. **Container scanner class is ContainerImageScanner** not ContainerScanner.
 
+## Endpoint Alias Pattern
+- To add /health alias: define `async def {router}_health() -> Dict[str, Any]: return await {router}_status()` BEFORE the /status endpoint
+- To add /status alias: define it with full response body including `status`, `engine`, `version` fields
+- evidence_router.py: `/health` and `/status` return storage config + crypto availability
+- CSPM engine file is `cspm_engine.py` NOT `cspm_analyzer.py` (naming discrepancy in docs)
+
+## Brain Pipeline Lessons
+31. **get_progress elapsed_ms bug**: `time.monotonic() - time.monotonic()` always returns 0. Use datetime-based calculation instead.
+32. **Running pipeline elapsed time**: Parse `started_at` ISO string with `datetime.fromisoformat()`, compute delta from `datetime.now(timezone.utc)`
+33. **Debug logger safety**: All 5 debug loggers in brain_pipeline.py now use `type(e).__name__` — lines 638, 1103, 1151, 1600, 1638. Server-side debug is OK for diagnostics, but consistent pattern prevents accidental exposure.
+
 ## Files I Own
-- `suite-evidence-risk/api/evidence_router.py` -- Evidence bundle API (10 endpoints)
+- `suite-evidence-risk/api/evidence_router.py` -- Evidence bundle API (10+ endpoints, incl /health + /status)
 - `tests/test_security_evidence_bundles_api.py` -- 54 security + functional tests
 - `tests/test_health_status_endpoints.py` -- 28 health/status endpoint tests
 - `tests/test_security_scanner_hardening.py` -- 35 scanner security tests
 - `tests/test_security_hardening_v2.py` -- 35 security tests (XXE, SSRF, shell injection, self-correction)
+- `tests/test_hardening_2026_03_02_day3.py` -- 29 tests (progress fix, autofix validation, batch async, sanitization)
+- `tests/test_hardening_2026_03_02_day3_v2.py` -- 58 tests (parser crash resilience, sandbox template injection, blocked patterns, logger safety)
 - `suite-core/core/fail_engine.py` -- FAIL Engine core
 - `suite-core/core/fail_db.py` -- FAIL DB persistence
 - `suite-core/automation/remediation.py` -- Self-healing remediation with CWE fixes
-- `suite-core/core/brain_pipeline.py` -- Brain pipeline (12-step CTEM + cancel + batch async)
+- `suite-core/core/brain_pipeline.py` -- Brain pipeline (12-step CTEM + cancel + batch async + progress tracking)
 - `tests/test_hardening_2026_03_02.py` -- 41 hardening tests (brain pipeline, scanner ingest, parsers, sandbox, DAST, container)
 - `tests/test_hardening_2026_03_02_v3.py` -- 37 hardening tests (cancellation, batch async, SAST redaction, PII, sandbox)
+- `tests/test_hardening_2026_03_02_v4.py` -- 45 hardening tests (input validation, CEF injection, progress tracking, autofix safety)
 - `suite-api/apps/api/scanner_ingest_router.py` -- Scanner ingest router (hardened)
+- `suite-api/apps/api/bulk_router.py` -- Bulk operations (path traversal + status validation hardened)
+- `suite-api/apps/api/mcp_router.py` -- MCP auto-discovery (path param injection hardened)
+- `suite-api/apps/api/audit_router.py` -- Audit log (CEF injection hardened)
+- `suite-api/apps/api/workflows_router.py` -- Workflows (field size limits hardened)
+- `suite-api/apps/api/policies_router.py` -- Policies (field size limits hardened)
 - `suite-core/core/scanner_parsers.py` -- Scanner parsers (crash resilience + size limits)
-- `suite-core/core/sandbox_verifier.py` -- Sandbox verifier (code validation + non-root)
+- `suite-core/core/sandbox_verifier.py` -- Sandbox verifier (code validation + non-root + template injection prevention)
 - `suite-core/core/sast_engine.py` -- SAST engine (CWE-798 snippet redaction)
-- `suite-core/core/dast_engine.py` -- DAST engine (URL length validation)
+- `suite-core/core/dast_engine.py` -- DAST engine (URL length validation + header limits)
 - `suite-core/core/secrets_scanner.py` -- Secrets scanner (PII redaction)
+- `suite-core/core/autofix_engine.py` -- AutoFix engine (7-check safety validation)
 
 ## Brain Pipeline Notes
 - `inp.org_id` can be empty string but not None (existing tests use `org_id=""`)
@@ -88,6 +108,9 @@ sleep 10 && python scripts/enterprise_e2e_test.py
 - **Cancellation**: `cancel(run_id)` adds to `_cancelled` set; checked before each step. Set is cleaned after processing.
 - **Batch async**: `run_async_batch(inputs, max_concurrent=4)` uses asyncio.Semaphore. Exceptions → failed PipelineResult.
 - **Singleton**: `get_brain_pipeline()` uses double-checked locking with `_pipeline_lock`.
+- **Progress tracking**: PipelineResult has `current_step`, `current_step_index`, `total_steps`, `progress_percent` fields. Updated before each step.
+- **get_progress(run_id)**: Lightweight method for UI polling — returns dict with step name, index, percent, status.
+- **Graph step error isolation**: Per-finding try/except in `_step_build_graph` — bad findings are skipped, first 5 errors logged. Pipeline continues.
 
 ## Scanner Ingest Hardening
 - Upload limit: 100MB (_MAX_UPLOAD_BYTES), webhook limit: 50MB (_MAX_WEBHOOK_BYTES)
@@ -122,3 +145,11 @@ sleep 10 && python scripts/enterprise_e2e_test.py
 28. **DAST URL length**: RFC 2616 recommends 2048 chars max. Enforce before SSRF check.
 29. **Class names**: DAST=`DASTEngine`, SAST=`SASTEngine`, Secrets=`SecretsDetector` (not `DastScanner`/`SastEngine`/`RealSecretsScanner`). `RealSecretsScanner` is in `real_scanner.py` (different file).
 30. **Scanner parsers content limit**: 500MB hard cap in `parse_scanner_output()` prevents OOM on huge uploads.
+31. **Pydantic v2 PrivateAttr gotcha**: Underscore-prefixed class attributes inside `BaseModel` subclasses become `PrivateAttr` automatically. A `_ALLOWED_STATUSES` set inside a model causes `TypeError: argument of type 'ModelPrivateAttr' is not iterable`. Fix: move to module-level variable (e.g., `_BULK_ALLOWED_STATUSES = frozenset({...})`).
+32. **CEF injection**: Common Event Format uses `|` as delimiter. Sanitize all user-controlled fields with: backslash→`\\`, pipe→`\|`, newline→`\n`, CR→`\r`, then truncate to 1024 chars. Apply BEFORE embedding in CEF strings.
+33. **AutoFix 7-check validation**: (1) at least one fix artifact, (2) 30+ dangerous code patterns, (3) path traversal in patch file_path, (4) dangerous imports (ctypes/pty/resource/signal), (5) old/new code validity, (6) dep version validity, (7) patch size limit 64KB.
+34. **Bulk router routes**: Status update is POST `/api/v1/bulk/clusters/status` (not PUT `/api/v1/bulk/status`). Always verify route paths in router source before writing tests.
+35. **Connectors router not mounted by default**: `connectors_router.py` may not be included in `app.py` router mounts. Test Pydantic models directly if HTTP route unavailable.
+36. **Template injection in PoC generation**: `_generate_basic_poc()` embeds user-controlled CVE IDs, titles, URLs into f-string code templates. Must sanitize with `_sanitize_template_str()` which strips shell metacharacters (`"';` backtick, `$()`, parens, newlines) while preserving URL chars.
+37. **f-string logging detection**: Use regex `logger\.\w+\(f[\"']` to find all f-string logging calls. Convert to `%s` format for lazy evaluation.
+38. **Test assertion on injected content**: When testing sanitization, check the sanitized VALUE separately (via `_sanitize_template_str`), not the entire generated code (which contains template shell commands that naturally include semicolons like `grep -q "200"; then`).

@@ -17,9 +17,6 @@ Run with:
 
 import asyncio
 import threading
-import time
-from typing import Dict, Any
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -367,7 +364,7 @@ class TestSandboxVerifierHardening:
     def test_docker_security_options(self):
         """Docker commands must include security options."""
         from core.sandbox_verifier import SandboxVerifier
-        sv = SandboxVerifier()
+        SandboxVerifier()
         # Verify security constants in docker command building
         assert "--cap-drop=ALL" in str(SandboxVerifier._execute_in_sandbox.__code__.co_consts)
 

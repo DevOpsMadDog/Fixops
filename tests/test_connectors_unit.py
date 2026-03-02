@@ -25,7 +25,6 @@ import time
 import pytest
 
 from connectors.universal_connector import (
-    BaseConnector,
     ConnectorResult,
     GitHubConnector,
     JiraConnector,

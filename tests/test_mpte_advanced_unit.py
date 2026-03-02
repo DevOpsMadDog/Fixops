@@ -10,8 +10,7 @@ import asyncio
 import json
 import os
 import pytest
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from core.mpte_advanced import (
     LLMCallError,
@@ -464,7 +463,7 @@ class TestCallLLM:
     async def test_call_llm_deterministic_mode(self, orchestrator, mock_llm_manager):
         mock_response = mock_llm_manager.analyse.return_value
         mock_response.metadata = {"mode": "deterministic", "reason": "no API key"}
-        result = await orchestrator._call_llm("openai", "test prompt")
+        await orchestrator._call_llm("openai", "test prompt")
         assert orchestrator._call_count["fallback"] == 1
 
     @pytest.mark.asyncio

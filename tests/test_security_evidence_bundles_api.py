@@ -17,9 +17,7 @@ Covers:
 - Download format parameter handling
 """
 
-import json
 import os
-from pathlib import Path
 
 import pytest
 

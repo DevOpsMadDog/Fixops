@@ -140,22 +140,79 @@ export default function CommandPalette() {
     return flat;
   }, [groupedItems]);
 
+  // ── Chord navigation: G+D=Dashboard, G+S=Settings, G+E=Executive, etc. ──
+  const chordTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const chordBufferRef = useRef<string>('');
+
   // Global keyboard shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl+K → toggle command palette
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setOpen(prev => !prev);
         setQuery('');
         setSelectedIndex(0);
+        return;
       }
       if (e.key === 'Escape' && open) {
         setOpen(false);
+        return;
+      }
+
+      // Don't process chords when command palette is open or typing in inputs
+      if (open) return;
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+
+      // Chord detection: buffer keystrokes within 500ms window
+      const key = e.key.toLowerCase();
+      if (key.length === 1 && /[a-z]/.test(key)) {
+        chordBufferRef.current += key;
+
+        // Clear previous timer
+        if (chordTimerRef.current) clearTimeout(chordTimerRef.current);
+
+        // Check for 2-key chord matches
+        if (chordBufferRef.current.length >= 2) {
+          const chord = chordBufferRef.current.slice(-2);
+          let chordPath: string | null = null;
+
+          switch (chord) {
+            case 'gd': chordPath = '/dashboard'; break;
+            case 'gs': chordPath = '/settings'; break;
+            case 'ge': chordPath = '/executive'; break;
+            case 'gn': chordPath = '/nerve-center'; break;
+            case 'gb': chordPath = '/core/brain-pipeline'; break;
+            case 'gc': chordPath = '/copilot'; break;
+            case 'ga': chordPath = '/attack/attack-simulation'; break;
+            case 'gk': chordPath = '/core/knowledge-graph'; break;
+            case 'gx': chordPath = '/core/exposure-cases'; break;
+            case 'gf': chordPath = '/protect/autofix'; break;
+            case 'gm': chordPath = '/settings/mcp-registry'; break;
+            case 'gi': chordPath = '/discover/scanners'; break;
+          }
+
+          if (chordPath) {
+            e.preventDefault();
+            navigate(chordPath);
+            chordBufferRef.current = '';
+            return;
+          }
+        }
+
+        // Reset buffer after 500ms of inactivity
+        chordTimerRef.current = setTimeout(() => {
+          chordBufferRef.current = '';
+        }, 500);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open]);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      if (chordTimerRef.current) clearTimeout(chordTimerRef.current);
+    };
+  }, [open, navigate]);
 
   // Focus input when opened
   useEffect(() => {

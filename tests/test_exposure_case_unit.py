@@ -7,7 +7,7 @@ actionable Exposure Cases with full lifecycle management (OPEN -> CLOSED).
 import os
 import tempfile
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 
 class TestCaseStatus:

@@ -564,7 +564,7 @@ class TestRemediateCWE:
         assert "No fix template" in result.error
 
     def test_remediate_cwe_result_stored(self, engine, finding_xss):
-        result = engine.remediate_cwe("F-XSS", "CWE-79", finding_xss)
+        engine.remediate_cwe("F-XSS", "CWE-79", finding_xss)
         stored = engine.get_result("F-XSS")
         assert stored is not None
         assert stored.finding_id == "F-XSS"

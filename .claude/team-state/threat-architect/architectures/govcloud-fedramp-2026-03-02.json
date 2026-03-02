@@ -1,0 +1,792 @@
+{
+  "architecture": {
+    "name": "FedSecure Government Platform",
+    "version": "2.0.0",
+    "date": "2026-03-02",
+    "cloud": "GovCloud (Air-Gapped Option)",
+    "region": "us-gov-east-1",
+    "compliance": ["FedRAMP-High", "NIST-800-53-Rev5", "FIPS-140-3", "IL5-DoD", "CMMC-L3"],
+    "description": "FedRAMP High authorized government platform for CUI handling, case management, and document classification with full air-gap deployment capability, FIPS 140-3 cryptography, CAC/PIV authentication, and STIG-hardened infrastructure on RHEL 9"
+  },
+  "components": [
+    {
+      "id": "C001",
+      "name": "STIG-Hardened RHEL 9 Base Image",
+      "type": "base_image",
+      "technology": "Red Hat Enterprise Linux 9.3, DISA STIG V1R1, FIPS-enabled kernel",
+      "tier": "infrastructure",
+      "exposed": false,
+      "fips_required": true,
+      "stig_compliant": true,
+      "notes": "Shared base for all containerized services. SCAP-validated. OpenSCAP profile: DISA STIG for RHEL 9."
+    },
+    {
+      "id": "C002",
+      "name": "Air-Gapped Container Registry (Harbor)",
+      "type": "container_registry",
+      "technology": "Harbor 2.11, Trivy embedded scanner, Notary v2 image signing, FIPS-enabled TLS",
+      "tier": "infrastructure",
+      "exposed": false,
+      "fips_required": true,
+      "il_level": 5,
+      "notes": "Deployed in air-gap enclave. No external registry pull in production. All images signed via Notary v2 with RSA-3072 keys."
+    },
+    {
+      "id": "C003",
+      "name": "Trivy Image Scanner",
+      "type": "security_scanner",
+      "technology": "Aqua Trivy 0.49, CVE DB mirrored offline, SBOM generation (CycloneDX)",
+      "tier": "security",
+      "exposed": false,
+      "notes": "Integrated with Harbor admission webhook. Blocks images with Critical CVEs (CVSS >= 9.0). SBOM stored in Harbor for FedRAMP artifact evidence."
+    },
+    {
+      "id": "C004",
+      "name": "Istio Service Mesh",
+      "type": "service_mesh",
+      "technology": "Istio 1.21, mTLS STRICT mode, SPIFFE/SPIRE identity, Envoy 1.29 sidecars",
+      "tier": "network",
+      "exposed": false,
+      "fips_required": true,
+      "notes": "mTLS enforced cluster-wide via PeerAuthentication policy. Certificate rotation every 24h. FIPS-compliant cipher suites only: TLS_AES_256_GCM_SHA384, TLS_CHACHA20_POLY1305_SHA256."
+    },
+    {
+      "id": "C005",
+      "name": "Kyverno Policy Engine",
+      "type": "policy_engine",
+      "technology": "Kyverno 1.12, ClusterPolicy CRDs, OPA Gatekeeper constraints",
+      "tier": "security",
+      "exposed": false,
+      "notes": "Enforces: no-privileged containers, required FIPS labels, image provenance from Harbor only, required resource limits, STIG-required security contexts (seccomp, AppArmor). Audit mode + enforce mode."
+    },
+    {
+      "id": "C006",
+      "name": "Falco Runtime Security",
+      "type": "runtime_security",
+      "technology": "Falco 0.38, Falco Sidekick, eBPF probe, custom FedRAMP rule set",
+      "tier": "security",
+      "exposed": false,
+      "notes": "Real-time syscall monitoring per NIST SI-4. Custom rules for: CUI exfiltration attempts, privilege escalation, unusual network egress. Alerts routed to SIEM via Falco Sidekick."
+    },
+    {
+      "id": "C007",
+      "name": "ClamAV Malware Scanner",
+      "type": "antivirus",
+      "technology": "ClamAV 1.3, freshclam offline mirror, inotify-based real-time scanning",
+      "tier": "security",
+      "exposed": false,
+      "notes": "Scans all uploaded documents prior to CUI classification. SI-3 control. Signature DB updated via approved offline mirror per air-gap requirements."
+    },
+    {
+      "id": "C008",
+      "name": "HashiCorp Vault (FIPS HSM)",
+      "type": "key_management",
+      "technology": "HashiCorp Vault 1.16 Enterprise, PKCS#11 HSM backend (Luna Network HSM 7), FIPS 140-3 Level 3",
+      "tier": "security",
+      "exposed": false,
+      "fips_required": true,
+      "il_level": 5,
+      "notes": "Master key protected by SafeNet Luna Network HSM FIPS 140-3 Level 3. PKI secrets engine issues service mTLS certs. Transit secrets engine provides AES-256-GCM encryption for CUI at rest. Auto-unseal via HSM."
+    },
+    {
+      "id": "C009",
+      "name": "HashiCorp Boundary (PAM)",
+      "type": "privileged_access",
+      "technology": "HashiCorp Boundary 0.16, credential brokering, session recording",
+      "tier": "security",
+      "exposed": false,
+      "il_level": 5,
+      "notes": "Zero-trust privileged access for operators. AC-2, AC-17, AU-14 controls. All sessions recorded and stored for 3 years per FedRAMP retention. No direct SSH/RDP to production nodes."
+    },
+    {
+      "id": "C010",
+      "name": "Keycloak SSO (CAC/PIV)",
+      "type": "identity_provider",
+      "technology": "Keycloak 24.0, SAML 2.0, OIDC, CAC/PIV smart card auth via PKCS#11, DoD PKI CA chain",
+      "tier": "security",
+      "exposed": true,
+      "fips_required": true,
+      "il_level": 5,
+      "data_classification": "CUI",
+      "notes": "IA-2(1) multi-factor authentication. CAC/PIV required for all privileged users. SAML assertion signed with RSA-2048 (FIPS-compliant). Integrates with DoD PKI certificate revocation (OCSP). SCIM provisioning from agency LDAP/AD."
+    },
+    {
+      "id": "C011",
+      "name": "DISA STIGged Kubernetes (RKE2)",
+      "type": "container_platform",
+      "technology": "Rancher RKE2 1.29, FIPS-enabled, CIS Benchmark Level 2, DISA STIG applied",
+      "tier": "infrastructure",
+      "exposed": false,
+      "fips_required": true,
+      "il_level": 5,
+      "notes": "RKE2 selected for built-in FIPS 140-2/3 compliance mode. etcd encrypted at rest with AES-256. API server audit logging to SIEM. Node OS: STIG-hardened RHEL 9."
+    },
+    {
+      "id": "C012",
+      "name": "F5 BIG-IP WAF / LTM",
+      "type": "waf",
+      "technology": "F5 BIG-IP 17.1, Advanced WAF, OWASP CRS 4.0, FIPS 140-2 SSL/TLS offload",
+      "tier": "network",
+      "exposed": true,
+      "fips_required": true,
+      "notes": "FedRAMP boundary ingress. TLS 1.3 only, FIPS cipher suites. CAC client certificate validation at edge. OWASP Top-10 blocking mode. DDoS mitigation (SC-5). Integrates with F5 SSLO for SSL inspection."
+    },
+    {
+      "id": "C013",
+      "name": ".NET 8 API Gateway",
+      "type": "api_gateway",
+      "technology": ".NET 8 (FIPS-compliant runtime), YARP reverse proxy, JWT validation (RS256), OpenAPI 3.1",
+      "tier": "network",
+      "exposed": false,
+      "fips_required": true,
+      "data_classification": "CUI",
+      "notes": "Central routing gateway. JWT validation against Keycloak JWKS. Rate limiting per AC-3. Request/response logging sanitized (no CUI in logs). FIPS-compliant .NET runtime with System.Security.Cryptography FIPS mode."
+    },
+    {
+      "id": "C014",
+      "name": ".NET 8 Case Management Service",
+      "type": "microservice",
+      "technology": ".NET 8, ASP.NET Core 8.0, Entity Framework Core 8, MediatR CQRS pattern",
+      "tier": "application",
+      "exposed": false,
+      "fips_required": true,
+      "data_classification": "CUI",
+      "il_level": 5,
+      "notes": "Core case lifecycle management (open/assign/escalate/close). CUI fields encrypted via Vault transit engine before storage. Full audit trail per AU-2/AU-3. RBAC enforced via Keycloak roles (case_agent, supervisor, admin)."
+    },
+    {
+      "id": "C015",
+      "name": ".NET 8 Document Classification Service",
+      "type": "microservice",
+      "technology": ".NET 8, ASP.NET Core 8.0, ML.NET 3.0, CUI marking per 32 CFR Part 2002",
+      "tier": "application",
+      "exposed": false,
+      "fips_required": true,
+      "data_classification": "CUI",
+      "il_level": 5,
+      "notes": "Automated CUI detection and marking per NARA 32 CFR 2002. CUI categories: Privacy, Law Enforcement, Critical Infrastructure. All documents scanned by ClamAV before processing. Outputs CUI banner/portion markings."
+    },
+    {
+      "id": "C016",
+      "name": ".NET 8 Workflow Engine",
+      "type": "microservice",
+      "technology": ".NET 8, Elsa Workflows 3.1, distributed saga pattern, RabbitMQ consumers",
+      "tier": "application",
+      "exposed": false,
+      "fips_required": true,
+      "data_classification": "CUI",
+      "notes": "Orchestrates multi-step approval workflows (NIST AC-5 separation of duties). Saga compensating transactions for consistency. Workflow state persisted to PostgreSQL. Configurable approval chains per agency policy."
+    },
+    {
+      "id": "C017",
+      "name": ".NET 8 Audit Service",
+      "type": "microservice",
+      "technology": ".NET 8, ASP.NET Core 8.0, append-only event log, RFC 5424 syslog output",
+      "tier": "application",
+      "exposed": false,
+      "fips_required": true,
+      "data_classification": "CUI",
+      "il_level": 5,
+      "notes": "NIST 800-53 AU control family implementation. Immutable append-only audit log with HMAC-SHA256 chain integrity. AU-2 (event logging), AU-3 (log content), AU-9 (log protection), AU-12 (audit generation). Log retention: 3 years per FedRAMP HighBaseline."
+    },
+    {
+      "id": "C018",
+      "name": ".NET 8 Notification Service",
+      "type": "microservice",
+      "technology": ".NET 8, ASP.NET Core 8.0, SMTP via DISA-approved relay, FIPS-TLS email delivery",
+      "tier": "application",
+      "exposed": false,
+      "fips_required": true,
+      "notes": "Delivers .gov email notifications. TLS 1.3 SMTP. DKIM-signed outbound. No PII/CUI in email bodies — reference links only (SI-12). Rate-limited to prevent enumeration."
+    },
+    {
+      "id": "C019",
+      "name": "Python 3.12 Analytics Service",
+      "type": "microservice",
+      "technology": "Python 3.12, FastAPI 0.110, pandas 2.2, FIPS-compliant cryptography library",
+      "tier": "application",
+      "exposed": false,
+      "fips_required": true,
+      "data_classification": "CUI",
+      "notes": "Aggregated reporting and dashboard data. Uses cryptography library in FIPS mode (OpenSSL 3.x FIPS provider). Read-only access to analytical replica DB. Output sanitized to avoid CUI leakage in reports."
+    },
+    {
+      "id": "C020",
+      "name": "Python 3.12 ML Classification Engine",
+      "type": "microservice",
+      "technology": "Python 3.12, FastAPI 0.110, scikit-learn 1.4, spaCy 3.7 NLP, ONNX Runtime 1.17",
+      "tier": "application",
+      "exposed": false,
+      "fips_required": true,
+      "data_classification": "CUI",
+      "il_level": 5,
+      "notes": "NLP-based CUI category detection. Models trained on agency-approved corpus, stored in MinIO. ONNX runtime for inference (no internet model downloads). Outputs confidence scores and recommended CUI categories."
+    },
+    {
+      "id": "C021",
+      "name": "PostgreSQL 16 (Primary — FIPS)",
+      "type": "database",
+      "technology": "PostgreSQL 16.2, pgcrypto (FIPS-compliant), TDE via RHEL LUKS + Vault unsealing, WAL encryption",
+      "tier": "data",
+      "exposed": false,
+      "fips_required": true,
+      "data_classification": "CUI",
+      "il_level": 5,
+      "notes": "Primary operational database. TLS 1.3 client certificate auth (mutual TLS). Row-level security for multi-tenant case isolation. pgaudit extension for SQL audit logging. Patroni HA with automatic failover. FIPS-enabled via RHEL FIPS kernel."
+    },
+    {
+      "id": "C022",
+      "name": "PostgreSQL 16 (Read Replica — Analytics)",
+      "type": "database",
+      "technology": "PostgreSQL 16.2 streaming replica, read-only, TLS 1.3, Patroni managed",
+      "tier": "data",
+      "exposed": false,
+      "fips_required": true,
+      "data_classification": "CUI",
+      "notes": "Dedicated analytics read replica. Isolated RBAC — analytics service has SELECT-only access. Replication lag monitored. Replica used only for C019 (Analytics Service) to prevent OLAP queries impacting primary."
+    },
+    {
+      "id": "C023",
+      "name": "MinIO Object Storage (FIPS)",
+      "type": "object_storage",
+      "technology": "MinIO RELEASE.2024-02, FIPS 140-3 mode, S3-compatible API, erasure coding (k=4,m=2), SSE-KMS",
+      "tier": "data",
+      "exposed": false,
+      "fips_required": true,
+      "data_classification": "CUI",
+      "il_level": 5,
+      "notes": "Air-gapped S3-compatible storage for CUI documents, ML models, and audit archives. Server-side encryption via Vault KMS (SSE-KMS). Object locking (WORM) for audit logs per AU-9(2). Bucket policies enforce least-privilege access per AC-6."
+    },
+    {
+      "id": "C024",
+      "name": "RabbitMQ 3.13 (Message Broker)",
+      "type": "message_queue",
+      "technology": "RabbitMQ 3.13, AMQP 0.9.1 + AMQP 1.0, TLS 1.3 mutual auth, quorum queues",
+      "tier": "messaging",
+      "exposed": false,
+      "fips_required": true,
+      "notes": "Asynchronous event bus for workflow triggers and notifications. TLS 1.3 with client certificates issued by Vault PKI. Quorum queues for durability. Messages carrying CUI encrypted at application layer before enqueue (defense-in-depth)."
+    },
+    {
+      "id": "C025",
+      "name": "Redis 7.2 (Session Cache — FIPS)",
+      "type": "cache",
+      "technology": "Redis 7.2, TLS 1.3, ACL-based auth, keyspace notifications, maxmemory-policy allkeys-lru",
+      "tier": "data",
+      "exposed": false,
+      "fips_required": true,
+      "notes": "Session tokens and short-lived tokens only. Session TTL: 15 minutes (IA-11). No CUI cached in Redis. Cluster mode with TLS inter-node encryption. Redis ACLs restrict each service to its own key namespace."
+    },
+    {
+      "id": "C026",
+      "name": "OpenTelemetry Collector",
+      "type": "telemetry_collector",
+      "technology": "OpenTelemetry Collector Contrib 0.96, OTLP gRPC/HTTP exporters, tail-based sampling",
+      "tier": "observability",
+      "exposed": false,
+      "notes": "Central telemetry aggregation. Collects traces, metrics, and logs. PII/CUI scrubbing processor applied before export. Dual export: Jaeger (traces) and Prometheus (metrics). TLS 1.3 on all collector endpoints."
+    },
+    {
+      "id": "C027",
+      "name": "Jaeger (Distributed Tracing)",
+      "type": "tracing",
+      "technology": "Jaeger 1.55, Elasticsearch 8.12 backend (FIPS-enabled), adaptive sampling",
+      "tier": "observability",
+      "exposed": false,
+      "fips_required": true,
+      "notes": "End-to-end distributed tracing for incident investigation. Trace data sanitized — no CUI in span tags or logs. Retention: 90 days for traces. Access restricted to security operations role."
+    },
+    {
+      "id": "C028",
+      "name": "Prometheus + Grafana (Monitoring)",
+      "type": "monitoring",
+      "technology": "Prometheus 2.50, Grafana 10.3, AlertManager 0.27, Grafana Mimir long-term storage",
+      "tier": "observability",
+      "exposed": false,
+      "notes": "Infrastructure and application metrics. FedRAMP SI-4 continuous monitoring. Custom dashboards: FIPS cipher health, mTLS error rates, CUI access frequency, failed auth attempts (AU-6 audit review). Alerts to PagerDuty (CJIS-compliant channel)."
+    },
+    {
+      "id": "C029",
+      "name": "Splunk SIEM (FedRAMP Auth)",
+      "type": "siem",
+      "technology": "Splunk Enterprise Security 7.3, FedRAMP-authorized deployment, STIX/TAXII threat intel feeds",
+      "tier": "security",
+      "exposed": false,
+      "fips_required": true,
+      "il_level": 5,
+      "notes": "Central SIEM for AU-6 audit review and analysis. SI-4 intrusion detection via Splunk UBA. Correlation rules: privileged access anomalies, CUI access outside business hours, mass export attempts. Integration with US-CERT/CISA threat intel (STIX/TAXII)."
+    },
+    {
+      "id": "C030",
+      "name": "OSCAL Compliance Automation",
+      "type": "compliance_tool",
+      "technology": "NIST OSCAL 1.1 (JSON/XML), oscal-cli 1.4, automated SSP generation, ConMon automation",
+      "tier": "security",
+      "exposed": false,
+      "notes": "Continuous compliance monitoring per FedRAMP ConMon requirements. Generates machine-readable System Security Plan (SSP). Automated Plan of Action and Milestones (POA&M) tracking. Monthly ConMon evidence package generation."
+    },
+    {
+      "id": "C031",
+      "name": "SCAP / OpenSCAP Scanner",
+      "type": "vulnerability_scanner",
+      "technology": "OpenSCAP 1.3.9, SCAP 1.3, XCCDF, OVAL, DISA STIG benchmark content",
+      "tier": "security",
+      "exposed": false,
+      "notes": "Automated STIG compliance scanning per RA-5 (Vulnerability Monitoring). Scans all RHEL 9 nodes weekly. Results exported to OSCAL Assessment Results format. Non-compliant findings auto-create POA&M entries."
+    },
+    {
+      "id": "C032",
+      "name": "Vault PKI Secrets Engine",
+      "type": "certificate_authority",
+      "technology": "HashiCorp Vault 1.16, internal CA hierarchy (Root CA offline, Intermediate CA online), RSA-3072",
+      "tier": "security",
+      "exposed": false,
+      "fips_required": true,
+      "il_level": 5,
+      "notes": "Issues all internal TLS certificates. Root CA stored offline in HSM. Intermediate CA online in Vault. Cert TTL: 24h for service mTLS, 1y for node identity. Certificate transparency log for audit. CRL/OCSP responder for revocation."
+    },
+    {
+      "id": "C033",
+      "name": "Elasticsearch 8 (Audit Log Store)",
+      "type": "log_store",
+      "technology": "Elasticsearch 8.12, FIPS-enabled TLS, index lifecycle management (ILM), RBAC",
+      "tier": "data",
+      "exposed": false,
+      "fips_required": true,
+      "data_classification": "CUI",
+      "il_level": 5,
+      "notes": "Immutable audit log storage. ILM policies: hot (30d SSD), warm (90d HDD), cold (1y S3/MinIO), delete (3y). Index encryption via Elasticsearch native encryption. RBAC: audit_read role for SOC analysts, no delete permissions per AU-9."
+    },
+    {
+      "id": "C034",
+      "name": "Agency LDAP / Active Directory",
+      "type": "directory_service",
+      "technology": "Microsoft AD DS / OpenLDAP, LDAPS (TLS 1.3), Kerberos 5 (AES-256 only)",
+      "tier": "external",
+      "exposed": false,
+      "fips_required": true,
+      "notes": "Agency authoritative identity source. SCIM federation to Keycloak for JIT provisioning. LDAP bind uses service account with minimal read permissions. Kerberos with AES-256-CTS-HMAC-SHA1-96 (DES/RC4 disabled per STIG)."
+    },
+    {
+      "id": "C035",
+      "name": "DISA NIPRNet Gateway",
+      "type": "network_gateway",
+      "technology": "DISA Boundary Protection (Multi-Protocol Router), HAIPE IS encryption (KG-175), IPv4/IPv6",
+      "tier": "network",
+      "exposed": true,
+      "il_level": 5,
+      "notes": "DoD NIPRNet ingress for IL5 traffic. HAIPE Type 1 encryption device for classified-adjacent transport. Connected to DoD DISA Boundary; all traffic logged to SIEM. CDS (Cross Domain Solution) for IL5 data flows."
+    }
+  ],
+  "connections": [
+    {
+      "from": "C035",
+      "to": "C012",
+      "protocol": "HAIPE/TLS1.3",
+      "description": "NIPRNet traffic enters via DISA gateway to F5 BIG-IP WAF — outer boundary crossing"
+    },
+    {
+      "from": "C012",
+      "to": "C010",
+      "protocol": "mTLS/TLS1.3",
+      "description": "F5 WAF routes unauthenticated requests to Keycloak SSO for CAC/PIV authentication"
+    },
+    {
+      "from": "C012",
+      "to": "C013",
+      "protocol": "mTLS/TLS1.3",
+      "description": "F5 WAF forwards authenticated requests to .NET 8 API Gateway after TLS offload and re-encryption"
+    },
+    {
+      "from": "C010",
+      "to": "C034",
+      "protocol": "LDAPS/TLS1.3",
+      "description": "Keycloak federates identity from Agency Active Directory via LDAPS for user provisioning and group sync"
+    },
+    {
+      "from": "C013",
+      "to": "C010",
+      "protocol": "mTLS/OIDC-TLS1.3",
+      "description": "API Gateway validates JWT tokens against Keycloak JWKS endpoint for every request"
+    },
+    {
+      "from": "C013",
+      "to": "C014",
+      "protocol": "mTLS/TLS1.3",
+      "description": "API Gateway routes /cases/* to Case Management Service via Istio sidecar mTLS"
+    },
+    {
+      "from": "C013",
+      "to": "C015",
+      "protocol": "mTLS/TLS1.3",
+      "description": "API Gateway routes /documents/* to Document Classification Service for CUI handling"
+    },
+    {
+      "from": "C013",
+      "to": "C016",
+      "protocol": "mTLS/TLS1.3",
+      "description": "API Gateway routes /workflows/* to Workflow Engine for approval chain processing"
+    },
+    {
+      "from": "C013",
+      "to": "C019",
+      "protocol": "mTLS/TLS1.3",
+      "description": "API Gateway routes /analytics/* to Analytics Service for reporting queries"
+    },
+    {
+      "from": "C013",
+      "to": "C017",
+      "protocol": "mTLS/gRPC-TLS1.3",
+      "description": "API Gateway records all inbound request events to Audit Service via gRPC streaming"
+    },
+    {
+      "from": "C014",
+      "to": "C021",
+      "protocol": "mTLS/TLS1.3-PostgreSQL",
+      "description": "Case Management Service reads and writes case records to primary PostgreSQL with client certificate auth"
+    },
+    {
+      "from": "C014",
+      "to": "C008",
+      "protocol": "mTLS/TLS1.3-Vault",
+      "description": "Case Management Service uses Vault transit engine to encrypt CUI field data before DB write"
+    },
+    {
+      "from": "C014",
+      "to": "C024",
+      "protocol": "mTLS/AMQP-TLS1.3",
+      "description": "Case Management Service publishes case lifecycle events to RabbitMQ for workflow and notification triggers"
+    },
+    {
+      "from": "C014",
+      "to": "C017",
+      "protocol": "mTLS/gRPC-TLS1.3",
+      "description": "Case Management Service emits CUI access audit events to Audit Service for AU-2 compliance"
+    },
+    {
+      "from": "C015",
+      "to": "C007",
+      "protocol": "mTLS/HTTP-TLS1.3",
+      "description": "Document Classification Service sends uploaded files to ClamAV for malware scan before CUI analysis"
+    },
+    {
+      "from": "C015",
+      "to": "C020",
+      "protocol": "mTLS/TLS1.3",
+      "description": "Document Classification Service calls ML Classification Engine for CUI category detection via NLP"
+    },
+    {
+      "from": "C015",
+      "to": "C023",
+      "protocol": "mTLS/HTTPS-TLS1.3-S3",
+      "description": "Document Classification Service stores classified documents in MinIO with SSE-KMS encryption"
+    },
+    {
+      "from": "C015",
+      "to": "C017",
+      "protocol": "mTLS/gRPC-TLS1.3",
+      "description": "Document Classification Service logs every CUI access, upload, and classification decision to Audit Service"
+    },
+    {
+      "from": "C016",
+      "to": "C021",
+      "protocol": "mTLS/TLS1.3-PostgreSQL",
+      "description": "Workflow Engine persists workflow state and saga state machines to PostgreSQL"
+    },
+    {
+      "from": "C016",
+      "to": "C024",
+      "protocol": "mTLS/AMQP-TLS1.3",
+      "description": "Workflow Engine consumes case events from RabbitMQ and publishes approval-required events"
+    },
+    {
+      "from": "C016",
+      "to": "C018",
+      "protocol": "mTLS/TLS1.3",
+      "description": "Workflow Engine triggers Notification Service for approval request and escalation emails"
+    },
+    {
+      "from": "C016",
+      "to": "C017",
+      "protocol": "mTLS/gRPC-TLS1.3",
+      "description": "Workflow Engine records workflow transitions and approval decisions to Audit Service"
+    },
+    {
+      "from": "C017",
+      "to": "C033",
+      "protocol": "mTLS/TLS1.3-HTTPS",
+      "description": "Audit Service writes HMAC-chained audit events to Elasticsearch append-only audit log store"
+    },
+    {
+      "from": "C017",
+      "to": "C023",
+      "protocol": "mTLS/HTTPS-TLS1.3-S3",
+      "description": "Audit Service archives daily audit log bundles to MinIO WORM buckets for long-term retention"
+    },
+    {
+      "from": "C019",
+      "to": "C022",
+      "protocol": "mTLS/TLS1.3-PostgreSQL",
+      "description": "Analytics Service queries read-only replica PostgreSQL for aggregated reporting (no write access)"
+    },
+    {
+      "from": "C020",
+      "to": "C023",
+      "protocol": "mTLS/HTTPS-TLS1.3-S3",
+      "description": "ML Classification Engine loads approved NLP model artifacts from MinIO at startup"
+    },
+    {
+      "from": "C021",
+      "to": "C022",
+      "protocol": "mTLS/TLS1.3-PostgreSQL-streaming",
+      "description": "Primary PostgreSQL streams WAL replication to analytics read replica via encrypted streaming replication"
+    },
+    {
+      "from": "C013",
+      "to": "C025",
+      "protocol": "mTLS/TLS1.3-Redis",
+      "description": "API Gateway reads user session tokens from Redis cache for sub-millisecond session validation"
+    },
+    {
+      "from": "C010",
+      "to": "C025",
+      "protocol": "mTLS/TLS1.3-Redis",
+      "description": "Keycloak writes newly issued session tokens to Redis with 15-minute TTL for distributed session management"
+    },
+    {
+      "from": "C026",
+      "to": "C028",
+      "protocol": "OTLP/gRPC-TLS1.3",
+      "description": "OpenTelemetry Collector exports traces to Jaeger for distributed request tracing"
+    },
+    {
+      "from": "C026",
+      "to": "C028",
+      "protocol": "OTLP/HTTP-TLS1.3",
+      "description": "OpenTelemetry Collector exports metrics to Prometheus for SI-4 continuous monitoring"
+    },
+    {
+      "from": "C026",
+      "to": "C029",
+      "protocol": "mTLS/HTTPS-TLS1.3",
+      "description": "OpenTelemetry Collector forwards sanitized log telemetry to Splunk SIEM for security analytics"
+    },
+    {
+      "from": "C006",
+      "to": "C029",
+      "protocol": "mTLS/TLS1.3-syslog",
+      "description": "Falco runtime security forwards syscall anomaly alerts to Splunk SIEM via Falco Sidekick"
+    },
+    {
+      "from": "C033",
+      "to": "C029",
+      "protocol": "mTLS/HTTPS-TLS1.3",
+      "description": "Elasticsearch audit log store ships audit events to Splunk SIEM for AU-6 review and correlation"
+    },
+    {
+      "from": "C008",
+      "to": "C032",
+      "protocol": "mTLS/TLS1.3-Vault",
+      "description": "Vault PKI Secrets Engine is managed and unsealed by Vault (HSM backend), issuing all internal certificates"
+    },
+    {
+      "from": "C032",
+      "to": "C004",
+      "protocol": "mTLS/TLS1.3-Vault",
+      "description": "Vault PKI issues workload certificates to Istio SPIFFE/SPIRE for service identity and mTLS"
+    },
+    {
+      "from": "C011",
+      "to": "C002",
+      "protocol": "mTLS/HTTPS-TLS1.3",
+      "description": "RKE2 Kubernetes pulls STIG-validated images from Harbor air-gapped registry at pod scheduling"
+    },
+    {
+      "from": "C003",
+      "to": "C002",
+      "protocol": "mTLS/HTTPS-TLS1.3",
+      "description": "Trivy Scanner performs vulnerability and SBOM analysis on images stored in Harbor registry"
+    },
+    {
+      "from": "C009",
+      "to": "C021",
+      "protocol": "mTLS/TLS1.3-PostgreSQL",
+      "description": "Boundary brokers time-limited database credentials for authorized operators — no persistent DB passwords"
+    },
+    {
+      "from": "C030",
+      "to": "C033",
+      "protocol": "mTLS/HTTPS-TLS1.3",
+      "description": "OSCAL Compliance Automation reads audit evidence from Elasticsearch for monthly ConMon reporting"
+    },
+    {
+      "from": "C031",
+      "to": "C029",
+      "protocol": "mTLS/HTTPS-TLS1.3",
+      "description": "OpenSCAP scanner ships STIG compliance findings to Splunk SIEM for POA&M correlation"
+    }
+  ],
+  "trust_boundaries": [
+    {
+      "id": "TB001",
+      "name": "Internet (Public) / Untrusted Zone",
+      "from_zone": "internet",
+      "to_zone": "disa-niprnet",
+      "components_inside": [],
+      "components_outside": ["C035", "C034"],
+      "controls": [
+        "DISA HAIPE Type 1 encryption (KG-175) for NIPRNet boundary",
+        "No direct internet ingress — NIPRNet-only entry for IL5 traffic",
+        "DISA Boundary Protection capability (BPC) enforcement",
+        "IPv6 dual-stack with DoD IP address space allocation",
+        "All external DNS via DISA-managed authoritative servers",
+        "Cross Domain Solution (CDS) for any IL5-to-IL2 data flow"
+      ]
+    },
+    {
+      "id": "TB002",
+      "name": "DISA / NIPRNet Perimeter",
+      "from_zone": "disa-niprnet",
+      "to_zone": "application-enclave",
+      "components_inside": ["C035", "C034"],
+      "components_outside": ["C012", "C010", "C013"],
+      "controls": [
+        "F5 BIG-IP Advanced WAF with OWASP CRS 4.0 in blocking mode",
+        "FIPS 140-3 TLS 1.3 termination — no TLS 1.2 or below permitted",
+        "CAC/PIV smart card mandatory for all human user authentication (IA-2(1))",
+        "DISA STIGged F5 BIG-IP — compliance verified quarterly",
+        "DDoS mitigation at F5 layer (SC-5 Denial-of-Service Protection)",
+        "Outbound allowed only to approved DISA-authorized destinations",
+        "IDS/IPS inline at perimeter (SI-4 Information System Monitoring)",
+        "All sessions logged to Splunk SIEM with 90-day hot retention"
+      ]
+    },
+    {
+      "id": "TB003",
+      "name": "Application Enclave (FedRAMP Authorization Boundary)",
+      "from_zone": "application-enclave",
+      "to_zone": "data-enclave",
+      "components_inside": ["C010", "C012", "C013", "C014", "C015", "C016", "C017", "C018", "C019", "C020"],
+      "components_outside": ["C021", "C022", "C023", "C024", "C025", "C033"],
+      "controls": [
+        "Istio mTLS STRICT mode — plaintext inter-service communication prohibited",
+        "SPIFFE/SPIRE workload identity — no static service passwords",
+        "Vault-issued short-lived certificates (24h TTL) for all service identities",
+        "Kyverno ClusterPolicy: deny privileged containers, enforce FIPS labels, require resource limits",
+        "Falco eBPF runtime monitoring — syscall anomaly detection per SI-4",
+        "Network policies (Kubernetes): default-deny, explicit allow per service communication matrix",
+        "Pod Security Admission: restricted profile enforced cluster-wide",
+        "RKE2 FIPS-mode: all Kubernetes control plane traffic uses FIPS-compliant cipher suites",
+        "Keycloak RBAC: all services present JWT with required roles for AC-3 access enforcement",
+        "AU-2 audit events generated for every CUI access event (Audit Service integration required)"
+      ]
+    },
+    {
+      "id": "TB004",
+      "name": "Data Enclave (CUI Protection Zone)",
+      "from_zone": "data-enclave",
+      "to_zone": "application-enclave",
+      "components_inside": ["C021", "C022", "C023", "C024", "C025", "C033"],
+      "components_outside": ["C014", "C015", "C016", "C017", "C019"],
+      "controls": [
+        "PostgreSQL client certificate mutual TLS (no password-only auth) — SC-8 Transmission Integrity",
+        "Row-level security (RLS) in PostgreSQL — each case isolated to owning agency/tenant",
+        "Vault transit engine AES-256-GCM encryption for CUI fields at rest — SC-28 Protection at Rest",
+        "MinIO SSE-KMS with Vault-managed keys — all CUI documents encrypted before storage",
+        "MinIO WORM object locking on audit buckets — AU-9(2) Protection of Audit Information",
+        "Redis ACL namespacing — no cross-service key access; TTL-enforced session expiry (IA-11)",
+        "Elasticsearch index-level RBAC — SOC analysts have read, no delete; AU-9 enforcement",
+        "LUKS full-disk encryption on all data enclave nodes (FIPS-enabled kernel mode)",
+        "pgaudit PostgreSQL audit extension — all SQL logged to Audit Service",
+        "Database credentials managed by Vault dynamic secrets — no static passwords in any service"
+      ]
+    },
+    {
+      "id": "TB005",
+      "name": "Air-Gap Boundary (Disconnected / IL5 Option)",
+      "from_zone": "air-gap-internal",
+      "to_zone": "internet",
+      "components_inside": ["C002", "C007", "C003", "C008", "C009", "C031", "C030"],
+      "components_outside": [],
+      "controls": [
+        "Physical air-gap: no network connection to internet or commercial cloud",
+        "Harbor container registry mirrors all required images — no external registry pulls",
+        "ClamAV signature DB updated via DISA-approved sneakernet (USB with chain-of-custody log)",
+        "OpenSCAP SCAP content delivered via approved removable media — no online OVAL feed",
+        "Vault initialized offline with HSM-protected master key — no cloud KMS dependency",
+        "All PKI CAs internal (Root CA offline, Intermediate online) — no public certificate authorities",
+        "Boundary PAM enforces jump-server access — no direct node access from operator workstations",
+        "Data diode (hardware) at air-gap boundary for one-way log export to SIEM if required",
+        "All software updates via DISA-approved ACAS/HBSS patch management channel",
+        "No external DNS lookups — all service discovery via internal CoreDNS within RKE2 cluster"
+      ]
+    }
+  ],
+  "compliance_mappings": {
+    "framework": "NIST SP 800-53 Rev 5",
+    "fedramp_impact": "High",
+    "control_families": [
+      {
+        "family": "AC — Access Control",
+        "controls": ["AC-2", "AC-3", "AC-5", "AC-6", "AC-17", "AC-19", "AC-20"],
+        "implemented_by": ["C010", "C013", "C014", "C016", "C009"],
+        "notes": "CAC/PIV enforces AC-2 account management. Keycloak RBAC implements AC-3. Workflow Engine enforces AC-5 separation of duties. Boundary implements AC-17 remote access controls."
+      },
+      {
+        "family": "AU — Audit and Accountability",
+        "controls": ["AU-2", "AU-3", "AU-6", "AU-9", "AU-9(2)", "AU-11", "AU-12", "AU-14"],
+        "implemented_by": ["C017", "C033", "C029", "C023"],
+        "notes": "Audit Service (C017) provides AU-2/AU-3/AU-12. Elasticsearch RBAC provides AU-9. MinIO WORM provides AU-9(2). Splunk SIEM provides AU-6 review. 3-year retention in MinIO implements AU-11."
+      },
+      {
+        "family": "IA — Identification and Authentication",
+        "controls": ["IA-2", "IA-2(1)", "IA-5", "IA-5(1)", "IA-8", "IA-11"],
+        "implemented_by": ["C010", "C025", "C032"],
+        "notes": "CAC/PIV via Keycloak implements IA-2(1) multi-factor for privileged users. Vault PKI implements IA-5(1) PKI-based authenticators. Redis TTL 15-minute implements IA-11 re-authentication."
+      },
+      {
+        "family": "SC — System and Communications Protection",
+        "controls": ["SC-5", "SC-7", "SC-8", "SC-12", "SC-13", "SC-28"],
+        "implemented_by": ["C004", "C008", "C012", "C021", "C023", "C032"],
+        "notes": "Istio mTLS implements SC-8 transmission integrity. Vault+HSM implements SC-12 cryptographic key management. FIPS 140-3 across all components implements SC-13 cryptographic protection. MinIO/PostgreSQL encryption implements SC-28 protection at rest."
+      },
+      {
+        "family": "SI — System and Information Integrity",
+        "controls": ["SI-2", "SI-3", "SI-4", "SI-7", "SI-12"],
+        "implemented_by": ["C003", "C006", "C007", "C028", "C029", "C031"],
+        "notes": "Trivy/OpenSCAP implements SI-2 flaw remediation. ClamAV implements SI-3 malware protection. Falco + Splunk implements SI-4 monitoring. Notary v2 image signing implements SI-7 software integrity. Notification Service implements SI-12 information output handling."
+      },
+      {
+        "family": "CM — Configuration Management",
+        "controls": ["CM-2", "CM-6", "CM-7", "CM-8", "CM-11"],
+        "implemented_by": ["C001", "C005", "C011", "C031"],
+        "notes": "STIG-hardened RHEL 9 base image implements CM-2 baseline config. Kyverno implements CM-6 configuration settings enforcement. OpenSCAP implements CM-6 automated assessment. Harbor SBOM implements CM-8 component inventory."
+      },
+      {
+        "family": "RA — Risk Assessment",
+        "controls": ["RA-5", "RA-5(1)", "RA-5(2)"],
+        "implemented_by": ["C003", "C031", "C029"],
+        "notes": "Trivy (C003) implements RA-5 vulnerability scanning for container images. OpenSCAP (C031) implements RA-5 for host OS. Splunk SIEM (C029) provides RA-5(2) automated trend correlation."
+      },
+      {
+        "family": "IR — Incident Response",
+        "controls": ["IR-4", "IR-5", "IR-6"],
+        "implemented_by": ["C006", "C029", "C028"],
+        "notes": "Falco (C006) + Splunk (C029) provide IR-4 automated incident handling. Prometheus AlertManager (C028) provides IR-5 incident monitoring. Splunk SOAR integration provides IR-6 incident reporting workflow."
+      }
+    ],
+    "fips_140_3_components": ["C001", "C002", "C004", "C008", "C010", "C011", "C012", "C013", "C014", "C015", "C016", "C017", "C018", "C019", "C020", "C021", "C022", "C023", "C024", "C025", "C027", "C029", "C032", "C033"],
+    "il5_components": ["C002", "C008", "C009", "C010", "C011", "C014", "C015", "C017", "C020", "C021", "C023", "C029", "C032", "C033", "C035"],
+    "cui_handling_components": ["C013", "C014", "C015", "C016", "C017", "C019", "C020", "C021", "C022", "C023", "C033"],
+    "cmmc_l3_practices": {
+      "AC": "CAC/PIV MFA, RBAC via Keycloak, Boundary PAM for privileged access",
+      "AU": "Immutable audit log (Audit Service + Elasticsearch), Splunk SIEM review, 3-year retention",
+      "CM": "STIG-hardened images, Kyverno policy enforcement, SBOM via Trivy/Harbor",
+      "IA": "CAC/PIV authentication, Vault PKI certificate issuance, SPIFFE workload identity",
+      "IR": "Falco runtime detection, Splunk automated alerting, documented IR playbooks",
+      "RM": "Trivy image scanning, OpenSCAP STIG checks, automated POA&M via OSCAL",
+      "SC": "Istio mTLS everywhere, FIPS 140-3 crypto, Vault HSM key management",
+      "SI": "ClamAV malware scanning, Falco integrity monitoring, Trivy SBOM tracking"
+    }
+  }
+}

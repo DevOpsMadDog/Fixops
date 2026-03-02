@@ -1,0 +1,139 @@
+{
+  "type": "aldeci-self-scan",
+  "date": "2026-03-02T11:27:17.760262+00:00",
+  "sast_findings": 8,
+  "secrets_found": 3,
+  "total_findings": 14,
+  "steps_total": 17,
+  "steps_passed": 18,
+  "steps_failed": 0,
+  "pass_rate": 105.9,
+  "duration_seconds": 7.1,
+  "findings": [
+    {
+      "id": "SAST-9411c5623321",
+      "title": "Excessive Data Exposure in API Response",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-200",
+      "file_path": "suite-core/core/brain_pipeline.py",
+      "line_number": 165,
+      "description": "Full object serialized to response \u2014 may include sensitive fields"
+    },
+    {
+      "id": "SAST-aa292f731288",
+      "title": "Exposed Stack Trace in Response",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-209",
+      "file_path": "suite-core/core/micro_pentest.py",
+      "line_number": 87,
+      "description": "Stack trace included in HTTP response"
+    },
+    {
+      "id": "SAST-586734b03d9a",
+      "title": "Exposed Stack Trace in Response",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-209",
+      "file_path": "suite-api/apps/api/app.py",
+      "line_number": 66,
+      "description": "Stack trace included in HTTP response"
+    },
+    {
+      "id": "SAST-5ac880897074",
+      "title": "Exposed Stack Trace in Response",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-209",
+      "file_path": "suite-core/core/crypto.py",
+      "line_number": 40,
+      "description": "Stack trace included in HTTP response"
+    },
+    {
+      "id": "SAST-f1c35a311cd0",
+      "title": "Exposed Stack Trace in Response",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-209",
+      "file_path": "suite-core/core/crypto.py",
+      "line_number": 41,
+      "description": "Stack trace included in HTTP response"
+    },
+    {
+      "id": "SAST-b8868575e50b",
+      "title": "Insecure Deserialization",
+      "severity": "critical",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-502",
+      "file_path": "suite-core/core/sast_engine.py",
+      "line_number": 140,
+      "description": "Unsafe deserialization of untrusted data"
+    },
+    {
+      "id": "SAST-2e01f7b1f60f",
+      "title": "ECB Mode Usage",
+      "severity": "high",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-327",
+      "file_path": "suite-core/core/sast_engine.py",
+      "line_number": 150,
+      "description": "ECB mode preserves plaintext patterns \u2014 insecure for most data"
+    },
+    {
+      "id": "SAST-632bb3adb7dc",
+      "title": "Exposed Stack Trace in Response",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-209",
+      "file_path": "suite-core/core/connectors.py",
+      "line_number": 60,
+      "description": "Stack trace included in HTTP response"
+    },
+    {
+      "id": "ac77f6d2-f931-48e1-8368-e0dacbbe6f0e",
+      "title": "Secret: password in .env",
+      "severity": "high",
+      "source": "aldeci-self-secrets",
+      "file_path": ".env",
+      "description": "Secret of type 'password' found in .env"
+    },
+    {
+      "id": "991bc4a5-7cbe-4478-b1d5-af09f1f34113",
+      "title": "Secret: api_key in .env",
+      "severity": "high",
+      "source": "aldeci-self-secrets",
+      "file_path": ".env",
+      "description": "Secret of type 'api_key' found in .env"
+    },
+    {
+      "id": "de443b35-7546-43e1-83ec-a7f86f20bfe6",
+      "title": "Secret: database_credential in .env",
+      "severity": "high",
+      "source": "aldeci-self-secrets",
+      "file_path": ".env",
+      "description": "Secret of type 'database_credential' found in .env"
+    },
+    {
+      "id": "CONT-86074956",
+      "title": "No Package Pinning",
+      "severity": "medium",
+      "source": "aldeci-self-container",
+      "description": "Package installed without version pinning"
+    },
+    {
+      "id": "CONT-6b4a9784",
+      "title": "Apt-get No Clean",
+      "severity": "low",
+      "source": "aldeci-self-container",
+      "description": "apt-get install without cleanup \u2014 bloated image"
+    },
+    {
+      "id": "CONT-4269f4a6",
+      "title": "No Package Pinning",
+      "severity": "medium",
+      "source": "aldeci-self-container",
+      "description": "Package installed without version pinning"
+    }
+  ]
+}

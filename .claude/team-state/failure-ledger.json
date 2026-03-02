@@ -1,0 +1,131 @@
+{
+  "_schema": "failure-ledger-v1",
+  "_description": "Self-learning failure memory. Every fix-agent spawn records what failed, why, and what fixed it. Agents consult this before work to avoid repeating known failures. Append-only — never delete entries.",
+  "_created": "2026-03-03",
+  "_updated": "2026-03-03",
+  "failure_categories": {
+    "IMPORT_ERROR": "Missing module, wrong import path, circular import",
+    "SYNTAX_ERROR": "Python/JS/Bash syntax error in modified file",
+    "TEST_FAILURE": "Existing tests broke after code change",
+    "CONFIG_ISSUE": "Missing env var, wrong port, bad DB path",
+    "TIMEOUT": "Agent or process exceeded time limit",
+    "API_DOWN": "Backend not responding on port 8000",
+    "HALLUCINATION": "Agent produced fake data, wrong file paths, non-existent APIs",
+    "EMPTY_OUTPUT": "Agent produced 0-byte output (CLI invocation likely broken)",
+    "PERMISSION_ERROR": "File locked, directory not writable, auth failure",
+    "DEPENDENCY_CONFLICT": "Package version mismatch, pip install failure",
+    "GIT_CONFLICT": "Merge conflict, unstaged changes blocking operation",
+    "VISION_DRIFT": "Work contradicts CEO vision or CTEM+ identity"
+  },
+  "known_patterns": [
+    {
+      "pattern_id": "KP-001",
+      "category": "EMPTY_OUTPUT",
+      "description": "Fix agents produce 0-byte logs — Claude CLI invocation with -p flag and large prompt may silently fail or timeout",
+      "affected_agents": ["agent-doctor", "context-engineer", "devops-engineer", "frontend-craftsman", "scrum-master", "security-analyst", "swarm-controller", "ui-stubs", "vision-agent"],
+      "frequency": "39 occurrences across all historical fix-agent runs — 100% failure rate",
+      "root_cause": "The fix-agent prompt is passed via temp file + cat, but the Claude CLI may be timing out or the prompt may exceed token limits. All 39 fix-agent logs in logs/ai-team/fix-agents/ are 0 bytes.",
+      "recommended_fix": "1. Check Claude CLI version compatibility with --print flag. 2. Reduce prompt size (currently includes 80 lines of log + error patterns). 3. Add explicit timeout detection. 4. Verify /opt/homebrew/bin/bash exists and works.",
+      "first_seen": "2026-02-28",
+      "last_seen": "2026-03-02",
+      "resolved": false
+    },
+    {
+      "pattern_id": "KP-002",
+      "category": "HALLUCINATION",
+      "description": "Agents reference suite-ui/aldeci-ui-new/ which does NOT exist on disk",
+      "affected_agents": ["frontend-craftsman", "qa-engineer", "context-engineer"],
+      "frequency": "Found in 3 agent definitions + copilot-instructions.md",
+      "root_cause": "Aspirational directory name leaked into agent prompts. Agents created files there, which quietly succeeded (mkdir -p) but were never used.",
+      "recommended_fix": "All agent defs now corrected. Add pre-flight check: if any agent output references aldeci-ui-new, flag as hallucination.",
+      "first_seen": "2026-02-27",
+      "last_seen": "2026-03-02",
+      "resolved": true,
+      "resolution_date": "2026-03-03",
+      "resolution": "12 corrections applied to copilot-instructions.md and 5 agent definitions"
+    },
+    {
+      "pattern_id": "KP-003",
+      "category": "VISION_DRIFT",
+      "description": "Sidebar has 8 Technical Suites instead of 5 Workflow Spaces mandated by vision",
+      "affected_agents": ["frontend-craftsman", "vision-agent"],
+      "frequency": "Persistent since UI creation — never caught until manual CEO review",
+      "root_cause": "No agent was tasked with comparing UI navigation structure against VISION_TO_ACCOMPLISH.MD Section 4.2. Vision-agent only measured LOC/errors/coverage, not information architecture.",
+      "recommended_fix": "1. ux-architect agent created (Phase 2.5) to audit UI IA. 2. vision-agent Phase 10 now must check sidebar labels. 3. Sidebar restructure directive issued to frontend-craftsman.",
+      "first_seen": "2026-02-15",
+      "last_seen": "2026-03-02",
+      "resolved": false,
+      "resolution": "ux-architect agent created, directive issued. Implementation pending."
+    },
+    {
+      "pattern_id": "KP-004",
+      "category": "CONFIG_ISSUE",
+      "description": "LOC counts in agent definitions drift from reality as code evolves",
+      "affected_agents": ["context-engineer", "backend-hardener", "enterprise-architect"],
+      "frequency": "28 contradictions found in single audit",
+      "root_cause": "Agent defs snapshot file sizes at creation time. No auto-update mechanism. Over days of rapid development, counts diverge significantly.",
+      "recommended_fix": "context-engineer runs contradiction check at end of every cycle: compare agent def claims vs actual wc -l. Update if drift >10%.",
+      "first_seen": "2026-03-01",
+      "last_seen": "2026-03-03",
+      "resolved": true,
+      "resolution_date": "2026-03-03",
+      "resolution": "28 corrections applied. Auto-check directive added to coordination notes."
+    }
+  ],
+  "fix_attempts": [
+    {
+      "id": "FA-SEED-001",
+      "date": "2026-03-02",
+      "run_id": "historical",
+      "failed_agent": "agent-doctor",
+      "failure_reason": "unknown — 0-byte fix-agent output",
+      "category": "EMPTY_OUTPUT",
+      "fix_cycle": 1,
+      "fix_successful": false,
+      "fix_exit_code": null,
+      "fix_output_bytes": 0,
+      "files_modified": [],
+      "lessons_learned": "Fix agent CLI invocation silently failed. See KP-001.",
+      "pattern_id": "KP-001"
+    },
+    {
+      "id": "FA-SEED-002",
+      "date": "2026-03-02",
+      "run_id": "historical",
+      "failed_agent": "context-engineer",
+      "failure_reason": "unknown — 0-byte fix-agent output",
+      "category": "EMPTY_OUTPUT",
+      "fix_cycle": 1,
+      "fix_successful": false,
+      "fix_exit_code": null,
+      "fix_output_bytes": 0,
+      "files_modified": [],
+      "lessons_learned": "Fix agent CLI invocation silently failed. See KP-001.",
+      "pattern_id": "KP-001"
+    },
+    {
+      "id": "FA-SEED-003",
+      "date": "2026-03-02",
+      "run_id": "historical",
+      "failed_agent": "frontend-craftsman",
+      "failure_reason": "unknown — 0-byte fix-agent output",
+      "category": "EMPTY_OUTPUT",
+      "fix_cycle": 1,
+      "fix_successful": false,
+      "fix_exit_code": null,
+      "fix_output_bytes": 0,
+      "files_modified": [],
+      "lessons_learned": "Fix agent CLI invocation silently failed. See KP-001.",
+      "pattern_id": "KP-001"
+    }
+  ],
+  "statistics": {
+    "total_fix_attempts": 39,
+    "successful_fixes": 0,
+    "failed_fixes": 39,
+    "success_rate": 0.0,
+    "most_failing_agents": ["frontend-craftsman", "security-analyst", "devops-engineer"],
+    "most_common_category": "EMPTY_OUTPUT",
+    "last_updated": "2026-03-03"
+  }
+}

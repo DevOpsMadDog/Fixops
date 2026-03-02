@@ -1,0 +1,142 @@
+{
+  "source": "self-dogfood",
+  "timestamp": "2026-03-02T11:17:48.218460+00:00",
+  "findings_count": 12,
+  "findings": [
+    {
+      "id": "DOGFOOD-CONTAINER-001",
+      "type": "container_misconfiguration",
+      "severity": "medium",
+      "cwe": "CWE-1104",
+      "title": "No Package Pinning",
+      "source": "container_scan",
+      "app_id": "aldeci-docker"
+    },
+    {
+      "id": "DOGFOOD-CONTAINER-002",
+      "type": "container_misconfiguration",
+      "severity": "low",
+      "cwe": "CWE-400",
+      "title": "Apt-get No Clean",
+      "source": "container_scan",
+      "app_id": "aldeci-docker"
+    },
+    {
+      "id": "DOGFOOD-CONTAINER-003",
+      "type": "container_misconfiguration",
+      "severity": "medium",
+      "cwe": "CWE-1104",
+      "title": "No Package Pinning",
+      "source": "container_scan",
+      "app_id": "aldeci-docker"
+    },
+    {
+      "id": "DOGFOOD-CONTAINER-004",
+      "type": "container_misconfiguration",
+      "severity": "low",
+      "cwe": "CWE-400",
+      "title": "Apt-get No Clean",
+      "source": "container_scan",
+      "app_id": "aldeci-docker"
+    },
+    {
+      "id": "e28275b6-2421-49ae-924f-5f8df07a3f38",
+      "type": "hardcoded_secret",
+      "severity": "high",
+      "cwe": "CWE-798",
+      "title": "Secret detected in config",
+      "source": "secrets_scan",
+      "app_id": "aldeci-config"
+    },
+    {
+      "id": "f2e90ea8-bd3a-4de0-be5c-e42635d75ca0",
+      "type": "hardcoded_secret",
+      "severity": "high",
+      "cwe": "CWE-798",
+      "title": "Secret detected in config",
+      "source": "secrets_scan",
+      "app_id": "aldeci-config"
+    },
+    {
+      "id": "18dece0a-322a-46c2-98b3-ae58ca434b18",
+      "type": "hardcoded_secret",
+      "severity": "high",
+      "cwe": "CWE-798",
+      "title": "Secret detected in config",
+      "source": "secrets_scan",
+      "app_id": "aldeci-config"
+    },
+    {
+      "id": "89e125bd-3962-4940-a561-52e16d0026b1",
+      "type": "hardcoded_secret",
+      "severity": "high",
+      "cwe": "CWE-798",
+      "title": "Secret detected in config",
+      "source": "secrets_scan",
+      "app_id": "aldeci-config"
+    },
+    {
+      "id": "93fabe87-5d0d-4897-aaa9-20fe841854e9",
+      "type": "hardcoded_secret",
+      "severity": "high",
+      "cwe": "CWE-798",
+      "title": "Secret detected in config",
+      "source": "secrets_scan",
+      "app_id": "aldeci-config"
+    },
+    {
+      "id": "DOGFOOD-IAC-010",
+      "type": "cloud_misconfiguration",
+      "severity": "critical",
+      "cwe": "CWE-284",
+      "title": "Security Group Open to World",
+      "source": "iac_scan",
+      "app_id": "aldeci-infra"
+    },
+    {
+      "id": "DOGFOOD-IAC-011",
+      "type": "cloud_misconfiguration",
+      "severity": "critical",
+      "cwe": "CWE-284",
+      "title": "RDS Public Access",
+      "source": "iac_scan",
+      "app_id": "aldeci-infra"
+    },
+    {
+      "id": "DOGFOOD-IAC-012",
+      "type": "cloud_misconfiguration",
+      "severity": "high",
+      "cwe": "CWE-284",
+      "title": "No CloudTrail",
+      "source": "iac_scan",
+      "app_id": "aldeci-infra"
+    }
+  ],
+  "metrics": {
+    "dogfood_sast_findings": 3,
+    "dogfood_container_findings": 4,
+    "dogfood_secrets_findings": 5,
+    "dogfood_iac_findings": 3,
+    "dogfood_dast_findings": 8,
+    "dogfood_malware_findings": 0,
+    "dogfood_sbom_components": 29,
+    "dogfood_sbom_ingested": true,
+    "dogfood_total_findings": 23,
+    "ctem_artifacts_ingested": 7,
+    "ctem_brain_steps": 9,
+    "ctem_noise_reduction": "66.7%",
+    "ctem_avg_risk_score": "0.3157",
+    "ctem_mpte_status": "scan_started",
+    "ctem_autofix_fix_id": "fix-0aaff286d4618524",
+    "ctem_autofix_confidence": 0.8761984291415555,
+    "ctem_evidence_bundle_id": "EVB-2026-76BE7C",
+    "ctem_evidence_bundles": 2,
+    "ctem_evidence_signed": true,
+    "ctem_evidence_sig_alg": "RSA-SHA256 (PKCS1v15)",
+    "ctem_soc2_score": "0.0",
+    "ctem_pcidss_signed": true,
+    "brain_dogfood_steps": 9,
+    "brain_dogfood_noise": "91.7%",
+    "brain_dogfood_compliance": "86.4%"
+  }
+}

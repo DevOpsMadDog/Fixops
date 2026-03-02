@@ -33,6 +33,12 @@ class BatchDecideRequest(BaseModel):
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+@router.get("/health")
+async def ai_agent_health() -> Dict[str, Any]:
+    """Health check alias for AI agent engine (mirrors /status)."""
+    return await ai_agent_status()
+
+
 @router.get("/status")
 async def ai_agent_status() -> Dict[str, Any]:
     """Get AI agent engine status and backend availability."""

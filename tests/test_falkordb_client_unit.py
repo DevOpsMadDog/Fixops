@@ -6,10 +6,8 @@ attack path discovery, blast radius calculation, and graph analytics.
 Coverage target: 80%+ of falkordb_client.py
 """
 
-import hashlib
-import json
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from core.falkordb_client import (
     NodeType,

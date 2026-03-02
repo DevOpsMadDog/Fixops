@@ -1,6 +1,5 @@
 """Tests for scanner_parsers module — 15 third-party scanner normalizers."""
 import json
-import pytest
 
 
 # ── Test Data ──────────────────────────────────────────────────────────────
@@ -189,7 +188,7 @@ class TestSandboxVerifier:
     def test_create_router(self):
         from core.sandbox_verifier import create_sandbox_router
         r = create_sandbox_router()
-        assert len(r.routes) == 7  # 5 original + 2 reachability
+        assert len(r.routes) == 8  # 5 original + 2 reachability + 1 status
 
     def test_poc_script_model(self):
         from core.sandbox_verifier import PoCLanguage, PoCScript
@@ -211,7 +210,6 @@ class TestSandboxVerifier:
     def test_generate_xss_poc(self):
         from core.sandbox_verifier import SandboxVerifier
         v = SandboxVerifier()
-        finding = {"cve_id": "CVE-2024-0001", "cwe_id": "CWE-79", "title": "XSS"}
         poc = v._generate_basic_poc("CVE-2024-0001", "CWE-79", "XSS", "http://test.com")
         assert "XSS" in poc.code or "xss" in poc.code.lower()
 
@@ -611,7 +609,7 @@ class TestExposureCaseIdempotency:
 
     def test_enriched_case_has_real_data(self):
         """Verify ExposureCase created with enrichment carries all fields."""
-        from core.exposure_case import ExposureCase, CasePriority, severity_to_priority
+        from core.exposure_case import ExposureCase, severity_to_priority
         case = ExposureCase(
             case_id="EC-enriched",
             title="SQL Injection in login.py",

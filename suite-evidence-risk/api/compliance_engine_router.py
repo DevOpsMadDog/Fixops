@@ -33,6 +33,12 @@ class AssessFrameworkRequest(BaseModel):
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+@router.get("/health")
+async def compliance_engine_health() -> Dict[str, Any]:
+    """Health check alias for compliance engine (mirrors /status)."""
+    return await compliance_engine_status()
+
+
 @router.get("/status")
 async def compliance_engine_status() -> Dict[str, Any]:
     """Get compliance engine status."""

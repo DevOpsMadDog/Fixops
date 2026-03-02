@@ -1,0 +1,241 @@
+{
+  "showcase": "ALdeci CTEM+ Multi-Architecture",
+  "date": "2026-03-02T11:20:08.433476+00:00",
+  "status": "FAILED",
+  "steps_total": 88,
+  "steps_passed": 44,
+  "steps_failed": 3,
+  "pass_rate": 50.0,
+  "duration_seconds": 132.3,
+  "verticals": {
+    "ecommerce": {
+      "vertical": "Acme E-Commerce Platform",
+      "cloud": "AWS",
+      "compliance": [
+        "PCI-DSS-v4.0",
+        "SOC2-Type-II",
+        "GDPR"
+      ],
+      "discover": {
+        "ingested": {
+          "sbom": 10,
+          "sarif": 4,
+          "cves": 3,
+          "cnapp": 3,
+          "context": true
+        },
+        "scanner_findings": {
+          "sast": 3,
+          "iac": 4,
+          "secrets": 3
+        }
+      },
+      "validate": {
+        "brain": {
+          "steps": 12,
+          "findings_in": 10,
+          "clusters": 4,
+          "noise_reduction": 60.0,
+          "graph_nodes": 0,
+          "avg_risk": 0.3
+        },
+        "mpte": {
+          "verify": {
+            "cve": "CVE-2024-22259",
+            "status": "pending"
+          },
+          "comprehensive": true
+        }
+      },
+      "remediate": {
+        "fixes": [
+          {
+            "fix_id": "fix-d87cd0a4914f0588",
+            "confidence": 0.8900067878377892,
+            "finding": "CWE-89",
+            "validated": true
+          }
+        ],
+        "bulk_fixes": 4
+      },
+      "comply": {
+        "evidence": {
+          "bundle_id": "EVB-2026-CC57DB",
+          "hash": "sha256:8469860518b89669689d2159c0b4bc7e8b15a1a08d9444bcf8d9af3f3b30d0ea",
+          "signed": true,
+          "algorithm": "RSA-SHA256 (PKCS1v15)",
+          "score": 0.0,
+          "compliance_pct": 0.0,
+          "brain_score": 0.8636,
+          "brain_status": "qualified"
+        }
+      },
+      "measure": {
+        "graph": {
+          "nodes": 1201,
+          "edges": 1401
+        },
+        "dashboard": true
+      },
+      "elapsed_seconds": 65.3
+    },
+    "healthcare": {
+      "vertical": "MedSecure Healthcare SaaS",
+      "cloud": "Azure",
+      "compliance": [
+        "HIPAA-BAA",
+        "SOC2-Type-II",
+        "HITRUST-CSF",
+        "HL7-FHIR-R4"
+      ],
+      "discover": {
+        "ingested": {
+          "sbom": 8,
+          "sarif": 4,
+          "cves": 3,
+          "cnapp": 3,
+          "context": true
+        },
+        "scanner_findings": {
+          "sast": 5,
+          "iac": 0,
+          "secrets": 2
+        }
+      },
+      "validate": {
+        "brain": {
+          "steps": 12,
+          "findings_in": 10,
+          "clusters": 4,
+          "noise_reduction": 60.0,
+          "graph_nodes": 0,
+          "avg_risk": 0.3
+        },
+        "mpte": {
+          "verify": {
+            "cve": "CVE-2024-21319",
+            "status": "pending"
+          },
+          "comprehensive": true
+        }
+      },
+      "remediate": {
+        "fixes": [
+          {
+            "fix_id": "fix-e6842e6fb9ba1731",
+            "confidence": 0.890006787837789,
+            "finding": "CWE-311",
+            "validated": true
+          }
+        ],
+        "bulk_fixes": 4
+      },
+      "comply": {
+        "evidence": {
+          "bundle_id": "EVB-2026-7CD1F6",
+          "hash": "sha256:c76ad6047e77dd275921fd1d3dc74d71f28182c0760504dc91b58ddc59c96883",
+          "signed": true,
+          "algorithm": "RSA-SHA256 (PKCS1v15)",
+          "score": 0.95,
+          "compliance_pct": 95.0,
+          "brain_score": 0.8636,
+          "brain_status": "qualified"
+        }
+      },
+      "measure": {
+        "graph": {
+          "nodes": 1217,
+          "edges": 1408
+        },
+        "dashboard": true
+      },
+      "elapsed_seconds": 66.9
+    },
+    "finserv": {
+      "vertical": "SecureTrade Financial Platform",
+      "cloud": "Multi-Cloud (GCP+AWS)",
+      "compliance": [
+        "PCI-DSS-v4.0",
+        "SOX",
+        "GLBA",
+        "FINRA"
+      ],
+      "discover": {
+        "ingested": {
+          "sbom": 8,
+          "sarif": 4
+        },
+        "scanner_findings": {
+          "sast": 3,
+          "iac": 0,
+          "secrets": 2
+        }
+      },
+      "validate": {
+        "brain": {},
+        "mpte": {}
+      },
+      "remediate": {
+        "fixes": []
+      },
+      "comply": {
+        "evidence": {}
+      },
+      "measure": {},
+      "elapsed_seconds": 0.1
+    },
+    "iot_ot": {
+      "vertical": "IndustrialSecure IoT/OT Platform",
+      "cloud": "Hybrid (On-Prem + AWS)",
+      "compliance": [
+        "IEC-62443",
+        "NIST-CSF-2.0",
+        "CIS-Controls-v8",
+        "NERC-CIP"
+      ],
+      "discover": {
+        "ingested": {},
+        "scanner_findings": {}
+      },
+      "validate": {
+        "brain": {},
+        "mpte": {}
+      },
+      "remediate": {
+        "fixes": []
+      },
+      "comply": {
+        "evidence": {}
+      },
+      "measure": {},
+      "elapsed_seconds": 0.0
+    },
+    "govcloud": {
+      "vertical": "FedSecure Government Platform",
+      "cloud": "GovCloud (Air-Gapped)",
+      "compliance": [
+        "FedRAMP-High",
+        "NIST-800-53-Rev5",
+        "FIPS-140-3",
+        "IL5-DoD",
+        "CMMC-L3"
+      ],
+      "discover": {
+        "ingested": {},
+        "scanner_findings": {}
+      },
+      "validate": {
+        "brain": {},
+        "mpte": {}
+      },
+      "remediate": {
+        "fixes": []
+      },
+      "comply": {
+        "evidence": {}
+      },
+      "measure": {},
+      "elapsed_seconds": 0.0
+    }
+  }
+}

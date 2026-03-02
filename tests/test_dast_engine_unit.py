@@ -5,8 +5,7 @@ and scan orchestration. Uses httpx mocking for async HTTP tests.
 Covers V7 (scanner engine) pillar.
 """
 
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 

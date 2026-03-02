@@ -26,9 +26,9 @@ After fixing, run `python scripts/enterprise_e2e_test.py` — must get 100% pass
 - Root: . (repository root)
 - FastAPI app: suite-api/apps/api/app.py
 - Core engine: suite-core/core/ (cli.py, micro_pentest.py, real_scanner.py, cve_tester.py, mpte_advanced.py)
-- **Scanner engines**: suite-core/core/sast_engine.py (465 LOC), dast_engine.py (533), secrets_scanner.py (775), container_scanner.py (410), cspm_analyzer.py (586)
-- **AutoFix engine**: suite-core/core/autofix_engine.py (1,260 LOC — 10 fix types)
-- **Brain Pipeline**: suite-core/core/brain_pipeline.py (864 LOC — 12-step CTEM)
+- **Scanner engines**: suite-core/core/sast_engine.py (465 LOC), dast_engine.py (533), secrets_scanner.py (775), container_scanner.py (410), cspm_engine.py (586)
+- **AutoFix engine**: suite-core/core/autofix_engine.py (~1,428 LOC — 10 fix types)
+- **Brain Pipeline**: suite-core/core/brain_pipeline.py (1,533 LOC — 12-step CTEM)
 - Attack API: suite-attack/api/ (micro_pentest_router.py, mpte_router.py, pentagi_router.py, sast_router.py, dast_router.py, secrets_router.py, container_router.py, cspm_router.py, api_fuzzer_router.py, malware_router.py)
 - Database: suite-core/core/mpte_db.py (SQLite)
 - Evidence/Risk: suite-evidence-risk/
@@ -44,9 +44,9 @@ ALdeci is a **CTEM+ platform** with **8 built-in fallback scanners** that work a
 - `suite-core/core/dast_engine.py` (533 LOC) — DAST dynamic testing
 - `suite-core/core/secrets_scanner.py` (775 LOC) — Secrets detection
 - `suite-core/core/container_scanner.py` (410 LOC) — Container scanning
-- `suite-core/core/cspm_analyzer.py` (586 LOC) — CSPM/IaC analysis
-- `suite-core/core/autofix_engine.py` (1,260 LOC) — AI-powered AutoFix (10 fix types)
-- `suite-core/core/brain_pipeline.py` (864 LOC) — 12-step CTEM pipeline
+- `suite-core/core/cspm_engine.py` (586 LOC) — CSPM/IaC analysis
+- `suite-core/core/autofix_engine.py` (~1,428 LOC) — AI-powered AutoFix (10 fix types)
+- `suite-core/core/brain_pipeline.py` (1,533 LOC) — 12-step CTEM pipeline
 
 **Hardening Priority for Scanners**:
 1. Input validation on all scanner endpoints (avoid RCE via malicious scan targets)
@@ -63,7 +63,7 @@ ALdeci is a **CTEM+ platform** with **8 built-in fallback scanners** that work a
 ### Your Mission: Brain Pipeline Edge Cases + Async Graph Step
 **Key Metric**: Pipeline handles 1000+ findings without blocking
 
-**Current state**: Brain pipeline (`brain_pipeline.py`, 925 LOC) runs synchronously. The graph step is O(n²). LLM calls block the event loop. This limits scalability past ~100 findings.
+**Current state**: Brain pipeline (`brain_pipeline.py`, 1,533 LOC) runs synchronously. The graph step is O(n²). LLM calls block the event loop. This limits scalability past ~100 findings.
 
 **Tasks**:
 1. Make the graph build step async (currently blocks on large finding sets)
@@ -74,8 +74,8 @@ ALdeci is a **CTEM+ platform** with **8 built-in fallback scanners** that work a
 **MOAT 1 files you protect** (3,467 LOC — CTEM Decision Loop):
 | File | LOC | Status |
 |------|-----|--------|
-| `brain_pipeline.py` | 925 | All 12 steps real, production-ready |
-| `autofix_engine.py` | 1,259 | LLM-powered (NOT AST-based), requires LLM provider |
+| `brain_pipeline.py` | 1,533 | All 12 steps real, production-ready |
+| `autofix_engine.py` | ~1,428 | LLM-powered (NOT AST-based), requires LLM provider |
 | `fail_engine.py` | 713 | Deterministic scoring, fully standalone |
 | `crypto.py` | 570 | RSA-SHA256, real cryptographic ops |
 
@@ -98,6 +98,9 @@ Before ANY work, read these files in order:
 2. `docs/CEO_VISION.md` — CEO's north-star vision (10 pillars V1-V10)
 3. `.claude/team-state/sprint-board.json` — Current sprint priorities
 4. `.claude/team-state/briefing-{YYYY-MM-DD}.md` — Today's context briefing (if exists)
+5. `.claude/team-state/failure-ledger.json` — Known failure patterns (avoid repeating them)
+6. `.claude/team-state/persona-api-alerts.md` — Persona API failures that may need YOUR fix (if file exists)
+7. `.claude/team-state/failure-alerts.md` — Cross-team failure broadcasts (if file exists)
 
 After ALL work, append to `context_log.md`:
 ```

@@ -11,10 +11,7 @@ Covers:
 
 from __future__ import annotations
 
-import asyncio
-import hashlib
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -29,8 +26,6 @@ from core.autofix_engine import (
     AutoFixResult,
     AutoFixEngine,
     _cwe_to_category,
-    _CWE_CATEGORY_MAP,
-    _FIXTYPE_CATEGORY_MAP,
 )
 
 

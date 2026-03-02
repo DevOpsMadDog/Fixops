@@ -550,7 +550,7 @@ if importlib.util.find_spec("opentelemetry.instrumentation.fastapi"):
 else:  # pragma: no cover - fallback when instrumentation is unavailable
     from telemetry.fastapi_noop import FastAPIInstrumentor  # type: ignore[assignment]
 
-from .middleware import CorrelationIdMiddleware, RequestLoggingMiddleware
+from .middleware import CorrelationIdMiddleware, RequestLoggingMiddleware, SecurityHeadersMiddleware
 
 # ML Learning Middleware — captures all API traffic for anomaly detection & threat scoring
 try:
@@ -675,6 +675,10 @@ def create_app() -> FastAPI:
 
     app.add_middleware(CorrelationIdMiddleware)
 
+    # Security headers middleware — OWASP recommended response headers
+    # SOC2 CC6.1, PCI-DSS 6.5.9, OWASP A05:2021
+    app.add_middleware(SecurityHeadersMiddleware)
+
     # Rate-limit middleware — token bucket per client IP
     # Disabled when FIXOPS_DISABLE_RATE_LIMIT=1 (e.g. in CI/test environments)
     if os.getenv("FIXOPS_DISABLE_RATE_LIMIT") != "1":
@@ -726,6 +730,12 @@ def create_app() -> FastAPI:
     origins_env = os.getenv("FIXOPS_ALLOWED_ORIGINS", "")
     origins = [origin.strip() for origin in origins_env.split(",") if origin.strip()]
     if not origins:
+        env_name = os.getenv("ENVIRONMENT", "development")
+        if env_name.lower() == "production":
+            raise RuntimeError(
+                "FIXOPS_ALLOWED_ORIGINS must be set in production. "
+                "Refusing to start with default localhost origins."
+            )
         origins = [
             "http://localhost:3000",
             "http://localhost:3001",  # Vite dev server (ui/aldeci) - alternate port

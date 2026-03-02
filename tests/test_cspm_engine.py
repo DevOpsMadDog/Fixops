@@ -924,7 +924,7 @@ resource "aws_cloudtrail" "t" {}
 '''
         result = engine.scan_terraform(tf)
         # The regex WILL match the comment — document this known behaviour
-        storage_findings = [f for f in result.findings if f.category == CspmCategory.STORAGE]
+        [f for f in result.findings if f.category == CspmCategory.STORAGE]
         # Just verify we get a result without error — regex matching comments is known
         assert isinstance(result, CspmScanResult)
 

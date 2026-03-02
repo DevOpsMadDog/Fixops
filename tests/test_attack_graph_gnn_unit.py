@@ -4,7 +4,6 @@ Tests the SecurityGraph, GraphNeuralPredictor, and attack path analysis
 that powers ALdeci's blast radius estimation and critical path identification.
 """
 
-import pytest
 import numpy as np
 from core.attack_graph_gnn import (
     AttackPath,

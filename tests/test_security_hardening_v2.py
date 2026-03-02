@@ -14,7 +14,7 @@ Pillar: V3 (Decision Intelligence), V5 (MPTE Verification)
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 
 # ---------------------------------------------------------------------------
@@ -82,7 +82,7 @@ class TestScannerParsersXXE:
   <!ENTITY lol3 "&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;">
 ]>
 <root>&lol3;</root>'''
-        result = _parse_xml_safe(bomb)
+        _parse_xml_safe(bomb)
         # Should return None or have stripped the entities
         # Either outcome is acceptable — the key is no crash or memory explosion
 

@@ -63,6 +63,10 @@ def _is_safe_url(url: str) -> bool:
         return False
 
 
+_MAX_HEADER_VALUE_LEN = 8192  # Per-header/cookie value size limit
+_MAX_COOKIE_COUNT = 50  # Max number of cookies
+
+
 class DastScanRequest(BaseModel):
     target_url: str = Field(
         ...,
@@ -89,6 +93,36 @@ class DastScanRequest(BaseModel):
             raise ValueError(
                 "target_url points to an internal/restricted network address"
             )
+        return v
+
+    @field_validator("headers")
+    @classmethod
+    def validate_headers(cls, v: Optional[Dict[str, str]]) -> Optional[Dict[str, str]]:
+        if v is None:
+            return v
+        for key, val in v.items():
+            if len(key) > 256:
+                raise ValueError(f"Header name too long: {len(key)} chars (max 256)")
+            if len(val) > _MAX_HEADER_VALUE_LEN:
+                raise ValueError(
+                    f"Header '{key[:64]}' value too long: {len(val)} chars (max {_MAX_HEADER_VALUE_LEN})"
+                )
+        return v
+
+    @field_validator("cookies")
+    @classmethod
+    def validate_cookies(cls, v: Optional[Dict[str, str]]) -> Optional[Dict[str, str]]:
+        if v is None:
+            return v
+        if len(v) > _MAX_COOKIE_COUNT:
+            raise ValueError(f"Too many cookies: {len(v)} (max {_MAX_COOKIE_COUNT})")
+        for key, val in v.items():
+            if len(key) > 256:
+                raise ValueError(f"Cookie name too long: {len(key)} chars (max 256)")
+            if len(val) > _MAX_HEADER_VALUE_LEN:
+                raise ValueError(
+                    f"Cookie '{key[:64]}' value too long: {len(val)} chars (max {_MAX_HEADER_VALUE_LEN})"
+                )
         return v
 
 

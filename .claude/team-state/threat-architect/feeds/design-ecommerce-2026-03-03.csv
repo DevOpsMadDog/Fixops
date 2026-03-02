@@ -1,0 +1,32 @@
+component_id,component_name,component_type,trust_boundary,connects_to,protocol,data_classification
+C001,CloudFront CDN,cdn,internet,C002,HTTPS,public
+C002,AWS WAF,firewall,dmz,C003,HTTPS,public
+C003,Application Load Balancer,load_balancer,dmz,C004;C005;C006,HTTPS,internal
+C004,API Gateway Service,microservice,app_tier,C007;C008;C009;C010;C011,HTTP/1.1,internal
+C005,React SPA,frontend,internet,C003,HTTPS,public
+C006,Next.js SSR,frontend,dmz,C004,HTTP/1.1,internal
+C007,Auth Service (Spring Security),microservice,app_tier,C013;C015,HTTP/1.1,PII
+C008,User Service,microservice,app_tier,C013;C015,HTTP/1.1,PII
+C009,Product Catalog Service,microservice,app_tier,C013;C016,HTTP/1.1,public
+C010,Order Service,microservice,app_tier,C013;C015;C012;C017,HTTP/1.1,PCI
+C011,Search Service (Node.js),microservice,app_tier,C016;C015,HTTP/1.1,public
+C012,Payment Service,microservice,pci_zone,C013;C018;C019,HTTP/1.1,PCI
+C013,RDS PostgreSQL Primary,database,data_tier,C014,PostgreSQL,PCI
+C014,RDS PostgreSQL Read Replica,database,data_tier,,PostgreSQL,PCI
+C015,ElastiCache Redis Cluster,cache,data_tier,,Redis,session
+C016,OpenSearch Domain,search_engine,data_tier,,HTTPS,public
+C017,SQS Order Queue,message_queue,app_tier,C020,HTTPS,PCI
+C018,Stripe Payment Gateway,external_service,external,,HTTPS,PCI
+C019,AWS Secrets Manager,vault,management,C012;C007,HTTPS,secret
+C020,Lambda Order Processor,serverless,app_tier,C013;C021,AWS-SDK,PCI
+C021,SNS Notification Topic,message_queue,app_tier,C022,HTTPS,PII
+C022,SES Email Service,external_service,external,,HTTPS,PII
+C023,S3 Media Bucket,storage,data_tier,,HTTPS,public
+C024,S3 Invoice Bucket,storage,data_tier,,HTTPS,PII
+C025,CloudWatch Logs,monitoring,management,,HTTPS,internal
+C026,CloudTrail,audit,management,,HTTPS,internal
+C027,Lambda Image Resizer,serverless,app_tier,C023,AWS-SDK,public
+C028,Cognito User Pool,identity_provider,management,C007,HTTPS,PII
+C029,FastAPI Analytics Service (Python),microservice,app_tier,C014;C025,HTTP/1.1,internal
+C030,Celery Worker,worker,app_tier,C015;C013,AMQP,internal
+C031,Nginx Sidecar Proxy,reverse_proxy,app_tier,C004,HTTP/1.1,internal

@@ -89,6 +89,12 @@ class WeightUpdateRequest(BaseModel):
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+@router.get("/health")
+async def self_learning_health() -> Dict[str, Any]:
+    """Health check alias for self-learning engine (mirrors /status)."""
+    return await self_learning_status()
+
+
 @router.get("/status")
 async def self_learning_status() -> Dict[str, Any]:
     """Get self-learning engine status."""

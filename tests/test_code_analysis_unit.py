@@ -8,7 +8,6 @@ Created: 2026-03-01 by agent-doctor (health run v10).
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from risk.reachability.code_analysis import (
     AnalysisResult,

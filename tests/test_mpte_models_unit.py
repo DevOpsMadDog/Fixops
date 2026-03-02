@@ -4,7 +4,6 @@ Tests PenTestRequest, PenTestResult, PenTestConfig and their associated enums
 which form the data foundation of the MPTE micro-pentest verification system.
 """
 
-import pytest
 from datetime import datetime
 
 

@@ -14,10 +14,8 @@ All LLM providers, aiohttp sessions, and MPTEDB are mocked. No real API calls.
 import asyncio
 import json
 import os
-from dataclasses import fields as dc_fields
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
+from typing import Any, Dict, Optional
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -701,7 +699,7 @@ class TestOrchestratorAsync:
         resp = _make_llm_response(metadata={"mode": "deterministic", "reason": "no_key"})
         orch = _make_orchestrator(llm_response=resp)
         result_str = await orch._call_llm("openai", "test")
-        result = json.loads(result_str)
+        json.loads(result_str)
         assert orch._call_count["fallback"] == 1
 
     @pytest.mark.asyncio

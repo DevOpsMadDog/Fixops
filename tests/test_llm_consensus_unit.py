@@ -21,7 +21,6 @@ Covers:
 
 from __future__ import annotations
 
-import pytest
 
 from core.llm_consensus import (
     ConsensusEngine,
@@ -30,7 +29,6 @@ from core.llm_consensus import (
 )
 from core.llm_providers import (
     BaseLLMProvider,
-    DeterministicLLMProvider,
     LLMProviderManager,
     LLMResponse,
 )

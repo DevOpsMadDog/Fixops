@@ -20,7 +20,6 @@ from __future__ import annotations
 import json
 import os
 import uuid
-from typing import Any, Dict, List, Optional
 
 import pytest
 
@@ -1698,7 +1697,7 @@ class TestCrossPersonaIntegration:
             },
         )
         assert gen.status_code == 200
-        bundle_id = gen.json()["id"]
+        gen.json()["id"]
 
         # Step 3: Verify (demo bundle — signature check)
         ver = api_client.post("/api/v1/evidence/bundles/EVB-2026-001/verify")

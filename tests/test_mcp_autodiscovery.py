@@ -13,10 +13,9 @@ from __future__ import annotations
 
 import pytest
 from fastapi import APIRouter, FastAPI, Query
-from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 # Import the module under test
 from apps.api.mcp_router import (
@@ -24,8 +23,6 @@ from apps.api.mcp_router import (
     MCPToolInputSchema,
     MCPCatalogStats,
     MCPExecuteRequest,
-    MCPExecuteResponse,
-    MCPHealthResponse,
     _sanitize_tool_name,
     _extract_description,
     _classify_category,

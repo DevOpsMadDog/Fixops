@@ -15,8 +15,6 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict
-from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -30,14 +28,10 @@ from api.vuln_discovery_router import (
     AttackVector,
     ContributionProgram,
     ContributeRequest,
-    ContributeResponse,
     DiscoveredVulnRequest,
-    DiscoveredVulnResponse,
     DiscoverySource,
     ImpactType,
-    InternalVulnFilter,
     RetrainRequest,
-    RetrainResponse,
     VulnSeverity,
     VulnStatus,
     VulnerabilityEvidence,

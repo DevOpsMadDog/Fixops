@@ -157,19 +157,32 @@ jobs:
           echo "Compose validation: $PASS passed, $FAIL failed"
           [ $FAIL -eq 0 ] || exit 1
 
-      - name: Verify Dockerfile syntax
+      - name: Verify Dockerfile syntax and best practices
         run: |
-          for f in docker/Dockerfile docker/Dockerfile.aldeci-ui docker/Dockerfile.enterprise docker/Dockerfile.demo docker/Dockerfile.sidecar docker/Dockerfile.feeds-sidecar; do
+          PASS=0
+          WARN=0
+          for f in docker/Dockerfile docker/Dockerfile.aldeci-ui docker/Dockerfile.enterprise docker/Dockerfile.demo docker/Dockerfile.demo-sidecar docker/Dockerfile.sidecar docker/Dockerfile.feeds-sidecar docker/Dockerfile.interactive; do
             if [ -f "$f" ]; then
-              echo "✅ $f ($(wc -l < "$f") lines)"
+              ISSUES=""
+              if ! grep -q "HEALTHCHECK" "$f"; then ISSUES="${ISSUES} no-healthcheck"; fi
+              if ! grep -q "^USER" "$f"; then ISSUES="${ISSUES} no-USER"; fi
+              if [ -z "$ISSUES" ]; then
+                echo "✅ $f ($(wc -l < "$f") lines)"
+                PASS=$((PASS + 1))
+              else
+                echo "⚠️  $f ($(wc -l < "$f") lines) —${ISSUES}"
+                WARN=$((WARN + 1))
+              fi
             fi
           done
+          echo ""
+          echo "Dockerfiles: $PASS fully hardened, $WARN with warnings"
 
       - name: Validate shell scripts (syntax check)
         run: |
           PASS=0
           FAIL=0
-          for f in scripts/demo-healthcheck.sh scripts/demo-start.sh scripts/air-gapped-test.sh scripts/docker-entrypoint.sh; do
+          for f in scripts/demo-healthcheck.sh scripts/demo-start.sh scripts/air-gapped-test.sh scripts/docker-entrypoint.sh scripts/compose-validate.sh scripts/local-dev-setup.sh; do
             if [ -f "$f" ]; then
               if bash -n "$f" 2>/dev/null; then
                 echo "✅ $f (valid bash)"
@@ -247,8 +260,40 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build backend image
-        run: docker build -f docker/Dockerfile -t fixops:ci-test .
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-docker-${{ hashFiles('docker/Dockerfile', 'requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-docker-
+
+      - name: Build backend image (with layer cache)
+        run: |
+          docker buildx build \
+            --file docker/Dockerfile \
+            --tag fixops:ci-test \
+            --cache-from type=local,src=/tmp/.buildx-cache \
+            --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
+            --load \
+            .
+          # Rotate cache to avoid unbounded growth
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Check Docker image size (max 2.5GB)
+        run: |
+          SIZE_MB=$(docker image inspect fixops:ci-test --format '{{.Size}}' | awk '{printf "%.0f", $1/1048576}')
+          echo "Image size: ${SIZE_MB}MB"
+          if [ "$SIZE_MB" -gt 2500 ]; then
+            echo "❌ FAIL: Image size ${SIZE_MB}MB exceeds 2.5GB limit"
+            echo "  Investigate: docker history fixops:ci-test --human"
+            exit 1
+          elif [ "$SIZE_MB" -gt 2000 ]; then
+            echo "⚠️  WARNING: Image size ${SIZE_MB}MB approaching 2.5GB limit"
+          else
+            echo "✅ Image size ${SIZE_MB}MB within limits"
+          fi
 
       - name: Start API container
         run: |
@@ -263,12 +308,17 @@ jobs:
             -e FIXOPS_EVIDENCE_KEY=Zz6A0n4P3skS8F6edSxE2xe50Tzw9uQWGWp9JYG1ChE= \
             fixops:ci-test
 
-      - name: Wait for API health
+      - name: Wait for API health (max 45s, alert if >30s)
         run: |
+          START_TS=$(date +%s)
           for i in $(seq 1 45); do
             if curl -sf http://localhost:8000/health; then
+              ELAPSED=$(($(date +%s) - START_TS))
               echo ""
-              echo "✅ API healthy after ${i}s"
+              echo "✅ API healthy after ${ELAPSED}s"
+              if [ "$ELAPSED" -gt 30 ]; then
+                echo "⚠️  WARNING: Startup took ${ELAPSED}s (target: <30s for demo)"
+              fi
               break
             fi
             if [ $i -eq 45 ]; then

@@ -1,0 +1,24 @@
+{
+  "task_id": "swarm-autofix-deep",
+  "worker_id": "junior-sonnet46",
+  "status": "completed",
+  "files_modified": ["tests/test_autofix_engine_deep.py"],
+  "files_created": [],
+  "summary": "Appended 5 new test classes (28 tests) to test_autofix_engine_deep.py covering the 5 previously uncovered line ranges in autofix_engine.py. Coverage improved from 85.10% to 89.55%, all 120 tests pass.",
+  "issues": [],
+  "needs_senior_review": false,
+  "confidence": 0.97,
+  "duration_turns": 8,
+  "coverage_before": "85.10%",
+  "coverage_after": "89.55%",
+  "tests_added": 28,
+  "tests_total": 120,
+  "all_tests_pass": true,
+  "new_test_classes": [
+    "TestScoreBasedConfidenceClassification (lines 376-381): 10 tests",
+    "TestConfigFixJsonErrors (lines 755-760): 3 tests",
+    "TestIacFixJsonErrors (lines 811-816): 3 tests",
+    "TestContainerFixJsonErrors (lines 868-873): 3 tests",
+    "TestPathTraversalValidation (lines 978-986): 9 tests"
+  ]
+}

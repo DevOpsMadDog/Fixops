@@ -1,0 +1,673 @@
+{
+  "architecture": {
+    "name": "SecureTrade Financial Platform",
+    "version": "3.0.0",
+    "date": "2026-03-02",
+    "cloud": "Multi-Cloud (GCP+AWS)",
+    "regions": {
+      "primary": "us-central1 (GCP)",
+      "dr": "us-east-1 (AWS)",
+      "edge": "Global (Cloudflare)"
+    },
+    "compliance": ["PCI-DSS-v4.0", "SOX", "GLBA", "FINRA", "SOC2-Type-II"],
+    "description": "Production-grade multi-cloud financial services platform supporting real-time trading, risk management, regulatory reporting, and settlement operations across GCP (primary) and AWS (DR/failover), with Cloudflare edge compute and strict PCI-DSS/SOX/FINRA compliance boundaries"
+  },
+  "components": [
+    {
+      "id": "C001",
+      "name": "Next.js 14 SPA (Trading Dashboard)",
+      "type": "frontend",
+      "technology": "Next.js 14.2, React 18.3, TypeScript 5.4, TailwindCSS 3.4",
+      "tier": "presentation",
+      "exposed": true,
+      "notes": "Real-time trading UI with WebSocket price feeds, order entry forms, portfolio dashboard, and compliance disclosures"
+    },
+    {
+      "id": "C002",
+      "name": "Cloudflare Workers (Edge Compute)",
+      "type": "edge_compute",
+      "technology": "Cloudflare Workers (V8 isolates), Cloudflare Pages, Edge Cache",
+      "tier": "edge",
+      "exposed": true,
+      "notes": "JWT validation at edge, geo-based routing, regulatory jurisdiction checks, DDoS mitigation, rate limiting per user/IP"
+    },
+    {
+      "id": "C003",
+      "name": "Cloudflare WAF + DDoS Protection",
+      "type": "waf",
+      "technology": "Cloudflare WAF (OWASP CRS 4.0), Magic Transit, Bot Management Enterprise",
+      "tier": "edge",
+      "exposed": true,
+      "notes": "Layer 3/4/7 DDoS protection, OWASP top-10 rule sets, financial sector threat intelligence feeds, IP reputation blocking"
+    },
+    {
+      "id": "C004",
+      "name": "Cloudflare DNS + Load Balancing",
+      "type": "dns",
+      "technology": "Cloudflare DNS (DNSSEC), Cloudflare Load Balancing with health checks",
+      "tier": "edge",
+      "exposed": true,
+      "notes": "Anycast DNS with DNSSEC, active-active GCP/AWS failover, sub-second health check failover for trading continuity"
+    },
+    {
+      "id": "C005",
+      "name": "GCP External Application Load Balancer",
+      "type": "load_balancer",
+      "technology": "GCP Cloud Load Balancing (HTTP/2, gRPC), SSL Policies (TLS 1.3)",
+      "tier": "network",
+      "exposed": false,
+      "notes": "Global anycast, SSL termination with FIPS 140-2 compliant ciphers, custom SSL policy enforcing TLS 1.2+"
+    },
+    {
+      "id": "C006",
+      "name": "GCP API Gateway (Apigee X)",
+      "type": "api_gateway",
+      "technology": "Google Apigee X, OpenAPI 3.1, OAuth 2.0 / JWT RS256",
+      "tier": "network",
+      "exposed": false,
+      "notes": "API versioning, JWT validation, request/response transformation, developer portal, API analytics, quota management"
+    },
+    {
+      "id": "C007",
+      "name": "GKE Autopilot Cluster (Primary)",
+      "type": "container_platform",
+      "technology": "GKE Autopilot 1.29, Kubernetes 1.29, Workload Identity, Binary Authorization",
+      "tier": "infrastructure",
+      "exposed": false,
+      "notes": "Primary compute plane; workload identity for pod-level GCP IAM, binary authorization policy enforced, node auto-provisioning, Shielded GKE nodes"
+    },
+    {
+      "id": "C008",
+      "name": "EKS Cluster (DR/Failover)",
+      "type": "container_platform",
+      "technology": "AWS EKS 1.29, Kubernetes 1.29, IRSA, Karpenter 0.35",
+      "tier": "infrastructure",
+      "exposed": false,
+      "notes": "Passive DR cluster in AWS us-east-1; Karpenter for node provisioning; IRSA for pod-level AWS IAM; warm standby for <5min RTO"
+    },
+    {
+      "id": "C009",
+      "name": "Istio Service Mesh",
+      "type": "service_mesh",
+      "technology": "Istio 1.21 (mTLS STRICT mode), Envoy 1.29, SPIFFE/SPIRE SVIDs",
+      "tier": "infrastructure",
+      "exposed": false,
+      "notes": "mTLS enforced for all east-west traffic, SPIFFE identity for services, traffic policy enforcement, circuit breaking, retries with jitter"
+    },
+    {
+      "id": "C010",
+      "name": "Trading Engine",
+      "type": "microservice",
+      "technology": "Java 21 (Virtual Threads), Spring Boot 3.2.4, Disruptor 4.0 (LMAX)",
+      "tier": "application",
+      "exposed": false,
+      "pci_scope": true,
+      "sox_scope": true,
+      "data_classification": "Financial-PII",
+      "notes": "Core order matching engine; LMAX Disruptor for sub-microsecond order processing; FIX 4.4/5.0 protocol support; SOX audit trail for all trades"
+    },
+    {
+      "id": "C011",
+      "name": "Risk Calculation Service",
+      "type": "microservice",
+      "technology": "Python 3.12, NumPy 1.26, Pandas 2.2, SciPy 1.12, FastAPI 0.110",
+      "tier": "application",
+      "exposed": false,
+      "sox_scope": true,
+      "data_classification": "Financial-PII",
+      "notes": "Real-time VaR (Value at Risk), Greeks calculation, margin requirement computation, portfolio stress testing; GPU-accelerated Monte Carlo"
+    },
+    {
+      "id": "C012",
+      "name": "Market Data Service",
+      "type": "microservice",
+      "technology": "Go 1.22, gRPC 1.62, WebSocket, Protocol Buffers 3",
+      "tier": "application",
+      "exposed": false,
+      "notes": "Real-time market data distribution (L1/L2/L3 order book), Bloomberg/Reuters feed normalization, sub-millisecond fan-out to trading engine"
+    },
+    {
+      "id": "C013",
+      "name": "Account Service",
+      "type": "microservice",
+      "technology": "Java 21, Spring Boot 3.2.4, Spring Security 6.2",
+      "tier": "application",
+      "exposed": false,
+      "data_classification": "Financial-PII",
+      "notes": "Account lifecycle management, balance tracking, position management, GLBA-regulated customer financial data; encrypted PII at field level"
+    },
+    {
+      "id": "C014",
+      "name": "Transaction Service",
+      "type": "microservice",
+      "technology": "Java 21, Spring Boot 3.2.4, JTA (distributed transactions)",
+      "tier": "application",
+      "exposed": false,
+      "pci_scope": true,
+      "sox_scope": true,
+      "data_classification": "PCI-PAN",
+      "notes": "Payment card processing, ACH/wire transfers, PCI CDE boundary service; tokenizes PAN data via Cloud KMS; all transactions ACID-compliant"
+    },
+    {
+      "id": "C015",
+      "name": "KYC/AML Service",
+      "type": "microservice",
+      "technology": "Python 3.12, FastAPI 0.110, scikit-learn 1.4, watchdog libraries",
+      "tier": "application",
+      "exposed": false,
+      "sox_scope": true,
+      "data_classification": "Financial-PII",
+      "notes": "FINRA-regulated KYC onboarding, OFAC/FinCEN sanctions screening, AML transaction monitoring, SAR filing workflow, 5-year retention required"
+    },
+    {
+      "id": "C016",
+      "name": "Settlement Service",
+      "type": "microservice",
+      "technology": "Java 21, Spring Boot 3.2.4, ISO 20022 messaging",
+      "tier": "application",
+      "exposed": false,
+      "pci_scope": true,
+      "sox_scope": true,
+      "data_classification": "Financial-PII",
+      "notes": "T+1 settlement processing (SEC Rule compliance), DTCC connectivity, ISO 20022 pacs.008/pacs.009 message generation, DvP settlement"
+    },
+    {
+      "id": "C017",
+      "name": "Audit Trail Service",
+      "type": "microservice",
+      "technology": "Go 1.22, gRPC 1.62, append-only event log, WORM storage",
+      "tier": "application",
+      "exposed": false,
+      "sox_scope": true,
+      "data_classification": "Financial-PII",
+      "notes": "SOX-regulated immutable audit trail for all financial transactions; cryptographic hash chaining; 7-year retention; tamper-evident log entries"
+    },
+    {
+      "id": "C018",
+      "name": "Fraud Detection ML",
+      "type": "microservice",
+      "technology": "Python 3.12, TensorFlow 2.16, Vertex AI, Feature Store",
+      "tier": "application",
+      "exposed": false,
+      "pci_scope": true,
+      "data_classification": "PCI-PAN",
+      "notes": "Real-time transaction fraud scoring (<10ms), GNN-based account behavior analysis, anomaly detection, model versioning with A/B testing"
+    },
+    {
+      "id": "C019",
+      "name": "Auth / Identity Service",
+      "type": "microservice",
+      "technology": "Java 21, Spring Security 6.2, OAuth 2.1, PKCE, FIDO2/WebAuthn",
+      "tier": "application",
+      "exposed": false,
+      "notes": "FIDO2 passwordless auth for traders, step-up MFA for high-value transactions, OAuth 2.1 with PKCE, session management with anomaly detection"
+    },
+    {
+      "id": "C020",
+      "name": "Notification Service",
+      "type": "microservice",
+      "technology": "Python 3.12, FastAPI 0.110, Twilio SDK, SendGrid API",
+      "tier": "application",
+      "exposed": false,
+      "notes": "Trade confirmations, margin calls, regulatory alerts, OTP delivery; GLBA-compliant communication records with 3-year retention"
+    },
+    {
+      "id": "C021",
+      "name": "Reporting Service",
+      "type": "microservice",
+      "technology": "Python 3.12, FastAPI 0.110, Apache Arrow, DuckDB 0.10",
+      "tier": "application",
+      "exposed": false,
+      "sox_scope": true,
+      "data_classification": "Financial-PII",
+      "notes": "Regulatory reporting (FINRA TRACE, SEC EDGAR, MiFID II), SOX financial controls reporting, CFTC swap data reporting"
+    },
+    {
+      "id": "C022",
+      "name": "Cloud Spanner (Global Transactions)",
+      "type": "database",
+      "technology": "Google Cloud Spanner (multi-region: nam6), TrueTime, ACID",
+      "tier": "data",
+      "exposed": false,
+      "pci_scope": true,
+      "sox_scope": true,
+      "data_classification": "Financial-PII",
+      "notes": "Globally distributed, externally consistent transactions; account balances, positions, trade records; 99.999% SLA; Point-in-time recovery enabled"
+    },
+    {
+      "id": "C023",
+      "name": "AlloyDB (Analytics)",
+      "type": "database",
+      "technology": "Google AlloyDB for PostgreSQL 15 (columnar engine), pgvector 0.6",
+      "tier": "data",
+      "exposed": false,
+      "sox_scope": true,
+      "data_classification": "Financial-PII",
+      "notes": "HTAP workloads: real-time analytics on trade data, risk metrics, P&L attribution; columnar engine for OLAP queries; vector search for ML features"
+    },
+    {
+      "id": "C024",
+      "name": "BigQuery (Regulatory Reporting)",
+      "type": "data_warehouse",
+      "technology": "Google BigQuery (multi-region), BigQuery Omni, BQML",
+      "tier": "data",
+      "exposed": false,
+      "sox_scope": true,
+      "data_classification": "Financial-PII",
+      "notes": "Petabyte-scale trade history, SOX financial data warehouse, FINRA/SEC regulatory reporting datasets; column-level security, row-level access policies"
+    },
+    {
+      "id": "C025",
+      "name": "Memorystore Redis Cluster",
+      "type": "cache",
+      "technology": "Google Cloud Memorystore for Redis 7.2 (cluster mode, TLS)",
+      "tier": "data",
+      "exposed": false,
+      "notes": "Session cache, real-time risk metrics cache, order book snapshots, rate-limiter counters; 99.9% SLA; in-transit and at-rest encryption"
+    },
+    {
+      "id": "C026",
+      "name": "Cloud KMS (Key Management)",
+      "type": "key_management",
+      "technology": "Google Cloud KMS (FIPS 140-2 Level 3 HSM), EKM integration",
+      "tier": "security",
+      "exposed": false,
+      "pci_scope": true,
+      "sox_scope": true,
+      "notes": "PCI-required key hierarchy: KEK, DEK, PAN tokenization keys; HSM-backed for PCI DSS 4.0 Req 3.7; key rotation enforced every 365 days"
+    },
+    {
+      "id": "C027",
+      "name": "Secret Manager (GCP)",
+      "type": "secret_store",
+      "technology": "Google Cloud Secret Manager, CMEK, automatic replication",
+      "tier": "security",
+      "exposed": false,
+      "notes": "Database credentials, API keys, third-party service credentials; CMEK-encrypted; version management with automatic rotation triggers"
+    },
+    {
+      "id": "C028",
+      "name": "Cloud Pub/Sub (Event Streaming)",
+      "type": "message_broker",
+      "technology": "Google Cloud Pub/Sub (ordering enabled), exactly-once delivery",
+      "tier": "messaging",
+      "exposed": false,
+      "pci_scope": true,
+      "notes": "Trade event streaming, risk event propagation, settlement notifications; ordered message delivery for trade sequences; message retention 7 days"
+    },
+    {
+      "id": "C029",
+      "name": "AWS RDS Aurora (DR Replica)",
+      "type": "database",
+      "technology": "AWS Aurora PostgreSQL 16.1 (Global Database, cross-region replica)",
+      "tier": "data",
+      "exposed": false,
+      "pci_scope": true,
+      "sox_scope": true,
+      "data_classification": "Financial-PII",
+      "notes": "Warm standby DR replica of Spanner data; RPO <1s via Aurora Global Database; failover RTO <1min; encrypted with AWS KMS CMK"
+    },
+    {
+      "id": "C030",
+      "name": "AWS Secrets Manager (DR)",
+      "type": "secret_store",
+      "technology": "AWS Secrets Manager with cross-region replication",
+      "tier": "security",
+      "exposed": false,
+      "notes": "DR-site secret store; auto-replication from GCP Secret Manager via sync lambda; ensures DR site can operate independently"
+    },
+    {
+      "id": "C031",
+      "name": "VPC Service Controls",
+      "type": "network_control",
+      "technology": "GCP VPC Service Controls, Access Context Manager, Service Perimeters",
+      "tier": "security",
+      "exposed": false,
+      "pci_scope": true,
+      "notes": "Data exfiltration prevention; service perimeters around PCI CDE resources (Spanner, KMS, BigQuery); access levels enforce device trust and identity"
+    },
+    {
+      "id": "C032",
+      "name": "Cloud Armor (DDoS + WAF)",
+      "type": "waf",
+      "technology": "Google Cloud Armor Enterprise, reCAPTCHA Enterprise, Adaptive Protection",
+      "tier": "network",
+      "exposed": false,
+      "notes": "L7 WAF behind GCP LB; pre-configured OWASP rules, SQL injection/XSS protection, adaptive ML-based DDoS mitigation, threat intelligence integration"
+    },
+    {
+      "id": "C033",
+      "name": "Chronicle SIEM + Security Command Center",
+      "type": "siem",
+      "technology": "Google Chronicle (Unified SIEM/SOAR), Security Command Center Premium",
+      "tier": "observability",
+      "exposed": false,
+      "sox_scope": true,
+      "notes": "1-year log retention for SOX; UEBA for insider threat; automated SOAR playbooks for PCI alerts; Security Command Center Premium for compliance posture"
+    },
+    {
+      "id": "C034",
+      "name": "Cloud Monitoring + Trace (Observability)",
+      "type": "monitoring",
+      "technology": "Google Cloud Monitoring, Cloud Trace, Cloud Logging, Grafana 10.3",
+      "tier": "observability",
+      "exposed": false,
+      "notes": "Golden signals dashboards per service, SLO/SLA tracking, distributed tracing for latency analysis, audit log export to BigQuery"
+    },
+    {
+      "id": "C035",
+      "name": "Artifact Registry (Container Images)",
+      "type": "container_registry",
+      "technology": "Google Artifact Registry, Container Analysis (Vulnerability Scanning), Binary Authorization",
+      "tier": "infrastructure",
+      "exposed": false,
+      "notes": "OCI image storage with vulnerability scanning via Container Analysis; Binary Authorization policy: only signed images from trusted attestors deployed"
+    },
+    {
+      "id": "C036",
+      "name": "Bloomberg Terminal Integration",
+      "type": "external_service",
+      "technology": "Bloomberg BLPAPI 3.23.x, B-PIPE (server-side data), SFTP over TLS",
+      "tier": "external",
+      "exposed": false,
+      "notes": "Real-time and historical market data, reference data, pricing; dedicated leased line to Bloomberg network; API key + client certificate authentication"
+    },
+    {
+      "id": "C037",
+      "name": "SWIFT Network Gateway",
+      "type": "external_service",
+      "technology": "SWIFT Alliance Access 7.5, ISO 20022, MT/MX messages, SWIFTNet Link",
+      "tier": "external",
+      "exposed": false,
+      "pci_scope": true,
+      "sox_scope": true,
+      "data_classification": "Financial-PII",
+      "notes": "Cross-border payment messaging (MT103, MT202, MX pacs.008), SWIFT CSP compliance required; HSM-backed BIC authentication; dedicated SWIFT IP range"
+    },
+    {
+      "id": "C038",
+      "name": "DTCC Connectivity (Settlement)",
+      "type": "external_service",
+      "technology": "DTCC Middleware (CTM), SFTP, ISO 15022 messages, SFT API",
+      "tier": "external",
+      "exposed": false,
+      "sox_scope": true,
+      "data_classification": "Financial-PII",
+      "notes": "DTC/NSCC settlement instructions, trade confirmation matching via CTM (Central Trade Manager); dedicated DTCC leased line; DTCC member credentials"
+    },
+    {
+      "id": "C039",
+      "name": "FINRA TRACE Reporting Gateway",
+      "type": "external_service",
+      "technology": "FINRA Web API, TRACE (Trade Reporting and Compliance Engine), FIX 4.4",
+      "tier": "external",
+      "exposed": false,
+      "sox_scope": true,
+      "data_classification": "Financial-PII",
+      "notes": "Mandatory real-time trade reporting for fixed income; T+15min reporting window; FINRA member credentials; TLS 1.2+ required by FINRA"
+    },
+    {
+      "id": "C040",
+      "name": "HashiCorp Vault Enterprise",
+      "type": "secret_store",
+      "technology": "HashiCorp Vault Enterprise 1.16, Raft storage, GCP KMS auto-unseal",
+      "tier": "security",
+      "exposed": false,
+      "pci_scope": true,
+      "notes": "Dynamic secrets for database credentials (60-second TTL), PKI/TLS cert issuance for Istio, transit secrets engine for application-layer encryption"
+    }
+  ],
+  "connections": [
+    {"from": "C001", "to": "C004", "protocol": "HTTPS/TLS1.3", "description": "Trading Dashboard resolves via Cloudflare DNS with DNSSEC"},
+    {"from": "C001", "to": "C002", "protocol": "HTTPS/TLS1.3 + WebSocket", "description": "SPA served via Cloudflare Edge; WebSocket for live price feeds proxied through Workers"},
+    {"from": "C002", "to": "C003", "protocol": "HTTPS", "description": "Edge Workers route all API traffic through Cloudflare WAF"},
+    {"from": "C003", "to": "C005", "protocol": "HTTPS/TLS1.3", "description": "WAF forwards clean traffic to GCP External ALB"},
+    {"from": "C005", "to": "C032", "protocol": "HTTPS", "description": "GCP ALB routes through Cloud Armor for L7 WAF inspection"},
+    {"from": "C032", "to": "C006", "protocol": "HTTPS/HTTP2", "description": "Cloud Armor forwards to Apigee X API Gateway"},
+    {"from": "C006", "to": "C019", "protocol": "HTTPS/gRPC", "description": "Apigee routes /auth/* to Auth/Identity Service for token validation"},
+    {"from": "C006", "to": "C010", "protocol": "HTTPS/gRPC", "description": "Apigee routes /trading/* to Trading Engine via Istio ingress gateway"},
+    {"from": "C006", "to": "C013", "protocol": "HTTPS/gRPC", "description": "Apigee routes /accounts/* to Account Service"},
+    {"from": "C006", "to": "C014", "protocol": "HTTPS/gRPC (PCI tunnel)", "description": "Apigee routes /transactions/* to Transaction Service (PCI segment)"},
+    {"from": "C006", "to": "C011", "protocol": "HTTPS/gRPC", "description": "Apigee routes /risk/* to Risk Calculation Service"},
+    {"from": "C006", "to": "C021", "protocol": "HTTPS", "description": "Apigee routes /reports/* to Reporting Service"},
+    {"from": "C007", "to": "C009", "protocol": "Kubernetes API + Istio", "description": "GKE Autopilot runs services with Istio mTLS enforced; Binary Authorization validates image signatures"},
+    {"from": "C009", "to": "C010", "protocol": "mTLS/gRPC (Istio)", "description": "Istio service mesh enforces mTLS for all inter-service communication in GKE"},
+    {"from": "C010", "to": "C012", "protocol": "gRPC/TCP-TLS (sub-ms)", "description": "Trading Engine subscribes to Market Data Service via high-throughput gRPC streaming"},
+    {"from": "C010", "to": "C022", "protocol": "GRPC/TLS (Spanner client)", "description": "Trading Engine writes executed trades to Cloud Spanner with distributed ACID transactions"},
+    {"from": "C010", "to": "C028", "protocol": "HTTPS (Pub/Sub)", "description": "Trading Engine publishes trade events to Cloud Pub/Sub for downstream consumption"},
+    {"from": "C010", "to": "C017", "protocol": "gRPC/mTLS", "description": "Trading Engine calls Audit Trail Service synchronously for SOX-required trade audit records"},
+    {"from": "C011", "to": "C022", "protocol": "gRPC/TLS", "description": "Risk Calculation Service reads positions and trade data from Cloud Spanner"},
+    {"from": "C011", "to": "C023", "protocol": "TCP/TLS PostgreSQL", "description": "Risk Calculation Service writes computed risk metrics to AlloyDB analytics store"},
+    {"from": "C011", "to": "C025", "protocol": "TLS/RESP3 (Redis)", "description": "Risk Calculation Service caches real-time VaR and Greeks in Memorystore Redis"},
+    {"from": "C012", "to": "C036", "protocol": "BLPAPI/TLS (dedicated line)", "description": "Market Data Service connects to Bloomberg B-PIPE for real-time L1/L2 data"},
+    {"from": "C013", "to": "C022", "protocol": "gRPC/TLS", "description": "Account Service reads/writes account balances and positions in Cloud Spanner"},
+    {"from": "C013", "to": "C026", "protocol": "HTTPS (KMS API)", "description": "Account Service encrypts customer PII fields using Cloud KMS DEK"},
+    {"from": "C014", "to": "C022", "protocol": "gRPC/TLS (PCI CDE)", "description": "Transaction Service writes payment records to Cloud Spanner (PCI CDE partition)"},
+    {"from": "C014", "to": "C026", "protocol": "HTTPS (KMS API)", "description": "Transaction Service tokenizes PAN data via Cloud KMS (PCI DSS Req 3.5)"},
+    {"from": "C014", "to": "C018", "protocol": "gRPC/mTLS", "description": "Transaction Service submits transactions to Fraud Detection ML for real-time scoring"},
+    {"from": "C014", "to": "C037", "protocol": "SWIFTNet/TLS (ISO 20022)", "description": "Transaction Service sends cross-border payment instructions via SWIFT gateway"},
+    {"from": "C015", "to": "C022", "protocol": "gRPC/TLS", "description": "KYC/AML Service reads customer transaction history from Spanner for AML pattern analysis"},
+    {"from": "C015", "to": "C024", "protocol": "BigQuery Storage API/TLS", "description": "KYC/AML Service writes SAR (Suspicious Activity Reports) to BigQuery for FINRA reporting"},
+    {"from": "C016", "to": "C022", "protocol": "gRPC/TLS", "description": "Settlement Service reads settled trade records from Spanner"},
+    {"from": "C016", "to": "C038", "protocol": "SFTP/TLS + CTM API", "description": "Settlement Service sends DTC settlement instructions to DTCC"},
+    {"from": "C016", "to": "C017", "protocol": "gRPC/mTLS", "description": "Settlement Service records all settlement events in immutable SOX Audit Trail"},
+    {"from": "C017", "to": "C024", "protocol": "BigQuery Storage API/TLS (streaming)", "description": "Audit Trail Service streams all audit events to BigQuery WORM dataset for SOX 7-year retention"},
+    {"from": "C018", "to": "C025", "protocol": "TLS/RESP3 (Redis)", "description": "Fraud Detection ML reads behavioral feature cache from Memorystore Redis"},
+    {"from": "C019", "to": "C025", "protocol": "TLS/RESP3 (Redis)", "description": "Auth Service stores session tokens and PKCE challenges in Memorystore Redis"},
+    {"from": "C019", "to": "C040", "protocol": "HTTPS (Vault API)", "description": "Auth Service uses Vault PKI for short-lived TLS certificate issuance"},
+    {"from": "C020", "to": "C028", "protocol": "HTTPS (Pub/Sub)", "description": "Notification Service subscribes to trade confirmation events from Pub/Sub"},
+    {"from": "C021", "to": "C024", "protocol": "BigQuery Storage API/TLS", "description": "Reporting Service reads trade history from BigQuery for regulatory report generation"},
+    {"from": "C021", "to": "C039", "protocol": "HTTPS/FIX4.4 (FINRA API)", "description": "Reporting Service submits real-time trade reports to FINRA TRACE within T+15min window"},
+    {"from": "C022", "to": "C029", "protocol": "Datastream/TLS (CDC)", "description": "Cloud Spanner replicates to AWS Aurora via Datastream CDC pipeline for DR"},
+    {"from": "C028", "to": "C015", "protocol": "HTTPS (Pub/Sub push)", "description": "Pub/Sub pushes all transaction events to KYC/AML Service for AML monitoring"},
+    {"from": "C031", "to": "C022", "protocol": "VPC Service Control Perimeter", "description": "VPC Service Controls enforces data perimeter around Spanner, preventing exfiltration"},
+    {"from": "C031", "to": "C026", "protocol": "VPC Service Control Perimeter", "description": "VPC Service Controls enforces data perimeter around Cloud KMS keys"},
+    {"from": "C033", "to": "C024", "protocol": "BigQuery API/TLS", "description": "Chronicle SIEM exports security events to BigQuery for compliance correlation analysis"},
+    {"from": "C040", "to": "C014", "protocol": "HTTPS (Vault dynamic secrets)", "description": "Vault issues dynamic database credentials (60s TTL) to Transaction Service"},
+    {"from": "C040", "to": "C010", "protocol": "HTTPS (Vault dynamic secrets)", "description": "Vault issues dynamic Spanner credentials and PKI certs to Trading Engine"}
+  ],
+  "trust_boundaries": [
+    {
+      "id": "TB001",
+      "name": "Internet (Untrusted) -> Edge / CDN",
+      "from_zone": "internet",
+      "to_zone": "edge",
+      "components_inside": ["C001"],
+      "components_outside": ["C002", "C003", "C004"],
+      "controls": [
+        "TLS 1.3 enforced end-to-end (TLS 1.2 minimum fallback)",
+        "DNSSEC on all public DNS records",
+        "Cloudflare Bot Management Enterprise (ML-based bot scoring)",
+        "DDoS protection: Layer 3/4 Magic Transit + Layer 7 WAF",
+        "OWASP CRS 4.0 managed ruleset with financial-sector custom rules",
+        "Geo-blocking for restricted jurisdictions (OFAC countries)",
+        "IP reputation blocklists (threat intelligence feeds)",
+        "Rate limiting: 100 req/s per user, 10 req/s for auth endpoints",
+        "HSTS preloading with max-age=63072000"
+      ]
+    },
+    {
+      "id": "TB002",
+      "name": "Edge / CDN -> GCP Application Tier (DMZ -> Private VPC)",
+      "from_zone": "edge",
+      "to_zone": "application",
+      "components_inside": ["C002", "C003", "C004", "C005", "C032"],
+      "components_outside": ["C006", "C007", "C008", "C009"],
+      "controls": [
+        "GCP Cloud Armor L7 WAF with adaptive protection",
+        "Private GKE cluster (nodes not publicly accessible)",
+        "VPC firewall rules: deny-all-ingress default, allow only from LB",
+        "GCP VPC flow logs enabled on all subnets",
+        "Apigee X mutual TLS for backend service authentication",
+        "JWT RS256 validation at Apigee before any backend call",
+        "Identity-Aware Proxy (IAP) for administrative access",
+        "Cloud NAT for controlled egress (no public IPs on nodes)"
+      ]
+    },
+    {
+      "id": "TB003",
+      "name": "Application Tier -> Data Tier (Compute -> Storage)",
+      "from_zone": "application",
+      "to_zone": "data",
+      "components_inside": ["C010", "C011", "C012", "C013", "C014", "C015", "C016", "C017", "C018", "C019", "C020", "C021"],
+      "components_outside": ["C022", "C023", "C024", "C025", "C029"],
+      "controls": [
+        "GKE Workload Identity: per-service GCP IAM bindings (least privilege)",
+        "Cloud Spanner IAM: roles/spanner.databaseUser per service account",
+        "AlloyDB: IAM authentication, no password-based access",
+        "All connections TLS 1.2+ in transit (Spanner client library enforced)",
+        "All data at rest AES-256 encrypted (CMEK via Cloud KMS)",
+        "BigQuery column-level security (PII columns restricted by IAM conditions)",
+        "BigQuery row-level access policies for multi-tenant isolation",
+        "Memorystore Redis: AUTH token + TLS in-transit encryption",
+        "Database audit logging to Cloud Logging (all DDL and privileged DML)",
+        "VPC Service Controls perimeter prevents data exfiltration to unauthorized services"
+      ]
+    },
+    {
+      "id": "TB004",
+      "name": "PCI CDE (Cardholder Data Environment) Boundary",
+      "from_zone": "non-pci",
+      "to_zone": "pci-cde",
+      "components_inside": ["C014", "C018", "C022", "C026", "C037"],
+      "components_outside": ["C010", "C011", "C013", "C015", "C016"],
+      "controls": [
+        "Dedicated GKE node pools with taint 'pci-cde=true:NoSchedule'",
+        "Dedicated subnets with stricter VPC firewall rules",
+        "Cloud KMS HSM-backed keys (FIPS 140-2 Level 3) for PAN tokenization",
+        "PAN data tokenized at entry point; raw PAN never logged",
+        "HashiCorp Vault dynamic secrets: 60-second TTL database credentials",
+        "Enhanced audit logging: all access to PCI data logged and alerted",
+        "Network segmentation: no direct path from non-PCI to PCI CDE subnets",
+        "Quarterly pen testing required (PCI DSS 4.0 Req 11.4)",
+        "File integrity monitoring on all CDE container images",
+        "Dedicated Pub/Sub topics with CMEK for PCI event streams",
+        "PCI-scoped service accounts cannot access non-CDE Spanner instances"
+      ]
+    },
+    {
+      "id": "TB005",
+      "name": "Compliance Zone (SOX / FINRA Regulated Services)",
+      "from_zone": "application",
+      "to_zone": "compliance",
+      "components_inside": ["C017", "C021", "C024"],
+      "components_outside": ["C010", "C015", "C016"],
+      "controls": [
+        "Audit Trail Service: append-only Pub/Sub topics (no delete permissions)",
+        "BigQuery SOX dataset: table expiry disabled, WORM-equivalent via IAM",
+        "BigQuery SOX dataset: Delete operations blocked via IAM deny policies",
+        "Audit records include: user identity, timestamp (TrueTime), action, resource, outcome",
+        "Cryptographic hash chaining on audit log entries (tamper evidence)",
+        "7-year retention enforced via GCS Object Hold on archived audit exports",
+        "SOX data access requires dual-approval change management (CAB process)",
+        "FINRA TRACE reporting latency monitored (<15min SLA with alerting)",
+        "Read-only access for auditors via dedicated service accounts",
+        "Quarterly SOX controls testing documented in Security Command Center"
+      ]
+    },
+    {
+      "id": "TB006",
+      "name": "External Financial Networks (SWIFT / Bloomberg / DTCC / FINRA)",
+      "from_zone": "internal",
+      "to_zone": "external-financial",
+      "components_inside": ["C014", "C016", "C021"],
+      "components_outside": ["C036", "C037", "C038", "C039"],
+      "controls": [
+        "Dedicated private leased lines to Bloomberg (no public internet path)",
+        "SWIFT: dedicated IP ranges allowlisted in VPC firewall, SWIFT CSP compliant",
+        "SWIFT: HSM-backed BIC/IBAN authentication; message signing with RSA-2048",
+        "DTCC: dedicated SFTP over TLS 1.2; IP allowlisting; certificate pinning",
+        "FINRA TRACE: TLS 1.2 minimum; FINRA-issued member certificates",
+        "All external financial network traffic logged (source, dest, payload hash, timestamp)",
+        "Outbound egress via dedicated Cloud NAT with static IPs (required by Bloomberg/SWIFT)",
+        "Message integrity verification: HMAC-SHA256 on all SWIFT/DTCC messages",
+        "Network time synchronization (PTP/NTP) for trade timestamp accuracy (<1ms drift)",
+        "Circuit breakers on all external financial network connections with fallback queuing"
+      ]
+    }
+  ],
+  "compliance_zones": {
+    "PCI-DSS-v4.0": {
+      "in_scope_components": ["C014", "C018", "C022", "C026", "C028", "C031", "C037", "C040"],
+      "key_controls": {
+        "req_1_2": "VPC Service Controls + GKE network policies enforce CDE network segmentation",
+        "req_3": "Cloud KMS HSM (FIPS 140-2 L3) for PAN encryption; Vault transit secrets engine",
+        "req_4": "TLS 1.3 enforced on all external connections; TLS 1.2 minimum internal",
+        "req_5": "Container image scanning via Artifact Registry; Binary Authorization policy",
+        "req_6": "OWASP CRS 4.0 in Cloudflare WAF + Cloud Armor; quarterly pen testing",
+        "req_7": "GKE Workload Identity + Vault dynamic secrets enforce least-privilege access",
+        "req_8": "FIDO2/WebAuthn MFA for all administrative access; Vault short-lived credentials",
+        "req_10": "Chronicle SIEM: all CDE access logged, 1-year hot retention + 3-year archive",
+        "req_11": "Quarterly internal/external pen tests; weekly automated vulnerability scans",
+        "req_12": "Documented information security policy; annual PCI DSS assessment"
+      }
+    },
+    "SOX": {
+      "in_scope_components": ["C010", "C014", "C016", "C017", "C021", "C022", "C024", "C029", "C037", "C038"],
+      "key_controls": {
+        "section_302": "CEO/CFO quarterly certification supported by automated control evidence from Chronicle",
+        "section_404": "ITGC controls: change management (CAB), access reviews (quarterly), backup/recovery",
+        "itgc_change_management": "GitOps + Binary Authorization: all production changes require signed commits + policy approval",
+        "itgc_access_control": "Quarterly Workload Identity access reviews; Vault credential lifecycle management",
+        "itgc_data_integrity": "Cloud Spanner TrueTime guarantees for transaction ordering; cryptographic audit chain",
+        "itgc_backup_recovery": "Cloud Spanner PITR (7 days); Aurora Global Database cross-region; 4-hour RTO",
+        "audit_trail": "Audit Trail Service (C017): immutable, hash-chained, 7-year BigQuery WORM retention"
+      }
+    },
+    "GLBA": {
+      "in_scope_components": ["C013", "C015", "C020", "C022", "C023"],
+      "key_controls": {
+        "safeguards_rule": "AES-256 encryption at rest (CMEK); TLS 1.3 in transit; field-level encryption for PII",
+        "privacy_rule": "Customer data access logging; opt-out preference management in Account Service",
+        "pretexting_provisions": "FIDO2 MFA required for account access; step-up auth for sensitive operations",
+        "data_retention": "Customer financial records: 5-year retention per GLBA; enforced via BigQuery policies",
+        "vendor_management": "Third-party risk assessments for Bloomberg, SWIFT, DTCC annually"
+      }
+    },
+    "FINRA": {
+      "in_scope_components": ["C015", "C017", "C021", "C024", "C039"],
+      "key_controls": {
+        "rule_4370": "BCP/DR: EKS warm standby (RTO <5min), Aurora cross-region replica (RPO <1s)",
+        "rule_17a_4": "WORM-equivalent storage: BigQuery IAM deny delete + GCS Object Hold for 6-year retention",
+        "rule_17a_3": "Trade blotter records in BigQuery with immutable audit trail linkage",
+        "trace_reporting": "FINRA TRACE: T+15min reporting; automated via Reporting Service (C021); SLA monitored",
+        "aml_program": "KYC/AML Service (C015): FinCEN/OFAC screening, SAR filing, transaction monitoring",
+        "books_records": "Electronic records in BigQuery: indexed, searchable, producible within 24h for exam"
+      }
+    },
+    "SOC2-Type-II": {
+      "in_scope_components": ["C007", "C008", "C009", "C031", "C032", "C033", "C034", "C035", "C040"],
+      "key_controls": {
+        "cc1_organization": "16 AI agents + security team documented; annual SOC2 audit with external auditor",
+        "cc6_logical_access": "Workload Identity, Vault dynamic secrets, FIDO2 MFA, quarterly access reviews",
+        "cc7_system_operations": "Chronicle SIEM 24/7 monitoring; automated SOAR playbooks; <15min MTTD for P1",
+        "cc8_change_management": "GitOps (ArgoCD); Binary Authorization; change approval workflow; rollback < 5min",
+        "a1_availability": "99.99% uptime SLA; multi-cloud active-warm DR; chaos engineering quarterly",
+        "c1_confidentiality": "VPC Service Controls data perimeter; CMEK; column/row-level BigQuery security",
+        "pi1_processing_integrity": "Cloud Spanner TrueTime; idempotent transaction IDs; end-to-end trade reconciliation"
+      }
+    }
+  },
+  "threat_model_notes": {
+    "high_value_targets": [
+      "Cloud Spanner (C022): contains all account balances and trade records — primary target for data theft/manipulation",
+      "Cloud KMS (C026): compromise allows decryption of all PAN data — critical to protect key hierarchy",
+      "Trading Engine (C010): trade manipulation could cause market abuse (spoofing, wash trading) — insider threat risk",
+      "SWIFT Gateway (C037): fraudulent SWIFT messages could initiate unauthorized cross-border transfers",
+      "Auth Service (C019): account takeover enables unauthorized trading on victim accounts"
+    ],
+    "key_threat_vectors": [
+      "Supply chain: compromised base container images — mitigated by Binary Authorization + Artifact Registry scanning",
+      "Credential theft: service account key exfiltration — mitigated by Workload Identity (no key files) + Vault dynamic creds",
+      "Insider threat: privileged access to financial data — mitigated by VPC Service Controls + Chronicle UEBA",
+      "API abuse: order manipulation via race conditions — mitigated by Spanner serializable isolation + Istio rate limiting",
+      "Market data poisoning: Bloomberg feed injection — mitigated by dedicated leased line + message authentication"
+    ],
+    "assumed_breach_controls": [
+      "Lateral movement blocked by Istio mTLS STRICT + SPIFFE identities per service",
+      "Data exfiltration blocked by VPC Service Controls perimeter (C031)",
+      "Privilege escalation detected by Chronicle SIEM + Security Command Center anomaly detection",
+      "PAN data unusable without KMS keys (protected by FIPS 140-2 Level 3 HSM)"
+    ]
+  }
+}

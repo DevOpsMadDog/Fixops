@@ -12,7 +12,7 @@ import sys
 import math
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 # --- Path setup -------------------------------------------------------------
 # Insert the evidence-risk suite so that `risk.threat_model` is importable.

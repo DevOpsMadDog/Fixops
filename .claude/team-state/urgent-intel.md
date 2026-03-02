@@ -1,98 +1,126 @@
 # Urgent Intelligence — ALdeci
 
-**Last Updated**: 2026-03-02 (v4 — 3rd pass update, BREAKING: Anthropic-Pentagon)
+**Last Updated**: 2026-03-02 (v6 — Pass 5 FINAL: Claude Weaponized in Mexico + MCP Crisis + Anthropic Suing Pentagon)
 **Author**: ai-researcher
 
 ---
 
 ## ACTIVE ALERTS
 
-### 🔴 RED: Anthropic Blacklisted by Pentagon — Claude #1 App Store (BREAKING)
-- **What**: Defense Secretary Hegseth declared Anthropic a "supply chain risk" (Feb 27). CEO Dario Amodei refused to remove guardrails for mass surveillance and autonomous weapons. Trump ordered all military contractors and federal agencies to cease Anthropic business. Pentagon contract (~$200M) being severed with 6-month wind-down.
-- **OpenAI's Move**: Sam Altman struck Pentagon deal **within hours** — positioning as "patriotic" AI accepting all lawful government use.
-- **The Twist**: Claude overtook ChatGPT as #1 on US App Store (Mar 1). Daily signups breaking ALL-TIME records. Free users +60% since January. Paid subscribers doubled in 2026.
-- **ALdeci Impact — CRITICAL**:
-  1. **Multi-LLM consensus is NOW a national security argument** — if your security pipeline depends on ONE provider, one executive order kills it
-  2. **Air-gapped vLLM integration UPGRADED TO P1** — DoD/IC customers CANNOT rely on cloud AI
-  3. **New messaging**: "Your security AI shouldn't be one executive order away from shutdown."
+### 🔴 RED: Claude AI Weaponized in Mexican Government Cyberattack (NEW — CRITICAL)
+- **What**: Hacker used 1,000+ Claude Code prompts + GPT-4.1 to breach **10 Mexican government agencies + 1 financial institution**. Started December 2025, reported March 2026.
+- **Chinese labs abuse**: DeepSeek, Moonshot AI, MiniMax created 24,000+ fraudulent Anthropic accounts generating 16M+ interactions.
+- **Kali Linux + Claude**: Kali integrating Claude AI via MCP for automated pen testing.
+- **ALdeci Impact — V5 CRITICAL**:
+  1. AI-powered attacks are REAL, not theoretical. MPTE must simulate AI-assisted attack chains.
+  2. LLM Monitor validated — AI agents used as attack vectors.
+  3. Multi-LLM consensus is a SAFETY mechanism (if one model's safety fails, others catch it).
+- **Messaging**: "AI agents are the new attack surface. We test them."
 - **Action**:
-  1. backend-hardener: PRIORITIZE vLLM integration for AutoFix and LLM Consensus
-  2. sales-engineer: add geopolitical resilience to persona scripts for DoD/IC
-  3. marketing-head: draft messaging around multi-provider resilience
-- **Sources**: [CNBC](https://www.cnbc.com/2026/02/27/openai-strikes-deal-with-pentagon-hours-after-rival-anthropic-was-blacklisted-by-trump.html), [Axios](https://www.axios.com/2026/03/01/anthropic-claude-chatgpt-app-downloads-pentagon), [TechCrunch](https://techcrunch.com/2026/03/01/anthropics-claude-rises-to-no-2-in-the-app-store-following-pentagon-dispute/), [Rolling Stone](https://www.rollingstone.com/culture/culture-news/anthropic-pentagon-demands-remove-ai-safeguards-1235522634/)
+  1. backend-hardener: Expand MPTE for AI-assisted attack simulation [V5]
+  2. sales-engineer: Add AI attack surface messaging to demo [V5]
+  3. marketing-head: Draft "AI attacks are real" positioning for enterprise demo
+- **Sources**: [SecurityWeek](https://www.securityweek.com/hackers-weaponize-claude-code-in-mexican-government-cyberattack/), [Security Boulevard](https://securityboulevard.com/2026/03/hacker-uses-claude-chatgpt-ai-chatbots-to-breach-mexican-government-systems/)
+
+### 🔴 RED: Anthropic Suing Pentagon — Legal Battle Reshapes AI Governance
+- **What**: Defense Secretary Hegseth declared Anthropic "supply chain risk" (Feb 27). Anthropic announced legal challenge (Feb 28), calling designation "legally unsound" and "dangerous precedent."
+- **Court battle**: Bloomberg confirms filing preparation. Anthropic argues Hegseth lacks authority.
+- **Meanwhile**: Claude #1 on US App Store. Daily signups ALL-TIME records. Free users +60%. Paid subs 2x.
+- **OpenAI**: Struck Pentagon deal within hours — "patriotic" AI positioning.
+- **ALdeci Impact — CRITICAL**:
+  1. **Multi-LLM consensus = national security argument** — one executive order kills single-provider pipeline
+  2. **Air-gapped vLLM = P1** — DoD/IC customers CANNOT rely on cloud AI
+  3. **Court outcome shapes AI governance** — either way, ALdeci wins (multi-model + self-hosted)
+- **Messaging**: "Your security AI shouldn't be one executive order away from shutdown."
+- **Sources**: [CBS News](https://www.cbsnews.com/news/hegseth-declares-anthropic-supply-chain-risk/), [Axios/Lawsuit](https://www.axios.com/2026/02/28/anthropic-trump-pentagon-lawsuit-ai-dispute), [Bloomberg](https://www.bloomberg.com/news/articles/2026-02-28/anthropic-to-challenge-any-supply-chain-risk-designation), [The Hill](https://thehill.com/policy/technology/5759929-pentagon-anthropic-supply-chain-risk/)
+
+### 🔴 RED: MCP Security Crisis — 30 CVEs, 36.7% SSRF Exposure (NEW)
+- **What**: Analysis of 7,000+ MCP servers found 36.7% vulnerable to SSRF. 30 CVEs in ~15 months. Microsoft MarkItDown MCP had severe SSRF (AWS key theft).
+- **Root cause**: MCP designed for functionality — auth optional, authz "left to implementation," encryption not required.
+- **ALdeci Impact — V7 CRITICAL**:
+  1. Our 705+ MCP tools MUST be secure-by-default (auth required, SSRF-protected)
+  2. NEW differentiator: "One-third of MCP servers are vulnerable. Ours isn't."
+  3. Run MPTE against our own MCP endpoints (security-analyst action)
+- **Action**:
+  1. security-analyst: SAST + manual review of mcp_server.py, mcp_router.py for SSRF, auth bypass
+  2. backend-hardener: Ensure all MCP endpoints enforce authentication
+  3. sales-engineer: Add MCP security messaging to demo
+- **Sources**: [DEV Community](https://dev.to/darbogach/30-cves-and-counting-the-mcp-security-crisis-nobodys-talking-about-28ml), [Dark Reading](https://www.darkreading.com/application-security/microsoft-anthropic-mcp-servers-risk-takeovers), [Pillar Security](https://www.pillar.security/blog/the-security-risks-of-model-context-protocol-mcp)
+
+### 🔴 RED: n8n CVE-2026-21858 — CVSS 10.0 AI Workflow RCE (NEW)
+- **What**: Unauthenticated RCE in n8n workflow automation platform. ~100K servers affected. Content-Type confusion in Form Webhook file upload.
+- **Fix**: Upgrade to v1.121.0+. No workarounds.
+- **ALdeci Impact**: AI workflow platforms are the new attack surface. Validates MPTE for AI toolchain testing. Validates LLM Monitor for agent security.
+- **Messaging**: "AI workflow platforms are the new attack surface."
+- **Sources**: [Aikido](https://www.aikido.dev/blog/n8n-rce-vulnerability-cve-2026-21858), [Cyera](https://www.cyera.com/research-labs/ni8mare-unauthenticated-remote-code-execution-in-n8n-cve-2026-21858), [The Hacker News](https://thehackernews.com/2026/01/critical-n8n-vulnerability-cvss-100.html)
+
+### 🔴 RED: 3 NEW Critical CVEs Published (Mar 1-2) (NEW)
+- CVE-2026-2999: IDExpert Windows Logon Agent — unauthenticated RCE (arbitrary executable download)
+- CVE-2026-3000: IDExpert Windows Logon Agent — unauthenticated RCE (arbitrary DLL download)
+- CVE-2026-3422: U-Office Force — insecure deserialization → unauthenticated RCE
+- **Pattern**: All 3 are unauthenticated RCE — the highest severity class
+- **Source**: NVD API (live query 2026-03-02)
 
 ### 🔴 RED: Wiz/Google $32B Closing MID-MARCH — "Switzerland" Moment ⚡
-- **TIMING**: Deal closing **MID-MARCH 2026** — possibly within 2 weeks
-- DOJ cleared. EU unconditionally approved Feb 10. Only procedural approvals remain.
-- Wiz-Orca patent lawsuit **settled** (Jan 2026) — dismissed with prejudice. PTAB invalidated 3/6 Orca patents. Wiz enters Google clean.
-- **CISPE** publicly raising alarm about competitive impact — third-party validation
+- **TIMING**: Deal closing **MID-MARCH 2026** — DAYS away (not weeks)
+- All regulatory approvals secured. Only AU/ZA/TR procedural remaining.
+- Staff payout: $2-2.5B. $3M closing party thrown. CISPE publicly alarmed.
 - **Messaging**: "Google just bought your security vendor for $32 billion."
-- **Action**: marketing-head must prepare "Switzerland" messaging for March 6 demo — TIME-CRITICAL
-- **Sources**: [CTech](https://www.calcalistech.com/ctechnews/article/b14vizivzl), [CTech/Settlement](https://www.calcalistech.com/ctechnews/article/b1114vsiebl)
+- **Action**: marketing-head prepare "Switzerland" messaging for March 6 demo — TIME-CRITICAL
+- **Sources**: [FinancialContent](https://markets.financialcontent.com/stocks/article/marketminute-2026-2-12-googles-32-billion-security-gambit-alphabet-clears-final-major-hurdle-in-historic-wiz-acquisition), [CTech](https://www.calcalistech.com/ctechnews/article/sjh3u00a00be)
 
-### 🔴 RED: Claude Code Security — Market Disruption
-- 500+ zero-days found in production OSS (Feb 20). Cyber stocks dropped.
-- Now **amplified by Pentagon standoff**: Claude's consumer popularity surge accelerates enterprise adoption → more findings → more need for ALdeci decision layer
+### 🔴 RED: Claude Code Security — Market Disruption Amplified
+- 500+ zero-days in OSS. Pentagon standoff amplifies Claude popularity → more findings → more need for ALdeci decision layer.
 - **Messaging**: "Claude finds. ALdeci decides."
 - **Action**: Backend-hardener add Claude output format parser to scanner_ingest_router.py
-- **Sources**: [Anthropic](https://www.anthropic.com/news/claude-code-security), [VentureBeat](https://venturebeat.com/security/anthropic-claude-code-security-reasoning-vulnerability-hunting)
+- **Sources**: [GovInfoSecurity](https://www.govinfosecurity.com/blogs/claude-code-security-has-shaken-cybersecurity-market-p-4056)
 
-### 🟡 YELLOW: NIST Agentic AI Security — Regulatory Positioning (NEW)
-- **NIST CAISI RFI** on "AI agent security" — **deadline March 9, 2026**
-- **NCCoE draft**: "Software and AI Agent Identity and Authorization" — feedback due April 2
-- 48% of respondents believe agentic AI = top attack vector by EOY 2026
-- **ALdeci advantage**: LLM Monitor scanner + MPTE already cover agentic AI security
+### 🟡 YELLOW: CrowdStrike Q4 Earnings TOMORROW (Mar 3) (NEW)
+- Q4 FY2026 results after market close March 3
+- Expected strong revenue growth from Falcon demand
+- Startup Accelerator pitch day March 24 at RSA (35 startups)
+- **Action**: Monitor for competitive intelligence signal
+- **Source**: [TipRanks](https://www.tipranks.com/news/crowdstrike-q4-earnings-on-deck-consensus-expectations-and-key-kpis-to-watch)
+
+### 🟡 YELLOW: NIST Agentic AI Security — RFI Deadline Mar 9
+- CAISI RFI on "AI agent security" — **7 DAYS until deadline**
+- 48% believe agentic AI = top attack vector by EOY 2026
+- Only 29% of orgs prepared to secure agentic AI
 - **Messaging**: "NIST says secure your AI agents. We already do."
-- **Action**: sales-engineer add NIST compliance talking point to demo
-- **Sources**: [Federal News Network](https://federalnewsnetwork.com/cybersecurity/2026/02/nist-agentic-ai-initiative-looks-to-get-handle-on-security/), [NIST](https://www.nist.gov/news-events/news/2026/01/caisi-issues-request-information-about-securing-ai-agent-systems)
+- **Sources**: [Federal News Network](https://federalnewsnetwork.com/cybersecurity/2026/02/nist-agentic-ai-initiative-looks-to-get-handle-on-security/)
 
-### 🟡 YELLOW: vLLM Air-Gap — PRIORITY UPGRADED TO P1 ⚡
-- vLLM v0.16.0 ready. SGLang at 400K+ GPUs (29% faster but less mature).
-- **Trend Micro**: Open-weight cybersecurity Llama 3 model — evaluate for AutoFix
-- **Cisco+Google+Meta**: Collaborative cybersecurity LLM, open-source release upcoming
-- **Pentagon crisis makes this P1**: Self-hosted LLM is the ONLY safe path for defense/IC
-- **Action**: P1 — wire vLLM as LLM provider for AutoFix and LLM Consensus
-- **Sources**: [Perficient](https://blogs.perficient.com/2026/02/26/vllm-realtime-api-v016/), [PremAI](https://blog.premai.io/vllm-vs-sglang-vs-lmdeploy-fastest-llm-inference-engine-in-2026/)
+### 🟡 YELLOW: Gartner CTEM Validation — Direct Positioning Support (NEW)
+- "Organizations with CTEM programs are 3x less likely to suffer a breach" (Gartner)
+- Direct validation of ALdeci CTEM+ positioning
+- **Messaging**: "Gartner says CTEM = 3x fewer breaches. We're CTEM+."
+- **Sources**: [Gartner](https://www.gartner.com/en/documents/4016760), [CTEM.org](https://ctem.org/docs/what-is-continuous-threat-exposure-management)
+
+### 🟡 YELLOW: Shadow AI Epidemic — LLM Monitor Validation (NEW)
+- 47% using GenAI via personal accounts (Netskope)
+- Data policy violations DOUBLED YoY
+- Only 29% prepared to secure agentic AI
+- Validates LLM Monitor scanner and enterprise AI governance
+- **Source**: [Infosecurity Magazine](https://www.infosecurity-magazine.com/news/personal-llm-accounts-drive-shadow/)
+
+### 🟡 YELLOW: vLLM Air-Gap — P1 Priority
+- vLLM v0.16.0 ready. SGLang v0.5.8 RadixAttention: 5x faster for agent workflows.
+- Trend Micro open-weight cybersec Llama 3 model — evaluate for AutoFix
+- Pentagon crisis makes self-hosted LLM THE differentiator for defense/IC
+- **Action**: Wire vLLM as LLM provider for AutoFix and LLM Consensus
 
 ### 🟡 YELLOW: RSA 2026 (Mar 23-26) — Intelligence Peak
-- Keynotes: Jacinda Ardern, Ben Horowitz, Adam Savage
-- Top themes: Agentic AI, identity security, vulnerability management
-- Semgrep Booth #1743 (AI Detection product), Endor Labs, CrowdStrike
-- CrowdStrike Fal.Con Gov Mar 18 (CISA, DoW, White House)
-- **Action**: Monitor ALL RSA announcements for competitive updates
-- **Source**: [RSA Conference](https://www.rsaconference.com/usa)
+- Top themes: Agentic AI, identity security, PQC, vulnerability management
+- OpenSSL PQC updates at RSA. CrowdStrike pitch day Mar 24.
+- **Action**: Monitor ALL RSA announcements March 23-26
 
-### 🟡 YELLOW: Semgrep Scale + AI Detection — Competitive Pressure
-- 18K orgs, 75M scans, 740K autofixes, 5.3M AI triage decisions at 95% agreement
-- AI Detection product launching at RSA 2026
-- **Counter**: 95% single-model agreement vs our multi-model 85% consensus threshold
-- **Counter**: MPTE PROVES exploitability — no model can replicate controlled exploitation
-- **Source**: [TipRanks](https://www.tipranks.com/news/private-companies/semgrep-positions-appsec-platform-for-ai-driven-software-development)
-
-### 🟡 YELLOW: WebMCP Chrome Preview — V7 Validation
-- Google Chrome offering early preview of browser-native MCP
-- 162 points on HackerNews. MCP vs CLI debate (282pts).
-- Our 705+ MCP tools become browser-accessible
+### 🟢 GREEN: WebMCP Chrome Preview — V7 Validation
+- Browser-native MCP in Chrome. 705+ ALdeci tools become browser-accessible.
 - **Source**: [Chrome Developer Blog](https://developer.chrome.com/blog/webmcp-epp)
 
-### 🟢 GREEN: CrowdStrike FalconID — Platform Consolidation Signal
-- Phishing-resistant MFA product (FIDO2 biometric) GA
-- Endpoint vendors expanding into identity = platform consolidation trend
-- Different lane from ALdeci (identity vs AppSec) but validates platform play
-- **Source**: [Investing.com](https://www.investing.com/news/company-news/crowdstrike-launches-phishingresistant-mfa-product-falconid-93CH-4527738)
-
-### 🟢 GREEN: Wiz-Orca Settlement — Competitive Landscape
-- Patent battle dismissed with prejudice (Jan 2026)
-- PTAB invalidated 3/6 Orca patents
-- Orca mindshare declining 4.0% → 2.6%
-- Wiz enters Google clean of legal baggage
-- **Source**: [BankInfoSecurity](https://www.bankinfosecurity.com/orca-wiz-end-dueling-lawsuits-over-cloud-security-patents-a-30463)
-
 ### 🟢 GREEN: Google PQC HTTPS — Validates Quantum Strategy
-- Google ML-KEM compresses 2.5KB PQC data into 64 bytes
-- Validates our FIPS 204 ML-DSA + RSA hybrid approach
+- ML-KEM in production. Validates our FIPS 204 ML-DSA + RSA hybrid.
 - **Source**: [Google Security Blog](https://security.googleblog.com/2026/02/cultivating-robust-and-efficient.html)
 
 ---
 
-*Monitored by ai-researcher. Updates every 24 hours. Next review: 2026-03-03.*
+*Monitored by ai-researcher. Pass 5 FINAL for 2026-03-02. Next review: 2026-03-03.*

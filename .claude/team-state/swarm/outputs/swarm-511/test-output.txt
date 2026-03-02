@@ -1,0 +1,662 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.14.1, pytest-9.0.2, pluggy-1.6.0 -- /Users/devops.ai/developement/fixops/Fixops/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/devops.ai/developement/fixops/Fixops
+configfile: pyproject.toml
+plugins: anyio-4.12.1, timeout-2.4.0, asyncio-1.3.0, cov-7.0.0
+timeout: 10.0s
+timeout method: signal
+timeout func_only: False
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 102 items
+
+tests/test_knowledge_graph.py::test_knowledge_graph_service_builds_snapshot PASSED [  0%]
+tests/test_falkordb_client_unit.py::TestNodeType::test_all_node_types_exist PASSED [  1%]
+tests/test_falkordb_client_unit.py::TestNodeType::test_str_enum PASSED   [  2%]
+tests/test_falkordb_client_unit.py::TestEdgeType::test_all_edge_types_exist PASSED [  3%]
+tests/test_falkordb_client_unit.py::TestGraphNode::test_basic_creation PASSED [  4%]
+tests/test_falkordb_client_unit.py::TestGraphNode::test_label_from_name PASSED [  5%]
+tests/test_falkordb_client_unit.py::TestGraphNode::test_label_from_title PASSED [  6%]
+tests/test_falkordb_client_unit.py::TestGraphNode::test_label_fallback_to_id PASSED [  7%]
+tests/test_falkordb_client_unit.py::TestGraphNode::test_properties_dict PASSED [  8%]
+tests/test_falkordb_client_unit.py::TestGraphEdge::test_basic_creation PASSED [  9%]
+tests/test_falkordb_client_unit.py::TestGraphEdge::test_custom_weight PASSED [ 10%]
+tests/test_falkordb_client_unit.py::TestAttackPath::test_creation PASSED [ 11%]
+tests/test_falkordb_client_unit.py::TestBlastRadius::test_creation PASSED [ 12%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_add_and_get_node PASSED [ 13%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_get_nonexistent_node PASSED [ 14%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_add_and_get_edge PASSED [ 15%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_get_neighbors_filtered PASSED [ 16%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_get_incoming PASSED [ 17%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_get_incoming_filtered PASSED [ 18%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_get_nodes_by_type PASSED [ 19%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_find_paths_simple PASSED [ 20%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_find_paths_no_connection PASSED [ 21%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_find_paths_nonexistent_nodes PASSED [ 22%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_find_paths_max_depth PASSED [ 23%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_find_paths_avoids_cycles PASSED [ 24%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_bfs_reachable PASSED [ 25%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_bfs_reachable_max_depth PASSED [ 26%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_bfs_reachable_nonexistent PASSED [ 27%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_degree_centrality_empty PASSED [ 28%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_degree_centrality_single PASSED [ 29%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_degree_centrality_two_connected PASSED [ 30%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_betweenness_centrality_approx_small PASSED [ 31%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_betweenness_centrality_approx_larger PASSED [ 32%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_node_and_edge_count PASSED [ 33%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_to_json PASSED [ 34%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_to_mermaid PASSED [ 35%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_to_mermaid_skips_missing_nodes PASSED [ 36%]
+tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_clear PASSED [ 37%]
+tests/test_falkordb_client_unit.py::TestFalkorDBBackend::test_init_falls_back_to_networkx 
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [ WARNING] core.falkordb_client: FalkorDB unavailable (falkordb package not installed), using NetworkX fallback
+PASSED                                                                   [ 38%]
+tests/test_falkordb_client_unit.py::TestFalkorDBBackend::test_fallback_add_and_get_node 
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [ WARNING] core.falkordb_client: FalkorDB unavailable (falkordb package not installed), using NetworkX fallback
+PASSED                                                                   [ 39%]
+tests/test_falkordb_client_unit.py::TestFalkorDBBackend::test_fallback_add_edge 
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [ WARNING] core.falkordb_client: FalkorDB unavailable (falkordb package not installed), using NetworkX fallback
+PASSED                                                                   [ 40%]
+tests/test_falkordb_client_unit.py::TestFalkorDBBackend::test_fallback_get_nodes_by_type 
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [ WARNING] core.falkordb_client: FalkorDB unavailable (falkordb package not installed), using NetworkX fallback
+PASSED                                                                   [ 41%]
+tests/test_falkordb_client_unit.py::TestFalkorDBBackend::test_fallback_find_paths 
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [ WARNING] core.falkordb_client: FalkorDB unavailable (falkordb package not installed), using NetworkX fallback
+PASSED                                                                   [ 42%]
+tests/test_falkordb_client_unit.py::TestFalkorDBBackend::test_fallback_node_edge_count 
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [ WARNING] core.falkordb_client: FalkorDB unavailable (falkordb package not installed), using NetworkX fallback
+PASSED                                                                   [ 43%]
+tests/test_falkordb_client_unit.py::TestFalkorDBBackend::test_fallback_to_json 
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [ WARNING] core.falkordb_client: FalkorDB unavailable (falkordb package not installed), using NetworkX fallback
+PASSED                                                                   [ 44%]
+tests/test_falkordb_client_unit.py::TestFalkorDBBackend::test_fallback_to_mermaid 
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [ WARNING] core.falkordb_client: FalkorDB unavailable (falkordb package not installed), using NetworkX fallback
+PASSED                                                                   [ 45%]
+tests/test_falkordb_client_unit.py::TestFalkorDBBackend::test_fallback_clear 
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [ WARNING] core.falkordb_client: FalkorDB unavailable (falkordb package not installed), using NetworkX fallback
+PASSED                                                                   [ 46%]
+tests/test_falkordb_client_unit.py::TestFalkorDBBackend::test_fallback_bfs_reachable 
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [ WARNING] core.falkordb_client: FalkorDB unavailable (falkordb package not installed), using NetworkX fallback
+PASSED                                                                   [ 47%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_init_networkx 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+PASSED                                                                   [ 48%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_init_auto_fallback 
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [ WARNING] core.falkordb_client: FalkorDB unavailable (falkordb package not installed), using NetworkX fallback
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+PASSED                                                                   [ 49%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_init_from_env 
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+PASSED                                                                   [ 50%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_ingest_findings_basic 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: Ingested 1 findings → 9 graph elements
+PASSED                                                                   [ 50%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_ingest_findings_multiple 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: Ingested 5 findings → 21 graph elements
+PASSED                                                                   [ 51%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_ingest_findings_no_cwe_cve 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: Ingested 1 findings → 5 graph elements
+PASSED                                                                   [ 52%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_ingest_findings_auto_id 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: Ingested 1 findings → 5 graph elements
+PASSED                                                                   [ 53%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_add_dependency 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+PASSED                                                                   [ 54%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_find_attack_paths_basic 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: Ingested 2 findings → 9 graph elements
+PASSED                                                                   [ 55%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_find_attack_paths_no_path 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: Ingested 1 findings → 5 graph elements
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: Ingested 1 findings → 5 graph elements
+PASSED                                                                   [ 56%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_find_attack_paths_risk_scoring 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: Ingested 2 findings → 9 graph elements
+PASSED                                                                   [ 57%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_find_attack_paths_nonexistent_nodes 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+PASSED                                                                   [ 58%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_calculate_blast_radius_basic 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: Ingested 1 findings → 5 graph elements
+PASSED                                                                   [ 59%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_calculate_blast_radius_with_prefix 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: Ingested 1 findings → 5 graph elements
+PASSED                                                                   [ 60%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_calculate_blast_radius_wide_impact 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: Ingested 5 findings → 21 graph elements
+PASSED                                                                   [ 61%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_get_graph_analytics 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: Ingested 2 findings → 11 graph elements
+PASSED                                                                   [ 62%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_get_graph_analytics_empty 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+PASSED                                                                   [ 63%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_export_json 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: Ingested 1 findings → 5 graph elements
+PASSED                                                                   [ 64%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_export_mermaid 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: Ingested 1 findings → 5 graph elements
+PASSED                                                                   [ 65%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_get_status 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+PASSED                                                                   [ 66%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_clear 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: Ingested 1 findings → 5 graph elements
+PASSED                                                                   [ 67%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_resolve_node_id_exact 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: Ingested 1 findings → 5 graph elements
+PASSED                                                                   [ 68%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_resolve_node_id_partial 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: Ingested 1 findings → 5 graph elements
+PASSED                                                                   [ 69%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_resolve_node_id_not_found 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+PASSED                                                                   [ 70%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_severity_weights 
+-------------------------------- live log setup --------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+PASSED                                                                   [ 71%]
+tests/test_falkordb_client_unit.py::TestKnowledgeGraphIntegration::test_full_workflow 
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: Ingested 3 findings → 23 graph elements
+PASSED                                                                   [ 72%]
+tests/test_falkordb_client_unit.py::TestModuleConvenience::test_get_knowledge_graph 
+-------------------------------- live log call ---------------------------------
+2026-03-02 22:58:16 [ WARNING] core.falkordb_client: FalkorDB unavailable (falkordb package not installed), using NetworkX fallback
+2026-03-02 22:58:16 [    INFO] core.falkordb_client: KnowledgeGraphEngine initialized: NetworkXGraphBackend
+PASSED                                                                   [ 73%]
+tests/test_attack_graph_gnn_unit.py::TestEnums::test_node_types PASSED   [ 74%]
+tests/test_attack_graph_gnn_unit.py::TestEnums::test_edge_types PASSED   [ 75%]
+tests/test_attack_graph_gnn_unit.py::TestGraphNode::test_create_node PASSED [ 76%]
+tests/test_attack_graph_gnn_unit.py::TestGraphNode::test_node_to_dict PASSED [ 77%]
+tests/test_attack_graph_gnn_unit.py::TestGraphNode::test_node_default_risk PASSED [ 78%]
+tests/test_attack_graph_gnn_unit.py::TestGraphNode::test_node_embedding_none_default PASSED [ 79%]
+tests/test_attack_graph_gnn_unit.py::TestGraphEdge::test_create_edge PASSED [ 80%]
+tests/test_attack_graph_gnn_unit.py::TestGraphEdge::test_edge_to_dict PASSED [ 81%]
+tests/test_attack_graph_gnn_unit.py::TestGraphEdge::test_edge_default_weight PASSED [ 82%]
+tests/test_attack_graph_gnn_unit.py::TestAttackPath::test_create_path PASSED [ 83%]
+tests/test_attack_graph_gnn_unit.py::TestAttackPath::test_path_to_dict PASSED [ 84%]
+tests/test_attack_graph_gnn_unit.py::TestSecurityGraph::test_add_node PASSED [ 85%]
+tests/test_attack_graph_gnn_unit.py::TestSecurityGraph::test_add_edge PASSED [ 86%]
+tests/test_attack_graph_gnn_unit.py::TestSecurityGraph::test_get_predecessors PASSED [ 87%]
+tests/test_attack_graph_gnn_unit.py::TestSecurityGraph::test_get_edge PASSED [ 88%]
+tests/test_attack_graph_gnn_unit.py::TestSecurityGraph::test_get_edge_missing PASSED [ 89%]
+tests/test_attack_graph_gnn_unit.py::TestSecurityGraph::test_to_dict PASSED [ 90%]
+tests/test_attack_graph_gnn_unit.py::TestSecurityGraph::test_multiple_nodes PASSED [ 91%]
+tests/test_attack_graph_gnn_unit.py::TestGraphNeuralPredictor::test_init PASSED [ 92%]
+tests/test_attack_graph_gnn_unit.py::TestGraphNeuralPredictor::test_init_custom_params PASSED [ 93%]
+tests/test_attack_graph_gnn_unit.py::TestGraphNeuralPredictor::test_compute_node_embeddings PASSED [ 94%]
+tests/test_attack_graph_gnn_unit.py::TestGraphNeuralPredictor::test_propagate_risk PASSED [ 95%]
+tests/test_attack_graph_gnn_unit.py::TestGraphNeuralPredictor::test_find_attack_paths PASSED [ 96%]
+tests/test_attack_graph_gnn_unit.py::TestGraphNeuralPredictor::test_find_attack_paths_no_path PASSED [ 97%]
+tests/test_attack_graph_gnn_unit.py::TestGraphNeuralPredictor::test_identify_critical_nodes PASSED [ 98%]
+tests/test_attack_graph_gnn_unit.py::TestAnalyzeAttackSurface::test_basic_analysis PASSED [ 99%]
+tests/test_attack_graph_gnn_unit.py::TestAnalyzeAttackSurface::test_empty_analysis PASSED [100%]
+ERROR: Coverage failure: total of 1.42 is less than fail-under=25.00
+
+
+================================ tests coverage ================================
+_______________ coverage: platform darwin, python 3.14.1-final-0 _______________
+
+Name                                                                Stmts   Miss Branch BrPart   Cover   Missing
+----------------------------------------------------------------------------------------------------------------
+suite-api/apps/api/__init__.py                                          6      4      2      0  25.00%   7-11
+suite-api/apps/api/admin_router.py                                    141    141     28      0   0.00%   21-294
+suite-api/apps/api/analytics_router.py                                379    379     90      0   0.00%   8-862
+suite-api/apps/api/app.py                                            1275   1275    238      0   0.00%   1-2742
+suite-api/apps/api/audit_router.py                                    214    214     52      0   0.00%   9-494
+suite-api/apps/api/auth_router.py                                      57     57     16      0   0.00%   4-123
+suite-api/apps/api/bulk_router.py                                     517    517    156      0   0.00%   8-1263
+suite-api/apps/api/collaboration_router.py                            205    205     28      0   0.00%   3-598
+suite-api/apps/api/connectors_router.py                               176    176     36      0   0.00%   19-376
+suite-api/apps/api/demo_data.py                                        82     82     16      0   0.00%   8-437
+suite-api/apps/api/dependencies.py                                     13     13      2      0   0.00%   8-83
+suite-api/apps/api/detailed_logging.py                                267    267     58      0   0.00%   5-493
+suite-api/apps/api/fail_router.py                                     121    121      6      0   0.00%   17-296
+suite-api/apps/api/health.py                                           73     73     10      0   0.00%   3-162
+suite-api/apps/api/ingestion.py                                       928    928    264      0   0.00%   16-2114
+suite-api/apps/api/integrations.py                                    200    200     40      0   0.00%   7-417
+suite-api/apps/api/inventory_router.py                                264    264     74      0   0.00%   8-580
+suite-api/apps/api/knowledge_graph.py                                 116     21     76     19  75.00%   37, 39-44, 60, 65, 67->63, 73, 75->71, 77->71, 82, 85, 107, 138, 174, 178, 213, 229, 244-246, 256->267, 267->287
+suite-api/apps/api/marketplace_router.py                              243    243     52      0   0.00%   8-723
+suite-api/apps/api/mcp_router.py                                      405    405    162      0   0.00%   14-1015
+suite-api/apps/api/middleware.py                                       42     42      2      0   0.00%   3-110
+suite-api/apps/api/normalizers.py                                     965    965    488      0   0.00%   1-1836
+suite-api/apps/api/pipeline.py                                        870    870    438      0   0.00%   1-1734
+suite-api/apps/api/policies_router.py                                 266    266    100      0   0.00%   9-523
+suite-api/apps/api/rate_limiter.py                                     58     58     12      0   0.00%   3-196
+suite-api/apps/api/remediation_router.py                              158    158     20      0   0.00%   3-422
+suite-api/apps/api/reports_router.py                                  268    268     86      0   0.00%   11-860
+suite-api/apps/api/routes/enhanced.py                                  51     51      2      0   0.00%   3-109
+suite-api/apps/api/scanner_ingest_router.py                           180    180     58      0   0.00%   17-466
+suite-api/apps/api/system_router.py                                   128    128     24      0   0.00%   13-310
+suite-api/apps/api/teams_router.py                                     84     84     20      0   0.00%   4-167
+suite-api/apps/api/upload_manager.py                                  137    137     38      0   0.00%   3-244
+suite-api/apps/api/users_router.py                                    121    121     28      0   0.00%   11-290
+suite-api/apps/api/validation_router.py                               243    243     96      0   0.00%   13-503
+suite-api/apps/api/workflows_router.py                                296    296    102      0   0.00%   9-530
+suite-api/apps/fixops_cli/__main__.py                                  61     61     14      0   0.00%   3-143
+suite-api/apps/mpte_integration.py                                    178    178     32      0   0.00%   3-493
+suite-api/backend/__init__.py                                           1      1      0      0   0.00%   3
+suite-api/backend/app.py                                                5      5      0      0   0.00%   3-13
+suite-api/backend/normalizers.py                                        1      1      0      0   0.00%   3
+suite-attack/api/api_fuzzer_router.py                                  28     28      0      0   0.00%   3-55
+suite-attack/api/app.py                                                46     46      4      0   0.00%   7-119
+suite-attack/api/attack_sim_router.py                                 149    149     18      0   0.00%   12-398
+suite-attack/api/container_router.py                                   67     67     12      0   0.00%   9-137
+suite-attack/api/cspm_router.py                                        62     62      8      0   0.00%   11-130
+suite-attack/api/dast_router.py                                        93     93     36      0   0.00%   6-166
+suite-attack/api/malware_router.py                                     29     29      0      0   0.00%   3-58
+suite-attack/api/micro_pentest_router.py                              703    703    152      0   0.00%   15-1840
+suite-attack/api/mpte_orchestrator_router.py                          235    235     68      0   0.00%   14-660
+suite-attack/api/mpte_router.py                                       443    443    126      0   0.00%   2-1084
+suite-attack/api/sast_router.py                                        58     58     14      0   0.00%   10-124
+suite-attack/api/secrets_router.py                                    129    129     16      0   0.00%   12-339
+suite-attack/api/vuln_discovery_router.py                             482    482     90      0   0.00%   16-1175
+suite-core/api/agents_router.py                                       936    936    254      0   0.00%   12-3001
+suite-core/api/algorithmic_router.py                                  182    182     18      0   0.00%   9-568
+suite-core/api/app.py                                                  58     58      4      0   0.00%   7-132
+suite-core/api/autofix_router.py                                      116    116     12      0   0.00%   8-268
+suite-core/api/brain_router.py                                        202    202     16      0   0.00%   8-494
+suite-core/api/code_to_cloud_router.py                                 25     25      0      0   0.00%   3-49
+suite-core/api/copilot_router.py                                      462    462    122      0   0.00%   17-1143
+suite-core/api/decisions.py                                           109    109      8      0   0.00%   6-283
+suite-core/api/deduplication_router.py                                159    159     24      0   0.00%   3-448
+suite-core/api/exposure_case_router.py                                114    114      6      0   0.00%   17-218
+suite-core/api/fuzzy_identity_router.py                                82     82      6      0   0.00%   8-190
+suite-core/api/knowledge_graph_router.py                              147    147     28      0   0.00%   9-574
+suite-core/api/llm_monitor_router.py                                   29     29      0      0   0.00%   3-64
+suite-core/api/llm_router.py                                          141    141     42      0   0.00%   10-472
+suite-core/api/mcp_protocol_router.py                                  93     93      0      0   0.00%   8-210
+suite-core/api/mindsdb_router.py                                      139    139      8      0   0.00%   15-335
+suite-core/api/nerve_center.py                                        267    267     58      0   0.00%   8-846
+suite-core/api/pipeline_router.py                                     107    107      4      0   0.00%   16-212
+suite-core/api/predictions_router.py                                  154    154     14      0   0.00%   7-497
+suite-core/api/quantum_crypto_router.py                                76     76      0      0   0.00%   7-159
+suite-core/api/self_learning_router.py                                223    223      2      0   0.00%   17-557
+suite-core/api/single_agent_router.py                                  77     77      0      0   0.00%   7-167
+suite-core/api/streaming_router.py                                     77     77     10      0   0.00%   12-192
+suite-core/api/v1/cicd.py                                              17     17      2      0   0.00%   10-67
+suite-core/api/zero_gravity_router.py                                  70     70      4      0   0.00%   7-126
+suite-core/core/__init__.py                                             2      0      0      0 100.00%
+suite-core/core/adapters.py                                           410    410    114      0   0.00%   14-1136
+suite-core/core/ai_agents.py                                          134    134     62      0   0.00%   3-234
+suite-core/core/analytics.py                                          310    310     92      0   0.00%   3-775
+suite-core/core/analytics_db.py                                       161    161     30      0   0.00%   4-428
+suite-core/core/analytics_models.py                                    46     46      0      0   0.00%   4-125
+suite-core/core/api_fuzzer.py                                         137    137     32      0   0.00%   18-361
+suite-core/core/api_learning_store.py                                 448    448     78      0   0.00%   9-1023
+suite-core/core/attack_graph_gnn.py                                   282     11    106     14  93.04%   290, 313->312, 361, 365, 394, 401->400, 421, 486, 501->483, 576, 605, 617, 621->620, 670-671
+suite-core/core/attack_simulation_engine.py                           427    427    124      0   0.00%   15-1133
+suite-core/core/audit_db.py                                            89     89     16      0   0.00%   4-275
+suite-core/core/audit_models.py                                        45     45      0      0   0.00%   4-112
+suite-core/core/auth_db.py                                            129    129     10      0   0.00%   6-345
+suite-core/core/auth_middleware.py                                     99     99     26      0   0.00%   19-238
+suite-core/core/auth_models.py                                         67     67      0      0   0.00%   4-183
+suite-core/core/autofix_engine.py                                     605    605    180      0   0.00%   11-1515
+suite-core/core/automated_remediation.py                              213    213     40      0   0.00%   3-714
+suite-core/core/bn_lr.py                                               85     85     14      0   0.00%   19-345
+suite-core/core/brain_pipeline.py                                     697    697    182      0   0.00%   27-1663
+suite-core/core/business_context.py                                   167    167     68      0   0.00%   6-419
+suite-core/core/cache.py                                              140    140     34      0   0.00%   16-238
+suite-core/core/causal_inference.py                                   231    231     80      0   0.00%   14-710
+suite-core/core/cli.py                                               2459   2459    780      0   0.00%   3-5907
+suite-core/core/code_to_cloud_tracer.py                               116    116     30      0   0.00%   14-295
+suite-core/core/compliance.py                                          63     63     30      0   0.00%   3-133
+suite-core/core/configuration.py                                      593    593    266      0   0.00%   3-1531
+suite-core/core/connectors.py                                        1165   1165    412      0   0.00%   46-3001
+suite-core/core/container_scanner.py                                  146    146     50      0   0.00%   10-445
+suite-core/core/context_engine.py                                     149    149     54      0   0.00%   3-284
+suite-core/core/continuous_validation.py                              191    191     48      0   0.00%   3-473
+suite-core/core/crypto.py                                             194    194     40      0   0.00%   21-570
+suite-core/core/cspm_engine.py                                        170    170     40      0   0.00%   14-609
+suite-core/core/cve_tester.py                                         563    563    154      0   0.00%   13-1477
+suite-core/core/dast_engine.py                                        282    282     82      0   0.00%   14-633
+suite-core/core/decision_policy.py                                    117    117     66      0   0.00%   9-328
+suite-core/core/decision_tree.py                                      113    113     30      0   0.00%   3-329
+suite-core/core/demo_runner.py                                        103    103     48      0   0.00%   3-195
+suite-core/core/design_context_injector.py                            198    163     86      0  12.32%   36-58, 63-81, 87-94, 97-109, 112-136, 141-148, 153-161, 165-167, 170-174, 179-201, 204-218, 221-235, 238, 245-252, 256-265, 270-281, 284-289
+suite-core/core/enhanced_decision.py                                  480    480    204      0   0.00%   3-1274
+suite-core/core/error_responses.py                                     46     46      4      0   0.00%   3-185
+suite-core/core/event_bus.py                                          126    126     12      0   0.00%   10-249
+suite-core/core/event_subscribers.py                                  100    100     10      0   0.00%   8-201
+suite-core/core/evidence.py                                           220    220     48      0   0.00%   14-435
+suite-core/core/evidence_indexer.py                                   130    130     56      0   0.00%   6-279
+suite-core/core/exploit_generator.py                                  151    151     18      0   0.00%   3-564
+suite-core/core/exploit_signals.py                                    363    363    154      0   0.00%   3-573
+suite-core/core/exposure_case.py                                      246    246     54      0   0.00%   13-646
+suite-core/core/fail_db.py                                             80     80     10      0   0.00%   8-255
+suite-core/core/fail_engine.py                                        314    314     90      0   0.00%   32-703
+suite-core/core/falkordb_client.py                                    425     59    126     19  84.75%   187->186, 206->205, 249-250, 260->255, 265->270, 348-352, 355-356, 363-375, 382-390, 396-412, 418, 424-435, 441-450, 456, 459, 489-492, 525, 532->537, 534-535, 670->668, 718->711, 720, 722, 724
+suite-core/core/feature_matrix.py                                     120    120     12      0   0.00%   3-285
+suite-core/core/feedback.py                                           112    112     44      0   0.00%   3-244
+suite-core/core/flags/__init__.py                                       6      6      0      0   0.00%   11-17
+suite-core/core/flags/base.py                                          24     24      0      0   0.00%   7-187
+suite-core/core/flags/combined.py                                     105    105     30      0   0.00%   6-226
+suite-core/core/flags/ld_provider.py                                  116    116     36      0   0.00%   7-240
+suite-core/core/flags/local_provider.py                               136    136     82      0   0.00%   9-285
+suite-core/core/flags/namespace_adapter.py                             62     62     10      0   0.00%   7-195
+suite-core/core/flags/provider_factory.py                              37     37     10      0   0.00%   7-80
+suite-core/core/flags/registry.py                                     118    118     18      0   0.00%   11-621
+suite-core/core/hallucination_guards.py                               128    128     64      0   0.00%   3-319
+suite-core/core/iac.py                                                 86     86     42      0   0.00%   3-187
+suite-core/core/iac_db.py                                              56     56      6      0   0.00%   4-156
+suite-core/core/iac_models.py                                          30     30      0      0   0.00%   4-84
+suite-core/core/iac_scanner.py                                        271    271    100      0   0.00%   9-713
+suite-core/core/integration_db.py                                      64     64      6      0   0.00%   4-153
+suite-core/core/integration_models.py                                  37     37      6      0   0.00%   4-59
+suite-core/core/intelligent_security_engine.py                        324    324     52      0   0.00%   17-908
+suite-core/core/inventory_db.py                                        71     71      4      0   0.00%   4-222
+suite-core/core/inventory_models.py                                    54     54      0      0   0.00%   4-148
+suite-core/core/knowledge_brain.py                                    387    387     98      0   0.00%   9-858
+suite-core/core/learning_middleware.py                                 72     72     10      0   0.00%   9-196
+suite-core/core/llm_consensus.py                                      128    128     30      0   0.00%   25-387
+suite-core/core/llm_monitor.py                                        118    118     24      0   0.00%   13-312
+suite-core/core/llm_providers.py                                      200    200     38      0   0.00%   3-669
+suite-core/core/logging_config.py                                      50     50     16      0   0.00%   3-178
+suite-core/core/malware_detector.py                                   119    119     24      0   0.00%   14-381
+suite-core/core/mcp_server.py                                         422    422    110      0   0.00%   29-962
+suite-core/core/micro_pentest.py                                      571    571    204      0   0.00%   16-2046
+suite-core/core/ml/__init__.py                                          1      1      0      0   0.00%   21
+suite-core/core/ml/anomaly_detector.py                                245    245     80      0   0.00%   28-702
+suite-core/core/ml/autofix_confidence.py                              247    247     40      0   0.00%   50-727
+suite-core/core/ml/consensus_calibrator.py                            190    190     58      0   0.00%   34-553
+suite-core/core/ml/daily_intel.py                                     171    171     62      0   0.00%   24-418
+suite-core/core/ml/eventbus_integration.py                             84     84     18      0   0.00%   29-288
+suite-core/core/ml/parser_quality.py                                  210    210     76      0   0.00%   27-686
+suite-core/core/ml/risk_scorer.py                                     442    442    116      0   0.00%   40-1201
+suite-core/core/ml/threat_enricher.py                                 234    234     86      0   0.00%   32-599
+suite-core/core/model_factory.py                                       93     93     28      0   0.00%   3-158
+suite-core/core/model_registry.py                                     163    163     54      0   0.00%   3-463
+suite-core/core/models/__init__.py                                     12     12      6      0   0.00%   8-24
+suite-core/core/models/bayesian_network.py                             83     83     22      0   0.00%   3-271
+suite-core/core/models/bn_lr_hybrid.py                                117    117     32      0   0.00%   7-370
+suite-core/core/models/enterprise/__init__.py                           4      4      0      0   0.00%   3-7
+suite-core/core/models/enterprise/base.py                              61     61     10      0   0.00%   5-142
+suite-core/core/models/enterprise/base_sqlite.py                       60     60     10      0   0.00%   5-134
+suite-core/core/models/enterprise/security.py                         223    223     10      0   0.00%   6-505
+suite-core/core/models/enterprise/security_sqlite.py                  280    280     10      0   0.00%   6-564
+suite-core/core/models/enterprise/user.py                             119    119     16      0   0.00%   5-306
+suite-core/core/models/enterprise/user_sqlite.py                      160    160     14      0   0.00%   5-350
+suite-core/core/models/enterprise/waivers.py                           17     17      6      0   0.00%   3-42
+suite-core/core/models/markov_chain.py                                168    168     64      0   0.00%   7-569
+suite-core/core/models/weighted_scoring.py                             50     50     24      0   0.00%   3-136
+suite-core/core/modules.py                                             59     59     18      0   0.00%   3-142
+suite-core/core/monte_carlo.py                                        176    176     28      0   0.00%   15-571
+suite-core/core/mpte_advanced.py                                      323    323     64      0   0.00%   17-1078
+suite-core/core/mpte_db.py                                            155    155     22      0   0.00%   2-536
+suite-core/core/mpte_models.py                                         55     55      0      0   0.00%   2-129
+suite-core/core/onboarding.py                                          22     22      8      0   0.00%   3-50
+suite-core/core/oss_fallback.py                                       158    158     62      0   0.00%   6-371
+suite-core/core/overlay_runtime.py                                     70     70     38      0   0.00%   3-124
+suite-core/core/paths.py                                               81     81     36      0   0.00%   3-175
+suite-core/core/performance.py                                         64     64     14      0   0.00%   3-145
+suite-core/core/persistent_store.py                                    99     99     20      0   0.00%   18-167
+suite-core/core/playbook_runner.py                                    655    655    224      0   0.00%   22-1262
+suite-core/core/policy.py                                             121    121     32      0   0.00%   3-244
+suite-core/core/policy_db.py                                           64     64      6      0   0.00%   4-151
+suite-core/core/policy_models.py                                       17     17      0      0   0.00%   4-35
+suite-core/core/portfolio_search.py                                   149    149     62      0   0.00%   6-422
+suite-core/core/probabilistic.py                                      435    435    204      0   0.00%   3-692
+suite-core/core/processing_layer.py                                   212    212     98      0   0.00%   3-461
+suite-core/core/quantum_crypto.py                                     299    299     54      0   0.00%   31-656
+suite-core/core/real_scanner.py                                       632    632    224      0   0.00%   18-2059
+suite-core/core/report_db.py                                           97     97     10      0   0.00%   4-302
+suite-core/core/report_models.py                                       51     51      0      0   0.00%   4-124
+suite-core/core/safe_path_ops.py                                      203    203     96      0   0.00%   18-545
+suite-core/core/sandbox_verifier.py                                   437    437    116      0   0.00%   22-1178
+suite-core/core/sarif_canon.py                                        156    156     84      0   0.00%   3-261
+suite-core/core/sast_engine.py                                        178    178     66      0   0.00%   7-1622
+suite-core/core/scanner_parsers.py                                    607    607    262      0   0.00%   25-1229
+suite-core/core/secrets_db.py                                          56     56      6      0   0.00%   4-151
+suite-core/core/secrets_models.py                                      35     35      0      0   0.00%   4-82
+suite-core/core/secrets_scanner.py                                    293    293     84      0   0.00%   9-848
+suite-core/core/security_connectors.py                                641    641    144      0   0.00%   13-1324
+suite-core/core/self_learning.py                                      563    563    160      0   0.00%   26-1345
+suite-core/core/services/collaboration.py                             372    372     64      0   0.00%   3-1166
+suite-core/core/services/deduplication.py                             380    380     84      0   0.00%   3-1190
+suite-core/core/services/enterprise/__init__.py                         3      3      0      0   0.00%   3-6
+suite-core/core/services/enterprise/advanced_llm_engine.py            132    132     42      0   0.00%   6-347
+suite-core/core/services/enterprise/business_context_processor.py     175    175     80      0   0.00%   6-568
+suite-core/core/services/enterprise/cache_service.py                  272    272     72      0   0.00%   5-466
+suite-core/core/services/enterprise/chatgpt_client.py                  56     56     10      0   0.00%   18-173
+suite-core/core/services/enterprise/compliance_engine.py               45     45     12      0   0.00%   3-125
+suite-core/core/services/enterprise/correlation_engine.py             197    197     54      0   0.00%   6-668
+suite-core/core/services/enterprise/decision_engine.py                561    561    174      0   0.00%   6-1565
+suite-core/core/services/enterprise/enhanced_decision_engine.py       144    144     54      0   0.00%   6-686
+suite-core/core/services/enterprise/evidence_export.py                 67     67     14      0   0.00%   3-131
+suite-core/core/services/enterprise/evidence_lake.py                   78     78     10      0   0.00%   3-195
+suite-core/core/services/enterprise/explainability.py                  66     66     20      0   0.00%   3-122
+suite-core/core/services/enterprise/feeds_service.py                  150    150     36      0   0.00%   7-239
+suite-core/core/services/enterprise/fix_engine.py                      34     34      6      0   0.00%   6-110
+suite-core/core/services/enterprise/golden_regression_store.py        243    243     78      0   0.00%   2-507
+suite-core/core/services/enterprise/id_allocator.py                    29     29      8      0   0.00%   3-65
+suite-core/core/services/enterprise/knowledge_graph.py                419    419    164      0   0.00%   7-945
+suite-core/core/services/enterprise/llm_explanation_engine.py         178    178     64      0   0.00%   7-599
+suite-core/core/services/enterprise/marketplace.py                    309    309     76      0   0.00%   8-654
+suite-core/core/services/enterprise/metrics.py                        198    198     26      0   0.00%   3-381
+suite-core/core/services/enterprise/missing_oss_integrations.py       512    512    184      0   0.00%   10-1377
+suite-core/core/services/enterprise/oss_integrations.py               141    141     20      0   0.00%   5-361
+suite-core/core/services/enterprise/policy_engine.py                  322    322    142      0   0.00%   6-743
+suite-core/core/services/enterprise/processing_layer.py               360    360    106      0   0.00%   12-1040
+suite-core/core/services/enterprise/real_opa_engine.py                206    206     60      0   0.00%   7-475
+suite-core/core/services/enterprise/risk_scorer.py                     85     85     36      0   0.00%   3-142
+suite-core/core/services/enterprise/rl_controller.py                   69     69     10      0   0.00%   3-141
+suite-core/core/services/enterprise/run_registry.py                   108    108     26      0   0.00%   8-205
+suite-core/core/services/enterprise/sbom_parser.py                     29     29      6      0   0.00%   5-63
+suite-core/core/services/enterprise/signing.py                         27     27      2      0   0.00%   7-65
+suite-core/core/services/enterprise/vector_store.py                   178    178     38      0   0.00%   6-459
+suite-core/core/services/enterprise/vex_ingestion.py                  136    136     48      0   0.00%   10-298
+suite-core/core/services/fuzzy_identity.py                            262    262     92      0   0.00%   15-625
+suite-core/core/services/history.py                                    60     60      6      0   0.00%   3-238
+suite-core/core/services/identity.py                                  141    141     98      0   0.00%   9-334
+suite-core/core/services/remediation.py                               360    360     66      0   0.00%   3-1111
+suite-core/core/services/vector_store.py                              103    103     38      0   0.00%   3-183
+suite-core/core/severity_promotion.py                                 127    127     76      0   0.00%   3-296
+suite-core/core/single_agent.py                                       343    343     60      0   0.00%   29-805
+suite-core/core/soc2_evidence_generator.py                            145    145     32      0   0.00%   10-554
+suite-core/core/ssdlc.py                                              238    238     96      0   0.00%   3-427
+suite-core/core/stage_runner.py                                       629    629    306      0   0.00%   3-1149
+suite-core/core/storage.py                                             72     72     24      0   0.00%   3-138
+suite-core/core/storage_backends.py                                   485    485    134      0   0.00%   14-1223
+suite-core/core/structlog/__init__.py                                  14     14      2      0   0.00%   3-35
+suite-core/core/structlog/processors.py                                27     27      2      0   0.00%   3-53
+suite-core/core/structlog/stdlib.py                                    20     20      0      0   0.00%   3-45
+suite-core/core/tenancy.py                                             65     65     22      0   0.00%   3-154
+suite-core/core/tls_config.py                                          12     12      4      0   0.00%   15-39
+suite-core/core/user_db.py                                            137    137     10      0   0.00%   4-330
+suite-core/core/user_models.py                                         37     37      2      0   0.00%   4-96
+suite-core/core/vector_store.py                                       232    232     88      0   0.00%   3-436
+suite-core/core/verification_engine.py                                306    306    108      0   0.00%   17-747
+suite-core/core/vuln_intelligence.py                                    3      3      0      0   0.00%   18-23
+suite-core/core/workflow_db.py                                         97     97     10      0   0.00%   4-251
+suite-core/core/workflow_models.py                                     36     36      0      0   0.00%   4-75
+suite-core/core/zero_gravity.py                                       386    386     96      0   0.00%   29-844
+suite-core/services/graph/__init__.py                                   2      0      0      0 100.00%
+suite-core/services/graph/graph.py                                    432    363    176      0  11.35%   51-60, 64-69, 73-79, 84, 89, 92, 95, 98, 101-106, 113, 116-121, 124, 129-132, 135-138, 141-143, 146, 149, 152, 155-163, 167-174, 181-222, 227-231, 234, 239-246, 249-255, 260-285, 290-333, 336-369, 372-433, 436-485, 490-527, 530-588, 591-641, 647-685, 689-697, 701-712, 718-734
+suite-core/services/match/indexes.py                                   19     19      6      0   0.00%   3-54
+suite-core/services/match/join.py                                      13     13      2      0   0.00%   3-39
+suite-core/services/match/utils.py                                     91     91     36      0   0.00%   3-130
+suite-core/services/provenance/__init__.py                              2      0      0      0 100.00%
+suite-core/services/provenance/attestation.py                         285    207     74      0  21.73%   66-75, 83-88, 92-135, 169, 174, 180-212, 226-235, 241-255, 263-281, 295-317, 325-338, 346-352, 356-358, 371-415, 446, 454, 458-479, 502, 509, 532-563, 602-622, 627-633, 641-673
+suite-core/services/repro/__init__.py                                   2      2      0      0   0.00%   3-5
+suite-core/services/repro/verifier.py                                 168    168     70      0   0.00%   3-278
+suite-core/simulations/cve_scenario/__init__.py                         2      2      0      0   0.00%   3-5
+suite-core/simulations/cve_scenario/runner.py                         131    131     20      0   0.00%   1-393
+suite-core/telemetry/__init__.py                                      113     51      8      3  55.37%   55-61, 65-68, 72-76, 86-90, 94-97, 101-137, 150->152, 153->156, 169-173
+suite-core/telemetry/_noop.py                                          23     23      0      0   0.00%   3-112
+suite-core/telemetry/fastapi_noop.py                                    1      1      0      0   0.00%   3
+suite-evidence-risk/api/app.py                                         42     42      2      0   0.00%   7-101
+suite-evidence-risk/api/business_context.py                            62     62     20      0   0.00%   6-144
+suite-evidence-risk/api/business_context_enhanced.py                   74     74     16      0   0.00%   6-271
+suite-evidence-risk/api/compliance_engine_router.py                   100    100      2      0   0.00%   7-164
+suite-evidence-risk/api/evidence_init.py                                2      2      0      0   0.00%   3-5
+suite-evidence-risk/api/evidence_router.py                            561    561    154      0   0.00%   1-1736
+suite-evidence-risk/api/graph_init.py                                   2      2      0      0   0.00%   3-5
+suite-evidence-risk/api/graph_router.py                                65     65      8      0   0.00%   1-110
+suite-evidence-risk/api/provenance_init.py                              2      2      0      0   0.00%   3-5
+suite-evidence-risk/api/provenance_router.py                           39     39      8      0   0.00%   3-62
+suite-evidence-risk/api/risk_init.py                                    2      2      0      0   0.00%   3-5
+suite-evidence-risk/api/risk_router.py                                 79     79     22      0   0.00%   3-139
+suite-evidence-risk/compliance/__init__.py                              2      2      0      0   0.00%   3-10
+suite-evidence-risk/compliance/compliance_engine.py                   278    278     78      0   0.00%   24-829
+suite-evidence-risk/compliance/mapping.py                              68     68     26      0   0.00%   3-301
+suite-evidence-risk/compliance/templates/__init__.py                    6      6      0      0   0.00%   6-12
+suite-evidence-risk/compliance/templates/base.py                       27     27      0      0   0.00%   3-51
+suite-evidence-risk/compliance/templates/hipaa.py                      10     10      0      0   0.00%   3-41
+suite-evidence-risk/compliance/templates/nist.py                       10     10      0      0   0.00%   6-72
+suite-evidence-risk/compliance/templates/owasp.py                      26     26      2      0   0.00%   6-203
+suite-evidence-risk/compliance/templates/pci_dss.py                    10     10      0      0   0.00%   3-47
+suite-evidence-risk/compliance/templates/soc2.py                       10     10      0      0   0.00%   3-53
+suite-evidence-risk/evidence/__init__.py                                2      2      0      0   0.00%   3-5
+suite-evidence-risk/evidence/packager.py                              184    184     72      0   0.00%   3-334
+suite-evidence-risk/risk/dependency_graph.py                          113    113     42      0   0.00%   6-236
+suite-evidence-risk/risk/dependency_health.py                         113    113     34      0   0.00%   6-261
+suite-evidence-risk/risk/dependency_realtime.py                       181    181     70      0   0.00%   6-368
+suite-evidence-risk/risk/enrichment.py                                183    183    130      0   0.00%   3-305
+suite-evidence-risk/risk/feeds/__init__.py                             11     11      0      0   0.00%   3-51
+suite-evidence-risk/risk/feeds/base.py                                126    126     12      0   0.00%   3-328
+suite-evidence-risk/risk/feeds/ecosystems.py                           96     96     20      0   0.00%   6-341
+suite-evidence-risk/risk/feeds/epss.py                                 96     96     28      0   0.00%   3-140
+suite-evidence-risk/risk/feeds/exploits.py                            142    142     38      0   0.00%   6-423
+suite-evidence-risk/risk/feeds/github.py                               91     91     34      0   0.00%   6-261
+suite-evidence-risk/risk/feeds/kev.py                                  84     84     24      0   0.00%   3-128
+suite-evidence-risk/risk/feeds/nvd.py                                 107    107     48      0   0.00%   6-233
+suite-evidence-risk/risk/feeds/orchestrator.py                        144    144     42      0   0.00%   6-378
+suite-evidence-risk/risk/feeds/osv.py                                  92     92     38      0   0.00%   7-223
+suite-evidence-risk/risk/feeds/vendors.py                              65     65      8      0   0.00%   6-259
+suite-evidence-risk/risk/forecasting.py                                92     92     30      0   0.00%   3-285
+suite-evidence-risk/risk/iac/__init__.py                                5      5      0      0   0.00%   6-15
+suite-evidence-risk/risk/iac/terraform.py                             106    106     18      0   0.00%   3-256
+suite-evidence-risk/risk/license_compliance.py                         87     87     18      0   0.00%   3-235
+suite-evidence-risk/risk/reachability/__init__.py                      11     11      0      0   0.00%   3-21
+suite-evidence-risk/risk/reachability/analyzer.py                     272    272     96      0   0.00%   3-798
+suite-evidence-risk/risk/reachability/api.py                          173    173     18      0   0.00%   3-489
+suite-evidence-risk/risk/reachability/cache.py                         65     65     10      0   0.00%   3-165
+suite-evidence-risk/risk/reachability/call_graph.py                    89     89     26      0   0.00%   3-213
+suite-evidence-risk/risk/reachability/code_analysis.py                199    199     56      0   0.00%   3-553
+suite-evidence-risk/risk/reachability/data_flow.py                     53     53     16      0   0.00%   3-149
+suite-evidence-risk/risk/reachability/enterprise_features.py          129    129     40      0   0.00%   3-366
+suite-evidence-risk/risk/reachability/git_integration.py              199    199     72      0   0.00%   3-486
+suite-evidence-risk/risk/reachability/job_queue.py                    169    169     32      0   0.00%   3-365
+suite-evidence-risk/risk/reachability/monitoring.py                    98     98     30      0   0.00%   3-243
+suite-evidence-risk/risk/reachability/proprietary_analyzer.py         411    411    164      0   0.00%   7-964
+suite-evidence-risk/risk/reachability/proprietary_consensus.py        133    133     44      0   0.00%   7-299
+suite-evidence-risk/risk/reachability/proprietary_scoring.py          124    124     38      0   0.00%   8-376
+suite-evidence-risk/risk/reachability/proprietary_threat_intel.py     139    139     52      0   0.00%   7-325
+suite-evidence-risk/risk/reachability/storage.py                       99     99      2      0   0.00%   3-334
+suite-evidence-risk/risk/runtime/__init__.py                            5      5      0      0   0.00%   7-12
+suite-evidence-risk/risk/runtime/cloud.py                             386    386    148      0   0.00%   6-857
+suite-evidence-risk/risk/runtime/container.py                         143    143     42      0   0.00%   6-331
+suite-evidence-risk/risk/runtime/iast.py                              181    181     58      0   0.00%   7-400
+suite-evidence-risk/risk/runtime/iast_advanced.py                     325    325     78      0   0.00%   12-675
+suite-evidence-risk/risk/runtime/rasp.py                              134    134     38      0   0.00%   6-353
+suite-evidence-risk/risk/scoring.py                                   216    216     90      0   0.00%   3-461
+suite-evidence-risk/risk/secrets_detection.py                          88     88     14      0   0.00%   3-232
+suite-evidence-risk/risk/threat_model.py                              157    157     98      0   0.00%   3-377
+suite-feeds/api/app.py                                                 38     38      2      0   0.00%   7-95
+suite-feeds/api/feeds_router.py                                       359    359     78      0   0.00%   15-1211
+suite-integrations/api/app.py                                          42     42      2      0   0.00%   7-103
+suite-integrations/api/iac_router.py                                   81     81     10      0   0.00%   7-229
+suite-integrations/api/ide_router.py                                  254    254    104      0   0.00%   11-980
+suite-integrations/api/integrations_router.py                         239    239    110      0   0.00%   4-514
+suite-integrations/api/mcp_router.py                                  117    117     28      0   0.00%   7-449
+suite-integrations/api/oss_tools.py                                    89     89     10      0   0.00%   4-165
+suite-integrations/api/webhooks_router.py                             693    693    148      0   0.00%   11-1863
+suite-integrations/integrations/github/__init__.py                      2      2      0      0   0.00%   3-5
+suite-integrations/integrations/github/adapter.py                      59     59     24      0   0.00%   3-105
+suite-integrations/integrations/jenkins/__init__.py                     2      2      0      0   0.00%   3-5
+suite-integrations/integrations/jenkins/adapter.py                     37     37     16      0   0.00%   3-82
+suite-integrations/integrations/mpte_client.py                        169    169     32      0   0.00%   2-386
+suite-integrations/integrations/mpte_decision_integration.py           60     60     28      0   0.00%   2-277
+suite-integrations/integrations/mpte_service.py                       160    160     54      0   0.00%   2-468
+suite-integrations/integrations/sonarqube/__init__.py                   2      2      0      0   0.00%   3-5
+suite-integrations/integrations/sonarqube/adapter.py                   19     19      4      0   0.00%   3-51
+suite-integrations/ssvc/__init__.py                                    34     34      4      0   0.00%   3-63
+suite-integrations/ssvc/plugins/deployer.py                            79     79     10      0   0.00%   3-161
+----------------------------------------------------------------------------------------------------------------
+TOTAL                                                               67261  66277  19162     55   1.42%
+
+9 empty files skipped.
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
+FAIL Required test coverage of 25% not reached. Total coverage: 1.42%
+============================= slowest 10 durations =============================
+0.01s call     tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_add_and_get_edge
+0.01s call     tests/test_attack_graph_gnn_unit.py::TestGraphNeuralPredictor::test_init
+0.01s call     tests/test_knowledge_graph.py::test_knowledge_graph_service_builds_snapshot
+0.01s call     tests/test_attack_graph_gnn_unit.py::TestSecurityGraph::test_add_node
+0.00s call     tests/test_attack_graph_gnn_unit.py::TestGraphNeuralPredictor::test_identify_critical_nodes
+0.00s call     tests/test_attack_graph_gnn_unit.py::TestAnalyzeAttackSurface::test_basic_analysis
+0.00s call     tests/test_attack_graph_gnn_unit.py::TestGraphNeuralPredictor::test_find_attack_paths
+0.00s call     tests/test_falkordb_client_unit.py::TestKnowledgeGraphEngine::test_ingest_findings_basic
+0.00s call     tests/test_attack_graph_gnn_unit.py::TestGraphNeuralPredictor::test_compute_node_embeddings
+0.00s call     tests/test_falkordb_client_unit.py::TestNetworkXGraphBackend::test_betweenness_centrality_approx_small
+============================= 102 passed in 10.70s =============================

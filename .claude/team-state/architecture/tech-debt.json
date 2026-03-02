@@ -1,7 +1,7 @@
 {
   "last_updated": "2026-03-02",
-  "updated_by": "enterprise-architect (Run 5)",
-  "total_items": 19,
+  "updated_by": "enterprise-architect (Run 7 — Quality + Performance)",
+  "total_items": 22,
   "items": [
     {
       "id": "TD-001",
@@ -60,14 +60,15 @@
     },
     {
       "id": "TD-006",
-      "title": "87 ruff lint warnings (down from 174)",
+      "title": "77 ruff lint warnings (all E402 architectural)",
       "severity": "low",
-      "impact": "Code style inconsistency. 77 E402 (module-import-not-at-top — architectural), 5 F401 (unused-import), 4 E701, 1 F841.",
-      "fix": "Auto-fix unused imports. E402 is architectural (sitecustomize.py pattern).",
-      "effort_days": 0.5,
-      "priority": "phase1",
+      "impact": "Code style: 77 E402 (module-import-not-at-top). All caused by sitecustomize.py pattern. Zero actionable issues.",
+      "fix": "E402 is architectural (sitecustomize.py pattern). All F401/F821 fixed. 0 actionable items.",
+      "effort_days": 0,
+      "priority": "done",
       "pillar": "V10",
-      "files_affected": ["suite-core/", "suite-api/", "suite-attack/"]
+      "files_affected": ["suite-core/", "suite-api/", "suite-attack/"],
+      "note": "Run 7: Fixed 2 F821 (undefined-name Event) in eventbus_integration.py via TYPE_CHECKING import. 79→77 total. All zero actionable."
     },
     {
       "id": "TD-007",
@@ -93,7 +94,7 @@
     },
     {
       "id": "TD-009",
-      "title": "Test coverage at 5.09% (gate: 25%)",
+      "title": "Test coverage at 4.99% (gate: 25%)",
       "severity": "high",
       "impact": "CI gate fails. pyproject.toml config was fixed (DEMO-006) but coverage includes all modules now, many at 0%.",
       "fix": "Focus test writing on measured modules. Target: 25% minimum across all suites.",
@@ -101,7 +102,7 @@
       "priority": "phase1",
       "pillar": "V10",
       "files_affected": ["tests/", "pyproject.toml"],
-      "note": "Coverage dropped from 19% because pyproject.toml now measures ALL suites instead of a subset. Latest run: 5.09%."
+      "note": "Coverage dropped from 19% because pyproject.toml now correctly measures ALL suites. Latest verified run: 4.99% (288 core tests)."
     },
     {
       "id": "TD-010",
@@ -182,12 +183,12 @@
     },
     {
       "id": "TD-017",
-      "title": "SQLite connection leaks in history.py",
+      "title": "SQLite connection leaks in history.py — FIXED 2026-03-02",
       "severity": "medium",
-      "impact": "5 methods in history.py create sqlite3.connect() without try/finally. If any INSERT fails, connection leaks. Under error conditions (disk full, schema mismatch, concurrent writes), connections exhaust file descriptors.",
-      "fix": "Wrap all 5 sqlite3.connect() blocks in try/finally: conn.close(). Pattern: follow deduplication.py and remediation.py which already do this correctly.",
-      "effort_days": 0.5,
-      "priority": "phase2",
+      "impact": "5 methods in history.py create sqlite3.connect() without try/finally. FIXED.",
+      "fix": "FIXED: Wrapped all 5 sqlite3.connect() blocks in try/finally: conn.close().",
+      "effort_days": 0,
+      "priority": "done",
       "pillar": "V10",
       "files_affected": ["suite-core/core/services/history.py"],
       "found_by": "enterprise-architect reliability review 2026-03-02"
@@ -197,7 +198,7 @@
       "title": "No circuit breakers for LLM and MPTE calls in Brain Pipeline",
       "severity": "medium",
       "impact": "When LLM API or MPTE service is down, every Brain Pipeline run wastes 60-120s per call on timeouts before fallback. With circuit breaker, subsequent calls would short-circuit in <1ms after 3 failures.",
-      "fix": "Reuse _AsyncCircuitBreaker from universal_connector.py. Add module-level circuit breakers for LLM (Step 9) and MPTE (Step 10). State: OPEN after 3 failures, recovery after 60s.",
+      "fix": "Reuse _AsyncCircuitBreaker from suite-core/connectors/universal_connector.py. Add module-level circuit breakers for LLM (Step 9) and MPTE (Step 10). State: OPEN after 3 failures, recovery after 60s.",
       "effort_days": 1,
       "priority": "phase2",
       "pillar": "V3",
@@ -206,39 +207,81 @@
     },
     {
       "id": "TD-019",
-      "title": "No per-step timeouts in Brain Pipeline",
+      "title": "No per-step timeouts in Brain Pipeline (Steps 3,5,6,7,8,11)",
       "severity": "low",
-      "impact": "Individual steps can hang without detection until the 300s global pipeline timeout. LLM consensus (Step 9) and MPTE (Step 10) are most likely to hang.",
+      "impact": "Individual steps can hang without detection until the 300s global pipeline timeout. Steps 9 (LLM) and 10 (MPTE) already have thread-pool timeouts. Steps 3,5,6,7,8,11 do not.",
       "fix": "Add per-step configurable timeouts: 30s default, 60s LLM, 120s MPTE. Use threading.Timer or signal.alarm for enforcement.",
       "effort_days": 0.5,
       "priority": "phase2",
       "pillar": "V3",
       "files_affected": ["suite-core/core/brain_pipeline.py"],
       "found_by": "enterprise-architect reliability review 2026-03-02"
+    },
+    {
+      "id": "TD-020",
+      "title": "Dedup Service opens N DB connections per batch",
+      "severity": "medium",
+      "impact": "process_finding() opens a new sqlite3.connect() for EACH finding. For 1000 findings = 1000 connections opened/closed. SQLite open/close is ~1ms per connection. At 10K findings = ~10s overhead from connection management alone.",
+      "fix": "Refactor process_findings_batch() to open ONE connection, pass to process_finding(), batch commit every 100 findings.",
+      "effort_days": 1,
+      "priority": "phase2",
+      "pillar": "V3",
+      "files_affected": ["suite-core/core/services/deduplication.py"],
+      "found_by": "enterprise-architect performance review 2026-03-02"
+    },
+    {
+      "id": "TD-021",
+      "title": "Brain Pipeline Steps 9+10 sequential but independent",
+      "severity": "medium",
+      "impact": "LLM consensus (Step 9, up to 60s) and MPTE (Step 10, up to 120s) run sequentially. Both are I/O-bound and independent. Combined worst case: 180s. If parallelized: max(60s, 120s) = 120s. Saves 60s per pipeline run.",
+      "fix": "Use asyncio.gather() or concurrent.futures.ThreadPoolExecutor to run Steps 9 and 10 in parallel when both are enabled.",
+      "effort_days": 1,
+      "priority": "phase2",
+      "pillar": "V3",
+      "files_affected": ["suite-core/core/brain_pipeline.py"],
+      "found_by": "enterprise-architect performance review 2026-03-02"
+    },
+    {
+      "id": "TD-022",
+      "title": "AutoFixEngine created per finding in Step 11 — FIXED 2026-03-02",
+      "severity": "low",
+      "impact": "AutoFixEngine() was instantiated inside the per-finding loop in Step 11 (run_playbooks). Each instance creates empty caches. For 50 blocked findings = 50 instantiations.",
+      "fix": "FIXED: Hoisted AutoFixEngine creation outside the loop. Now O(1) instantiation.",
+      "effort_days": 0,
+      "priority": "done",
+      "pillar": "V3",
+      "files_affected": ["suite-core/core/brain_pipeline.py"],
+      "found_by": "enterprise-architect performance review 2026-03-02"
     }
   ],
   "summary": {
     "phase1_critical": 4,
-    "phase2_planned": 11,
+    "phase2_planned": 12,
     "phase3_future": 1,
-    "done": 3,
-    "total_effort_days": 58,
+    "done": 5,
+    "total_effort_days": 59,
     "bandit_total": 456,
     "bandit_high": 0,
     "bandit_medium": 63,
     "bandit_low": 393,
     "bandit_top5_ids": "B101(185), B110(101), B105(34), B608(27), B603(26)",
-    "ruff_warnings": 87,
-    "ruff_actionable": 10,
+    "ruff_warnings": 77,
+    "ruff_actionable": 0,
     "ruff_architectural_e402": 77,
-    "test_coverage": "5.09%",
-    "test_coverage_note": "Latest measurement from core tests. Full suite coverage dropped from 19% because config now correctly measures ALL suites.",
+    "ruff_note": "Run 7: Fixed 2 F821 (79→77). Only E402 remains (architectural). Zero actionable issues.",
+    "test_coverage": "4.99%",
+    "test_coverage_note": "Latest verified run (288/288 pass, 21.40s). Coverage measures ALL suites per DEMO-006 fix.",
     "core_tests": "288/288 PASS",
     "scanner_parser_tests": "142/142 PASS (included in core 288)",
     "self_learning_tests": "73 PASS (included in core 288)",
     "brain_pipeline_tests": "73 PASS (included in core 288)",
     "xml_vulnerability_fixed": true,
     "defusedxml_deployed": true,
-    "reliability_review": "2026-03-02 — Grade B-. History.py connection leaks found (TD-017). No circuit breakers on LLM/MPTE (TD-018). No per-step timeouts (TD-019)."
+    "reliability_review": "2026-03-02 — Grade B-. History.py connection leaks FIXED (TD-017). AutoFixEngine per-finding FIXED (TD-022). Dedup connection-per-finding logged (TD-020).",
+    "performance_review": "2026-03-02 Run 7 — Grade B. Dedup N-connections (TD-020). Steps 9+10 sequential (TD-021). AutoFixEngine loop FIXED (TD-022). All memory bounds enforced. Parallelization blueprint documented.",
+    "bugs_fixed_run6": ["TD-006 (5 unused imports)", "TD-022 (AutoFixEngine hoisting)", "deduplication.py connection leak (try/finally)"],
+    "bugs_fixed_run7": ["F821 undefined-name Event in eventbus_integration.py (TYPE_CHECKING import)"],
+    "adrs_written": 9,
+    "reviews_completed": 5
   }
 }

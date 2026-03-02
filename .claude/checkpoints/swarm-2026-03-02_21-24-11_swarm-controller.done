@@ -1,0 +1,13 @@
+{
+  "agent": "swarm-controller",
+  "status": "completed",
+  "run_id": "swarm-2026-03-02_21-24-11",
+  "timestamp": "2026-03-02T13:26:08Z",
+  "duration_s": 816,
+  "attempts": 1,
+  "output_bytes": 1596,
+  "confidence": "HIGH",
+  "free_ram_mb": 7771,
+  "git_changes": " tests/test_vuln_discovery_unit.py                  |      6 -  tests/test_webhooks_router_unit.py                 |      7 +-  tests/test_zero_gravity_unit.py                    |      6 -  tools/generate_pentest_report.py                   |     27 +-  285 files changed, 166573 insertions(+), 135083 deletions(-) ",
+  "log_file": "/Users/devops.ai/developement/fixops/Fixops/logs/ai-team/2026-03-02_swarm-controller_swarm-2026-03-02_21-24-11.log"
+}

@@ -1,0 +1,126 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://aldeci.dev/vex/multi-arch-2026-03-02",
+  "author": "ALdeci Threat Architect",
+  "role": "Security Assessor",
+  "timestamp": "2026-03-02T23:00:00Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "@id": "https://nvd.nist.gov/vuln/detail/CVE-2024-22259",
+        "name": "CVE-2024-22259",
+        "description": "Spring Framework URL parsing vulnerability allows open redirect"
+      },
+      "products": [
+        {
+          "@id": "pkg:maven/org.springframework.boot/spring-boot-starter-web@3.2.3",
+          "identifiers": {"purl": "pkg:maven/org.springframework.boot/spring-boot-starter-web@3.2.3"}
+        }
+      ],
+      "status": "affected",
+      "justification": "vulnerable_code_in_use",
+      "impact_statement": "The e-commerce platform uses Spring Boot 3.2.3 which includes the vulnerable URL parsing code. The API Gateway component exposes this to internet-facing traffic through the ALB. Exploitation could allow request smuggling to internal microservices.",
+      "action_statement": "Upgrade to Spring Boot 3.2.4+ which patches CVE-2024-22259. Apply WAF rules to block crafted URL patterns in the interim."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://nvd.nist.gov/vuln/detail/CVE-2024-0057",
+        "name": "CVE-2024-0057",
+        "description": ".NET X.509 certificate chain validation bypass"
+      },
+      "products": [
+        {
+          "@id": "pkg:nuget/Microsoft.AspNetCore.App@8.0.2",
+          "identifiers": {"purl": "pkg:nuget/Microsoft.AspNetCore.App@8.0.2"}
+        }
+      ],
+      "status": "affected",
+      "justification": "vulnerable_code_in_use",
+      "impact_statement": "CRITICAL for Healthcare and GovCloud architectures: .NET 8.0.2 X.509 chain validation bypass could allow spoofed certificates in CAC/PIV authentication (GovCloud) or FHIR endpoint mTLS (Healthcare). Both architectures rely on certificate-based trust.",
+      "action_statement": "Upgrade to .NET 8.0.3+ immediately. This is a P0 for FedRAMP environments where CAC/PIV auth is mandatory per NIST IA-2(6)."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://nvd.nist.gov/vuln/detail/CVE-2023-46604",
+        "name": "CVE-2023-46604",
+        "description": "Apache ActiveMQ RCE via OpenWire protocol"
+      },
+      "products": [
+        {
+          "@id": "pkg:maven/org.apache.kafka/kafka-clients@3.7.0",
+          "identifiers": {"purl": "pkg:maven/org.apache.kafka/kafka-clients@3.7.0"}
+        }
+      ],
+      "status": "under_investigation",
+      "justification": "requires_further_analysis",
+      "impact_statement": "The IoT/OT platform uses Kafka 3.7.0 which may share OpenWire protocol dependencies. If ActiveMQ is used in the message broker chain, this CVE enables unauthenticated RCE with CVSS 10.0. SCADA telemetry flows through Kafka — compromise would enable physical process manipulation.",
+      "action_statement": "Verify if ActiveMQ is in the dependency chain. If yes, upgrade immediately. Apply network segmentation between Kafka brokers and OT Level 2 per Purdue Model."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://nvd.nist.gov/vuln/detail/CVE-2023-44487",
+        "name": "CVE-2023-44487",
+        "description": "HTTP/2 Rapid Reset attack"
+      },
+      "products": [
+        {
+          "@id": "pkg:nuget/Microsoft.AspNetCore.App@8.0.2",
+          "identifiers": {"purl": "pkg:nuget/Microsoft.AspNetCore.App@8.0.2"}
+        },
+        {
+          "@id": "pkg:generic/istio@1.20.3",
+          "identifiers": {"purl": "pkg:generic/istio@1.20.3"}
+        }
+      ],
+      "status": "affected",
+      "justification": "vulnerable_code_in_use",
+      "impact_statement": "Both Healthcare (.NET Kestrel) and GovCloud (Istio service mesh) are vulnerable to HTTP/2 Rapid Reset DoS. Istio's ingress gateway handles all east-west traffic in the GovCloud enclave — a DoS here would disable the entire case management platform.",
+      "action_statement": "Apply HTTP/2 connection limits in Istio EnvoyFilter. Update .NET Kestrel configuration with MaxConcurrentStreams limits. Deploy rate limiting at the ingress gateway."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://nvd.nist.gov/vuln/detail/CVE-2023-35116",
+        "name": "CVE-2023-35116",
+        "description": "Jackson-databind denial of service via crafted object"
+      },
+      "products": [
+        {
+          "@id": "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.16.1",
+          "identifiers": {"purl": "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.16.1"}
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execution_path",
+      "impact_statement": "The e-commerce platform uses Jackson 2.16.1 for JSON serialization, but the specific polymorphic deserialization pattern required by CVE-2023-35116 is not present in the codebase. Default typing is disabled, and all models use explicit type annotations.",
+      "action_statement": "No immediate action required. Monitor for updated severity assessment. Consider upgrading to Jackson 2.17.x in next maintenance window."
+    },
+    {
+      "vulnerability": {
+        "@id": "https://nvd.nist.gov/vuln/detail/CVE-2023-3592",
+        "name": "CVE-2023-3592",
+        "description": "Eclipse Mosquitto memory leak via malformed CONNECT packets"
+      },
+      "products": [
+        {
+          "@id": "pkg:generic/eclipse-mosquitto@2.0.18",
+          "identifiers": {"purl": "pkg:generic/eclipse-mosquitto@2.0.18"}
+        }
+      ],
+      "status": "affected",
+      "justification": "vulnerable_code_in_use",
+      "impact_statement": "The IoT/OT MQTT broker is directly exposed to edge devices (Level 1-2 in Purdue Model). Memory leak from malformed CONNECT packets could crash the broker, causing telemetry blackout for all connected SCADA/PLC devices. This has SAFETY implications if process monitoring is disrupted.",
+      "action_statement": "Upgrade Mosquitto to 2.0.19+. Deploy MQTT protocol inspector at the DMZ boundary (Level 3.5) to filter malformed packets before they reach the broker."
+    }
+  ],
+  "metadata": {
+    "architectures_assessed": ["ecommerce-aws", "healthcare-azure", "finserv-multicloud", "iot-ot-hybrid", "govcloud-fedramp"],
+    "total_cves_assessed": 6,
+    "status_breakdown": {
+      "affected": 4,
+      "not_affected": 1,
+      "under_investigation": 1
+    },
+    "assessment_methodology": "SBOM-based correlation + code review + runtime analysis"
+  }
+}

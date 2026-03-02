@@ -19,7 +19,6 @@ Covers:
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -601,7 +600,7 @@ class TestRemediationEngine:
         assert "manual" in result.fix_description.lower()
 
     def test_remediate_stores_result(self, engine):
-        result = engine.remediate(
+        engine.remediate(
             "F-003", {"severity": "low"}, strategy=RemediationStrategy.MANUAL
         )
         assert "F-003" in engine._results

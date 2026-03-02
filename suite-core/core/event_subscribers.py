@@ -177,9 +177,25 @@ def register_all_subscribers() -> int:
 
     bus.subscribe_all(_on_wildcard)
 
+    # [V3] Register ML EventBus handlers (anomaly detection + parser quality)
+    ml_handlers_registered = False
+    try:
+        from core.ml.eventbus_integration import register_ml_handlers
+
+        ml_handlers_registered = register_ml_handlers(bus)
+        if ml_handlers_registered:
+            logger.info("ML EventBus handlers registered (anomaly_detector, parser_quality)")
+    except Exception as exc:
+        logger.debug("ML EventBus handlers skipped: %s", exc)
+
     _registered = True
     count = len(handlers) + 1  # +1 for wildcard
+    if ml_handlers_registered:
+        count += 2  # anomaly_detector + parser_quality on SCAN_COMPLETED
     logger.info(
-        "Registered %d event subscribers (%d typed + 1 wildcard)", count, len(handlers)
+        "Registered %d event subscribers (%d typed + 1 wildcard + %d ML)",
+        count,
+        len(handlers),
+        2 if ml_handlers_registered else 0,
     )
     return count

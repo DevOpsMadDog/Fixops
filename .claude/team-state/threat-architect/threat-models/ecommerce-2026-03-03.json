@@ -1,0 +1,386 @@
+{
+  "threat_model": {
+    "name": "Acme E-Commerce Platform v3.1 Week 2 -- STRIDE + MITRE ATT&CK",
+    "version": "3.1.0",
+    "date": "2026-03-03",
+    "methodology": ["STRIDE", "MITRE ATT&CK v14"],
+    "architecture_ref": "design-ecommerce-2026-03-03.csv",
+    "sbom_ref": "sbom-ecommerce-2026-03-03.json",
+    "sarif_ref": "sarif-ecommerce-2026-03-03.json",
+    "cnapp_ref": "cnapp-ecommerce-2026-03-03.json"
+  },
+  "threats": [
+    {
+      "id": "TM-EC31-001",
+      "category": "Spoofing",
+      "component": "C028 (Cognito User Pool)",
+      "title": "Credential stuffing against Cognito authentication endpoint",
+      "description": "Attacker leverages credential databases from breached sites (e.g., Collection #1-5 with 2.2B records) to mass-authenticate against the Cognito user pool. Without WAF rate limiting (CNAPP-AWS-EC-007), the attacker can test thousands of credential pairs per minute against the /api/auth/login endpoint. Successful auth yields JWT tokens with access to payment methods, order history, and PII.",
+      "mitre_technique": "T1078.004 -- Valid Accounts: Cloud Accounts",
+      "mitre_tactic": "Initial Access",
+      "likelihood": 4,
+      "impact": 4,
+      "risk_score": 16,
+      "cves": [],
+      "mitigations": [
+        "Associate AWS WAF with ALB and enable AWSManagedRulesBotControlRuleSet",
+        "Enable Cognito advanced security features for risk-based adaptive authentication",
+        "Enforce MFA for all user accounts via Cognito user pool settings",
+        "Implement CAPTCHA challenge after 3 consecutive failed login attempts",
+        "Deploy credential breach detection using HaveIBeenPwned API integration"
+      ],
+      "status": "identified",
+      "pci_relevant": false
+    },
+    {
+      "id": "TM-EC31-002",
+      "category": "Spoofing",
+      "component": "C007 (Auth Service)",
+      "title": "JWT token forgery via weak signing secret",
+      "description": "If the JWT signing secret stored in Secrets Manager is compromised through the SSRF chain (CVE-2024-22259 + CNAPP-AWS-EC-002 over-privileged IAM role), an attacker can forge valid JWT tokens for any user including administrators. The forged token bypasses all authentication checks across all microservices that validate JWTs.",
+      "mitre_technique": "T1134.001 -- Access Token Manipulation: Token Impersonation/Theft",
+      "mitre_tactic": "Privilege Escalation",
+      "likelihood": 3,
+      "impact": 5,
+      "risk_score": 15,
+      "cves": ["CVE-2024-22259"],
+      "mitigations": [
+        "Use RS256 asymmetric JWT signing instead of HS256 symmetric secret",
+        "Rotate JWT signing keys every 24 hours with grace period for validation",
+        "Implement JWT token binding to client IP and User-Agent fingerprint",
+        "Add short expiration (15 min access, 7 day refresh) with token revocation list in Redis"
+      ],
+      "status": "identified",
+      "pci_relevant": true
+    },
+    {
+      "id": "TM-EC31-003",
+      "category": "Tampering",
+      "component": "C012 (Payment Service)",
+      "title": "Payment amount manipulation in inter-service transit",
+      "description": "Attacker who has compromised the Order Service (via deserialization CWE-502) modifies the payment amount in the internal API call from Order Service to Payment Service. Without HMAC-signed payloads between services, the Payment Service accepts the tampered amount. The attacker can set order totals to $0.01 while receiving full-price merchandise.",
+      "mitre_technique": "T1565.002 -- Data Manipulation: Transmitted Data Manipulation",
+      "mitre_tactic": "Impact",
+      "likelihood": 3,
+      "impact": 5,
+      "risk_score": 15,
+      "cves": [],
+      "mitigations": [
+        "HMAC-SHA256 signature on payment request payloads using per-service signing keys",
+        "Server-side price recalculation from product catalog database in Payment Service",
+        "Mutual TLS between Order and Payment services with certificate pinning",
+        "Idempotency keys with server-side amount verification against original cart"
+      ],
+      "status": "identified",
+      "pci_relevant": true
+    },
+    {
+      "id": "TM-EC31-004",
+      "category": "Tampering",
+      "component": "C013 (RDS PostgreSQL)",
+      "title": "SQL injection leading to cardholder data extraction",
+      "description": "CVE-2024-1597 (CVSS 9.8) in PostgreSQL JDBC driver combined with the CWE-89 finding in UserController.java:42 creates a confirmed SQL injection path. The user-search microservice uses PreferQueryMode=SIMPLE which is the exact vulnerable configuration. Attacker injects UNION SELECT to extract tokenized card data, billing addresses, and transaction history from the payments schema.",
+      "mitre_technique": "T1190 -- Exploit Public-Facing Application",
+      "mitre_tactic": "Initial Access",
+      "likelihood": 5,
+      "impact": 5,
+      "risk_score": 25,
+      "cves": ["CVE-2024-1597"],
+      "mitigations": [
+        "Upgrade postgresql JDBC to 42.7.3 immediately (P0)",
+        "Remove PreferQueryMode=SIMPLE from user-search connection string",
+        "Enforce parameterized queries via static analysis rule in CI/CD pipeline",
+        "Database-level: revoke SELECT on payments schema from user-search service account",
+        "Deploy AWS WAF SQLi rule set as defense-in-depth (CNAPP-AWS-EC-007)"
+      ],
+      "status": "identified",
+      "pci_relevant": true
+    },
+    {
+      "id": "TM-EC31-005",
+      "category": "Repudiation",
+      "component": "C010 (Order Service)",
+      "title": "Order transaction audit log gaps enable fraud disputes",
+      "description": "CloudTrail data events are disabled for RDS and Lambda (CNAPP-AWS-EC-005). A malicious insider or compromised service can modify order records, refund transactions, or delete entries without a tamper-evident audit trail. Customer disputes cannot be resolved because there is no cryptographic proof of the original transaction state.",
+      "mitre_technique": "T1070.003 -- Indicator Removal: Clear Command History",
+      "mitre_tactic": "Defense Evasion",
+      "likelihood": 2,
+      "impact": 4,
+      "risk_score": 8,
+      "cves": [],
+      "mitigations": [
+        "Enable CloudTrail data events for RDS and Lambda (fix CNAPP-AWS-EC-005)",
+        "Implement application-level audit log with immutable append-only storage",
+        "Use PostgreSQL row-level security to prevent UPDATE/DELETE on finalized orders",
+        "Ship audit logs to a separate AWS account with S3 Object Lock (WORM)"
+      ],
+      "status": "identified",
+      "pci_relevant": true
+    },
+    {
+      "id": "TM-EC31-006",
+      "category": "Information Disclosure",
+      "component": "C004 (API Gateway)",
+      "title": "Stack trace information leakage via error handler",
+      "description": "The global ErrorHandler.java (CWE-200 SARIF finding) returns full Java stack traces in HTTP 500 responses including Hibernate entity class names, PostgreSQL table schemas, internal service hostnames, and Spring Security filter chain details. This information accelerates all other attacks by revealing the exact technology stack, version numbers, and internal architecture.",
+      "mitre_technique": "T1592.004 -- Gather Victim Host Information: Client Configurations",
+      "mitre_tactic": "Reconnaissance",
+      "likelihood": 5,
+      "impact": 2,
+      "risk_score": 10,
+      "cves": [],
+      "mitigations": [
+        "Replace detailed error responses with generic message and correlation ID",
+        "Configure Spring Boot error handling: server.error.include-stacktrace=never",
+        "Log full errors server-side to CloudWatch with structured JSON format",
+        "Add integration test that verifies no stack traces in 4xx/5xx responses"
+      ],
+      "status": "identified",
+      "pci_relevant": false
+    },
+    {
+      "id": "TM-EC31-007",
+      "category": "Information Disclosure",
+      "component": "C023 (S3 Media Bucket)",
+      "title": "PII exposure via mixed-classification S3 bucket",
+      "description": "The S3 media bucket (CNAPP-AWS-EC-001) stores both public product images and private customer invoice PDFs under the same bucket with Block Public Access disabled. An attacker can enumerate the /invoices/ prefix via ListBucket permission and download invoice PDFs containing customer names, addresses, email addresses, order totals, and partial card numbers.",
+      "mitre_technique": "T1530 -- Data from Cloud Storage",
+      "mitre_tactic": "Collection",
+      "likelihood": 4,
+      "impact": 4,
+      "risk_score": 16,
+      "cves": [],
+      "mitigations": [
+        "Separate media and invoices into distinct S3 buckets with different policies",
+        "Enable Block Public Access on the invoices bucket",
+        "Use pre-signed URLs with 15-minute expiration for invoice access",
+        "Enable S3 server-side encryption with KMS for the invoices bucket",
+        "Add CloudTrail S3 data events to detect unauthorized object access"
+      ],
+      "status": "identified",
+      "pci_relevant": true
+    },
+    {
+      "id": "TM-EC31-008",
+      "category": "Denial of Service",
+      "component": "C003 (Application Load Balancer)",
+      "title": "Application-layer DDoS via missing WAF",
+      "description": "Without AWS WAF (CNAPP-AWS-EC-007), the ALB forwards all traffic directly to ECS Fargate tasks. An attacker can launch a Layer 7 DDoS attack targeting expensive API endpoints (product search with complex queries, order processing). The auto-scaling group will scale up ECS tasks, but the RDS database connection pool (max 100 connections) becomes the bottleneck, causing cascading failures across all services.",
+      "mitre_technique": "T1499.003 -- Endpoint Denial of Service: Application Exhaustion Flood",
+      "mitre_tactic": "Impact",
+      "likelihood": 4,
+      "impact": 4,
+      "risk_score": 16,
+      "cves": [],
+      "mitigations": [
+        "Deploy AWS WAF with rate-based rules (2000 req/5min per IP)",
+        "Enable AWS Shield Advanced for DDoS protection with 24/7 DRT support",
+        "Implement connection pooling with PgBouncer between ECS and RDS",
+        "Add circuit breaker pattern (Resilience4j) to prevent cascade failures",
+        "Cache product search results in ElastiCache with 60-second TTL"
+      ],
+      "status": "identified",
+      "pci_relevant": false
+    },
+    {
+      "id": "TM-EC31-009",
+      "category": "Denial of Service",
+      "component": "C015 (ElastiCache Redis)",
+      "title": "Session cache poisoning via unauthenticated Redis access",
+      "description": "ElastiCache Redis (CNAPP-AWS-EC-008) has AUTH disabled. Any compromised service or EC2 instance in the VPC can connect to Redis port 6379 and execute FLUSHALL, destroying all user sessions and shopping carts simultaneously. Alternatively, an attacker can overwrite session tokens to hijack authenticated users, or inject malicious data into cached search results.",
+      "mitre_technique": "T1489 -- Service Stop",
+      "mitre_tactic": "Impact",
+      "likelihood": 3,
+      "impact": 5,
+      "risk_score": 15,
+      "cves": [],
+      "mitigations": [
+        "Enable Redis AUTH with a strong token from Secrets Manager (fix CNAPP-AWS-EC-008)",
+        "Enable in-transit encryption (TLS) for all Redis connections",
+        "Restrict Redis security group to only ECS service security groups",
+        "Disable dangerous Redis commands (FLUSHALL, FLUSHDB, CONFIG, DEBUG) via parameter group",
+        "Implement session integrity checks with HMAC on serialized session data"
+      ],
+      "status": "identified",
+      "pci_relevant": true
+    },
+    {
+      "id": "TM-EC31-010",
+      "category": "Elevation of Privilege",
+      "component": "C002 (IAM Role)",
+      "title": "AWS account takeover via SSRF + over-privileged IAM role",
+      "description": "This is the highest-severity compound attack chain: (1) Attacker exploits CVE-2024-22259 SSRF in WebhookHandler.java to access EC2 metadata service at 169.254.169.254. (2) Retrieves temporary credentials for the ecommerce-api-role which has AdministratorAccess (CNAPP-AWS-EC-002). (3) Uses stolen credentials to create new IAM user with programmatic access. (4) Full AWS account takeover: access all S3 data, modify RDS, create backdoor Lambda functions, exfiltrate customer database.",
+      "mitre_technique": "T1078.004 -- Valid Accounts: Cloud Accounts",
+      "mitre_tactic": "Privilege Escalation",
+      "likelihood": 4,
+      "impact": 5,
+      "risk_score": 20,
+      "cves": ["CVE-2024-22259"],
+      "mitigations": [
+        "Replace AdministratorAccess with least-privilege policy (P0, fix CNAPP-AWS-EC-002)",
+        "Enable IMDSv2 (require hop limit = 1) on all ECS Fargate tasks",
+        "Fix SSRF vulnerability: URL scheme and hostname allowlist in WebhookHandler",
+        "Enable AWS GuardDuty for anomalous credential usage detection",
+        "Deploy VPC endpoints for AWS services to eliminate need for public internet egress"
+      ],
+      "status": "identified",
+      "pci_relevant": true
+    },
+    {
+      "id": "TM-EC31-011",
+      "category": "Elevation of Privilege",
+      "component": "C020 (Lambda Order Processor)",
+      "title": "Deserialization RCE escalation from Order Queue to database tier",
+      "description": "CWE-502 unsafe deserialization in OrderProcessor.java:89 processes messages from SQS order queue. An attacker who can inject a crafted serialized Java object into the queue (via compromised Order Service or direct SQS SendMessage) achieves remote code execution inside the Lambda function. The Lambda has IAM permissions to access the payments RDS database, enabling direct SQL queries to extract cardholder data.",
+      "mitre_technique": "T1059.004 -- Command and Scripting Interpreter: Unix Shell",
+      "mitre_tactic": "Execution",
+      "likelihood": 3,
+      "impact": 5,
+      "risk_score": 15,
+      "cves": [],
+      "mitigations": [
+        "Replace Java ObjectInputStream with Jackson JSON deserialization",
+        "Add JEP 290 ObjectInputFilter to allowlist only Order.class and its dependencies",
+        "Restrict SQS SendMessage permission to only the Order Service IAM role",
+        "Run Lambda with minimal IAM role: only rds-data:ExecuteStatement on payments DB",
+        "Deploy Lambda inside VPC to prevent outbound data exfiltration"
+      ],
+      "status": "identified",
+      "pci_relevant": true
+    },
+    {
+      "id": "TM-EC31-012",
+      "category": "Elevation of Privilege",
+      "component": "C006 (ECS Task)",
+      "title": "Container escape via root execution in ECS Fargate",
+      "description": "ECS task definitions run containers as root (CNAPP-AWS-EC-006). If an attacker achieves RCE via the deserialization vulnerability or SSTI in TemplateEngine.java (CWE-94), root access increases the blast radius. The attacker can modify container filesystem, install persistence mechanisms, and attempt Fargate isolation escapes via /proc/self/exe or shared kernel vulnerabilities.",
+      "mitre_technique": "T1611 -- Escape to Host",
+      "mitre_tactic": "Privilege Escalation",
+      "likelihood": 2,
+      "impact": 5,
+      "risk_score": 10,
+      "cves": [],
+      "mitigations": [
+        "Set non-root user in ECS task definition (UID 1000:1000)",
+        "Update Dockerfiles: RUN addgroup --system app && adduser --system --ingroup app app; USER app",
+        "Enable ECS Exec audit logging to detect interactive container access",
+        "Drop all Linux capabilities except NET_BIND_SERVICE in task definition",
+        "Enable Fargate platform version 1.4.0+ with improved isolation"
+      ],
+      "status": "identified",
+      "pci_relevant": false
+    },
+    {
+      "id": "TM-EC31-013",
+      "category": "Tampering",
+      "component": "C027 (Lambda Image Resizer)",
+      "title": "Malicious image upload leading to server-side code execution",
+      "description": "The image resizer Lambda processes product images uploaded to S3 without content validation. An attacker can upload a polyglot file (valid JPEG header + embedded PHP/Python payload) or an image crafted to exploit ImageMagick CVEs (e.g., ImageTragick-style attacks). The Lambda runs outside VPC (CNAPP-AWS-EC-010) with unrestricted egress, enabling data exfiltration to attacker-controlled infrastructure.",
+      "mitre_technique": "T1203 -- Exploitation for Client Execution",
+      "mitre_tactic": "Execution",
+      "likelihood": 3,
+      "impact": 3,
+      "risk_score": 9,
+      "cves": [],
+      "mitigations": [
+        "Validate image magic bytes and reject non-image content types",
+        "Deploy Lambda inside VPC with no internet access (use S3 VPC endpoint)",
+        "Process images using a restricted ImageMagick policy.xml that disables coders",
+        "Set Lambda memory limit and timeout to prevent resource exhaustion",
+        "Scan uploaded files with ClamAV Lambda layer before processing"
+      ],
+      "status": "identified",
+      "pci_relevant": false
+    },
+    {
+      "id": "TM-EC31-014",
+      "category": "Information Disclosure",
+      "component": "C018 (Stripe Integration)",
+      "title": "Stripe API key exposure via hardcoded credential",
+      "description": "The SARIF scan detected a hardcoded Stripe live secret key (sk_live_...) in application.properties (CWE-798). If the source code repository is compromised, leaked via CI logs, or exposed through the ErrorHandler stack trace disclosure (CWE-200), the attacker gains full Stripe API access. They can create charges, process refunds, access customer card fingerprints, and view complete transaction history across all merchant accounts.",
+      "mitre_technique": "T1552.001 -- Unsecured Credentials: Credentials in Files",
+      "mitre_tactic": "Credential Access",
+      "likelihood": 4,
+      "impact": 5,
+      "risk_score": 20,
+      "cves": [],
+      "mitigations": [
+        "Move Stripe API key to AWS Secrets Manager immediately (P0)",
+        "Rotate the current Stripe key since it may already be in git history",
+        "Add pre-commit hook with gitleaks/trufflehog to prevent future secret commits",
+        "Enable Stripe restricted keys with minimum required permissions per service",
+        "Set up Stripe webhook signing to verify event authenticity"
+      ],
+      "status": "identified",
+      "pci_relevant": true
+    },
+    {
+      "id": "TM-EC31-015",
+      "category": "Spoofing",
+      "component": "C022 (SES Email Service)",
+      "title": "Phishing via open redirect in auth service login flow",
+      "description": "CVE-2024-22262 redirect injection combined with the auth service login flow enables a convincing phishing attack. Attacker crafts a URL like https://acme.com/auth/login?redirect_uri=https://evil.com/harvest that passes initial domain validation due to the UriComponentsBuilder parsing flaw. After legitimate authentication, the user is redirected to the attacker-controlled domain with their authorization code, enabling account takeover.",
+      "mitre_technique": "T1566.002 -- Phishing: Spearphishing Link",
+      "mitre_tactic": "Initial Access",
+      "likelihood": 4,
+      "impact": 4,
+      "risk_score": 16,
+      "cves": ["CVE-2024-22262"],
+      "mitigations": [
+        "Upgrade Spring Framework to 6.1.6+ to patch CVE-2024-22262",
+        "Implement strict redirect_uri validation against pre-registered OAuth2 client URIs",
+        "Add DMARC, SPF, and DKIM for SES to prevent email domain spoofing",
+        "Display post-login redirect destination to user for confirmation",
+        "Log all redirect_uri values for anomaly detection"
+      ],
+      "status": "identified",
+      "pci_relevant": false
+    }
+  ],
+  "summary": {
+    "total_threats": 15,
+    "by_category": {
+      "Spoofing": 3,
+      "Tampering": 3,
+      "Repudiation": 1,
+      "Information Disclosure": 3,
+      "Denial of Service": 2,
+      "Elevation of Privilege": 3
+    },
+    "by_risk_level": {
+      "critical": 3,
+      "high": 7,
+      "medium": 3,
+      "low": 2
+    },
+    "risk_score_range": {"min": 8, "max": 25},
+    "average_risk_score": 14.4,
+    "pci_relevant_threats": 9,
+    "cve_correlated_threats": 5,
+    "compound_attack_chains": [
+      {
+        "name": "SSRF-to-Account-Takeover",
+        "chain": "CVE-2024-22259 (WebhookHandler SSRF) -> IMDS credential theft -> AdministratorAccess IAM role -> Full AWS account control",
+        "threats": ["TM-EC31-010"],
+        "risk_score": 20
+      },
+      {
+        "name": "SQLi-to-Data-Breach",
+        "chain": "CVE-2024-1597 (JDBC SQLi) -> UNION SELECT -> payments schema -> cardholder data exfiltration",
+        "threats": ["TM-EC31-004"],
+        "risk_score": 25
+      },
+      {
+        "name": "Deserialization-to-Lateral-Movement",
+        "chain": "CWE-502 (OrderProcessor) -> RCE in Lambda -> RDS payments access -> cardholder data",
+        "threats": ["TM-EC31-011", "TM-EC31-012"],
+        "risk_score": 15
+      }
+    ],
+    "top_3_priority_remediations": [
+      "P0: Upgrade PostgreSQL JDBC to 42.7.3 (fixes CVE-2024-1597, risk score 25)",
+      "P0: Remove AdministratorAccess from ECS task IAM role (CNAPP-AWS-EC-002, risk score 20)",
+      "P0: Move Stripe API key to Secrets Manager and rotate (CWE-798, risk score 20)"
+    ]
+  }
+}

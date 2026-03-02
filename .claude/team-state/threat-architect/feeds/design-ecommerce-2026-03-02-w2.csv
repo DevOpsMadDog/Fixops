@@ -1,0 +1,36 @@
+component_id,component_name,component_type,trust_zone,connects_to,protocol,data_classification
+COMP-001,CloudFront CDN,cdn,internet,COMP-002,HTTPS,public
+COMP-002,WAF,security,dmz,COMP-003,HTTPS,public
+COMP-003,Application Load Balancer,load_balancer,dmz,COMP-004;COMP-005;COMP-006,HTTPS,internal
+COMP-004,API Gateway (Spring Boot),api_gateway,app_tier,COMP-007;COMP-008;COMP-009;COMP-010,HTTP,internal
+COMP-005,React SPA (Next.js 14),frontend,app_tier,COMP-004,HTTPS,public
+COMP-006,Admin Dashboard,frontend,app_tier,COMP-004,HTTPS,internal
+COMP-007,Payment Service,microservice,app_tier,COMP-013;COMP-014;COMP-018,gRPC,pci
+COMP-008,User Service,microservice,app_tier,COMP-013;COMP-015;COMP-019,gRPC,pii
+COMP-009,Order Service,microservice,app_tier,COMP-013;COMP-016;COMP-007,gRPC,pci
+COMP-010,Catalog Service,microservice,app_tier,COMP-017;COMP-020,gRPC,public
+COMP-011,Search Service,microservice,app_tier,COMP-020;COMP-017,gRPC,internal
+COMP-012,Image Processor (Lambda),serverless,app_tier,COMP-021;COMP-022,HTTPS,internal
+COMP-013,PostgreSQL (RDS),database,data_tier,none,TCP/5432,pci
+COMP-014,Stripe API,external_api,external,none,HTTPS,pci
+COMP-015,Amazon Cognito,identity_provider,external,none,HTTPS,pii
+COMP-016,RabbitMQ,message_broker,app_tier,COMP-012;COMP-023,AMQP,internal
+COMP-017,ElastiCache Redis,cache,data_tier,none,TCP/6379,internal
+COMP-018,Fraud Detection (ML),microservice,app_tier,COMP-013;COMP-024,gRPC,pci
+COMP-019,Notification Service,microservice,app_tier,COMP-025;COMP-026,gRPC,pii
+COMP-020,Elasticsearch,search_engine,data_tier,none,TCP/9200,internal
+COMP-021,S3 Media Bucket,storage,data_tier,none,HTTPS,public
+COMP-022,S3 Backup Bucket,storage,data_tier,none,HTTPS,internal
+COMP-023,Event Processor (Lambda),serverless,app_tier,COMP-013;COMP-024,HTTPS,internal
+COMP-024,CloudWatch Logs,monitoring,mgmt_tier,none,HTTPS,internal
+COMP-025,SES (Email),messaging,external,none,HTTPS,pii
+COMP-026,SNS (Push),messaging,external,none,HTTPS,internal
+COMP-027,Secrets Manager,security,mgmt_tier,none,HTTPS,secret
+COMP-028,KMS (Encryption),security,mgmt_tier,none,HTTPS,secret
+COMP-029,CloudTrail,audit,mgmt_tier,COMP-022,HTTPS,audit
+COMP-030,VPC Flow Logs,network_security,mgmt_tier,COMP-024,internal,audit
+COMP-031,GuardDuty,threat_detection,mgmt_tier,COMP-024,HTTPS,internal
+COMP-032,ECR (Container Registry),registry,mgmt_tier,COMP-004;COMP-007;COMP-008;COMP-009,HTTPS,internal
+COMP-033,Celery Workers,worker,app_tier,COMP-016;COMP-013,AMQP,internal
+COMP-034,Nginx Reverse Proxy,proxy,dmz,COMP-004;COMP-005,HTTPS,internal
+COMP-035,Rate Limiter (Redis),security,app_tier,COMP-017,TCP/6379,internal

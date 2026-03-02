@@ -12,13 +12,10 @@ Tests cover:
 Pillar: [V3] Decision Intelligence, [V5] MPTE Verification
 """
 
-import asyncio
 import json
 import os
 import sys
 import threading
-import time
-import unittest
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -53,7 +50,7 @@ class TestBrainPipelineCancellation:
 
     def test_cancelled_set_cleaned_up(self):
         """After cancellation is processed, run_id is removed from _cancelled set."""
-        from core.brain_pipeline import BrainPipeline, PipelineInput
+        from core.brain_pipeline import BrainPipeline
         bp = BrainPipeline()
         fake_id = "BR-CANCELTEST123"
         bp._cancelled.add(fake_id)

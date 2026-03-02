@@ -53,6 +53,12 @@ class KeyInfoResponse(BaseModel):
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+@router.get("/health")
+async def quantum_crypto_health() -> Dict[str, Any]:
+    """Health check alias for quantum crypto engine (mirrors /status)."""
+    return await quantum_crypto_status()
+
+
 @router.get("/status")
 async def quantum_crypto_status() -> Dict[str, Any]:
     """Get quantum crypto engine status."""

@@ -1,0 +1,36 @@
+{
+  "task_id": "swarm-505",
+  "worker_id": "junior-worker",
+  "status": "completed",
+  "summary": "Executed pytest on 6 compliance and analytics test files. All tests passed successfully.",
+  "test_results": {
+    "total_tests": 176,
+    "passed": 175,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 1,
+    "duration_seconds": 4.77
+  },
+  "test_files": [
+    "tests/test_analytics_comprehensive.py",
+    "tests/test_compliance.py",
+    "tests/test_compliance_engine_unit.py",
+    "tests/test_compliance_mapping.py",
+    "tests/test_compliance_rollup.py",
+    "tests/test_compliance_templates_unit.py"
+  ],
+  "skipped_details": [
+    {
+      "file": "tests/test_compliance_rollup.py",
+      "line": 30,
+      "reason": "ComplianceEngine.evaluate() does not accept opa_rules or opa_input parameters. OPA integration is handled by the OPAEngine module."
+    }
+  ],
+  "files_modified": [],
+  "files_created": [],
+  "issues": [],
+  "needs_senior_review": false,
+  "confidence": 0.95,
+  "duration_turns": 5,
+  "notes": "Coverage gate failure (0.00% < 25% required) is a project-wide known issue per MEMORY.md and CLAUDE.md. All functional tests pass. No test failures or errors."
+}

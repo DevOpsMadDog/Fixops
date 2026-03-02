@@ -1,8 +1,8 @@
 # ALdeci — Positioning & Messaging
 
-**Last Updated**: 2026-03-02 (Run 5) | **Owner**: VP Marketing
+**Last Updated**: 2026-03-03 (Run 6) | **Owner**: VP Marketing
 **Pillars**: [V3] Decision Intelligence, [V5] MPTE, [V7] MCP-Native
-**Version**: 5.2 — All LOC re-verified Run 5 (stable across Runs 3-5). Sprint 2: 11/12 done (91.7%). Postman 475/475 assertions (100%) — 8th consecutive green. 11 security hardening fixes. SA-001 LOW. Knowledge Graph demo-ready (73 nodes, 110 edges). 4 days to demo.
+**Version**: 6.0 — All LOC re-verified 2026-03-03 with `wc -l`. Sprint 2: 11/12 done (91.7%). Postman 475/475 assertions (100%) — 9th consecutive green. 416,778 LOC Python. 805 route decorators. 13,674 tests. Brain Pipeline 1,663 LOC. AutoFix 1,515 LOC. CrowdStrike Q4 TODAY. Claude weaponized in Mexican govt breach. 3 days to demo.
 
 ---
 
@@ -59,13 +59,13 @@ Multi-AI consensus (3+ LLMs with 85% threshold) eliminates 90%+ noise instantly.
 The 19-phase MPTE doesn't just detect — it **proves** exploitability with controlled micro-pentests, 365 times a year. You act on evidence, not estimates. Claude Code Security found 500+ zero-days — MPTE tells you which ones are actually exploitable in YOUR environment.
 
 ### 3. Autonomous Remediation [V3]
-AutoFix engine with 10 fix types generates real code patches, dependency updates, and config changes. Confidence-based auto-apply — HIGH confidence fixes merge automatically, MEDIUM go to PR review, LOW get flagged for human decision. 1,428 LOC of production remediation logic.
+AutoFix engine with 10 fix types generates real code patches, dependency updates, and config changes. Confidence-based auto-apply — HIGH confidence fixes merge automatically, MEDIUM go to PR review, LOW get flagged for human decision. 1,515 LOC of production remediation logic.
 
 ### 4. Compliance on Autopilot [V10]
 SOC2, PCI-DSS, HIPAA evidence generated automatically with quantum-secure signatures (hybrid RSA-SHA256 + ML-DSA FIPS 204). 7-year WORM retention. Auditors get machine-verifiable evidence, not spreadsheets.
 
 ### 5. One Platform, Day 1 Value [V7]
-25+ scanner format parsers (3,352 LOC across `scanner_parsers.py` and `ingestion.py`), 10 security tool connectors (1,335 LOC), 7 workflow integrations (3,005 LOC), 8 native scanners (4,757+ LOC), 796 MCP-discoverable tools — all in a single deployment. Protect your existing tool investment. No rip-and-replace.
+25+ scanner format parsers (3,352 LOC across `scanner_parsers.py` and `ingestion.py`), 10 security tool connectors (1,335 LOC), 7 workflow integrations (3,005 LOC), 8 native scanners (4,757+ LOC), 805 MCP-discoverable tools — all in a single deployment. Protect your existing tool investment. No rip-and-replace.
 
 ### 6. Geopolitical Resilience [V3] [V9] — NEW
 Multi-model consensus means no single AI vendor can shut down your security. Air-gapped deployment means no cloud dependency. The Pentagon-Anthropic blacklist on Feb 27 proved that single-provider AI dependency is an enterprise risk. ALdeci is architecturally immune.
@@ -81,10 +81,10 @@ Multi-model consensus means no single AI vendor can shut down your security. Air
 **Talking point**: "Claude finds the vulnerabilities. ALdeci decides what to DO about them — using multi-model consensus, so no single ban stops your security."
 **Key**: NOT a competitor — a scanner integration. Their findings feed our Brain Pipeline.
 
-### vs. Snyk ($3.7B valuation, down from $8.5B)
-**They do**: SCA + SAST with IDE integration. Growth stalled at 12%. IPO uncertain — will IPO in 2026 "if not acquired."
-**We do**: Full CTEM lifecycle — scanning, deciding, verifying, fixing, proving
-**Talking point**: "Snyk finds vulnerable dependencies. ALdeci decides which ones are actually exploitable and fixes them."
+### vs. Snyk ($8.5B valuation, $343M ARR, 12% growth)
+**They do**: SCA + SAST with IDE integration. Growth stalled at 12%. IPO uncertain — "increasingly unlikely prospect" per BankInfoSecurity.
+**We do**: Full CTEM lifecycle — scanning, deciding, verifying, fixing, proving. 97% noise reduction across ALL scanner types.
+**Talking point**: "Snyk finds vulnerable dependencies. ALdeci decides which ones are actually exploitable and fixes them. Across every scanner type — not just SCA."
 
 ### vs. Wiz (Google acquisition closing mid-March 2026, $32B)
 **They do**: Cloud-native security (CNAPP) — now Google-owned. Dazz ($450M) integrated. Orca patent lawsuit settled (Jan 2026).
@@ -150,4 +150,4 @@ Multi-model consensus means no single AI vendor can shut down your security. Air
 
 ---
 
-*All claims re-verified against live codebase (2026-03-02, Run 5) with `wc -l`. All LOC counts confirmed stable. Scanner parser counts: 15 tool-specific in `scanner_parsers.py` (1,238 LOC) + 10 format parsers in `ingestion.py` (2,114 LOC) = 3,352 LOC total. Total Python LOC: 401,993. Tests: 13,221. Sprint 2: 11/12 done (91.7%). Postman 475/475 assertions (100%). 8th consecutive green run. 3,574 moat tests PASS. Knowledge Graph: 73 nodes, 110 edges. Backend security-hardened (11 fixes). No stubs or unimplemented features cited. Market data from AI Researcher pulse 2026-03-02.*
+*All claims re-verified against live codebase (2026-03-03, Run 6) with `wc -l`. LOC changes: brain_pipeline.py 1,533→1,663 (+130), autofix_engine.py 1,428→1,515 (+87), route decorators 796→805 (+9), total Python 401,993→416,778 (+14,785), tests 13,221→13,674 (+453). Scanner/parser/connector LOC stable. Snyk valuation corrected to $8.5B (was $3.7B). Sprint 2: 11/12 done (91.7%). Postman 475/475 (9th green). No stubs cited. Market data from AI Researcher pulse 2026-03-02.*

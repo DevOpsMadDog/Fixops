@@ -32,8 +32,7 @@ Covers:
 from __future__ import annotations
 
 import time
-from threading import Lock
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 

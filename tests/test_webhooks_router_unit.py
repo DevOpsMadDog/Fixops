@@ -22,14 +22,12 @@ all SQLite calls away from production data/integrations/webhooks.db.
 
 import hashlib
 import hmac
-import json
 import os
 import sqlite3
 import sys
-import tempfile
 import uuid
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -61,7 +59,6 @@ from api.webhooks_router import (
     JiraWebhookPayload,
     OutboxRequest,
     ServiceNowWebhookPayload,
-    UpdateWorkItemRequest,
     _calculate_next_retry,
     _detect_drift,
     _get_azure_devops_webhook_secret,
@@ -866,7 +863,7 @@ class TestCreateWorkItemRequest:
 
 class TestCalculateNextRetry:
     def test_first_retry_delay(self):
-        from datetime import datetime, timezone, timedelta
+        from datetime import datetime, timezone
 
         result = _calculate_next_retry(0)
         # retry_count=0 -> delay = 60 * (2^0) = 60 seconds

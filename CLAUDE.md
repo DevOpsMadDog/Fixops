@@ -1,9 +1,9 @@
 # ALdeci (FixOps) — Project Guide
 
-> **Last verified**: 2026-03-03 by context-engineer (v28.0)
+> **Last verified**: 2026-03-02 by context-engineer (v30.0)
 > **Platform**: CTEM+ Decision Intelligence for Application Security
 > **Identity**: docs/CTEM_PLUS_IDENTITY.md | **Vision**: docs/CEO_VISION.md
-> **Sprint**: 2 — Enterprise Demo (2026-03-06) | 12 items, 11/12 done (Day 3)
+> **Sprint**: 2 — Enterprise Demo (2026-03-06) | 12 items, 11/12 done (Day 2)
 
 ---
 
@@ -47,7 +47,7 @@ docker compose -f docker/docker-compose.yml up
 ├── docs/               # Vision docs, debate transcript, identity docs
 ├── scripts/            # Shell scripts for orchestration, demos, CI/CD
 ├── .claude/            # Agent system — definitions, team state, knowledge index
-│   ├── agents/         # 16 agent definitions (.md files)
+│   ├── agents/         # 19 agent definitions (.md files) — incl. ux-architect, persona-api-validator
 │   ├── team-state/     # Shared state — codebase-map, briefings, sprint board
 │   └── knowledge-index/# Compact codebase digests (SQLite + JSON)
 ├── sitecustomize.py    # Auto-injects all suite paths into sys.path
@@ -150,7 +150,7 @@ python -m pytest tests/ --cov=. --cov-report=term --timeout=10
 python -m pytest tests/test_brain_pipeline.py -v
 ```
 
-- **13,221 tests collected** (0 collection errors, 13.11s collection time)
+- **13,221 tests collected** (0 collection errors, 7.91s collection time)
 - **19.25% coverage** (gate: 25% — currently FAILING, gap 5.75pp. DEMO-006 config fix applied but coverage still below gate.)
 - **pytest-timeout**: 10s per test (prevents hanging)
 
@@ -187,7 +187,7 @@ python -m pytest tests/test_brain_pipeline.py -v
 
 ## Agent System
 
-16 AI agents operate as a virtual company. See `.claude/agents/` for definitions.
+19 AI agents operate as a virtual company. See `.claude/agents/` for definitions.
 - **Shared state**: `.claude/team-state/` (codebase-map, sprint board, briefings)
 - **Coordination**: `.claude/team-state/coordination-notes.md`
 - **Debates**: `.claude/team-state/debates/`
@@ -198,7 +198,7 @@ python -m pytest tests/test_brain_pipeline.py -v
 ## Known Issues
 
 1. **New UI is missing** — `suite-ui/aldeci-ui-new/` directory does not exist on disk
-2. **Test coverage at 19.22%** — Below 25% gate, CI failing (DEMO-006 config fix applied but still below gate)
+2. **Test coverage at 19.25%** — Below 25% gate, CI failing (DEMO-006 config fix applied but still below gate)
 3. **Non-standard endpoint files at non-obvious paths** — decisions.py (suite-core/api/), nerve_center.py (suite-core/api/), business_context*.py (suite-evidence-risk/api/) are conditionally mounted
 4. **Single-process monolith** — No horizontal scaling (OK for demo/POC)
 5. **No external message queue** — EventBus is in-process only

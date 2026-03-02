@@ -727,6 +727,37 @@ async def execute_mcp_tool(
             param_name = match.group(1)
             if param_name in remaining_args:
                 value = str(remaining_args.pop(param_name))
+                # Validate path parameter to prevent path traversal / injection
+                if len(value) > 255:
+                    return MCPExecuteResponse(
+                        tool_name=tool_name,
+                        method=tool.method,
+                        path=tool.path,
+                        status="error",
+                        status_code=400,
+                        error=f"Path parameter '{param_name}' exceeds maximum length of 255 characters",
+                        execution_time_ms=_elapsed_ms(start),
+                    )
+                if not re.fullmatch(r"[A-Za-z0-9_\-\.]+", value):
+                    return MCPExecuteResponse(
+                        tool_name=tool_name,
+                        method=tool.method,
+                        path=tool.path,
+                        status="error",
+                        status_code=400,
+                        error=f"Path parameter '{param_name}' contains invalid characters; only alphanumeric, dash, underscore, and dot are allowed",
+                        execution_time_ms=_elapsed_ms(start),
+                    )
+                if ".." in value:
+                    return MCPExecuteResponse(
+                        tool_name=tool_name,
+                        method=tool.method,
+                        path=tool.path,
+                        status="error",
+                        status_code=400,
+                        error=f"Path parameter '{param_name}' must not contain '..'",
+                        execution_time_ms=_elapsed_ms(start),
+                    )
                 resolved_path = resolved_path.replace(f"{{{param_name}}}", value)
             else:
                 return MCPExecuteResponse(
@@ -881,6 +912,13 @@ async def mcp_health(request: Request) -> MCPHealthResponse:
         generated_at=_catalog_generated_at,
         uptime_seconds=round(uptime, 2),
     )
+
+
+@router.get("/status")
+async def mcp_status(request: Request) -> dict:
+    """Status alias for MCP auto-discovery (mirrors /health)."""
+    result = await mcp_health(request)
+    return result.model_dump()
 
 
 @router.get("/stats", response_model=MCPCatalogStats)

@@ -19,9 +19,8 @@ import json
 import os
 import sys
 from contextlib import contextmanager
-from datetime import datetime
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch, call
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -559,7 +558,7 @@ class TestRunCheckov:
 
         with patch("core.iac_scanner.os.path.realpath", side_effect=fake_realpath), \
              patch("core.iac_scanner.asyncio.create_subprocess_exec",
-                   return_value=proc) as mock_exec, \
+                   return_value=proc), \
              patch("core.iac_scanner.os.path.isdir", return_value=False), \
              patch("core.iac_scanner.os.path.isdir", return_value=False):
             findings, raw, error = await scanner._run_checkov(
@@ -1476,7 +1475,7 @@ class TestScanContent:
              patch.object(scanner, "_run_checkov",
                           new_callable=AsyncMock,
                           return_value=([], "", None)):
-            result = await scanner.scan_content("resource {}", "main.tf")
+            await scanner.scan_content("resource {}", "main.tf")
 
         mock_write.assert_called_once_with(expected_file, SCAN_BASE_PATH, "resource {}")
 
@@ -1783,8 +1782,6 @@ class TestScanContent:
              patch("core.iac_scanner.IaCScanner.get_available_scanners",
                    return_value=[]):
             # Patch the import inside the method
-            import importlib
-            import core.iac_scanner as iac_mod
             with patch.dict("sys.modules", {"core.real_scanner": MagicMock(
                     get_real_iac_scanner=mock_get_real)}):
                 result = await scanner.scan_content("resource {}", "main.tf")

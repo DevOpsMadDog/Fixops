@@ -9,6 +9,7 @@ execution timeline visualization.
 from __future__ import annotations
 
 import asyncio
+import json
 import sqlite3
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -19,7 +20,7 @@ from core.persistent_store import PersistentDict
 from core.workflow_db import WorkflowDB
 from core.workflow_models import Workflow, WorkflowExecution, WorkflowStatus
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 router = APIRouter(prefix="/api/v1/workflows", tags=["workflows"])
 db = WorkflowDB()
@@ -34,20 +35,51 @@ class WorkflowCreate(BaseModel):
     """Request model for creating a workflow."""
 
     name: str = Field(..., min_length=1, max_length=255)
-    description: str = Field("", description="Workflow description")
+    description: str = Field("", description="Workflow description", max_length=10000)
     steps: List[Dict[str, Any]] = Field(default_factory=list)
     triggers: Dict[str, Any] = Field(default_factory=dict)
     enabled: bool = True
+
+    @field_validator("steps")
+    @classmethod
+    def validate_steps_length(cls, v: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        if len(v) > 100:
+            raise ValueError("steps may not contain more than 100 items")
+        return v
+
+    @field_validator("triggers")
+    @classmethod
+    def validate_triggers_size(cls, v: Dict[str, Any]) -> Dict[str, Any]:
+        serialized = json.dumps(v, separators=(",", ":"))
+        if len(serialized.encode("utf-8")) > 50 * 1024:
+            raise ValueError("triggers payload must not exceed 50KB when serialized")
+        return v
 
 
 class WorkflowUpdate(BaseModel):
     """Request model for updating a workflow."""
 
     name: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = None
+    description: Optional[str] = Field(None, max_length=10000)
     steps: Optional[List[Dict[str, Any]]] = None
     triggers: Optional[Dict[str, Any]] = None
     enabled: Optional[bool] = None
+
+    @field_validator("steps")
+    @classmethod
+    def validate_steps_length(cls, v: Optional[List[Dict[str, Any]]]) -> Optional[List[Dict[str, Any]]]:
+        if v is not None and len(v) > 100:
+            raise ValueError("steps may not contain more than 100 items")
+        return v
+
+    @field_validator("triggers")
+    @classmethod
+    def validate_triggers_size(cls, v: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        if v is not None:
+            serialized = json.dumps(v, separators=(",", ":"))
+            if len(serialized.encode("utf-8")) > 50 * 1024:
+                raise ValueError("triggers payload must not exceed 50KB when serialized")
+        return v
 
 
 class WorkflowResponse(BaseModel):

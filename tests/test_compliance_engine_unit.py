@@ -11,10 +11,8 @@ Covers:
   - CWE → controls reverse index
 """
 
-import json
 import os
 import sqlite3
-import tempfile
 from datetime import datetime, timezone
 
 import pytest

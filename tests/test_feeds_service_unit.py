@@ -472,7 +472,7 @@ class TestFeedsServiceInit:
 
     def test_creates_parent_dirs(self, tmp_path: Path):
         deep_path = tmp_path / "a" / "b" / "c" / "feeds.db"
-        svc = FeedsService(db_path=deep_path)
+        FeedsService(db_path=deep_path)
         assert deep_path.parent.exists()
 
 

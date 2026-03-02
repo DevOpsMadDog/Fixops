@@ -12,22 +12,15 @@ Tests cover:
 Pillar: V5 (MPTE Verification) — Advanced MPTE service integration
 """
 
-import asyncio
-from datetime import datetime, timezone
-from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from core.mpte_models import (
     ExploitabilityLevel,
-    PenTestPriority,
-    PenTestRequest,
-    PenTestResult,
     PenTestStatus,
 )
 from integrations.mpte_client import (
-    MPTEClient,
     MPTEFinding,
     MPTESeverity,
     MPTETestResult,
@@ -490,7 +483,7 @@ class TestTriggerPenTest:
         self.svc.db.update_request.return_value = mock_request
         self.svc.client.create_test.side_effect = Exception("Connection failed")
 
-        result = await self.svc.trigger_pen_test_from_finding(
+        await self.svc.trigger_pen_test_from_finding(
             finding_id="find-002",
             target_url="https://unreachable.example.com",
             vulnerability_type="xss",

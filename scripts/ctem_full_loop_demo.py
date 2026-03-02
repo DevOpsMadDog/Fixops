@@ -23,7 +23,6 @@ import json
 import os
 import sys
 import time
-import hashlib
 import urllib.request
 import urllib.error
 from datetime import datetime, timezone
@@ -1201,11 +1200,11 @@ def main():
         sys.exit(1)
 
     # Run all CTEM phases
-    p1 = phase_discover(demo)
-    p2 = phase_validate(demo)
-    p3 = phase_remediate(demo)
-    p4 = phase_comply(demo)
-    p5 = phase_measure(demo)
+    phase_discover(demo)
+    phase_validate(demo)
+    phase_remediate(demo)
+    phase_comply(demo)
+    phase_measure(demo)
 
     # Final summary
     demo.print_summary()

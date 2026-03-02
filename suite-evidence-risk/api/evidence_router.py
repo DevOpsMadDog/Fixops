@@ -337,6 +337,38 @@ def _resolve_directories(request: Request) -> tuple[Path, Path]:
     return Path(manifest_dir), Path(bundle_dir)
 
 
+@router.get("/health")
+async def evidence_health(request: Request) -> dict[str, Any]:
+    """Health check for the evidence vault."""
+    try:
+        manifest_dir, bundle_dir = _resolve_directories(request)
+        return {
+            "status": "operational",
+            "engine": "evidence-vault",
+            "version": "1.0.0",
+            "storage_configured": True,
+            "manifest_dir_exists": manifest_dir.exists(),
+            "bundle_dir_exists": bundle_dir.exists(),
+            "crypto_available": _HAS_CORE_CRYPTO,
+            "compliance_available": _HAS_COMPLIANCE,
+        }
+    except HTTPException:
+        return {
+            "status": "degraded",
+            "engine": "evidence-vault",
+            "version": "1.0.0",
+            "storage_configured": False,
+            "crypto_available": _HAS_CORE_CRYPTO,
+            "compliance_available": _HAS_COMPLIANCE,
+        }
+
+
+@router.get("/status")
+async def evidence_status(request: Request) -> dict[str, Any]:
+    """Status alias for evidence vault (mirrors /health)."""
+    return await evidence_health(request)
+
+
 @router.get("/stats")
 async def evidence_stats(request: Request) -> dict[str, Any]:
     """Get evidence vault statistics."""

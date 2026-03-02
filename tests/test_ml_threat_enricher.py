@@ -12,15 +12,13 @@ Covers:
   - Singleton pattern
 """
 
-import json
 import os
 import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-import numpy as np
 
 # Ensure suite-core is importable
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "suite-core"))
@@ -308,7 +306,7 @@ class TestEnrichmentPipeline:
 
     def test_enrich_skip_api(self, enricher, sample_findings):
         """Test skip_api mode uses cache only."""
-        with patch("core.ml.threat_enricher._fetch_json") as mock_fetch:
+        with patch("core.ml.threat_enricher._fetch_json"):
             with patch("core.ml.threat_enricher._load_cache", return_value=None):
                 result = enricher.enrich_findings(sample_findings, skip_api=True)
 

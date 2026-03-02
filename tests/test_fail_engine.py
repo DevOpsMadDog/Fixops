@@ -18,13 +18,10 @@ from __future__ import annotations
 import pytest
 
 from core.fail_engine import (
-    AssetCriticality,
-    DataClassification,
     ExploitMaturity,
     FAILEngine,
     FAILGrade,
     FAILInput,
-    FAILResult,
     RecommendedAction,
 )
 

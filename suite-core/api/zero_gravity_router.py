@@ -34,6 +34,12 @@ class RetrieveRequest(BaseModel):
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+@router.get("/health")
+async def zero_gravity_health() -> Dict[str, Any]:
+    """Health check alias for Zero-Gravity engine (mirrors /status)."""
+    return await zero_gravity_status()
+
+
 @router.get("/status")
 async def zero_gravity_status() -> Dict[str, Any]:
     """Get Zero-Gravity engine status and storage stats."""

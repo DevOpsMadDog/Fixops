@@ -103,7 +103,7 @@ Scan and update `.claude/team-state/codebase-map.json`:
 ### 2. Dependency Graph
 Maintain `.claude/team-state/dependency-graph.json`:
 - Python packages (from requirements.txt, requirements-test.txt, dev-requirements.txt)
-- npm packages (from suite-ui/aldeci/package.json and suite-ui/aldeci-ui-new/package.json)
+- npm packages (from suite-ui/aldeci/package.json — note: aldeci-ui-new does NOT exist)
 - Internal module dependencies (which suite imports from which)
 - External service dependencies (MPTE, MindsDB, etc.)
 

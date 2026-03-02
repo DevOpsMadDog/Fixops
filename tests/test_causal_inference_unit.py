@@ -4,7 +4,6 @@ Tests the CausalSecurityGraph, CausalInferenceEngine, and helper functions
 that power ALdeci's root cause analysis and counterfactual reasoning.
 """
 
-import pytest
 from core.causal_inference import (
     CausalEdge,
     CausalInferenceEngine,

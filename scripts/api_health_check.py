@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Quick API health check - hits every major endpoint."""
 import urllib.request
-import json
 import sys
 
 TOKEN = "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh"

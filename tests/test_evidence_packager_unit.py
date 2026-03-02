@@ -9,7 +9,6 @@ Pillar: V10 (CTEM + Crypto Evidence)
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 import yaml

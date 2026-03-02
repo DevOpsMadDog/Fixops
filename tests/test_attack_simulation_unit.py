@@ -23,9 +23,7 @@ Tests cover:
 
 from __future__ import annotations
 
-import asyncio
-from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
+from datetime import datetime
 
 import pytest
 
@@ -342,11 +340,11 @@ class TestStepSimulation:
 
     def test_script_kiddie_lower_success(self, engine):
         """Script kiddie should have lower overall success than APT."""
-        sk_scenario = engine.create_scenario(name="SK", threat_actor="script_kiddie")
-        apt_scenario = engine.create_scenario(name="APT", threat_actor="apt")
+        engine.create_scenario(name="SK", threat_actor="script_kiddie")
+        engine.create_scenario(name="APT", threat_actor="apt")
 
         # We check that the actor multiplier is applied correctly
-        step = AttackStep(
+        AttackStep(
             step_id="same-id",
             technique_id="T1190",
             success_probability=0.5,

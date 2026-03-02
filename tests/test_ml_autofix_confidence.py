@@ -13,7 +13,6 @@ Covers:
   - Singleton pattern
 """
 
-import json
 import os
 import sys
 import tempfile

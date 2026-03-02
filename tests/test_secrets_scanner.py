@@ -2448,7 +2448,6 @@ class TestScanContentBuiltinDirect:
         This exercises lines 592-613 (the for loop that converts RealFinding objects).
         """
         from dataclasses import dataclass, field as dc_field
-        from datetime import datetime
         from unittest.mock import MagicMock
 
         # Build a mock RealFinding with the shape real_scanner.RealFinding has
@@ -2604,7 +2603,7 @@ class TestScanContentPermissionErrorFallback:
     @pytest.mark.asyncio
     async def test_scan_content_permission_error_falls_back_to_builtin(self, detector):
         """Test scan_content falls back to builtin scanner on PermissionError."""
-        from unittest.mock import MagicMock, AsyncMock
+        from unittest.mock import MagicMock
 
         mock_scanner = MagicMock()
         mock_scanner.scan_content.return_value = []

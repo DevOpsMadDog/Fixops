@@ -1,17 +1,18 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Activity, Wifi, WifiOff, Key, Settings2, Server, RefreshCw,
+  Activity, Wifi, WifiOff, Key, Settings2, Server, RefreshCw, Sun, Moon,
 } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { useRuntimeConfigStore } from '../stores';
+import { useRuntimeConfigStore, useUIStore } from '../stores';
 import { useNavigate } from 'react-router-dom';
 import { getActiveApiKey } from '../lib/api';
 import AirGappedIndicator from './AirGappedIndicator';
 
 export default function GlobalStatusBar() {
   const navigate = useNavigate();
+  const { theme, setTheme } = useUIStore();
   const {
     apiVersion, apiKeyHint, authMode, mode, serviceHealth,
     loaded, loading, error, fetchConfig, checkServiceHealth,
@@ -112,6 +113,26 @@ export default function GlobalStatusBar() {
 
       {/* Auth mode */}
       <span className="text-muted-foreground">{authMode}</span>
+
+      {/* Theme Toggle */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-5 w-5"
+        onClick={() => {
+          const next = theme === 'dark' ? 'light' : 'dark';
+          setTheme(next);
+          document.documentElement.classList.toggle('dark', next === 'dark');
+          document.documentElement.classList.toggle('light', next === 'light');
+        }}
+        title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      >
+        {theme === 'dark' ? (
+          <Sun className="w-3 h-3 text-amber-400" />
+        ) : (
+          <Moon className="w-3 h-3 text-indigo-400" />
+        )}
+      </Button>
 
       {/* Overlay Config */}
       <Button

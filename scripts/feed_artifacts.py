@@ -19,7 +19,6 @@ import time
 import urllib.request
 import urllib.error
 import urllib.parse
-from datetime import datetime, timezone
 from pathlib import Path
 
 # ── Config ──────────────────────────────────────────────────────────────
@@ -207,7 +206,7 @@ def main():
 
     if not FEEDS_DIR.exists():
         print(f"\n  {RED}ERROR: Feeds directory not found: {FEEDS_DIR}{RESET}")
-        print(f"  Run the threat architect to generate artifacts first.")
+        print("  Run the threat architect to generate artifacts first.")
         sys.exit(1)
 
     results = []

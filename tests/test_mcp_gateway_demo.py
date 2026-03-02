@@ -14,7 +14,6 @@ These tests use Starlette TestClient (no running server needed).
 
 from __future__ import annotations
 
-import json
 import os
 import sys
 import uuid

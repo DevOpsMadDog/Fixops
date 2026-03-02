@@ -17,11 +17,7 @@ Tests the bulk operations API including:
   - POST /api/v1/bulk/clusters/cancel/{job_id}
 """
 
-import json
 import os
-import time
-import uuid
-from unittest.mock import MagicMock, patch
 
 import pytest
 

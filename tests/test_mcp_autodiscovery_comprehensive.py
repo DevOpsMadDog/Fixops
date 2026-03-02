@@ -26,13 +26,11 @@ Pillar: V7 (MCP-Native AI Platform)
 
 import inspect
 import os
-import re
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
-from unittest.mock import MagicMock
 
 import pytest
-from fastapi import APIRouter, Depends, FastAPI, Query, Request
+from fastapi import APIRouter, Depends, FastAPI, Query
 from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 from pydantic import BaseModel, Field
@@ -455,7 +453,8 @@ class TestExtractDescription:
         assert result.endswith("...")
 
     def test_lambda_no_docstring(self):
-        func = lambda x: x
+        def func(x):
+            return x
         assert _extract_description(func) == ""
 
     def test_class_method_docstring(self):

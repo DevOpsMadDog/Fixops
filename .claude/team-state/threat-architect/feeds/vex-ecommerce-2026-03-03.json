@@ -1,0 +1,146 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://aldeci.com/vex/acme-ecommerce-v3.1-2026-03-03",
+  "author": "ALdeci ThreatArchitect",
+  "role": "Threat Architect",
+  "timestamp": "2026-03-03T08:00:00Z",
+  "version": 1,
+  "tooling": "ALdeci CTEM+ Platform v3.1.0",
+  "statements": [
+    {
+      "vulnerability": {
+        "@id": "CVE-2024-1597",
+        "name": "CVE-2024-1597",
+        "description": "pgjdbc SQL injection via PreferQueryMode=SIMPLE"
+      },
+      "products": [
+        {"@id": "pkg:maven/org.postgresql/postgresql@42.7.2"}
+      ],
+      "status": "affected",
+      "justification": "vulnerable_code_in_use",
+      "impact_statement": "The payment-service JDBC connection uses the default PreparedStatement mode, but the user-search microservice explicitly sets PreferQueryMode=SIMPLE in its connection string for legacy compatibility with a reporting query that uses PostgreSQL-specific syntax. The UserController.java:42 SQL injection finding (SARIF CWE-89) directly correlates with this CVE. CVSS 9.8 in context.",
+      "action_statement": "Upgrade postgresql JDBC driver to 42.7.3 which patches this CVE. Remove PreferQueryMode=SIMPLE from user-search connection string and refactor the reporting query to work with extended query protocol.",
+      "timestamp": "2026-03-03T08:00:00Z"
+    },
+    {
+      "vulnerability": {
+        "@id": "CVE-2024-22259",
+        "name": "CVE-2024-22259",
+        "description": "Spring Framework SSRF via UriComponentsBuilder"
+      },
+      "products": [
+        {"@id": "pkg:maven/org.springframework.boot/spring-boot-starter-web@3.2.3"}
+      ],
+      "status": "affected",
+      "justification": "vulnerable_code_in_use",
+      "impact_statement": "The WebhookHandler.java uses UriComponentsBuilder to construct callback URLs from user-supplied webhook registration endpoints. An attacker can register a webhook with a crafted URL that bypasses host validation and targets the EC2 instance metadata service at 169.254.169.254, extracting IAM role credentials for the over-privileged ecommerce-api-role (CNAPP-AWS-EC-002). Combined with the AdministratorAccess policy, this is a full AWS account takeover chain.",
+      "action_statement": "Upgrade Spring Framework to 6.1.5+ (via Spring Boot 3.2.4). Implement URL scheme allowlist (https only) and domain allowlist for webhook callbacks. Enable IMDSv2 on all EC2/Fargate tasks.",
+      "timestamp": "2026-03-03T08:00:00Z"
+    },
+    {
+      "vulnerability": {
+        "@id": "CVE-2023-44487",
+        "name": "CVE-2023-44487",
+        "description": "HTTP/2 Rapid Reset denial of service"
+      },
+      "products": [
+        {"@id": "pkg:maven/org.apache.tomcat.embed/tomcat-embed-core@10.1.18"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "The embedded Tomcat instance in the e-commerce API is configured behind an ALB that terminates HTTP/2 connections. The Tomcat server.xml explicitly sets protocol='HTTP/1.1' and maxConnections=200. The ALB handles HTTP/2 from clients and forwards HTTP/1.1 to the backend. The vulnerable HTTP/2 processing code in Tomcat is not invoked.",
+      "action_statement": "No immediate action required. Monitor Tomcat release notes. The current Tomcat 10.1.18 already includes the fix for this CVE. Maintain ALB as HTTP/2 termination point.",
+      "timestamp": "2026-03-03T08:00:00Z"
+    },
+    {
+      "vulnerability": {
+        "@id": "CVE-2024-22234",
+        "name": "CVE-2024-22234",
+        "description": "Spring Security authorization bypass via null Authentication"
+      },
+      "products": [
+        {"@id": "pkg:maven/org.springframework.security/spring-security-web@6.2.2"}
+      ],
+      "status": "affected",
+      "justification": "vulnerable_code_in_use",
+      "impact_statement": "The AdminAPI.java controller (SARIF finding CWE-862 at line 34) uses HttpServletRequest.getRemoteUser() which returns null when AuthenticatedVoter processes an unauthenticated request. This allows any unauthenticated user to call admin endpoints including user deletion. Spring Security 6.2.2 is exactly the affected version.",
+      "action_statement": "Upgrade Spring Security to 6.2.3+. Replace getRemoteUser() with SecurityContextHolder.getContext().getAuthentication(). Add @PreAuthorize annotations to all admin endpoints.",
+      "timestamp": "2026-03-03T08:00:00Z"
+    },
+    {
+      "vulnerability": {
+        "@id": "CVE-2023-46589",
+        "name": "CVE-2023-46589",
+        "description": "Apache Tomcat HTTP trailer header request smuggling"
+      },
+      "products": [
+        {"@id": "pkg:maven/org.apache.tomcat.embed/tomcat-embed-core@10.1.18"}
+      ],
+      "status": "under_investigation",
+      "justification": "inline_mitigations_already_exist",
+      "impact_statement": "Tomcat 10.1.18 includes the fix for CVE-2023-46589 (fixed in 10.1.16). However, the current deployment behind ALB may introduce a secondary request smuggling vector if the ALB HTTP parser disagrees with Tomcat on trailer header interpretation. Further analysis of ALB/Tomcat header parsing alignment is pending.",
+      "action_statement": "Verify that ALB and Tomcat agree on trailer header parsing by running request smuggling test suite. If ALB strips trailer headers before forwarding, the risk is fully mitigated. Schedule penetration test to confirm.",
+      "timestamp": "2026-03-03T08:00:00Z"
+    },
+    {
+      "vulnerability": {
+        "@id": "CVE-2024-22262",
+        "name": "CVE-2024-22262",
+        "description": "Spring Framework redirect injection via UriComponentsBuilder"
+      },
+      "products": [
+        {"@id": "pkg:maven/org.springframework.boot/spring-boot-starter-web@3.2.3"}
+      ],
+      "status": "affected",
+      "justification": "vulnerable_code_in_use",
+      "impact_statement": "The auth-service login flow uses Spring's UriComponentsBuilder to construct redirect URLs from the 'redirect_uri' OAuth2 parameter. An attacker can manipulate the redirect to a phishing domain to steal authorization codes. This is a separate vector from CVE-2024-22259 (SSRF) affecting the same class.",
+      "action_statement": "Upgrade Spring Framework to 6.1.6+ which patches this CVE. Implement strict redirect_uri validation against pre-registered OAuth2 client redirect URIs stored in the database.",
+      "timestamp": "2026-03-03T08:00:00Z"
+    },
+    {
+      "vulnerability": {
+        "@id": "CVE-2024-21634",
+        "name": "CVE-2024-21634",
+        "description": "Amazon Ion Java denial of service"
+      },
+      "products": [
+        {"@id": "pkg:maven/software.amazon.awssdk/bom@2.24.3"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_reachable",
+      "impact_statement": "The AWS SDK 2.24.3 includes ion-java as a transitive dependency for DynamoDB Enhanced Client. However, the e-commerce platform uses RDS PostgreSQL as its primary database and does not use DynamoDB. The ion-java deserializer is never invoked because no Ion text data is processed by any service component.",
+      "action_statement": "No action required. Consider excluding ion-java from the AWS SDK BOM dependency if a lighter SDK footprint is desired. Monitor for future services that might use DynamoDB.",
+      "timestamp": "2026-03-03T08:00:00Z"
+    },
+    {
+      "vulnerability": {
+        "@id": "CVE-2023-6378",
+        "name": "CVE-2023-6378",
+        "description": "Logback serialization denial of service"
+      },
+      "products": [
+        {"@id": "pkg:maven/ch.qos.logback/logback-classic@1.4.14"}
+      ],
+      "status": "not_affected",
+      "justification": "inline_mitigations_already_exist",
+      "impact_statement": "Logback 1.4.14 is the fixed version for CVE-2023-6378 (vulnerability exists in 1.4.13 and earlier). The installed version is already patched. Additionally, the logback receiver component that contains the vulnerable code is not configured in the e-commerce platform's logback.xml; logs are shipped via CloudWatch Logs agent instead.",
+      "action_statement": "No action required. The installed version 1.4.14 already contains the fix. Verify logback.xml does not configure ServerSocketReceiver.",
+      "timestamp": "2026-03-03T08:00:00Z"
+    },
+    {
+      "vulnerability": {
+        "@id": "CVE-2024-29025",
+        "name": "CVE-2024-29025",
+        "description": "Netty HTTP header length denial of service"
+      },
+      "products": [
+        {"@id": "pkg:maven/io.netty/netty-codec-http@4.1.107.Final"}
+      ],
+      "status": "affected",
+      "justification": "vulnerable_code_in_use",
+      "impact_statement": "Netty 4.1.107.Final is a transitive dependency of the Jedis Redis client and Spring WebFlux reactive streams. The reactive notification service uses Netty for WebSocket connections to push real-time order updates. An attacker sending HTTP requests with extremely large headers can trigger OOM, crashing the notification service and disrupting real-time order tracking for all users.",
+      "action_statement": "Upgrade Netty to 4.1.108.Final. Add HttpObjectDecoder maxHeaderSize=8192 configuration. Place Netty-based services behind ALB which enforces its own header size limits.",
+      "timestamp": "2026-03-03T08:00:00Z"
+    }
+  ]
+}

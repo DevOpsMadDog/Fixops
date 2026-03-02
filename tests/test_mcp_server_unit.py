@@ -13,9 +13,6 @@ Written by agent-doctor run14 for SPRINT1-008 (test coverage).
 """
 import pytest
 import json
-import uuid
-from datetime import datetime, timezone, timedelta
-from unittest.mock import MagicMock, patch
 
 import sys
 import os
@@ -25,12 +22,10 @@ from core.mcp_server import (
     MCPToolRegistry,
     MCPToolDefinition,
     MCPSessionManager,
-    MCPSession,
     MCPProtocolHandler,
     MCPResourceServer,
     MCPResourceDefinition,
     MCPPromptLibrary,
-    MCPPromptTemplate,
     MCPRequest,
     MCPResponse,
     MCPMethod,

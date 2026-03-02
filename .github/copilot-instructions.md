@@ -45,12 +45,12 @@ ALdeci is a **full CTEM platform** with native scanning capabilities AND a neutr
 | **DAST** | `suite-core/core/dast_engine.py` | 533 | 2 |
 | **Secrets** | `suite-core/core/secrets_scanner.py` | 775 | 7 |
 | **Container** | `suite-core/core/container_scanner.py` | 410 | 3 |
-| **CSPM/IaC** | `suite-core/core/cspm_analyzer.py` | 586 | 9 |
+| **CSPM/IaC** | `suite-core/core/cspm_engine.py` | 586 | 9 |
 | **API Fuzzer** | `suite-attack/api/api_fuzzer_router.py` | ~200 | 3 |
 | **Malware** | `suite-attack/api/malware_router.py` | ~200 | 4 |
 | **LLM Monitor** | `suite-core/api/llm_monitor_router.py` | ~200 | 4 |
 
-### AutoFix Engine (1,260 LOC — `suite-core/core/autofix_engine.py`)
+### AutoFix Engine (~1,428 LOC — `suite-core/core/autofix_engine.py`)
 10 fix types: CODE_PATCH, DEPENDENCY_UPDATE, CONFIG_HARDENING, IAC_FIX, SECRET_ROTATION, PERMISSION_FIX, INPUT_VALIDATION, OUTPUT_ENCODING, WAF_RULE, CONTAINER_FIX.
 Confidence: HIGH=auto-apply, MEDIUM=review, LOW=manual. 14 API endpoints.
 
@@ -94,16 +94,18 @@ Leadership (CISO, VP Eng, CTO, CFO), Security Ops (9 roles), Engineering (6 role
 ## AI Agent Swarm System (Claude Opus 4.6 Fast Mode)
 
 **Model**: All agents run **Claude Opus 4.6 (fast mode)** via Claude Code CLI.
-**Architecture**: 17 senior agents + 30 junior swarm workers, all using Claude Opus 4.6.
+**Architecture**: 19 senior agents + 30 junior swarm workers, all using Claude Opus 4.6.
 
 | Phase | Agents | Role |
 |-------|--------|------|
 | 0 | vision-agent, agent-doctor | Pre-flight vision check + health |
 | 1 | context-engineer | Codebase map + daily briefing |
 | 2 | ai-researcher, data-scientist, enterprise-architect | Research + architecture (parallel) |
+| 2.5 | ux-architect | UI information architecture audit (before build) |
 | 3 | backend-hardener, frontend-craftsman, threat-architect | Build + harden (parallel) |
 | 3.5 | swarm-controller + 30 juniors | Parallel micro-tasks |
 | 4 | security-analyst, qa-engineer | Validate + test (parallel) |
+| 4.5 | persona-api-validator | Persona API flow validation |
 | 5 | devops-engineer | Infrastructure |
 | 6 | Debate round (3 rounds) | Cross-agent review |
 | 7 | marketing-head, technical-writer, sales-engineer | Go-to-market (parallel) |
@@ -113,7 +115,7 @@ Leadership (CISO, VP Eng, CTO, CFO), Security Ops (9 roles), Engineering (6 role
 
 **Shared Context Protocol (SCP)**: Every agent reads CEO_VISION.md, VISION_TO_ACCOMPLISH.MD, sprint-board.json, and context_log.md before work. Every agent appends outcomes to context_log.md after work.
 
-**Agent Files**: `.claude/agents/*.md` — 17 agent definitions
+**Agent Files**: `.claude/agents/*.md` — 19 agent definitions
 **Orchestration**: `scripts/run-ai-team-unleashed.sh` — UNLEASHED mode (all agents, Claude Opus 4.6, unlimited budget)
 **State**: `.claude/team-state/` — sprint board, agent statuses, debates, swarm outputs
 
@@ -124,17 +126,17 @@ Leadership (CISO, VP Eng, CTO, CFO), Security Ops (9 roles), Engineering (6 role
 | Suite | Purpose | Key Files |
 |-------|---------|-----------|
 | `suite-api` | FastAPI gateway, 61 routers, auth | `apps/api/app.py`, `*_router.py` |
-| `suite-core` | Brain, pipeline, decisions, connectors, **native scanners**, **AutoFix engine** | `core/brain_pipeline.py`, `core/sast_engine.py`, `core/dast_engine.py`, `core/secrets_scanner.py`, `core/container_scanner.py`, `core/cspm_analyzer.py`, `core/autofix_engine.py`, `core/connectors.py` |
+| `suite-core` | Brain, pipeline, decisions, connectors, **native scanners**, **AutoFix engine** | `core/brain_pipeline.py` (1,533 LOC), `core/sast_engine.py`, `core/dast_engine.py`, `core/secrets_scanner.py`, `core/container_scanner.py`, `core/cspm_engine.py`, `core/autofix_engine.py` (~1,428 LOC), `core/connectors.py` |
 | `suite-attack` | MPTE, attack sim, FAIL engine | `attack/micro_pentest.py`, `attack/mpte_advanced.py` |
 | `suite-feeds` | Threat intel (NVD, KEV, EPSS, OSV, ExploitDB, GitHub) | `feeds/*.py` |
 | `suite-evidence-risk` | Compliance, evidence bundles, risk scoring | `risk/*.py`, `evidence/*.py` |
 | `suite-integrations` | Jira, Slack, GitHub, MCP connectors | (shares connectors from suite-core) |
-| `suite-ui` | React frontends | `aldeci/` (FROZEN legacy), `aldeci-ui-new/` (ACTIVE — 5 Workflow Spaces, Apple HIG + shadcn/ui) |
+| `suite-ui` | React frontends | `aldeci/` (ACTIVE — being wired to real APIs). NOTE: `aldeci-ui-new/` does NOT exist on disk. |
 
 ### Codebase Scale
-- **821 Python files** (~331K LOC) + **85 TypeScript source files** (~26K LOC) = ~357K total LOC
-- **704 API endpoints** across 64 router files + 8 non-standard files in 6 backend suites
-- **279 test files**, 7,449 tests collected
+- **~456 Python backend files** (~193K LOC) + **~95 TypeScript source files** (~42K LOC)
+- **759 API endpoints** across 64 router files + 8 non-standard files in 6 backend suites
+- **375 test files**, 13,221 tests collected (~187K test LOC)
 - **17 production connectors** (7 integration in `core/connectors.py` + 10 security tool in `core/security_connectors.py`) + universal REST/MCP ingest (4,340 total LOC)
 
 ## Critical Patterns
@@ -172,13 +174,13 @@ Add new integrations to `IntegrationType` enum, then wire in `integrations_route
 - Add connector import in `integrations_router.py`
 - Add elif case in `test_integration()` and `trigger_sync()` endpoints
 
-### Frontend — aldeci-ui-new (ACTIVE)
-> **⚠️ All new UI work goes into `suite-ui/aldeci-ui-new/`. Do NOT modify `suite-ui/aldeci/` (frozen legacy).**
-- Stack: React 19 + Vite 6 + TypeScript 5 + Tailwind 4 + shadcn/ui + Framer Motion
-- Design: Apple HIG-inspired (clean typography, generous whitespace, physics-based animations)
-- Navigation: 5 Workflow Spaces (Mission Control, Discover, Validate, Remediate, Comply)
-- Pages: `suite-ui/aldeci-ui-new/src/spaces/` (grouped by workflow space)
-- API client: `suite-ui/aldeci-ui-new/src/lib/api.ts` — axios with `X-API-Key` header
+### Frontend — aldeci (ACTIVE)
+> **⚠️ `suite-ui/aldeci-ui-new/` does NOT exist on disk. All UI work goes into `suite-ui/aldeci/`.**
+- Stack: React 18 + Vite 5 + TypeScript 5 + Tailwind 3 + shadcn/ui + Framer Motion
+- Design target: Apple HIG-inspired (clean typography, generous whitespace, physics-based animations)
+- Navigation target: 5 Workflow Spaces (Mission Control, Discover, Validate, Remediate, Comply) — sidebar restructure pending
+- Pages: `suite-ui/aldeci/src/pages/` (grouped by section)
+- API client: `suite-ui/aldeci/src/lib/api.ts` — axios with `X-API-Key` header
 - Export API namespaces: `dashboardApi`, `integrationsApi`, `findingsApi`, etc.
 
 ## Developer Commands
@@ -186,15 +188,13 @@ Add new integrations to `IntegrationType` enum, then wire in `integrations_route
 ```bash
 # Backend
 source .venv/bin/activate
-uvicorn apps.api.app:app --port 8000 --reload
+python -m uvicorn apps.api.app:create_app --factory --port 8000 --reload
 
-# Frontend — NEW UI (separate terminal)
-cd suite-ui/aldeci-ui-new && npm run dev  # http://localhost:3001
-# Legacy UI (FROZEN — read-only reference)
-# cd suite-ui/aldeci && npm run dev
+# Frontend (separate terminal)
+cd suite-ui/aldeci && npm run dev  # http://localhost:3001
 
 # Testing
-make test                          # pytest with 60% coverage gate
+make test                          # pytest with 18% coverage gate (CI)
 pytest tests/test_<name>.py -v     # single test file
 pytest -k "test_integrations" -v   # pattern match
 
@@ -215,17 +215,17 @@ make demo                          # full end-to-end demo
 - Tests in `tests/` directory, named `test_*.py`
 - Markers defined in `pyproject.toml`: `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.e2e`
 - Use `conftest.py` fixtures for shared test setup
-- Coverage gate: 60% minimum (`--cov-fail-under=60`)
+- Coverage gate: 18% minimum in CI (`--cov-fail-under=18`), 25% in pyproject.toml
 
 ## File Structure Conventions
 
 - Routers: `suite-api/apps/api/*_router.py` (FastAPI APIRouter)
 - Models: `suite-core/core/*_models.py` (dataclasses, Pydantic, enums)
 - Database: `suite-core/core/*_db.py` (SQLite with WAL mode)
-- UI Spaces (NEW): `suite-ui/aldeci-ui-new/src/spaces/**/*.tsx` (5 Workflow Spaces)
-- UI Components (NEW): `suite-ui/aldeci-ui-new/src/components/ui/` (shadcn) and `components/aldeci/` (Apple-inspired custom)
-- Legacy UI (FROZEN): `suite-ui/aldeci/src/pages/**/*.tsx` — do not modify
-- Agent Definitions: `.claude/agents/*.md` (17 agents, all Claude Opus 4.6)
+- UI Pages (ACTIVE): `suite-ui/aldeci/src/pages/**/*.tsx`
+- UI Components: `suite-ui/aldeci/src/components/ui/` (shadcn) and `components/`
+- NOTE: `suite-ui/aldeci-ui-new/` does NOT exist on disk
+- Agent Definitions: `.claude/agents/*.md` (18 agents incl. ux-architect, all Claude Opus 4.6)
 - Agent State: `.claude/team-state/` (sprint board, statuses, debates)
 
 ## Key Design Decisions
@@ -247,11 +247,12 @@ make demo                          # full end-to-end demo
 | 4 | UI Polish | 5 Workflow Spaces nav, 6 new pages, 15 stub rebuilds |
 | 5 | Infrastructure | Zero-Gravity Data, Developer Experience |
 
-## 15 Critical Stub Pages to Rebuild (Priority Order)
+## 15 Former Stub Pages — Status (verified 2026-03-02)
 
-**P0** (demo blockers): Workflows.tsx (71 LOC), Collaboration.tsx (72), Reports.tsx (76), EvidenceBundles.tsx (74), AuditLogs.tsx (52)
-**P1** (feature completeness): IaCScanning.tsx (67), ThreatFeeds.tsx (80), CorrelationEngine.tsx (78), Users.tsx (55), Teams.tsx (55), Policies.tsx (75)
-**P2** (nice to have): Marketplace.tsx (66), SystemHealth.tsx (89), Predictions.tsx (76), Inventory.tsx (53)
+14/15 pages are now fully wired to real APIs (REAL). 1 page (EvidenceBundles) is PARTIAL — makes real API calls but falls back to demo data on error.
+All pages grew from <100 LOC to 258-2091 LOC. No pure stubs remain.
+
+**Action needed**: EvidenceBundles.tsx — remove Math.random() fallback, show error state instead of fake data.
 
 ## Common Pitfalls
 
@@ -263,4 +264,4 @@ make demo                          # full end-to-end demo
 - Read `docs/VISION_TO_ACCOMPLISH.MD` for complete build specifications
 - Read `docs/CTEM_PLUS_IDENTITY.md` for scanner/AutoFix/pipeline reference
 - ALdeci is a **CTEM+ platform** — never describe it as "just an aggregator"
-- Postman collections: `suite-integrations/postman/enterprise/ALdeci-{1..7}-*.json` (~380 test requests)
+- Postman collections: `suite-integrations/postman/enterprise/ALdeci-{1..7}-*.json` (~475 assertions)

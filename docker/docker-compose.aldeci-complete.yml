@@ -27,15 +27,15 @@ services:
       POSTGRES_HOST: aldeci-db
       POSTGRES_PORT: 5432
       POSTGRES_DB: mpte
-      POSTGRES_USER: mpte
-      POSTGRES_PASSWORD: mpte
+      POSTGRES_USER: "${POSTGRES_USER:-mpte}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-mpte}"
       OPEN_AI_KEY: "${OPENAI_API_KEY}"
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
       SERVER_URL: "https://localhost:8443"
-      SECRET_KEY: "${SECRET_KEY:-aldeci-secret-key-change-in-production}"
-      JWT_SECRET: "${JWT_SECRET:-aldeci-jwt-secret-change-in-production}"
-      ADMIN_EMAIL: "admin@aldeci.io"
-      ADMIN_PASSWORD: "admin"
+      SECRET_KEY: "${SECRET_KEY}"  # REQUIRED — no weak default
+      JWT_SECRET: "${JWT_SECRET}"  # REQUIRED — no weak default
+      ADMIN_EMAIL: "${ADMIN_EMAIL:-admin@aldeci.io}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD}"  # REQUIRED — no weak default
       LOG_LEVEL: "info"
       DEBUG_MODE: "false"
       # Docker access for pentest agents
@@ -72,9 +72,9 @@ services:
     container_name: aldeci-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: mpte
-      POSTGRES_PASSWORD: mpte
-      POSTGRES_DB: mpte
+      POSTGRES_USER: "${POSTGRES_USER:-mpte}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-mpte}"
+      POSTGRES_DB: "${POSTGRES_DB:-mpte}"
     volumes:
       - aldeci-postgres-data:/var/lib/postgresql/data
     networks:

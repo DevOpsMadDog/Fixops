@@ -1,0 +1,130 @@
+{
+  "provider": "aws",
+  "account_id": "471923847561",
+  "region": "us-east-1",
+  "scan_timestamp": "2026-03-03T08:00:00Z",
+  "scanner": "ALdeci ThreatArchitect v1.1.0",
+  "architecture": "acme-ecommerce-platform-v3.1.0",
+  "findings": [
+    {
+      "id": "CNAPP-AWS-EC-001",
+      "resource_type": "AWS::S3::Bucket",
+      "resource_id": "arn:aws:s3:::acme-ecommerce-media-prod",
+      "rule": "S3_BUCKET_PUBLIC_READ_PROHIBITED",
+      "severity": "HIGH",
+      "status": "FAILED",
+      "description": "S3 bucket 'acme-ecommerce-media-prod' has Block Public Access disabled and bucket policy allows s3:GetObject from principal '*'. Product images bucket exposes directory listing and file enumeration. While media files are intended to be public, the bucket also contains invoice PDFs stored under /invoices/ prefix that contain customer PII.",
+      "remediation": "Enable S3 Block Public Access at the bucket level. Create a separate bucket for public media assets. Move invoice PDFs to a private bucket with pre-signed URL access. Add bucket policy to restrict GetObject to CloudFront OAI only.",
+      "compliance": ["CIS-AWS-1.4-2.1.1", "PCI-DSS-v4.0-3.4.1", "SOC2-CC6.1"],
+      "first_observed": "2026-02-15T00:00:00Z"
+    },
+    {
+      "id": "CNAPP-AWS-EC-002",
+      "resource_type": "AWS::IAM::Role",
+      "resource_id": "arn:aws:iam::471923847561:role/acme-ecommerce-api-role",
+      "rule": "IAM_POLICY_NO_STATEMENTS_WITH_ADMIN_ACCESS",
+      "severity": "CRITICAL",
+      "status": "FAILED",
+      "description": "IAM role 'acme-ecommerce-api-role' attached to ECS task definition has AWS managed policy 'AdministratorAccess' (arn:aws:iam::aws:policy/AdministratorAccess). This grants the API service full control over all AWS resources including IAM, billing, and organization management. If the Spring Boot application is compromised via CVE-2024-22259 SSRF, attacker gains full AWS account takeover through IMDS credential theft.",
+      "remediation": "Replace AdministratorAccess with a least-privilege policy scoped to: s3:GetObject/PutObject on media bucket, rds:Connect on payment-db, sqs:SendMessage/ReceiveMessage on order-queue, secretsmanager:GetSecretValue for API keys. Use IAM Access Analyzer to generate policy from CloudTrail access logs.",
+      "compliance": ["CIS-AWS-1.4-1.16", "NIST-800-53-AC-6", "PCI-DSS-v4.0-7.2.2", "SOC2-CC6.3"],
+      "first_observed": "2026-01-20T00:00:00Z"
+    },
+    {
+      "id": "CNAPP-AWS-EC-003",
+      "resource_type": "AWS::RDS::DBInstance",
+      "resource_id": "arn:aws:rds:us-east-1:471923847561:db:acme-payments-db",
+      "rule": "RDS_STORAGE_ENCRYPTED",
+      "severity": "HIGH",
+      "status": "FAILED",
+      "description": "RDS PostgreSQL instance 'acme-payments-db' does not have storage encryption enabled. This database stores payment transaction records including tokenized card data, billing addresses, and transaction amounts. Unencrypted EBS snapshots could expose cardholder data if snapshot is shared or copied to another account.",
+      "remediation": "Create an encrypted snapshot of the current database using AWS KMS customer-managed key. Restore a new RDS instance from the encrypted snapshot. Update connection strings in Secrets Manager. Enable automated backup encryption. Delete unencrypted snapshots.",
+      "compliance": ["CIS-AWS-1.4-2.3.1", "PCI-DSS-v4.0-3.5.1", "HIPAA-164.312(a)(2)(iv)", "SOC2-CC6.7"],
+      "first_observed": "2026-02-01T00:00:00Z"
+    },
+    {
+      "id": "CNAPP-AWS-EC-004",
+      "resource_type": "AWS::EC2::SecurityGroup",
+      "resource_id": "arn:aws:ec2:us-east-1:471923847561:security-group/sg-0a1b2c3d4e5f67890",
+      "rule": "RESTRICTED_INCOMING_TRAFFIC",
+      "severity": "HIGH",
+      "status": "FAILED",
+      "description": "Security group 'sg-ecommerce-bastion' allows inbound traffic on all ports (0-65535) from 0.0.0.0/0. Originally created for emergency debugging access, this rule was never removed. Exposes SSH (22), PostgreSQL (5432), Redis (6379), and application ports to the public internet.",
+      "remediation": "Remove the 0.0.0.0/0 allow-all rule. Add specific rules: SSH (22) from VPN CIDR 10.0.100.0/24 only. Remove direct database and Redis port access from bastion SG. Use AWS Systems Manager Session Manager instead of SSH bastion.",
+      "compliance": ["CIS-AWS-1.4-5.2", "PCI-DSS-v4.0-1.3.1", "NIST-800-53-SC-7"],
+      "first_observed": "2026-02-20T00:00:00Z"
+    },
+    {
+      "id": "CNAPP-AWS-EC-005",
+      "resource_type": "AWS::CloudTrail::Trail",
+      "resource_id": "arn:aws:cloudtrail:us-east-1:471923847561:trail/acme-management-trail",
+      "rule": "CLOUD_TRAIL_ENABLED",
+      "severity": "MEDIUM",
+      "status": "FAILED",
+      "description": "CloudTrail trail 'acme-management-trail' has data events logging disabled for S3 and Lambda. Management events are logged, but object-level access to the media bucket and Lambda invocations are not recorded. This creates a blind spot for detecting unauthorized data access or exfiltration of customer invoices.",
+      "remediation": "Enable CloudTrail data events for S3 buckets containing sensitive data (payments, invoices). Enable Lambda data events for security-critical functions. Send logs to a centralized security account S3 bucket with object lock enabled.",
+      "compliance": ["CIS-AWS-1.4-3.1", "PCI-DSS-v4.0-10.2.1", "SOC2-CC7.2"],
+      "first_observed": "2026-02-10T00:00:00Z"
+    },
+    {
+      "id": "CNAPP-AWS-EC-006",
+      "resource_type": "AWS::ECS::TaskDefinition",
+      "resource_id": "arn:aws:ecs:us-east-1:471923847561:task-definition/acme-api-service:14",
+      "rule": "ECS_TASK_DEFINITION_USER_FOR_HOST_MODE_CHECK",
+      "severity": "MEDIUM",
+      "status": "FAILED",
+      "description": "ECS task definition 'acme-api-service:14' runs containers as root user. The Spring Boot application container and the Nginx sidecar both execute as UID 0. If an attacker exploits the deserialization vulnerability (CWE-502) in OrderProcessor, they gain root-level access within the container, increasing the blast radius for container escape attempts.",
+      "remediation": "Set 'user' field in task definition container definitions to a non-root UID (e.g., 1000:1000). Update Dockerfile to create and use a dedicated application user. Ensure file permissions allow the non-root user to read application JARs and write to /tmp.",
+      "compliance": ["CIS-Docker-4.1", "NIST-800-53-AC-6(10)", "PCI-DSS-v4.0-7.2.1"],
+      "first_observed": "2026-01-25T00:00:00Z"
+    },
+    {
+      "id": "CNAPP-AWS-EC-007",
+      "resource_type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "resource_id": "arn:aws:elasticloadbalancing:us-east-1:471923847561:loadbalancer/app/acme-api-alb/1234567890abcdef",
+      "rule": "ALB_WAF_ENABLED",
+      "severity": "MEDIUM",
+      "status": "FAILED",
+      "description": "Application Load Balancer 'acme-api-alb' does not have AWS WAF associated. All HTTP traffic reaches the Spring Boot application without rate limiting, bot detection, or SQL injection filtering. The SARIF scan identified 8 critical application vulnerabilities that WAF rules could mitigate while patches are applied.",
+      "remediation": "Associate AWS WAF WebACL with the ALB. Enable AWS Managed Rules: AWSManagedRulesCommonRuleSet, AWSManagedRulesSQLiRuleSet, AWSManagedRulesKnownBadInputsRuleSet. Add rate-based rule limiting 2000 requests per 5 minutes per IP. Enable WAF logging to S3.",
+      "compliance": ["PCI-DSS-v4.0-6.4.1", "NIST-800-53-SC-7(5)", "SOC2-CC6.6"],
+      "first_observed": "2026-02-05T00:00:00Z"
+    },
+    {
+      "id": "CNAPP-AWS-EC-008",
+      "resource_type": "AWS::ElastiCache::ReplicationGroup",
+      "resource_id": "arn:aws:elasticache:us-east-1:471923847561:replicationgroup:acme-session-cache",
+      "rule": "ELASTICACHE_REDIS_CLUSTER_AUTOMATIC_BACKUP_CHECK",
+      "severity": "HIGH",
+      "status": "FAILED",
+      "description": "ElastiCache Redis cluster 'acme-session-cache' has AUTH disabled and runs in non-TLS mode. The cluster stores user session tokens, shopping cart data, and rate-limiting counters. Without authentication, any service in the VPC can connect to Redis port 6379 and read/modify session tokens, enabling session hijacking across all authenticated users.",
+      "remediation": "Enable Redis AUTH with a strong token stored in Secrets Manager. Enable in-transit encryption (TLS). Restrict security group to allow connections only from ECS service security groups. Enable at-rest encryption. Configure automatic backups with 7-day retention.",
+      "compliance": ["CIS-AWS-1.4-2.3.3", "PCI-DSS-v4.0-4.2.1", "NIST-800-53-SC-8"],
+      "first_observed": "2026-02-12T00:00:00Z"
+    },
+    {
+      "id": "CNAPP-AWS-EC-009",
+      "resource_type": "AWS::SNS::Topic",
+      "resource_id": "arn:aws:sns:us-east-1:471923847561:acme-order-notifications",
+      "rule": "SNS_ENCRYPTED_KMS",
+      "severity": "LOW",
+      "status": "FAILED",
+      "description": "SNS topic 'acme-order-notifications' does not use KMS encryption. Order notification messages contain customer email addresses and order IDs. While SNS encrypts data in transit via HTTPS, messages at rest on the SNS service are not encrypted with a customer-managed KMS key.",
+      "remediation": "Enable server-side encryption on the SNS topic using a KMS customer-managed key. Update the SQS queue subscriptions to use the same KMS key for decryption. Grant kms:Decrypt permission to the SQS queue's IAM role.",
+      "compliance": ["PCI-DSS-v4.0-3.5.1", "NIST-800-53-SC-28"],
+      "first_observed": "2026-02-18T00:00:00Z"
+    },
+    {
+      "id": "CNAPP-AWS-EC-010",
+      "resource_type": "AWS::Lambda::Function",
+      "resource_id": "arn:aws:lambda:us-east-1:471923847561:function:acme-image-resizer",
+      "rule": "LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED",
+      "severity": "MEDIUM",
+      "status": "FAILED",
+      "description": "Lambda function 'acme-image-resizer' is not deployed inside a VPC. The function processes product images uploaded to S3 and has IAM permissions to write to the media bucket. Without VPC placement, the function cannot access private resources and has unrestricted outbound internet access. If a malicious image triggers a vulnerability in the image processing library (e.g., ImageMagick), the attacker has unrestricted network egress for data exfiltration.",
+      "remediation": "Deploy the Lambda function inside the application VPC private subnet. Add VPC endpoints for S3 access. Restrict the Lambda execution role to only the specific S3 bucket ARN. Add a NAT gateway if outbound internet access is required for image CDN invalidation.",
+      "compliance": ["CIS-AWS-1.4-1.22", "NIST-800-53-SC-7", "SOC2-CC6.1"],
+      "first_observed": "2026-02-22T00:00:00Z"
+    }
+  ]
+}

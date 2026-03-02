@@ -23,7 +23,6 @@ With --agent, also generates:
 """
 
 import json
-import os
 import re
 import sqlite3
 import sys
@@ -508,7 +507,7 @@ def main():
         if idx + 1 < len(sys.argv):
             agent_name = sys.argv[idx + 1]
 
-    print(f"[knowledge-index] Generating compact digests...")
+    print("[knowledge-index] Generating compact digests...")
     start = time.time()
 
     conn = init_db()

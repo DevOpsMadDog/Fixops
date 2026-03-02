@@ -152,13 +152,13 @@ def seed_knowledge_graph():
     analytics = engine.get_graph_analytics()
     blast = engine.calculate_blast_radius("finding:VULN-003", max_depth=5)
 
-    print(f"✅ Knowledge Graph seeded successfully!")
+    print("✅ Knowledge Graph seeded successfully!")
     print(f"   Nodes: {analytics['node_count']}")
     print(f"   Edges: {analytics['edge_count']}")
     print(f"   Applications: {len(apps)}")
     print(f"   Vulnerabilities: {len(vulns)}")
     print(f"   Backend: {analytics['backend']}")
-    print(f"\n🔥 Blast Radius from Log4Shell (VULN-003):")
+    print("\n🔥 Blast Radius from Log4Shell (VULN-003):")
     print(f"   Affected nodes: {len(blast.affected_nodes)}")
     print(f"   Affected components: {blast.affected_components}")
     print(f"   Chained findings: {blast.affected_findings}")
@@ -172,7 +172,7 @@ def seed_knowledge_graph():
         ("finding:VULN-006", "finding:VULN-020", "SSRF → PII Exposure"),
         ("finding:VULN-009", "finding:VULN-001", "GraphQL → SQLi Chain"),
     ]
-    print(f"\n🛡️ Attack Paths Discovered:")
+    print("\n🛡️ Attack Paths Discovered:")
     for src, tgt, label in path_pairs:
         paths = engine.find_attack_paths(src, tgt, max_depth=8)
         if paths:

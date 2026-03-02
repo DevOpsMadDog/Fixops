@@ -25,7 +25,6 @@ from core.sast_engine import (
     Language,
     SastSeverity,
     SastFinding,
-    SastScanResult,
     SASTEngine,
     detect_language,
     get_sast_engine,

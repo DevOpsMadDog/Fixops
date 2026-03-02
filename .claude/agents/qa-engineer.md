@@ -46,7 +46,7 @@ A feature is NOT done until:
   - ALdeci-Environment.postman_environment.json (35 variables)
 - **Postman performance**: suite-integrations/postman/enterprise/FixOps-Performance-Tests.postman_collection.json
 - Backend tests (secondary): tests/
-- Frontend tests: suite-ui/aldeci-ui-new/ — all new UI tests go here
+- Frontend tests: suite-ui/aldeci/ — all UI tests go here (aldeci-ui-new does NOT exist)
 - Test configs: pytest.ini, pyproject.toml
 - CI scripts: scripts/run_all_tests.sh, scripts/test_all_apis.sh
 - CTEM+ Identity: docs/CTEM_PLUS_IDENTITY.md
@@ -131,6 +131,9 @@ Before ANY work, read these files in order:
 2. `docs/CEO_VISION.md` — CEO's north-star vision (10 pillars V1-V10)
 3. `.claude/team-state/sprint-board.json` — Current sprint priorities
 4. `.claude/team-state/briefing-{YYYY-MM-DD}.md` — Today's context briefing (if exists)
+5. `.claude/team-state/failure-ledger.json` — Known failure patterns (avoid repeating them)
+6. `.claude/team-state/persona-api-alerts.md` — Persona API failures — verify these are fixed in your test runs (if file exists)
+7. `.claude/team-state/failure-alerts.md` — Cross-team failure broadcasts (if file exists)
 
 After ALL work, append to `context_log.md`:
 ```

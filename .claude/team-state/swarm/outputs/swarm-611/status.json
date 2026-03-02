@@ -1,0 +1,37 @@
+{
+  "task_id": "swarm-611",
+  "worker_id": "junior-worker",
+  "status": "completed",
+  "files_modified": [],
+  "files_created": [],
+  "summary": "Executed knowledge graph and hardening test suite. 76 tests passed, 1 test failed (test_production_requires_allowed_origins in test_ops_hardening.py). Total run time: 12.57 seconds.",
+  "issues": [
+    "FAILED tests/test_ops_hardening.py::test_production_requires_allowed_origins - Failed: DID NOT RAISE <class 'RuntimeError'>"
+  ],
+  "needs_senior_review": false,
+  "confidence": 0.95,
+  "duration_turns": 3,
+  "test_results": {
+    "total_tests": 77,
+    "passed": 76,
+    "failed": 1,
+    "skipped": 0,
+    "duration_seconds": 12.57,
+    "coverage_percent": 0.00,
+    "coverage_gate": 25,
+    "files_run": [
+      "tests/test_knowledge_graph.py",
+      "tests/test_knowledge_brain_unit.py",
+      "tests/test_security_hardening_v2.py",
+      "tests/test_ops_hardening.py"
+    ]
+  },
+  "failure_details": {
+    "test_production_requires_allowed_origins": {
+      "file": "tests/test_ops_hardening.py",
+      "error": "Failed: DID NOT RAISE <class 'RuntimeError'>",
+      "type": "assertion_error",
+      "severity": "medium"
+    }
+  }
+}

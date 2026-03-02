@@ -1,0 +1,205 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "serialNumber": "urn:uuid:harness-1772453269",
+  "metadata": {
+    "timestamp": "2026-03-02T12:07:49.538852+00:00",
+    "component": {
+      "name": "ecommerce-platform",
+      "version": "2.5.0",
+      "type": "application",
+      "purl": "pkg:docker/acme/ecommerce-platform@2.5.0"
+    },
+    "tools": [
+      {
+        "name": "ALdeci-ThreatArchitect",
+        "version": "2.0.0"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "org.springframework.boot:spring-boot-starter-web",
+      "version": "3.2.3",
+      "purl": "pkg:maven/org.springframework.boot/spring-boot-starter-web@3.2.3",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "org.springframework.boot:spring-boot-starter-security",
+      "version": "3.2.3",
+      "purl": "pkg:maven/org.springframework.boot/spring-boot-starter-security@3.2.3",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "com.fasterxml.jackson.core:jackson-databind",
+      "version": "2.16.1",
+      "purl": "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.16.1",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "org.postgresql:postgresql",
+      "version": "42.7.1",
+      "purl": "pkg:maven/org.postgresql/postgresql@42.7.1",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "io.lettuce:lettuce-core",
+      "version": "6.3.1.RELEASE",
+      "purl": "pkg:maven/io.lettuce/lettuce-core@6.3.1.RELEASE",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "com.amazonaws:aws-java-sdk-s3",
+      "version": "1.12.636",
+      "purl": "pkg:maven/com.amazonaws/aws-java-sdk-s3@1.12.636",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "com.stripe:stripe-java",
+      "version": "24.16.0",
+      "purl": "pkg:maven/com.stripe/stripe-java@24.16.0",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "io.jsonwebtoken:jjwt-api",
+      "version": "0.12.3",
+      "purl": "pkg:maven/io.jsonwebtoken/jjwt-api@0.12.3",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "org.apache.logging.log4j:log4j-core",
+      "version": "2.22.1",
+      "purl": "pkg:maven/org.apache.logging.log4j/log4j-core@2.22.1",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "io.netty:netty-handler",
+      "version": "4.1.104.Final",
+      "purl": "pkg:maven/io.netty/netty-handler@4.1.104.Final",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "com.google.guava:guava",
+      "version": "33.0.0-jre",
+      "purl": "pkg:maven/com.google.guava/guava@33.0.0-jre",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "react",
+      "version": "18.2.0",
+      "purl": "pkg:npm/react@18.2.0",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "next",
+      "version": "14.1.0",
+      "purl": "pkg:npm/next@14.1.0",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "axios",
+      "version": "1.6.5",
+      "purl": "pkg:npm/axios@1.6.5",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "jsonwebtoken",
+      "version": "9.0.2",
+      "purl": "pkg:npm/jsonwebtoken@9.0.2",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "express",
+      "version": "4.18.2",
+      "purl": "pkg:npm/express@4.18.2",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "redis",
+      "version": "5.3.4",
+      "purl": "pkg:pypi/redis@5.3.4",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "celery",
+      "version": "5.3.6",
+      "purl": "pkg:pypi/celery@5.3.6",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "boto3",
+      "version": "1.34.25",
+      "purl": "pkg:pypi/boto3@1.34.25",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "cryptography",
+      "version": "41.0.7",
+      "purl": "pkg:pypi/cryptography@41.0.7",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "Pillow",
+      "version": "10.2.0",
+      "purl": "pkg:pypi/Pillow@10.2.0",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "nginx",
+      "version": "1.25.4",
+      "purl": "pkg:generic/nginx@1.25.4",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "postgresql",
+      "version": "16.1",
+      "purl": "pkg:generic/postgresql@16.1",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "redis-server",
+      "version": "7.2.4",
+      "purl": "pkg:generic/redis@7.2.4",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "elasticsearch",
+      "version": "8.12.0",
+      "purl": "pkg:generic/elasticsearch@8.12.0",
+      "scope": "required"
+    },
+    {
+      "type": "library",
+      "name": "rabbitmq",
+      "version": "3.12.12",
+      "purl": "pkg:generic/rabbitmq@3.12.12",
+      "scope": "required"
+    }
+  ]
+}

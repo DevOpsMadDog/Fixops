@@ -23,11 +23,8 @@ Test categories:
 
 from __future__ import annotations
 
-import math
 import time
-from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Mapping, Sequence
-from unittest.mock import MagicMock, patch
+from typing import Any, Mapping
 
 import pytest
 

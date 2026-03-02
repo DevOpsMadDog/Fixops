@@ -1,0 +1,165 @@
+{
+  "summary": {
+    "test": "ctem_attack_campaign",
+    "timestamp": "2026-03-02T12:00:08.911899+00:00",
+    "elapsed_seconds": 95.6,
+    "total_pass": 24,
+    "total_fail": 0,
+    "pass_rate": 100.0,
+    "verticals_tested": 1,
+    "success": true
+  },
+  "results": {
+    "ecommerce": {
+      "vertical": "ecommerce",
+      "name": "E-Commerce Platform (AWS)",
+      "phases": {
+        "scenario_generation": {
+          "scenarios": 0,
+          "threat_actor": "cybercriminal"
+        },
+        "sast_findings": 5,
+        "secrets_found": 7,
+        "brain": {
+          "steps": 12,
+          "nodes": 0,
+          "edges": 0,
+          "avg_risk": 0.3732,
+          "findings_ingested": 8
+        },
+        "autofix": {
+          "fix_id": "fix-5ec7953e7e9260ce",
+          "confidence": 0.8900067878377892
+        },
+        "evidence": {
+          "signed": "YES",
+          "algorithm": "RSA-SHA256 (PKCS1v15)",
+          "content_hash": "sha256:a627bb0dce46a4179e4a7d52ab452e4a64a8e5fb9f6ff6ea16cba2b9fefebeb0"
+        },
+        "compliance_score": 0.8636
+      }
+    }
+  },
+  "steps": [
+    {
+      "step": "API health check",
+      "status": "PASS",
+      "detail": "0.0s"
+    },
+    {
+      "step": "Generate attack scenarios",
+      "status": "PASS",
+      "detail": "0 scenarios, 10.5s"
+    },
+    {
+      "step": "Generate insider-threat scenario",
+      "status": "PASS",
+      "detail": "11.8s"
+    },
+    {
+      "step": "MPTE attack simulation",
+      "status": "PASS",
+      "detail": "status=completed, 0.0s"
+    },
+    {
+      "step": "Threat intel: CVE-2024-22259",
+      "status": "PASS",
+      "detail": "risk=high, EPSS=0.564, KEV=False, 0.0s"
+    },
+    {
+      "step": "Threat intel: CVE-2024-22243",
+      "status": "PASS",
+      "detail": "risk=high, EPSS=0.558, KEV=False, 0.0s"
+    },
+    {
+      "step": "Business impact: payment-service",
+      "status": "PASS",
+      "detail": "risk=assessed, breach_cost=$0, 0.0s"
+    },
+    {
+      "step": "Business impact: user-service",
+      "status": "PASS",
+      "detail": "risk=assessed, breach_cost=$0, 0.0s"
+    },
+    {
+      "step": "SAST scan (native)",
+      "status": "PASS",
+      "detail": "5 findings, 0.0s"
+    },
+    {
+      "step": "Secrets scan (native)",
+      "status": "PASS",
+      "detail": "7 secrets detected, 0.0s"
+    },
+    {
+      "step": "Container scan (native)",
+      "status": "PASS",
+      "detail": "8 issues, 0.0s"
+    },
+    {
+      "step": "IaC/Terraform scan (native)",
+      "status": "PASS",
+      "detail": "4 misconfigs, 0.0s"
+    },
+    {
+      "step": "MPTE comprehensive scan",
+      "status": "PASS",
+      "detail": "status=scan_started, 20.0s"
+    },
+    {
+      "step": "MPTE verify CVE-2024-22259",
+      "status": "PASS",
+      "detail": "status=pending, 5.0s"
+    },
+    {
+      "step": "MPTE verify CVE-2024-22243",
+      "status": "PASS",
+      "detail": "status=pending, 5.0s"
+    },
+    {
+      "step": "Sandbox PoC verification",
+      "status": "PASS",
+      "detail": "status=sandbox_unavailable, 0.0s"
+    },
+    {
+      "step": "Bulk reachability analysis",
+      "status": "PASS",
+      "detail": "3 vulns queued, 3 jobs, 0.2s"
+    },
+    {
+      "step": "Brain Pipeline processing",
+      "status": "PASS",
+      "detail": "12/12 steps, 0 nodes, 0 edges, avg_risk=0.4, 0.0s"
+    },
+    {
+      "step": "AutoFix generate",
+      "status": "PASS",
+      "detail": "fix_id=fix-5ec7953e7e9260ce, confidence=89.0%, 6.1s"
+    },
+    {
+      "step": "AutoFix validate",
+      "status": "PASS",
+      "detail": "valid=False, checks=6/7"
+    },
+    {
+      "step": "AutoFix bulk generate",
+      "status": "PASS",
+      "detail": "5 fixes generated, 36.8s"
+    },
+    {
+      "step": "Evidence bundle generate",
+      "status": "PASS",
+      "detail": "id=EVB-2026-4FD51C, 6 sections, 0.0s"
+    },
+    {
+      "step": "Signed evidence export",
+      "status": "PASS",
+      "detail": "signed=YES, algo=RSA-SHA256 (PKCS1v15), 0.0s"
+    },
+    {
+      "step": "Brain compliance evidence",
+      "status": "PASS",
+      "detail": "score=86.4%, status=qualified, 0.0s"
+    }
+  ]
+}

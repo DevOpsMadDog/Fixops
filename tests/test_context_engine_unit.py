@@ -4,7 +4,6 @@ Tests the ContextEngine that derives business-aware context signals from
 design/SBOM components, enabling the brain pipeline to make risk-informed decisions.
 """
 
-import pytest
 
 
 class TestComponentContext:

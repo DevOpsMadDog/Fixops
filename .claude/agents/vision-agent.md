@@ -178,6 +178,39 @@ Track which pillars got attention and which are being neglected:
 
 ### 5. Produce Vision Alignment Report
 Write `.claude/team-state/vision-alignment-{date}.json`:
+
+### 5a. UI Information Architecture Check (MANDATORY — added 2026-03-03)
+> This step was missing and caused a MAJOR gap: sidebar had 8 Technical Suites instead of 5 Workflow Spaces for weeks without detection.
+
+```bash
+# Extract sidebar group labels from MainLayout.tsx
+grep -n "label:" suite-ui/aldeci/src/layouts/MainLayout.tsx | head -20
+```
+
+**Check against VISION_TO_ACCOMPLISH.MD Section 4.2 — 5 Workflow Spaces:**
+1. Mission Control — "What needs attention now?"
+2. Discover — "What risks exist?"
+3. Validate — "Is it actually exploitable?"
+4. Remediate — "How do I fix it?"
+5. Comply — "Can I prove we're secure?"
+
+**Scoring**:
+- 1.0 = All 5 spaces present as top-level sidebar groups
+- 0.8 = 4/5 spaces present
+- 0.6 = 3/5 spaces present or mixed with technical suites
+- 0.0 = Still using technical suite grouping (Code Suite, Cloud Suite, etc.)
+
+**If score < 0.8**: Flag as **CRITICAL vision drift** in the alignment report and create a `ceo_action_item`.
+
+Also check:
+- [ ] Zero Math.random() in page display data
+- [ ] Dark mode classes present (>0 `dark:` in src/)
+- [ ] UX architect status file exists and is recent (if ux-architect agent has been deployed)
+
+Add `"ui_architecture_score"` field to the vision alignment JSON output.
+
+### 5b. Produce Vision Alignment Report JSON
+Write `.claude/team-state/vision-alignment-{date}.json`:
 ```json
 {
   "date": "{date}",

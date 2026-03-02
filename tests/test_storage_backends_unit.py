@@ -17,11 +17,7 @@ Covers:
 from __future__ import annotations
 
 import hashlib
-import json
-import os
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from datetime import datetime, timezone
 
 import pytest
 
@@ -327,7 +323,7 @@ class TestLocalFileBackendBasic:
 class TestPathTraversalProtection:
     def test_double_dot_sanitized(self, storage):
         # ".." is replaced with "_" so traversal is prevented
-        meta = storage.put("../escape.txt", b"data")
+        storage.put("../escape.txt", b"data")
         assert storage.exists("../escape.txt")
 
     def test_leading_slash_stripped(self, storage):
@@ -526,12 +522,12 @@ class TestEdgeCases:
 
     def test_special_characters_in_key(self, storage):
         key = "test/file with spaces.bin"
-        meta = storage.put(key, b"data")
+        storage.put(key, b"data")
         assert storage.exists(key)
 
     def test_nested_directories(self, storage):
         key = "deep/nested/path/to/file.bin"
-        meta = storage.put(key, b"data")
+        storage.put(key, b"data")
         assert storage.exists(key)
         assert storage.get(key) == b"data"
 

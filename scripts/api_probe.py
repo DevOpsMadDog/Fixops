@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Probe all major API routes with corrected paths."""
 import urllib.request
-import json
 
 TOKEN = "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh"
 BASE = "http://localhost:8000"

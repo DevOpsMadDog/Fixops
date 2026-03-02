@@ -1,0 +1,118 @@
+{
+  "type": "aldeci-self-scan",
+  "date": "2026-03-02T11:20:08.343100+00:00",
+  "sast_findings": 8,
+  "secrets_found": 3,
+  "total_findings": 11,
+  "steps_total": 17,
+  "steps_passed": 12,
+  "steps_failed": 0,
+  "pass_rate": 70.6,
+  "duration_seconds": 11.2,
+  "findings": [
+    {
+      "id": "SAST-d6e15872d9a4",
+      "title": "Excessive Data Exposure in API Response",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-200",
+      "file_path": "suite-core/core/brain_pipeline.py",
+      "line_number": 165,
+      "description": "Full object serialized to response \u2014 may include sensitive fields"
+    },
+    {
+      "id": "SAST-5c15f867affd",
+      "title": "Exposed Stack Trace in Response",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-209",
+      "file_path": "suite-core/core/micro_pentest.py",
+      "line_number": 87,
+      "description": "Stack trace included in HTTP response"
+    },
+    {
+      "id": "SAST-8f4faef48304",
+      "title": "Exposed Stack Trace in Response",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-209",
+      "file_path": "suite-api/apps/api/app.py",
+      "line_number": 66,
+      "description": "Stack trace included in HTTP response"
+    },
+    {
+      "id": "SAST-e8e4985e8380",
+      "title": "Exposed Stack Trace in Response",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-209",
+      "file_path": "suite-core/core/crypto.py",
+      "line_number": 40,
+      "description": "Stack trace included in HTTP response"
+    },
+    {
+      "id": "SAST-0df4e8a88f17",
+      "title": "Exposed Stack Trace in Response",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-209",
+      "file_path": "suite-core/core/crypto.py",
+      "line_number": 41,
+      "description": "Stack trace included in HTTP response"
+    },
+    {
+      "id": "SAST-8c42e010db18",
+      "title": "Insecure Deserialization",
+      "severity": "critical",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-502",
+      "file_path": "suite-core/core/sast_engine.py",
+      "line_number": 140,
+      "description": "Unsafe deserialization of untrusted data"
+    },
+    {
+      "id": "SAST-b67db8e16a80",
+      "title": "ECB Mode Usage",
+      "severity": "high",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-327",
+      "file_path": "suite-core/core/sast_engine.py",
+      "line_number": 150,
+      "description": "ECB mode preserves plaintext patterns \u2014 insecure for most data"
+    },
+    {
+      "id": "SAST-a990eb5cd2bf",
+      "title": "Exposed Stack Trace in Response",
+      "severity": "medium",
+      "source": "aldeci-self-sast",
+      "cwe": "CWE-209",
+      "file_path": "suite-core/core/connectors.py",
+      "line_number": 60,
+      "description": "Stack trace included in HTTP response"
+    },
+    {
+      "id": "f71e9bf1-42a6-43a7-a0c0-82b6c0bea410",
+      "title": "Secret: password in .env",
+      "severity": "high",
+      "source": "aldeci-self-secrets",
+      "file_path": ".env",
+      "description": "Secret of type 'password' found in .env"
+    },
+    {
+      "id": "b7eb317b-c560-4984-9967-e6641e73ef6a",
+      "title": "Secret: api_key in .env",
+      "severity": "high",
+      "source": "aldeci-self-secrets",
+      "file_path": ".env",
+      "description": "Secret of type 'api_key' found in .env"
+    },
+    {
+      "id": "b0b056a2-5d48-4939-9134-a14406650085",
+      "title": "Secret: database_credential in .env",
+      "severity": "high",
+      "source": "aldeci-self-secrets",
+      "file_path": ".env",
+      "description": "Secret of type 'database_credential' found in .env"
+    }
+  ]
+}

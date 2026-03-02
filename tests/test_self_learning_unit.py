@@ -15,11 +15,8 @@ Agent: agent-doctor (run v6 — 2026-03-01)
 
 from __future__ import annotations
 
-import json
 import os
 import sys
-import tempfile
-import time
 from datetime import datetime, timezone
 
 import pytest

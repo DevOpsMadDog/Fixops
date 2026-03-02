@@ -18,14 +18,12 @@ import sys
 import tempfile
 from pathlib import Path
 
-import numpy as np
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / "suite-core"))
 
 from core.ml.consensus_calibrator import (
-    DEFAULT_WEIGHTS,
     MODEL_NAMES,
     CalibrationResult,
     ConsensusCalibrator,

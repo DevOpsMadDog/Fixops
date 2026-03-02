@@ -1112,7 +1112,7 @@ def register_scanner_normalizers(registry) -> int:
             normalizer = cls(config)
             registry.register(name, normalizer)
             count += 1
-            logger.info(f"Registered scanner normalizer: {name}")
+            logger.info("Registered scanner normalizer: %s", name)
         except Exception as e:
             # Only expose exception type — str(e) may contain import paths
             logger.warning(
@@ -1178,7 +1178,7 @@ def parse_scanner_output(
 
     cls = SCANNER_NORMALIZERS.get(name)
     if not cls:
-        logger.error(f"No parser for scanner type: {name}")
+        logger.error("No parser for scanner type: %s", name)
         return []
 
     config = NormalizerConfig(name=name, enabled=True, priority=50)
@@ -1220,7 +1220,7 @@ def parse_scanner_output(
             elif isinstance(f, dict) and component:
                 f.setdefault("tags", []).append(f"component:{component}")
 
-    logger.info(f"Parsed {len(findings)} findings from {name}")
+    logger.info("Parsed %d findings from %s", len(findings), name)
     return findings
 
 

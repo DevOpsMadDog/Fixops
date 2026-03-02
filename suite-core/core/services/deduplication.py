@@ -164,118 +164,119 @@ class DeduplicationService:
         fingerprint = self.identity_resolver.compute_fingerprint(finding)
 
         conn = sqlite3.connect(self.db_path, timeout=30.0)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        try:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
 
-        # Check if cluster exists
-        cursor.execute(
-            "SELECT * FROM clusters WHERE correlation_key = ?",
-            (correlation_key,),
-        )
-        existing = cursor.fetchone()
-
-        now = datetime.now(timezone.utc).isoformat()
-        event_id = str(uuid.uuid4())
-
-        if existing:
-            # Update existing cluster
-            cluster_id = existing["cluster_id"]
-            new_count = existing["occurrence_count"] + 1
-
+            # Check if cluster exists
             cursor.execute(
-                """
-                UPDATE clusters
-                SET last_seen = ?, occurrence_count = ?, fingerprint = ?
-                WHERE cluster_id = ?
-            """,
-                (now, new_count, fingerprint, cluster_id),
+                "SELECT * FROM clusters WHERE correlation_key = ?",
+                (correlation_key,),
             )
+            existing = cursor.fetchone()
 
-            # Record event
-            cursor.execute(
-                """
-                INSERT INTO events (event_id, cluster_id, run_id, source, raw_finding, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """,
-                (event_id, cluster_id, run_id, source, json.dumps(finding), now),
-            )
+            now = datetime.now(timezone.utc).isoformat()
+            event_id = str(uuid.uuid4())
 
-            conn.commit()
+            if existing:
+                # Update existing cluster
+                cluster_id = existing["cluster_id"]
+                new_count = existing["occurrence_count"] + 1
+
+                cursor.execute(
+                    """
+                    UPDATE clusters
+                    SET last_seen = ?, occurrence_count = ?, fingerprint = ?
+                    WHERE cluster_id = ?
+                """,
+                    (now, new_count, fingerprint, cluster_id),
+                )
+
+                # Record event
+                cursor.execute(
+                    """
+                    INSERT INTO events (event_id, cluster_id, run_id, source, raw_finding, timestamp)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                    (event_id, cluster_id, run_id, source, json.dumps(finding), now),
+                )
+
+                conn.commit()
+
+                return {
+                    "cluster_id": cluster_id,
+                    "correlation_key": correlation_key,
+                    "fingerprint": fingerprint,
+                    "is_new": False,
+                    "occurrence_count": new_count,
+                    "first_seen": existing["first_seen"],
+                    "last_seen": now,
+                    "status": existing["status"],
+                }
+            else:
+                # Create new cluster
+                cluster_id = str(uuid.uuid4())
+
+                cursor.execute(
+                    """
+                    INSERT INTO clusters (
+                        cluster_id, correlation_key, fingerprint, org_id, app_id,
+                        component_id, category, cve_id, rule_id, title, severity,
+                        status, first_seen, last_seen, occurrence_count, metadata
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                    (
+                        cluster_id,
+                        correlation_key,
+                        fingerprint,
+                        org_id,
+                        finding.get("app_id", "unknown"),
+                        finding.get("component_id", "unknown"),
+                        finding.get("category", source),
+                        finding.get("cve_id"),
+                        finding.get("rule_id"),
+                        finding.get("title", finding.get("message", "")),
+                        finding.get("severity", "medium"),
+                        ClusterStatus.OPEN.value,
+                        now,
+                        now,
+                        1,
+                        json.dumps(finding.get("metadata", {})),
+                    ),
+                )
+
+                # Record initial status
+                cursor.execute(
+                    """
+                    INSERT INTO status_history (cluster_id, new_status, reason, timestamp)
+                    VALUES (?, ?, ?, ?)
+                """,
+                    (cluster_id, ClusterStatus.OPEN.value, "Initial discovery", now),
+                )
+
+                # Record event
+                cursor.execute(
+                    """
+                    INSERT INTO events (event_id, cluster_id, run_id, source, raw_finding, timestamp)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                    (event_id, cluster_id, run_id, source, json.dumps(finding), now),
+                )
+
+                conn.commit()
+
+                return {
+                    "cluster_id": cluster_id,
+                    "correlation_key": correlation_key,
+                    "fingerprint": fingerprint,
+                    "is_new": True,
+                    "occurrence_count": 1,
+                    "first_seen": now,
+                    "last_seen": now,
+                    "status": ClusterStatus.OPEN.value,
+                }
+        finally:
             conn.close()
-
-            return {
-                "cluster_id": cluster_id,
-                "correlation_key": correlation_key,
-                "fingerprint": fingerprint,
-                "is_new": False,
-                "occurrence_count": new_count,
-                "first_seen": existing["first_seen"],
-                "last_seen": now,
-                "status": existing["status"],
-            }
-        else:
-            # Create new cluster
-            cluster_id = str(uuid.uuid4())
-
-            cursor.execute(
-                """
-                INSERT INTO clusters (
-                    cluster_id, correlation_key, fingerprint, org_id, app_id,
-                    component_id, category, cve_id, rule_id, title, severity,
-                    status, first_seen, last_seen, occurrence_count, metadata
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-                (
-                    cluster_id,
-                    correlation_key,
-                    fingerprint,
-                    org_id,
-                    finding.get("app_id", "unknown"),
-                    finding.get("component_id", "unknown"),
-                    finding.get("category", source),
-                    finding.get("cve_id"),
-                    finding.get("rule_id"),
-                    finding.get("title", finding.get("message", "")),
-                    finding.get("severity", "medium"),
-                    ClusterStatus.OPEN.value,
-                    now,
-                    now,
-                    1,
-                    json.dumps(finding.get("metadata", {})),
-                ),
-            )
-
-            # Record initial status
-            cursor.execute(
-                """
-                INSERT INTO status_history (cluster_id, new_status, reason, timestamp)
-                VALUES (?, ?, ?, ?)
-            """,
-                (cluster_id, ClusterStatus.OPEN.value, "Initial discovery", now),
-            )
-
-            # Record event
-            cursor.execute(
-                """
-                INSERT INTO events (event_id, cluster_id, run_id, source, raw_finding, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """,
-                (event_id, cluster_id, run_id, source, json.dumps(finding), now),
-            )
-
-            conn.commit()
-            conn.close()
-
-            return {
-                "cluster_id": cluster_id,
-                "correlation_key": correlation_key,
-                "fingerprint": fingerprint,
-                "is_new": True,
-                "occurrence_count": 1,
-                "first_seen": now,
-                "last_seen": now,
-                "status": ClusterStatus.OPEN.value,
-            }
 
     def process_findings_batch(
         self,

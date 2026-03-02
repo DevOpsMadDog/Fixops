@@ -25,7 +25,6 @@ sys.path.insert(0, ".")
 from core.ml.parser_quality import (
     ParserQualityResult,
     ParserQualityValidator,
-    QualityIssue,
 )
 
 

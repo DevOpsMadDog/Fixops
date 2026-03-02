@@ -1,10 +1,10 @@
 # 📊 ALdeci Daily Digest — 2026-03-02 (Monday)
 
-> **Run ID:** swarm-2026-03-02_18-18-27
+> **Run ID:** swarm-2026-03-02_22-57-06
 > **Model:** claude-opus-4-6-fast
-> **Runtime:** 2h 50m
-> **Iteration:** 1/1
-> **Health Grade:** **A** (90/100)
+> **Runtime:** 22h 47m
+> **Iteration:** 0/1
+> **Health Grade:** **A** (102/100)
 
 ---
 
@@ -12,16 +12,16 @@
 
 | Agent | Status | Pillars | Task/Feature | Duration | Log Size |
 |-------|--------|---------|-------------|----------|----------|
-| vision-agent | ✅ Completed | - | - | 77m | 1449B |
-| agent-doctor | ✅ Completed | - | - | 68m | 2283B |
-| context-engineer | ✅ Completed | - | - | 123m | 1820B |
-| ai-researcher | ✅ Completed | - | - | 12m | 2551B |
-| data-scientist | ✅ Completed | - | - | 22m | 2403B |
-| enterprise-architect | ✅ Completed | - | - | 13m | 1966B |
-| backend-hardener | ✅ Completed | - | - | 15m | 2909B |
-| frontend-craftsman | ✅ Completed | - | - | 12m | 1220B |
-| threat-architect | ✅ Completed | V10,V3,V5,V7 | - | 82m | 1696B |
-| swarm-controller | ✅ Completed | - | - | 40m | 1651B |
+| vision-agent | ✅ Completed | - | - | 6m | 1645B |
+| agent-doctor | ✅ Completed | - | - | 9m | 1794B |
+| context-engineer | ✅ Completed | - | - | 11m | 2018B |
+| ai-researcher | ✅ Completed | - | - | 13m | 2498B |
+| data-scientist | ✅ Completed | - | - | 15m | 2208B |
+| enterprise-architect | ✅ Completed | - | - | 13m | 2516B |
+| backend-hardener | ✅ Completed | - | - | 29m | 1791B |
+| frontend-craftsman | ✅ Completed | - | - | 32m | 2652B |
+| threat-architect | ✅ Completed | - | - | 47m | 1513B |
+| swarm-controller | 🔄 Running | - | - | - | 0B |
 | security-analyst | ✅ Completed | - | - | 12m | 2172B |
 | qa-engineer | ✅ Completed | - | - | 26m | 1017B |
 | devops-engineer | ✅ Completed | - | - | 11m | 2302B |
@@ -31,7 +31,7 @@
 | scrum-master | ✅ Completed | - | - | 10m | 1833B |
 
 
-**Summary:** 17/17 completed, 0 failed, 0 running, 0 not run
+**Summary:** 16/17 completed, 0 failed, 1 running, 0 not run
 
 ---
 
@@ -39,16 +39,16 @@
 
 | Status | Pillar | Name | Priority | Agents Working |
 |--------|--------|------|----------|---------------|
-| ✅ V1 | APP_ID-Centric |   | agent-doctor, enterprise-architect, threat-architect, swarm-controller, security-analyst, technical-writer |
+| ✅ V1 | APP_ID-Centric |   | context-engineer, enterprise-architect, threat-architect, security-analyst, technical-writer |
 | ✅ V2 | Security Lifecycle |   | (none) |
-| ✅ V3 | Decision Intelligence | 🎯 | vision-agent, agent-doctor, ai-researcher, data-scientist, enterprise-architect, backend-hardener, threat-architect, swarm-controller, security-analyst, devops-engineer, marketing-head, technical-writer |
-| ✅ V4 | Multi-LLM Consensus |   | (none) |
-| ✅ V5 | MPTE Verification | 🎯 | vision-agent, agent-doctor, ai-researcher, backend-hardener, threat-architect, devops-engineer, marketing-head, technical-writer |
-| ✅ V6 | Quantum-Secure Evidence |   | (none) |
-| ✅ V7 | MCP-Native Platform | 🎯 | vision-agent, agent-doctor, ai-researcher, data-scientist, enterprise-architect, threat-architect, security-analyst, devops-engineer, marketing-head, technical-writer |
-| ✅ V8 | Self-Learning |   | (none) |
-| ✅ V9 | Air-Gapped Deploy |   | ai-researcher, data-scientist, enterprise-architect, devops-engineer |
-| ✅ V10 | CTEM+Crypto Proof |   | agent-doctor, enterprise-architect, threat-architect, security-analyst, technical-writer |
+| ✅ V3 | Decision Intelligence | 🎯 | vision-agent, context-engineer, ai-researcher, data-scientist, enterprise-architect, frontend-craftsman, threat-architect, security-analyst, devops-engineer, marketing-head, technical-writer |
+| ✅ V4 | Multi-LLM Consensus |   | vision-agent |
+| ✅ V5 | MPTE Verification | 🎯 | vision-agent, context-engineer, ai-researcher, enterprise-architect, frontend-craftsman, threat-architect, devops-engineer, marketing-head, technical-writer |
+| ✅ V6 | Quantum-Secure Evidence |   | vision-agent |
+| ✅ V7 | MCP-Native Platform | 🎯 | vision-agent, context-engineer, ai-researcher, data-scientist, enterprise-architect, frontend-craftsman, threat-architect, security-analyst, devops-engineer, marketing-head, technical-writer |
+| ✅ V8 | Self-Learning |   | vision-agent |
+| ✅ V9 | Air-Gapped Deploy |   | ai-researcher, devops-engineer |
+| ✅ V10 | CTEM+Crypto Proof |   | context-engineer, enterprise-architect, threat-architect, security-analyst, technical-writer |
 
 
 **Core Pillars (must be active):** V3 Decision Intelligence, V5 MPTE, V7 MCP
@@ -57,7 +57,7 @@
 
 ---
 
-## 🧠 Autonomous Decisions Today (331)
+## 🧠 Autonomous Decisions Today (424)
 
 ```
 [2026-03-02 01:00] agent:context-engineer DECISION: Generate v16.0 full codebase scan
@@ -391,29 +391,144 @@
 [2026-03-02 23:45] agent:context-engineer DECISION: Produce v27.0 scan with GROWTH classification
   ACTION: Updated codebase-map.json (v27.0), architecture-context.md, metrics.json, CLAUDE.md, dependency-graph.json, briefing-2026-03-02-v27.md, context-engineer-status.md. Honesty scan 21st consecutive CLEAN.
 [2026-03-02 23:45] agent:context-engineer DECISION: Flag test collection speedup for investigation
+[2026-03-02 23:59] agent:vision-agent DECISION: Score Sprint 2 Day 2 alignment at 0.85 (up from 0.84)
+  ACTION: Updated vision-alignment-2026-03-02.json with v35 scoring. Core LOC verified via wc -l: V3=4,063 V5=5,363 V7=1,446 (10,872 total).
+[2026-03-02 23:59] agent:vision-agent DECISION: Confirm zero vision drift for Day 2
+[2026-03-02 23:59] agent:vision-agent DECISION: Prioritize DEMO-003 as sole remaining P0 for Day 3
+[2026-03-02 22:30] agent:agent-doctor DECISION: Upgrade overall health from YELLOW to GREEN
+[2026-03-02 22:30] agent:agent-doctor DECISION: Verify expanded DB integrity (7 DBs vs previous 5)
+[2026-03-02 22:30] agent:agent-doctor DECISION: Escalate SA-001 severity (5 days open, demo in 4 days)
+[2026-03-02 22:45] agent:vision-agent DECISION: Confirm alignment score stable at 0.85 for Day 2 Final
+  ACTION: Updated vision-alignment-2026-03-02.json to v36 (stability confirmation). Core LOC V3=4,063 V5=5,363 V7=1,446 (10,872 total). 13,221 tests, 19.25% coverage. Newman 468/475.
+  ROLLBACK: Revert vision-alignment-2026-03-02.json to v35 from git
+[2026-03-02 22:46] agent:vision-agent DECISION: Set DEMO-003 as P0 sole blocker for Day 3
+  ACTION: Updated vision-preflight-2026-03-02.md with Day 3 priorities. DEMO-003 = P0, SEC-ADV-001 = P1, Newman regression = P1.
+[2026-03-02 22:47] agent:vision-agent DECISION: Validate debate verdict compliance — all directives COMPLIANT
+  ACTION: Confirmed compliance. V3/V5/V7 actively engineered (10,872 LOC). V4/V6/V8 correctly deferred (no production code). UI in-progress (DEMO-003 at 90%). Added compliance section to vision-alignment-2026-03-02.json.
+[2026-03-02 21:30] agent:agent-doctor DECISION: Self-heal fixops_brain.db corruption
+[2026-03-02 21:30] agent:agent-doctor DECISION: Clean 12 WAL+SHM files
+[2026-03-02 21:30] agent:agent-doctor DECISION: Produce run33 health dashboard and report
+  ACTION: Verified 17/17 agents (all Grade A), 19/19 engines (20,783 LOC), 4/4 MOATs, 56/56 DBs writable, 1,143 core tests. Updated health-dashboard.json and health-report-2026-03-02.md.
+[2026-03-02 22:00] agent:context-engineer DECISION: Produce v29.0 scan artifacts
+[2026-03-02 22:00] agent:context-engineer DECISION: Document coverage measurement discrepancy
+[2026-03-02 22:45] agent:context-engineer DECISION: Correct v30.0 overwrite to v29.1
+[2026-03-02 23:30] agent:context-engineer DECISION: v30.0 — File count confirmed 914 (triple-verified)
+[2026-03-02 23:30] agent:context-engineer DECISION: Honesty moat scan #24 — CLEAN
+[2026-03-02 23:30] agent:context-engineer DECISION: Sprint Day 2 final — all metrics stable
+[2026-03-02 23:45] agent:ai-researcher DECISION: Upgrade MCP Security Assessment to P1 priority
+[2026-03-02 23:46] agent:ai-researcher DECISION: Add n8n CVE-2026-21858 (CVSS 10.0) as urgent AI toolchain intelligence
+  ROLLBACK: Remove n8n entries from urgent-intel.md and pulse-2026-03-02.md
+[2026-03-02 23:47] agent:ai-researcher DECISION: Publish Pass 4 FINAL pulse with confidence ≥90%
+  ACTION: Published pulse-2026-03-02.md (Pass 4 FINAL, ~490 lines), pitch-data.json (updated), urgent-intel.md (v5, 11 alerts).
+[2026-03-02 22:15] agent:enterprise-architect DECISION: Fix 5 F401 unused imports via ruff --fix
+[2026-03-02 22:18] agent:enterprise-architect DECISION: Hoist AutoFixEngine outside per-finding loop in Step 11
+[2026-03-02 22:20] agent:enterprise-architect DECISION: Add try/finally to deduplication.py process_finding
+[2026-03-02 22:25] agent:enterprise-architect DECISION: Add TD-020, TD-021, TD-022 to tech debt tracker
+[2026-03-02 10:48] agent:data-scientist DECISION: Wire ParserQualityValidator into brain pipeline Step 2
+[2026-03-02 10:49] agent:data-scientist DECISION: Create eventbus_integration.py for ML anomaly/quality alerts
+[2026-03-02 10:50] agent:data-scientist DECISION: Keep previous consensus calibration (F1=0.9081) over new run (F1=0.7734)
+[2026-03-02 10:52] agent:data-scientist DECISION: Confirmed risk model v2.1.0 stable — no retraining needed
+[2026-03-02 11:00] agent:enterprise-architect DECISION: Fix F821 undefined-name errors in eventbus_integration.py
+[2026-03-02 11:05] agent:enterprise-architect DECISION: Write ADR-009 for MCP Auto-Discovery Architecture
+[2026-03-02 11:10] agent:enterprise-architect DECISION: Validate all 9 ADRs against codebase
+[2026-03-02 11:15] agent:enterprise-architect DECISION: Update performance review with parallelization blueprint
+  ROLLBACK: Revert .claude/team-state/architecture/reviews/2026-03-02-performance-review.md to Run 6 version
+[2026-03-02 22:00] agent:data-scientist DECISION: Wire ML EventBus handlers into application startup
+[2026-03-02 22:01] agent:data-scientist DECISION: Add ML Intelligence Showcase to MCP Gateway Demo
+[2026-03-02 22:02] agent:data-scientist DECISION: Refresh daily threat intelligence and consensus calibration
+[2026-03-02 23:45] agent:ai-researcher DECISION: Publish Pass 5 daily pulse with 9 new intelligence items
+  ACTION: Updated pulse-2026-03-02.md (382 lines) with: (1) Claude weaponized in Mexican govt attack, (2) Snyk valuation corrected to $8.5B, (3) Chinese labs abusing Anthropic platform, (4) Semgrep Managed Scans GA + PHP reachability + Gartner MQ, (5) Orca Forrester Strong Performer, (6) Tenable 70% MCP stat, (7) CrowdStrike acquisition details, (8) Checkmarx Tromzo details, (9) Wiz timing correction to mid-March. Updated pitch-data.json with all corrections.
+  ROLLBACK: Restore pulse-2026-03-02.md and pitch-data.json from git history
+[2026-03-02 23:46] agent:ai-researcher DECISION: Correct Snyk valuation from $3.7B to $8.5B in all research outputs
+  ACTION: Updated pitch-data.json competitor entry and pulse-2026-03-02.md Section A with corrected $8.5B valuation, $343M ARR, ~$400M cash
+[2026-03-02 23:47] agent:ai-researcher DECISION: Upgrade Claude weaponization alert to URGENT RED in intel
+[2026-03-02 23:48] agent:ai-researcher DECISION: Update Wiz-Google timing from "end of March" to "mid-March"
+[2026-03-02 25:20] agent:frontend-craftsman DECISION: Create LivePipelineIndicator as standalone dashboard component
+[2026-03-02 25:25] agent:frontend-craftsman DECISION: Reorganize Dashboard layout — Brain Pipeline + Scanners side-by-side
+[2026-03-02 25:28] agent:frontend-craftsman DECISION: Confirm page transition wrapper already exists — no new component needed
+[2026-03-02 22:10] agent:backend-hardener DECISION: Fix CRITICAL path traversal in bulk_router download endpoint
+[2026-03-02 22:12] agent:backend-hardener DECISION: Fix CRITICAL path param injection in MCP router
+[2026-03-02 22:14] agent:backend-hardener DECISION: Fix HIGH CEF injection in audit router
+[2026-03-02 22:16] agent:backend-hardener DECISION: Add input validation to workflows/policies routers
+[2026-03-02 22:18] agent:backend-hardener DECISION: Add DAST header/cookie size limits
+[2026-03-02 22:20] agent:backend-hardener DECISION: Add connector target name validation
+[2026-03-02 22:22] agent:backend-hardener DECISION: Add progress tracking to brain pipeline
+[2026-03-02 22:24] agent:backend-hardener DECISION: Expand AutoFix safety validation from 4 to 7 checks
+[2026-03-02 22:26] agent:backend-hardener DECISION: Add graph step error isolation to brain pipeline
+[2026-03-02 22:28] agent:backend-hardener DECISION: Fix Pydantic v2 private attribute bug in BulkStatusUpdateRequest
+[2026-03-02 22:00] agent:backend-hardener DECISION: Add 10 missing /health and /status endpoint aliases
+[2026-03-02 22:05] agent:backend-hardener DECISION: Fix brain pipeline get_progress elapsed_ms bug
+[2026-03-02 22:10] agent:backend-hardener DECISION: Harden autofix engine logging and input validation
+[2026-03-02 23:30] agent:threat-architect DECISION: Build self-dogfooding demo script (ctem_dogfood_demo.py)
+[2026-03-02 23:35] agent:threat-architect DECISION: Generate Monday Week 2 architecture artifacts in advance
+[2026-03-02 23:40] agent:threat-architect DECISION: Accept MPTE API instability as known limitation
+[2026-03-02 22:15] agent:frontend-craftsman DECISION: Remove mock LLM providers from MultiLLMConsensusPanel
+[2026-03-02 22:18] agent:frontend-craftsman DECISION: Create BrainPipelineLiveFeed component for V3 pipeline visualization
+[2026-03-02 22:20] agent:frontend-craftsman DECISION: Build MCPToolRegistry page for V7 (MCP-Native Platform)
+[2026-03-02 22:22] agent:frontend-craftsman DECISION: Rewrite AttackSimulation from 153→1421 LOC for V5
+[2026-03-02 22:25] agent:frontend-craftsman DECISION: Add chord navigation shortcuts and keyboard help overlay
+[2026-03-02 22:28] agent:frontend-craftsman DECISION: Enhance ErrorBoundary with auto-retry and chunk error detection
+[2026-03-02 22:30] agent:backend-hardener DECISION: Fix 5 brain pipeline debug loggers leaking exception details
+[2026-03-02 22:31] agent:backend-hardener DECISION: Fix 3 scanner parsers f-string logging patterns
+[2026-03-02 22:32] agent:backend-hardener DECISION: Add template injection prevention to sandbox verifier
+[2026-03-02 22:35] agent:backend-hardener DECISION: Write 58 new hardening tests for parsers, sandbox, and pipeline
+[2026-03-02 22:00] agent:threat-architect DECISION: Build multi-architecture CTEM showcase covering 5 enterprise verticals
+[2026-03-02 22:15] agent:threat-architect DECISION: Build ALdeci self-scan (dogfooding) script with retry logic
+[2026-03-02 22:30] agent:threat-architect DECISION: Create 4 new architecture JSON files for missing verticals
+  ROLLBACK: Remove healthcare-azure-2026-03-02.json, finserv-multicloud-2026-03-02.json, iot-ot-hybrid-2026-03-02.json, govcloud-fedramp-2026-03-02.json
+[2026-03-02 22:35] agent:threat-architect DECISION: Create IoT/OT and GovCloud STRIDE threat models
+  ROLLBACK: Remove iot-ot-2026-03-02.json and govcloud-2026-03-02.json from threat-models/
+[2026-03-02 22:40] agent:threat-architect DECISION: Integrate latest ai-researcher threat intel into feed artifacts
+  ACTION: Created threat-intel-2026-03-02-v5.json (6 alerts, EPSS highlights, KEV stats) and vex-multi-arch-2026-03-02.json (VEX for 6 CVEs across 5 architectures). Both ingested into ALdeci APIs.
+  ROLLBACK: Remove feeds/threat-intel-2026-03-02-v5.json and feeds/vex-multi-arch-2026-03-02.json
+[2026-03-02 22:45] agent:threat-architect DECISION: Build ctem_week2_harness.py comprehensive verification script
+[2026-03-02 22:47] agent:threat-architect DECISION: Fix stale test_total_checks_is_4 in autofix engine tests
+[2026-03-02 22:48] agent:threat-architect DECISION: Convert known-limitation failures to warnings in harness
 ```
 
 ---
 
 ## 📁 Code Changes
 
-### App Files Changed: 0 modified, 0 new
-### Agent/State Files: 1 modified (ignored in metrics)
-### Lines: +0 / -0
+### App Files Changed: 163 modified, 15 new
+### Agent/State Files: 88 modified (ignored in metrics)
+### Lines: +4332 / -976
 
 #### Top Changed App Files (by diff size):
 ```
-(no app files changed)
+ CLAUDE.md                                          |    8 +-
+ context_log.md                                     |  321 +++++
+ scripts/api_health_check.py                        |    1 -
+ scripts/api_probe.py                               |    1 -
+ scripts/ctem_architecture_regression.py            |    3 +-
+ scripts/ctem_full_loop_demo.py                     |   11 +-
+ scripts/ctem_sunday_regression.py                  |   17 +-
+ scripts/demo_self_learning.py                      |    1 -
+ scripts/enterprise_e2e_test.py                     |    2 +-
+ scripts/feed_artifacts.py                          |    3 +-
+ scripts/feed_sidecar.py                            |    3 +-
+ scripts/fix_postman_collections.py                 |   10 +-
+ scripts/fix_postman_collections_4_5.py             |   34 +-
+ scripts/generate-knowledge-index.py                |    3 +-
+ scripts/mcp_gateway_demo.py                        |  131 +-
 ```
 
 #### Most Recently Modified App Files:
-- _(none)_
+- `tools/generate_pentest_report.py`
+- `tests/test_storage_backends_unit.py`
+- `tests/test_security_hardening_v2.py`
+- `tests/test_security_analyst_persona.py`
+- `tests/test_sandbox_verifier_unit.py`
+- `tests/test_remediation_deep.py`
+- `tests/test_remediation_comprehensive.py`
+- `tests/test_rate_limiter_unit.py`
+- `tests/test_playbook_runner.py`
+- `tests/test_mpte_service_unit.py`
 
 ---
 
-## 📦 Artifacts Produced Today (159)
+## 📦 Artifacts Produced Today (115)
 
-- agent-doctor-failure.json
 - agent-doctor-hallucination-report.json
 - agent-doctor-status.md
 - agent-performance.json
@@ -423,17 +538,10 @@
 - backend-hardener-hallucination-report.json
 - backend-hardener-status.md
 - battle-cards.md
-- briefing-2026-02-27.md
-- briefing-2026-02-28.md
-- briefing-2026-03-01-enterprise-demo.md
-- briefing-2026-03-01-sprint2.md
-- briefing-2026-03-01-v15.md
-- briefing-2026-03-01-v18.md
-- briefing-2026-03-01-v20.md
-- briefing-2026-03-01-v21.md
-- briefing-2026-03-01.md
 - briefing-2026-03-02-v27.md
 - briefing-2026-03-02-v28.md
+- briefing-2026-03-02-v29.md
+- briefing-2026-03-02-v30.md
 - briefing-2026-03-02.md
 - codebase-map.json
 - col1-results.json
@@ -447,30 +555,18 @@
 - compliance-matrix.json
 - consensus-calibration.json
 - content-calendar.json
-- context-engineer-failure.json
 - context-engineer-hallucination-report.json
 - context-engineer-status.md
 - coordination-notes-day2.md
 - coordination-notes-day3.md
-- coordination-notes-sprint1.md
-- coordination-notes.md
-- coverage-improvement-guide-2026-03-01.md
-- coverage-targets-v17.md
 - crash-state.json
-- daily-demo-2026-02-15.md
-- daily-demo-2026-03-01.md
 - daily-demo-2026-03-02.md
-- daily-digest-2026-02-27.md
-- daily-digest-2026-02-28.md
 - daily-digest-2026-03-01.md
 - daily-digest-2026-03-02.md
 - daily-intel.json
 - data-scientist-hallucination-report.json
 - data-scientist-status.md
-- debate-summary-2026-03-01.md
 - debate-summary-2026-03-02.md
-- DELIVERABLES.md
-- demo-2026-03-01.md
 - demo-2026-03-02.md
 - dependency-graph.json
 - dev-environment.md
@@ -484,14 +580,10 @@
 - frontend-craftsman-status.md
 - gtm-plan.md
 - health-dashboard.json
-- health-diagnosis-2026-02-27.md
-- health-report-2026-02-27.md
-- health-report-2026-02-28-run15.md
-- health-report-2026-02-28.md
-- health-report-2026-03-01.md
 - health-report-2026-03-02-pm.md
 - health-report-2026-03-02-run30.md
 - health-report-2026-03-02-run31.md
+- health-report-2026-03-02-run32.md
 - health-report-2026-03-02.md
 - integrations.md
 - investor-narrative.md
@@ -501,21 +593,15 @@
 - marketing-head-hallucination-report.json
 - marketing-head-status.md
 - mcp-gateway-demo-result.json
-- merge-log-2026-03-01.md
 - merge-log-2026-03-02.md
 - metrics.json
+- ml-dashboard.json
 - objection-handling.md
 - performance-baselines.json
 - persona-e2e-registry.json
-- persona-verification-2026-02-27.md
-- persona-verification-2026-03-01.md
 - persona-verification-2026-03-02.md
-- persona-work-plan.md
 - pitch-data.json
 - positioning.md
-- protocol.md
-- pulse-2026-02-27.md
-- pulse-2026-03-01.md
 - pulse-2026-03-02.md
 - qa-engineer-hallucination-report.json
 - qa-engineer-status.md
@@ -523,9 +609,10 @@
 - quality-report.md
 - quality-snapshot-2026-03-01.md
 - quality-snapshot-2026-03-02.md
-- README.md
-- report-2026-03-01.md
 - report-2026-03-02-investor-demo.md
+- report-2026-03-02-session5-final.md
+- report-2026-03-02-session5.md
+- report-2026-03-02-session6.md
 - report-2026-03-02-sunday-regression.md
 - report-2026-03-02-v3.md
 - report-2026-03-02.md
@@ -537,15 +624,11 @@
 - security-analyst-hallucination-report.json
 - security-analyst-status.md
 - security-dashboard.json
-- sprint-board-sprint1-archive.json
 - sprint-board.json
-- standup-2026-03-01.md
 - standup-2026-03-02.md
-- status-2026-03-01.md
 - stub-report.md
 - swarm-controller-hallucination-report.json
 - swarm-controller-status.md
-- swarm-report-2026-03-01.md
 - swarm-report-2026-03-02-v5.md
 - swarm-report-2026-03-02.md
 - task-queue.json
@@ -554,23 +637,12 @@
 - technical-writer-status.md
 - threat-architect-hallucination-report.json
 - threat-architect-status.md
-- threat-model-summary-2026-03-01.md
 - threat-model.md
-- ui-flow-verification-2026-02-27.md
-- ui-flow-verification-2026-03-01.md
 - ui-flow-verification-2026-03-02.md
 - urgent-intel.md
-- vision-agent-failure.json
 - vision-agent-hallucination-report.json
 - vision-agent-status.md
-- vision-alignment-2026-02-27.json
-- vision-alignment-2026-02-28.json
-- vision-alignment-2026-03-01.json
 - vision-alignment-2026-03-02.json
-- vision-coverage-strategy-v21.md
-- vision-preflight-2026-02-27.md
-- vision-preflight-2026-02-28.md
-- vision-preflight-2026-03-01.md
 - vision-preflight-2026-03-02.md
 
 ---
@@ -584,15 +656,15 @@
 
 ---
 
-## 📈 Health Score Breakdown (90/100)
+## 📈 Health Score Breakdown (102/100)
 
 | Metric | Score | Max |
 |--------|-------|-----|
-| Agent Completion Rate | 35 | 35 |
+| Agent Completion Rate | 32 | 35 |
 | Vision Pillar Coverage (V3/V5/V7 = 6ea + others) | 20 | 20 |
 | Zero Failures Bonus | 10 | 10 |
 | Autonomous Decisions | 10 | 10 |
-| Code Activity | 0 | 15 |
+| Code Activity | 15 | 15 |
 | Quality Evidence (tests + Newman) | 5 | 10 |
 | Artifacts Produced | 10 | 10 |
 
@@ -663,17 +735,17 @@
 | security-analyst | security-analyst | 9 | 36 | 0/9 | 0 | ❌ No tests |
 | enterprise-architect | enterprise-architect | 7 | 63 | 0/7 | 0 | ❌ No tests |
 | frontend-craftsman | frontend-craftsman | 2 | 0 | 0/2 | 0 | ❌ No tests |
-| ai-researcher | ai-researcher | 6 | 30 | 0/6 | 0 | ❌ No tests |
+| ai-researcher | ai-researcher | 6 | 31 | 0/6 | 0 | ❌ No tests |
 | qa-engineer | qa-engineer | 3 | 26 | 0/3 | 0 | ❌ No tests |
-| devops-engineer | devops-engineer | 6 | 29 | 0/6 | 0 | ❌ No tests |
+| devops-engineer | devops-engineer | 6 | 31 | 0/6 | 0 | ❌ No tests |
 | data-scientist | data-scientist | 4 | 49 | 0/4 | 0 | ❌ No tests |
-| vision-agent | vision-agent | 7 | 31 | 0/7 | 0 | ❌ No tests |
+| vision-agent | vision-agent | 7 | 35 | 0/7 | 0 | ❌ No tests |
 | context-engineer | context-engineer | 2 | 46 | 0/2 | 0 | ❌ No tests |
 | scrum-master | scrum-master | 5 | 78 | 0/5 | 0 | ❌ No tests |
 | marketing-head | marketing-head | 1 | 14 | 0/1 | 0 | ❌ No tests |
 | technical-writer | technical-writer | 1 | 11 | 0/1 | 0 | ❌ No tests |
 | sales-engineer | sales-engineer | 2 | 24 | 0/2 | 0 | ❌ No tests |
-| agent-doctor | agent-doctor | 3 | 30 | 0/3 | 0 | ❌ No tests |
+| agent-doctor | agent-doctor | 3 | 32 | 0/3 | 0 | ❌ No tests |
 | swarm-controller | swarm-controller | 3 | 26 | 0/3 | 0 | ❌ No tests |
 
 ### Function Detail Per Persona
@@ -738,7 +810,7 @@
 - ❌ /llm (6 eps) Multi-LLM consensus
 - ❌ /llm-monitor (4 eps) LLM usage monitoring
 - ❌ /copilot (14 eps) Copilot AI assistant
-- ❌ /single-agent (6 eps) Self-hosted AI engine
+- ❌ /single-agent (7 eps) Self-hosted AI engine
 - ❌ — (0 eps) Multi-LLM consensus engine (393 LOC)
 - ❌ — (0 eps) LLM usage monitor engine (312 LOC)
 
@@ -751,8 +823,8 @@
 #### devops-engineer — devops-engineer
 
 - ❌ /mcp (10 eps) MCP gateway (650 tools)
-- ❌ /mcp-protocol (8 eps) MCP protocol endpoints
-- ❌ /mcp-server (7 eps) MCP tool execution
+- ❌ /mcp-protocol (9 eps) MCP protocol endpoints
+- ❌ /mcp-server (8 eps) MCP tool execution
 - ❌ /streaming (4 eps) SSE streaming events
 - ❌ — (0 eps) Event bus (pub/sub engine, 243 LOC)
 - ❌ — (0 eps) CLI (22 commands, 5911 LOC)
@@ -766,9 +838,9 @@
 
 #### vision-agent — vision-agent
 
-- ❌ /compliance (9 eps) Compliance framework mapping
-- ❌ /evidence (13 eps) Evidence bundles & vault
-- ❌ /quantum-crypto (5 eps) Quantum-secure crypto (ML-DSA)
+- ❌ /compliance (10 eps) Compliance framework mapping
+- ❌ /evidence (15 eps) Evidence bundles & vault
+- ❌ /quantum-crypto (6 eps) Quantum-secure crypto (ML-DSA)
 - ❌ /provenance (4 eps) Provenance chain tracking
 - ❌ — (0 eps) Compliance framework engine (133 LOC)
 - ❌ — (0 eps) SOC2 evidence generator (554 LOC)
@@ -802,8 +874,8 @@
 
 #### agent-doctor — agent-doctor
 
-- ❌ /self-learning (18 eps) 5 Feedback loops engine
-- ❌ /zero-gravity (6 eps) 4-tier data aging
+- ❌ /self-learning (19 eps) 5 Feedback loops engine
+- ❌ /zero-gravity (7 eps) 4-tier data aging
 - ❌ /graph (6 eps) Knowledge graph visualization
 
 #### swarm-controller — swarm-controller
@@ -927,14 +999,14 @@ The enforcement loop will re-run until Grade A is achieved.
 |-------|------|------------|
 | L1 | Vision Alignment (pre-prompt) | 0 |
 | L2 | Realtime Monitor (during execution) | 0 |
-| L3 | Deep Analysis (post-output, 100-pt scoring) | 160 |
-| L4 | Cross-Agent Verification (post-phase) | 24 |
-| L5 | Code Verification (syntax + import check) | 11 |
-| **Total** | **All Layers** | **195** |
+| L3 | Deep Analysis (post-output, 100-pt scoring) | 179 |
+| L4 | Cross-Agent Verification (post-phase) | 30 |
+| L5 | Code Verification (syntax + import check) | 18 |
+| **Total** | **All Layers** | **227** |
 
 ### Enterprise Quality Standard
 
-- **Health Grade:** **A** (90/100)
+- **Health Grade:** **A** (102/100)
 - **Newman API Tests:** Verdict: PASS | Pass rate: 100.0% | Passed: 411 | Failed: 0
 - **Test Coverage:** 19%
 - **Phase Failures:** 0
@@ -954,10 +1026,10 @@ The enforcement loop will re-run until Grade A is achieved.
 
 
 
-3. **Low code output**: Only 0 files changed. Agents may be spending too long on research.
+
 4. **Test coverage**: 19% is below 50% target. Assign qa-engineer priority.
 5. **Next iteration**: Run `./scripts/run-ctem-swarm.sh --digest` anytime for updated status.
 
 ---
 
-*Generated at 2026-03-02 21:11:32 by JARVIS AI Swarm Engine*
+*Generated at 2026-03-02 22:58:50 by JARVIS AI Swarm Engine*

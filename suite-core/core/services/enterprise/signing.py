@@ -11,7 +11,7 @@ import hmac
 import json
 import os
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 
 _SIGNING_KEY_ENV = "FIXOPS_SIGNING_KEY"

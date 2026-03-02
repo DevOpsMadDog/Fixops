@@ -33,6 +33,12 @@ class MCPJsonRpcRequest(BaseModel):
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+@router.get("/health")
+async def mcp_protocol_health() -> Dict[str, Any]:
+    """Health check alias for MCP protocol server (mirrors /status)."""
+    return await mcp_protocol_status()
+
+
 @router.get("/status")
 async def mcp_protocol_status() -> Dict[str, Any]:
     """Get MCP protocol server status."""

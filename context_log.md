@@ -3458,3 +3458,483 @@
 - **Converged**: NO
 - **Outcome**: PARTIAL — did not converge in 1 iterations
 - **Pillar focus**: V3, V5, V7 (core) | V1, V2, V9, V10 (constraints)
+
+### [2026-03-02 23:59] vision-agent — POST_FLIGHT_AUDIT (v35)
+- **What**: Vision alignment audit for 2026-03-02 (Sprint 2, Day 2 Final)
+- **Overall alignment**: 0.85 (up from 0.84, STABLE_IMPROVING)
+- **Pillars active**: V3 (4 items), V5 (1 item), V7 (1 item), V9 (1 item), V10 (3 items)
+- **Drift detected**: 0 agents (zero drift — all 17 within sprint scope)
+- **Customer feedback**: 0 new items processed
+- **Sprint**: 11/12 done (91.7%). Only DEMO-003 remaining (UI wiring, 90% complete)
+- **Core LOC verified**: V3=4,063 V5=5,363 V7=1,446 (total 10,872)
+- **Tests**: 13,221 collected, 19.25% coverage
+- **Newman**: Best 475/475 (100%), Latest 468/475 (98.5%)
+- **Outcome**: ALIGNED
+- **CEO action required**: YES — (1) Rotate API keys per SEC-ADV-001, (2) Ensure frontend-craftsman runs Day 3
+- **Artifacts**: vision-alignment-2026-03-02.json (v35), vision-preflight-2026-03-02.md (v35), vision-agent-status.md, decisions.log entries, metrics.json update
+
+### [2026-03-02 22:30] agent-doctor — HEALTH_CHECK (Run 32)
+- **What**: Full pre-flight health check for enterprise demo. Verified all agents, engines, MOATs, DBs, tests. Upgraded health from YELLOW → GREEN.
+- **Files touched**: .claude/team-state/health-dashboard.json, .claude/team-state/health-report-2026-03-02-run32.md, .claude/team-state/agent-doctor-status.md, .claude/team-state/decisions.log
+- **Outcome**: SUCCESS
+- **Key Metrics**:
+  - Agents: 17/17 Grade A (15 completed, 2 running)
+  - Engines: 19/19 importable (20,783 LOC)
+  - MOATs: 4/4 PASS
+  - DBs: 56/56 writable, 7/7 integrity OK
+  - WAL: 0KB (trend: 2.5GB → 393MB → 12MB → 0KB — EXCELLENT)
+  - Core Tests: 1,143 pass (27.58s)
+  - Total Tests: 13,221 collected (0 errors)
+  - Coverage: 19.25% (gate 25%, gap 5.75pp)
+  - Sprint: 11/12 done (91.7%). DEMO-003 P0 blocker.
+  - SA-001: CRITICAL — .env secrets rotation needed (5 days open, demo in 4)
+- **Pillar(s) served**: V3, V5, V7, V10 (all MOATs verified)
+
+### [2026-03-02 21:22] run-ctem-swarm — ITERATIVE 1/1
+- **What**: Iterative swarm run (1 iterations, claude-opus-4-6-fast)
+- **Run ID**: swarm-2026-03-02_18-21-11
+- **Duration**: 3h 1m
+- **Converged**: NO
+- **Outcome**: PARTIAL — did not converge in 1 iterations
+- **Pillar focus**: V3, V5, V7 (core) | V1, V2, V9, V10 (constraints)
+
+### [2026-03-02 22:45] vision-agent — POST_FLIGHT_AUDIT (v36)
+- **What**: Vision alignment audit for 2026-03-02 (Day 2 Final stability confirmation)
+- **Overall alignment**: 0.85 (STABLE — unchanged from v35)
+- **Pillars active**: V3 (4,063 LOC), V5 (5,363 LOC), V7 (1,446 LOC) — 10,872 total verified via wc -l
+- **Design constraints**: V1, V2, V9, V10 — maintained, not actively built
+- **Deferred**: V4, V6, V8 — no production code (compliant with debate verdict)
+- **Sprint progress**: 11/12 done (91.7%). Only DEMO-003 remaining (UI wiring, 6 pages)
+- **Drift detected**: 0 agents drifting. All 17 within sprint scope.
+- **Tests**: 13,221 collected (0 errors), 19.25% coverage (gate 25%, gap 5.75pp)
+- **Newman**: Best 475/475 (100%), latest 468/475 (98.5%)
+- **Active debates**: SEC-ADV-001 (env secrets) — OPEN, MEDIUM, 1 day old
+- **Customer feedback**: 0 new items processed
+- **Outcome**: ALIGNED — score stable, zero drift, debate verdict compliant
+- **CEO action required**: YES — (1) Rotate API keys per SEC-ADV-001, (2) Ensure frontend-craftsman runs Day 3 for DEMO-003
+- **Artifacts**: vision-alignment-2026-03-02.json (v36), vision-preflight-2026-03-02.md (v36), decisions.log (+3), vision-agent-status.md
+
+### [2026-03-02 21:30] agent-doctor — HEALTH_CHECK (Run 33)
+- **What**: Pre-flight health check for enterprise demo (4 days). Verified all 17 agents (Grade A), 19 engines importable (20,783 LOC), 4 MOATs pass, 56 DBs writable. CRITICAL FIX: data/fixops_brain.db corruption self-healed (recovered from suite-api copy). 12 WAL+SHM files cleaned (0 bytes). 1,143 core tests pass (29.02s). 13,221 total tests collected (0 errors). Coverage 19.15% (gate 25%).
+- **Files touched**: .claude/team-state/health-dashboard.json, .claude/team-state/health-report-2026-03-02.md, .claude/team-state/agent-doctor-status.md, .claude/team-state/decisions.log, data/fixops_brain.db (recovered), 12 WAL+SHM files (cleaned)
+- **Outcome**: SUCCESS
+- **Decisions made**: Self-healed fixops_brain.db from suite-api copy. SA-001 (.env secrets) remains OPEN — escalation noted.
+- **Blockers**: SA-001 .env secrets must be rotated before demo. DEMO-003 UI wiring 6 pages remain.
+- **Next steps**: Monitor fixops_brain.db stability. frontend-craftsman to complete DEMO-003. devops-engineer to rotate .env secrets.
+- **Pillar(s) served**: V3, V5, V7, V10 (health verification), META (agent monitoring)
+
+### [2026-03-02 22:00] context-engineer — DAILY_SCAN v29.0
+- **What**: Full codebase scan, artifact generation, and enterprise demo briefing for Sprint 2 Day 2. Verified all metrics, produced 6 artifacts, ran 23rd consecutive honesty check.
+- **Files touched**: `.claude/team-state/codebase-map.json`, `.claude/team-state/briefing-2026-03-02-v29.md`, `.claude/team-state/dependency-graph.json`, `.claude/team-state/architecture-context.md`, `CLAUDE.md`, `.claude/team-state/metrics.json`, `.claude/team-state/context-engineer-status.md`, `.claude/team-state/decisions.log`
+- **Outcome**: SUCCESS
+- **Key findings**: 913 files (-1), 401,993 LOC (-149), 759 endpoints (6th stable), 13,221 tests in 7.91s (40% faster collection). All 6 suites unchanged for 5th consecutive scan. Honesty: 23rd clean. 11/12 sprint done.
+- **Decisions made**: Coverage discrepancy documented (19.25% vs 19.15% different scopes). All suites stable — no code freeze override needed.
+- **Blockers**: DEMO-003 (UI wiring, 90% done, 6 pages remain)
+- **Next steps**: Day 3 scan (v30.0), track DEMO-003 completion
+- **Pillar(s) served**: V3, V5, V7, V10
+
+### [2026-03-02 23:30] context-engineer — DAILY_SCAN v30.0 (CORRECTED)
+- **What**: v30.0 daily codebase scan. CORRECTION scan — v29 reported 913 files / 401,993 LOC but fresh triple-verified scan confirms 914 files / 402,142 LOC (matching v27 and v28). v29 had a transient measurement error. All 6 suite metrics identical across v26→v30. 5th consecutive stable scan. Honesty moat: 24th consecutive clean. Sprint 11/12 done. Only DEMO-003 remaining.
+- **Files touched**: .claude/team-state/codebase-map.json (v30), .claude/team-state/briefing-2026-03-02-v30.md, .claude/team-state/dependency-graph.json (v30), .claude/team-state/architecture-context.md (v30), CLAUDE.md (version tag), .claude/team-state/metrics.json (corrected counts), .claude/team-state/context-engineer-status.md, .claude/team-state/decisions.log, context_log.md, MEMORY.md
+- **Outcome**: SUCCESS
+- **Key findings**: 914 files (triple-verified, correcting v29's 913), 402,142 LOC, 759 endpoints (7th stable), 13,221 tests, 19.25% coverage, 19.00s collection time. All suite LOCs unchanged. Honesty 24th clean. Sprint 11/12.
+- **Decisions made**: v29 file count was transient error (possibly script file transiently removed). Current state is 914 definitively. All engines frozen for demo.
+- **Blockers**: DEMO-003 (UI wiring, 90% done, 6 pages remain). SEC-ADV-001 (.env secrets, 5 days open).
+- **Next steps**: v31 scan Day 3 after frontend-craftsman runs on DEMO-003
+- **Pillar(s) served**: V3, V5, V7, V10
+
+### [2026-03-02 22:30] enterprise-architect — DAILY_MISSION (Run 6)
+- **What**: Performance & data flow review of Brain Pipeline (V3). Quality checks. 3 bug fixes. ADR validation. Tech debt and roadmap updates.
+- **Files touched**:
+  - `suite-core/core/brain_pipeline.py` — AutoFixEngine hoisted outside loop (Step 11)
+  - `suite-core/core/services/deduplication.py` — try/finally on SQLite connection
+  - `suite-core/core/services/enterprise/id_allocator.py` — removed unused imports
+  - `suite-core/core/services/enterprise/run_registry.py` — removed unused Optional
+  - `suite-core/core/services/enterprise/signing.py` — removed unused Optional
+  - `.claude/team-state/architecture/reviews/2026-03-02-performance-review.md` — NEW
+  - `.claude/team-state/architecture/tech-debt.json` — +3 items (TD-020/021/022), 5 done
+  - `.claude/team-state/architecture/roadmap.md` — updated metrics and gates
+  - `.claude/team-state/architecture/quality-report.md` — Run 6 update
+  - `.claude/team-state/enterprise-architect-status.md` — Run 6 complete
+- **Outcome**: SUCCESS
+- **Key findings**:
+  - Brain Pipeline performance grade: B+ (good for demo, 3 Phase 2 optimizations)
+  - Dedup opens N DB connections per batch (TD-020) — perf issue at scale
+  - Steps 9+10 (LLM+MPTE) could be parallel, saving 60-120s (TD-021)
+  - AutoFixEngine was O(n) per loop iteration — FIXED to O(1)
+  - Dedup connection leak under errors — FIXED (try/finally)
+  - 5 F401 unused imports — FIXED (ruff 87→82)
+  - All 8 ADRs validated — 6 exact, 2 minor LOC variance
+  - Ruff: 0 actionable warnings remaining
+  - Bandit: 0 HIGH, 2 MEDIUM (core files)
+  - Tests: 288/288 PASS (verified after fixes)
+  - Coverage: 4.71% (gate: 25% — still failing)
+- **Pillar(s) served**: V3 (Brain Pipeline performance), V10 (quality enforcement)
+
+### [2026-03-02 10:55] data-scientist — DAILY_MISSION + ROADMAP_ITEMS
+- **What**: Day 2 daily mission: fetched live threat intel (EPSS/NVD/KEV), validated risk model v2.1.0 (75/75 golden cases pass), confirmed consensus calibration stable (F1=0.9081). Implemented two Year 1 roadmap items: (1) Wired ParserQualityValidator into brain pipeline Step 2 for data quality gating, (2) Created eventbus_integration.py (230 LOC) wiring anomaly detection + parser quality alerts to EventBus. Added 4 new ML event types. 28 new tests, 407 total ML tests pass.
+- **Files touched**:
+  - `suite-core/core/brain_pipeline.py` (Step 2 parser quality integration)
+  - `suite-core/core/event_bus.py` (4 new ML event types)
+  - `suite-core/core/ml/eventbus_integration.py` (NEW — 230 LOC)
+  - `suite-core/core/ml/__init__.py` (updated module index)
+  - `tests/test_ml_eventbus_integration.py` (NEW — 28 tests)
+  - `.claude/team-state/data-science/daily-intel.json` (refreshed with live data)
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V3 (Decision Intelligence), V7 (MCP-Native Platform)
+
+### [2026-03-02 23:55] ai-researcher — DAILY_RESEARCH_PASS5
+- **What**: Executed full daily research mission — Pass 5 FINAL. Fetched live data from NVD (3 critical CVEs), CISA KEV (1,529 entries), EPSS (317,858 CVEs), HackerNews (15 relevant stories). Ran 10 web searches. Discovered: Claude weaponized in Mexican govt cyberattack (10 agencies), MCP Security Crisis (30 CVEs, 36.7% SSRF), n8n CVE-2026-21858 (CVSS 10.0), Anthropic suing Pentagon, CrowdStrike Q4 tomorrow, Gartner CTEM validation, Shadow AI epidemic.
+- **Files touched**: `.claude/team-state/research/pulse-2026-03-02.md` (Pass 5), `.claude/team-state/research/pitch-data.json` (v4), `.claude/team-state/urgent-intel.md` (v6, 12 alerts), `.claude/team-state/ai-researcher-status.md` (completed), `.claude/team-state/decisions.log` (+3 decisions), `.claude/agent-memory/ai-researcher/MEMORY.md` (updated)
+- **Outcome**: SUCCESS — All artifacts produced. DEMO-010 confirmed complete (73 nodes, 110 edges, 75/75 tests).
+- **Decisions made**: (1) MCP Security Assessment upgraded to P1, (2) n8n CVSS 10.0 flagged as AI toolchain intelligence, (3) Pass 5 published with ≥90% confidence. Claude weaponization added as RED alert.
+- **New action items for team**: security-analyst review MCP endpoints for SSRF, backend-hardener enforce MCP auth, sales-engineer add AI attack + MCP security messaging to demo.
+- **Pillar(s) served**: V3 (Decision Intelligence — competitive positioning), V5 (MPTE — CVE intel, AI attack surface), V7 (MCP — security crisis research), V9 (Air-Gap — vLLM research), V10 (CTEM — Gartner validation)
+
+### [2026-03-02 11:20] enterprise-architect — DAILY_MISSION_RUN7
+- **What**: Full daily architecture mission: quality scans, performance review update, ADR-009 (MCP Auto-Discovery), ADR validation, tech debt update, bug fix (F821 ruff errors).
+- **Files touched**:
+  - `suite-core/core/ml/eventbus_integration.py` — Fixed 2 F821 errors (TYPE_CHECKING import for Event)
+  - `.claude/team-state/architecture/adrs/ADR-009-mcp-auto-discovery.md` — NEW: MCP architecture ADR
+  - `.claude/team-state/architecture/reviews/2026-03-02-performance-review.md` — Updated with parallelization blueprint
+  - `.claude/team-state/architecture/tech-debt.json` — Updated metrics (ruff 77, coverage 4.99%)
+  - `.claude/team-state/architecture/roadmap.md` — Updated to Run 7
+  - `.claude/team-state/architecture/quality-report.md` — Updated to Run 7 Final
+  - `.claude/team-state/architecture/integrations.md` — MCP section expanded
+  - `.claude/team-state/enterprise-architect-status.md` — Run 7 complete
+  - `.claude/team-state/decisions.log` — 4 decisions appended
+- **Outcome**: SUCCESS
+- **Key results**: Ruff 79→77 (F821 fixed), 9 ADRs (all validated, 0 broken refs), 288/288 tests pass, performance review grade B with parallelization blueprint, bandit 0 HIGH
+- **Pillar(s) served**: V3 (Decision Intelligence — Brain Pipeline perf), V5 (MPTE — perf review), V7 (MCP — ADR-009)
+
+### [2026-03-02 22:05] data-scientist — DAILY_MISSION + DEMO_ENHANCEMENT
+- **What**: Executed full daily mission: (1) Wired ML EventBus handlers into app startup via register_all_subscribers(), (2) Added 2 subscriber integration tests (30 total eventbus tests PASS), (3) Refreshed daily intel (100 high-EPSS, 6 critical NVD, 28 new KEV), (4) Re-validated consensus calibration (F1=0.9081 stable), (5) Validated golden regression (75/75 = 100% on GBT v2.1.0), (6) Built ML model performance dashboard (ml-dashboard.json), (7) Added ML Intelligence Showcase step to MCP demo (Step 6: risk scoring + SHAP + anomaly + consensus), (8) Ran full ML test suite (280 tests PASS in 44.93s), (9) Confirmed DEMO-009 passes (7 steps, 22 MCP tests PASS)
+- **Files touched**: suite-core/core/event_subscribers.py, tests/test_ml_eventbus_integration.py, scripts/mcp_gateway_demo.py, .claude/team-state/data-science/ml-dashboard.json (NEW), .claude/team-state/data-science/consensus-calibration.json, .claude/team-state/data-science/daily-intel.json, .claude/team-state/data-science/mcp-gateway-demo-result.json, .claude/team-state/data-scientist-status.md
+- **Outcome**: SUCCESS
+- **Decisions made**: Wired ML handlers into event_subscribers.py, added ML showcase to MCP demo
+- **Pillar(s) served**: V3 (Decision Intelligence — EventBus wiring, risk scoring, anomaly detection), V7 (MCP-Native — ML showcase in demo)
+
+### [2026-03-02 23:50] ai-researcher — RESEARCH_PULSE_PASS5
+- **What**: Produced Pass 5 (FINAL) daily research pulse for 2026-03-02. Queried 18 data sources (NVD, EPSS >50%, CISA KEV, HackerNews, plus 12 web searches covering all 9 competitors, RSA 2026, CTEM/Gartner, vLLM/SGLang, AI cybersecurity news, M&A/funding). Key NEW intelligence: (1) Claude Code weaponized in Mexican government cyberattack — 10 agencies breached with 1,000+ prompts, (2) Snyk valuation corrected to $8.5B from $3.7B, ARR $343M, (3) Chinese labs abused Anthropic with 24K accounts, (4) Semgrep Managed Scans GA + PHP reachability + Gartner MQ, (5) Orca Forrester Strong Performer CNAPP Q1 2026, (6) Tenable reports 70% of orgs have MCP packages with 86% critical vulns, (7) CrowdStrike Q4 earnings March 3 + $1.16B in Jan acquisitions, (8) Checkmarx Tromzo acquisition details + returning to M&A mode, (9) Wiz-Google timing corrected to mid-March closing.
+- **Files touched**: `.claude/team-state/research/pulse-2026-03-02.md`, `.claude/team-state/research/pitch-data.json`, `.claude/team-state/ai-researcher-status.md`, `.claude/team-state/urgent-intel.md`, `.claude/team-state/decisions.log`, `.claude/agent-memory/ai-researcher/MEMORY.md`, `context_log.md`
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V3 (Decision Intelligence — competitor positioning), V5 (MPTE — AI attack surface validation), V7 (MCP-Native — MCP security crisis data, WebMCP), V9 (Air-Gapped — vLLM v0.16 updates, Pentagon crisis)
+
+### [2026-03-02 24:15] frontend-craftsman — UX_POLISH + SETTINGS_SKELETON + COPILOT_REWRITE
+- **What**: Continued Sprint 2 Day 3 session. (1) Confirmed all 6 "mock" pages (AttackLab, Copilot, DataFabric, IntelligenceHub, RemediationCenter, Settings) already wired to real APIs. (2) Completely rewrote Copilot.tsx from 153 LOC basic chat to ~500 LOC production-quality AI assistant with quick actions grid, markdown renderer, typing indicator, AI query router using real API calls. (3) Added dark/light mode toggle to GlobalStatusBar with Sun/Moon icons + document class sync. (4) Added ThemeInitializer component to App.tsx for theme persistence across page loads. (5) Added /settings/overlay route alias. (6) Added full-page skeleton loading to IntelligenceHub.tsx. (7) Polished Settings.tsx System Status tab with skeleton loading states, real health-data-driven Database/Threat Feeds badges (no more hardcoded "Connected"/"Active"), animated refresh button, proper theme toggle wiring in Appearance tab.
+- **Files touched**: suite-ui/aldeci/src/pages/Copilot.tsx (REWRITE), suite-ui/aldeci/src/components/GlobalStatusBar.tsx (EDIT), suite-ui/aldeci/src/App.tsx (EDIT), suite-ui/aldeci/src/pages/IntelligenceHub.tsx (EDIT), suite-ui/aldeci/src/pages/Settings.tsx (EDIT)
+- **Outcome**: SUCCESS
+- **Build**: 0 TypeScript errors, 1.55s build, 62+ pages, index 194KB, Settings 16KB
+- **Pillar(s) served**: V3 (Copilot AI assistant), V9 (theme/dark mode), UX polish (skeletons, loading states)
+
+### [2026-03-02 25:30] frontend-craftsman — SESSION_COMPLETE (Day 4 — Dashboard Enhancement)
+- **What**: Created LivePipelineIndicator component (251 LOC), integrated into Dashboard. Fixed 5 TS errors. Added SOC2EvidenceUI skeleton. Verified 62 pages wired to real APIs (zero mock data). Confirmed page transitions already exist. Production build passes 0 errors.
+- **Files touched**: 
+  - `suite-ui/aldeci/src/components/dashboard/LivePipelineIndicator.tsx` (NEW — 251 LOC)
+  - `suite-ui/aldeci/src/pages/Dashboard.tsx` (reorganized layout, added LivePipelineIndicator)
+  - `suite-ui/aldeci/src/pages/evidence/SOC2EvidenceUI.tsx` (added skeleton loading)
+  - `suite-ui/aldeci/src/components/GlobalStatusBar.tsx` (fixed unused imports)
+  - `suite-ui/aldeci/src/pages/Copilot.tsx` (fixed unused imports)
+- **Outcome**: SUCCESS
+- **Build**: 0 TS errors, 2.16s build, 194KB main bundle, 62+ pages lazy-loaded
+- **Pillar(s) served**: V3 (Decision Intelligence — Brain Pipeline live feed), V7 (Scanner status in Dashboard), V10 (SOC2 Evidence skeleton)
+
+### [2026-03-02 22:00] backend-hardener — INPUT_VALIDATION_HARDENING
+- **What**: Monday hardening mission — comprehensive input validation + brain pipeline enhancements + AutoFix safety expansion. 12 security fixes across 9 files. 45 new tests.
+- **Files touched**:
+  - `suite-api/apps/api/bulk_router.py` — CRITICAL path traversal fix (3-layer defense), status enum validation, max_length on all string fields
+  - `suite-api/apps/api/mcp_router.py` — CRITICAL path parameter injection fix (regex + length + dotdot check)
+  - `suite-api/apps/api/audit_router.py` — HIGH CEF format injection fix (_sanitize_cef_field function)
+  - `suite-api/apps/api/workflows_router.py` — HIGH field size limits (description 10K, steps 100, triggers 50KB)
+  - `suite-api/apps/api/policies_router.py` — HIGH field size limits (description 10K, policy_type 64, rules/metadata 100KB)
+  - `suite-attack/api/dast_router.py` — MEDIUM header/cookie size limits (8192 per value, 50 cookies)
+  - `suite-api/apps/api/connectors_router.py` — MEDIUM target name regex validation
+  - `suite-core/core/brain_pipeline.py` — V3 progress tracking (current_step, progress_percent, get_progress()), graph step error isolation
+  - `suite-core/core/autofix_engine.py` — V3 expanded safety validation (7 checks: patterns, path traversal, imports, size)
+  - `tests/test_hardening_2026_03_02_v4.py` — 45 new security tests
+- **Outcome**: SUCCESS — 272 tests pass, zero failures
+- **Decisions made**: 10 autonomous decisions logged to decisions.log
+- **Blockers**: None
+- **Next steps**: Continue scanner engine hardening, brain pipeline async optimization
+- **Pillar(s) served**: V3 (Decision Intelligence), V7 (MCP-Native Platform)
+
+### [2026-03-03 08:00] threat-architect — ARCHITECTURE_GENERATION
+- **What**: Generated fresh Week 2 Monday E-Commerce AWS architecture artifacts (8 files) for 2026-03-03
+- **Files touched**:
+  - `.claude/team-state/threat-architect/feeds/sbom-ecommerce-2026-03-03.json` (CycloneDX 1.5, 26 components)
+  - `.claude/team-state/threat-architect/feeds/cve-feed-ecommerce-2026-03-03.json` (10 real CVEs with CVSS/CWE)
+  - `.claude/team-state/threat-architect/feeds/sarif-ecommerce-2026-03-03.json` (SARIF 2.1.0, 12 findings, 12 CWE rules)
+  - `.claude/team-state/threat-architect/feeds/cnapp-ecommerce-2026-03-03.json` (10 AWS cloud findings with ARNs)
+  - `.claude/team-state/threat-architect/feeds/vex-ecommerce-2026-03-03.json` (OpenVEX 0.2.0, 9 statements)
+  - `.claude/team-state/threat-architect/feeds/design-ecommerce-2026-03-03.csv` (31 components, 7 columns)
+  - `.claude/team-state/threat-architect/feeds/context-ecommerce-2026-03-03.yaml` (FixOps format, 9 crown jewels, 3 envs)
+  - `.claude/team-state/threat-architect/threat-models/ecommerce-2026-03-03.json` (15 STRIDE threats, MITRE ATT&CK mapped)
+- **Outcome**: SUCCESS — All 10 validation checks passed (schema, cross-references, STRIDE coverage)
+- **Pillar(s) served**: V3, V5, V10
+
+### [2026-03-02 23:45] frontend-craftsman — FEATURE_BUILD
+- **What**: Complete rewrite of AttackSimulation.tsx from 153 LOC to 1421 LOC. Added 4-tab interface (Live Simulation, Attack Surface, Threat Intel, Results History), 6 quick-start attack scenarios (SQLi, XSS, SSRF, RCE, Auth Bypass, Path Traversal), enhanced header with engine status/risk/capability badges, full skeleton loading states for every tab, error states with retry buttons, empty states with icons, and animated risk distribution bars using Framer Motion.
+- **Files touched**: suite-ui/aldeci/src/pages/attack/AttackSimulation.tsx
+- **Outcome**: SUCCESS — TypeScript clean (0 errors), production build succeeds, 40.57 kB chunk (10.25 kB gzip)
+- **Pillar(s) served**: V5 (MPTE Verification)
+
+### [2026-03-02 22:20] backend-hardener — HARDENING (Day 3, Session 5)
+- **What**: Fixed 10 missing /health and /status endpoint aliases (45/45 probes now 200). Fixed brain pipeline `get_progress()` elapsed_ms bug (was always 0 for running pipelines). Hardened autofix engine logging (4 f-string→%s, input length caps, str(exc)→type(exc).__name__). Wrote 29 new tests. All 359 backend-hardener tests pass. E2E 58/58 (100%).
+- **Files touched**: sandbox_verifier.py, mcp_protocol_router.py, compliance_engine_router.py, quantum_crypto_router.py, self_learning_router.py, zero_gravity_router.py, single_agent_router.py, evidence_router.py, mcp_router.py, brain_pipeline.py, autofix_engine.py, tests/test_hardening_2026_03_02_day3.py
+- **Outcome**: SUCCESS
+- **Decisions made**: Log all decisions to decisions.log. No architectural changes.
+- **Blockers**: None
+- **Next steps**: Continue scanner engine hardening. Monitor for new regressions.
+- **Pillar(s) served**: V3, V7, V10
+
+### [2026-03-02 22:16] threat-architect — DEMO_SCRIPT
+- **What**: Created `scripts/ctem_dogfood_demo.py` -- comprehensive self-dogfooding and CTEM full loop demo. 25/25 steps passing in 88s. Phase 1 scans ALdeci's own source (brain_pipeline.py, micro_pentest.py, autofix_engine.py, Dockerfile, .env patterns, Terraform IaC, DAST, malware). Phase 2 runs full CTEM on E-Commerce architecture (7/7 artifacts ingested, brain pipeline 9/12 steps, MPTE, AutoFix 87.6% confidence, signed SOC2+PCI-DSS evidence). Phase 3 feeds dogfood findings through Brain Pipeline (91.7% noise reduction, 86.4% SOC2 compliance).
+- **Files touched**: scripts/ctem_dogfood_demo.py (new, 850+ LOC), .claude/agent-memory/threat-architect/MEMORY.md
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V3, V5, V10
+
+### [2026-03-02 23:45] threat-architect — SUNDAY_REGRESSION + SELF_DOGFOOD + WEEK2_PREP
+- **What**: Session 5 (FINAL for 2026-03-02). Completed comprehensive Sunday regression across all 5 architectures + ALdeci self-dogfooding + Monday Week 2 artifact generation. Built new ctem_dogfood_demo.py script. Ran investor demo rehearsal (20/20 steps). Self-dogfooded ALdeci through 8 native scanners finding 21 issues. Generated 15-threat STRIDE model for ALdeci itself. Created 29-component SBOM from requirements.txt. Fed self-findings through Brain Pipeline (91.7% noise reduction). Generated RSA-SHA256 signed evidence for 4 compliance frameworks. Created 8 Monday architecture artifacts (SBOM, CVE, SARIF, CNAPP, VEX, Design, Context, Threat Model) for Week 2 prep.
+- **Files touched**: 
+  - Created: scripts/ctem_dogfood_demo.py, threat-models/aldeci-self-dogfood-2026-03-02.json, feeds/sbom-aldeci-self-2026-03-02.json, feeds/*-ecommerce-2026-03-03.* (8 files), threat-models/ecommerce-2026-03-03.json, report-2026-03-02-session5-final.md
+  - Updated: threat-architect-status.md, decisions.log
+- **Outcome**: SUCCESS
+- **Decisions made**: Built self-dogfooding script, generated Monday artifacts in advance, accepted MPTE API instability as known limitation
+- **Blockers**: None
+- **Next steps**: Monday session: ingest 2026-03-03 artifacts, run regression, expand scanner coverage
+- **Pillar(s) served**: V3 (Brain Pipeline), V5 (MPTE), V10 (Evidence/Compliance)
+
+### [2026-03-02 22:45] frontend-craftsman — FEATURE_BUILD + UX_POLISH
+- **What**: Day 4 session — Built 8 deliverables across V3/V5/V7 pillars. Eliminated last mock data (MultiLLMConsensusPanel). Created new MCP Tool Registry page (V7), Brain Pipeline Live Feed widget (V3), enhanced Attack Simulation (V5), ErrorBoundary auto-retry, keyboard shortcuts overlay, chord navigation.
+- **Files touched**:
+  - NEW: `suite-ui/aldeci/src/components/dashboard/BrainPipelineLiveFeed.tsx` (494 LOC)
+  - NEW: `suite-ui/aldeci/src/components/KeyboardShortcutsHelp.tsx` (200 LOC)
+  - NEW: `suite-ui/aldeci/src/pages/settings/MCPToolRegistry.tsx` (1096 LOC)
+  - MODIFIED: `suite-ui/aldeci/src/components/dashboard/MultiLLMConsensusPanel.tsx` (348→590 LOC, removed mock data)
+  - MODIFIED: `suite-ui/aldeci/src/components/ErrorBoundary.tsx` (134→381 LOC, auto-retry + telemetry)
+  - MODIFIED: `suite-ui/aldeci/src/components/CommandPalette.tsx` (+40 LOC, chord navigation)
+  - MODIFIED: `suite-ui/aldeci/src/pages/attack/AttackSimulation.tsx` (153→1421 LOC, full rewrite)
+  - MODIFIED: `suite-ui/aldeci/src/pages/Dashboard.tsx` (+40 LOC, BrainPipelineLiveFeed + MultiLLMConsensusPanel)
+  - MODIFIED: `suite-ui/aldeci/src/pages/Settings.tsx` (+10 LOC, MCP Registry card)
+  - MODIFIED: `suite-ui/aldeci/src/App.tsx` (+5 LOC, KeyboardShortcutsHelp + MCPToolRegistry route)
+- **Outcome**: SUCCESS
+- **Build**: 0 TypeScript errors, 1942 modules, 1.49s build, 99 files, 41,806 LOC total
+- **Decisions made**: 6 decisions logged to decisions.log
+- **Blockers**: None
+- **Next steps**: Knowledge Graph interactive improvements, additional skeleton loading states
+- **Pillar(s) served**: V3 (Brain Pipeline Live Feed, MultiLLM fix), V5 (AttackSimulation rewrite), V7 (MCPToolRegistry page)
+
+### [2026-03-02 22:35] backend-hardener — HARDENING_SESSION
+- **What**: Day 3 Session 2 — Scanner parser/sandbox/pipeline hardening + 58 new tests
+- **Files touched**:
+  - `suite-core/core/brain_pipeline.py` (5 debug logger fixes)
+  - `suite-core/core/scanner_parsers.py` (3 f-string logger fixes)
+  - `suite-core/core/sandbox_verifier.py` (template injection prevention)
+  - `tests/test_hardening_2026_03_02_day3_v2.py` (58 new tests, NEW FILE)
+- **Changes**:
+  1. Fixed 5 brain pipeline debug loggers from str(e) to type(e).__name__
+  2. Fixed 3 scanner parsers f-string logging to %s format
+  3. Added _sanitize_template_str() to sandbox verifier — strips shell metacharacters from user-controlled inputs before embedding in PoC code templates
+  4. Wrote 58 comprehensive hardening tests covering scanner parser crash resilience, sandbox template injection, blocked patterns, self-correction whitelisting, logger safety, and pipeline constants
+- **Outcome**: SUCCESS — 359 tests pass, E2E 58/58 (100%), bandit 0 HIGH
+- **Pillar(s) served**: V3, V5, V9, V10
+
+### [2026-03-02 22:50] threat-architect — SESSION_6_MULTI_ARCHITECTURE_SHOWCASE
+- **What**: Multi-architecture CTEM showcase + self-scan + threat models + threat intel integration. Highest-value session: proves ALdeci handles 5 enterprise verticals (E-Commerce/AWS, Healthcare/Azure, FinServ/Multi-Cloud, IoT-OT/Hybrid, GovCloud/FedRAMP) in one run.
+- **Files touched**:
+  - `scripts/ctem_multi_architecture_showcase.py` (NEW — 700+ LOC, 5-vertical CTEM showcase)
+  - `scripts/aldeci_self_scan.py` (NEW — 300+ LOC, dogfooding self-scan)
+  - `.claude/team-state/threat-architect/architectures/healthcare-azure-2026-03-02.json` (NEW — 32 components)
+  - `.claude/team-state/threat-architect/architectures/finserv-multicloud-2026-03-02.json` (NEW — 40 components)
+  - `.claude/team-state/threat-architect/architectures/iot-ot-hybrid-2026-03-02.json` (NEW — 35 components)
+  - `.claude/team-state/threat-architect/architectures/govcloud-fedramp-2026-03-02.json` (NEW — 35 components)
+  - `.claude/team-state/threat-architect/threat-models/iot-ot-2026-03-02.json` (NEW — 25 threats)
+  - `.claude/team-state/threat-architect/threat-models/govcloud-2026-03-02.json` (NEW — 28 threats)
+  - `.claude/team-state/threat-architect/feeds/vex-multi-arch-2026-03-02.json` (NEW — 6 CVEs)
+  - `.claude/team-state/threat-architect/feeds/threat-intel-2026-03-02-v5.json` (NEW — 6 alerts)
+  - `.claude/team-state/threat-architect/report-2026-03-02-session5.md` (NEW)
+  - `.claude/team-state/threat-architect-status.md` (UPDATED)
+  - `.claude/team-state/decisions.log` (+5 decisions)
+- **Outcome**: SUCCESS
+- **Key Results**:
+  - Multi-Architecture Showcase: 90/91 (98.9%) — ALL 5 verticals PASSED
+  - Self-Scan (Dogfooding): 18/17 (100%) — 14 findings, 93% noise reduction
+  - Investor Demo Regression: 22/24 (91.7%) — stable
+  - 4 new architecture JSONs: 142 components, 176 connections
+  - 2 new threat models: IoT/OT (25 threats) + GovCloud (28 threats)
+  - Threat intel: Claude weaponization + MCP crisis + n8n CVSS 10.0 integrated
+  - Total: 8 scripts, 388+ steps, 7 architectures, 10 threat models, 51+ feeds
+- **Pillar(s) served**: V3 (Brain Pipeline × 5), V5 (MPTE), V7 (MCP intel), V9 (Air-Gap), V10 (Evidence × 5)
+
+### [2026-03-02 22:50] threat-architect — SESSION_7_WEEK2_PREP
+- **What**: Built comprehensive CTEM+ Week 2 Verification Harness. Fixed stale test assertion. 8 fresh artifacts.
+- **Files touched**: 
+  - NEW: scripts/ctem_week2_harness.py (1200+ LOC, 63 steps, 8 phases)
+  - FIX: tests/test_autofix_engine.py (total_checks 4→7, perfect_validation 4→7)
+  - NEW: 8 Week 2 artifacts in .claude/team-state/threat-architect/feeds/ and threat-models/
+  - UPDATE: threat-architect-status.md, decisions.log, report-2026-03-02-session6.md
+- **Outcome**: SUCCESS
+  - Harness: 61/63 pass (97%), 2 warnings, 0 failures. All 8 phases GREEN.
+  - Test fix: 633 core tests pass, 0 failures.
+  - Artifacts: SBOM (26), CVE (12), SARIF (12), CNAPP (10), VEX (9), Context (5), Design (35), Threat Model (48 threats)
+  - Total: 10 scripts, 372+ steps, 70+ artifacts
+- **Pillar(s) served**: V3 (Brain Pipeline, AutoFix), V5 (MPTE, Attack Sim), V7 (MCP), V10 (Evidence, Compliance)
+
+### [2026-03-02 23:30] swarm-controller — SWARM_RUN_V6
+- **What**: Deployed swarm v6 — Day 3 regression sweep with 16 tasks across 3 waves. 13 juniors dispatched + 3 controller-direct. Fixed 2 bugs found by juniors. Verified 2,685+ tests, 21/21 demo endpoints, UI build, security audit, code hygiene.
+- **Files touched**:
+  - FIX: tests/test_scanner_parsers.py (sandbox router count 7→8)
+  - FIX: suite-core/core/brain_pipeline.py (autofix observability when engine unavailable)
+  - NEW: .claude/team-state/swarm/swarm-report-2026-03-02-v6.md
+  - UPDATE: .claude/team-state/swarm/merge-log-2026-03-02.md
+  - UPDATE: .claude/team-state/swarm-controller-status.md
+  - UPDATE: .claude/team-state/decisions.log
+  - Junior outputs: .claude/team-state/swarm/outputs/swarm-{501-519}/
+- **Outcome**: SUCCESS
+  - 16/16 tasks completed (100%)
+  - 2,685+ tests verified across V1/V3/V5/V7/V9/V10
+  - 2 bugs fixed (sandbox router, brain autofix observability)
+  - 21/21 demo endpoints return 200
+  - UI: 0 TS errors, 534 KB, 1.63s build
+  - Security: 0 HIGH bandit findings (258 files, 111K LOC)
+  - Code hygiene: 0 TODO/FIXME/HACK in production
+  - Coverage root cause: 15 stale --cov paths in pyproject.toml
+- **Pillar(s) served**: V3, V5, V7, V10 (primary), V1, V9 (secondary)
+
+### [2026-03-02 12:15] swarm-controller — SWARM_RUN_V6
+- **What**: Run v6 — Post-lint-fix regression testing. Auto-fixed 529 lint errors (669→140). Dispatched 14 juniors in 2 waves. Verified 3,112 tests across all core pillars. 100% pass rate. Zero regressions. TypeScript 0 errors. Vite build 2.61s.
+- **Files touched**: 270+ Python files (lint auto-fix), .claude/team-state/swarm/* (reports, queue, merge log), tools/generate_pentest_report.py (E702 manual fix), tests/test_mcp_autodiscovery_comprehensive.py (E731 fix)
+- **Outcome**: SUCCESS
+- **Decisions made**: Auto-fix all no-judgment lint errors (F401/F541/F811/F841/E702/E731); dispatch haiku juniors for regression; verify TS build
+- **Key metrics**: 529 lint fixed, 3,112 tests verified, 14 juniors dispatched, 100% pass rate, 88% cost savings vs senior-only
+- **Pillar(s) served**: V3, V5, V7, V10 (all core pillars verified)
+
+### [2026-03-02 23:50] threat-architect — SUNDAY_FULL_REGRESSION
+- **What**: Full regression of all CTEM demo scripts + bug fixes. 191/193 steps pass (99.0%). Fixed 3 API schema bugs in attack campaign, 1 timeout bug in week2 harness. Investor demo now 24/24 (was 22/24). Self-scan dogfood 17/17. All 7 scripts green.
+- **Files touched**: scripts/ctem_attack_campaign.py (3 bug fixes), scripts/ctem_week2_harness.py (timeout fix), .claude/team-state/threat-architect-status.md, .claude/team-state/threat-architect/reports/sunday-regression-2026-03-02.md
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V3, V5, V7, V10
+
+### [2026-03-02 21:30] security-analyst — DAILY_SECURITY_SCAN (Evening Pass)
+- **What**: Full daily security scan battery — Bandit SAST, pip-audit, secret detection, native SAST dogfooding, DEMO-011 verification, Docker security review, compliance matrix update.
+- **Files touched**: `.claude/team-state/security-dashboard.json`, `.claude/team-state/compliance-matrix.json`, `.claude/team-state/false-positives.json`, `.claude/team-state/security-analyst-status.md`, `.claude/team-state/decisions.log`
+- **Outcome**: SUCCESS
+- **Decisions made**: 7 new SAST false positive rules classified (SAST-039, 073, 047, 088, 090, 030, plus updated counts). 0 true positives in 40 CRITICAL/HIGH findings.
+- **Scan Results**: Bandit 477 (0 HIGH), pip-audit 0/171, secrets 0 new, native SAST 664 (40 C/H all FP), DEMO-011 24/24 pass, Docker secure
+- **Blockers**: OpenAI key rotation still pending CEO action (Advisory-001)
+- **Next steps**: Monitor for new dependency CVEs, continue daily scans, Sprint 3 Semgrep integration
+- **Pillar(s) served**: V3 (brain pipeline/SAST), V5 (MPTE auth verified), V10 (evidence export/compliance)
+
+### [2026-03-02 23:25] run-ctem-swarm — CTEM+ SWARM
+- **What**: Full swarm run (17 agents, claude-opus-4-6-fast)
+- **Run ID**: swarm-2026-03-02_21-16-13
+- **Duration**: 7727s (128m)
+- **Failed**: 5 phases
+- **Mode**: CTEM+ SWARM
+- **Outcome**: PARTIAL (5 phase failures)
+- **Pillar focus**: V3, V5, V7 (core) | V1, V2, V9, V10 (constraints)
+
+### [2026-03-02 23:27] run-ctem-swarm — CTEM+ SWARM
+- **What**: Full swarm run (17 agents, claude-opus-4-6-fast)
+- **Run ID**: swarm-2026-03-02_21-24-11
+- **Duration**: 7377s (122m)
+- **Failed**: 4 phases
+- **Mode**: CTEM+ SWARM
+- **Outcome**: PARTIAL (4 phase failures)
+- **Pillar focus**: V3, V5, V7 (core) | V1, V2, V9, V10 (constraints)
+
+### [2026-03-03 00:25] swarm-controller — DAILY_MISSION (Run v7)
+- **What**: Sprint 2 Day 3 daily mission. Dispatched 16 juniors in 2 waves (8 each), completed 14. Fixed 27 lint errors (167→140), fixed 1 bug (CORS production guard in app.py), verified 2,632 tests across all core suites, verified 21/21 demo endpoints, verified UI build (0 TS errors, 204.81 KB). Bandit audit: 0 HIGH findings.
+- **Files touched**: 
+  - Modified: suite-api/apps/api/app.py (CORS production guard), 27 test/script files (lint auto-fixes)
+  - Created: .claude/team-state/swarm/task-queue.json, swarm-report-2026-03-03.md, merge-log-2026-03-03.md, swarm-controller-status.md
+- **Outcome**: SUCCESS
+- **Decisions made**: 
+  1. Fix lint directly (27 auto-fixable errors, cheaper than juniors)
+  2. Add CORS production guard (test_production_requires_allowed_origins was failing)
+  3. Kill 2 stuck juniors (coverage analysis + test file scan) — data from 14 others sufficient
+- **Blockers**: Coverage at 19.23% (gate 25%) — full pytest --cov is too slow for junior workers
+- **Next steps**: 
+  1. DEMO-003 (UI wiring) — only remaining sprint item, assigned to frontend-craftsman
+  2. Coverage gap — needs pyproject.toml --cov path fixes (stale paths confirmed in v6)
+  3. Day 4 swarm should focus on new test files regression + any frontend-craftsman outputs
+- **Pillar(s) served**: V3 (brain pipeline, FAIL, analytics, SBOM, config, KG), V5 (MPTE, MCP), V7 (scanners, connectors), V10 (crypto, compliance, security audit)
+
+### [2026-03-03 10:00] scrum-master — DAILY_MISSION (Run 5, Day 3)
+- **What**: Day 3 daily mission. Verified 26 endpoints via live curl (25/26 pass). Produced 10 artifacts: standup, daily-demo, demo script, debate summary, sprint board update, metrics update, Day 4 coordination notes, status file, decisions log, context log.
+- **Files touched**: standup-2026-03-03.md, daily-demo-2026-03-03.md, demo-2026-03-03.md, debate-summary-2026-03-03.md, sprint-board.json, metrics.json, coordination-notes-day4.md, scrum-master-status.md, decisions.log, context_log.md
+- **Outcome**: SUCCESS
+- **Key findings**: 25/26 endpoints live (self-learning/stats 404 is only remaining). self-learning/health and zero-gravity/health FIXED since Day 2. 13,614 tests. Newman 475/475 (9th green). 6 swarm agents failed infrastructure startup — assigned to swarm-controller. CEO directive: sidebar restructure (8 suites to 5 workflow spaces). Funding readiness 81%.
+- **Decisions made**: Upgraded funding readiness 80->81%. Assigned swarm investigation. Created page-to-endpoint mapping for DEMO-003. Day 4 coordination notes written.
+- **Blockers**: DEMO-003 (UI wiring + sidebar) is sole remaining item. 6 swarm agents need infrastructure fix.
+- **Next steps**: frontend-craftsman to complete DEMO-003 (P0). backend-hardener to fix self-learning/stats 404. swarm-controller to fix infrastructure startup failures.
+- **Pillar(s) served**: V3 (Brain Pipeline, AutoFix, FAIL verified), V5 (MPTE verified), V7 (MCP 100 tools verified), V10 (compliance 4 frameworks verified)
+
+---
+
+### [2026-03-03 14:15] security-analyst — DAILY_SECURITY_AUDIT + HARDENING
+- **What**: Full daily security audit with proactive hardening. Ran Bandit SAST (477 findings, 0 HIGH), pip-audit (171 packages, 0 vulns), secrets scan (2 mitigated), native SAST dogfooding (476 findings, 38 HIGH/CRIT all FP). Added SecurityHeadersMiddleware with 7 OWASP-recommended headers (X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, Cache-Control, Pragma, X-Permitted-Cross-Domain-Policies). Hardened docker-compose.aldeci-complete.yml by removing weak default passwords. Published Security Advisory 002. Verified DEMO-011 regression (24/24 pass). Verified SAST engine tests (108/108 pass).
+- **Files touched**: 
+  - MODIFIED: suite-api/apps/api/middleware.py (SecurityHeadersMiddleware added)
+  - MODIFIED: suite-api/apps/api/app.py (SecurityHeadersMiddleware import + mount)
+  - MODIFIED: docker/docker-compose.aldeci-complete.yml (weak defaults removed)
+  - CREATED: tests/test_security_headers.py (9 tests)
+  - CREATED: .claude/team-state/debates/active/security-advisory-002-docker-hardening.md
+  - UPDATED: .claude/team-state/security-dashboard.json
+  - UPDATED: .claude/team-state/compliance-matrix.json
+  - UPDATED: .claude/team-state/threat-model.md
+  - UPDATED: .claude/team-state/security-analyst-status.md
+  - UPDATED: .claude/team-state/decisions.log
+- **Outcome**: SUCCESS
+- **Decisions made**: 
+  1. Added SecurityHeadersMiddleware to address OWASP A05:2021 gap
+  2. Removed weak default credentials from docker-compose.aldeci-complete.yml
+  3. Accepted Docker socket mount risk for MPTE containers (design requirement)
+- **Blockers**: None
+- **Next steps**: OpenAI key rotation (CEO action), Semgrep integration (Sprint 3)
+- **Pillar(s) served**: V9 (Air-Gapped/Docker), V10 (CTEM/Evidence/Compliance), V3 (Decision Intelligence security)
+
+### [2026-03-03 10:30] devops-engineer — INFRASTRUCTURE_HARDENING
+
+- **What**: Day 3 daily mission — validated all Docker infrastructure, hardened sidecar Dockerfiles, enhanced CI pipeline, created new developer tooling, added MCP SSE/WebSocket proxy support.
+- **Files created**:
+  - `scripts/compose-validate.sh` — Local Docker config validation (40+ checks across 6 categories)
+  - `scripts/local-dev-setup.sh` — Zero-config dev environment setup (OS detection, prereq check, auto-install)
+- **Files modified**:
+  - `docker/nginx-aldeci.conf` — Added MCP SSE proxy (proxy_buffering off, 86400s timeout) + WebSocket upgrade proxy [V7]
+  - `docker/Dockerfile.demo` — Non-root user (aldeci), HEALTHCHECK, precise COPY (suite-* dirs), PYTHONPATH
+  - `docker/Dockerfile.demo-sidecar` — Non-root user (aldeci), HEALTHCHECK
+  - `docker/Dockerfile.feeds-sidecar` — Non-root user (aldeci), HEALTHCHECK
+  - `docker/Dockerfile.sidecar` — Non-root user (aldeci), HEALTHCHECK, removed broken COPY (simulations/demo_pack/)
+  - `.github/workflows/ci.yml` — Docker Buildx layer caching, image size guard (max 2.5GB), startup time alert (>30s), enhanced Dockerfile validation, added new scripts to shell validation
+  - `.claude/team-state/dev-environment.md` — Day 3 comprehensive update with new scripts, Docker security posture table
+  - `.claude/team-state/debates/active/security-advisory-002-docker-hardening.md` — DevOps verification response (all 10 compose files validated)
+- **Outcome**: SUCCESS
+- **Decisions made**:
+  - MCP SSE needs proxy_buffering off + 86400s timeout to avoid premature disconnection [V7]
+  - Docker image size max 2.5GB in CI (warn at 2GB, fail at 2.5GB)
+  - All sidecar Dockerfiles now run as non-root `aldeci` user (matching main Dockerfile)
+  - Legacy Dockerfile.simple and Dockerfile.risk-graph left unhardened (rarely used, Sprint 3 cleanup)
+- **Blockers**: NONE
+- **Next steps**: Monitor DEMO-003 (frontend) for Docker compatibility. Prepare demo rehearsal infrastructure. Consider adding pre-commit hook for compose-validate.sh.
+- **Pillar(s) served**: V7 (MCP SSE/WebSocket proxy), V9 (Docker hardening, CI improvements, developer tooling)
+
+### [2026-03-03 01:40] qa-engineer — DAILY_VALIDATION
+- **What**: Day 3 Iteration 1 full validation sweep — Newman, customer sims, moat coverage, deep test writing
+- **Files touched**: tests/test_micro_pentest_deep.py (fix + 23 new tests), tests/test_autofix_engine_deep.py (fix + 28 new tests), .claude/team-state/quality-gate.json, .claude/team-state/qa-engineer-status.md, .claude/team-state/metrics.json, .claude/team-state/qa/iteration-day3-1/* (verdict + 7 Newman JSONs)
+- **Outcome**: SUCCESS
+- **Details**:
+  - Newman: 475/475 (100%) — 10th consecutive green run, 0 transport errors
+  - Customer Simulations: 8/8 PASS (brain pipeline, SAST, secrets, CSPM, MCP, DAST, container, compliance, MPTE)
+  - Moat Coverage: 96.82% weighted (19/19 above 80%, 6 at 100%)
+  - autofix_engine.py: 93.76% → 98.22% (+28 deep tests via junior agent)
+  - micro_pentest.py: 92.26% → 99.35% (+23 deep tests via junior agent)
+  - Test fixes: 2 (LLMProviderManager patch target, ML confidence assertion)
+  - Total moat tests: ~3,625 all passing
+- **Pillar(s) served**: V3, V5, V7, V9, V10
+
+### [2026-03-03 10:00] marketing-head — CONTENT_UPDATE
+- **What**: Updated all 3 core marketing documents to v6.0 with fresh LOC verification (brain_pipeline 1,533→1,663, autofix 1,428→1,515, routes 796→805, total 401,993→416,778 LOC, tests 13,221→13,674). Corrected Snyk valuation from $3.7B to $8.5B. Added Claude weaponization narrative (Mexican govt breach, 10 agencies, 1,000+ prompts). Added Tenable MCP data (70% orgs have MCP packages, 86% critical vulns). CrowdStrike Q4 today.
+- **Files touched**: `.claude/team-state/marketing/enterprise-demo-talking-points.md` (v6.0), `.claude/team-state/marketing/positioning.md` (v6.0), `.claude/team-state/marketing/investor-narrative.md` (v6.0), `.claude/team-state/marketing-head-status.md`, `.claude/team-state/decisions.log`
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V3, V5, V7

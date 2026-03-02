@@ -8,9 +8,7 @@ Vision Pillar: V10 (CTEM with Crypto Proof), MOAT4 (Crypto Evidence)
 
 import base64
 import os
-import tempfile
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 
@@ -24,11 +22,6 @@ from core.crypto import (
     RSAVerifier,
     SignatureVerificationError,
     generate_key_pair,
-    rsa_sign,
-    rsa_verify,
-    _get_default_key_manager,
-    _get_default_signer,
-    _get_default_verifier,
 )
 
 

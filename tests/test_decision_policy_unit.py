@@ -5,7 +5,6 @@ decision verdicts for critical vulnerability combinations (e.g., internet-facing
 SQL injection in authentication services).
 """
 
-import pytest
 
 
 class TestPolicyOverride:

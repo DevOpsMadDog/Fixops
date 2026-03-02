@@ -287,7 +287,6 @@ class TestRSASigner:
 
         assert isinstance(signature_b64, str)
         # Should be valid base64
-        import base64
 
         decoded = base64.b64decode(signature_b64)
         assert len(decoded) > 0
@@ -609,7 +608,6 @@ class TestCoverageGaps:
 
         Covers lines 251-252 in crypto.py.
         """
-        from pathlib import Path
 
         private_path = os.path.join(temp_dir, "private.pem")
         public_path = os.path.join(temp_dir, "public.pem")
@@ -634,7 +632,6 @@ class TestCoverageGaps:
 
         Covers lines 266-267 in crypto.py.
         """
-        from pathlib import Path
 
         private_path = os.path.join(temp_dir, "private.pem")
         public_path = os.path.join(temp_dir, "public.pem")
@@ -803,7 +800,6 @@ class TestCoverageGaps:
 
         Covers lines 242-243 in crypto.py.
         """
-        from pathlib import Path
 
         private_path = os.path.join(temp_dir, "private.pem")
         public_path = os.path.join(temp_dir, "public.pem")
@@ -831,7 +827,6 @@ class TestCoverageGaps:
 
         Covers lines 264-265 in crypto.py.
         """
-        from pathlib import Path
 
         private_path = os.path.join(temp_dir, "private.pem")
         public_path = os.path.join(temp_dir, "public.pem")

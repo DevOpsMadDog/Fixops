@@ -9,11 +9,9 @@ Tests cover:
 Pillar: V5 (MPTE Verification) — Core MPTE client for exploit verification
 """
 
-import asyncio
 import json
 from datetime import datetime
-from typing import Any, Dict
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
@@ -572,7 +570,7 @@ class TestMPTEClientAutomatedScan:
             schedule="0 0 * * *",
         )
         call_args = client.create_test.call_args
-        config = call_args[0][2] if len(call_args[0]) > 2 else call_args[1].get("config")
+        call_args[0][2] if len(call_args[0]) > 2 else call_args[1].get("config")
         # Verify schedule was passed in config
         assert client.create_test.call_count == 1
 

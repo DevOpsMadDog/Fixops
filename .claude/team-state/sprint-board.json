@@ -60,7 +60,7 @@
       "estimate": "1d",
       "labels": ["demo", "ctem", "e2e", "mpte"],
       "acceptance": "One scripted curl sequence: ingest finding → brain pipeline processes → MPTE validates → AutoFix generates fix → evidence bundle signed. All with real data.",
-      "details": "DONE 2026-03-01: 4 demo scripts delivered. ctem_full_loop_demo.py: 36/36 steps, 5/5 phases (Discover→Validate→Remediate→Comply→Measure). mpte-demo.sh: 11/11 steps, signed evidence bundle: YES. ctem-demo-curls.sh: 8-step investor curl demo. feed_artifacts.py: 7/7 artifacts ingested. 8 security artifacts generated (SBOM, CVE, SARIF, CNAPP, VEX, Context, Design, Threat Model). Brain pipeline 8/12 steps, 66.7% noise reduction. AutoFix: 5 fixes generated. Evidence: EVB-2026-BC6AE5 (SHA256). SOC2 compliance: 86.4%.",
+      "details": "DONE 2026-03-01, ENHANCED through session 8. 9 demo scripts, 191/193 verified steps (99.0%). SCRIPTS: ctem-investor-demo.sh (24/24), mpte-demo.sh (11/11), mpte-sandbox-demo.sh (12/12), ctem_full_loop_demo.py (42/42), ctem_attack_campaign.py (24/24), ctem_week2_harness.py (61/63), aldeci_self_scan.py (17/17). ARCHITECTURES: 5 verticals (E-Commerce, Healthcare, FinServ, IoT/OT, GovCloud) + ALdeci self-scan. Brain Pipeline 12/12 steps, 50-93% noise reduction. AutoFix 89% confidence. Evidence RSA-SHA256 signed. SOC2 86.4%.",
       "completedDate": "2026-03-01",
       "completedBy": "threat-architect"
     },
@@ -221,6 +221,18 @@
         "remaining": 1,
         "completed": 11,
         "note": "SCRUM MASTER DAY 2 FINAL (Run 4): 11/12 done (91.7%). 21/21 key endpoints verified 200 via live curl. Quality gate PASS. Newman 475/475 (8th green). Moat 88.95%. 15/17 agents completed (3 failed late swarm — non-blocking). Frontend-craftsman 90% on DEMO-003 (6 UI pages remain). Funding readiness 80%. Vision 0.83. 4 days to demo."
+      },
+      {
+        "date": "2026-03-03",
+        "remaining": 1,
+        "completed": 11,
+        "note": "SCRUM MASTER DAY 3 (Run 5): 11/12 done (91.7%). 25/26 endpoints verified 200 via live curl (self-learning/stats 404 — only remaining). 13,614 tests collected. Quality gate PASS (Newman 475/475, 9th consecutive green). Moat 89.68%. 11/17 agents completed last swarm run (6 failed infra startup — non-blocking, all have current data). DEMO-003 in-progress: frontend-craftsman Day 3 P0 (6 UI pages + sidebar restructure). CEO directive: 8 suites → 5 workflow spaces. Funding readiness 81%. Vision 0.85. 3 days to demo."
+      },
+      {
+        "date": "2026-03-03",
+        "remaining": 1,
+        "completed": 11,
+        "note": "SCRUM MASTER DAY 3 FINAL (Run 6): 11/12 done (91.7%). 31/32 endpoints verified 200 (+6 newly verified). Only self-learning/stats 404. Newman 475/475 (10th green). Moat 95.60% (all 19/19 above 80%). autofix 98.22%, micro_pentest 99.35%. SecurityHeadersMiddleware (7 OWASP headers). Docker sidecar hardening. MCP SSE proxy. Brain elapsed_ms fix. 8/8 customer sims. 17/17 Grade A. Funding 81%. Vision 0.85. 3 days to demo."
       }
     ]
   },
@@ -273,6 +285,6 @@
       "172 lint warnings across Python suites"
     ]
   },
-  "lastUpdated": "2026-03-02T23:59:00Z",
-  "updatedBy": "scrum-master Run 4 — Day 2 Final. 11/12 done (91.7%). 21/21 endpoints verified 200. Quality gate PASS. Newman 475/475 (8th green). Moat 88.95%. Funding 80%. 15/17 agents completed. Only DEMO-003 remaining (6 UI pages, 90% done). 4 days to demo."
+  "lastUpdated": "2026-03-03T18:00:00Z",
+  "updatedBy": "scrum-master Run 6 — Day 3 FINAL. 11/12 done (91.7%). 31/32 endpoints verified 200. Quality gate PASS. Newman 475/475 (10th green). Moat 95.60%. Funding 81%. 17/17 agents Grade A. DEMO-003 P0 (6 UI pages + sidebar restructure). 3 days to demo."
 }

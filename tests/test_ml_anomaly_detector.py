@@ -130,7 +130,7 @@ class TestBaselineFitting:
     def test_fit_from_historical(self, normal_findings):
         det = AnomalyDetector(random_seed=42)
         historical = [normal_findings] * 10
-        stats = det.fit_baseline(historical)
+        det.fit_baseline(historical)
         assert det.is_fitted
 
     def test_fit_too_few_scans(self, normal_findings):

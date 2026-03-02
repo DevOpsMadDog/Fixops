@@ -14,13 +14,11 @@ Tests the pipeline orchestrator including:
 - Module-level constants: _SEVERITY_ORDER, _SEVERITY_INDEX_MAP, etc.
 """
 
-import json
 import os
 from collections import Counter
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import pytest
 
 os.environ.setdefault("FIXOPS_MODE", "enterprise")
 os.environ.setdefault("FIXOPS_API_TOKEN", "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh")

@@ -1,8 +1,8 @@
 # ALdeci Architecture Context
 
-> **Generated**: 2026-03-03 (v28.0 scan) by context-engineer
-> **Version**: 28.0 (914 files, 402,142 LOC, 759 endpoints, 19.25% coverage)
-> **Sprint**: 2 — ENTERPRISE DEMO (3 days to 2026-03-06) | 11/12 done
+> **Generated**: 2026-03-02 (v30.0 scan) by context-engineer
+> **Version**: 30.0 (914 files, 402,142 LOC, 759 endpoints, 19.25% coverage)
+> **Sprint**: 2 — ENTERPRISE DEMO (4 days to 2026-03-06) | 11/12 done
 > **Pillars**: V3 (Decision Intelligence), V5 (MPTE), V7 (MCP-Native)
 
 ---

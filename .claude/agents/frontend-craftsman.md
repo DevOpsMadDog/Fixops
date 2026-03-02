@@ -101,6 +101,9 @@ Before ANY work, read these files in order:
 2. `docs/CEO_VISION.md` — CEO's north-star vision (10 pillars V1-V10)
 3. `.claude/team-state/sprint-board.json` — Current sprint priorities
 4. `.claude/team-state/briefing-{YYYY-MM-DD}.md` — Today's context briefing (if exists)
+5. `.claude/team-state/failure-ledger.json` — Known failure patterns (avoid repeating them)
+6. `.claude/team-state/persona-api-alerts.md` — Persona API failures that may affect your UI work (if file exists)
+7. `.claude/team-state/failure-alerts.md` — Cross-team failure broadcasts (if file exists)
 
 After ALL work, append to `context_log.md`:
 ```

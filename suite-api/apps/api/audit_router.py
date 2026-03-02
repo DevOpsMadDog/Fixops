@@ -31,6 +31,37 @@ db = AuditDB()
 _chain_hashes: List[str] = []  # ordered SHA-256 hashes
 _chain_index: Dict[str, int] = {}  # log_id -> chain position
 
+_CEF_MAX_FIELD_LEN = 1024
+
+
+def _sanitize_cef_field(value: str) -> str:
+    """Sanitize a user-controlled value for safe embedding in a CEF format string.
+
+    CEF specification requires that pipe characters, backslashes, and newlines
+    inside header fields and extension values are escaped.  Without sanitization
+    an attacker can inject extra CEF headers or forge new log lines in a SIEM.
+
+    Escape order matters: backslash must be escaped first so that the escape
+    sequences introduced by the later replacements are not double-escaped.
+
+    Args:
+        value: Raw string value from user-controlled input.
+
+    Returns:
+        Sanitized string safe for inclusion in a CEF field, truncated to
+        _CEF_MAX_FIELD_LEN characters.
+    """
+    # 1. Escape backslashes first (must precede all other replacements)
+    value = value.replace("\\", "\\\\")
+    # 2. Escape pipe characters (CEF header delimiter)
+    value = value.replace("|", "\\|")
+    # 3. Escape newline characters (log-line delimiter)
+    value = value.replace("\n", "\\n")
+    # 4. Escape carriage-return characters
+    value = value.replace("\r", "\\r")
+    # 5. Truncate to maximum allowed field length
+    return value[:_CEF_MAX_FIELD_LEN]
+
 
 class AuditLogCreate(BaseModel):
     """Request model for creating an audit log."""
@@ -126,10 +157,12 @@ async def export_audit_logs(
         cef_lines = []
         for entry in filtered:
             cef = (
-                f"CEF:0|FixOps|AuditLog|1.0|{entry.get('event_type', '')}|"
-                f"{entry.get('action', '')}|{entry.get('severity', 'info')}|"
-                f"src={entry.get('ip_address', '')} "
-                f"duser={entry.get('user_id', '')} "
+                f"CEF:0|FixOps|AuditLog|1.0"
+                f"|{_sanitize_cef_field(str(entry.get('event_type', '')))}|"
+                f"{_sanitize_cef_field(str(entry.get('action', '')))}|"
+                f"{_sanitize_cef_field(str(entry.get('severity', 'info')))}|"
+                f"src={_sanitize_cef_field(str(entry.get('ip_address', '')))} "
+                f"duser={_sanitize_cef_field(str(entry.get('user_id', '')))} "
                 f"msg={json.dumps(entry.get('details', {}))}"
             )
             cef_lines.append(cef)

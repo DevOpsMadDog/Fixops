@@ -1,0 +1,61 @@
+{
+  "task_id": "swarm-513",
+  "worker_id": "junior-worker",
+  "status": "completed",
+  "test_suite": "tests/test_security_analyst_persona.py",
+  "test_results": {
+    "total_collected": 111,
+    "total_passed": 109,
+    "total_failed": 0,
+    "total_errors": 0,
+    "total_skipped": 2,
+    "duration_seconds": 125.76,
+    "duration_formatted": "0:02:05"
+  },
+  "summary": "Security analyst persona test suite passed successfully with 109/111 tests passing. 2 tests remain skipped due to known issues: (1) O(n) graph scan performance issue, (2) copilot mitre_techniques bug in copilot_router.py not yet fixed.",
+  "skipped_tests": [
+    {
+      "name": "TestRajSecurityAnalyst::test_brain_most_connected",
+      "line": 244,
+      "reason": "O(n) full graph scan on 34K+ node brain DB — too slow for CI"
+    },
+    {
+      "name": "TestAnikaSecurityOps::test_copilot_mitre_techniques",
+      "line": 1626,
+      "reason": "copilot_router.py has a production bug: mitre_techniques returned as List[Dict] but joined with str.join(), causing TypeError (500) on step 3. Fix copilot_router.py line ~352 to stringify each item before joining."
+    }
+  ],
+  "failed_tests": [],
+  "slowest_tests": [
+    {
+      "name": "TestRajSecurityAnalyst::test_autofix_generate_bulk",
+      "duration_seconds": 20.42
+    },
+    {
+      "name": "TestAnikaSecurityOps::test_copilot_send_message_remediation_agent",
+      "duration_seconds": 11.40
+    },
+    {
+      "name": "TestCrossPersonaIntegration::test_e2e_finding_triage_to_fix",
+      "duration_seconds": 8.40
+    },
+    {
+      "name": "TestRajSecurityAnalyst::test_autofix_generate_fix",
+      "duration_seconds": 8.01
+    },
+    {
+      "name": "TestAnikaSecurityOps::test_copilot_suggestions",
+      "duration_seconds": 7.80
+    }
+  ],
+  "notes": {
+    "mitre_techniques_status": "STILL SKIPPED - The copilot mitre_techniques test remains skipped due to unfixed bug in copilot_router.py line ~352. Bug: mitre_techniques field is returned as List[Dict] but code attempts to join with str.join(), causing TypeError when response is sent back to client. No recent fix applied to resolve this.",
+    "coverage_gate": "Below 25% gate at 18.42% (project-wide issue, not test-specific)",
+    "warnings": "Minor SQLite unclosed database resource warnings present but not blocking"
+  },
+  "confidence": 0.95,
+  "needs_senior_review": false,
+  "files_modified": [],
+  "files_created": [],
+  "duration_turns": 5
+}

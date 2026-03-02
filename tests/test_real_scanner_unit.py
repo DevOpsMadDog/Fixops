@@ -5,7 +5,6 @@ require network access. The RealVulnerabilityScanner requires httpx
 and is tested via mocked async client.
 """
 
-import pytest
 from core.real_scanner import (
     ArchitectureProfile,
     RealFinding,

@@ -102,27 +102,27 @@
 - `tests/test_iac_scanner.py`: 141 tests, ALL PASS. Covers iac_scanner.py (713 LOC, 35.85% coverage). Needs deeper function tests.
 - `tests/test_mpte_advanced.py`: 167 tests, ALL PASS. Covers mpte_advanced.py (1089 LOC, 100% coverage). NEW Iter 7. Mocks LLM, aiohttp, MPTEDB. 9 test classes.
 
-## Moat File Coverage (Updated 2026-03-02 Iter 7)
-- mpte_advanced.py: 100.00% (323 stmts) — NEW Iter 7, perfect
+## Moat File Coverage (Updated 2026-03-03 Day 3)
+- micro_pentest.py: 99.35% (571 stmts) — DEEP TESTS DONE Day 3 (+23 AI analysis tests)
+- mpte_advanced.py: 100.00% (323 stmts) — perfect
 - container_scanner.py: 100.00% (146 stmts) — perfect
+- dast_engine.py: 100.00% (282 stmts) — perfect
 - api_fuzzer.py: 100.00% (137 stmts) — perfect
 - malware_detector.py: 100.00% (119 stmts) — perfect
 - fail_engine.py: 99.75% (314 stmts) — excellent
 - secrets_scanner.py: 99.47% (293 stmts) — excellent
+- iac_scanner.py: 99.46% (271 stmts) — excellent
 - llm_consensus.py: 98.73% (128 stmts) — excellent
 - crypto.py: 98.72% (194 stmts) — excellent
+- autofix_engine.py: 98.22% (605 stmts) — DEEP TESTS DONE Day 3 (+28 validation/JSON/path tests)
+- playbook_runner.py: 98.98% (655 stmts) — excellent
 - cspm_engine.py: 96.19% (170 stmts) — excellent
 - sast_engine.py: 95.90% (178 stmts) — excellent
+- brain_pipeline.py: 94.43% (697 stmts) — excellent
 - mcp_server.py: 93.42% (422 stmts) — excellent
-- attack_simulation_engine.py: 92.20% (427 stmts) — excellent
-- playbook_runner.py: 88.28% (655 stmts) — good, above 80%
-- mcp_router.py: 84.39% (395 stmts) — good, above 80%
-- brain_pipeline.py: 97.63% (638 stmts) — DEEP TESTS DONE (was 62.84%)
-- iac_scanner.py: 99.46% (271 stmts) — DEEP TESTS DONE (was 35.85%)
-- dast_engine.py: 100.00% (282 stmts) — DEEP TESTS DONE (was 47.80%)
-- micro_pentest.py: 68.26% (571 stmts) — needs more (network/MPTE-dependent code uncovered)
-- autofix_engine.py: 50.62% (569 stmts) — needs more (LLM-dependent code paths)
-- TOTAL: 5837 stmts measured, 88.95% covered, 17/19 above 80%, 5 at 100%
+- attack_simulation_engine.py: 91.83% (427 stmts) — excellent
+- mcp_router.py: 83.42% (405 stmts) — good, above 80%
+- TOTAL: 6337 stmts measured, 96.82% covered, 19/19 above 80%, 6 at 100%
 
 ## Full Test Suite Notes
 - 10,911 tests collected (excluding e2e)
@@ -139,6 +139,7 @@
 - Day 2 Iter 4-6: 100% (475/475) — 6th consecutive zero regressions. 713 new moat tests written. 14/19 moat files tested.
 - Day 2 Iter 7: 100% (475/475) — 7th consecutive zero regressions. +167 mpte_advanced tests. 4 test fixes. 3252 moat tests.
 - Day 2 Iter 8: 100% (475/475) — 8th consecutive zero regressions. 0 transport errors. +322 deep tests (iac 101, dast 118, brain 103). Moat coverage 79.9%→88.95%. 17/19 above 80%.
+- Day 3 Iter 1: 100% (475/475) — 10th consecutive zero regressions. 0 transport errors. +51 deep tests (autofix 28, micro_pentest 23). Moat coverage 88.95%→96.82%. 19/19 above 80%. 2 test fixes.
 
 ## Customer Simulation Scenarios (Verified 2026-03-02)
 - Brain Pipeline: `POST /api/v1/brain/pipeline/run` with 5 findings + org_id → 12 steps, 119ms

@@ -4,9 +4,33 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
+
+// ── Loading Skeleton ─────────────────────────────────────────────────────────
+
+function SOC2Skeleton() {
+  return (
+    <div className="space-y-6 p-6">
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <Skeleton className="h-9 w-80" />
+          <Skeleton className="h-5 w-96" />
+        </div>
+        <Skeleton className="h-10 w-28 rounded-full" />
+      </div>
+      <Skeleton className="h-10 w-72" />
+      <Skeleton className="h-40 rounded-xl" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+          <Skeleton key={i} className="h-20 rounded-xl" />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 const TSC_LABELS: Record<string, string> = {
   CC3: 'Risk Assessment', CC4: 'Monitoring', CC5: 'Control Activities',
@@ -60,6 +84,7 @@ const SOC2EvidenceUI = () => {
   const [orgId, setOrgId] = useState('acme-corp');
   const [timeframeDays, setTimeframeDays] = useState(90);
   const [generating, setGenerating] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [currentPack, setCurrentPack] = useState<EvidencePack | null>(null);
   const [packs, setPacks] = useState<EvidencePack[]>([]);
   const [selectedPack, setSelectedPack] = useState<EvidencePack | null>(null);
@@ -71,9 +96,12 @@ const SOC2EvidenceUI = () => {
       const res = await api.get('/api/v1/brain/evidence/packs').catch(() => ({ data: { packs: [] } }));
       setPacks(res.data?.packs || []);
     } catch { /* ignore */ }
+    finally { setInitialLoading(false); }
   }, []);
 
   useEffect(() => { fetchPacks(); }, [fetchPacks]);
+
+  if (initialLoading) return <SOC2Skeleton />;
 
   const generatePack = async () => {
     setGenerating(true);

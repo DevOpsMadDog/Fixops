@@ -21,6 +21,7 @@ import {
   Store,
   Users,
   ChevronRight,
+  Cpu,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -112,8 +113,8 @@ export default function Settings() {
       </div>
 
       {/* Sub-navigation Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card 
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card
           className="cursor-pointer hover:border-primary/50 transition-colors"
           onClick={() => navigate('/settings/webhooks')}
         >
@@ -131,7 +132,7 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        <Card 
+        <Card
           className="cursor-pointer hover:border-primary/50 transition-colors"
           onClick={() => navigate('/settings/marketplace')}
         >
@@ -149,7 +150,7 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        <Card 
+        <Card
           className="cursor-pointer hover:border-primary/50 transition-colors"
           onClick={() => navigate('/settings/users')}
         >
@@ -164,6 +165,24 @@ export default function Settings() {
           <CardContent>
             <h3 className="font-semibold">Users</h3>
             <p className="text-sm text-muted-foreground">Manage users and permissions</p>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="cursor-pointer hover:border-primary/50 transition-colors"
+          onClick={() => navigate('/settings/mcp-registry')}
+        >
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div className="p-2 bg-violet-500/10 rounded-lg">
+                <Cpu className="w-5 h-5 text-violet-500" />
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <h3 className="font-semibold">MCP Tool Registry</h3>
+            <p className="text-sm text-muted-foreground">AI agent tools, resources, and prompts</p>
           </CardContent>
         </Card>
       </div>
@@ -365,6 +384,50 @@ export default function Settings() {
 
         {/* System Status Tab */}
         <TabsContent value="system" className="space-y-6">
+          {healthLoading && statusLoading ? (
+            /* Skeleton loading state for System Status */
+            <div className="space-y-6">
+              <Card className="glass-card">
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 bg-gray-700/30 rounded animate-pulse" />
+                    <div className="h-6 w-36 bg-gray-700/30 rounded animate-pulse" />
+                  </div>
+                  <div className="h-4 w-60 bg-gray-700/20 rounded animate-pulse mt-2" />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-6 h-6 bg-gray-700/30 rounded-full animate-pulse" />
+                        <div className="space-y-2">
+                          <div className="h-4 w-28 bg-gray-700/30 rounded animate-pulse" />
+                          <div className="h-3 w-40 bg-gray-700/20 rounded animate-pulse" />
+                        </div>
+                      </div>
+                      <div className="h-5 w-20 bg-gray-700/20 rounded-full animate-pulse" />
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+              <Card className="glass-card">
+                <CardHeader>
+                  <div className="h-6 w-44 bg-gray-700/30 rounded animate-pulse" />
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="space-y-2">
+                        <div className="h-3 w-20 bg-gray-700/20 rounded animate-pulse" />
+                        <div className="h-5 w-32 bg-gray-700/30 rounded animate-pulse" />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+          <>
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -391,7 +454,7 @@ export default function Settings() {
                       </p>
                     </div>
                   </div>
-                  <Badge variant={healthData?.status === 'healthy' ? 'default' : 'medium'}>
+                  <Badge variant={healthData?.status === 'healthy' ? 'default' : 'secondary'}>
                     {healthLoading ? 'Checking...' : healthData?.status || 'Unknown'}
                   </Badge>
                 </div>
@@ -406,7 +469,7 @@ export default function Settings() {
                       </p>
                     </div>
                   </div>
-                  <Badge variant="default">
+                  <Badge variant={statusData?.status === 'running' || statusData?.status === 'ok' ? 'default' : 'secondary'}>
                     {statusLoading ? 'Loading...' : statusData?.status || 'OK'}
                   </Badge>
                 </div>
@@ -416,10 +479,12 @@ export default function Settings() {
                     <Database className="w-6 h-6 text-blue-500" />
                     <div>
                       <p className="font-medium">Database</p>
-                      <p className="text-sm text-muted-foreground">MongoDB / MindsDB</p>
+                      <p className="text-sm text-muted-foreground">SQLite WAL — {healthData?.database_count || 56} domain DBs</p>
                     </div>
                   </div>
-                  <Badge variant="default">Connected</Badge>
+                  <Badge variant={healthData?.status === 'healthy' ? 'default' : 'secondary'}>
+                    {healthData?.status === 'healthy' ? 'Connected' : healthLoading ? 'Checking...' : 'Unavailable'}
+                  </Badge>
                 </div>
 
                 <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
@@ -427,16 +492,18 @@ export default function Settings() {
                     <Globe className="w-6 h-6 text-purple-500" />
                     <div>
                       <p className="font-medium">Threat Feeds</p>
-                      <p className="text-sm text-muted-foreground">EPSS, KEV, NVD</p>
+                      <p className="text-sm text-muted-foreground">EPSS, KEV, NVD, OSV</p>
                     </div>
                   </div>
-                  <Badge variant="default">Active</Badge>
+                  <Badge variant={healthData?.status === 'healthy' ? 'default' : 'secondary'}>
+                    {healthData?.status === 'healthy' ? 'Active' : healthLoading ? 'Checking...' : 'Offline'}
+                  </Badge>
                 </div>
               </div>
 
               <div className="mt-6 pt-6 border-t border-border">
                 <Button variant="outline" onClick={() => refetch()} className="gap-2">
-                  <RefreshCw className="w-4 h-4" />
+                  <RefreshCw className={`w-4 h-4 ${healthLoading ? 'animate-spin' : ''}`} />
                   Refresh Status
                 </Button>
               </div>
@@ -469,6 +536,8 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
+          </>
+          )}
         </TabsContent>
 
         {/* Appearance Tab */}
@@ -487,7 +556,11 @@ export default function Settings() {
               <div className="flex gap-4">
                 <Button
                   variant={theme === 'dark' ? 'default' : 'outline'}
-                  onClick={() => setTheme('dark')}
+                  onClick={() => {
+                    setTheme('dark');
+                    document.documentElement.classList.add('dark');
+                    document.documentElement.classList.remove('light');
+                  }}
                   className="flex-1 h-24 flex-col gap-2"
                 >
                   <Moon className="w-6 h-6" />
@@ -495,7 +568,11 @@ export default function Settings() {
                 </Button>
                 <Button
                   variant={theme === 'light' ? 'default' : 'outline'}
-                  onClick={() => setTheme('light')}
+                  onClick={() => {
+                    setTheme('light');
+                    document.documentElement.classList.add('light');
+                    document.documentElement.classList.remove('dark');
+                  }}
                   className="flex-1 h-24 flex-col gap-2"
                 >
                   <Sun className="w-6 h-6" />

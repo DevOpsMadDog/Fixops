@@ -13,7 +13,6 @@ Tests all hardening changes made today:
 """
 
 import pytest
-import time
 import sys
 import os
 
@@ -473,7 +472,7 @@ class TestBrainPipelineIntegration:
         """Pipeline metrics include per-step timing data."""
         from core.brain_pipeline import BrainPipeline, PipelineInput
         pipeline = BrainPipeline()
-        result = pipeline.run(PipelineInput(
+        pipeline.run(PipelineInput(
             org_id="test-metrics",
             findings=[{"id": "f1", "severity": "medium"}],
         ))

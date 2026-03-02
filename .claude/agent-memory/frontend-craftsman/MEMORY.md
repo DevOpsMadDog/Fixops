@@ -22,7 +22,7 @@
 
 ## API Import Pattern (IMPORTANT)
 - **Named exports**: `import { reportsApi } from '../../lib/api'`
-- **Available**: reportsApi, auditApi, workflowsApi, sastApi, dastApi, secretsApi, containerScanApi, cspmScanApi, scannerIngestApi, sandboxApi, failApi, feedsApi, remediationApi, reachabilityApi, mcpApi, brainPipelineApi, complianceApi, analyticsApi, nerveCenterApi
+- **Available**: reportsApi, auditApi, workflowsApi, sastApi, dastApi, secretsApi, containerScanApi, cspmScanApi, scannerIngestApi, sandboxApi, failApi, feedsApi, remediationApi, reachabilityApi, mcpApi, brainPipelineApi, complianceApi, analyticsApi, nerveCenterApi, llmApi, enhancedApi, pentagiApi, attackGraphApi, graphApi
 - **Raw axios**: `import { api } from '../../lib/api'` for custom endpoints
 - **Default export**: Object with namespaced methods -- avoid in new code
 - Response key: most list endpoints return `data?.items || data`
@@ -34,47 +34,64 @@
 - `reachabilityApi.analyze({ cve_id, repository? })` -- IS an object (NOT 2 separate args!)
 - Scanner status: `/api/v1/{sast|dast|secrets|container|cspm}/status`
 
-## Page Status (as of 2026-03-02 Session 3) -- 62 pages, ALL wired, ZERO mock data
+## Page Status (as of 2026-03-02 Session 4) -- 99 files, 41.8K LOC, ZERO mock data
 ### Key Pages by Pillar
-- V3: BrainPipelineDashboard (724 LOC), AutoFixDashboard (625 LOC), ExposureCaseCenter (1182 LOC), Predictions (~340 LOC), Policies (~310 LOC), RiskScoreGauge (260 LOC)
-- V5: SandboxVerification (905 LOC), MPTEConsole (2070 LOC, already has 19-phase live demo), Reachability (~420 LOC)
-- V7: ScannerIngestUpload (987 LOC), ScannerDashboard (532 LOC)
-- V9: AirGappedIndicator (185 LOC, in GlobalStatusBar), DeploymentBadge (in Dashboard)
-- V10: EvidenceBundles (2091 LOC), SOC2EvidenceUI, ComplianceReports (~450 LOC)
+- V3: BrainPipelineDashboard (724), AutoFixDashboard (625), ExposureCaseCenter (1182), Predictions (~340), Policies (~310), RiskScoreGauge (260), BrainPipelineLiveFeed (494), MultiLLMConsensusPanel (590)
+- V5: SandboxVerification (905), MPTEConsole (2070), Reachability (~420), AttackSimulation (1421)
+- V7: ScannerIngestUpload (987), ScannerDashboard (532), MCPToolRegistry (1096)
+- V9: AirGappedIndicator (185, in GlobalStatusBar), DeploymentBadge (in Dashboard)
+- V10: EvidenceBundles (2091), SOC2EvidenceUI, ComplianceReports (~450)
 
-### Still Needs Work
-- CEODashboard.tsx -- needs UX polish
-- Per-page skeleton loading states (component exists at components/ui/skeleton.tsx)
-- Knowledge Graph interactive improvements
+### Dashboard Components (src/components/dashboard/)
+- `LivePipelineIndicator.tsx` (251 LOC) — 12-step pipeline, live findings
+- `BrainPipelineLiveFeed.tsx` (494 LOC) — Real-time feed with events, pause/resume
+- `CTEMProgressRing.tsx` — CTEM 5-phase progress ring
+- `MultiLLMConsensusPanel.tsx` (590 LOC) — Real API-driven consensus
+- `RiskScoreGauge.tsx` (260 LOC) — Animated risk gauge
+
+### UX Components
+- `CommandPalette.tsx` — Cmd+K global search + 12 chord shortcuts (G+letter)
+- `KeyboardShortcutsHelp.tsx` (200 LOC) — ? key shows shortcuts overlay
+- `ErrorBoundary.tsx` (381 LOC) — Auto-retry, chunk detection, telemetry, copy stack
+
+## Build Stats (Day 4 Session 4)
+- 99 files, 41,806 LOC
+- TypeScript: 0 errors
+- Build: 1.49s, 1942 modules
+- Bundle: index 204KB (gzip 62KB) + 4 vendor chunks
+- 100% API-wired, zero mock data
+- All pages lazy-loaded
 
 ## Completed Sprint Items
 - SPRINT1-002: Attack Path Graph visualization
 - SPRINT1-014: Triage Dashboard hero
 - DEMO-003 Day 1: Wire 6 pages + ScannerDashboard
-- DEMO-003 Day 2 S1: +2 new pages (ScannerIngest, SandboxVerification), +1 component (AirGapped), enhanced BrainPipeline + AutoFix
-- DEMO-003 Day 2 S2: Rewrote Reachability, ComplianceReports, Predictions, Policies (4 pages from stubs to production)
-- DEMO-003 Day 2 S3: Zero mock data (3 pages fixed), CommandPalette, RiskScoreGauge, Skeleton system, 404 page, bundle optimization 540→193KB
+- DEMO-003 Day 2 S1: +2 new pages + AirGapped component
+- DEMO-003 Day 2 S2: Reachability, ComplianceReports, Predictions, Policies rewrites
+- DEMO-003 Day 2 S3: Zero mock data, CommandPalette, RiskScoreGauge, 404 page, bundle optimization
+- DEMO-003 Day 3: Copilot rewrite, dark/light toggle, Settings skeleton, IntelligenceHub skeleton
+- DEMO-003 Day 4 S1: LivePipelineIndicator, Dashboard layout, SOC2 skeleton
+- DEMO-003 Day 4 S4: MCPToolRegistry (V7), AttackSimulation rewrite (V5), BrainPipelineLiveFeed (V3), MultiLLM mock→real, ErrorBoundary, KeyboardShortcuts, chord nav
 
-## Build Stats (Day 2 S3)
-- 62 pages, 25 components, 37,088 LOC
-- TypeScript: 0 errors
-- Build: ~1.6s
-- Bundle: index 193KB + 4 vendor chunks (react 160KB, motion 108KB, ui 85KB, query 42KB)
-- 100% API-wired (0 mock-only pages, 0 hardcoded fallback arrays)
-- All pages lazy-loaded
-
-## Bundle Optimization Pattern
-- vite.config.ts `build.rollupOptions.output.manualChunks` for vendor splitting
-- Keep main chunk under 200KB for fast initial load
-- Each page is already lazy-loaded via `React.lazy()`
-
-## Remaining Priority Items (Day 3+)
-- Per-page skeleton loading states
+## Remaining Priority Items (Day 5+)
 - Knowledge Graph interactive improvements (V3)
-- CEODashboard detailed UX pass
-- Dark/light mode toggle polish
+- Low-traffic page skeleton loading states
+
+## Theme Toggle Pattern
+- Store: `useUIStore` with `theme` and `setTheme` from `../stores`
+- MUST also update document classes: `document.documentElement.classList.toggle('dark', theme === 'dark')`
+- ThemeInitializer component in App.tsx syncs classes on mount
+
+## TypeScript Gotchas
+- When using `analysisMutation.data` in JSX, wrap in `String()` to avoid ReactNode type errors
+- `useMemo` with state setter inside triggers linting warnings -- use as initialization pattern sparingly
+- Badge `variant` supports: default, secondary, outline, destructive, success, info
+- ErrorBoundary must be class component (React limitation for getDerivedStateFromError)
 
 ## API Patterns for Policy/Prediction Pages
 - Predictions: `api.post('/api/v1/predictions/risk-trajectory', { cve_ids })` and `api.post('/api/v1/predictions/attack-chain', { target })`
-- Policies: `api.get('/api/v1/policies')` returns `data?.items || data`, `api.post('/api/v1/policies/{id}/validate')`
-- complianceApi: `getStatus()`, `generateReport(frameworkId)`, `collectEvidence(id)`, frameworks at `/api/v1/compliance-engine/frameworks`
+- Policies: `api.get('/api/v1/policies')` returns `data?.items || data`
+- complianceApi: `getStatus()`, `generateReport(frameworkId)`, `collectEvidence(id)`
+- mcpApi: `getTools()`, `getResources()`, `getPrompts()`, `invokeTool(name, args)`, `getStatus()`
+- brainPipelineApi: `listRuns()`, `getRun(id)`, `run(data)`, `generateEvidence(data)`
+- pentagiApi: `health()`, `capabilities()`, `threatIntel({cve_id})`, `simulate({target, attack_type})`

@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import os
 import sys
-from unittest.mock import AsyncMock, MagicMock, patch, call
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
@@ -33,7 +33,6 @@ os.environ.setdefault("FIXOPS_DISABLE_RATE_LIMIT", "1")
 from core.dast_engine import (  # noqa: E402
     DASTEngine,
     DastCategory,
-    DastFinding,
     DastScanResult,
     DastSeverity,
     SQL_PAYLOADS,
@@ -42,8 +41,6 @@ from core.dast_engine import (  # noqa: E402
     PATH_TRAVERSAL_PAYLOADS,
     SQL_ERROR_PATTERNS,
     SECURITY_HEADERS,
-    _LinkParser,
-    get_dast_engine,
 )
 
 
@@ -658,7 +655,7 @@ class TestXSSTesting:
 
     async def test_xss_second_payload_triggers(self, engine, mock_client):
         """When first payload not reflected, second payload is tried."""
-        p0 = XSS_PAYLOADS[0]
+        XSS_PAYLOADS[0]
         p1 = XSS_PAYLOADS[1]  # <img src=x onerror=alert(1)>
         clean = _resp(200, text="no match")
         reflected = _resp(200, text=f"result: {p1}")
@@ -670,7 +667,7 @@ class TestXSSTesting:
 
     async def test_xss_test_url_built_correctly(self, engine, mock_client):
         """The test URL appends &q=<payload> to the base URL."""
-        payload = XSS_PAYLOADS[0]
+        XSS_PAYLOADS[0]
         mock_client.get = AsyncMock(return_value=_resp(200, text="no match"))
         await engine._test_xss(mock_client, "https://example.com/search?existing=val")
         # Check that .get was called with URL containing &q=

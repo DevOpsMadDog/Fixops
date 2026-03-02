@@ -7,6 +7,9 @@
 
 FROM python:3.11-slim
 
+# Add non-root user
+RUN groupadd -r aldeci && useradd -r -g aldeci -m aldeci
+
 WORKDIR /app
 
 # Install dependencies
@@ -21,10 +24,20 @@ COPY scripts/demo_sidecar.py ./demo_sidecar.py
 COPY scripts/micropentest_sidecar.py ./scripts/micropentest_sidecar.py
 COPY tests/sidecar/ ./tests/sidecar/
 
+# Set ownership
+RUN chown -R aldeci:aldeci /app
+
+# Switch to non-root user
+USER aldeci
+
 # Environment variables
 ENV FIXOPS_BASE_URL=http://fixops:8000
 ENV FIXOPS_API_TOKEN=demo-token
 ENV PYTHONUNBUFFERED=1
+
+# Health check — verify sidecar can reach API
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import httpx; r=httpx.get('${FIXOPS_BASE_URL}/health',timeout=3); assert r.status_code==200" || exit 1
 
 # Default command — run full demo
 CMD ["python", "demo_sidecar.py", "full-demo"]

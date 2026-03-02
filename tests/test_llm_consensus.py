@@ -16,10 +16,9 @@ from __future__ import annotations
 
 import pytest
 
-from core.llm_consensus import ConsensusEngine, ConsensusResult, DEFAULT_PROVIDER_WEIGHTS
+from core.llm_consensus import ConsensusEngine
 from core.llm_providers import (
     BaseLLMProvider,
-    DeterministicLLMProvider,
     LLMProviderManager,
     LLMResponse,
 )

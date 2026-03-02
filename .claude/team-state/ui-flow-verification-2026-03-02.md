@@ -6,8 +6,8 @@
 ## Summary
 
 - **Total Pages Checked:** 28
-- **Real Pages:** 11 (39%)
-- **Stub Pages:** 17
+- **Real Pages:** 10 (35%)
+- **Stub Pages:** 18
 - **Missing Pages:** 0
 
 ## Workflow Space Health
@@ -16,7 +16,7 @@
 |-------|-------|------------|-------|---------|-----------|
 | mission-control | A | 3/3 | 0 | 0 | 100% |
 | discover | F | 2/8 | 6 | 0 | 25% |
-| validate | F | 1/4 | 3 | 0 | 25% |
+| validate | F | 0/4 | 4 | 0 | 0% |
 | remediate | F | 1/6 | 5 | 0 | 16% |
 | comply | C | 4/7 | 3 | 0 | 57% |
 
@@ -25,7 +25,7 @@
 
 | Space | Page | Status | LOC | Score | Notes |
 |-------|------|--------|-----|-------|-------|
-| mission-control | Dashboard.tsx | ✅ A | 571 | 85% | Real page |
+| mission-control | Dashboard.tsx | ✅ A | 582 | 85% | Real page |
 | mission-control | CEODashboard.tsx | ✅ A | 497 | 85% | Real page |
 | mission-control | NerveCenter.tsx | ✅ A | 348 | 85% | Real page |
 | discover | CodeScanning.tsx | ⚠️ Stub | 738 | 65% | placeholder  |
@@ -37,7 +37,7 @@
 | discover | AttackPaths.tsx | ⚠️ Stub | 474 | 65% | placeholder  |
 | discover | ThreatFeeds.tsx | ⚠️ Stub | 354 | 65% | placeholder  |
 | validate | MPTEConsole.tsx | ⚠️ Stub | 2070 | 65% | placeholder  |
-| validate | AttackSimulation.tsx | ✅ B | 153 | 75% | Real page |
+| validate | AttackSimulation.tsx | ⚠️ Stub | 1421 | 65% | placeholder  |
 | validate | MicroPentest.tsx | ⚠️ Stub | 395 | 65% | placeholder  |
 | validate | Reachability.tsx | ⚠️ Stub | 614 | 65% | placeholder  |
 | remediate | Remediation.tsx | ⚠️ Stub | 421 | 65% | placeholder  |
@@ -48,7 +48,7 @@
 | remediate | Playbooks.tsx | ⚠️ Stub | 504 | 65% | placeholder  |
 | comply | EvidenceBundles.tsx | ⚠️ Stub | 2091 | 65% | placeholder  |
 | comply | ComplianceReports.tsx | ✅ A | 626 | 85% | Real page |
-| comply | SOC2EvidenceUI.tsx | ✅ A | 337 | 85% | Real page |
+| comply | SOC2EvidenceUI.tsx | ✅ A | 365 | 85% | Real page |
 | comply | EvidenceAnalytics.tsx | ✅ B | 151 | 75% | Real page |
 | comply | AuditLogs.tsx | ⚠️ Stub | 356 | 65% | placeholder  |
 | comply | Reports.tsx | ⚠️ Stub | 431 | 65% | placeholder  |
@@ -63,4 +63,4 @@
 - **D (20%+):** Minimal, mostly stub
 - **F:** Missing or empty
 
-*Generated at 2026-03-02 21:02:38 by JARVIS Controller*
+*Generated at 2026-03-03 01:53:40 by JARVIS Controller*

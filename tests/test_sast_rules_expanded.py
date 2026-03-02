@@ -26,9 +26,6 @@ from core.sast_engine import (
     OWASP_CATEGORIES,
     SAST_RULES,
     SASTEngine,
-    SastSeverity,
-    detect_language,
-    Language,
 )
 
 

@@ -8,7 +8,6 @@ Vision Pillar: V3 (Decision Intelligence), V1 (APP_ID-Centric), MOAT scanner nor
 """
 
 import json
-import xml.etree.ElementTree as ET
 
 import pytest
 

@@ -1,0 +1,31 @@
+{
+  "task_id": "swarm-bulk-security-fix",
+  "worker_id": "junior-worker",
+  "status": "completed",
+  "files_modified": [
+    "suite-api/apps/api/bulk_router.py"
+  ],
+  "files_created": [],
+  "summary": "Fixed CRITICAL path traversal vulnerability in download_export endpoint and added comprehensive Pydantic field-level validation (max_length + enum allowlist) across all request models in bulk_router.py.",
+  "issues": [],
+  "needs_senior_review": false,
+  "confidence": 0.97,
+  "duration_turns": 8,
+  "changes_detail": {
+    "issue_1_path_traversal": {
+      "location": "download_export (line ~985)",
+      "fix": "Three-layer defence: (1) raw string check for '..', '/', '\\\\' before path construction; (2) extension allowlist restricted to .json/.csv/.sarif; (3) resolve()-based canonical path confinement check as defence-in-depth"
+    },
+    "issue_2_status_validation": {
+      "location": "BulkStatusUpdateRequest (line ~132)",
+      "fix": "Added max_length=64 to new_status, max_length=1000 to reason, max_length=255 to changed_by. Added @field_validator('new_status') enforcing allowlist: {accepted_risk, closed, false_positive, in_progress, open, resolved, wont_fix}"
+    },
+    "issue_3_model_lengths": {
+      "BulkAssignRequest": "assignee max_length=255, assignee_email max_length=255",
+      "BulkAcceptRiskRequest": "justification max_length=2000, approved_by max_length=255",
+      "BulkCreateTicketsRequest": "integration_id max_length=128, project_key max_length=128, issue_type max_length=64",
+      "BulkExportRequest": "format max_length=10, org_id max_length=128"
+    },
+    "import_added": "field_validator added to pydantic import line"
+  }
+}

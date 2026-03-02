@@ -1,0 +1,366 @@
+{
+  "showcase": "ALdeci CTEM+ Multi-Architecture",
+  "date": "2026-03-02T11:09:19.479820+00:00",
+  "status": "PASSED",
+  "steps_total": 91,
+  "steps_passed": 90,
+  "steps_failed": 0,
+  "pass_rate": 98.9,
+  "duration_seconds": 319.3,
+  "verticals": {
+    "ecommerce": {
+      "vertical": "Acme E-Commerce Platform",
+      "cloud": "AWS",
+      "compliance": [
+        "PCI-DSS-v4.0",
+        "SOC2-Type-II",
+        "GDPR"
+      ],
+      "discover": {
+        "ingested": {
+          "sbom": 10,
+          "sarif": 4,
+          "cves": 3,
+          "cnapp": 3,
+          "context": true
+        },
+        "scanner_findings": {
+          "iac": 4,
+          "secrets": 3
+        }
+      },
+      "validate": {
+        "brain": {
+          "steps": 12,
+          "findings_in": 10,
+          "clusters": 4,
+          "noise_reduction": 60.0,
+          "graph_nodes": 0,
+          "avg_risk": 0.3
+        },
+        "mpte": {
+          "verify": {
+            "cve": "CVE-2024-22259",
+            "status": "pending"
+          },
+          "comprehensive": true
+        }
+      },
+      "remediate": {
+        "fixes": [
+          {
+            "fix_id": "fix-e9b9c930203d14a8",
+            "confidence": 0.8664568696880889,
+            "finding": "CWE-89",
+            "validated": true
+          }
+        ],
+        "bulk_fixes": 4
+      },
+      "comply": {
+        "evidence": {
+          "bundle_id": "EVB-2026-BF9D57",
+          "hash": "sha256:86ca292251b7860ddc51485e32a5f6c672c979dfa8310b2f474687617d78917e",
+          "signed": true,
+          "algorithm": "RSA-SHA256 (PKCS1v15)",
+          "score": 0.0,
+          "compliance_pct": 0.0,
+          "brain_score": 0.8636,
+          "brain_status": "qualified"
+        }
+      },
+      "measure": {
+        "graph": {
+          "nodes": 1516,
+          "edges": 1448
+        },
+        "dashboard": true
+      },
+      "elapsed_seconds": 56.7
+    },
+    "healthcare": {
+      "vertical": "MedSecure Healthcare SaaS",
+      "cloud": "Azure",
+      "compliance": [
+        "HIPAA-BAA",
+        "SOC2-Type-II",
+        "HITRUST-CSF",
+        "HL7-FHIR-R4"
+      ],
+      "discover": {
+        "ingested": {
+          "sbom": 8,
+          "sarif": 4,
+          "cves": 3,
+          "cnapp": 3,
+          "context": true
+        },
+        "scanner_findings": {
+          "iac": 0,
+          "secrets": 2
+        }
+      },
+      "validate": {
+        "brain": {
+          "steps": 12,
+          "findings_in": 10,
+          "clusters": 4,
+          "noise_reduction": 60.0,
+          "graph_nodes": 0,
+          "avg_risk": 0.3
+        },
+        "mpte": {
+          "verify": {
+            "cve": "CVE-2024-21319",
+            "status": "pending"
+          },
+          "comprehensive": true
+        }
+      },
+      "remediate": {
+        "fixes": [
+          {
+            "fix_id": "fix-1f6ad681bf361b90",
+            "confidence": 0.8673638679018463,
+            "finding": "CWE-311"
+          }
+        ],
+        "bulk_fixes": 4
+      },
+      "comply": {
+        "evidence": {
+          "bundle_id": "EVB-2026-A64E84",
+          "hash": "sha256:bacaf4fbc271523ecb8927e92fad0f3860cb810774a9cbe5b2714bf55765be60",
+          "signed": true,
+          "algorithm": "RSA-SHA256 (PKCS1v15)",
+          "score": 0.95,
+          "compliance_pct": 95.0,
+          "brain_score": 0.8636,
+          "brain_status": "qualified"
+        }
+      },
+      "measure": {
+        "graph": {
+          "nodes": 1516,
+          "edges": 1448
+        },
+        "dashboard": true
+      },
+      "elapsed_seconds": 67.0
+    },
+    "finserv": {
+      "vertical": "SecureTrade Financial Platform",
+      "cloud": "Multi-Cloud (GCP+AWS)",
+      "compliance": [
+        "PCI-DSS-v4.0",
+        "SOX",
+        "GLBA",
+        "FINRA"
+      ],
+      "discover": {
+        "ingested": {
+          "sbom": 8,
+          "sarif": 4,
+          "cves": 3,
+          "cnapp": 2,
+          "context": true
+        },
+        "scanner_findings": {
+          "iac": 0,
+          "secrets": 2
+        }
+      },
+      "validate": {
+        "brain": {
+          "steps": 12,
+          "findings_in": 9,
+          "clusters": 4,
+          "noise_reduction": 55.6,
+          "graph_nodes": 0,
+          "avg_risk": 0.3
+        },
+        "mpte": {
+          "verify": {
+            "cve": "CVE-2024-22259",
+            "status": "pending"
+          },
+          "comprehensive": true
+        }
+      },
+      "remediate": {
+        "fixes": [
+          {
+            "fix_id": "fix-ba1c55af00930f9b",
+            "confidence": 0.8664568696880888,
+            "finding": "CWE-89",
+            "validated": true
+          }
+        ],
+        "bulk_fixes": 4
+      },
+      "comply": {
+        "evidence": {
+          "bundle_id": "EVB-2026-6E8294",
+          "hash": "sha256:c2edab5828060e99490832a91872fda3dcb1245005ff02386f8e254288cd9798",
+          "signed": true,
+          "algorithm": "RSA-SHA256 (PKCS1v15)",
+          "score": 0.0,
+          "compliance_pct": 0.0,
+          "brain_score": 0.8636,
+          "brain_status": "qualified"
+        }
+      },
+      "measure": {
+        "graph": {
+          "nodes": 1516,
+          "edges": 1448
+        },
+        "dashboard": true
+      },
+      "elapsed_seconds": 62.9
+    },
+    "iot_ot": {
+      "vertical": "IndustrialSecure IoT/OT Platform",
+      "cloud": "Hybrid (On-Prem + AWS)",
+      "compliance": [
+        "IEC-62443",
+        "NIST-CSF-2.0",
+        "CIS-Controls-v8",
+        "NERC-CIP"
+      ],
+      "discover": {
+        "ingested": {
+          "sbom": 8,
+          "sarif": 4,
+          "cves": 3,
+          "cnapp": 2,
+          "context": true
+        },
+        "scanner_findings": {
+          "iac": 2,
+          "secrets": 2
+        }
+      },
+      "validate": {
+        "brain": {
+          "steps": 12,
+          "findings_in": 9,
+          "clusters": 4,
+          "noise_reduction": 55.6,
+          "graph_nodes": 0,
+          "avg_risk": 0.3
+        },
+        "mpte": {
+          "verify": {
+            "cve": "CVE-2023-3592",
+            "status": "pending"
+          },
+          "comprehensive": true
+        }
+      },
+      "remediate": {
+        "fixes": [
+          {
+            "fix_id": "fix-4aaee3ebcc65bd36",
+            "confidence": 0.8664568696880888,
+            "finding": "CWE-319",
+            "validated": true
+          }
+        ],
+        "bulk_fixes": 4
+      },
+      "comply": {
+        "evidence": {
+          "bundle_id": "EVB-2026-D79227",
+          "hash": "sha256:69279b7c7a594efc79952653f201b6addcf73ed3a237346ad54cfb8662505487",
+          "signed": true,
+          "algorithm": "RSA-SHA256 (PKCS1v15)",
+          "score": 0.9,
+          "compliance_pct": 90.0,
+          "brain_score": 0.8636,
+          "brain_status": "qualified"
+        }
+      },
+      "measure": {
+        "graph": {
+          "nodes": 1516,
+          "edges": 1448
+        },
+        "dashboard": true
+      },
+      "elapsed_seconds": 66.9
+    },
+    "govcloud": {
+      "vertical": "FedSecure Government Platform",
+      "cloud": "GovCloud (Air-Gapped)",
+      "compliance": [
+        "FedRAMP-High",
+        "NIST-800-53-Rev5",
+        "FIPS-140-3",
+        "IL5-DoD",
+        "CMMC-L3"
+      ],
+      "discover": {
+        "ingested": {
+          "sbom": 8,
+          "sarif": 4,
+          "cves": 3,
+          "cnapp": 2,
+          "context": true
+        },
+        "scanner_findings": {
+          "iac": 1,
+          "secrets": 3
+        }
+      },
+      "validate": {
+        "brain": {
+          "steps": 12,
+          "findings_in": 9,
+          "clusters": 4,
+          "noise_reduction": 55.6,
+          "graph_nodes": 0,
+          "avg_risk": 0.3
+        },
+        "mpte": {
+          "verify": {
+            "cve": "CVE-2024-0057",
+            "status": "pending"
+          },
+          "comprehensive": true
+        }
+      },
+      "remediate": {
+        "fixes": [
+          {
+            "fix_id": "fix-8ae7fb7b01d8c723",
+            "confidence": 0.866456869688089,
+            "finding": "CWE-257",
+            "validated": true
+          }
+        ],
+        "bulk_fixes": 4
+      },
+      "comply": {
+        "evidence": {
+          "bundle_id": "EVB-2026-D2B39B",
+          "hash": "sha256:5f483942ca48b0c80fca7bb6e1b5aa9382770fedc3f024bc0c9130785255426e",
+          "signed": true,
+          "algorithm": "RSA-SHA256 (PKCS1v15)",
+          "score": 0.0,
+          "compliance_pct": 0.0,
+          "brain_score": 0.8636,
+          "brain_status": "qualified"
+        }
+      },
+      "measure": {
+        "graph": {
+          "nodes": 1516,
+          "edges": 1448
+        },
+        "dashboard": true
+      },
+      "elapsed_seconds": 65.8
+    }
+  }
+}

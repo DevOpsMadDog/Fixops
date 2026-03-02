@@ -43,9 +43,7 @@ import asyncio
 import os
 import sys
 import threading
-import time
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -803,7 +801,7 @@ class TestStepBuildGraphMocked:
         inp = PipelineInput(org_id="org")
 
         with patch.dict("sys.modules", {"core.knowledge_brain": fake_kb}):
-            result = p._step_build_graph(ctx, inp)
+            p._step_build_graph(ctx, inp)
 
         assert brain.upsert_node.called
         # 2 assets, so upsert_node called at least 2 times
@@ -828,7 +826,7 @@ class TestStepBuildGraphMocked:
         inp = PipelineInput(org_id="org")
 
         with patch.dict("sys.modules", {"core.knowledge_brain": fake_kb}):
-            result = p._step_build_graph(ctx, inp)
+            p._step_build_graph(ctx, inp)
 
         # No asset nodes were upserted (skip empty id)
         for call in brain.upsert_node.call_args_list:
@@ -880,7 +878,7 @@ class TestStepBuildGraphMocked:
         inp = PipelineInput(org_id="org")
 
         with patch.dict("sys.modules", {"core.knowledge_brain": fake_kb}):
-            result = p._step_build_graph(ctx, inp)
+            p._step_build_graph(ctx, inp)
 
         assert brain.upsert_node.call_count == 2  # 2 exposure cases
 
@@ -902,7 +900,7 @@ class TestStepEnrichThreatsMocked:
 
         # Force the ThreatEnricher import to fail so we hit the fallback
         with patch.dict("sys.modules", {"core.ml.threat_enricher": None}):
-            result = p._step_enrich_threats(ctx, inp)
+            p._step_enrich_threats(ctx, inp)
 
         assert findings[0]["epss_score"] > 0.03  # boosted from median 0.03
         assert findings[0]["epss_score"] == pytest.approx(0.09, abs=0.001)
@@ -1001,7 +999,7 @@ class TestStepScoreRiskMLPath:
         inp = PipelineInput(org_id="org")
 
         with patch.dict("sys.modules", {"core.ml.risk_scorer": fake_module}):
-            result = p._step_score_risk(ctx, inp)
+            p._step_score_risk(ctx, inp)
 
         assert "risk_score" in findings[0]
         assert findings[0]["risk_score"] == pytest.approx(0.82, abs=0.01)
@@ -1025,7 +1023,7 @@ class TestStepScoreRiskMLPath:
         inp = PipelineInput(org_id="org")
 
         with patch.dict("sys.modules", {"core.ml.risk_scorer": fake_module}):
-            result = p._step_score_risk(ctx, inp)
+            p._step_score_risk(ctx, inp)
 
         # risk_score should still be set (SHAP failure doesn't block scoring)
         assert "risk_score" in findings[0]
@@ -1120,7 +1118,7 @@ class TestStepApplyPolicyAllBranches:
         findings = [{"id": "f1", "risk_score": 0.70, "in_kev": False}]
         ctx = {"org_id": "org", "findings": findings}
         inp = PipelineInput(org_id="org")
-        result = p._step_apply_policy(ctx, inp)
+        p._step_apply_policy(ctx, inp)
         assert findings[0]["policy_action"] == "review"
 
     def test_in_kev_triggers_escalate(self):
@@ -1129,7 +1127,7 @@ class TestStepApplyPolicyAllBranches:
         findings = [{"id": "f1", "risk_score": 0.40, "in_kev": True}]
         ctx = {"org_id": "org", "findings": findings}
         inp = PipelineInput(org_id="org")
-        result = p._step_apply_policy(ctx, inp)
+        p._step_apply_policy(ctx, inp)
         assert findings[0]["policy_action"] == "escalate"
 
     def test_low_risk_no_kev_defaults_to_allow(self):
@@ -1503,7 +1501,7 @@ class TestStepRunPlaybooksMocked:
         inp = PipelineInput(org_id="org")
 
         with patch.dict("sys.modules", {"core.autofix_engine": fake_autofix_module}):
-            result = p._step_run_playbooks(ctx, inp)
+            p._step_run_playbooks(ctx, inp)
 
         pb = ctx["playbook_results"][0]
         assert pb["autofix"]["status"] == "skipped"
@@ -1812,14 +1810,13 @@ class TestDedupRateMetric:
                             findings=[{"id": str(i)} for i in range(10)])
 
         # Mock the deduplicate step to return 5 clusters
-        original_dedup = p._step_deduplicate
 
         def fake_dedup(ctx, inp):
             ctx["clusters"] = [f"CL-{i}" for i in range(5)]
             return {"clusters": 5, "total_findings": 10}
 
         p._step_deduplicate = fake_dedup
-        result = p.run(inp)
+        p.run(inp)
 
         # dedup_rate = 1 - 5/10 = 0.5
         # We check it was stored in _metrics
@@ -1861,7 +1858,6 @@ class TestPipelineIntegration:
         p = make_pipeline()
 
         # Make step 3 (resolve_identity) fail, everything else pass
-        original = p._step_resolve_identity
 
         def failing_step(ctx, inp):
             raise RuntimeError("Identity service down")

@@ -144,6 +144,25 @@ class CreateTicketRequest(BaseModel):
         description="Specific connector names to target; null = all",
     )
 
+    @field_validator("targets")
+    @classmethod
+    def validate_targets(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        if v is None:
+            return v
+        import re as _re
+
+        _TARGET_RE = _re.compile(r"^[a-z0-9][a-z0-9_-]{0,62}$")
+        cleaned: List[str] = []
+        for t in v:
+            normed = t.strip().lower()
+            if not _TARGET_RE.match(normed):
+                raise ValueError(
+                    f"Invalid target connector name: '{t[:64]}'. "
+                    "Must be lowercase alphanumeric with optional dashes/underscores, 1-63 chars."
+                )
+            cleaned.append(normed)
+        return cleaned
+
 
 # ---------------------------------------------------------------------------
 # Singleton connector registry (initialised on first access)

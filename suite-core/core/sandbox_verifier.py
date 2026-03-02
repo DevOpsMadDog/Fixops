@@ -567,10 +567,39 @@ class SandboxVerifier:
         poc = self._generate_basic_poc(cve_id, cwe_id, title, url)
         return self.verify(poc, finding_id=finding.get("id", ""))
 
+    @staticmethod
+    def _sanitize_template_str(s: str, max_len: int = 200) -> str:
+        """Sanitize a string before embedding in a PoC code template.
+
+        Prevents shell/code injection when user-controlled values (CVE IDs,
+        titles, URLs) are interpolated into generated scripts.
+
+        Defense-in-depth: _validate_poc_code catches many patterns, but
+        preventing injection at the template level is safer.
+        """
+        import re as _re
+        if not s:
+            return ""
+        # Truncate first
+        s = s[:max_len]
+        # Remove characters that could break out of strings or inject commands
+        # Allow: alphanumeric, spaces, hyphens, dots, colons, slashes, underscores, =, ?, &, #, @, %
+        s = _re.sub(r"[^a-zA-Z0-9 \-\./:_=?&#@%+,]", "", s)
+        return s
+
     def _generate_basic_poc(
         self, cve_id: str, cwe_id: str, title: str, target_url: str
     ) -> PoCScript:
-        """Generate a basic PoC script based on CWE category."""
+        """Generate a basic PoC script based on CWE category.
+
+        SECURITY: All user-controlled values are sanitized before embedding
+        in code templates to prevent shell/code injection.
+        """
+        # Sanitize all user-controlled inputs before template embedding
+        cve_id = self._sanitize_template_str(cve_id, max_len=30)
+        title = self._sanitize_template_str(title, max_len=120)
+        target_url = self._sanitize_template_str(target_url, max_len=2048)
+
         cwe_num = ""
         if cwe_id:
             import re
@@ -1084,6 +1113,19 @@ def create_sandbox_router():
     async def sandbox_health():
         """Check Docker sandbox availability."""
         return {
+            "docker_available": _verifier.docker_available,
+            "memory_limit": _verifier.memory_limit,
+            "cpu_limit": _verifier.cpu_limit,
+            "max_attempts": _verifier.max_attempts,
+        }
+
+    @sandbox_router.get("/status")
+    async def sandbox_status():
+        """Status alias for Docker sandbox (mirrors /health)."""
+        return {
+            "status": "operational" if _verifier.docker_available else "degraded",
+            "engine": "sandbox-verifier",
+            "version": "1.0.0",
             "docker_available": _verifier.docker_available,
             "memory_limit": _verifier.memory_limit,
             "cpu_limit": _verifier.cpu_limit,

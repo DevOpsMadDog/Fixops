@@ -13,7 +13,6 @@ Supplements the existing test_analytics_router_unit.py with:
 """
 
 import os
-from datetime import datetime, timezone
 
 import pytest
 

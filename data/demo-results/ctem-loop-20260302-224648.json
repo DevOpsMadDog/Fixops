@@ -1,0 +1,30 @@
+{
+  "demo": "ALdeci CTEM+ Full Loop",
+  "version": "1.0.0",
+  "timestamp": "2026-03-02T11:46:48.171819+00:00",
+  "total_elapsed_ms": 106.07,
+  "phases": {
+    "total": 5,
+    "passed": 1,
+    "failed": 4
+  },
+  "steps": {
+    "total": 40,
+    "passed": 1,
+    "failed": 39
+  },
+  "success": false,
+  "artifacts": {
+    "total_discover_findings": 0,
+    "fail_scores": 0,
+    "autofix_total_fixes": 0,
+    "remediation_tasks": 0,
+    "evidence_releases": 0,
+    "compliance_frameworks": 0,
+    "audit_log_entries": 0,
+    "analytics_findings_total": 0,
+    "exposure_cases": 0,
+    "pipeline_runs_total": 0,
+    "mcp_tools": 0
+  }
+}

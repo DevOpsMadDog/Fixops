@@ -1,0 +1,467 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "ALdeci-ThreatArchitect",
+          "version": "2.0.0",
+          "semanticVersion": "2.0.0",
+          "rules": [
+            {
+              "id": "CWE-89",
+              "shortDescription": {
+                "text": "SQL Injection"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "precision": "high",
+                "tags": [
+                  "security",
+                  "owasp-a03"
+                ]
+              }
+            },
+            {
+              "id": "CWE-79",
+              "shortDescription": {
+                "text": "Cross-Site Scripting (XSS)"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "precision": "high",
+                "tags": [
+                  "security",
+                  "owasp-a03"
+                ]
+              }
+            },
+            {
+              "id": "CWE-78",
+              "shortDescription": {
+                "text": "OS Command Injection"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "precision": "high",
+                "tags": [
+                  "security",
+                  "owasp-a03"
+                ]
+              }
+            },
+            {
+              "id": "CWE-918",
+              "shortDescription": {
+                "text": "Server-Side Request Forgery (SSRF)"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "precision": "medium",
+                "tags": [
+                  "security",
+                  "owasp-a10"
+                ]
+              }
+            },
+            {
+              "id": "CWE-502",
+              "shortDescription": {
+                "text": "Deserialization of Untrusted Data"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "precision": "high",
+                "tags": [
+                  "security",
+                  "owasp-a08"
+                ]
+              }
+            },
+            {
+              "id": "CWE-611",
+              "shortDescription": {
+                "text": "XML External Entity (XXE)"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "precision": "high",
+                "tags": [
+                  "security",
+                  "owasp-a05"
+                ]
+              }
+            },
+            {
+              "id": "CWE-200",
+              "shortDescription": {
+                "text": "Exposure of Sensitive Information"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "precision": "medium",
+                "tags": [
+                  "security",
+                  "owasp-a01"
+                ]
+              }
+            },
+            {
+              "id": "CWE-327",
+              "shortDescription": {
+                "text": "Use of Broken Cryptographic Algorithm"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "precision": "high",
+                "tags": [
+                  "security",
+                  "owasp-a02"
+                ]
+              }
+            },
+            {
+              "id": "CWE-798",
+              "shortDescription": {
+                "text": "Use of Hard-coded Credentials"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "precision": "very-high",
+                "tags": [
+                  "security",
+                  "owasp-a07"
+                ]
+              }
+            },
+            {
+              "id": "CWE-352",
+              "shortDescription": {
+                "text": "Cross-Site Request Forgery (CSRF)"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "precision": "medium",
+                "tags": [
+                  "security",
+                  "owasp-a01"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "CWE-89",
+          "level": "error",
+          "message": {
+            "text": "User input concatenated into SQL query without parameterization in order search endpoint. Attacker can extract full database contents."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/main/java/com/ecommerce/OrderController.java"
+                },
+                "region": {
+                  "startLine": 87,
+                  "startColumn": 12
+                }
+              }
+            }
+          ],
+          "properties": {
+            "impact": "critical",
+            "confidence": "high"
+          }
+        },
+        {
+          "ruleId": "CWE-89",
+          "level": "error",
+          "message": {
+            "text": "Dynamic SQL construction using string formatting in product search. Allows UNION-based extraction of user credentials."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/main/java/com/ecommerce/ProductRepository.java"
+                },
+                "region": {
+                  "startLine": 134,
+                  "startColumn": 8
+                }
+              }
+            }
+          ],
+          "properties": {
+            "impact": "critical",
+            "confidence": "high"
+          }
+        },
+        {
+          "ruleId": "CWE-79",
+          "level": "warning",
+          "message": {
+            "text": "User-supplied product review content rendered without output encoding. Allows stored XSS via review body field."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/components/ProductReview.tsx"
+                },
+                "region": {
+                  "startLine": 42,
+                  "startColumn": 18
+                }
+              }
+            }
+          ],
+          "properties": {
+            "impact": "high",
+            "confidence": "medium"
+          }
+        },
+        {
+          "ruleId": "CWE-78",
+          "level": "error",
+          "message": {
+            "text": "User-controlled filename passed to os.system() for image processing. Allows arbitrary command execution via shell metacharacters."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "services/image-processor/handler.py"
+                },
+                "region": {
+                  "startLine": 56,
+                  "startColumn": 4
+                }
+              }
+            }
+          ],
+          "properties": {
+            "impact": "critical",
+            "confidence": "high"
+          }
+        },
+        {
+          "ruleId": "CWE-918",
+          "level": "error",
+          "message": {
+            "text": "Webhook URL from user input passed directly to HTTP client without validation. SSRF allows scanning internal network and accessing metadata service."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/main/java/com/ecommerce/WebhookService.java"
+                },
+                "region": {
+                  "startLine": 29,
+                  "startColumn": 8
+                }
+              }
+            }
+          ],
+          "properties": {
+            "impact": "high",
+            "confidence": "medium"
+          }
+        },
+        {
+          "ruleId": "CWE-502",
+          "level": "error",
+          "message": {
+            "text": "Java ObjectInputStream used to deserialize user-supplied session data without type validation. Remote code execution via gadget chain."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/main/java/com/ecommerce/SessionManager.java"
+                },
+                "region": {
+                  "startLine": 73,
+                  "startColumn": 16
+                }
+              }
+            }
+          ],
+          "properties": {
+            "impact": "critical",
+            "confidence": "high"
+          }
+        },
+        {
+          "ruleId": "CWE-611",
+          "level": "error",
+          "message": {
+            "text": "XML parser configured with external entity processing enabled for invoice import. XXE allows reading /etc/passwd and SSRF."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/main/java/com/ecommerce/InvoiceParser.java"
+                },
+                "region": {
+                  "startLine": 18,
+                  "startColumn": 4
+                }
+              }
+            }
+          ],
+          "properties": {
+            "impact": "high",
+            "confidence": "high"
+          }
+        },
+        {
+          "ruleId": "CWE-200",
+          "level": "warning",
+          "message": {
+            "text": "Stack trace with internal paths and database connection strings exposed in error response to unauthenticated users."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/main/java/com/ecommerce/GlobalExceptionHandler.java"
+                },
+                "region": {
+                  "startLine": 35,
+                  "startColumn": 8
+                }
+              }
+            }
+          ],
+          "properties": {
+            "impact": "medium",
+            "confidence": "high"
+          }
+        },
+        {
+          "ruleId": "CWE-327",
+          "level": "warning",
+          "message": {
+            "text": "MD5 hash used for password storage in legacy migration code. MD5 is cryptographically broken \u2014 rainbow table attacks trivial."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/main/java/com/ecommerce/LegacyMigration.java"
+                },
+                "region": {
+                  "startLine": 112,
+                  "startColumn": 20
+                }
+              }
+            }
+          ],
+          "properties": {
+            "impact": "high",
+            "confidence": "very-high"
+          }
+        },
+        {
+          "ruleId": "CWE-798",
+          "level": "error",
+          "message": {
+            "text": "AWS access key ID and secret hardcoded in configuration file. Key has S3 full access permissions."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "config/aws-credentials.properties"
+                },
+                "region": {
+                  "startLine": 3,
+                  "startColumn": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "impact": "critical",
+            "confidence": "very-high"
+          }
+        },
+        {
+          "ruleId": "CWE-352",
+          "level": "warning",
+          "message": {
+            "text": "Payment confirmation endpoint accepts POST without CSRF token validation. Allows forged payment requests."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/main/java/com/ecommerce/PaymentController.java"
+                },
+                "region": {
+                  "startLine": 95,
+                  "startColumn": 4
+                }
+              }
+            }
+          ],
+          "properties": {
+            "impact": "high",
+            "confidence": "medium"
+          }
+        },
+        {
+          "ruleId": "CWE-79",
+          "level": "warning",
+          "message": {
+            "text": "Admin dashboard renders user-supplied report names without sanitization. Reflected XSS via report name parameter."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/components/AdminDashboard.tsx"
+                },
+                "region": {
+                  "startLine": 156,
+                  "startColumn": 22
+                }
+              }
+            }
+          ],
+          "properties": {
+            "impact": "medium",
+            "confidence": "medium"
+          }
+        }
+      ]
+    }
+  ]
+}

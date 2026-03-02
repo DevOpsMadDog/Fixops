@@ -29,11 +29,10 @@ Covers:
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import os
 import sys
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import datetime
+from unittest.mock import MagicMock, patch
 
 import pytest
 

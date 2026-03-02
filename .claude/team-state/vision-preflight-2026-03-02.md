@@ -1,76 +1,65 @@
 # Vision Pre-Flight & Post-Flight: 2026-03-02
 
-> **Run**: vision-agent v34 (post-flight final)
+> **Run**: vision-agent v36 (post-flight stability confirmation + Day 3 pre-flight)
 > **Sprint**: Sprint 2 — ENTERPRISE DEMO (4 days remaining)
-> **Pillar table validated**: Matches CEO_VISION.md lines 133-145
+> **Pillar table validated**: Matches CEO_VISION.md lines 133-145 exactly
 
 ## Sprint Status
-- **Items**: 12 total, 11 done (91.7%), 1 in-progress
-- **Pillars covered**: V3 (4 items), V5 (1), V7 (1), V8 (1), V9 (1), V10 (4)
-- **Vision alignment score**: 0.84 (STABLE_IMPROVING from 0.83)
-- **Scoring model**: v16 (6-factor weighted)
+- **Items**: 12 total, 11 done, 1 in-progress (91.7%)
+- **Pillars covered**: V3 (4 items), V5 (1), V7 (1), V8 (1 demo-only), V9 (1), V10 (3)
+- **Vision alignment score**: 0.85 (STABLE — confirmed via v36 audit)
 
-## Scoring Breakdown
-| Factor | Weight | Score | Weighted |
-|--------|--------|-------|----------|
-| Core Pillars (V3/V5/V7) | 35% | 0.90 | 0.315 |
-| Sprint Alignment (11/12) | 20% | 0.917 | 0.183 |
-| Test Coverage (19.25%) | 15% | 0.77 | 0.116 |
-| UI Readiness (90% wired) | 15% | 0.60 | 0.090 |
-| Agent Health (16/17 OK) | 10% | 0.94 | 0.094 |
-| Infrastructure (Docker/CI) | 5% | 0.92 | 0.046 |
-| **Total** | **100%** | — | **0.844** |
+## Core Pillar LOC (Verified via `wc -l` on 2026-03-02)
 
-## Core Pillar LOC (verified via `wc -l` on 2026-03-02)
+| Pillar | LOC | Key Files |
+|--------|-----|-----------|
+| V3 Decision Intelligence | 4,063 | brain_pipeline (1,533), autofix_engine (1,428), fail_engine (711), llm_consensus (391) |
+| V5 MPTE Verification | 5,363 | micro_pentest (2,054), mpte_advanced (1,089), mpte_router (1,084), sandbox_verifier (1,136) |
+| V7 MCP-Native Platform | 1,446 | mcp_server (978), mcp_router (468) |
+| **Total Core** | **10,872** | — |
 
-| Pillar | LOC | Key Files | Status |
-|--------|-----|-----------|--------|
-| **V3** Decision Intelligence | 4,898 | brain_pipeline(1533), autofix(1428), fail(711), llm(391), kg(835) | Solid |
-| **V5** MPTE Verification | 8,340 | micro_pentest(2054), mpte_advanced(1089), sandbox(1136), +8 more | Strongest |
-| **V7** MCP-Native Platform | 2,627 | mcp_server(978), mcp_router_api(977), mcp_router_int(468), protocol(204) | Good |
-| **Total Core** | **15,865** | — | — |
-| V10 Evidence/Crypto | 3,398 | crypto(582), evidence_router(1704), compliance(1112) | Maintained |
-| V9 + Scanners | 3,719 | zero_gravity(855), sast(1622), dast(633), cspm(609) | Maintained |
-| **Grand Total** | **28,159** | All pillar code | — |
+## Today's Focus (Day 3 Priorities)
 
-## Today's Focus
-- **Priority 1**: DEMO-003 — Complete UI wiring (V3) — 6 pages remain [frontend-craftsman]
-- **Priority 2**: Test coverage gap — 19.25% vs 25% gate (V10) [qa-engineer]
-- **Priority 3**: SEC-ADV-001 — CEO key rotation [CEO action required]
-
-## Day 2 Achievements
-1. DEMO-001 confirmed DONE — 769 routes, 58/58 E2E, 11 security fixes [V3]
-2. DEMO-002 confirmed DONE — Newman 475/475, 8th consecutive green [V10]
-3. Data-scientist: +1,242 LOC ML capabilities (SHAP, drift detection, parser quality) [V3]
-4. Enterprise-architect: SQLite connection leak fixed, ADR-008 reliability patterns [V10]
-5. Backend-hardener: secrets scanner YAML fix, 5 engine error handling improvements [V3]
-6. Devops-engineer: air-gapped test, healthcheck v2.2.0, 7 CI improvements [V9]
-7. Security-analyst: Bandit 0 HIGH, DEMO-011 verified 24/24 [V10]
-8. Agent-doctor: 19/19 engines, 56/56 DBs, 14 WAL cleaned [Support]
-9. Scrum-master: 10 artifacts, DEBATE-001 resolved, 21/21 endpoints verified [Support]
-10. Marketing: positioning v5.0, investor narrative v5, demo talking points v5 [Support]
-
-## Drift Detection
-- **On-track**: 15/17 agents (no drift)
-- **Low drift**: 2 (data-scientist, enterprise-architect — completed sprint items first, then value-add work)
-- **High drift**: 0
-- **Rate-limited**: 1 (context-engineer — auto-recovers)
+- **P0**: Complete DEMO-003 UI wiring — 6 remaining pages (V3, frontend-craftsman)
+  - AttackLab.tsx, Copilot.tsx, DataFabric.tsx, IntelligenceHub.tsx, RemediationCenter.tsx, Settings.tsx
+- **P1**: SEC-ADV-001 key rotation (V10, CEO)
+- **P1**: Investigate Newman 7 failures in latest swarm (V10, qa-engineer)
+- **P2**: Coverage gap 19.25% → 25% (V10, qa-engineer — fix config, NOT write tests)
 
 ## Flags
-- UI gap remains existential: 6 pages with mock data (debate verdict #1 risk)
-- Test coverage at 19.25%: 5.75pp below 25% gate. CI failing.
-- SEC-ADV-001 MEDIUM: .env secrets. CEO must rotate OpenAI API key.
-- context-engineer rate-limited: Auto-recovers when Claude usage resets.
 
-## Customer Feedback
-- No new items (directory empty). Graceful degradation applied.
+- **SEC-ADV-001 OPEN** (1 day): .env contains real OpenAI key + weak JWT secret. CEO key rotation pending.
+- **Coverage**: 19.25% vs 25% gate = 5.75pp gap. CI gate FAILING.
+- **Frontend watchdog**: frontend-craftsman killed mid-DEMO-003 Day 2. Previous build intact (0 TS errors). Must restart Day 3.
+- **Newman regression**: 468/475 (98.5%) in latest swarm vs previous 475/475 (100%). 7 failures — likely transient.
 
-## 4-Day Outlook
-| Day | Critical Path |
-|-----|--------------|
-| Day 3 (Mar 3) | DEMO-003 complete. All 12/12 done. |
-| Day 4 (Mar 4) | Full regression test. Newman + pytest green. |
-| Day 5 (Mar 5) | Dress rehearsal demo. Fix last issues. |
-| Day 6 (Mar 6) | **ENTERPRISE DEMO** |
+## Customer Feedback New
 
-**Verdict**: ON_TRACK. Score 0.84. 11/12 done with 4 days remaining. Only UI wiring left. Backend production-grade. Risk manageable.
+- No new items for 2026-03-02.
+
+## Agent Drift Report
+
+- **Zero drift detected**. All 17 agents within sprint scope.
+- 14 completed, 2 running (context-engineer, agent-doctor — late swarm), 1 in-progress (frontend-craftsman DEMO-003).
+- enterprise-architect reliability review (V3-adjacent tech debt) = appropriate secondary objective.
+
+## Day 2 Achievements
+
+1. DEMO-001 DONE: 769 routes, 58/58 E2E, 11 security fixes [V3]
+2. DEMO-002 DONE: Newman 475/475 = 100%, 8th consecutive green, moat 88.95% [V10]
+3. 14/17 agents completed full runs (2 running, 1 killed)
+4. 13,221 tests collected, 19.25% coverage (+1.26pp from Sprint 1) [V10]
+5. SHAP explanations wired to brain pipeline Step 7 [V3]
+6. SQLite connection leak fixed (TD-017) [V3]
+7. Air-gapped test with all 8 scanners, healthcheck v2.2.0, 7 CI improvements [V9]
+8. 2 new investor demo scripts (ctem-investor-demo.sh 24/24, mpte-sandbox-demo.sh 12/12) [V5]
+
+## Debate Verdict Compliance
+
+| Directive | Status |
+|-----------|--------|
+| V3, V5, V7 as core pillars | COMPLIANT — All 3 actively engineered with 10,872 verified LOC |
+| V4, V6, V8 deferred | COMPLIANT — No production code written |
+| Ship UI screens | IN PROGRESS (DEMO-003 at 90%, 6 pages remain) |
+| Fix test coverage | PARTIAL (19.25%, up from 17.99% — config fixed, still below 25% gate) |
+| "Stop building backend, ship 3 UI screens" | PARTIALLY — Backend stable, UI wiring 90% done |

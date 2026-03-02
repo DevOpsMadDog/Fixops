@@ -1,0 +1,46 @@
+{
+  "task_id": "swarm-509",
+  "worker_id": "junior-worker",
+  "status": "completed",
+  "test_results": {
+    "total_tests": 41,
+    "passed": 41,
+    "failed": 0,
+    "errors": 0,
+    "duration_seconds": 7.55,
+    "coverage_percent": 24.39,
+    "coverage_gate": 25.0,
+    "coverage_status": "BELOW_GATE"
+  },
+  "test_files": [
+    "tests/test_evidence_export_signed.py",
+    "tests/test_evidence_export.py",
+    "tests/test_evidence_bundle.py",
+    "tests/test_evidence.py"
+  ],
+  "summary": "All 41 evidence-related tests passed in 7.55s. No failures or errors. Project coverage is 24.39%, below the 25% gate by 0.61 percentage points (known project-wide issue).",
+  "slowest_tests": [
+    {
+      "test": "tests/test_evidence_export_signed.py::TestEvidenceExportSOC2::test_export_soc2_returns_200",
+      "duration_seconds": 2.89,
+      "category": "setup"
+    },
+    {
+      "test": "tests/test_evidence_export_signed.py::TestCryptoRSASHA256::test_key_metadata",
+      "duration_seconds": 0.59,
+      "category": "call"
+    },
+    {
+      "test": "tests/test_evidence_export_signed.py::TestEvidenceExportSOC2::test_export_soc2_returns_200",
+      "duration_seconds": 0.56,
+      "category": "call"
+    }
+  ],
+  "issues": [
+    "Project-wide coverage at 24.39% is below 25% gate (gap: -0.61pp). This is a known project issue, not a test failure."
+  ],
+  "needs_senior_review": false,
+  "confidence": 0.95,
+  "duration_turns": 3,
+  "notes": "Evidence test suite is healthy. All 41 tests exercise cryptographic signing, export functionality, bundle creation, and SOC2 evidence export. No failures or errors detected. Coverage gate failure is expected per project configuration."
+}

@@ -37,7 +37,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 # ---------------------------------------------------------------------------
 # Ensure suite paths are importable
@@ -575,7 +575,7 @@ def run_demo(client, json_output: bool = False) -> DemoResult:
 
     if not json_output:
         print(f"  ✅ MCP session initialized in {step_ms:.1f}ms")
-        print(f"     Protocol: JSON-RPC 2.0 / MCP 2024-11-05")
+        print("     Protocol: JSON-RPC 2.0 / MCP 2024-11-05")
         if isinstance(init_result.get("result"), dict):
             caps = init_result["result"].get("capabilities", {})
             print(f"     Server capabilities: {list(caps.keys()) if isinstance(caps, dict) else caps}")
@@ -611,17 +611,17 @@ def run_demo(client, json_output: bool = False) -> DemoResult:
         target_met = "✅" if len(tools) >= 500 else "⚠️"
         print(f"  {target_met} Target: 500+ tools (actual: {len(tools)})")
         if demo.tools_by_category:
-            print(f"\n  By Category:")
+            print("\n  By Category:")
             for cat, count in sorted(demo.tools_by_category.items(), key=lambda x: -x[1]):
                 bar = "█" * min(count // 5, 40)
                 print(f"    {cat:<12} {count:>4} {bar}")
         if demo.tools_by_method:
-            print(f"\n  By HTTP Method:")
+            print("\n  By HTTP Method:")
             for method, count in sorted(demo.tools_by_method.items(), key=lambda x: -x[1]):
                 print(f"    {method:<8} {count:>4}")
 
         # Show sample tools from each category
-        print(f"\n  Sample Tools (first 3 per category):")
+        print("\n  Sample Tools (first 3 per category):")
         cats: Dict[str, List] = {}
         for t in tools:
             cat = t.get("category", "unknown")
@@ -661,7 +661,7 @@ def run_demo(client, json_output: bool = False) -> DemoResult:
         scan_tool_used = "get_sast_status"
 
     step_ms = (time.monotonic() - step_start) * 1000
-    scan_ok = (isinstance(scan_result, dict) and
+    (isinstance(scan_result, dict) and
                scan_result.get("status") in ("success", None) and
                "error" not in scan_result)
 
@@ -685,7 +685,7 @@ def run_demo(client, json_output: bool = False) -> DemoResult:
         if scan_tool_used:
             print(f"  📡 Executed: {scan_tool_used}")
         print(f"  📋 {len(DEMO_FINDINGS)} findings ready for brain pipeline processing")
-        print(f"     Sources: snyk, trivy, semgrep, grype, prisma-cloud, secrets-scanner")
+        print("     Sources: snyk, trivy, semgrep, grype, prisma-cloud, secrets-scanner")
         for f in DEMO_FINDINGS[:3]:
             sev = f["severity"].upper()
             icon = "🔴" if sev == "CRITICAL" else "🟠" if sev == "HIGH" else "🟡"
@@ -759,7 +759,7 @@ def run_demo(client, json_output: bool = False) -> DemoResult:
 
             summary = pipeline_data.get("summary", {})
             if summary:
-                print(f"\n  📊 Pipeline Results:")
+                print("\n  📊 Pipeline Results:")
                 print(f"     Findings ingested:  {summary.get('findings_ingested', 0)}")
                 print(f"     Clusters created:   {summary.get('clusters_created', 0)}")
                 print(f"     Exposure cases:     {summary.get('exposure_cases_created', 0)}")
@@ -806,9 +806,110 @@ def run_demo(client, json_output: bool = False) -> DemoResult:
             elif isinstance(cr, list):
                 print(f"     Exposure cases: {len(cr)}")
 
-    # ── Step 6: MCP Schema Export ──────────────────────────────────────
+    # ── Step 6: ML Intelligence Showcase ────────────────────────────────
     if not json_output:
-        _step_header(6, "MCP Schema Export — AI Agent Integration Ready")
+        _step_header(6, "ML Intelligence — Risk Scoring, Anomaly Detection, SHAP [V3]")
+
+    step_start = time.monotonic()
+
+    ml_showcase = {}
+    try:
+        from core.ml.risk_scorer import RiskScoringModel, MODEL_VERSION as RISK_MODEL_VERSION
+
+        risk_model = RiskScoringModel()
+        risk_model.train_from_golden_dataset(str(_REPO_ROOT / "data" / "golden_regression_cases.json"))
+
+        # Score demo findings with ML model + SHAP explanations
+        scored_findings = []
+        for finding in DEMO_FINDINGS[:5]:  # Top 5 for display
+            pred = risk_model.predict(finding)
+            explanation = risk_model.explain_prediction(finding)
+            scored_findings.append({
+                "title": finding.get("title", "")[:50],
+                "severity": finding.get("severity", ""),
+                "risk_score": round(pred.risk_score, 2),
+                "priority": pred.priority,
+                "confidence_interval": [round(pred.confidence_interval[0], 2),
+                                       round(pred.confidence_interval[1], 2)],
+                "top_drivers": explanation.top_drivers[:3] if explanation else [],
+            })
+
+        ml_showcase["risk_scoring"] = {
+            "model_version": RISK_MODEL_VERSION,
+            "findings_scored": len(scored_findings),
+            "scored_findings": scored_findings,
+        }
+
+        # Anomaly detection on demo findings
+        from core.ml.anomaly_detector import get_anomaly_detector
+        detector = get_anomaly_detector()
+        anomaly_result = detector.detect(DEMO_FINDINGS)
+        ml_showcase["anomaly_detection"] = {
+            "is_anomalous": anomaly_result.is_anomalous,
+            "anomaly_score": round(anomaly_result.anomaly_score, 4),
+            "reasons": anomaly_result.anomaly_reasons[:3],
+        }
+
+        # Consensus calibration summary
+        import json as _json
+        calib_path = _REPO_ROOT / ".claude" / "team-state" / "data-science" / "consensus-calibration.json"
+        if calib_path.exists():
+            with open(calib_path) as cf:
+                calib_data = _json.load(cf)
+            ml_showcase["consensus_calibration"] = {
+                "ensemble_f1": calib_data.get("ensemble_f1", 0),
+                "weights": calib_data.get("recommended_weights", {}),
+            }
+
+    except Exception as ml_err:
+        logger.warning("ML showcase partial: %s", ml_err)
+        ml_showcase["error"] = str(ml_err)
+
+    step_ms = (time.monotonic() - step_start) * 1000
+
+    demo.demo_steps.append({
+        "step": 6,
+        "name": "ML Intelligence Showcase",
+        "success": "risk_scoring" in ml_showcase,
+        "model_version": ml_showcase.get("risk_scoring", {}).get("model_version", "N/A"),
+        "findings_scored": ml_showcase.get("risk_scoring", {}).get("findings_scored", 0),
+        "anomaly_detected": ml_showcase.get("anomaly_detection", {}).get("is_anomalous", False),
+        "ensemble_f1": ml_showcase.get("consensus_calibration", {}).get("ensemble_f1", 0),
+        "duration_ms": round(step_ms, 2),
+    })
+
+    if not json_output:
+        print("  🧠 ML Intelligence Layer — V3 Decision Intelligence")
+        if "risk_scoring" in ml_showcase:
+            rs = ml_showcase["risk_scoring"]
+            print(f"     Risk Model: v{rs['model_version']} (GBT + Bootstrap + SHAP)")
+            print(f"     Scored: {rs['findings_scored']} findings")
+            for sf in rs.get("scored_findings", [])[:3]:
+                icon = "🔴" if sf["priority"] == "P0" else "🟠" if sf["priority"] == "P1" else "🟡"
+                ci = f"[{sf['confidence_interval'][0]}, {sf['confidence_interval'][1]}]"
+                print(f"     {icon} {sf['title'][:40]} → {sf['priority']} (score={sf['risk_score']}, CI={ci})")
+                if sf.get("top_drivers"):
+                    for driver in sf["top_drivers"][:2]:
+                        if isinstance(driver, dict):
+                            print(f"        ↳ {driver.get('feature', '?')}: {driver.get('contribution', 0):+.2f}")
+                        else:
+                            print(f"        ↳ {driver}")
+        if "anomaly_detection" in ml_showcase:
+            ad = ml_showcase["anomaly_detection"]
+            icon = "⚠️" if ad["is_anomalous"] else "✅"
+            print(f"     {icon} Anomaly: {'DETECTED' if ad['is_anomalous'] else 'Normal'} (score={ad['anomaly_score']:.4f})")
+            for reason in ad.get("reasons", []):
+                print(f"        • {reason}")
+        if "consensus_calibration" in ml_showcase:
+            cc = ml_showcase["consensus_calibration"]
+            print(f"     🤖 Consensus: F1={cc['ensemble_f1']:.4f}")
+            for model, weight in cc.get("weights", {}).items():
+                print(f"        {model}: weight={weight:.4f}")
+        print(f"     ⏱️  ML processing: {step_ms:.1f}ms")
+
+    # ── Step 7: MCP Schema Export ──────────────────────────────────────
+    if not json_output:
+        _step_header(7, "MCP Schema Export — AI Agent Integration Ready")
 
     step_start = time.monotonic()
     schemas = client.get_tool_schemas(fmt="mcp")
@@ -820,7 +921,7 @@ def run_demo(client, json_output: bool = False) -> DemoResult:
         schema_count = len(schema_tools) if isinstance(schema_tools, list) else 0
 
     demo.demo_steps.append({
-        "step": 6,
+        "step": 7,
         "name": "MCP Schema Export",
         "success": schema_count > 0,
         "schema_tools": schema_count,
@@ -829,8 +930,8 @@ def run_demo(client, json_output: bool = False) -> DemoResult:
 
     if not json_output:
         print(f"  📄 MCP schemas exported: {schema_count} tools")
-        print(f"     Format: MCP JSON-RPC 2.0 compatible")
-        print(f"     Ready for: Claude Desktop, Cursor, Windsurf, VS Code Copilot")
+        print("     Format: MCP JSON-RPC 2.0 compatible")
+        print("     Ready for: Claude Desktop, Cursor, Windsurf, VS Code Copilot")
         if isinstance(schemas, dict) and "_meta" in schemas:
             meta = schemas["_meta"]
             print(f"     Generated: {meta.get('generated_at', 'N/A')}")
@@ -856,8 +957,8 @@ def run_demo(client, json_output: bool = False) -> DemoResult:
         print(f"  📊 Avg risk score: {demo.pipeline_risk_score:.2f}")
         print(f"  📦 Exposure cases: {demo.pipeline_exposure_cases}")
         print(f"  ⏱️  Total duration: {demo.total_duration_ms:.0f}ms")
-        print(f"\n  Pillar: V7 — MCP-Native AI Platform")
-        print(f"  This makes ALdeci the FIRST AppSec platform that AI agents can use.")
+        print("\n  Pillar: V7 — MCP-Native AI Platform")
+        print("  This makes ALdeci the FIRST AppSec platform that AI agents can use.")
 
     return demo
 

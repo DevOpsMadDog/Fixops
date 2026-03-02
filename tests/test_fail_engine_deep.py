@@ -11,8 +11,6 @@ Target: 50+ test functions exercising real engine logic (no mocks, no stubs).
 
 from __future__ import annotations
 
-import math
-import uuid
 
 import pytest
 
@@ -20,13 +18,9 @@ from core.fail_engine import (
     AssetCriticality,
     DataClassification,
     ExploitMaturity,
-    FAILAssessScore,
     FAILEngine,
-    FAILFactScore,
     FAILGrade,
-    FAILImpactScore,
     FAILInput,
-    FAILLikelihoodScore,
     FAILResult,
     RecommendedAction,
 )

@@ -1,0 +1,89 @@
+{
+  "generated_at": "2026-03-02T10:53:51.923631+00:00",
+  "date": "2026-03-02",
+  "ml_modules": {
+    "risk_scorer": {
+      "loc": 1211,
+      "tests": 42
+    },
+    "anomaly_detector": {
+      "loc": 709,
+      "tests": 21
+    },
+    "consensus_calibrator": {
+      "loc": 560,
+      "tests": 24
+    },
+    "threat_enricher": {
+      "loc": 602,
+      "tests": 29
+    },
+    "autofix_confidence": {
+      "loc": 734,
+      "tests": 38
+    },
+    "daily_intel": {
+      "loc": 423,
+      "tests": 0
+    },
+    "parser_quality": {
+      "loc": 693,
+      "tests": 16
+    },
+    "eventbus_integration": {
+      "loc": 292,
+      "tests": 30
+    },
+    "shap_explanations": {
+      "tests": 36
+    },
+    "drift_detection": {
+      "tests": 21
+    }
+  },
+  "model_status": {
+    "risk_scorer": {
+      "version": "2.1.0",
+      "status": "TRAINED",
+      "golden_regression_accuracy": 1.0,
+      "golden_regression_count": 75,
+      "golden_regression_pass": true,
+      "avg_confidence_width": 7.74,
+      "priority_distribution": {
+        "P0": 40,
+        "P1": 14,
+        "P2": 9,
+        "P3": 5,
+        "P4": 1,
+        "FP": 6
+      }
+    },
+    "anomaly_detector": {
+      "status": "FITTED",
+      "baseline_scans": 30,
+      "contamination": 0.05
+    },
+    "consensus_calibrator": {
+      "ensemble_f1": 0.9081,
+      "recommended_weights": {
+        "claude": 0.3294,
+        "gpt4": 0.3301,
+        "gemini": 0.3405
+      },
+      "degraded_models": [],
+      "calibrated_at": "2026-03-02T10:52:19.347511+00:00"
+    }
+  },
+  "daily_intel_summary": {
+    "date": "2026-03-02",
+    "high_probability_cves": 100,
+    "newly_weaponized": 100,
+    "new_critical_nvd": 6,
+    "new_high_nvd": 39,
+    "affecting_our_stack": 83,
+    "kev_new_additions": 28,
+    "kev_due_soon": 16
+  },
+  "total_ml_loc": 5224,
+  "total_ml_tests": 257
+}

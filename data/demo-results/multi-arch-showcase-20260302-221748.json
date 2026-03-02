@@ -1,0 +1,83 @@
+{
+  "showcase": "ALdeci CTEM+ Multi-Architecture",
+  "date": "2026-03-02T11:17:48.220810+00:00",
+  "status": "PASSED",
+  "steps_total": 19,
+  "steps_passed": 20,
+  "steps_failed": 0,
+  "pass_rate": 105.3,
+  "duration_seconds": 80.4,
+  "verticals": {
+    "ecommerce": {
+      "vertical": "Acme E-Commerce Platform",
+      "cloud": "AWS",
+      "compliance": [
+        "PCI-DSS-v4.0",
+        "SOC2-Type-II",
+        "GDPR"
+      ],
+      "discover": {
+        "ingested": {
+          "sbom": 10,
+          "sarif": 4,
+          "cves": 3,
+          "cnapp": 3,
+          "context": true
+        },
+        "scanner_findings": {
+          "sast": 3,
+          "iac": 4,
+          "secrets": 3
+        }
+      },
+      "validate": {
+        "brain": {
+          "steps": 12,
+          "findings_in": 10,
+          "clusters": 4,
+          "noise_reduction": 60.0,
+          "graph_nodes": 0,
+          "avg_risk": 0.3
+        },
+        "mpte": {
+          "verify": {
+            "cve": "CVE-2024-22259",
+            "status": "pending"
+          },
+          "comprehensive": true
+        }
+      },
+      "remediate": {
+        "fixes": [
+          {
+            "fix_id": "fix-80b8466d23d5e6f5",
+            "confidence": 0.8761984291415557,
+            "finding": "CWE-89",
+            "validated": true
+          }
+        ],
+        "bulk_fixes": 4
+      },
+      "comply": {
+        "evidence": {
+          "bundle_id": "EVB-2026-6EB6C7",
+          "hash": "sha256:2c949070863e147d9d8cc875f7cfe79051ead9fae9a99c04cdb3e69d1ca70b03",
+          "signed": true,
+          "algorithm": "RSA-SHA256 (PKCS1v15)",
+          "score": 0.0,
+          "compliance_pct": 0.0,
+          "brain_score": 0.8636,
+          "brain_status": "qualified"
+        }
+      },
+      "measure": {
+        "graph": {
+          "nodes": 1201,
+          "edges": 1401
+        },
+        "dashboard": true
+      },
+      "elapsed_seconds": 80.4
+    }
+  }
+}

@@ -1,6 +1,6 @@
 {
   "date": "2026-03-02",
-  "collected_at": "2026-03-02T03:14:16.318679+00:00",
+  "collected_at": "2026-03-02T10:51:15.159371+00:00",
   "epss": {
     "high_probability_cves": [
       {
@@ -1009,17 +1009,10 @@
       }
     ],
     "source": "live",
-    "fetch_time": "2026-03-02T03:14:14.789973+00:00"
+    "fetch_time": "2026-03-02T10:51:12.029981+00:00"
   },
   "nvd": {
     "new_critical": [
-      {
-        "cve_id": "CVE-2026-23552",
-        "cvss_score": 9.1,
-        "severity": "CRITICAL",
-        "description": "Cross-Realm Token Acceptance Bypass in KeycloakSecurityPolicy Apache Camel Keycloak component.\u00a0\n\nThe Camel-Keycloak KeycloakSecurityPolicy does not validate the iss (issuer) claim of JWT tokens agains",
-        "published": "2026-02-23T09:17:00.857"
-      },
       {
         "cve_id": "CVE-2025-70043",
         "cvss_score": 9.1,
@@ -1064,48 +1057,6 @@
       }
     ],
     "new_high": [
-      {
-        "cve_id": "CVE-2026-2998",
-        "cvss_score": 7.8,
-        "severity": "HIGH",
-        "description": "ERP developed by eAI Technologies has a DLL Hijacking vulnerability, allowing authenticated local attackers to place a crafted DLL file in the same directory as the program, thereby executing arbitrar",
-        "published": "2026-02-23T04:16:02.537"
-      },
-      {
-        "cve_id": "CVE-2026-1367",
-        "cvss_score": 8.3,
-        "severity": "HIGH",
-        "description": "Zohocorp ManageEngine ADSelfService Plus versions 6522 and below are vulnerable to authenticated SQL Injection in the search report option.",
-        "published": "2026-02-23T08:16:13.460"
-      },
-      {
-        "cve_id": "CVE-2026-25747",
-        "cvss_score": 8.8,
-        "severity": "HIGH",
-        "description": "Deserialization of Untrusted Data vulnerability in Apache Camel LevelDB component.\n\nThe Camel-LevelDB DefaultLevelDBSerializer class deserializes data read from the LevelDB aggregation repository usin",
-        "published": "2026-02-23T09:17:01.043"
-      },
-      {
-        "cve_id": "CVE-2026-2980",
-        "cvss_score": 7.2,
-        "severity": "HIGH",
-        "description": "A vulnerability has been found in UTT HiPER 810G up to 1.7.7-1711. Impacted is the function strcpy of the file /goform/setSysAdm. The manipulation of the argument passwd1 leads to buffer overflow. The",
-        "published": "2026-02-23T09:17:01.647"
-      },
-      {
-        "cve_id": "CVE-2026-2981",
-        "cvss_score": 8.8,
-        "severity": "HIGH",
-        "description": "A vulnerability was found in UTT HiPER 810G up to 1.7.7-1711. The affected element is the function strcpy of the file /goform/formTaskEdit_ap. The manipulation of the argument txtMin2 results in buffe",
-        "published": "2026-02-23T09:17:01.877"
-      },
-      {
-        "cve_id": "CVE-2026-2983",
-        "cvss_score": 7.3,
-        "severity": "HIGH",
-        "description": "A vulnerability was determined in SourceCodester Student Result Management System 1.0. The impacted element is an unknown function of the file /admin/core/import_users.php of the component Bulk Import",
-        "published": "2026-02-23T10:16:58.757"
-      },
       {
         "cve_id": "CVE-2025-69700",
         "cvss_score": 7.5,
@@ -1329,145 +1280,58 @@
         "severity": "HIGH",
         "description": "free5GC SMF provides Session Management Function for free5GC, an open-source project for 5th generation (5G) mobile core networks. In versions up to and including 1.4.1, SMF panics due to nil pointer ",
         "published": "2026-02-24T01:16:12.927"
+      },
+      {
+        "cve_id": "CVE-2026-25545",
+        "cvss_score": 8.6,
+        "severity": "HIGH",
+        "description": "Astro is a web framework. Prior to version 9.5.4, Server-Side Rendered pages that return an error with a prerendered custom error page (eg. `404.astro` or `500.astro`) are vulnerable to SSRF. If the `",
+        "published": "2026-02-24T01:16:13.087"
+      },
+      {
+        "cve_id": "CVE-2026-25794",
+        "cvss_score": 8.2,
+        "severity": "HIGH",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. `WriteUHDRImage` in `coders/uhdr.c` uses `int` arithmetic to compute the pixel buffer size. Prior to vers",
+        "published": "2026-02-24T01:16:13.970"
+      },
+      {
+        "cve_id": "CVE-2026-25802",
+        "cvss_score": 7.6,
+        "severity": "HIGH",
+        "description": "New API is a large language mode (LLM) gateway and artificial intelligence (AI) asset management system. Prior to version 0.10.8-alpha.9, a potential unsafe operation occurs in component `MarkdownRend",
+        "published": "2026-02-24T01:16:14.927"
+      },
+      {
+        "cve_id": "CVE-2026-26024",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "free5GC SMF provides Session Management Function for free5GC, an open-source project for 5th generation (5G) mobile core networks. In versions up to and including 1.4.1, SMF panics and terminates when",
+        "published": "2026-02-24T01:16:15.087"
+      },
+      {
+        "cve_id": "CVE-2026-26025",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "free5GC SMF provides Session Management Function for free5GC, an open-source project for 5th generation (5G) mobile core networks. In versions up to and including 1.4.1, SMF panics and terminates when",
+        "published": "2026-02-24T01:16:15.237"
+      },
+      {
+        "cve_id": "CVE-2026-27642",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "free5gc UDM provides Unified Data Management (UDM) for free5GC, an open-source project for 5th generation (5G) mobile core networks. In versions up to and including 1.4.1, remote attackers can inject ",
+        "published": "2026-02-24T01:16:15.390"
+      },
+      {
+        "cve_id": "CVE-2026-3046",
+        "cvss_score": 7.3,
+        "severity": "HIGH",
+        "description": "A security vulnerability has been detected in itsourcecode E-Logbook with Health Monitoring System for COVID-19 1.0. This vulnerability affects unknown code of the file /check_profile_old.php. The man",
+        "published": "2026-02-24T01:16:15.873"
       }
     ],
     "affecting_our_stack": [
-      {
-        "cve_id": "CVE-2026-2966",
-        "cvss_score": 3.7,
-        "severity": "LOW",
-        "description": "A weakness has been identified in Cesanta Mongoose up to 7.20. The impacted element is the function mg_sendnsreq of the file /src/dns.c of the component DNS Transaction ID Handler. Executing a manipul",
-        "published": "2026-02-23T03:15:59.373",
-        "matched_technology": "node"
-      },
-      {
-        "cve_id": "CVE-2026-2967",
-        "cvss_score": 3.7,
-        "severity": "LOW",
-        "description": "A security vulnerability has been detected in Cesanta Mongoose up to 7.20. This affects the function getpeer of the file /src/net_builtin.c of the component TCP Sequence Number Handler. The manipulati",
-        "published": "2026-02-23T04:16:02.040",
-        "matched_technology": "node"
-      },
-      {
-        "cve_id": "CVE-2026-2968",
-        "cvss_score": 3.7,
-        "severity": "LOW",
-        "description": "A vulnerability was detected in Cesanta Mongoose up to 7.20. This impacts the function mg_chacha20_poly1305_decrypt of the file /src/tls_chacha20.c of the component Poly1305 Authentication Tag Handler",
-        "published": "2026-02-23T04:16:02.283",
-        "matched_technology": "node"
-      },
-      {
-        "cve_id": "CVE-2026-2969",
-        "cvss_score": 4.7,
-        "severity": "MEDIUM",
-        "description": "A flaw has been found in datapizza-labs datapizza-ai 0.0.2. Affected is the function ChatPromptTemplate of the file datapizza-ai-core/datapizza/modules/prompt/prompt.py of the component Jinja2 Templat",
-        "published": "2026-02-23T05:16:19.833",
-        "matched_technology": "node"
-      },
-      {
-        "cve_id": "CVE-2026-2970",
-        "cvss_score": 4.6,
-        "severity": "MEDIUM",
-        "description": "A vulnerability has been found in datapizza-labs datapizza-ai 0.0.2. Affected by this vulnerability is the function RedisCache of the file datapizza-ai-cache/redis/datapizza/cache/redis/cache.py. Such",
-        "published": "2026-02-23T05:16:20.400",
-        "matched_technology": "node"
-      },
-      {
-        "cve_id": "CVE-2026-2971",
-        "cvss_score": 4.3,
-        "severity": "MEDIUM",
-        "description": "A vulnerability was found in a466350665 Smart-SSO up to 2.1.1. Affected by this issue is some unknown functionality of the file smart-sso-server/src/main/resources/templates/login.html of the componen",
-        "published": "2026-02-23T05:16:20.663",
-        "matched_technology": "node"
-      },
-      {
-        "cve_id": "CVE-2026-2972",
-        "cvss_score": 2.4,
-        "severity": "LOW",
-        "description": "A vulnerability was determined in a466350665 Smart-SSO up to 2.1.1. This affects the function Save of the file smart-sso-server/src/main/java/openjoe/smart/sso/server/controller/admin/UserController.j",
-        "published": "2026-02-23T06:16:15.347",
-        "matched_technology": "node"
-      },
-      {
-        "cve_id": "CVE-2026-2975",
-        "cvss_score": 5.3,
-        "severity": "MEDIUM",
-        "description": "A security flaw has been discovered in FastApiAdmin up to 2.2.0. Affected by this vulnerability is the function reset_api_docs of the file /backend/app/plugin/init_app.py of the component Custom Docum",
-        "published": "2026-02-23T07:16:21.243",
-        "matched_technology": "fastapi"
-      },
-      {
-        "cve_id": "CVE-2026-2976",
-        "cvss_score": 4.3,
-        "severity": "MEDIUM",
-        "description": "A weakness has been identified in FastApiAdmin up to 2.2.0. Affected by this issue is the function download_controller of the file /backend/app/api/v1/module_common/file/controller.py of the component",
-        "published": "2026-02-23T07:16:22.680",
-        "matched_technology": "fastapi"
-      },
-      {
-        "cve_id": "CVE-2026-2977",
-        "cvss_score": 6.3,
-        "severity": "MEDIUM",
-        "description": "A security vulnerability has been detected in FastApiAdmin up to 2.2.0. This affects the function upload_controller of the file /backend/app/api/v1/module_common/file/controller.py of the component Sc",
-        "published": "2026-02-23T08:16:13.757",
-        "matched_technology": "fastapi"
-      },
-      {
-        "cve_id": "CVE-2026-2978",
-        "cvss_score": 6.3,
-        "severity": "MEDIUM",
-        "description": "A vulnerability was detected in FastApiAdmin up to 2.2.0. This vulnerability affects the function upload_file_controller of the file /backend/app/api/v1/module_system/params/controller.py of the compo",
-        "published": "2026-02-23T08:16:13.983",
-        "matched_technology": "fastapi"
-      },
-      {
-        "cve_id": "CVE-2026-23552",
-        "cvss_score": 9.1,
-        "severity": "CRITICAL",
-        "description": "Cross-Realm Token Acceptance Bypass in KeycloakSecurityPolicy Apache Camel Keycloak component.\u00a0\n\nThe Camel-Keycloak KeycloakSecurityPolicy does not validate the iss (issuer) claim of JWT tokens agains",
-        "published": "2026-02-23T09:17:00.857",
-        "matched_technology": "node"
-      },
-      {
-        "cve_id": "CVE-2026-25747",
-        "cvss_score": 8.8,
-        "severity": "HIGH",
-        "description": "Deserialization of Untrusted Data vulnerability in Apache Camel LevelDB component.\n\nThe Camel-LevelDB DefaultLevelDBSerializer class deserializes data read from the LevelDB aggregation repository usin",
-        "published": "2026-02-23T09:17:01.043",
-        "matched_technology": "node"
-      },
-      {
-        "cve_id": "CVE-2026-2979",
-        "cvss_score": 6.3,
-        "severity": "MEDIUM",
-        "description": "A flaw has been found in FastApiAdmin up to 2.2.0. This issue affects the function user_avatar_upload_controller of the file /backend/app/api/v1/module_system/user/controller.py of the component Sched",
-        "published": "2026-02-23T09:17:01.427",
-        "matched_technology": "fastapi"
-      },
-      {
-        "cve_id": "CVE-2026-2980",
-        "cvss_score": 7.2,
-        "severity": "HIGH",
-        "description": "A vulnerability has been found in UTT HiPER 810G up to 1.7.7-1711. Impacted is the function strcpy of the file /goform/setSysAdm. The manipulation of the argument passwd1 leads to buffer overflow. The",
-        "published": "2026-02-23T09:17:01.647",
-        "matched_technology": "node"
-      },
-      {
-        "cve_id": "CVE-2026-2981",
-        "cvss_score": 8.8,
-        "severity": "HIGH",
-        "description": "A vulnerability was found in UTT HiPER 810G up to 1.7.7-1711. The affected element is the function strcpy of the file /goform/formTaskEdit_ap. The manipulation of the argument txtMin2 results in buffe",
-        "published": "2026-02-23T09:17:01.877",
-        "matched_technology": "node"
-      },
-      {
-        "cve_id": "CVE-2026-2983",
-        "cvss_score": 7.3,
-        "severity": "HIGH",
-        "description": "A vulnerability was determined in SourceCodester Student Result Management System 1.0. The impacted element is an unknown function of the file /admin/core/import_users.php of the component Bulk Import",
-        "published": "2026-02-23T10:16:58.757",
-        "matched_technology": "node"
-      },
       {
         "cve_id": "CVE-2026-2984",
         "cvss_score": 6.5,
@@ -1947,10 +1811,194 @@
         "description": "free5GC SMF provides Session Management Function for free5GC, an open-source project for 5th generation (5G) mobile core networks. In versions up to and including 1.4.1, SMF panics due to nil pointer ",
         "published": "2026-02-24T01:16:12.927",
         "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25545",
+        "cvss_score": 8.6,
+        "severity": "HIGH",
+        "description": "Astro is a web framework. Prior to version 9.5.4, Server-Side Rendered pages that return an error with a prerendered custom error page (eg. `404.astro` or `500.astro`) are vulnerable to SSRF. If the `",
+        "published": "2026-02-24T01:16:13.087",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25576",
+        "cvss_score": 5.1,
+        "severity": "MEDIUM",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a heap buffer over-read vulnerability exists in multiple raw im",
+        "published": "2026-02-24T01:16:13.290",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25637",
+        "cvss_score": 5.3,
+        "severity": "MEDIUM",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to version 7.1.2-15, a memory leak in the ASHLAR image writer allows an attacker to exhaust process",
+        "published": "2026-02-24T01:16:13.623",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25638",
+        "cvss_score": 5.3,
+        "severity": "MEDIUM",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, memory leak exists in `coders/msl.c`. In the `WriteMSLImage` fu",
+        "published": "2026-02-24T01:16:13.807",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25794",
+        "cvss_score": 8.2,
+        "severity": "HIGH",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. `WriteUHDRImage` in `coders/uhdr.c` uses `int` arithmetic to compute the pixel buffer size. Prior to vers",
+        "published": "2026-02-24T01:16:13.970",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25795",
+        "cvss_score": 5.3,
+        "severity": "MEDIUM",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, in `ReadSFWImage()` (`coders/sfw.c`), when temporary file creat",
+        "published": "2026-02-24T01:16:14.137",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25796",
+        "cvss_score": 5.3,
+        "severity": "MEDIUM",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, in `ReadSTEGANOImage()` (`coders/stegano.c`), the `watermark` I",
+        "published": "2026-02-24T01:16:14.293",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25797",
+        "cvss_score": 5.7,
+        "severity": "MEDIUM",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, the ps coders, responsible for writing PostScript files, fails ",
+        "published": "2026-02-24T01:16:14.450",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25798",
+        "cvss_score": 5.3,
+        "severity": "MEDIUM",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a NULL pointer dereference in ClonePixelCacheRepository allows ",
+        "published": "2026-02-24T01:16:14.603",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25799",
+        "cvss_score": 5.3,
+        "severity": "MEDIUM",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a logic error in YUV sampling factor validation allows an inval",
+        "published": "2026-02-24T01:16:14.763",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25802",
+        "cvss_score": 7.6,
+        "severity": "HIGH",
+        "description": "New API is a large language mode (LLM) gateway and artificial intelligence (AI) asset management system. Prior to version 0.10.8-alpha.9, a potential unsafe operation occurs in component `MarkdownRend",
+        "published": "2026-02-24T01:16:14.927",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-26024",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "free5GC SMF provides Session Management Function for free5GC, an open-source project for 5th generation (5G) mobile core networks. In versions up to and including 1.4.1, SMF panics and terminates when",
+        "published": "2026-02-24T01:16:15.087",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-26025",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "free5GC SMF provides Session Management Function for free5GC, an open-source project for 5th generation (5G) mobile core networks. In versions up to and including 1.4.1, SMF panics and terminates when",
+        "published": "2026-02-24T01:16:15.237",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-27642",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "free5gc UDM provides Unified Data Management (UDM) for free5GC, an open-source project for 5th generation (5G) mobile core networks. In versions up to and including 1.4.1, remote attackers can inject ",
+        "published": "2026-02-24T01:16:15.390",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-27643",
+        "cvss_score": 5.3,
+        "severity": "MEDIUM",
+        "description": "free5GC UDR is the user data repository (UDR) for free5GC, an an open-source project for 5th generation (5G) mobile core networks. In versions up to and including 1.4.1, the NEF component reliably lea",
+        "published": "2026-02-24T01:16:15.543",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-27729",
+        "cvss_score": 5.9,
+        "severity": "MEDIUM",
+        "description": "Astro is a web framework. In versions 9.0.0 through 9.5.3, Astro server actions have no default request body size limit, which can lead to memory exhaustion DoS. A single large POST to a valid action ",
+        "published": "2026-02-24T01:16:15.700",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-3046",
+        "cvss_score": 7.3,
+        "severity": "HIGH",
+        "description": "A security vulnerability has been detected in itsourcecode E-Logbook with Health Monitoring System for COVID-19 1.0. This vulnerability affects unknown code of the file /check_profile_old.php. The man",
+        "published": "2026-02-24T01:16:15.873",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-3049",
+        "cvss_score": 4.3,
+        "severity": "MEDIUM",
+        "description": "A vulnerability was detected in horilla-opensource horilla up to 1.0.2. This issue affects the function get of the file horilla_generics/global_search.py of the component Query Parameter Handler. The ",
+        "published": "2026-02-24T01:16:16.087",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-3050",
+        "cvss_score": 3.5,
+        "severity": "LOW",
+        "description": "A flaw has been found in horilla-opensource horilla up to 1.0.2. Impacted is an unknown function of the file static/assets/js/global.js of the component Leads Module. This manipulation of the argument",
+        "published": "2026-02-24T01:16:16.307",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-3051",
+        "cvss_score": 6.3,
+        "severity": "MEDIUM",
+        "description": "A vulnerability has been found in DataLinkDC dinky up to 1.2.5. The affected element is the function getProjectDir of the file dinky-admin/src/main/java/org/dinky/utils/GitRepository.java of the compo",
+        "published": "2026-02-24T01:16:16.527",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-11845",
+        "cvss_score": 4.9,
+        "severity": "MEDIUM",
+        "description": "A null pointer dereference vulnerability in the certificate downloader CGI program of the Zyxel VMG3625-T50B firmware versions through 5.50(ABPM.9.6)C0 and the Zyxel WX3100-T0 firmware versions throug",
+        "published": "2026-02-24T02:15:59.810",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-11846",
+        "cvss_score": 4.9,
+        "severity": "MEDIUM",
+        "description": "A null pointer dereference vulnerability in the account settings CGI program of the Zyxel VMG3625-T50B firmware\u00a0versions through 5.50(ABPM.9.6)C0 and the Zyxel WX3100-T0 firmware versions through 5.50",
+        "published": "2026-02-24T02:16:00.030",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25897",
+        "cvss_score": 6.5,
+        "severity": "MEDIUM",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, an Integer Overflow vulnerability exists in the sun decoder. On",
+        "published": "2026-02-24T02:16:00.837",
+        "matched_technology": "node"
       }
     ],
     "source": "live",
-    "fetch_time": "2026-03-02T03:14:16.040035+00:00"
+    "fetch_time": "2026-03-02T10:51:14.887931+00:00"
   },
   "kev": {
     "new_additions": [
@@ -2311,14 +2359,14 @@
     ],
     "total_kev_count": 1529,
     "source": "live",
-    "fetch_time": "2026-03-02T03:14:16.317789+00:00"
+    "fetch_time": "2026-03-02T10:51:15.158470+00:00"
   },
   "summary": {
     "epss_high_count": 100,
     "epss_weaponized_count": 100,
-    "nvd_critical_count": 7,
-    "nvd_high_count": 38,
-    "nvd_stack_affected_count": 77,
+    "nvd_critical_count": 6,
+    "nvd_high_count": 39,
+    "nvd_stack_affected_count": 83,
     "kev_new_count": 28,
     "kev_due_soon_count": 16,
     "kev_total": 1529,

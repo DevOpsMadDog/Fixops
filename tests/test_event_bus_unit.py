@@ -4,9 +4,8 @@ Tests the EventBus async event system that enables cross-suite communication
 for the brain pipeline, AutoFix, MPTE, and all other engines.
 """
 
-import asyncio
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 
 class TestEventType:

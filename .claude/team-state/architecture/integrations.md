@@ -1,7 +1,8 @@
 # Integration Architecture — ALdeci CTEM+ Platform
 
-**Last Updated**: 2026-03-02 (afternoon) by enterprise-architect
+**Last Updated**: 2026-03-02 (evening, Run 7) by enterprise-architect
 **Pillars**: V7 (MCP-Native), V3 (Decision Intelligence), V9 (Air-Gapped)
+**ADR Reference**: ADR-009 (MCP Auto-Discovery Architecture)
 
 ---
 
@@ -152,28 +153,41 @@ curl -X POST /api/v1/scanner-ingest/upload \
 
 ---
 
-## 6. MCP Gateway (V7)
+## 6. MCP Gateway (V7) — See ADR-009
 
-**Files**: `suite-integrations/api/mcp_router.py` (468 LOC), `suite-core/core/mcp_server.py` (979 LOC)
+**Files**:
+- `suite-api/apps/api/mcp_router.py` (977 LOC) — Auto-discovery router
+- `suite-core/core/mcp_server.py` (979 LOC) — Protocol engine
+- `suite-integrations/api/mcp_protocol_router.py` — JSON-RPC adapter
 **Protocol**: JSON-RPC 2.0 over HTTP (stdio + SSE + WebSocket transports)
+
+### Two Subsystems
+1. **Auto-Discovery Router** (`/api/v1/mcp/*`): Introspects all FastAPI routes at startup, generates typed MCP tool definitions. 705 tools from 769 routes.
+2. **Protocol Engine** (`/api/v1/mcp-protocol/*`): Full MCP 2024-11-05 JSON-RPC 2.0 implementation with session management, resources, and prompt templates.
 
 ### What Calls ALdeci (External AI Agents)
 ```
 AI Agent → POST /api/v1/mcp-protocol/rpc → JSON-RPC request
-        → Discover 705 tools from OpenAPI spec
-        → Execute any ALdeci API endpoint as an MCP tool
+        → MCPProtocolHandler dispatches
+        → tools/list → returns 705 tool definitions
+        → tools/call → executes any ALdeci endpoint
 ```
 
-### Tools Auto-Discovery
-ALdeci auto-discovers MCP tools from its own OpenAPI specification:
-- 705 tools auto-generated from 769 API endpoints
-- Each tool maps to one REST endpoint with typed parameters
-- Schema exported via `GET /api/v1/mcp/tools`
+### Tools Auto-Discovery (Startup-time, cached)
+- 705 tools auto-generated from 769 API endpoints at startup (~50ms)
+- Each tool maps to one REST endpoint with typed inputSchema
+- Categories: query (GET), action (POST), analysis (keyword-based)
+- Schema exported via `GET /api/v1/mcp/tools` (paginated, filterable)
+- Refreshable via `POST /api/v1/mcp/refresh`
+
+### Honesty Note
+The 705 tools are ALdeci's own endpoints (self-discovered, not external). Real auto-discovery from live routes, but self-referential.
 
 ### Security
 - All MCP endpoints require API key authentication
 - Tool execution is subject to same auth/scope as the underlying endpoint
 - Rate limited (120 req/min shared with all other endpoints)
+- Session-based capability negotiation via `initialize`
 
 ---
 

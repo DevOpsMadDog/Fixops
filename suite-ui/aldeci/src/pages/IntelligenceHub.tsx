@@ -199,6 +199,28 @@ export default function IntelligenceHub() {
 
   const isDataLoading = epssLoading || kevLoading;
 
+  // Full-page skeleton while initial data loads
+  if (epssLoading && kevLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="h-9 w-64 bg-gray-700/30 rounded-md animate-pulse" />
+            <div className="h-5 w-80 bg-gray-700/20 rounded animate-pulse" />
+          </div>
+          <div className="h-10 w-28 bg-gray-700/20 rounded-md animate-pulse" />
+        </div>
+        <div className="h-14 w-full bg-gray-700/10 rounded-lg border border-gray-700/20 animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-36 bg-gray-700/10 rounded-lg border border-gray-700/20 animate-pulse" />
+          ))}
+        </div>
+        <div className="h-[400px] bg-gray-700/10 rounded-lg border border-gray-700/20 animate-pulse" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}

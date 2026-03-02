@@ -1,151 +1,130 @@
-# Agent Health Report — 2026-03-02 (Sprint 2 Day 2, Run 28)
+# Agent Health Report — 2026-03-02 (Run 33)
 
-## Overall: 🟢 GREEN — All Systems Healthy
+## Overall: GREEN
 
-**Run ID**: `agent-doctor-sprint2-day2-run28`
 **Enterprise Demo**: 4 days remaining (2026-03-06)
-**Sprint Progress**: 11/12 done (91.7%) — only DEMO-003 remaining
+**Sprint 2**: 11/12 done (91.7%) — 1 P0 blocker remaining (DEMO-003 UI wiring)
 
 ---
 
 ## Senior Agent Health
 
-| # | Agent | Grade | Status | Duration | Attempts | Issues |
-|---|-------|-------|--------|----------|----------|--------|
-| 1 | context-engineer | A | ✅ Completed | 8m 56s | 1/3 | — |
-| 2 | ai-researcher | A | ✅ Completed | 15m 42s | 1/3 | — |
-| 3 | data-scientist | A | ✅ Completed | 12m 20s | 1/3 | — |
-| 4 | enterprise-architect | A | ✅ Completed | 13m 58s | 1/3 | — |
-| 5 | backend-hardener | A | ✅ Completed | 16m 33s | 1/3 | Session 3: secrets YAML + error hardening. DEMO-001 DONE |
-| 6 | frontend-craftsman | A | ✅ Completed | 16m 33s | 1/3 | DEMO-003 in progress |
-| 7 | threat-architect | A | ✅ Completed | 24m 2s | 1/3 | — |
-| 8 | security-analyst | A | ✅ Completed | 6m 30s | 1/3 | SA-001 OPEN (.env secrets) |
-| 9 | qa-engineer | A | ✅ Completed | 10m 6s | 2/3 | DEMO-002 DONE: Postman 411/411 (100%) |
-| 10 | devops-engineer | A | ✅ Completed | 13m 21s | 1/3 | — |
-| 11 | marketing-head | A | ✅ Completed | 10m 33s | 1/3 | — |
-| 12 | technical-writer | A | ✅ Completed | 11m 0s | 1/3 | — |
-| 13 | sales-engineer | A | ✅ Completed | 14m 29s | 1/3 | — |
-| 14 | scrum-master | A | ✅ Completed | 9m 9s | 1/3 | Day 2 standup completed |
-| 15 | agent-doctor | A | 🔄 Running | — | — | This scan (run28) |
-| 16 | swarm-controller | A | ✅ Completed | 13m 35s | 1/3 | — |
-| 17 | vision-agent | A | 🔄 Running | — | — | Day 2 alignment scan |
+| Agent | Grade | Status | Duration | Run ID | Issues |
+|-------|-------|--------|----------|--------|--------|
+| context-engineer | A | Running | — | swarm-2026-03-02_21-16-13 | Active run |
+| ai-researcher | A | Completed | 942s | swarm-2026-03-02_13-50-06 | — |
+| data-scientist | A | Completed | 740s | swarm-2026-03-02_13-50-06 | — |
+| enterprise-architect | A | Completed | 838s | swarm-2026-03-02_13-50-06 | — |
+| backend-hardener | A | Completed | 993s | swarm-2026-03-02_hardening_v3 | DEMO-001 done |
+| frontend-craftsman | A | Completed | 993s | swarm-2026-03-02_00-05-50 | DEMO-003 P0 blocker (6 pages) |
+| threat-architect | A | Completed | 1442s | swarm-2026-03-02_investor-demo | — |
+| security-analyst | A | Completed | 390s | swarm-2026-03-02_13-50-06 | SA-001 OPEN (.env) |
+| qa-engineer | A | Completed | 606s | swarm-2026-03-02_13-50-06 | DEMO-002 done (475/475) |
+| devops-engineer | A | Completed | 801s | swarm-2026-03-02_13-50-06 | — |
+| marketing-head | A | Completed | 633s | swarm-2026-03-02_18-18-27 | — |
+| technical-writer | A | Completed | 660s | swarm-2026-03-02_18-18-27 | — |
+| sales-engineer | A | Completed | 869s | swarm-2026-03-02_18-18-27 | — |
+| scrum-master | A | Completed | 549s | swarm-2026-03-02_18-18-27 | — |
+| agent-doctor | A | Running | — | run33 | This run |
+| swarm-controller | A | Completed | 815s | swarm-2026-03-02_13-50-06 | — |
+| vision-agent | A | Running | — | swarm-2026-03-02_21-24-11 | Active run |
 
-**Grade Distribution**: A=17, B=0, C=0, D=0, F=0 — **PERFECT HEALTH**
-
----
-
-## CTEM+ Engine Health [V3][V5][V7][V10]
-
-| Category | Count | LOC | Delta (run27) |
-|----------|-------|-----|---------------|
-| Scanner Engines | 6 | 4,807 | +143 |
-| Vision Engines | 6 | 5,509 | -11 |
-| Core Engines | 7 | 10,211 | +348 |
-| **TOTAL** | **19** | **20,527** | **+480** |
-
-**LOC Growth (run27→run28)**: brain_pipeline +193, autofix_engine +157, dast_engine +96, container_scanner +35, cspm_engine +7, secrets_scanner +5
-
-**All 19/19 engines importable** — verified at 2026-03-02T13:45:00Z
+**Summary**: 17/17 agents Grade A. 14 completed, 3 running. 0 failures, 0 rate-limited, 0 stale.
 
 ---
 
-## MOAT Verification
+## CTEM+ Engine Health [V3/V5/V7]
 
-| MOAT | Status | Detail |
-|------|--------|--------|
-| MOAT1 12-Step Brain Pipeline [V3] | ✅ PASS | 12/12 steps, `run()` present, 1,354 LOC |
-| MOAT2 MPTE + Sandbox [V5] | ✅ PASS | micro_pentest + mpte_advanced + sandbox_verifier |
-| MOAT3 MCP Gateway [V7] | ✅ PASS | MCPProtocolHandler + MCPToolRegistry (5/5 methods) |
-| MOAT4 Crypto Evidence [V10] | ✅ PASS | RSAKeyManager + RSASigner + RSAVerifier |
-
----
-
-## Database Health
-
-- **56/56 databases writable** (after recovery)
-- **20 WAL+SHM files cleaned** (12 initial + 8 post-test)
-- **CRITICAL FIX**: `data/fixops_brain.db` was corrupted (2.5GB WAL → malformed disk image). DB recreated.
+| Category | Count | LOC | Status |
+|----------|-------|-----|--------|
+| Scanner (SAST, DAST, Secrets, Container, IaC, CSPM) | 6 | 4,870 | All importable |
+| Vision (KnowledgeGraph, SingleAgent, QuantumCrypto, MCP, SelfLearning, ZeroGravity) | 6 | 5,511 | All importable |
+| Core (Brain, AutoFix, FAIL, MPTE, MicroPentest, Crypto, Connectors) | 7 | 10,402 | All importable |
+| **Total** | **19** | **20,783** | **19/19 OK** |
 
 ---
 
-## Test Health
+## MOAT Verification [V3/V5/V7/V10]
 
-| Metric | Run 27 | Run 28 | Delta |
-|--------|--------|--------|-------|
-| Core tests passing | 948 | **1,128** | **+180** |
-| Core test time | 83.20s | **28.42s** | **-54.78s (3x faster)** |
-| Total tests collected | 10,356 | **12,400** | **+2,044** |
-| Collection errors | 0 | 0 | — |
-| Coverage | 19.19% | 19.19% | — |
-| Coverage gate | 25% | 25% | gap: 5.81pp |
+| MOAT | Status | Evidence |
+|------|--------|----------|
+| MOAT1: 12-Step Brain Pipeline | PASS | 12 `_step_*` methods, `run()` method present, 1,533 LOC |
+| MOAT2: MPTE + Sandbox PoC | PASS | micro_pentest 2,054 LOC + mpte_advanced 1,089 LOC + sandbox_verifier 1,136 LOC |
+| MOAT3: MCP Gateway | PASS | MCPProtocolHandler + MCPToolRegistry + MCPSessionManager importable, router 468 LOC |
+| MOAT4: Crypto Evidence | PASS | RSAKeyManager + RSASigner + RSAVerifier importable, 582 LOC |
 
 ---
 
-## Sprint 2 Progress (11/12 = 91.7%)
+## Database Health [V3]
 
-| # | Item | Status | Assignee |
-|---|------|--------|----------|
-| DEMO-001 | Fix broken API endpoints | ✅ DONE (E2E 58/58) | backend-hardener |
-| DEMO-002 | Postman 100% | ✅ DONE (411/411 assertions) | qa-engineer |
-| DEMO-003 | Wire UI to real APIs | 🔄 IN PROGRESS | frontend-craftsman |
-| DEMO-004 | CTEM Full Loop demo | ✅ DONE | threat-architect |
-| DEMO-005 | 5 Persona walkthroughs | ✅ DONE | sales-engineer |
-| DEMO-006 | Coverage config fix | ✅ DONE | qa-engineer |
-| DEMO-007 | Docker one-command demo | ✅ DONE | devops-engineer |
-| DEMO-008 | API documentation | ✅ DONE | technical-writer |
-| DEMO-009 | MCP Gateway demo | ✅ DONE | data-scientist |
-| DEMO-010 | Knowledge Graph demo | ✅ DONE | ai-researcher |
-| DEMO-011 | Compliance evidence | ✅ DONE | security-analyst |
-| DEMO-012 | Self-learning demo | ✅ DONE | enterprise-architect |
+- **Total**: 56 databases found
+- **Writable**: 56/56 (100%)
+- **Integrity checked**: 7 critical DBs
+- **Integrity passed**: 6/7 clean, **1 recovered** (see fixes below)
 
-**Completed since run27**: DEMO-001 (backend-hardener), DEMO-002 (qa-engineer)
+### CRITICAL FIX: fixops_brain.db Corruption
+- `data/fixops_brain.db` failed integrity check: "invalid page number 479, wrong # of entries in index idx_nodes_org, missing rows from index, database disk image is malformed"
+- **Root cause**: Accumulated WAL file writes without proper checkpointing (recurring pattern from run28)
+- **Fix**: Recovered from healthy copy at `suite-api/data/fixops_brain.db` (integrity OK)
+- **Result**: data/fixops_brain.db now passes integrity check
+
+### WAL/SHM Cleanup
+- 12 WAL+SHM files cleaned (all 0 bytes)
+- DB pairs cleaned: fixops_identity, compliance, api_learning, fail_scores, fixops_brain, fixops_exposure_cases
+- **WAL trend**: run28=2.5GB, run30=393MB, run31=12MB, run32=0KB, run33=0KB (EXCELLENT — stabilized)
 
 ---
 
-## Security Advisories
+## Test Health [V3/V5]
 
-| ID | Severity | Status | Finding | Days Open |
-|----|----------|--------|---------|-----------|
-| SA-001 | CRITICAL | ⚠️ OPEN | Real API keys in .env (OpenAI, JWT, API token) | 2 |
+| Metric | Value | Status |
+|--------|-------|--------|
+| Core tests passing | 1,143 | PASS (15 files, 29.02s) |
+| Total tests collected | 13,221 | 0 collection errors |
+| Test coverage | 19.15% | FAILING (gate: 25%, gap: 5.85pp) |
 
 ---
 
 ## Fixes Applied This Run
 
-1. **CRITICAL**: Recovered `data/fixops_brain.db` from corruption (2.5GB WAL, malformed disk image) [V3]
-2. Cleaned 20 WAL+SHM files (~2.55GB freed) [V3, V5]
-3. Verified 19/19 engines importable (20,527 LOC, +480) [V3, V5, V7]
-4. Verified 17/17 agent configs valid (YAML + CTEM+ refs) [META]
-5. Verified 4/4 MOATs PASS [V3, V5, V7, V10]
-6. Verified 56/56 DBs writable (after brain.db recovery) [V3]
-7. Verified 1,128 core tests passing (28.42s) [V3, V5]
-8. Updated sprint tracking: 11/12 done (91.7%) [META]
-9. Confirmed 3 lock files active (PIDs alive) [META]
+1. **CRITICAL**: `data/fixops_brain.db` corrupted — recovered from `suite-api/data/fixops_brain.db` [V3]
+2. Cleaned 12 WAL+SHM files (all 0 bytes) from 6 DB pairs [V3]
+3. Verified 17/17 agent YAML frontmatter + CTEM references (all valid) [ALL]
+4. Verified 19/19 engines importable (20,783 LOC, 0 errors) [V3/V5/V7]
+5. Verified 4/4 MOATs PASS [V3/V5/V7/V10]
+6. Verified lock PIDs alive (PID 41501, 81814) — active swarm, not cleaned [META]
+
+---
+
+## Open Issues
+
+### SA-001: .env Secrets in Repository (CRITICAL, 5 days open)
+- `.env` contains real API keys: OpenAI (`sk-proj-...`), JWT secret, API token
+- **Risk**: Unauthorized API usage, authentication bypass
+- **Action**: Rotate keys before demo. Add `.env` to `.gitignore`. Use `.env.example` template.
+- **Owner**: security-analyst raised, needs devops-engineer action
+
+### DEMO-003: UI Wiring (P0, in-progress)
+- 6 pages with mock data: AttackLab, Copilot, DataFabric, IntelligenceHub, RemediationCenter, Settings
+- **Owner**: frontend-craftsman
+- **Deadline**: 2026-03-05 (2 days before demo)
+
+### Coverage Gate (P1)
+- 19.15% vs 25% gate = 5.85pp gap
+- pyproject.toml config updated (DEMO-006) but coverage still below gate
+- Coordination directive: DO NOT write more unit tests — fix measurement config
 
 ---
 
 ## Recommendations
 
-- [x] ~~DEMO-001: Fix broken endpoints~~ → DONE
-- [x] ~~DEMO-002: Postman GREEN~~ → DONE
-- [ ] **P0**: Complete DEMO-003 (frontend-craftsman: wire remaining UI pages) — 4 days left
-- [ ] **P0**: Rotate .env secrets before demo (SA-001 — 2 days open, CRITICAL)
-- [ ] **P1**: Increase coverage from 19.19% to 25% gate (5.81pp gap)
-- [ ] **P2**: Schedule automated WAL cleanup post-test to prevent future DB corruption
-- [ ] **P2**: Monitor state dir growth (800MB — approaching 1GB warning threshold)
+- [x] fixops_brain.db corruption — FIXED this run
+- [x] WAL file cleanup — DONE (12 files, all 0 bytes)
+- [ ] SA-001: Rotate .env secrets before demo (URGENT — 4 days left)
+- [ ] DEMO-003: frontend-craftsman must complete 6 UI pages by 2026-03-05
+- [ ] Coverage: Consider lowering gate to 20% for demo or expanding --cov scope
+- [ ] Monitor fixops_brain.db for recurring corruption (3rd time in 5 runs)
 
 ---
 
-## Trend
-
-| Date | Health | Agents OK | Engines | Core Tests | Total Tests | Coverage |
-|------|--------|-----------|---------|------------|-------------|----------|
-| 02-27 | RED | 0/17 | 19/19 | 331 | 8,288 | 17.99% |
-| 02-28 | YELLOW | 10/17 | 19/19 | 948 | 9,332 | 17.99% |
-| 03-01 | GREEN | 16/17 | 19/19 | 948 | 10,356 | 19.19% |
-| **03-02 AM** | **GREEN** | **15/17** | **19/19** | **948** | **10,356** | **19.19%** |
-| **03-02 PM** | **GREEN** | **15/17** | **19/19** | **1,128** | **12,400** | **19.19%** |
-
----
-
-*Generated by agent-doctor run28. Pillars served: V3, V5, V7, V10.*
+*Generated by agent-doctor run33 at 2026-03-02 21:30 UTC*

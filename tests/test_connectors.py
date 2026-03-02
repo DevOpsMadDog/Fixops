@@ -23,25 +23,17 @@ import time
 from unittest.mock import MagicMock, patch
 
 import pytest
-from requests import RequestException
 
 from core.connectors import (
-    AutomationConnectors,
-    AzureDevOpsConnector,
     CircuitBreaker,
     CircuitState,
-    ConfluenceConnector,
     ConnectorHealth,
     ConnectorOutcome,
     GitHubConnector,
-    GitLabConnector,
     JiraConnector,
     RateLimiter,
-    ServiceNowConnector,
     SlackConnector,
     _BaseConnector,
-    _mask,
-    summarise_connector,
 )
 
 

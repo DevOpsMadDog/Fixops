@@ -7,7 +7,9 @@ import MainLayout from './layouts/MainLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import ApiActivityPanel from './components/ApiActivityPanel';
 import CommandPalette from './components/CommandPalette';
+import KeyboardShortcutsHelp from './components/KeyboardShortcutsHelp';
 import { logNavigation, logClick } from './lib/api';
+import { useUIStore } from './stores';
 
 // Lazy load pages for better performance
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -76,6 +78,9 @@ const PlaybookEditor = lazy(() => import('./pages/protect/PlaybookEditor'));
 
 // Log Viewer (Phase 17)
 const LogViewer = lazy(() => import('./pages/settings/LogViewer'));
+
+// MCP Tool Registry (V7 — MCP-Native AI Platform)
+const MCPToolRegistry = lazy(() => import('./pages/settings/MCPToolRegistry'));
 
 // Phase 9 — Dedicated pages replacing stubs + new feature pages
 const AutoFixDashboard = lazy(() => import('./pages/protect/AutoFixDashboard'));
@@ -271,7 +276,9 @@ function AnimatedRoutes() {
             <Route path="/settings/system-health" element={<SystemHealth />} />
             <Route path="/settings/webhooks" element={<Webhooks />} />
             <Route path="/settings/overlay-config" element={<OverlayConfig />} />
+            <Route path="/settings/overlay" element={<OverlayConfig />} />
             <Route path="/settings/logs" element={<LogViewer />} />
+            <Route path="/settings/mcp-registry" element={<MCPToolRegistry />} />
             
             {/* Phase 9 — New feature routes */}
             <Route path="/protect/autofix" element={<AutoFixDashboard />} />
@@ -308,13 +315,25 @@ function AnimatedRoutes() {
   );
 }
 
+// Initialize theme from persisted store
+function ThemeInitializer() {
+  const theme = useUIStore((s) => s.theme);
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    document.documentElement.classList.toggle('light', theme === 'light');
+  }, [theme]);
+  return null;
+}
+
 function App() {
   return (
     <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <ThemeInitializer />
         <NavigationLogger />
         <CommandPalette />
+        <KeyboardShortcutsHelp />
         <GlobalClickLogger>
         <MainLayout>
           <ErrorBoundary>

@@ -17,10 +17,8 @@ import asyncio
 import json
 import os
 import sys
-import tempfile
 from datetime import datetime, timezone
-from typing import Any, Dict
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -680,7 +678,7 @@ class TestPlaybookRunnerInit:
     def test_overlay_path_nonexistent_does_not_raise(self):
         # prepare_overlay with a nonexistent path uses defaults and does NOT raise
         # (the overlay runtime returns a default config when path not found)
-        runner = PlaybookRunner(overlay_path="/nonexistent/path.yaml")
+        PlaybookRunner(overlay_path="/nonexistent/path.yaml")
         # Either None (load failed) or a default OverlayConfig — both are valid
         # What matters: no exception was raised during construction
         assert True  # If we reach here, no exception was raised

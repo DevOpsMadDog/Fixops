@@ -21,8 +21,6 @@ Tests the analytics API endpoints including:
 """
 
 import os
-from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
 
 import pytest
 

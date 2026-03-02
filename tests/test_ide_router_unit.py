@@ -35,12 +35,7 @@ from api.ide_router import (
     Severity,
     FindingCategory,
     SecurityPattern,
-    CodeAnalysisRequest,
-    Finding,
-    Suggestion,
     CodeMetrics,
-    CodeAnalysisResponse,
-    # Router
     router,
     SECURITY_PATTERNS,
 )

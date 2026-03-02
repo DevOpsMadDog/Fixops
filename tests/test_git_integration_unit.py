@@ -9,11 +9,9 @@ Pillar: V5 (MPTE Verification) — Git integration enables code reachability ana
 """
 
 import os
-import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, call, patch
 
 import pytest
 
@@ -166,7 +164,7 @@ class TestGitRepositoryAnalyzerInit:
     def test_creates_directories(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             ws = Path(tmpdir) / "new_workspace"
-            analyzer = GitRepositoryAnalyzer(workspace_dir=ws)
+            GitRepositoryAnalyzer(workspace_dir=ws)
             assert ws.exists()
             assert (ws / "cache").exists()
 

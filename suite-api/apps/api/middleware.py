@@ -1,4 +1,4 @@
-"""Middleware for correlation IDs, request logging, and observability."""
+"""Middleware for correlation IDs, request logging, security headers, and observability."""
 
 from __future__ import annotations
 
@@ -11,6 +11,51 @@ from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = get_logger(__name__)
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware to add security headers to all HTTP responses.
+
+    Sets industry-standard security headers recommended by OWASP:
+    - X-Content-Type-Options: Prevents MIME-type sniffing attacks
+    - X-Frame-Options: Prevents clickjacking attacks
+    - Referrer-Policy: Controls referrer information leakage
+    - Permissions-Policy: Restricts browser feature access
+    - Cache-Control: Prevents caching of sensitive API responses
+    - X-Permitted-Cross-Domain-Policies: Prevents Flash/PDF cross-domain data loading
+
+    Compliance mapping:
+    - SOC2 CC6.1 (Logical Access Security)
+    - PCI-DSS Req 6.5.9 (Cross-Site Request Forgery)
+    - OWASP A05:2021 (Security Misconfiguration)
+    """
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        response = await call_next(request)
+
+        # Prevent MIME-type sniffing (OWASP A05)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+
+        # Prevent clickjacking (OWASP A05, PCI-DSS 6.5.9)
+        response.headers["X-Frame-Options"] = "DENY"
+
+        # Control referrer information leakage
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+
+        # Restrict browser feature access
+        response.headers["Permissions-Policy"] = (
+            "camera=(), microphone=(), geolocation=(), payment=()"
+        )
+
+        # Prevent caching of API responses containing sensitive data
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+
+        # Prevent Flash/PDF cross-domain data loading
+        response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
+
+        return response
 
 
 class CorrelationIdMiddleware(BaseHTTPMiddleware):
@@ -107,4 +152,9 @@ try:
 except ImportError:
     LearningMiddleware = None  # type: ignore[assignment,misc]
 
-__all__ = ["CorrelationIdMiddleware", "RequestLoggingMiddleware", "LearningMiddleware"]
+__all__ = [
+    "CorrelationIdMiddleware",
+    "RequestLoggingMiddleware",
+    "SecurityHeadersMiddleware",
+    "LearningMiddleware",
+]

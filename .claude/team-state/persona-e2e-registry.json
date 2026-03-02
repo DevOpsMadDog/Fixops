@@ -1,14 +1,14 @@
 {
-  "generated": "2026-03-02T10:11:32Z",
+  "generated": "2026-03-02T11:58:50Z",
   "total_functions": 83,
   "tested_functions": 21,
   "personas": {
-    "agent-doctor": {"functions": 3, "tested": 0, "endpoints": 30, "pytest_files": 0},
-    "ai-researcher": {"functions": 6, "tested": 0, "endpoints": 30, "pytest_files": 0},
+    "agent-doctor": {"functions": 3, "tested": 0, "endpoints": 32, "pytest_files": 0},
+    "ai-researcher": {"functions": 6, "tested": 0, "endpoints": 31, "pytest_files": 0},
     "backend-hardener": {"functions": 9, "tested": 9, "endpoints": 84, "pytest_files": 0},
     "context-engineer": {"functions": 2, "tested": 0, "endpoints": 46, "pytest_files": 0},
     "data-scientist": {"functions": 4, "tested": 0, "endpoints": 49, "pytest_files": 0},
-    "devops-engineer": {"functions": 6, "tested": 0, "endpoints": 29, "pytest_files": 0},
+    "devops-engineer": {"functions": 6, "tested": 0, "endpoints": 31, "pytest_files": 0},
     "enterprise-architect": {"functions": 7, "tested": 0, "endpoints": 63, "pytest_files": 0},
     "frontend-craftsman": {"functions": 2, "tested": 0, "endpoints": 0, "pytest_files": 0},
     "marketing-head": {"functions": 1, "tested": 0, "endpoints": 14, "pytest_files": 0},
@@ -19,6 +19,6 @@
     "swarm-controller": {"functions": 3, "tested": 0, "endpoints": 26, "pytest_files": 0},
     "technical-writer": {"functions": 1, "tested": 0, "endpoints": 11, "pytest_files": 0},
     "threat-architect": {"functions": 13, "tested": 12, "endpoints": 111, "pytest_files": 0},
-    "vision-agent": {"functions": 7, "tested": 0, "endpoints": 31, "pytest_files": 0}
+    "vision-agent": {"functions": 7, "tested": 0, "endpoints": 35, "pytest_files": 0}
   }
 }

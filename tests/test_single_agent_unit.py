@@ -17,9 +17,7 @@ from __future__ import annotations
 import json
 import os
 import sys
-import tempfile
-import time
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 

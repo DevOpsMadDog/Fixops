@@ -20,11 +20,10 @@ import json
 import os
 import sys
 import time
-import hashlib
 import urllib.request
 import urllib.error
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 # ── Config ──────────────────────────────────────────────────────────────
 
@@ -717,7 +716,7 @@ def test_architecture_scanners(tracker: RegressionTracker, arch_key: str, arch: 
         "code": arch["python_code"], "language": "python", "app_id": f"{arch_key}-api"
     })
     findings = data.get("total_findings", 0) if isinstance(data, dict) else 0
-    tracker.check(f"SAST Python scan", code == 200 and findings > 0,
+    tracker.check("SAST Python scan", code == 200 and findings > 0,
                   f"{findings} findings", code, ms)
     tracker.store(f"{arch_key}_sast_python", findings)
 
@@ -726,7 +725,7 @@ def test_architecture_scanners(tracker: RegressionTracker, arch_key: str, arch: 
         "code": arch["java_code"], "language": "java", "app_id": f"{arch_key}-api"
     })
     findings = data.get("total_findings", 0) if isinstance(data, dict) else 0
-    tracker.check(f"SAST Java scan", code == 200, f"{findings} findings", code, ms)
+    tracker.check("SAST Java scan", code == 200, f"{findings} findings", code, ms)
     tracker.store(f"{arch_key}_sast_java", findings)
 
     # Secrets
@@ -737,7 +736,7 @@ def test_architecture_scanners(tracker: RegressionTracker, arch_key: str, arch: 
     secrets = 0
     if isinstance(data, dict):
         secrets = data.get("total_findings", data.get("secrets_found", len(data.get("findings", []))))
-    tracker.check(f"Secrets scan", code == 200 and secrets > 0,
+    tracker.check("Secrets scan", code == 200 and secrets > 0,
                   f"{secrets} secrets found", code, ms)
     tracker.store(f"{arch_key}_secrets", secrets)
 
@@ -746,7 +745,7 @@ def test_architecture_scanners(tracker: RegressionTracker, arch_key: str, arch: 
         "content": arch["dockerfile"], "filename": "Dockerfile"
     })
     container_f = data.get("total_findings", 0) if isinstance(data, dict) else 0
-    tracker.check(f"Container scan", code == 200 and container_f > 0,
+    tracker.check("Container scan", code == 200 and container_f > 0,
                   f"{container_f} findings", code, ms)
     tracker.store(f"{arch_key}_container", container_f)
 
@@ -755,7 +754,7 @@ def test_architecture_scanners(tracker: RegressionTracker, arch_key: str, arch: 
         "content": arch["terraform"], "filename": "main.tf"
     })
     iac_f = data.get("total_findings", 0) if isinstance(data, dict) else 0
-    tracker.check(f"Terraform IaC scan", code == 200,
+    tracker.check("Terraform IaC scan", code == 200,
                   f"{iac_f} findings", code, ms)
     tracker.store(f"{arch_key}_terraform", iac_f)
 
@@ -764,7 +763,7 @@ def test_architecture_scanners(tracker: RegressionTracker, arch_key: str, arch: 
         "content": arch["cloudformation"]
     })
     cf_f = data.get("total_findings", 0) if isinstance(data, dict) else 0
-    tracker.check(f"CloudFormation scan", code == 200,
+    tracker.check("CloudFormation scan", code == 200,
                   f"{cf_f} findings", code, ms)
     tracker.store(f"{arch_key}_cloudformation", cf_f)
 
@@ -772,7 +771,7 @@ def test_architecture_scanners(tracker: RegressionTracker, arch_key: str, arch: 
     code, data, ms = post("api/v1/malware/scan/content", {
         "content": arch["python_code"], "filename": f"{arch_key}_app.py"
     })
-    tracker.check(f"Malware scan", code == 200, "", code, ms)
+    tracker.check("Malware scan", code == 200, "", code, ms)
 
 
 def test_architecture_pipeline(tracker: RegressionTracker, arch_key: str, arch: Dict):

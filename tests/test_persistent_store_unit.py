@@ -13,10 +13,7 @@ Tests the PersistentDict key-value store including:
 - Multiple data types (strings, dicts, lists, numbers, booleans, None)
 """
 
-import json
-import os
 import sqlite3
-import tempfile
 from pathlib import Path
 
 import pytest

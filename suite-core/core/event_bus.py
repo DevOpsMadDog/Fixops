@@ -86,6 +86,12 @@ class EventType(str, Enum):
     COPILOT_RESPONSE = "copilot.response"
     DECISION_MADE = "decision.made"
 
+    # ML / Anomaly Detection [V3]
+    SCAN_ANOMALY_DETECTED = "scan.anomaly_detected"
+    SCAN_DRIFT_DETECTED = "scan.drift_detected"
+    MODEL_RETRAINED = "model.retrained"
+    PARSER_QUALITY_FAILED = "parser.quality_failed"
+
 
 @dataclass
 class Event:

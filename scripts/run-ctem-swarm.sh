@@ -210,6 +210,7 @@ AGENT_TURNS=(
   [swarm-controller]=100   # Coordination — moderate
   [security-analyst]=200   # Security review — moderate
   [qa-engineer]=200        # Testing — moderate
+  [persona-api-validator]=200 # Persona API validation — moderate
   [devops-engineer]=150    # Infrastructure — moderate
   [marketing-head]=80      # Docs — lightweight
   [technical-writer]=80    # Docs — lightweight
@@ -230,6 +231,7 @@ AGENT_MIN_RAM=(
   [swarm-controller]=500
   [security-analyst]=600
   [qa-engineer]=600
+  [persona-api-validator]=600
   [devops-engineer]=600
   [marketing-head]=400
   [technical-writer]=400
@@ -254,13 +256,13 @@ AGENT_MIN_RAM=(
 # Phase 10 → none (post-flight always runs)
 declare -A PHASE_DEPENDS_ON
 PHASE_DEPENDS_ON=(
-  [0]="none" [1]="0" [2]="1" [3]="1" [3.5]="1" [4]="3" [5]="1"
+  [0]="none" [1]="0" [2]="1" [3]="1" [3.5]="1" [4]="3" [4.5]="4" [5]="1"
   [6]="none" [7]="none" [8]="none" [9]="none" [10]="none"
 )
 # Track which phases succeeded/failed
 declare -A PHASE_STATUS  # "passed", "failed", "skipped"
 
-# ━━━ ALL 17 AGENTS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ━━━ ALL 18 AGENTS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 declare -A AGENT_PHASES
 AGENT_PHASES=(
   [vision-agent]="0,10"
@@ -275,6 +277,7 @@ AGENT_PHASES=(
   [swarm-controller]="3.5"
   [security-analyst]="4"
   [qa-engineer]="4"
+  [persona-api-validator]="4.5"
   [devops-engineer]="5"
   [marketing-head]="7"
   [technical-writer]="7"
@@ -397,6 +400,7 @@ AGENT SYSTEM (all claude-opus-4-6-fast):
   Phase 3:   backend-hardener, frontend-craftsman, threat-architect (parallel)
   Phase 3.5: swarm-controller + junior workers
   Phase 4:   security-analyst, qa-engineer (parallel)
+  Phase 4.5: persona-api-validator (persona API flows)
   Phase 5:   devops-engineer
   Phase 6:   Debate (3 rounds, all agents)
   Phase 7:   marketing-head, technical-writer, sales-engineer (parallel)
@@ -813,7 +817,259 @@ Use these insights to avoid duplicate work and build on their progress.
 "
   fi
 
+  # ── SELF-LEARNING: Inject known failure patterns from failure ledger ──
+  local failure_lessons
+  failure_lessons=$(load_failure_lessons "$agent_name" 2>/dev/null || echo "")
+  if [[ -n "$failure_lessons" ]]; then
+    retry_ctx+="
+## 🧠 SELF-LEARNING: Known Failure Patterns for '${agent_name}'
+The following failures have been recorded for this agent in previous runs.
+DO NOT repeat these mistakes. Use the recommended fixes.
+
+${failure_lessons}
+"
+  fi
+
   echo "$retry_ctx"
+}
+
+# ── Self-Learning Failure Ledger — Read/Write Functions ───────────────────
+# The failure ledger (.claude/team-state/failure-ledger.json) records every
+# fix-agent spawn: what failed, why, what category, and what fixed it.
+# Each swarm run consults the ledger to avoid repeating known failures.
+# This creates a feedback loop: more runs → smarter agents → fewer fix cycles.
+
+FAILURE_LEDGER="$PROJECT_ROOT/.claude/team-state/failure-ledger.json"
+
+# Load known failure patterns for a specific agent from the ledger
+load_failure_lessons() {
+  local agent_name="$1"
+  [[ ! -f "$FAILURE_LEDGER" ]] && return 0
+
+  # Write Python script to temp file to avoid bash quoting issues
+  local _py_tmp
+  _py_tmp=$(mktemp /tmp/fl_load_XXXXXX.py)
+  cat > "$_py_tmp" <<'PYEOF'
+import json, sys, os
+
+ledger_path = os.environ.get("FL_LEDGER", "")
+agent = os.environ.get("FL_AGENT", "")
+if not ledger_path or not agent:
+    sys.exit(0)
+
+try:
+    with open(ledger_path) as f:
+        ledger = json.load(f)
+except Exception:
+    sys.exit(0)
+
+lessons = []
+
+# 1. Known patterns affecting this agent
+for kp in ledger.get("known_patterns", []):
+    if not kp.get("resolved", False) and agent in kp.get("affected_agents", []):
+        lessons.append("WARNING KNOWN PATTERN [{}] ({}): {}".format(
+            kp["pattern_id"], kp["category"], kp["description"]))
+        lessons.append("   Recommended fix: {}".format(kp["recommended_fix"]))
+
+# 2. Past fix attempts for this agent (last 5)
+attempts = [a for a in ledger.get("fix_attempts", []) if a.get("failed_agent") == agent]
+if attempts:
+    for a in attempts[-5:]:
+        status = "OK" if a.get("fix_successful") else "FAIL"
+        lessons.append("{} Previous fix ({}): {} -- {}".format(
+            status, a.get("date", "?"), a.get("category", "?"),
+            a.get("lessons_learned", "no notes")))
+
+# 3. Statistics
+stats = ledger.get("statistics", {})
+if stats.get("success_rate", 0) < 0.3:
+    lessons.append("Overall fix success rate: {:.0f}% -- fix-agent system itself may need repair".format(
+        stats.get("success_rate", 0) * 100))
+
+if lessons:
+    print("\n".join(lessons))
+PYEOF
+
+  FL_LEDGER="$FAILURE_LEDGER" FL_AGENT="$agent_name" python3 "$_py_tmp" 2>/dev/null || true
+  rm -f "$_py_tmp" 2>/dev/null || true
+}
+
+# Record a fix attempt in the failure ledger (called after every fix-agent run)
+record_fix_attempt() {
+  local failed_agent="$1"
+  local failure_reason="$2"
+  local category="$3"
+  local fix_cycle="$4"
+  local fix_successful="$5"  # true/false
+  local fix_exit_code="$6"
+  local fix_output_bytes="$7"
+  local files_modified="$8"
+  local lessons="$9"
+
+  [[ ! -f "$FAILURE_LEDGER" ]] && return 0
+
+  # Write Python script to temp file to avoid bash quoting issues
+  local _py_tmp
+  _py_tmp=$(mktemp /tmp/fl_record_XXXXXX.py)
+  cat > "$_py_tmp" <<'PYEOF'
+import json, sys, os
+
+ledger_path = os.environ.get("FL_LEDGER", "")
+if not ledger_path:
+    sys.exit(0)
+
+try:
+    with open(ledger_path) as f:
+        ledger = json.load(f)
+except Exception:
+    sys.exit(0)
+
+# Read env vars
+failed_agent = os.environ.get("FL_AGENT", "unknown")
+failure_reason = os.environ.get("FL_REASON", "unknown")[:500]
+category = os.environ.get("FL_CATEGORY", "unknown")
+fix_cycle = int(os.environ.get("FL_CYCLE", "1") or "1")
+fix_successful = os.environ.get("FL_SUCCESS", "false") == "true"
+fix_exit_code = int(os.environ.get("FL_EXIT", "1") or "1")
+fix_output_bytes = int(os.environ.get("FL_BYTES", "0") or "0")
+files_modified_str = os.environ.get("FL_FILES", "")
+lessons = os.environ.get("FL_LESSONS", "No lessons captured")
+run_id = os.environ.get("FL_RUN_ID", "unknown")
+today = os.environ.get("FL_DATE", "unknown")
+
+# Auto-classify category
+if not category or category == "unknown":
+    reason_lower = failure_reason.lower()
+    if "import" in reason_lower or "module" in reason_lower:
+        category = "IMPORT_ERROR"
+    elif "syntax" in reason_lower:
+        category = "SYNTAX_ERROR"
+    elif "test" in reason_lower or "assert" in reason_lower:
+        category = "TEST_FAILURE"
+    elif "timeout" in reason_lower or "timed out" in reason_lower:
+        category = "TIMEOUT"
+    elif "permission" in reason_lower:
+        category = "PERMISSION_ERROR"
+    elif "0 bytes" in reason_lower or "empty" in reason_lower:
+        category = "EMPTY_OUTPUT"
+    else:
+        category = "CONFIG_ISSUE"
+
+# Count existing attempts to generate next ID
+existing = len(ledger.get("fix_attempts", []))
+attempt_id = "FA-{:04d}".format(existing + 1)
+
+attempt = {
+    "id": attempt_id,
+    "date": today,
+    "run_id": run_id,
+    "failed_agent": failed_agent,
+    "failure_reason": failure_reason,
+    "category": category,
+    "fix_cycle": fix_cycle,
+    "fix_successful": fix_successful,
+    "fix_exit_code": fix_exit_code,
+    "fix_output_bytes": fix_output_bytes,
+    "files_modified": [f for f in files_modified_str.split(",") if f],
+    "lessons_learned": lessons
+}
+
+ledger.setdefault("fix_attempts", []).append(attempt)
+
+# Update statistics
+attempts = ledger["fix_attempts"]
+successful = sum(1 for a in attempts if a.get("fix_successful"))
+agent_fail_counts = {}
+category_counts = {}
+for a in attempts:
+    ag = a.get("failed_agent", "?")
+    cat = a.get("category", "?")
+    if not a.get("fix_successful"):
+        agent_fail_counts[ag] = agent_fail_counts.get(ag, 0) + 1
+    category_counts[cat] = category_counts.get(cat, 0) + 1
+
+ledger["statistics"] = {
+    "total_fix_attempts": len(attempts),
+    "successful_fixes": successful,
+    "failed_fixes": len(attempts) - successful,
+    "success_rate": round(successful / len(attempts), 3) if attempts else 0.0,
+    "most_failing_agents": sorted(agent_fail_counts, key=agent_fail_counts.get, reverse=True)[:5],
+    "most_common_category": max(category_counts, key=category_counts.get) if category_counts else "unknown",
+    "last_updated": today
+}
+
+# Check if this matches a known pattern
+matching_pattern = None
+for kp in ledger.get("known_patterns", []):
+    if category == kp.get("category") and failed_agent in kp.get("affected_agents", []):
+        matching_pattern = kp["pattern_id"]
+        break
+
+if matching_pattern:
+    attempt["pattern_id"] = matching_pattern
+
+# Auto-create pattern if 3+ same failures without existing pattern
+same_failures = [a for a in attempts
+                 if a["failed_agent"] == failed_agent
+                 and a.get("category") == category
+                 and not a.get("fix_successful")]
+if len(same_failures) >= 3 and not matching_pattern:
+    patterns = ledger.setdefault("known_patterns", [])
+    next_id = "KP-{:03d}".format(len(patterns) + 1)
+    patterns.append({
+        "pattern_id": next_id,
+        "category": category,
+        "description": "Recurring {} in {}: {}".format(category, failed_agent, failure_reason[:200]),
+        "affected_agents": [failed_agent],
+        "frequency": "{} occurrences".format(len(same_failures)),
+        "root_cause": "Auto-detected recurring pattern -- needs manual root cause analysis",
+        "recommended_fix": "Investigate the repeated {} failures for this agent".format(category),
+        "first_seen": same_failures[0].get("date", "?"),
+        "last_seen": today,
+        "resolved": False
+    })
+
+with open(ledger_path, "w") as f:
+    json.dump(ledger, f, indent=2)
+PYEOF
+
+  FL_LEDGER="$FAILURE_LEDGER" \
+  FL_AGENT="$failed_agent" \
+  FL_REASON="$failure_reason" \
+  FL_CATEGORY="$category" \
+  FL_CYCLE="$fix_cycle" \
+  FL_SUCCESS="$fix_successful" \
+  FL_EXIT="$fix_exit_code" \
+  FL_BYTES="$fix_output_bytes" \
+  FL_FILES="$files_modified" \
+  FL_LESSONS="$lessons" \
+  FL_RUN_ID="${RUN_ID:-unknown}" \
+  FL_DATE="$(date +%Y-%m-%d)" \
+  python3 "$_py_tmp" 2>/dev/null || true
+  rm -f "$_py_tmp" 2>/dev/null || true
+}
+
+# Broadcast failure alert to team (cross-agent notification)
+broadcast_failure_alert() {
+  local failed_agent="$1"
+  local category="$2"
+  local description="$3"
+
+  local alerts_file="$STATE_DIR/failure-alerts.md"
+
+  # Append to the shared alerts file that all agents read
+  cat >> "$alerts_file" <<ALERT_EOF
+
+---
+### ⚠️ Failure Alert — $(date +%Y-%m-%dT%H:%M:%S)
+- **Agent**: ${failed_agent}
+- **Category**: ${category}
+- **Issue**: ${description}
+- **Action Needed**: If your work touches the same files or APIs, verify your changes don't have the same issue.
+ALERT_EOF
+
+  log "SELF-LEARNING: Failure alert broadcast for ${failed_agent} (${category})"
 }
 
 # ── Auto-Commit After Successful Swarm ────────────────────────────────────
@@ -1928,6 +2184,9 @@ ${failure_tail}
 RECENTLY MODIFIED FILES:
 ${recent_changes}
 
+SELF-LEARNING — KNOWN FAILURE HISTORY FOR THIS AGENT:
+$(load_failure_lessons "${failed_agent}" 2>/dev/null || echo "(no prior failures recorded)")
+
 YOUR MISSION (in order):
 1. READ the error patterns above carefully
 2. IDENTIFY the root cause — is it a syntax error? import error? missing file? test failure? config issue?
@@ -2009,17 +2268,32 @@ CRITICAL RULES:
 
       if $fix_verified; then
         success "CONTROLLER: Fix verified — all modified files pass syntax check"
+        # ── SELF-LEARNING: Record successful fix ──
+        local modified_files_csv
+        modified_files_csv=$(git -C "$PROJECT_ROOT" diff --name-only HEAD 2>/dev/null | head -10 | tr '\n' ',' | sed 's/,$//')
+        record_fix_attempt "$failed_agent" "$failure_reason" "unknown" "$fix_cycle" "true" "$fix_exit" "$fix_size" "$modified_files_csv" "Fix verified — syntax check passed, code changes applied"
+        log "SELF-LEARNING: Recorded successful fix for ${failed_agent} in failure ledger"
         return 0
       else
         warn "CONTROLLER: Fix introduced new errors — will try again"
+        # ── SELF-LEARNING: Record failed fix (introduced new errors) ──
+        record_fix_attempt "$failed_agent" "$failure_reason" "SYNTAX_ERROR" "$fix_cycle" "false" "$fix_exit" "$fix_size" "" "Fix introduced new syntax errors in modified files"
+        broadcast_failure_alert "$failed_agent" "SYNTAX_ERROR" "Fix agent introduced syntax errors while trying to repair ${failed_agent}"
         return 1
       fi
     else
       warn "CONTROLLER: Fix-agent ran but made no code changes"
+      # ── SELF-LEARNING: Record failed fix (no changes made) ──
+      record_fix_attempt "$failed_agent" "$failure_reason" "unknown" "$fix_cycle" "false" "$fix_exit" "$fix_size" "" "Fix agent ran but made no code changes"
       return 1
     fi
   else
     warn "CONTROLLER: Fix-agent failed (exit: ${fix_exit}, output: ${fix_size} bytes)"
+    # ── SELF-LEARNING: Record failed fix (agent failed or empty output) ──
+    local fail_category="EMPTY_OUTPUT"
+    [[ $fix_exit -ne 0 ]] && fail_category="TIMEOUT"
+    record_fix_attempt "$failed_agent" "$failure_reason" "$fail_category" "$fix_cycle" "false" "$fix_exit" "$fix_size" "" "Fix agent failed with exit code ${fix_exit} and ${fix_size} bytes output"
+    broadcast_failure_alert "$failed_agent" "$fail_category" "Fix agent for ${failed_agent} failed (exit: ${fix_exit}, output: ${fix_size} bytes)"
     return 1
   fi
 }
@@ -2861,6 +3135,7 @@ verify_agent_personas() {
   PERSONA_TITLE["technical-writer"]="Technical Documentation Lead"
   PERSONA_TITLE["sales-engineer"]="Solutions Engineering Lead"
   PERSONA_TITLE["scrum-master"]="Agile Delivery Lead"
+  PERSONA_TITLE["persona-api-validator"]="Persona API Validation Lead"
 
   # What each persona MUST produce (keywords in their output proving real work)
   declare -A PERSONA_MARKERS
@@ -2881,11 +3156,12 @@ verify_agent_personas() {
   PERSONA_MARKERS["technical-writer"]="document|guide|reference|api.doc|tutorial|readme"
   PERSONA_MARKERS["sales-engineer"]="demo|poc|solution|enterprise|pricing|objection"
   PERSONA_MARKERS["scrum-master"]="sprint|standup|velocity|backlog|retrospective|board"
+  PERSONA_MARKERS["persona-api-validator"]="persona|newman|postman|workflow|pass.rate|collection"
 
   local all_agents=("vision-agent" "agent-doctor" "context-engineer" "ai-researcher" \
     "data-scientist" "enterprise-architect" "backend-hardener" "frontend-craftsman" \
     "threat-architect" "swarm-controller" "security-analyst" "qa-engineer" \
-    "devops-engineer" "marketing-head" "technical-writer" "sales-engineer" "scrum-master")
+    "persona-api-validator" "devops-engineer" "marketing-head" "technical-writer" "sales-engineer" "scrum-master")
 
   local persona_rows=""
   local api_test_rows=""
@@ -6370,7 +6646,7 @@ generate_daily_digest() {
   local all_agents=("vision-agent" "agent-doctor" "context-engineer" "ai-researcher" \
     "data-scientist" "enterprise-architect" "backend-hardener" "frontend-craftsman" \
     "threat-architect" "swarm-controller" "security-analyst" "qa-engineer" \
-    "devops-engineer" "marketing-head" "technical-writer" "sales-engineer" "scrum-master")
+    "persona-api-validator" "devops-engineer" "marketing-head" "technical-writer" "sales-engineer" "scrum-master")
 
   for agent in "${all_agents[@]}"; do
     ((total_agents++))

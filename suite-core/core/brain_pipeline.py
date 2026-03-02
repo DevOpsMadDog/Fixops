@@ -126,6 +126,11 @@ class PipelineResult:
     finished_at: Optional[str] = None
     total_duration_ms: float = 0
     steps: List[StepResult] = field(default_factory=list)
+    # Progress tracking [V3] — enables real-time UI updates
+    current_step: str = ""
+    current_step_index: int = 0
+    total_steps: int = 12
+    progress_percent: float = 0.0
     # Summaries
     findings_ingested: int = 0
     clusters_created: int = 0
@@ -153,6 +158,10 @@ class PipelineResult:
             "started_at": self.started_at,
             "finished_at": self.finished_at,
             "total_duration_ms": round(self.total_duration_ms, 2),
+            "current_step": self.current_step,
+            "current_step_index": self.current_step_index,
+            "total_steps": self.total_steps,
+            "progress_percent": round(self.progress_percent, 1),
             "steps": [s.to_dict() for s in self.steps],
             "summary": {
                 "findings_ingested": self.findings_ingested,
@@ -361,6 +370,11 @@ class BrainPipeline:
             t0 = time.monotonic()
             findings_in = len(ctx.get("findings", []))
 
+            # [V3] Progress tracking — update current step for UI polling
+            result.current_step = step.name
+            result.current_step_index = idx
+            result.progress_percent = round((idx / len(step_funcs)) * 100, 1)
+
             try:
                 step.output = func(ctx, inp) or {}
                 step.status = StepStatus.COMPLETED
@@ -385,6 +399,9 @@ class BrainPipeline:
 
         result.total_duration_ms = (time.monotonic() - pipeline_start) * 1000
         result.finished_at = datetime.now(timezone.utc).isoformat()
+        # [V3] Final progress update
+        result.current_step = ""
+        result.progress_percent = 100.0
 
         # Populate summary
         result.findings_ingested = len(inp.findings)
@@ -505,6 +522,37 @@ class BrainPipeline:
         with self._lock:
             return list(self._metrics[-limit:])
 
+    def get_progress(self, run_id: str) -> Optional[Dict[str, Any]]:
+        """Get lightweight progress info for a running pipeline.
+
+        [V3] Decision Intelligence — enables real-time UI progress bars.
+        Returns only essential fields to minimize serialization overhead.
+        """
+        with self._lock:
+            run = self._runs.get(run_id)
+            if run is None:
+                return None
+            # For running pipelines, compute elapsed from start time
+            if run.status == PipelineStatus.RUNNING:
+                try:
+                    started = datetime.fromisoformat(run.started_at)
+                    elapsed_ms = (
+                        datetime.now(timezone.utc) - started
+                    ).total_seconds() * 1000
+                except (ValueError, TypeError):
+                    elapsed_ms = run.total_duration_ms
+            else:
+                elapsed_ms = run.total_duration_ms
+            return {
+                "run_id": run.run_id,
+                "status": run.status.value,
+                "current_step": run.current_step,
+                "current_step_index": run.current_step_index,
+                "total_steps": run.total_steps,
+                "progress_percent": round(run.progress_percent, 1),
+                "elapsed_ms": round(elapsed_ms, 2),
+            }
+
     def get_run(self, run_id: str) -> Optional[PipelineResult]:
         with self._lock:
             return self._runs.get(run_id)
@@ -531,7 +579,21 @@ class BrainPipeline:
     def _step_normalize(
         self, ctx: Dict[str, Any], inp: PipelineInput
     ) -> Dict[str, Any]:
-        """Ensure every finding has a canonical shape."""
+        """Ensure every finding has a canonical shape and validate parser quality.
+
+        [V7] MCP-Native Platform — validates parser output quality.
+        [V3] Decision Intelligence — garbage-in-garbage-out protection.
+
+        After normalization, runs ParserQualityValidator to check:
+        - Required fields present
+        - Severity values valid
+        - Severity distributions within expected bounds
+        - CVE/CWE format correctness
+        - Deduplication readiness
+
+        Quality validation runs defensively — failures do NOT block the pipeline,
+        but quality metrics are attached to the step output for observability.
+        """
         normalized = 0
         for f in ctx["findings"]:
             f.setdefault("severity", "medium")
@@ -541,7 +603,47 @@ class BrainPipeline:
             f.setdefault("cve_id", None)
             f.setdefault("asset_name", f.get("asset", f.get("component", "unknown")))
             normalized += 1
-        return {"normalized_count": normalized}
+
+        # [V7] Parser quality validation — validate normalized findings
+        quality_result = None
+        try:
+            from core.ml.parser_quality import ParserQualityValidator
+            validator = ParserQualityValidator()
+
+            # Determine scanner type from input metadata or first finding
+            scanner_type = inp.metadata.get("scanner_type", "")
+            if not scanner_type and ctx["findings"]:
+                scanner_type = ctx["findings"][0].get(
+                    "scanner_source",
+                    ctx["findings"][0].get("source", inp.source),
+                )
+
+            quality_result = validator.validate_findings(
+                ctx["findings"], scanner_type=scanner_type or "unknown"
+            )
+
+            # Attach quality metrics to context for downstream steps
+            ctx["parser_quality"] = quality_result.to_dict()
+
+            # Log quality issues if any
+            if quality_result.issues:
+                logger.info(
+                    "Parser quality: score=%.1f, errors=%d, warnings=%d for scanner=%s",
+                    quality_result.quality_score,
+                    quality_result.error_count,
+                    quality_result.warning_count,
+                    scanner_type,
+                )
+        except Exception as e:
+            logger.debug("Parser quality validation skipped: %s", type(e).__name__)
+
+        result = {"normalized_count": normalized}
+        if quality_result is not None:
+            result["parser_quality_score"] = round(quality_result.quality_score, 2)
+            result["parser_quality_passes"] = quality_result.passes
+            result["parser_quality_errors"] = quality_result.error_count
+            result["parser_quality_warnings"] = quality_result.warning_count
+        return result
 
     # ------------------------------------------------------------------
     # Step 3: Fix identity confusion (Fuzzy matching)
@@ -804,57 +906,69 @@ class BrainPipeline:
             nodes_added += 1
 
         # Upsert finding nodes + edges in batches for scalability
+        # [V3] Error isolation: per-finding error handling prevents one bad
+        # finding from crashing the entire graph step.
         findings = ctx["findings"]
+        graph_errors = 0
         for batch_start in range(0, len(findings), self.GRAPH_BATCH_SIZE):
             batch = findings[batch_start : batch_start + self.GRAPH_BATCH_SIZE]
             for f in batch:
-                fid = f.get("id", f.get("rule_id", uuid.uuid4().hex[:12]))
-                brain.upsert_node(
-                    GraphNode(
-                        node_id=fid,
-                        node_type=EntityType.FINDING,
-                        org_id=ctx["org_id"],
-                        properties={
-                            "title": f.get("title"),
-                            "severity": f.get("severity"),
-                        },
-                    )
-                )
-                nodes_added += 1
-
-                # Link finding → asset
-                asset_id = f.get("canonical_asset_id", f.get("asset_name"))
-                if asset_id:
-                    brain.add_edge(
-                        GraphEdge(
-                            source_id=fid,
-                            target_id=asset_id,
-                            edge_type=EdgeType.AFFECTS,
+                try:
+                    fid = f.get("id", f.get("rule_id", uuid.uuid4().hex[:12]))
+                    brain.upsert_node(
+                        GraphNode(
+                            node_id=fid,
+                            node_type=EntityType.FINDING,
+                            org_id=ctx["org_id"],
+                            properties={
+                                "title": f.get("title"),
+                                "severity": f.get("severity"),
+                            },
                         )
                     )
-                    edges_added += 1
+                    nodes_added += 1
 
-                # Link finding → CVE (deduplicated node creation)
-                cve = f.get("cve_id")
-                if cve:
-                    if cve not in seen_cves:
-                        brain.upsert_node(
-                            GraphNode(
-                                node_id=cve,
-                                node_type=EntityType.CVE,
-                                org_id=ctx["org_id"],
+                    # Link finding → asset
+                    asset_id = f.get("canonical_asset_id", f.get("asset_name"))
+                    if asset_id:
+                        brain.add_edge(
+                            GraphEdge(
+                                source_id=fid,
+                                target_id=asset_id,
+                                edge_type=EdgeType.AFFECTS,
                             )
                         )
-                        seen_cves.add(cve)
-                        nodes_added += 1
-                    brain.add_edge(
-                        GraphEdge(
-                            source_id=fid,
-                            target_id=cve,
-                            edge_type=EdgeType.REFERENCES,
+                        edges_added += 1
+
+                    # Link finding → CVE (deduplicated node creation)
+                    cve = f.get("cve_id")
+                    if cve:
+                        if cve not in seen_cves:
+                            brain.upsert_node(
+                                GraphNode(
+                                    node_id=cve,
+                                    node_type=EntityType.CVE,
+                                    org_id=ctx["org_id"],
+                                )
+                            )
+                            seen_cves.add(cve)
+                            nodes_added += 1
+                        brain.add_edge(
+                            GraphEdge(
+                                source_id=fid,
+                                target_id=cve,
+                                edge_type=EdgeType.REFERENCES,
+                            )
                         )
-                    )
-                    edges_added += 1
+                        edges_added += 1
+                except Exception as graph_err:
+                    graph_errors += 1
+                    if graph_errors <= 5:
+                        logger.warning(
+                            "Graph upsert error for finding %s: %s",
+                            f.get("id", "unknown"),
+                            type(graph_err).__name__,
+                        )
 
         # Link exposure cases
         for case_id in ctx.get("exposure_cases", []):
@@ -869,13 +983,17 @@ class BrainPipeline:
 
         stats = brain.stats()
         ctx["graph_stats"] = stats
-        return {
+        result = {
             "nodes_added": nodes_added,
             "edges_added": edges_added,
             "unique_cves": len(seen_cves),
             "total_nodes": stats.get("total_nodes", 0),
             "total_edges": stats.get("total_edges", 0),
         }
+        if graph_errors > 0:
+            result["graph_errors"] = graph_errors
+            logger.warning("Graph step completed with %d errors", graph_errors)
+        return result
 
     # ------------------------------------------------------------------
     # Step 6: Add threat reality signals (EPSS, KEV, CVSS)
@@ -982,7 +1100,7 @@ class BrainPipeline:
             risk_model = get_risk_model()
             ml_available = risk_model.is_trained
         except Exception as e:
-            logger.debug("ML risk scorer unavailable: %s", e)
+            logger.debug("ML risk scorer unavailable: %s", type(e).__name__)
 
         scores = []
         predictions_meta = []
@@ -1030,7 +1148,7 @@ class BrainPipeline:
                         "base_value": round(explanation.base_value / 100.0, 4),
                     }
                 except Exception as expl_err:
-                    logger.debug("SHAP explanation failed: %s", expl_err)
+                    logger.debug("SHAP explanation failed: %s", type(expl_err).__name__)
                 predictions_meta.append({
                     "model": pred.model_version,
                     "ci_width": pred.confidence_width,
@@ -1336,6 +1454,18 @@ class BrainPipeline:
             return {"executed": 0, "reason": "no actionable findings"}
 
         playbook_results = []
+
+        # Hoist AutoFixEngine creation outside the loop to avoid
+        # re-instantiation per finding (perf: O(1) init vs O(n) init)
+        autofix_engine = None
+        block_findings = [f for f in actionable if f.get("policy_action") == "block" and f.get("cve_id")]
+        if block_findings:
+            try:
+                from core.autofix_engine import AutoFixEngine
+                autofix_engine = AutoFixEngine()
+            except Exception:
+                pass
+
         for f in actionable:
             action = f.get("policy_action", "review")
             pb = {
@@ -1348,20 +1478,20 @@ class BrainPipeline:
             }
             # Attempt autofix for block actions
             if action == "block" and f.get("cve_id"):
-                try:
-                    from core.autofix_engine import AutoFixEngine
-
-                    engine = AutoFixEngine()
-                    fix = engine.generate_fix(
-                        vulnerability={
-                            "cve_id": f["cve_id"],
-                            "severity": f.get("severity", "high"),
-                        },
-                        code_context=f.get("code_context", {}),
-                    )
-                    pb["autofix"] = {"status": "generated", "fix_id": fix.get("fix_id")}
-                except Exception:
-                    pb["autofix"] = {"status": "skipped"}
+                if autofix_engine is not None:
+                    try:
+                        fix = autofix_engine.generate_fix(
+                            vulnerability={
+                                "cve_id": f["cve_id"],
+                                "severity": f.get("severity", "high"),
+                            },
+                            code_context=f.get("code_context", {}),
+                        )
+                        pb["autofix"] = {"status": "generated", "fix_id": fix.get("fix_id")}
+                    except Exception:
+                        pb["autofix"] = {"status": "skipped"}
+                else:
+                    pb["autofix"] = {"status": "skipped", "reason": "engine_unavailable"}
             playbook_results.append(pb)
 
         ctx["playbook_results"] = playbook_results
@@ -1470,7 +1600,7 @@ class BrainPipeline:
                 loop.run_until_complete(bus.emit(event))
                 loop.close()
         except Exception as e:
-            logger.debug("Event emission skipped: %s", e)
+            logger.debug("Event emission skipped: %s", type(e).__name__)
 
     def _run_anomaly_check(
         self, result: PipelineResult
@@ -1508,7 +1638,7 @@ class BrainPipeline:
                 )
             return anomaly.to_dict()
         except Exception as e:
-            logger.debug("Anomaly detection skipped: %s", e)
+            logger.debug("Anomaly detection skipped: %s", type(e).__name__)
             return None
 
 

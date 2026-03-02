@@ -59,24 +59,24 @@ def make_id_prereq(list_path: str, id_field: str, env_var: str) -> list:
     return [
         f"// Auto-capture {env_var} from list endpoint",
         f"var listUrl = pm.environment.get('apiBase') + '/{list_path}';",
-        f"pm.sendRequest({{",
-        f"    url: listUrl,",
-        f"    method: 'GET',",
-        f"    header: {{ 'X-API-Key': pm.environment.get('apiKey') }}",
-        f"}}, function(err, res) {{",
-        f"    if (!err && res.code === 200) {{",
-        f"        try {{",
-        f"            var body = res.json();",
-        f"            var items = body.tasks || body.items || body.data || body.workflows ||",
-        f"                        body.cases || body.fixes || body.policies || body.reports ||",
-        f"                        body.bundles || body.comments || body.activities || [];",
-        f"            if (Array.isArray(items) && items.length > 0) {{",
+        "pm.sendRequest({",
+        "    url: listUrl,",
+        "    method: 'GET',",
+        "    header: { 'X-API-Key': pm.environment.get('apiKey') }",
+        "}, function(err, res) {",
+        "    if (!err && res.code === 200) {",
+        "        try {",
+        "            var body = res.json();",
+        "            var items = body.tasks || body.items || body.data || body.workflows ||",
+        "                        body.cases || body.fixes || body.policies || body.reports ||",
+        "                        body.bundles || body.comments || body.activities || [];",
+        "            if (Array.isArray(items) && items.length > 0) {",
         f"                var id = items[0].{id_field} || items[0].id || items[0].task_id || items[0].fix_id;",
         f"                if (id) pm.environment.set('{env_var}', id);",
-        f"            }}",
-        f"        }} catch(e) {{}}",
-        f"    }}",
-        f"}});",
+        "            }",
+        "        } catch(e) {}",
+        "    }",
+        "});",
     ]
 
 
@@ -345,7 +345,7 @@ def fix_col5_item(item: dict) -> dict:
     req = item.get("request", {})
     url = req.get("url", {})
     raw = url.get("raw", "") if isinstance(url, dict) else str(url)
-    method = req.get("method", "GET")
+    req.get("method", "GET")
     name = item.get("name", "")
 
     # Fix 1: audit/chain/verify — exists, but "Audit Chain Status" was duplicate

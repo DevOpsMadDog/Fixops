@@ -8,6 +8,7 @@ rule evaluation with severity/threshold/pattern matching.
 """
 from __future__ import annotations
 
+import json
 import re
 import uuid
 from datetime import datetime, timezone
@@ -18,7 +19,7 @@ from core.persistent_store import PersistentDict
 from core.policy_db import PolicyDB
 from core.policy_models import Policy, PolicyStatus
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 router = APIRouter(prefix="/api/v1/policies", tags=["policies"])
 db = PolicyDB()
@@ -33,24 +34,58 @@ class PolicyCreate(BaseModel):
     """Request model for creating a policy."""
 
     name: str = Field(..., min_length=1, max_length=255)
-    description: str
+    description: str = Field(..., max_length=10000)
     policy_type: str = Field(
-        ..., description="Policy type (guardrail, compliance, custom)"
+        ..., max_length=64, description="Policy type (guardrail, compliance, custom)"
     )
     status: PolicyStatus = PolicyStatus.DRAFT
     rules: Dict[str, Any] = Field(default_factory=dict)
     metadata: Dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("rules")
+    @classmethod
+    def validate_rules_size(cls, v: Dict[str, Any]) -> Dict[str, Any]:
+        serialized = json.dumps(v, separators=(",", ":"))
+        if len(serialized.encode("utf-8")) > 100 * 1024:
+            raise ValueError("rules payload must not exceed 100KB when serialized")
+        return v
+
+    @field_validator("metadata")
+    @classmethod
+    def validate_metadata_size(cls, v: Dict[str, Any]) -> Dict[str, Any]:
+        serialized = json.dumps(v, separators=(",", ":"))
+        if len(serialized.encode("utf-8")) > 100 * 1024:
+            raise ValueError("metadata payload must not exceed 100KB when serialized")
+        return v
 
 
 class PolicyUpdate(BaseModel):
     """Request model for updating a policy."""
 
     name: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = None
-    policy_type: Optional[str] = None
+    description: Optional[str] = Field(None, max_length=10000)
+    policy_type: Optional[str] = Field(None, max_length=64)
     status: Optional[PolicyStatus] = None
     rules: Optional[Dict[str, Any]] = None
     metadata: Optional[Dict[str, Any]] = None
+
+    @field_validator("rules")
+    @classmethod
+    def validate_rules_size(cls, v: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        if v is not None:
+            serialized = json.dumps(v, separators=(",", ":"))
+            if len(serialized.encode("utf-8")) > 100 * 1024:
+                raise ValueError("rules payload must not exceed 100KB when serialized")
+        return v
+
+    @field_validator("metadata")
+    @classmethod
+    def validate_metadata_size(cls, v: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        if v is not None:
+            serialized = json.dumps(v, separators=(",", ":"))
+            if len(serialized.encode("utf-8")) > 100 * 1024:
+                raise ValueError("metadata payload must not exceed 100KB when serialized")
+        return v
 
 
 class PolicyResponse(BaseModel):

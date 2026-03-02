@@ -1,0 +1,13 @@
+{
+  "agent": "vision-agent",
+  "status": "completed",
+  "run_id": "swarm-2026-03-02_21-16-13",
+  "timestamp": "2026-03-02T10:22:34Z",
+  "duration_s": 379,
+  "attempts": 1,
+  "output_bytes": 1403,
+  "confidence": "HIGH",
+  "free_ram_mb": 8795,
+  "git_changes": " ...-agent_swarm-2026-03-02_21-16-13.log.prompt.tmp |     78 -  logs/jarvis/daily-digest-2026-03-02.md             |     35 +-  logs/jarvis/run-3-20260302_182111.log              |    192 +  logs/jarvis/run-4-20260302_211613.log              |     51 +  35 files changed, 131504 insertions(+), 110327 deletions(-) ",
+  "log_file": "/Users/devops.ai/developement/fixops/Fixops/logs/ai-team/2026-03-02_vision-agent_swarm-2026-03-02_21-16-13.log"
+}

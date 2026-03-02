@@ -1,0 +1,636 @@
+{
+  "architecture": {
+    "name": "MedSecure Healthcare SaaS",
+    "version": "2.0.0",
+    "date": "2026-03-02",
+    "cloud": "Azure",
+    "region": "eastus2",
+    "secondary_region": "westus2",
+    "compliance": ["HIPAA-BAA", "SOC2-Type-II", "HITRUST-CSF", "HL7-FHIR-R4"],
+    "description": "Enterprise healthcare SaaS platform serving hospitals, clinics, and payers. Multi-tenant AKS deployment with FHIR R4 interoperability, PHI-hardened data tier, and EHR integrations with Epic and Cerner. All PHI encrypted at rest (AES-256) and in transit (TLS 1.3). HIPAA BAA in place with Azure."
+  },
+  "components": [
+    {
+      "id": "C001",
+      "name": "Angular 17 SPA (Patient Portal)",
+      "type": "frontend",
+      "technology": "Angular 17.1, TypeScript 5.3, RxJS 7.8, Angular Material 17.1",
+      "tier": "presentation",
+      "exposed": true,
+      "data_classification": "PHI",
+      "hipaa_scope": true,
+      "notes": "Patient-facing portal for scheduling, lab results, billing, and messaging. CSP enforced. No PHI stored in localStorage."
+    },
+    {
+      "id": "C002",
+      "name": "Azure Front Door CDN",
+      "type": "cdn",
+      "technology": "Azure Front Door Standard Tier (AFD-Standard-AzureFrontDoor)",
+      "tier": "edge",
+      "exposed": true,
+      "hipaa_scope": false,
+      "notes": "Global CDN and load balancer. Anycast routing. TLS 1.3 termination. DDoS protection included. No PHI cached at edge."
+    },
+    {
+      "id": "C003",
+      "name": "Azure WAF",
+      "type": "waf",
+      "technology": "Azure Web Application Firewall (DRS 2.1 managed ruleset + custom OWASP rules)",
+      "tier": "edge",
+      "exposed": true,
+      "hipaa_scope": false,
+      "notes": "OWASP Top 10 blocking mode. Custom rules for HIPAA-specific attack patterns (SQL injection targeting PHI fields, path traversal)."
+    },
+    {
+      "id": "C004",
+      "name": "Azure Application Gateway v2",
+      "type": "load_balancer",
+      "technology": "Azure Application Gateway v2 (WAF_v2 SKU), Zone-redundant",
+      "tier": "network",
+      "exposed": false,
+      "hipaa_scope": false,
+      "notes": "Layer 7 load balancer with SSL offload, cookie-based session affinity, and URL-based routing to AKS ingress. Health probes per service."
+    },
+    {
+      "id": "C005",
+      "name": "AKS Cluster (Application Workloads)",
+      "type": "container_platform",
+      "technology": "Azure Kubernetes Service 1.28.5, containerd 1.7, Azure CNI Overlay, Calico network policies",
+      "tier": "infrastructure",
+      "exposed": false,
+      "hipaa_scope": true,
+      "notes": "System node pool: Standard_D4s_v5 (4 vCPU, 16 GB). User node pool: Standard_D8s_v5 (8 vCPU, 32 GB), auto-scale 3-15. Private cluster endpoint. Azure Defender for Containers enabled."
+    },
+    {
+      "id": "C006",
+      "name": "Azure API Management",
+      "type": "api_gateway",
+      "technology": "Azure API Management (Premium tier, v2 gateway), Developer Portal enabled",
+      "tier": "network",
+      "exposed": true,
+      "hipaa_scope": true,
+      "notes": "Centralized API gateway. JWT validation, rate limiting (1000 req/min/tenant), OAuth 2.0 enforcement, API versioning, request/response transformation. mTLS to backend services."
+    },
+    {
+      "id": "C007",
+      "name": "FHIR API Service (HL7 FHIR R4)",
+      "type": "microservice",
+      "technology": "Azure Health Data Services — FHIR Service R4 (managed), SMART on FHIR 2.0",
+      "tier": "application",
+      "exposed": false,
+      "data_classification": "PHI",
+      "hipaa_scope": true,
+      "notes": "HL7 FHIR R4 compliant. Supports Patient, Observation, Encounter, DiagnosticReport, MedicationRequest, Condition, Procedure, AllergyIntolerance resources. SMART on FHIR scopes enforced per resource type."
+    },
+    {
+      "id": "C008",
+      "name": "Patient Data Service",
+      "type": "microservice",
+      "technology": ".NET 8.0 (ASP.NET Core 8.0.1), C# 12, Polly 8.3, MediatR 12.2",
+      "tier": "application",
+      "exposed": false,
+      "data_classification": "PHI",
+      "hipaa_scope": true,
+      "notes": "Core patient demographics, registration, insurance eligibility. PHI fields encrypted at column level with Azure Key Vault-derived keys. Audit log on every read/write."
+    },
+    {
+      "id": "C009",
+      "name": "Clinical Workflow Service",
+      "type": "microservice",
+      "technology": ".NET 8.0 (ASP.NET Core 8.0.1), C# 12, Dapr 1.12",
+      "tier": "application",
+      "exposed": false,
+      "data_classification": "PHI",
+      "hipaa_scope": true,
+      "notes": "Manages clinical orders, care plans, encounter workflows, discharge summaries. Integrates with FHIR Service for resource persistence. Role-based access: physician, nurse, care coordinator."
+    },
+    {
+      "id": "C010",
+      "name": "Lab Results Service",
+      "type": "microservice",
+      "technology": ".NET 8.0 (ASP.NET Core 8.0.1), C# 12, HL7 v2.5.1 parser (NHapi 3.0)",
+      "tier": "application",
+      "exposed": false,
+      "data_classification": "PHI",
+      "hipaa_scope": true,
+      "notes": "Ingests HL7 v2 lab messages from LIS systems, transforms to FHIR DiagnosticReport, stores in FHIR Service. Notifies patients on result availability. Critical result alerting."
+    },
+    {
+      "id": "C011",
+      "name": "Scheduling Service",
+      "type": "microservice",
+      "technology": ".NET 8.0 (ASP.NET Core 8.0.1), C# 12, Quartz.NET 3.8",
+      "tier": "application",
+      "exposed": false,
+      "data_classification": "PHI",
+      "hipaa_scope": true,
+      "notes": "Patient appointment scheduling, provider calendar management, slot availability. Sends appointment reminders via Notification Service. Integrates with Epic slots API."
+    },
+    {
+      "id": "C012",
+      "name": "Billing Service",
+      "type": "microservice",
+      "technology": ".NET 8.0 (ASP.NET Core 8.0.1), C# 12, X12 EDI 837P/835 parser",
+      "tier": "application",
+      "exposed": false,
+      "data_classification": "PHI",
+      "hipaa_scope": true,
+      "notes": "Medical billing, insurance claims (X12 EDI 837P/I), remittance (835), patient statements, ERA processing. PCI-scoped for payment card data. HIPAA transaction standards enforced."
+    },
+    {
+      "id": "C013",
+      "name": "Notification Service",
+      "type": "serverless",
+      "technology": "Azure Functions v4 (.NET 8.0 isolated worker), Twilio SDK 6.10, SendGrid 9.29",
+      "tier": "processing",
+      "exposed": false,
+      "data_classification": "PHI",
+      "hipaa_scope": true,
+      "notes": "Sends appointment reminders (SMS/email), lab result alerts, billing statements, care plan updates. PHI in notifications minimized. BAA in place with Twilio and SendGrid."
+    },
+    {
+      "id": "C014",
+      "name": "Imaging Service (DICOM)",
+      "type": "microservice",
+      "technology": ".NET 8.0, fo-dicom 5.1, Azure Health Data Services — DICOM Service (DICOMweb API)",
+      "tier": "application",
+      "exposed": false,
+      "data_classification": "PHI",
+      "hipaa_scope": true,
+      "notes": "DICOM medical image storage and retrieval via DICOMweb (WADO-RS, STOW-RS, QIDO-RS). Thumbnail generation for patient portal. Access control per patient MRN. Images stored in Azure Blob."
+    },
+    {
+      "id": "C015",
+      "name": "Azure Cosmos DB (Patient Records)",
+      "type": "database",
+      "technology": "Azure Cosmos DB for NoSQL, API: NoSQL, Consistency: Session, RU/s: 50,000 autoscale",
+      "tier": "data",
+      "exposed": false,
+      "data_classification": "PHI",
+      "hipaa_scope": true,
+      "notes": "Primary PHI store for patient demographics, encounter summaries, preferences. Multi-region writes (eastus2 primary, westus2 secondary). CMK encryption via Azure Key Vault. Point-in-time restore 30 days."
+    },
+    {
+      "id": "C016",
+      "name": "Azure SQL Database (Operational Data)",
+      "type": "database",
+      "technology": "Azure SQL Database Hyperscale (Gen5, 8 vCores), SQL Server 2022 compatibility",
+      "tier": "data",
+      "exposed": false,
+      "data_classification": "PHI",
+      "hipaa_scope": true,
+      "notes": "Relational store for scheduling, billing, clinical orders, audit logs. TDE with CMK. Always Encrypted for PHI columns (SSN, DOB, MRN). Geo-redundant backup. Dynamic data masking for non-privileged roles."
+    },
+    {
+      "id": "C017",
+      "name": "Azure Blob Storage (PHI Documents & Images)",
+      "type": "object_storage",
+      "technology": "Azure Blob Storage (ZRS, Hot + Cool tiers), Azure Data Lake Storage Gen2",
+      "tier": "data",
+      "exposed": false,
+      "data_classification": "PHI",
+      "hipaa_scope": true,
+      "notes": "Stores consent forms, scanned documents, medical images (DICOM), exported reports. CMK encryption. Private endpoint only. Lifecycle management: 90 days Hot, 1 year Cool, 7 year Archive per HIPAA retention. Immutable storage for audit logs."
+    },
+    {
+      "id": "C018",
+      "name": "Azure Event Hub (Clinical Events)",
+      "type": "event_streaming",
+      "technology": "Azure Event Hubs Premium Tier, Apache Kafka 3.6 compatible, 10 partitions",
+      "tier": "messaging",
+      "exposed": false,
+      "data_classification": "PHI",
+      "hipaa_scope": true,
+      "notes": "Real-time clinical event stream: lab result received, appointment booked, order placed, discharge event. Consumed by FHIR integrations and downstream analytics. PHI in event payloads encrypted with CMK. Capture to Blob Storage for 7-year retention."
+    },
+    {
+      "id": "C019",
+      "name": "Azure Logic Apps (FHIR Integration)",
+      "type": "integration",
+      "technology": "Azure Logic Apps Standard (WS1 plan), HL7 v2 connector, FHIR connector",
+      "tier": "integration",
+      "exposed": false,
+      "data_classification": "PHI",
+      "hipaa_scope": true,
+      "notes": "Orchestrates HL7 v2 to FHIR R4 transformation workflows. Handles ADT (patient admission/discharge/transfer), ORM (orders), ORU (results), SIU (scheduling) message types. Run history stored with PHI controls."
+    },
+    {
+      "id": "C020",
+      "name": "Azure Key Vault (PHI Encryption Keys)",
+      "type": "key_management",
+      "technology": "Azure Key Vault Premium (HSM-backed, FIPS 140-2 Level 3), Managed HSM optional",
+      "tier": "security",
+      "exposed": false,
+      "hipaa_scope": true,
+      "notes": "Stores CMKs for Cosmos DB, SQL, Blob Storage, Event Hubs. Also stores TLS certificates, service-to-service secrets, EHR integration credentials. 90-day key rotation enforced. Soft delete + purge protection enabled. Accessed via Managed Identity only."
+    },
+    {
+      "id": "C021",
+      "name": "Azure Active Directory B2C (Patient Identity)",
+      "type": "identity",
+      "technology": "Azure AD B2C, OpenID Connect 1.0, OAuth 2.0, PKCE, MFA via TOTP/SMS",
+      "tier": "security",
+      "exposed": true,
+      "hipaa_scope": true,
+      "notes": "Patient identity and access management. Custom user flows for registration, login, MFA, password reset. SMART on FHIR scope issuance. Provider identity via Azure AD federated to hospital SSO (SAML 2.0 / OIDC)."
+    },
+    {
+      "id": "C022",
+      "name": "Azure Monitor + Application Insights",
+      "type": "monitoring",
+      "technology": "Azure Monitor, Application Insights SDK (.NET 8), Log Analytics Workspace, Azure Sentinel",
+      "tier": "observability",
+      "exposed": false,
+      "hipaa_scope": true,
+      "notes": "Platform-wide telemetry, APM, distributed tracing, HIPAA audit log aggregation. PHI scrubbed from telemetry via custom TelemetryInitializer before ingestion. Sentinel SIEM for threat detection. 365-day log retention per HIPAA."
+    },
+    {
+      "id": "C023",
+      "name": "Azure Service Bus (Async Messaging)",
+      "type": "message_queue",
+      "technology": "Azure Service Bus Premium Tier (1 Messaging Unit), geo-disaster recovery enabled",
+      "tier": "messaging",
+      "exposed": false,
+      "data_classification": "PHI",
+      "hipaa_scope": true,
+      "notes": "Dead-letter queue for failed clinical events. Topics: clinical-orders, billing-events, notification-dispatch, ehr-sync. CMK encryption. Sessions for ordered PHI processing. Message TTL 7 days."
+    },
+    {
+      "id": "C024",
+      "name": "Azure Cache for Redis",
+      "type": "cache",
+      "technology": "Azure Cache for Redis Enterprise (E10 SKU, 10 GB), Redis 7.2, TLS 1.3",
+      "tier": "data",
+      "exposed": false,
+      "hipaa_scope": false,
+      "notes": "Session cache, API rate limit counters, provider schedule lookups, non-PHI reference data. PHI is NOT stored in Redis. ACL per service account. In-transit TLS enforced, CMK-encrypted persistent RDB snapshots."
+    },
+    {
+      "id": "C025",
+      "name": "Azure Container Registry",
+      "type": "container_registry",
+      "technology": "Azure Container Registry Premium (Geo-replication: eastus2, westus2), Defender for ACR",
+      "tier": "infrastructure",
+      "exposed": false,
+      "hipaa_scope": false,
+      "notes": "Stores all Docker images. Defender for Containers scans on push. Private endpoint only. Token-based authentication for AKS pull. Image signing with Notation (CNCF)."
+    },
+    {
+      "id": "C026",
+      "name": "Azure Managed Identity (Workload Identity)",
+      "type": "identity",
+      "technology": "Azure Workload Identity Federation, Managed Identity per AKS workload, AAD Pod Identity v2",
+      "tier": "security",
+      "exposed": false,
+      "hipaa_scope": false,
+      "notes": "Each AKS service workload gets a dedicated Managed Identity scoped to minimum required Azure resources. No credentials in code or environment variables. Federated credentials for GitHub Actions CI/CD."
+    },
+    {
+      "id": "C027",
+      "name": "Azure Defender for Cloud",
+      "type": "cspm",
+      "technology": "Microsoft Defender for Cloud (CSPM + CWP), Defender for Containers, Defender for SQL",
+      "tier": "security",
+      "exposed": false,
+      "hipaa_scope": false,
+      "notes": "Cloud Security Posture Management for HIPAA regulatory compliance assessment. Defender for Containers monitors AKS runtime. Defender for SQL on Azure SQL. Secure Score tracking. Alerts feed to Azure Sentinel."
+    },
+    {
+      "id": "C028",
+      "name": "Epic EHR Integration Endpoint",
+      "type": "external_service",
+      "technology": "Epic FHIR R4 API (Epic on FHIR), SMART on FHIR, OAuth 2.0 backend workflow",
+      "tier": "external",
+      "exposed": false,
+      "data_classification": "PHI",
+      "hipaa_scope": true,
+      "notes": "Epic Systems EHR. Patient data syndication, appointment slots, clinical orders, CCDs. BAA with Epic covered under hospital HIPAA agreement. mTLS with Epic-issued client certificates. Rate limit: 10,000 req/day per customer."
+    },
+    {
+      "id": "C029",
+      "name": "Cerner EHR Integration Endpoint",
+      "type": "external_service",
+      "technology": "Oracle Health (Cerner) Millennium FHIR R4 API, SMART on FHIR 2.0, CDS Hooks 2.0",
+      "tier": "external",
+      "exposed": false,
+      "data_classification": "PHI",
+      "hipaa_scope": true,
+      "notes": "Oracle Health (Cerner Millennium) EHR. Patient chart sync, medication lists, problem list, allergy data. CDS Hooks for clinical decision support. BAA under hospital agreement. TLS 1.2+ enforced."
+    },
+    {
+      "id": "C030",
+      "name": "Azure Policy + Blueprint (Compliance Controls)",
+      "type": "governance",
+      "technology": "Azure Policy (HIPAA/HITRUST built-in initiative), Azure Blueprints v2, Defender for DevOps",
+      "tier": "governance",
+      "exposed": false,
+      "hipaa_scope": false,
+      "notes": "Enforces HIPAA HITRUST policy initiative across all subscriptions. Deny policies: public endpoints, non-CMK storage, non-TLS services. Audit policies feed Compliance Manager. Blueprints lock critical resource configurations."
+    },
+    {
+      "id": "C031",
+      "name": "Azure Private DNS Zones",
+      "type": "dns",
+      "technology": "Azure Private DNS Zones (privatelink.*.azure.com), Azure DNS Resolver",
+      "tier": "network",
+      "exposed": false,
+      "hipaa_scope": false,
+      "notes": "Private DNS resolution for all private endpoints (Cosmos DB, SQL, Blob, Key Vault, Event Hubs, Service Bus). Prevents public DNS resolution of PHI data stores. Conditional forwarder for on-premises hybrid scenarios."
+    },
+    {
+      "id": "C032",
+      "name": "Azure Virtual Network + Private Endpoints",
+      "type": "network",
+      "technology": "Azure VNet (10.0.0.0/16), NSG, Private Endpoints for all PaaS, VNet peering",
+      "tier": "network",
+      "exposed": false,
+      "hipaa_scope": false,
+      "notes": "Hub-spoke topology. Spokes: App (10.0.1.0/24), Data (10.0.2.0/24), Integration (10.0.3.0/24). Private endpoints for: Cosmos DB, SQL, Blob, Event Hubs, Service Bus, Key Vault, ACR. No PaaS services on public internet."
+    }
+  ],
+  "connections": [
+    {"from": "C001", "to": "C002", "protocol": "HTTPS/TLS1.3", "description": "Patient Portal SPA served and cached via Azure Front Door CDN"},
+    {"from": "C002", "to": "C003", "protocol": "HTTPS", "description": "Front Door routes all inbound requests through Azure WAF for OWASP inspection"},
+    {"from": "C003", "to": "C004", "protocol": "HTTPS", "description": "WAF-inspected traffic forwarded to Application Gateway v2"},
+    {"from": "C004", "to": "C006", "protocol": "HTTPS", "description": "Application Gateway routes API traffic to Azure API Management"},
+    {"from": "C006", "to": "C007", "protocol": "HTTPS/mTLS", "description": "API Management routes FHIR resource requests to FHIR API Service"},
+    {"from": "C006", "to": "C008", "protocol": "HTTPS/mTLS", "description": "API Management routes /patients/* to Patient Data Service"},
+    {"from": "C006", "to": "C009", "protocol": "HTTPS/mTLS", "description": "API Management routes /clinical/* to Clinical Workflow Service"},
+    {"from": "C006", "to": "C010", "protocol": "HTTPS/mTLS", "description": "API Management routes /labs/* to Lab Results Service"},
+    {"from": "C006", "to": "C011", "protocol": "HTTPS/mTLS", "description": "API Management routes /scheduling/* to Scheduling Service"},
+    {"from": "C006", "to": "C012", "protocol": "HTTPS/mTLS", "description": "API Management routes /billing/* to Billing Service"},
+    {"from": "C006", "to": "C014", "protocol": "HTTPS/mTLS", "description": "API Management routes /imaging/* to Imaging Service (DICOMweb)"},
+    {"from": "C005", "to": "C025", "protocol": "HTTPS", "description": "AKS pulls container images from Azure Container Registry via private endpoint"},
+    {"from": "C007", "to": "C015", "protocol": "HTTPS/TLS1.3", "description": "FHIR Service reads/writes FHIR resources stored in Cosmos DB"},
+    {"from": "C007", "to": "C020", "protocol": "HTTPS", "description": "FHIR Service retrieves PHI encryption keys from Azure Key Vault via Managed Identity"},
+    {"from": "C008", "to": "C015", "protocol": "HTTPS/TLS1.3 (private endpoint)", "description": "Patient Data Service reads/writes patient demographics to Cosmos DB"},
+    {"from": "C008", "to": "C020", "protocol": "HTTPS", "description": "Patient Data Service uses Key Vault for column-level PHI encryption keys"},
+    {"from": "C009", "to": "C016", "protocol": "TCP/1433-TLS", "description": "Clinical Workflow Service reads/writes clinical orders to Azure SQL Database"},
+    {"from": "C009", "to": "C018", "protocol": "AMQP/TLS", "description": "Clinical Workflow Service publishes encounter events to Event Hubs"},
+    {"from": "C010", "to": "C007", "protocol": "HTTPS", "description": "Lab Results Service posts DiagnosticReport FHIR resources to FHIR Service"},
+    {"from": "C010", "to": "C023", "protocol": "AMQP/TLS", "description": "Lab Results Service enqueues result-ready notifications to Service Bus"},
+    {"from": "C011", "to": "C016", "protocol": "TCP/1433-TLS", "description": "Scheduling Service reads/writes appointment records to Azure SQL Database"},
+    {"from": "C011", "to": "C028", "protocol": "HTTPS/TLS1.3", "description": "Scheduling Service syncs appointment slots with Epic EHR API"},
+    {"from": "C012", "to": "C016", "protocol": "TCP/1433-TLS", "description": "Billing Service reads/writes claims, remittances, and statements to Azure SQL"},
+    {"from": "C012", "to": "C023", "protocol": "AMQP/TLS", "description": "Billing Service publishes billing events to Service Bus for downstream processing"},
+    {"from": "C013", "to": "C017", "protocol": "HTTPS (private endpoint)", "description": "Notification Service reads template documents from Azure Blob Storage"},
+    {"from": "C013", "to": "C023", "protocol": "AMQP/TLS", "description": "Notification Service consumes notification-dispatch topic from Service Bus"},
+    {"from": "C014", "to": "C017", "protocol": "HTTPS (private endpoint)", "description": "Imaging Service stores and retrieves DICOM files from Azure Blob Storage"},
+    {"from": "C014", "to": "C020", "protocol": "HTTPS", "description": "Imaging Service retrieves Blob Storage CMK from Key Vault"},
+    {"from": "C019", "to": "C007", "protocol": "HTTPS", "description": "Logic Apps posts HL7-to-FHIR transformed resources to FHIR Service"},
+    {"from": "C019", "to": "C029", "protocol": "HTTPS/TLS1.3", "description": "Logic Apps polls Cerner EHR for patient data and clinical updates"},
+    {"from": "C019", "to": "C028", "protocol": "HTTPS/TLS1.3", "description": "Logic Apps syncs CCD documents and problem lists with Epic EHR"},
+    {"from": "C021", "to": "C006", "protocol": "HTTPS", "description": "AD B2C issues JWT tokens validated by API Management on all requests"},
+    {"from": "C022", "to": "C005", "protocol": "API (Azure Monitor agent)", "description": "Azure Monitor collects AKS metrics, logs, and container insights"},
+    {"from": "C022", "to": "C016", "protocol": "API", "description": "Azure Monitor collects SQL Database audit logs and performance metrics"},
+    {"from": "C022", "to": "C015", "protocol": "API", "description": "Azure Monitor collects Cosmos DB metrics and diagnostic logs"},
+    {"from": "C024", "to": "C008", "protocol": "TCP/6380-TLS", "description": "Patient Data Service reads non-PHI session and reference data from Redis Cache"},
+    {"from": "C024", "to": "C011", "protocol": "TCP/6380-TLS", "description": "Scheduling Service caches provider availability windows in Redis"},
+    {"from": "C026", "to": "C020", "protocol": "HTTPS", "description": "Workload Identity Managed Identity grants AKS services access to Key Vault secrets"},
+    {"from": "C027", "to": "C022", "protocol": "API", "description": "Defender for Cloud security alerts fed to Azure Monitor / Sentinel SIEM"},
+    {"from": "C030", "to": "C032", "protocol": "Azure Policy API", "description": "Azure Policy enforces VNet, private endpoint, and CMK requirements at subscription scope"},
+    {"from": "C031", "to": "C032", "protocol": "DNS/UDP-53", "description": "Private DNS Zones resolve private endpoint FQDNs within VNet for all PHI data stores"},
+    {"from": "C018", "to": "C019", "protocol": "AMQP/Kafka", "description": "Event Hubs streams clinical events to Logic Apps for FHIR transformation and EHR sync"}
+  ],
+  "trust_boundaries": [
+    {
+      "id": "TB001",
+      "name": "Internet (Untrusted Public Zone)",
+      "from_zone": "internet",
+      "to_zone": "edge",
+      "components_inside": ["C001"],
+      "components_outside": ["C002", "C003"],
+      "controls": [
+        "TLS 1.3 enforced (TLS 1.0/1.1 rejected)",
+        "Azure DDoS Protection Standard",
+        "Azure WAF DRS 2.1 in Prevention mode",
+        "Bot Manager ruleset",
+        "Geo-IP filtering (configurable per tenant)",
+        "HSTS with preload",
+        "Content Security Policy headers",
+        "No PHI cached at CDN edge"
+      ]
+    },
+    {
+      "id": "TB002",
+      "name": "DMZ (Edge to Application Gateway)",
+      "from_zone": "edge",
+      "to_zone": "application_dmz",
+      "components_inside": ["C002", "C003"],
+      "components_outside": ["C004", "C006"],
+      "controls": [
+        "Azure Application Gateway v2 (WAF_v2 SKU)",
+        "SSL/TLS re-encryption to backend (end-to-end TLS)",
+        "NSG: allow 443 inbound only from Front Door service tag",
+        "Private IP only for Application Gateway backend pool",
+        "OAuth 2.0 token validation at API Management boundary",
+        "JWT signature verification (RS256, Azure AD B2C JWKS)"
+      ]
+    },
+    {
+      "id": "TB003",
+      "name": "Application Tier (AKS Private Cluster)",
+      "from_zone": "application_dmz",
+      "to_zone": "application_tier",
+      "components_inside": ["C006", "C021"],
+      "components_outside": ["C005", "C007", "C008", "C009", "C010", "C011", "C012", "C013", "C014", "C019"],
+      "controls": [
+        "AKS private cluster (control plane not internet-exposed)",
+        "Calico NetworkPolicy: default-deny, allow-listed service-to-service only",
+        "Azure CNI Overlay with Pod-level NSGs",
+        "Workload Identity (Managed Identity per service, no secrets in pods)",
+        "Pod Security Standards (restricted profile): no privilege escalation, read-only root FS",
+        "RBAC per namespace with Kubernetes RBAC + Azure AD integration",
+        "mTLS between services via Istio service mesh (STRICT mode)",
+        "OPA/Gatekeeper admission controller: enforce labels, resource limits, approved images",
+        "Defender for Containers: runtime threat detection, vulnerability scanning"
+      ]
+    },
+    {
+      "id": "TB004",
+      "name": "PHI Data Tier (Private Endpoints Only)",
+      "from_zone": "application_tier",
+      "to_zone": "data_tier",
+      "components_inside": ["C007", "C008", "C009", "C010", "C011", "C012", "C014"],
+      "components_outside": ["C015", "C016", "C017", "C018", "C023"],
+      "controls": [
+        "All PHI data stores accessible via private endpoint ONLY (no public access)",
+        "Private DNS Zones resolve *.privatelink.*.azure.com within VNet",
+        "Azure SQL: firewall deny all public; Allow Azure services: OFF; private endpoint only",
+        "Cosmos DB: public network access disabled, CMK encryption required",
+        "Blob Storage: public access blocked, private endpoint, SAS tokens forbidden (Managed Identity only)",
+        "Event Hubs: IP filter deny all, private endpoint, CMK encryption",
+        "Service Bus: public access disabled, private endpoint, CMK",
+        "Encryption at rest: AES-256 with Customer-Managed Keys (Azure Key Vault HSM)",
+        "Encryption in transit: TLS 1.3 minimum",
+        "Always Encrypted (Deterministic/Randomized) for SSN, DOB, MRN columns in SQL",
+        "Immutable storage (WORM) for audit logs: 7-year retention per HIPAA",
+        "Azure Defender for SQL: runtime threat detection on Azure SQL",
+        "Cosmos DB: IP rules restrict to AKS subnet CIDR only"
+      ]
+    },
+    {
+      "id": "TB005",
+      "name": "External EHR Systems (Third-Party PHI Exchange)",
+      "from_zone": "application_tier",
+      "to_zone": "external_ehr",
+      "components_inside": ["C011", "C019"],
+      "components_outside": ["C028", "C029"],
+      "controls": [
+        "mTLS with EHR-issued client certificates for Epic",
+        "OAuth 2.0 backend service authorization for Cerner (client_credentials flow)",
+        "SMART on FHIR scopes: minimum necessary PHI access principle enforced",
+        "Azure Firewall FQDN allowlisting: only Epic/Cerner API endpoints permitted outbound",
+        "No PHI persisted in Logic Apps run history (secure outputs enabled)",
+        "BAA (Business Associate Agreement) in place with Epic and Cerner via hospital customer",
+        "Rate limiting enforced to prevent data exfiltration at scale",
+        "Audit trail for all EHR data exchanges stored in Log Analytics (365-day retention)",
+        "Connection via Azure Virtual Network NAT Gateway (static egress IP allowlisted at Epic/Cerner)"
+      ]
+    }
+  ],
+  "data_flows": [
+    {
+      "id": "DF001",
+      "name": "Patient Authentication Flow",
+      "phi_involved": false,
+      "path": ["C001", "C002", "C003", "C004", "C006", "C021"],
+      "description": "Patient logs in via Angular SPA. Azure AD B2C issues PKCE-based OAuth2 authorization code. OIDC ID token + access token returned. Access token contains SMART on FHIR scopes. API Management validates JWT on every subsequent API call.",
+      "sensitivity": "credentials",
+      "controls": ["PKCE flow prevents authorization code interception", "Short-lived access tokens (1 hour)", "Refresh token rotation", "MFA enforced for PHI access"]
+    },
+    {
+      "id": "DF002",
+      "name": "Patient Record Retrieval (PHI Read)",
+      "phi_involved": true,
+      "path": ["C001", "C002", "C003", "C004", "C006", "C008", "C015"],
+      "description": "Authenticated patient requests their health record. API Management validates JWT and SMART patient/*.read scope. Patient Data Service fetches demographics from Cosmos DB. Column-level decryption for PHI fields using CMK from Key Vault.",
+      "sensitivity": "PHI",
+      "controls": ["JWT validation with scope enforcement", "PHI column decryption via Key Vault CMK", "HIPAA audit log: who accessed what PHI and when", "TLS 1.3 end-to-end"]
+    },
+    {
+      "id": "DF003",
+      "name": "Lab Result Publication (PHI Write + Notification)",
+      "phi_involved": true,
+      "path": ["C019", "C010", "C007", "C015", "C023", "C013"],
+      "description": "HL7 ORU message arrives from LIS via Logic Apps. Lab Results Service transforms to FHIR DiagnosticReport and posts to FHIR Service. Result stored in Cosmos DB. Critical result check triggers immediate notification via Service Bus to Azure Functions. Patient notified via email/SMS (PHI minimized in notification body).",
+      "sensitivity": "PHI",
+      "controls": ["HL7 message authentication", "FHIR resource validation", "PHI minimization in notification payloads", "Service Bus CMK", "Notification BAA with Twilio/SendGrid"]
+    },
+    {
+      "id": "DF004",
+      "name": "DICOM Image Upload and Storage (PHI Write)",
+      "phi_involved": true,
+      "path": ["C014", "C017", "C020"],
+      "description": "Imaging modality pushes DICOM study via DICOMweb STOW-RS API. Imaging Service stores DICOM objects in Azure Blob Storage with CMK encryption. Patient MRN embedded in DICOM tags is treated as PHI. Access restricted to treating clinicians and the patient themselves.",
+      "sensitivity": "PHI",
+      "controls": ["DICOMweb STOW-RS authentication", "Azure Blob private endpoint", "CMK encryption at rest", "Access control per patient MRN", "Audit log on DICOM object access"]
+    },
+    {
+      "id": "DF005",
+      "name": "EHR Synchronization (PHI Cross-System Exchange)",
+      "phi_involved": true,
+      "path": ["C028", "C019", "C007", "C015"],
+      "description": "Scheduled and event-driven sync pulls patient CCD, medication lists, problem lists, and allergies from Epic and Cerner EHRs via Logic Apps. Logic Apps transforms to FHIR R4 resources and upserts into FHIR Service. Cosmos DB stores canonical patient record.",
+      "sensitivity": "PHI",
+      "controls": ["mTLS to Epic", "OAuth2 backend flow to Cerner", "SMART scopes: minimum necessary", "No PHI in Logic Apps run history (secure outputs)", "Azure Firewall FQDN filtering outbound"]
+    },
+    {
+      "id": "DF006",
+      "name": "Clinical Event Stream (Real-Time PHI Events)",
+      "phi_involved": true,
+      "path": ["C009", "C018", "C019"],
+      "description": "Clinical Workflow Service emits encounter events (admit, discharge, order, update) to Event Hubs. Logic Apps consumes stream for real-time EHR synchronization. Events contain patient_id (de-identified token); full PHI fetched from FHIR Service using token.",
+      "sensitivity": "quasi-PHI",
+      "controls": ["Event Hub CMK", "Patient ID tokenization (not MRN in event payload)", "AMQP TLS 1.3", "Event capture to Blob Storage with immutable retention"]
+    },
+    {
+      "id": "DF007",
+      "name": "Billing Claims Submission (PHI + Financial)",
+      "phi_involved": true,
+      "path": ["C012", "C016", "C023"],
+      "description": "Billing Service generates X12 837P/I claims from clinical encounters in Azure SQL. Claims contain PHI (patient name, diagnosis codes, procedure codes, NPI). Submitted to payer clearinghouse via Service Bus integration. ERA 835 remittances processed back into SQL.",
+      "sensitivity": "PHI + Financial",
+      "controls": ["Always Encrypted SQL columns for PHI", "Service Bus CMK", "X12 EDI validation before submission", "HIPAA transaction set compliance (837/835/271/272)", "Audit log per claim"]
+    }
+  ],
+  "compliance_zones": {
+    "hipaa_baa_scope": {
+      "description": "All components that store, process, or transmit PHI and are covered under the Azure HIPAA BAA",
+      "components": ["C005", "C006", "C007", "C008", "C009", "C010", "C011", "C012", "C013", "C014", "C015", "C016", "C017", "C018", "C019", "C020", "C021", "C022", "C023", "C028", "C029"],
+      "azure_baa_covered_services": [
+        "Azure Kubernetes Service",
+        "Azure API Management",
+        "Azure Health Data Services (FHIR + DICOM)",
+        "Azure Cosmos DB",
+        "Azure SQL Database",
+        "Azure Blob Storage",
+        "Azure Event Hubs",
+        "Azure Logic Apps",
+        "Azure Key Vault",
+        "Azure Active Directory B2C",
+        "Azure Monitor / Log Analytics",
+        "Azure Service Bus",
+        "Azure Functions"
+      ]
+    },
+    "hitrust_csf_scope": {
+      "description": "Components assessed against HITRUST CSF v11.2 control categories",
+      "control_categories": [
+        "01.a — Access Control Policy",
+        "01.d — User Password Management",
+        "06.d — Data Protection and Privacy",
+        "07.a — Inventory of Assets",
+        "09.aa — Audit Logging",
+        "09.ab — Monitoring System Use",
+        "10.b — Input Data Validation",
+        "10.f — Policy on Use of Cryptographic Controls"
+      ],
+      "components": ["C003", "C005", "C007", "C008", "C015", "C016", "C017", "C020", "C021", "C022", "C027", "C030"]
+    },
+    "fhir_r4_interoperability_scope": {
+      "description": "Components participating in HL7 FHIR R4 data exchange and ONC interoperability requirements",
+      "fhir_resources_supported": [
+        "Patient", "Practitioner", "Organization", "Encounter", "Condition",
+        "Observation", "DiagnosticReport", "MedicationRequest", "AllergyIntolerance",
+        "Procedure", "CarePlan", "Appointment", "Schedule", "Slot",
+        "DocumentReference", "ImagingStudy", "Coverage", "Claim", "ExplanationOfBenefit"
+      ],
+      "components": ["C007", "C010", "C011", "C014", "C019", "C028", "C029"],
+      "smart_on_fhir_scopes": [
+        "patient/*.read",
+        "patient/Patient.read",
+        "patient/Observation.read",
+        "patient/DiagnosticReport.read",
+        "patient/MedicationRequest.read",
+        "patient/Appointment.read",
+        "user/*.read",
+        "user/*.write",
+        "system/*.read"
+      ]
+    },
+    "soc2_type_ii_scope": {
+      "description": "Components in scope for SOC 2 Type II audit across Trust Service Criteria: Security, Availability, Confidentiality, Processing Integrity, Privacy",
+      "trust_service_criteria": {
+        "CC6_logical_access": ["C021", "C020", "C026", "C006"],
+        "CC7_system_operations": ["C022", "C027", "C005"],
+        "CC8_change_management": ["C025", "C030"],
+        "CC9_risk_mitigation": ["C003", "C027", "C030"],
+        "A1_availability": ["C002", "C004", "C005", "C015", "C016"],
+        "C1_confidentiality": ["C015", "C016", "C017", "C020"],
+        "P1_privacy": ["C008", "C021", "C022"]
+      },
+      "components": ["C002", "C003", "C004", "C005", "C006", "C008", "C015", "C016", "C017", "C020", "C021", "C022", "C025", "C026", "C027", "C030"]
+    },
+    "phi_data_stores": {
+      "description": "Authoritative list of all Azure resources storing PHI at rest",
+      "stores": [
+        {"component": "C015", "service": "Azure Cosmos DB", "phi_type": "Patient demographics, encounter summaries, FHIR resources", "encryption": "CMK (Azure Key Vault HSM)", "retention": "Active + 7 years archived"},
+        {"component": "C016", "service": "Azure SQL Database", "phi_type": "Clinical orders, scheduling, billing claims, audit logs", "encryption": "TDE + Always Encrypted (CMK)", "retention": "Active + 7 years"},
+        {"component": "C017", "service": "Azure Blob Storage", "phi_type": "DICOM images, consent forms, clinical documents, exported reports", "encryption": "SSE-CMK (Azure Key Vault)", "retention": "Hot 90 days, Cool 1 year, Archive 7 years (WORM)"},
+        {"component": "C018", "service": "Azure Event Hubs", "phi_type": "Clinical event stream (tokenized patient IDs)", "encryption": "CMK", "retention": "7 days hot + 7 years via Capture to Blob"},
+        {"component": "C023", "service": "Azure Service Bus", "phi_type": "In-flight billing events, notification payloads (PHI minimized)", "encryption": "CMK", "retention": "7 days TTL"}
+      ]
+    }
+  }
+}

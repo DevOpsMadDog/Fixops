@@ -12,9 +12,7 @@ Fix ALdeci Postman collection issues:
 
 import json
 import os
-import re
 import sys
-import copy
 
 COLLECTION_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -208,7 +206,7 @@ def process_collection(filepath):
     total_fixes = url_fix_count + script_fixes[0]
 
     if total_fixes == 0:
-        print(f"  No changes needed.")
+        print("  No changes needed.")
         return 0
 
     # Write back with consistent formatting
@@ -301,7 +299,7 @@ def main():
             all_ok = False
 
     print(f"\n{'='*60}")
-    print(f"SUMMARY")
+    print("SUMMARY")
     print(f"{'='*60}")
     print(f"Total fixes applied: {grand_total}")
     print()
@@ -309,10 +307,10 @@ def main():
         print(f"  {entry}")
 
     if all_ok:
-        print(f"\nAll collections pass verification.")
+        print("\nAll collections pass verification.")
         return 0
     else:
-        print(f"\nSome collections still have issues — see above.")
+        print("\nSome collections still have issues — see above.")
         return 1
 
 

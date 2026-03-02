@@ -27,7 +27,19 @@
 ## AutoFix Response Format
 - Generate returns `{status, fix: {fix_id, confidence_score, ...}}` — fix_id is NESTED under `fix` key
 - Validate: `POST /api/v1/autofix/validate` with body `{fix_id}` — NOT a path param
+- **CRITICAL**: Validate returns 404 for ephemeral fix_ids. Use inline validation from `fix.metadata.validation` instead.
+  - `fix.metadata.validation` has: `valid`, `checks_passed`, `total_checks`, `score`, `issues`
+- Bulk endpoint: `POST /api/v1/autofix/generate/bulk` requires `findings` array (NOT `finding_ids`)
+  - Each finding needs: `id`, `type`, `severity`, `cwe`, `title`, `code_snippet`, `language`
 - Bulk returns `{fixes: [...]}` — count via `len(body.get("fixes",[]))`
+- **Validation checks**: Engine has **7 checks** (not 4): artifacts, dangerous patterns, path traversal, dangerous imports, patch validity, dep versions, patch size
+- Bulk generation needs longer timeout (30-45s per finding) — LLM-powered
+
+## Bulk Reachability Correct Schema (verified session 8)
+- `POST /api/v1/reachability/analyze/bulk` requires:
+  - `repository`: dict with `url` and `branch` (NOT a string)
+  - `vulnerabilities`: array of `{cve_id, component_name, component_version}` (NOT just cve_ids)
+- Returns: `{job_ids: [...], total_vulnerabilities: N, created_at: "..."}`
 
 ## Vuln Discovery Enum Values
 - `impact_type`: use FULL names: `remote_code_execution`, `sql_injection`, `cross_site_scripting`, etc. NOT abbreviations
@@ -73,9 +85,24 @@
 - NO `output_findings` array — findings processed inline
 - NO `knowledge_graph` dict at top level — nodes/edges in `summary`
 
-## MPTE Response Formats (UPDATED session 4)
+## MPTE Response Formats (UPDATED session 7)
 - MPTE verify: returns `{id, request_id, finding_id, status: "pending", message, source, created_at}`
 - MPTE comprehensive: returns `{status: "scan_started", requests: []}` — async scan
+
+## Attack Sim Campaign Format (verified session 7)
+- `POST /api/v1/attack-sim/campaigns/run` requires `scenario_id` field (422 without it)
+- Must first generate scenario: `POST /api/v1/attack-sim/scenarios/generate` → get `scenario_id`
+- Then pass to campaign: `{"scenario_id": "...", "target": "...", "mode": "simulation"}`
+
+## PentAGI / MPTE Orchestrator Endpoints (CORRECTED session 7)
+- `/api/v1/pentagi/*` returns **404** — these endpoints DON'T EXIST
+- Correct prefix: `/api/v1/mpte-orchestrator/*`
+- **Threat intel**: `POST /api/v1/mpte-orchestrator/threat-intel` → `{"cve_id": "CVE-..."}` (singular, NOT target/scope)
+  - Response: `{cve_id, sources: {nvd, kev, epss, exploit_db}, risk_assessment: {overall_risk, exploitability}}`
+- **Business impact**: `POST /api/v1/mpte-orchestrator/business-impact` → `{"target", "vulnerabilities", "business_context"}`
+  - Response: `{analysis_id, estimated_breach_cost, priority, business_criticality}`
+- **Simulate**: `POST /api/v1/mpte-orchestrator/simulate` → `{"target", "scope"}` → 200
+- Attack scenarios: `POST /api/v1/attack-sim/scenarios/generate` → 200 (this one is correct as-is)
 
 ## Completed Work
 - **2026-03-01**: DEMO-004 COMPLETE. E-Commerce AWS architecture. 4 scripts, 8 artifacts, 7/7 ingested.
@@ -94,12 +121,34 @@
   - Multi-architecture artifacts: Healthcare, FinServ, IoT/OT, GovCloud (SARIF, SBOM, CNAPP, VEX)
   - Dogfooding: ALdeci scanned itself, AutoFix generated fix for hardcoded token (86.6% confidence)
   - SOC2 self-compliance: 86.4%, 19/22 controls effective
-- **2026-03-02 (session 4, latest)**: INVESTOR DEMO POLISH + MPTE SANDBOX
+- **2026-03-02 (session 4)**: INVESTOR DEMO POLISH + MPTE SANDBOX
   - NEW: `ctem-investor-demo.sh` — 24/24 steps, 5 phases, ~80s. Pure bash/curl, investor-meeting ready.
   - NEW: `mpte-sandbox-demo.sh` — 12/12 steps. Full MPTE+Sandbox PoC verifier pipeline.
   - Fixed: evidence bundle field names, framework name ISO27001, brain pipeline summary format
   - Fixed: evidence export signature field extraction (string not dict)
   - Total demo scripts: 6 scripts, all passing (24+12+42+11+120+67 = 276 total steps)
+- **2026-03-02 (session 5)**: SELF-DOGFOOD + WEEK 2 PREP
+  - NEW: `ctem_dogfood_demo.py` — 25/25 steps, 3 phases, ~88s.
+  - Self-dogfood threat model: 15 STRIDE threats, MITRE ATT&CK mapped
+  - Self-SBOM: 29 components from requirements.txt, ingested
+  - 4 compliance frameworks signed: SOC2, PCI-DSS, HIPAA, NIST-CSF
+- **2026-03-02 (session 6)**: MULTI-ARCHITECTURE SHOWCASE
+  - NEW: `ctem_multi_architecture_showcase.py` — 90/91 (98.9%), 5 verticals, 319s
+  - NEW: `aldeci_self_scan.py` — 18/17 (100%), 14 findings, 93% noise reduction
+  - 4 NEW architecture JSONs: Healthcare (32), FinServ (40), IoT/OT (35), GovCloud (35) = 142 components
+  - 2 NEW threat models: IoT/OT (25 threats, 13 safety-impacting), GovCloud (28 threats, 22 CUI-impacting)
+- **2026-03-02 (session 7)**: WEEK 2 VERIFICATION HARNESS + TEST FIX
+  - NEW: `ctem_week2_harness.py` — 63 steps, 8 phases, 97% pass rate (61/63, 2 warnings)
+  - FIX: `tests/test_autofix_engine.py` — total_checks 4→7 (backend-hardener added 3 checks)
+  - 633 core tests pass (brain_pipeline + autofix + micro_pentest), 0 failures
+  - 8 fresh Week 2 artifacts (SBOM 26, CVE 12, SARIF 12, CNAPP 10, VEX 9, Context 5, Design 35, Threats 48)
+- **2026-03-02 (session 8, latest)**: SUNDAY FULL REGRESSION + BUG FIXES
+  - Fixed 3 bugs in `ctem_attack_campaign.py`: bulk reachability schema, bulk autofix schema, validate 404
+  - Fixed 1 bug in `ctem_week2_harness.py`: attack scenario LLM timeout (15s→60s)
+  - Full regression: 191/193 (99.0%) across 7 scripts
+  - Investor demo: 24/24 (was 22/24), attack campaign: 24/24 (was 22/24), week2: 61/63 (was 59/63)
+  - Self-scan dogfood: 17/17 — ALdeci scans itself with 8 SAST findings, 3 secrets, 93% noise reduction
+  - Total: 9 scripts, 191+ verified steps, DEMO READY
 
 ## Secrets Scanner Format
 - Secrets scanner returns `findings` array, NOT `total_findings` or `secrets_found`
@@ -107,11 +156,27 @@
 - Unquoted key=value format works best (e.g., `AWS_KEY = AKIAIOSFODNN7EXAMPLE`)
 - Quoted values (`"AKIAIOSFODNN7EXAMPLE"`) may reduce detection
 
-## Scanner Limitations (verified Sunday regression)
+## Rate Limiting (discovered session 6)
+- API rate limits kick in when running multiple scripts concurrently
+- Returns HTTP 429 (Too Many Requests)
+- Solution: exponential backoff retry (3 attempts, 3s/6s/9s waits)
+- For demos: set `FIXOPS_DISABLE_RATE_LIMIT=1`
+- Multi-arch showcase needs ~320s for 5 verticals (~64s each)
+- AutoFix calls take ~7-14s each (LLM-powered)
+- MPTE comprehensive takes ~6-25s each
+
+## Scanner Limitations (verified through session 6)
 - **CloudFormation**: Returns 0 findings for ALL templates — YAML resource parsing not implemented
 - **Azure Terraform**: `azurerm_*` resources return 0 findings — only `aws_*` and `google_*` supported
+- **GCP Terraform**: `google_*` resources return 0 findings (session 5 verification)
 - **SAST Java**: Detects 3-4 findings vs Python's 5-7 — Java pattern coverage gap
+- **SAST endpoint**: Correct path is `/api/v1/sast/scan/code` (NOT `/api/v1/sast/scan` which returns 404)
 - **Sandbox**: Returns "sandbox_unavailable" without Docker daemon
 - **Brain steps 10-12**: Consistently skip without external services (MPTE target, playbook YAML, evidence config)
-- **MPTE comprehensive**: Takes 20-30 seconds — acceptable for demo
+- **Brain build_graph**: Sometimes succeeds (12 findings), sometimes fails (4 findings) — inconsistent
+- **MPTE comprehensive**: Takes 20-30s — can overwhelm single-process API, causing other endpoints to return 000
+- **MPTE recovery**: API recovers after MPTE scan completes — use --max-time and retry pattern
 - **Evidence bundle**: Intermittent 422 with valid data — accept both 200 and 422
+- **Evidence export posture**: `posture.overall_score` returns 0.0 (vs brain evidence 86.4% — different calculation)
+- **API Fuzzer discover**: Returns 0 endpoints even with full OpenAPI spec — parsing/matching issue
+- **DAST httpbin.org**: External target can timeout (>60s) — use --max-time 10 in investor demos

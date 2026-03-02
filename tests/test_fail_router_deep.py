@@ -10,7 +10,6 @@ Target: 50+ test functions covering all 9 endpoints plus validation.
 
 from __future__ import annotations
 
-import json
 import os
 import tempfile
 

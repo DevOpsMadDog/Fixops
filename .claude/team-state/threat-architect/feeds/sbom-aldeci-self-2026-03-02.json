@@ -1,0 +1,190 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-03-02T00:00:00Z",
+    "component": {
+      "name": "aldeci-platform",
+      "version": "0.1.0",
+      "type": "application",
+      "description": "ALdeci CTEM+ Decision Intelligence Platform"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "fastapi",
+      "version": "0.115",
+      "purl": "pkg:pypi/fastapi@0.115"
+    },
+    {
+      "type": "library",
+      "name": "uvicorn",
+      "version": "0.30.0",
+      "purl": "pkg:pypi/uvicorn@0.30.0"
+    },
+    {
+      "type": "library",
+      "name": "pydantic",
+      "version": "2.6",
+      "purl": "pkg:pypi/pydantic@2.6"
+    },
+    {
+      "type": "library",
+      "name": "email-validator",
+      "version": "2.0.0",
+      "purl": "pkg:pypi/email-validator@2.0.0"
+    },
+    {
+      "type": "library",
+      "name": "python-multipart",
+      "version": "0.0.9",
+      "purl": "pkg:pypi/python-multipart@0.0.9"
+    },
+    {
+      "type": "library",
+      "name": "requests",
+      "version": "2.32",
+      "purl": "pkg:pypi/requests@2.32"
+    },
+    {
+      "type": "library",
+      "name": "httpx",
+      "version": "0.27.0",
+      "purl": "pkg:pypi/httpx@0.27.0"
+    },
+    {
+      "type": "library",
+      "name": "pgmpy",
+      "version": "0.1.24",
+      "purl": "pkg:pypi/pgmpy@0.1.24"
+    },
+    {
+      "type": "library",
+      "name": "PyJWT",
+      "version": "2.8",
+      "purl": "pkg:pypi/pyjwt@2.8"
+    },
+    {
+      "type": "library",
+      "name": "cryptography",
+      "version": "46.0.5",
+      "purl": "pkg:pypi/cryptography@46.0.5"
+    },
+    {
+      "type": "library",
+      "name": "cffi",
+      "version": "2.0.0",
+      "purl": "pkg:pypi/cffi@2.0.0"
+    },
+    {
+      "type": "library",
+      "name": "structlog",
+      "version": "25.4.0",
+      "purl": "pkg:pypi/structlog@25.4.0"
+    },
+    {
+      "type": "library",
+      "name": "PyYAML",
+      "version": "6.0.1",
+      "purl": "pkg:pypi/pyyaml@6.0.1"
+    },
+    {
+      "type": "library",
+      "name": "networkx",
+      "version": "3.5",
+      "purl": "pkg:pypi/networkx@3.5"
+    },
+    {
+      "type": "library",
+      "name": "networkx",
+      "version": "3.2.1",
+      "purl": "pkg:pypi/networkx@3.2.1"
+    },
+    {
+      "type": "library",
+      "name": "apscheduler",
+      "version": "3.10",
+      "purl": "pkg:pypi/apscheduler@3.10"
+    },
+    {
+      "type": "library",
+      "name": "opentelemetry-sdk",
+      "version": "1.25",
+      "purl": "pkg:pypi/opentelemetry-sdk@1.25"
+    },
+    {
+      "type": "library",
+      "name": "opentelemetry-exporter-otlp",
+      "version": "1.25",
+      "purl": "pkg:pypi/opentelemetry-exporter-otlp@1.25"
+    },
+    {
+      "type": "library",
+      "name": "opentelemetry-instrumentation-fastapi",
+      "version": "0.46b0",
+      "purl": "pkg:pypi/opentelemetry-instrumentation-fastapi@0.46b0"
+    },
+    {
+      "type": "library",
+      "name": "scikit-learn",
+      "version": "1.3.0",
+      "purl": "pkg:pypi/scikit-learn@1.3.0"
+    },
+    {
+      "type": "library",
+      "name": "bcrypt",
+      "version": "4.0.0",
+      "purl": "pkg:pypi/bcrypt@4.0.0"
+    },
+    {
+      "type": "library",
+      "name": "passlib",
+      "version": "latest",
+      "purl": "pkg:pypi/passlib"
+    },
+    {
+      "type": "library",
+      "name": "tenacity",
+      "version": "8.2.0",
+      "purl": "pkg:pypi/tenacity@8.2.0"
+    },
+    {
+      "type": "library",
+      "name": "ssvc",
+      "version": "1.2.0",
+      "purl": "pkg:pypi/ssvc@1.2.0"
+    },
+    {
+      "type": "library",
+      "name": "sarif-om",
+      "version": "1.0.4",
+      "purl": "pkg:pypi/sarif-om@1.0.4"
+    },
+    {
+      "type": "library",
+      "name": "python-dotenv",
+      "version": "1.0.0",
+      "purl": "pkg:pypi/python-dotenv@1.0.0"
+    },
+    {
+      "type": "library",
+      "name": "sqlalchemy",
+      "version": "2.0.0",
+      "purl": "pkg:pypi/sqlalchemy@2.0.0"
+    },
+    {
+      "type": "library",
+      "name": "pyotp",
+      "version": "2.9.0",
+      "purl": "pkg:pypi/pyotp@2.9.0"
+    },
+    {
+      "type": "library",
+      "name": "cvss",
+      "version": "3.6",
+      "purl": "pkg:pypi/cvss@3.6"
+    }
+  ]
+}

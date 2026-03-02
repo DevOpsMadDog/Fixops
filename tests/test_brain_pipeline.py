@@ -31,9 +31,7 @@ Covers:
 
 from __future__ import annotations
 
-import uuid
-from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -493,7 +491,7 @@ class TestStepEnrichThreats:
         findings = [{"id": "1", "cve_id": "CVE-2024-001", "severity": "critical"}]
         inp = PipelineInput(org_id="org", findings=findings)
         # Need to run through normalize first, then enrich
-        result = pipeline.run(inp)
+        pipeline.run(inp)
         # After enrichment, findings should have cvss/epss
         assert "cvss_score" in findings[0]
         assert "epss_score" in findings[0]
@@ -543,7 +541,7 @@ class TestStepScoreRisk:
         ]
         assets = [{"id": "service-0", "name": "service-0", "criticality": 2.0}]
         inp = PipelineInput(org_id="org", findings=findings, assets=assets)
-        result = pipeline.run(inp)
+        pipeline.run(inp)
         # Finding should have a risk_score assigned
         assert "risk_score" in findings[0]
         assert findings[0]["risk_score"] > 0
@@ -579,7 +577,7 @@ class TestStepApplyPolicy:
             }
         ]
         inp = PipelineInput(org_id="org", findings=findings)
-        result = pipeline.run(inp)
+        pipeline.run(inp)
         # After enrichment + scoring, critical finding should get high risk_score
         # Policy should assign "block" or "review" or "escalate"
         assert findings[0].get("policy_action") in (
@@ -882,7 +880,7 @@ class TestEdgeCases:
     def test_findings_with_no_severity(self, pipeline):
         findings = [{"id": "1"}]
         inp = PipelineInput(org_id="org", findings=findings)
-        result = pipeline.run(inp)
+        pipeline.run(inp)
         # Normalize should have set default severity
         assert findings[0].get("severity") == "medium"
 

@@ -1,0 +1,25 @@
+{
+  "task_id": "swarm-605",
+  "worker_id": "junior-worker",
+  "status": "completed",
+  "task_type": "test-run",
+  "description": "Run compliance + analytics tests",
+  "command": "python -m pytest tests/test_analytics_comprehensive.py tests/test_compliance_engine_unit.py tests/test_compliance_mapping.py -v --timeout=30 --tb=short",
+  "test_results": {
+    "total_tests": 102,
+    "passed": 102,
+    "failed": 0,
+    "skipped": 0,
+    "duration_seconds": 6.16
+  },
+  "files_tested": [
+    "tests/test_analytics_comprehensive.py",
+    "tests/test_compliance_engine_unit.py",
+    "tests/test_compliance_mapping.py"
+  ],
+  "failures": [],
+  "notes": "All 102 tests passed successfully. Coverage gate failure is project-wide issue (25% required, 19.25% achieved) not related to these test files. Slowest test: TestFindingLifecycle::test_create_finding (0.27s setup + 0.06s call).",
+  "needs_senior_review": false,
+  "confidence": 1.0,
+  "duration_turns": 2
+}

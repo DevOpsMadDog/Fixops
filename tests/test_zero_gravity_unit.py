@@ -16,14 +16,8 @@ Agent: agent-doctor (run v6 — 2026-03-01)
 
 from __future__ import annotations
 
-import json
 import os
 import sys
-import tempfile
-import shutil
-import zlib
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
 
 import pytest
 

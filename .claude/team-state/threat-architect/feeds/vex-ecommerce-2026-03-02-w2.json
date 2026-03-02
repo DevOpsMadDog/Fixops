@@ -1,0 +1,91 @@
+{
+  "document": {
+    "category": "csaf_vex",
+    "title": "VEX for E-Commerce Platform Week 2",
+    "publisher": {
+      "name": "ALdeci ThreatArchitect",
+      "category": "coordinator"
+    },
+    "tracking": {
+      "id": "VEX-ECOM-W2-1772453269",
+      "status": "final",
+      "version": "1.0.0",
+      "initial_release_date": "2026-03-02T12:07:49.538924+00:00",
+      "current_release_date": "2026-03-02T12:07:49.538926+00:00"
+    }
+  },
+  "vulnerabilities": [
+    {
+      "cve": "CVE-2024-1597",
+      "product": "postgresql-jdbc@42.7.1",
+      "status": "affected",
+      "impact": "critical",
+      "justification": "Application uses preferQueryMode=simple in connection string, enabling the SQL injection vector. Immediate upgrade required.",
+      "action_statement": "Upgrade to postgresql-jdbc 42.7.2+ which fixes the SQL injection in simple query mode."
+    },
+    {
+      "cve": "CVE-2024-22259",
+      "product": "spring-boot@3.2.3",
+      "status": "affected",
+      "impact": "high",
+      "justification": "Application uses UriComponentsBuilder to construct redirect URLs from user input in OAuth callback. SSRF is exploitable.",
+      "action_statement": "Upgrade to Spring Framework 6.1.5+ or add URL validation before constructing redirect URIs."
+    },
+    {
+      "cve": "CVE-2023-50782",
+      "product": "cryptography@41.0.7",
+      "status": "under_investigation",
+      "impact": "high",
+      "justification": "Application uses RSA PKCS#1 v1.5 for payment token decryption. Bleichenbacher timing oracle may be exploitable with sufficient network access.",
+      "action_statement": "Investigate migration to OAEP padding. Monitor for upgrade to cryptography 42.x."
+    },
+    {
+      "cve": "CVE-2023-44487",
+      "product": "netty-handler@4.1.104.Final",
+      "status": "affected",
+      "impact": "high",
+      "justification": "API Gateway uses Netty for HTTP/2 connections. Rapid Reset attack can DoS the gateway. Rate limiting partially mitigates.",
+      "action_statement": "Upgrade to Netty 4.1.108+ with HTTP/2 Rapid Reset protection. Add connection-level rate limiting."
+    },
+    {
+      "cve": "CVE-2023-35116",
+      "product": "jackson-databind@2.16.1",
+      "status": "not_affected",
+      "impact": "low",
+      "justification": "Application does not deserialize user-supplied JSON with polymorphic types enabled. The cyclic dependency DoS requires enableDefaultTyping() which is not used.",
+      "action_statement": "No action required. Monitor for future usage of DefaultTyping."
+    },
+    {
+      "cve": "CVE-2024-28849",
+      "product": "axios@1.6.5",
+      "status": "affected",
+      "impact": "medium",
+      "justification": "Frontend uses axios for API calls with proxy configuration. Proxy-Authorization header can leak to redirect targets.",
+      "action_statement": "Upgrade to axios 1.6.8+ which strips Proxy-Authorization on cross-host redirects."
+    },
+    {
+      "cve": "CVE-2023-5043",
+      "product": "nginx@1.25.4",
+      "status": "not_affected",
+      "impact": "low",
+      "justification": "This CVE affects NGINX Ingress Controller for Kubernetes, not standalone NGINX. Our deployment uses standalone NGINX as reverse proxy.",
+      "action_statement": "No action required. This CVE is specific to Kubernetes Ingress Controller annotations."
+    },
+    {
+      "cve": "CVE-2024-22195",
+      "product": "celery@5.3.6",
+      "status": "under_investigation",
+      "impact": "medium",
+      "justification": "Celery uses Jinja2 for task result templates. Investigating if user-supplied data reaches template rendering via xmlattr filter.",
+      "action_statement": "Audit Celery task result templates for user-supplied data in xmlattr filter. Upgrade Jinja2 to 3.1.3+."
+    },
+    {
+      "cve": "CVE-2023-46809",
+      "product": "express@4.18.2",
+      "status": "affected",
+      "impact": "high",
+      "justification": "Node.js BFF service uses RSA PKCS#1 v1.5 for JWT verification. Marvin attack potentially exploitable for key recovery.",
+      "action_statement": "Switch JWT verification to use RSA-PSS or ECDSA. Upgrade Node.js runtime to 20.11.1+."
+    }
+  ]
+}

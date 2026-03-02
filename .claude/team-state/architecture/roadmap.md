@@ -1,6 +1,6 @@
 # ALdeci Technical Roadmap
 
-**Last Updated**: 2026-03-02 (evening) by enterprise-architect (Run 5)
+**Last Updated**: 2026-03-02 (Run 7) by enterprise-architect
 **Current Phase**: Phase 1 — Funding Ready
 **Demo Date**: 2026-03-06 (Enterprise Demo) — 4 days remaining
 
@@ -18,7 +18,7 @@
 
 ### Sprint 2 (Mar 1-6) — ENTERPRISE DEMO ⏳ (11/12 done = 91.7%)
 - [x] DEMO-001: Fix ALL broken API endpoints (V3) — E2E 58/58, 769 routes, 11 security fixes ✅
-- [x] DEMO-002: Postman collections GREEN (V10) — 411/411 assertions → 475/475 = 100% ✅
+- [x] DEMO-002: Postman collections GREEN (V10) — 475/475 = 100% (8th consecutive green) ✅
 - [x] DEMO-004: CTEM Full Loop Demo (V10+V5) — 36/36 steps, 5/5 phases ✅
 - [x] DEMO-005: 5 Persona Walkthrough Scripts (V3) — 5 personas documented ✅
 - [x] DEMO-006: Fix coverage config (V10) — config fixed ✅
@@ -28,23 +28,24 @@
 - [x] DEMO-010: Knowledge Graph Demo (V3) — 73 nodes, 110 edges ✅
 - [x] DEMO-011: Compliance Evidence Export (V10) — RSA-SHA256 signed ✅
 - [x] DEMO-012: Self-Learning Demo (V8) — 5 feedback loops, 73 tests ✅
-- [ ] DEMO-003: Wire legacy UI to real APIs (V3) — IN PROGRESS (frontend-craftsman)
+- [ ] DEMO-003: Wire legacy UI to real APIs (V3) — IN PROGRESS (frontend-craftsman, ~90%)
 
 ### Phase 1 Quality Gates
 | Gate | Target | Current | Status |
 |------|--------|---------|--------|
 | API endpoints responding | 100% | 100% (769 routes) | ✅ |
 | Postman assertions passing | 100% | 100% (475/475) | ✅ |
-| UI pages wired to real data | 95% | ~50% | ⚠️ DEMO-003 in progress |
-| Test coverage | 25% (gate) | 5.09% | ❌ Config measures all suites now |
+| UI pages wired to real data | 95% | ~90% | ⚠️ DEMO-003 in progress |
+| Test coverage | 25% (gate) | 4.71% | ❌ Config measures all suites now |
 | Docker one-command deploy | Working | ✅ Working (34/34 health) | ✅ |
 | Bandit HIGH issues | 0 | 0 HIGH | ✅ |
-| Bandit MEDIUM issues | <10 core | 1 core (63 full suite) | ✅ Core clean |
-| Ruff actionable warnings | <20 | 10 (77 E402 architectural) | ✅ |
+| Bandit MEDIUM issues | <10 core | 2 core (63 full suite) | ✅ Core clean |
+| Ruff actionable warnings | <20 | 0 actionable (77 E402 architectural) | ✅ All actionable fixed |
 | Brain Pipeline tests | PASS | 288/288 pass | ✅ |
 | Scanner Parser tests | PASS | 142/142 pass | ✅ |
 | XML vulnerability | Fixed | defusedxml deployed | ✅ |
-| SQLite connection leaks | Fixed | history.py patched (5 methods) | ✅ |
+| SQLite connection leaks | Fixed | history.py + deduplication.py patched | ✅ |
+| AutoFixEngine loop perf | Fixed | Hoisted outside loop | ✅ |
 
 ---
 
@@ -53,13 +54,14 @@
 ### Infrastructure
 - [ ] PostgreSQL migration (from SQLite) — TD-001, TD-008
 - [ ] Redis caching layer
-- [ ] Async Brain Pipeline (Steps 9+10 parallel) — TD-002
+- [ ] Async Brain Pipeline (Steps 9+10 parallel) — TD-002, TD-021
 - [ ] Database migration system (Alembic) — TD-008
 - [ ] Connection pooling (asyncpg/SQLAlchemy pool)
+- [ ] Dedup service: single connection per batch — TD-020
 
-### Reliability (NEW — from ADR-008)
+### Reliability (from ADR-008)
 - [ ] Circuit breakers for LLM and MPTE calls — TD-018
-- [ ] Per-step timeouts in Brain Pipeline — TD-019
+- [ ] Per-step timeouts in Brain Pipeline (Steps 3,5,6,7,8,11) — TD-019
 - [ ] Thread-safe circuit breaker — add Lock to _AsyncCircuitBreaker
 - [ ] Dead-letter queue for scanner ingest failures
 
@@ -77,7 +79,7 @@
 
 ### Quality
 - [ ] Fix 101 bare except:pass patterns — TD-004
-- [ ] Test coverage 5.09% → 25% (write tests for 0% modules)
+- [ ] Test coverage 4.71% → 25% (write tests for 0% modules)
 - [ ] External message queue (Redis Pub/Sub) — TD-011
 - [ ] Split app.py into router groups — TD-007
 
@@ -119,9 +121,9 @@
 
 ---
 
-## Architecture Metrics (Verified 2026-03-02 evening)
+## Architecture Metrics (Verified 2026-03-02, Run 7)
 
-| Metric | Value | Change |
+| Metric | Value | Change from Run 6 |
 |--------|-------|--------|
 | Total LOC | ~790K | — |
 | Python suites | 6 | — |
@@ -136,15 +138,18 @@
 | AutoFix types | 10 | — |
 | Self-Learning loops | 5 | — |
 | Tests collected | 12,565 | — |
-| Core tests passing | 288/288 | ✅ |
-| Test coverage (core) | 5.09% | Config measures all suites |
+| Core tests passing | 288/288 | ✅ Verified (21.40s) |
+| Test coverage | 4.99% | Up from 4.71% |
 | Docker services | 8 (compose) | — |
-| ADRs written | 8 | +1 (ADR-008 Reliability) |
-| Tech debt items | 19 (3 done) | +3 new from reliability review |
+| ADRs written | 9 | +1 (ADR-009 MCP Auto-Discovery) |
+| ADRs validated | 9/9 | All file refs verified |
+| Tech debt items | 22 (5 done) | — |
 | Bandit total issues | 456 | — |
 | Bandit HIGH | 0 | — |
-| Ruff warnings | 87 (10 actionable) | — |
-| Bug fixes this session | 1 | history.py connection leak |
+| Bandit MEDIUM (core) | 2 | Stable |
+| Ruff warnings | 77 (0 actionable) | -2 (fixed F821) |
+| Bug fixes this run | 1 | F821 TYPE_CHECKING import |
+| Reviews completed | 5 total | Updated performance review |
 
 ---
 

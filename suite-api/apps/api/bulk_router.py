@@ -27,7 +27,7 @@ from core.persistent_store import PersistentDict
 from core.policy_db import PolicyDB
 from core.services.deduplication import ClusterStatus, DeduplicationService
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 logger = logging.getLogger(__name__)
 
@@ -125,25 +125,45 @@ class BulkAssignRequest(BaseModel):
     """Request model for bulk assign operations."""
 
     ids: List[str] = Field(..., min_length=1)
-    assignee: str
-    assignee_email: Optional[str] = None
+    assignee: str = Field(..., max_length=255)
+    assignee_email: Optional[str] = Field(default=None, max_length=255)
+
+
+_BULK_ALLOWED_STATUSES = frozenset({
+    "open",
+    "in_progress",
+    "resolved",
+    "false_positive",
+    "accepted_risk",
+    "wont_fix",
+    "closed",
+})
 
 
 class BulkStatusUpdateRequest(BaseModel):
     """Request model for bulk status update."""
 
     ids: List[str] = Field(..., min_length=1)
-    new_status: str
-    reason: Optional[str] = None
-    changed_by: Optional[str] = None
+    new_status: str = Field(..., max_length=64)
+    reason: Optional[str] = Field(default=None, max_length=1000)
+    changed_by: Optional[str] = Field(default=None, max_length=255)
+
+    @field_validator("new_status")
+    @classmethod
+    def validate_new_status(cls, v: str) -> str:
+        normalised = v.strip().lower()
+        if normalised not in _BULK_ALLOWED_STATUSES:
+            allowed = ", ".join(sorted(_BULK_ALLOWED_STATUSES))
+            raise ValueError(f"new_status must be one of: {allowed}")
+        return normalised
 
 
 class BulkAcceptRiskRequest(BaseModel):
     """Request model for bulk accept risk."""
 
     ids: List[str] = Field(..., min_length=1)
-    justification: str
-    approved_by: str
+    justification: str = Field(..., max_length=2000)
+    approved_by: str = Field(..., max_length=255)
     expiry_days: Optional[int] = 90
 
 
@@ -151,9 +171,9 @@ class BulkCreateTicketsRequest(BaseModel):
     """Request model for bulk ticket creation."""
 
     ids: List[str] = Field(..., min_length=1)
-    integration_id: str
-    project_key: Optional[str] = None
-    issue_type: str = "Bug"
+    integration_id: str = Field(..., max_length=128)
+    project_key: Optional[str] = Field(default=None, max_length=128)
+    issue_type: str = Field(default="Bug", max_length=64)
     priority_mapping: Optional[Dict[str, str]] = None
 
 
@@ -161,9 +181,9 @@ class BulkExportRequest(BaseModel):
     """Request model for bulk export."""
 
     ids: List[str] = Field(..., min_length=1)
-    format: str = "json"
+    format: str = Field(default="json", max_length=10)
     include_fields: Optional[List[str]] = None
-    org_id: str
+    org_id: str = Field(..., max_length=128)
 
 
 class BulkApplyPoliciesRequest(BaseModel):
@@ -968,13 +988,37 @@ async def download_export(filename: str):
     """Download an export file produced by /export."""
     from fastapi.responses import FileResponse
 
+    # Reject path traversal attempts before any path construction.
+    # Check for directory separators and parent-directory sequences in the
+    # raw string so that encoded variants (e.g. %2F) handled by the framework
+    # are also caught after URL decoding.
+    if ".." in filename or "/" in filename or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    # Allow only known safe extensions produced by the export job.
+    _ALLOWED_EXTENSIONS = {".json", ".csv", ".sarif"}
+    suffix = Path(filename).suffix.lower()
+    if suffix not in _ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Invalid file extension")
+
     filepath = _EXPORTS_DIR / filename
+
+    # Resolve symlinks and verify the canonical path stays inside _EXPORTS_DIR.
+    # This is a defence-in-depth check against any edge case not caught above.
+    try:
+        resolved = filepath.resolve()
+        exports_resolved = _EXPORTS_DIR.resolve()
+        resolved.relative_to(exports_resolved)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
     if not filepath.exists():
         raise HTTPException(status_code=404, detail="Export file not found")
+
     media = "application/json"
-    if filename.endswith(".csv"):
+    if suffix == ".csv":
         media = "text/csv"
-    elif filename.endswith(".sarif"):
+    elif suffix == ".sarif":
         media = "application/sarif+json"
     return FileResponse(path=str(filepath), media_type=media, filename=filename)
 

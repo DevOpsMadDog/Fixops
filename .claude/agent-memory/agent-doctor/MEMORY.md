@@ -17,20 +17,13 @@ When launching claude CLI as child processes on macOS:
 - State: `.claude/team-state/`
 - Logs: `logs/ai-team/`
 
-### Sprint 2 Pre-Flight (run24→run31+, 2026-03-01→02)
+### Sprint 2 Pre-Flight (run24→run33, 2026-03-01→02)
 - Enterprise demo in 4 days (2026-03-06). Sprint 2: 11/12 done (91.7%), 1 P0 blocker (DEMO-003 UI wiring).
-- Run31+ (Day 2 late, independent verification): 19/19 engines (20,783 LOC), 4/4 MOATs PASS, 56/56 DBs writable
-- Run31+: 1,143 core tests pass (23.73s, 15 test files), 13,221 total tests, coverage 19.25%
-- Run31+: 7 WAL+SHM cleaned (12MB — fixops_brain 4MB, identity 4MB, exposure_cases 4MB). 5/5 DB integrity OK.
-- Run31: context-engineer + vision-agent rate-limited ("out of extra usage" — Claude quota). Auto-recovers. NOT config failures.
-- Run30: 17/17 agents Grade A. ExploitabilityLevel test fix (UNKNOWN added). 12 WAL (393MB, brain.db-wal 388MB).
-- Run29: 17/17 agents Grade A. 10 WAL (1.6MB). 5 DB integrity pass. 4 stale fix-* removed.
-- Run28: 20 WAL (2.55GB!). fixops_brain.db corrupted, recreated.
-- RSAKeyManager needs explicit key paths (private_key_path, public_key_path) — default "." causes IsADirectoryError
-- Coverage with --collect-only shows 19.35% vs actual 19.19% with expanded scope
+- **Run33 (latest)**: 17/17 Grade A. 19/19 engines (20,783 LOC). 4/4 MOATs. 56/56 DBs writable. 1,143 core tests (29.02s). 13,221 total. Coverage 19.15%. GREEN.
+- **Run33 FIX**: data/fixops_brain.db CORRUPTED AGAIN (3rd time). Recovered from suite-api/data copy. 12 WAL+SHM cleaned (0 bytes).
+- **fixops_brain.db corruption is RECURRING** (run28, run31+, run33). Root cause: WAL accumulation without checkpointing. suite-api/data/fixops_brain.db serves as healthy fallback.
 - Lock files: jarvis.pid, jarvis.lock, controller-watchdog.pid — ALWAYS check if PIDs alive before cleaning
-- Engine LOC growth: brain_pipeline 1161→1354, autofix 1259→1416, dast 533→629 (backend-hardener work)
-- Security advisory SA-001 OPEN: Real API keys committed in .env (OpenAI, JWT, API token) — needs rotation before demo
+- SA-001: .env secrets rotation CRITICAL (5 days open, must fix before demo)
 
 ### CTEM+ Engine Inventory (verified 2026-03-02 run28)
 - 6 scanner engines: sast (1577), dast (629), secrets (850), container (445), iac (713), cspm (593) = 4,807 LOC
@@ -95,14 +88,14 @@ When launching claude CLI as child processes on macOS:
 - Use `bash -c '...'` wrapper for scripts with `[[ ]]` syntax — zsh parses `[[ ! ]]` differently
 - Or use `[ ]` (POSIX) instead of `[[ ]]` (bash)
 
-### Sprint Artifacts (as of 2026-03-02 run31+)
+### Sprint Artifacts (as of 2026-03-02 run33)
 - Sprint 1 ARCHIVED: 21/23 done (91.3%)
 - Sprint 2 ACTIVE: 11/12 done (91.7%). 1 P0 blocker: DEMO-003 (UI wiring). 4 days to demo.
-- 360+ test files, 13,221 tests collected, 1,143 core tests passing (23.73s)
-- 19.25% coverage (gate: 25% — FAILING, gap 5.75pp)
+- 369 test files, 13,221 tests collected, 1,143 core tests passing (29.02s)
+- 19.15% coverage (gate: 25% — FAILING, gap 5.85pp)
 - 20,783 LOC across 19 engines (+2,623 from Sprint 1)
-- WAL trend: 2.5GB (run28) → 393MB (run30) → 12MB (run31+) — stabilizing
-- SA-001: .env secrets rotation CRITICAL (4 days open, must fix before demo)
+- WAL trend: 2.5GB (run28) → 393MB (run30) → 12MB (run31) → 0KB (run33) — STABLE
+- SA-001: .env secrets rotation CRITICAL (5 days open, must fix before demo)
 
 ### Core Test Files (verified run v6 — 948 tests, ~68s)
 - test_brain_pipeline.py (159 tests)
@@ -127,12 +120,11 @@ When launching claude CLI as child processes on macOS:
 - mpte_models.py: exports `PenTestConfig`, `PenTestRequest`, `PenTestResult` — NOT `MPTETarget`
 - Always use `import core.module_name` pattern, not `from core.module_name import ClassName`
 
-### Healthy Agents (verified run31+ — 2026-03-02)
-- 15 Grade A, 2 Grade C (rate-limited: context-engineer, vision-agent — Claude quota, auto-recovers)
-- Run31+: 19 engines (20,783 LOC). 1,143 core tests (23.73s). 13,221 total tests. Coverage 19.25%. Health: YELLOW.
-- Run31+: 7 WAL+SHM cleaned (12MB). 5/5 DB integrity OK. 56/56 DBs writable. Lock PIDs alive.
-- Run30: 17 Grade A. 12 WAL (393MB). ExploitabilityLevel fix. Brain.db-wal 388MB recurring.
-- Run28 FIX: fixops_brain.db corruption recovered. 20 WAL cleaned (~2.55GB).
+### Healthy Agents (verified run33 — 2026-03-02)
+- 17/17 Grade A (14 completed, 3 running). 0 failures, 0 rate-limited. Health: GREEN.
+- Run33: 19/19 engines (20,783 LOC). 4/4 MOATs. 56/56 DBs. 1,143 core tests (29.02s). Coverage 19.15%.
+- Run33: 12 WAL+SHM cleaned (0 bytes). fixops_brain.db corruption recovered. WAL trend: EXCELLENT (0KB).
+- fixops_brain.db corruption: 3rd occurrence. Always keep suite-api/data/fixops_brain.db as backup.
 
 ### Coverage Acceleration Strategy (updated run v8)
 - **v6 strategy** (suite-core modules): diminishing returns — tests hit already-covered code

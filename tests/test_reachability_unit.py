@@ -16,7 +16,6 @@ Tests the reachability monitoring module including:
 """
 
 import time
-from unittest.mock import MagicMock, patch
 
 import pytest
 from risk.reachability.monitoring import AnalysisMetrics, ReachabilityMonitor
@@ -195,7 +194,7 @@ class TestTrackAnalysis:
         """On error, the success counter should not increment."""
         monitor = ReachabilityMonitor()
         with pytest.raises(RuntimeError):
-            with monitor.track_analysis("CVE-2026-0013", "crash-lib") as metrics:
+            with monitor.track_analysis("CVE-2026-0013", "crash-lib"):
                 raise RuntimeError("crash")
 
         assert monitor._analyses_total == 0

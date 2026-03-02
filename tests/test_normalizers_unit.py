@@ -19,7 +19,6 @@ import base64
 import gzip
 import io
 import json
-import math
 import os
 import zipfile
 

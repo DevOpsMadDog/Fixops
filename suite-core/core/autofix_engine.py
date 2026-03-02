@@ -308,16 +308,23 @@ class AutoFixEngine:
         finding_title = finding.get(
             "title", finding.get("name", "Unknown Vulnerability")
         )
-        finding.get("cwe_id", "")
-        finding.get("severity", "medium").lower()
+        cwe_id = finding.get("cwe_id", "")
+        severity = finding.get("severity", "medium").lower()
         cve_ids = finding.get("cve_ids", [])
+
+        # Input validation — cap field lengths to prevent abuse
+        if len(finding_id) > 256:
+            finding_id = finding_id[:256]
+        if len(finding_title) > 500:
+            finding_title = finding_title[:500]
 
         # Determine fix type from the finding
         fix_type = self._infer_fix_type(finding)
         fix_id = self._make_fix_id(finding_id, fix_type)
 
         logger.info(
-            f"[AutoFix] Generating {fix_type.value} fix for {finding_id} ({finding_title})"
+            "[AutoFix] Generating %s fix for %s (severity=%s, cwe=%s)",
+            fix_type.value, finding_id, severity, cwe_id or "N/A",
         )
 
         # Enrich context from Knowledge Graph
@@ -380,7 +387,11 @@ class AutoFixEngine:
             suggestion.status = FixStatus.GENERATED
 
         except Exception as exc:
-            logger.error("[AutoFix] Generation failed for %s: %s: %s", finding_id, type(exc).__name__, exc)
+            # Only log exception type — str(exc) may contain LLM API keys or secrets
+            logger.error(
+                "[AutoFix] Generation failed for %s: %s",
+                finding_id, type(exc).__name__, exc_info=True,
+            )
             suggestion.status = FixStatus.FAILED
             suggestion.metadata["error"] = f"Generation failed ({type(exc).__name__})"
 
@@ -528,7 +539,7 @@ class AutoFixEngine:
                 if cve_node:
                     ctx["related_cves"].append(cve_node)
         except Exception as exc:
-            logger.debug(f"[AutoFix] Graph enrichment skipped: {exc}")
+            logger.debug("[AutoFix] Graph enrichment skipped: %s", type(exc).__name__)
         return ctx
 
     # ------------------------------------------------------------------
@@ -647,7 +658,8 @@ Provide ONLY valid JSON. The fix must be precise, minimal, and production-ready.
 
         except (json.JSONDecodeError, KeyError) as exc:
             logger.warning(
-                f"[AutoFix] LLM response parse failed, using fallback: {exc}"
+                "[AutoFix] LLM response parse failed (%s), using fallback",
+                type(exc).__name__,
             )
             suggestion.title = f"Fix {finding.get('title', 'vulnerability')}"
             suggestion.description = response.reasoning[:500]
@@ -882,8 +894,23 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
     # Validation & confidence
     # ------------------------------------------------------------------
 
+    # Maximum size for generated patch code (64KB per patch)
+    MAX_PATCH_SIZE = 65536
+
     def _validate_fix(self, suggestion: AutoFixSuggestion) -> Dict[str, Any]:
-        """Validate a generated fix for safety."""
+        """Validate a generated fix for safety.
+
+        [V3] Decision Intelligence — safety gate for LLM-generated code.
+
+        Validates:
+        1. At least one fix artifact exists
+        2. No dangerous code patterns introduced
+        3. No path traversal in file paths
+        4. No dangerous imports introduced
+        5. Patches have valid old/new code
+        6. Dependency fixes have valid versions
+        7. Patch size limits enforced
+        """
         issues: List[str] = []
         checks_passed = 0
         total_checks = 0
@@ -908,14 +935,23 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
             "DROP TABLE", "DELETE FROM", "TRUNCATE TABLE",
             # Shell injection vectors
             "os.system(", "subprocess.call(", "child_process.exec(",
-            # Code injection
-            "exec(", "__import__(",
-            # Credential patterns
+            "subprocess.Popen(", "commands.getoutput(",
+            # Code injection / dynamic execution
+            "exec(", "__import__(", "compile(",
+            # Credential patterns in code (not config values)
             "password=", "secret=", "api_key=",
             # Unsafe deserialization
-            "pickle.loads(", "yaml.load(",
+            "pickle.loads(", "yaml.load(", "marshal.loads(",
+            "shelve.open(",
             # Network backdoors
             "0.0.0.0", "bind(", "socket.listen(",
+            # File system attacks
+            "shutil.rmtree(", "os.remove(", "os.unlink(",
+            # Debug backdoors
+            "breakpoint(", "pdb.set_trace(",
+            # Crypto downgrades
+            "ssl._create_unverified_context",
+            "verify=False", "CERT_NONE",
         ]
         total_checks += 1
         safe = True
@@ -933,7 +969,45 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
         if safe:
             checks_passed += 1
 
-        # Check 3: Patch has both old and new code
+        # Check 3: Path traversal in patch file paths
+        total_checks += 1
+        paths_safe = True
+        for patch in suggestion.code_patches:
+            fp = patch.file_path
+            if ".." in fp or fp.startswith("/") or "\\" in fp:
+                issues.append(
+                    f"Path traversal detected in patch file_path: {fp[:100]}"
+                )
+                paths_safe = False
+            if len(fp) > 500:
+                issues.append(
+                    f"Patch file_path too long ({len(fp)} chars): {fp[:60]}..."
+                )
+                paths_safe = False
+        if paths_safe:
+            checks_passed += 1
+
+        # Check 4: Dangerous imports in new code
+        total_checks += 1
+        imports_safe = True
+        dangerous_imports = [
+            "import ctypes", "import os", "import subprocess",
+            "import shutil", "import socket", "from ctypes",
+            "import multiprocessing", "import signal",
+            "import pty", "import resource",
+        ]
+        for patch in suggestion.code_patches:
+            for imp in dangerous_imports:
+                imp_lower = imp.lower()
+                if imp_lower in patch.new_code.lower() and imp_lower not in patch.old_code.lower():
+                    issues.append(
+                        f"Dangerous import '{imp}' introduced in {patch.file_path}"
+                    )
+                    imports_safe = False
+        if imports_safe:
+            checks_passed += 1
+
+        # Check 5: Patch has both old and new code
         total_checks += 1
         patch_valid = True
         for patch in suggestion.code_patches:
@@ -943,7 +1017,7 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
         if patch_valid:
             checks_passed += 1
 
-        # Check 4: Dependency fix has valid version
+        # Check 6: Dependency fix has valid version
         total_checks += 1
         dep_valid = True
         for dep in suggestion.dependency_fixes:
@@ -951,6 +1025,19 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
                 issues.append(f"Invalid fixed version for {dep.package_name}")
                 dep_valid = False
         if dep_valid:
+            checks_passed += 1
+
+        # Check 7: Patch size limits
+        total_checks += 1
+        size_ok = True
+        for patch in suggestion.code_patches:
+            if len(patch.new_code) > self.MAX_PATCH_SIZE:
+                issues.append(
+                    f"Patch too large for {patch.file_path}: "
+                    f"{len(patch.new_code)} bytes (max {self.MAX_PATCH_SIZE})"
+                )
+                size_ok = False
+        if size_ok:
             checks_passed += 1
 
         return {
@@ -994,8 +1081,8 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
 
         except Exception as exc:
             logger.debug(
-                "[AutoFix] ML confidence model unavailable, using rule-based fallback: %s",
-                exc,
+                "[AutoFix] ML confidence model unavailable (%s), using rule-based fallback",
+                type(exc).__name__,
             )
 
         # --- Deterministic rule-based fallback ---

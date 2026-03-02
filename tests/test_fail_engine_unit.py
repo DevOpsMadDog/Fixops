@@ -27,7 +27,6 @@ from core.fail_engine import (
     DataClassification,
     ExploitMaturity,
     FAILEngine,
-    FAILFactScore,
     FAILGrade,
     FAILInput,
     FAILResult,
@@ -214,10 +213,10 @@ class TestFactScoreUnit:
 
     def test_medium_evidence_quality_range(self, engine):
         # Score between 40-69 => medium
-        result = engine.score(FAILInput(cve_id="CVE-1", cvss_score=5.0))
+        engine.score(FAILInput(cve_id="CVE-1", cvss_score=5.0))
         # 30 + 20 + 10(2 sources) + 15(scanner) = 75 => "high"
         # Actually this will be high. Let me find a combo that gives medium.
-        result2 = engine.score(FAILInput(cvss_score=5.0))
+        engine.score(FAILInput(cvss_score=5.0))
         # 0 + 20 + 0 + 0(1 source) + 15(scanner) = 35 ... low
         # Need 40-69 for medium. CVE alone: 30+15=45 => medium
         result3 = engine.score(FAILInput(cve_id="CVE-1"))
