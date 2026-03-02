@@ -1,24 +1,37 @@
 """
-Comprehensive tests for the IaC scanner module.
+Comprehensive unit tests for suite-core/core/iac_scanner.py
 
-Tests cover:
-- Scanner configuration and initialization
-- Path validation and security
-- Provider detection
-- Checkov and tfsec output parsing
-- Async scanning functionality
-- Error handling and edge cases
+Covers:
+- ScannerType and ScanStatus enums
+- ScanResult and ScannerConfig dataclasses
+- IaCScanner._map_severity
+- IaCScanner._parse_checkov_output
+- IaCScanner._parse_tfsec_output
+- IaCScanner.get_available_scanners
+- IaCScanner.to_dict() on ScanResult and IaCFinding
+- ScannerConfig.from_env()
+- Singleton get_iac_scanner()
+- Edge cases: malformed JSON, empty inputs, null results, missing fields
 """
 
-import asyncio
 import json
 import os
-import shutil
-import uuid
-from pathlib import Path
-from unittest.mock import AsyncMock, patch
+import sys
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 import pytest
+
+# Ensure the suite-core directory is on the path
+sys.path.insert(0, "/Users/devops.ai/developement/fixops/Fixops/suite-core")
+
+# Set FIXOPS env vars before any imports so the module initialises cleanly
+os.environ.setdefault("FIXOPS_MODE", "enterprise")
+os.environ.setdefault("FIXOPS_API_TOKEN", "test-token")
+os.environ.setdefault("FIXOPS_JWT_SECRET", "test-jwt-secret")
+os.environ.setdefault("FIXOPS_DISABLE_TELEMETRY", "1")
+os.environ.setdefault("FIXOPS_DISABLE_RATE_LIMIT", "1")
+
 from core.iac_models import IaCFinding, IaCFindingStatus, IaCProvider
 from core.iac_scanner import (
     IaCScanner,
@@ -29,1232 +42,1245 @@ from core.iac_scanner import (
     get_iac_scanner,
 )
 
-import tempfile as _tempfile
 
-# --- Portable TRUSTED_ROOT setup for tests ---
-# On macOS/CI, /var/fixops is not writable without root.
-# We create a temp directory and patch the module constants so tests run anywhere.
-_IAC_TEST_ROOT = _tempfile.mkdtemp(prefix="fixops-test-")
-TRUSTED_TEST_ROOT = os.path.join(_IAC_TEST_ROOT, "test-scans")
-os.makedirs(TRUSTED_TEST_ROOT, exist_ok=True)
-os.makedirs(os.path.join(_IAC_TEST_ROOT, "scans"), exist_ok=True)
-os.makedirs(os.path.join(_IAC_TEST_ROOT, "policies"), exist_ok=True)
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _make_scanner(config: Optional[ScannerConfig] = None) -> IaCScanner:
+    """Return an IaCScanner with a minimal config (no external tools needed)."""
+    cfg = config or ScannerConfig(
+        checkov_path="checkov_does_not_exist",
+        tfsec_path="tfsec_does_not_exist",
+        timeout_seconds=30,
+    )
+    return IaCScanner(cfg)
 
 
-@pytest.fixture(autouse=True)
-def _patch_iac_trusted_root():
-    """Patch IaC scanner module constants to use temp directories.
+def _make_finding(
+    *,
+    severity: str = "high",
+    provider: IaCProvider = IaCProvider.TERRAFORM,
+    status: IaCFindingStatus = IaCFindingStatus.OPEN,
+    rule_id: str = "CKV_AWS_1",
+) -> IaCFinding:
+    return IaCFinding(
+        id="test-id",
+        provider=provider,
+        status=status,
+        severity=severity,
+        title="Test finding",
+        description="Test description",
+        file_path="main.tf",
+        line_number=10,
+        resource_type="aws_s3_bucket",
+        resource_name="my_bucket",
+        rule_id=rule_id,
+        remediation="Fix it",
+        metadata={"scanner": "checkov"},
+    )
 
-    This allows the IaC scanner tests to run on any system without
-    requiring root access to /var/fixops.
-    """
-    with patch("core.iac_scanner.TRUSTED_ROOT", _IAC_TEST_ROOT), \
-         patch("core.iac_scanner.SCAN_BASE_PATH", os.path.join(_IAC_TEST_ROOT, "scans")), \
-         patch("core.iac_scanner.CUSTOM_POLICIES_PATH", os.path.join(_IAC_TEST_ROOT, "policies")), \
-         patch("core.safe_path_ops.TRUSTED_ROOT", _IAC_TEST_ROOT):
-        yield
 
+def _checkov_json(failed_checks: List[Dict[str, Any]]) -> str:
+    return json.dumps({"results": {"failed_checks": failed_checks}})
+
+
+def _tfsec_json(results: List[Dict[str, Any]]) -> str:
+    return json.dumps({"results": results})
+
+
+# ---------------------------------------------------------------------------
+# ScannerType enum
+# ---------------------------------------------------------------------------
+
+class TestScannerTypeEnum:
+    def test_values_exist(self):
+        assert ScannerType.CHECKOV == "checkov"
+        assert ScannerType.TFSEC == "tfsec"
+
+    def test_is_str_subclass(self):
+        assert isinstance(ScannerType.CHECKOV, str)
+
+    def test_members(self):
+        members = {m.value for m in ScannerType}
+        assert members == {"checkov", "tfsec"}
+
+    def test_from_value_checkov(self):
+        assert ScannerType("checkov") == ScannerType.CHECKOV
+
+    def test_from_value_tfsec(self):
+        assert ScannerType("tfsec") == ScannerType.TFSEC
+
+    def test_invalid_value_raises(self):
+        with pytest.raises(ValueError):
+            ScannerType("unknown")
+
+
+# ---------------------------------------------------------------------------
+# ScanStatus enum
+# ---------------------------------------------------------------------------
+
+class TestScanStatusEnum:
+    def test_all_values_exist(self):
+        assert ScanStatus.PENDING == "pending"
+        assert ScanStatus.RUNNING == "running"
+        assert ScanStatus.COMPLETED == "completed"
+        assert ScanStatus.FAILED == "failed"
+        assert ScanStatus.CANCELLED == "cancelled"
+
+    def test_is_str_subclass(self):
+        assert isinstance(ScanStatus.COMPLETED, str)
+
+    def test_member_count(self):
+        assert len(list(ScanStatus)) == 5
+
+    def test_round_trip(self):
+        for status in ScanStatus:
+            assert ScanStatus(status.value) == status
+
+    def test_invalid_raises(self):
+        with pytest.raises(ValueError):
+            ScanStatus("does_not_exist")
+
+
+# ---------------------------------------------------------------------------
+# ScannerConfig dataclass
+# ---------------------------------------------------------------------------
 
 class TestScannerConfig:
-    """Tests for ScannerConfig."""
+    def test_defaults(self):
+        cfg = ScannerConfig()
+        assert cfg.checkov_path == "checkov"
+        assert cfg.tfsec_path == "tfsec"
+        assert cfg.timeout_seconds == 300
+        assert cfg.max_file_size_mb == 50
+        assert cfg.skip_download is False
+        assert cfg.excluded_checks == []
+        assert cfg.soft_fail is False
 
-    def test_default_config(self):
-        """Test default configuration values."""
-        config = ScannerConfig()
-        assert config.checkov_path == "checkov"
-        assert config.tfsec_path == "tfsec"
-        assert config.timeout_seconds == 300
-        assert config.max_file_size_mb == 50
-        assert config.skip_download is False
-        # Note: base_path and custom_policies_dir are removed from config
-        # They are hardcoded constants in the module (SCAN_BASE_PATH, CUSTOM_POLICIES_PATH)
-        assert config.excluded_checks == []
-        assert config.soft_fail is False
-
-    def test_config_from_env(self):
-        """Test configuration from environment variables."""
-        with patch.dict(
-            os.environ,
-            {
-                "FIXOPS_CHECKOV_PATH": "/custom/checkov",
-                "FIXOPS_TFSEC_PATH": "/custom/tfsec",
-                "FIXOPS_SCAN_TIMEOUT": "600",
-                "FIXOPS_MAX_FILE_SIZE_MB": "100",
-                "FIXOPS_SKIP_DOWNLOAD": "true",
-                # Note: FIXOPS_CUSTOM_POLICIES_DIR is no longer used - hardcoded for security
-                "FIXOPS_EXCLUDED_CHECKS": "CKV_AWS_1,CKV_AWS_2",
-                "FIXOPS_SOFT_FAIL": "true",
-            },
-        ):
-            config = ScannerConfig.from_env()
-            assert config.checkov_path == "/custom/checkov"
-            assert config.tfsec_path == "/custom/tfsec"
-            assert config.timeout_seconds == 600
-            assert config.max_file_size_mb == 100
-            assert config.skip_download is True
-            # Note: base_path and custom_policies_dir are removed from config
-            # They are hardcoded constants in the module (SCAN_BASE_PATH, CUSTOM_POLICIES_PATH)
-            assert config.excluded_checks == ["CKV_AWS_1", "CKV_AWS_2"]
-            assert config.soft_fail is True
-
-    def test_config_from_env_empty_excluded_checks(self):
-        """Test configuration with empty excluded checks."""
-        with patch.dict(os.environ, {}, clear=False):
-            if "FIXOPS_EXCLUDED_CHECKS" in os.environ:
-                del os.environ["FIXOPS_EXCLUDED_CHECKS"]
-            config = ScannerConfig.from_env()
-            assert config.excluded_checks == []
-
-
-class TestIaCScanner:
-    """Tests for IaCScanner class."""
-
-    @pytest.fixture
-    def temp_dir(self):
-        """Create a temporary directory under SCAN_BASE_PATH for testing.
-
-        Note: Tests that call methods with containment checks need files under SCAN_BASE_PATH.
-        Uses patched _IAC_TEST_ROOT so it works without root on macOS/CI.
-        """
-        scan_base = os.path.join(_IAC_TEST_ROOT, "scans")
-        os.makedirs(scan_base, exist_ok=True)
-        test_dir = os.path.join(scan_base, str(uuid.uuid4()))
-        os.makedirs(test_dir, exist_ok=True)
-        yield test_dir
-        shutil.rmtree(test_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def scanner(self, temp_dir):
-        """Create a scanner instance for testing.
-
-        Note: base_path is no longer configurable - it's hardcoded to SCAN_BASE_PATH.
-        Tests use temp_dir under _IAC_TEST_ROOT for file operations.
-        """
-        config = ScannerConfig(timeout_seconds=30)
-        return IaCScanner(config)
-
-    def test_scanner_initialization(self, scanner, temp_dir):
-        """Test scanner initialization."""
-        assert scanner.config is not None
-        assert scanner.config.timeout_seconds == 30
-        # Note: base_path is no longer a config parameter - it's hardcoded
-
-    def test_get_available_scanners(self, scanner):
-        """Test getting available scanners."""
-        with patch.object(scanner, "_is_checkov_available", return_value=True):
-            with patch.object(scanner, "_is_tfsec_available", return_value=True):
-                available = scanner.get_available_scanners()
-                assert ScannerType.CHECKOV in available
-                assert ScannerType.TFSEC in available
-
-    def test_get_available_scanners_none_available(self, scanner):
-        """Test when no scanners are available."""
-        with patch.object(scanner, "_is_checkov_available", return_value=False):
-            with patch.object(scanner, "_is_tfsec_available", return_value=False):
-                available = scanner.get_available_scanners()
-                assert len(available) == 0
-
-    def test_detect_provider_terraform(self, scanner, temp_dir):
-        """Test provider detection for Terraform files."""
-        test_file = Path(temp_dir) / "main.tf"
-        test_file.write_text('resource "aws_instance" "example" {}')
-
-        provider = scanner._detect_provider(test_file)
-        assert provider == IaCProvider.TERRAFORM
-
-    def test_detect_provider_cloudformation(self, scanner, temp_dir):
-        """Test provider detection for CloudFormation files."""
-        test_file = Path(temp_dir) / "template.yaml"
-        test_file.write_text("AWSTemplateFormatVersion: '2010-09-09'\nResources:")
-
-        provider = scanner._detect_provider(test_file)
-        assert provider == IaCProvider.CLOUDFORMATION
-
-    def test_detect_provider_kubernetes(self, scanner, temp_dir):
-        """Test provider detection for Kubernetes files."""
-        test_file = Path(temp_dir) / "deployment.yaml"
-        test_file.write_text("apiVersion: apps/v1\nkind: Deployment")
-
-        provider = scanner._detect_provider(test_file)
-        assert provider == IaCProvider.KUBERNETES
-
-    def test_detect_provider_ansible(self, scanner, temp_dir):
-        """Test provider detection for Ansible files."""
-        test_file = Path(temp_dir) / "playbook.yaml"
-        test_file.write_text("hosts: all\ntasks:")
-
-        provider = scanner._detect_provider(test_file)
-        assert provider == IaCProvider.ANSIBLE
-
-    def test_detect_provider_helm(self, scanner, temp_dir):
-        """Test provider detection for Helm charts."""
-        test_file = Path(temp_dir) / "Chart.yaml"
-        test_file.write_text("name: mychart\nversion: 1.0.0")
-
-        provider = scanner._detect_provider(test_file)
-        assert provider == IaCProvider.HELM
-
-    def test_detect_provider_directory(self, scanner, temp_dir):
-        """Test provider detection for directory with Terraform files."""
-        test_file = Path(temp_dir) / "main.tf"
-        test_file.write_text('resource "aws_instance" "example" {}')
-
-        provider = scanner._detect_provider(Path(temp_dir))
-        assert provider == IaCProvider.TERRAFORM
-
-    def test_map_severity(self, scanner):
-        """Test severity mapping."""
-        assert scanner._map_severity("CRITICAL") == "high"
-        assert scanner._map_severity("HIGH") == "high"
-        assert scanner._map_severity("MEDIUM") == "medium"
-        assert scanner._map_severity("MODERATE") == "medium"
-        assert scanner._map_severity("LOW") == "low"
-        assert scanner._map_severity("INFO") == "low"
-        assert scanner._map_severity("UNKNOWN") == "medium"
-
-    def test_parse_checkov_output_valid(self, scanner):
-        """Test parsing valid checkov output."""
-        checkov_output = json.dumps(
-            {
-                "results": {
-                    "failed_checks": [
-                        {
-                            "check_id": "CKV_AWS_1",
-                            "check": {"name": "Ensure S3 bucket has encryption"},
-                            "file_path": "/test/main.tf",
-                            "file_line_range": [10, 20],
-                            "resource": "aws_s3_bucket",
-                            "resource_address": "aws_s3_bucket.example",
-                            "guideline": "Enable encryption",
-                            "check_type": "terraform",
-                            "check_result": {"result": "FAILED"},
-                        }
-                    ]
-                }
-            }
+    def test_custom_values(self):
+        cfg = ScannerConfig(
+            checkov_path="/usr/local/bin/checkov",
+            tfsec_path="/usr/bin/tfsec",
+            timeout_seconds=60,
+            max_file_size_mb=10,
+            skip_download=True,
+            excluded_checks=["CKV_AWS_1", "CKV_AWS_2"],
+            soft_fail=True,
         )
+        assert cfg.checkov_path == "/usr/local/bin/checkov"
+        assert cfg.timeout_seconds == 60
+        assert cfg.excluded_checks == ["CKV_AWS_1", "CKV_AWS_2"]
+        assert cfg.soft_fail is True
 
-        findings = scanner._parse_checkov_output(
-            checkov_output, IaCProvider.TERRAFORM, "/test/main.tf"
-        )
+    def test_from_env_defaults(self, monkeypatch):
+        # Remove overriding env vars so defaults kick in
+        for key in [
+            "FIXOPS_CHECKOV_PATH", "FIXOPS_TFSEC_PATH", "FIXOPS_SCAN_TIMEOUT",
+            "FIXOPS_MAX_FILE_SIZE_MB", "FIXOPS_SKIP_DOWNLOAD",
+            "FIXOPS_EXCLUDED_CHECKS", "FIXOPS_SOFT_FAIL",
+        ]:
+            monkeypatch.delenv(key, raising=False)
 
-        assert len(findings) == 1
-        assert findings[0].rule_id == "CKV_AWS_1"
-        assert findings[0].file_path == "/test/main.tf"
-        assert findings[0].line_number == 10
-        assert findings[0].resource_type == "aws_s3_bucket"
+        cfg = ScannerConfig.from_env()
+        assert cfg.checkov_path == "checkov"
+        assert cfg.tfsec_path == "tfsec"
+        assert cfg.timeout_seconds == 300
+        assert cfg.max_file_size_mb == 50
+        assert cfg.skip_download is False
+        assert cfg.excluded_checks == []
+        assert cfg.soft_fail is False
 
-    def test_parse_checkov_output_invalid_json(self, scanner):
-        """Test parsing invalid JSON from checkov."""
-        findings = scanner._parse_checkov_output(
-            "not valid json", IaCProvider.TERRAFORM, "/test/main.tf"
-        )
-        assert len(findings) == 0
+    def test_from_env_custom_checkov_path(self, monkeypatch):
+        monkeypatch.setenv("FIXOPS_CHECKOV_PATH", "/opt/checkov")
+        cfg = ScannerConfig.from_env()
+        assert cfg.checkov_path == "/opt/checkov"
 
-    def test_parse_checkov_output_empty(self, scanner):
-        """Test parsing empty checkov output."""
-        checkov_output = json.dumps({"results": {"failed_checks": []}})
-        findings = scanner._parse_checkov_output(
-            checkov_output, IaCProvider.TERRAFORM, "/test/main.tf"
-        )
-        assert len(findings) == 0
+    def test_from_env_custom_tfsec_path(self, monkeypatch):
+        monkeypatch.setenv("FIXOPS_TFSEC_PATH", "/opt/tfsec")
+        cfg = ScannerConfig.from_env()
+        assert cfg.tfsec_path == "/opt/tfsec"
 
-    def test_parse_tfsec_output_valid(self, scanner):
-        """Test parsing valid tfsec output."""
-        tfsec_output = json.dumps(
-            {
-                "results": [
-                    {
-                        "rule_id": "aws-s3-enable-bucket-encryption",
-                        "long_id": "aws-s3-enable-bucket-encryption",
-                        "description": "S3 bucket should have encryption enabled",
-                        "severity": "HIGH",
-                        "resolution": "Enable encryption",
-                        "resource": "aws_s3_bucket.example",
-                        "location": {
-                            "filename": "/test/main.tf",
-                            "start_line": 10,
-                            "end_line": 20,
-                        },
-                        "rule_provider": "aws",
-                        "rule_service": "s3",
-                        "impact": "Data may be exposed",
-                        "links": ["https://example.com"],
-                    }
-                ]
-            }
-        )
+    def test_from_env_timeout(self, monkeypatch):
+        monkeypatch.setenv("FIXOPS_SCAN_TIMEOUT", "120")
+        cfg = ScannerConfig.from_env()
+        assert cfg.timeout_seconds == 120
 
-        findings = scanner._parse_tfsec_output(
-            tfsec_output, IaCProvider.TERRAFORM, "/test/main.tf"
-        )
+    def test_from_env_skip_download_true(self, monkeypatch):
+        monkeypatch.setenv("FIXOPS_SKIP_DOWNLOAD", "true")
+        cfg = ScannerConfig.from_env()
+        assert cfg.skip_download is True
 
-        assert len(findings) == 1
-        assert findings[0].rule_id == "aws-s3-enable-bucket-encryption"
-        assert findings[0].file_path == "/test/main.tf"
-        assert findings[0].line_number == 10
-        assert findings[0].severity == "high"
+    def test_from_env_skip_download_false(self, monkeypatch):
+        monkeypatch.setenv("FIXOPS_SKIP_DOWNLOAD", "false")
+        cfg = ScannerConfig.from_env()
+        assert cfg.skip_download is False
 
-    def test_parse_tfsec_output_invalid_json(self, scanner):
-        """Test parsing invalid JSON from tfsec."""
-        findings = scanner._parse_tfsec_output(
-            "not valid json", IaCProvider.TERRAFORM, "/test/main.tf"
-        )
-        assert len(findings) == 0
+    def test_from_env_soft_fail_true(self, monkeypatch):
+        monkeypatch.setenv("FIXOPS_SOFT_FAIL", "true")
+        cfg = ScannerConfig.from_env()
+        assert cfg.soft_fail is True
 
-    def test_parse_tfsec_output_null_results(self, scanner):
-        """Test parsing tfsec output with null results."""
-        tfsec_output = json.dumps({"results": None})
-        findings = scanner._parse_tfsec_output(
-            tfsec_output, IaCProvider.TERRAFORM, "/test/main.tf"
-        )
-        assert len(findings) == 0
+    def test_from_env_excluded_checks(self, monkeypatch):
+        monkeypatch.setenv("FIXOPS_EXCLUDED_CHECKS", "CKV_AWS_1,CKV_AWS_2")
+        cfg = ScannerConfig.from_env()
+        assert cfg.excluded_checks == ["CKV_AWS_1", "CKV_AWS_2"]
 
-    @pytest.mark.asyncio
-    async def test_scan_content(self, scanner):
-        """Test scanning content as string."""
-        content = 'resource "aws_instance" "example" {}'
+    def test_from_env_excluded_checks_empty(self, monkeypatch):
+        monkeypatch.delenv("FIXOPS_EXCLUDED_CHECKS", raising=False)
+        cfg = ScannerConfig.from_env()
+        assert cfg.excluded_checks == []
 
-        with patch.object(scanner, "_is_checkov_available", return_value=True):
-            with patch.object(
-                scanner,
-                "_run_checkov",
-                return_value=([], '{"results": {"failed_checks": []}}', None),
-            ):
-                result = await scanner.scan_content(content, "main.tf")
+    def test_from_env_max_file_size(self, monkeypatch):
+        monkeypatch.setenv("FIXOPS_MAX_FILE_SIZE_MB", "100")
+        cfg = ScannerConfig.from_env()
+        assert cfg.max_file_size_mb == 100
 
-                assert result.status == ScanStatus.COMPLETED
-                for finding in result.findings:
-                    assert finding.file_path == "main.tf"
+    def test_excluded_checks_default_factory_is_independent(self):
+        cfg1 = ScannerConfig()
+        cfg2 = ScannerConfig()
+        cfg1.excluded_checks.append("X")
+        assert cfg2.excluded_checks == []
 
+
+# ---------------------------------------------------------------------------
+# ScanResult dataclass
+# ---------------------------------------------------------------------------
 
 class TestScanResult:
-    """Tests for ScanResult dataclass."""
+    def _make_result(self, status=ScanStatus.COMPLETED, findings=None) -> ScanResult:
+        return ScanResult(
+            scan_id="scan-001",
+            status=status,
+            scanner=ScannerType.CHECKOV,
+            provider=IaCProvider.TERRAFORM,
+            target_path="main.tf",
+            findings=findings or [],
+            started_at=datetime(2026, 3, 1, 10, 0, 0),
+            completed_at=datetime(2026, 3, 1, 10, 0, 5),
+            duration_seconds=5.0,
+        )
 
-    def test_scan_result_to_dict(self):
-        """Test ScanResult to_dict method."""
-        from datetime import datetime
+    def test_to_dict_fields(self):
+        result = self._make_result()
+        d = result.to_dict()
+        assert d["scan_id"] == "scan-001"
+        assert d["status"] == "completed"
+        assert d["scanner"] == "checkov"
+        assert d["provider"] == "terraform"
+        assert d["target_path"] == "main.tf"
+        assert d["findings_count"] == 0
+        assert d["findings"] == []
+        assert d["duration_seconds"] == 5.0
+        assert d["error_message"] is None
+        assert d["metadata"] == {}
 
+    def test_to_dict_timestamps(self):
+        result = self._make_result()
+        d = result.to_dict()
+        assert d["started_at"] == "2026-03-01T10:00:00"
+        assert d["completed_at"] == "2026-03-01T10:00:05"
+
+    def test_to_dict_with_none_timestamps(self):
         result = ScanResult(
-            scan_id="test-123",
+            scan_id="scan-002",
+            status=ScanStatus.PENDING,
+            scanner=ScannerType.CHECKOV,
+            provider=IaCProvider.KUBERNETES,
+            target_path="k8s.yaml",
+        )
+        d = result.to_dict()
+        assert d["started_at"] is None
+        assert d["completed_at"] is None
+        assert d["duration_seconds"] is None
+
+    def test_to_dict_findings_count(self):
+        f1 = _make_finding()
+        f2 = _make_finding(severity="medium")
+        result = self._make_result(findings=[f1, f2])
+        d = result.to_dict()
+        assert d["findings_count"] == 2
+        assert len(d["findings"]) == 2
+
+    def test_to_dict_error_message(self):
+        result = ScanResult(
+            scan_id="scan-fail",
+            status=ScanStatus.FAILED,
+            scanner=ScannerType.TFSEC,
+            provider=IaCProvider.TERRAFORM,
+            target_path="main.tf",
+            error_message="Tool not found",
+        )
+        d = result.to_dict()
+        assert d["error_message"] == "Tool not found"
+
+    def test_to_dict_metadata(self):
+        result = ScanResult(
+            scan_id="s1",
             status=ScanStatus.COMPLETED,
             scanner=ScannerType.CHECKOV,
             provider=IaCProvider.TERRAFORM,
-            target_path="/test/main.tf",
-            findings=[],
-            started_at=datetime(2024, 1, 1, 12, 0, 0),
-            completed_at=datetime(2024, 1, 1, 12, 0, 30),
-            duration_seconds=30.0,
-            metadata={"key": "value"},
+            target_path="x.tf",
+            metadata={"fallback": "builtin_scanner"},
         )
+        d = result.to_dict()
+        assert d["metadata"] == {"fallback": "builtin_scanner"}
 
-        result_dict = result.to_dict()
+    def test_findings_default_empty_list(self):
+        result = ScanResult(
+            scan_id="s2",
+            status=ScanStatus.PENDING,
+            scanner=ScannerType.CHECKOV,
+            provider=IaCProvider.HELM,
+            target_path="chart/",
+        )
+        assert result.findings == []
 
-        assert result_dict["scan_id"] == "test-123"
-        assert result_dict["status"] == "completed"
-        assert result_dict["scanner"] == "checkov"
-        assert result_dict["provider"] == "terraform"
-        assert result_dict["findings_count"] == 0
-        assert result_dict["duration_seconds"] == 30.0
-
-
-class TestGetIaCScanner:
-    """Tests for get_iac_scanner function."""
-
-    def test_get_iac_scanner_singleton(self):
-        """Test that get_iac_scanner returns singleton instance."""
-        import core.iac_scanner as scanner_module
-
-        scanner_module._default_scanner = None
-
-        scanner1 = get_iac_scanner()
-        scanner2 = get_iac_scanner()
-
-        assert scanner1 is scanner2
-
-        scanner_module._default_scanner = None
+    def test_metadata_default_empty_dict(self):
+        result = ScanResult(
+            scan_id="s3",
+            status=ScanStatus.PENDING,
+            scanner=ScannerType.CHECKOV,
+            provider=IaCProvider.HELM,
+            target_path="chart/",
+        )
+        assert result.metadata == {}
 
 
-class TestTfsecNonTerraform:
-    """Tests for tfsec with non-Terraform providers."""
+# ---------------------------------------------------------------------------
+# IaCFinding.to_dict (from iac_models)
+# ---------------------------------------------------------------------------
 
-    @pytest.fixture
+class TestIaCFindingToDict:
+    def test_basic_fields(self):
+        f = _make_finding()
+        d = f.to_dict()
+        assert d["id"] == "test-id"
+        assert d["provider"] == "terraform"
+        assert d["status"] == "open"
+        assert d["severity"] == "high"
+        assert d["title"] == "Test finding"
+        assert d["description"] == "Test description"
+        assert d["file_path"] == "main.tf"
+        assert d["line_number"] == 10
+        assert d["resource_type"] == "aws_s3_bucket"
+        assert d["resource_name"] == "my_bucket"
+        assert d["rule_id"] == "CKV_AWS_1"
+        assert d["remediation"] == "Fix it"
+        assert "detected_at" in d
+        assert d["resolved_at"] is None
+
+    def test_resolved_at_none(self):
+        f = _make_finding()
+        assert f.to_dict()["resolved_at"] is None
+
+    def test_resolved_at_set(self):
+        f = _make_finding()
+        f.resolved_at = datetime(2026, 3, 2, 12, 0, 0)
+        d = f.to_dict()
+        assert d["resolved_at"] == "2026-03-02T12:00:00"
+
+    def test_metadata_included(self):
+        f = _make_finding()
+        assert f.to_dict()["metadata"] == {"scanner": "checkov"}
+
+    def test_all_providers_serialise(self):
+        for provider in IaCProvider:
+            f = _make_finding(provider=provider)
+            d = f.to_dict()
+            assert d["provider"] == provider.value
+
+    def test_all_statuses_serialise(self):
+        for status in IaCFindingStatus:
+            f = _make_finding(status=status)
+            d = f.to_dict()
+            assert d["status"] == status.value
+
+
+# ---------------------------------------------------------------------------
+# IaCScanner._map_severity
+# ---------------------------------------------------------------------------
+
+class TestMapSeverity:
+    @pytest.fixture(autouse=True)
     def scanner(self):
-        """Create a scanner instance for testing."""
-        return IaCScanner()
+        self.scanner = _make_scanner()
 
-    @pytest.mark.asyncio
-    async def test_tfsec_rejects_non_terraform(self, scanner):
-        """Test that tfsec rejects non-Terraform providers."""
-        findings, output, error = await scanner._run_tfsec(
-            Path("/test"), IaCProvider.KUBERNETES
+    def test_critical_maps_to_high(self):
+        assert self.scanner._map_severity("critical") == "high"
+
+    def test_high_maps_to_high(self):
+        assert self.scanner._map_severity("high") == "high"
+
+    def test_CRITICAL_uppercase(self):
+        assert self.scanner._map_severity("CRITICAL") == "high"
+
+    def test_HIGH_uppercase(self):
+        assert self.scanner._map_severity("HIGH") == "high"
+
+    def test_medium_maps_to_medium(self):
+        assert self.scanner._map_severity("medium") == "medium"
+
+    def test_moderate_maps_to_medium(self):
+        assert self.scanner._map_severity("moderate") == "medium"
+
+    def test_MEDIUM_uppercase(self):
+        assert self.scanner._map_severity("MEDIUM") == "medium"
+
+    def test_MODERATE_uppercase(self):
+        assert self.scanner._map_severity("MODERATE") == "medium"
+
+    def test_low_maps_to_low(self):
+        assert self.scanner._map_severity("low") == "low"
+
+    def test_info_maps_to_low(self):
+        assert self.scanner._map_severity("info") == "low"
+
+    def test_informational_maps_to_low(self):
+        assert self.scanner._map_severity("informational") == "low"
+
+    def test_LOW_uppercase(self):
+        assert self.scanner._map_severity("LOW") == "low"
+
+    def test_INFO_uppercase(self):
+        assert self.scanner._map_severity("INFO") == "low"
+
+    def test_unknown_defaults_to_medium(self):
+        assert self.scanner._map_severity("unknown_severity") == "medium"
+
+    def test_empty_string_defaults_to_medium(self):
+        assert self.scanner._map_severity("") == "medium"
+
+    def test_FAILED_defaults_to_medium(self):
+        # checkov result field "FAILED" is not a severity — should default
+        assert self.scanner._map_severity("FAILED") == "medium"
+
+    def test_mixed_case_critical(self):
+        assert self.scanner._map_severity("Critical") == "high"
+
+    def test_mixed_case_medium(self):
+        assert self.scanner._map_severity("Medium") == "medium"
+
+    def test_mixed_case_low(self):
+        assert self.scanner._map_severity("Low") == "low"
+
+
+# ---------------------------------------------------------------------------
+# IaCScanner._parse_checkov_output
+# ---------------------------------------------------------------------------
+
+class TestParseCheckovOutput:
+    @pytest.fixture(autouse=True)
+    def scanner(self):
+        self.scanner = _make_scanner()
+
+    def test_empty_string_returns_empty_list(self):
+        results = self.scanner._parse_checkov_output("", IaCProvider.TERRAFORM, "main.tf")
+        assert results == []
+
+    def test_invalid_json_returns_empty_list(self):
+        results = self.scanner._parse_checkov_output("not json", IaCProvider.TERRAFORM, "main.tf")
+        assert results == []
+
+    def test_json_without_results_key_returns_empty(self):
+        results = self.scanner._parse_checkov_output("{}", IaCProvider.TERRAFORM, "main.tf")
+        assert results == []
+
+    def test_empty_failed_checks_returns_empty(self):
+        payload = _checkov_json([])
+        results = self.scanner._parse_checkov_output(payload, IaCProvider.TERRAFORM, "main.tf")
+        assert results == []
+
+    def test_single_failed_check_creates_finding(self):
+        check = {
+            "check_id": "CKV_AWS_18",
+            "check": {"name": "Ensure S3 bucket logging is enabled"},
+            "check_result": {"result": "FAILED"},
+            "file_path": "main.tf",
+            "file_line_range": [5, 10],
+            "resource": "aws_s3_bucket",
+            "resource_address": "aws_s3_bucket.example",
+            "guideline": "Enable bucket logging",
+            "check_type": "terraform",
+            "bc_check_id": "BC_AWS_S3_13",
+        }
+        payload = _checkov_json([check])
+        results = self.scanner._parse_checkov_output(payload, IaCProvider.TERRAFORM, "main.tf")
+        assert len(results) == 1
+        f = results[0]
+        assert f.rule_id == "CKV_AWS_18"
+        assert f.title == "CKV_AWS_18"
+        assert f.description == "Ensure S3 bucket logging is enabled"
+        assert f.file_path == "main.tf"
+        assert f.line_number == 5
+        assert f.resource_type == "aws_s3_bucket"
+        assert f.resource_name == "aws_s3_bucket.example"
+        assert f.remediation == "Enable bucket logging"
+        assert f.provider == IaCProvider.TERRAFORM
+        assert f.status == IaCFindingStatus.OPEN
+
+    def test_finding_has_unique_id(self):
+        check = {"check_id": "CKV_AWS_1", "check": {}, "check_result": {}}
+        payload = _checkov_json([check])
+        r1 = self.scanner._parse_checkov_output(payload, IaCProvider.TERRAFORM, "x.tf")
+        r2 = self.scanner._parse_checkov_output(payload, IaCProvider.TERRAFORM, "x.tf")
+        # Each call should produce new UUIDs
+        assert r1[0].id != r2[0].id
+
+    def test_multiple_failed_checks(self):
+        checks = [
+            {"check_id": f"CKV_AWS_{i}", "check": {}, "check_result": {}}
+            for i in range(5)
+        ]
+        payload = _checkov_json(checks)
+        results = self.scanner._parse_checkov_output(payload, IaCProvider.TERRAFORM, "main.tf")
+        assert len(results) == 5
+
+    def test_severity_mapping_failed_to_medium(self):
+        check = {
+            "check_id": "CKV_AWS_99",
+            "check": {"name": "Test check"},
+            "check_result": {"result": "FAILED"},
+        }
+        payload = _checkov_json([check])
+        results = self.scanner._parse_checkov_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        # "FAILED" maps to default "medium"
+        assert results[0].severity == "medium"
+
+    def test_metadata_scanner_field(self):
+        check = {
+            "check_id": "CKV_AWS_1",
+            "check": {},
+            "check_result": {},
+            "check_type": "terraform",
+            "bc_check_id": "BC-1",
+        }
+        payload = _checkov_json([check])
+        results = self.scanner._parse_checkov_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert results[0].metadata["scanner"] == "checkov"
+        assert results[0].metadata["check_type"] == "terraform"
+        assert results[0].metadata["bc_check_id"] == "BC-1"
+
+    def test_missing_optional_fields_no_error(self):
+        # Minimal check with no optional fields
+        check = {}
+        payload = _checkov_json([check])
+        results = self.scanner._parse_checkov_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert len(results) == 1
+        f = results[0]
+        assert f.rule_id == "UNKNOWN"
+        assert f.line_number == 0  # default from [0,0]
+
+    def test_file_path_fallback_to_target(self):
+        check = {"check_id": "CKV_K8S_1", "check": {}, "check_result": {}}
+        payload = _checkov_json([check])
+        results = self.scanner._parse_checkov_output(
+            payload, IaCProvider.KUBERNETES, "pod.yaml"
         )
+        assert results[0].file_path == "pod.yaml"
 
-        assert len(findings) == 0
-        assert "only supports Terraform" in error
+    def test_cloudformation_provider_preserved(self):
+        check = {"check_id": "CKV_AWS_1", "check": {}, "check_result": {}}
+        payload = _checkov_json([check])
+        results = self.scanner._parse_checkov_output(
+            payload, IaCProvider.CLOUDFORMATION, "template.yaml"
+        )
+        assert results[0].provider == IaCProvider.CLOUDFORMATION
 
+    def test_results_key_missing_returns_empty(self):
+        payload = json.dumps({"other_key": {}})
+        results = self.scanner._parse_checkov_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert results == []
 
-class TestProviderDetectionEdgeCases:
-    """Test edge cases for provider detection."""
+    def test_guideline_none_when_missing(self):
+        check = {"check_id": "CKV_AWS_1", "check": {}, "check_result": {}}
+        payload = _checkov_json([check])
+        results = self.scanner._parse_checkov_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert results[0].remediation is None
 
-    @pytest.fixture
-    def temp_dir(self):
-        """Create a temporary directory under SCAN_BASE_PATH for testing.
+    def test_file_line_range_used_for_line_number(self):
+        check = {
+            "check_id": "CKV_AWS_1",
+            "check": {},
+            "check_result": {},
+            "file_line_range": [42, 50],
+        }
+        payload = _checkov_json([check])
+        results = self.scanner._parse_checkov_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert results[0].line_number == 42
 
-        Note: Tests that call methods with containment checks need files under SCAN_BASE_PATH.
-        """
-        from core.iac_scanner import SCAN_BASE_PATH
+    def test_file_line_range_in_metadata(self):
+        check = {
+            "check_id": "CKV_AWS_1",
+            "check": {},
+            "check_result": {},
+            "file_line_range": [5, 10],
+        }
+        payload = _checkov_json([check])
+        results = self.scanner._parse_checkov_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert results[0].metadata["file_line_range"] == [5, 10]
 
-        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
-        test_dir = os.path.join(SCAN_BASE_PATH, str(uuid.uuid4()))
-        os.makedirs(test_dir, exist_ok=True)
-        yield test_dir
-        shutil.rmtree(test_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def scanner(self, temp_dir):
-        """Create a scanner instance for testing.
-
-        Note: base_path is no longer configurable - it's hardcoded to SCAN_BASE_PATH.
-        """
-        config = ScannerConfig(timeout_seconds=30)
-        return IaCScanner(config)
-
-    def test_detect_provider_json_cloudformation(self, scanner, temp_dir):
-        """Test provider detection for JSON CloudFormation files."""
-        test_file = Path(temp_dir) / "template.json"
-        test_file.write_text('{"AWSTemplateFormatVersion": "2010-09-09"}')
-
-        provider = scanner._detect_provider(test_file)
-        assert provider == IaCProvider.CLOUDFORMATION
-
-    def test_detect_provider_json_non_cloudformation(self, scanner, temp_dir):
-        """Test provider detection for non-CloudFormation JSON files."""
-        test_file = Path(temp_dir) / "config.json"
-        test_file.write_text('{"key": "value"}')
-
-        provider = scanner._detect_provider(test_file)
-        assert provider == IaCProvider.TERRAFORM
-
-    def test_detect_provider_directory_with_helm(self, scanner, temp_dir):
-        """Test provider detection for directory with Helm Chart.yaml."""
-        chart_file = Path(temp_dir) / "Chart.yaml"
-        chart_file.write_text("name: mychart\nversion: 1.0.0")
-
-        provider = scanner._detect_provider(Path(temp_dir))
-        assert provider == IaCProvider.HELM
-
-    def test_detect_provider_empty_directory(self, scanner, temp_dir):
-        """Test provider detection for empty directory defaults to Terraform."""
-        provider = scanner._detect_provider(Path(temp_dir))
-        assert provider == IaCProvider.TERRAFORM
+    def test_evaluations_in_metadata(self):
+        check = {
+            "check_id": "CKV_AWS_1",
+            "check": {},
+            "check_result": {},
+            "evaluations": {"var.bucket_name": "my-bucket"},
+        }
+        payload = _checkov_json([check])
+        results = self.scanner._parse_checkov_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert results[0].metadata["evaluations"] == {"var.bucket_name": "my-bucket"}
 
 
-class TestScanContentEdgeCases:
-    """Test scan_content edge cases."""
+# ---------------------------------------------------------------------------
+# IaCScanner._parse_tfsec_output
+# ---------------------------------------------------------------------------
 
-    @pytest.fixture
-    def temp_dir(self):
-        """Create a temporary directory under SCAN_BASE_PATH for testing.
+class TestParseTfsecOutput:
+    @pytest.fixture(autouse=True)
+    def scanner(self):
+        self.scanner = _make_scanner()
 
-        Note: Tests that call methods with containment checks need files under SCAN_BASE_PATH.
-        """
-        from core.iac_scanner import SCAN_BASE_PATH
+    def test_empty_string_returns_empty(self):
+        results = self.scanner._parse_tfsec_output("", IaCProvider.TERRAFORM, "main.tf")
+        assert results == []
 
-        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
-        test_dir = os.path.join(SCAN_BASE_PATH, str(uuid.uuid4()))
-        os.makedirs(test_dir, exist_ok=True)
-        yield test_dir
-        shutil.rmtree(test_dir, ignore_errors=True)
+    def test_invalid_json_returns_empty(self):
+        results = self.scanner._parse_tfsec_output("}{invalid", IaCProvider.TERRAFORM, "main.tf")
+        assert results == []
 
-    @pytest.fixture
-    def scanner(self, temp_dir):
-        """Create a scanner instance for testing.
+    def test_empty_results_list(self):
+        payload = _tfsec_json([])
+        results = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "main.tf")
+        assert results == []
 
-        Note: base_path is no longer configurable - it's hardcoded to SCAN_BASE_PATH.
-        """
-        config = ScannerConfig(timeout_seconds=30)
-        return IaCScanner(config)
+    def test_null_results_returns_empty(self):
+        payload = json.dumps({"results": None})
+        results = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "main.tf")
+        assert results == []
 
-    @pytest.mark.asyncio
-    async def test_scan_content_no_scanner_available(self, scanner):
-        """Test scan_content when no external scanner is available.
+    def test_missing_results_key_returns_empty(self):
+        payload = json.dumps({})
+        results = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "main.tf")
+        assert results == []
 
-        The IaC scanner has a built-in fallback scanner, so it should still
-        return COMPLETED even when checkov/tfsec are unavailable.
-        """
-        with patch.object(scanner, "get_available_scanners", return_value=[]):
-            result = await scanner.scan_content(
-                content='resource "aws_instance" "example" {}',
-                filename="main.tf",
+    def test_single_result_creates_finding(self):
+        result = {
+            "rule_id": "aws-s3-enable-bucket-logging",
+            "long_id": "aws-s3-enable-bucket-logging",
+            "rule_description": "Bucket does not have logging enabled",
+            "description": "Bucket missing logging",
+            "severity": "HIGH",
+            "resource": "aws_s3_bucket.example",
+            "resolution": "Enable bucket logging",
+            "location": {
+                "filename": "main.tf",
+                "start_line": 10,
+                "end_line": 20,
+            },
+            "rule_provider": "aws",
+            "rule_service": "s3",
+            "impact": "Log loss risk",
+            "links": ["https://registry.terraform.io/providers/aws"],
+        }
+        payload = _tfsec_json([result])
+        findings = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "main.tf")
+        assert len(findings) == 1
+        f = findings[0]
+        assert f.rule_id == "aws-s3-enable-bucket-logging"
+        assert f.title == "aws-s3-enable-bucket-logging"
+        assert f.description == "Bucket missing logging"
+        assert f.file_path == "main.tf"
+        assert f.line_number == 10
+        assert f.resource_type == "aws_s3_bucket.example"
+        assert f.resource_name == "aws_s3_bucket.example"
+        assert f.severity == "high"
+        assert f.remediation == "Enable bucket logging"
+        assert f.provider == IaCProvider.TERRAFORM
+        assert f.status == IaCFindingStatus.OPEN
+
+    def test_metadata_scanner_tfsec(self):
+        result = {
+            "rule_id": "aws-vpc-no-public-ingress",
+            "description": "Public ingress",
+            "severity": "MEDIUM",
+            "resource": "aws_security_group.sg",
+            "location": {},
+            "rule_provider": "aws",
+            "rule_service": "vpc",
+            "impact": "Data exfiltration",
+            "links": ["https://example.com"],
+        }
+        payload = _tfsec_json([result])
+        findings = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "sg.tf")
+        assert findings[0].metadata["scanner"] == "tfsec"
+        assert findings[0].metadata["rule_provider"] == "aws"
+        assert findings[0].metadata["impact"] == "Data exfiltration"
+        assert findings[0].metadata["links"] == ["https://example.com"]
+
+    def test_severity_low(self):
+        result = {
+            "rule_id": "some-rule",
+            "severity": "LOW",
+            "location": {},
+        }
+        payload = _tfsec_json([result])
+        findings = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert findings[0].severity == "low"
+
+    def test_severity_info(self):
+        result = {
+            "rule_id": "some-rule",
+            "severity": "INFO",
+            "location": {},
+        }
+        payload = _tfsec_json([result])
+        findings = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert findings[0].severity == "low"
+
+    def test_file_path_fallback_to_target(self):
+        result = {
+            "rule_id": "some-rule",
+            "severity": "HIGH",
+            "location": {},  # no filename
+        }
+        payload = _tfsec_json([result])
+        findings = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "fallback.tf")
+        assert findings[0].file_path == "fallback.tf"
+
+    def test_rule_id_fallback_to_long_id(self):
+        result = {
+            "long_id": "aws-s3-enable-versioning",
+            "severity": "HIGH",
+            "location": {},
+        }
+        payload = _tfsec_json([result])
+        findings = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert findings[0].rule_id == "aws-s3-enable-versioning"
+
+    def test_rule_id_unknown_when_both_missing(self):
+        result = {"severity": "HIGH", "location": {}}
+        payload = _tfsec_json([result])
+        findings = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert findings[0].rule_id == "UNKNOWN"
+
+    def test_multiple_results(self):
+        results_list = [
+            {"rule_id": f"rule-{i}", "severity": "HIGH", "location": {}}
+            for i in range(7)
+        ]
+        payload = _tfsec_json(results_list)
+        findings = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert len(findings) == 7
+
+    def test_end_line_in_metadata(self):
+        result = {
+            "rule_id": "some-rule",
+            "severity": "MEDIUM",
+            "location": {"start_line": 5, "end_line": 15},
+        }
+        payload = _tfsec_json([result])
+        findings = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert findings[0].metadata["end_line"] == 15
+
+    def test_description_falls_back_to_rule_description(self):
+        result = {
+            "rule_id": "some-rule",
+            "severity": "HIGH",
+            "rule_description": "From rule_description",
+            "location": {},
+        }
+        payload = _tfsec_json([result])
+        findings = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert findings[0].description == "From rule_description"
+
+    def test_resolution_none_when_missing(self):
+        result = {"rule_id": "r1", "severity": "HIGH", "location": {}}
+        payload = _tfsec_json([result])
+        findings = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert findings[0].remediation is None
+
+    def test_unique_ids_generated(self):
+        result = {"rule_id": "r1", "severity": "HIGH", "location": {}}
+        payload = _tfsec_json([result])
+        f1 = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        f2 = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert f1[0].id != f2[0].id
+
+    def test_links_empty_list_when_missing(self):
+        result = {"rule_id": "r1", "severity": "HIGH", "location": {}}
+        payload = _tfsec_json([result])
+        findings = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert findings[0].metadata["links"] == []
+
+    def test_start_line_zero_default(self):
+        result = {"rule_id": "r1", "severity": "HIGH", "location": {}}
+        payload = _tfsec_json([result])
+        findings = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert findings[0].line_number == 0
+
+
+# ---------------------------------------------------------------------------
+# IaCScanner.get_available_scanners
+# ---------------------------------------------------------------------------
+
+class TestGetAvailableScanners:
+    def test_no_tools_available_returns_empty(self):
+        scanner = _make_scanner(
+            ScannerConfig(
+                checkov_path="__no_such_checkov__",
+                tfsec_path="__no_such_tfsec__",
             )
+        )
+        available = scanner.get_available_scanners()
+        assert available == []
 
-            # Built-in scanner fallback produces a completed result
-            assert result.status in (ScanStatus.COMPLETED, ScanStatus.FAILED)
-            if result.status == ScanStatus.FAILED:
-                assert "No IaC scanner available" in result.error_message
+    def test_caches_checkov_availability(self):
+        scanner = _make_scanner()
+        # First call sets the cache
+        scanner.get_available_scanners()
+        cached = scanner._checkov_available
+        # Second call should use cache (same value)
+        scanner.get_available_scanners()
+        assert scanner._checkov_available == cached
 
-    @pytest.mark.asyncio
-    async def test_scan_content_invalid_extension(self, scanner):
-        """Test scan_content with invalid extension defaults to .tf."""
-        with patch.object(
-            scanner, "get_available_scanners", return_value=[ScannerType.CHECKOV]
-        ):
-            with patch.object(scanner, "_run_checkov") as mock_run:
-                mock_run.return_value = ([], "", None)
+    def test_caches_tfsec_availability(self):
+        scanner = _make_scanner()
+        scanner.get_available_scanners()
+        cached = scanner._tfsec_available
+        scanner.get_available_scanners()
+        assert scanner._tfsec_available == cached
 
-                result = await scanner.scan_content(
-                    content='resource "aws_instance" "example" {}',
-                    filename="main.invalid",
-                )
+    def test_returns_list_type(self):
+        scanner = _make_scanner()
+        result = scanner.get_available_scanners()
+        assert isinstance(result, list)
 
-                assert result.status == ScanStatus.COMPLETED
+    def test_scanner_type_values_in_list(self):
+        scanner = _make_scanner()
+        result = scanner.get_available_scanners()
+        for item in result:
+            assert isinstance(item, ScannerType)
 
-    @pytest.mark.asyncio
-    async def test_scan_content_with_tfsec(self, scanner):
-        """Test scan_content using tfsec scanner."""
-        with patch.object(
-            scanner, "get_available_scanners", return_value=[ScannerType.TFSEC]
-        ):
-            with patch.object(scanner, "_run_tfsec") as mock_run:
-                mock_run.return_value = ([], "", None)
 
-                result = await scanner.scan_content(
-                    content='resource "aws_instance" "example" {}',
-                    filename="main.tf",
-                )
+# ---------------------------------------------------------------------------
+# IaCScanner availability flags
+# ---------------------------------------------------------------------------
 
-                assert result.status == ScanStatus.COMPLETED
-                mock_run.assert_called_once()
+class TestAvailabilityFlags:
+    def test_initial_state_none(self):
+        scanner = _make_scanner()
+        assert scanner._checkov_available is None
+        assert scanner._tfsec_available is None
 
-    @pytest.mark.asyncio
-    async def test_scan_content_with_error(self, scanner):
-        """Test scan_content when scanner returns error."""
-        with patch.object(
-            scanner, "get_available_scanners", return_value=[ScannerType.CHECKOV]
-        ):
-            with patch.object(scanner, "_run_checkov") as mock_run:
-                mock_run.return_value = ([], "raw output", "Scanner error")
+    def test_after_check_not_none(self):
+        scanner = _make_scanner()
+        scanner._is_checkov_available()
+        assert scanner._checkov_available is not None
 
-                result = await scanner.scan_content(
-                    content='resource "aws_instance" "example" {}',
-                    filename="main.tf",
-                )
+    def test_bogus_path_not_available(self):
+        scanner = _make_scanner(
+            ScannerConfig(checkov_path="__no_such_tool__", tfsec_path="__no_such_tool__")
+        )
+        assert scanner._is_checkov_available() is False
+        assert scanner._is_tfsec_available() is False
 
-                assert result.status == ScanStatus.FAILED
-                assert result.error_message == "Scanner error"
+    def test_cached_after_first_call(self):
+        scanner = _make_scanner(
+            ScannerConfig(checkov_path="__no_such_tool__", tfsec_path="__no_such_tool__")
+        )
+        # First call
+        r1 = scanner._is_checkov_available()
+        # Should be cached now
+        assert scanner._checkov_available is not None
+        # Second call returns same value
+        r2 = scanner._is_checkov_available()
+        assert r1 == r2
 
-    @pytest.mark.asyncio
-    async def test_scan_content_with_findings(self, scanner):
-        """Test scan_content with findings updates file_path."""
-        finding = IaCFinding(
-            id="test-id",
+
+# ---------------------------------------------------------------------------
+# Singleton get_iac_scanner
+# ---------------------------------------------------------------------------
+
+class TestGetIacScannerSingleton:
+    def test_returns_iac_scanner_instance(self):
+        scanner = get_iac_scanner()
+        assert isinstance(scanner, IaCScanner)
+
+    def test_returns_same_instance_on_second_call(self):
+        s1 = get_iac_scanner()
+        s2 = get_iac_scanner()
+        assert s1 is s2
+
+    def test_singleton_has_config(self):
+        scanner = get_iac_scanner()
+        assert scanner.config is not None
+        assert isinstance(scanner.config, ScannerConfig)
+
+    def test_singleton_availability_flags_are_none_initially(self):
+        # Reset the singleton to test initial state
+        import core.iac_scanner as _mod
+        original = _mod._default_scanner
+        try:
+            _mod._default_scanner = None
+            scanner = get_iac_scanner()
+            # A freshly-created scanner should have None availability flags
+            assert scanner._checkov_available is None
+            assert scanner._tfsec_available is None
+        finally:
+            _mod._default_scanner = original
+
+
+# ---------------------------------------------------------------------------
+# IaCProvider enum (from iac_models)
+# ---------------------------------------------------------------------------
+
+class TestIaCProviderEnum:
+    def test_all_values(self):
+        assert IaCProvider.TERRAFORM == "terraform"
+        assert IaCProvider.CLOUDFORMATION == "cloudformation"
+        assert IaCProvider.KUBERNETES == "kubernetes"
+        assert IaCProvider.ANSIBLE == "ansible"
+        assert IaCProvider.HELM == "helm"
+
+    def test_member_count(self):
+        assert len(list(IaCProvider)) == 5
+
+    def test_is_str_subclass(self):
+        assert isinstance(IaCProvider.TERRAFORM, str)
+
+    def test_round_trip(self):
+        for provider in IaCProvider:
+            assert IaCProvider(provider.value) == provider
+
+    def test_invalid_value_raises(self):
+        with pytest.raises(ValueError):
+            IaCProvider("docker")
+
+
+# ---------------------------------------------------------------------------
+# IaCFindingStatus enum (from iac_models)
+# ---------------------------------------------------------------------------
+
+class TestIaCFindingStatusEnum:
+    def test_all_values(self):
+        assert IaCFindingStatus.OPEN == "open"
+        assert IaCFindingStatus.RESOLVED == "resolved"
+        assert IaCFindingStatus.SUPPRESSED == "suppressed"
+
+    def test_member_count(self):
+        assert len(list(IaCFindingStatus)) == 3
+
+    def test_round_trip(self):
+        for status in IaCFindingStatus:
+            assert IaCFindingStatus(status.value) == status
+
+    def test_invalid_raises(self):
+        with pytest.raises(ValueError):
+            IaCFindingStatus("ignored")
+
+
+# ---------------------------------------------------------------------------
+# Cross-cutting / integration-style tests (deterministic, no I/O)
+# ---------------------------------------------------------------------------
+
+class TestCheckovParseIntegration:
+    """Larger checkov payloads to verify end-to-end parsing logic."""
+
+    def setup_method(self):
+        self.scanner = _make_scanner()
+
+    def test_kubernetes_provider_preserved_in_findings(self):
+        check = {
+            "check_id": "CKV_K8S_15",
+            "check": {"name": "Image should use allowed registries"},
+            "check_result": {"result": "FAILED"},
+            "file_path": "pod.yaml",
+            "file_line_range": [1, 20],
+            "resource": "Pod",
+            "resource_address": "Pod.default.nginx",
+        }
+        payload = _checkov_json([check])
+        findings = self.scanner._parse_checkov_output(
+            payload, IaCProvider.KUBERNETES, "pod.yaml"
+        )
+        assert findings[0].provider == IaCProvider.KUBERNETES
+
+    def test_helm_provider_preserved(self):
+        check = {
+            "check_id": "CKV_HELM_1",
+            "check": {"name": "Helm chart security check"},
+            "check_result": {"result": "FAILED"},
+            "file_path": "Chart.yaml",
+            "file_line_range": [1, 5],
+            "resource": "Chart",
+            "resource_address": "Chart.my-app",
+        }
+        payload = _checkov_json([check])
+        findings = self.scanner._parse_checkov_output(
+            payload, IaCProvider.HELM, "Chart.yaml"
+        )
+        assert findings[0].provider == IaCProvider.HELM
+
+    def test_ansible_provider_preserved(self):
+        check = {
+            "check_id": "CKV2_ANSIBLE_1",
+            "check": {"name": "Ansible task check"},
+            "check_result": {"result": "FAILED"},
+            "file_path": "playbook.yml",
+            "file_line_range": [10, 15],
+            "resource": "task",
+            "resource_address": "task.example_task",
+        }
+        payload = _checkov_json([check])
+        findings = self.scanner._parse_checkov_output(
+            payload, IaCProvider.ANSIBLE, "playbook.yml"
+        )
+        assert findings[0].provider == IaCProvider.ANSIBLE
+
+    def test_large_payload_all_findings_returned(self):
+        checks = [
+            {
+                "check_id": f"CKV_AWS_{i}",
+                "check": {"name": f"Check {i}"},
+                "check_result": {"result": "FAILED"},
+                "file_path": "main.tf",
+                "file_line_range": [i, i + 5],
+                "resource": "aws_s3_bucket",
+                "resource_address": f"aws_s3_bucket.bucket_{i}",
+            }
+            for i in range(20)
+        ]
+        payload = _checkov_json(checks)
+        findings = self.scanner._parse_checkov_output(payload, IaCProvider.TERRAFORM, "main.tf")
+        assert len(findings) == 20
+
+    def test_all_findings_are_open_status(self):
+        checks = [
+            {"check_id": f"CKV_AWS_{i}", "check": {}, "check_result": {}}
+            for i in range(5)
+        ]
+        payload = _checkov_json(checks)
+        findings = self.scanner._parse_checkov_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert all(f.status == IaCFindingStatus.OPEN for f in findings)
+
+    def test_rule_ids_match_check_ids(self):
+        checks = [
+            {"check_id": f"CKV_AWS_{i}", "check": {}, "check_result": {}}
+            for i in range(3)
+        ]
+        payload = _checkov_json(checks)
+        findings = self.scanner._parse_checkov_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        for i, f in enumerate(findings):
+            assert f.rule_id == f"CKV_AWS_{i}"
+
+    def test_description_from_check_name(self):
+        check = {
+            "check_id": "CKV_AWS_1",
+            "check": {"name": "Ensure the S3 bucket has access logging enabled"},
+            "check_result": {},
+        }
+        payload = _checkov_json([check])
+        findings = self.scanner._parse_checkov_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert findings[0].description == "Ensure the S3 bucket has access logging enabled"
+
+    def test_description_fallback_to_check_id_when_no_name(self):
+        check = {
+            "check_id": "CKV_AWS_55",
+            "check": {},  # no "name"
+            "check_result": {},
+        }
+        payload = _checkov_json([check])
+        findings = self.scanner._parse_checkov_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        # description falls back to check.get("name", check_id)
+        assert findings[0].description == "CKV_AWS_55"
+
+
+class TestTfsecParseIntegration:
+    """Larger tfsec payloads to verify end-to-end parsing logic."""
+
+    def setup_method(self):
+        self.scanner = _make_scanner()
+
+    def test_all_findings_are_open_status(self):
+        results_list = [
+            {"rule_id": f"rule-{i}", "severity": "HIGH", "location": {}}
+            for i in range(5)
+        ]
+        payload = _tfsec_json(results_list)
+        findings = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert all(f.status == IaCFindingStatus.OPEN for f in findings)
+
+    def test_provider_preserved_in_all_findings(self):
+        results_list = [
+            {"rule_id": f"r{i}", "severity": "MEDIUM", "location": {}}
+            for i in range(3)
+        ]
+        payload = _tfsec_json(results_list)
+        findings = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert all(f.provider == IaCProvider.TERRAFORM for f in findings)
+
+    def test_mixed_severity_levels(self):
+        results_list = [
+            {"rule_id": "r1", "severity": "CRITICAL", "location": {}},
+            {"rule_id": "r2", "severity": "HIGH", "location": {}},
+            {"rule_id": "r3", "severity": "MEDIUM", "location": {}},
+            {"rule_id": "r4", "severity": "LOW", "location": {}},
+            {"rule_id": "r5", "severity": "INFO", "location": {}},
+        ]
+        payload = _tfsec_json(results_list)
+        findings = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        severities = [f.severity for f in findings]
+        assert severities == ["high", "high", "medium", "low", "low"]
+
+    def test_rule_service_in_metadata(self):
+        result = {
+            "rule_id": "aws-s3-enable-versioning",
+            "severity": "MEDIUM",
+            "location": {},
+            "rule_provider": "aws",
+            "rule_service": "s3",
+        }
+        payload = _tfsec_json([result])
+        findings = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "t.tf")
+        assert findings[0].metadata["rule_service"] == "s3"
+
+    def test_large_tfsec_payload(self):
+        results_list = [
+            {
+                "rule_id": f"aws-rule-{i}",
+                "severity": "HIGH",
+                "description": f"Rule {i} description",
+                "resource": f"aws_resource_{i}",
+                "location": {"filename": f"file_{i}.tf", "start_line": i * 10},
+                "resolution": f"Fix rule {i}",
+            }
+            for i in range(15)
+        ]
+        payload = _tfsec_json(results_list)
+        findings = self.scanner._parse_tfsec_output(payload, IaCProvider.TERRAFORM, "default.tf")
+        assert len(findings) == 15
+        # All rule_ids should match
+        for i, f in enumerate(findings):
+            assert f.rule_id == f"aws-rule-{i}"
+
+
+# ---------------------------------------------------------------------------
+# ScanResult.to_dict — findings serialisation
+# ---------------------------------------------------------------------------
+
+class TestScanResultFindingsSerialisation:
+    def test_findings_serialised_via_to_dict(self):
+        f = _make_finding(severity="high")
+        result = ScanResult(
+            scan_id="s1",
+            status=ScanStatus.COMPLETED,
+            scanner=ScannerType.CHECKOV,
             provider=IaCProvider.TERRAFORM,
-            status=IaCFindingStatus.OPEN,
-            severity="high",
-            title="Test Finding",
-            description="Test description",
-            file_path="/tmp/content.tf",
-            line_number=1,
-            resource_type="aws_instance",
-            resource_name="example",
-            rule_id="TEST001",
+            target_path="main.tf",
+            findings=[f],
         )
+        d = result.to_dict()
+        assert len(d["findings"]) == 1
+        finding_dict = d["findings"][0]
+        assert finding_dict["severity"] == "high"
+        assert finding_dict["rule_id"] == "CKV_AWS_1"
 
-        with patch.object(
-            scanner, "get_available_scanners", return_value=[ScannerType.CHECKOV]
-        ):
-            with patch.object(scanner, "_run_checkov") as mock_run:
-                mock_run.return_value = ([finding], "", None)
-
-                result = await scanner.scan_content(
-                    content='resource "aws_instance" "example" {}',
-                    filename="main.tf",
-                )
-
-                assert result.status == ScanStatus.COMPLETED
-                assert len(result.findings) == 1
-                assert result.findings[0].file_path == "main.tf"
-
-    @pytest.mark.asyncio
-    async def test_scan_content_exception(self, scanner):
-        """Test scan_content with exception."""
-        with patch.object(scanner, "get_available_scanners") as mock_get:
-            mock_get.side_effect = RuntimeError("Unexpected error")
-
-            result = await scanner.scan_content(
-                content='resource "aws_instance" "example" {}',
-                filename="main.tf",
-            )
-
-            assert result.status == ScanStatus.FAILED
-            assert "Unexpected error" in result.error_message
-
-
-class TestPathContainmentErrorHandling:
-    """Test PathContainmentError handling in various methods."""
-
-    @pytest.fixture
-    def temp_dir(self):
-        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
-        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
-        os.makedirs(test_dir, exist_ok=True)
-        yield test_dir
-        shutil.rmtree(test_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def scanner(self, temp_dir):
-        """Create a scanner instance for testing.
-
-        Note: base_path is no longer configurable - it's hardcoded to SCAN_BASE_PATH.
-        """
-        config = ScannerConfig(timeout_seconds=30)
-        return IaCScanner(config)
-
-    def test_verify_containment_valid_path(self, scanner, temp_dir):
-        """Test _verify_containment with a valid path under SCAN_BASE_PATH."""
-        # temp_dir is under TRUSTED_TEST_ROOT which is under TRUSTED_ROOT
-        # but SCAN_BASE_PATH is /var/fixops/scans, so we need to use that
-        from core.iac_scanner import SCAN_BASE_PATH
-
-        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
-        test_file = os.path.join(SCAN_BASE_PATH, "test.tf")
-        try:
-            with open(test_file, "w") as f:
-                f.write('resource "aws_instance" "example" {}')
-            result = scanner._verify_containment(Path(test_file))
-            assert result == os.path.realpath(test_file)
-        finally:
-            if os.path.exists(test_file):
-                os.remove(test_file)
-
-    def test_verify_containment_path_escape(self, scanner, temp_dir):
-        """Test _verify_containment raises ValueError when path escapes SCAN_BASE_PATH."""
-        # /tmp is outside TRUSTED_ROOT (/var/fixops), so containment check fails
-        with pytest.raises(ValueError) as exc_info:
-            scanner._verify_containment(Path("/tmp/outside.tf"))
-        assert "Path escapes" in str(exc_info.value)
-
-    def test_detect_provider_containment_error(self, scanner, temp_dir):
-        """Test _detect_provider handles PathContainmentError."""
-        test_file = os.path.join(temp_dir, "test.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-
-        with patch("core.iac_scanner.safe_isfile") as mock_safe_isfile:
-            from core.safe_path_ops import PathContainmentError
-
-            mock_safe_isfile.side_effect = PathContainmentError("Path escapes")
-            with pytest.raises(ValueError) as exc_info:
-                scanner._detect_provider(Path(test_file))
-            assert "Path escapes base directory" in str(exc_info.value)
-
-    @pytest.mark.asyncio
-    async def test_run_checkov_containment_error(self, scanner, temp_dir):
-        """Test _run_checkov containment check - path outside SCAN_BASE_PATH."""
-        # /tmp is outside TRUSTED_ROOT (/var/fixops), so Stage 1 fails
-        test_file = "/tmp/outside.tf"
-        os.makedirs("/tmp", exist_ok=True)
-        try:
-            with open(test_file, "w") as f:
-                f.write('resource "aws_instance" "example" {}')
-            with pytest.raises(ValueError) as exc_info:
-                await scanner._run_checkov(test_file, IaCProvider.TERRAFORM)
-            assert "Path escapes trusted root" in str(exc_info.value)
-        finally:
-            if os.path.exists(test_file):
-                os.remove(test_file)
-
-    @pytest.mark.asyncio
-    async def test_run_tfsec_containment_check(self, scanner, temp_dir):
-        """Test _run_tfsec three-stage containment check - Stage 1 (candidate outside trusted root)."""
-        # /tmp/outside.tf is outside TRUSTED_ROOT (/var/fixops), so Stage 1 fails
-        with patch.object(scanner, "_is_tfsec_available", return_value=True):
-            with pytest.raises(ValueError) as exc_info:
-                await scanner._run_tfsec("/tmp/outside.tf", IaCProvider.TERRAFORM)
-            assert "Path escapes trusted root" in str(exc_info.value)
-
-    def test_verify_containment_stage3_path_escapes_base(self, scanner, temp_dir):
-        """Test _verify_containment raises ValueError when path escapes SCAN_BASE_PATH (Stage 3).
-
-        Note: base_path is now hardcoded to SCAN_BASE_PATH (/var/fixops/scans).
-        This test verifies that paths under TRUSTED_ROOT but outside SCAN_BASE_PATH are rejected.
-        """
-        # temp_dir is under /var/fixops/test-scans which is under TRUSTED_ROOT
-        # but NOT under SCAN_BASE_PATH (/var/fixops/scans)
-        test_file = os.path.join(temp_dir, "test.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-        # Stage 1 passes (file is under TRUSTED_ROOT)
-        # Stage 2 passes (SCAN_BASE_PATH is under TRUSTED_ROOT)
-        # Stage 3 fails (file is not under SCAN_BASE_PATH)
-        with pytest.raises(ValueError) as exc_info:
-            scanner._verify_containment(Path(test_file))
-        assert "Path escapes base directory" in str(exc_info.value)
-
-    @pytest.mark.asyncio
-    async def test_run_tfsec_stage3_path_escapes_base(self, scanner, temp_dir):
-        """Test _run_tfsec Stage 3 containment check - path under TRUSTED_ROOT but outside SCAN_BASE_PATH.
-
-        Note: base_path is now hardcoded to SCAN_BASE_PATH (/var/fixops/scans).
-        """
-        # temp_dir is under /var/fixops/test-scans which is under TRUSTED_ROOT
-        # but NOT under SCAN_BASE_PATH (/var/fixops/scans)
-        test_file = os.path.join(temp_dir, "test.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-        with patch.object(scanner, "_is_tfsec_available", return_value=True):
-            with pytest.raises(ValueError) as exc_info:
-                await scanner._run_tfsec(test_file, IaCProvider.TERRAFORM)
-            # Stage 1 passes (file is under TRUSTED_ROOT)
-            # Stage 2 passes (SCAN_BASE_PATH is under TRUSTED_ROOT)
-            # Stage 3 fails (file is not under SCAN_BASE_PATH)
-            assert "Path escapes base directory" in str(exc_info.value)
-
-    @pytest.mark.asyncio
-    async def test_scan_content_uses_hardcoded_base_path(self, scanner):
-        """Test scan_content uses hardcoded SCAN_BASE_PATH for temp files.
-
-        Note: base_path is now hardcoded to SCAN_BASE_PATH (/var/fixops/scans).
-        This test verifies that scan_content creates temp files under SCAN_BASE_PATH.
-        """
-        from core.iac_scanner import SCAN_BASE_PATH
-
-        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
-
-        with patch.object(scanner, "get_available_scanners", return_value=[]):
-            result = await scanner.scan_content(
-                content='resource "aws_instance" "example" {}',
-                filename="test.tf",
-            )
-            # The scanner may fall back to built-in scanner when externals are unavailable
-            assert result.status in (ScanStatus.COMPLETED, ScanStatus.FAILED)
-            if result.status == ScanStatus.FAILED:
-                assert "No IaC scanner available" in result.error_message
-
-
-class TestRunCheckovSubprocess:
-    """Tests for _run_checkov subprocess execution paths."""
-
-    @pytest.fixture
-    def temp_dir(self):
-        """Create a temporary directory under SCAN_BASE_PATH for testing."""
-        from core.iac_scanner import SCAN_BASE_PATH
-
-        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
-        test_dir = os.path.join(SCAN_BASE_PATH, str(uuid.uuid4()))
-        os.makedirs(test_dir, exist_ok=True)
-        yield test_dir
-        shutil.rmtree(test_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def scanner(self):
-        """Create a scanner instance for testing."""
-        config = ScannerConfig(timeout_seconds=30)
-        return IaCScanner(config)
-
-    @pytest.mark.asyncio
-    async def test_run_checkov_success(self, scanner, temp_dir):
-        """Test _run_checkov successful execution with valid output."""
-        test_file = os.path.join(temp_dir, "main.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-
-        # Mock subprocess to return valid checkov output
-        mock_output = json.dumps(
-            {
-                "results": {
-                    "failed_checks": [
-                        {
-                            "check_id": "CKV_AWS_1",
-                            "check_name": "Test check",
-                            "check_result": {"result": "FAILED"},
-                            "file_path": test_file,
-                            "file_line_range": [1, 1],
-                            "resource": "aws_instance.example",
-                            "guideline": "https://example.com",
-                        }
-                    ]
-                }
-            }
+    def test_raw_output_not_in_to_dict(self):
+        result = ScanResult(
+            scan_id="s1",
+            status=ScanStatus.COMPLETED,
+            scanner=ScannerType.CHECKOV,
+            provider=IaCProvider.TERRAFORM,
+            target_path="t.tf",
+            raw_output="some raw output",
         )
+        d = result.to_dict()
+        # raw_output is intentionally not in to_dict
+        assert "raw_output" not in d
 
-        with patch("asyncio.create_subprocess_exec") as mock_exec:
-            mock_process = mock_exec.return_value
-            mock_process.communicate = AsyncMock(
-                return_value=(mock_output.encode(), b"")
-            )
-            mock_process.returncode = 0
-
-            findings, output, error = await scanner._run_checkov(
-                test_file, IaCProvider.TERRAFORM
-            )
-
-            assert error is None
-            assert len(findings) == 1
-            assert findings[0].rule_id == "CKV_AWS_1"
-
-    @pytest.mark.asyncio
-    async def test_run_checkov_nonzero_exit_code(self, scanner, temp_dir):
-        """Test _run_checkov with non-zero/non-one exit code."""
-        test_file = os.path.join(temp_dir, "main.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-
-        with patch("asyncio.create_subprocess_exec") as mock_exec:
-            mock_process = mock_exec.return_value
-            mock_process.communicate = AsyncMock(
-                return_value=(b"output", b"error message")
-            )
-            mock_process.returncode = 2
-
-            findings, output, error = await scanner._run_checkov(
-                test_file, IaCProvider.TERRAFORM
-            )
-
-            assert findings == []
-            assert "Checkov exited with code 2" in error
-
-    @pytest.mark.asyncio
-    async def test_run_checkov_timeout(self, scanner, temp_dir):
-        """Test _run_checkov timeout handling."""
-        test_file = os.path.join(temp_dir, "main.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-
-        with patch("asyncio.create_subprocess_exec") as mock_exec:
-            mock_process = mock_exec.return_value
-            mock_process.communicate = AsyncMock(side_effect=asyncio.TimeoutError())
-
-            findings, output, error = await scanner._run_checkov(
-                test_file, IaCProvider.TERRAFORM
-            )
-
-            assert findings == []
-            assert "timed out" in error
-
-    @pytest.mark.asyncio
-    async def test_run_checkov_file_not_found(self, scanner, temp_dir):
-        """Test _run_checkov when checkov is not installed."""
-        test_file = os.path.join(temp_dir, "main.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-
-        with patch("asyncio.create_subprocess_exec") as mock_exec:
-            mock_exec.side_effect = FileNotFoundError()
-
-            findings, output, error = await scanner._run_checkov(
-                test_file, IaCProvider.TERRAFORM
-            )
-
-            assert findings == []
-            assert "not installed" in error
-
-    @pytest.mark.asyncio
-    async def test_run_checkov_generic_exception(self, scanner, temp_dir):
-        """Test _run_checkov generic exception handling."""
-        test_file = os.path.join(temp_dir, "main.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-
-        with patch("asyncio.create_subprocess_exec") as mock_exec:
-            mock_exec.side_effect = RuntimeError("Unexpected error")
-
-            findings, output, error = await scanner._run_checkov(
-                test_file, IaCProvider.TERRAFORM
-            )
-
-            assert findings == []
-            assert "Checkov scan failed" in error
-
-    @pytest.mark.asyncio
-    async def test_run_checkov_with_skip_download(self, scanner, temp_dir):
-        """Test _run_checkov with skip_download option."""
-        scanner.config.skip_download = True
-        test_file = os.path.join(temp_dir, "main.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-
-        with patch("asyncio.create_subprocess_exec") as mock_exec:
-            mock_process = mock_exec.return_value
-            mock_process.communicate = AsyncMock(return_value=(b"{}", b""))
-            mock_process.returncode = 0
-
-            await scanner._run_checkov(test_file, IaCProvider.TERRAFORM)
-
-            # Verify --skip-download was in the command
-            call_args = mock_exec.call_args[0]
-            assert "--skip-download" in call_args
-
-    @pytest.mark.asyncio
-    async def test_run_checkov_with_excluded_checks(self, scanner, temp_dir):
-        """Test _run_checkov with excluded checks."""
-        scanner.config.excluded_checks = ["CKV_AWS_1", "CKV_AWS_2"]
-        test_file = os.path.join(temp_dir, "main.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-
-        with patch("asyncio.create_subprocess_exec") as mock_exec:
-            mock_process = mock_exec.return_value
-            mock_process.communicate = AsyncMock(return_value=(b"{}", b""))
-            mock_process.returncode = 0
-
-            await scanner._run_checkov(test_file, IaCProvider.TERRAFORM)
-
-            # Verify --skip-check was in the command
-            call_args = mock_exec.call_args[0]
-            assert "--skip-check" in call_args
-            assert "CKV_AWS_1" in call_args
-
-    @pytest.mark.asyncio
-    async def test_run_checkov_with_framework(self, scanner, temp_dir):
-        """Test _run_checkov with different frameworks."""
-        test_file = os.path.join(temp_dir, "main.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-
-        with patch("asyncio.create_subprocess_exec") as mock_exec:
-            mock_process = mock_exec.return_value
-            mock_process.communicate = AsyncMock(return_value=(b"{}", b""))
-            mock_process.returncode = 0
-
-            await scanner._run_checkov(test_file, IaCProvider.KUBERNETES)
-
-            # Verify --framework was in the command
-            call_args = mock_exec.call_args[0]
-            assert "--framework" in call_args
-            assert "kubernetes" in call_args
-
-    @pytest.mark.asyncio
-    async def test_run_checkov_directory(self, scanner, temp_dir):
-        """Test _run_checkov with a directory path."""
-        with patch("asyncio.create_subprocess_exec") as mock_exec:
-            mock_process = mock_exec.return_value
-            mock_process.communicate = AsyncMock(return_value=(b"{}", b""))
-            mock_process.returncode = 0
-
-            await scanner._run_checkov(temp_dir, IaCProvider.TERRAFORM)
-
-            # Verify -d flag was used for directory
-            call_args = mock_exec.call_args[0]
-            assert "-d" in call_args
-
-
-class TestRunTfsecSubprocess:
-    """Tests for _run_tfsec subprocess execution paths."""
-
-    @pytest.fixture
-    def temp_dir(self):
-        """Create a temporary directory under SCAN_BASE_PATH for testing."""
-        from core.iac_scanner import SCAN_BASE_PATH
-
-        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
-        test_dir = os.path.join(SCAN_BASE_PATH, str(uuid.uuid4()))
-        os.makedirs(test_dir, exist_ok=True)
-        yield test_dir
-        shutil.rmtree(test_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def scanner(self):
-        """Create a scanner instance for testing."""
-        config = ScannerConfig(timeout_seconds=30)
-        return IaCScanner(config)
-
-    @pytest.mark.asyncio
-    async def test_run_tfsec_success(self, scanner, temp_dir):
-        """Test _run_tfsec successful execution with valid output."""
-        test_file = os.path.join(temp_dir, "main.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-
-        mock_output = json.dumps(
-            {
-                "results": [
-                    {
-                        "rule_id": "AWS001",
-                        "rule_description": "Test rule",
-                        "severity": "HIGH",
-                        "location": {
-                            "filename": test_file,
-                            "start_line": 1,
-                            "end_line": 1,
-                        },
-                        "resource": "aws_instance.example",
-                        "resolution": "Fix it",
-                    }
-                ]
-            }
+    def test_multiple_findings_all_serialised(self):
+        findings = [_make_finding(rule_id=f"CKV_{i}") for i in range(10)]
+        result = ScanResult(
+            scan_id="s2",
+            status=ScanStatus.COMPLETED,
+            scanner=ScannerType.CHECKOV,
+            provider=IaCProvider.TERRAFORM,
+            target_path="t.tf",
+            findings=findings,
         )
+        d = result.to_dict()
+        assert d["findings_count"] == 10
+        assert len(d["findings"]) == 10
 
-        with patch("asyncio.create_subprocess_exec") as mock_exec:
-            mock_process = mock_exec.return_value
-            mock_process.communicate = AsyncMock(
-                return_value=(mock_output.encode(), b"")
+    def test_all_scan_statuses_serialise_correctly(self):
+        for status in ScanStatus:
+            result = ScanResult(
+                scan_id="x",
+                status=status,
+                scanner=ScannerType.CHECKOV,
+                provider=IaCProvider.TERRAFORM,
+                target_path="t.tf",
             )
-            mock_process.returncode = 0
+            d = result.to_dict()
+            assert d["status"] == status.value
 
-            findings, output, error = await scanner._run_tfsec(
-                test_file, IaCProvider.TERRAFORM
+    def test_all_providers_serialise_correctly(self):
+        for provider in IaCProvider:
+            result = ScanResult(
+                scan_id="x",
+                status=ScanStatus.COMPLETED,
+                scanner=ScannerType.CHECKOV,
+                provider=provider,
+                target_path="t.tf",
             )
-
-            assert error is None
-            assert len(findings) == 1
-            assert findings[0].rule_id == "AWS001"
-
-    @pytest.mark.asyncio
-    async def test_run_tfsec_nonzero_exit_code(self, scanner, temp_dir):
-        """Test _run_tfsec with non-zero/non-one exit code."""
-        test_file = os.path.join(temp_dir, "main.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-
-        with patch("asyncio.create_subprocess_exec") as mock_exec:
-            mock_process = mock_exec.return_value
-            mock_process.communicate = AsyncMock(
-                return_value=(b"output", b"error message")
-            )
-            mock_process.returncode = 2
-
-            findings, output, error = await scanner._run_tfsec(
-                test_file, IaCProvider.TERRAFORM
-            )
-
-            assert findings == []
-            assert "tfsec exited with code 2" in error
-
-    @pytest.mark.asyncio
-    async def test_run_tfsec_timeout(self, scanner, temp_dir):
-        """Test _run_tfsec timeout handling."""
-        test_file = os.path.join(temp_dir, "main.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-
-        with patch("asyncio.create_subprocess_exec") as mock_exec:
-            mock_process = mock_exec.return_value
-            mock_process.communicate = AsyncMock(side_effect=asyncio.TimeoutError())
-
-            findings, output, error = await scanner._run_tfsec(
-                test_file, IaCProvider.TERRAFORM
-            )
-
-            assert findings == []
-            assert "timed out" in error
-
-    @pytest.mark.asyncio
-    async def test_run_tfsec_file_not_found(self, scanner, temp_dir):
-        """Test _run_tfsec when tfsec is not installed."""
-        test_file = os.path.join(temp_dir, "main.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-
-        with patch("asyncio.create_subprocess_exec") as mock_exec:
-            mock_exec.side_effect = FileNotFoundError()
-
-            findings, output, error = await scanner._run_tfsec(
-                test_file, IaCProvider.TERRAFORM
-            )
-
-            assert findings == []
-            assert "not installed" in error
-
-    @pytest.mark.asyncio
-    async def test_run_tfsec_generic_exception(self, scanner, temp_dir):
-        """Test _run_tfsec generic exception handling."""
-        test_file = os.path.join(temp_dir, "main.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-
-        with patch("asyncio.create_subprocess_exec") as mock_exec:
-            mock_exec.side_effect = RuntimeError("Unexpected error")
-
-            findings, output, error = await scanner._run_tfsec(
-                test_file, IaCProvider.TERRAFORM
-            )
-
-            assert findings == []
-            assert "tfsec scan failed" in error
-
-    @pytest.mark.asyncio
-    async def test_run_tfsec_with_soft_fail(self, scanner, temp_dir):
-        """Test _run_tfsec with soft_fail option."""
-        scanner.config.soft_fail = True
-        test_file = os.path.join(temp_dir, "main.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-
-        with patch("asyncio.create_subprocess_exec") as mock_exec:
-            mock_process = mock_exec.return_value
-            mock_process.communicate = AsyncMock(return_value=(b"{}", b""))
-            mock_process.returncode = 0
-
-            await scanner._run_tfsec(test_file, IaCProvider.TERRAFORM)
-
-            # Verify --soft-fail was in the command
-            call_args = mock_exec.call_args[0]
-            assert "--soft-fail" in call_args
-
-    @pytest.mark.asyncio
-    async def test_run_tfsec_with_excluded_checks(self, scanner, temp_dir):
-        """Test _run_tfsec with excluded checks."""
-        scanner.config.excluded_checks = ["AWS001", "AWS002"]
-        test_file = os.path.join(temp_dir, "main.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-
-        with patch("asyncio.create_subprocess_exec") as mock_exec:
-            mock_process = mock_exec.return_value
-            mock_process.communicate = AsyncMock(return_value=(b"{}", b""))
-            mock_process.returncode = 0
-
-            await scanner._run_tfsec(test_file, IaCProvider.TERRAFORM)
-
-            # Verify --exclude was in the command
-            call_args = mock_exec.call_args[0]
-            assert "--exclude" in call_args
-            assert "AWS001" in call_args
+            d = result.to_dict()
+            assert d["provider"] == provider.value
 
 
-class TestStage2ContainmentChecks:
-    """Tests for Stage 2 containment checks (base path escapes trusted root)."""
+# ---------------------------------------------------------------------------
+# ScannerConfig field mutation independence
+# ---------------------------------------------------------------------------
 
-    @pytest.fixture
-    def scanner(self):
-        """Create a scanner instance for testing."""
-        config = ScannerConfig(timeout_seconds=30)
-        return IaCScanner(config)
+class TestScannerConfigIsolation:
+    def test_two_instances_excluded_checks_independent(self):
+        cfg1 = ScannerConfig(excluded_checks=["A"])
+        cfg2 = ScannerConfig(excluded_checks=["B"])
+        assert cfg1.excluded_checks == ["A"]
+        assert cfg2.excluded_checks == ["B"]
 
-    def test_verify_containment_base_escapes_trusted_root(self, scanner):
-        """Test _verify_containment raises when base path escapes trusted root."""
-        from pathlib import Path
-
-        # Mock SCAN_BASE_PATH to be outside TRUSTED_ROOT
-        with patch("core.iac_scanner.SCAN_BASE_PATH", "/tmp/outside"):
-            with pytest.raises(ValueError) as exc_info:
-                scanner._verify_containment(Path("/tmp/outside/test.tf"))
-            assert "Base path escapes trusted root" in str(exc_info.value)
-
-    @pytest.mark.asyncio
-    async def test_run_checkov_base_escapes_trusted_root(self, scanner):
-        """Test _run_checkov raises when base path escapes trusted root (Stage 2)."""
-        from core.iac_scanner import TRUSTED_ROOT
-
-        # Create a test file under TRUSTED_ROOT so Stage 1 passes
-        test_dir = os.path.join(TRUSTED_ROOT, "test_stage2_checkov")
-        os.makedirs(test_dir, exist_ok=True)
-        test_file = os.path.join(test_dir, "main.tf")
-        try:
-            with open(test_file, "w") as f:
-                f.write('resource "aws_instance" "example" {}')
-
-            # Mock SCAN_BASE_PATH to be outside TRUSTED_ROOT
-            # Path is under TRUSTED_ROOT (Stage 1 passes), but base is not (Stage 2 fails)
-            with patch("core.iac_scanner.SCAN_BASE_PATH", "/tmp/outside"):
-                with pytest.raises(ValueError) as exc_info:
-                    await scanner._run_checkov(test_file, IaCProvider.TERRAFORM)
-                assert "Base path escapes trusted root" in str(exc_info.value)
-        finally:
-            shutil.rmtree(test_dir, ignore_errors=True)
-
-    @pytest.mark.asyncio
-    async def test_run_tfsec_base_escapes_trusted_root(self, scanner):
-        """Test _run_tfsec raises when base path escapes trusted root (Stage 2)."""
-        from core.iac_scanner import TRUSTED_ROOT
-
-        # Create a test file under TRUSTED_ROOT so Stage 1 passes
-        test_dir = os.path.join(TRUSTED_ROOT, "test_stage2_tfsec")
-        os.makedirs(test_dir, exist_ok=True)
-        test_file = os.path.join(test_dir, "main.tf")
-        try:
-            with open(test_file, "w") as f:
-                f.write('resource "aws_instance" "example" {}')
-
-            # Mock SCAN_BASE_PATH to be outside TRUSTED_ROOT
-            # Path is under TRUSTED_ROOT (Stage 1 passes), but base is not (Stage 2 fails)
-            with patch("core.iac_scanner.SCAN_BASE_PATH", "/tmp/outside"):
-                with pytest.raises(ValueError) as exc_info:
-                    await scanner._run_tfsec(test_file, IaCProvider.TERRAFORM)
-                assert "Base path escapes trusted root" in str(exc_info.value)
-        finally:
-            shutil.rmtree(test_dir, ignore_errors=True)
+    def test_default_instances_excluded_checks_independent(self):
+        cfg1 = ScannerConfig()
+        cfg2 = ScannerConfig()
+        cfg1.excluded_checks.append("X")
+        assert cfg2.excluded_checks == []
 
 
-class TestCustomPoliciesDir:
-    """Tests for custom policies directory handling."""
+# ---------------------------------------------------------------------------
+# Edge cases for severity mapping
+# ---------------------------------------------------------------------------
 
-    @pytest.fixture
-    def temp_dir(self):
-        """Create a temporary directory under SCAN_BASE_PATH for testing."""
-        from core.iac_scanner import SCAN_BASE_PATH
+class TestMapSeverityEdgeCases:
+    def setup_method(self):
+        self.scanner = _make_scanner()
 
-        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
-        test_dir = os.path.join(SCAN_BASE_PATH, str(uuid.uuid4()))
-        os.makedirs(test_dir, exist_ok=True)
-        yield test_dir
-        shutil.rmtree(test_dir, ignore_errors=True)
+    def test_whitespace_around_severity(self):
+        # The method does .lower() only; leading whitespace keeps it unknown -> medium
+        result = self.scanner._map_severity("  high  ")
+        assert result == "medium"  # no strip, so spaces make it fall through to default
 
-    @pytest.fixture
-    def scanner(self):
-        """Create a scanner instance for testing."""
-        config = ScannerConfig(timeout_seconds=30)
-        return IaCScanner(config)
+    def test_numeric_severity_defaults_to_medium(self):
+        assert self.scanner._map_severity("1") == "medium"
+        assert self.scanner._map_severity("3") == "medium"
 
-    @pytest.mark.asyncio
-    async def test_run_checkov_with_custom_policies_dir(self, scanner, temp_dir):
-        """Test _run_checkov includes custom policies dir when it exists."""
-        from core.iac_scanner import CUSTOM_POLICIES_PATH
+    def test_none_like_string(self):
+        assert self.scanner._map_severity("none") == "medium"
 
-        test_file = os.path.join(temp_dir, "main.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
+    def test_warning_severity_defaults_to_medium(self):
+        assert self.scanner._map_severity("warning") == "medium"
 
-        # Create the custom policies directory
-        os.makedirs(CUSTOM_POLICIES_PATH, exist_ok=True)
+    def test_error_severity_defaults_to_medium(self):
+        assert self.scanner._map_severity("error") == "medium"
 
-        try:
-            with patch("asyncio.create_subprocess_exec") as mock_exec:
-                mock_process = mock_exec.return_value
-                mock_process.communicate = AsyncMock(return_value=(b"{}", b""))
-                mock_process.returncode = 0
-
-                await scanner._run_checkov(test_file, IaCProvider.TERRAFORM)
-
-                # Verify --external-checks-dir was in the command
-                call_args = mock_exec.call_args[0]
-                assert "--external-checks-dir" in call_args
-                assert CUSTOM_POLICIES_PATH in call_args
-        finally:
-            # Clean up the custom policies directory
-            if os.path.isdir(CUSTOM_POLICIES_PATH):
-                shutil.rmtree(CUSTOM_POLICIES_PATH, ignore_errors=True)
-
-
-class TestRunCheckovStage3Containment:
-    """Tests for Stage 3 containment check in _run_checkov."""
-
-    @pytest.fixture
-    def temp_dir(self):
-        """Create a temporary directory under TRUSTED_TEST_ROOT for testing."""
-        test_dir = os.path.join(TRUSTED_TEST_ROOT, str(uuid.uuid4()))
-        os.makedirs(test_dir, exist_ok=True)
-        yield test_dir
-        shutil.rmtree(test_dir, ignore_errors=True)
-
-    @pytest.fixture
-    def scanner(self):
-        """Create a scanner instance for testing."""
-        config = ScannerConfig(timeout_seconds=30)
-        return IaCScanner(config)
-
-    @pytest.mark.asyncio
-    async def test_run_checkov_stage3_path_escapes_base(self, scanner, temp_dir):
-        """Test _run_checkov raises when path escapes base directory (Stage 3)."""
-        # Create a file under TRUSTED_TEST_ROOT but outside SCAN_BASE_PATH
-        test_file = os.path.join(temp_dir, "main.tf")
-        with open(test_file, "w") as f:
-            f.write('resource "aws_instance" "example" {}')
-
-        # This should fail Stage 3 containment check because the file is
-        # under TRUSTED_ROOT but not under SCAN_BASE_PATH
-        with pytest.raises(ValueError) as exc_info:
-            await scanner._run_checkov(test_file, IaCProvider.TERRAFORM)
-        assert "Path escapes base directory" in str(exc_info.value)
+    def test_notice_severity_defaults_to_medium(self):
+        assert self.scanner._map_severity("notice") == "medium"

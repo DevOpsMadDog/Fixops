@@ -35,17 +35,19 @@ export default function MultiLLMPage() {
   const [selectedProviders, setSelectedProviders] = useState<string[]>(['gpt-5', 'claude-3', 'gemini-2']);
 
   // Fetch LLM status
-  const { data: llmStatus, refetch: refetchStatus } = useQuery({
+  const { data: llmStatus, isLoading: llmLoading, refetch: refetchStatus } = useQuery({
     queryKey: ['llm-status'],
     queryFn: () => llmApi.getStatus(),
     refetchInterval: 30000,
   });
 
   // Fetch algorithm capabilities
-  const { data: algorithmData } = useQuery({
+  const { data: algorithmData, isLoading: algoLoading } = useQuery({
     queryKey: ['algorithm-capabilities'],
     queryFn: () => algorithmsApi.getCapabilities(),
   });
+
+  const isLoading = llmLoading || algoLoading;
 
   // Run consensus analysis mutation
   const consensusMutation = useMutation({
@@ -122,6 +124,30 @@ export default function MultiLLMPage() {
         : [...prev, providerId]
     );
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="h-8 w-72 bg-gray-700/30 rounded animate-pulse" />
+            <div className="h-4 w-56 bg-gray-700/20 rounded animate-pulse mt-2" />
+          </div>
+          <div className="h-9 w-24 bg-gray-700/30 rounded animate-pulse" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map(i => (
+            <Card key={i} className="border-gray-700/30 bg-gray-900/40">
+              <CardContent className="p-6"><div className="h-28 bg-gray-700/20 rounded animate-pulse" /></CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card className="border-gray-700/30 bg-gray-900/40">
+          <CardContent className="p-6"><div className="h-64 bg-gray-700/20 rounded animate-pulse" /></CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

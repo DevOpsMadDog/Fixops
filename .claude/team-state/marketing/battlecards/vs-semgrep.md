@@ -1,6 +1,6 @@
 # Competitive Battlecard: ALdeci vs. Semgrep
 
-**Updated**: 2026-03-01 | **Source**: AI Researcher Pulse + Codebase Verification
+**Updated**: 2026-03-02 | **Source**: AI Researcher Pulse (Mar 2) + Codebase Verification
 **Pillars**: [V3] Decision Intelligence, [V5] MPTE
 
 ---
@@ -51,3 +51,6 @@
 
 **On their "zero false positives" claim:**
 > "Zero false positives in SAST is a strong claim. We take it further — we don't just classify; we verify. MPTE proves exploitability through controlled exploitation. Even if the AI says it's a false positive, the pentester confirms. Evidence, not estimates."
+
+**On Claude Code Security (context for Semgrep deals):**
+> "Both Semgrep and Claude Code Security use a single model for SAST+reasoning. Claude found 500+ zero-days that Semgrep-class tools missed for decades. The single-model approach works for finding — but for deciding, you need multi-model consensus. That's ALdeci's architecture."

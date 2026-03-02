@@ -1,6 +1,6 @@
 # Competitive Battlecard: ALdeci vs. Wiz
 
-**Updated**: 2026-03-01 | **Source**: AI Researcher Pulse + Codebase Verification
+**Updated**: 2026-03-02 | **Source**: AI Researcher Pulse (Mar 2) + Codebase Verification
 **Pillars**: [V3] Decision Intelligence, [V7] MCP-Native
 
 ---
@@ -11,6 +11,8 @@
 - **Valuation**: $32B (Google/Alphabet acquisition price)
 - **ARR**: $500M+ (estimated)
 - **Status**: Google acquisition closing March 2026. EU unconditionally approved (Feb 10). DOJ cleared (Nov 2025).
+- **Dazz acquisition ($450M, Nov 2024)**: Fully integrated into Wiz Code — risk remediation from cloud to code. Now ingesting vulns from external sources (Checkmarx initial partner).
+- **MCP**: Has MCP integration with Gemini Code Assist — competing on V7 territory.
 
 ## What Wiz Does
 - Agentless cloud scanning (AWS, Azure, GCP)
@@ -38,7 +40,7 @@
 | Exploit verification | None (agentless) | 19-phase MPTE |
 | Auto-remediation | None | 10 fix types, confidence-based |
 | Air-gapped | No | Yes, full capability |
-| MCP tools | Beta (Gemini only) | 723 auto-discovered (any LLM) |
+| MCP tools | Gemini Code Assist only | 796 auto-discovered (any LLM) |
 | Scanner integration | Own scanners | 25+ formats + 8 native |
 
 ## Talking Points

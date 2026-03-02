@@ -1,0 +1,420 @@
+newman
+
+ALdeci-7-Scanners-OSS-AutoFix
+
+❏ 1. SAST Scanner
+↳ SAST — Scan Code Snippet
+  POST http://localhost:8000/api/v1/sast/scan/code [200 OK, 2.06kB, 23ms]
+  ✓  SAST scan returns 200
+  ✓  SAST finds vulnerabilities
+  1. SAST detects code injection
+
+↳ SAST — Scan Files
+  POST http://localhost:8000/api/v1/sast/scan/files [200 OK, 2.27kB, 11ms]
+  ✓  SAST file scan returns 200
+  ✓  Response has scan results
+
+↳ SAST — Get Rules
+  GET http://localhost:8000/api/v1/sast/rules [200 OK, 30.18kB, 12ms]
+  ✓  SAST rules returns 200
+  ✓  Rules include multiple languages
+
+↳ SAST — Scanner Status
+  GET http://localhost:8000/api/v1/sast/status [200 OK, 508B, 11ms]
+  ✓  SAST status returns 200
+  ✓  Scanner is operational
+
+❏ 2. DAST Scanner
+↳ DAST — Run Scan
+  POST http://localhost:8000/api/v1/dast/scan [200 OK, 3.8kB, 4.2s]
+  ✓  DAST scan returns 200
+  ✓  DAST returns scan results
+
+↳ DAST — Scanner Status
+  GET http://localhost:8000/api/v1/dast/status [200 OK, 354B, 8ms]
+  ✓  DAST status returns 200
+  ✓  DAST scanner operational
+
+❏ 3. Secrets Scanner
+↳ Secrets — Scanner Status
+  GET http://localhost:8000/api/v1/secrets/status [200 OK, 548B, 15ms]
+  ✓  Secrets scanner status 200
+
+↳ Secrets — Scan Content
+  POST http://localhost:8000/api/v1/secrets/scan/content [200 OK, 1.65kB, 10ms]
+  ✓  Secrets scan returns 200
+  ✓  Detects AWS credentials
+
+↳ Secrets — List Findings
+  GET http://localhost:8000/api/v1/secrets [200 OK, 46kB, 12ms]
+  ✓  List secrets returns 200
+
+↳ Secrets — Create Finding
+  POST http://localhost:8000/api/v1/secrets [422 Unprocessable Content, 908B, 7ms]
+  2. Create secret finding returns 200/201
+
+↳ Secrets — Get Finding
+  GET http://localhost:8000/api/v1/secrets/1e536031-5872-415d-b0db-f8d2f9d8c490 [200 OK, 783B, 7ms]
+  ✓  Get secret finding returns 200
+
+↳ Secrets — Resolve Finding
+  POST http://localhost:8000/api/v1/secrets/1e536031-5872-415d-b0db-f8d2f9d8c490/resolve [200 OK, 815B, 9ms]
+  ✓  Resolve secret returns 200
+
+↳ Secrets — All Scanners Status
+  GET http://localhost:8000/api/v1/secrets/status [200 OK, 548B, 7ms]
+  ✓  Scanners status returns 200
+
+❏ 4. Container Scanner
+↳ Container — Scan Dockerfile
+  POST http://localhost:8000/api/v1/container/scan/dockerfile [200 OK, 1.87kB, 5ms]
+  ✓  Container Dockerfile scan returns 200
+  ✓  Detects root user issue
+
+↳ Container — Scan Image
+  POST http://localhost:8000/api/v1/container/scan/image [200 OK, 542B, 6ms]
+  ✓  Container image scan returns 200
+
+↳ Container — Scanner Status
+  GET http://localhost:8000/api/v1/container/status [200 OK, 556B, 10ms]
+  ✓  Container scanner status 200
+
+❏ 5. CSPM & IaC Scanner
+↳ CSPM — Scan Terraform
+  POST http://localhost:8000/api/v1/cspm/scan/terraform [200 OK, 1.37kB, 7ms]
+  ✓  CSPM Terraform scan returns 200
+  ✓  Detects misconfigurations
+
+↳ CSPM — Scan CloudFormation
+  POST http://localhost:8000/api/v1/cspm/scan/cloudformation [200 OK, 531B, 9ms]
+  ✓  CSPM CloudFormation scan returns 200
+
+↳ CSPM — Get Rules
+  GET http://localhost:8000/api/v1/cspm/rules [200 OK, 2.15kB, 10ms]
+  ✓  CSPM rules returns 200
+
+↳ CSPM — Scanner Status
+  GET http://localhost:8000/api/v1/cspm/status [200 OK, 425B, 11ms]
+  ✓  CSPM scanner status 200
+
+↳ IaC — List Scans
+  GET http://localhost:8000/api/v1/iac [200 OK, 20.44kB, 13ms]
+  ✓  IaC list scans returns 200
+
+↳ IaC — Create Scan
+  POST http://localhost:8000/api/v1/iac [422 Unprocessable Content, 2.48kB, 8ms]
+  3. IaC create scan returns 200/201
+
+↳ IaC — Get Findings
+  GET http://localhost:8000/api/v1/iac [200 OK, 20.44kB, 11ms]
+  ✓  IaC findings returns 200
+
+↳ IaC — Get Rules
+  GET http://localhost:8000/api/v1/iac/scanners/status [200 OK, 377B, 8ms]
+  ✓  IaC rules returns 200
+
+↳ IaC — Scanner Status
+  GET http://localhost:8000/api/v1/iac/scanners/status [200 OK, 377B, 7ms]
+  ✓  IaC scanner status 200
+
+❏ 6. API Fuzzer
+↳ API Fuzzer — Discover Endpoints
+  POST http://localhost:8000/api/v1/api-fuzzer/discover [200 OK, 328B, 10ms]
+  ✓  API discovery returns 200
+
+↳ API Fuzzer — Fuzz Endpoint
+  POST http://localhost:8000/api/v1/api-fuzzer/fuzz [422 Unprocessable Content, 626B, 10ms]
+  4. API fuzz returns 200
+
+↳ API Fuzzer — Status
+  GET http://localhost:8000/api/v1/api-fuzzer/status [200 OK, 360B, 10ms]
+  ✓  API fuzzer status 200
+
+❏ 7. Malware Detector
+↳ Malware — Scan Content
+  POST http://localhost:8000/api/v1/malware/scan/content [200 OK, 501B, 8ms]
+  ✓  Malware content scan returns 200
+
+↳ Malware — Scan Files
+  POST http://localhost:8000/api/v1/malware/scan/files [200 OK, 501B, 10ms]
+  ✓  Malware file scan returns 200
+
+↳ Malware — Get Signatures
+  GET http://localhost:8000/api/v1/malware/signatures [200 OK, 1.45kB, 12ms]
+  ✓  Malware signatures returns 200
+
+↳ Malware — Scanner Status
+  GET http://localhost:8000/api/v1/malware/status [200 OK, 366B, 11ms]
+  ✓  Malware scanner status 200
+
+❏ 8. LLM Monitor
+↳ LLM Monitor — Analyze Prompt
+  POST http://localhost:8000/api/v1/llm-monitor/analyze [200 OK, 1kB, 12ms]
+  ✓  LLM analyze returns 200
+  5. Detects prompt injection
+
+↳ LLM Monitor — Scan Prompt Batch
+  POST http://localhost:8000/api/v1/llm-monitor/scan/prompt [200 OK, 345B, 6ms]
+  ✓  LLM prompt scan returns 200
+
+↳ LLM Monitor — Get Patterns
+  GET http://localhost:8000/api/v1/llm-monitor/patterns [200 OK, 376B, 4ms]
+  ✓  LLM patterns returns 200
+
+↳ LLM Monitor — Status
+  GET http://localhost:8000/api/v1/llm-monitor/status [200 OK, 361B, 7ms]
+  ✓  LLM monitor status 200
+
+❏ 9. OSS/SCA Tools
+↳ OSS — Tools Status
+  GET http://localhost:8000/api/v1/oss/status [200 OK, 708B, 10ms]
+  ✓  OSS status returns 200
+
+↳ OSS — Comprehensive Scan
+  POST http://localhost:8000/api/v1/oss/scan/comprehensive [200 OK, 377B, 9ms]
+  ✓  OSS comprehensive scan returns 200
+
+↳ OSS — Trivy Scan
+  POST http://localhost:8000/api/v1/oss/scan/trivy [404 Not Found, 341B, 11ms]
+  6. Trivy scan returns 200
+
+↳ OSS — Grype Scan
+  POST http://localhost:8000/api/v1/oss/scan/grype [404 Not Found, 341B, 12ms]
+  7. Grype scan returns 200
+
+↳ OSS — Sigstore Verify
+  POST http://localhost:8000/api/v1/oss/verify/sigstore [404 Not Found, 351B, 13ms]
+  8. Sigstore verify returns 200
+
+↳ OSS — OPA Policy Evaluate
+  POST http://localhost:8000/api/v1/oss/policy/evaluate [404 Not Found, 339B, 13ms]
+  9. OPA policy evaluate returns 200
+
+↳ OSS — List Policies
+  GET http://localhost:8000/api/v1/oss/policies [200 OK, 509B, 12ms]
+  ✓  OSS policies returns 200
+
+↳ OSS — List Tools
+  GET http://localhost:8000/api/v1/oss/tools [200 OK, 1.34kB, 10ms]
+  ✓  OSS tools list returns 200
+
+❏ 10. AutoFix Engine
+↳ AutoFix — Generate Fix
+  POST http://localhost:8000/api/v1/autofix/generate [200 OK, 1.63kB, 6.3s]
+  ✓  AutoFix generate returns 200
+  ✓  Fix has confidence level
+
+↳ AutoFix — Generate Bulk Fixes
+  POST http://localhost:8000/api/v1/autofix/generate/bulk [200 OK, 4.14kB, 17.9s]
+  ✓  Bulk autofix returns 200
+
+↳ AutoFix — Apply Fix
+  POST http://localhost:8000/api/v1/autofix/apply [422 Unprocessable Content, 487B, 10ms]
+ 10. AutoFix apply returns 200
+
+↳ AutoFix — Validate Fix
+  POST http://localhost:8000/api/v1/autofix/validate [404 Not Found, 336B, 9ms]
+ 11. AutoFix validate returns 200
+
+↳ AutoFix — Rollback Fix
+  POST http://localhost:8000/api/v1/autofix/rollback [200 OK, 344B, 12ms]
+  ✓  AutoFix rollback returns 200
+
+↳ AutoFix — Get Fix Details
+  GET http://localhost:8000/api/v1/autofix/fixes/{{autofix_id}} [404 Not Found, 350B, 13ms]
+ 12. Get fix details returns 200
+
+↳ AutoFix — Get Suggestions for Finding
+  GET http://localhost:8000/api/v1/autofix/suggestions/SAST-4e67c645e33e [200 OK, 377B, 9ms]
+  ✓  AutoFix suggestions returns 200
+
+↳ AutoFix — History
+  GET http://localhost:8000/api/v1/autofix/history [200 OK, 1.68kB, 8ms]
+  ✓  AutoFix history returns 200
+  ✓  History is array
+
+↳ AutoFix — Statistics
+  GET http://localhost:8000/api/v1/autofix/stats [200 OK, 582B, 10ms]
+  ✓  AutoFix stats returns 200
+  ✓  Stats has fix counts
+
+↳ AutoFix — Health
+  GET http://localhost:8000/api/v1/autofix/health [200 OK, 399B, 11ms]
+  ✓  AutoFix health returns 200
+  ✓  Engine is healthy
+
+↳ AutoFix — List Fix Types
+  GET http://localhost:8000/api/v1/autofix/fix-types [200 OK, 824B, 8ms]
+  ✓  Fix types returns 200
+  ✓  Has 10 fix types
+
+↳ AutoFix — Confidence Levels
+  GET http://localhost:8000/api/v1/autofix/confidence-levels [200 OK, 515B, 9ms]
+  ✓  Confidence levels returns 200
+  ✓  Has HIGH/MEDIUM/LOW levels
+
+❏ 11. SBOM & Validation
+↳ Inventory — Generate SBOM
+  POST http://localhost:8000/api/v1/inventory/applications [422 Unprocessable Content, 519B, 10ms]
+ 13. SBOM generation returns 200
+ 14. SBOM has components
+
+↳ Inventory — License Compliance
+  POST http://localhost:8000/api/v1/inventory/applications [422 Unprocessable Content, 545B, 4ms]
+ 15. License compliance returns 200
+
+↳ Validation — Validate Input (SARIF)
+  POST http://localhost:8000/api/v1/validate/input [422 Unprocessable Content, 410B, 5ms]
+  ✓  SARIF validation returns 200
+ 16. Validation result valid
+
+↳ Validation — Batch Validate
+  POST http://localhost:8000/api/v1/validate/batch [422 Unprocessable Content, 411B, 6ms]
+  ✓  Batch validation returns 200
+
+❏ 12. Brain Pipeline (CTEM Lifecycle)
+↳ Pipeline — Get Status
+  GET http://localhost:8000/api/v1/brain/stats [200 OK, 963B, 16ms]
+  ✓  Pipeline status returns 200
+ 17. Pipeline has 12 steps
+
+↳ Pipeline — Process Finding
+  POST http://localhost:8000/api/v1/brain/pipeline/run [200 OK, 3.27kB, 9ms]
+  ✓  Pipeline process returns 200
+  ✓  Finding processed through pipeline
+
+↳ Pipeline — Get Metrics
+  GET http://localhost:8000/api/v1/brain/stats [200 OK, 962B, 11ms]
+  ✓  Pipeline metrics returns 200
+
+↳ Pipeline — Health Check
+  GET http://localhost:8000/api/v1/brain/health [200 OK, 399B, 21ms]
+  ✓  Pipeline health returns 200
+
+❏ 13. Air-Gapped Mode Verification
+↳ Air-Gap — All Scanner Health Check
+  GET http://localhost:8000/api/v1/health [200 OK, 412B, 3ms]
+  ✓  Platform health returns 200
+  ✓  All systems operational
+
+↳ Air-Gap — SAST Scan (No External Tool)
+  POST http://localhost:8000/api/v1/sast/scan/code [200 OK, 1.87kB, 9ms]
+  ✓  Air-gapped SAST works
+  ✓  Detects insecure deserialization
+
+↳ Air-Gap — AutoFix Without Cloud LLM
+  POST http://localhost:8000/api/v1/autofix/generate [200 OK, 1.63kB, 6s]
+  ✓  Air-gapped AutoFix works
+  ✓  Fix generated without cloud API
+
+↳ Air-Gap — Full Pipeline (Scan→Decide→Fix→Evidence)
+  POST http://localhost:8000/api/v1/brain/pipeline/run [200 OK, 3.28kB, 22ms]
+  ✓  Air-gapped full pipeline works
+  ✓  Pipeline completes all 12 steps
+
+┌─────────────────────────┬───────────────────┬───────────────────┐
+│                         │          executed │            failed │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│              iterations │                 1 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│                requests │                68 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│            test-scripts │                68 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│      prerequest-scripts │                68 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│              assertions │                93 │                17 │
+├─────────────────────────┴───────────────────┴───────────────────┤
+│ total run duration: 43.3s                                       │
+├─────────────────────────────────────────────────────────────────┤
+│ total data received: 158kB (approx)                             │
+├─────────────────────────────────────────────────────────────────┤
+│ average response time: 517ms [min: 3ms, max: 17.9s, s.d.: 2.4s] │
+└─────────────────────────────────────────────────────────────────┘
+
+[31m   # [39m[31m failure        [39m[31m detail                                                                              [39m
+[90m     [39m[90m                [39m[90m                                                                                     [39m
+ 01.  AssertionError  SAST detects code injection                                                         
+                      expected false to be true                                                           
+                      at assertion:2 in test-script                                                       
+                      inside "1. SAST Scanner / SAST — Scan Code Snippet"                                 
+[90m     [39m[90m                [39m[90m                                                                                     [39m
+ 02.  AssertionError  Create secret finding returns 200/201                                               
+                      expected 422 to be one of [ 200, 201, 202, 409 ]                                    
+                      at assertion:0 in test-script                                                       
+                      inside "3. Secrets Scanner / Secrets — Create Finding"                              
+[90m     [39m[90m                [39m[90m                                                                                     [39m
+ 03.  AssertionError  IaC create scan returns 200/201                                                     
+                      expected 422 to be one of [ 200, 201, 202, 409 ]                                    
+                      at assertion:0 in test-script                                                       
+                      inside "5. CSPM & IaC Scanner / IaC — Create Scan"                                  
+[90m     [39m[90m                [39m[90m                                                                                     [39m
+ 04.  AssertionError  API fuzz returns 200                                                                
+                      expected 422 to be one of [ 200, 201, 202, 409 ]                                    
+                      at assertion:0 in test-script                                                       
+                      inside "6. API Fuzzer / API Fuzzer — Fuzz Endpoint"                                 
+[90m     [39m[90m                [39m[90m                                                                                     [39m
+ 05.  AssertionError  Detects prompt injection                                                            
+                      expected { …(10) } to have keys 'findings', 'risks', or 'analysis'                  
+                      at assertion:1 in test-script                                                       
+                      inside "8. LLM Monitor / LLM Monitor — Analyze Prompt"                              
+[90m     [39m[90m                [39m[90m                                                                                     [39m
+ 06.  AssertionError  Trivy scan returns 200                                                              
+                      expected 404 to be one of [ 200, 201, 202, 409 ]                                    
+                      at assertion:0 in test-script                                                       
+                      inside "9. OSS/SCA Tools / OSS — Trivy Scan"                                        
+[90m     [39m[90m                [39m[90m                                                                                     [39m
+ 07.  AssertionError  Grype scan returns 200                                                              
+                      expected 404 to be one of [ 200, 201, 202, 409 ]                                    
+                      at assertion:0 in test-script                                                       
+                      inside "9. OSS/SCA Tools / OSS — Grype Scan"                                        
+[90m     [39m[90m                [39m[90m                                                                                     [39m
+ 08.  AssertionError  Sigstore verify returns 200                                                         
+                      expected 404 to be one of [ 200, 201, 202, 409 ]                                    
+                      at assertion:0 in test-script                                                       
+                      inside "9. OSS/SCA Tools / OSS — Sigstore Verify"                                   
+[90m     [39m[90m                [39m[90m                                                                                     [39m
+ 09.  AssertionError  OPA policy evaluate returns 200                                                     
+                      expected 404 to be one of [ 200, 201, 202, 409 ]                                    
+                      at assertion:0 in test-script                                                       
+                      inside "9. OSS/SCA Tools / OSS — OPA Policy Evaluate"                               
+[90m     [39m[90m                [39m[90m                                                                                     [39m
+ 10.  AssertionError  AutoFix apply returns 200                                                           
+                      expected 422 to be one of [ 200, 201, 202, 409 ]                                    
+                      at assertion:0 in test-script                                                       
+                      inside "10. AutoFix Engine / AutoFix — Apply Fix"                                   
+[90m     [39m[90m                [39m[90m                                                                                     [39m
+ 11.  AssertionError  AutoFix validate returns 200                                                        
+                      expected 404 to be one of [ 200, 201, 202, 409 ]                                    
+                      at assertion:0 in test-script                                                       
+                      inside "10. AutoFix Engine / AutoFix — Validate Fix"                                
+[90m     [39m[90m                [39m[90m                                                                                     [39m
+ 12.  AssertionError  Get fix details returns 200                                                         
+                      expected 404 to be one of [ 200, 201, 202, 409 ]                                    
+                      at assertion:0 in test-script                                                       
+                      inside "10. AutoFix Engine / AutoFix — Get Fix Details"                             
+[90m     [39m[90m                [39m[90m                                                                                     [39m
+ 13.  AssertionError  SBOM generation returns 200                                                         
+                      expected 422 to be one of [ 200, 201, 202, 409 ]                                    
+                      at assertion:0 in test-script                                                       
+                      inside "11. SBOM & Validation / Inventory — Generate SBOM"                          
+[90m     [39m[90m                [39m[90m                                                                                     [39m
+ 14.  AssertionError  SBOM has components                                                                 
+                      expected { detail: [ { …(4) } ] } to have keys 'components', 'sbom', or 'bomFormat' 
+                      at assertion:1 in test-script                                                       
+                      inside "11. SBOM & Validation / Inventory — Generate SBOM"                          
+[90m     [39m[90m                [39m[90m                                                                                     [39m
+ 15.  AssertionError  License compliance returns 200                                                      
+                      expected 422 to be one of [ 200, 201, 202, 409 ]                                    
+                      at assertion:0 in test-script                                                       
+                      inside "11. SBOM & Validation / Inventory — License Compliance"                     
+[90m     [39m[90m                [39m[90m                                                                                     [39m
+ 16.  AssertionError  Validation result valid                                                             
+                      expected { detail: [ { …(4) } ] } to have keys 'valid', 'is_valid', or 'validation' 
+                      at assertion:1 in test-script                                                       
+                      inside "11. SBOM & Validation / Validation — Validate Input (SARIF)"                
+[90m     [39m[90m                [39m[90m                                                                                     [39m
+ 17.  AssertionError  Pipeline has 12 steps                                                               
+                      expected { total_nodes: 58564, …(5) } to have keys 'steps', 'pipeline', or 'stages' 
+                      at assertion:1 in test-script                                                       
+                      inside "12. Brain Pipeline (CTEM Lifecycle) / Pipeline — Get Status"                

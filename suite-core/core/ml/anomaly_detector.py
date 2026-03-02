@@ -27,13 +27,10 @@ Usage:
 
 from __future__ import annotations
 
-import json
 import logging
 import time
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -209,7 +206,15 @@ class AnomalyDetector:
 
         features = []
         for scan in historical_scans:
-            feat = extract_scan_features(scan)
+            # Accept both raw findings list and scan dict with 'findings' key
+            if isinstance(scan, dict) and "findings" in scan:
+                scan_findings = scan["findings"]
+            elif isinstance(scan, list):
+                scan_findings = scan
+            else:
+                logger.warning("Skipping unrecognized scan format: %s", type(scan))
+                continue
+            feat = extract_scan_features(scan_findings)
             features.append(feat)
 
         X = np.array(features)
@@ -306,12 +311,12 @@ class AnomalyDetector:
 
         return self.fit_baseline(synthetic_scans)
 
-    def detect(self, findings: List[Dict[str, Any]]) -> AnomalyResult:
+    def detect(self, findings) -> AnomalyResult:
         """Detect anomalies in a scan's findings.
 
         Parameters
         ----------
-        findings : list of dict
+        findings : list of dict, or dict with 'findings' key
             Findings from the current scan.
 
         Returns
@@ -320,7 +325,14 @@ class AnomalyDetector:
             Anomaly detection result with score and reasons.
         """
         t0 = time.monotonic()
-        features = extract_scan_features(findings)
+        # Accept both raw findings list and scan dict with 'findings' key
+        if isinstance(findings, dict) and "findings" in findings:
+            actual_findings = findings["findings"]
+        elif isinstance(findings, list):
+            actual_findings = findings
+        else:
+            actual_findings = []
+        features = extract_scan_features(actual_findings)
 
         scan_features = {
             SCAN_FEATURE_NAMES[i]: float(features[i])

@@ -1,6 +1,6 @@
 # Competitive Battlecard: ALdeci vs. Checkmarx
 
-**Updated**: 2026-03-01 | **Source**: AI Researcher Pulse + Codebase Verification
+**Updated**: 2026-03-02 | **Source**: AI Researcher Pulse (Mar 2) + Codebase Verification
 **Pillars**: [V3] Decision Intelligence, [V5] MPTE
 
 ---
@@ -37,13 +37,13 @@
 | Scanner neutrality | Own scanners only | 25+ formats + 8 native |
 | Air-gapped | Partial | Full |
 | Pricing | $250K+ enterprise | $36-180K/year (per-app) |
-| MCP | None | 723 auto-discovered tools |
+| MCP | None | 796 auto-discovered tools |
 | Company stability | For sale | Growing startup |
 
 ## Talking Points
 
 **When prospect asks "Why not Checkmarx?":**
-> "Checkmarx is the enterprise incumbent — 7x Gartner Leader. They just acquired Tromzo for AI agent capabilities. We already ship what Tromzo promises: a 12-step Brain Pipeline with multi-AI consensus, 10-type AutoFix, and MPTE exploit verification. They're integrating an acquisition; we're shipping production code — 355K+ LOC, 723 API endpoints."
+> "Checkmarx is the enterprise incumbent — 7x Gartner Leader. They just acquired Tromzo for AI agent capabilities. We already ship what Tromzo promises: a 12-step Brain Pipeline with multi-AI consensus, 10-type AutoFix, and MPTE exploit verification. They're integrating an acquisition; we're shipping production code — 372K+ LOC, 796 API endpoints. GovInfoSecurity names Checkmarx as directly threatened by Claude Code Security — the market is shifting to AI-native."
 
 **On the Tromzo acquisition:**
 > "Checkmarx buying Tromzo validates AI-native security agents as a category. That's good for us — it proves the market exists. The difference: they acquired a startup and are now integrating it. We built the capability natively into our CTEM pipeline from day one."

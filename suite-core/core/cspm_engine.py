@@ -14,12 +14,15 @@ Competitive parity: Wiz CSPM, Aikido Cloud, Prisma Cloud.
 from __future__ import annotations
 
 import json
+import logging
 import re
 import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+
+logger = logging.getLogger(__name__)
 from typing import Any, Dict, List, Optional, Tuple
 
 
@@ -498,7 +501,11 @@ class CSPMEngine:
         findings: List[CspmFinding] = []
         try:
             data = json.loads(cf_content)
-        except Exception:
+        except json.JSONDecodeError as e:
+            logger.warning("Invalid CloudFormation JSON at position %d: %s", e.pos or 0, e.msg)
+            data = {}
+        except Exception as e:
+            logger.warning("Failed to parse CloudFormation: %s", type(e).__name__)
             data = {}
         resources = data.get("Resources", {})
         for name, res in resources.items():

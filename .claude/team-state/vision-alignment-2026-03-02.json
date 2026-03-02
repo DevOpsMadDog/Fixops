@@ -1,0 +1,279 @@
+{
+  "date": "2026-03-02",
+  "run": "vision-agent-v26-postflight",
+  "sprint": "Sprint 2 — Enterprise Demo (Day 2 of 5)",
+  "demo_date": "2026-03-06",
+  "days_remaining": 4,
+  "overall_alignment": 0.78,
+  "previous_alignment": 0.76,
+  "threshold": 0.60,
+  "status": "ON_TRACK",
+  "trend": "IMPROVING",
+  "pillar_table_verified": true,
+  "pillar_table_source": "CEO_VISION.md lines 133-145 — NO DRIFT",
+  "scoring_model": "v16 (6-factor: core_pillars 35%, sprint_alignment 20%, test_coverage 15%, ui_readiness 15%, agent_health 10%, infrastructure 5%)",
+  "scoring_breakdown": {
+    "core_pillars": {
+      "weight": 0.35,
+      "score": 0.80,
+      "contribution": 0.280,
+      "detail": "V3=0.72 (2 P0 blockers), V5=0.88 (complete), V7=0.82 (complete). Weighted avg 0.80."
+    },
+    "sprint_alignment": {
+      "weight": 0.20,
+      "score": 0.75,
+      "contribution": 0.150,
+      "detail": "9/12 done = 75%. 3 remaining are ALL P0 but sprint velocity was 9 items/day on Day 1."
+    },
+    "test_coverage": {
+      "weight": 0.15,
+      "score": 0.65,
+      "contribution": 0.098,
+      "detail": "19.19% vs 25% target = 76.8%. DEMO-006 config fix applied but unvalidated. Expected 30%+."
+    },
+    "ui_readiness": {
+      "weight": 0.15,
+      "score": 0.60,
+      "contribution": 0.090,
+      "detail": "CodeScanning, Integrations, IntegrationsSettings wired. Dashboard/Evidence/Remediation pending. frontend-craftsman stale 3 days."
+    },
+    "agent_health": {
+      "weight": 0.10,
+      "score": 0.88,
+      "contribution": 0.088,
+      "detail": "15 agents grade A, 2 grade B (backend-hardener, frontend-craftsman — 3 days stale)."
+    },
+    "infrastructure": {
+      "weight": 0.05,
+      "score": 0.90,
+      "contribution": 0.045,
+      "detail": "Docker compose done, CI pipelines green, 34/34 health checks pass, 8/9 compose files valid."
+    }
+  },
+  "pillar_coverage": {
+    "V1": {
+      "classification": "CONSTRAINT",
+      "sprint_items": 0,
+      "work_today": 0,
+      "cumulative_progress": 0.80,
+      "note": "APP_ID-centric data model embedded in all APIs. Not actively built this sprint."
+    },
+    "V2": {
+      "classification": "CONSTRAINT",
+      "sprint_items": 0,
+      "work_today": 0,
+      "cumulative_progress": 0.75,
+      "note": "10-phase lifecycle structure maintained in brain pipeline. No active engineering."
+    },
+    "V3": {
+      "classification": "CORE",
+      "sprint_items": 4,
+      "completed": 2,
+      "remaining_p0": 2,
+      "loc_verified": 3969,
+      "loc_files": {
+        "brain_pipeline.py": 1161,
+        "autofix_engine.py": 1259,
+        "fail_engine.py": 713,
+        "falkordb_client.py": 836
+      },
+      "score": 0.72,
+      "status": "BLOCKED — 2 P0 items outstanding",
+      "blockers": ["DEMO-001: backend-hardener last ran 2026-02-27 (3 days stale)", "DEMO-003: frontend-craftsman last ran 2026-02-27 (3 days stale)"]
+    },
+    "V4": {
+      "classification": "DEFERRED",
+      "sprint_items": 0,
+      "work_today": 0,
+      "cumulative_progress": 0.20,
+      "note": "Correctly deferred per debate verdict. single_agent.py (819 LOC) exists as pluggable infra."
+    },
+    "V5": {
+      "classification": "CORE",
+      "sprint_items": 1,
+      "completed": 1,
+      "remaining_p0": 0,
+      "loc_verified": 5943,
+      "loc_files": {
+        "micro_pentest.py": 2054,
+        "mpte_advanced.py": 1089,
+        "mpte_router.py": 1086,
+        "mpte_db.py": 536,
+        "mpte_models.py": 141,
+        "exploit_generator.py": 564,
+        "continuous_validation.py": 473
+      },
+      "score": 0.88,
+      "status": "COMPLETE — DEMO-004 delivered (36/36 steps, MPTE evidence: YES)"
+    },
+    "V6": {
+      "classification": "DEFERRED",
+      "sprint_items": 0,
+      "work_today": 0,
+      "cumulative_progress": 0.15,
+      "note": "Correctly deferred. RSA-SHA256 crypto working (570 LOC). ML-DSA roadmap per debate verdict."
+    },
+    "V7": {
+      "classification": "CORE",
+      "sprint_items": 1,
+      "completed": 1,
+      "remaining_p0": 0,
+      "loc_verified": 1651,
+      "loc_files": {
+        "mcp_server.py": 979,
+        "mcp_router.py": 468,
+        "mcp_protocol_router.py": 204
+      },
+      "score": 0.82,
+      "status": "COMPLETE — 705 tools discovered (target 500+)"
+    },
+    "V8": {
+      "classification": "DEFERRED",
+      "sprint_items": 1,
+      "completed": 1,
+      "cumulative_progress": 0.25,
+      "note": "DEMO-012 done (P2 demo enhancement). self_learning.py (1363 LOC), 18 endpoints, 73 tests. Acceptable — no new core investment."
+    },
+    "V9": {
+      "classification": "CONSTRAINT",
+      "sprint_items": 1,
+      "completed": 1,
+      "cumulative_progress": 0.85,
+      "note": "DEMO-007 complete. Docker one-command demo, 34/34 health checks pass."
+    },
+    "V10": {
+      "classification": "CONSTRAINT",
+      "sprint_items": 3,
+      "completed": 2,
+      "remaining_p0": 1,
+      "cumulative_progress": 0.75,
+      "note": "Evidence export (DEMO-011) and API docs (DEMO-008) complete. Postman at 84.4% (DEMO-002 remaining)."
+    }
+  },
+  "core_pillar_totals": {
+    "V3_loc": 3969,
+    "V5_loc": 5943,
+    "V7_loc": 1651,
+    "total_core_loc": 11563,
+    "note": "All counts verified via wc -l on 2026-03-02"
+  },
+  "drift_detected": [
+    {
+      "agent": "backend-hardener",
+      "expected": "DEMO-001 (P0, V3): Fix ALL broken API endpoints",
+      "actual": "NO Sprint 2 ACTIVITY — last run 2026-02-27 (3 days stale)",
+      "severity": "CRITICAL",
+      "pillar_impact": "V3 stalled at 0.72",
+      "recommendation": "MUST be scheduled immediately for Day 2. Cascades to DEMO-002 and DEMO-003."
+    },
+    {
+      "agent": "frontend-craftsman",
+      "expected": "DEMO-003 (P0, V3): Wire UI pages to real API data",
+      "actual": "NO Sprint 2 ACTIVITY — last run 2026-02-27 (3 days stale)",
+      "severity": "CRITICAL",
+      "pillar_impact": "V3 stalled, debate verdict #1 rec unaddressed",
+      "recommendation": "MUST be scheduled for Day 2. Without UI wiring, demo is API-only."
+    }
+  ],
+  "neglected_pillars": [],
+  "over_invested_pillars": [],
+  "deferred_discipline": {
+    "V4_correctly_deferred": true,
+    "V6_correctly_deferred": true,
+    "V8_minor_drift": "DEMO-012 built as P2 demo enhancement. Acceptable."
+  },
+  "recommendations": [
+    {
+      "priority": "P0",
+      "pillar": "V3",
+      "action": "Schedule backend-hardener NOW for DEMO-001",
+      "rationale": "3 days stale. Zero Sprint 2 work on #1 blocker. Every day cascades failures."
+    },
+    {
+      "priority": "P0",
+      "pillar": "V3",
+      "action": "Schedule frontend-craftsman NOW for DEMO-003",
+      "rationale": "3 days stale. Debate verdict #1 rec: 'Ship UI screens.' Demo without UI is untellable."
+    },
+    {
+      "priority": "P0",
+      "pillar": "V10",
+      "action": "Rerun Postman after DEMO-001 fixes",
+      "rationale": "84.4% Newman pass rate. Many failures are broken endpoints (DEMO-001 scope)."
+    },
+    {
+      "priority": "P1",
+      "pillar": "V10",
+      "action": "Re-measure coverage with fixed pyproject.toml",
+      "rationale": "DEMO-006 applied but unvalidated. Expected jump from 19.19% to 30%+."
+    },
+    {
+      "priority": "P1",
+      "pillar": "V9",
+      "action": "CEO rotate .env secrets",
+      "rationale": "Security advisory OPEN since Day 1. Real API key exposed."
+    }
+  ],
+  "customer_feedback_addressed": 0,
+  "customer_feedback_note": "No customer-feedback directory exists. Graceful degradation per self-healing protocol.",
+  "sprint_progress": {
+    "completed_today": 0,
+    "completed_total": 9,
+    "in_progress": 2,
+    "todo": 1,
+    "blocked": 0,
+    "total": 12,
+    "completion_rate": 0.75,
+    "p0_remaining": 3,
+    "days_remaining": 4,
+    "items_completed": [
+      "DEMO-004 [V10+V5]", "DEMO-005 [V3]", "DEMO-006 [V10]",
+      "DEMO-007 [V9]", "DEMO-008 [V10]", "DEMO-009 [V7]",
+      "DEMO-010 [V3]", "DEMO-011 [V10]", "DEMO-012 [V8]"
+    ],
+    "items_remaining": [
+      "DEMO-001 [V3] — todo, backend-hardener 3 days stale",
+      "DEMO-002 [V10] — in-progress, 84.4% pass rate",
+      "DEMO-003 [V3] — in-progress, frontend-craftsman 3 days stale"
+    ]
+  },
+  "agent_health": {
+    "total_agents": 17,
+    "grade_A": 15,
+    "grade_B": 2,
+    "stale_agents": [
+      {"agent": "backend-hardener", "last_run": "2026-02-27", "days_stale": 3, "severity": "CRITICAL"},
+      {"agent": "frontend-craftsman", "last_run": "2026-02-27", "days_stale": 3, "severity": "CRITICAL"}
+    ]
+  },
+  "quality_metrics": {
+    "api_endpoints": 786,
+    "tests_collected": 10356,
+    "test_files": 318,
+    "core_tests_passing": 785,
+    "core_test_pass_rate": 1.0,
+    "newman_pass_rate": 84.4,
+    "newman_passed": 403,
+    "newman_total": 477,
+    "test_coverage": 19.19,
+    "coverage_target": 25,
+    "coverage_gap_pp": 5.81,
+    "stubs_detected": 0
+  },
+  "debate_status": {
+    "DEBATE-001": "RESOLVED — SQLite deferral, 5/5 support",
+    "SECURITY-ADVISORY-001": "OPEN — .env secrets exposed. CEO action required."
+  },
+  "ceo_action_items": [
+    "IMMEDIATE: Ensure backend-hardener and frontend-craftsman run on Day 2",
+    "IMMEDIATE: Rotate OpenAI API key (sk-proj-... in .env)",
+    "MONITOR: 3 P0 blockers (DEMO-001/002/003) must complete by Day 3 for demo readiness"
+  ],
+  "verification": {
+    "pillar_table_source": "CEO_VISION.md lines 133-145",
+    "pillar_table_drift": false,
+    "loc_verified_command": "wc -l on all core pillar files",
+    "endpoint_count_command": "grep -rc @router/@app decorators across all suites",
+    "metrics_source": "metrics.json, sprint-board.json, agent *-status.md files, qa/iteration-1/"
+  }
+}

@@ -22,7 +22,7 @@
 &nbsp;
 [![License](https://img.shields.io/badge/license-proprietary-red)](LICENSE)
 &nbsp;
-[![Endpoints](https://img.shields.io/badge/API_endpoints-704-blue)]()
+[![Endpoints](https://img.shields.io/badge/API_endpoints-769-blue)]()
 &nbsp;
 [![Scanners](https://img.shields.io/badge/native_scanners-8-green)]()
 &nbsp;
@@ -34,7 +34,7 @@
 
 <br/>
 
-*ALdeci is a **CTEM+ (Continuous Threat Exposure Management Plus)** platform that ingests your security chaos — SBOM, SARIF, CVE, CNAPP — normalizes it through 25+ scanner parsers, correlates via an AI Knowledge Graph, verifies exploitability with a 19-phase pentest engine, auto-fixes with 10 remediation types, and generates cryptographically signed evidence bundles. 8 built-in native scanners work fully air-gapped.*
+*ALdeci is a **CTEM+ (Continuous Threat Exposure Management Plus)** platform with **769 API endpoints** that ingests your security chaos — SBOM, SARIF, CVE, CNAPP — normalizes it through 25+ scanner parsers, correlates via an AI Knowledge Graph, verifies exploitability with a 19-phase pentest engine, auto-fixes with 10 remediation types, and generates cryptographically signed evidence bundles. 8 built-in native scanners work fully air-gapped. All endpoints hardened with input validation, injection prevention, and SSRF guards.*
 
 <br/>
 

@@ -466,9 +466,9 @@ class BaseNormalizer:
                 "warning": FindingSeverity.MEDIUM,
                 "note": FindingSeverity.LOW,
             }
-            return mapping.get(v_lower, FindingSeverity.UNKNOWN)
+            return mapping.get(v_lower, FindingSeverity.MEDIUM)
 
-        return FindingSeverity.UNKNOWN
+        return FindingSeverity.MEDIUM
 
 
 class SARIFNormalizer(BaseNormalizer):

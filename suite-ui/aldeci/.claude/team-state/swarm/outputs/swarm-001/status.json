@@ -1,0 +1,14 @@
+{
+  "task_id": "swarm-001",
+  "worker_id": "junior-01",
+  "status": "completed",
+  "files_modified": [],
+  "files_created": [
+    "suite-ui/aldeci/src/components/AirGappedIndicator.tsx"
+  ],
+  "summary": "Created AirGappedIndicator.tsx (185 lines), a TypeScript-strict React component that polls /api/v1/integrations and five scanner status endpoints to derive deployment mode (Cloud/On-Prem/Air-Gapped), renders a compact badge with health dot and scanner count, and expands into a scanner coverage popover on click.",
+  "issues": [],
+  "needs_senior_review": false,
+  "confidence": 0.95,
+  "duration_turns": 8
+}

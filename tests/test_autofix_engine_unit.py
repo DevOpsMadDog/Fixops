@@ -28,6 +28,9 @@ from core.autofix_engine import (
     AutoFixSuggestion,
     AutoFixResult,
     AutoFixEngine,
+    _cwe_to_category,
+    _CWE_CATEGORY_MAP,
+    _FIXTYPE_CATEGORY_MAP,
 )
 
 
@@ -376,3 +379,147 @@ class TestUpdateStats:
             engine._update_stats(sugg)
         assert engine._stats["total_generated"] == 3
         assert engine._stats["by_confidence"]["medium"] == 3
+
+
+# ===========================================================================
+# CWE-to-Category Mapping
+# ===========================================================================
+
+
+class TestCweToCategory:
+    """Test the CWE → vulnerability category mapping."""
+
+    def test_sql_injection(self):
+        assert _cwe_to_category("CWE-89", FixType.CODE_PATCH) == "injection"
+
+    def test_xss(self):
+        assert _cwe_to_category("CWE-79", FixType.CODE_PATCH) == "xss"
+
+    def test_auth_bypass(self):
+        assert _cwe_to_category("CWE-287", FixType.CODE_PATCH) == "auth"
+
+    def test_crypto_weakness(self):
+        assert _cwe_to_category("CWE-327", FixType.CODE_PATCH) == "crypto"
+
+    def test_ssrf(self):
+        assert _cwe_to_category("CWE-918", FixType.CODE_PATCH) == "ssrf"
+
+    def test_path_traversal(self):
+        assert _cwe_to_category("CWE-22", FixType.CODE_PATCH) == "path_traversal"
+
+    def test_deserialization(self):
+        assert _cwe_to_category("CWE-502", FixType.CODE_PATCH) == "deserialization"
+
+    def test_hardcoded_secrets(self):
+        assert _cwe_to_category("CWE-798", FixType.CODE_PATCH) == "secrets"
+
+    def test_unknown_cwe_falls_back_to_fix_type(self):
+        assert _cwe_to_category("CWE-99999", FixType.DEPENDENCY_UPDATE) == "dependency"
+        assert _cwe_to_category("CWE-99999", FixType.CONFIG_HARDENING) == "config"
+        assert _cwe_to_category("CWE-99999", FixType.IAC_FIX) == "iac"
+        assert _cwe_to_category("CWE-99999", FixType.SECRET_ROTATION) == "secrets"
+        assert _cwe_to_category("CWE-99999", FixType.CONTAINER_FIX) == "container"
+
+    def test_empty_cwe_falls_back_to_fix_type(self):
+        assert _cwe_to_category("", FixType.DEPENDENCY_UPDATE) == "dependency"
+
+    def test_no_cwe_no_fix_type_match_defaults_other(self):
+        assert _cwe_to_category("", FixType.CODE_PATCH) == "other"
+
+
+# ===========================================================================
+# ML Confidence Integration
+# ===========================================================================
+
+
+class TestMLConfidenceIntegration:
+    """Test the ML-powered confidence scoring integration."""
+
+    def test_compute_confidence_returns_float(self, engine, code_patch_finding):
+        sugg = AutoFixSuggestion(
+            fix_id="fix-test",
+            fix_type=FixType.CODE_PATCH,
+            cve_ids=["CVE-2024-1234"],
+            code_patches=[CodePatch(file_path="app.py", language="python",
+                                    old_code="bad", new_code="good")],
+            metadata={"validation": {"valid": True, "score": 0.8}},
+        )
+        score = engine._compute_confidence(sugg, code_patch_finding)
+        assert isinstance(score, float)
+        assert 0.1 <= score <= 0.99
+
+    def test_compute_confidence_fallback_returns_float(self, engine, code_patch_finding):
+        """Verify the rule-based fallback works."""
+        sugg = AutoFixSuggestion(
+            fix_id="fix-fb",
+            fix_type=FixType.DEPENDENCY_UPDATE,
+            metadata={"validation": {"valid": True, "score": 0.9}},
+        )
+        score = AutoFixEngine._compute_confidence_fallback(sugg, code_patch_finding)
+        assert isinstance(score, float)
+        assert 0.1 <= score <= 0.99
+
+    def test_fallback_dep_update_gets_boost(self, engine):
+        sugg = AutoFixSuggestion(
+            fix_type=FixType.DEPENDENCY_UPDATE,
+            metadata={"validation": {"valid": True, "score": 0.5}},
+        )
+        dep_score = AutoFixEngine._compute_confidence_fallback(sugg, {"severity": "high"})
+
+        sugg2 = AutoFixSuggestion(
+            fix_type=FixType.CODE_PATCH,
+            metadata={"validation": {"valid": True, "score": 0.5}},
+        )
+        patch_score = AutoFixEngine._compute_confidence_fallback(sugg2, {"severity": "high"})
+
+        # Dependency update should score higher
+        assert dep_score > patch_score
+
+    def test_build_confidence_features_shape(self, engine, code_patch_finding):
+        sugg = AutoFixSuggestion(
+            fix_id="fix-feat",
+            fix_type=FixType.CODE_PATCH,
+            cve_ids=["CVE-2024-1234"],
+            code_patches=[CodePatch(file_path="app.py", language="python",
+                                    old_code="x=1", new_code="x=safe(1)")],
+            metadata={"validation": {"valid": True, "score": 0.8}},
+            testing_guidance="Run pytest tests/test_login.py",
+        )
+        features = engine._build_confidence_features(sugg, code_patch_finding)
+        assert "fix_type" in features
+        assert "severity" in features
+        assert "category" in features
+        assert "language" in features
+        assert features["fix_type"] == "code_patch"
+        assert features["severity"] == "critical"
+        assert features["category"] == "injection"  # CWE-89 → injection
+        assert features["has_tests"] is True
+        assert features["language"] == "python"
+
+    def test_build_confidence_features_no_patches(self, engine):
+        sugg = AutoFixSuggestion(
+            fix_type=FixType.CONFIG_HARDENING,
+            metadata={"validation": {"score": 0.5}},
+        )
+        finding = {"severity": "medium", "cwe_id": "CWE-16"}
+        features = engine._build_confidence_features(sugg, finding)
+        assert features["category"] == "config"
+        assert features["files_affected"] == 1  # min 1
+        assert features["lines_changed"] == 1  # min 1
+
+    def test_ml_confidence_metadata_attached(self, engine, code_patch_finding):
+        """When ML model runs, metadata should be enriched."""
+        sugg = AutoFixSuggestion(
+            fix_id="fix-ml-meta",
+            fix_type=FixType.CODE_PATCH,
+            code_patches=[CodePatch(language="python", old_code="a", new_code="b")],
+            metadata={"validation": {"valid": True, "score": 0.7}},
+        )
+        engine._compute_confidence(sugg, code_patch_finding)
+        # ML metadata may or may not be present depending on model availability
+        # But the function should always return a valid score
+        if "ml_confidence" in sugg.metadata:
+            ml_data = sugg.metadata["ml_confidence"]
+            assert "confidence_score" in ml_data
+            assert "classification" in ml_data
+            assert "confidence_interval" in ml_data

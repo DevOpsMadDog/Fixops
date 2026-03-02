@@ -1,0 +1,64 @@
+{
+  "date": "2026-03-02",
+  "iteration": "sprint2-final",
+  "total_assertions": 326,
+  "passed": 318,
+  "failed": 8,
+  "pass_rate": 97.5,
+  "total_requests": 271,
+  "request_failures": 19,
+  "script_errors": 0,
+  "collections": [
+    {
+      "name": "C1",
+      "assertions": 73,
+      "passed": 73,
+      "failed": 0,
+      "requests": 63,
+      "req_failed": 0,
+      "script_err": 0,
+      "status": "\u2705"
+    },
+    {
+      "name": "C4",
+      "assertions": 53,
+      "passed": 45,
+      "failed": 8,
+      "requests": 49,
+      "req_failed": 11,
+      "script_err": 0,
+      "status": "\u274c"
+    },
+    {
+      "name": "C5",
+      "assertions": 53,
+      "passed": 53,
+      "failed": 0,
+      "requests": 51,
+      "req_failed": 8,
+      "script_err": 0,
+      "status": "\u2705"
+    },
+    {
+      "name": "C6",
+      "assertions": 55,
+      "passed": 55,
+      "failed": 0,
+      "requests": 40,
+      "req_failed": 0,
+      "script_err": 0,
+      "status": "\u2705"
+    },
+    {
+      "name": "C7",
+      "assertions": 92,
+      "passed": 92,
+      "failed": 0,
+      "requests": 68,
+      "req_failed": 0,
+      "script_err": 0,
+      "status": "\u2705"
+    }
+  ],
+  "verdict": "FAIL"
+}

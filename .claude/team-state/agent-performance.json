@@ -175,12 +175,26 @@
         "output_bytes": 1803,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 804,
+        "output_bytes": 1448,
+        "success": true,
+        "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 775,
+        "output_bytes": 1602,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 674,
-    "success_rate": 84.0,
-    "total_runs": 25,
-    "avg_output": 1696
+    "avg_duration": 682,
+    "success_rate": 85.2,
+    "total_runs": 27,
+    "avg_output": 1684
   },
   "data-scientist": {
     "runs": [
@@ -211,12 +225,26 @@
         "output_bytes": 2143,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 946,
+        "output_bytes": 2042,
+        "success": true,
+        "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 1608,
+        "output_bytes": 1677,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 514,
-    "success_rate": 50.0,
-    "total_runs": 4,
-    "avg_output": 1063
+    "avg_duration": 768,
+    "success_rate": 66.7,
+    "total_runs": 6,
+    "avg_output": 1328
   },
   "ai-researcher": {
     "runs": [
@@ -247,12 +275,26 @@
         "output_bytes": 2479,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 560,
+        "output_bytes": 1836,
+        "success": true,
+        "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 772,
+        "output_bytes": 1981,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 434,
-    "success_rate": 50.0,
-    "total_runs": 4,
-    "avg_output": 1288
+    "avg_duration": 511,
+    "success_rate": 66.7,
+    "total_runs": 6,
+    "avg_output": 1495
   },
   "enterprise-architect": {
     "runs": [
@@ -276,12 +318,26 @@
         "output_bytes": 2043,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 770,
+        "output_bytes": 2329,
+        "success": true,
+        "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 685,
+        "output_bytes": 1478,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 363,
-    "success_rate": 33.3,
-    "total_runs": 3,
-    "avg_output": 681
+    "avg_duration": 508,
+    "success_rate": 60.0,
+    "total_runs": 5,
+    "avg_output": 1170
   },
   "frontend-craftsman": {
     "runs": [
@@ -305,12 +361,26 @@
         "output_bytes": 1761,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 776,
+        "output_bytes": 1428,
+        "success": true,
+        "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 993,
+        "output_bytes": 1656,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 789,
-    "success_rate": 33.3,
-    "total_runs": 3,
-    "avg_output": 587
+    "avg_duration": 827,
+    "success_rate": 60.0,
+    "total_runs": 5,
+    "avg_output": 969
   },
   "backend-hardener": {
     "runs": [
@@ -327,12 +397,19 @@
         "output_bytes": 1671,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 968,
+        "output_bytes": 3134,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 1102,
-    "success_rate": 50.0,
-    "total_runs": 2,
-    "avg_output": 835
+    "avg_duration": 1057,
+    "success_rate": 66.7,
+    "total_runs": 3,
+    "avg_output": 1601
   },
   "threat-architect": {
     "runs": [
@@ -392,12 +469,19 @@
         "output_bytes": 1908,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 1109,
+        "output_bytes": 2418,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 295,
-    "success_rate": 25.0,
-    "total_runs": 4,
-    "avg_output": 477
+    "avg_duration": 458,
+    "success_rate": 40.0,
+    "total_runs": 5,
+    "avg_output": 865
   },
   "qa-engineer": {
     "runs": [
@@ -414,12 +498,47 @@
         "output_bytes": 0,
         "success": false,
         "attempts": 5
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 859,
+        "output_bytes": 2166,
+        "success": true,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 1031,
+        "output_bytes": 2403,
+        "success": true,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 1437,
+        "output_bytes": 1949,
+        "success": true,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 1308,
+        "output_bytes": 1218,
+        "success": true,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 606,
+        "output_bytes": 1836,
+        "success": true,
+        "attempts": 2
       }
     ],
-    "avg_duration": 122,
-    "success_rate": 0.0,
-    "total_runs": 2,
-    "avg_output": 0
+    "avg_duration": 783,
+    "success_rate": 71.4,
+    "total_runs": 7,
+    "avg_output": 1367
   },
   "security-analyst": {
     "runs": [
@@ -479,12 +598,26 @@
         "output_bytes": 1765,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 566,
+        "output_bytes": 2410,
+        "success": true,
+        "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 738,
+        "output_bytes": 2067,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 292,
-    "success_rate": 25.0,
-    "total_runs": 4,
-    "avg_output": 441
+    "avg_duration": 412,
+    "success_rate": 50.0,
+    "total_runs": 6,
+    "avg_output": 1040
   },
   "marketing-head": {
     "runs": [
@@ -508,12 +641,26 @@
         "output_bytes": 1765,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 599,
+        "output_bytes": 2589,
+        "success": true,
+        "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 553,
+        "output_bytes": 1844,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 293,
-    "success_rate": 33.3,
-    "total_runs": 3,
-    "avg_output": 588
+    "avg_duration": 406,
+    "success_rate": 60.0,
+    "total_runs": 5,
+    "avg_output": 1239
   },
   "technical-writer": {
     "runs": [
@@ -537,12 +684,26 @@
         "output_bytes": 2452,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 513,
+        "output_bytes": 2075,
+        "success": true,
+        "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 370,
+        "output_bytes": 2088,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 303,
-    "success_rate": 33.3,
-    "total_runs": 3,
-    "avg_output": 817
+    "avg_duration": 358,
+    "success_rate": 60.0,
+    "total_runs": 5,
+    "avg_output": 1323
   },
   "sales-engineer": {
     "runs": [
@@ -566,12 +727,26 @@
         "output_bytes": 1915,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 986,
+        "output_bytes": 2280,
+        "success": true,
+        "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 1463,
+        "output_bytes": 1036,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 373,
-    "success_rate": 33.3,
-    "total_runs": 3,
-    "avg_output": 638
+    "avg_duration": 713,
+    "success_rate": 60.0,
+    "total_runs": 5,
+    "avg_output": 1046
   },
   "vision-agent": {
     "runs": [
@@ -763,12 +938,26 @@
         "output_bytes": 1672,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 507,
+        "output_bytes": 1828,
+        "success": true,
+        "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 433,
+        "output_bytes": 1596,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 422,
-    "success_rate": 77.8,
-    "total_runs": 27,
-    "avg_output": 1365
+    "avg_duration": 426,
+    "success_rate": 79.3,
+    "total_runs": 29,
+    "avg_output": 1389
   },
   "scrum-master": {
     "runs": [
@@ -792,12 +981,26 @@
         "output_bytes": 2330,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 619,
+        "output_bytes": 1795,
+        "success": true,
+        "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 549,
+        "output_bytes": 3155,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 275,
-    "success_rate": 33.3,
-    "total_runs": 3,
-    "avg_output": 776
+    "avg_duration": 399,
+    "success_rate": 60.0,
+    "total_runs": 5,
+    "avg_output": 1456
   },
   "agent-doctor": {
     "runs": [
@@ -989,11 +1192,25 @@
         "output_bytes": 1897,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 703,
+        "output_bytes": 1809,
+        "success": true,
+        "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 703,
+        "output_bytes": 1982,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 711,
-    "success_rate": 81.5,
-    "total_runs": 27,
-    "avg_output": 1308
+    "avg_duration": 710,
+    "success_rate": 82.8,
+    "total_runs": 29,
+    "avg_output": 1348
   }
 }

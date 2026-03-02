@@ -1,0 +1,30 @@
+## Fix Summary
+
+### Root Cause
+The swarm-controller was **never launched** during the 2026-03-02 runs. The failure chain:
+
+1. Phase 3 builders (backend-hardener, threat-architect) exceeded the watchdog deadline and were killed
+2. Phase 3 was marked **FAILED**
+3. `PHASE_DEPENDS_ON[3.5]="3"` + `CASCADE_STOP=true` caused Phase 3.5 to be **skipped**
+4. Persona verification correctly gave D grade (40%) — no output existed to verify
+
+### Fix Applied
+**`scripts/run-ctem-swarm.sh:257`** — Changed `[3.5]="3"` to `[3.5]="1"`
+
+This removes the swarm-controller's hard dependency on Phase 3 (builders). Instead, it now depends on Phase 1 (context-engineer), which always passes. This is correct because:
+- The swarm-controller reads status files from ALL agents, not just builders
+- It can operate on existing/stale status files from prior runs
+- Phase 1 (context-engineer) provides the codebase map it needs
+- The agent definition explicitly says "NO CASCADE STOPS" for the demo sprint
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `scripts/run-ctem-swarm.sh` | `[3.5]="3"` → `[3.5]="1"` (line 257) |
+| `.claude/team-state/swarm-controller-status.md` | Updated with fix context |
+| `.claude/team-state/fix-swarm-controller-status.md` | Full fix report |
+
+### Verification
+- Phase 1 passed in both 2026-03-02 runs, confirming the new dependency will work
+- The diff is a single-value change — minimal blast radius
+- Pre-existing `bash -n` warning (heredoc backtick) is unrelated to this fix

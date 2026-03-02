@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import re
 import shutil
 import uuid
@@ -18,6 +19,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
+
+logger = logging.getLogger(__name__)
 
 
 class ContainerSeverity(str, Enum):
@@ -337,9 +340,35 @@ class ContainerImageScanner:
             duration_ms=round(elapsed, 2),
         )
 
+    @staticmethod
+    def _validate_image_ref(image_ref: str) -> str:
+        """Validate container image reference to prevent shell injection.
+
+        Blocks characters that could be used for command injection:
+        ; | & $ ( ) { } ! > < ` \\n \\r
+        """
+        _BLOCKED_CHARS = set(';|&$(){}!><`\n\r\t\\')
+        if not image_ref or not image_ref.strip():
+            raise ValueError("Empty image reference")
+        if len(image_ref) > 512:
+            raise ValueError("Image reference too long (max 512 chars)")
+        bad_chars = _BLOCKED_CHARS & set(image_ref)
+        if bad_chars:
+            raise ValueError(
+                f"Blocked characters in image reference: {sorted(bad_chars)}"
+            )
+        # Validate format: registry/repo:tag or repo:tag@sha256:digest
+        import re
+        if not re.match(r'^[\w\.\-/:@]+$', image_ref):
+            raise ValueError(f"Invalid image reference format: {image_ref!r}")
+        return image_ref.strip()
+
     async def scan_image(self, image_ref: str) -> ContainerScanResult:
         """Scan a container image using Trivy/Grype if available."""
         import time
+
+        # Validate image reference to prevent CLI injection
+        image_ref = self._validate_image_ref(image_ref)
 
         t0 = time.time()
         findings: List[ContainerFinding] = []
@@ -377,8 +406,14 @@ class ContainerImageScanner:
                                 image_ref=image_ref,
                             )
                         )
-            except Exception:
-                pass
+            except asyncio.TimeoutError:
+                logger.warning("Trivy scan timed out for %s", image_ref)
+            except json.JSONDecodeError as e:
+                logger.warning("Trivy returned invalid JSON for %s: %s", image_ref, e.msg)
+            except FileNotFoundError:
+                logger.debug("Trivy not found in PATH")
+            except Exception as e:
+                logger.warning("Trivy scan error for %s: %s", image_ref, type(e).__name__)
 
         by_sev: Dict[str, int] = {}
         by_cat: Dict[str, int] = {}

@@ -1,8 +1,8 @@
 # ALdeci Architecture Context
 
-> **Generated**: 2026-03-02 (v23.0 scan) by context-engineer
-> **Version**: 23.0 (865 files, 355,805 LOC, 704 endpoints, 19.35% coverage)
-> **Sprint**: 2 — ENTERPRISE DEMO (5 days to 2026-03-06)
+> **Generated**: 2026-03-02 (v24.0 scan) by context-engineer
+> **Version**: 24.0 (878 files, 366,177 LOC, 759 endpoints, 19.19% coverage)
+> **Sprint**: 2 — ENTERPRISE DEMO (4 days to 2026-03-06)
 > **Pillars**: V3 (Decision Intelligence), V5 (MPTE), V7 (MCP-Native)
 
 ---
@@ -15,25 +15,25 @@ ALdeci is a **modular monolith** — 6 Python suites mounted on a single FastAPI
 ┌─────────────────────────────────────────────────────────────┐
 │                    FastAPI Gateway (port 8000)                │
 │                  suite-api/apps/api/app.py                   │
-│                   2,737 LOC | 34 router mounts               │
-│                   704 total endpoints (634+47+23)            │
+│                   2,742 LOC | 34 router mounts               │
+│                   759 total endpoints (687+47+25)            │
 ├─────────┬──────────┬──────────┬──────────┬──────────┬────────┤
 │suite-api│suite-core│suite-atk │suite-feed│suite-evid│suite-int│
-│ 22.1K   │ 127.5K   │  5.9K    │  4.3K    │ 19.7K    │  6.7K  │
+│ 22.1K   │ 130.2K   │  6.3K    │  4.4K    │ 20.3K    │  6.7K  │
 │ 20 rtrs │ 21 rtrs  │ 12 rtrs  │  1 rtr   │  5 rtrs  │  5 rtrs│
 └─────────┴──────────┴──────────┴──────────┴──────────┴────────┘
                               │
               sitecustomize.py (sys.path injection)
                               │
 ┌──────────────────────────────────────────────────────────────┐
-│                   SQLite WAL (55 .db files)                   │
+│                   SQLite WAL (56 .db files)                   │
 │              data/ | .fixops_data/ | suite-api/data/          │
 └──────────────────────────────────────────────────────────────┘
 ```
 
 ### Key Characteristics
 - **Single process**: No message queue, no microservice boundaries
-- **SQLite WAL**: 53 domain-specific `.db` files, no shared schema
+- **SQLite WAL**: 56 domain-specific `.db` files, no shared schema
 - **No migration system**: Schema managed by engine code
 - **In-process EventBus**: `core/event_bus.py` for cross-module events
 - **Air-gap ready**: Zero mandatory external dependencies (V9)
@@ -45,17 +45,17 @@ ALdeci is a **modular monolith** — 6 Python suites mounted on a single FastAPI
 ```
 External Sources          Internal Pipeline              Outputs
 ─────────────────    ──────────────────────────    ──────────────────
-NVD/KEV/EPSS/OSV ──→ FeedsService (3,042 LOC) ──→ feeds.db
-SAST scan results ──→ sast_engine.py (465 LOC) ──→ ┐
-DAST scan results ──→ dast_engine.py (533 LOC) ──→ ├→ Brain Pipeline (1,000 LOC, 12 steps)
-Secrets detection ──→ secrets_scanner (775 LOC) ──→│    ├→ Step 1: Normalize findings
+NVD/KEV/EPSS/OSV ──→ FeedsService (4,353 LOC) ──→ feeds.db
+SAST scan results ──→ sast_engine.py (1,577 LOC)──→ ┐
+DAST scan results ──→ dast_engine.py (533 LOC) ──→ ├→ Brain Pipeline (1,161 LOC, 12 steps)
+Secrets detection ──→ secrets_scanner (845 LOC) ──→│    ├→ Step 1: Normalize findings
 Container scans   ──→ container_scanner (410 LOC)──→│    ├→ Step 2-3: Deduplicate + correlate
 CSPM analysis     ──→ cspm_engine.py (586 LOC) ──→ │    ├→ Step 4-5: Enrich + classify
 API fuzz results  ──→ api_fuzzer_router (55 LOC)──→│    ├→ Step 6: FAIL scoring (713 LOC)
-Malware detection ──→ malware_router (58 LOC) ──→  │    ├→ Step 7: Knowledge graph (835 LOC)
+Malware detection ──→ malware_router (58 LOC) ──→  │    ├→ Step 7: Knowledge graph (836 LOC)
 LLM monitor       ──→ llm_monitor_router (64 LOC)─┘    ├→ Step 8: Attack paths (networkx)
 3rd-party scanners──→ scanner_parsers (1,088 LOC)──→    ├→ Step 9: Prioritize
-                      scanner_ingest_router (370 LOC)    ├→ Step 10: AutoFix (1,259 LOC)
+                      scanner_ingest_router (387 LOC)    ├→ Step 10: AutoFix (1,259 LOC)
                                                         ├→ Step 11: Evidence bundle
                                                         └→ Step 12: Compliance verification
                                                               │

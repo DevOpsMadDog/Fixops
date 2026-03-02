@@ -1,14 +1,14 @@
 {
-  "timestamp": "2026-03-01T23:50:00Z",
+  "timestamp": "2026-03-02T10:30:00Z",
   "overall": "GREEN",
   "mode": "ENTERPRISE_DEMO",
   "sprint": "Sprint 2 — Enterprise Demo (4 days remaining)",
-  "run_id": "agent-doctor-postrun-sprint2-day1",
-  "previous_run_id": "agent-doctor-preflight-sprint2",
+  "run_id": "agent-doctor-sprint2-day2-run27",
+  "previous_run_id": "agent-doctor-preflight-sprint2-day2",
   "agents": {
     "total": 17,
-    "completed": 16,
-    "running": 1,
+    "completed": 15,
+    "running": 2,
     "failed": 0,
     "stale": 0,
     "crashed": 0,
@@ -18,28 +18,32 @@
         "model": "claude-opus-4-6-fast", "maxTurns": 200,
         "runs_completed": 22, "success_rate": 1.0,
         "last_duration_s": 536, "attempts": 1,
-        "run_id": "swarm-2026-03-01_19-30-59"
+        "run_id": "swarm-2026-03-01_19-30-59",
+        "last_7_days": ["A", "A", "A", "A", "A", "A", "A"]
       },
       "ai-researcher": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 8,
         "model": "claude-opus-4-6-fast", "maxTurns": 200,
         "runs_completed": 2, "success_rate": 1.0,
         "last_duration_s": 942, "attempts": 1,
-        "run_id": "swarm-2026-03-01_19-30-59"
+        "run_id": "swarm-2026-03-01_19-30-59",
+        "last_7_days": ["A", "A"]
       },
       "data-scientist": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 7,
         "model": "claude-opus-4-6-fast", "maxTurns": 200,
         "runs_completed": 3, "success_rate": 1.0,
         "last_duration_s": 740, "attempts": 1,
-        "run_id": "swarm-2026-03-01_19-30-59"
+        "run_id": "swarm-2026-03-01_19-30-59",
+        "last_7_days": ["A", "A", "A"]
       },
       "enterprise-architect": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 9,
         "model": "claude-opus-4-6-fast", "maxTurns": 200,
         "runs_completed": 2, "success_rate": 1.0,
         "last_duration_s": 838, "attempts": 1,
-        "run_id": "swarm-2026-03-01_19-30-59"
+        "run_id": "swarm-2026-03-01_19-30-59",
+        "last_7_days": ["A", "A"]
       },
       "backend-hardener": {
         "status": "completed", "grade": "B", "yaml_valid": true, "ctem_refs": 6, "scanner_refs": 16,
@@ -47,7 +51,8 @@
         "runs_completed": 3, "success_rate": 0.67,
         "last_duration_s": 2080, "attempts": 1,
         "run_id": "swarm-2026-03-01_19-30-59",
-        "notes": "SLOW (34m 40s) — complex endpoint fixing work. Assigned DEMO-001 (P0 blocker)."
+        "last_7_days": ["F", "A", "B"],
+        "notes": "SLOW (34m 40s) — complex endpoint fixing work. Assigned DEMO-001 (P0 blocker). sast_engine grew 465→1577 LOC."
       },
       "frontend-craftsman": {
         "status": "completed", "grade": "B", "yaml_valid": true, "ctem_refs": 6,
@@ -55,6 +60,7 @@
         "runs_completed": 5, "success_rate": 0.8,
         "last_duration_s": 2119, "attempts": 1,
         "run_id": "swarm-2026-03-01_19-30-59",
+        "last_7_days": ["F", "A", "A", "A", "B"],
         "notes": "SLOW (35m 19s) — UI wiring work. Assigned DEMO-003 (P0 blocker)."
       },
       "threat-architect": {
@@ -62,7 +68,8 @@
         "model": "claude-opus-4-6-fast", "maxTurns": 200,
         "runs_completed": 2, "success_rate": 1.0,
         "last_duration_s": 1442, "attempts": 1,
-        "run_id": "swarm-2026-03-01_19-30-59"
+        "run_id": "swarm-2026-03-01_19-30-59",
+        "last_7_days": ["A", "A"]
       },
       "security-analyst": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 6, "scanner_refs": 15,
@@ -70,7 +77,8 @@
         "runs_completed": 1, "success_rate": 1.0,
         "last_duration_s": 424, "attempts": 2,
         "run_id": "swarm-2026-03-01_19-30-59",
-        "notes": "Needed 2 attempts — first likely timed out. Second completed in 7m 4s."
+        "last_7_days": ["A"],
+        "notes": "Security advisory OPEN: .env secrets committed. Needed 2 attempts on last run."
       },
       "qa-engineer": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 4, "scanner_refs": 18,
@@ -78,62 +86,71 @@
         "runs_completed": 1, "success_rate": 1.0,
         "last_duration_s": 1500, "attempts": 2,
         "run_id": "qa-sprint2-iter1-r4",
-        "notes": "Different run ID from main swarm — ran independently. Postman 84.7% (404/477). DEMO-002 in progress."
+        "last_7_days": ["A"],
+        "notes": "Postman 84.7% (404/477). DEMO-002 in progress."
       },
       "devops-engineer": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 6,
         "model": "claude-opus-4-6-fast", "maxTurns": 200,
         "runs_completed": 1, "success_rate": 1.0,
         "last_duration_s": 801, "attempts": 1,
-        "run_id": "swarm-2026-03-01_19-30-59"
+        "run_id": "swarm-2026-03-01_19-30-59",
+        "last_7_days": ["A"]
       },
       "marketing-head": {
-        "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 6, "aggregator_refs": 0,
+        "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 6,
         "model": "claude-opus-4-6-fast", "maxTurns": 200,
         "runs_completed": 1, "success_rate": 1.0,
         "last_duration_s": 633, "attempts": 1,
-        "run_id": "swarm-2026-03-01_19-30-59"
+        "run_id": "swarm-2026-03-01_19-30-59",
+        "last_7_days": ["A"]
       },
       "technical-writer": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 11,
         "model": "claude-opus-4-6-fast", "maxTurns": 200,
         "runs_completed": 1, "success_rate": 1.0,
         "last_duration_s": 660, "attempts": 1,
-        "run_id": "swarm-2026-03-01_19-30-59"
+        "run_id": "swarm-2026-03-01_19-30-59",
+        "last_7_days": ["A"]
       },
       "sales-engineer": {
-        "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 4, "aggregator_refs": 0,
+        "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 4,
         "model": "claude-opus-4-6-fast", "maxTurns": 200,
         "runs_completed": 1, "success_rate": 1.0,
         "last_duration_s": 869, "attempts": 1,
-        "run_id": "swarm-2026-03-01_19-30-59"
+        "run_id": "swarm-2026-03-01_19-30-59",
+        "last_7_days": ["A"]
       },
       "scrum-master": {
-        "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 7,
+        "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 6,
         "model": "claude-opus-4-6-fast", "maxTurns": 200,
         "runs_completed": 1, "success_rate": 1.0,
         "last_duration_s": 583, "attempts": 1,
-        "run_id": "swarm-2026-03-01_19-30-59"
+        "run_id": "swarm-2026-03-01_19-30-59",
+        "last_7_days": ["A"]
       },
       "agent-doctor": {
         "status": "running", "grade": "A", "yaml_valid": true, "ctem_refs": 10,
         "model": "claude-opus-4-6-fast", "maxTurns": 200,
-        "runs_completed": 25, "success_rate": 0.96,
-        "run_id": "agent-doctor-postrun-sprint2-day1"
+        "runs_completed": 27, "success_rate": 0.96,
+        "run_id": "agent-doctor-sprint2-day2-run27",
+        "last_7_days": ["A", "A", "A", "A", "A", "A", "A"]
       },
       "swarm-controller": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 4,
         "model": "claude-opus-4-6-fast", "maxTurns": 200,
         "runs_completed": 2, "success_rate": 1.0,
         "last_duration_s": 815, "attempts": 1,
-        "run_id": "swarm-2026-03-01_19-30-59"
+        "run_id": "swarm-2026-03-01_19-30-59",
+        "last_7_days": ["A", "A"]
       },
       "vision-agent": {
-        "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 12,
+        "status": "running", "grade": "A", "yaml_valid": true, "ctem_refs": 12,
         "model": "claude-opus-4-6-fast", "maxTurns": 200,
         "runs_completed": 28, "success_rate": 1.0,
-        "last_duration_s": 593, "attempts": 1,
-        "run_id": "swarm-2026-03-01_19-30-59"
+        "run_id": "swarm-2026-03-02_00-05-50",
+        "last_7_days": ["A", "A", "A", "A", "A", "A", "A"],
+        "notes": "Currently running Day 2 alignment scan."
       }
     }
   },
@@ -141,12 +158,25 @@
     "total": 19,
     "healthy": 19,
     "failed": 0,
-    "total_loc": 18160,
-    "import_verified": "2026-03-01T23:48:00Z",
+    "total_loc": 20047,
+    "loc_delta_since_sprint1": "+1887",
+    "import_verified": "2026-03-02T10:30:00Z",
     "categories": {
-      "scanner": {"count": 6, "engines": ["SASTEngine(465)", "DASTEngine(533)", "SecretsScanner(775)", "ContainerImageScanner(410)", "IaCScanner(713)", "CSPMEngine(586)"], "total_loc": 3482},
-      "vision": {"count": 6, "engines": ["KnowledgeGraphEngine(835)", "SingleAgentEngine(819)", "HybridQuantumSigner(666)", "MCPProtocolHandler(979)", "SelfLearningEngine(832)", "ZeroGravityEngine(857)"], "total_loc": 4988},
-      "core": {"count": 7, "engines": ["BrainPipeline(1000)", "AutoFixEngine(1259)", "FAILEngine(713)", "AdvancedMPTEClient(1089)", "run_micro_pentest(2054)", "RSAKeyManager(570)", "AutomationConnectors(3005)"], "total_loc": 9690}
+      "scanner": {
+        "count": 6,
+        "engines": ["SASTEngine(1577)", "DASTEngine(533)", "SecretsScanner(845)", "ContainerImageScanner(410)", "IaCScanner(713)", "CSPMEngine(586)"],
+        "total_loc": 4664
+      },
+      "vision": {
+        "count": 6,
+        "engines": ["KnowledgeGraphEngine(836)", "SingleAgentEngine(819)", "HybridQuantumSigner(666)", "MCPProtocolHandler(979)", "SelfLearningEngine(1363)", "ZeroGravityEngine(857)"],
+        "total_loc": 5520
+      },
+      "core": {
+        "count": 7,
+        "engines": ["BrainPipeline(1161)", "AutoFixEngine(1259)", "FAILEngine(713)", "AdvancedMPTEClient(1089)", "run_micro_pentest(2054)", "RSAKeyManager(582)", "AutomationConnectors(3005)"],
+        "total_loc": 9863
+      }
     }
   },
   "moats": {
@@ -155,7 +185,7 @@
       "steps": 12,
       "step_names": ["_step_normalize", "_step_deduplicate", "_step_resolve_identity", "_step_enrich_threats", "_step_build_graph", "_step_connect", "_step_score_risk", "_step_apply_policy", "_step_llm_consensus", "_step_micro_pentest", "_step_run_playbooks", "_step_generate_evidence"],
       "has_run": true,
-      "loc": 1000
+      "loc": 1161
     },
     "MOAT2_mpte_sandbox": {
       "status": "PASS",
@@ -174,35 +204,31 @@
     "MOAT4_crypto_evidence": {
       "status": "PASS",
       "key_manager": true,
-      "key_manager_methods": ["get_public_key_pem", "metadata"],
       "signer": true,
       "verifier": true,
-      "loc": 570
+      "loc": 582
     }
   },
   "databases": {
-    "total_found": 54,
-    "tested": 17,
-    "writable": 8,
-    "not_found": 9,
+    "total_found": 56,
+    "all_writable": true,
+    "writable": 56,
     "failed": 0,
-    "wal_cleaned_this_run": 7,
-    "wal_bytes_freed_this_run": 122880000,
-    "wal_regenerated_by_tests": 6,
-    "wal_re_cleaned": 6,
-    "notes": "127MB WAL cleaned. 9 DBs not yet created (normal for fresh install). Test runs regenerate WAL — cleaned post-test."
+    "wal_cleaned_this_run": 10,
+    "wal_shm_cleaned_this_run": 10,
+    "notes": "56/56 DBs writable. 10 WAL+SHM files cleaned (post-test regeneration). 0 WAL remaining."
   },
   "tests": {
     "total_collected": 10356,
     "collection_errors": 0,
-    "core_tests_passing": 785,
-    "core_test_files": 11,
-    "core_test_time_s": 76.03,
+    "core_tests_passing": 948,
+    "core_test_files": 15,
+    "core_test_time_s": 83.20,
     "coverage_pct": 19.19,
     "coverage_gate": 25,
     "coverage_status": "FAILING",
     "coverage_gap_pp": 5.81,
-    "notes": "785 core tests passing (up from 331). 10,356 tests collected (up from 10,141 — +215 new tests). Coverage 19.19% (DEMO-006 expanded measurement scope)."
+    "notes": "948 core tests passing (83.20s). 10,356 total collected. Coverage 19.19% (gate 25%). DEMO-006 config fix applied but measurement still below gate."
   },
   "sprint_items": {
     "total": 12,
@@ -211,47 +237,55 @@
     "todo": 1,
     "blocked": 0,
     "completion_pct": 75.0,
-    "remaining_p0": ["DEMO-001 (backend-hardener: fix broken endpoints)", "DEMO-002 (qa-engineer: Postman 84.7%→100%)", "DEMO-003 (frontend-craftsman: wire UI to APIs)"],
+    "remaining_p0": [
+      "DEMO-001 (backend-hardener: fix broken endpoints)",
+      "DEMO-002 (qa-engineer: Postman 84.7%→100%)",
+      "DEMO-003 (frontend-craftsman: wire UI to APIs)"
+    ],
     "days_remaining": 4
   },
   "infrastructure": {
     "lock_files_active": 3,
     "lock_files_stale": 0,
-    "state_dir_size_mb": 151,
+    "state_dir_size_mb": 158,
     "log_dir_size_mb": 0.48,
     "disk_free_gb": 755,
     "all_dirs_exist": true,
-    "notes": "State dir is 151MB (up from 7.2MB — agent outputs accumulated). 755GB disk free. No stale locks."
+    "notes": "3 lock files active (swarm PIDs alive). 755GB disk free. State dir 158MB."
   },
   "ctem_integrity": {
     "all_agents_have_ctem_refs": true,
     "scanner_agents_have_engine_refs": true,
     "marketing_positioned_correctly": true,
     "no_aggregator_mislabeling": true,
-    "agents_with_ctem_counts": {
-      "vision-agent": 12, "technical-writer": 11, "agent-doctor": 10,
-      "enterprise-architect": 9, "ai-researcher": 8, "threat-architect": 8,
-      "data-scientist": 7, "scrum-master": 7, "backend-hardener": 6,
-      "frontend-craftsman": 6, "security-analyst": 6, "devops-engineer": 6,
-      "marketing-head": 6, "context-engineer": 5, "qa-engineer": 4,
-      "sales-engineer": 4, "swarm-controller": 4
-    }
+    "min_ctem_refs": 4,
+    "max_ctem_refs": 12
+  },
+  "security_advisories": {
+    "open": 1,
+    "details": [{
+      "id": "security-advisory-001-env-secrets",
+      "severity": "CRITICAL",
+      "status": "OPEN",
+      "finding": "Real API keys in .env (OpenAI sk-proj-*, JWT secret, API token)",
+      "deadline": "before demo (2026-03-06)"
+    }]
   },
   "performance_summary": {
     "fastest_agent": "security-analyst (424s / 7m 4s)",
     "slowest_agent": "frontend-craftsman (2119s / 35m 19s)",
     "avg_duration_s": 921,
-    "agents_needing_retry": ["security-analyst (2 attempts)", "qa-engineer (2 attempts)"],
     "grade_distribution": {"A": 15, "B": 2, "C": 0, "D": 0, "F": 0}
   },
-  "fixes_applied": [
-    "Cleaned 7 WAL files (127MB freed — fixops_brain.db-wal was 112MB alone)",
-    "Cleaned 7 SHM files",
-    "Re-cleaned 6 WAL/SHM files regenerated by test run",
-    "Verified all 19/19 engines importable",
-    "Verified Brain Pipeline 12/12 steps registered",
-    "Verified all 4 MOATs PASS",
-    "Verified all 17 agent files have valid YAML + CTEM refs"
+  "fixes_applied_today": [
+    "Verified 19/19 engines importable (20,047 LOC, +1,887 since Sprint 1)",
+    "Verified 17/17 agent configs valid YAML + CTEM refs",
+    "Verified 4/4 MOATs PASS (Brain Pipeline 12 steps, MPTE, MCP, Crypto)",
+    "Verified 56/56 DBs writable (0 failures)",
+    "Cleaned 10 WAL+SHM files (post-test regeneration)",
+    "Verified 948 core tests passing (83.20s)",
+    "Verified 10,356 total tests collected (0 collection errors)",
+    "All 3 lock files confirmed active (PIDs alive)"
   ],
-  "notes": "Sprint 2 Day 1 Post-Run: ALL 16 agents completed successfully (agent-doctor running = this scan). 19/19 engines importable. 785 core tests passing (76s). 10,356 total tests collected (+215). 127MB WAL cleaned. All 4 MOATs PASS. Sprint 9/12 done (75%). 3 P0 blockers remain for demo. System health: GREEN."
+  "notes": "Sprint 2 Day 2 — FULL PRE-FLIGHT PASS. GREEN. All systems healthy. 19/19 engines (20,047 LOC). 4/4 MOATs. 56/56 DBs. 948 core tests. 3 P0 blockers for backend-hardener, qa-engineer, frontend-craftsman. 4 days to demo. Security advisory OPEN re .env secrets."
 }

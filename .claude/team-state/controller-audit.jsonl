@@ -75,3 +75,11 @@
 {"ts":"2026-03-01T12:30:21Z","type":"grade_a_cycle","cycle":1,"grade":"D","score":34,"fix_targets":"persona ui ","health":87,"persona":0,"ui":0}
 {"ts":"2026-03-01T12:45:37Z","type":"grade_a_cycle","cycle":2,"grade":"D","score":34,"fix_targets":"persona ui ","health":87,"persona":0,"ui":0}
 {"ts":"2026-03-01T13:00:53Z","type":"grade_a_cycle","cycle":3,"grade":"D","score":34,"fix_targets":"persona ui ","health":87,"persona":0,"ui":0}
+{"ts":"2026-03-01T23:07:51Z","type":"fix_agent","target":"frontend-craftsman","cycle":1,"exit_code":0,"output_bytes":761,"reason":"Persona verification failed — agent not performing at world-class level"}
+{"ts":"2026-03-01T23:35:50Z","type":"fix_agent","target":"swarm-controller","cycle":1,"exit_code":0,"output_bytes":1505,"reason":"Persona verification failed — agent not performing at world-class level"}
+{"ts":"2026-03-02T00:16:43Z","type":"grade_a_cycle","cycle":1,"grade":"F","score":0,"fix_targets":"persona ui health ","health":0,"persona":0,"ui":0}
+{"ts":"2026-03-02T00:20:39Z","type":"fix_agent","target":"security-analyst","cycle":2,"exit_code":0,"output_bytes":804,"reason":"Persona verification failed — agent not performing at world-class level"}
+{"ts":"2026-03-02T00:56:49Z","type":"grade_a_cycle","cycle":1,"grade":"F","score":0,"fix_targets":"persona ui health ","health":0,"persona":0,"ui":0}
+{"ts":"2026-03-02T01:29:48Z","type":"grade_a_cycle","cycle":2,"grade":"F","score":0,"fix_targets":"persona ui health ","health":0,"persona":0,"ui":0}
+{"ts":"2026-03-02T02:04:04Z","type":"grade_a_cycle","cycle":2,"grade":"F","score":0,"fix_targets":"persona ui health ","health":0,"persona":0,"ui":0}
+{"ts":"2026-03-02T02:25:22Z","type":"grade_a_cycle","cycle":3,"grade":"F","score":0,"fix_targets":"persona ui health ","health":0,"persona":0,"ui":0}

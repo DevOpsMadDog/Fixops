@@ -37,7 +37,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -296,7 +296,6 @@ class APIFallbackBackend(BaseInferenceBackend):
 
     def generate(self, prompt: str, system_prompt: str = "",
                  max_tokens: int = 2048, temperature: float = 0.1) -> Tuple[str, int]:
-        import urllib.request
 
         for provider in self._providers:
             try:
@@ -599,7 +598,7 @@ class SingleAgentEngine:
     def _build_finding_prompt(self, finding: Dict, context: Optional[Dict] = None) -> str:
         """Build a prompt describing the security finding."""
         parts = [
-            f"## Security Finding Analysis",
+            "## Security Finding Analysis",
             f"**ID**: {finding.get('id', 'N/A')}",
             f"**Title**: {finding.get('title', finding.get('name', 'Unknown'))}",
             f"**Severity**: {finding.get('severity', 'unknown')}",
@@ -618,13 +617,13 @@ class SingleAgentEngine:
             parts.append(f"\n**Recommendation**: {finding['recommendation']}")
 
         if context:
-            parts.append(f"\n## Application Context")
+            parts.append("\n## Application Context")
             parts.append(f"**App**: {context.get('app_id', 'N/A')}")
             parts.append(f"**Component**: {context.get('component', 'N/A')}")
             parts.append(f"**Environment**: {context.get('environment', 'N/A')}")
             parts.append(f"**Internet Facing**: {context.get('internet_facing', 'unknown')}")
 
-        parts.append(f"\n## Decision Required")
+        parts.append("\n## Decision Required")
         parts.append("What action should be taken? Choose one: FIX_IMMEDIATELY, FIX_NEXT_SPRINT, "
                       "ACCEPT_RISK, FALSE_POSITIVE, NEEDS_MORE_INFO, COMPENSATING_CONTROL")
         parts.append("Explain your reasoning and provide evidence.")

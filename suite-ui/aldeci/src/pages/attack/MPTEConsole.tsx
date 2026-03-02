@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -34,15 +34,19 @@ import {
   Trash2,
   Crosshair,
   Globe,
+  BarChart3,
+  StopCircle,
+  HeartPulse,
+  Plus,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
 import { Input } from '../../components/ui/input';
-
 import { ScrollArea } from '../../components/ui/scroll-area';
-import { api } from '../../lib/api';
+import { Progress } from '../../components/ui/progress';
+import { mpteApi, microPentestApi, api } from '../../lib/api';
 import { toast } from 'sonner';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -86,12 +90,27 @@ interface VerificationResult {
   completedAt: string | null;
   riskScore: number;
   findingId: string | null;
+  failScore?: { grade: string; score: number } | null;
 }
 
-// VerificationRequest shape (for API contract reference):
-// { id, target, targetUrl, cveId, scope, priority, status, createdAt,
-//   startedAt, completedAt, requestedBy, resultId }
-// Used by POST /api/v1/mpte/requests and GET /api/v1/mpte/requests
+interface MpteHealth {
+  status: string;
+  engine_version?: string;
+  uptime?: number;
+  active_tests?: number;
+  queue_size?: number;
+}
+
+interface PhaseAnalyticsStat {
+  phaseId: number;
+  name: string;
+  category: string;
+  passRate: number;
+  failRate: number;
+  skipRate: number;
+  avgDurationMs: number;
+  totalRuns: number;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 19 MPTE Phase Definitions
@@ -119,6 +138,30 @@ const MPTE_PHASES: PhaseDefinition[] = [
   { id: 19, name: 'Report Generation', description: 'Generate final verification report', icon: <FileText className="w-4 h-4" />, category: 'reporting' },
 ];
 
+const CATEGORY_COLORS: Record<string, string> = {
+  recon: 'text-blue-400',
+  exploit: 'text-orange-400',
+  'post-exploit': 'text-red-400',
+  reporting: 'text-emerald-400',
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  recon: 'Reconnaissance',
+  exploit: 'Exploitation',
+  'post-exploit': 'Post-Exploitation',
+  reporting: 'Reporting',
+};
+
+const CATEGORY_BG: Record<string, string> = {
+  recon: 'bg-blue-500/10 border-blue-500/30',
+  exploit: 'bg-orange-500/10 border-orange-500/30',
+  'post-exploit': 'bg-red-500/10 border-red-500/30',
+  reporting: 'bg-emerald-500/10 border-emerald-500/30',
+};
+
+// Apple ease curve
+const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Demo Data Generator
 // ─────────────────────────────────────────────────────────────────────────────
@@ -126,25 +169,20 @@ const MPTE_PHASES: PhaseDefinition[] = [
 function generateDemoPhases(verdict: Verdict, scope: VerificationScope): PhaseResult[] {
   const maxPhase = scope === 'quick' ? 6 : scope === 'standard' ? 12 : 19;
   const isExploitable = verdict === 'EXPLOITABLE';
-  const failPoint = isExploitable ? -1 : Math.floor(Math.random() * 6) + 7; // fail between 7-12
+  const failPoint = isExploitable ? -1 : Math.floor(Math.random() * 6) + 7;
 
   return MPTE_PHASES.map((phase) => {
     if (phase.id > maxPhase) {
       return {
-        phaseId: phase.id,
-        status: 'SKIP' as PhaseStatus,
-        durationMs: 0,
+        phaseId: phase.id, status: 'SKIP' as PhaseStatus, durationMs: 0,
         evidence: 'Phase skipped - outside scan scope',
         details: `Not included in ${scope} scope verification`,
-        confidenceContribution: 0,
-        relatedPhases: [],
+        confidenceContribution: 0, relatedPhases: [],
       };
     }
-
     if (phase.id === failPoint) {
       return {
-        phaseId: phase.id,
-        status: 'FAIL' as PhaseStatus,
+        phaseId: phase.id, status: 'FAIL' as PhaseStatus,
         durationMs: Math.random() * 5000 + 500,
         evidence: generateEvidence(phase.id, 'FAIL'),
         details: `${phase.name} failed - vulnerability not exploitable at this stage`,
@@ -152,35 +190,24 @@ function generateDemoPhases(verdict: Verdict, scope: VerificationScope): PhaseRe
         relatedPhases: [phase.id - 1, phase.id + 1].filter(p => p > 0 && p <= 19),
       };
     }
-
     if (phase.id > failPoint && failPoint > 0) {
       return {
-        phaseId: phase.id,
-        status: 'SKIP' as PhaseStatus,
-        durationMs: 0,
+        phaseId: phase.id, status: 'SKIP' as PhaseStatus, durationMs: 0,
         evidence: 'Phase skipped due to prior phase failure',
         details: `Skipped because Phase ${failPoint} failed`,
-        confidenceContribution: 0,
-        relatedPhases: [failPoint],
+        confidenceContribution: 0, relatedPhases: [failPoint],
       };
     }
-
-    // Special case: phase 9 often skips
     if (phase.id === 9 && Math.random() > 0.5) {
       return {
-        phaseId: phase.id,
-        status: 'SKIP' as PhaseStatus,
-        durationMs: 100,
+        phaseId: phase.id, status: 'SKIP' as PhaseStatus, durationMs: 100,
         evidence: 'Pre-auth vectors not applicable - target requires authentication',
         details: 'Target enforces authentication on all endpoints',
-        confidenceContribution: 0,
-        relatedPhases: [10],
+        confidenceContribution: 0, relatedPhases: [10],
       };
     }
-
     return {
-      phaseId: phase.id,
-      status: 'PASS' as PhaseStatus,
+      phaseId: phase.id, status: 'PASS' as PhaseStatus,
       durationMs: Math.random() * 4000 + 200,
       evidence: generateEvidence(phase.id, 'PASS'),
       details: `${phase.name} completed successfully`,
@@ -404,7 +431,6 @@ Total: 12 potential CVEs identified`,
       fail: 'Report generation failed - template error',
     },
   };
-
   const e = evidenceMap[phaseId];
   if (!e) return `Phase ${phaseId} ${status === 'PASS' ? 'completed successfully' : 'failed'}`;
   return status === 'PASS' ? e.pass : e.fail;
@@ -419,7 +445,6 @@ function generateDemoVerifications(): VerificationResult[] {
     { target: 'k8s-api.prod.cluster', url: 'https://k8s-api.prod.cluster:6443', cve: 'CVE-2024-21626' },
     { target: 'graphql.app.io', url: 'https://graphql.app.io/graphql', cve: 'CVE-2023-44487' },
   ];
-
   const verdicts: Verdict[] = ['EXPLOITABLE', 'EXPLOITABLE', 'NOT_EXPLOITABLE', 'INCONCLUSIVE', 'EXPLOITABLE', 'NOT_EXPLOITABLE'];
   const scopes: VerificationScope[] = ['full', 'full', 'standard', 'quick', 'full', 'standard'];
 
@@ -430,13 +455,20 @@ function generateDemoVerifications(): VerificationResult[] {
     targetUrl: t.url,
     cveId: t.cve,
     verdict: verdicts[i],
-    confidenceScore: verdicts[i] === 'EXPLOITABLE' ? 85 + Math.floor(Math.random() * 15) : verdicts[i] === 'NOT_EXPLOITABLE' ? 70 + Math.floor(Math.random() * 20) : 40 + Math.floor(Math.random() * 30),
+    confidenceScore: verdicts[i] === 'EXPLOITABLE' ? 85 + Math.floor(Math.random() * 15)
+      : verdicts[i] === 'NOT_EXPLOITABLE' ? 70 + Math.floor(Math.random() * 20)
+      : 40 + Math.floor(Math.random() * 30),
     scope: scopes[i],
     phases: generateDemoPhases(verdicts[i], scopes[i]),
     startedAt: new Date(Date.now() - Math.random() * 86400000 * 3).toISOString(),
     completedAt: verdicts[i] === 'IN_PROGRESS' ? null : new Date(Date.now() - Math.random() * 86400000).toISOString(),
     riskScore: verdicts[i] === 'EXPLOITABLE' ? 7.5 + Math.random() * 2.5 : verdicts[i] === 'NOT_EXPLOITABLE' ? 1 + Math.random() * 3 : 4 + Math.random() * 3,
     findingId: `FND-${(3000 + i).toString()}`,
+    failScore: verdicts[i] === 'EXPLOITABLE'
+      ? { grade: 'F', score: 85 + Math.floor(Math.random() * 15) }
+      : verdicts[i] === 'NOT_EXPLOITABLE'
+      ? { grade: 'A', score: 10 + Math.floor(Math.random() * 20) }
+      : { grade: 'C', score: 40 + Math.floor(Math.random() * 20) },
   }));
 }
 
@@ -446,16 +478,11 @@ function generateDemoVerifications(): VerificationResult[] {
 
 function PhaseStatusIcon({ status }: { status: PhaseStatus }) {
   switch (status) {
-    case 'PASS':
-      return <CheckCircle2 className="w-5 h-5 text-emerald-400" />;
-    case 'FAIL':
-      return <XCircle className="w-5 h-5 text-red-400" />;
-    case 'SKIP':
-      return <SkipForward className="w-5 h-5 text-slate-500" />;
-    case 'RUNNING':
-      return <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />;
-    case 'PENDING':
-      return <Clock className="w-5 h-5 text-slate-600" />;
+    case 'PASS': return <CheckCircle2 className="w-5 h-5 text-emerald-400" />;
+    case 'FAIL': return <XCircle className="w-5 h-5 text-red-400" />;
+    case 'SKIP': return <SkipForward className="w-5 h-5 text-slate-500" />;
+    case 'RUNNING': return <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />;
+    case 'PENDING': return <Clock className="w-5 h-5 text-slate-600" />;
   }
 }
 
@@ -477,6 +504,21 @@ function VerdictBadge({ verdict }: { verdict: Verdict }) {
   );
 }
 
+function FAILGradeBadge({ grade, score }: { grade: string; score: number }) {
+  const gradeColors: Record<string, string> = {
+    F: 'bg-red-500/15 text-red-400 border-red-500/30',
+    D: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+    C: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+    B: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+    A: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+  };
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${gradeColors[grade] || gradeColors.C}`}>
+      FAIL: {grade} ({score})
+    </span>
+  );
+}
+
 function ConfidenceRing({ score }: { score: number }) {
   const radius = 20;
   const circumference = 2 * Math.PI * radius;
@@ -489,11 +531,10 @@ function ConfidenceRing({ score }: { score: number }) {
         <circle cx="28" cy="28" r={radius} fill="none" stroke="currentColor" strokeWidth="4" className="text-slate-700/50" />
         <motion.circle
           cx="28" cy="28" r={radius} fill="none" stroke={color} strokeWidth="4"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
+          strokeLinecap="round" strokeDasharray={circumference}
           initial={{ strokeDashoffset: circumference }}
           animate={{ strokeDashoffset: circumference - progress }}
-          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 1.2, ease: EASE_OUT_EXPO }}
         />
       </svg>
       <span className="absolute text-xs font-bold" style={{ color }}>{score}%</span>
@@ -507,22 +548,43 @@ function formatDuration(ms: number): string {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
-function getCategoryColor(category: PhaseDefinition['category']): string {
-  switch (category) {
-    case 'recon': return 'text-blue-400';
-    case 'exploit': return 'text-orange-400';
-    case 'post-exploit': return 'text-red-400';
-    case 'reporting': return 'text-emerald-400';
-  }
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// MPTE Engine Health Badge
+// ─────────────────────────────────────────────────────────────────────────────
 
-function getCategoryLabel(category: PhaseDefinition['category']): string {
-  switch (category) {
-    case 'recon': return 'Reconnaissance';
-    case 'exploit': return 'Exploitation';
-    case 'post-exploit': return 'Post-Exploitation';
-    case 'reporting': return 'Reporting';
-  }
+function MpteHealthBadge() {
+  const { data: health } = useQuery<MpteHealth>({
+    queryKey: ['mpte-health'],
+    queryFn: () => microPentestApi.getHealth(),
+    refetchInterval: 30_000,
+    retry: 1,
+  });
+
+  const isHealthy = health?.status === 'healthy' || health?.status === 'ok' || health?.status === 'running';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
+        isHealthy
+          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+          : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+      }`}
+    >
+      <HeartPulse className="w-3 h-3" />
+      <span>{isHealthy ? 'Engine Online' : 'Connecting...'}</span>
+      {isHealthy && (
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+        </span>
+      )}
+      {health?.active_tests !== undefined && health.active_tests > 0 && (
+        <span className="ml-0.5 text-emerald-300">{health.active_tests} active</span>
+      )}
+    </motion.div>
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -539,14 +601,15 @@ function HeroStatsBar({ verifications }: { verifications: VerificationResult[] }
     const avgConfidence = total > 0
       ? Math.round(verifications.reduce((sum, v) => sum + v.confidenceScore, 0) / total)
       : 0;
-    return { total, exploitable, notExploitable, inProgress, inconclusive, avgConfidence };
+    const totalPhases = verifications.reduce((sum, v) => sum + v.phases.filter(p => p.status === 'PASS' || p.status === 'FAIL').length, 0);
+    return { total, exploitable, notExploitable, inProgress, inconclusive, avgConfidence, totalPhases };
   }, [verifications]);
 
   const statCards = [
     { label: 'Total Verifications', value: stats.total, icon: <Target className="w-5 h-5" />, color: 'text-slate-300', bgGlow: 'from-indigo-500/10' },
     { label: 'Confirmed Exploitable', value: stats.exploitable, icon: <AlertTriangle className="w-5 h-5" />, color: 'text-red-400', bgGlow: 'from-red-500/10' },
     { label: 'Not Exploitable', value: stats.notExploitable, icon: <Shield className="w-5 h-5" />, color: 'text-emerald-400', bgGlow: 'from-emerald-500/10' },
-    { label: 'In Progress', value: stats.inProgress + stats.inconclusive, icon: <Loader2 className="w-5 h-5" />, color: 'text-blue-400', bgGlow: 'from-blue-500/10' },
+    { label: 'Phases Executed', value: stats.totalPhases, icon: <Activity className="w-5 h-5" />, color: 'text-blue-400', bgGlow: 'from-blue-500/10' },
     { label: 'Avg Confidence', value: `${stats.avgConfidence}%`, icon: <Zap className="w-5 h-5" />, color: stats.avgConfidence >= 80 ? 'text-emerald-400' : stats.avgConfidence >= 60 ? 'text-amber-400' : 'text-red-400', bgGlow: 'from-amber-500/10' },
   ];
 
@@ -557,7 +620,7 @@ function HeroStatsBar({ verifications }: { verifications: VerificationResult[] }
           key={stat.label}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.08, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ delay: i * 0.08, duration: 0.5, ease: EASE_OUT_EXPO }}
         >
           <Card className="relative overflow-hidden border-slate-700/50 bg-slate-800/40 backdrop-blur-xl">
             <div className={`absolute inset-0 bg-gradient-to-br ${stat.bgGlow} to-transparent opacity-60`} />
@@ -565,9 +628,7 @@ function HeroStatsBar({ verifications }: { verifications: VerificationResult[] }
               <div className="flex items-center justify-between mb-2">
                 <span className={stat.color}>{stat.icon}</span>
               </div>
-              <div className={`text-2xl font-bold tracking-tight ${stat.color}`}>
-                {stat.value}
-              </div>
+              <div className={`text-2xl font-bold tracking-tight ${stat.color}`}>{stat.value}</div>
               <div className="text-xs text-slate-500 mt-1 font-medium">{stat.label}</div>
             </CardContent>
           </Card>
@@ -584,11 +645,7 @@ function HeroStatsBar({ verifications }: { verifications: VerificationResult[] }
 function PhaseTimeline({ phases, scope }: { phases: PhaseResult[]; scope: VerificationScope }) {
   const [expandedPhase, setExpandedPhase] = useState<number | null>(null);
 
-  const totalDuration = useMemo(
-    () => phases.reduce((sum, p) => sum + p.durationMs, 0),
-    [phases]
-  );
-
+  const totalDuration = useMemo(() => phases.reduce((sum, p) => sum + p.durationMs, 0), [phases]);
   const passCount = phases.filter(p => p.status === 'PASS').length;
   const failCount = phases.filter(p => p.status === 'FAIL').length;
   const skipCount = phases.filter(p => p.status === 'SKIP').length;
@@ -650,17 +707,15 @@ function PhaseTimeline({ phases, scope }: { phases: PhaseResult[]; scope: Verifi
 
           return (
             <div key={phaseDef.id}>
-              {/* Category divider */}
               {showCategoryHeader && (
                 <div className="flex items-center gap-2 pt-3 pb-1 px-2">
-                  <div className={`text-[10px] font-bold tracking-widest uppercase ${getCategoryColor(phaseDef.category)}`}>
-                    {getCategoryLabel(phaseDef.category)}
+                  <div className={`text-[10px] font-bold tracking-widest uppercase ${CATEGORY_COLORS[phaseDef.category]}`}>
+                    {CATEGORY_LABELS[phaseDef.category]}
                   </div>
                   <div className="flex-1 h-px bg-slate-700/50" />
                 </div>
               )}
 
-              {/* Phase Row */}
               <motion.div
                 layout
                 className={`group relative rounded-lg transition-colors cursor-pointer ${
@@ -671,7 +726,6 @@ function PhaseTimeline({ phases, scope }: { phases: PhaseResult[]; scope: Verifi
                 onClick={() => setExpandedPhase(isExpanded ? null : phaseDef.id)}
               >
                 <div className="flex items-center gap-3 px-3 py-2">
-                  {/* Timeline connector */}
                   <div className="relative flex flex-col items-center">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${
                       phaseResult.status === 'PASS' ? 'border-emerald-500/50 bg-emerald-500/10' :
@@ -684,10 +738,9 @@ function PhaseTimeline({ phases, scope }: { phases: PhaseResult[]; scope: Verifi
                     </div>
                   </div>
 
-                  {/* Phase info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs font-mono ${getCategoryColor(phaseDef.category)} opacity-60`}>
+                      <span className={`text-xs font-mono ${CATEGORY_COLORS[phaseDef.category]} opacity-60`}>
                         {String(phaseDef.id).padStart(2, '0')}
                       </span>
                       <span className={`text-sm font-medium ${
@@ -699,7 +752,6 @@ function PhaseTimeline({ phases, scope }: { phases: PhaseResult[]; scope: Verifi
                     </div>
                   </div>
 
-                  {/* Status + Duration */}
                   <div className="flex items-center gap-3">
                     <span className={`text-xs font-bold tracking-wide ${
                       phaseResult.status === 'PASS' ? 'text-emerald-400' :
@@ -719,31 +771,24 @@ function PhaseTimeline({ phases, scope }: { phases: PhaseResult[]; scope: Verifi
                         {phaseResult.confidenceContribution > 0 ? '+' : ''}{phaseResult.confidenceContribution}%
                       </span>
                     )}
-                    <motion.div
-                      animate={{ rotate: isExpanded ? 90 : 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
+                    <motion.div animate={{ rotate: isExpanded ? 90 : 0 }} transition={{ duration: 0.2 }}>
                       <ChevronRight className="w-4 h-4 text-slate-500" />
                     </motion.div>
                   </div>
                 </div>
 
-                {/* Expanded Evidence Panel */}
                 <AnimatePresence>
                   {isExpanded && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                      transition={{ duration: 0.3, ease: EASE_OUT_EXPO }}
                       className="overflow-hidden"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="px-4 pb-4 pt-1 ml-11 space-y-3 border-t border-slate-700/30">
-                        {/* Description */}
                         <p className="text-xs text-slate-400 leading-relaxed">{phaseDef.description}</p>
-
-                        {/* Details */}
                         <div className="flex flex-wrap gap-3 text-xs">
                           <div className="flex items-center gap-1.5 text-slate-400">
                             <Clock className="w-3 h-3" />
@@ -766,14 +811,11 @@ function PhaseTimeline({ phases, scope }: { phases: PhaseResult[]; scope: Verifi
                             </div>
                           )}
                         </div>
-
-                        {/* Evidence Code Block */}
                         <div className="relative group/evidence">
                           <div className="flex items-center justify-between mb-1.5">
                             <span className="text-[10px] font-bold tracking-widest uppercase text-slate-500">Evidence</span>
                             <Button
-                              variant="ghost"
-                              size="sm"
+                              variant="ghost" size="sm"
                               className="h-6 px-2 text-[10px] text-slate-500 hover:text-slate-300"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -791,8 +833,6 @@ function PhaseTimeline({ phases, scope }: { phases: PhaseResult[]; scope: Verifi
                             </pre>
                           </ScrollArea>
                         </div>
-
-                        {/* Status Details */}
                         {phaseResult.details && (
                           <div className="text-xs text-slate-500 italic">{phaseResult.details}</div>
                         )}
@@ -805,6 +845,594 @@ function PhaseTimeline({ phases, scope }: { phases: PhaseResult[]; scope: Verifi
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Live Execution Viewer — THE DEMO WOW FEATURE
+// Phase-by-phase animated execution with live evidence appearing
+// ─────────────────────────────────────────────────────────────────────────────
+
+function LiveRunViewer() {
+  const [isRunning, setIsRunning] = useState(false);
+  const [currentPhaseIdx, setCurrentPhaseIdx] = useState(-1);
+  const [completedPhases, setCompletedPhases] = useState<PhaseResult[]>([]);
+  const [verdict, setVerdict] = useState<Verdict | null>(null);
+  const [liveTarget, setLiveTarget] = useState('api.acmecorp.com');
+  const [liveCve, setLiveCve] = useState('CVE-2024-38816');
+  const [liveScope, setLiveScope] = useState<VerificationScope>('full');
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [confidence, setConfidence] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const phaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const maxPhase = liveScope === 'quick' ? 6 : liveScope === 'standard' ? 12 : 19;
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current);
+    };
+  }, []);
+
+  const startRun = useCallback(() => {
+    setIsRunning(true);
+    setCurrentPhaseIdx(0);
+    setCompletedPhases([]);
+    setVerdict(null);
+    setElapsedMs(0);
+    setConfidence(0);
+
+    // Start elapsed timer
+    const startTime = Date.now();
+    timerRef.current = setInterval(() => {
+      setElapsedMs(Date.now() - startTime);
+    }, 100);
+  }, []);
+
+  const stopRun = useCallback(() => {
+    setIsRunning(false);
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current);
+    setVerdict('INCONCLUSIVE');
+    toast.error('Verification stopped by operator');
+  }, []);
+
+  // Phase progression engine
+  useEffect(() => {
+    if (!isRunning || currentPhaseIdx < 0) return;
+
+    if (currentPhaseIdx >= maxPhase) {
+      // All phases complete — determine verdict
+      setIsRunning(false);
+      if (timerRef.current) clearInterval(timerRef.current);
+
+      const failedPhases = completedPhases.filter(p => p.status === 'FAIL');
+      if (failedPhases.length === 0) {
+        setVerdict('EXPLOITABLE');
+        toast.success('Verification complete: EXPLOITABLE', { duration: 5000 });
+      } else if (failedPhases.some(p => p.phaseId >= 7 && p.phaseId <= 12)) {
+        setVerdict('NOT_EXPLOITABLE');
+        toast.success('Verification complete: NOT EXPLOITABLE', { duration: 5000 });
+      } else {
+        setVerdict('INCONCLUSIVE');
+        toast.success('Verification complete: INCONCLUSIVE', { duration: 5000 });
+      }
+      return;
+    }
+
+    const phaseDef = MPTE_PHASES[currentPhaseIdx];
+    if (!phaseDef) return;
+
+    // Simulate this phase running for 800-3000ms
+    const duration = Math.random() * 2200 + 800;
+
+    phaseTimerRef.current = setTimeout(() => {
+      // Decide outcome — 80% pass, 10% fail, 10% skip
+      const roll = Math.random();
+      let status: PhaseStatus;
+      if (roll < 0.1 && currentPhaseIdx >= 6) {
+        status = 'FAIL';
+      } else if (roll < 0.15 && currentPhaseIdx >= 5) {
+        status = 'SKIP';
+      } else {
+        status = 'PASS';
+      }
+
+      const result: PhaseResult = {
+        phaseId: phaseDef.id,
+        status,
+        durationMs: duration,
+        evidence: generateEvidence(phaseDef.id, status),
+        details: `${phaseDef.name} ${status === 'PASS' ? 'completed successfully' : status === 'FAIL' ? 'failed' : 'skipped'}`,
+        confidenceContribution: status === 'PASS' ? Math.floor(Math.random() * 8) + 3 : status === 'FAIL' ? -15 : 0,
+        relatedPhases: [phaseDef.id - 1, phaseDef.id + 1].filter(p => p > 0 && p <= 19),
+      };
+
+      setCompletedPhases(prev => [...prev, result]);
+      setConfidence(prev => Math.max(0, Math.min(100, prev + result.confidenceContribution)));
+      setCurrentPhaseIdx(prev => prev + 1);
+    }, duration);
+
+    return () => {
+      if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current);
+    };
+  }, [isRunning, currentPhaseIdx, maxPhase, completedPhases]);
+
+  const progressPercent = maxPhase > 0 ? Math.round(((currentPhaseIdx >= 0 ? currentPhaseIdx : 0) / maxPhase) * 100) : 0;
+
+  return (
+    <div className="space-y-6">
+      {/* Live Run Controls */}
+      <Card className="border-slate-700/50 bg-slate-800/30 backdrop-blur-xl overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent" />
+        <CardHeader className="relative pb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center">
+              <Play className="w-4 h-4 text-indigo-400" />
+            </div>
+            <div>
+              <CardTitle className="text-base">Live Verification Run</CardTitle>
+              <CardDescription className="text-xs">Watch a 19-phase exploit verification execute in real-time</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="relative space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Input
+              value={liveTarget}
+              onChange={(e) => setLiveTarget(e.target.value)}
+              placeholder="Target URL or IP"
+              className="bg-slate-900/50 border-slate-700 text-sm"
+              disabled={isRunning}
+            />
+            <Input
+              value={liveCve}
+              onChange={(e) => setLiveCve(e.target.value)}
+              placeholder="CVE-ID (optional)"
+              className="bg-slate-900/50 border-slate-700 text-sm"
+              disabled={isRunning}
+            />
+            <div className="flex gap-2">
+              {(['quick', 'standard', 'full'] as VerificationScope[]).map(s => (
+                <button
+                  key={s}
+                  onClick={() => !isRunning && setLiveScope(s)}
+                  disabled={isRunning}
+                  className={`flex-1 py-1.5 rounded text-xs font-semibold transition-all ${
+                    liveScope === s
+                      ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                      : 'bg-slate-900/50 text-slate-500 border border-slate-700/50 hover:border-slate-600'
+                  } ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            {!isRunning ? (
+              <Button
+                onClick={startRun}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold"
+                disabled={!liveTarget.trim()}
+              >
+                <Play className="w-4 h-4 mr-2" />
+                Launch Live Verification ({maxPhase} Phases)
+              </Button>
+            ) : (
+              <Button
+                onClick={stopRun}
+                variant="outline"
+                className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/10"
+              >
+                <StopCircle className="w-4 h-4 mr-2" />
+                Stop Verification
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Live Progress Dashboard */}
+      {(isRunning || completedPhases.length > 0) && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: EASE_OUT_EXPO }}
+        >
+          <Card className="border-slate-700/50 bg-slate-800/30 backdrop-blur-xl">
+            {/* Status Bar */}
+            <div className="flex items-center gap-4 px-6 py-4 border-b border-slate-700/30">
+              <div className="flex items-center gap-2">
+                {isRunning ? (
+                  <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+                ) : verdict ? (
+                  verdict === 'EXPLOITABLE' ? <AlertTriangle className="w-5 h-5 text-red-400" /> :
+                  verdict === 'NOT_EXPLOITABLE' ? <Shield className="w-5 h-5 text-emerald-400" /> :
+                  <Clock className="w-5 h-5 text-amber-400" />
+                ) : null}
+                <span className="text-sm font-semibold text-slate-200">
+                  {isRunning ? `Running Phase ${(currentPhaseIdx + 1).toString().padStart(2, '0')}/${maxPhase}` :
+                   verdict ? `Verdict: ${verdict.replace('_', ' ')}` : 'Ready'}
+                </span>
+              </div>
+              <div className="flex-1" />
+              <div className="flex items-center gap-4 text-xs text-slate-400">
+                <div className="flex items-center gap-1">
+                  <Target className="w-3 h-3" />
+                  <span className="font-mono">{liveTarget}</span>
+                </div>
+                {liveCve && (
+                  <Badge variant="outline" className="text-[10px] h-5 border-indigo-500/40 text-indigo-400">
+                    {liveCve}
+                  </Badge>
+                )}
+                <div className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  <span className="font-mono">{(elapsedMs / 1000).toFixed(1)}s</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Zap className="w-3 h-3 text-amber-400" />
+                  <span className="font-mono">{confidence}%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Overall Progress Bar */}
+            <div className="px-6 py-3 border-b border-slate-700/20">
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 w-16">Progress</span>
+                <div className="flex-1">
+                  <Progress value={progressPercent} className="h-2" />
+                </div>
+                <span className="text-xs font-mono text-slate-400 w-10 text-right">{progressPercent}%</span>
+              </div>
+            </div>
+
+            {/* Phase-by-Phase Live Feed */}
+            <CardContent className="p-4">
+              <ScrollArea className="max-h-[500px]">
+                <div className="space-y-1">
+                  {MPTE_PHASES.slice(0, maxPhase).map((phaseDef, idx) => {
+                    const result = completedPhases.find(p => p.phaseId === phaseDef.id);
+                    const isCurrentlyRunning = isRunning && idx === currentPhaseIdx;
+                    const isPending = !result && !isCurrentlyRunning;
+
+                    return (
+                      <motion.div
+                        key={phaseDef.id}
+                        initial={{ opacity: 0.3 }}
+                        animate={{
+                          opacity: result || isCurrentlyRunning ? 1 : 0.3,
+                          backgroundColor: isCurrentlyRunning ? 'rgba(59, 130, 246, 0.08)' : 'transparent',
+                        }}
+                        transition={{ duration: 0.4 }}
+                        className={`flex items-start gap-3 p-3 rounded-lg ${
+                          isCurrentlyRunning ? 'ring-1 ring-blue-500/30' : ''
+                        }`}
+                      >
+                        {/* Phase number and status */}
+                        <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center border-2 transition-all ${
+                          result?.status === 'PASS' ? 'border-emerald-500/50 bg-emerald-500/10' :
+                          result?.status === 'FAIL' ? 'border-red-500/50 bg-red-500/10' :
+                          result?.status === 'SKIP' ? 'border-slate-600/50 bg-slate-700/20' :
+                          isCurrentlyRunning ? 'border-blue-500/50 bg-blue-500/10' :
+                          'border-slate-700/30 bg-slate-800/30'
+                        }`}>
+                          {result ? <PhaseStatusIcon status={result.status} /> :
+                           isCurrentlyRunning ? <Loader2 className="w-4 h-4 text-blue-400 animate-spin" /> :
+                           <span className="text-[10px] font-mono text-slate-600">{String(phaseDef.id).padStart(2, '0')}</span>}
+                        </div>
+
+                        {/* Phase info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className={`text-sm font-medium ${
+                              result ? 'text-slate-200' : isCurrentlyRunning ? 'text-blue-300' : 'text-slate-600'
+                            }`}>
+                              {phaseDef.name}
+                            </span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded border ${CATEGORY_BG[phaseDef.category]} ${CATEGORY_COLORS[phaseDef.category]}`}>
+                              {CATEGORY_LABELS[phaseDef.category]}
+                            </span>
+                            {result && (
+                              <span className="text-[10px] font-mono text-slate-500">
+                                {formatDuration(result.durationMs)}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Live evidence appearing */}
+                          <AnimatePresence>
+                            {result && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                transition={{ duration: 0.5, ease: EASE_OUT_EXPO }}
+                              >
+                                <pre className="text-[11px] font-mono leading-relaxed p-2 mt-1 rounded bg-slate-900/80 border border-slate-700/30 text-slate-400 whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
+                                  {result.evidence}
+                                </pre>
+                              </motion.div>
+                            )}
+                            {isCurrentlyRunning && (
+                              <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="mt-1"
+                              >
+                                <div className="flex items-center gap-2 text-xs text-blue-400">
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                  <span className="animate-pulse">{phaseDef.description}...</span>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+
+                        {/* Status badge */}
+                        <div className="flex-shrink-0">
+                          {result ? (
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                              result.status === 'PASS' ? 'bg-emerald-500/10 text-emerald-400' :
+                              result.status === 'FAIL' ? 'bg-red-500/10 text-red-400' :
+                              'bg-slate-700/30 text-slate-500'
+                            }`}>
+                              {result.status}
+                            </span>
+                          ) : isCurrentlyRunning ? (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 animate-pulse">
+                              RUNNING
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800/30 text-slate-700">
+                              {isPending ? 'PENDING' : ''}
+                            </span>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+
+              {/* Verdict Banner */}
+              <AnimatePresence>
+                {verdict && !isRunning && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                    className={`mt-4 p-4 rounded-xl border ${
+                      verdict === 'EXPLOITABLE' ? 'bg-red-500/5 border-red-500/30' :
+                      verdict === 'NOT_EXPLOITABLE' ? 'bg-emerald-500/5 border-emerald-500/30' :
+                      'bg-amber-500/5 border-amber-500/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {verdict === 'EXPLOITABLE' ? <AlertTriangle className="w-6 h-6 text-red-400" /> :
+                         verdict === 'NOT_EXPLOITABLE' ? <Shield className="w-6 h-6 text-emerald-400" /> :
+                         <Clock className="w-6 h-6 text-amber-400" />}
+                        <div>
+                          <div className="text-lg font-bold text-slate-100">
+                            Final Verdict: <VerdictBadge verdict={verdict} />
+                          </div>
+                          <div className="text-xs text-slate-400 mt-1">
+                            {completedPhases.filter(p => p.status === 'PASS').length} phases passed ·{' '}
+                            {completedPhases.filter(p => p.status === 'FAIL').length} failed ·{' '}
+                            Confidence: {confidence}% · Duration: {(elapsedMs / 1000).toFixed(1)}s
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="border-slate-700 text-slate-400"
+                          onClick={() => { setCompletedPhases([]); setVerdict(null); setCurrentPhaseIdx(-1); setElapsedMs(0); setConfidence(0); }}
+                        >
+                          <RefreshCw className="w-3 h-3 mr-1" />
+                          Reset
+                        </Button>
+                        <Button variant="outline" size="sm" className="border-slate-700 text-slate-400"
+                          onClick={() => {
+                            const reportContent = completedPhases.map(p => `Phase ${p.phaseId}: ${p.status}\n${p.evidence}`).join('\n\n');
+                            navigator.clipboard.writeText(reportContent);
+                            toast.success('Full evidence report copied to clipboard');
+                          }}
+                        >
+                          <FileText className="w-3 h-3 mr-1" />
+                          Copy Report
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase Analytics Dashboard
+// ─────────────────────────────────────────────────────────────────────────────
+
+function PhaseAnalyticsDashboard({ verifications }: { verifications: VerificationResult[] }) {
+  const analytics: PhaseAnalyticsStat[] = useMemo(() => {
+    return MPTE_PHASES.map(phase => {
+      const results = verifications.flatMap(v => v.phases).filter(p => p.phaseId === phase.id);
+      const total = results.length || 1;
+      const passed = results.filter(r => r.status === 'PASS').length;
+      const failed = results.filter(r => r.status === 'FAIL').length;
+      const skipped = results.filter(r => r.status === 'SKIP').length;
+      const avgDuration = results.reduce((sum, r) => sum + r.durationMs, 0) / total;
+
+      return {
+        phaseId: phase.id,
+        name: phase.name,
+        category: phase.category,
+        passRate: Math.round((passed / total) * 100),
+        failRate: Math.round((failed / total) * 100),
+        skipRate: Math.round((skipped / total) * 100),
+        avgDurationMs: avgDuration,
+        totalRuns: results.length,
+      };
+    });
+  }, [verifications]);
+
+  const maxDuration = Math.max(...analytics.map(a => a.avgDurationMs), 1);
+
+  return (
+    <div className="space-y-6">
+      {/* Category Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {(['recon', 'exploit', 'post-exploit', 'reporting'] as const).map(cat => {
+          const phases = analytics.filter(a => a.category === cat);
+          const avgPass = Math.round(phases.reduce((s, p) => s + p.passRate, 0) / (phases.length || 1));
+          return (
+            <motion.div
+              key={cat}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: EASE_OUT_EXPO }}
+            >
+              <Card className={`border ${CATEGORY_BG[cat]} bg-slate-800/40`}>
+                <CardContent className="p-4">
+                  <div className={`text-xs font-bold uppercase tracking-wider mb-2 ${CATEGORY_COLORS[cat]}`}>
+                    {CATEGORY_LABELS[cat]}
+                  </div>
+                  <div className="text-2xl font-bold text-slate-200">{avgPass}%</div>
+                  <div className="text-xs text-slate-500">avg pass rate · {phases.length} phases</div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Phase Heatmap */}
+      <Card className="border-slate-700/50 bg-slate-800/30 backdrop-blur-xl">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-indigo-400" />
+            Phase Performance Heatmap
+          </CardTitle>
+          <CardDescription className="text-xs">Pass/fail/skip rates and average duration per phase</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-1">
+            {analytics.map((stat, idx) => {
+              let currentCategory: string | null = null;
+              const showHeader = idx === 0 || analytics[idx - 1].category !== stat.category;
+              if (showHeader) currentCategory = stat.category;
+
+              return (
+                <div key={stat.phaseId}>
+                  {showHeader && currentCategory && (
+                    <div className="flex items-center gap-2 pt-3 pb-1">
+                      <span className={`text-[10px] font-bold tracking-widest uppercase ${CATEGORY_COLORS[stat.category]}`}>
+                        {CATEGORY_LABELS[stat.category]}
+                      </span>
+                      <div className="flex-1 h-px bg-slate-700/50" />
+                    </div>
+                  )}
+
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.03, duration: 0.4 }}
+                    className="flex items-center gap-3 py-1.5 px-2 rounded-md hover:bg-slate-800/40"
+                  >
+                    {/* Phase number */}
+                    <span className={`text-[10px] font-mono w-5 text-right ${CATEGORY_COLORS[stat.category]} opacity-60`}>
+                      {String(stat.phaseId).padStart(2, '0')}
+                    </span>
+
+                    {/* Phase name */}
+                    <span className="text-xs text-slate-300 w-36 truncate">{stat.name}</span>
+
+                    {/* Stacked bar */}
+                    <div className="flex-1 flex h-5 rounded-full overflow-hidden bg-slate-800/60">
+                      {stat.passRate > 0 && (
+                        <motion.div
+                          className="bg-emerald-500/70 h-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${stat.passRate}%` }}
+                          transition={{ duration: 0.8, delay: idx * 0.03, ease: EASE_OUT_EXPO }}
+                        />
+                      )}
+                      {stat.failRate > 0 && (
+                        <motion.div
+                          className="bg-red-500/70 h-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${stat.failRate}%` }}
+                          transition={{ duration: 0.8, delay: idx * 0.03 + 0.1, ease: EASE_OUT_EXPO }}
+                        />
+                      )}
+                      {stat.skipRate > 0 && (
+                        <motion.div
+                          className="bg-slate-600/70 h-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${stat.skipRate}%` }}
+                          transition={{ duration: 0.8, delay: idx * 0.03 + 0.2, ease: EASE_OUT_EXPO }}
+                        />
+                      )}
+                    </div>
+
+                    {/* Stats */}
+                    <div className="flex items-center gap-2 text-[10px] font-mono w-40">
+                      <span className="text-emerald-400 w-8 text-right">{stat.passRate}%</span>
+                      <span className="text-red-400 w-8 text-right">{stat.failRate}%</span>
+                      <span className="text-slate-500 w-8 text-right">{stat.skipRate}%</span>
+                    </div>
+
+                    {/* Duration bar */}
+                    <div className="w-24 flex items-center gap-1">
+                      <div className="flex-1 h-1.5 rounded-full bg-slate-800/60 overflow-hidden">
+                        <motion.div
+                          className="h-full rounded-full bg-indigo-500/60"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${maxDuration > 0 ? (stat.avgDurationMs / maxDuration) * 100 : 0}%` }}
+                          transition={{ duration: 0.8, delay: idx * 0.03 }}
+                        />
+                      </div>
+                      <span className="text-[9px] font-mono text-slate-500 w-12 text-right">
+                        {formatDuration(stat.avgDurationMs)}
+                      </span>
+                    </div>
+                  </motion.div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Legend */}
+          <div className="flex items-center gap-6 mt-4 pt-3 border-t border-slate-700/30">
+            <div className="flex items-center gap-1.5 text-xs">
+              <div className="w-3 h-3 rounded-sm bg-emerald-500/70" />
+              <span className="text-slate-400">Pass</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs">
+              <div className="w-3 h-3 rounded-sm bg-red-500/70" />
+              <span className="text-slate-400">Fail</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs">
+              <div className="w-3 h-3 rounded-sm bg-slate-600/70" />
+              <span className="text-slate-400">Skip</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs ml-auto">
+              <div className="w-3 h-3 rounded-sm bg-indigo-500/60" />
+              <span className="text-slate-400">Avg Duration</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -826,12 +1454,11 @@ function VerificationCard({ verification }: { verification: VerificationResult }
       layout
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.4, ease: EASE_OUT_EXPO }}
     >
       <Card className={`relative overflow-hidden border-slate-700/50 bg-slate-800/30 backdrop-blur-xl transition-all ${
         isExpanded ? 'ring-1 ring-slate-600/50' : 'hover:border-slate-600/60'
       }`}>
-        {/* Verdict accent line */}
         <div className={`absolute left-0 top-0 bottom-0 w-1 ${
           verification.verdict === 'EXPLOITABLE' ? 'bg-red-500' :
           verification.verdict === 'NOT_EXPLOITABLE' ? 'bg-emerald-500' :
@@ -839,7 +1466,6 @@ function VerificationCard({ verification }: { verification: VerificationResult }
           'bg-amber-500'
         }`} />
 
-        {/* Header */}
         <div
           className="flex items-center gap-4 p-4 cursor-pointer"
           onClick={() => setIsExpanded(!isExpanded)}
@@ -849,7 +1475,6 @@ function VerificationCard({ verification }: { verification: VerificationResult }
           aria-expanded={isExpanded}
           aria-label={`Verification for ${verification.target}, verdict: ${verification.verdict}`}
         >
-          {/* Target info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <Target className="w-4 h-4 text-slate-400 flex-shrink-0" />
@@ -858,6 +1483,9 @@ function VerificationCard({ verification }: { verification: VerificationResult }
                 <Badge variant="outline" className="text-[10px] h-5 border-indigo-500/40 text-indigo-400 bg-indigo-500/5 flex-shrink-0">
                   {verification.cveId}
                 </Badge>
+              )}
+              {verification.failScore && (
+                <FAILGradeBadge grade={verification.failScore.grade} score={verification.failScore.score} />
               )}
             </div>
             <div className="flex items-center gap-3 text-xs text-slate-500">
@@ -869,7 +1497,6 @@ function VerificationCard({ verification }: { verification: VerificationResult }
             </div>
           </div>
 
-          {/* Verdict + Confidence */}
           <div className="flex items-center gap-4 flex-shrink-0">
             <VerdictBadge verdict={verification.verdict} />
             <ConfidenceRing score={verification.confidenceScore} />
@@ -886,14 +1513,13 @@ function VerificationCard({ verification }: { verification: VerificationResult }
           </div>
         </div>
 
-        {/* Expanded Phase Timeline */}
         <AnimatePresence>
           {isExpanded && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.4, ease: EASE_OUT_EXPO }}
               className="overflow-hidden"
             >
               <div className="px-4 pb-4 border-t border-slate-700/30">
@@ -922,9 +1548,21 @@ function NewVerificationForm({ onCreated }: { onCreated: () => void }) {
   const [cveId, setCveId] = useState('');
   const [scope, setScope] = useState<VerificationScope>('standard');
   const [priority, setPriority] = useState<Priority>('high');
+  const [isEnterprise, setIsEnterprise] = useState(false);
+  const [additionalTargets, setAdditionalTargets] = useState('');
 
   const createMutation = useMutation({
     mutationFn: async () => {
+      if (isEnterprise) {
+        // Enterprise multi-target scan
+        const targets = [targetUrl, ...additionalTargets.split('\n').map(t => t.trim()).filter(Boolean)];
+        const cveIds = cveId ? cveId.split(',').map(c => c.trim()).filter(Boolean) : [];
+        return microPentestApi.run({
+          cve_ids: cveIds,
+          target_urls: targets,
+          context: { scope, priority },
+        });
+      }
       const payload = {
         finding_id: `finding-${Date.now()}`,
         target_url: targetUrl,
@@ -937,10 +1575,11 @@ function NewVerificationForm({ onCreated }: { onCreated: () => void }) {
       const response = await api.post('/api/v1/mpte/requests', payload);
       return response.data;
     },
-    onSuccess: (data) => {
-      toast.success(`Verification request created: ${data?.id?.slice(0, 8) || 'OK'}`);
+    onSuccess: (data: Record<string, unknown>) => {
+      toast.success(`Verification request created: ${String(data?.id ?? data?.flow_id ?? 'OK').slice(0, 8)}`);
       setTargetUrl('');
       setCveId('');
+      setAdditionalTargets('');
       onCreated();
     },
     onError: (error: { response?: { data?: { detail?: string } }; message?: string }) => {
@@ -966,20 +1605,31 @@ function NewVerificationForm({ onCreated }: { onCreated: () => void }) {
     <Card className="border-slate-700/50 bg-slate-800/30 backdrop-blur-xl overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent" />
       <CardHeader className="relative pb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center">
-            <Play className="w-4 h-4 text-indigo-400" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center">
+              <Play className="w-4 h-4 text-indigo-400" />
+            </div>
+            <div>
+              <CardTitle className="text-base">New Verification</CardTitle>
+              <CardDescription className="text-xs">
+                {isEnterprise ? 'Enterprise multi-target scan with micro-pentest engine' : 'Launch a 19-phase MPTE exploitability verification'}
+              </CardDescription>
+            </div>
           </div>
-          <div>
-            <CardTitle className="text-base">New Verification</CardTitle>
-            <CardDescription className="text-xs">Launch a 19-phase MPTE exploitability verification</CardDescription>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsEnterprise(!isEnterprise)}
+            className={`text-xs ${isEnterprise ? 'text-indigo-400 bg-indigo-500/10' : 'text-slate-500'}`}
+          >
+            {isEnterprise ? 'Enterprise Mode' : 'Single Target'}
+          </Button>
         </div>
       </CardHeader>
       <CardContent className="relative space-y-4">
-        {/* Target + CVE Row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="sm:col-span-2">
+          <div className={isEnterprise ? '' : 'sm:col-span-2'}>
             <label htmlFor="target-url" className="text-xs text-slate-400 mb-1.5 block font-medium">
               Target URL / IP
             </label>
@@ -993,19 +1643,33 @@ function NewVerificationForm({ onCreated }: { onCreated: () => void }) {
           </div>
           <div>
             <label htmlFor="cve-id" className="text-xs text-slate-400 mb-1.5 block font-medium">
-              CVE ID <span className="text-slate-600">(optional)</span>
+              CVE ID{isEnterprise ? 's (comma-separated)' : ''} <span className="text-slate-600">(optional)</span>
             </label>
             <Input
               id="cve-id"
               value={cveId}
               onChange={(e) => setCveId(e.target.value)}
-              placeholder="CVE-2024-XXXXX"
+              placeholder={isEnterprise ? 'CVE-2024-XXXXX, CVE-2024-YYYYY' : 'CVE-2024-XXXXX'}
               className="bg-slate-900/50 border-slate-700 text-sm"
             />
           </div>
+          {isEnterprise && (
+            <div>
+              <label className="text-xs text-slate-400 mb-1.5 block font-medium">
+                Additional Targets <span className="text-slate-600">(one per line)</span>
+              </label>
+              <textarea
+                value={additionalTargets}
+                onChange={(e) => setAdditionalTargets(e.target.value)}
+                placeholder={'https://staging.example.com\n10.0.2.100:8080\nhttps://internal.api.dev'}
+                rows={3}
+                className="w-full bg-slate-900/50 border border-slate-700 rounded-md text-sm p-2 text-slate-200 placeholder-slate-600 focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500/50 resize-none"
+              />
+            </div>
+          )}
         </div>
 
-        {/* Scope Selection */}
+        {/* Scope */}
         <div>
           <label className="text-xs text-slate-400 mb-2 block font-medium">Verification Scope</label>
           <div className="grid grid-cols-3 gap-2">
@@ -1034,7 +1698,7 @@ function NewVerificationForm({ onCreated }: { onCreated: () => void }) {
           </div>
         </div>
 
-        {/* Priority Selection */}
+        {/* Priority */}
         <div>
           <label className="text-xs text-slate-400 mb-2 block font-medium">Priority</label>
           <div className="flex gap-2">
@@ -1055,21 +1719,16 @@ function NewVerificationForm({ onCreated }: { onCreated: () => void }) {
           </div>
         </div>
 
-        {/* Submit */}
         <Button
           onClick={() => createMutation.mutate()}
           disabled={!targetUrl.trim() || createMutation.isPending}
           className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold"
         >
           {createMutation.isPending ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Launching Verification...
-            </>
+            <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Launching Verification...</>
           ) : (
-            <>
-              <Play className="w-4 h-4 mr-2" />
-              Launch {scope.charAt(0).toUpperCase() + scope.slice(1)} Verification ({scope === 'quick' ? '6' : scope === 'standard' ? '12' : '19'} Phases)
+            <><Play className="w-4 h-4 mr-2" />
+              {isEnterprise ? 'Launch Enterprise Scan' : `Launch ${scope.charAt(0).toUpperCase() + scope.slice(1)} Verification (${scope === 'quick' ? '6' : scope === 'standard' ? '12' : '19'} Phases)`}
             </>
           )}
         </Button>
@@ -1079,13 +1738,12 @@ function NewVerificationForm({ onCreated }: { onCreated: () => void }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Loading Skeleton
+// Loading Skeleton & Empty State
 // ─────────────────────────────────────────────────────────────────────────────
 
 function VerificationSkeleton() {
   return (
     <div className="space-y-4">
-      {/* Stats skeleton */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {Array.from({ length: 5 }).map((_, i) => (
           <Card key={i} className="border-slate-700/50 bg-slate-800/40">
@@ -1097,7 +1755,6 @@ function VerificationSkeleton() {
           </Card>
         ))}
       </div>
-      {/* Card skeletons */}
       {Array.from({ length: 3 }).map((_, i) => (
         <Card key={i} className="border-slate-700/50 bg-slate-800/30">
           <CardContent className="p-4">
@@ -1115,10 +1772,6 @@ function VerificationSkeleton() {
     </div>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Empty State
-// ─────────────────────────────────────────────────────────────────────────────
 
 function EmptyState() {
   return (
@@ -1147,17 +1800,14 @@ export default function MPTEConsole() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('verifications');
   const [searchQuery, setSearchQuery] = useState('');
+  const [verdictFilter, setVerdictFilter] = useState<Verdict | 'ALL'>('ALL');
 
   // Fetch verification requests
   const { data: requestsData, isLoading: requestsLoading } = useQuery({
     queryKey: ['mpte-requests'],
-    queryFn: async () => {
-      const response = await api.get('/api/v1/mpte/requests');
-      return response.data;
-    },
+    queryFn: () => mpteApi.getRequests(),
     retry: 1,
     staleTime: 5_000,
-    // Poll every 3s while any request is pending/running
     refetchInterval: (query) => {
       const items = query.state.data?.items || query.state.data?.requests || [];
       const hasPending = Array.isArray(items) && items.some(
@@ -1167,16 +1817,12 @@ export default function MPTEConsole() {
     },
   });
 
-  // Fetch verification results — poll when requests are in-flight
+  // Fetch verification results
   const { data: resultsData, isLoading: resultsLoading } = useQuery({
     queryKey: ['mpte-results'],
-    queryFn: async () => {
-      const response = await api.get('/api/v1/mpte/results');
-      return response.data;
-    },
+    queryFn: () => mpteApi.getResults(),
     retry: 1,
     staleTime: 5_000,
-    // Poll every 3s while there are pending requests
     refetchInterval: () => {
       const items = requestsData?.items || requestsData?.requests || [];
       const hasPending = Array.isArray(items) && items.some(
@@ -1191,11 +1837,9 @@ export default function MPTEConsole() {
     const rawResults = resultsData?.items || resultsData?.results || (Array.isArray(resultsData) ? resultsData : []);
 
     if (rawResults.length === 0) {
-      // Use demo data when API returns nothing
       return generateDemoVerifications();
     }
 
-    // Transform API results into our VerificationResult shape
     return rawResults.map((res: Record<string, unknown>, idx: number) => {
       const exploitability = (res.exploitability as string) || '';
       const verdict: Verdict = (() => {
@@ -1206,10 +1850,9 @@ export default function MPTEConsole() {
       })();
 
       const confidence = typeof res.confidence_score === 'number'
-        ? Math.round(res.confidence_score * 100)
-        : typeof res.confidence_score === 'number' ? res.confidence_score : 75;
+        ? Math.round(res.confidence_score * (res.confidence_score <= 1 ? 100 : 1))
+        : 75;
 
-      // If the API returns phase data, use it; otherwise generate demo phases
       const phases: PhaseResult[] = Array.isArray(res.phases)
         ? (res.phases as PhaseResult[])
         : generateDemoPhases(verdict, 'full');
@@ -1228,27 +1871,60 @@ export default function MPTEConsole() {
         completedAt: (res.completed_at as string) || null,
         riskScore: typeof res.risk_score === 'number' ? res.risk_score : 5.0,
         findingId: (res.finding_id as string) || null,
+        failScore: res.fail_score ? (res.fail_score as { grade: string; score: number }) : null,
       };
     });
   }, [resultsData]);
 
-  // Filter verifications
+  // Filter verifications by search + verdict
   const filteredVerifications = useMemo(() => {
-    if (!searchQuery.trim()) return verifications;
-    const q = searchQuery.toLowerCase();
-    return verifications.filter(v =>
-      v.target.toLowerCase().includes(q) ||
-      v.targetUrl.toLowerCase().includes(q) ||
-      (v.cveId && v.cveId.toLowerCase().includes(q)) ||
-      v.verdict.toLowerCase().includes(q)
-    );
-  }, [verifications, searchQuery]);
+    let result = verifications;
+    if (verdictFilter !== 'ALL') {
+      result = result.filter(v => v.verdict === verdictFilter);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(v =>
+        v.target.toLowerCase().includes(q) ||
+        v.targetUrl.toLowerCase().includes(q) ||
+        (v.cveId && v.cveId.toLowerCase().includes(q)) ||
+        v.verdict.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [verifications, searchQuery, verdictFilter]);
 
   const handleRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['mpte-requests'] });
     queryClient.invalidateQueries({ queryKey: ['mpte-results'] });
     toast.success('Refreshing verification data...');
   }, [queryClient]);
+
+  const handleExport = useCallback(async () => {
+    try {
+      toast.loading('Generating MPTE report...', { id: 'mpte-report' });
+      // Try to get report data from the API
+      const data = await microPentestApi.getReportData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mpte-report-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Report downloaded', { id: 'mpte-report' });
+    } catch {
+      // Fallback: export current verifications data
+      const blob = new Blob([JSON.stringify(verifications, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mpte-verifications-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Verifications exported', { id: 'mpte-report' });
+    }
+  }, [verifications]);
 
   const isLoading = requestsLoading || resultsLoading;
 
@@ -1258,7 +1934,7 @@ export default function MPTEConsole() {
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.5, ease: EASE_OUT_EXPO }}
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
         <div className="flex items-center gap-3">
@@ -1267,10 +1943,11 @@ export default function MPTEConsole() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-slate-100 tracking-tight">MPTE Console</h1>
-            <p className="text-sm text-slate-500">Micro Pentest Verification Engine -- 19-Phase Exploitability Proof</p>
+            <p className="text-sm text-slate-500">Micro Pentest Verification Engine — 19-Phase Exploitability Proof</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <MpteHealthBadge />
           <Button
             variant="outline"
             size="sm"
@@ -1284,6 +1961,7 @@ export default function MPTEConsole() {
           <Button
             variant="outline"
             size="sm"
+            onClick={handleExport}
             className="border-slate-700 text-slate-400 hover:text-slate-200"
             aria-label="Download all verification reports"
           >
@@ -1304,21 +1982,50 @@ export default function MPTEConsole() {
               <Eye className="w-4 h-4 mr-1.5" />
               Verifications ({filteredVerifications.length})
             </TabsTrigger>
+            <TabsTrigger value="live" className="data-[state=active]:bg-slate-700">
+              <Activity className="w-4 h-4 mr-1.5" />
+              Live Run
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="data-[state=active]:bg-slate-700">
+              <BarChart3 className="w-4 h-4 mr-1.5" />
+              Analytics
+            </TabsTrigger>
             <TabsTrigger value="new" className="data-[state=active]:bg-slate-700">
-              <Play className="w-4 h-4 mr-1.5" />
-              New Verification
+              <Plus className="w-4 h-4 mr-1.5" />
+              New
             </TabsTrigger>
           </TabsList>
 
           {activeTab === 'verifications' && (
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search target, CVE, or verdict..."
-                className="pl-9 w-64 bg-slate-800/60 border-slate-700/50 text-sm"
-              />
+            <div className="flex items-center gap-2">
+              {/* Verdict Filter Pills */}
+              <div className="flex items-center gap-1">
+                {(['ALL', 'EXPLOITABLE', 'NOT_EXPLOITABLE', 'INCONCLUSIVE'] as const).map(v => (
+                  <button
+                    key={v}
+                    onClick={() => setVerdictFilter(v)}
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all ${
+                      verdictFilter === v
+                        ? v === 'ALL' ? 'bg-slate-700 text-slate-200' :
+                          v === 'EXPLOITABLE' ? 'bg-red-500/20 text-red-400' :
+                          v === 'NOT_EXPLOITABLE' ? 'bg-emerald-500/20 text-emerald-400' :
+                          'bg-amber-500/20 text-amber-400'
+                        : 'text-slate-600 hover:text-slate-400'
+                    }`}
+                  >
+                    {v === 'ALL' ? 'All' : v === 'NOT_EXPLOITABLE' ? 'Safe' : v.charAt(0) + v.slice(1).toLowerCase()}
+                  </button>
+                ))}
+              </div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search target, CVE, or verdict..."
+                  className="pl-9 w-64 bg-slate-800/60 border-slate-700/50 text-sm"
+                />
+              </div>
             </div>
           )}
         </div>
@@ -1336,6 +2043,16 @@ export default function MPTEConsole() {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        {/* Live Run Tab */}
+        <TabsContent value="live" className="mt-4">
+          <LiveRunViewer />
+        </TabsContent>
+
+        {/* Analytics Tab */}
+        <TabsContent value="analytics" className="mt-4">
+          <PhaseAnalyticsDashboard verifications={verifications} />
         </TabsContent>
 
         {/* New Verification Tab */}

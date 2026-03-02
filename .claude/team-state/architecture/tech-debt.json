@@ -1,0 +1,173 @@
+{
+  "last_updated": "2026-03-02",
+  "updated_by": "enterprise-architect",
+  "total_items": 14,
+  "items": [
+    {
+      "id": "TD-001",
+      "title": "SQLite in production",
+      "severity": "high",
+      "impact": "Cannot scale beyond single instance. 56 .db files with no shared schema.",
+      "fix": "Migrate to PostgreSQL with async driver (asyncpg). Consolidate into 3-5 databases.",
+      "effort_days": 10,
+      "priority": "phase2",
+      "pillar": "V9",
+      "files_affected": ["suite-api/data/*.db", "suite-core/core/db/", ".fixops_data/"]
+    },
+    {
+      "id": "TD-002",
+      "title": "Brain Pipeline runs synchronously",
+      "severity": "high",
+      "impact": "LLM calls (Step 9) and pentest (Step 10) block the request thread for 10-60s.",
+      "fix": "Convert to async pipeline with asyncio.gather() for independent steps.",
+      "effort_days": 5,
+      "priority": "phase2",
+      "pillar": "V3",
+      "files_affected": ["suite-core/core/brain_pipeline.py"]
+    },
+    {
+      "id": "TD-003",
+      "title": "Brain Pipeline _runs dict was unbounded (FIXED 2026-03-02)",
+      "severity": "medium",
+      "impact": "Memory leak — _runs dict grew without bound. Now capped at MAX_RUNS_HISTORY=1000.",
+      "fix": "FIXED: Added eviction logic at brain_pipeline.py:224-230.",
+      "effort_days": 0,
+      "priority": "done",
+      "pillar": "V3",
+      "files_affected": ["suite-core/core/brain_pipeline.py"]
+    },
+    {
+      "id": "TD-004",
+      "title": "89 bare except:pass patterns (Bandit B110)",
+      "severity": "medium",
+      "impact": "Silently swallows exceptions, making debugging very difficult.",
+      "fix": "Replace bare except:pass with specific exception handling and logging.",
+      "effort_days": 3,
+      "priority": "phase2",
+      "pillar": "V10",
+      "files_affected": ["suite-core/", "suite-api/"]
+    },
+    {
+      "id": "TD-005",
+      "title": "26 potential SQL injection vectors (Bandit B608)",
+      "severity": "high",
+      "impact": "String-based SQL query construction allows injection if user input reaches queries.",
+      "fix": "Switch to parameterized queries or ORM. Audit all 26 locations.",
+      "effort_days": 4,
+      "priority": "phase1",
+      "pillar": "V10",
+      "files_affected": ["suite-core/core/analytics_db.py", "suite-core/core/auth_db.py", "suite-core/core/audit_db.py"]
+    },
+    {
+      "id": "TD-006",
+      "title": "172 ruff lint warnings",
+      "severity": "low",
+      "impact": "Code style inconsistency. 75 module-import-not-at-top, 65 unused-imports, 14 unused-variables.",
+      "fix": "Run ruff check --fix (69 auto-fixable). Manual fix for remaining 103.",
+      "effort_days": 1,
+      "priority": "phase1",
+      "pillar": "V10",
+      "files_affected": ["suite-core/", "suite-api/", "suite-attack/"]
+    },
+    {
+      "id": "TD-007",
+      "title": "app.py is 2,742 LOC with 34 router mounts",
+      "severity": "medium",
+      "impact": "Single file is hard to maintain and causes slow startup as all routers load.",
+      "fix": "Split into router groups (core_routers.py, attack_routers.py, etc.) loaded by category.",
+      "effort_days": 2,
+      "priority": "phase2",
+      "pillar": "V3",
+      "files_affected": ["suite-api/apps/api/app.py"]
+    },
+    {
+      "id": "TD-008",
+      "title": "No database migration system",
+      "severity": "high",
+      "impact": "Schema changes require manual DB recreation. No rollback capability.",
+      "fix": "Implement Alembic migrations for all SQLite databases. Required before PostgreSQL migration.",
+      "effort_days": 5,
+      "priority": "phase2",
+      "pillar": "V9",
+      "files_affected": ["All *.db files"]
+    },
+    {
+      "id": "TD-009",
+      "title": "Test coverage at 19.19% (gate: 25%)",
+      "severity": "medium",
+      "impact": "CI gate fails. pyproject.toml config fixed (DEMO-006) but coverage still below 25%.",
+      "fix": "Focus test writing on measured modules (suite-core/core/, suite-api/apps/).",
+      "effort_days": 3,
+      "priority": "phase1",
+      "pillar": "V10",
+      "files_affected": ["tests/", "pyproject.toml"]
+    },
+    {
+      "id": "TD-010",
+      "title": "15 file:/ URL audit warnings (Bandit B310)",
+      "severity": "low",
+      "impact": "url_open calls accept file:// scheme, potential LFI if user-controlled.",
+      "fix": "Add URL scheme validation to reject file:// and other dangerous schemes.",
+      "effort_days": 1,
+      "priority": "phase2",
+      "pillar": "V10",
+      "files_affected": ["suite-core/core/"]
+    },
+    {
+      "id": "TD-011",
+      "title": "In-process EventBus (no external message queue)",
+      "severity": "medium",
+      "impact": "Events lost on restart. Cannot distribute events across multiple processes.",
+      "fix": "Add Redis Pub/Sub or RabbitMQ for production event distribution.",
+      "effort_days": 3,
+      "priority": "phase2",
+      "pillar": "V3",
+      "files_affected": ["suite-core/core/event_bus.py"]
+    },
+    {
+      "id": "TD-012",
+      "title": "SAST engine is regex-based (16 re.search rules)",
+      "severity": "medium",
+      "impact": "High false positive rate. Cannot understand code flow or data flow.",
+      "fix": "Phase 3: Add AST-based analysis using tree-sitter for Python/JS. Regex stays as fast pre-filter.",
+      "effort_days": 15,
+      "priority": "phase3",
+      "pillar": "V3",
+      "files_affected": ["suite-core/core/sast_engine.py"]
+    },
+    {
+      "id": "TD-013",
+      "title": "10 subprocess audit warnings (Bandit B603/B607)",
+      "severity": "medium",
+      "impact": "subprocess calls with potentially untrusted input could allow command injection.",
+      "fix": "Audit all subprocess calls, ensure shell=False and input sanitization.",
+      "effort_days": 2,
+      "priority": "phase1",
+      "pillar": "V10",
+      "files_affected": ["suite-core/core/"]
+    },
+    {
+      "id": "TD-014",
+      "title": "Scanner ingest stats are in-memory only",
+      "severity": "low",
+      "impact": "Ingestion statistics reset on process restart.",
+      "fix": "Persist stats to SQLite alongside scanner_ingest operations.",
+      "effort_days": 1,
+      "priority": "phase2",
+      "pillar": "V7",
+      "files_affected": ["suite-api/apps/api/scanner_ingest_router.py"]
+    }
+  ],
+  "summary": {
+    "phase1_critical": 3,
+    "phase2_planned": 8,
+    "phase3_future": 1,
+    "done": 1,
+    "total_effort_days": 55,
+    "bandit_issues": 194,
+    "ruff_warnings": 174,
+    "test_coverage": "19.19%",
+    "scanner_parser_bugs_fixed_2026_03_02": 8,
+    "scanner_parser_tests": "129/129 PASS"
+  }
+}

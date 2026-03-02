@@ -25,19 +25,16 @@ Environment variables:
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
-import math
 import os
 import sqlite3
 import threading
-import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -750,13 +747,13 @@ class SelfLearningEngine:
         # MPTE insight
         mpte = analysis["mpte_results"]
         if mpte.get("sample_count", 0) >= self.config.min_samples:
-            f1 = mpte.get("f1_score", 0)
+            _f1 = mpte.get("f1_score", 0)
             if mpte.get("false_positives", 0) > mpte.get("false_negatives", 0) * 2:
                 insights.append({
                     "loop": "mpte_result",
                     "severity": "medium",
-                    "insight": f"MPTE has high false positive rate — many findings predicted "
-                               f"exploitable but aren't. Tighten exploitability criteria.",
+                    "insight": "MPTE has high false positive rate — many findings predicted "
+                               "exploitable but aren't. Tighten exploitability criteria.",
                     "action": "tighten_mpte_threshold",
                 })
 
@@ -895,7 +892,7 @@ class SelfLearningEngine:
             })
 
         # 5. Policy compliance modifier
-        policy_weight_key = f"policy:global:strictness"
+        policy_weight_key = "policy:global:strictness"
         policy_weight = self.get_weight(policy_weight_key, 1.0)
         if policy_weight != 1.0:
             adjustments.append({
@@ -957,7 +954,7 @@ class SelfLearningEngine:
         # --- Loop 1: Decision Outcome → Scanner Accuracy Weights ---
         dec_analysis = self.decision_loop.analyze()
         if dec_analysis.get("sample_count", 0) >= self.config.min_samples:
-            accuracy = dec_analysis.get("weighted_accuracy", 50) / 100.0
+            _accuracy = dec_analysis.get("weighted_accuracy", 50) / 100.0
             # Get per-source accuracy from feedback records
             records = self.db.get_feedback(FeedbackType.DECISION_OUTCOME.value)
             source_stats: Dict[str, Dict[str, int]] = defaultdict(lambda: {"correct": 0, "total": 0})
@@ -1162,7 +1159,6 @@ class SelfLearningEngine:
         records with realistic distributions.
         """
         import random
-        import secrets
         seeded = {"decision": 0, "mpte": 0, "fp": 0, "remediation": 0, "policy": 0}
 
         scanners = ["semgrep", "snyk", "trivy", "zap", "bandit"]

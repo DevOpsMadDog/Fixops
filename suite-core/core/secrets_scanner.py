@@ -404,7 +404,7 @@ class SecretsDetector:
                 return (
                     [],
                     output,
-                    f"Gitleaks exited with code {process.returncode}: {error_output}",
+                    f"Gitleaks exited with code {process.returncode}: {error_output[:200]}",
                 )
 
             findings = self._parse_gitleaks_output(output, repository, branch)
@@ -419,7 +419,8 @@ class SecretsDetector:
         except FileNotFoundError:
             return [], "", "Gitleaks is not installed or not in PATH"
         except Exception as e:
-            return [], "", f"Gitleaks scan failed: {str(e)}"
+            logger.error("Gitleaks scan failed: %s: %s", type(e).__name__, e)
+            return [], "", f"Gitleaks scan failed ({type(e).__name__})"
 
     async def _run_trufflehog(
         self,
@@ -490,7 +491,7 @@ class SecretsDetector:
                 return (
                     [],
                     output,
-                    f"Trufflehog exited with code {process.returncode}: {error_output}",
+                    f"Trufflehog exited with code {process.returncode}: {error_output[:200]}",
                 )
 
             findings = self._parse_trufflehog_output(output, repository, branch)
@@ -505,7 +506,8 @@ class SecretsDetector:
         except FileNotFoundError:
             return [], "", "Trufflehog is not installed or not in PATH"
         except Exception as e:
-            return [], "", f"Trufflehog scan failed: {str(e)}"
+            logger.error("Trufflehog scan failed: %s: %s", type(e).__name__, e)
+            return [], "", f"Trufflehog scan failed ({type(e).__name__})"
 
     def _is_git_repo(self, path: str) -> bool:
         """Check if the path is inside a git repository."""
@@ -564,8 +566,10 @@ class SecretsDetector:
 
             return repo_name, branch
         except PathContainmentError:
+            logger.warning("Path escapes base directory in repo info: %s", type(path).__name__)
             return str(path), "main"
-        except Exception:
+        except Exception as e:
+            logger.debug("Failed to get repo info: %s", type(e).__name__)
             return str(path), "main"
 
     async def _scan_content_builtin(
@@ -821,6 +825,7 @@ class SecretsDetector:
                     raw_output=raw_output,
                 )
             except Exception as e:
+                logger.error("Secrets scan failed: %s: %s", type(e).__name__, e)
                 return SecretsScanResult(
                     scan_id=scan_id,
                     status=SecretsScanStatus.FAILED,
@@ -830,7 +835,7 @@ class SecretsDetector:
                     branch=branch,
                     started_at=started_at,
                     completed_at=datetime.now(),
-                    error_message=str(e),
+                    error_message=f"Scan failed ({type(e).__name__})",
                 )
 
 

@@ -6,7 +6,7 @@
 - **Type**: Gradient Boosted Trees (Regressor)
 - **Framework**: scikit-learn 1.8.0
 - **Pillar**: V3 (Decision Intelligence)
-- **Date**: 2026-02-27
+- **Date**: 2026-03-01
 - **Maintained by**: data-scientist agent
 
 ## Intended Use
@@ -17,39 +17,39 @@
 
 ## Training Data
 - **Source**: Golden regression dataset (`data/golden_regression_cases.json`)
-- **Size**: 50 cases
+- **Size**: 65 cases
 - **Categories**: Critical exploitable, High severity, Medium severity, Low noise, False positives, Chain exploits, Edge cases
-- **Data hash**: a9ae9692321df5aa
+- **Data hash**: 132a8cd196472e92
 - **Random seed**: 42
 
 ## Features (Input)
 | Feature | Type | Range | Importance |
 |---------|------|-------|------------|
-| asset_criticality | float | 0-1 | 0.5721 |
-| epss_score | float | 0-1 | 0.1871 |
-| network_exposure | ordinal | 0-1 | 0.1437 |
-| in_kev | binary | 0-1 | 0.0611 |
-| exploit_maturity | ordinal | 0-1 | 0.0263 |
-| cvss_score | float | 0-1 | 0.0086 |
-| reachable | binary | 0-1 | 0.0010 |
-| exploit_available | binary | 0-1 | 0.0000 |
+| asset_criticality | float | 0-1 | 0.6252 |
+| epss_score | float | 0-1 | 0.2527 |
+| network_exposure | ordinal | 0-1 | 0.0639 |
+| in_kev | binary | 0-1 | 0.0227 |
+| exploit_maturity | ordinal | 0-1 | 0.0163 |
+| cvss_score | float | 0-1 | 0.0112 |
+| reachable | binary | 0-1 | 0.0061 |
+| exploit_available | binary | 0-1 | 0.0020 |
 | has_chain | binary | 0-1 | 0.0000 |
 
 ## Performance Metrics
 | Metric | Value |
 |--------|-------|
-| MAE | 0.2162 |
-| RMSE | 0.2886 |
-| R² | 0.9999 |
+| MAE | 0.4465 |
+| RMSE | 0.6433 |
+| R² | 0.9996 |
 | Within-Range % | 1.0 |
-| CV R² scores | [-4.1261, 0.7719, 0.0165, -23.2719, 0.8702] |
+| CV R² scores | [0.6197, 0.9037, 0.81, 0.9531, 0.8613] |
 
 ### Priority Classification
 | Priority | Precision | Recall | F1 |
 |----------|-----------|--------|----|
-| P0 | 1.0 | 0.9615 | 0.9804 |
-| P1 | 0.875 | 0.875 | 0.875 |
-| P2 | 0.8571 | 1.0 | 0.9231 |
+| P0 | 1.0 | 0.9722 | 0.9859 |
+| P1 | 0.8889 | 0.8 | 0.8421 |
+| P2 | 0.8 | 1.0 | 0.8889 |
 | P3 | 1.0 | 0.5 | 0.6667 |
 | P4 | 0.3333 | 1.0 | 0.5 |
 | FP | 1.0 | 1.0 | 1.0 |
@@ -60,7 +60,7 @@
 - Reject predictions with CI width > 60 points
 
 ## Limitations
-1. **Small training set**: 50 cases — model may underperform on unseen CVE categories
+1. **Small training set**: 65 cases — model may underperform on unseen CVE categories
 2. **Temporal bias**: Training data biased towards 2021-2025 CVEs; emerging attack patterns may not be captured
 3. **No code-level features**: Model uses metadata only; does not analyze actual source code
 4. **Chain exploit detection**: Chain exploit feature is binary; does not model chain complexity

@@ -646,7 +646,7 @@ async def list_mcp_tools(
         ]
 
     # Apply pagination
-    total = len(tools)
+    _total = len(tools)
     tools = tools[offset : offset + limit]
 
     return tools

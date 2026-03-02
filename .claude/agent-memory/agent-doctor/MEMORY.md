@@ -17,27 +17,29 @@ When launching claude CLI as child processes on macOS:
 - State: `.claude/team-state/`
 - Logs: `logs/ai-team/`
 
-### Sprint 2 Pre-Flight (run24, 2026-03-01)
-- Enterprise demo in 5 days (2026-03-06). Sprint 2 has 12 items.
-- Pre-flight: 17/17 agents OK, 19/19 engines (18,160 LOC), 4/4 MOATs PASS, 17/17 DBs writable
-- 331 core tests 100% pass, 10,141 total tests collected, coverage 17.99%
-- Cleaned 7 WAL (8.7MB) + 7 SHM (229KB)
+### Sprint 2 Pre-Flight (run24→run27, 2026-03-01→02)
+- Enterprise demo in 4 days (2026-03-06). Sprint 2: 9/12 done, 3 P0 blockers.
+- Run27 (Day 2): 17/17 agents OK, 19/19 engines (20,047 LOC, +1,887), 4/4 MOATs PASS, 56/56 DBs writable
+- Run27: 948 core tests pass (83.20s, 15 test files), 10,356 total tests, coverage 19.19%
+- Run27: 10 WAL+SHM cleaned (post-test regeneration). All 3 lock files have active PIDs.
 - RSAKeyManager needs explicit key paths (private_key_path, public_key_path) — default "." causes IsADirectoryError
-- Coverage with --collect-only shows 19.35% vs actual 17.99% — different measurement
-- All lock files (jarvis.pid, jarvis.lock, controller-watchdog.pid) were ACTIVE with valid PIDs
+- Coverage with --collect-only shows 19.35% vs actual 19.19% with expanded scope
+- Lock files: jarvis.pid, jarvis.lock, controller-watchdog.pid — ALWAYS check if PIDs alive before cleaning
+- Engine LOC growth tracked: sast_engine 465→1577, self_learning 832→1363, brain_pipeline 1000→1161
+- Security advisory SA-001 OPEN: Real API keys committed in .env (OpenAI, JWT, API token) — needs rotation before demo
 
-### CTEM+ Engine Inventory (verified 2026-03-01 run24)
-- 6 scanner engines: sast (465), dast (533), secrets (775), container (410), iac (713), cspm (586) = 3,482 LOC
-- Brain pipeline: `brain_pipeline.py` (1,000 LOC, 12 steps via _step_* methods, has `run()` method) — stable since run15
+### CTEM+ Engine Inventory (verified 2026-03-02 run26)
+- 6 scanner engines: sast (1577), dast (533), secrets (845), container (410), iac (713), cspm (586) = 4,664 LOC
+- Brain pipeline: `brain_pipeline.py` (1,161 LOC, 12 steps via _step_* methods, has `run()` method) — growing since run15
 - MPTE: mpte_advanced.py (1,089, AdvancedMPTEClient), mpte_db.py (536, MPTEDB), mpte_models.py (141, PenTestConfig/Request/Result), micro_pentest.py (2,054, run_micro_pentest) = 3,820 LOC
 - AutoFix: `autofix_engine.py` (1,259 LOC, AutoFixEngine, 8 public methods)
 - FAIL Engine: `fail_engine.py` (713 LOC, FAILEngine, 8 public methods)
 - Connectors: `connectors.py` (3,005 LOC, AutomationConnectors) + `universal_connector.py` (1,637 LOC)
 - MCP: `mcp_server.py` (979 LOC, MCPProtocolHandler NOT MCPServer) + `mcp_router.py` (468 in suite-integrations)
-- 6 vision engines: falkordb_client (835, KnowledgeGraphEngine), single_agent (819, SingleAgentEngine), quantum_crypto (666, HybridQuantumSigner), mcp_server (979, MCPProtocolHandler), self_learning (832, SelfLearningEngine), zero_gravity (857, ZeroGravityEngine) = 4,988 LOC
+- 6 vision engines: falkordb_client (836, KnowledgeGraphEngine), single_agent (819, SingleAgentEngine), quantum_crypto (666, HybridQuantumSigner), mcp_server (979, MCPProtocolHandler), self_learning (1363, SelfLearningEngine), zero_gravity (857, ZeroGravityEngine) = 5,520 LOC
 - **Module names (NOT _engine suffix)**: `core.single_agent`, `core.self_learning`, `core.zero_gravity` — NOT `core.single_agent_engine` etc.
-- Crypto: `crypto.py` (570 LOC, RSAKeyManager/RSASigner/RSAVerifier — NOT CryptoEngine)
-- Total 19 engines verified importable: 6 scanner + 6 vision + 7 core = 18,160 LOC
+- Crypto: `crypto.py` (582 LOC, RSAKeyManager/RSASigner/RSAVerifier — NOT CryptoEngine)
+- Total 19 engines verified importable: 6 scanner + 6 vision + 7 core = 20,047 LOC (was 18,160 at Sprint 1 end)
 - CTEM_PLUS_IDENTITY.md says `cspm_analyzer.py` but actual is `cspm_engine.py`
 
 ### Test-Code Drift Pattern (RC7 — resolved run9)
@@ -81,13 +83,12 @@ When launching claude CLI as child processes on macOS:
 - Use `bash -c '...'` wrapper for scripts with `[[ ]]` syntax — zsh parses `[[ ! ]]` differently
 - Or use `[ ]` (POSIX) instead of `[[ ]]` (bash)
 
-### Sprint Artifacts (as of 2026-03-01 v12)
-- 4 UI screens: ExposureCaseCenter (1,182), MPTEConsole (1,337), EvidenceBundles (2,091), CEODashboard (458)
-- 334+ test files, 10,004 tests collected (MILESTONE: 10K+), 331 core tests verified passing (72.40s)
-- 17.99% overall coverage (gate: 40% — FAILING, DEEP PLATEAU 9th scan)
-- 21/23 sprint items done (91.3%), vision alignment 0.73
-- Remaining: SPRINT1-008 (test coverage, in-progress), SPRINT1-012 (API docs P2)
-- v12: +71 new tests (rasp 41 @ 99.42% file cov, license_compliance 30). 3 WAL cleaned. 10K milestone.
+### Sprint Artifacts (as of 2026-03-02 run27)
+- Sprint 1 ARCHIVED: 21/23 done (91.3%)
+- Sprint 2 ACTIVE: 9/12 done (75%). 3 P0 blockers: DEMO-001, DEMO-002, DEMO-003. 4 days to demo.
+- 339+ test files, 10,356 tests collected, 948 core tests passing (83.20s)
+- 19.19% coverage (gate: 25% — FAILING, gap 5.81pp)
+- 20,047 LOC across 19 engines (+1,887 from Sprint 1)
 
 ### Core Test Files (verified run v6 — 948 tests, ~68s)
 - test_brain_pipeline.py (159 tests)

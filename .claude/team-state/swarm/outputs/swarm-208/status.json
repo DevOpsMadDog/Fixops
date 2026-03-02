@@ -1,0 +1,47 @@
+{
+  "task_id": "swarm-208",
+  "worker_id": "junior-sonnet-4-6",
+  "status": "completed",
+  "files_modified": [],
+  "files_created": [
+    ".claude/team-state/swarm/outputs/swarm-208/result.md",
+    ".claude/team-state/swarm/outputs/swarm-208/status.json"
+  ],
+  "summary": "Ran ctem_architecture_regression.py against live server at localhost:8000. Result: 64/65 passed (98.5%), 1 failure. Expected was 66/66 — actual total was 65 checks (1 fewer than expected due to a conditional assertion not firing), with 1 timeout failure on MPTE verify SQLi endpoint.",
+  "issues": [
+    "FAIL: Section 7 VALIDATE: MPTE — 'MPTE verify SQLi exploitability' timed out at 30s (HTTP 0, 30003ms). Endpoint: POST api/v1/mpte/verify. This is a performance/timeout issue, not a code error.",
+    "Total check count was 65, not 66 as expected. The missing check is the conditional 'noise_reduction' assertion in test_06_brain_pipeline — it only fires if the API response includes an 'output_count' field, which was absent this run.",
+    "Brain pipeline completed 9/12 steps (steps 10-12 likely require real LLM API keys: OPENAI_API_KEY or ANTHROPIC_API_KEY not set). Not treated as a failure by the test.",
+    "Slow endpoints: MPTE comprehensive scan 24,479ms, MPTE verify 30,003ms (timed out), AutoFix SQLi 8,036ms."
+  ],
+  "needs_senior_review": true,
+  "confidence": 0.95,
+  "duration_turns": 6,
+  "machine_readable_from_script": {
+    "test": "ctem_architecture_regression",
+    "timestamp": "2026-03-01T23:43:04.059780+00:00",
+    "elapsed_seconds": 68.0,
+    "total_pass": 64,
+    "total_fail": 1,
+    "pass_rate": 98.5,
+    "success": false,
+    "artifacts": {
+      "sast_findings": 6,
+      "secrets_found": 2,
+      "container_issues": 6,
+      "iac_misconfigs": 4,
+      "artifacts_ingested": "7/7",
+      "brain_run_id": "BR-E057064BE3B9",
+      "brain_steps": "9/12",
+      "autofix_id": "fix-d8556f7b267836c0",
+      "autofix_confidence": "0.8673638679018463",
+      "total_fixes": 3,
+      "evidence_bundle_id": "EVB-2026-EC216B",
+      "evidence_hash": "sha256:348fceba67ac616c52a63f4f68d45a943a20dd86cb90995ad058399ff",
+      "signed_evidence_bundle": "YES",
+      "compliance_score": "86.4%",
+      "graph_nodes": 108711,
+      "graph_edges": 79862
+    }
+  }
+}

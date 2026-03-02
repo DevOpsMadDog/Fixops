@@ -30,6 +30,58 @@ router = APIRouter(
     tags=["scanner-ingest"],
 )
 
+# ── Security constants ──────────────────────────────────────────────
+# Maximum upload size: 100 MB (prevents zip bombs and memory exhaustion)
+_MAX_UPLOAD_BYTES = 100 * 1024 * 1024
+# Maximum body size for webhook ingestion: 50 MB
+_MAX_WEBHOOK_BYTES = 50 * 1024 * 1024
+# Allowed file extensions for scanner output uploads
+_ALLOWED_EXTENSIONS = frozenset({
+    ".json", ".xml", ".html", ".csv", ".sarif",
+    ".nessus", ".nmap", ".txt", ".log", ".yaml", ".yml",
+    ".cdx", ".spdx", ".vex",
+})
+# Valid scanner type characters (alphanumeric + hyphens/underscores only)
+import re as _re
+_SCANNER_TYPE_RE = _re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
+
+
+def _validate_scanner_type(scanner_type: str) -> str:
+    """Validate scanner type to prevent injection attacks."""
+    s = scanner_type.strip().lower()
+    if not _SCANNER_TYPE_RE.match(s):
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid scanner type format: must be alphanumeric/hyphens/underscores, 1-64 chars",
+        )
+    return s
+
+
+def _validate_filename(filename: Optional[str]) -> Optional[str]:
+    """Validate uploaded filename to prevent path traversal."""
+    if not filename:
+        return None
+    # Strip directory components (path traversal defense)
+    import os
+    # Check raw string BEFORE using os.path.basename
+    if ".." in filename or "/" in filename or "\\" in filename:
+        logger.warning("Path traversal attempt in filename: %r", filename[:100])
+        # Still extract just the base name safely
+        return os.path.basename(filename.replace("\\", "/"))
+    return os.path.basename(filename)
+
+
+def _validate_upload_size(content: bytes, max_bytes: int = _MAX_UPLOAD_BYTES) -> None:
+    """Validate upload size to prevent DoS / zip bomb attacks."""
+    if len(content) > max_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Upload too large: {len(content)} bytes exceeds {max_bytes} byte limit",
+        )
+    if len(content) == 0:
+        raise HTTPException(status_code=400, detail="Empty file")
+
+
 # In-memory stats (shared per-process)
 _ingest_stats: Dict[str, Any] = {
     "total_files_processed": 0,
@@ -108,11 +160,28 @@ async def upload_scanner_output(
     if not parsers:
         raise HTTPException(status_code=503, detail="Scanner parser module not available")
 
+    # Security: validate filename (path traversal defense)
+    safe_filename = _validate_filename(file.filename)
+
+    # Security: validate file extension
+    if safe_filename:
+        import os
+        ext = os.path.splitext(safe_filename)[1].lower()
+        if ext and ext not in _ALLOWED_EXTENSIONS:
+            raise HTTPException(
+                status_code=415,
+                detail=f"Unsupported file extension: {ext}. Allowed: {sorted(_ALLOWED_EXTENSIONS)}",
+            )
+
     content = await file.read()
-    if not content:
-        raise HTTPException(status_code=400, detail="Empty file")
+    # Security: validate upload size (zip bomb / DoS prevention)
+    _validate_upload_size(content, _MAX_UPLOAD_BYTES)
 
     t0 = time.time()
+
+    # Security: validate scanner_type if provided
+    if scanner_type:
+        scanner_type = _validate_scanner_type(scanner_type)
 
     # Auto-detect if not specified
     detected = scanner_type or parsers["auto_detect_scanner"](content)
@@ -131,8 +200,12 @@ async def upload_scanner_output(
         )
     except Exception as e:
         _ingest_stats["errors"] += 1
-        logger.error(f"Parse error for {detected}: {e}")
-        raise HTTPException(status_code=422, detail=f"Parse error: {str(e)}")
+        # Security: don't leak internal error details — only expose type
+        logger.error("Parse error for %s: %s", detected, e)
+        raise HTTPException(
+            status_code=422,
+            detail=f"Parse error ({type(e).__name__}): could not parse {detected} output",
+        )
 
     elapsed = time.time() - t0
 
@@ -169,7 +242,7 @@ async def upload_scanner_output(
     return {
         "status": "success",
         "scanner": detected,
-        "file_name": file.filename,
+        "file_name": safe_filename or file.filename,
         "findings_count": len(findings),
         "parse_time_ms": round(elapsed * 1000, 1),
         "app_id": app_id or None,
@@ -206,10 +279,11 @@ async def webhook_ingest(
         raise HTTPException(status_code=503, detail="Scanner parser module not available")
 
     content = await request.body()
-    if not content:
-        raise HTTPException(status_code=400, detail="Empty body")
+    # Security: validate body size (DoS prevention)
+    _validate_upload_size(content, _MAX_WEBHOOK_BYTES)
 
-    scanner = scanner_type.lower()
+    # Security: validate scanner_type path param (injection prevention)
+    scanner = _validate_scanner_type(scanner_type)
     if scanner not in parsers["SCANNER_NORMALIZERS"]:
         raise HTTPException(
             status_code=404,
@@ -226,7 +300,12 @@ async def webhook_ingest(
         )
     except Exception as e:
         _ingest_stats["errors"] += 1
-        raise HTTPException(status_code=422, detail=f"Parse error: {str(e)}")
+        # Security: don't leak internal error details
+        logger.error("Parse error for webhook %s: %s", scanner, e)
+        raise HTTPException(
+            status_code=422,
+            detail=f"Parse error ({type(e).__name__}): could not parse {scanner} output",
+        )
 
     elapsed = time.time() - t0
 
@@ -287,8 +366,8 @@ async def detect_scanner_type(
         raise HTTPException(status_code=503, detail="Scanner parser module not available")
 
     content = await file.read()
-    if not content:
-        raise HTTPException(status_code=400, detail="Empty file")
+    # Security: validate upload size for detection endpoint too
+    _validate_upload_size(content, _MAX_UPLOAD_BYTES)
 
     # Run all detectors and return scores
     from core.scanner_parsers import SCANNER_NORMALIZERS, NormalizerConfig

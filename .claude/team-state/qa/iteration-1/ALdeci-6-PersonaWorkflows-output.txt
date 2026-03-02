@@ -1,0 +1,275 @@
+newman
+
+👤 ALdeci — PERSONA WORKFLOW FLOWS
+
+❏ 👩‍💼 Sarah Chen — CISO Morning Briefing
+↳ Step 1 — Platform Health Check
+  GET http://localhost:8000/api/v1/health [200 OK, 412B, 17ms]
+  ✓  Platform is healthy
+  ┌
+  │ 'Platform health:', '{"status":"healthy","timestamp":"
+  │ 2026-03-01T13:04:41.655497+00:00Z","service":"fixops-a
+  │ pi","version":"0.1.0"}'
+  └
+  ✓  All subsystems online
+
+↳ Step 2 — Dashboard Overview
+  GET http://localhost:8000/api/v1/analytics/dashboard/overview [200 OK, 461B, 6ms]
+  ✓  Dashboard overview returns 200
+  ✓  Has risk metrics
+
+↳ Step 3 — Top Risks (FAIL Scored)
+  GET http://localhost:8000/api/v1/fail/top-risks [200 OK, 30.73kB, 14ms]
+  ✓  Top risks returns 200
+  ✓  Capture top risk finding
+
+↳ Step 4 — Decision Engine Metrics
+  GET http://localhost:8000/api/v1/decisions/metrics [200 OK, 806B, 12ms]
+  ✓  Decision metrics returns 200
+
+↳ Step 5 — Compliance Framework Status (SOC2)
+  GET http://localhost:8000/api/v1/audit/compliance/soc2/status [404 Not Found, 331B, 9ms]
+  1. Compliance status returns 200
+
+↳ Step 6 — SLA Performance
+  GET http://localhost:8000/api/v1/remediation/metrics [200 OK, 508B, 6ms]
+  ✓  SLA status returns 200
+
+↳ Step 7 — Risk Summary
+  GET http://localhost:8000/api/v1/risk [404 Not Found, 347B, 16ms]
+  2. Risk summary returns 200
+
+↳ Step 8 — Generate Executive Report
+  POST http://localhost:8000/api/v1/reports/generate [201 Created, 714B, 14ms]
+  ✓  Executive report generated
+  ✓  Capture reportId
+
+❏ 🔧 Raj Patel — DevSecOps Triage Flow
+↳ Step 1 — Health Check
+  GET http://localhost:8000/api/v1/health [200 OK, 412B, 7ms]
+  ✓  Health returns 200
+
+↳ Step 2 — Get Recent Findings
+  GET http://localhost:8000/api/v1/analytics/findings?severity=critical&status=new&limit=10 [200 OK, 303B, 12ms]
+  ✓  Findings returns 200
+  ✓  Capture finding for triage
+
+↳ Step 3 — FAIL Score the Finding
+  POST http://localhost:8000/api/v1/fail/score [200 OK, 1.2kB, 11ms]
+  ✓  FAIL score returns 200
+
+↳ Step 4 — Check Dedup Clusters
+  GET http://localhost:8000/api/v1/deduplication/clusters?org_id=org-001 [200 OK, 1.35kB, 13ms]
+  ✓  Dedup clusters returns 200
+
+↳ Step 5 — Policy Violation Check
+  POST http://localhost:8000/api/v1/policies [422 Unprocessable Content, 665B, 6ms]
+  3. Policy validation returns 200
+
+↳ Step 6 — Create Remediation Task
+  POST http://localhost:8000/api/v1/remediation/tasks [200 OK, 529B, 10ms]
+  ✓  Task created returns 200/201
+  ✓  Capture taskId
+
+↳ Step 7 — Bulk Create Jira Ticket
+  POST http://localhost:8000/api/v1/bulk/findings/update [422 Unprocessable Content, 632B, 7ms]
+  4. Ticket created returns 200
+
+↳ Step 8 — Trigger Automated Workflow
+  POST http://localhost:8000/api/v1/workflows [409 Conflict, 370B, 11ms]
+  ✓  Workflow executed returns 200
+
+❏ 🎯 Jason Park — MPTE Exploit Verification Flow
+↳ Step 1 — MPTE Health
+  GET http://localhost:8000/api/v1/mpte/stats [200 OK, 534B, 11ms]
+  ✓  MPTE stats returns 200
+
+↳ Step 2 — Create MPTE Request
+  POST http://localhost:8000/api/v1/mpte/requests [201 Created, 628B, 11ms]
+  ✓  Create MPTE request returns 200/201
+  ✓  Capture mpteRequestId
+
+↳ Step 3 — Start MPTE Scan
+  POST http://localhost:8000/api/v1/mpte/requests/35dc6101-467d-4460-a0ad-a31b7c87e54b/start [200 OK, 684B, 7ms]
+  ✓  Start MPTE returns 200
+
+↳ Step 4 — Verify Exploitability
+  POST http://localhost:8000/api/v1/mpte/verify [422 Unprocessable Content, 464B, 11ms]
+  5. Verify exploitability returns 200
+
+↳ Step 5 — Run Micro Pentest
+  POST http://localhost:8000/api/v1/micro-pentest/run [201 Created, 504B, 19ms]
+  ✓  Micro pentest returns 200
+  ✓  Capture scanId
+
+↳ Step 6 — Get MPTE Results
+  GET http://localhost:8000/api/v1/mpte/results [200 OK, 5.09kB, 4ms]
+  ✓  MPTE results returns 200
+
+↳ Step 7 — Generate Pentest Report
+  POST http://localhost:8000/api/v1/micro-pentest/report/generate [503 Service Unavailable, 434B, 4ms]
+  6. Pentest report returns 200
+
+↳ Step 8 — Create Signed Evidence Bundle
+  POST http://localhost:8000/api/v1/evidence/bundles/generate [200 OK, 1.08kB, 8ms]
+  ✓  Evidence bundle created returns 200/201
+  ✓  Capture bundleId
+
+❏ 💻 Alex Rivera — Security Engineer Fix Flow
+↳ Step 1 — Get Assigned Finding
+  GET http://localhost:8000/api/v1/analytics/findings/ [200 OK, 45.79kB, 21ms]
+  ✓  Get finding returns 200
+
+↳ Step 2 — AI Vulnerability Analysis
+  POST http://localhost:8000/api/v1/copilot/agents/analyst/analyze [200 OK, 471B, 11ms]
+  ✓  AI analysis returns 200
+
+↳ Step 3 — Generate AutoFix
+  POST http://localhost:8000/api/v1/autofix/generate [200 OK, 1.63kB, 7.9s]
+  ✓  AutoFix generated returns 200
+  ✓  Capture fixId
+
+↳ Step 4 — Validate Fix
+  POST http://localhost:8000/api/v1/autofix/validate [404 Not Found, 336B, 9ms]
+  7. Fix validation returns 200
+
+↳ Step 5 — Apply Fix (Create PR)
+  POST http://localhost:8000/api/v1/autofix/apply [422 Unprocessable Content, 487B, 9ms]
+  8. Fix applied returns 200
+
+↳ Step 6 — Add Collaboration Comment
+  POST http://localhost:8000/api/v1/collaboration/comments [200 OK, 496B, 13ms]
+  ✓  Comment added returns 200/201
+
+↳ Step 7 — Update Remediation Task
+  PUT http://localhost:8000/api/v1/remediation/tasks//status [404 Not Found, 331B, 6ms]
+  9. Task updated returns 200
+
+❏ 📋 Maria Santos — Compliance Audit Flow
+↳ Step 1 — List Compliance Frameworks
+  GET http://localhost:8000/api/v1/audit/compliance/frameworks [200 OK, 347B, 7ms]
+  ✓  Frameworks returns 200
+  ✓  Capture frameworkId
+
+↳ Step 2 — Framework Compliance Status
+  GET http://localhost:8000/api/v1/audit/compliance/soc2/status [404 Not Found, 331B, 8ms]
+ 10. Framework status returns 200
+
+↳ Step 3 — Gap Analysis
+  GET http://localhost:8000/api/v1/audit/compliance/soc2/gaps [404 Not Found, 331B, 5ms]
+ 11. Gap analysis returns 200
+
+↳ Step 4 — Generate Audit Evidence
+  POST http://localhost:8000/api/v1/audit/compliance/frameworks/soc2/report [404 Not Found, 341B, 5ms]
+ 12. Evidence generated returns 200
+
+↳ Step 5 — Create Evidence Bundle
+  POST http://localhost:8000/api/v1/evidence/bundles/generate [200 OK, 1.04kB, 8ms]
+  ✓  Bundle created returns 200/201
+  ✓  Capture auditBundleId
+
+↳ Step 6 — Verify Bundle Signature
+  POST http://localhost:8000/api/v1/evidence/bundles/EVB-2026-829260/verify [200 OK, 589B, 10ms]
+  ✓  Bundle verified returns 200
+ 13. Signature is valid
+
+↳ Step 7 — Generate Compliance Report
+  POST http://localhost:8000/api/v1/reports/generate [201 Created, 691B, 18ms]
+  ✓  Compliance report generated returns 200
+  ✓  Capture auditReportId
+
+↳ Step 8 — Export for Auditor
+  GET http://localhost:8000/api/v1/reports?format=pdf [200 OK, 8.68kB, 9ms]
+  ✓  Export returns 200
+
+↳ Step 9 — Verify Audit Chain Integrity
+  GET http://localhost:8000/api/v1/audit/chain/verify [200 OK, 442B, 11ms]
+  ✓  Chain verified returns 200
+  ✓  Audit chain is intact
+
+┌─────────────────────────┬────────────────────┬───────────────────┐
+│                         │           executed │            failed │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│              iterations │                  1 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│                requests │                 40 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│            test-scripts │                 40 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│      prerequest-scripts │                 40 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│              assertions │                 55 │                13 │
+├─────────────────────────┴────────────────────┴───────────────────┤
+│ total run duration: 13.1s                                        │
+├──────────────────────────────────────────────────────────────────┤
+│ total data received: 99.23kB (approx)                            │
+├──────────────────────────────────────────────────────────────────┤
+│ average response time: 209ms [min: 4ms, max: 7.9s, s.d.: 1245ms] │
+└──────────────────────────────────────────────────────────────────┘
+
+[31m   # [39m[31m failure        [39m[31m detail                                                                                       [39m
+[90m     [39m[90m                [39m[90m                                                                                              [39m
+ 01.  AssertionError  Compliance status returns 200                                                                
+                      expected 404 to be one of [ 200, 201, 202, 409 ]                                             
+                      at assertion:0 in test-script                                                                
+                      inside "👩‍💼 Sarah Chen — CISO Morning Briefing / Step 5 — Compliance Framework Status (SOC2)" 
+[90m     [39m[90m                [39m[90m                                                                                              [39m
+ 02.  AssertionError  Risk summary returns 200                                                                     
+                      expected 404 to be one of [ 200, 201, 202, 409 ]                                             
+                      at assertion:0 in test-script                                                                
+                      inside "👩‍💼 Sarah Chen — CISO Morning Briefing / Step 7 — Risk Summary"                       
+[90m     [39m[90m                [39m[90m                                                                                              [39m
+ 03.  AssertionError  Policy validation returns 200                                                                
+                      expected 422 to be one of [ 200, 201, 202, 409 ]                                             
+                      at assertion:0 in test-script                                                                
+                      inside "🔧 Raj Patel — DevSecOps Triage Flow / Step 5 — Policy Violation Check"              
+[90m     [39m[90m                [39m[90m                                                                                              [39m
+ 04.  AssertionError  Ticket created returns 200                                                                   
+                      expected 422 to be one of [ 200, 201, 202, 409 ]                                             
+                      at assertion:0 in test-script                                                                
+                      inside "🔧 Raj Patel — DevSecOps Triage Flow / Step 7 — Bulk Create Jira Ticket"             
+[90m     [39m[90m                [39m[90m                                                                                              [39m
+ 05.  AssertionError  Verify exploitability returns 200                                                            
+                      expected 422 to be one of [ 200, 201, 202, 409 ]                                             
+                      at assertion:0 in test-script                                                                
+                      inside "🎯 Jason Park — MPTE Exploit Verification Flow / Step 4 — Verify Exploitability"     
+[90m     [39m[90m                [39m[90m                                                                                              [39m
+ 06.  AssertionError  Pentest report returns 200                                                                   
+                      expected 503 to be one of [ 200, 201, 202, 409 ]                                             
+                      at assertion:0 in test-script                                                                
+                      inside "🎯 Jason Park — MPTE Exploit Verification Flow / Step 7 — Generate Pentest Report"   
+[90m     [39m[90m                [39m[90m                                                                                              [39m
+ 07.  AssertionError  Fix validation returns 200                                                                   
+                      expected 404 to be one of [ 200, 201, 202, 409 ]                                             
+                      at assertion:0 in test-script                                                                
+                      inside "💻 Alex Rivera — Security Engineer Fix Flow / Step 4 — Validate Fix"                 
+[90m     [39m[90m                [39m[90m                                                                                              [39m
+ 08.  AssertionError  Fix applied returns 200                                                                      
+                      expected 422 to be one of [ 200, 201, 202, 409 ]                                             
+                      at assertion:0 in test-script                                                                
+                      inside "💻 Alex Rivera — Security Engineer Fix Flow / Step 5 — Apply Fix (Create PR)"        
+[90m     [39m[90m                [39m[90m                                                                                              [39m
+ 09.  AssertionError  Task updated returns 200                                                                     
+                      expected 404 to be one of [ 200, 201, 202, 409 ]                                             
+                      at assertion:0 in test-script                                                                
+                      inside "💻 Alex Rivera — Security Engineer Fix Flow / Step 7 — Update Remediation Task"      
+[90m     [39m[90m                [39m[90m                                                                                              [39m
+ 10.  AssertionError  Framework status returns 200                                                                 
+                      expected 404 to be one of [ 200, 201, 202, 409 ]                                             
+                      at assertion:0 in test-script                                                                
+                      inside "📋 Maria Santos — Compliance Audit Flow / Step 2 — Framework Compliance Status"      
+[90m     [39m[90m                [39m[90m                                                                                              [39m
+ 11.  AssertionError  Gap analysis returns 200                                                                     
+                      expected 404 to be one of [ 200, 201, 202, 409 ]                                             
+                      at assertion:0 in test-script                                                                
+                      inside "📋 Maria Santos — Compliance Audit Flow / Step 3 — Gap Analysis"                     
+[90m     [39m[90m                [39m[90m                                                                                              [39m
+ 12.  AssertionError  Evidence generated returns 200                                                               
+                      expected 404 to be one of [ 200, 201, 202, 409 ]                                             
+                      at assertion:0 in test-script                                                                
+                      inside "📋 Maria Santos — Compliance Audit Flow / Step 4 — Generate Audit Evidence"          
+[90m     [39m[90m                [39m[90m                                                                                              [39m
+ 13.  AssertionError  Signature is valid                                                                           
+                      expected false to be true                                                                    
+                      at assertion:1 in test-script                                                                
+                      inside "📋 Maria Santos — Compliance Audit Flow / Step 6 — Verify Bundle Signature"          

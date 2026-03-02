@@ -236,3 +236,34 @@ jobs:
       - name: Teardown
         if: always()
         run: docker compose -f docker/docker-compose.yml down -v
+
+  # Air-gapped deployment test (MOAT 3: $2.3B defense/gov market)
+  air-gapped-test:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build enterprise image
+        run: docker build -f docker/Dockerfile.enterprise -t aldeci-enterprise:local .
+
+      - name: Run air-gapped test
+        run: |
+          docker compose -f docker/docker-compose.air-gapped-test.yml up --build -d aldeci-airgapped
+          # Wait for healthy
+          for i in {1..60}; do
+            HEALTH=$(docker inspect --format='{{.State.Health.Status}}' aldeci-airgapped 2>/dev/null) || HEALTH="unknown"
+            [[ "$HEALTH" == "healthy" ]] && break
+            [[ $i -eq 60 ]] && { docker compose -f docker/docker-compose.air-gapped-test.yml logs; exit 1; }
+            sleep 1
+          done
+          # Run test suite
+          docker compose -f docker/docker-compose.air-gapped-test.yml up \
+            --exit-code-from aldeci-airgap-tester aldeci-airgap-tester
+
+      - name: Teardown
+        if: always()
+        run: docker compose -f docker/docker-compose.air-gapped-test.yml down -v

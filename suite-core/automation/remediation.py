@@ -557,7 +557,7 @@ class CWEFixRegistry:
                 line = line[: fstr_match.start()] + (
                     f'{prefix}"{sql_before}?{sql_after}", ({var_name},))'
                 )
-                result_lines.append(f"# FIXOPS: CWE-89 fix -- parameterized query (was f-string)")
+                result_lines.append("# FIXOPS: CWE-89 fix -- parameterized query (was f-string)")
                 result_lines.append(line)
                 continue
 
@@ -575,7 +575,7 @@ class CWEFixRegistry:
                 sql_template = pct_match.group(2).replace("%s", "?")
                 var_name = pct_match.group(3)
                 line = f'{prefix}"{sql_template}", ({var_name},))'
-                result_lines.append(f"# FIXOPS: CWE-89 fix -- parameterized query (was %-format)")
+                result_lines.append("# FIXOPS: CWE-89 fix -- parameterized query (was %-format)")
                 result_lines.append(line)
                 continue
 
@@ -593,7 +593,7 @@ class CWEFixRegistry:
                 sql_part = concat_match.group(2)
                 var_name = concat_match.group(3)
                 line = f'{prefix}"{sql_part} ?", ({var_name},))'
-                result_lines.append(f"# FIXOPS: CWE-89 fix -- parameterized query (was concatenation)")
+                result_lines.append("# FIXOPS: CWE-89 fix -- parameterized query (was concatenation)")
                 result_lines.append(line)
                 continue
 
@@ -1038,7 +1038,6 @@ class CWEFixRegistry:
         lines = source.splitlines()
         result_lines: List[str] = []
         needs_os = "import os" not in source
-        pathlib_used = "pathlib" in source
 
         # Add safe_join function at the top
         safe_join_fn = [

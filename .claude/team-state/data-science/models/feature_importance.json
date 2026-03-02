@@ -1,34 +1,28 @@
 {
   "model_version": "1.0.0",
+  "validated_at": "2026-03-02",
   "feature_importances": {
-    "asset_criticality": 0.572127,
-    "epss_score": 0.18706,
-    "network_exposure": 0.143679,
-    "in_kev": 0.061134,
-    "exploit_maturity": 0.0263,
-    "cvss_score": 0.008592,
-    "reachable": 0.001046,
-    "exploit_available": 3.1e-05,
-    "has_chain": 3e-05
+    "asset_criticality": 0.6252,
+    "epss_score": 0.2527,
+    "network_exposure": 0.0639,
+    "in_kev": 0.0227,
+    "exploit_maturity": 0.0163,
+    "cvss_score": 0.0112,
+    "reachable": 0.0061,
+    "exploit_available": 0.002,
+    "has_chain": 0.0001
   },
   "top_3_features": [
-    [
-      "asset_criticality",
-      0.5721273283617403
-    ],
-    [
-      "epss_score",
-      0.1870601734617155
-    ],
-    [
-      "network_exposure",
-      0.14367863342029275
-    ]
+    ["asset_criticality", 0.6252],
+    ["epss_score", 0.2527],
+    ["network_exposure", 0.0639]
   ],
   "interpretation": {
-    "asset_criticality": "Most important \u2014 business context dominates. CVSS alone is a poor predictor.",
-    "epss_score": "Second \u2014 EPSS probability of exploitation is the strongest empirical predictor.",
-    "network_exposure": "Third \u2014 internet-facing assets get priority over internal.",
-    "in_kev": "KEV membership provides strong binary signal for active exploitation."
-  }
+    "asset_criticality": "Most important — business context dominates. CVSS alone is a poor predictor. 62.5% of model decision weight.",
+    "epss_score": "Second — EPSS probability of exploitation is the strongest empirical predictor. 25.3% weight.",
+    "network_exposure": "Third — internet-facing assets get priority over internal. 6.4% weight.",
+    "in_kev": "KEV membership provides strong binary signal for active exploitation. 2.3% weight.",
+    "cvss_score": "Low importance — CVSS score only explains 1.1% of risk variance when other features are present. Confirms that CVSS alone is insufficient for prioritization."
+  },
+  "note": "Trained on 65 golden regression cases. asset_criticality dominance increased from 57.2% to 62.5% with expanded dataset. EPSS increased from 18.7% to 25.3%."
 }

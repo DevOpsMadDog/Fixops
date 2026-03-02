@@ -26,13 +26,11 @@ from __future__ import annotations
 
 import logging
 import time
-from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Mapping, Sequence
 
 from core.llm_providers import (
-    BaseLLMProvider,
     LLMProviderManager,
     LLMResponse,
 )

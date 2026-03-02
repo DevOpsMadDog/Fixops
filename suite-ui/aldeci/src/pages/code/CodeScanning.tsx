@@ -83,7 +83,7 @@ export default function CodeScanning() {
   const queryClient = useQueryClient();
 
   // ── Scanner Status Queries (parallel) ───────────────────────────────
-  const { data: sastStatus } = useQuery<ScannerStatus>({
+  const { data: sastStatus, isLoading: scannerStatusLoading } = useQuery<ScannerStatus>({
     queryKey: ['scanner-status', 'sast'],
     queryFn: () => sastApi.getStatus(),
     retry: false,
@@ -316,6 +316,30 @@ export default function CodeScanning() {
     };
     return styles[severity] || styles.info;
   };
+
+  if (scannerStatusLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="h-8 w-48 bg-gray-700/30 rounded animate-pulse" />
+            <div className="h-4 w-64 bg-gray-700/20 rounded animate-pulse mt-2" />
+          </div>
+        </div>
+        <div className="grid grid-cols-5 gap-3">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="p-3 rounded-lg border border-gray-700/30 bg-gray-900/40">
+              <div className="h-4 w-16 bg-gray-700/40 rounded animate-pulse mb-2" />
+              <div className="h-3 w-12 bg-gray-700/30 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+        <div className="border border-gray-700/30 bg-gray-900/40 rounded-lg p-6">
+          <div className="h-64 bg-gray-700/20 rounded animate-pulse" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

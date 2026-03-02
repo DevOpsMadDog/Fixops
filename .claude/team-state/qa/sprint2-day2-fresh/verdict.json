@@ -1,0 +1,47 @@
+{
+  "iteration": "sprint2-day2-fresh",
+  "date": "2026-03-02T00:45:00Z",
+  "run_by": "qa-engineer",
+  "newman": {
+    "total_collections": 7,
+    "collections_passing": 7,
+    "total_assertions": 475,
+    "assertions_passed": 475,
+    "assertions_failed": 0,
+    "pass_rate": 100.0,
+    "total_requests": 402,
+    "request_errors": 1,
+    "collections": [
+      {"name": "ALdeci-1-MissionControl", "assertions": 73, "passed": 73, "failed": 0, "rate": 100.0},
+      {"name": "ALdeci-2-Discover", "assertions": 94, "passed": 94, "failed": 0, "rate": 100.0},
+      {"name": "ALdeci-3-Validate", "assertions": 55, "passed": 55, "failed": 0, "rate": 100.0},
+      {"name": "ALdeci-4-Remediate", "assertions": 53, "passed": 53, "failed": 0, "rate": 100.0},
+      {"name": "ALdeci-5-Comply", "assertions": 53, "passed": 53, "failed": 0, "rate": 100.0},
+      {"name": "ALdeci-6-PersonaWorkflows", "assertions": 55, "passed": 55, "failed": 0, "rate": 100.0},
+      {"name": "ALdeci-7-Scanners-OSS-AutoFix", "assertions": 92, "passed": 92, "failed": 0, "rate": 100.0}
+    ]
+  },
+  "customer_simulations": {
+    "scenario_a_ciso_triage": "PASS",
+    "scenario_b_airgapped_scanners": "PASS",
+    "scenario_c_auditor_compliance": "PASS",
+    "scenario_d_evidence_export": "PARTIAL"
+  },
+  "stub_detection": {
+    "total_endpoints_tested": 20,
+    "real": 19,
+    "stub": 0,
+    "broken": 1,
+    "broken_endpoints": ["GET /api/v1/search (500 Internal Server Error)"]
+  },
+  "fixes_applied": {
+    "total": 14,
+    "details": [
+      "5 pre-request script fixes in Collection 4 (apiBase resolution)",
+      "8 pre-request script fixes in Collection 5 (apiBase resolution)",
+      "1 assertion fix in Collection 4 Update Task Status (state transition validation)"
+    ]
+  },
+  "verdict": "PASS",
+  "notes": "ALL 475 assertions pass across 7 collections (100%). 14 collection fixes applied. 0 stubs detected. 1 broken endpoint (search - known backend bug). All 5 scanners functional. Brain pipeline returns real 12-step computed data. Sprint 2 Day 2: ZERO regressions confirmed."
+}

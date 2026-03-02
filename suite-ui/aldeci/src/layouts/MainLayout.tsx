@@ -43,7 +43,9 @@ import {
   MessageSquare,
   Workflow,
   FolderKanban,
-  ShieldCheck
+  ShieldCheck,
+  Upload,
+  FlaskConical
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -96,6 +98,7 @@ const navigationSections: NavSection[] = [
     title: '🔍 CODE SUITE',
     items: [
       { id: 'scanner-dashboard', label: 'Scanner Dashboard', icon: Shield, path: '/discover/scanners', badge: 'CTEM+' },
+      { id: 'scanner-ingest', label: 'Scanner Ingest', icon: Upload, path: '/discover/scanner-ingest', badge: 'V7' },
       { id: 'code-scanning', label: 'Code Scanning', icon: Code, path: '/code/code-scanning' },
       { id: 'secrets-detection', label: 'Secrets Detection', icon: Key, path: '/code/secrets-detection' },
       { id: 'iac-scanning', label: 'Infrastructure as Code', icon: Building2, path: '/code/iac-scanning' },
@@ -120,6 +123,7 @@ const navigationSections: NavSection[] = [
     title: '⚔️ ATTACK SUITE',
     items: [
       { id: 'attack-lab', label: 'AI Pentesting (MPTE)', icon: Swords, path: '/attack/micro-pentest' },
+      { id: 'sandbox-verify', label: 'Sandbox Verification', icon: FlaskConical, path: '/attack/sandbox', badge: 'V5' },
       { id: 'attack-simulation', label: 'Attack Simulation', icon: Target, path: '/attack/attack-simulation' },
       { id: 'playbooks', label: 'Playbooks & Campaigns', icon: ClipboardList, path: '/protect/playbooks' },
       { id: 'playbook-editor', label: 'Playbook Editor', icon: FileText, path: '/protect/playbook-editor' },

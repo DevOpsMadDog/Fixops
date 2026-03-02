@@ -2,14 +2,25 @@
   "sprint": "Sprint 2 — Enterprise Demo",
   "date_range": "2026-03-01 to 2026-03-06",
   "owner": "marketing-head",
+  "last_updated": "2026-03-02T22:00:00Z",
   "week_1": [
     {
       "type": "one_pager",
-      "title": "Enterprise Demo Talking Points — 9 Differentiators",
+      "title": "Enterprise Demo Talking Points — 9 Differentiators (v4.0)",
       "status": "done",
       "file": ".claude/team-state/marketing/enterprise-demo-talking-points.md",
       "pillar": "V3, V5, V7",
-      "due": "2026-03-01"
+      "due": "2026-03-01",
+      "updated": "2026-03-02 — v4.0 with corrected parser LOC, verified scanner counts, 4-day urgency"
+    },
+    {
+      "type": "one_pager",
+      "title": "Enterprise Product One-Pager (Customer-Facing)",
+      "status": "done",
+      "file": ".claude/team-state/marketing/content/one-pager-enterprise-product.md",
+      "pillar": "V3, V5, V7",
+      "due": "2026-03-02",
+      "updated": "2026-03-02 — NEW: formal customer-facing product one-pager with ROI table"
     },
     {
       "type": "blog",
@@ -20,6 +31,15 @@
       "due": "2026-03-02"
     },
     {
+      "type": "blog",
+      "title": "Claude Finds the Vulnerabilities. ALdeci Decides What to DO About Them.",
+      "status": "done",
+      "file": ".claude/team-state/marketing/content/blog-claude-finds-aldeci-decides.md",
+      "pillar": "V3, V5",
+      "due": "2026-03-02",
+      "note": "Response to Anthropic Claude Code Security launch (Feb 20). Time-sensitive."
+    },
+    {
       "type": "linkedin",
       "title": "The 11,300 Finding Problem — And How We Solved It",
       "status": "done",
@@ -28,10 +48,19 @@
       "due": "2026-03-03"
     },
     {
+      "type": "linkedin",
+      "title": "500 More Zero-Days. Now What?",
+      "status": "done",
+      "file": ".claude/team-state/marketing/content/linkedin-500-more-zero-days.md",
+      "pillar": "V3, V5",
+      "due": "2026-03-03",
+      "note": "Claude Code Security hook for LinkedIn audience"
+    },
+    {
       "type": "demo_video_script",
       "title": "ALdeci 5-Min Enterprise Demo Script",
-      "status": "planned",
-      "file": "",
+      "status": "in-progress",
+      "file": ".claude/team-state/marketing/content/demo-video-script-5min.md",
       "pillar": "V3, V5, V7",
       "due": "2026-03-04"
     },
@@ -77,5 +106,12 @@
       "pillar": "V3, V5, V7",
       "due": "2026-03-12"
     }
-  ]
+  ],
+  "content_stats": {
+    "total_pieces": 12,
+    "done": 6,
+    "in_progress": 1,
+    "planned": 5,
+    "completion_rate": "50%"
+  }
 }

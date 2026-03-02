@@ -212,6 +212,51 @@ SECRETS_PATTERNS = {
         "high",
         "CWE-798",
     ),
+    # ── YAML/Config unquoted value patterns ──────────────────────────────
+    # These catch secrets in YAML/INI/TOML/env files where values are NOT quoted.
+    # E.g.: password: my_secret_value  OR  aws_secret_access_key: wJalrXUt...
+    "YAML/Config Password": (
+        r"(?i)(?:password|passwd|pwd|secret)['\"]?\s*[:=]\s*(?!['\"])([a-zA-Z0-9/+_\-\.@!#%]{8,64})(?:\s|$)",
+        "high",
+        "CWE-798",
+    ),
+    "YAML/Config API Key": (
+        r"(?i)(?:api[_-]?key|apikey|api[_-]?secret|app[_-]?secret|auth[_-]?token|access[_-]?token)['\"]?\s*[:=]\s*(?!['\"])([a-zA-Z0-9/+_\-]{16,128})(?:\s|$)",
+        "high",
+        "CWE-798",
+    ),
+    "YAML/Config AWS Secret": (
+        r"(?i)(?:aws[_-]?secret[_-]?access[_-]?key|aws[_-]?secret[_-]?key)['\"]?\s*[:=]\s*(?!['\"])([a-zA-Z0-9/+]{20,64})(?:\s|$)",
+        "critical",
+        "CWE-798",
+    ),
+    "YAML/Config Database URL": (
+        r"(?i)(?:database[_-]?url|db[_-]?url|database[_-]?uri|connection[_-]?string)['\"]?\s*[:=]\s*(?!['\"])(\S{10,256})(?:\s|$)",
+        "high",
+        "CWE-798",
+    ),
+    "Env File Secret": (
+        r"(?i)^(?:export\s+)?(?:SECRET|TOKEN|PRIVATE|AUTH)[_A-Z0-9]*\s*=\s*(?!['\"])([a-zA-Z0-9/+_\-\.]{8,128})(?:\s|$)",
+        "high",
+        "CWE-798",
+    ),
+    "Azure/GCP Key": (
+        r"(?i)(?:azure[_-]?(?:client[_-]?secret|storage[_-]?key|account[_-]?key)|google[_-]?(?:api[_-]?key|service[_-]?account[_-]?key))['\"]?\s*[:=]\s*['\"]?([a-zA-Z0-9/+=_\-]{16,128})",
+        "critical",
+        "CWE-798",
+    ),
+    "Stripe/Twilio Key": (
+        r"(?:sk_live_[0-9a-zA-Z]{24,}|rk_live_[0-9a-zA-Z]{24,}|SK[0-9a-f]{32}|AC[0-9a-f]{32})",
+        "critical",
+        "CWE-798",
+    ),
+    "SendGrid API Key": (r"SG\.[a-zA-Z0-9_\-]{22}\.[a-zA-Z0-9_\-]{43}", "critical", "CWE-798"),
+    "NPM Token": (r"npm_[a-zA-Z0-9]{36}", "critical", "CWE-798"),
+    "Heroku API Key": (
+        r"(?i)heroku[_-]?api[_-]?key['\"]?\s*[:=]\s*['\"]?([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})",
+        "high",
+        "CWE-798",
+    ),
 }
 
 # IaC misconfiguration patterns

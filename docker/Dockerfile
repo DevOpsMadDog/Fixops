@@ -76,6 +76,12 @@ RUN mkdir -p /app/.fixops_data /app/data \
 # Make scripts executable
 RUN chmod +x /app/scripts/*.sh
 
+# Set ownership of app directory for non-root user
+RUN chown -R aldeci:aldeci /app
+
+# Switch to non-root user (CWE-250: Running with unnecessary privileges)
+USER aldeci
+
 # Labels for container identification
 LABEL org.opencontainers.image.title="ALdeci CTEM+ Platform"
 LABEL org.opencontainers.image.description="Decision Intelligence for Application Security"

@@ -28,7 +28,6 @@ Environment variables:
 
 from __future__ import annotations
 
-import hashlib
 import inspect
 import json
 import logging
@@ -38,9 +37,9 @@ import time
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -259,15 +258,15 @@ class MCPToolRegistry:
                 # Try to get type hint
                 hint = type_hints.get(param_name)
                 if hint:
-                    if hint == int:
+                    if hint is int:
                         prop = {"type": "integer"}
-                    elif hint == float:
+                    elif hint is float:
                         prop = {"type": "number"}
-                    elif hint == bool:
+                    elif hint is bool:
                         prop = {"type": "boolean"}
-                    elif hint == list or (hasattr(hint, "__origin__") and hint.__origin__ is list):
+                    elif hint is list or (hasattr(hint, "__origin__") and hint.__origin__ is list):
                         prop = {"type": "array", "items": {"type": "string"}}
-                    elif hint == dict:
+                    elif hint is dict:
                         prop = {"type": "object"}
 
                 prop["description"] = param_name.replace("_", " ").title()

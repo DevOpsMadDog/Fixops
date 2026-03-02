@@ -7,7 +7,7 @@ import uuid
 from datetime import datetime as dt
 from datetime import timezone as tz
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple
+from typing import Any, Callable, Dict, List, Literal, Optional
 
 import yaml  # type: ignore[import]
 from core.paths import verify_allowlisted_path
@@ -1354,7 +1354,7 @@ def _build_export_bundle(
                 "score": score,
                 "related_cwes": ctrl_def.get("cwes", []),
                 "evidence_type": ctrl_def.get("evidence_type", "scan_result"),
-                "notes": f"Auto-assessed by ALdeci CTEM+ platform",
+                "notes": "Auto-assessed by ALdeci CTEM+ platform",
             }
             if include_evidence:
                 ctrl_entry["evidence_items"] = [

@@ -1,5 +1,3 @@
-version: '3.8'
-
 # Integration testing infrastructure for real storage backend tests
 # Usage: docker compose -f docker-compose.integration.yml up -d
 

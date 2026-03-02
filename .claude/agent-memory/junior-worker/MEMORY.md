@@ -138,6 +138,47 @@ Complete inventory of suite-ui/aldeci/ (FROZEN legacy UI — DO NOT MODIFY):
 - Task: Counted and documented all components without modifying any files per FROZEN status
 - Output location: `.claude/team-state/swarm/outputs/swarm-119/` contains result.md (detailed inventory) and status.json
 
+### Malware Detector Tests (swarm-malware-detector-unit)
+`tests/test_malware_detector.py` has 146 tests covering 100% of
+`suite-core/core/malware_detector.py` (119 stmts, 24 branches). All pass in 0.26s.
+- No external deps; pure Python (hashlib, re, math, Counter, dataclasses, enum)
+- Key source bug discovered: `_check_behavioral` applies regex to `low = content.lower()`
+  but pattern contains `XMLHttpRequest` (uppercase) — so XHR branch NEVER matches.
+  Only `fetch` and `requests\.post` (lowercase) match in practice.
+- Hash-check tests use `unittest.mock.patch.dict` on `KNOWN_MALWARE_HASHES` to
+  inject SHA256/MD5 of known content without needing real malware files.
+- Entropy tests use `"".join(chr(i) for i in range(256)) * 5` to generate >7.2 bits.
+- Singleton reset pattern: `_mod._detector = None` then restore in finally block.
+
+### Python 3.14 Async Test Pattern (httpx mocking)
+In Python 3.14 `asyncio.get_event_loop()` raises RuntimeError in test threads.
+Use `async def test_*` methods directly — pytest-asyncio `asyncio_mode = "auto"` in
+pyproject.toml handles the event loop automatically. NEVER use
+`asyncio.get_event_loop().run_until_complete()` in tests.
+
+For mocking httpx.AsyncClient context manager pattern:
+```python
+with patch("core.module.httpx.AsyncClient") as mock_cls:
+    mock_client = AsyncMock()
+    mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_cls.return_value.__aexit__ = AsyncMock(return_value=None)
+    result = await some_function()
+```
+To capture constructor kwargs, use `mock_cls.side_effect = lambda *a, **kw: ...`.
+Patch at `core.module.httpx.AsyncClient` (module-level), not `httpx.AsyncClient`.
+
+Build httpx.Response without network: `httpx.Response(status_code=N, text="body")`.
+
+### API Fuzzer Tests (swarm-api-fuzzer-unit)
+`tests/test_api_fuzzer.py` has 110 tests covering 100% of
+`suite-core/core/api_fuzzer.py` (137 stmts, 32 branches). All pass in 0.19s.
+- 11 test classes covering all public symbols: enums, dataclasses, FUZZ_PAYLOADS,
+  ApiFuzzerEngine (init, discover_from_openapi, _analyze_response, fuzz_endpoints),
+  get_api_fuzzer_engine singleton
+- Async tests use `async def` with no decorator (auto mode)
+- Key behaviors verified: 500->ERROR_DISCLOSURE, traceback->STACK_TRACE,
+  sql_syntax->INJECTION (CWE-89), auth_required + 200 -> AUTH_BYPASS (CWE-287)
+
 ### API Endpoint Inventory (swarm-120, V7 Docs Update)
 FastAPI app endpoint enumeration via `create_app()` route inspection:
 - **Total routes**: 766

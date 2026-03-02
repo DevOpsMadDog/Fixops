@@ -1,6 +1,6 @@
 # Competitive Battlecard: ALdeci vs. Endor Labs
 
-**Updated**: 2026-03-01 | **Source**: AI Researcher Pulse + Codebase Verification
+**Updated**: 2026-03-02 | **Source**: AI Researcher Pulse (Mar 2) + Codebase Verification
 **Pillars**: [V3] Decision Intelligence, [V5] MPTE
 
 ---

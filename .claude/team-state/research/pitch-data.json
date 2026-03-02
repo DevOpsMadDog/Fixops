@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-03-01",
+  "last_updated": "2026-03-02T14:00:00Z",
   "analyst": "ai-researcher",
   "market_size": {
     "tam": "$380B — Global cybersecurity market (2026 est.)",
@@ -7,12 +7,20 @@
     "som": "$2.5B — Mid-market and enterprise CTEM/Decision Intelligence platforms (initial addressable)"
   },
   "market_growth": {
-    "cybersecurity_vc_2025": "$20.7B across 820 deals (52% YoY growth)",
-    "cybersecurity_ma_2025": "$84B+ disclosed, 426 deals total",
-    "ma_jan_2026": "38 deals — 3rd highest monthly count ever",
+    "cybersecurity_vc_2025": "$13.97B across 392 VC rounds (47% YoY) + $20.7B total incl. growth equity across 820 deals",
+    "cybersecurity_ma_2025": "$84B+ disclosed, 426 deals total, 8 deals >$1B",
+    "ma_jan_2026": "38 deals — 3rd highest monthly count ever, ~477 projected annually",
     "gartner_ctem_prediction": "3x breach reduction for CTEM adopters by 2026",
     "agentic_ai_adoption": "67% of orgs (Kiteworks 2026 report), 100% of security leaders have it on roadmap",
-    "mcp_adoption_forecast": "30% of enterprise app vendors will launch MCP servers in 2026 (Forrester)"
+    "mcp_adoption_forecast": "30% of enterprise app vendors will launch MCP servers in 2026 (Forrester)",
+    "mcp_sdk_downloads": "97M monthly across Python + TypeScript",
+    "ai_adversary_ops_growth": "89% YoY increase (CrowdStrike 2026 Threat Report)",
+    "epss_database_size": "317,833 CVEs scored",
+    "cisa_kev_entries": "1,529 as of v2026.02.26",
+    "vllm_status": "v0.16.0 — FIPS 140-3 compliant, production standard for self-hosted inference",
+    "claude_code_security": "Feb 20, 2026 — 500+ zero-days found, cyber stocks dropped, industry disruption",
+    "ai_agent_adoption": "77% of orgs running GenAI in security, 67% using agentic AI (Kiteworks 2026)",
+    "eCrime_breakout_time": "29 minutes average, 27 seconds fastest (CrowdStrike 2026)"
   },
   "competitors": [
     {
@@ -32,7 +40,7 @@
       "valuation": "$32B (Google acquisition price)",
       "arr": "$500M+ (est.)",
       "key_features": ["Agentless cloud scanning", "DSPM", "CDR", "Code scanning", "MCP integration"],
-      "status": "Google acquisition closing March 2026. EU approved.",
+      "status": "Google acquisition closing March 2026. DOJ cleared, EU unconditionally approved Feb 10. Only AU/ZA/TR remain.",
       "aldeci_advantage": "Scanner-neutral Switzerland vs. Google lock-in. AppSec-focused vs. cloud-only."
     },
     {
@@ -115,7 +123,18 @@
     "Browser + identity security expansion by endpoint vendors (CrowdStrike)",
     "AI-enabled adversary operations up 89% YoY (CrowdStrike 2026 Threat Report)",
     "Cybersecurity VC funding remains strong at $20.7B in 2025 (52% YoY growth)",
-    "Premium valuations for AI-native security startups vs. non-AI peers"
+    "Premium valuations for AI-native security startups vs. non-AI peers",
+    "Post-quantum cryptography entering production (Google HTTPS PQC, NIST ML-KEM standardized)",
+    "vLLM v0.16 achieves FIPS 140-3 — self-hosted LLM is enterprise-grade",
+    "OpenAI deploying to classified DoD networks — air-gapped AI is national security priority",
+    "MCP security concerns emerging (prompt injection, tool poisoning) — governance tools launching",
+    "Tenable predicts automated remediation gets enterprise go-ahead in 2026",
+    "Claude Code Security disrupts traditional SAST/DAST vendors — cyber stocks dropped Feb 20",
+    "AI agent security emerges as new category — 92% of professionals concerned about AI agent risks",
+    "'Vibe hacking' — adversaries exploiting AI agents via prompt injection and tool misuse",
+    "eCrime breakout time hits 27 seconds — automated remediation now critical",
+    "Wiz Code integrating Dazz ($450M) for cloud-to-code remediation",
+    "Semgrep StackHawk integration addresses DAST gap — validating all-in-one approach"
   ],
   "differentiators": [
     "8 built-in fallback scanners (works air-gapped, no external tools needed)",
@@ -127,7 +146,9 @@
     "AI-powered AutoFix with 10 fix types and confidence-based auto-apply",
     "MCP-native with 650+ auto-discovered tools (first-mover in AI-native AppSec)",
     "Scanner-neutral Switzerland positioning (no vendor lock-in, day 1 value)",
-    "Quantum-secure evidence (FIPS 204 ML-DSA + RSA hybrid — 5-year head start)"
+    "Quantum-secure evidence (FIPS 204 ML-DSA + RSA hybrid — 5-year head start)",
+    "Claude Code Security integration story — 'Claude finds, ALdeci decides' — complementary positioning",
+    "AI agent security testing via MPTE — emerging attack surface validation"
   ],
   "demo_010_data": {
     "status": "COMPLETED",

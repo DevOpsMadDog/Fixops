@@ -1,6 +1,6 @@
 {
-  "date": "2026-02-27",
-  "collected_at": "2026-02-27T06:53:48.032990+00:00",
+  "date": "2026-03-02",
+  "collected_at": "2026-03-01T13:32:13.741211+00:00",
   "epss": {
     "high_probability_cves": [
       {
@@ -26,584 +26,124 @@
       {
         "cve_id": "CVE-2024-27199",
         "epss": 0.94489,
-        "percentile": 1.0
+        "percentile": 0.99999
       },
       {
         "cve_id": "CVE-2018-7600",
         "epss": 0.94489,
-        "percentile": 1.0
+        "percentile": 0.99999
       },
       {
         "cve_id": "CVE-2021-22986",
         "epss": 0.94485,
-        "percentile": 1.0
+        "percentile": 0.99999
       },
       {
         "cve_id": "CVE-2018-13379",
         "epss": 0.94475,
-        "percentile": 1.0
+        "percentile": 0.99998
       },
       {
         "cve_id": "CVE-2019-17558",
         "epss": 0.94474,
-        "percentile": 1.0
+        "percentile": 0.99998
       },
       {
         "cve_id": "CVE-2019-3396",
         "epss": 0.94471,
-        "percentile": 1.0
+        "percentile": 0.99998
       },
       {
         "cve_id": "CVE-2016-10033",
         "epss": 0.9447,
-        "percentile": 1.0
+        "percentile": 0.99997
       },
       {
         "cve_id": "CVE-2022-46169",
         "epss": 0.94469,
-        "percentile": 1.0
+        "percentile": 0.99997
       },
       {
         "cve_id": "CVE-2020-1938",
         "epss": 0.94469,
-        "percentile": 1.0
+        "percentile": 0.99997
       },
       {
         "cve_id": "CVE-2024-6670",
         "epss": 0.94468,
-        "percentile": 1.0
+        "percentile": 0.99996
       },
       {
         "cve_id": "CVE-2023-35078",
         "epss": 0.94468,
-        "percentile": 1.0
+        "percentile": 0.99996
       },
       {
         "cve_id": "CVE-2019-2725",
         "epss": 0.94468,
-        "percentile": 1.0
+        "percentile": 0.99996
       },
       {
         "cve_id": "CVE-2021-22205",
         "epss": 0.94467,
-        "percentile": 1.0
+        "percentile": 0.99995
       },
       {
         "cve_id": "CVE-2018-1000861",
         "epss": 0.94467,
-        "percentile": 1.0
+        "percentile": 0.99995
       },
       {
         "cve_id": "CVE-2024-23897",
         "epss": 0.94466,
-        "percentile": 1.0
+        "percentile": 0.99995
       },
       {
         "cve_id": "CVE-2014-0160",
         "epss": 0.94464,
-        "percentile": 1.0
-      },
-      {
-        "cve_id": "CVE-2022-22963",
-        "epss": 0.94462,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2019-11510",
-        "epss": 0.94462,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2022-22947",
-        "epss": 0.94461,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2021-44529",
-        "epss": 0.94461,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2019-16662",
-        "epss": 0.94461,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2019-15107",
-        "epss": 0.94461,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2022-44877",
-        "epss": 0.94457,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2021-22005",
-        "epss": 0.94457,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2022-1388",
-        "epss": 0.94456,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2019-0708",
-        "epss": 0.94456,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2020-14882",
-        "epss": 0.94454,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2020-3452",
-        "epss": 0.94452,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2023-40044",
-        "epss": 0.94449,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2022-30525",
-        "epss": 0.94445,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2022-22954",
-        "epss": 0.94444,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2019-19781",
-        "epss": 0.94442,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2023-32315",
-        "epss": 0.94441,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2019-1003000",
-        "epss": 0.94441,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2021-26084",
-        "epss": 0.9444,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2022-24112",
-        "epss": 0.94439,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2022-1040",
-        "epss": 0.94439,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2020-14883",
-        "epss": 0.94439,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2017-10271",
-        "epss": 0.94439,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2023-38035",
-        "epss": 0.94438,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2021-43798",
-        "epss": 0.94438,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2020-14750",
-        "epss": 0.94438,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2024-7593",
-        "epss": 0.94436,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2023-46747",
-        "epss": 0.94436,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2023-46604",
-        "epss": 0.94436,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2021-36260",
-        "epss": 0.94436,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2019-6340",
-        "epss": 0.94436,
-        "percentile": 0.9999
-      },
-      {
-        "cve_id": "CVE-2022-29464",
-        "epss": 0.94434,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2021-40438",
-        "epss": 0.94432,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2018-11776",
-        "epss": 0.94431,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2019-9670",
-        "epss": 0.9443,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2019-16759",
-        "epss": 0.9443,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2022-36804",
-        "epss": 0.94429,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2019-7609",
-        "epss": 0.94429,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2022-22965",
-        "epss": 0.94428,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2022-40684",
-        "epss": 0.94427,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2024-4040",
-        "epss": 0.94426,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2020-5902",
-        "epss": 0.94426,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2024-36401",
-        "epss": 0.94425,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2021-40539",
-        "epss": 0.94424,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2023-35082",
-        "epss": 0.94423,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2018-2628",
-        "epss": 0.94422,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2018-15961",
-        "epss": 0.94422,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2020-11651",
-        "epss": 0.94421,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2023-43208",
-        "epss": 0.94416,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2020-25223",
-        "epss": 0.94415,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2019-0604",
-        "epss": 0.94415,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2024-21887",
-        "epss": 0.94412,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2021-21985",
-        "epss": 0.94412,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2020-2551",
-        "epss": 0.94412,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2017-7269",
-        "epss": 0.94411,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2021-42013",
-        "epss": 0.9441,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2022-26134",
-        "epss": 0.94408,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2020-0796",
-        "epss": 0.94408,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2019-7256",
-        "epss": 0.94406,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2022-24990",
-        "epss": 0.94404,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2018-0296",
-        "epss": 0.94404,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2021-20090",
-        "epss": 0.94401,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2020-25213",
-        "epss": 0.94401,
-        "percentile": 0.9998
-      },
-      {
-        "cve_id": "CVE-2023-44487",
-        "epss": 0.944,
-        "percentile": 0.9997
-      },
-      {
-        "cve_id": "CVE-2022-0543",
-        "epss": 0.94398,
-        "percentile": 0.9997
-      },
-      {
-        "cve_id": "CVE-2022-21587",
-        "epss": 0.94397,
-        "percentile": 0.9997
-      },
-      {
-        "cve_id": "CVE-2024-3273",
-        "epss": 0.94396,
-        "percentile": 0.9997
-      },
-      {
-        "cve_id": "CVE-2020-0688",
-        "epss": 0.94396,
-        "percentile": 0.9997
-      },
-      {
-        "cve_id": "CVE-2022-35914",
-        "epss": 0.94395,
-        "percentile": 0.9997
-      },
-      {
-        "cve_id": "CVE-2023-20887",
-        "epss": 0.94393,
-        "percentile": 0.9997
-      },
-      {
-        "cve_id": "CVE-2019-16278",
-        "epss": 0.94393,
-        "percentile": 0.9997
-      },
-      {
-        "cve_id": "CVE-2017-3506",
-        "epss": 0.94393,
-        "percentile": 0.9997
-      },
-      {
-        "cve_id": "CVE-2022-24706",
-        "epss": 0.94392,
-        "percentile": 0.9997
-      },
-      {
-        "cve_id": "CVE-2021-38647",
-        "epss": 0.94392,
-        "percentile": 0.9997
-      },
-      {
-        "cve_id": "CVE-2021-41773",
-        "epss": 0.94391,
-        "percentile": 0.9997
-      },
-      {
-        "cve_id": "CVE-2021-21975",
-        "epss": 0.9439,
-        "percentile": 0.9997
-      },
-      {
-        "cve_id": "CVE-2023-24489",
-        "epss": 0.94389,
-        "percentile": 0.9997
-      },
-      {
-        "cve_id": "CVE-2023-33246",
-        "epss": 0.94388,
-        "percentile": 0.9997
-      },
-      {
-        "cve_id": "CVE-2020-16846",
-        "epss": 0.94387,
-        "percentile": 0.9997
-      },
-      {
-        "cve_id": "CVE-2021-35464",
-        "epss": 0.94386,
-        "percentile": 0.9997
+        "percentile": 0.99995
       }
     ],
     "trending_up": [
       {
         "cve_id": "CVE-2024-27198",
-        "epss": 0.94579,
-        "signal": "high_exploitation_probability"
+        "epss": 0.94579
       },
       {
         "cve_id": "CVE-2023-23752",
-        "epss": 0.94527,
-        "signal": "high_exploitation_probability"
+        "epss": 0.94527
       },
       {
         "cve_id": "CVE-2017-8917",
-        "epss": 0.94513,
-        "signal": "high_exploitation_probability"
+        "epss": 0.94513
       },
       {
         "cve_id": "CVE-2017-1000353",
-        "epss": 0.94508,
-        "signal": "high_exploitation_probability"
+        "epss": 0.94508
       },
       {
         "cve_id": "CVE-2024-27199",
-        "epss": 0.94489,
-        "signal": "high_exploitation_probability"
+        "epss": 0.94489
       },
       {
         "cve_id": "CVE-2018-7600",
-        "epss": 0.94489,
-        "signal": "high_exploitation_probability"
+        "epss": 0.94489
       },
       {
         "cve_id": "CVE-2021-22986",
-        "epss": 0.94485,
-        "signal": "high_exploitation_probability"
+        "epss": 0.94485
       },
       {
         "cve_id": "CVE-2018-13379",
-        "epss": 0.94475,
-        "signal": "high_exploitation_probability"
+        "epss": 0.94475
       },
       {
         "cve_id": "CVE-2019-17558",
-        "epss": 0.94474,
-        "signal": "high_exploitation_probability"
+        "epss": 0.94474
       },
       {
         "cve_id": "CVE-2019-3396",
-        "epss": 0.94471,
-        "signal": "high_exploitation_probability"
-      },
-      {
-        "cve_id": "CVE-2016-10033",
-        "epss": 0.9447,
-        "signal": "high_exploitation_probability"
-      },
-      {
-        "cve_id": "CVE-2022-46169",
-        "epss": 0.94469,
-        "signal": "high_exploitation_probability"
-      },
-      {
-        "cve_id": "CVE-2020-1938",
-        "epss": 0.94469,
-        "signal": "high_exploitation_probability"
-      },
-      {
-        "cve_id": "CVE-2024-6670",
-        "epss": 0.94468,
-        "signal": "high_exploitation_probability"
-      },
-      {
-        "cve_id": "CVE-2023-35078",
-        "epss": 0.94468,
-        "signal": "high_exploitation_probability"
-      },
-      {
-        "cve_id": "CVE-2019-2725",
-        "epss": 0.94468,
-        "signal": "high_exploitation_probability"
-      },
-      {
-        "cve_id": "CVE-2021-22205",
-        "epss": 0.94467,
-        "signal": "high_exploitation_probability"
-      },
-      {
-        "cve_id": "CVE-2018-1000861",
-        "epss": 0.94467,
-        "signal": "high_exploitation_probability"
-      },
-      {
-        "cve_id": "CVE-2024-23897",
-        "epss": 0.94466,
-        "signal": "high_exploitation_probability"
-      },
-      {
-        "cve_id": "CVE-2014-0160",
-        "epss": 0.94464,
-        "signal": "high_exploitation_probability"
+        "epss": 0.94471
       }
     ],
     "newly_weaponized": [
@@ -646,1135 +186,202 @@
       {
         "cve_id": "CVE-2019-3396",
         "epss": 0.94471
-      },
-      {
-        "cve_id": "CVE-2016-10033",
-        "epss": 0.9447
-      },
-      {
-        "cve_id": "CVE-2022-46169",
-        "epss": 0.94469
-      },
-      {
-        "cve_id": "CVE-2020-1938",
-        "epss": 0.94469
-      },
-      {
-        "cve_id": "CVE-2024-6670",
-        "epss": 0.94468
-      },
-      {
-        "cve_id": "CVE-2023-35078",
-        "epss": 0.94468
-      },
-      {
-        "cve_id": "CVE-2019-2725",
-        "epss": 0.94468
-      },
-      {
-        "cve_id": "CVE-2021-22205",
-        "epss": 0.94467
-      },
-      {
-        "cve_id": "CVE-2018-1000861",
-        "epss": 0.94467
-      },
-      {
-        "cve_id": "CVE-2024-23897",
-        "epss": 0.94466
-      },
-      {
-        "cve_id": "CVE-2014-0160",
-        "epss": 0.94464
-      },
-      {
-        "cve_id": "CVE-2022-22963",
-        "epss": 0.94462
-      },
-      {
-        "cve_id": "CVE-2019-11510",
-        "epss": 0.94462
-      },
-      {
-        "cve_id": "CVE-2022-22947",
-        "epss": 0.94461
-      },
-      {
-        "cve_id": "CVE-2021-44529",
-        "epss": 0.94461
-      },
-      {
-        "cve_id": "CVE-2019-16662",
-        "epss": 0.94461
-      },
-      {
-        "cve_id": "CVE-2019-15107",
-        "epss": 0.94461
-      },
-      {
-        "cve_id": "CVE-2022-44877",
-        "epss": 0.94457
-      },
-      {
-        "cve_id": "CVE-2021-22005",
-        "epss": 0.94457
-      },
-      {
-        "cve_id": "CVE-2022-1388",
-        "epss": 0.94456
-      },
-      {
-        "cve_id": "CVE-2019-0708",
-        "epss": 0.94456
-      },
-      {
-        "cve_id": "CVE-2020-14882",
-        "epss": 0.94454
-      },
-      {
-        "cve_id": "CVE-2020-3452",
-        "epss": 0.94452
-      },
-      {
-        "cve_id": "CVE-2023-40044",
-        "epss": 0.94449
-      },
-      {
-        "cve_id": "CVE-2022-30525",
-        "epss": 0.94445
-      },
-      {
-        "cve_id": "CVE-2022-22954",
-        "epss": 0.94444
-      },
-      {
-        "cve_id": "CVE-2019-19781",
-        "epss": 0.94442
-      },
-      {
-        "cve_id": "CVE-2023-32315",
-        "epss": 0.94441
-      },
-      {
-        "cve_id": "CVE-2019-1003000",
-        "epss": 0.94441
-      },
-      {
-        "cve_id": "CVE-2021-26084",
-        "epss": 0.9444
-      },
-      {
-        "cve_id": "CVE-2022-24112",
-        "epss": 0.94439
-      },
-      {
-        "cve_id": "CVE-2022-1040",
-        "epss": 0.94439
-      },
-      {
-        "cve_id": "CVE-2020-14883",
-        "epss": 0.94439
-      },
-      {
-        "cve_id": "CVE-2017-10271",
-        "epss": 0.94439
-      },
-      {
-        "cve_id": "CVE-2023-38035",
-        "epss": 0.94438
-      },
-      {
-        "cve_id": "CVE-2021-43798",
-        "epss": 0.94438
-      },
-      {
-        "cve_id": "CVE-2020-14750",
-        "epss": 0.94438
-      },
-      {
-        "cve_id": "CVE-2024-7593",
-        "epss": 0.94436
-      },
-      {
-        "cve_id": "CVE-2023-46747",
-        "epss": 0.94436
-      },
-      {
-        "cve_id": "CVE-2023-46604",
-        "epss": 0.94436
-      },
-      {
-        "cve_id": "CVE-2021-36260",
-        "epss": 0.94436
-      },
-      {
-        "cve_id": "CVE-2019-6340",
-        "epss": 0.94436
-      },
-      {
-        "cve_id": "CVE-2022-29464",
-        "epss": 0.94434
-      },
-      {
-        "cve_id": "CVE-2021-40438",
-        "epss": 0.94432
-      },
-      {
-        "cve_id": "CVE-2018-11776",
-        "epss": 0.94431
-      },
-      {
-        "cve_id": "CVE-2019-9670",
-        "epss": 0.9443
-      },
-      {
-        "cve_id": "CVE-2019-16759",
-        "epss": 0.9443
-      },
-      {
-        "cve_id": "CVE-2022-36804",
-        "epss": 0.94429
-      },
-      {
-        "cve_id": "CVE-2019-7609",
-        "epss": 0.94429
-      },
-      {
-        "cve_id": "CVE-2022-22965",
-        "epss": 0.94428
-      },
-      {
-        "cve_id": "CVE-2022-40684",
-        "epss": 0.94427
-      },
-      {
-        "cve_id": "CVE-2024-4040",
-        "epss": 0.94426
-      },
-      {
-        "cve_id": "CVE-2020-5902",
-        "epss": 0.94426
-      },
-      {
-        "cve_id": "CVE-2024-36401",
-        "epss": 0.94425
-      },
-      {
-        "cve_id": "CVE-2021-40539",
-        "epss": 0.94424
-      },
-      {
-        "cve_id": "CVE-2023-35082",
-        "epss": 0.94423
-      },
-      {
-        "cve_id": "CVE-2018-2628",
-        "epss": 0.94422
-      },
-      {
-        "cve_id": "CVE-2018-15961",
-        "epss": 0.94422
-      },
-      {
-        "cve_id": "CVE-2020-11651",
-        "epss": 0.94421
-      },
-      {
-        "cve_id": "CVE-2023-43208",
-        "epss": 0.94416
-      },
-      {
-        "cve_id": "CVE-2020-25223",
-        "epss": 0.94415
-      },
-      {
-        "cve_id": "CVE-2019-0604",
-        "epss": 0.94415
-      },
-      {
-        "cve_id": "CVE-2024-21887",
-        "epss": 0.94412
-      },
-      {
-        "cve_id": "CVE-2021-21985",
-        "epss": 0.94412
-      },
-      {
-        "cve_id": "CVE-2020-2551",
-        "epss": 0.94412
-      },
-      {
-        "cve_id": "CVE-2017-7269",
-        "epss": 0.94411
-      },
-      {
-        "cve_id": "CVE-2021-42013",
-        "epss": 0.9441
-      },
-      {
-        "cve_id": "CVE-2022-26134",
-        "epss": 0.94408
-      },
-      {
-        "cve_id": "CVE-2020-0796",
-        "epss": 0.94408
-      },
-      {
-        "cve_id": "CVE-2019-7256",
-        "epss": 0.94406
-      },
-      {
-        "cve_id": "CVE-2022-24990",
-        "epss": 0.94404
-      },
-      {
-        "cve_id": "CVE-2018-0296",
-        "epss": 0.94404
-      },
-      {
-        "cve_id": "CVE-2021-20090",
-        "epss": 0.94401
-      },
-      {
-        "cve_id": "CVE-2020-25213",
-        "epss": 0.94401
-      },
-      {
-        "cve_id": "CVE-2023-44487",
-        "epss": 0.944
-      },
-      {
-        "cve_id": "CVE-2022-0543",
-        "epss": 0.94398
-      },
-      {
-        "cve_id": "CVE-2022-21587",
-        "epss": 0.94397
-      },
-      {
-        "cve_id": "CVE-2024-3273",
-        "epss": 0.94396
-      },
-      {
-        "cve_id": "CVE-2020-0688",
-        "epss": 0.94396
-      },
-      {
-        "cve_id": "CVE-2022-35914",
-        "epss": 0.94395
-      },
-      {
-        "cve_id": "CVE-2023-20887",
-        "epss": 0.94393
-      },
-      {
-        "cve_id": "CVE-2019-16278",
-        "epss": 0.94393
-      },
-      {
-        "cve_id": "CVE-2017-3506",
-        "epss": 0.94393
-      },
-      {
-        "cve_id": "CVE-2022-24706",
-        "epss": 0.94392
-      },
-      {
-        "cve_id": "CVE-2021-38647",
-        "epss": 0.94392
-      },
-      {
-        "cve_id": "CVE-2021-41773",
-        "epss": 0.94391
-      },
-      {
-        "cve_id": "CVE-2021-21975",
-        "epss": 0.9439
-      },
-      {
-        "cve_id": "CVE-2023-24489",
-        "epss": 0.94389
-      },
-      {
-        "cve_id": "CVE-2023-33246",
-        "epss": 0.94388
-      },
-      {
-        "cve_id": "CVE-2020-16846",
-        "epss": 0.94387
-      },
-      {
-        "cve_id": "CVE-2021-35464",
-        "epss": 0.94386
       }
     ],
-    "source": "live",
-    "fetch_time": "2026-02-27T06:53:45.260916+00:00"
+    "total_tracked": 30
   },
   "nvd": {
     "new_critical": [
       {
-        "cve_id": "CVE-2025-10970",
-        "cvss_score": 9.8,
-        "severity": "CRITICAL",
-        "description": "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection') vulnerability in Kolay Software Inc. Talentics allows Blind SQL Injection.This issue affects Talentics: through 200",
-        "published": "2026-02-20T12:16:14.530"
+        "cve_id": "CVE-1999-0426",
+        "cvss": 9.8
       },
       {
-        "cve_id": "CVE-2025-67995",
-        "cvss_score": 9.8,
-        "severity": "CRITICAL",
-        "description": "Deserialization of Untrusted Data vulnerability in LoftOcean PatioTime patiotime allows Object Injection.This issue affects PatioTime: from n/a through < 2.1.",
-        "published": "2026-02-20T16:22:05.770"
+        "cve_id": "CVE-1999-1324",
+        "cvss": 9.8
       },
       {
-        "cve_id": "CVE-2025-67996",
-        "cvss_score": 9.8,
-        "severity": "CRITICAL",
-        "description": "Deserialization of Untrusted Data vulnerability in BoldThemes Nestin nestin allows Object Injection.This issue affects Nestin: from n/a through < 1.2.6.",
-        "published": "2026-02-20T16:22:05.907"
+        "cve_id": "CVE-2000-1218",
+        "cvss": 9.8
       },
       {
-        "cve_id": "CVE-2025-67997",
-        "cvss_score": 9.8,
-        "severity": "CRITICAL",
-        "description": "Deserialization of Untrusted Data vulnerability in BoldThemes Travelicious travelicious allows Object Injection.This issue affects Travelicious: from n/a through < 1.6.7.",
-        "published": "2026-02-20T16:22:06.063"
+        "cve_id": "CVE-2000-0944",
+        "cvss": 9.8
       },
       {
-        "cve_id": "CVE-2025-68541",
-        "cvss_score": 9.8,
-        "severity": "CRITICAL",
-        "description": "Deserialization of Untrusted Data vulnerability in BoldThemes Ippsum ippsum allows Object Injection.This issue affects Ippsum: from n/a through <= 1.2.0.",
-        "published": "2026-02-20T16:22:11.510"
+        "cve_id": "CVE-2001-1339",
+        "cvss": 9.8
       },
       {
-        "cve_id": "CVE-2025-68549",
-        "cvss_score": 9.9,
-        "severity": "CRITICAL",
-        "description": "Unrestricted Upload of File with Dangerous Type vulnerability in zozothemes Wiguard wiguard allows Upload a Web Shell to a Web Server.This issue affects Wiguard: from n/a through < 2.0.1.",
-        "published": "2026-02-20T16:22:12.037"
+        "cve_id": "CVE-2001-0248",
+        "cvss": 9.8
+      },
+      {
+        "cve_id": "CVE-2001-0249",
+        "cvss": 9.8
+      },
+      {
+        "cve_id": "CVE-2001-0395",
+        "cvss": 9.8
+      },
+      {
+        "cve_id": "CVE-2001-1291",
+        "cvss": 9.8
+      },
+      {
+        "cve_id": "CVE-2001-0609",
+        "cvss": 9.8
       }
     ],
-    "new_high": [
-      {
-        "cve_id": "CVE-2026-26050",
-        "cvss_score": 7.8,
-        "severity": "HIGH",
-        "description": "The installer for \u30b8\u30e7\u30d6\u30ed\u30b0\u96c6\u8a08/\u5206\u6790\u30bd\u30d5\u30c8\u30a6\u30a7\u30a2 RICOH\u30b8\u30e7\u30d6\u30ed\u30b0\u96c6\u8a08\u30c4\u30fc\u30eb versions prior to Ver.1.3.7 contains an issue with the DLL search path, which may lead to insecurely loading Dynamic Link Libraries. As a result, arb",
-        "published": "2026-02-20T09:15:54.617"
-      },
-      {
-        "cve_id": "CVE-2025-52744",
-        "cvss_score": 7.6,
-        "severity": "HIGH",
-        "description": "Improper Control of Generation of Code ('Code Injection') vulnerability in inpersttion Inpersttion For Theme err-our-team allows Code Injection.This issue affects Inpersttion For Theme: from n/a throu",
-        "published": "2026-02-20T16:22:01.507"
-      },
-      {
-        "cve_id": "CVE-2025-53217",
-        "cvss_score": 7.6,
-        "severity": "HIGH",
-        "description": "Missing Authorization vulnerability in staviravn AIO WP Builder all-in-one-wp-builder allows Exploiting Incorrectly Configured Access Control Security Levels.This issue affects AIO WP Builder: from n/",
-        "published": "2026-02-20T16:22:01.647"
-      },
-      {
-        "cve_id": "CVE-2025-53228",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in jezza101 bbpress Simple Advert Units bbpress-simple-advert-units allows Reflected XSS.This issue a",
-        "published": "2026-02-20T16:22:01.780"
-      },
-      {
-        "cve_id": "CVE-2025-53231",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in wpdevstudio Easy Taxonomy Images easy-taxonomy-images allows Stored XSS.This issue affects Easy Ta",
-        "published": "2026-02-20T16:22:01.937"
-      },
-      {
-        "cve_id": "CVE-2025-53233",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in RylanH Storyform storyform allows Reflected XSS.This issue affects Storyform: from n/a through <= ",
-        "published": "2026-02-20T16:22:02.077"
-      },
-      {
-        "cve_id": "CVE-2025-53237",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in Soflyy WP Wizard Cloak wp-wizard-cloak allows Reflected XSS.This issue affects WP Wizard Cloak: fr",
-        "published": "2026-02-20T16:22:02.223"
-      },
-      {
-        "cve_id": "CVE-2025-60087",
-        "cvss_score": 8.1,
-        "severity": "HIGH",
-        "description": "Improper Control of Filename for Include/Require Statement in PHP Program ('PHP Remote File Inclusion') vulnerability in Nenad Obradovic Extensive VC Addons for WPBakery page builder extensive-vc-addo",
-        "published": "2026-02-20T16:22:02.367"
-      },
-      {
-        "cve_id": "CVE-2025-67971",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in WPManageNinja FluentCart fluent-cart allows Reflected XSS.This issue affects FluentCart: from n/a ",
-        "published": "2026-02-20T16:22:03.293"
-      },
-      {
-        "cve_id": "CVE-2025-67972",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in fox-themes Prague prague-plugins allows Reflected XSS.This issue affects Prague: from n/a through ",
-        "published": "2026-02-20T16:22:03.430"
-      },
-      {
-        "cve_id": "CVE-2025-67974",
-        "cvss_score": 7.5,
-        "severity": "HIGH",
-        "description": "Missing Authorization vulnerability in WP Legal Pages WPLegalPages wplegalpages allows Exploiting Incorrectly Configured Access Control Security Levels.This issue affects WPLegalPages: from n/a throug",
-        "published": "2026-02-20T16:22:03.680"
-      },
-      {
-        "cve_id": "CVE-2025-67977",
-        "cvss_score": 8.2,
-        "severity": "HIGH",
-        "description": "Missing Authorization vulnerability in VillaTheme HAPPY happy-helpdesk-support-ticket-system allows Exploiting Incorrectly Configured Access Control Security Levels.This issue affects HAPPY: from n/a ",
-        "published": "2026-02-20T16:22:03.933"
-      },
-      {
-        "cve_id": "CVE-2025-67978",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in FixBD Educare educare allows Reflected XSS.This issue affects Educare: from n/a through <= 1.6.1.",
-        "published": "2026-02-20T16:22:04.063"
-      },
-      {
-        "cve_id": "CVE-2025-67980",
-        "cvss_score": 8.1,
-        "severity": "HIGH",
-        "description": "Improper Control of Filename for Include/Require Statement in PHP Program ('PHP Remote File Inclusion') vulnerability in thembay Hara hara allows PHP Local File Inclusion.This issue affects Hara: from",
-        "published": "2026-02-20T16:22:04.323"
-      },
-      {
-        "cve_id": "CVE-2025-67981",
-        "cvss_score": 8.1,
-        "severity": "HIGH",
-        "description": "Improper Control of Filename for Include/Require Statement in PHP Program ('PHP Remote File Inclusion') vulnerability in thembay Besa besa allows PHP Local File Inclusion.This issue affects Besa: from",
-        "published": "2026-02-20T16:22:04.450"
-      },
-      {
-        "cve_id": "CVE-2025-67982",
-        "cvss_score": 8.1,
-        "severity": "HIGH",
-        "description": "Improper Control of Filename for Include/Require Statement in PHP Program ('PHP Remote File Inclusion') vulnerability in thembay Urna urna allows PHP Local File Inclusion.This issue affects Urna: from",
-        "published": "2026-02-20T16:22:04.580"
-      },
-      {
-        "cve_id": "CVE-2025-67984",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in calliko NPS computy nps-computy allows DOM-Based XSS.This issue affects NPS computy: from n/a thro",
-        "published": "2026-02-20T16:22:04.710"
-      },
-      {
-        "cve_id": "CVE-2025-67987",
-        "cvss_score": 8.5,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection') vulnerability in ExpressTech Systems Quiz And Survey Master quiz-master-next allows SQL Injection.This issue affect",
-        "published": "2026-02-20T16:22:04.837"
-      },
-      {
-        "cve_id": "CVE-2025-67988",
-        "cvss_score": 8.1,
-        "severity": "HIGH",
-        "description": "Improper Control of Filename for Include/Require Statement in PHP Program ('PHP Remote File Inclusion') vulnerability in LoftOcean CozyStay cozystay allows PHP Local File Inclusion.This issue affects ",
-        "published": "2026-02-20T16:22:04.970"
-      },
-      {
-        "cve_id": "CVE-2025-67990",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in RealMag777 GMap Targeting gmap-targeting allows Reflected XSS.This issue affects GMap Targeting: f",
-        "published": "2026-02-20T16:22:05.100"
-      },
-      {
-        "cve_id": "CVE-2025-67991",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in vanquish User Extra Fields wp-user-extra-fields allows Reflected XSS.This issue affects User Extra",
-        "published": "2026-02-20T16:22:05.230"
-      },
-      {
-        "cve_id": "CVE-2025-67992",
-        "cvss_score": 8.1,
-        "severity": "HIGH",
-        "description": "Improper Control of Filename for Include/Require Statement in PHP Program ('PHP Remote File Inclusion') vulnerability in LoftOcean PatioTime patiotime allows PHP Local File Inclusion.This issue affect",
-        "published": "2026-02-20T16:22:05.360"
-      },
-      {
-        "cve_id": "CVE-2025-67994",
-        "cvss_score": 7.5,
-        "severity": "HIGH",
-        "description": "Missing Authorization vulnerability in YayCommerce YayCurrency yaycurrency allows Exploiting Incorrectly Configured Access Control Security Levels.This issue affects YayCurrency: from n/a through <= 3",
-        "published": "2026-02-20T16:22:05.637"
-      },
-      {
-        "cve_id": "CVE-2025-67998",
-        "cvss_score": 8.8,
-        "severity": "HIGH",
-        "description": "Authentication Bypass Using an Alternate Path or Channel vulnerability in kamleshyadav Miraculous Elementor miraculous-el allows Authentication Abuse.This issue affects Miraculous Elementor: from n/a ",
-        "published": "2026-02-20T16:22:06.200"
-      },
-      {
-        "cve_id": "CVE-2025-68031",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in faraz sms \u0627\u0641\u0632\u0648\u0646\u0647 \u067e\u06cc\u0627\u0645\u06a9 \u062d\u0631\u0641\u0647 \u0627\u06cc \u0641\u0631\u0627\u0632 \u0627\u0633 \u0627\u0645 \u0627\u0633 farazsms allows Reflected XSS.This issue affects \u0627\u0641\u0632\u0648",
-        "published": "2026-02-20T16:22:08.087"
-      },
-      {
-        "cve_id": "CVE-2025-68037",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in Atlas Gondal Export Media URLs export-media-urls allows Reflected XSS.This issue affects Export Me",
-        "published": "2026-02-20T16:22:08.353"
-      },
-      {
-        "cve_id": "CVE-2025-68043",
-        "cvss_score": 7.3,
-        "severity": "HIGH",
-        "description": "Missing Authorization vulnerability in LottieFiles LottieFiles lottiefiles allows Exploiting Incorrectly Configured Access Control Security Levels.This issue affects LottieFiles: from n/a through <= 3",
-        "published": "2026-02-20T16:22:08.620"
-      },
-      {
-        "cve_id": "CVE-2025-68048",
-        "cvss_score": 7.5,
-        "severity": "HIGH",
-        "description": "Missing Authorization vulnerability in XLPlugins NextMove Lite woo-thank-you-page-nextmove-lite allows Exploiting Incorrectly Configured Access Control Security Levels.This issue affects NextMove Lite",
-        "published": "2026-02-20T16:22:08.750"
-      },
-      {
-        "cve_id": "CVE-2025-68051",
-        "cvss_score": 7.4,
-        "severity": "HIGH",
-        "description": "Authorization Bypass Through User-Controlled Key vulnerability in Shiprocket Shiprocket shiprocket allows Exploiting Incorrectly Configured Access Control Security Levels.This issue affects Shiprocket",
-        "published": "2026-02-20T16:22:09.003"
-      },
-      {
-        "cve_id": "CVE-2025-68069",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Missing Authorization vulnerability in wpWax Directorist directorist allows Exploiting Incorrectly Configured Access Control Security Levels.This issue affects Directorist: from n/a through <= 8.5.10.",
-        "published": "2026-02-20T16:22:09.380"
-      },
-      {
-        "cve_id": "CVE-2025-68495",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in Crocoblock JetEngine jet-engine allows Reflected XSS.This issue affects JetEngine: from n/a throug",
-        "published": "2026-02-20T16:22:09.630"
-      },
-      {
-        "cve_id": "CVE-2025-68501",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in Mollie Mollie Payments for WooCommerce mollie-payments-for-woocommerce allows Reflected XSS.This i",
-        "published": "2026-02-20T16:22:10.100"
-      },
-      {
-        "cve_id": "CVE-2025-68526",
-        "cvss_score": 8.8,
-        "severity": "HIGH",
-        "description": "Deserialization of Untrusted Data vulnerability in A WP Life Modal Popup Box modal-popup-box allows Object Injection.This issue affects Modal Popup Box: from n/a through <= 1.6.1.",
-        "published": "2026-02-20T16:22:10.837"
-      },
-      {
-        "cve_id": "CVE-2025-68531",
-        "cvss_score": 8.8,
-        "severity": "HIGH",
-        "description": "Deserialization of Untrusted Data vulnerability in modeltheme ModelTheme Addons for WPBakery and Elementor modeltheme-addons-for-wpbakery allows Object Injection.This issue affects ModelTheme Addons f",
-        "published": "2026-02-20T16:22:10.963"
-      },
-      {
-        "cve_id": "CVE-2025-68536",
-        "cvss_score": 8.1,
-        "severity": "HIGH",
-        "description": "Improper Control of Filename for Include/Require Statement in PHP Program ('PHP Remote File Inclusion') vulnerability in thembay Zota zota allows PHP Local File Inclusion.This issue affects Zota: from",
-        "published": "2026-02-20T16:22:11.230"
-      },
-      {
-        "cve_id": "CVE-2025-68539",
-        "cvss_score": 8.1,
-        "severity": "HIGH",
-        "description": "Improper Control of Filename for Include/Require Statement in PHP Program ('PHP Remote File Inclusion') vulnerability in thembay Fana fana allows PHP Local File Inclusion.This issue affects Fana: from",
-        "published": "2026-02-20T16:22:11.373"
-      },
-      {
-        "cve_id": "CVE-2025-68543",
-        "cvss_score": 8.1,
-        "severity": "HIGH",
-        "description": "Improper Control of Filename for Include/Require Statement in PHP Program ('PHP Remote File Inclusion') vulnerability in thembay Diza diza allows PHP Local File Inclusion.This issue affects Diza: from",
-        "published": "2026-02-20T16:22:11.777"
-      },
-      {
-        "cve_id": "CVE-2025-68841",
-        "cvss_score": 7.5,
-        "severity": "HIGH",
-        "description": "Improper Control of Filename for Include/Require Statement in PHP Program ('PHP Remote File Inclusion') vulnerability in Themepul TopperPack \u2013 Complete Elementor Addons, Theme &amp; CPT Builder topper",
-        "published": "2026-02-20T16:22:12.727"
-      },
-      {
-        "cve_id": "CVE-2025-68842",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in totalbounty Widget Logic Visual widget-logic-visual allows Reflected XSS.This issue affects Widget",
-        "published": "2026-02-20T16:22:12.873"
-      },
-      {
-        "cve_id": "CVE-2025-68843",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in Bas Schuiling FeedWordPress Advanced Filters faf allows Reflected XSS.This issue affects FeedWordP",
-        "published": "2026-02-20T16:22:13.000"
-      },
-      {
-        "cve_id": "CVE-2025-68844",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in DaleAB Membee Login membees-member-login-widget allows Reflected XSS.This issue affects Membee Log",
-        "published": "2026-02-20T16:22:13.133"
-      },
-      {
-        "cve_id": "CVE-2025-68845",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in aThemeArt Translations eDS Responsive Menu eds-responsive-menu allows Reflected XSS.This issue aff",
-        "published": "2026-02-20T16:22:13.273"
-      },
-      {
-        "cve_id": "CVE-2025-68846",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in Paris Holley Asynchronous Javascript asynchronous-javascript allows Reflected XSS.This issue affec",
-        "published": "2026-02-20T16:22:13.480"
-      },
-      {
-        "cve_id": "CVE-2025-68847",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in itex iSape isape allows Reflected XSS.This issue affects iSape: from n/a through <= 0.72.",
-        "published": "2026-02-20T16:22:13.687"
-      },
-      {
-        "cve_id": "CVE-2025-68848",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in anmari amr cron manager amr-cron-manager allows Reflected XSS.This issue affects amr cron manager:",
-        "published": "2026-02-20T16:22:13.853"
-      },
-      {
-        "cve_id": "CVE-2025-68852",
-        "cvss_score": 7.1,
-        "severity": "HIGH",
-        "description": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in webmuehle Court Reservation court-reservation allows Reflected XSS.This issue affects Court Reserv",
-        "published": "2026-02-20T16:22:13.983"
-      }
-    ],
-    "affecting_our_stack": [
-      {
-        "cve_id": "CVE-2025-52603",
-        "cvss_score": 3.5,
-        "severity": "LOW",
-        "description": "HCL Connections is vulnerable to information disclosure.  In a very specific user navigation scenario, this could allow a user to obtain limited information when a single piece of internal metadata is",
-        "published": "2026-02-20T16:22:01.353",
-        "matched_technology": "node"
-      }
-    ],
-    "source": "live",
-    "fetch_time": "2026-02-27T06:53:46.431023+00:00"
+    "new_high": [],
+    "total_critical_all_time": 29329,
+    "affecting_our_stack": []
   },
   "kev": {
+    "total_kev_entries": 1529,
     "new_additions": [
       {
         "cve_id": "CVE-2022-20775",
-        "vendor": "Cisco",
-        "product": "SD-WAN",
-        "vulnerability_name": "Cisco SD-WAN Path Traversal Vulnerability",
+        "name": "Cisco SD-WAN Path Traversal Vulnerability",
         "date_added": "2026-02-25",
         "due_date": "2026-02-27"
       },
       {
         "cve_id": "CVE-2026-20127",
-        "vendor": "Cisco",
-        "product": "Catalyst SD-WAN Controller and Manager",
-        "vulnerability_name": "Cisco Catalyst SD-WAN Controller and Manager Authentication Bypass Vulnerability",
+        "name": "Cisco Catalyst SD-WAN Controller and Manager Authentication Bypass Vulnerability",
         "date_added": "2026-02-25",
         "due_date": "2026-02-27"
       },
       {
         "cve_id": "CVE-2026-25108",
-        "vendor": "Soliton Systems K.K",
-        "product": "FileZen",
-        "vulnerability_name": "Soliton Systems K.K FileZen OS Command Injection Vulnerability",
+        "name": "Soliton Systems K.K FileZen OS Command Injection Vulnerability",
         "date_added": "2026-02-24",
         "due_date": "2026-03-17"
       },
       {
         "cve_id": "CVE-2025-49113",
-        "vendor": "Roundcube",
-        "product": "Webmail",
-        "vulnerability_name": "RoundCube Webmail Deserialization of Untrusted Data Vulnerability",
+        "name": "RoundCube Webmail Deserialization of Untrusted Data Vulnerability",
         "date_added": "2026-02-20",
         "due_date": "2026-03-13"
       },
       {
         "cve_id": "CVE-2025-68461",
-        "vendor": "Roundcube",
-        "product": "Webmail",
-        "vulnerability_name": "RoundCube Webmail Cross-site Scripting Vulnerability",
+        "name": "RoundCube Webmail Cross-site Scripting Vulnerability",
         "date_added": "2026-02-20",
         "due_date": "2026-03-13"
       },
       {
         "cve_id": "CVE-2021-22175",
-        "vendor": "GitLab",
-        "product": "GitLab",
-        "vulnerability_name": "GitLab Server-Side Request Forgery (SSRF) Vulnerability",
+        "name": "GitLab Server-Side Request Forgery (SSRF) Vulnerability",
         "date_added": "2026-02-18",
         "due_date": "2026-03-11"
       },
       {
         "cve_id": "CVE-2026-22769",
-        "vendor": "Dell",
-        "product": "RecoverPoint for Virtual Machines (RP4VMs)",
-        "vulnerability_name": "Dell RecoverPoint for Virtual Machines (RP4VMs) Use of Hard-coded Credentials Vulnerability",
+        "name": "Dell RecoverPoint for Virtual Machines (RP4VMs) Use of Hard-coded Credentials Vu",
         "date_added": "2026-02-18",
         "due_date": "2026-02-21"
       },
       {
         "cve_id": "CVE-2020-7796",
-        "vendor": "Synacor",
-        "product": "Zimbra Collaboration Suite",
-        "vulnerability_name": "Synacor Zimbra Collaboration Suite (ZCS) Server-Side Request Forgery Vulnerability",
+        "name": "Synacor Zimbra Collaboration Suite (ZCS) Server-Side Request Forgery Vulnerabili",
         "date_added": "2026-02-17",
         "due_date": "2026-03-10"
       },
       {
         "cve_id": "CVE-2024-7694",
-        "vendor": "TeamT5",
-        "product": "ThreatSonar Anti-Ransomware",
-        "vulnerability_name": "TeamT5 ThreatSonar Anti-Ransomware Unrestricted Upload of File with Dangerous Type Vulnerability",
+        "name": "TeamT5 ThreatSonar Anti-Ransomware Unrestricted Upload of File with Dangerous Ty",
         "date_added": "2026-02-17",
         "due_date": "2026-03-10"
       },
       {
         "cve_id": "CVE-2008-0015",
-        "vendor": "Microsoft",
-        "product": "Windows",
-        "vulnerability_name": " Microsoft Windows Video ActiveX Control Remote Code Execution Vulnerability",
+        "name": " Microsoft Windows Video ActiveX Control Remote Code Execution Vulnerability",
         "date_added": "2026-02-17",
         "due_date": "2026-03-10"
       },
       {
         "cve_id": "CVE-2026-2441",
-        "vendor": "Google",
-        "product": "Chromium",
-        "vulnerability_name": "Google Chromium CSS Use-After-Free Vulnerability",
+        "name": "Google Chromium CSS Use-After-Free Vulnerability",
         "date_added": "2026-02-17",
         "due_date": "2026-03-10"
       },
       {
         "cve_id": "CVE-2026-1731",
-        "vendor": "BeyondTrust",
-        "product": "Remote Support (RS) and Privileged Remote Access (PRA)",
-        "vulnerability_name": "BeyondTrust Remote Support (RS) and Privileged Remote Access (PRA) OS Command Injection Vulnerability",
+        "name": "BeyondTrust Remote Support (RS) and Privileged Remote Access (PRA) OS Command In",
         "date_added": "2026-02-13",
         "due_date": "2026-02-16"
       },
       {
         "cve_id": "CVE-2026-20700",
-        "vendor": "Apple",
-        "product": "Multiple Products",
-        "vulnerability_name": "Apple Multiple Buffer Overflow Vulnerability",
+        "name": "Apple Multiple Buffer Overflow Vulnerability",
         "date_added": "2026-02-12",
         "due_date": "2026-03-05"
       },
       {
         "cve_id": "CVE-2024-43468",
-        "vendor": "Microsoft",
-        "product": "Configuration Manager",
-        "vulnerability_name": "Microsoft Configuration Manager SQL Injection Vulnerability",
+        "name": "Microsoft Configuration Manager SQL Injection Vulnerability",
         "date_added": "2026-02-12",
         "due_date": "2026-03-05"
       },
       {
         "cve_id": "CVE-2025-15556",
-        "vendor": "Notepad++",
-        "product": "Notepad++",
-        "vulnerability_name": "Notepad++ Download of Code Without Integrity Check Vulnerability",
+        "name": "Notepad++ Download of Code Without Integrity Check Vulnerability",
         "date_added": "2026-02-12",
         "due_date": "2026-03-05"
-      },
-      {
-        "cve_id": "CVE-2025-40536",
-        "vendor": "SolarWinds",
-        "product": "Web Help Desk",
-        "vulnerability_name": "SolarWinds Web Help Desk Security Control Bypass Vulnerability",
-        "date_added": "2026-02-12",
-        "due_date": "2026-02-15"
-      },
-      {
-        "cve_id": "CVE-2026-21513",
-        "vendor": "Microsoft",
-        "product": "Windows",
-        "vulnerability_name": "Microsoft MSHTML Framework Protection Mechanism Failure Vulnerability",
-        "date_added": "2026-02-10",
-        "due_date": "2026-03-03"
-      },
-      {
-        "cve_id": "CVE-2026-21525",
-        "vendor": "Microsoft",
-        "product": "Windows",
-        "vulnerability_name": "Microsoft Windows NULL Pointer Dereference Vulnerability",
-        "date_added": "2026-02-10",
-        "due_date": "2026-03-03"
-      },
-      {
-        "cve_id": "CVE-2026-21510",
-        "vendor": "Microsoft",
-        "product": "Windows",
-        "vulnerability_name": "Microsoft Windows Shell Protection Mechanism Failure Vulnerability",
-        "date_added": "2026-02-10",
-        "due_date": "2026-03-03"
-      },
-      {
-        "cve_id": "CVE-2026-21533",
-        "vendor": "Microsoft",
-        "product": "Windows",
-        "vulnerability_name": "Microsoft Windows Improper Privilege Management Vulnerability",
-        "date_added": "2026-02-10",
-        "due_date": "2026-03-03"
-      },
-      {
-        "cve_id": "CVE-2026-21519",
-        "vendor": "Microsoft",
-        "product": "Windows",
-        "vulnerability_name": "Microsoft Windows Type Confusion Vulnerability",
-        "date_added": "2026-02-10",
-        "due_date": "2026-03-03"
-      },
-      {
-        "cve_id": "CVE-2026-21514",
-        "vendor": "Microsoft",
-        "product": "Office",
-        "vulnerability_name": "Microsoft Office Word Reliance on Untrusted Inputs in a Security Decision Vulnerability",
-        "date_added": "2026-02-10",
-        "due_date": "2026-03-03"
-      },
-      {
-        "cve_id": "CVE-2025-11953",
-        "vendor": "React Native Community",
-        "product": "CLI",
-        "vulnerability_name": "React Native Community CLI OS Command Injection Vulnerability",
-        "date_added": "2026-02-05",
-        "due_date": "2026-02-26"
-      },
-      {
-        "cve_id": "CVE-2026-24423",
-        "vendor": "SmarterTools",
-        "product": "SmarterMail",
-        "vulnerability_name": "SmarterTools SmarterMail Missing Authentication for Critical Function Vulnerability",
-        "date_added": "2026-02-05",
-        "due_date": "2026-02-26"
-      },
-      {
-        "cve_id": "CVE-2021-39935",
-        "vendor": "GitLab",
-        "product": "Community and Enterprise Editions",
-        "vulnerability_name": "GitLab Community and Enterprise Editions Server-Side Request Forgery (SSRF) Vulnerability",
-        "date_added": "2026-02-03",
-        "due_date": "2026-02-24"
-      },
-      {
-        "cve_id": "CVE-2025-64328",
-        "vendor": "Sangoma",
-        "product": "FreePBX ",
-        "vulnerability_name": "Sangoma FreePBX OS Command Injection Vulnerability",
-        "date_added": "2026-02-03",
-        "due_date": "2026-02-24"
-      },
-      {
-        "cve_id": "CVE-2019-19006",
-        "vendor": "Sangoma",
-        "product": "FreePBX",
-        "vulnerability_name": " Sangoma FreePBX Improper Authentication Vulnerability",
-        "date_added": "2026-02-03",
-        "due_date": "2026-02-24"
-      },
-      {
-        "cve_id": "CVE-2025-40551",
-        "vendor": "SolarWinds",
-        "product": "Web Help Desk",
-        "vulnerability_name": "SolarWinds Web Help Desk Deserialization of Untrusted Data Vulnerability",
-        "date_added": "2026-02-03",
-        "due_date": "2026-02-06"
-      },
-      {
-        "cve_id": "CVE-2026-1281",
-        "vendor": "Ivanti",
-        "product": "Endpoint Manager Mobile (EPMM)",
-        "vulnerability_name": "Ivanti Endpoint Manager Mobile (EPMM) Code Injection Vulnerability",
-        "date_added": "2026-01-29",
-        "due_date": "2026-02-01"
       }
     ],
     "due_soon": [
       {
+        "cve_id": "CVE-2022-20775",
+        "name": "Cisco SD-WAN Path Traversal Vulnerability",
+        "due_date": "2026-02-27"
+      },
+      {
+        "cve_id": "CVE-2026-20127",
+        "name": "Cisco Catalyst SD-WAN Controller and Manager Authentication Bypass Vulnerability",
+        "due_date": "2026-02-27"
+      },
+      {
         "cve_id": "CVE-2025-49113",
-        "vendor": "Roundcube",
-        "product": "Webmail",
-        "vulnerability_name": "RoundCube Webmail Deserialization of Untrusted Data Vulnerability",
-        "date_added": "2026-02-20",
+        "name": "RoundCube Webmail Deserialization of Untrusted Data Vulnerability",
         "due_date": "2026-03-13"
       },
       {
         "cve_id": "CVE-2025-68461",
-        "vendor": "Roundcube",
-        "product": "Webmail",
-        "vulnerability_name": "RoundCube Webmail Cross-site Scripting Vulnerability",
-        "date_added": "2026-02-20",
+        "name": "RoundCube Webmail Cross-site Scripting Vulnerability",
         "due_date": "2026-03-13"
       },
       {
         "cve_id": "CVE-2021-22175",
-        "vendor": "GitLab",
-        "product": "GitLab",
-        "vulnerability_name": "GitLab Server-Side Request Forgery (SSRF) Vulnerability",
-        "date_added": "2026-02-18",
+        "name": "GitLab Server-Side Request Forgery (SSRF) Vulnerability",
         "due_date": "2026-03-11"
       },
       {
+        "cve_id": "CVE-2026-22769",
+        "name": "Dell RecoverPoint for Virtual Machines (RP4VMs) Use of Hard-coded Credentials Vu",
+        "due_date": "2026-02-21"
+      },
+      {
         "cve_id": "CVE-2020-7796",
-        "vendor": "Synacor",
-        "product": "Zimbra Collaboration Suite",
-        "vulnerability_name": "Synacor Zimbra Collaboration Suite (ZCS) Server-Side Request Forgery Vulnerability",
-        "date_added": "2026-02-17",
+        "name": "Synacor Zimbra Collaboration Suite (ZCS) Server-Side Request Forgery Vulnerabili",
         "due_date": "2026-03-10"
       },
       {
         "cve_id": "CVE-2024-7694",
-        "vendor": "TeamT5",
-        "product": "ThreatSonar Anti-Ransomware",
-        "vulnerability_name": "TeamT5 ThreatSonar Anti-Ransomware Unrestricted Upload of File with Dangerous Type Vulnerability",
-        "date_added": "2026-02-17",
+        "name": "TeamT5 ThreatSonar Anti-Ransomware Unrestricted Upload of File with Dangerous Ty",
         "due_date": "2026-03-10"
       },
       {
         "cve_id": "CVE-2008-0015",
-        "vendor": "Microsoft",
-        "product": "Windows",
-        "vulnerability_name": " Microsoft Windows Video ActiveX Control Remote Code Execution Vulnerability",
-        "date_added": "2026-02-17",
+        "name": " Microsoft Windows Video ActiveX Control Remote Code Execution Vulnerability",
         "due_date": "2026-03-10"
       },
       {
         "cve_id": "CVE-2026-2441",
-        "vendor": "Google",
-        "product": "Chromium",
-        "vulnerability_name": "Google Chromium CSS Use-After-Free Vulnerability",
-        "date_added": "2026-02-17",
+        "name": "Google Chromium CSS Use-After-Free Vulnerability",
         "due_date": "2026-03-10"
-      },
-      {
-        "cve_id": "CVE-2026-20700",
-        "vendor": "Apple",
-        "product": "Multiple Products",
-        "vulnerability_name": "Apple Multiple Buffer Overflow Vulnerability",
-        "date_added": "2026-02-12",
-        "due_date": "2026-03-05"
-      },
-      {
-        "cve_id": "CVE-2024-43468",
-        "vendor": "Microsoft",
-        "product": "Configuration Manager",
-        "vulnerability_name": "Microsoft Configuration Manager SQL Injection Vulnerability",
-        "date_added": "2026-02-12",
-        "due_date": "2026-03-05"
-      },
-      {
-        "cve_id": "CVE-2025-15556",
-        "vendor": "Notepad++",
-        "product": "Notepad++",
-        "vulnerability_name": "Notepad++ Download of Code Without Integrity Check Vulnerability",
-        "date_added": "2026-02-12",
-        "due_date": "2026-03-05"
-      },
-      {
-        "cve_id": "CVE-2026-21513",
-        "vendor": "Microsoft",
-        "product": "Windows",
-        "vulnerability_name": "Microsoft MSHTML Framework Protection Mechanism Failure Vulnerability",
-        "date_added": "2026-02-10",
-        "due_date": "2026-03-03"
-      },
-      {
-        "cve_id": "CVE-2026-21525",
-        "vendor": "Microsoft",
-        "product": "Windows",
-        "vulnerability_name": "Microsoft Windows NULL Pointer Dereference Vulnerability",
-        "date_added": "2026-02-10",
-        "due_date": "2026-03-03"
-      },
-      {
-        "cve_id": "CVE-2026-21510",
-        "vendor": "Microsoft",
-        "product": "Windows",
-        "vulnerability_name": "Microsoft Windows Shell Protection Mechanism Failure Vulnerability",
-        "date_added": "2026-02-10",
-        "due_date": "2026-03-03"
-      },
-      {
-        "cve_id": "CVE-2026-21533",
-        "vendor": "Microsoft",
-        "product": "Windows",
-        "vulnerability_name": "Microsoft Windows Improper Privilege Management Vulnerability",
-        "date_added": "2026-02-10",
-        "due_date": "2026-03-03"
-      },
-      {
-        "cve_id": "CVE-2026-21519",
-        "vendor": "Microsoft",
-        "product": "Windows",
-        "vulnerability_name": "Microsoft Windows Type Confusion Vulnerability",
-        "date_added": "2026-02-10",
-        "due_date": "2026-03-03"
-      },
-      {
-        "cve_id": "CVE-2026-21514",
-        "vendor": "Microsoft",
-        "product": "Office",
-        "vulnerability_name": "Microsoft Office Word Reliance on Untrusted Inputs in a Security Decision Vulnerability",
-        "date_added": "2026-02-10",
-        "due_date": "2026-03-03"
       }
-    ],
-    "total_kev_count": 1529,
-    "source": "live",
-    "fetch_time": "2026-02-27T06:53:48.031109+00:00"
-  },
-  "summary": {
-    "epss_high_count": 100,
-    "epss_weaponized_count": 100,
-    "nvd_critical_count": 6,
-    "nvd_high_count": 46,
-    "nvd_stack_affected_count": 1,
-    "kev_new_count": 29,
-    "kev_due_soon_count": 16,
-    "kev_total": 1529,
-    "data_sources": {
-      "epss": "live",
-      "nvd": "live",
-      "kev": "live"
-    }
+    ]
   }
 }

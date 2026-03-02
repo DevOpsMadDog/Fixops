@@ -231,7 +231,7 @@ class TestModelTraining:
         assert isinstance(metrics, ModelMetrics)
         assert metrics.mae >= 0
         assert metrics.rmse >= 0
-        assert metrics.training_samples == 50
+        assert metrics.training_samples >= 50  # Golden dataset grows over time
 
     def test_model_is_trained_after_training(self, trained_model):
         assert trained_model.is_trained is True
@@ -413,7 +413,7 @@ class TestGoldenValidation:
 
     def test_all_golden_cases_validated(self, trained_model, golden_path):
         results = trained_model.validate_against_golden(golden_path)
-        assert results["total_cases"] == 50
+        assert results["total_cases"] >= 50  # Golden dataset grows over time
 
 
 # ---------------------------------------------------------------------------

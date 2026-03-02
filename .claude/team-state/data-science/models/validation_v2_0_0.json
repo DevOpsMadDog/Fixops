@@ -1,0 +1,1180 @@
+{
+  "total_cases": 65,
+  "passes": 65,
+  "failures": 0,
+  "pass_rate": 1.0,
+  "model_version": "1.0.0",
+  "validated_at": "2026-03-01T13:36:40.473220+00:00",
+  "results": [
+    {
+      "case_id": "GR-001",
+      "cve_id": "CVE-2021-44228",
+      "category": "critical_exploitable",
+      "predicted_score": 96.61,
+      "expected_range": [
+        92.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        95.6,
+        98.03
+      ]
+    },
+    {
+      "case_id": "GR-002",
+      "cve_id": "CVE-2023-44487",
+      "category": "critical_exploitable",
+      "predicted_score": 88.33,
+      "expected_range": [
+        82.0,
+        95.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        84.1,
+        91.92
+      ]
+    },
+    {
+      "case_id": "GR-003",
+      "cve_id": "CVE-2024-3094",
+      "category": "critical_exploitable",
+      "predicted_score": 92.04,
+      "expected_range": [
+        88.0,
+        98.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        74.76,
+        93.06
+      ]
+    },
+    {
+      "case_id": "GR-004",
+      "cve_id": "CVE-2023-34362",
+      "category": "critical_exploitable",
+      "predicted_score": 96.27,
+      "expected_range": [
+        93.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        96.21,
+        97.0
+      ]
+    },
+    {
+      "case_id": "GR-005",
+      "cve_id": "CVE-2021-26855",
+      "category": "critical_exploitable",
+      "predicted_score": 96.69,
+      "expected_range": [
+        95.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        94.32,
+        97.38
+      ]
+    },
+    {
+      "case_id": "GR-006",
+      "cve_id": "CVE-2023-22515",
+      "category": "critical_exploitable",
+      "predicted_score": 94.84,
+      "expected_range": [
+        90.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        92.98,
+        95.16
+      ]
+    },
+    {
+      "case_id": "GR-007",
+      "cve_id": "CVE-2024-21887",
+      "category": "critical_exploitable",
+      "predicted_score": 96.12,
+      "expected_range": [
+        92.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        95.7,
+        96.5
+      ]
+    },
+    {
+      "case_id": "GR-008",
+      "cve_id": "CVE-2023-4966",
+      "category": "critical_exploitable",
+      "predicted_score": 96.61,
+      "expected_range": [
+        93.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        95.81,
+        97.03
+      ]
+    },
+    {
+      "case_id": "GR-009",
+      "cve_id": "CVE-2021-21972",
+      "category": "critical_exploitable",
+      "predicted_score": 96.69,
+      "expected_range": [
+        95.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        94.32,
+        97.38
+      ]
+    },
+    {
+      "case_id": "GR-010",
+      "cve_id": "CVE-2024-4577",
+      "category": "critical_exploitable",
+      "predicted_score": 93.09,
+      "expected_range": [
+        88.0,
+        98.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        92.4,
+        94.18
+      ]
+    },
+    {
+      "case_id": "GR-011",
+      "cve_id": "CVE-2023-0669",
+      "category": "critical_exploitable",
+      "predicted_score": 90.36,
+      "expected_range": [
+        85.0,
+        95.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        89.9,
+        94.95
+      ]
+    },
+    {
+      "case_id": "GR-012",
+      "cve_id": "CVE-2024-47575",
+      "category": "critical_exploitable",
+      "predicted_score": 95.94,
+      "expected_range": [
+        93.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        95.76,
+        96.44
+      ]
+    },
+    {
+      "case_id": "GR-013",
+      "cve_id": "CVE-2024-6387",
+      "category": "high_severity",
+      "predicted_score": 69.8,
+      "expected_range": [
+        60.0,
+        78.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P1",
+      "expected_priority": "P1",
+      "priority_match": true,
+      "confidence_interval": [
+        68.96,
+        75.54
+      ]
+    },
+    {
+      "case_id": "GR-014",
+      "cve_id": "CVE-2023-38545",
+      "category": "high_severity",
+      "predicted_score": 55.09,
+      "expected_range": [
+        45.0,
+        65.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P2",
+      "expected_priority": "P2",
+      "priority_match": true,
+      "confidence_interval": [
+        43.19,
+        56.58
+      ]
+    },
+    {
+      "case_id": "GR-015",
+      "cve_id": "CVE-2023-36884",
+      "category": "high_severity",
+      "predicted_score": 71.92,
+      "expected_range": [
+        65.0,
+        80.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P1",
+      "expected_priority": "P1",
+      "priority_match": true,
+      "confidence_interval": [
+        63.0,
+        74.74
+      ]
+    },
+    {
+      "case_id": "GR-016",
+      "cve_id": "CVE-2023-20198",
+      "category": "high_severity",
+      "predicted_score": 97.31,
+      "expected_range": [
+        93.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        96.23,
+        97.57
+      ]
+    },
+    {
+      "case_id": "GR-017",
+      "cve_id": "CVE-2023-2868",
+      "category": "high_severity",
+      "predicted_score": 86.26,
+      "expected_range": [
+        80.0,
+        93.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        85.61,
+        86.53
+      ]
+    },
+    {
+      "case_id": "GR-018",
+      "cve_id": "CVE-2024-23897",
+      "category": "high_severity",
+      "predicted_score": 85.34,
+      "expected_range": [
+        78.0,
+        90.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        82.31,
+        88.76
+      ]
+    },
+    {
+      "case_id": "GR-019",
+      "cve_id": "CVE-2025-21298",
+      "category": "high_severity",
+      "predicted_score": 64.06,
+      "expected_range": [
+        55.0,
+        72.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P1",
+      "expected_priority": "P1",
+      "priority_match": true,
+      "confidence_interval": [
+        63.27,
+        70.18
+      ]
+    },
+    {
+      "case_id": "GR-020",
+      "cve_id": "CVE-2024-0204",
+      "category": "high_severity",
+      "predicted_score": 92.89,
+      "expected_range": [
+        88.0,
+        98.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        89.75,
+        93.89
+      ]
+    },
+    {
+      "case_id": "GR-021",
+      "cve_id": "CVE-2023-27997",
+      "category": "high_severity",
+      "predicted_score": 96.29,
+      "expected_range": [
+        93.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        96.05,
+        96.95
+      ]
+    },
+    {
+      "case_id": "GR-022",
+      "cve_id": "CVE-2024-1709",
+      "category": "high_severity",
+      "predicted_score": 97.41,
+      "expected_range": [
+        95.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        96.9,
+        97.7
+      ]
+    },
+    {
+      "case_id": "GR-023",
+      "cve_id": "CVE-2023-35078",
+      "category": "medium_severity",
+      "predicted_score": 58.93,
+      "expected_range": [
+        50.0,
+        68.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P2",
+      "expected_priority": "P1",
+      "priority_match": false,
+      "confidence_interval": [
+        46.76,
+        62.11
+      ]
+    },
+    {
+      "case_id": "GR-024",
+      "cve_id": "CVE-2023-44487",
+      "category": "medium_severity",
+      "predicted_score": 40.2,
+      "expected_range": [
+        30.0,
+        50.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P2",
+      "expected_priority": "P2",
+      "priority_match": true,
+      "confidence_interval": [
+        38.74,
+        49.36
+      ]
+    },
+    {
+      "case_id": "GR-025",
+      "cve_id": "CVE-2022-22965",
+      "category": "medium_severity",
+      "predicted_score": 37.64,
+      "expected_range": [
+        25.0,
+        45.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P2",
+      "expected_priority": "P2",
+      "priority_match": true,
+      "confidence_interval": [
+        33.88,
+        55.43
+      ]
+    },
+    {
+      "case_id": "GR-026",
+      "cve_id": "CVE-2023-32315",
+      "category": "medium_severity",
+      "predicted_score": 63.48,
+      "expected_range": [
+        55.0,
+        72.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P1",
+      "expected_priority": "P1",
+      "priority_match": true,
+      "confidence_interval": [
+        62.07,
+        77.69
+      ]
+    },
+    {
+      "case_id": "GR-027",
+      "cve_id": "CVE-2023-25690",
+      "category": "medium_severity",
+      "predicted_score": 49.98,
+      "expected_range": [
+        40.0,
+        60.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P2",
+      "expected_priority": "P2",
+      "priority_match": true,
+      "confidence_interval": [
+        30.22,
+        61.7
+      ]
+    },
+    {
+      "case_id": "GR-028",
+      "cve_id": "CVE-2024-21762",
+      "category": "medium_severity",
+      "predicted_score": 74.17,
+      "expected_range": [
+        65.0,
+        82.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P1",
+      "expected_priority": "P1",
+      "priority_match": true,
+      "confidence_interval": [
+        61.49,
+        84.67
+      ]
+    },
+    {
+      "case_id": "GR-029",
+      "cve_id": "CVE-2023-46747",
+      "category": "medium_severity",
+      "predicted_score": 77.31,
+      "expected_range": [
+        68.0,
+        85.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P1",
+      "expected_priority": "P1",
+      "priority_match": true,
+      "confidence_interval": [
+        76.65,
+        84.69
+      ]
+    },
+    {
+      "case_id": "GR-030",
+      "cve_id": "CVE-2023-42793",
+      "category": "medium_severity",
+      "predicted_score": 81.5,
+      "expected_range": [
+        75.0,
+        88.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P1",
+      "expected_priority": "P1",
+      "priority_match": true,
+      "confidence_interval": [
+        81.57,
+        89.08
+      ]
+    },
+    {
+      "case_id": "GR-031",
+      "cve_id": "CVE-2023-45853",
+      "category": "low_noise",
+      "predicted_score": 12.8,
+      "expected_range": [
+        5.0,
+        20.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P4",
+      "expected_priority": "P3",
+      "priority_match": false,
+      "confidence_interval": [
+        10.53,
+        18.95
+      ]
+    },
+    {
+      "case_id": "GR-032",
+      "cve_id": "CVE-2023-3817",
+      "category": "low_noise",
+      "predicted_score": 15.86,
+      "expected_range": [
+        8.0,
+        22.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P3",
+      "expected_priority": "P3",
+      "priority_match": true,
+      "confidence_interval": [
+        14.97,
+        47.05
+      ]
+    },
+    {
+      "case_id": "GR-033",
+      "cve_id": "CVE-2022-48174",
+      "category": "low_noise",
+      "predicted_score": 9.03,
+      "expected_range": [
+        3.0,
+        15.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P4",
+      "expected_priority": "P3",
+      "priority_match": false,
+      "confidence_interval": [
+        8.62,
+        18.66
+      ]
+    },
+    {
+      "case_id": "GR-034",
+      "cve_id": "CVE-2023-29491",
+      "category": "low_noise",
+      "predicted_score": 6.87,
+      "expected_range": [
+        2.0,
+        12.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P4",
+      "expected_priority": "P4",
+      "priority_match": true,
+      "confidence_interval": [
+        0.19,
+        7.03
+      ]
+    },
+    {
+      "case_id": "GR-035",
+      "cve_id": "CVE-2023-24329",
+      "category": "low_noise",
+      "predicted_score": 17.58,
+      "expected_range": [
+        10.0,
+        25.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P3",
+      "expected_priority": "P3",
+      "priority_match": true,
+      "confidence_interval": [
+        15.36,
+        20.5
+      ]
+    },
+    {
+      "case_id": "GR-036",
+      "cve_id": "CVE-2022-29155",
+      "category": "false_positives",
+      "predicted_score": 2.04,
+      "expected_range": [
+        0.0,
+        5.0
+      ],
+      "in_range": true,
+      "predicted_priority": "FP",
+      "expected_priority": "FP",
+      "priority_match": true,
+      "confidence_interval": [
+        1.5,
+        3.13
+      ]
+    },
+    {
+      "case_id": "GR-037",
+      "cve_id": "CVE-2023-36665",
+      "category": "false_positives",
+      "predicted_score": 2.87,
+      "expected_range": [
+        0.0,
+        5.0
+      ],
+      "in_range": true,
+      "predicted_priority": "FP",
+      "expected_priority": "FP",
+      "priority_match": true,
+      "confidence_interval": [
+        2.55,
+        42.73
+      ]
+    },
+    {
+      "case_id": "GR-038",
+      "cve_id": "CVE-2021-3449",
+      "category": "false_positives",
+      "predicted_score": 2.49,
+      "expected_range": [
+        0.0,
+        5.0
+      ],
+      "in_range": true,
+      "predicted_priority": "FP",
+      "expected_priority": "FP",
+      "priority_match": true,
+      "confidence_interval": [
+        1.98,
+        3.62
+      ]
+    },
+    {
+      "case_id": "GR-039",
+      "cve_id": "CVE-2023-39417",
+      "category": "false_positives",
+      "predicted_score": 2.68,
+      "expected_range": [
+        0.0,
+        5.0
+      ],
+      "in_range": true,
+      "predicted_priority": "FP",
+      "expected_priority": "FP",
+      "priority_match": true,
+      "confidence_interval": [
+        2.13,
+        12.4
+      ]
+    },
+    {
+      "case_id": "GR-040",
+      "cve_id": "CVE-2023-35945",
+      "category": "false_positives",
+      "predicted_score": 2.69,
+      "expected_range": [
+        0.0,
+        5.0
+      ],
+      "in_range": true,
+      "predicted_priority": "FP",
+      "expected_priority": "FP",
+      "priority_match": true,
+      "confidence_interval": [
+        2.14,
+        3.1
+      ]
+    },
+    {
+      "case_id": "GR-041",
+      "cve_id": "CVE-2024-21893",
+      "category": "chain_exploits",
+      "predicted_score": 95.22,
+      "expected_range": [
+        90.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        93.0,
+        95.62
+      ]
+    },
+    {
+      "case_id": "GR-042",
+      "cve_id": "CVE-2021-26857",
+      "category": "chain_exploits",
+      "predicted_score": 95.72,
+      "expected_range": [
+        92.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        92.72,
+        95.97
+      ]
+    },
+    {
+      "case_id": "GR-043",
+      "cve_id": "CVE-2021-34473",
+      "category": "chain_exploits",
+      "predicted_score": 96.71,
+      "expected_range": [
+        95.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        94.32,
+        97.48
+      ]
+    },
+    {
+      "case_id": "GR-044",
+      "cve_id": "CVE-2023-46805",
+      "category": "chain_exploits",
+      "predicted_score": 95.15,
+      "expected_range": [
+        90.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        93.06,
+        95.99
+      ]
+    },
+    {
+      "case_id": "GR-045",
+      "cve_id": "CVE-2023-26360",
+      "category": "chain_exploits",
+      "predicted_score": 85.75,
+      "expected_range": [
+        78.0,
+        92.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        81.68,
+        89.75
+      ]
+    },
+    {
+      "case_id": "GR-046",
+      "cve_id": "CVE-2023-36845",
+      "category": "edge_cases",
+      "predicted_score": 88.68,
+      "expected_range": [
+        82.0,
+        95.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        85.82,
+        89.56
+      ]
+    },
+    {
+      "case_id": "GR-047",
+      "cve_id": "CVE-2023-22518",
+      "category": "edge_cases",
+      "predicted_score": 85.92,
+      "expected_range": [
+        78.0,
+        93.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        85.51,
+        88.19
+      ]
+    },
+    {
+      "case_id": "GR-048",
+      "cve_id": "CVE-2023-20593",
+      "category": "edge_cases",
+      "predicted_score": 40.01,
+      "expected_range": [
+        30.0,
+        50.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P2",
+      "expected_priority": "P2",
+      "priority_match": true,
+      "confidence_interval": [
+        40.03,
+        60.16
+      ]
+    },
+    {
+      "case_id": "GR-049",
+      "cve_id": "CVE-2023-38408",
+      "category": "edge_cases",
+      "predicted_score": 45.15,
+      "expected_range": [
+        35.0,
+        55.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P2",
+      "expected_priority": "P2",
+      "priority_match": true,
+      "confidence_interval": [
+        44.18,
+        60.43
+      ]
+    },
+    {
+      "case_id": "GR-050",
+      "cve_id": "CVE-2024-3400",
+      "category": "edge_cases",
+      "predicted_score": 97.87,
+      "expected_range": [
+        95.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        96.94,
+        98.09
+      ]
+    },
+    {
+      "case_id": "GR-051",
+      "cve_id": "CVE-2024-3094",
+      "category": "critical_exploitable",
+      "predicted_score": 97.59,
+      "expected_range": [
+        95.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        96.4,
+        98.05
+      ]
+    },
+    {
+      "case_id": "GR-052",
+      "cve_id": "CVE-2024-21762",
+      "category": "critical_exploitable",
+      "predicted_score": 95.94,
+      "expected_range": [
+        92.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        95.76,
+        96.44
+      ]
+    },
+    {
+      "case_id": "GR-053",
+      "cve_id": "CVE-2024-47575",
+      "category": "critical_exploitable",
+      "predicted_score": 95.59,
+      "expected_range": [
+        90.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        94.82,
+        96.32
+      ]
+    },
+    {
+      "case_id": "GR-054",
+      "cve_id": "CVE-2024-4577",
+      "category": "high_severity",
+      "predicted_score": 91.47,
+      "expected_range": [
+        85.0,
+        98.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        90.31,
+        93.07
+      ]
+    },
+    {
+      "case_id": "GR-055",
+      "cve_id": "CVE-2024-23897",
+      "category": "high_severity",
+      "predicted_score": 85.93,
+      "expected_range": [
+        80.0,
+        95.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        79.04,
+        87.07
+      ]
+    },
+    {
+      "case_id": "GR-056",
+      "cve_id": "CVE-2024-6387",
+      "category": "high_severity",
+      "predicted_score": 74.54,
+      "expected_range": [
+        65.0,
+        85.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P1",
+      "expected_priority": "P1",
+      "priority_match": true,
+      "confidence_interval": [
+        68.98,
+        77.37
+      ]
+    },
+    {
+      "case_id": "GR-057",
+      "cve_id": "CVE-2024-28085",
+      "category": "medium_severity",
+      "predicted_score": 41.73,
+      "expected_range": [
+        30.0,
+        55.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P2",
+      "expected_priority": "P2",
+      "priority_match": true,
+      "confidence_interval": [
+        16.29,
+        42.5
+      ]
+    },
+    {
+      "case_id": "GR-058",
+      "cve_id": "CVE-2025-21298",
+      "category": "medium_severity",
+      "predicted_score": 56.88,
+      "expected_range": [
+        45.0,
+        70.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P2",
+      "expected_priority": "P1",
+      "priority_match": false,
+      "confidence_interval": [
+        44.11,
+        58.06
+      ]
+    },
+    {
+      "case_id": "GR-059",
+      "cve_id": "CVE-2024-12356",
+      "category": "low_noise",
+      "predicted_score": 50.98,
+      "expected_range": [
+        40.0,
+        65.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P2",
+      "expected_priority": "P2",
+      "priority_match": true,
+      "confidence_interval": [
+        33.96,
+        52.6
+      ]
+    },
+    {
+      "case_id": "GR-060",
+      "cve_id": "CVE-2024-99999",
+      "category": "false_positives",
+      "predicted_score": 4.81,
+      "expected_range": [
+        0.0,
+        10.0
+      ],
+      "in_range": true,
+      "predicted_priority": "FP",
+      "expected_priority": "FP",
+      "priority_match": true,
+      "confidence_interval": [
+        3.82,
+        17.3
+      ]
+    },
+    {
+      "case_id": "GR-061",
+      "cve_id": "CVE-2024-21887",
+      "category": "chain_exploits",
+      "predicted_score": 96.27,
+      "expected_range": [
+        93.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        96.03,
+        96.56
+      ]
+    },
+    {
+      "case_id": "GR-062",
+      "cve_id": "CVE-2024-0012",
+      "category": "chain_exploits",
+      "predicted_score": 95.63,
+      "expected_range": [
+        92.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        95.24,
+        96.09
+      ]
+    },
+    {
+      "case_id": "GR-063",
+      "cve_id": "CVE-2024-1709",
+      "category": "edge_cases",
+      "predicted_score": 84.15,
+      "expected_range": [
+        75.0,
+        95.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P1",
+      "expected_priority": "P0",
+      "priority_match": false,
+      "confidence_interval": [
+        54.76,
+        85.09
+      ]
+    },
+    {
+      "case_id": "GR-064",
+      "cve_id": "CVE-2025-0282",
+      "category": "edge_cases",
+      "predicted_score": 95.36,
+      "expected_range": [
+        90.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        94.96,
+        96.21
+      ]
+    },
+    {
+      "case_id": "GR-065",
+      "cve_id": "CVE-2024-50623",
+      "category": "edge_cases",
+      "predicted_score": 92.86,
+      "expected_range": [
+        88.0,
+        100.0
+      ],
+      "in_range": true,
+      "predicted_priority": "P0",
+      "expected_priority": "P0",
+      "priority_match": true,
+      "confidence_interval": [
+        90.86,
+        94.16
+      ]
+    }
+  ]
+}

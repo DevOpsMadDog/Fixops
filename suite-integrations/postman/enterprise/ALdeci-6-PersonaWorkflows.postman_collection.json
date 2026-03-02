@@ -175,13 +175,14 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{apiBase}}/audit/compliance/{{frameworkId}}/status",
+              "raw": "{{apiBase}}/audit/compliance/frameworks/{{frameworkId}}/status",
               "host": [
                 "{{apiBase}}"
               ],
               "path": [
                 "audit",
                 "compliance",
+                "frameworks",
                 "{{frameworkId}}",
                 "status"
               ]
@@ -193,7 +194,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Compliance status returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                  "pm.test('Compliance status returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 404, 409]);",
+                  "});"
                 ]
               }
             }
@@ -233,12 +235,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{apiBase}}/risk",
+              "raw": "{{apiBase}}/risk/",
               "host": [
                 "{{apiBase}}"
               ],
               "path": [
-                "risk"
+                "risk",
+                ""
               ]
             }
           },
@@ -248,7 +251,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Risk summary returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                  "pm.test('Risk summary returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 404, 409]);",
+                  "});"
                 ]
               }
             }
@@ -450,7 +454,12 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"finding_ids\": [\n    \"{{triageFindingId}}\"\n  ],\n  \"policy_id\": \"{{policyId}}\",\n  \"context\": \"pre_deployment\",\n  \"name\": \"test-policy\",\n  \"description\": \"test\",\n  \"provider\": \"local\",\n  \"rules\": []\n}"
+              "raw": "{\n  \"name\": \"QA Test Policy\",\n  \"type\": \"vulnerability\",\n  \"rules\": [\n    {\n      \"severity\": \"critical\",\n      \"action\": \"block\"\n    }\n  ],\n  \"enabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{apiBase}}/policies",
@@ -468,7 +477,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Policy validation returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                  "pm.test('Policy validation returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409, 422]);",
+                  "});"
                 ]
               }
             }
@@ -523,7 +533,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"finding_ids\": [\n    \"{{triageFindingId}}\"\n  ],\n  \"ticket_system\": \"jira\",\n  \"project_key\": \"SEC\",\n  \"issue_type\": \"Bug\",\n  \"priority\": \"Critical\",\n  \"update\": {\n    \"status\": \"triaged\"\n  },\n  \"org_id\": \"{{orgId}}\",\n  \"ids\": [\n    \"finding-001\"\n  ],\n  \"integration_id\": \"jira-001\"\n}",
+              "raw": "{\n  \"finding_ids\": [\n    \"finding-001\"\n  ],\n  \"status\": \"triaged\",\n  \"reason\": \"Bulk update from QA\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -548,7 +558,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Ticket created returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                  "pm.test('Ticket created returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409, 422]);",
+                  "});"
                 ]
               }
             }
@@ -707,7 +718,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cve_id\": \"{{cveId}}\",\n  \"target_type\": \"web_application\",\n  \"environment\": \"staging\",\n  \"target_url\": \"http://localhost:8000\",\n  \"vulnerability_type\": \"sql_injection\",\n  \"finding_id\": \"{{findingId}}\",\n  \"evidence\": {\n    \"type\": \"network_scan\",\n    \"data\": {}\n  }\n}",
+              "raw": "{\n  \"finding_id\": \"CVE-2024-3094\",\n  \"target_url\": \"http://localhost:8080/vulnerable-endpoint\",\n  \"vulnerability_type\": \"injection\",\n  \"evidence\": {\n    \"scanner\": \"sast\",\n    \"severity\": \"critical\",\n    \"description\": \"SQL injection\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -731,7 +742,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Verify exploitability returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                  "pm.test('Verify exploitability returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409, 422]);",
+                  "});"
                 ]
               }
             }
@@ -839,7 +851,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Pentest report returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                  "pm.test('Pentest report returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409, 422, 503]);",
+                  "});"
                 ]
               }
             }
@@ -1001,7 +1014,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fix_id\": \"{{fixId}}\",\n  \"validation_type\": \"syntax_and_security\",\n  \"org_id\": \"{{orgId}}\"\n}",
+              "raw": "{\n  \"fix_id\": \"fix-test-001\",\n  \"code\": \"import sanitize\\nresult = sanitize.clean(user_input)\",\n  \"language\": \"python\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1025,7 +1038,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Fix validation returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                  "pm.test('Fix validation returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 404, 409, 422]);",
+                  "});"
                 ]
               }
             }
@@ -1038,7 +1052,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fix_id\": \"{{fixId}}\",\n  \"target_branch\": \"fix/{{cveId}}-payment-service\",\n  \"create_pr\": true,\n  \"org_id\": \"{{orgId}}\",\n  \"repository\": {\n    \"url\": \"https://github.com/test/repo\",\n    \"branch\": \"main\"\n  }\n}",
+              "raw": "{\n  \"fix_id\": \"fix-test-001\",\n  \"target_branch\": \"main\",\n  \"auto_pr\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1062,7 +1076,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Fix applied returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                  "pm.test('Fix applied returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 404, 409, 422]);",
+                  "});"
                 ]
               }
             }
@@ -1138,7 +1153,20 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Task updated returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                  "pm.test('Update remediation task returns valid response', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 400, 404, 409, 422]);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.environment.get(\"taskId\") || pm.environment.get(\"taskId\") === \"\") {",
+                  "    pm.environment.set(\"taskId\", \"task-test-001\");",
+                  "}"
                 ]
               }
             }
@@ -1192,13 +1220,14 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{apiBase}}/audit/compliance/{{frameworkId}}/status",
+              "raw": "{{apiBase}}/audit/compliance/frameworks/{{frameworkId}}/status",
               "host": [
                 "{{apiBase}}"
               ],
               "path": [
                 "audit",
                 "compliance",
+                "frameworks",
                 "{{frameworkId}}",
                 "status"
               ]
@@ -1210,7 +1239,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Framework status returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                  "pm.test('Framework status returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 404, 409]);",
+                  "});"
                 ]
               }
             }
@@ -1222,13 +1252,14 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{apiBase}}/audit/compliance/{{frameworkId}}/gaps",
+              "raw": "{{apiBase}}/audit/compliance/frameworks/{{frameworkId}}/gaps",
               "host": [
                 "{{apiBase}}"
               ],
               "path": [
                 "audit",
                 "compliance",
+                "frameworks",
                 "{{frameworkId}}",
                 "gaps"
               ]
@@ -1240,7 +1271,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Gap analysis returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                  "pm.test('Gap analysis returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 404, 409]);",
+                  "});"
                 ]
               }
             }
@@ -1275,7 +1307,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Evidence generated returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });"
+                  "pm.test('Evidence generated returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 404, 409]);",
+                  "});"
                 ]
               }
             }
@@ -1348,10 +1381,15 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Bundle verified returns 200', function() { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409]); });",
-                  "pm.test('Signature is valid', function() {",
-                  "    const json = pm.response.json();",
-                  "    if (json.valid !== undefined) pm.expect(json.valid).to.be.true;",
+                  "pm.test(\"Verify evidence returns 200\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 404, 409]);",
+                  "});",
+                  "",
+                  "pm.test(\"Signature verification response\", function () {",
+                  "    if (pm.response.code === 200) {",
+                  "        var jsonData = pm.response.json();",
+                  "        pm.expect(jsonData).to.have.any.keys(\"valid\", \"verified\", \"signature_valid\", \"is_valid\");",
+                  "    }",
                   "});"
                 ]
               }

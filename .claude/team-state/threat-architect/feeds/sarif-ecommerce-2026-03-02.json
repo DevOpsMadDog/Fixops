@@ -1,0 +1,90 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "ALdeci-ThreatArchitect-SAST",
+          "version": "2.0.0",
+          "semanticVersion": "2.0.0",
+          "rules": [
+            {"id": "CWE-89", "name": "SqlInjection", "shortDescription": {"text": "SQL Injection"}, "defaultConfiguration": {"level": "error"}},
+            {"id": "CWE-79", "name": "CrossSiteScripting", "shortDescription": {"text": "Cross-Site Scripting (XSS)"}, "defaultConfiguration": {"level": "warning"}},
+            {"id": "CWE-798", "name": "HardcodedCredentials", "shortDescription": {"text": "Use of Hardcoded Credentials"}, "defaultConfiguration": {"level": "error"}},
+            {"id": "CWE-502", "name": "InsecureDeserialization", "shortDescription": {"text": "Deserialization of Untrusted Data"}, "defaultConfiguration": {"level": "error"}},
+            {"id": "CWE-78", "name": "OsCommandInjection", "shortDescription": {"text": "OS Command Injection"}, "defaultConfiguration": {"level": "error"}},
+            {"id": "CWE-327", "name": "BrokenCrypto", "shortDescription": {"text": "Broken Cryptographic Algorithm"}, "defaultConfiguration": {"level": "warning"}},
+            {"id": "CWE-918", "name": "ServerSideRequestForgery", "shortDescription": {"text": "SSRF"}, "defaultConfiguration": {"level": "error"}},
+            {"id": "CWE-22", "name": "PathTraversal", "shortDescription": {"text": "Path Traversal"}, "defaultConfiguration": {"level": "error"}}
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "CWE-89", "level": "error",
+          "message": {"text": "SQL injection: user input concatenated into SQL query without parameterization in UserController.java"},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "user-service/src/main/java/com/ecommerce/controller/UserController.java"}, "region": {"startLine": 42, "startColumn": 20}}}],
+          "fingerprints": {"primaryLocationLineHash": "a1b2c3d4e5f67890"},
+          "properties": {"severity": "critical", "confidence": "high", "cvss_score": 9.8}
+        },
+        {
+          "ruleId": "CWE-89", "level": "error",
+          "message": {"text": "SQL injection in product search via LIKE clause interpolation"},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "catalog-service/app/routes/search.py"}, "region": {"startLine": 67, "startColumn": 12}}}],
+          "properties": {"severity": "high", "confidence": "high", "cvss_score": 8.6}
+        },
+        {
+          "ruleId": "CWE-79", "level": "warning",
+          "message": {"text": "Reflected XSS via unescaped search query in HTML template"},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "catalog-service/app/templates/search_results.html"}, "region": {"startLine": 23}}}],
+          "properties": {"severity": "high", "confidence": "medium", "cvss_score": 7.1}
+        },
+        {
+          "ruleId": "CWE-798", "level": "error",
+          "message": {"text": "Hardcoded database password in application.yml configuration"},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "user-service/src/main/resources/application.yml"}, "region": {"startLine": 15}}}],
+          "properties": {"severity": "critical", "confidence": "high"}
+        },
+        {
+          "ruleId": "CWE-798", "level": "error",
+          "message": {"text": "Hardcoded Stripe API secret key in source code"},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "payment-service/src/config.js"}, "region": {"startLine": 8}}}],
+          "properties": {"severity": "critical", "confidence": "high", "pci_impact": true}
+        },
+        {
+          "ruleId": "CWE-502", "level": "error",
+          "message": {"text": "Insecure Java ObjectInputStream deserialization of user-controlled data"},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "user-service/src/main/java/com/ecommerce/util/SessionSerializer.java"}, "region": {"startLine": 55}}}],
+          "properties": {"severity": "critical", "confidence": "high", "cvss_score": 9.0}
+        },
+        {
+          "ruleId": "CWE-918", "level": "error",
+          "message": {"text": "SSRF via unvalidated URL in webhook callback handler — can access AWS IMDS"},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "notification-service/app/webhooks.py"}, "region": {"startLine": 89}}}],
+          "properties": {"severity": "high", "confidence": "medium", "cvss_score": 8.1}
+        },
+        {
+          "ruleId": "CWE-327", "level": "warning",
+          "message": {"text": "MD5 used for password hashing — cryptographically broken"},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "user-service/src/main/java/com/ecommerce/util/PasswordUtil.java"}, "region": {"startLine": 23}}}],
+          "properties": {"severity": "high", "confidence": "high"}
+        },
+        {
+          "ruleId": "CWE-78", "level": "error",
+          "message": {"text": "OS command injection via os.system() with user-supplied hostname"},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "catalog-service/app/routes/admin.py"}, "region": {"startLine": 112}}}],
+          "properties": {"severity": "critical", "confidence": "high", "cvss_score": 9.8}
+        },
+        {
+          "ruleId": "CWE-22", "level": "error",
+          "message": {"text": "Path traversal via unsanitized filename in config loader"},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "catalog-service/app/utils/config_loader.py"}, "region": {"startLine": 34}}}],
+          "properties": {"severity": "high", "confidence": "high", "cvss_score": 7.5}
+        }
+      ],
+      "invocations": [{"executionSuccessful": true, "startTimeUtc": "2026-03-02T00:00:00Z"}],
+      "properties": {"architecture": "ecommerce-platform-v2", "total_findings": 10, "critical": 5, "high": 4, "warning": 1}
+    }
+  ]
+}

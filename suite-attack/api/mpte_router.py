@@ -854,8 +854,6 @@ def list_verifications():
     Each verification includes a phase-by-phase assessment of
     exploitability, evidence collected per phase, and overall verdict.
     """
-    import random
-    import uuid as _uuid
 
     results = db.list_results(limit=100)
 

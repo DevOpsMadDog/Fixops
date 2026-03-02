@@ -66,6 +66,9 @@ logs/
 # Test fixtures not needed in production image
 bash-5.1/
 simulations/
+tests/
+archive/
+archive_not_needed/
 
 # Documentation not needed in runtime image
 *.md
@@ -78,3 +81,18 @@ LICENSE
 **/*.db-shm
 .fixops_data/
 data/
+
+# Large artifacts not needed in containers
+artefacts/
+out/
+reports/
+*.tar
+*.gz
+*.zip
+
+# Jupyter notebooks
+**/*.ipynb
+
+# Coverage / profiling
+*.prof
+.benchmarks/

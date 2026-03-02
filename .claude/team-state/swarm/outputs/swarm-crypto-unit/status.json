@@ -1,0 +1,41 @@
+{
+  "task_id": "swarm-crypto-unit",
+  "worker_id": "junior-sonnet-4-6",
+  "status": "completed",
+  "files_modified": [
+    "tests/test_crypto.py"
+  ],
+  "files_created": [],
+  "summary": "Extended tests/test_crypto.py from 45 to 112 tests covering all public API surface of suite-core/core/crypto.py. Added 7 new test classes (TestExceptionHierarchy, TestKeyMetadataExtended, TestAllKeySizes, TestSignVerifyEdgeCases, TestModuleLevelFunctions, TestGetPublicKeyPem) with tests for exception hierarchy, fingerprint SHA-256 verification, all 3 key sizes (2048/3072/4096), edge cases (empty/1MB/binary data, bit-flips, truncation, cross-key), module-level singletons, and key persistence. All 112 tests pass in 9.3s.",
+  "issues": [],
+  "needs_senior_review": false,
+  "confidence": 0.98,
+  "duration_turns": 12,
+  "test_results": {
+    "total": 112,
+    "passed": 112,
+    "failed": 0,
+    "skipped": 0,
+    "duration_seconds": 9.3
+  },
+  "coverage_areas": [
+    "RSAKeyManager.__init__ (all valid key sizes, invalid sizes)",
+    "RSAKeyManager lazy loading (private_key, public_key, metadata properties)",
+    "RSAKeyManager key generation and persistence (PEM files, permissions)",
+    "RSAKeyManager key reloading from private and public PEM files",
+    "RSAKeyManager error handling (bad PEM, non-RSA key types, EC keys)",
+    "RSASigner.sign (bytes return type, signature length, determinism)",
+    "RSASigner.sign_base64 (valid base64, roundtrip with sign)",
+    "RSAVerifier.verify (valid, tampered data, wrong key, wrong fingerprint)",
+    "RSAVerifier.verify raise_on_failure (True/False behavior)",
+    "RSAVerifier.verify_base64 (valid, invalid base64, empty string)",
+    "KeyMetadata.to_dict (all fields, correct types)",
+    "KeyMetadata fingerprint = SHA-256(public_pem_bytes)",
+    "rsa_sign module function (singleton creation and reuse)",
+    "rsa_verify module function (raise_on_failure=True behavior)",
+    "generate_key_pair function (file creation, metadata, permissions)",
+    "Exception hierarchy (CryptoError > KeyNotFoundError/SignatureVerificationError/KeyGenerationError)",
+    "Edge cases: empty bytes, single byte, null bytes, all 256 byte values, 1MB data",
+    "PKCS1v15 determinism, cross-key verification failure, bit-flip detection"
+  ]
+}

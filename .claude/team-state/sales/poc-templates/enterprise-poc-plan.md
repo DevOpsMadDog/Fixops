@@ -1,7 +1,7 @@
 # ALdeci POC Plan — Enterprise Customer Template
 
 > **Duration**: 2 weeks
-> **Version**: 1.0 (2026-03-01)
+> **Version**: 2.0 (2026-03-02) — Updated with air-gapped evaluation track + native scanner benchmarks
 > **Pillars**: [V3] Decision Intelligence, [V5] MPTE Verification, [V7] MCP-Native
 
 ---
@@ -31,6 +31,25 @@
 - [ ] **AutoFix generation** for at least 5 findings with confidence scores
 - [ ] **Generate compliance report** for _{framework}_ with evidence bundle
 - [ ] **Decision engine** recommends top 10 priority actions with reasoning
+
+### Air-Gapped Evaluation Track (Government / Defense / Critical Infrastructure)
+
+- [ ] **Deploy fully air-gapped** — Docker image loaded from USB, zero internet
+- [ ] **Run native SAST** on customer code sample (no external scanner)
+- [ ] **Run native secrets scan** on customer repository
+- [ ] **Run native container scan** on customer Dockerfiles
+- [ ] **Compare native scanner results** to customer's existing scanner (accuracy benchmark)
+- [ ] **MPTE verification** without any cloud API dependency
+- [ ] **Self-hosted AI inference** via Llama 3.1 70B ($0 token cost)
+- [ ] **Evidence bundle** with RSA-SHA256 signatures (verify offline)
+
+### AutoFix Accuracy Measurement
+
+- [ ] **Generate fixes** for 10 verified findings
+- [ ] **Measure accuracy**: % of fixes that pass code review without modification
+- [ ] **Measure confidence calibration**: Do HIGH (>85%) fixes actually have higher accuracy?
+- [ ] **Measure auto-apply safety**: Any HIGH-confidence fixes that caused regressions?
+- [ ] **Compare to existing fix process**: Time-to-fix with ALdeci vs current workflow
 
 ---
 
@@ -200,4 +219,35 @@ curl -X POST http://localhost:8000/api/v1/scanner-ingest/upload \
 
 ---
 
-*Template version 1.0 — Updated 2026-03-01 by Sales Engineer Agent*
+---
+
+## Air-Gapped Deployment Verification Checklist
+
+For government/defense POCs, verify these capabilities work with ZERO internet:
+
+| Capability | Endpoint | Air-Gapped? |
+|-----------|----------|-------------|
+| SAST Scan | `POST /api/v1/sast/scan/code` | ✅ Native engine |
+| DAST Scan | `POST /api/v1/dast/scan` | ✅ Native engine |
+| Secrets Scan | `POST /api/v1/secrets/scan` | ✅ Native engine |
+| Container Scan | `POST /api/v1/container/scan` | ✅ Native engine |
+| CSPM/IaC Scan | `POST /api/v1/cspm/scan` | ✅ Native engine |
+| Brain Pipeline | `POST /api/v1/brain/ingest/finding` | ✅ Synthetic enrichment |
+| MPTE Verify | `POST /api/v1/mpte/verify` | ✅ Deterministic phases |
+| AutoFix | `POST /api/v1/autofix/generate` | ⚠️ Requires self-hosted LLM |
+| Evidence Signing | `GET /api/v1/evidence/` | ✅ Local RSA-SHA256 |
+| Compliance Map | `POST /api/v1/compliance-engine/map-findings` | ✅ Local CWE database |
+| Knowledge Graph | `GET /api/v1/knowledge-graph/analytics` | ✅ Local SQLite |
+
+### Air-Gapped Test Command
+
+```bash
+# Disconnect network, then:
+docker compose -f docker/docker-compose.air-gapped-test.yml up -d
+# Run full CTEM loop without internet
+bash scripts/demo-scripts/ctem-full-loop.sh
+```
+
+---
+
+*Template version 2.0 — Updated 2026-03-02 by Sales Engineer Agent. Added air-gapped evaluation track, native scanner benchmarks, AutoFix accuracy measurement.*

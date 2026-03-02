@@ -8,6 +8,7 @@ import { Button } from './ui/button';
 import { useRuntimeConfigStore } from '../stores';
 import { useNavigate } from 'react-router-dom';
 import { getActiveApiKey } from '../lib/api';
+import AirGappedIndicator from './AirGappedIndicator';
 
 export default function GlobalStatusBar() {
   const navigate = useNavigate();
@@ -92,6 +93,9 @@ export default function GlobalStatusBar() {
           {mode}
         </Badge>
       )}
+
+      {/* Air-Gapped / Deployment Mode Indicator (V9) */}
+      <AirGappedIndicator />
 
       {/* Spacer */}
       <div className="flex-1" />

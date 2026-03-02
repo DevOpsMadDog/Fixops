@@ -746,18 +746,8 @@ async def triage_funnel(
     in the Triage Dashboard.
     """
     findings = db.list_findings(limit=50000)
-    decisions = db.list_decisions(limit=50000)
 
     total_raw = len(findings)
-    false_positives = sum(
-        1 for f in findings if f.status == FindingStatus.FALSE_POSITIVE
-    )
-    resolved = sum(
-        1 for f in findings if f.status == FindingStatus.RESOLVED
-    )
-    open_count = sum(
-        1 for f in findings if f.status == FindingStatus.OPEN
-    )
 
     # Compute funnel stages — use realistic ratios when data is sparse
     if total_raw > 0:

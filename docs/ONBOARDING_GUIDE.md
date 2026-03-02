@@ -1,321 +1,333 @@
 # ALdeci Customer Onboarding Guide
 
-> **Version**: 1.0 — Sprint 2 (Enterprise Demo)
-> **Updated**: 2026-03-01
-> **Author**: Sales Engineer Agent
-> **Audience**: New ALdeci customers and their technical teams
-> **Duration**: 2-4 hours from install to first actionable report
+> **Version**: 3.0 | **Platform**: CTEM+ Decision Intelligence for Application Security
+> **Updated**: 2026-03-02 | **Duration**: 2-4 hours from install to first actionable report
 
 ---
 
-## Table of Contents
-
-1. [Pre-Requisites Checklist](#1-pre-requisites-checklist)
-2. [Installation — Docker (Recommended)](#2-installation--docker)
-3. [Installation — Local Development](#3-installation--local-development)
-4. [First Login & Configuration](#4-first-login--configuration)
-5. [Connect Your Scanners](#5-connect-your-scanners)
-6. [First Scan — Native Engines](#6-first-scan--native-engines)
-7. [Brain Pipeline — Your First Decision](#7-brain-pipeline--your-first-decision)
-8. [MPTE Verification — Prove Exploitability](#8-mpte-verification--prove-exploitability)
-9. [AutoFix — Generate Your First Code Fix](#9-autofix--generate-your-first-code-fix)
-10. [Compliance — Your First Evidence Bundle](#10-compliance--your-first-evidence-bundle)
-11. [Success Metrics](#11-success-metrics)
-12. [Troubleshooting](#12-troubleshooting)
-
----
-
-## 1. Pre-Requisites Checklist
-
-### System Requirements
+## Pre-Requisites Checklist
 
 | Requirement | Minimum | Recommended |
 |-------------|---------|-------------|
-| **OS** | Linux, macOS, Windows (Docker) | Linux (Ubuntu 22.04+) |
-| **CPU** | 2 cores | 4+ cores |
-| **RAM** | 4 GB | 8 GB (16 GB for self-hosted AI) |
-| **Disk** | 10 GB | 20 GB |
-| **Docker** | 20.10+ | 24.0+ |
-| **Python** | 3.10+ (local only) | 3.11+ |
-| **Network** | Optional (air-gapped supported) | Internet for threat feeds |
+| **Docker** | 24.0+ with Compose v2 | Latest stable |
+| **RAM** | 8 GB | 16 GB (for self-hosted LLM) |
+| **Disk** | 20 GB | 50 GB (for scan data retention) |
+| **Python** | 3.10+ (local dev only) | 3.11+ |
+| **Ports** | 8000 (API), 3001 (UI) | — |
 
-### Software Dependencies
-
-- [ ] Docker and Docker Compose installed
-- [ ] `curl` and `jq` available for API testing
-- [ ] API token from your existing scanner (Snyk, Semgrep, etc.) — optional
-- [ ] Network access to staging environment (for MPTE verification) — optional
-- [ ] Compliance framework requirements documented (SOC2, PCI, etc.) — optional
-
-### Pre-Configuration Decisions
-
-- [ ] **Deployment mode**: Docker / Kubernetes / Local
-- [ ] **AI backend**: Cloud LLMs (OpenAI/Anthropic) or Self-hosted (Llama 3.1)
-- [ ] **Scanner integration**: Which existing scanners to connect
-- [ ] **Compliance frameworks**: Which standards to map against
-- [ ] **Air-gapped**: Does this environment have internet access?
+**Software Checklist:**
+- [ ] Docker 24+ and Docker Compose v2 (`docker compose version`)
+- [ ] `curl` and `jq` for API testing
+- [ ] API key from your ALdeci account manager
+- [ ] (Optional) Existing scanner API tokens (Snyk, Semgrep, SonarQube, etc.)
+- [ ] (Optional) LLM provider API key (OpenAI or Anthropic) for AI features
+- [ ] For air-gapped: No internet required after initial Docker image pull
 
 ---
 
-## 2. Installation — Docker (Recommended)
+## Step 1: Installation
 
-### Step 1: Pull and Start
+### Option A: Docker (Recommended)
 
 ```bash
-# Clone the repository (or use pre-built image)
-git clone https://github.com/aldeci/fixops.git
-cd fixops
+# Clone the repository (or receive the enterprise bundle)
+git clone https://github.com/aldeci/fixops.git && cd fixops
 
-# Start with Docker Compose
+# Copy and configure environment
+cp .env.example .env
+# Edit .env with your API token (see Step 2)
+
+# Start everything
 docker compose -f docker/docker-compose.yml up -d
 
-# Wait for services to start (about 30 seconds)
-sleep 10
-
 # Verify health
-curl -s http://localhost:8000/health | jq .
-# Expected: {"status":"healthy","service":"aldeci-api"}
+curl -sf http://localhost:8000/health | jq .
+# Expected: {"status": "healthy", "service": "aldeci-api"}
 ```
 
-### Step 2: Get Your API Key
+### Option B: Local Development
 
 ```bash
-# The API key is printed to Docker logs on first start
-docker logs aldeci-api 2>&1 | grep "API_TOKEN"
-
-# Or set your own
-export FIXOPS_API_TOKEN="your-secure-api-key"
-```
-
-### Step 3: Verify All Services
-
-```bash
-BASE="http://localhost:8000/api/v1"
-API_KEY="your-api-key"
-
-for svc in brain/stats autofix/health mpte/stats sast/status dast/status \
-           secrets/status container/status cspm/status compliance-engine/status \
-           knowledge-graph/status mcp/tools evidence/ feeds/health; do
-  HTTP=$(curl -sf -o /dev/null -w "%{http_code}" -H "X-API-Key: $API_KEY" "$BASE/$svc")
-  echo "$svc → HTTP $HTTP"
-done
-```
-
-All services should return HTTP 200.
-
----
-
-## 3. Installation — Local Development
-
-```bash
-# Prerequisites: Python 3.10+
-cd fixops
-
-# Install dependencies
 pip install -r requirements.txt
-
-# Set environment
 export FIXOPS_MODE=enterprise
 export FIXOPS_API_TOKEN=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
 export FIXOPS_JWT_SECRET=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
 
-# Optional: LLM API keys (for AutoFix and AI Agent)
-export OPENAI_API_KEY="sk-..."       # Optional
-export ANTHROPIC_API_KEY="sk-ant-..."  # Optional
+# Optional: LLM API keys for AutoFix and AI Consensus
+export OPENAI_API_KEY="sk-proj-..."       # or
+export ANTHROPIC_API_KEY="sk-ant-..."
 
-# Start the API server
 python -m uvicorn apps.api.app:create_app --factory --port 8000
+```
 
-# In another terminal, seed demo data (optional)
-python scripts/enterprise/seed_demo_data.py
+### Option C: Air-Gapped Deployment
+
+```bash
+# On internet-connected machine:
+docker compose -f docker/docker-compose.yml pull
+docker save fixops:local aldeci-ui:local > aldeci-bundle.tar
+
+# On air-gapped machine:
+docker load < aldeci-bundle.tar
+docker compose -f docker/docker-compose.air-gapped-test.yml up -d
+
+# For self-hosted LLM, add to .env:
+# VLLM_BASE_URL=http://localhost:8001/v1
+# VLLM_MODEL=meta-llama/Meta-Llama-3.1-70B-Instruct
 ```
 
 ---
 
-## 4. First Login & Configuration
+## Step 2: Initial Configuration
 
 ### API Authentication
 
 All API calls require the `X-API-Key` header:
 
 ```bash
-# Test authentication
-curl -s -H "X-API-Key: $API_KEY" \
-  http://localhost:8000/api/v1/system/health | jq .
+export API_KEY="your-api-key-here"
+curl -s -H "X-API-Key: $API_KEY" http://localhost:8000/api/v1/system/health | jq .
 ```
 
-### UI Access
+### Environment Variables
 
-Open your browser to: `http://localhost:3001`
-
-The dashboard shows:
-- **Posture Score**: Your overall security health (0-100)
-- **Active Findings**: Current open vulnerabilities
-- **Compliance Status**: Framework coverage at a glance
-- **Recent Activity**: Latest scans, decisions, and fixes
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `FIXOPS_API_TOKEN` | — | API authentication key (required) |
+| `FIXOPS_JWT_SECRET` | auto-generated | JWT token signing secret |
+| `FIXOPS_MODE` | `enterprise` | Operating mode (`enterprise`, `demo`, `development`) |
+| `FIXOPS_DATA_DIR` | `.fixops_data` | Data storage directory |
+| `FIXOPS_ALLOWED_ORIGINS` | localhost:3000,3001 | Comma-separated CORS allowed origins |
+| `FIXOPS_DISABLE_RATE_LIMIT` | `0` | Set to `1` to disable rate limiting |
+| `OPENAI_API_KEY` | — | OpenAI key for AI consensus and AutoFix |
+| `ANTHROPIC_API_KEY` | — | Anthropic key (alternative LLM provider) |
+| `MPTE_BASE_URL` | `https://localhost:8443` | Micro-Pentest Engine URL |
 
 ---
 
-## 5. Connect Your Scanners
+## Step 3: Connect Your First Data Source
 
-ALdeci works with your existing scanners — no rip-and-replace required.
-
-### Option A: Upload a Report (Fastest)
+### Option A: Upload an Existing Scanner Report
 
 ```bash
-# Auto-detect scanner format and ingest
+# ALdeci supports 25+ scanner formats (Snyk, Nessus, ZAP, Burp, Trivy, etc.)
 curl -X POST http://localhost:8000/api/v1/scanner-ingest/upload \
   -H "X-API-Key: $API_KEY" \
   -F "file=@your-scan-report.json" \
+  -F "scanner_type=snyk"
+
+# Auto-detect format
+curl -X POST http://localhost:8000/api/v1/scanner-ingest/upload \
+  -H "X-API-Key: $API_KEY" \
+  -F "file=@scan-report.sarif" \
   -F "scanner_type=auto"
+
+# List supported scanner formats
+curl -s http://localhost:8000/api/v1/scanner-ingest/supported \
+  -H "X-API-Key: $API_KEY" | jq .
 ```
 
-Supported formats: Snyk JSON, Semgrep SARIF, ZAP JSON/XML, Burp XML, Nessus XML, Trivy JSON, Grype JSON, SARIF (any tool), CycloneDX SBOM, SPDX SBOM.
+Supported: Snyk, Semgrep (SARIF), ZAP, Burp, Nessus, Trivy, Grype, CycloneDX, SPDX, Dependabot, SonarQube, Checkmarx, Fortify, AWS SecurityHub, Wiz, Prisma Cloud, and more.
 
-### Option B: Configure Connector (Continuous)
+### Option B: Configure a Continuous Connector
 
 ```bash
-# Example: Connect to Snyk
 curl -X POST http://localhost:8000/api/v1/connectors \
   -H "X-API-Key: $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "My Snyk",
+    "name": "Production Snyk",
     "type": "snyk",
-    "config": {
-      "api_token": "your-snyk-token",
-      "org_id": "your-snyk-org"
-    }
+    "config": {"api_token": "your-snyk-token", "org_id": "your-org-id"}
   }'
-
-# Test the connection
-curl http://localhost:8000/api/v1/connectors \
-  -H "X-API-Key: $API_KEY" | jq '.[] | {name, type, status}'
 ```
 
 ### Option C: CI/CD Webhook
 
 ```bash
-# Configure your CI/CD to POST results to ALdeci
-# Webhook URL: http://your-aldeci-host:8000/api/v1/scanner-ingest/webhook/snyk
-# Method: POST
-# Body: Raw scanner output JSON
+# In your CI/CD pipeline, POST scan results directly:
+curl -X POST http://localhost:8000/api/v1/scanner-ingest/webhook/snyk \
+  -H "X-API-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d @snyk-ci-output.json
 ```
 
 ---
 
-## 6. First Scan — Native Engines
+## Step 4: Run Your First Scan
 
-Even without external scanners, ALdeci can scan your code directly.
+ALdeci includes 8 native scanners that require no external tools.
 
 ### SAST (Static Analysis)
 
 ```bash
-# Scan a code snippet
 curl -X POST http://localhost:8000/api/v1/sast/scan/code \
   -H "X-API-Key: $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "code": "your source code here",
+    "code": "cursor.execute(\"SELECT * FROM users WHERE name = \" + user_input)",
     "language": "python",
     "filename": "app.py"
   }'
 ```
 
-### Secrets Detection
-
-```bash
-# Scan for leaked credentials
-curl -X POST http://localhost:8000/api/v1/secrets/scan \
-  -H "X-API-Key: $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "your code or config here",
-    "filename": ".env"
-  }'
-```
-
 ### All 8 Native Scanners
 
-| Scanner | Endpoint | What It Finds |
-|---------|----------|---------------|
+| Scanner | Endpoint | What It Detects |
+|---------|----------|-----------------|
 | **SAST** | `POST /api/v1/sast/scan/code` | SQL injection, XSS, command injection, path traversal |
-| **DAST** | `POST /api/v1/dast/scan` | Web application vulnerabilities (live testing) |
+| **DAST** | `POST /api/v1/dast/scan` | Web app vulnerabilities via live testing |
 | **Secrets** | `POST /api/v1/secrets/scan` | API keys, passwords, tokens, credentials |
-| **Container** | `POST /api/v1/container/scan` | Dockerfile issues, image vulnerabilities |
+| **Container** | `POST /api/v1/container/scan` | Dockerfile issues, image CVEs |
 | **CSPM/IaC** | `POST /api/v1/cspm/scan` | Terraform/CloudFormation misconfigurations |
 | **API Fuzzer** | `POST /api/v1/api-fuzzer/fuzz` | API endpoint vulnerabilities |
-| **Malware** | `POST /api/v1/malware/scan` | Malicious code patterns |
+| **Malware** | `POST /api/v1/malware/scan` | Malicious code patterns, backdoors |
 | **LLM Monitor** | `POST /api/v1/llm-monitor/analyze` | Prompt injection, jailbreak attempts |
 
 ---
 
-## 7. Brain Pipeline — Your First Decision
+## Step 5: Brain Pipeline Processing
 
-Once findings are ingested, the Brain Pipeline processes them through 12 steps:
+Every finding flows through ALdeci's 12-step decision intelligence pipeline:
+
+| Step | Name | What It Does |
+|------|------|--------------|
+| 1 | **Connect** | Ingests findings from all connected sources |
+| 2 | **Normalize** | Translates to `UnifiedFinding` schema |
+| 3 | **Resolve Identity** | Fuzzy-matches findings across scanners |
+| 4 | **Deduplicate** | Collapses duplicates into Exposure Cases |
+| 5 | **Build Graph** | Constructs knowledge graph of assets and vulnerabilities |
+| 6 | **Enrich Threats** | Adds EPSS probability, KEV status, CVSS scores |
+| 7 | **Score Risk** | GNN algorithms and attack-path analysis |
+| 8 | **Apply Policy** | Evaluates organizational policies and SLAs |
+| 9 | **LLM Consensus** | Multi-LLM triage recommendations |
+| 10 | **Micro-Pentest** | MPTE verification of real-world exploitability |
+| 11 | **Run Playbooks** | Automated remediation (Jira, Slack, PRs) |
+| 12 | **Generate Evidence** | Cryptographically signed SOC2 evidence bundles |
 
 ```bash
-# Ingest a finding into the Brain Pipeline
+# Ingest a finding into the pipeline
 curl -X POST http://localhost:8000/api/v1/brain/ingest/finding \
   -H "X-API-Key: $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "finding_id": "my-first-finding",
-    "title": "SQL Injection in login page",
+    "finding_id": "onboarding-001",
+    "title": "SQL Injection in login endpoint",
     "severity": "CRITICAL",
     "cwe": "CWE-89",
     "source": "native-sast",
-    "app_id": "my-app"
+    "app_id": "web-portal"
   }'
 
-# Check the knowledge graph
-curl -H "X-API-Key: $API_KEY" \
-  http://localhost:8000/api/v1/knowledge-graph/analytics | jq .
-
-# Get the FAIL priority score
+# Get the FAIL priority score (contextual, replaces raw CVSS)
 curl -X POST http://localhost:8000/api/v1/fail/score \
   -H "X-API-Key: $API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "finding_id": "my-first-finding",
-    "cvss": 9.8,
-    "epss": 0.87,
-    "asset_criticality": "high",
-    "reachable": true
-  }'
+  -d '{"finding_id":"onboarding-001","cvss":9.8,"epss":0.87,"asset_criticality":"high","reachable":true}'
+
+# Check pipeline stats
+curl -s http://localhost:8000/api/v1/brain/stats -H "X-API-Key: $API_KEY" | jq .
 ```
 
 ---
 
-## 8. MPTE Verification — Prove Exploitability
+## Step 6: View Results in the Dashboard
 
-Don't just detect — prove:
+### Web UI
+
+Open **http://localhost:3001** for the Mission Control dashboard showing posture score, active findings, risk trends, and compliance status.
+
+### API-Based Dashboard
 
 ```bash
-# Verify a finding is actually exploitable
-curl -X POST http://localhost:8000/api/v1/mpte/verify \
+# Dashboard overview (posture score, finding counts, MTTR)
+curl -s http://localhost:8000/api/v1/analytics/dashboard/overview \
+  -H "X-API-Key: $API_KEY" | jq .
+
+# Findings with filtering
+curl -s "http://localhost:8000/api/v1/analytics/findings?severity=critical" \
+  -H "X-API-Key: $API_KEY" | jq .
+
+# Top risks
+curl -s http://localhost:8000/api/v1/analytics/dashboard/top-risks \
+  -H "X-API-Key: $API_KEY" | jq .
+
+# Compliance status
+curl -s http://localhost:8000/api/v1/analytics/dashboard/compliance-status \
+  -H "X-API-Key: $API_KEY" | jq .
+
+# Triage funnel (how findings flow through the pipeline)
+curl -s http://localhost:8000/api/v1/analytics/triage-funnel \
+  -H "X-API-Key: $API_KEY" | jq .
+
+# Noise reduction metrics
+curl -s http://localhost:8000/api/v1/analytics/noise-reduction \
+  -H "X-API-Key: $API_KEY" | jq .
+```
+
+### Understanding Prioritization
+
+ALdeci layers five prioritization signals:
+1. **Raw Severity**: CRITICAL / HIGH / MEDIUM / LOW / INFO
+2. **CVSS Score**: 0.0-10.0
+3. **EPSS Probability**: 0.0-1.0 (likelihood of exploitation in 30 days)
+4. **FAIL Score**: 0-100 (ALdeci proprietary -- recommended metric)
+5. **MPTE Verdict**: Verified exploitable, verified safe, or unverified
+
+---
+
+## Step 7: Configure Policies
+
+```bash
+# Create a policy with SLA enforcement
+curl -X POST http://localhost:8000/api/v1/policies \
   -H "X-API-Key: $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "finding_id": "my-first-finding",
-    "vulnerability_type": "sql_injection",
-    "target": "http://your-staging-app:8080/login",
-    "context": {
-      "cwe": "CWE-89",
-      "parameter": "username"
+    "name": "Critical-SLA-7d",
+    "description": "Critical findings must be remediated within 7 days",
+    "rules": {
+      "max_mttr_days": 7,
+      "auto_fix_threshold": "high",
+      "severity_filter": ["CRITICAL"],
+      "auto_assign": true
     }
   }'
-```
 
-**Verdicts**:
-- `VULNERABLE_VERIFIED` — Confirmed exploitable with evidence
-- `NOT_VULNERABLE_VERIFIED` — Confirmed NOT exploitable (false positive)
-- `NOT_APPLICABLE` — Cannot be tested with current context
-- `UNVERIFIED` — Inconclusive, needs manual review
+# List policies
+curl -s http://localhost:8000/api/v1/policies -H "X-API-Key: $API_KEY" | jq .
+
+# Test a policy (dry run)
+curl -X POST http://localhost:8000/api/v1/policies/{policy_id}/test \
+  -H "X-API-Key: $API_KEY" -H "Content-Type: application/json" -d '{}'
+
+# Enforce a policy
+curl -X POST http://localhost:8000/api/v1/policies/{policy_id}/enforce \
+  -H "X-API-Key: $API_KEY" -H "Content-Type: application/json" -d '{}'
+
+# Check for policy conflicts
+curl -s http://localhost:8000/api/v1/policies/conflicts -H "X-API-Key: $API_KEY" | jq .
+```
 
 ---
 
-## 9. AutoFix — Generate Your First Code Fix
+## Step 8: Enable AutoFix
+
+### View Fix Types and Confidence Levels
+
+```bash
+# List the 10 supported fix types
+curl -s http://localhost:8000/api/v1/autofix/fix-types -H "X-API-Key: $API_KEY" | jq .
+
+# Get confidence level definitions
+curl -s http://localhost:8000/api/v1/autofix/confidence-levels -H "X-API-Key: $API_KEY" | jq .
+```
+
+**10 Fix Types**: `code_patch`, `dependency_update`, `config_hardening`, `iac_fix`, `secret_rotation`, `permission_fix`, `input_validation`, `output_encoding`, `waf_rule`, `container_fix`
+
+**Confidence Thresholds**: HIGH (>85%, auto-apply) | MEDIUM (60-85%, PR for review) | LOW (<60%, suggestion only)
+
+### Generate and Apply a Fix
 
 ```bash
 # Generate an AI-powered fix
@@ -323,93 +335,142 @@ curl -X POST http://localhost:8000/api/v1/autofix/generate \
   -H "X-API-Key: $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "finding_id": "my-first-finding",
+    "finding_id": "onboarding-001",
     "vulnerability_type": "sql_injection",
-    "source_code": "your vulnerable code here",
+    "source_code": "cursor.execute(\"SELECT * FROM users WHERE name = \" + user_input)",
     "language": "python",
-    "fix_type": "CODE_PATCH"
+    "fix_type": "code_patch"
   }'
-```
 
-**Confidence Levels**:
-- **HIGH (>85%)**: Safe to auto-apply — creates PR automatically
-- **MEDIUM (60-85%)**: Creates PR for human review
-- **LOW (<60%)**: Suggestion only — human decision required
+# Apply a validated fix (creates a pull request)
+curl -X POST http://localhost:8000/api/v1/autofix/apply \
+  -H "X-API-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"fix_id": "fix-abc123", "auto_merge": false}'
+
+# Monitor AutoFix stats
+curl -s http://localhost:8000/api/v1/autofix/stats -H "X-API-Key: $API_KEY" | jq .
+```
 
 ---
 
-## 10. Compliance — Your First Evidence Bundle
+## Step 9: Compliance Framework Setup
+
+### Supported Frameworks
+
+SOC 2 Type II, PCI DSS 4.0, HIPAA, ISO 27001:2022, NIST 800-53 Rev 5, NIST CSF 2.0, OWASP ASVS 4.0
 
 ```bash
 # List supported frameworks
-curl -H "X-API-Key: $API_KEY" \
-  http://localhost:8000/api/v1/compliance-engine/frameworks | jq .
+curl -s http://localhost:8000/api/v1/compliance-engine/frameworks \
+  -H "X-API-Key: $API_KEY" | jq .
+
+# Map findings to framework controls
+curl -X POST http://localhost:8000/api/v1/compliance-engine/map-findings \
+  -H "X-API-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "findings": [{"finding_id":"onboarding-001","cwe":"CWE-89","severity":"CRITICAL"}],
+    "framework": "soc2"
+  }'
 
 # Assess compliance posture
 curl -X POST http://localhost:8000/api/v1/compliance-engine/assess \
   -H "X-API-Key: $API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"framework": "SOC2"}'
+  -d '{"framework": "soc2"}'
 
-# Generate signed audit bundle
-curl -H "X-API-Key: $API_KEY" \
-  http://localhost:8000/api/v1/compliance-engine/audit-bundle | jq .
+# View compliance gaps
+curl -s http://localhost:8000/api/v1/compliance-engine/gaps -H "X-API-Key: $API_KEY" | jq .
+
+# Generate cryptographically signed audit bundle (RSA-SHA256)
+curl -s http://localhost:8000/api/v1/compliance-engine/audit-bundle \
+  -H "X-API-Key: $API_KEY" | jq .
+
+# Look up CWE-to-control mappings
+curl -s http://localhost:8000/api/v1/compliance-engine/cwe-mapping/CWE-89 \
+  -H "X-API-Key: $API_KEY" | jq .
 ```
 
 ---
 
-## 11. Success Metrics
+## Step 10: First Results Review
 
-After onboarding, track these metrics to measure ALdeci's impact:
-
-| Metric | Before ALdeci | Target with ALdeci | How to Measure |
-|--------|---------------|-------------------|----------------|
-| Finding noise | 100% raw | 97% reduced | `GET /api/v1/analytics/dashboard/overview` → noise_reduction |
-| False positive rate | ~68% | <5% | MPTE verifications with NOT_VULNERABLE verdict |
-| MTTR | 14 days | <3 days | `GET /api/v1/analytics/dashboard/overview` → mttr_days |
-| Audit prep time | 3 weeks | <2 hours | Time to generate compliance bundle |
-| Fix confidence | Manual guess | AI-scored (0-100%) | `GET /api/v1/autofix/stats` → avg_confidence |
-
----
-
-## 12. Troubleshooting
-
-### API returns 401 Unauthorized
+After completing steps 1-9, review your results end to end.
 
 ```bash
-# Check your API key is set correctly
-curl -v -H "X-API-Key: $API_KEY" http://localhost:8000/api/v1/system/health
-# Look for "X-API-Key" in request headers
+# Verify MPTE exploitability for critical findings
+curl -X POST http://localhost:8000/api/v1/mpte/verify \
+  -H "X-API-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "finding_id": "onboarding-001",
+    "vulnerability_type": "sql_injection",
+    "target": "http://your-staging-app:8080/login",
+    "context": {"cwe": "CWE-89", "parameter": "username"}
+  }'
+# Verdicts: VULNERABLE_VERIFIED | NOT_VULNERABLE_VERIFIED | NOT_APPLICABLE | UNVERIFIED
+
+# Review pipeline decisions
+curl -s http://localhost:8000/api/v1/analytics/decisions \
+  -H "X-API-Key: $API_KEY" | jq '.[] | {finding_id, decision, confidence}'
+
+# Overall summary
+curl -s http://localhost:8000/api/v1/analytics/summary -H "X-API-Key: $API_KEY" | jq .
+
+# ROI metrics
+curl -s http://localhost:8000/api/v1/analytics/roi -H "X-API-Key: $API_KEY" | jq .
 ```
-
-### Service returns 500 Internal Server Error
-
-```bash
-# Check Docker logs
-docker logs aldeci-api --tail 50
-
-# Restart the service
-docker compose -f docker/docker-compose.yml restart
-```
-
-### MPTE returns UNVERIFIED
-
-- Ensure the target URL is accessible from the ALdeci container
-- Check that the staging environment allows test traffic
-- Try with a simpler vulnerability type first (e.g., `sql_injection`)
-
-### AutoFix returns low confidence
-
-- Provide more source code context (full function, not just the vulnerable line)
-- Ensure LLM API keys are configured (`OPENAI_API_KEY` or `ANTHROPIC_API_KEY`)
-- For air-gapped: configure self-hosted model via vLLM or Ollama
-
-### Need Help?
-
-- **API Documentation**: `http://localhost:8000/docs` (Swagger UI)
-- **Postman Collections**: `suite-integrations/postman/enterprise/` (7 collections)
-- **CLI Help**: `python -m core.cli --help` (22 commands)
 
 ---
 
-*Onboarding Guide v1.0 — Updated 2026-03-01 by Sales Engineer Agent*
+## Success Metrics
+
+| Metric | Baseline | Week 1 Target | Week 2 Target |
+|--------|----------|---------------|---------------|
+| Findings ingested | 0 | 1,000+ | 5,000+ |
+| Noise reduction | 0% | 50% | 90%+ |
+| False positive elimination | 0% | 30% | 68%+ |
+| MTTR (days) | 14 | 7 | 3 |
+| AutoFix adoption | 0% | 20% | 50% |
+| Compliance coverage | 0% | 60% | 90% |
+| Audit prep time | 3 weeks | 1 week | < 2 hours |
+
+---
+
+## Troubleshooting
+
+| Problem | Cause | Solution |
+|---------|-------|----------|
+| API returns 401 | Missing or wrong API key | Verify `X-API-Key` header matches `FIXOPS_API_TOKEN` in `.env` |
+| Container won't start | Port conflict | Run `lsof -i :8000` and kill the conflicting process |
+| Slow responses | Insufficient resources | Set `FIXOPS_WORKERS=4` in `.env` and increase container RAM |
+| Upload returns 413 | File exceeds 100 MB limit | Split large scan reports into smaller batches |
+| Upload returns 422 | Invalid scanner type | Check `GET /api/v1/scanner-ingest/supported` or use `scanner_type=auto` |
+| MPTE returns UNVERIFIED | Target unreachable | Ensure staging app is accessible from ALdeci container network |
+| AutoFix low confidence | No LLM key configured | Set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` in `.env` |
+| Air-gapped failures | Missing images | Run `docker images | grep -E "fixops\|aldeci"` to verify |
+
+```bash
+# General debugging
+docker logs fixops-api --tail 50
+docker logs aldeci-ui --tail 50
+docker stats fixops-api
+```
+
+---
+
+## Getting Help
+
+| Resource | Location |
+|----------|----------|
+| API Reference | `docs/API_REFERENCE.md` |
+| Architecture | `docs/ARCHITECTURE.md` |
+| Demo Scripts | `docs/DEMO_PERSONA_SCRIPTS.md` |
+| Swagger UI | `http://localhost:8000/docs` |
+| CLI Help | `python -m core.cli --help` (22 commands) |
+| Support | support@aldeci.com |
+
+---
+
+*ALdeci Customer Onboarding Guide v3.0 -- 2026-03-02*

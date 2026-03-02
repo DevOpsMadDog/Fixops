@@ -1,0 +1,35 @@
+{
+  "date": "2026-03-02T13:25:00Z",
+  "runner": "qa-engineer",
+  "iteration": "sprint2-day2-iter4",
+  "method": "curl 3x average against localhost:8000",
+  "read_endpoints": {
+    "health": {"avg_ms": 4431, "status": "SLOW", "note": "Cold-start on first request, subsequent ~3ms"},
+    "brain/stats": {"avg_ms": 26, "status": "FAST"},
+    "autofix/health": {"avg_ms": 2, "status": "FAST"},
+    "mpte/stats": {"avg_ms": 3, "status": "FAST"},
+    "mcp/tools": {"avg_ms": 3, "status": "FAST"},
+    "compliance-engine/frameworks": {"avg_ms": 3, "status": "FAST"},
+    "analytics/findings": {"avg_ms": 3, "status": "FAST"},
+    "search": {"avg_ms": 2, "status": "FAST"}
+  },
+  "write_endpoints": {
+    "brain/pipeline/run": {"avg_ms": 25, "status": "FAST", "note": "5-finding pipeline"},
+    "sast/scan/code": {"avg_ms": 3, "status": "FAST"},
+    "secrets/scan/content": {"avg_ms": 4, "status": "FAST"},
+    "cspm/scan/terraform": {"avg_ms": 3, "status": "FAST"},
+    "mpte/requests": {"avg_ms": 4, "status": "FAST"},
+    "dast/scan": {"avg_ms": 5, "status": "FAST"},
+    "container/scan/image": {"avg_ms": 5, "status": "FAST"}
+  },
+  "thresholds": {
+    "FAST": "<1000ms",
+    "OK": "1000-5000ms",
+    "SLOW": ">5000ms"
+  },
+  "slow_endpoints_flagged": [
+    "health endpoint first request 4431ms (cold start)",
+    "knowledge-graph: Most Connected Nodes (ESOCKETTIMEDOUT in Newman)"
+  ],
+  "notes": "All primary endpoints under 30ms except cold-start health check. Brain pipeline stable at 25ms. MCP discovery 3ms for 100 tools. No performance regressions from previous iteration."
+}

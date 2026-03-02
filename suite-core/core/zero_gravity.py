@@ -33,9 +33,7 @@ import hashlib
 import json
 import logging
 import os
-import shutil
 import sqlite3
-import struct
 import threading
 import time
 import zlib
@@ -43,7 +41,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 

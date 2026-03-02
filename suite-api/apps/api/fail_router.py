@@ -22,8 +22,6 @@ from typing import Any, Dict, List, Optional
 from apps.api.dependencies import get_org_id
 from core.fail_db import FAILDB
 from core.fail_engine import (
-    AssetCriticality,
-    DataClassification,
     ExploitMaturity,
     FAILEngine,
     FAILInput,

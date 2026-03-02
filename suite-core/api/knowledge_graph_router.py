@@ -225,7 +225,6 @@ async def seed_demo_data() -> Dict[str, Any]:
             EdgeType,
             GraphEdge,
             GraphNode,
-            KnowledgeGraphEngine,
             NodeType,
         )
 

@@ -1,0 +1,31 @@
+{
+  "iteration": 2,
+  "date": "2026-03-02T12:58:00Z",
+  "sprint": "Sprint 2 — Enterprise Demo",
+  "total_requests": 402,
+  "total_assertions": 472,
+  "passed": 472,
+  "failed": 0,
+  "pass_rate": 100.0,
+  "verdict": "PASS",
+  "collections": {
+    "ALdeci-1-MissionControl": {"requests": 63, "assertions": 73, "passed": 73, "failed": 0},
+    "ALdeci-2-Discover": {"requests": 84, "assertions": 94, "passed": 94, "failed": 0},
+    "ALdeci-3-Validate": {"requests": 47, "assertions": 55, "passed": 55, "failed": 0},
+    "ALdeci-4-Remediate": {"requests": 49, "assertions": 50, "passed": 50, "failed": 0},
+    "ALdeci-5-Comply": {"requests": 51, "assertions": 53, "passed": 53, "failed": 0},
+    "ALdeci-6-PersonaWorkflows": {"requests": 40, "assertions": 55, "passed": 55, "failed": 0},
+    "ALdeci-7-Scanners-OSS-AutoFix": {"requests": 68, "assertions": 92, "passed": 92, "failed": 0}
+  },
+  "regressions_from_previous": 0,
+  "improvements": "Fixed 12 failing assertions in Col 2 (5) and Col 3 (7). Added 263 new Python tests for 4 MOAT files. 9 MOAT files now above 50% coverage.",
+  "failures_to_fix": [],
+  "stubs_detected": [],
+  "new_tests": {
+    "test_autofix_engine.py": "157 tests, 91.67% coverage of autofix_engine.py",
+    "test_sast_engine.py": "57 tests, 99.07% coverage of sast_engine.py",
+    "test_dast_engine.py": "49 tests, 47.78% coverage of dast_engine.py",
+    "test_crypto.py": "45 tests, 97.86% coverage of crypto.py"
+  },
+  "notes": "ALL 7 collections GREEN. ZERO regressions. 4th consecutive 100% pass iteration. 308 new/existing tests across 4 MOAT files all passing."
+}

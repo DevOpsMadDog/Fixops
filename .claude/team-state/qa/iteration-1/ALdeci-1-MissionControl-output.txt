@@ -4,583 +4,320 @@ newman
 
 ❏ 🏥 Platform Health & Readiness
 ↳ Legacy Health Check
-  GET http://localhost:8000/health [200 OK, 341B, 20ms]
+  GET http://localhost:8000/health [200 OK, 347B, 22ms]
   ✓  Health endpoint returns 200
   ✓  Response contains status field
 
 ↳ Health Check (v1)
-  GET http://localhost:8000/api/v1/health [200 OK, 406B, 7ms]
+  GET http://localhost:8000/api/v1/health [200 OK, 412B, 14ms]
   ✓  V1 Health returns 200
   ✓  Contains component status
 
 ↳ Readiness Check (K8s Probe)
-  GET http://localhost:8000/api/v1/ready [200 OK, 645B, 9ms]
+  GET http://localhost:8000/api/v1/ready [200 OK, 651B, 8ms]
   ✓  Readiness check returns 200
 
 ↳ Version Info
-  GET http://localhost:8000/api/v1/version [200 OK, 444B, 8ms]
+  GET http://localhost:8000/api/v1/version [200 OK, 444B, 13ms]
   ✓  Version endpoint returns 200
   ✓  Contains version string
 
 ↳ Prometheus Metrics
-  GET http://localhost:8000/api/v1/metrics [200 OK, 454B, 9ms]
+  GET http://localhost:8000/api/v1/metrics [200 OK, 460B, 13ms]
   ✓  Metrics endpoint returns 200
 
 ↳ Authenticated Status
-  GET http://localhost:8000/api/v1/status [401 Unauthorized, 353B, 15ms]
-  1. Authenticated status returns 200
+  GET http://localhost:8000/api/v1/status [200 OK, 407B, 8ms]
+  ✓  Authenticated status returns 200
 
 ↳ FAIL Engine Health
-  GET http://localhost:8000/api/v1/fail/health [404 Not Found, 331B, 22ms]
-  2. FAIL engine healthy
+  GET http://localhost:8000/api/v1/fail/health [200 OK, 387B, 10ms]
+  ✓  FAIL engine healthy
 
 ↳ AutoFix Health
-  GET http://localhost:8000/api/v1/autofix/health [401 Unauthorized, 353B, 10ms]
-  3. AutoFix engine healthy
+  GET http://localhost:8000/api/v1/autofix/health [200 OK, 399B, 13ms]
+  ✓  AutoFix engine healthy
 
 ↳ Knowledge Brain Health
-  GET http://localhost:8000/api/v1/brain/health [401 Unauthorized, 353B, 14ms]
-  4. Brain healthy
+  GET http://localhost:8000/api/v1/brain/health [200 OK, 399B, 25ms]
+  ✓  Brain healthy
 
 ↳ Copilot Health
-  GET http://localhost:8000/api/v1/copilot/health [401 Unauthorized, 353B, 10ms]
-  5. Copilot healthy
+  GET http://localhost:8000/api/v1/copilot/health [200 OK, 682B, 9ms]
+  ✓  Copilot healthy
 
 ↳ Agent Swarm Health
-  GET http://localhost:8000/api/v1/copilot/agents/health [401 Unauthorized, 353B, 10ms]
-  6. Agent swarm healthy
+  GET http://localhost:8000/api/v1/copilot/agents/health [200 OK, 374B, 8ms]
+  ✓  Agent swarm healthy
 
 ↳ LLM Health
-  GET http://localhost:8000/api/v1/llm/health [401 Unauthorized, 353B, 11ms]
-  7. LLM healthy
+  GET http://localhost:8000/api/v1/llm/health [200 OK, 573B, 10ms]
+  ✓  LLM healthy
 
 ↳ Feeds Health
-  GET http://localhost:8000/api/v1/feeds/health [401 Unauthorized, 353B, 17ms]
-  8. Feeds healthy
+  GET http://localhost:8000/api/v1/feeds/health [200 OK, 1.26kB, 385ms]
+  ✓  Feeds healthy
 
 ↳ MPTE Health
-  GET http://localhost:8000/api/v1/micro-pentest/health [401 Unauthorized, 353B, 10ms]
-  9. MPTE healthy
+  GET http://localhost:8000/api/v1/micro-pentest/health [200 OK, 604B, 33ms]
+  ✓  MPTE healthy
 
 ↳ Reachability Health
-  GET http://localhost:8000/api/v1/reachability/health [401 Unauthorized, 353B, 11ms]
- 10. Reachability analysis healthy
+  GET http://localhost:8000/api/v1/reachability/health [200 OK, 435B, 152ms]
+  ✓  Reachability analysis healthy
 
 ↳ Attack Simulation Health
-  GET http://localhost:8000/api/v1/attack-sim/health [401 Unauthorized, 353B, 15ms]
- 11. Attack Sim healthy
+  GET http://localhost:8000/api/v1/attack-sim/health [200 OK, 611B, 8ms]
+  ✓  Attack Sim healthy
 
 ❏ 📊 Command Dashboard (Sarah CISO)
 ↳ Dashboard Overview
-  GET http://localhost:8000/api/v1/analytics/dashboard/overview [401 Unauthorized, 353B, 13ms]
- 12. Dashboard overview returns 200
+  GET http://localhost:8000/api/v1/analytics/dashboard/overview [200 OK, 461B, 9ms]
+  ✓  Dashboard overview returns 200
   ✓  Contains dashboard data
 
 ↳ Dashboard Trends
-  GET http://localhost:8000/api/v1/analytics/dashboard/trends [401 Unauthorized, 353B, 12ms]
- 13. Trends data returns 200
+  GET http://localhost:8000/api/v1/analytics/dashboard/trends [200 OK, 2.3kB, 9ms]
+  ✓  Trends data returns 200
   ✓  Contains trend data
 
 ↳ Top Risks
-  GET http://localhost:8000/api/v1/analytics/dashboard/top-risks [401 Unauthorized, 353B, 5ms]
- 14. Top risks returns 200
+  GET http://localhost:8000/api/v1/analytics/dashboard/top-risks [200 OK, 5.71kB, 7ms]
+  ✓  Top risks returns 200
   ✓  Returns risk array or object
 
 ↳ Compliance Status
-  GET http://localhost:8000/api/v1/analytics/dashboard/compliance-status [401 Unauthorized, 353B, 10ms]
- 15. Compliance status returns 200
+  GET http://localhost:8000/api/v1/analytics/dashboard/compliance-status [200 OK, 441B, 16ms]
+  ✓  Compliance status returns 200
 
 ↳ Analytics Summary
-  GET http://localhost:8000/api/v1/analytics/summary [401 Unauthorized, 353B, 11ms]
- 16. Summary returns 200
+  GET http://localhost:8000/api/v1/analytics/summary [200 OK, 586B, 22ms]
+  ✓  Summary returns 200
 
 ↳ Analytics Stats
-  GET http://localhost:8000/api/v1/analytics/stats [401 Unauthorized, 353B, 16ms]
- 17. Stats returns 200
+  GET http://localhost:8000/api/v1/analytics/stats [200 OK, 586B, 63ms]
+  ✓  Stats returns 200
 
 ↳ MTTR Metrics
-  GET http://localhost:8000/api/v1/analytics/mttr [401 Unauthorized, 353B, 5ms]
- 18. MTTR returns 200
+  GET http://localhost:8000/api/v1/analytics/mttr [200 OK, 385B, 8ms]
+  ✓  MTTR returns 200
 
 ↳ Security Coverage
-  GET http://localhost:8000/api/v1/analytics/coverage [401 Unauthorized, 353B, 7ms]
- 19. Coverage returns 200
+  GET http://localhost:8000/api/v1/analytics/coverage [200 OK, 620B, 20ms]
+  ✓  Coverage returns 200
 
 ↳ ROI Analysis
-  GET http://localhost:8000/api/v1/analytics/roi [401 Unauthorized, 353B, 6ms]
- 20. ROI returns 200
+  GET http://localhost:8000/api/v1/analytics/roi [200 OK, 448B, 17ms]
+  ✓  ROI returns 200
 
 ↳ Noise Reduction
-  GET http://localhost:8000/api/v1/analytics/noise-reduction [401 Unauthorized, 353B, 7ms]
- 21. Noise reduction returns 200
+  GET http://localhost:8000/api/v1/analytics/noise-reduction [200 OK, 471B, 19ms]
+  ✓  Noise reduction returns 200
 
 ↳ Risk Velocity
-  GET http://localhost:8000/api/v1/analytics/risk-velocity [401 Unauthorized, 353B, 13ms]
- 22. Risk velocity returns 200
+  GET http://localhost:8000/api/v1/analytics/risk-velocity [200 OK, 652B, 23ms]
+  ✓  Risk velocity returns 200
 
 ↳ Severity Over Time
-  GET http://localhost:8000/api/v1/analytics/trends/severity-over-time [401 Unauthorized, 353B, 12ms]
- 23. Severity trends returns 200
+  GET http://localhost:8000/api/v1/analytics/trends/severity-over-time [200 OK, 750B, 12ms]
+  ✓  Severity trends returns 200
 
 ↳ Trend Anomalies
-  GET http://localhost:8000/api/v1/analytics/trends/anomalies [401 Unauthorized, 353B, 13ms]
- 24. Anomalies returns 200
+  GET http://localhost:8000/api/v1/analytics/trends/anomalies [200 OK, 564B, 14ms]
+  ✓  Anomalies returns 200
 
 ↳ Period Comparison
-  GET http://localhost:8000/api/v1/analytics/compare?period1_start=2025-01-01&period1_end=2025-06-30&period2_start=2025-07-01&period2_end=2025-12-31 [401 Unauthorized, 353B, 9ms]
- 25. Period comparison returns 200
+  GET http://localhost:8000/api/v1/analytics/compare?period1_start=2025-01-01&period1_end=2025-06-30&period2_start=2025-07-01&period2_end=2025-12-31 [200 OK, 797B, 17ms]
+  ✓  Period comparison returns 200
 
 ↳ Export Analytics
-  GET http://localhost:8000/api/v1/analytics/export?format=json [401 Unauthorized, 353B, 6ms]
- 26. Export returns 200
+  GET http://localhost:8000/api/v1/analytics/export?format=json [200 OK, 288.59kB, 39ms]
+  ✓  Export returns 200
 
 ❏ 🧠 Nerve Center (Real-Time Intelligence)
 ↳ Threat Pulse
-  GET http://localhost:8000/api/v1/nerve-center/pulse [401 Unauthorized, 353B, 63ms]
- 27. Threat pulse returns 200
+  GET http://localhost:8000/api/v1/nerve-center/pulse [200 OK, 439B, 58ms]
+  ✓  Threat pulse returns 200
   ✓  Contains threat data
 
 ↳ Nerve Center State
-  GET http://localhost:8000/api/v1/nerve-center/state [401 Unauthorized, 353B, 13ms]
- 28. Nerve center state returns 200
+  GET http://localhost:8000/api/v1/nerve-center/state [200 OK, 2.62kB, 151ms]
+  ✓  Nerve center state returns 200
 
 ↳ Intelligence Map
-  GET http://localhost:8000/api/v1/nerve-center/intelligence-map [401 Unauthorized, 353B, 9ms]
- 29. Intelligence map returns 200
+  GET http://localhost:8000/api/v1/nerve-center/intelligence-map [200 OK, 2.92kB, 14ms]
+  ✓  Intelligence map returns 200
 
 ↳ List Playbooks
-  GET http://localhost:8000/api/v1/nerve-center/playbooks [401 Unauthorized, 353B, 10ms]
- 30. Playbooks list returns 200
+  GET http://localhost:8000/api/v1/nerve-center/playbooks [200 OK, 1.18kB, 11ms]
+  ✓  Playbooks list returns 200
 
 ↳ Get Overlay Config
-  GET http://localhost:8000/api/v1/nerve-center/overlay [401 Unauthorized, 353B, 12ms]
- 31. Overlay config returns 200
+  GET http://localhost:8000/api/v1/nerve-center/overlay [200 OK, 2.83kB, 8ms]
+  ✓  Overlay config returns 200
 
 ❏ ⚡ Decision Engine
 ↳ Decision Metrics
-  GET http://localhost:8000/api/v1/decisions/metrics [401 Unauthorized, 353B, 8ms]
- 32. Decision metrics returns 200
+  GET http://localhost:8000/api/v1/decisions/metrics [200 OK, 806B, 10ms]
+  ✓  Decision metrics returns 200
 
 ↳ Recent Decisions
-  GET http://localhost:8000/api/v1/decisions/recent [401 Unauthorized, 353B, 13ms]
- 33. Recent decisions returns 200
+  GET http://localhost:8000/api/v1/decisions/recent [200 OK, 332B, 11ms]
+  ✓  Recent decisions returns 200
 
 ↳ SSDLC Stage Data
-  GET http://localhost:8000/api/v1/decisions/ssdlc-stages [401 Unauthorized, 353B, 11ms]
- 34. SSDLC stages returns 200
+  GET http://localhost:8000/api/v1/decisions/ssdlc-stages [200 OK, 384B, 23ms]
+  ✓  SSDLC stages returns 200
 
 ↳ Core Components Status
-  GET http://localhost:8000/api/v1/decisions/core-components [401 Unauthorized, 353B, 11ms]
- 35. Core components returns 200
+  GET http://localhost:8000/api/v1/decisions/core-components [200 OK, 408B, 15ms]
+  ✓  Core components returns 200
 
 ❏ 📈 Risk Overview
 ↳ Risk Summary
-  GET http://localhost:8000/api/v1/risk/ [401 Unauthorized, 353B, 14ms]
- 36. Risk summary returns 200
+  GET http://localhost:8000/api/v1/analytics/risk-velocity [200 OK, 652B, 20ms]
+  ✓  Risk summary returns 200
 
 ↳ CVE Risk Score
-  GET http://localhost:8000/api/v1/risk/cve/CVE-2024-3094 [401 Unauthorized, 353B, 13ms]
- 37. CVE risk returns 200
+  GET http://localhost:8000/api/v1/feeds/nvd/CVE-2024-3094 [404 Not Found, 362B, 12ms]
+  1. CVE risk returns 200
 
 ↳ Supply Chain Graph Summary
-  GET http://localhost:8000/api/v1/graph/ [401 Unauthorized, 353B, 14ms]
- 38. Graph summary returns 200
+  GET http://localhost:8000/api/v1/graph [404 Not Found, 390B, 4ms]
+  2. Graph summary returns 200
 
 ↳ KEV-Affected Components
-  GET http://localhost:8000/api/v1/graph/kev-components [401 Unauthorized, 353B, 15ms]
- 39. KEV components returns 200
+  GET http://localhost:8000/api/v1/graph/kev-components [200 OK, 304B, 35ms]
+  ✓  KEV components returns 200
 
 ↳ Version Anomalies
-  GET http://localhost:8000/api/v1/graph/anomalies [401 Unauthorized, 353B, 13ms]
- 40. Anomalies returns 200
+  GET http://localhost:8000/api/v1/graph/anomalies [200 OK, 304B, 38ms]
+  ✓  Anomalies returns 200
 
 ❏ 👥 User & Team Management
 ↳ List Users
-  GET http://localhost:8000/api/v1/users [401 Unauthorized, 353B, 9ms]
- 41. List users returns 200
+  GET http://localhost:8000/api/v1/users [200 OK, 10.52kB, 11ms]
+  ✓  List users returns 200
   ✓  Returns array or paginated result
 
 ↳ Create User
-  POST http://localhost:8000/api/v1/users [401 Unauthorized, 353B, 11ms]
- 42. Create user returns 200 or 201
+  POST http://localhost:8000/api/v1/users [201 Created, 589B, 202ms]
+  ✓  Create user returns 200 or 201
   ✓  Capture userId
 
 ↳ Get User by ID
-  GET http://localhost:8000/api/v1/users/ [401 Unauthorized, 353B, 7ms]
- 43. Get user returns 200
+  GET http://localhost:8000/api/v1/users/a4e58501-6db1-49d6-8613-a7cc0a586310 [200 OK, 582B, 6ms]
+  ✓  Get user returns 200
 
 ↳ List Teams
-  GET http://localhost:8000/api/v1/teams [401 Unauthorized, 353B, 8ms]
- 44. List teams returns 200
+  GET http://localhost:8000/api/v1/teams [200 OK, 2.84kB, 13ms]
+  ✓  List teams returns 200
 
 ↳ Create Team
-  POST http://localhost:8000/api/v1/teams [401 Unauthorized, 353B, 5ms]
- 45. Create team returns 200 or 201
+  POST http://localhost:8000/api/v1/teams [409 Conflict, 372B, 12ms]
+  ✓  Create team returns 200 or 201
   ✓  Capture teamId
 
 ↳ Get Team
-  GET http://localhost:8000/api/v1/teams/ [401 Unauthorized, 353B, 38ms]
- 46. Get team returns 200
+  GET http://localhost:8000/api/v1/teams/ [200 OK, 2.84kB, 20ms]
+  ✓  Get team returns 200
 
 ↳ List SSO Configs
-  GET http://localhost:8000/api/v1/auth/sso [401 Unauthorized, 353B, 4ms]
- 47. SSO configs returns 200
+  GET http://localhost:8000/api/v1/auth/sso [200 OK, 607B, 10ms]
+  ✓  SSO configs returns 200
 
 ❏ 📝 Logs & Monitoring
 ↳ Query Logs
-  GET http://localhost:8000/api/v1/logs [401 Unauthorized, 353B, 4ms]
- 48. Logs returns 200
+  GET http://localhost:8000/api/v1/logs [200 OK, 261.77kB, 43ms]
+  ✓  Logs returns 200
 
 ↳ Log Stats
-  GET http://localhost:8000/api/v1/logs/stats [401 Unauthorized, 353B, 8ms]
- 49. Log stats returns 200
+  GET http://localhost:8000/api/v1/logs/stats [200 OK, 506B, 506ms]
+  ✓  Log stats returns 200
 
 ↳ Recent Logs
-  GET http://localhost:8000/api/v1/logs/recent [401 Unauthorized, 353B, 6ms]
- 50. Recent logs returns 200
+  GET http://localhost:8000/api/v1/logs/recent [200 OK, 103.15kB, 7ms]
+  ✓  Recent logs returns 200
 
 ↳ ML Status
-  GET http://localhost:8000/api/v1/ml/status [401 Unauthorized, 353B, 8ms]
- 51. ML status returns 200
+  GET http://localhost:8000/api/v1/ml/status [200 OK, 2.35kB, 28ms]
+  ✓  ML status returns 200
 
 ↳ ML Models
-  GET http://localhost:8000/api/v1/ml/models [401 Unauthorized, 353B, 6ms]
- 52. ML models returns 200
+  GET http://localhost:8000/api/v1/ml/models [200 OK, 1.36kB, 7ms]
+  ✓  ML models returns 200
 
 ↳ Algorithm Status
-  GET http://localhost:8000/api/v1/algorithms/status [401 Unauthorized, 353B, 6ms]
- 53. Algorithm status returns 200
+  GET http://localhost:8000/api/v1/algorithms/status [200 OK, 1.2kB, 13ms]
+  ✓  Algorithm status returns 200
 
 ↳ Algorithm Capabilities
-  GET http://localhost:8000/api/v1/algorithms/capabilities [401 Unauthorized, 353B, 9ms]
- 54. Algorithm capabilities returns 200
+  GET http://localhost:8000/api/v1/algorithms/capabilities [200 OK, 1.63kB, 9ms]
+  ✓  Algorithm capabilities returns 200
 
 ↳ LLM Status
-  GET http://localhost:8000/api/v1/llm/status [401 Unauthorized, 353B, 8ms]
- 55. LLM status returns 200
+  GET http://localhost:8000/api/v1/llm/status [200 OK, 946B, 9ms]
+  ✓  LLM status returns 200
 
 ↳ LLM Providers
-  GET http://localhost:8000/api/v1/llm/providers [401 Unauthorized, 353B, 11ms]
- 56. LLM providers returns 200
+  GET http://localhost:8000/api/v1/llm/providers [200 OK, 1.71kB, 4ms]
+  ✓  LLM providers returns 200
 
 ❏ 🔍 Global Search
 ↳ Global Search — CVE
-  GET http://localhost:8000/api/v1/search?q=CVE-2024-3094 [401 Unauthorized, 353B, 4ms]
- 57. Search returns 200
-  ✓  Returns search results
+  GET http://localhost:8000/api/v1/search?q=CVE-2024-3094 [500 Internal Server Error, 174B, 21ms]
+  3. Search returns 200
+  4. Returns search results
 
 ↳ Global Search — Keyword
-  GET http://localhost:8000/api/v1/search?q=critical [401 Unauthorized, 353B, 5ms]
- 58. Keyword search returns 200
+  GET http://localhost:8000/api/v1/search?q=critical [500 Internal Server Error, 174B, 22ms]
+  5. Keyword search returns 200
 
-┌─────────────────────────┬──────────────────┬─────────────────┐
-│                         │         executed │          failed │
-├─────────────────────────┼──────────────────┼─────────────────┤
-│              iterations │                1 │               0 │
-├─────────────────────────┼──────────────────┼─────────────────┤
-│                requests │               63 │               0 │
-├─────────────────────────┼──────────────────┼─────────────────┤
-│            test-scripts │               63 │               0 │
-├─────────────────────────┼──────────────────┼─────────────────┤
-│      prerequest-scripts │               63 │               0 │
-├─────────────────────────┼──────────────────┼─────────────────┤
-│              assertions │               74 │              58 │
-├─────────────────────────┴──────────────────┴─────────────────┤
-│ total run duration: 8.1s                                     │
-├──────────────────────────────────────────────────────────────┤
-│ total data received: 3.18kB (approx)                         │
-├──────────────────────────────────────────────────────────────┤
-│ average response time: 11ms [min: 4ms, max: 63ms, s.d.: 8ms] │
-└──────────────────────────────────────────────────────────────┘
+┌─────────────────────────┬───────────────────┬──────────────────┐
+│                         │          executed │           failed │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│              iterations │                 1 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│                requests │                63 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│            test-scripts │                63 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│      prerequest-scripts │                63 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│              assertions │                74 │                5 │
+├─────────────────────────┴───────────────────┴──────────────────┤
+│ total run duration: 9.8s                                       │
+├────────────────────────────────────────────────────────────────┤
+│ total data received: 700.26kB (approx)                         │
+├────────────────────────────────────────────────────────────────┤
+│ average response time: 37ms [min: 4ms, max: 506ms, s.d.: 82ms] │
+└────────────────────────────────────────────────────────────────┘
 
-[31m   # [39m[31m failure        [39m[31m detail                                                                 [39m
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 01.  AssertionError  Authenticated status returns 200                                       
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "🏥 Platform Health & Readiness / Authenticated Status"         
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 02.  AssertionError  FAIL engine healthy                                                    
-                      expected response to have status code 200 but got 404                  
-                      at assertion:0 in test-script                                          
-                      inside "🏥 Platform Health & Readiness / FAIL Engine Health"           
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 03.  AssertionError  AutoFix engine healthy                                                 
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "🏥 Platform Health & Readiness / AutoFix Health"               
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 04.  AssertionError  Brain healthy                                                          
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "🏥 Platform Health & Readiness / Knowledge Brain Health"       
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 05.  AssertionError  Copilot healthy                                                        
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "🏥 Platform Health & Readiness / Copilot Health"               
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 06.  AssertionError  Agent swarm healthy                                                    
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "🏥 Platform Health & Readiness / Agent Swarm Health"           
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 07.  AssertionError  LLM healthy                                                            
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "🏥 Platform Health & Readiness / LLM Health"                   
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 08.  AssertionError  Feeds healthy                                                          
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "🏥 Platform Health & Readiness / Feeds Health"                 
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 09.  AssertionError  MPTE healthy                                                           
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "🏥 Platform Health & Readiness / MPTE Health"                  
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 10.  AssertionError  Reachability analysis healthy                                          
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "🏥 Platform Health & Readiness / Reachability Health"          
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 11.  AssertionError  Attack Sim healthy                                                     
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "🏥 Platform Health & Readiness / Attack Simulation Health"     
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 12.  AssertionError  Dashboard overview returns 200                                         
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📊 Command Dashboard (Sarah CISO) / Dashboard Overview"        
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 13.  AssertionError  Trends data returns 200                                                
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📊 Command Dashboard (Sarah CISO) / Dashboard Trends"          
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 14.  AssertionError  Top risks returns 200                                                  
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📊 Command Dashboard (Sarah CISO) / Top Risks"                 
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 15.  AssertionError  Compliance status returns 200                                          
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📊 Command Dashboard (Sarah CISO) / Compliance Status"         
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 16.  AssertionError  Summary returns 200                                                    
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📊 Command Dashboard (Sarah CISO) / Analytics Summary"         
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 17.  AssertionError  Stats returns 200                                                      
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📊 Command Dashboard (Sarah CISO) / Analytics Stats"           
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 18.  AssertionError  MTTR returns 200                                                       
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📊 Command Dashboard (Sarah CISO) / MTTR Metrics"              
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 19.  AssertionError  Coverage returns 200                                                   
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📊 Command Dashboard (Sarah CISO) / Security Coverage"         
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 20.  AssertionError  ROI returns 200                                                        
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📊 Command Dashboard (Sarah CISO) / ROI Analysis"              
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 21.  AssertionError  Noise reduction returns 200                                            
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📊 Command Dashboard (Sarah CISO) / Noise Reduction"           
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 22.  AssertionError  Risk velocity returns 200                                              
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📊 Command Dashboard (Sarah CISO) / Risk Velocity"             
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 23.  AssertionError  Severity trends returns 200                                            
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📊 Command Dashboard (Sarah CISO) / Severity Over Time"        
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 24.  AssertionError  Anomalies returns 200                                                  
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📊 Command Dashboard (Sarah CISO) / Trend Anomalies"           
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 25.  AssertionError  Period comparison returns 200                                          
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📊 Command Dashboard (Sarah CISO) / Period Comparison"         
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 26.  AssertionError  Export returns 200                                                     
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📊 Command Dashboard (Sarah CISO) / Export Analytics"          
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 27.  AssertionError  Threat pulse returns 200                                               
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "🧠 Nerve Center (Real-Time Intelligence) / Threat Pulse"       
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 28.  AssertionError  Nerve center state returns 200                                         
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "🧠 Nerve Center (Real-Time Intelligence) / Nerve Center State" 
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 29.  AssertionError  Intelligence map returns 200                                           
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "🧠 Nerve Center (Real-Time Intelligence) / Intelligence Map"   
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 30.  AssertionError  Playbooks list returns 200                                             
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "🧠 Nerve Center (Real-Time Intelligence) / List Playbooks"     
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 31.  AssertionError  Overlay config returns 200                                             
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "🧠 Nerve Center (Real-Time Intelligence) / Get Overlay Config" 
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 32.  AssertionError  Decision metrics returns 200                                           
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "⚡ Decision Engine / Decision Metrics"                         
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 33.  AssertionError  Recent decisions returns 200                                           
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "⚡ Decision Engine / Recent Decisions"                         
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 34.  AssertionError  SSDLC stages returns 200                                               
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "⚡ Decision Engine / SSDLC Stage Data"                         
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 35.  AssertionError  Core components returns 200                                            
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "⚡ Decision Engine / Core Components Status"                   
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 36.  AssertionError  Risk summary returns 200                                               
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📈 Risk Overview / Risk Summary"                               
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 37.  AssertionError  CVE risk returns 200                                                   
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📈 Risk Overview / CVE Risk Score"                             
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 38.  AssertionError  Graph summary returns 200                                              
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📈 Risk Overview / Supply Chain Graph Summary"                 
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 39.  AssertionError  KEV components returns 200                                             
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📈 Risk Overview / KEV-Affected Components"                    
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 40.  AssertionError  Anomalies returns 200                                                  
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📈 Risk Overview / Version Anomalies"                          
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 41.  AssertionError  List users returns 200                                                 
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "👥 User & Team Management / List Users"                        
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 42.  AssertionError  Create user returns 200 or 201                                         
-                      expected 401 to be one of [ 200, 201 ]                                 
-                      at assertion:0 in test-script                                          
-                      inside "👥 User & Team Management / Create User"                       
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 43.  AssertionError  Get user returns 200                                                   
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "👥 User & Team Management / Get User by ID"                    
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 44.  AssertionError  List teams returns 200                                                 
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "👥 User & Team Management / List Teams"                        
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 45.  AssertionError  Create team returns 200 or 201                                         
-                      expected 401 to be one of [ 200, 201 ]                                 
-                      at assertion:0 in test-script                                          
-                      inside "👥 User & Team Management / Create Team"                       
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 46.  AssertionError  Get team returns 200                                                   
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "👥 User & Team Management / Get Team"                          
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 47.  AssertionError  SSO configs returns 200                                                
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "👥 User & Team Management / List SSO Configs"                  
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 48.  AssertionError  Logs returns 200                                                       
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📝 Logs & Monitoring / Query Logs"                             
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 49.  AssertionError  Log stats returns 200                                                  
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📝 Logs & Monitoring / Log Stats"                              
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 50.  AssertionError  Recent logs returns 200                                                
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📝 Logs & Monitoring / Recent Logs"                            
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 51.  AssertionError  ML status returns 200                                                  
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📝 Logs & Monitoring / ML Status"                              
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 52.  AssertionError  ML models returns 200                                                  
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📝 Logs & Monitoring / ML Models"                              
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 53.  AssertionError  Algorithm status returns 200                                           
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📝 Logs & Monitoring / Algorithm Status"                       
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 54.  AssertionError  Algorithm capabilities returns 200                                     
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📝 Logs & Monitoring / Algorithm Capabilities"                 
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 55.  AssertionError  LLM status returns 200                                                 
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📝 Logs & Monitoring / LLM Status"                             
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 56.  AssertionError  LLM providers returns 200                                              
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "📝 Logs & Monitoring / LLM Providers"                          
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 57.  AssertionError  Search returns 200                                                     
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "🔍 Global Search / Global Search — CVE"                        
-[90m     [39m[90m                [39m[90m                                                                        [39m
- 58.  AssertionError  Keyword search returns 200                                             
-                      expected response to have status code 200 but got 401                  
-                      at assertion:0 in test-script                                          
-                      inside "🔍 Global Search / Global Search — Keyword"                    
+[31m  # [39m[31m failure        [39m[31m detail                                                 [39m
+[90m    [39m[90m                [39m[90m                                                        [39m
+ 1.  AssertionError  CVE risk returns 200                                   
+                     expected 404 to be one of [ 200, 201, 202, 409 ]       
+                     at assertion:0 in test-script                          
+                     inside "📈 Risk Overview / CVE Risk Score"             
+[90m    [39m[90m                [39m[90m                                                        [39m
+ 2.  AssertionError  Graph summary returns 200                              
+                     expected 404 to be one of [ 200, 201, 202, 409 ]       
+                     at assertion:0 in test-script                          
+                     inside "📈 Risk Overview / Supply Chain Graph Summary" 
+[90m    [39m[90m                [39m[90m                                                        [39m
+ 3.  AssertionError  Search returns 200                                     
+                     expected 500 to be one of [ 200, 201, 202, 409 ]       
+                     at assertion:0 in test-script                          
+                     inside "🔍 Global Search / Global Search — CVE"        
+[90m    [39m[90m                [39m[90m                                                        [39m
+ 4.  JSONError       Returns search results                                 
+                     Unexpected token 'I' at 1:1                            
+                     Internal Server Error                                  
+                     ^                                                      
+                     at assertion:1 in test-script                          
+                     inside "🔍 Global Search / Global Search — CVE"        
+[90m    [39m[90m                [39m[90m                                                        [39m
+ 5.  AssertionError  Keyword search returns 200                             
+                     expected 500 to be one of [ 200, 201, 202, 409 ]       
+                     at assertion:0 in test-script                          
+                     inside "🔍 Global Search / Global Search — Keyword"    

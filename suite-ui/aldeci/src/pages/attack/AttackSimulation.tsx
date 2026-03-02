@@ -14,25 +14,27 @@ import { microPentestApi, reachabilityApi, graphApi } from '../../lib/api';
 
 export default function AttackSimulation() {
   // Fetch attack simulation status
-  const { data: pentestStatus } = useQuery({
+  const { data: pentestStatus, isLoading: pentestLoading } = useQuery({
     queryKey: ['pentest-health'],
     queryFn: () => microPentestApi.getHealth(),
     retry: false,
   });
 
   // Fetch reachability metrics
-  const { data: reachabilityData } = useQuery({
+  const { data: reachabilityData, isLoading: reachLoading } = useQuery({
     queryKey: ['reachability-metrics'],
     queryFn: () => reachabilityApi.getMetrics(),
     retry: false,
   });
 
   // Fetch attack graph data
-  const { data: graphData } = useQuery({
+  const { data: graphData, isLoading: graphLoading } = useQuery({
     queryKey: ['attack-graph'],
     queryFn: () => graphApi.getGraph(),
     retry: false,
   });
+
+  const isLoading = pentestLoading || reachLoading || graphLoading;
 
   const stats = [
     {
@@ -60,6 +62,34 @@ export default function AttackSimulation() {
       color: 'text-green-400',
     },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="h-8 w-56 bg-gray-700/30 rounded animate-pulse" />
+            <div className="h-4 w-72 bg-gray-700/20 rounded animate-pulse mt-2" />
+          </div>
+          <div className="h-6 w-20 bg-gray-700/30 rounded-full animate-pulse" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => (
+            <Card key={i} className="border-gray-700/30 bg-gray-900/40">
+              <CardContent className="p-4">
+                <div className="h-6 w-6 bg-gray-700/40 rounded animate-pulse mb-3" />
+                <div className="h-8 w-12 bg-gray-700/30 rounded animate-pulse mb-1" />
+                <div className="h-3 w-20 bg-gray-700/20 rounded animate-pulse" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card className="border-gray-700/30 bg-gray-900/40">
+          <CardContent className="p-6"><div className="h-72 bg-gray-700/20 rounded animate-pulse" /></CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

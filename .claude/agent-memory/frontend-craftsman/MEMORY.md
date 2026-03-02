@@ -2,9 +2,9 @@
 
 ## Project Structure
 - Legacy UI: `suite-ui/aldeci/` (React + Vite + TypeScript, has real components)
-- New UI target: `suite-ui/aldeci-ui-new/` (not yet populated as of 2026-02-27)
+- New UI target: `suite-ui/aldeci-ui-new/` (DOES NOT EXIST -- never create it)
 - API client: `suite-ui/aldeci/src/lib/api.ts` -- axios-based, uses `api.get()` / `api.post()`
-- UI components: `@/components/ui/` has Card, Badge, Button, Input, Tabs, Progress, Textarea (shadcn-style)
+- UI components: `@/components/ui/` has Card, Badge, Button, Input, Tabs, Progress, Textarea, Dialog, Label, ScrollArea, Tooltip (shadcn-style)
 
 ## Key Patterns in Codebase
 - Dark theme first: bg-gray-900/80, border-gray-600/30, text-gray-200
@@ -13,87 +13,66 @@
 - Animation: framer-motion with Apple ease `[0.16, 1, 0.3, 1]` (ease-out-expo)
 - Spring animations: `{ type: 'spring', stiffness: 200, damping: 22 }`
 - Container stagger: `{ staggerChildren: 0.05 }`, item: `{ opacity: 0, y: 12 } -> { opacity: 1, y: 0 }`
-- Animated counters: `AnimatedNumber` component using `useMotionValue` + `animate`
 - Priority colors: critical=red, high=orange, medium=yellow, low=blue, info=cyan
 - Status colors: open=red, triaging=yellow, fixing=blue, resolved=green
-- Severity badge pattern: `bg-{color}-500/20 text-{color}-400 border-{color}-500/30`
+- Severity badge: `bg-{color}-500/20 text-{color}-400 border-{color}-500/30`
+- Never use `alert()` -- always `toast.success()` / `toast.error()` from sonner
 
 ## API Import Pattern (IMPORTANT)
-- **Use named exports** for new pages: `import { reportsApi } from '../../lib/api'`
-- **Named exports available**: reportsApi, auditApi, workflowsApi, sastApi, dastApi, secretsApi, containerScanApi, cspmScanApi, scannerIngestApi, sandboxApi, failApi, feedsApi, remediationApi
-- **Raw axios instance**: `import { api } from '../../lib/api'` for custom endpoints
-- **Default export** is an object with namespaced methods -- less type-safe, avoid in new code
-- Response key pattern: most list endpoints return `data?.items || data`
+- **Named exports**: `import { reportsApi } from '../../lib/api'`
+- **Available**: reportsApi, auditApi, workflowsApi, sastApi, dastApi, secretsApi, containerScanApi, cspmScanApi, scannerIngestApi, sandboxApi, failApi, feedsApi, remediationApi, reachabilityApi, mcpApi, brainPipelineApi, complianceApi, analyticsApi, nerveCenterApi
+- **Raw axios**: `import { api } from '../../lib/api'` for custom endpoints
+- **Default export**: Object with namespaced methods -- avoid in new code
+- Response key: most list endpoints return `data?.items || data`
 
 ## Scanner API Signatures (verified)
 - `sastApi.scanCode(code: string, filename?: string)` -- NOT an object
 - `secretsApi.scanContent(content: string)` -- NOT an object
-- `cspmScanApi.scanTerraform({ content: string, filename?: string })` -- IS an object
-- `cspmScanApi.scanCloudFormation({ content: string, filename?: string })` -- IS an object
-- Scanner status endpoints: `/api/v1/{sast|dast|secrets|container|cspm}/status`
+- `cspmScanApi.scanTerraform({ content, filename })` -- IS an object
+- `reachabilityApi.analyze({ cve_id, repository? })` -- IS an object (NOT 2 separate args!)
+- Scanner status: `/api/v1/{sast|dast|secrets|container|cspm}/status`
 
-## API Endpoints Used
-- `/api/v1/cases` -- list exposure cases (params: org_id, priority)
-- `/api/v1/cases/stats/summary` -- case stats (total, by_status, by_priority, avg_risk_score)
-- `/api/v1/analytics/triage-funnel` -- pipeline reduction funnel
-- `/api/v1/cases/{id}/transition` -- POST to transition case status
-- `/api/v1/fail/score` -- FAIL engine scoring
-- `/api/v1/reports` -- list/generate reports (response: data?.items)
-- `/api/v1/audit/logs` -- audit logs with integrity verification
-- `/api/v1/workflows` -- CRUD workflows (response: data?.items)
-- `/api/v1/remediation/tasks` -- remediation task list
-- `/api/v1/feeds/epss` -- EPSS vulnerability scores
-- `/api/v1/feeds/kev` -- CISA KEV entries
-- `/api/v1/feeds/health` -- feed health status
-
-## Page Status (as of 2026-03-01)
-### Production Quality (wired to real APIs)
-- Dashboard.tsx (472 LOC) ✅
-- EvidenceBundles.tsx (~400 LOC) ✅
-- AutoFixDashboard.tsx (249 LOC) ✅
-- CodeScanning.tsx (~500 LOC) ✅
-- Integrations.tsx ✅
-- IntegrationsSettings.tsx ✅
-- ExposureCaseCenter.tsx ✅
-- AttackPathGraph.tsx ✅
-- Reports.tsx (~280 LOC) ✅ -- rewritten 2026-03-01
-- AuditLogs.tsx (~260 LOC) ✅ -- rewritten 2026-03-01
-- Workflows.tsx (~350 LOC) ✅ -- rewritten 2026-03-01
-- Remediation.tsx (~320 LOC) ✅ -- rewritten 2026-03-01
-- IaCScanning.tsx (~240 LOC) ✅ -- rewritten 2026-03-01
-- ThreatFeeds.tsx (~270 LOC) ✅ -- rewritten 2026-03-01
-- ScannerDashboard.tsx (~380 LOC) ✅ -- NEW 2026-03-01
+## Page Status (as of 2026-03-02 Session 2) -- 61 pages, ALL wired
+### Key Pages by Pillar
+- V3: BrainPipelineDashboard (724 LOC), AutoFixDashboard (625 LOC), ExposureCaseCenter (1182 LOC), Predictions (~340 LOC), Policies (~310 LOC)
+- V5: SandboxVerification (905 LOC), MPTEConsole (1353 LOC), Reachability (~420 LOC)
+- V7: ScannerIngestUpload (987 LOC), ScannerDashboard (532 LOC)
+- V9: AirGappedIndicator (185 LOC, in GlobalStatusBar)
+- V10: EvidenceBundles (2091 LOC), SOC2EvidenceUI, ComplianceReports (~450 LOC)
 
 ### Still Needs Work
-- CEODashboard.tsx -- TS errors fixed but still needs UX polish
-- Collaboration.tsx (72 LOC) -- minimal stub
-- Reachability.tsx (103 LOC) -- basic stub
 - MPTEConsole.tsx -- needs 19-phase enhancement
-
-## Pre-existing TS Issues (FIXED 2026-03-01)
-- CEODashboard.tsx: Fixed `api.get` by importing `{ api }` named export
-- AttackPathGraph.tsx: Removed unused imports
-- CodeScanning.tsx: Fixed ReactNode type with `String()` wrapper
+- CEODashboard.tsx -- needs UX polish
+- Collaboration.tsx (411 LOC) -- functional but could be improved
 
 ## Completed Sprint Items
-- SPRINT1-002: Attack Path Graph visualization (AttackPathGraph.tsx)
-- SPRINT1-014: Triage Dashboard hero (ExposureCaseCenter.tsx, +307 lines)
-- DEMO-003: Wire legacy UI to real API data (6 pages rewritten + ScannerDashboard)
+- SPRINT1-002: Attack Path Graph visualization
+- SPRINT1-014: Triage Dashboard hero
+- DEMO-003 Day 1: Wire 6 pages + ScannerDashboard
+- DEMO-003 Day 2 S1: +2 new pages (ScannerIngest, SandboxVerification), +1 component (AirGapped), enhanced BrainPipeline + AutoFix
+- DEMO-003 Day 2 S2: Rewrote Reachability, ComplianceReports, Predictions, Policies (4 pages from stubs to production)
 
-## Dark Mode Audit Learnings
-- Common light-mode leaks: `bg-gray-50`, `bg-gray-100`, `bg-blue-50`, `bg-purple-50`, `bg-green-100`, `text-green-800`, `text-red-800`
-- Safe dark replacements: `bg-gray-950/50` (pre blocks), `bg-gray-800/60` (chat bubbles), `bg-green-500/20 text-green-400`, `bg-gray-500/20 text-gray-400`
-- Always grep for `'bg-gray-50'|'bg-gray-100'|'bg-blue-50'` (quoted) to avoid false positives from `bg-blue-500/20`
-- Never use `alert()` -- always `toast.success()` / `toast.error()` from sonner
+## Build Stats
+- 61 pages, 20 components, 34,064 LOC
+- TypeScript: 0 errors
+- Build: ~3.8s, all pages lazy-loaded
+- 100% API-wired (0 mock-only pages)
 
 ## Parallel Worker Pattern
-- Launch 7 junior-worker agents for page rewrites -- each gets detailed spec with interfaces, queries, design tokens
-- Check for unused imports after workers finish (common issue: `Button` imported but not used)
-- Run `npx tsc --noEmit` after each batch to catch errors early
+- Launch junior-worker agents for page builds (3 concurrent is good)
+- Always check for unused imports after workers finish
+- Run `npx tsc --noEmit` after each batch
+- Workers sometimes use wrong API signatures -- verify call patterns match api.ts
 
-## Remaining Priority Items
-- AutoFix Center UI (Remediate space) -- 10 fix types, confidence badges, diff view
-- Brain Pipeline visualization (Mission Control) -- 12-step pipeline
-- Scanner Ingest Upload page (Discover) -- drag-and-drop scanner reports
-- Sandbox Verification page (Validate) -- PoC editor, Docker health
-- Lower priority: Predictions, Policies, AlgorithmicLab, Reachability still basic stubs (functional but not polished)
+## Remaining Priority Items (Day 3+)
+- MPTEConsole 19-phase enhancement (V5, P0)
+- Knowledge Graph interactive improvements (V3)
+- Loading skeletons across all pages
+- Keyboard shortcuts (Ctrl+K for search)
+- Page transition polish
+- Bundle size optimization (main chunk 540KB — consider code splitting)
+
+## API Patterns for Policy/Prediction Pages
+- Predictions: `api.post('/api/v1/predictions/risk-trajectory', { cve_ids })` and `api.post('/api/v1/predictions/attack-chain', { target })`
+- Policies: `api.get('/api/v1/policies')` returns `data?.items || data`, `api.post('/api/v1/policies/{id}/validate')`
+- complianceApi: `getStatus()`, `generateReport(frameworkId)`, `collectEvidence(id)`, frameworks at `/api/v1/compliance-engine/frameworks`

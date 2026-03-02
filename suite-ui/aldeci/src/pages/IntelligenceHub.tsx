@@ -153,14 +153,51 @@ export default function IntelligenceHub() {
     toast.success('Intelligence feeds refreshed');
   };
 
-  // Sample CVEs for display when no data loaded
-  const sampleVulnerabilities = [
-    { cve: 'CVE-2024-3400', severity: 'Critical', epss: 0.943, cvss: 10.0, inKev: true },
-    { cve: 'CVE-2024-21887', severity: 'Critical', epss: 0.875, cvss: 9.1, inKev: true },
-    { cve: 'CVE-2023-46805', severity: 'High', epss: 0.812, cvss: 8.2, inKev: true },
-    { cve: 'CVE-2024-1709', severity: 'Critical', epss: 0.756, cvss: 10.0, inKev: true },
-    { cve: 'CVE-2023-22515', severity: 'Critical', epss: 0.698, cvss: 9.8, inKev: true },
-  ];
+  // Derive top vulnerabilities from real API data (EPSS + KEV)
+  const kevSet = new Set(
+    (kevData?.vulnerabilities || []).map((v: Record<string, string>) => v.cve_id || v.cve)
+  );
+
+  const topVulnerabilities: VulnerabilityCardProps[] = (() => {
+    const items: VulnerabilityCardProps[] = [];
+
+    // Merge EPSS scores — highest exploitation probability first
+    const epssScores = (epssData?.scores || epssData?.data || []) as Array<Record<string, number | string>>;
+    for (const s of epssScores.slice(0, 20)) {
+      const cveId = String(s.cve || s.cve_id || '');
+      const epssVal = Number(s.epss ?? s.score ?? 0);
+      const cvssVal = s.cvss ? Number(s.cvss) : undefined;
+      if (!cveId) continue;
+      items.push({
+        cve: cveId,
+        severity: epssVal >= 0.7 ? 'Critical' : epssVal >= 0.4 ? 'High' : epssVal >= 0.1 ? 'Medium' : 'Low',
+        epss: epssVal,
+        cvss: cvssVal,
+        inKev: kevSet.has(cveId),
+        description: s.description as string | undefined,
+      });
+    }
+
+    // Add KEV entries not already covered by EPSS
+    const seenCves = new Set(items.map(i => i.cve));
+    const kevVulns = (kevData?.vulnerabilities || []) as Array<Record<string, string>>;
+    for (const v of kevVulns.slice(0, 10)) {
+      const cveId = v.cve_id || v.cve || '';
+      if (seenCves.has(cveId)) continue;
+      items.push({
+        cve: cveId,
+        title: v.vulnerability_name || v.name,
+        severity: 'Critical',
+        inKev: true,
+        description: v.short_description || v.description,
+      });
+    }
+
+    // Sort by EPSS desc, KEV-only at the end
+    return items.sort((a, b) => (b.epss ?? 0) - (a.epss ?? 0));
+  })();
+
+  const isDataLoading = epssLoading || kevLoading;
 
   return (
     <div className="space-y-6">
@@ -279,24 +316,42 @@ export default function IntelligenceHub() {
             <CardHeader>
               <CardTitle>High Priority Vulnerabilities</CardTitle>
               <CardDescription>
-                CVEs with highest exploitation probability
+                CVEs with highest exploitation probability — sourced from EPSS + KEV feeds
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[400px] pr-4">
+              {isDataLoading ? (
                 <div className="space-y-3">
-                  {sampleVulnerabilities.map((vuln, index) => (
-                    <motion.div
-                      key={vuln.cve}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                    >
-                      <VulnerabilityCard {...vuln} />
-                    </motion.div>
+                  {Array.from({ length: 5 }, (_, i) => (
+                    <div key={i} className="h-20 rounded-lg bg-gray-700/20 animate-pulse" />
                   ))}
                 </div>
-              </ScrollArea>
+              ) : topVulnerabilities.length > 0 ? (
+                <ScrollArea className="h-[400px] pr-4">
+                  <div className="space-y-3">
+                    {topVulnerabilities.slice(0, 15).map((vuln, index) => (
+                      <motion.div
+                        key={vuln.cve}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                      >
+                        <VulnerabilityCard {...vuln} />
+                      </motion.div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Shield className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No vulnerability data available yet</p>
+                  <p className="text-sm mt-1">EPSS and KEV feeds will populate this view</p>
+                  <Button variant="outline" className="mt-4" onClick={handleRefresh}>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Refresh Feeds
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -395,33 +450,57 @@ export default function IntelligenceHub() {
           </Card>
         </TabsContent>
 
-        {/* Trending Tab */}
+        {/* Trending Tab — KEV entries are "trending" by definition (actively exploited) */}
         <TabsContent value="trending" className="space-y-6">
           <Card className="glass-card">
             <CardHeader>
               <CardTitle>Trending Vulnerabilities</CardTitle>
               <CardDescription>
-                Recently disclosed and actively exploited vulnerabilities
+                Actively exploited vulnerabilities from CISA KEV and high-EPSS CVEs
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[400px] pr-4">
+              {isDataLoading ? (
                 <div className="space-y-3">
-                  {sampleVulnerabilities.map((vuln, index) => (
-                    <motion.div
-                      key={vuln.cve}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                    >
-                      <VulnerabilityCard
-                        {...vuln}
-                        description="This vulnerability is actively being exploited in the wild. Immediate patching is recommended."
-                      />
-                    </motion.div>
+                  {Array.from({ length: 5 }, (_, i) => (
+                    <div key={i} className="h-24 rounded-lg bg-gray-700/20 animate-pulse" />
                   ))}
                 </div>
-              </ScrollArea>
+              ) : topVulnerabilities.filter(v => v.inKev || (v.epss && v.epss >= 0.5)).length > 0 ? (
+                <ScrollArea className="h-[400px] pr-4">
+                  <div className="space-y-3">
+                    {topVulnerabilities
+                      .filter(v => v.inKev || (v.epss && v.epss >= 0.5))
+                      .slice(0, 15)
+                      .map((vuln, index) => (
+                        <motion.div
+                          key={vuln.cve}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                        >
+                          <VulnerabilityCard
+                            {...vuln}
+                            description={vuln.description || (vuln.inKev
+                              ? 'This vulnerability is in the CISA KEV catalog — actively exploited in the wild. Immediate patching is recommended.'
+                              : `EPSS score ${((vuln.epss || 0) * 100).toFixed(1)}% — high probability of exploitation within 30 days.`
+                            )}
+                          />
+                        </motion.div>
+                      ))}
+                  </div>
+                </ScrollArea>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No trending vulnerabilities detected</p>
+                  <p className="text-sm mt-1">KEV and high-EPSS CVEs will appear here</p>
+                  <Button variant="outline" className="mt-4" onClick={handleRefresh}>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Refresh Feeds
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

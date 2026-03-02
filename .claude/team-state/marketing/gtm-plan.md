@@ -1,6 +1,6 @@
 # ALdeci — Go-To-Market Plan
 
-**Version**: 2.0 | **Date**: 2026-03-01 | **Owner**: VP Marketing
+**Version**: 3.0 | **Date**: 2026-03-02 | **Owner**: VP Marketing
 **Pillars**: [V3] Decision Intelligence, [V5] MPTE, [V7] MCP-Native
 
 ---
@@ -91,10 +91,13 @@
 ## Launch Sequence (Enterprise Demo Sprint Focus)
 
 ### Week 1 (Mar 1-6): Enterprise Demo
-- [x] Demo talking points one-pager (9 differentiators)
-- [x] Competitive battlecards (6 competitors)
-- [x] Positioning document updated with Mar 2026 intel
-- [ ] 5 persona walkthrough scripts (sales-engineer)
+- [x] Demo talking points one-pager v3.0 (9 differentiators + Claude Code Security angle)
+- [x] Competitive battlecards (6 competitors — all updated with Claude Code Security intel, verified LOC)
+- [x] Positioning document v3.0 (Claude Code Security messaging + verified LOC)
+- [x] Investor narrative v3.0 (updated numbers + Claude Code Security market context)
+- [x] Blog: "Claude finds. ALdeci decides." (NEW — time-sensitive response to Anthropic launch)
+- [x] LinkedIn: "500 More Zero-Days. Now What?" (NEW — Claude Code Security hook for LinkedIn)
+- [x] 5 persona walkthrough scripts (sales-engineer: DONE 2026-03-01)
 - [ ] Post-demo follow-up email template
 - [ ] Demo video script (5-minute version)
 

@@ -7,7 +7,7 @@ Designed for <1 GB/year on-prem storage with air-gapped deployment.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field

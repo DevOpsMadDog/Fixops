@@ -20,7 +20,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from fastapi import APIRouter, Request
 
@@ -92,7 +92,6 @@ async def system_health(request: Request) -> Dict[str, Any]:
         overall_healthy = False
 
     # 3. Database checks
-    data_dir = Path("data")
     db_checks: Dict[str, Any] = {}
     db_files = {
         "users": "data/users.db",

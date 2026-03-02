@@ -1,0 +1,343 @@
+[00:02:12] API DOWN — restarting...
+[00:02:15] API restart attempted (PID: 35959)
+[00:02:20] API recovered
+[00:56:08] API DOWN — restarting...
+[00:56:12] API restart attempted (PID: 7073)
+[00:56:17] API recovered
+[09:36:57] STOPPED claude processes found — sending SIGCONT:
+38750 T
+[09:36:57] Sent SIGCONT to resume stopped processes
+[09:37:58] STOPPED claude processes found — sending SIGCONT:
+38750 T
+[09:37:58] Sent SIGCONT to resume stopped processes
+[09:39:00] STOPPED claude processes found — sending SIGCONT:
+38750 T
+[09:39:00] Sent SIGCONT to resume stopped processes
+[09:40:01] STOPPED claude processes found — sending SIGCONT:
+40544 T
+38750 T
+[09:40:01] Sent SIGCONT to resume stopped processes
+[09:41:03] STOPPED claude processes found — sending SIGCONT:
+40544 T
+[09:41:03] Sent SIGCONT to resume stopped processes
+[09:42:05] STOPPED claude processes found — sending SIGCONT:
+40544 T
+[09:42:05] Sent SIGCONT to resume stopped processes
+[09:43:06] STOPPED claude processes found — sending SIGCONT:
+40544 T
+[09:43:06] Sent SIGCONT to resume stopped processes
+[09:44:08] STOPPED claude processes found — sending SIGCONT:
+40544 T
+[09:44:08] Sent SIGCONT to resume stopped processes
+[09:45:10] STOPPED claude processes found — sending SIGCONT:
+40544 T
+[09:45:10] Sent SIGCONT to resume stopped processes
+[09:46:12] STOPPED claude processes found — sending SIGCONT:
+40544 T
+[09:46:12] Sent SIGCONT to resume stopped processes
+[09:47:14] STOPPED claude processes found — sending SIGCONT:
+40544 T
+[09:47:14] Sent SIGCONT to resume stopped processes
+[09:48:15] STOPPED claude processes found — sending SIGCONT:
+40544 T
+[09:48:15] Sent SIGCONT to resume stopped processes
+[09:49:17] STOPPED claude processes found — sending SIGCONT:
+40544 T
+[09:49:17] Sent SIGCONT to resume stopped processes
+[09:50:18] STOPPED claude processes found — sending SIGCONT:
+40544 T
+[09:50:18] Sent SIGCONT to resume stopped processes
+[09:51:20] STOPPED claude processes found — sending SIGCONT:
+40544 T
+[09:51:20] Sent SIGCONT to resume stopped processes
+[09:52:21] STOPPED claude processes found — sending SIGCONT:
+40544 T
+[09:52:21] Sent SIGCONT to resume stopped processes
+[09:53:22] STOPPED claude processes found — sending SIGCONT:
+40544 T
+[09:53:22] Sent SIGCONT to resume stopped processes
+[09:54:24] STOPPED claude processes found — sending SIGCONT:
+40544 T
+[09:54:24] Sent SIGCONT to resume stopped processes
+[09:55:25] STOPPED claude processes found — sending SIGCONT:
+40544 T
+[09:55:25] Sent SIGCONT to resume stopped processes
+[09:56:27] STOPPED claude processes found — sending SIGCONT:
+40544 T
+[09:56:27] Sent SIGCONT to resume stopped processes
+[09:57:28] STOPPED claude processes found — sending SIGCONT:
+40544 T
+[09:57:28] Sent SIGCONT to resume stopped processes
+[10:25:05] STOPPED claude processes found — sending SIGCONT:
+96928 T
+[10:25:05] Sent SIGCONT to resume stopped processes
+[10:26:06] STOPPED claude processes found — sending SIGCONT:
+96928 T
+[10:26:06] Sent SIGCONT to resume stopped processes
+[10:27:08] STOPPED claude processes found — sending SIGCONT:
+96928 T
+[10:27:08] Sent SIGCONT to resume stopped processes
+[10:28:09] STOPPED claude processes found — sending SIGCONT:
+96928 T
+[10:28:09] Sent SIGCONT to resume stopped processes
+[10:29:11] STOPPED claude processes found — sending SIGCONT:
+96928 T
+[10:29:11] Sent SIGCONT to resume stopped processes
+[10:30:12] STOPPED claude processes found — sending SIGCONT:
+96928 T
+[10:30:12] Sent SIGCONT to resume stopped processes
+[10:31:14] STOPPED claude processes found — sending SIGCONT:
+96928 T
+[10:31:14] Sent SIGCONT to resume stopped processes
+[10:32:15] STOPPED claude processes found — sending SIGCONT:
+96928 T
+[10:32:15] Sent SIGCONT to resume stopped processes
+[10:50:47] API DOWN — restarting...
+[10:50:50] API restart attempted (PID: 15625)
+[10:50:55] API recovered
+[10:55:02] STOPPED claude processes found — sending SIGCONT:
+18252 T
+[10:55:02] Sent SIGCONT to resume stopped processes
+[10:56:04] STOPPED claude processes found — sending SIGCONT:
+18252 T
+[10:56:04] Sent SIGCONT to resume stopped processes
+[10:57:05] STOPPED claude processes found — sending SIGCONT:
+18252 T
+[10:57:05] Sent SIGCONT to resume stopped processes
+[10:58:06] STOPPED claude processes found — sending SIGCONT:
+18252 T
+[10:58:06] Sent SIGCONT to resume stopped processes
+[10:59:08] STOPPED claude processes found — sending SIGCONT:
+18252 T
+[10:59:08] Sent SIGCONT to resume stopped processes
+[11:00:09] STOPPED claude processes found — sending SIGCONT:
+18252 T
+[11:00:09] Sent SIGCONT to resume stopped processes
+[11:01:11] STOPPED claude processes found — sending SIGCONT:
+18252 T
+[11:01:11] Sent SIGCONT to resume stopped processes
+[11:02:12] STOPPED claude processes found — sending SIGCONT:
+18252 T
+[11:02:12] Sent SIGCONT to resume stopped processes
+[11:03:13] STOPPED claude processes found — sending SIGCONT:
+18252 T
+[11:03:13] Sent SIGCONT to resume stopped processes
+[11:04:15] STOPPED claude processes found — sending SIGCONT:
+18252 T
+[11:04:15] Sent SIGCONT to resume stopped processes
+[11:05:16] STOPPED claude processes found — sending SIGCONT:
+18252 T
+[11:05:16] Sent SIGCONT to resume stopped processes
+[11:06:17] STOPPED claude processes found — sending SIGCONT:
+18252 T
+[11:06:17] Sent SIGCONT to resume stopped processes
+[11:07:19] STOPPED claude processes found — sending SIGCONT:
+18252 T
+[11:07:19] Sent SIGCONT to resume stopped processes
+[11:08:21] STOPPED claude processes found — sending SIGCONT:
+18252 T
+[11:08:21] Sent SIGCONT to resume stopped processes
+[11:09:22] STOPPED claude processes found — sending SIGCONT:
+18252 T
+[11:09:22] Sent SIGCONT to resume stopped processes
+[11:20:43] STOPPED claude processes found — sending SIGCONT:
+37387 T
+[11:20:43] Sent SIGCONT to resume stopped processes
+[11:21:48] API DOWN — restarting...
+[11:21:51] API restart attempted (PID: 38072)
+[11:21:56] API recovered
+[11:21:57] STOPPED claude processes found — sending SIGCONT:
+37387 T
+[11:21:57] Sent SIGCONT to resume stopped processes
+[11:22:59] STOPPED claude processes found — sending SIGCONT:
+37387 T
+[11:22:59] Sent SIGCONT to resume stopped processes
+[11:24:01] STOPPED claude processes found — sending SIGCONT:
+37387 T
+[11:24:01] Sent SIGCONT to resume stopped processes
+[11:25:02] STOPPED claude processes found — sending SIGCONT:
+37387 T
+[11:25:02] Sent SIGCONT to resume stopped processes
+[11:26:04] STOPPED claude processes found — sending SIGCONT:
+37387 T
+[11:26:04] Sent SIGCONT to resume stopped processes
+[11:27:09] API DOWN — restarting...
+[11:27:12] API restart attempted (PID: 41758)
+[11:27:17] API recovered
+[11:27:18] STOPPED claude processes found — sending SIGCONT:
+37387 T
+[11:27:18] Sent SIGCONT to resume stopped processes
+[11:28:20] STOPPED claude processes found — sending SIGCONT:
+37387 T
+[11:28:20] Sent SIGCONT to resume stopped processes
+[11:29:21] STOPPED claude processes found — sending SIGCONT:
+37387 T
+[11:29:21] Sent SIGCONT to resume stopped processes
+[11:30:22] STOPPED claude processes found — sending SIGCONT:
+37387 T
+[11:30:22] Sent SIGCONT to resume stopped processes
+[11:31:24] STOPPED claude processes found — sending SIGCONT:
+37387 T
+[11:31:24] Sent SIGCONT to resume stopped processes
+[11:32:25] STOPPED claude processes found — sending SIGCONT:
+37387 T
+[11:32:25] Sent SIGCONT to resume stopped processes
+[11:33:27] STOPPED claude processes found — sending SIGCONT:
+37387 T
+[11:33:27] Sent SIGCONT to resume stopped processes
+[11:34:28] STOPPED claude processes found — sending SIGCONT:
+37387 T
+[11:34:28] Sent SIGCONT to resume stopped processes
+[11:35:30] STOPPED claude processes found — sending SIGCONT:
+37387 T
+[11:35:30] Sent SIGCONT to resume stopped processes
+[11:41:42] API DOWN — restarting...
+[11:41:46] API restart attempted (PID: 50903)
+[11:41:51] API recovered
+[11:57:14] STOPPED claude processes found — sending SIGCONT:
+62495 T
+[11:57:14] Sent SIGCONT to resume stopped processes
+[11:58:16] STOPPED claude processes found — sending SIGCONT:
+62495 T
+[11:58:16] Sent SIGCONT to resume stopped processes
+[11:59:17] STOPPED claude processes found — sending SIGCONT:
+62495 T
+[11:59:17] Sent SIGCONT to resume stopped processes
+[12:00:18] STOPPED claude processes found — sending SIGCONT:
+62495 T
+[12:00:18] Sent SIGCONT to resume stopped processes
+[12:01:20] STOPPED claude processes found — sending SIGCONT:
+62495 T
+[12:01:20] Sent SIGCONT to resume stopped processes
+[12:02:21] STOPPED claude processes found — sending SIGCONT:
+62495 T
+[12:02:21] Sent SIGCONT to resume stopped processes
+[12:03:23] STOPPED claude processes found — sending SIGCONT:
+62495 T
+[12:03:23] Sent SIGCONT to resume stopped processes
+[12:04:24] STOPPED claude processes found — sending SIGCONT:
+62495 T
+[12:04:24] Sent SIGCONT to resume stopped processes
+[12:05:25] STOPPED claude processes found — sending SIGCONT:
+62495 T
+[12:05:25] Sent SIGCONT to resume stopped processes
+[12:06:27] STOPPED claude processes found — sending SIGCONT:
+62495 T
+[12:06:27] Sent SIGCONT to resume stopped processes
+[12:07:29] STOPPED claude processes found — sending SIGCONT:
+62495 T
+[12:07:29] Sent SIGCONT to resume stopped processes
+[12:08:30] STOPPED claude processes found — sending SIGCONT:
+62495 T
+[12:08:30] Sent SIGCONT to resume stopped processes
+[12:09:32] STOPPED claude processes found — sending SIGCONT:
+62495 T
+[12:09:32] Sent SIGCONT to resume stopped processes
+[12:10:33] STOPPED claude processes found — sending SIGCONT:
+62495 T
+[12:10:33] Sent SIGCONT to resume stopped processes
+[12:11:35] STOPPED claude processes found — sending SIGCONT:
+62495 T
+[12:11:35] Sent SIGCONT to resume stopped processes
+[12:15:44] API DOWN — restarting...
+[12:15:47] API restart attempted (PID: 74435)
+[12:15:52] API recovered
+[12:30:14] STOPPED claude processes found — sending SIGCONT:
+85102 T
+[12:30:14] Sent SIGCONT to resume stopped processes
+[12:31:15] STOPPED claude processes found — sending SIGCONT:
+85102 T
+[12:31:15] Sent SIGCONT to resume stopped processes
+[12:32:17] STOPPED claude processes found — sending SIGCONT:
+85102 T
+[12:32:17] Sent SIGCONT to resume stopped processes
+[12:33:18] STOPPED claude processes found — sending SIGCONT:
+85102 T
+[12:33:18] Sent SIGCONT to resume stopped processes
+[12:34:20] STOPPED claude processes found — sending SIGCONT:
+85102 T
+[12:34:20] Sent SIGCONT to resume stopped processes
+[12:35:21] STOPPED claude processes found — sending SIGCONT:
+85102 T
+[12:35:21] Sent SIGCONT to resume stopped processes
+[12:36:23] STOPPED claude processes found — sending SIGCONT:
+85102 T
+[12:36:23] Sent SIGCONT to resume stopped processes
+[12:37:24] STOPPED claude processes found — sending SIGCONT:
+85102 T
+[12:37:24] Sent SIGCONT to resume stopped processes
+[12:38:26] STOPPED claude processes found — sending SIGCONT:
+85102 T
+[12:38:26] Sent SIGCONT to resume stopped processes
+[12:39:27] STOPPED claude processes found — sending SIGCONT:
+85102 T
+[12:39:27] Sent SIGCONT to resume stopped processes
+[12:40:29] STOPPED claude processes found — sending SIGCONT:
+85102 T
+[12:40:29] Sent SIGCONT to resume stopped processes
+[12:41:30] STOPPED claude processes found — sending SIGCONT:
+85102 T
+[12:41:30] Sent SIGCONT to resume stopped processes
+[12:42:32] STOPPED claude processes found — sending SIGCONT:
+85102 T
+[12:42:32] Sent SIGCONT to resume stopped processes
+[12:43:37] API DOWN — restarting...
+[12:43:40] API restart attempted (PID: 93963)
+[12:43:45] API recovered
+[12:43:46] STOPPED claude processes found — sending SIGCONT:
+85102 T
+[12:43:46] Sent SIGCONT to resume stopped processes
+[12:44:48] STOPPED claude processes found — sending SIGCONT:
+85102 T
+[12:44:48] Sent SIGCONT to resume stopped processes
+[12:51:00] API DOWN — restarting...
+[12:51:03] API restart attempted (PID: 98944)
+[12:51:08] API recovered
+[12:57:22] API DOWN — restarting...
+[12:57:25] API restart attempted (PID: 3842)
+[12:57:30] API recovered
+[13:04:43] STOPPED claude processes found — sending SIGCONT:
+9912 T
+[13:04:43] Sent SIGCONT to resume stopped processes
+[13:05:44] STOPPED claude processes found — sending SIGCONT:
+9912 T
+[13:05:44] Sent SIGCONT to resume stopped processes
+[13:06:45] STOPPED claude processes found — sending SIGCONT:
+9912 T
+[13:06:45] Sent SIGCONT to resume stopped processes
+[13:07:47] STOPPED claude processes found — sending SIGCONT:
+9912 T
+[13:07:47] Sent SIGCONT to resume stopped processes
+[13:08:48] STOPPED claude processes found — sending SIGCONT:
+9912 T
+[13:08:48] Sent SIGCONT to resume stopped processes
+[13:09:50] STOPPED claude processes found — sending SIGCONT:
+9912 T
+[13:09:50] Sent SIGCONT to resume stopped processes
+[13:10:51] STOPPED claude processes found — sending SIGCONT:
+9912 T
+[13:10:51] Sent SIGCONT to resume stopped processes
+[13:11:52] STOPPED claude processes found — sending SIGCONT:
+9912 T
+[13:11:52] Sent SIGCONT to resume stopped processes
+[13:12:54] STOPPED claude processes found — sending SIGCONT:
+9912 T
+[13:12:54] Sent SIGCONT to resume stopped processes
+[13:13:55] STOPPED claude processes found — sending SIGCONT:
+9912 T
+[13:13:55] Sent SIGCONT to resume stopped processes
+[13:14:57] STOPPED claude processes found — sending SIGCONT:
+9912 T
+[13:14:57] Sent SIGCONT to resume stopped processes
+[13:15:58] STOPPED claude processes found — sending SIGCONT:
+9912 T
+[13:15:58] Sent SIGCONT to resume stopped processes
+[13:17:00] STOPPED claude processes found — sending SIGCONT:
+9912 T
+[13:17:00] Sent SIGCONT to resume stopped processes
+[13:18:01] STOPPED claude processes found — sending SIGCONT:
+9912 T
+[13:18:01] Sent SIGCONT to resume stopped processes
+[13:19:03] STOPPED claude processes found — sending SIGCONT:
+9912 T
+[13:19:03] Sent SIGCONT to resume stopped processes

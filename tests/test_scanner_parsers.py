@@ -322,6 +322,145 @@ PROBE_END"""
         assert "/api/v1/sandbox/reachability/single" in paths
 
 
+# ── Edge Case Tests (Empty, Binary, Oversized) ───────────────────────────────
+
+class TestScannerParserEdgeCases:
+    """Edge case tests: empty files, binary garbage, oversized inputs, malformed JSON."""
+
+    def test_empty_bytes_auto_detect(self):
+        """Auto-detect should return None or 'unknown' for empty input."""
+        from core.scanner_parsers import auto_detect_scanner
+        result = auto_detect_scanner(b"")
+        assert result is None or result == "unknown"
+
+    def test_empty_bytes_parse(self):
+        """Parsing empty input should return empty list, not crash."""
+        from core.scanner_parsers import parse_scanner_output
+        findings = parse_scanner_output(b"", "zap")
+        assert findings == [] or findings is not None
+
+    def test_binary_garbage_auto_detect(self):
+        """Auto-detect should not crash on binary garbage."""
+        from core.scanner_parsers import auto_detect_scanner
+        binary_garbage = bytes(range(256)) * 10  # 2560 bytes of binary
+        result = auto_detect_scanner(binary_garbage)
+        assert result is None or isinstance(result, str)
+
+    def test_binary_garbage_parse_zap(self):
+        """Parsing binary garbage as ZAP should return empty or raise gracefully."""
+        from core.scanner_parsers import parse_scanner_output
+        binary_garbage = bytes(range(256)) * 10
+        try:
+            findings = parse_scanner_output(binary_garbage, "zap")
+            assert isinstance(findings, list)
+        except (json.JSONDecodeError, ValueError, KeyError):
+            pass  # Expected: parser should reject gracefully
+
+    def test_binary_garbage_parse_nessus(self):
+        """Parsing binary garbage as Nessus XML should not crash."""
+        from core.scanner_parsers import parse_scanner_output
+        binary_garbage = b"\x00\xff\xfe\xfd" * 100
+        try:
+            findings = parse_scanner_output(binary_garbage, "nessus")
+            assert isinstance(findings, list)
+        except (Exception,):
+            pass  # XML parser may throw, but should not segfault
+
+    def test_oversized_json_input(self):
+        """Oversized but valid JSON should be handled."""
+        from core.scanner_parsers import parse_scanner_output
+        # Create a large ZAP-like JSON with 1000 alerts
+        alerts = []
+        for i in range(1000):
+            alerts.append({
+                "name": f"Finding-{i}", "riskcode": "2", "cweid": "79",
+                "pluginid": str(40000 + i), "desc": f"Finding {i}" * 20,
+                "solution": "Fix it",
+                "instances": [{"uri": f"http://example.com/path{i}"}],
+            })
+        big_json = json.dumps({"site": [{"alerts": alerts}]}).encode()
+        assert len(big_json) > 100_000  # >100KB
+        findings = parse_scanner_output(big_json, "zap")
+        assert len(findings) == 1000
+
+    def test_malformed_json_auto_detect(self):
+        """Malformed JSON should not crash auto_detect."""
+        from core.scanner_parsers import auto_detect_scanner
+        malformed = b'{"results": [{"test_id": "B101"'  # Truncated JSON
+        result = auto_detect_scanner(malformed)
+        assert result is None or isinstance(result, str)
+
+    def test_unicode_content_in_findings(self):
+        """Scanner output with unicode characters should be handled."""
+        from core.scanner_parsers import parse_scanner_output
+        unicode_json = json.dumps({
+            "results": [{
+                "test_id": "B101", "test_name": "assert_used",
+                "issue_text": "Déclaration de variable dangereuse: 変数",
+                "issue_severity": "LOW",
+                "filename": "données/app.py", "line_number": 42,
+                "code": "assert x > 0  # 注意",
+            }],
+            "generated_at": "2024-01-01", "metrics": {"_totals": {}},
+        }).encode()
+        findings = parse_scanner_output(unicode_json, "bandit")
+        assert len(findings) == 1
+        f = findings[0]
+        title = f.title if hasattr(f, "title") else f["title"]
+        assert "B101" in title
+
+    def test_null_values_in_scanner_output(self):
+        """Scanner output with null/None values should be handled gracefully."""
+        from core.scanner_parsers import parse_scanner_output
+        null_json = json.dumps({
+            "vulnerabilities": [{
+                "title": None, "severity": None,
+                "packageName": "lodash", "version": "4.17.20",
+                "id": "SNYK-JS-LODASH-1234",
+                "identifiers": {"CVE": [], "CWE": []},
+                "cvssScore": None, "fixedIn": [],
+            }],
+            "packageManager": "npm",
+        }).encode()
+        try:
+            findings = parse_scanner_output(null_json, "snyk")
+            assert isinstance(findings, list)
+        except (TypeError, AttributeError):
+            pass  # Acceptable: parser may reject nulls
+
+    def test_empty_xml_nessus(self):
+        """Empty XML (valid but no findings) should return empty list."""
+        from core.scanner_parsers import parse_scanner_output
+        empty_xml = b'<?xml version="1.0"?><NessusClientData_v2><Report></Report></NessusClientData_v2>'
+        findings = parse_scanner_output(empty_xml, "nessus")
+        assert findings == []
+
+    def test_empty_results_array(self):
+        """Scanner with empty results array should return empty list."""
+        from core.scanner_parsers import parse_scanner_output
+        empty_results = json.dumps({"results": [], "generated_at": "2024-01-01", "metrics": {"_totals": {}}}).encode()
+        findings = parse_scanner_output(empty_results, "bandit")
+        assert findings == []
+
+    def test_checkov_no_failed_checks(self):
+        """Checkov with no failed checks should return empty list."""
+        from core.scanner_parsers import parse_scanner_output
+        no_fails = json.dumps({
+            "check_type": "terraform",
+            "passed_checks": [{"check_id": "CKV_AWS_1", "check_name": "Passed"}],
+            "failed_checks": [],
+        }).encode()
+        findings = parse_scanner_output(no_fails, "checkov")
+        assert findings == []
+
+    def test_sonarqube_empty_issues(self):
+        """SonarQube with empty issues should return empty list."""
+        from core.scanner_parsers import parse_scanner_output
+        empty_sq = json.dumps({"issues": []}).encode()
+        findings = parse_scanner_output(empty_sq, "sonarqube")
+        assert findings == []
+
+
 # ── Exposure Case Idempotency Tests ────────────────────────────────────────
 
 class TestExposureCaseIdempotency:

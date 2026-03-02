@@ -1,0 +1,142 @@
+{
+  "provider": "aws",
+  "account_id": "123456789012",
+  "region": "us-east-1",
+  "architecture": "ecommerce-platform-v2",
+  "scan_date": "2026-03-02T00:00:00Z",
+  "findings": [
+    {
+      "id": "CNAPP-AWS-001",
+      "resource_type": "AWS::S3::Bucket",
+      "resource_id": "arn:aws:s3:::ecommerce-media-prod",
+      "resource_name": "ecommerce-media-prod",
+      "rule": "S3_BUCKET_PUBLIC_READ_PROHIBITED",
+      "severity": "HIGH",
+      "status": "FAILED",
+      "description": "S3 bucket 'ecommerce-media-prod' allows public read access via bucket ACL. Contains user-uploaded product images and potentially sensitive documents.",
+      "remediation": "Enable S3 Block Public Access at account and bucket level. Set bucket ACL to private. Use CloudFront OAI for public content delivery.",
+      "compliance": ["CIS-AWS-2.0-2.1.1", "PCI-DSS-v4.0-1.3.1", "SOC2-CC6.1"],
+      "threat_model_ref": "TM-ECOM-004",
+      "first_seen": "2026-02-15T00:00:00Z"
+    },
+    {
+      "id": "CNAPP-AWS-002",
+      "resource_type": "AWS::IAM::Role",
+      "resource_id": "arn:aws:iam::123456789012:role/ecommerce-ecs-task-role",
+      "resource_name": "ecommerce-ecs-task-role",
+      "rule": "IAM_POLICY_NO_STATEMENTS_WITH_ADMIN_ACCESS",
+      "severity": "CRITICAL",
+      "status": "FAILED",
+      "description": "ECS task role has AdministratorAccess managed policy attached. Any compromised container can access all AWS services and data.",
+      "remediation": "Apply least-privilege IAM policy. Create separate task roles per service (user-svc-role, payment-svc-role, catalog-svc-role) with only required permissions.",
+      "compliance": ["CIS-AWS-2.0-1.16", "NIST-800-53-AC-6", "PCI-DSS-v4.0-7.2.1"],
+      "threat_model_ref": "TM-ECOM-010",
+      "first_seen": "2026-01-10T00:00:00Z"
+    },
+    {
+      "id": "CNAPP-AWS-003",
+      "resource_type": "AWS::RDS::DBInstance",
+      "resource_id": "arn:aws:rds:us-east-1:123456789012:db:ecommerce-prod",
+      "resource_name": "ecommerce-prod",
+      "rule": "RDS_INSTANCE_PUBLIC_ACCESS_CHECK",
+      "severity": "CRITICAL",
+      "status": "PASSED",
+      "description": "RDS instance is not publicly accessible. Located in private subnet with security group restricting access to ECS tasks only.",
+      "compliance": ["CIS-AWS-2.0-2.3.1", "PCI-DSS-v4.0-1.3.2"]
+    },
+    {
+      "id": "CNAPP-AWS-004",
+      "resource_type": "AWS::ElastiCache::ReplicationGroup",
+      "resource_id": "arn:aws:elasticache:us-east-1:123456789012:replicationgroup:ecommerce-redis",
+      "resource_name": "ecommerce-redis",
+      "rule": "ELASTICACHE_REDIS_CLUSTER_AUTO_BACKUP_CHECK",
+      "severity": "MEDIUM",
+      "status": "FAILED",
+      "description": "ElastiCache Redis cluster does not have automatic backups enabled. Session data and shopping cart state could be lost.",
+      "remediation": "Enable automatic backups with 7-day retention. Configure snapshot window during low-traffic hours.",
+      "compliance": ["SOC2-CC7.2"],
+      "threat_model_ref": "TM-ECOM-008"
+    },
+    {
+      "id": "CNAPP-AWS-005",
+      "resource_type": "AWS::ElastiCache::ReplicationGroup",
+      "resource_id": "arn:aws:elasticache:us-east-1:123456789012:replicationgroup:ecommerce-redis",
+      "resource_name": "ecommerce-redis",
+      "rule": "ELASTICACHE_REPL_GRP_ENCRYPTED_IN_TRANSIT",
+      "severity": "HIGH",
+      "status": "FAILED",
+      "description": "ElastiCache Redis replication group does not enforce encryption in transit (TLS). Session tokens transmitted in plaintext within VPC.",
+      "remediation": "Enable in-transit encryption. Update all Redis client connections to use TLS. Rotate session tokens after enabling encryption.",
+      "compliance": ["PCI-DSS-v4.0-4.2.1", "SOC2-CC6.6", "NIST-800-53-SC-8"],
+      "threat_model_ref": "TM-ECOM-008"
+    },
+    {
+      "id": "CNAPP-AWS-006",
+      "resource_type": "AWS::ECS::TaskDefinition",
+      "resource_id": "arn:aws:ecs:us-east-1:123456789012:task-definition/payment-service:12",
+      "resource_name": "payment-service:12",
+      "rule": "ECS_TASK_DEFINITION_LOG_CONFIGURATION",
+      "severity": "MEDIUM",
+      "status": "FAILED",
+      "description": "Payment service ECS task definition does not configure CloudWatch log driver. Payment processing events are not being captured for audit.",
+      "remediation": "Add awslogs log driver configuration to task definition. Set log group with 365-day retention for PCI compliance.",
+      "compliance": ["PCI-DSS-v4.0-10.2.1", "SOC2-CC7.2"],
+      "threat_model_ref": "TM-ECOM-003"
+    },
+    {
+      "id": "CNAPP-AWS-007",
+      "resource_type": "AWS::Lambda::Function",
+      "resource_id": "arn:aws:lambda:us-east-1:123456789012:function:order-processor",
+      "resource_name": "order-processor",
+      "rule": "LAMBDA_FUNCTION_PUBLIC_ACCESS_PROHIBITED",
+      "severity": "HIGH",
+      "status": "PASSED",
+      "description": "Lambda function is not publicly accessible. Invoked only by SQS trigger within VPC.",
+      "compliance": ["CIS-AWS-2.0-1.22"]
+    },
+    {
+      "id": "CNAPP-AWS-008",
+      "resource_type": "AWS::CloudFront::Distribution",
+      "resource_id": "arn:aws:cloudfront::123456789012:distribution/E1234567890",
+      "resource_name": "ecommerce-cdn",
+      "rule": "CLOUDFRONT_MINIMUM_PROTOCOL_VERSION",
+      "severity": "MEDIUM",
+      "status": "FAILED",
+      "description": "CloudFront distribution allows TLSv1.0 connections. TLSv1.0 has known vulnerabilities (POODLE, BEAST).",
+      "remediation": "Set minimum protocol version to TLSv1.2_2021. Update viewer protocol policy to HTTPS-only.",
+      "compliance": ["PCI-DSS-v4.0-4.2.1", "NIST-800-53-SC-13"]
+    },
+    {
+      "id": "CNAPP-AWS-009",
+      "resource_type": "AWS::SecretsManager::Secret",
+      "resource_id": "arn:aws:secretsmanager:us-east-1:123456789012:secret:ecommerce/db-password",
+      "resource_name": "ecommerce/db-password",
+      "rule": "SECRETSMANAGER_ROTATION_ENABLED_CHECK",
+      "severity": "MEDIUM",
+      "status": "FAILED",
+      "description": "Database password secret does not have automatic rotation enabled. Static credentials increase risk of compromise.",
+      "remediation": "Enable automatic rotation with 30-day interval using Lambda rotation function.",
+      "compliance": ["PCI-DSS-v4.0-8.3.9", "SOC2-CC6.3"]
+    },
+    {
+      "id": "CNAPP-AWS-010",
+      "resource_type": "AWS::WAFv2::WebACL",
+      "resource_id": "arn:aws:wafv2:us-east-1:123456789012:regional/webacl/ecommerce-waf",
+      "resource_name": "ecommerce-waf",
+      "rule": "WAF_LOGGING_ENABLED",
+      "severity": "HIGH",
+      "status": "FAILED",
+      "description": "WAF WebACL does not have logging enabled. Cannot audit blocked requests or tune rules without visibility.",
+      "remediation": "Enable WAF logging to S3 or CloudWatch Logs. Create dashboard for blocked requests analysis.",
+      "compliance": ["PCI-DSS-v4.0-10.2.1", "SOC2-CC7.2", "NIST-800-53-SI-4"]
+    }
+  ],
+  "summary": {
+    "total_findings": 10,
+    "passed": 2,
+    "failed": 8,
+    "critical": 2,
+    "high": 3,
+    "medium": 3
+  }
+}

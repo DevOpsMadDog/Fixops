@@ -1,0 +1,13 @@
+{
+  "agent": "qa-engineer",
+  "status": "completed",
+  "run_id": "swarm-2026-03-02_00-05-50",
+  "timestamp": "2026-03-02T02:25:15Z",
+  "duration_s": 606,
+  "attempts": 2,
+  "output_bytes": 1836,
+  "confidence": "HIGH",
+  "free_ram_mb": 7829,
+  "git_changes": " tests/test_iac_scanner.py                          |   2312 +-  tests/test_ml_risk_scorer.py                       |      4 +-  tests/test_scanner_parsers.py                      |    139 +  tests/test_secrets_scanner.py                      |    948 +-  206 files changed, 993137 insertions(+), 644360 deletions(-) ",
+  "log_file": "/Users/devops.ai/developement/fixops/Fixops/logs/ai-team/2026-03-02_qa-engineer_swarm-2026-03-02_00-05-50.log"
+}

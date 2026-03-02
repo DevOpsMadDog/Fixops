@@ -1,7 +1,7 @@
 {
   "metadata": {
-    "version": "1.0",
-    "updated": "2026-03-01",
+    "version": "2.0",
+    "updated": "2026-03-02",
     "author": "sales-engineer",
     "sources": [
       "docs/CTEM_PLUS_IDENTITY.md",
@@ -34,7 +34,7 @@
       "overlap": "SAST, SCA, Container scanning"
     },
     {
-      "name": "Wiz",
+      "name": "Wiz (Google-acquired, closing March 2026)",
       "category": "Cloud Security Platform",
       "wins": [],
       "losses": [],
@@ -186,6 +186,30 @@
       "differentiators": "Same sandbox PoC concept, but with 12-step pipeline, enterprise compliance, AutoFix, knowledge graph, and MCP gateway. DeepAudit verifies; ALdeci verifies + decides + fixes + proves.",
       "threat_level": "LOW",
       "overlap": "Exploit verification"
+    },
+    {
+      "name": "Claude Code Security",
+      "category": "AI-Powered Vulnerability Discovery",
+      "wins": [],
+      "losses": [],
+      "strengths": [
+        "500+ zero-days found using semantic reasoning",
+        "Full AST + data flow understanding",
+        "Anthropic brand recognition",
+        "Found vulnerabilities missed by all other tools"
+      ],
+      "weaknesses": [
+        "No triage or prioritization pipeline",
+        "No exploit verification (MPTE equivalent)",
+        "No AutoFix or code generation",
+        "No compliance evidence",
+        "Cloud-only (requires Anthropic API)",
+        "No multi-scanner ingestion",
+        "Raw findings without business context"
+      ],
+      "differentiators": "Claude finds vulns better than anyone. ALdeci DECIDES what to do about them. Together = unstoppable. We ingest Claude output and add Brain Pipeline + MPTE + AutoFix + Evidence.",
+      "threat_level": "LOW (complementary, not competitive)",
+      "overlap": "Vulnerability discovery — but Claude has no pipeline"
     }
   ],
   "winRate": 0,
@@ -198,7 +222,7 @@
       "12-step Brain Pipeline (full CTEM lifecycle)",
       "Multi-LLM consensus with 85% agreement threshold",
       "10 AutoFix types with confidence-based auto-apply",
-      "MCP gateway with 650+ auto-discovered tools",
+      "MCP gateway with 100+ auto-discovered tools (verified live)",
       "Cryptographically signed compliance evidence",
       "Self-hosted AI (zero API token cost)"
     ]

@@ -1,0 +1,263 @@
+newman
+
+⚡ ALdeci — VALIDATE
+
+❏ 🔥 FAIL Engine (Differentiator #1)
+↳ Score Single Finding
+  POST http://localhost:8000/api/v1/fail/score [200 OK, 1.2kB, 18ms]
+  ✓  FAIL score returns 200
+  ✓  Returns FAIL score
+
+↳ Score Batch
+  POST http://localhost:8000/api/v1/fail/score/batch [200 OK, 3.19kB, 9ms]
+  ✓  Batch FAIL score returns 200
+
+↳ Get FAIL Score
+  GET http://localhost:8000/api/v1/fail/score/FAIL-4D0256984D14 [200 OK, 1.74kB, 7ms]
+  ✓  Get FAIL score returns 200
+
+↳ List FAIL Scores
+  GET http://localhost:8000/api/v1/fail/scores [200 OK, 46.98kB, 13ms]
+  ✓  List scores returns 200
+
+↳ Top Risks by FAIL Score
+  GET http://localhost:8000/api/v1/fail/top-risks [200 OK, 30.73kB, 18ms]
+  ✓  Top risks returns 200
+
+↳ FAIL Stats
+  GET http://localhost:8000/api/v1/fail/stats [200 OK, 444B, 6ms]
+  ✓  FAIL stats returns 200
+
+↳ CVE FAIL Scores
+  GET http://localhost:8000/api/v1/fail/cve/CVE-2024-3094 [200 OK, 29.02kB, 12ms]
+  ✓  CVE FAIL scores returns 200
+
+❏ 🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6)
+↳ List MPTE Requests
+  GET http://localhost:8000/api/v1/mpte/requests [200 OK, 26.52kB, 14ms]
+  ✓  MPTE requests returns 200
+
+↳ Create MPTE Request
+  POST http://localhost:8000/api/v1/mpte/requests [201 Created, 628B, 34ms]
+  ✓  Create MPTE request returns 200/201
+  ✓  Capture mpteRequestId
+
+↳ Get MPTE Request
+  GET http://localhost:8000/api/v1/mpte/requests/eeac9dff-ca3f-46b2-bc03-cb7d0da9d4b3 [200 OK, 653B, 6ms]
+  ✓  Get MPTE request returns 200
+
+↳ Start MPTE Request
+  POST http://localhost:8000/api/v1/mpte/requests/eeac9dff-ca3f-46b2-bc03-cb7d0da9d4b3/start [200 OK, 684B, 5ms]
+  ✓  Start MPTE returns 200
+
+↳ Verify Exploitability
+  POST http://localhost:8000/api/v1/mpte/verify [422 Unprocessable Content, 464B, 10ms]
+  1. Verify exploitability returns 200
+  ✓  Returns exploitability verdict
+
+↳ Comprehensive MPTE Scan
+  POST http://localhost:8000/api/v1/mpte/scan/comprehensive [201 Created, 350B, 20s]
+  ✓  Comprehensive scan returns 200
+
+↳ MPTE Results
+  GET http://localhost:8000/api/v1/mpte/results [200 OK, 5.09kB, 13ms]
+  ✓  MPTE results returns 200
+
+↳ MPTE Configs
+  GET http://localhost:8000/api/v1/mpte/configs [200 OK, 5.84kB, 12ms]
+  ✓  MPTE configs returns 200
+
+↳ MPTE Stats
+  GET http://localhost:8000/api/v1/mpte/stats [200 OK, 534B, 13ms]
+  ✓  MPTE stats returns 200
+
+↳ Finding Exploitability
+  GET http://localhost:8000/api/v1/mpte/findings//exploitability [404 Not Found, 331B, 13ms]
+  2. Exploitability returns 200
+
+❏ 🧪 Micro Pentest Engine
+↳ Run Micro Pentest
+  POST http://localhost:8000/api/v1/micro-pentest/run [201 Created, 506B, 2s]
+  ✓  Micro pentest returns 200
+  ✓  Capture scanId
+
+↳ Enterprise Scan
+  POST http://localhost:8000/api/v1/micro-pentest/enterprise/scan [422 Unprocessable Content, 801B, 8ms]
+  3. Enterprise scan returns 200
+  ✓  Capture scanId
+
+↳ List Enterprise Scans
+  GET http://localhost:8000/api/v1/micro-pentest/enterprise/scans [200 OK, 324B, 7ms]
+  ✓  List scans returns 200
+
+↳ Attack Vectors
+  GET http://localhost:8000/api/v1/micro-pentest/enterprise/attack-vectors [200 OK, 2.07kB, 13ms]
+  ✓  Attack vectors returns 200
+
+↳ Threat Categories
+  GET http://localhost:8000/api/v1/micro-pentest/enterprise/threat-categories [200 OK, 1.27kB, 11ms]
+  ✓  Threat categories returns 200
+
+↳ Scan Modes
+  GET http://localhost:8000/api/v1/micro-pentest/enterprise/scan-modes [200 OK, 698B, 6ms]
+  ✓  Scan modes returns 200
+
+↳ Generate Pentest Report
+  POST http://localhost:8000/api/v1/micro-pentest/report/generate [503 Service Unavailable, 434B, 7ms]
+  4. Report generation returns 200
+
+❏ ⚔️ Attack Simulation (BAS)
+↳ Create Attack Scenario
+  POST http://localhost:8000/api/v1/attack-sim/scenarios [200 OK, 804B, 11ms]
+  ✓  Create scenario returns 200/201
+  ✓  Capture scenarioId
+
+↳ AI-Generate Scenario
+  POST http://localhost:8000/api/v1/attack-sim/scenarios/generate [200 OK, 802B, 11.6s]
+  ✓  AI scenario generation returns 200
+
+↳ List Scenarios
+  GET http://localhost:8000/api/v1/attack-sim/scenarios [200 OK, 1.3kB, 10ms]
+  ✓  List scenarios returns 200
+
+↳ Run Attack Campaign
+  POST http://localhost:8000/api/v1/attack-sim/campaigns [405 Method Not Allowed, 361B, 12ms]
+  5. Campaign run returns 200
+  ✓  Capture campaignId
+
+↳ List Campaigns
+  GET http://localhost:8000/api/v1/attack-sim/campaigns [200 OK, 303B, 11ms]
+  ✓  List campaigns returns 200
+
+↳ Campaign Attack Paths
+  GET http://localhost:8000/api/v1/attack-sim/campaigns//attack-paths [404 Not Found, 331B, 9ms]
+  6. Attack paths returns 200
+
+↳ Breach Impact Analysis
+  GET http://localhost:8000/api/v1/attack-sim/campaigns//breach-impact [404 Not Found, 331B, 7ms]
+  7. Breach impact returns 200
+
+↳ MITRE ATT&CK Heatmap
+  GET http://localhost:8000/api/v1/attack-sim/mitre/heatmap [200 OK, 336B, 8ms]
+  ✓  MITRE heatmap returns 200
+
+↳ MITRE Techniques
+  GET http://localhost:8000/api/v1/attack-sim/mitre/techniques [200 OK, 3.24kB, 12ms]
+  ✓  MITRE techniques returns 200
+
+❏ 🤖 MPTE Orchestrator
+↳ Orchestrator Capabilities
+  GET http://localhost:8000/api/v1/mpte-orchestrator/capabilities [200 OK, 1.32kB, 14ms]
+  ✓  Capabilities returns 200
+
+↳ Run Threat Intel Analysis
+  POST http://localhost:8000/api/v1/mpte-orchestrator/threat-intel [200 OK, 695B, 16ms]
+  ✓  Threat intel returns 200
+
+↳ Business Impact Analysis
+  POST http://localhost:8000/api/v1/mpte-orchestrator/business-impact [200 OK, 896B, 8ms]
+  ✓  Business impact returns 200
+
+↳ Run Full Orchestration
+  POST http://localhost:8000/api/v1/mpte-orchestrator/run [200 OK, 633B, 2.7s]
+  ✓  Full orchestration returns 200
+
+❏ 🧠 Multi-LLM Consensus (V4)
+↳ Make Security Decision
+  POST http://localhost:8000/api/v1/decisions/make-decision [200 OK, 1.73kB, 40ms]
+  ✓  Decision returns 200
+  ✓  Contains decision fields
+
+↳ Enhanced Multi-LLM Analysis
+  POST http://localhost:8000/api/v1/enhanced/analysis [200 OK, 3.97kB, 3.2s]
+  ✓  Enhanced analysis returns 200
+
+↳ Compare LLM Responses
+  POST http://localhost:8000/api/v1/enhanced/compare-llms [200 OK, 3.26kB, 2.7s]
+  ✓  LLM comparison returns 200
+
+↳ LLM Monitor — Scan Prompt
+  POST http://localhost:8000/api/v1/llm-monitor/scan/prompt [200 OK, 785B, 8ms]
+  ✓  Prompt scan returns 200
+
+❏ 🤖 AI Copilot — Analyst Agent
+↳ Analyze Vulnerability
+  POST http://localhost:8000/api/v1/copilot/agents/analyst/analyze [200 OK, 471B, 9ms]
+  ✓  Agent analysis returns 200
+
+↳ Gather Threat Intel
+  POST http://localhost:8000/api/v1/copilot/agents/analyst/threat-intel [200 OK, 653B, 7ms]
+  ✓  Threat intel returns 200
+
+↳ Prioritize Findings
+  POST http://localhost:8000/api/v1/copilot/agents/analyst/prioritize [200 OK, 598B, 7ms]
+  ✓  Prioritize returns 200
+
+↳ Analyze Attack Paths
+  POST http://localhost:8000/api/v1/copilot/agents/analyst/attack-path [200 OK, 551B, 7ms]
+  ✓  Attack path analysis returns 200
+
+↳ Trending Threats
+  GET http://localhost:8000/api/v1/copilot/agents/analyst/trending [200 OK, 1.58kB, 247ms]
+  ✓  Trending threats returns 200
+
+↳ CVE Deep Analysis
+  GET http://localhost:8000/api/v1/copilot/agents/analyst/cve/CVE-2024-3094 [200 OK, 629B, 4ms]
+  ✓  CVE analysis returns 200
+
+┌─────────────────────────┬──────────────────┬──────────────────┐
+│                         │         executed │           failed │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│              iterations │                1 │                0 │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│                requests │               47 │                0 │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│            test-scripts │               47 │                0 │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│      prerequest-scripts │               47 │                0 │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│              assertions │               55 │                7 │
+├─────────────────────────┴──────────────────┴──────────────────┤
+│ total run duration: 48.6s                                     │
+├───────────────────────────────────────────────────────────────┤
+│ total data received: 171.7kB (approx)                         │
+├───────────────────────────────────────────────────────────────┤
+│ average response time: 916ms [min: 4ms, max: 20s, s.d.: 3.3s] │
+└───────────────────────────────────────────────────────────────┘
+
+[31m  # [39m[31m failure        [39m[31m detail                                                                                           [39m
+[90m    [39m[90m                [39m[90m                                                                                                  [39m
+ 1.  AssertionError  Verify exploitability returns 200                                                                
+                     expected 422 to be one of [ 200, 201, 202, 409 ]                                                 
+                     at assertion:0 in test-script                                                                    
+                     inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / Verify Exploitability"  
+[90m    [39m[90m                [39m[90m                                                                                                  [39m
+ 2.  AssertionError  Exploitability returns 200                                                                       
+                     expected 404 to be one of [ 200, 201, 202, 409 ]                                                 
+                     at assertion:0 in test-script                                                                    
+                     inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / Finding Exploitability" 
+[90m    [39m[90m                [39m[90m                                                                                                  [39m
+ 3.  AssertionError  Enterprise scan returns 200                                                                      
+                     expected 422 to be one of [ 200, 201, 202, 409 ]                                                 
+                     at assertion:0 in test-script                                                                    
+                     inside "🧪 Micro Pentest Engine / Enterprise Scan"                                               
+[90m    [39m[90m                [39m[90m                                                                                                  [39m
+ 4.  AssertionError  Report generation returns 200                                                                    
+                     expected 503 to be one of [ 200, 201, 202, 409 ]                                                 
+                     at assertion:0 in test-script                                                                    
+                     inside "🧪 Micro Pentest Engine / Generate Pentest Report"                                       
+[90m    [39m[90m                [39m[90m                                                                                                  [39m
+ 5.  AssertionError  Campaign run returns 200                                                                         
+                     expected 405 to be one of [ 200, 201, 202, 409 ]                                                 
+                     at assertion:0 in test-script                                                                    
+                     inside "⚔️ Attack Simulation (BAS) / Run Attack Campaign"                                        
+[90m    [39m[90m                [39m[90m                                                                                                  [39m
+ 6.  AssertionError  Attack paths returns 200                                                                         
+                     expected 404 to be one of [ 200, 201, 202, 409 ]                                                 
+                     at assertion:0 in test-script                                                                    
+                     inside "⚔️ Attack Simulation (BAS) / Campaign Attack Paths"                                      
+[90m    [39m[90m                [39m[90m                                                                                                  [39m
+ 7.  AssertionError  Breach impact returns 200                                                                        
+                     expected 404 to be one of [ 200, 201, 202, 409 ]                                                 
+                     at assertion:0 in test-script                                                                    
+                     inside "⚔️ Attack Simulation (BAS) / Breach Impact Analysis"                                     

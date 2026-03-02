@@ -90,8 +90,12 @@ const BrainPipelineDashboard = lazy(() => import('./pages/core/BrainPipelineDash
 const ExposureCaseCenter = lazy(() => import('./pages/core/ExposureCaseCenter'));
 const SOC2EvidenceUI = lazy(() => import('./pages/evidence/SOC2EvidenceUI'));
 
-// Discover Space — Scanner Dashboard (CTEM+ Identity)
+// Discover Space — Scanner Dashboard + Ingest (CTEM+ Identity, V7)
 const ScannerDashboard = lazy(() => import('./pages/discover/ScannerDashboard'));
+const ScannerIngestUpload = lazy(() => import('./pages/discover/ScannerIngestUpload'));
+
+// Validate Space — Sandbox Verification (V5 MPTE)
+const SandboxVerification = lazy(() => import('./pages/attack/SandboxVerification'));
 
 // Loading fallback
 const PageLoader = () => (
@@ -239,9 +243,14 @@ function AnimatedRoutes() {
             <Route path="/core/exposure-cases" element={<ExposureCaseCenter />} />
             <Route path="/evidence/soc2" element={<SOC2EvidenceUI />} />
 
-            {/* Discover Space — Scanner Dashboard */}
+            {/* Discover Space — Scanner Dashboard + Ingest (V7) */}
             <Route path="/discover/scanners" element={<ScannerDashboard />} />
+            <Route path="/discover/scanner-ingest" element={<ScannerIngestUpload />} />
             <Route path="/scanners" element={<ScannerDashboard />} />
+
+            {/* Validate Space — Sandbox Verification (V5 MPTE) */}
+            <Route path="/attack/sandbox" element={<SandboxVerification />} />
+            <Route path="/validate/sandbox" element={<SandboxVerification />} />
 
             {/* Legacy routes for backwards compatibility */}
             <Route path="/data-fabric" element={<DataFabric />} />

@@ -254,7 +254,7 @@ AGENT_MIN_RAM=(
 # Phase 10 → none (post-flight always runs)
 declare -A PHASE_DEPENDS_ON
 PHASE_DEPENDS_ON=(
-  [0]="none" [1]="0" [2]="1" [3]="1" [3.5]="3" [4]="3" [5]="1"
+  [0]="none" [1]="0" [2]="1" [3]="1" [3.5]="1" [4]="3" [5]="1"
   [6]="none" [7]="none" [8]="none" [9]="none" [10]="none"
 )
 # Track which phases succeeded/failed

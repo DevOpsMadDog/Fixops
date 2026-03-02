@@ -27,11 +27,8 @@ from __future__ import annotations
 import json
 import logging
 import re
-import uuid
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -80,20 +77,49 @@ def _severity_from_number(num: Any) -> str:
     return {4: "critical", 3: "high", 2: "medium", 1: "low", 0: "info"}.get(n, "medium")
 
 
+_MAX_XML_SIZE = 100 * 1024 * 1024  # 100 MB limit for XML files
+
+
 def _parse_xml_safe(data: bytes) -> Optional[ET.Element]:
-    """Safely parse XML, return None on failure."""
+    """Safely parse XML with XXE protection, return None on failure.
+
+    Defenses:
+    - Size limit to prevent billion-laughs DoS
+    - Strips DOCTYPE declarations to prevent external entity resolution
+    - Catches all parse errors gracefully
+    """
+    if len(data) > _MAX_XML_SIZE:
+        logger.warning("XML data exceeds size limit (%d > %d bytes)", len(data), _MAX_XML_SIZE)
+        return None
     try:
         text = data.decode("utf-8", errors="ignore")
+        # Strip DOCTYPE to prevent XXE (external entity injection)
+        # This removes <!DOCTYPE ...> declarations including inline DTDs
+        import re as _re
+        text = _re.sub(
+            r'<!DOCTYPE[^>\[]*(\[[^\]]*\])?\s*>',
+            '',
+            text,
+            flags=_re.IGNORECASE | _re.DOTALL,
+        )
+        # Also strip any remaining entity declarations
+        text = _re.sub(r'<!ENTITY[^>]*>', '', text, flags=_re.IGNORECASE)
         return ET.fromstring(text)
-    except ET.ParseError:
+    except (ET.ParseError, ValueError, OverflowError):
         return None
 
 
+_MAX_JSON_SIZE = 100 * 1024 * 1024  # 100 MB limit for JSON files
+
+
 def _parse_json_safe(data: bytes) -> Optional[Any]:
-    """Safely parse JSON, return None on failure."""
+    """Safely parse JSON with size limit, return None on failure."""
+    if len(data) > _MAX_JSON_SIZE:
+        logger.warning("JSON data exceeds size limit (%d > %d bytes)", len(data), _MAX_JSON_SIZE)
+        return None
     try:
         return json.loads(data.decode("utf-8", errors="ignore"))
-    except (json.JSONDecodeError, UnicodeDecodeError):
+    except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
         return None
 
 
@@ -249,7 +275,6 @@ class BurpNormalizer(_Base):
         root = _parse_xml_safe(content)
         if root is not None:
             for issue in root.findall(".//issue"):
-                conf_map = {"Certain": 0.95, "Firm": 0.85, "Tentative": 0.6}
                 findings.append(_make_finding(
                     title=issue.findtext("name", issue.findtext("type", "Burp Finding")),
                     description=issue.findtext("issueDetail", issue.findtext("issueBackground", "")),
@@ -346,13 +371,6 @@ class OpenVASNormalizer(_Base):
             nvt = result.find("nvt")
             host_el = result.find("host")
             host_text = host_el.text.strip() if host_el is not None and host_el.text else ""
-            port_text = result.findtext("port", "0")
-            port_num = 0
-            try:
-                port_num = int(port_text.split("/")[0])
-            except (ValueError, IndexError):
-                pass
-
             cves = []
             if nvt is not None:
                 for cve_el in nvt.findall("cve"):
@@ -392,6 +410,8 @@ class BanditNormalizer(_Base):
         text = content[:5000].decode("utf-8", errors="ignore")
         if '"results"' in text and '"test_id"' in text and '"test_name"' in text:
             return 0.95
+        if '"results"' in text and '"test_id"' in text and '"generated_at"' in text:
+            return 0.90
         if '"generated_at"' in text and '"metrics"' in text and '"_totals"' in text:
             return 0.85
         return 0.0
@@ -493,7 +513,8 @@ class SonarQubeNormalizer(_Base):
         text = content[:5000].decode("utf-8", errors="ignore")
         if '"issues"' in text and ('"component"' in text or '"rule"' in text) and '"severity"' in text:
             return 0.85
-        if "sonarqube" in text.lower() or '"paging"' in text:
+        # Only match "sonarqube" if the content looks like structured data (JSON/XML)
+        if ('"paging"' in text or '"total"' in text) and ("sonarqube" in text.lower() or '"issues"' in text):
             return 0.7
         return 0.0
 
@@ -613,10 +634,14 @@ class VeracodeNormalizer(_Base):
 
     def can_handle(self, content: bytes, content_type: Optional[str] = None) -> float:
         text = content[:5000].decode("utf-8", errors="ignore")
-        if "veracode" in text.lower() or "detailedreport" in text.lower():
+        # Require structured data markers alongside "veracode" to avoid false positives
+        if "detailedreport" in text.lower() or ('"veracode"' in text.lower() and ('{' in text or '<' in text)):
             return 0.9
         if '"finding_details"' in text or '"finding_status"' in text:
             return 0.8
+        # XML with veracode namespace
+        if "veracode" in text.lower() and ("<" in text and ">" in text):
+            return 0.75
         return 0.0
 
     def normalize(self, content: bytes, content_type: Optional[str] = None) -> list:
@@ -672,7 +697,10 @@ class NiktoNormalizer(_Base):
     def can_handle(self, content: bytes, content_type: Optional[str] = None) -> float:
         text = content[:5000].decode("utf-8", errors="ignore")
         if '"vulnerabilities"' in text and ('"OSVDB"' in text or '"nikto"' in text.lower()):
-            return 0.85
+            return 0.95
+        # Nikto-style JSON: host + vulnerabilities array
+        if '"vulnerabilities"' in text and '"host"' in text and '"id"' in text:
+            return 0.80
         return 0.0
 
     def normalize(self, content: bytes, content_type: Optional[str] = None) -> list:
@@ -778,14 +806,22 @@ class NmapNormalizer(_Base):
                 state = port_elem.find("state")
                 service = port_elem.find("service")
                 if state is not None and state.get("state") == "open":
-                    # Report script-detected vulnerabilities
+                    port_id = port_elem.get("portid", "?")
+                    protocol = port_elem.get("protocol", "tcp")
+                    svc_name = service.get("name", "unknown") if service is not None else "unknown"
+                    svc_product = service.get("product", "") if service is not None else ""
+                    svc_version = service.get("version", "") if service is not None else ""
+
+                    # Report script-detected vulnerabilities (high priority)
+                    scripts_found = False
                     for script in port_elem.findall("script"):
                         script_id = script.get("id", "")
                         output = script.get("output", "")
                         cves = _extract_cves(output)
                         if cves or "vuln" in script_id.lower():
+                            scripts_found = True
                             findings.append(_make_finding(
-                                title=f"Nmap {script_id}: {host_ip}:{port_elem.get('portid', '?')}",
+                                title=f"Nmap {script_id}: {host_ip}:{port_id}",
                                 description=output[:500],
                                 severity="high" if cves else "medium",
                                 source_tool="nmap",
@@ -796,6 +832,19 @@ class NmapNormalizer(_Base):
                                 code_snippet=output[:200] if output else None,
                                 tags=cves[1:] if len(cves) > 1 else [],
                             ))
+
+                    # Report open service as info finding (for asset inventory)
+                    if not scripts_found:
+                        svc_desc = f"{svc_product} {svc_version}".strip() or svc_name
+                        findings.append(_make_finding(
+                            title=f"Open port {port_id}/{protocol} ({svc_name}) on {host_ip}",
+                            description=f"Service: {svc_desc}",
+                            severity="info",
+                            source_tool="nmap",
+                            source_format_str="custom",
+                            rule_id=f"nmap-open-port-{port_id}",
+                            asset_name=host_ip,
+                        ))
         return findings
 
 
@@ -857,20 +906,63 @@ class ProwlerNormalizer(_Base):
 
     def can_handle(self, content: bytes, content_type: Optional[str] = None) -> float:
         text = content[:2000].decode("utf-8", errors="ignore")
-        first_line = text.split("\n", 1)[0]
+        first_line = text.split("\n", 1)[0].strip()
         try:
-            obj = json.loads(first_line)
-            if "CheckID" in obj or "check_id" in obj:
-                return 0.9
-            if "StatusExtended" in obj or "status_extended" in obj:
-                return 0.85
-        except (json.JSONDecodeError, ValueError):
+            parsed = json.loads(first_line)
+            # Handle JSON array format (e.g., [{"CheckID": ...}])
+            obj = parsed[0] if isinstance(parsed, list) and parsed else parsed
+            if isinstance(obj, dict):
+                if "CheckID" in obj or "check_id" in obj:
+                    return 0.9
+                if "StatusExtended" in obj or "status_extended" in obj:
+                    return 0.85
+        except (json.JSONDecodeError, ValueError, IndexError, TypeError):
             pass
         return 0.0
 
     def normalize(self, content: bytes, content_type: Optional[str] = None) -> list:
         findings = []
         text = content.decode("utf-8", errors="ignore")
+
+        # Try JSON array format first
+        try:
+            parsed = json.loads(text)
+            if isinstance(parsed, list):
+                for r in parsed:
+                    if not isinstance(r, dict):
+                        continue
+                    status = r.get("Status", r.get("status", ""))
+                    if status.upper() in ("PASS", "MANUAL"):
+                        continue
+
+                    remediation = r.get("Remediation", {})
+                    rec_text = ""
+                    if isinstance(remediation, dict):
+                        rec = remediation.get("Recommendation", {})
+                        rec_text = rec.get("Text", "") if isinstance(rec, dict) else str(rec)
+                    elif isinstance(remediation, str):
+                        rec_text = remediation
+
+                    findings.append(_make_finding(
+                        title=r.get("CheckTitle", r.get("check_title", r.get("CheckID", "Prowler Finding"))),
+                        description=r.get("StatusExtended", r.get("status_extended", "")),
+                        severity=r.get("Severity", r.get("severity", "medium")).lower(),
+                        source_tool="prowler",
+                        source_format_str="custom",
+                        rule_id=r.get("CheckID", r.get("check_id", "")),
+                        cloud_account=r.get("AccountId", r.get("account_id", "")),
+                        cloud_provider=r.get("Provider", r.get("provider", "")),
+                        cloud_region=r.get("Region", r.get("region", "")),
+                        cloud_resource_id=r.get("ResourceId", r.get("resource_id", "")),
+                        recommendation=rec_text,
+                        compliance_frameworks=r.get("Compliance", {}).keys() if isinstance(r.get("Compliance"), dict) else [],
+                    ))
+                if findings:
+                    return findings
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+        # Fallback: JSONL format (one JSON object per line)
         for line in text.strip().split("\n"):
             if not line.strip():
                 continue
@@ -930,7 +1022,11 @@ class CheckovNormalizer(_Base):
         results = parsed if isinstance(parsed, list) else [parsed]
         for result in results:
             check_type = result.get("check_type", "unknown")
-            for check in result.get("failed_checks", []):
+            # failed_checks can be at top level or nested under "results"
+            failed_checks = result.get("failed_checks", [])
+            if not failed_checks and isinstance(result.get("results"), dict):
+                failed_checks = result["results"].get("failed_checks", [])
+            for check in failed_checks:
                 guideline = check.get("guideline", "")
                 findings.append(_make_finding(
                     title=f"{check.get('check_id', 'CKV')}: {check.get('check_name', 'Checkov Finding')}",
@@ -1055,7 +1151,29 @@ def parse_scanner_output(
 
     config = NormalizerConfig(name=name, enabled=True, priority=50)
     normalizer = cls(config)
-    findings = normalizer.normalize(content)
+
+    # Hardening: wrap normalize() to catch crashes from malformed input.
+    # Each normalizer must survive bad input without affecting others.
+    try:
+        findings = normalizer.normalize(content)
+        if not isinstance(findings, list):
+            logger.warning("Normalizer %s returned non-list: %s", name, type(findings).__name__)
+            findings = list(findings) if findings else []
+    except Exception as e:
+        logger.error(
+            "Normalizer %s crashed on input (%d bytes): %s",
+            name, len(content), type(e).__name__,
+        )
+        return []
+
+    # Cap total findings to prevent memory exhaustion from huge reports
+    _MAX_FINDINGS_PER_PARSE = 50_000
+    if len(findings) > _MAX_FINDINGS_PER_PARSE:
+        logger.warning(
+            "Normalizer %s produced %d findings, capping at %d",
+            name, len(findings), _MAX_FINDINGS_PER_PARSE,
+        )
+        findings = findings[:_MAX_FINDINGS_PER_PARSE]
 
     # Tag with APP_ID
     if app_id or component:

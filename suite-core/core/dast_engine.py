@@ -13,6 +13,7 @@ Competitive parity: Aikido DAST, Snyk DAST, OWASP ZAP.
 
 from __future__ import annotations
 
+import logging
 import re
 import time
 import uuid
@@ -24,6 +25,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import httpx
 from core.tls_config import tls_verify
+
+logger = logging.getLogger(__name__)
 
 
 class DastSeverity(str, Enum):
@@ -216,6 +219,82 @@ class DASTEngine:
     Performs real HTTP requests against live targets.
     """
 
+    # Blocked IP ranges for SSRF protection (RFC 1918, loopback, link-local, metadata)
+    _BLOCKED_RANGES: List[Tuple[int, int]] = []
+
+    @staticmethod
+    def _ip_to_int(ip: str) -> int:
+        """Convert dotted-quad IP to integer for range comparison."""
+        parts = ip.split(".")
+        if len(parts) != 4:
+            return 0
+        try:
+            return (int(parts[0]) << 24) | (int(parts[1]) << 16) | (int(parts[2]) << 8) | int(parts[3])
+        except (ValueError, IndexError):
+            return 0
+
+    @classmethod
+    def _init_blocked_ranges(cls) -> None:
+        """Initialize blocked IP ranges on first use."""
+        if cls._BLOCKED_RANGES:
+            return
+        ranges = [
+            ("10.0.0.0", "10.255.255.255"),       # RFC 1918
+            ("172.16.0.0", "172.31.255.255"),      # RFC 1918
+            ("192.168.0.0", "192.168.255.255"),    # RFC 1918
+            ("127.0.0.0", "127.255.255.255"),      # Loopback
+            ("169.254.0.0", "169.254.255.255"),    # Link-local / AWS metadata
+            ("0.0.0.0", "0.255.255.255"),          # Current network
+            ("100.64.0.0", "100.127.255.255"),     # Shared address space (RFC 6598)
+        ]
+        cls._BLOCKED_RANGES = [(cls._ip_to_int(s), cls._ip_to_int(e)) for s, e in ranges]
+
+    @classmethod
+    def validate_target_url(cls, url: str) -> str:
+        """Validate target URL to prevent SSRF attacks.
+
+        Blocks:
+        - Non HTTP/HTTPS schemes (file://, ftp://, gopher://, etc.)
+        - RFC 1918 private IPs (10.x, 172.16-31.x, 192.168.x)
+        - Loopback (127.x.x.x, ::1, localhost)
+        - Link-local / cloud metadata (169.254.x.x)
+        - IPv6 loopback ([::1])
+
+        Raises ValueError for blocked targets.
+        """
+        import socket
+        from urllib.parse import urlparse
+
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            raise ValueError(f"Blocked scheme '{parsed.scheme}' — only http/https allowed")
+
+        hostname = parsed.hostname or ""
+        if not hostname:
+            raise ValueError("Missing hostname in target URL")
+
+        # Block obvious localhost patterns
+        _blocked_hosts = {"localhost", "0.0.0.0", "::1", "[::1]", "ip6-localhost"}
+        if hostname.lower() in _blocked_hosts:
+            raise ValueError(f"Blocked target: {hostname} (loopback/localhost)")
+
+        # Resolve hostname and check IP ranges
+        cls._init_blocked_ranges()
+        try:
+            addr_infos = socket.getaddrinfo(hostname, None, socket.AF_INET)
+            for family, _, _, _, sockaddr in addr_infos:
+                ip = sockaddr[0]
+                ip_int = cls._ip_to_int(ip)
+                for range_start, range_end in cls._BLOCKED_RANGES:
+                    if range_start <= ip_int <= range_end:
+                        raise ValueError(
+                            f"Blocked target: {hostname} resolves to private/reserved IP {ip}"
+                        )
+        except socket.gaierror:
+            pass  # DNS resolution failed — allow (may be intentional for testing)
+
+        return url
+
     def __init__(self, timeout: float = 10.0, max_crawl: int = 50):
         self._timeout = timeout
         self._max_crawl = max_crawl
@@ -229,6 +308,9 @@ class DASTEngine:
         max_depth: int = 3,
     ) -> DastScanResult:
         """Full DAST scan: crawl + test."""
+        # SSRF protection: validate target URL before scanning
+        target_url = self.validate_target_url(target_url)
+
         t0 = time.time()
         findings: List[DastFinding] = []
         crawled: Set[str] = set()
@@ -314,8 +396,10 @@ class DASTEngine:
                     continue
                 if full not in visited:
                     await self._crawl(client, full, visited, max_depth, depth + 1)
-        except Exception:
-            pass
+        except httpx.TimeoutException:
+            logger.debug("Crawl timeout for %s (depth=%d)", url, depth)
+        except Exception as e:
+            logger.debug("Crawl error for %s: %s", url, type(e).__name__)
 
     async def _check_headers(
         self, client: httpx.AsyncClient, url: str
@@ -353,8 +437,10 @@ class DASTEngine:
                         recommendation="Remove version info from Server header",
                     )
                 )
-        except Exception:
-            pass
+        except httpx.TimeoutException:
+            logger.debug("Header check timeout for %s", url)
+        except Exception as e:
+            logger.debug("Header check error for %s: %s", url, type(e).__name__)
         return findings
 
     async def _test_sqli(
@@ -386,8 +472,10 @@ class DASTEngine:
                             )
                         )
                         return findings
-            except Exception:
-                pass
+            except httpx.TimeoutException:
+                logger.debug("SQLi test timeout for %s", test_url)
+            except Exception as e:
+                logger.debug("SQLi test error for %s: %s", url, type(e).__name__)
         return findings
 
     async def _test_xss(self, client: httpx.AsyncClient, url: str) -> List[DastFinding]:
@@ -416,8 +504,10 @@ class DASTEngine:
                         )
                     )
                     return findings
-            except Exception:
-                pass
+            except httpx.TimeoutException:
+                logger.debug("XSS test timeout for %s", test_url)
+            except Exception as e:
+                logger.debug("XSS test error for %s: %s", url, type(e).__name__)
         return findings
 
     async def _test_path_traversal(
@@ -444,8 +534,10 @@ class DASTEngine:
                         )
                     )
                     return findings
-            except Exception:
-                pass
+            except httpx.TimeoutException:
+                logger.debug("Path traversal test timeout for %s", test_url)
+            except Exception as e:
+                logger.debug("Path traversal test error for %s: %s", url, type(e).__name__)
         return findings
 
     async def _test_ssrf(
@@ -479,8 +571,10 @@ class DASTEngine:
                         )
                     )
                     return findings
-            except Exception:
-                pass
+            except httpx.TimeoutException:
+                logger.debug("SSRF test timeout for %s", test_url)
+            except Exception as e:
+                logger.debug("SSRF test error for %s: %s", url, type(e).__name__)
         return findings
 
     async def _check_info_disclosure(
@@ -518,8 +612,10 @@ class DASTEngine:
                                 recommendation="Restrict access to sensitive files",
                             )
                         )
-            except Exception:
-                pass
+            except httpx.TimeoutException:
+                logger.debug("Info disclosure check timeout for %s%s", base, path)
+            except Exception as e:
+                logger.debug("Info disclosure check error for %s: %s", base, type(e).__name__)
         return findings
 
 

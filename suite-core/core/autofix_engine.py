@@ -156,6 +156,58 @@ class AutoFixResult:
 
 
 # ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+# CWE → vulnerability category mapping for ML confidence model
+_CWE_CATEGORY_MAP = {
+    # Injection
+    "CWE-89": "injection", "CWE-78": "injection", "CWE-77": "injection",
+    "CWE-90": "injection", "CWE-91": "injection", "CWE-943": "injection",
+    # XSS
+    "CWE-79": "xss",
+    # Auth / Access
+    "CWE-287": "auth", "CWE-306": "auth", "CWE-862": "auth",
+    "CWE-863": "auth", "CWE-284": "auth", "CWE-269": "permissions",
+    "CWE-732": "permissions",
+    # Crypto
+    "CWE-327": "crypto", "CWE-330": "crypto", "CWE-326": "crypto",
+    "CWE-295": "crypto", "CWE-798": "secrets",
+    # Config
+    "CWE-16": "config", "CWE-611": "config",
+    # SSRF / Path traversal
+    "CWE-918": "ssrf", "CWE-22": "path_traversal",
+    # Deserialization
+    "CWE-502": "deserialization",
+    # Dependency / container / IaC
+    "CWE-1104": "dependency",
+}
+
+# Fix-type → category fallback when CWE is unknown
+_FIXTYPE_CATEGORY_MAP = {
+    "dependency_update": "dependency",
+    "config_hardening": "config",
+    "iac_fix": "iac",
+    "secret_rotation": "secrets",
+    "permission_fix": "permissions",
+    "container_fix": "container",
+    "waf_rule": "config",
+    "input_validation": "injection",
+    "output_encoding": "xss",
+}
+
+
+def _cwe_to_category(cwe: str, fix_type: FixType) -> str:
+    """Map a CWE identifier + fix type to a vulnerability category.
+
+    Uses the CWE if known, otherwise falls back to fix type heuristic.
+    """
+    if cwe and cwe in _CWE_CATEGORY_MAP:
+        return _CWE_CATEGORY_MAP[cwe]
+    return _FIXTYPE_CATEGORY_MAP.get(fix_type.value, "other")
+
+
+# ---------------------------------------------------------------------------
 # AutoFix Engine
 # ---------------------------------------------------------------------------
 
@@ -306,9 +358,15 @@ class AutoFixEngine:
             validation = self._validate_fix(suggestion)
             suggestion.metadata["validation"] = validation
 
-            # Assign confidence
+            # Assign confidence (ML-powered with rule-based fallback)
             suggestion.confidence_score = self._compute_confidence(suggestion, finding)
-            if suggestion.confidence_score >= 0.85:
+
+            # Use ML classification if available, else derive from score
+            ml_conf = suggestion.metadata.get("ml_confidence", {})
+            ml_class = ml_conf.get("classification", "").upper()
+            if ml_class in ("HIGH", "MEDIUM", "LOW"):
+                suggestion.confidence = FixConfidence(ml_class.lower())
+            elif suggestion.confidence_score >= 0.85:
                 suggestion.confidence = FixConfidence.HIGH
             elif suggestion.confidence_score >= 0.60:
                 suggestion.confidence = FixConfidence.MEDIUM
@@ -322,9 +380,9 @@ class AutoFixEngine:
             suggestion.status = FixStatus.GENERATED
 
         except Exception as exc:
-            logger.error(f"[AutoFix] Generation failed for {finding_id}: {exc}")
+            logger.error("[AutoFix] Generation failed for %s: %s: %s", finding_id, type(exc).__name__, exc)
             suggestion.status = FixStatus.FAILED
-            suggestion.metadata["error"] = str(exc)
+            suggestion.metadata["error"] = f"Generation failed ({type(exc).__name__})"
 
         # Store and track
         self._fixes[fix_id] = suggestion
@@ -359,8 +417,8 @@ class AutoFixEngine:
                     )
                 )
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Event bus emit failed: %s", type(e).__name__)
 
         return suggestion
 
@@ -682,7 +740,11 @@ Provide JSON: {{"config_changes": {{"key": "value"}}, "title": "...", "descripti
         try:
             m = re.search(r"\{[\s\S]*\}", resp.reasoning)
             data = json.loads(m.group()) if m else {}
-        except Exception:
+        except json.JSONDecodeError:
+            logger.debug("Failed to parse structured JSON from LLM response")
+            data = {}
+        except Exception as e:
+            logger.debug("Error extracting structured data from LLM: %s", type(e).__name__)
             data = {}
 
         suggestion.config_changes = data.get(
@@ -734,7 +796,11 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
         try:
             m = re.search(r"\{[\s\S]*\}", resp.reasoning)
             data = json.loads(m.group()) if m else {}
-        except Exception:
+        except json.JSONDecodeError:
+            logger.debug("Failed to parse structured JSON from LLM response")
+            data = {}
+        except Exception as e:
+            logger.debug("Error extracting structured data from LLM: %s", type(e).__name__)
             data = {}
 
         suggestion.title = data.get("title", f"Fix IaC: {finding.get('title', '')}")
@@ -787,7 +853,11 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
         try:
             m = re.search(r"\{[\s\S]*\}", resp.reasoning)
             data = json.loads(m.group()) if m else {}
-        except Exception:
+        except json.JSONDecodeError:
+            logger.debug("Failed to parse structured JSON from LLM response")
+            data = {}
+        except Exception as e:
+            logger.debug("Error extracting structured data from LLM: %s", type(e).__name__)
             data = {}
 
         suggestion.title = data.get(
@@ -882,7 +952,94 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
     def _compute_confidence(
         self, suggestion: AutoFixSuggestion, finding: Dict[str, Any]
     ) -> float:
-        """Compute confidence score for a fix."""
+        """Compute confidence score for a fix using ML model.
+
+        Uses the AutoFixConfidenceModel when available, with a deterministic
+        rule-based fallback. Also enriches suggestion.metadata with detailed
+        ML confidence data (classification, CI, feature contributions).
+
+        Returns
+        -------
+        float
+            Confidence score in [0.1, 0.99] range.
+        """
+        # --- Try ML model first ---
+        try:
+            from core.ml.autofix_confidence import get_autofix_confidence_model
+
+            ml_model = get_autofix_confidence_model()
+
+            # Build feature dict from suggestion + finding
+            fix_data = self._build_confidence_features(suggestion, finding)
+
+            prediction = ml_model.predict(fix_data)
+
+            # Store rich ML metadata on the suggestion
+            suggestion.metadata["ml_confidence"] = prediction.to_dict()
+
+            # Return score normalised to 0-1 range
+            return min(max(prediction.confidence_score / 100.0, 0.1), 0.99)
+
+        except Exception as exc:
+            logger.debug(
+                "[AutoFix] ML confidence model unavailable, using rule-based fallback: %s",
+                exc,
+            )
+
+        # --- Deterministic rule-based fallback ---
+        return self._compute_confidence_fallback(suggestion, finding)
+
+    def _build_confidence_features(
+        self, suggestion: AutoFixSuggestion, finding: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Map AutoFixSuggestion + finding → feature dict for ML model."""
+        # CWE → category mapping
+        cwe = str(finding.get("cwe_id", "")).upper()
+        category = _cwe_to_category(cwe, suggestion.fix_type)
+
+        # Count lines changed across all patches
+        lines_changed = sum(
+            max(len(p.new_code.splitlines()), len(p.old_code.splitlines()))
+            for p in suggestion.code_patches
+        ) + sum(1 for _ in suggestion.dependency_fixes)
+
+        # Detect language from patches or finding
+        language = "other"
+        if suggestion.code_patches:
+            language = suggestion.code_patches[0].language or "other"
+        elif finding.get("language"):
+            language = finding["language"]
+
+        # Validation score as proxy for LLM confidence
+        val = suggestion.metadata.get("validation", {})
+        llm_confidence = val.get("score", 0.5)
+
+        # Historical success rate from engine stats
+        total = self._stats["total_generated"]
+        hist_success = (
+            self._stats["avg_confidence_score"]
+            if total > 5
+            else 0.7  # Default before we have enough data
+        )
+
+        return {
+            "fix_type": suggestion.fix_type.value,
+            "severity": finding.get("severity", "medium"),
+            "category": category,
+            "files_affected": max(len(suggestion.code_patches), 1),
+            "lines_changed": max(lines_changed, 1),
+            "has_tests": bool(suggestion.testing_guidance),
+            "llm_confidence": llm_confidence,
+            "language": language,
+            "historical_success_rate": hist_success,
+            "code_complexity": finding.get("code_complexity", 10),
+        }
+
+    @staticmethod
+    def _compute_confidence_fallback(
+        suggestion: AutoFixSuggestion, finding: Dict[str, Any]
+    ) -> float:
+        """Deterministic rule-based confidence scoring (legacy fallback)."""
         score = 0.5  # Base
 
         # Boost for well-known fix types
@@ -1061,17 +1218,17 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
                                 )
                             )
                         )
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug("Event bus emit (PR created) failed: %s", type(e).__name__)
                 else:
                     suggestion.status = FixStatus.FAILED
                     result.error = pr_result.error or "PR creation failed"
                     self._stats["total_failed"] += 1
 
             except Exception as exc:
-                logger.error(f"[AutoFix] PR creation failed: {exc}")
+                logger.error("[AutoFix] PR creation failed: %s: %s", type(exc).__name__, exc)
                 suggestion.status = FixStatus.FAILED
-                result.error = str(exc)
+                result.error = f"PR creation failed ({type(exc).__name__})"
                 self._stats["total_failed"] += 1
         else:
             suggestion.status = FixStatus.APPLIED
@@ -1128,8 +1285,8 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
                     )
                 )
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Event bus emit (rollback) failed: %s", type(e).__name__)
 
         return {"success": True, "fix_id": fix_id, "status": "rolled_back"}
 

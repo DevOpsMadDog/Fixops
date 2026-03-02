@@ -33,7 +33,6 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
@@ -273,13 +272,14 @@ class SandboxVerifier:
         )
 
         tmpdir = tempfile.mkdtemp(prefix="aldeci_poc_")
+        os.chmod(tmpdir, 0o700)  # Restrict to owner only
         try:
-            # Write script to temp directory
+            # Write script to temp directory with restrictive permissions
             ext = self.EXTENSIONS.get(poc.language, ".sh")
             script_path = os.path.join(tmpdir, f"script{ext}")
             with open(script_path, "w") as f:
                 f.write(code_override)
-            os.chmod(script_path, 0o755)
+            os.chmod(script_path, 0o700)  # Owner-only execute (not world-readable)
 
             # Build docker command
             image = self.DOCKER_IMAGES.get(poc.language, "alpine:3.19")
@@ -288,12 +288,15 @@ class SandboxVerifier:
             docker_cmd = [
                 "docker", "run", "--rm",
                 "--memory", self.memory_limit,
+                "--memory-swap", self.memory_limit,  # Prevent swap usage
                 f"--cpus={self.cpu_limit}",
+                "--cap-drop=ALL",  # Drop all Linux capabilities
                 "--read-only",
-                "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
+                "--tmpfs", "/tmp:rw,noexec,nosuid,nodev,size=64m",
                 "-v", f"{tmpdir}:/poc:ro",
                 "--security-opt", "no-new-privileges",
-                "--pids-limit", "50",
+                "--pids-limit", "30",  # Reduced from 50
+                "--ulimit", "nofile=256:256",  # Limit open file descriptors
             ]
 
             # Network control
@@ -319,9 +322,15 @@ class SandboxVerifier:
                 result.status = VerificationStatus.TIMEOUT
                 result.error_message = f"Timeout after {poc.timeout_seconds}s"
                 return result
+            except FileNotFoundError:
+                result.status = VerificationStatus.ERROR
+                result.error_message = "Docker runtime not found"
+                return result
             except Exception as e:
                 result.status = VerificationStatus.ERROR
-                result.error_message = str(e)
+                # Only expose exception type, not message (may leak paths/secrets)
+                result.error_message = f"Execution error: {type(e).__name__}"
+                logger.error("Sandbox execution failed: %s", e, exc_info=True)
                 return result
 
             result.execution_time_ms = round((time.time() - t0) * 1000, 1)
@@ -410,13 +419,28 @@ class SandboxVerifier:
         """
         stderr = failed_result.stderr.lower()
 
-        # Pattern 1: Missing Python module
+        # Pattern 1: Missing Python module — HARDENED: whitelist only safe packages
+        _SAFE_MODULES = frozenset({
+            "requests", "urllib3", "httpx", "aiohttp", "pycurl",
+            "paramiko", "cryptography", "pyjwt", "jwt",
+            "beautifulsoup4", "bs4", "lxml", "html5lib",
+            "pyyaml", "toml", "configparser",
+            "dnspython", "scapy", "impacket", "nmap",
+        })
         if "modulenotfounderror" in stderr or "no module named" in stderr:
             import re
             match = re.search(r"no module named ['\"]?(\w+)", stderr)
             if match and poc.language == PoCLanguage.PYTHON:
-                module = match.group(1)
-                pip_line = f"import subprocess; subprocess.check_call(['pip', 'install', '{module}', '-q'])\n"
+                module = match.group(1).lower()
+                if module not in _SAFE_MODULES:
+                    logger.warning(
+                        "Self-correction rejected: module '%s' not in whitelist", module
+                    )
+                    return None
+                # Use shlex.quote for safety even though we validate above
+                import shlex
+                safe_module = shlex.quote(module)
+                pip_line = f"import subprocess; subprocess.check_call(['pip', 'install', {safe_module!r}, '-q'])\n"
                 return pip_line + current_code
 
         # Pattern 2: Connection refused — add retry
@@ -437,13 +461,26 @@ class SandboxVerifier:
         if "permission denied" in stderr:
             return current_code.replace("/var/", "/tmp/var/").replace("/etc/", "/tmp/etc/")
 
-        # Pattern 4: Command not found in bash
+        # Pattern 4: Command not found in bash — HARDENED: whitelist safe commands
+        _SAFE_COMMANDS = frozenset({
+            "curl", "wget", "nmap", "nc", "netcat", "ncat",
+            "openssl", "dig", "nslookup", "host",
+            "jq", "xmlstarlet", "python3", "perl",
+            "ssh", "scp", "nikto", "sqlmap",
+        })
         if "command not found" in stderr and poc.language in (PoCLanguage.BASH, PoCLanguage.CURL):
             import re
             match = re.search(r"(\w+): (command )?not found", stderr)
             if match:
-                missing_cmd = match.group(1)
-                install_line = f"apk add --no-cache {missing_cmd} 2>/dev/null || true\n"
+                missing_cmd = match.group(1).lower()
+                if missing_cmd not in _SAFE_COMMANDS:
+                    logger.warning(
+                        "Self-correction rejected: command '%s' not in whitelist",
+                        missing_cmd,
+                    )
+                    return None
+                import shlex
+                install_line = f"apk add --no-cache {shlex.quote(missing_cmd)} 2>/dev/null || true\n"
                 return install_line + current_code
 
         return None

@@ -1,0 +1,52 @@
+{
+  "demo": "ALdeci CTEM+ Full Loop",
+  "version": "1.0.0",
+  "timestamp": "2026-03-01T22:42:50.044349+00:00",
+  "total_elapsed_ms": 64397.16,
+  "phases": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0
+  },
+  "steps": {
+    "total": 36,
+    "passed": 36,
+    "failed": 0
+  },
+  "success": true,
+  "artifacts": {
+    "sast_python_findings": "int",
+    "sast_python_scan_id": "sast-8d2178a29330",
+    "sast_java_findings": "int",
+    "secrets_findings": "int",
+    "container_findings": "int",
+    "iac_findings": "int",
+    "graph_entities": "int",
+    "total_discover_findings": "int",
+    "brain_run_id": "BR-F68626FF2160",
+    "brain_steps_completed": "int",
+    "brain_avg_risk_score": "float",
+    "mpte_scan_status": "scan_started",
+    "mpte_requests": "int",
+    "mpte_verification_result": "pending",
+    "sandbox_verification": "sandbox_unavailable",
+    "fail_scores": "int",
+    "fix_types_available": "int",
+    "autofix_id": "fix-842f8306512e6dc6",
+    "autofix_confidence": "float",
+    "autofix_secret_id": "fix-2871235815035592",
+    "autofix_bulk_count": "int",
+    "remediation_tasks": "int",
+    "evidence_releases": "int",
+    "evidence_bundle_id": "EVB-2026-BAFDCA",
+    "evidence_bundle_hash": "sha256:4db666782a6fcffdd1ff41a01cec9631bb919f65ce16755550730274a9239903",
+    "compliance_pack_id": "EP-e2a369b7bcdb",
+    "compliance_score": "float",
+    "compliance_frameworks": "int",
+    "audit_log_entries": "int",
+    "analytics_findings_total": "int",
+    "exposure_cases": "int",
+    "pipeline_runs_total": "int",
+    "mcp_tools": "int"
+  }
+}

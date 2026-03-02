@@ -1,0 +1,34 @@
+{
+  "task_id": "swarm-207",
+  "worker_id": "junior-01",
+  "status": "completed",
+  "files_modified": [],
+  "files_created": [
+    ".claude/team-state/swarm/outputs/swarm-207/result.md",
+    ".claude/team-state/swarm/outputs/swarm-207/status.json"
+  ],
+  "summary": "Ran 38 scanner parser tests across 4 test classes. All 38 passed (100%) in 0.15s. Covers 15 scanner normalizers: zap, burp, nessus, openvas, bandit, checkmarx, sonarqube, fortify, veracode, nikto, nuclei, nmap, snyk, prowler, checkov.",
+  "issues": [],
+  "needs_senior_review": false,
+  "confidence": 1.0,
+  "duration_turns": 5,
+  "test_results": {
+    "total": 38,
+    "passed": 38,
+    "failed": 0,
+    "errors": 0,
+    "duration_seconds": 0.15,
+    "pass_rate": 1.0
+  },
+  "scanner_types_tested": [
+    "zap", "burp", "nessus", "openvas", "bandit", "checkmarx",
+    "sonarqube", "fortify", "veracode", "nikto", "nuclei",
+    "nmap", "snyk", "prowler", "checkov"
+  ],
+  "test_classes": [
+    {"class": "TestScannerParsers", "tests": 16, "passed": 16},
+    {"class": "TestSandboxVerifier", "tests": 6, "passed": 6},
+    {"class": "TestSandboxedReachability", "tests": 8, "passed": 8},
+    {"class": "TestExposureCaseIdempotency", "tests": 8, "passed": 8}
+  ]
+}

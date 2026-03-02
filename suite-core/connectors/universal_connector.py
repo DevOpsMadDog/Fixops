@@ -26,7 +26,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional
 
 import httpx
 
@@ -258,7 +258,7 @@ class BaseConnector(ABC):
 
         self._request_count += 1
         client = await self._get_client()
-        start = time.monotonic()
+        _start = time.monotonic()
 
         try:
             kwargs: Dict[str, Any] = {"headers": headers or {}}
