@@ -143,3 +143,17 @@
 {"ts":"2026-03-02T06:02:36Z","agent":"sales-engineer","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-02_13-50-06"}
 {"ts":"2026-03-02T06:11:13Z","agent":"scrum-master","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-02_13-35-43"}
 {"ts":"2026-03-02T06:13:16Z","agent":"scrum-master","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-02_13-50-06"}
+{"ts":"2026-03-02T07:25:55Z","agent":"vision-agent","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-02_18-18-27"}
+{"ts":"2026-03-02T08:04:20Z","agent":"marketing-head","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-02_18-21-11"}
+{"ts":"2026-03-02T08:07:13Z","agent":"marketing-head","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-02_18-18-27"}
+{"ts":"2026-03-02T08:09:24Z","agent":"sales-engineer","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-02_18-21-11"}
+{"ts":"2026-03-02T08:09:40Z","agent":"technical-writer","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-02_18-21-11"}
+{"ts":"2026-03-02T08:09:54Z","agent":"sales-engineer","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-02_18-18-27"}
+{"ts":"2026-03-02T08:10:14Z","agent":"technical-writer","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-02_18-18-27"}
+{"ts":"2026-03-02T08:19:29Z","agent":"scrum-master","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-02_18-21-11"}
+{"ts":"2026-03-02T08:21:05Z","agent":"scrum-master","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-02_18-18-27"}
+{"ts":"2026-03-02T08:29:54Z","agent":"agent-doctor","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-02_18-18-27"}
+{"ts":"2026-03-02T08:30:11Z","agent":"agent-doctor","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-02_18-21-11"}
+{"ts":"2026-03-02T08:38:36Z","agent":"vision-agent","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-02_18-21-11"}
+{"ts":"2026-03-02T09:23:47Z","agent":"context-engineer","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-02_18-18-27"}
+{"ts":"2026-03-02T09:32:03Z","agent":"context-engineer","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-02_18-21-11"}

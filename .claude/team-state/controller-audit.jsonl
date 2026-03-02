@@ -91,3 +91,21 @@
 {"ts":"2026-03-02T06:29:20Z","type":"grade_a_cycle","cycle":3,"grade":"D","score":40,"fix_targets":"persona ui ","health":102,"persona":0,"ui":0}
 {"ts":"2026-03-02T06:43:44Z","type":"grade_a_cycle","cycle":2,"grade":"D","score":40,"fix_targets":"persona ui ","health":102,"persona":0,"ui":0}
 {"ts":"2026-03-02T06:59:00Z","type":"grade_a_cycle","cycle":3,"grade":"D","score":36,"fix_targets":"persona ui ","health":90,"persona":0,"ui":0}
+{"ts":"2026-03-02T07:28:47Z","type":"agent_failure","agent":"vision-agent","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T07:28:47Z","type":"agent_failure","agent":"agent-doctor","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T07:28:50Z","type":"agent_failure","agent":"agent-doctor","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T07:29:32Z","type":"agent_failure","agent":"context-engineer","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T07:29:34Z","type":"agent_failure","agent":"context-engineer","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T08:44:55Z","type":"fix_agent","target":"context-engineer","cycle":1,"exit_code":124,"output_bytes":0,"reason":"- **Duration:** 22s (failed immediately)"}
+{"ts":"2026-03-02T08:53:38Z","type":"fix_agent","target":"context-engineer","cycle":1,"exit_code":124,"output_bytes":0,"reason":"- **Duration:** 22s (failed immediately)"}
+{"ts":"2026-03-02T09:00:05Z","type":"fix_agent","target":"context-engineer","cycle":2,"exit_code":124,"output_bytes":0,"reason":"- **Duration:** 22s (failed immediately)"}
+{"ts":"2026-03-02T09:08:48Z","type":"fix_agent","target":"context-engineer","cycle":2,"exit_code":124,"output_bytes":0,"reason":"- **Duration:** 22s (failed immediately)"}
+{"ts":"2026-03-02T09:15:16Z","type":"fix_agent","target":"context-engineer","cycle":3,"exit_code":124,"output_bytes":0,"reason":"- **Duration:** 22s (failed immediately)"}
+{"ts":"2026-03-02T09:23:48Z","type":"reconcile_success","agent":"context-engineer","cycle":3}
+{"ts":"2026-03-02T09:23:58Z","type":"fix_agent","target":"context-engineer","cycle":3,"exit_code":124,"output_bytes":0,"reason":"- **Duration:** 22s (failed immediately)"}
+{"ts":"2026-03-02T09:32:04Z","type":"reconcile_success","agent":"context-engineer","cycle":3}
+{"ts":"2026-03-02T09:38:50Z","type":"grade_a_cycle","cycle":1,"grade":"D","score":37,"fix_targets":"persona ui ","health":94,"persona":0,"ui":0}
+{"ts":"2026-03-02T09:47:05Z","type":"grade_a_cycle","cycle":1,"grade":"D","score":37,"fix_targets":"persona ui ","health":94,"persona":0,"ui":0}
+{"ts":"2026-03-02T09:54:06Z","type":"grade_a_cycle","cycle":2,"grade":"D","score":37,"fix_targets":"persona ui ","health":94,"persona":0,"ui":0}
+{"ts":"2026-03-02T10:02:22Z","type":"grade_a_cycle","cycle":2,"grade":"D","score":37,"fix_targets":"persona ui ","health":94,"persona":0,"ui":0}
+{"ts":"2026-03-02T10:09:22Z","type":"grade_a_cycle","cycle":3,"grade":"D","score":37,"fix_targets":"persona ui ","health":94,"persona":0,"ui":0}

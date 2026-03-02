@@ -408,3 +408,57 @@
 [2026-03-02T06:13:18Z] POST-AGENT: scrum-master (exit: 0, risk: medium)
 [2026-03-02T06:13:23Z] POST-AGENT: scrum-master — ACCEPTED (impact: 153055, pillars: NONE, violations: 0)
 [2026-03-02T06:13:23Z]   ⚠️  HIGH IMPACT SCORE (153055) — review recommended
+[2026-03-02T07:18:27Z] Guardian initialized for run swarm-2026-03-02_18-18-27
+[2026-03-02T07:21:11Z] Guardian initialized for run swarm-2026-03-02_18-21-11
+[2026-03-02T07:25:56Z] POST-AGENT: vision-agent (exit: 0, risk: )
+[2026-03-02T07:25:56Z] POST-AGENT: vision-agent — ACCEPTED (impact: 199688, pillars: NONE, violations: 0)
+[2026-03-02T07:25:56Z]   ⚠️  HIGH IMPACT SCORE (199688) — review recommended
+[2026-03-02T07:28:47Z] POST-AGENT: vision-agent (exit: 1, risk: )
+[2026-03-02T07:28:47Z] POST-AGENT: vision-agent failed (exit 1) — skipping validation
+[2026-03-02T07:28:47Z] POST-AGENT: agent-doctor (exit: 1, risk: )
+[2026-03-02T07:28:47Z] POST-AGENT: agent-doctor failed (exit 1) — skipping validation
+[2026-03-02T07:28:50Z] POST-AGENT: agent-doctor (exit: 1, risk: )
+[2026-03-02T07:28:50Z] POST-AGENT: agent-doctor failed (exit 1) — skipping validation
+[2026-03-02T07:29:32Z] POST-AGENT: context-engineer (exit: 1, risk: medium)
+[2026-03-02T07:29:32Z] POST-AGENT: context-engineer failed (exit 1) — skipping validation
+[2026-03-02T07:29:34Z] POST-AGENT: context-engineer (exit: 1, risk: medium)
+[2026-03-02T07:29:34Z] POST-AGENT: context-engineer failed (exit 1) — skipping validation
+[2026-03-02T08:04:20Z] POST-AGENT: marketing-head (exit: 0, risk: medium)
+[2026-03-02T08:04:21Z] POST-AGENT: marketing-head — ACCEPTED (impact: 199871, pillars: NONE, violations: 0)
+[2026-03-02T08:04:21Z]   ⚠️  HIGH IMPACT SCORE (199871) — review recommended
+[2026-03-02T08:07:13Z] POST-AGENT: marketing-head (exit: 0, risk: medium)
+[2026-03-02T08:07:14Z] POST-AGENT: marketing-head — ACCEPTED (impact: 199933, pillars: NONE, violations: 0)
+[2026-03-02T08:07:14Z]   ⚠️  HIGH IMPACT SCORE (199933) — review recommended
+[2026-03-02T08:09:24Z] POST-AGENT: sales-engineer (exit: 0, risk: medium)
+[2026-03-02T08:09:25Z] POST-AGENT: sales-engineer — ACCEPTED (impact: 199979, pillars: NONE, violations: 0)
+[2026-03-02T08:09:25Z]   ⚠️  HIGH IMPACT SCORE (199979) — review recommended
+[2026-03-02T08:09:41Z] POST-AGENT: technical-writer (exit: 0, risk: medium)
+[2026-03-02T08:09:42Z] POST-AGENT: technical-writer — ACCEPTED (impact: 199977, pillars: NONE, violations: 0)
+[2026-03-02T08:09:42Z]   ⚠️  HIGH IMPACT SCORE (199977) — review recommended
+[2026-03-02T08:09:55Z] POST-AGENT: sales-engineer (exit: 0, risk: medium)
+[2026-03-02T08:09:56Z] POST-AGENT: sales-engineer — ACCEPTED (impact: 199983, pillars: NONE, violations: 0)
+[2026-03-02T08:09:56Z]   ⚠️  HIGH IMPACT SCORE (199983) — review recommended
+[2026-03-02T08:10:14Z] POST-AGENT: technical-writer (exit: 0, risk: medium)
+[2026-03-02T08:10:15Z] POST-AGENT: technical-writer — ACCEPTED (impact: 199985, pillars: NONE, violations: 0)
+[2026-03-02T08:10:15Z]   ⚠️  HIGH IMPACT SCORE (199985) — review recommended
+[2026-03-02T08:19:30Z] POST-AGENT: scrum-master (exit: 0, risk: medium)
+[2026-03-02T08:19:31Z] POST-AGENT: scrum-master — ACCEPTED (impact: 200155, pillars: NONE, violations: 0)
+[2026-03-02T08:19:31Z]   ⚠️  HIGH IMPACT SCORE (200155) — review recommended
+[2026-03-02T08:21:05Z] POST-AGENT: scrum-master (exit: 0, risk: medium)
+[2026-03-02T08:21:06Z] POST-AGENT: scrum-master — ACCEPTED (impact: 200189, pillars: NONE, violations: 0)
+[2026-03-02T08:21:06Z]   ⚠️  HIGH IMPACT SCORE (200189) — review recommended
+[2026-03-02T08:29:54Z] POST-AGENT: agent-doctor (exit: 0, risk: medium)
+[2026-03-02T08:29:55Z] POST-AGENT: agent-doctor — ACCEPTED (impact: 200216, pillars: NONE, violations: 0)
+[2026-03-02T08:29:55Z]   ⚠️  HIGH IMPACT SCORE (200216) — review recommended
+[2026-03-02T08:30:12Z] POST-AGENT: agent-doctor (exit: 0, risk: medium)
+[2026-03-02T08:30:13Z] POST-AGENT: agent-doctor — ACCEPTED (impact: 200224, pillars: NONE, violations: 0)
+[2026-03-02T08:30:13Z]   ⚠️  HIGH IMPACT SCORE (200224) — review recommended
+[2026-03-02T08:38:37Z] POST-AGENT: vision-agent (exit: 0, risk: medium)
+[2026-03-02T08:38:38Z] POST-AGENT: vision-agent — ACCEPTED (impact: 200233, pillars: NONE, violations: 0)
+[2026-03-02T08:38:38Z]   ⚠️  HIGH IMPACT SCORE (200233) — review recommended
+[2026-03-02T09:23:48Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-03-02T09:23:48Z] POST-AGENT: context-engineer — ACCEPTED (impact: 200362, pillars: NONE, violations: 0)
+[2026-03-02T09:23:48Z]   ⚠️  HIGH IMPACT SCORE (200362) — review recommended
+[2026-03-02T09:32:03Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-03-02T09:32:04Z] POST-AGENT: context-engineer — ACCEPTED (impact: 200380, pillars: NONE, violations: 0)
+[2026-03-02T09:32:04Z]   ⚠️  HIGH IMPACT SCORE (200380) — review recommended

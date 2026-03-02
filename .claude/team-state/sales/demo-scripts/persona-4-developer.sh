@@ -14,6 +14,7 @@ G='\033[0;32m' B='\033[0;34m' C='\033[0;36m' Y='\033[1;33m' BOLD='\033[1m' N='\0
 say() { echo -e "\n${C}TALKING POINT:${N} ${BOLD}$1${N}\n"; }
 step() { echo -e "\n${B}--- Step $1: $2 ---${N}"; }
 api() { curl -s --max-time 10 -H "X-API-Key: $API_KEY" "$@"; }
+api_llm() { curl -s --max-time 30 -H "X-API-Key: $API_KEY" "$@"; }  # LLM-dependent
 
 echo -e "${G}============================================================${N}"
 echo -e "${G}  ALdeci Demo - Persona 4: Developer (Mike Chen)           ${N}"
@@ -59,8 +60,8 @@ say "FAIL scoring combines CVSS, EPSS, asset criticality, and MPTE verification 
 step "2" "Fix Suggestion — Exact Code, Not Vague Advice [0:45-1:45]"
 say "Let me generate a fix right now -- watch ALdeci's AutoFix engine analyze the code."
 
-echo -e "${Y}>>>${N} Generating AI-powered code fix..."
-R=$(api -X POST "$BASE/autofix/generate" \
+echo -e "${Y}>>>${N} Generating AI-powered code fix (LLM, ~10-20s)..."
+R=$(api_llm -X POST "$BASE/autofix/generate" \
   -H "Content-Type: application/json" \
   -d '{"finding":{"id":"finding-001","title":"SQL Injection via f-string","severity":"critical","cwe":"CWE-89","code_snippet":"def get_user(id):\n    return db.execute(f\"SELECT * FROM users WHERE id={id}\")"}}')
 echo "$R" | python3 -c "

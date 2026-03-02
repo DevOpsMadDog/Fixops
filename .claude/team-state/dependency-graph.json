@@ -1,9 +1,9 @@
 {
   "_meta": {
-    "version": "26.0",
-    "generated": "2026-03-02T19:30:00Z",
+    "version": "28.0",
+    "generated": "2026-03-03T00:30:00Z",
     "generated_by": "context-engineer",
-    "note": "No dependency changes from v25.0. requirements.txt hashes unchanged. npm deps 41+15. Suite import graph unchanged. v26.0 verified."
+    "note": "No dependency changes from v27.0. requirements.txt unchanged (30 packages). npm deps 41+15. Suite import graph unchanged. v28.0 verified. Codebase frozen — zero code changes since v27."
   },
   "python": {
     "production": {

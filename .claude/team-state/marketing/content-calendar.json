@@ -2,16 +2,16 @@
   "sprint": "Sprint 2 — Enterprise Demo",
   "date_range": "2026-03-01 to 2026-03-06",
   "owner": "marketing-head",
-  "last_updated": "2026-03-02T00:00:00Z",
+  "last_updated": "2026-03-02T18:30:00Z",
   "week_1": [
     {
       "type": "one_pager",
-      "title": "Enterprise Demo Talking Points — 9 Differentiators (v5.1)",
+      "title": "Enterprise Demo Talking Points — 9 Differentiators (v5.2)",
       "status": "done",
       "file": ".claude/team-state/marketing/enterprise-demo-talking-points.md",
       "pillar": "V3, V5, V7",
       "due": "2026-03-01",
-      "updated": "2026-03-02 — v5.1, LOC re-verified Run 4, 11 security fixes, SA-001 remediated"
+      "updated": "2026-03-02 — v5.2, LOC re-verified Run 5 (401,993 LOC), Knowledge Graph demo-ready"
     },
     {
       "type": "one_pager",
@@ -90,7 +90,7 @@
       "file": ".claude/team-state/marketing/content/email-pre-demo-enterprise.md",
       "pillar": "V3, V5, V7",
       "due": "2026-03-04",
-      "updated": "2026-03-02 — NEW: Standard, short confirmation, and security engineering variants"
+      "updated": "2026-03-02 — Standard, short confirmation, and security engineering variants"
     },
     {
       "type": "email",
@@ -99,7 +99,7 @@
       "file": ".claude/team-state/marketing/content/email-post-demo-followup.md",
       "pillar": "V3, V5, V7",
       "due": "2026-03-06",
-      "updated": "2026-03-02 — NEW: Standard, design partner invitation, technical deep-dive, and recap variants"
+      "updated": "2026-03-02 — Standard, design partner invitation, technical deep-dive, and recap variants"
     }
   ],
   "week_2": [
@@ -122,25 +122,27 @@
     {
       "type": "twitter_thread",
       "title": "19 Phases of MPTE — How Automated Pentesting Works",
-      "status": "planned",
-      "file": "",
+      "status": "done",
+      "file": ".claude/team-state/marketing/content/twitter-thread-mpte-19-phases.md",
       "pillar": "V5",
-      "due": "2026-03-11"
+      "due": "2026-03-11",
+      "updated": "2026-03-02 — 15-tweet thread, all LOC verified, CrowdStrike 27-second hook"
     },
     {
       "type": "investor_one_pager",
       "title": "ALdeci Pre-Seed One-Pager for Investor Outreach",
-      "status": "planned",
-      "file": "",
+      "status": "done",
+      "file": ".claude/team-state/marketing/content/one-pager-investor-preseed.md",
       "pillar": "V3, V5, V7",
-      "due": "2026-03-12"
+      "due": "2026-03-12",
+      "updated": "2026-03-02 — Complete with competitor matrix, pricing, team, comparable exits, ask"
     }
   ],
   "content_stats": {
     "total_pieces": 15,
-    "done": 11,
+    "done": 13,
     "in_progress": 0,
-    "planned": 4,
-    "completion_rate": "73.3%"
+    "planned": 2,
+    "completion_rate": "86.7%"
   }
 }

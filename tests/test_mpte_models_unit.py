@@ -34,10 +34,11 @@ class TestExploitabilityLevel:
         assert ExploitabilityLevel.UNEXPLOITABLE.value == "unexploitable"
         assert ExploitabilityLevel.BLOCKED.value == "blocked"
         assert ExploitabilityLevel.INCONCLUSIVE.value == "inconclusive"
+        assert ExploitabilityLevel.UNKNOWN.value == "unknown"
 
     def test_level_count(self):
         from core.mpte_models import ExploitabilityLevel
-        assert len(ExploitabilityLevel) == 5
+        assert len(ExploitabilityLevel) == 6  # 5 original + UNKNOWN added by backend-hardener
 
 
 class TestPenTestPriority:

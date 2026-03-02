@@ -17,13 +17,15 @@ When launching claude CLI as child processes on macOS:
 - State: `.claude/team-state/`
 - Logs: `logs/ai-team/`
 
-### Sprint 2 Pre-Flight (run24→run29, 2026-03-01→02)
+### Sprint 2 Pre-Flight (run24→run31+, 2026-03-01→02)
 - Enterprise demo in 4 days (2026-03-06). Sprint 2: 11/12 done (91.7%), 1 P0 blocker (DEMO-003 UI wiring).
-- Run29 (Day 2 PM): 17/17 agents OK, 19/19 engines (20,527 LOC), 4/4 MOATs PASS, 55/55 DBs writable
-- Run29: 1,143 core tests pass (39.87s, 15 test files), 12,565 total tests (+165), coverage 19.22%
-- Run29: 10 WAL+SHM cleaned (1.6MB). All 5 DB integrity checks pass. Brain.db stable post-recovery.
-- Run29: All 17 agents Grade A (perfect health). 0 failures. 4 stale fix-* status files removed.
-- Run28: 20 WAL+SHM cleaned (including 2.5GB fixops_brain.db-wal). CRITICAL: brain.db was corrupted, recreated.
+- Run31+ (Day 2 late, independent verification): 19/19 engines (20,783 LOC), 4/4 MOATs PASS, 56/56 DBs writable
+- Run31+: 1,143 core tests pass (23.73s, 15 test files), 13,221 total tests, coverage 19.25%
+- Run31+: 7 WAL+SHM cleaned (12MB — fixops_brain 4MB, identity 4MB, exposure_cases 4MB). 5/5 DB integrity OK.
+- Run31: context-engineer + vision-agent rate-limited ("out of extra usage" — Claude quota). Auto-recovers. NOT config failures.
+- Run30: 17/17 agents Grade A. ExploitabilityLevel test fix (UNKNOWN added). 12 WAL (393MB, brain.db-wal 388MB).
+- Run29: 17/17 agents Grade A. 10 WAL (1.6MB). 5 DB integrity pass. 4 stale fix-* removed.
+- Run28: 20 WAL (2.55GB!). fixops_brain.db corrupted, recreated.
 - RSAKeyManager needs explicit key paths (private_key_path, public_key_path) — default "." causes IsADirectoryError
 - Coverage with --collect-only shows 19.35% vs actual 19.19% with expanded scope
 - Lock files: jarvis.pid, jarvis.lock, controller-watchdog.pid — ALWAYS check if PIDs alive before cleaning
@@ -62,6 +64,14 @@ When launching claude CLI as child processes on macOS:
 - Scanner-facing agents (backend-hardener, security-analyst, qa-engineer, threat-architect) must reference scanner engines
 - Never downgrade model tier. Never delete agent files.
 
+### Claude Usage Quota Failures (RC11 — identified run31)
+- When Claude usage cap is hit, agents get: "You're out of extra usage · resets 7pm (Australia/Sydney)"
+- Produces 59-byte log files. Status shows "Failed (3 attempts exhausted)".
+- This is NOT a config failure — diagnosis: "rate-limited", grade C (not F).
+- Fix: auto-recovers when usage resets. No config change needed.
+- Differentiate from real failures by reading log content (usage message vs error stack)
+- Run31: affected context-engineer + vision-agent. Both had successful earlier runs same day.
+
 ### Watchdog Behavior
 - SIGCONT only — never kill working agents
 - Check for stopped processes (state T) and resume them
@@ -85,12 +95,14 @@ When launching claude CLI as child processes on macOS:
 - Use `bash -c '...'` wrapper for scripts with `[[ ]]` syntax — zsh parses `[[ ! ]]` differently
 - Or use `[ ]` (POSIX) instead of `[[ ]]` (bash)
 
-### Sprint Artifacts (as of 2026-03-02 run29)
+### Sprint Artifacts (as of 2026-03-02 run31+)
 - Sprint 1 ARCHIVED: 21/23 done (91.3%)
 - Sprint 2 ACTIVE: 11/12 done (91.7%). 1 P0 blocker: DEMO-003 (UI wiring). 4 days to demo.
-- 360+ test files, 12,565 tests collected, 1,143 core tests passing (39.87s)
-- 19.22% coverage (gate: 25% — FAILING, gap 5.78pp)
-- 20,527 LOC across 19 engines (+2,367 from Sprint 1)
+- 360+ test files, 13,221 tests collected, 1,143 core tests passing (23.73s)
+- 19.25% coverage (gate: 25% — FAILING, gap 5.75pp)
+- 20,783 LOC across 19 engines (+2,623 from Sprint 1)
+- WAL trend: 2.5GB (run28) → 393MB (run30) → 12MB (run31+) — stabilizing
+- SA-001: .env secrets rotation CRITICAL (4 days open, must fix before demo)
 
 ### Core Test Files (verified run v6 — 948 tests, ~68s)
 - test_brain_pipeline.py (159 tests)
@@ -115,10 +127,11 @@ When launching claude CLI as child processes on macOS:
 - mpte_models.py: exports `PenTestConfig`, `PenTestRequest`, `PenTestResult` — NOT `MPTETarget`
 - Always use `import core.module_name` pattern, not `from core.module_name import ClassName`
 
-### Healthy Agents (verified run29 — 2026-03-02)
-- 17 Grade A: ALL agents healthy (perfect health, 0 failures)
-- Run29: 19 engines (20,527 LOC). 1,143 core tests (39.87s). 12,565 total tests. Coverage 19.22%. Health: GREEN.
-- Run29: 10 WAL+SHM cleaned (1.6MB). 5/5 DB integrity pass. 4 stale fix-* files removed.
+### Healthy Agents (verified run31+ — 2026-03-02)
+- 15 Grade A, 2 Grade C (rate-limited: context-engineer, vision-agent — Claude quota, auto-recovers)
+- Run31+: 19 engines (20,783 LOC). 1,143 core tests (23.73s). 13,221 total tests. Coverage 19.25%. Health: YELLOW.
+- Run31+: 7 WAL+SHM cleaned (12MB). 5/5 DB integrity OK. 56/56 DBs writable. Lock PIDs alive.
+- Run30: 17 Grade A. 12 WAL (393MB). ExploitabilityLevel fix. Brain.db-wal 388MB recurring.
 - Run28 FIX: fixops_brain.db corruption recovered. 20 WAL cleaned (~2.55GB).
 
 ### Coverage Acceleration Strategy (updated run v8)

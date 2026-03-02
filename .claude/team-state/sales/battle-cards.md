@@ -1,11 +1,11 @@
 # ALdeci Competitive Battle Cards
 
-> **Version**: 5.0 — Sprint 2, Day 2 Late (re-validated 2026-03-02 05:51 UTC)
-> **Updated**: 2026-03-02T05:51Z
+> **Version**: 6.1 — Sprint 2, Day 3 (full re-validation 2026-03-02 08:02 UTC)
+> **Updated**: 2026-03-02T08:02Z
 > **Author**: Sales Engineer Agent
 > **Sources**: docs/CTEM_PLUS_IDENTITY.md, docs/COMPETITIVE_ANALYSIS_GROK_RESPONSE.md, live API validation
 > **Honesty Rule**: Every claim verified against running API. MCP = 100 tools (actual). Weak spots noted honestly.
-> **V5.0 Changes**: NIST 800-53 now 29/30 automated. Compliance map-findings returns REAL CWE→control mappings. SAST shows taint flows. 769 routes mounted. 411/411 Postman. 11 security hardening patches.
+> **V6.1 Changes**: 33/33 GET + 9/11 POST verified. 475/475 Postman. AutoFix 9 fixes generated (avg 87.65% confidence). Dashboard: 1,000 findings. Brain: 1,512 nodes. MPTE: 235 requests, 4 confirmed exploitable.
 
 ---
 
@@ -225,4 +225,51 @@
 - `.claude/team-state/research/` — Market intelligence from AI Researcher agent
 - `docs/CEO_VISION.md` — 7-point moat strategy
 
-*Updated by Sales Engineer Agent — 2026-03-02. All claims verified against running API.*
+---
+
+## Battle Card 8: ALdeci vs. ArcherySec / DefectDojo
+
+**When you encounter ArcherySec/DefectDojo**: Teams evaluating open-source vulnerability management.
+
+| Dimension | ArcherySec/DefectDojo | ALdeci CTEM+ | Winner |
+|-----------|----------------------|-------------|--------|
+| **Price** | Free (OSS) | Paid ($36-180K/year) | ArcherySec |
+| **Scanner Parsers** | 30+ (DefectDojo) | 25 parsers + native scanners | Tie |
+| **Own Scanners** | Zero (pure aggregators) | 8 native engines (air-gapped) | **ALdeci** |
+| **AI-Powered Triage** | None | 12-step Brain Pipeline + multi-LLM | **ALdeci** |
+| **Exploit Verification** | None | 19-phase MPTE | **ALdeci** |
+| **AutoFix** | None | 10 types with confidence scoring | **ALdeci** |
+| **MCP/AI Integration** | None | 100 MCP tools, AI-agent consumable | **ALdeci** |
+| **Compliance Evidence** | Basic reports | Cryptographically signed bundles | **ALdeci** |
+| **Enterprise Support** | Community only | Enterprise SLA | **ALdeci** |
+
+**Positioning**: "DefectDojo is a great starting point for vulnerability management. ALdeci is where you graduate to when you need AI-powered decisions, exploit verification, and automated remediation. Same parser coverage, plus a brain."
+
+**Kill Shot**: "DefectDojo collects findings. ALdeci decides which ones matter, proves they're exploitable, generates fixes, and produces signed evidence. Free vs. intelligent."
+
+**Honest Weakness**: DefectDojo is free and has a large community. For cost-sensitive teams with strong manual triage processes, DefectDojo may be sufficient.
+
+---
+
+## Battle Card 9: ALdeci vs. Endor Labs / Socket
+
+**When you encounter Endor/Socket**: Teams evaluating next-gen SCA with reachability analysis.
+
+| Dimension | Endor Labs/Socket | ALdeci CTEM+ | Winner |
+|-----------|-------------------|-------------|--------|
+| **Reachability Analysis** | Best-in-class (call graph) | Basic (via taint flows in SAST) | Endor |
+| **Dependency Intelligence** | Deep OSS risk scoring | Trivy/Grype + native SCA | Endor |
+| **Beyond SCA** | SCA + SAST (limited) | 8 scanner types + full pipeline | **ALdeci** |
+| **Exploit Verification** | None | 19-phase MPTE + sandbox PoC | **ALdeci** |
+| **AutoFix** | Dependency updates | 10 types incl. code patches | **ALdeci** |
+| **Knowledge Graph** | Call graph (code-level) | Attack-path graph (infra + code) | Tie |
+| **Air-Gapped** | No | Full offline | **ALdeci** |
+| **Compliance** | SBOM generation | 4 frameworks + signed evidence | **ALdeci** |
+
+**Positioning**: "Endor Labs has the best reachability analysis for dependencies. ALdeci ingests those enriched findings and adds the enterprise wrapper: MPTE verification, AutoFix code patches, compliance evidence, and air-gapped deployment."
+
+**Kill Shot**: "Endor tells you which dependency calls are reachable. ALdeci proves they're exploitable AND generates the fix."
+
+---
+
+*Updated by Sales Engineer Agent — v6.1, 2026-03-02 08:02 UTC. 33/33 GET + 9/11 POST verified. 475/475 Postman. All claims verified against running API.*

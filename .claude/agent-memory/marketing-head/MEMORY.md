@@ -1,6 +1,6 @@
 # Marketing Head — Persistent Memory
 
-## Verified Technical Claims (2026-03-02, Run 4 — ALL UNCHANGED FROM RUN 3)
+## Verified Technical Claims (2026-03-02, Run 5 — ALL STABLE ACROSS RUNS 3-5)
 - Brain Pipeline: 1,533 LOC (`suite-core/core/brain_pipeline.py`) ← was 1,354 in Run 2
 - SAST Engine: 1,622 LOC, DAST: 633 LOC, Secrets: 848 LOC, Container: 445 LOC, CSPM: 609 LOC
 - AutoFix: 1,428 LOC, MPTE: 2,054 LOC, MPTE Advanced: 1,089 LOC, FAIL: 711 LOC, MCP: 978 LOC
@@ -11,10 +11,11 @@
 - **TOTAL scanner engine LOC: 4,757+** (1,622+633+848+445+609+~600 inline)
 - Security Connectors: 1,335 LOC, Workflow Connectors: 3,005 LOC
 - API Route Decorators: 796 across 78 router files
-- Total Python codebase: 401,992 LOC (grew from 372,501 in Run 2)
+- Total Python codebase: ~401,993 LOC (grew from 372,501 in Run 2)
 - Tests collected: 13,221 (grew from 10,356 in Run 2)
-- Sprint 2: 11/12 done (91.7%). Postman 411/411 (100%).
-- **Run 4 note**: LOC counts were STABLE between Run 3 and Run 4. No engineering changes to marketing-cited files.
+- Sprint 2: 11/12 done (91.7%). Postman 475/475 assertions (100%) — 8th consecutive green.
+- Knowledge Graph: 73 nodes, 110 edges, 10+ attack paths (DEMO-010 complete)
+- **Run 5 note**: LOC counts STABLE across Runs 3, 4, and 5. Postman assertions grew 411→475 (QA added deeper tests).
 
 ## CRITICAL CORRECTION LOG
 - **ingestion.py location**: `suite-api/apps/api/ingestion.py` NOT `suite-core/core/ingestion.py`
@@ -69,19 +70,22 @@
 - Ingestion parsers: `suite-api/apps/api/ingestion.py` (NOT suite-core)
 - Scanner parsers: `suite-core/core/scanner_parsers.py`
 
-## Sprint 2 Content Inventory (as of Mar 2 Run 4)
-- enterprise-demo-talking-points.md: v5.1 ✅
-- positioning.md: v5.1 ✅
-- investor-narrative.md: v5.1 ✅
+## Sprint 2 Content Inventory (as of Mar 2 Run 5 — FINAL)
+- enterprise-demo-talking-points.md: v5.2 ✅
+- positioning.md: v5.2 ✅
+- investor-narrative.md: v5.2 ✅
 - content/one-pager-enterprise-product.md: v1.0 ✅
-- content/demo-video-script-5min.md: DONE ✅ (was in-progress, now complete)
-- content/email-pre-demo-enterprise.md: NEW v1.0 ✅ (3 variants)
-- content/email-post-demo-followup.md: NEW v1.0 ✅ (4 variants)
+- content/one-pager-investor-preseed.md: NEW v1.0 ✅ (Run 5)
+- content/demo-video-script-5min.md: v1.0 ✅
+- content/email-pre-demo-enterprise.md: v1.0 ✅ (3 variants)
+- content/email-post-demo-followup.md: v1.0 ✅ (4 variants)
 - content/blog-multi-ai-consensus.md: ✅
 - content/blog-claude-finds-aldeci-decides.md: ✅
 - content/blog-pentagon-multi-model-resilience.md: ✅
 - content/linkedin-11300-finding-problem.md: ✅
 - content/linkedin-500-more-zero-days.md: ✅
 - content/linkedin-pentagon-proves-multi-model.md: ✅
+- content/twitter-thread-mpte-19-phases.md: NEW ✅ (Run 5, 15 tweets, V5)
 - battlecards: 6 competitors ✅
-- Content calendar: 11/15 done, 0 in-progress, 4 planned (73.3%)
+- Content calendar: 13/15 done, 0 in-progress, 2 planned (86.7%)
+- **Total content pieces: 17** (was 16 in Run 4, +2 this run)

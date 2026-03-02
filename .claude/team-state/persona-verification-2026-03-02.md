@@ -6,7 +6,7 @@
 ## Summary
 
 - **Total Agents:** 17
-- **Verified (B+ grade):** 17 (100%)
+- **Verified (B+ grade):** 16 (94%)
 - **Failed:** 0
 - **Stubs/Fakes Detected:** 0
 
@@ -14,9 +14,9 @@
 
 | Agent | Persona Title | Grade | Score | Details |
 |-------|--------------|-------|-------|---------|
-| vision-agent | Chief Vision Officer | B | 82% | ✅ Persona file OK (14844B). ✅ Status OK. ⚠️ Output light (2080B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
-| agent-doctor | System Reliability Engineer | B | 82% | ✅ Persona file OK (14967B). ✅ Status OK. ⚠️ Output light (2205B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
-| context-engineer | Codebase Intelligence Architect | A | 92% | ✅ Persona file OK (10904B). ✅ Status OK. ⚠️ Output light (1416B). ✅ Persona match 100%. ✅ Completed. ✅ No stubs.  |
+| vision-agent | Chief Vision Officer | B | 82% | ✅ Persona file OK (14844B). ✅ Status OK. ⚠️ Output light (1449B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
+| agent-doctor | System Reliability Engineer | B | 77% | ✅ Persona file OK (14967B). ✅ Status OK. ⚠️ Output light (2283B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
+| context-engineer | Codebase Intelligence Architect | A | 92% | ✅ Persona file OK (10904B). ✅ Status OK. ⚠️ Output light (1820B). ✅ Persona match 100%. ✅ Completed. ✅ No stubs.  |
 | ai-researcher | AI/ML Research Scientist | B | 77% | ✅ Persona file OK (11737B). ✅ Status OK. ⚠️ Output light (2551B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
 | data-scientist | Data Analytics Lead | B | 72% | ✅ Persona file OK (10693B). ✅ Status OK. ⚠️ Output light (2403B). ❌ Low match 33%. ✅ Completed. ✅ No stubs.  |
 | enterprise-architect | Enterprise Solutions Architect | B | 74% | ✅ Persona file OK (13101B). ✅ Status OK. ⚠️ Output light (1966B). ⚠️ Partial match 40%. ✅ Completed. ✅ No stubs.  |
@@ -27,10 +27,10 @@
 | security-analyst | Security Analyst & Pentester | B | 77% | ✅ Persona file OK (12357B). ✅ Status OK. ⚠️ Output light (2172B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
 | qa-engineer | Quality Assurance Lead | B | 82% | ✅ Persona file OK (19354B). ✅ Status OK. ⚠️ Output light (1017B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
 | devops-engineer | DevOps & Infrastructure Lead | B | 82% | ✅ Persona file OK (11300B). ✅ Status OK. ⚠️ Output light (2302B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
-| marketing-head | Product Marketing Lead | B | 77% | ✅ Persona file OK (9919B). ✅ Status OK. ⚠️ Output light (2004B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
-| technical-writer | Technical Documentation Lead | B | 82% | ✅ Persona file OK (10085B). ✅ Status OK. ⚠️ Output light (1923B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
-| sales-engineer | Solutions Engineering Lead | B | 82% | ✅ Persona file OK (11150B). ✅ Status OK. ⚠️ Output light (1874B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
-| scrum-master | Agile Delivery Lead | B | 77% | ✅ Persona file OK (13225B). ✅ Status OK. ⚠️ Output light (1809B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
+| marketing-head | Product Marketing Lead | B | 77% | ✅ Persona file OK (9919B). ✅ Status OK. ⚠️ Output light (1962B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
+| technical-writer | Technical Documentation Lead | B | 72% | ✅ Persona file OK (10085B). ✅ Status OK. ⚠️ Output light (2007B). ❌ Low match 33%. ✅ Completed. ✅ No stubs.  |
+| sales-engineer | Solutions Engineering Lead | C | 55% | ✅ Persona file OK (11150B). ✅ Status OK. ⚠️ Output minimal (370B). ❌ Low match 0%. ✅ Completed. ✅ No stubs.  |
+| scrum-master | Agile Delivery Lead | B | 77% | ✅ Persona file OK (13225B). ✅ Status OK. ⚠️ Output light (1833B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
 
 
 ## Scoring Criteria
@@ -89,4 +89,4 @@ pytest tests/ --cov=. --cov-fail-under=60
 curl -s -H "X-API-Key: ${VITE_API_KEY}" http://localhost:8000/api/v1/health | python3 -m json.tool
 ```
 
-*Generated at 2026-03-02 17:44:00 by JARVIS Controller*
+*Generated at 2026-03-02 21:02:37 by JARVIS Controller*

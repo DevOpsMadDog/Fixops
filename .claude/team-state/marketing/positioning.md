@@ -1,8 +1,8 @@
 # ALdeci — Positioning & Messaging
 
-**Last Updated**: 2026-03-02 (Run 4) | **Owner**: VP Marketing
+**Last Updated**: 2026-03-02 (Run 5) | **Owner**: VP Marketing
 **Pillars**: [V3] Decision Intelligence, [V5] MPTE, [V7] MCP-Native
-**Version**: 5.1 — All LOC re-verified Run 4 (unchanged). Sprint 2: 11/12 done (91.7%). Postman 411/411 (100%). 11 security hardening fixes applied. SA-001 remediated to LOW. 4 days to demo.
+**Version**: 5.2 — All LOC re-verified Run 5 (stable across Runs 3-5). Sprint 2: 11/12 done (91.7%). Postman 475/475 assertions (100%) — 8th consecutive green. 11 security hardening fixes. SA-001 LOW. Knowledge Graph demo-ready (73 nodes, 110 edges). 4 days to demo.
 
 ---
 
@@ -150,4 +150,4 @@ Multi-model consensus means no single AI vendor can shut down your security. Air
 
 ---
 
-*All claims re-verified against live codebase (2026-03-02, Run 4) with `wc -l`. All LOC counts confirmed unchanged from Run 3. Scanner parser counts: 15 tool-specific in `scanner_parsers.py` (1,238 LOC) + 10 format parsers in `ingestion.py` (2,114 LOC) = 3,352 LOC total. Total Python LOC: 401,992. Tests: 13,221. Sprint 2: 11/12 done (91.7%). Postman 411/411 (100%). Backend security-hardened (11 fixes). No stubs or unimplemented features cited. Market data from AI Researcher pulse 2026-03-02 Pass 3.*
+*All claims re-verified against live codebase (2026-03-02, Run 5) with `wc -l`. All LOC counts confirmed stable. Scanner parser counts: 15 tool-specific in `scanner_parsers.py` (1,238 LOC) + 10 format parsers in `ingestion.py` (2,114 LOC) = 3,352 LOC total. Total Python LOC: 401,993. Tests: 13,221. Sprint 2: 11/12 done (91.7%). Postman 475/475 assertions (100%). 8th consecutive green run. 3,574 moat tests PASS. Knowledge Graph: 73 nodes, 110 edges. Backend security-hardened (11 fixes). No stubs or unimplemented features cited. Market data from AI Researcher pulse 2026-03-02.*

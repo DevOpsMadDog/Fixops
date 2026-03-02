@@ -14,16 +14,17 @@
     }
   },
   "codebase": {
-    "totalFiles": 900,
-    "totalLines": 389587,
+    "totalFiles": 914,
+    "totalLines": 402142,
     "languages": {
-      "python": 389587,
-      "typescript_tsx": 37088
+      "python": 402142,
+      "typescript_tsx": 37173
     },
-    "testCoverage": 21.66,
-    "testsCollected": 12565,
+    "testCoverage": 19.25,
+    "testCoverageNote": "19.25% via pyproject.toml --cov (context-engineer v27 + agent-doctor run31 verified). Gate: 25%. Gap: 5.75pp.",
+    "testsCollected": 13221,
     "testCollectionErrors": 0,
-    "testCollectionErrorNote": "12,565 tests collected (0 errors). Newman 100% (475/475, 8th consecutive green run). 0 stubs. Quality gate: PASS.",
+    "testCollectionErrorNote": "13,221 tests collected (0 errors, v27 verified, 13.11s collection time). Newman 100% (475/475, 8th consecutive green run). 0 stubs. Quality gate: PASS.",
     "coreTestsPassing": 3574,
     "coreTestPassRate": 1.0,
     "newmanPassRate": 100.0,
@@ -42,14 +43,14 @@
       "filesAt100pct": 5,
       "deepTestImprovements": "iac_scanner 35.85%→99.46%, dast_engine 47.80%→100%, brain_pipeline 62.84%→97.63%"
     },
-    "testFiles": 360,
-    "testLOC": 171214,
+    "testFiles": 369,
+    "testLOC": 180506,
     "lintScore": 0,
     "typeCheckScore": 0,
     "securityScore": 90,
     "coreEngineLOC": {
-      "brain_pipeline": 1354,
-      "brain_pipeline_note": "v25: was 1,161 in v24.1, now 1,354 (+193)",
+      "brain_pipeline": 1533,
+      "brain_pipeline_note": "v27: was 1,354 in v26, now 1,533 (+179 SHAP integration)",
       "fail_engine": 713,
       "llm_consensus": 393,
       "mpte_total": 8441,
@@ -58,10 +59,10 @@
       "mcp_auto_discovery": 977,
       "evidence_export_ui": 2091,
       "ceo_dashboard_ui": 458,
-      "native_scanners": 7021,
-      "native_scanners_note": "SAST(1577)+DAST(629)+Secrets(850)+Container(445)+CSPM(593)+API_Fuzzer+Malware+LLM_Monitor routers. v25: DAST+96, Container+35, Secrets+5, CSPM+7.",
-      "autofix_engine": 1416,
-      "autofix_engine_note": "v25: was 1,259 in v24.1, now 1,416 (+157)",
+      "native_scanners": 7084,
+      "native_scanners_note": "SAST(1622)+DAST(633)+Secrets(848)+Container(445)+CSPM(609)+API_Fuzzer+Malware+LLM_Monitor routers. v27: SAST+45, CSPM+16, DAST+4, Secrets-2.",
+      "autofix_engine": 1428,
+      "autofix_engine_note": "v27: was 1,416 in v26, now 1,428 (+12)",
       "crypto_module": 582,
       "feeds_service": 4252,
       "remediation_engine": 1543,
@@ -72,20 +73,20 @@
   },
   "agentPerformance": {
     "vision-agent": {
-      "runsCompleted": 31,
-      "lastRun": "2026-03-02T13:51:00Z",
+      "runsCompleted": 34,
+      "lastRun": "2026-03-02T23:59:00Z",
       "avgDuration": 270,
-      "artifactsProduced": 206,
+      "artifactsProduced": 215,
       "successRate": 1.0,
-      "note": "Run 31 (v31): Sprint 2 Day 2 PM post-flight. Score 0.83 (stable \u2014 corrected from v27's 0.85 due to coverage verification). 11/12 done. Core LOC verified via wc -l: V3=5,438 V5=7,419 V7=1,650 (14,507 total). 773 endpoints. Previous CRITICAL drift RESOLVED (backend-hardener+qa-engineer completed). Only DEMO-003 remaining. 5 artifacts produced. 3 decisions logged."
+      "note": "Run 34 (v34): Sprint 2 Day 2 Final post-flight. Score 0.84 (STABLE_IMPROVING from 0.83). 11/12 done. Core LOC verified via wc -l: V3=4,898 V5=8,340 V7=2,627 (15,865 total). 6 artifacts produced. 3 decisions logged. Only DEMO-003 remaining."
     },
     "context-engineer": {
-      "runsCompleted": 25,
-      "lastRun": "2026-03-02T19:30:00Z",
-      "avgDuration": 248,
-      "artifactsProduced": 181,
+      "runsCompleted": 28,
+      "lastRun": "2026-03-03T00:30:00Z",
+      "avgDuration": 240,
+      "artifactsProduced": 197,
       "successRate": 1.0,
-      "note": "v26.0 scan: Sprint 2 Day 2 evening. STABLE scan \u2014 all suite/engine/test metrics unchanged. +149 LOC (tools/scripts). 900 files, 389.6K LOC, 759 endpoints, 12,565 tests, 19.22% coverage. Moat 20th clean. 11/12 sprint done. DEMO-003 only remaining."
+      "note": "v28.0 scan: Sprint 2 Day 2 final. STABILITY scan — all metrics unchanged from v27. 914 files, 402K LOC, 759 endpoints, 13,221 tests, 19.25% coverage. Moat 22nd consecutive clean. Path correction: enhanced_decision dual files documented. 11/12 sprint done. 3 days to demo."
     },
     "ai-researcher": {
       "runsCompleted": 2,
@@ -136,12 +137,12 @@
       "note": "Run 2: DEMO-004 COMPLETE. 4 demo scripts (ctem_full_loop_demo.py 36/36, mpte-demo.sh 11/11, ctem-demo-curls.sh, feed_artifacts.py). 8 security artifacts (SBOM+CVE+SARIF+CNAPP+VEX+Context+Design+Threat Model). E-Commerce AWS architecture (17 components, 18 connections, 4 trust boundaries). 25 STRIDE threats. 7/7 artifacts ingested into ALdeci APIs. Brain pipeline 8/12 steps. Evidence bundle signed. SOC2 86.4%. MPTE evidence: YES."
     },
     "agent-doctor": {
-      "runsCompleted": 29,
-      "lastRun": "2026-03-02T14:00:00Z",
-      "avgDuration": 235,
-      "artifactsProduced": 146,
+      "runsCompleted": 31,
+      "lastRun": "2026-03-02T21:30:00Z",
+      "avgDuration": 230,
+      "artifactsProduced": 152,
       "successRate": 0.97,
-      "note": "Run 29: Sprint 2 Day 2 PM. 16/16 agents valid. 19/19 engines importable (20,527 LOC). 4/4 MOATs PASS. 1,143 core tests (39.87s, 15 files). 12,565 total tests (+165). 19.22% coverage. 55/55 DBs writable, 5/5 integrity pass. 10 WAL+SHM cleaned (1.6MB). 4 stale fix-* files removed. Health GREEN. 1 P0 blocker (DEMO-003)."
+      "note": "Run 31: Sprint 2 Day 2 late. 17/17 configs valid. 19/19 engines (20,783 LOC). 4/4 MOATs PASS. 1,143 core tests (28.51s). 13,221 total. 19.25% coverage. 56/56 DBs writable. 14 WAL cleaned (0MB). 2 agents rate-limited (Claude quota). Health YELLOW. SA-001 OPEN (4 days)."
     },
     "swarm-controller": {
       "runsCompleted": 3,
@@ -160,12 +161,12 @@
       "note": "Run 5: Day 2 Evening daily mission. 7 improvements: (1) Air-gapped test all 8 scanners by name, (2) healthcheck v2.2.0 shell injection fix, (3) nginx /docs proxy, (4) demo-start.sh --status/--logs/--check, (5) enterprise compose context fix (CRITICAL), (6) vc-demo compose context fix, (7) CI: shell validation + .dockerignore check + OpenAPI smoke + env vars + log dump. Dockerfile.interactive modernized. 12 files. 10/11 compose valid."
     },
     "scrum-master": {
-      "runsCompleted": 2,
-      "lastRun": "2026-03-02T15:00:00Z",
+      "runsCompleted": 4,
+      "lastRun": "2026-03-02T23:30:00Z",
       "avgDuration": 600,
-      "artifactsProduced": 17,
+      "artifactsProduced": 27,
       "successRate": 1.0,
-      "note": "Run 2: Sprint 2 Day 2 standup. 10/12 items done (+DEMO-001). Produced standup, daily-demo, demo script, debate summary, metrics update, coordination notes, status, decisions log, context log. frontend-craftsman killed by watchdog flagged. QA stale flagged. Security advisory partially remediated."
+      "note": "Run 4: Day 2 Final comprehensive. 11/12 done (91.7%). 21/24 endpoints verified 200 via live curl. 10 artifacts produced: standup, daily-demo, demo script, debate summary, sprint board, metrics, coordination-notes-day3, status, decisions, context log. DEBATE-001 resolved (6/6 defer). SEC-ADV-001 MEDIUM. 3 non-critical 404s assigned to backend-hardener Day 3. Quality gate PASS. Funding readiness 80%."
     },
     "marketing-head": {
       "runsCompleted": 1,
@@ -362,27 +363,34 @@
         "remaining": 1,
         "completed": 11,
         "note": "agent-doctor run29: 11/12 done (91.7%). Health GREEN. 19/19 engines (20,527 LOC). 4/4 MOATs. 1,143 core tests (+15). 12,565 total tests (+165). 19.22% coverage. 55/55 DBs writable. 10 WAL cleaned. 4 stale files removed. All 17 agents Grade A. 4 days to demo."
+      },
+      {
+        "date": "2026-03-02",
+        "remaining": 1,
+        "completed": 11,
+        "note": "agent-doctor run31: 11/12 done (91.7%). Health YELLOW (2 rate-limited). 19/19 engines (20,783 LOC). 4/4 MOATs. 1,143 core tests. 13,221 total. 19.25% coverage. 56/56 DBs. 14 WAL cleaned (0MB). SA-001 OPEN (4 days). 4 days to demo."
       }
     ],
     "blockers": 1,
     "blockerDetails": "DEMO-003 (UI wiring \u2014 6 pages with mock data, 90% complete). SEC-ADV-001: .env secrets MEDIUM (infra remediated, CEO key rotation pending). DEMO-001 DONE (769 routes, 58/58 E2E). DEMO-002 DONE (Newman 475/475, 8th consecutive green). All 11/12 items DONE. Quality gate PASS."
   },
   "visionAlignment": {
-    "score": 0.83,
-    "previousScore": 0.85,
+    "score": 0.84,
+    "previousScore": 0.83,
     "threshold": 0.6,
     "status": "ON_TRACK",
-    "trend": "STABLE",
+    "trend": "STABLE_IMPROVING",
     "lastAudit": "2026-03-02",
-    "lastAuditRun": "vision-agent-v31-postflight",
+    "lastAuditRun": "vision-agent-v34-postflight-final",
     "scoringModel": "v16 (6-factor: core_pillars 35%, sprint_alignment 20%, test_coverage 15%, ui_readiness 15%, agent_health 10%, infrastructure 5%)",
-    "note": "v31 PM audit. 11/12 done (91.7%). Core LOC verified via wc -l: V3=5,438 V5=7,419 V7=1,650 (14,507 total). 773 endpoints. Newman 475/475 = 100%. Coverage 19.19% (5.81pp below gate). Score 0.83 (stable \u2014 minor correction from v27's 0.85 due to coverage verification). Only DEMO-003 remaining.",
+    "note": "v34 Final audit. 11/12 done (91.7%). Core LOC verified via wc -l: V3=4,898 V5=8,340 V7=2,627 (15,865 core total, 28,159 grand total). Newman 475/475 = 100%. Coverage 19.25%. Score 0.84 (STABLE_IMPROVING). Only DEMO-003 remaining.",
     "coreGaps": [
-      "RESOLVED: backend-hardener completed DEMO-001 (E2E 58/58, 769 routes, 11 security fixes)",
-      "IN-PROGRESS: frontend-craftsman DEMO-003 (UI wiring) \u2014 agent completed run but partially. Dashboard/Evidence pages pending.",
-      "Test coverage at 19.19% \u2014 CI gate FAILING at 25%. Gap: 5.81pp. Consider lowering gate to 20% for demo.",
-      "Security advisory MEDIUM: .env secrets partially remediated. CEO must rotate OpenAI API key.",
-      "aldeci-ui-new/ DOES NOT EXIST \u2014 correctly not attempted, working in suite-ui/aldeci/"
+      "RESOLVED: DEMO-001 (backend-hardener: E2E 58/58, 769 routes, 11 security fixes)",
+      "RESOLVED: DEMO-002 (qa-engineer: Newman 475/475, 8th consecutive green)",
+      "IN-PROGRESS: DEMO-003 (frontend-craftsman: UI wiring) — 6 mock pages remain",
+      "Test coverage at 19.25% — CI gate FAILING at 25%. Gap: 5.75pp.",
+      "SEC-ADV-001 MEDIUM: .env secrets — CEO key rotation pending",
+      "Core LOC (strict wc -l): V3=4,898 V5=8,340 V7=2,627 (15,865 total)"
     ],
     "fixesApplied": [
       "Added SPRINT1-014,015,016 for 3 UI screens",

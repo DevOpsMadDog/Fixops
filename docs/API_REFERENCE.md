@@ -1,14 +1,17 @@
 # ALdeci CTEM+ API Reference
 
-> **Version**: 3.0 — Enterprise Demo Edition (Sprint 2, Day 3)
+> **Version**: 3.2 — Enterprise Demo Edition (Sprint 2, Day 4)
 > **Last updated**: 2026-03-02
 > **Base URL**: `http://localhost:8000`
-> **Total endpoints**: 780 across 72 router files + 25 inline definitions (verified E2E 58/58 — 100%)
+> **Total endpoints**: 780 across 73 router files + 25 inline definitions (verified E2E 58/58 — 100%)
 > **Total routes mounted**: 780 routes, 77+ unique prefixes
+> **Suites**: suite-api (233) · suite-core (286) · suite-attack (122) · suite-feeds (31) · suite-evidence-risk (45) · suite-integrations (51) · inline @app (25)
 > **Authentication**: API Key (`X-API-Key` header) or JWT Bearer token
 > **OpenAPI Spec**: `GET /openapi.json` (verified 200 OK)
 > **Pillar**: [V3] Decision Intelligence · [V5] MPTE Verification · [V7] MCP-Native · [V10] CTEM Full Loop
 > **Security**: All endpoints hardened — Pydantic v2 validation, path traversal prevention, size limits, injection guards (Sprint 2)
+> **CTEM+ Identity**: ALdeci is a complete CTEM+ platform with 8 built-in scanners, 25 third-party parsers, a 12-step Brain Pipeline, and AI-powered AutoFix — see [CTEM+ Identity](CTEM_PLUS_IDENTITY.md)
+> **v3.2 changes**: All 780 endpoints fully documented inline (expanded from v3.1). Reports (4→14), Bulk (3→13), Collaboration (3→23), Marketplace (4→14), Audit (4→14), MPTE Orchestrator (0→8). 32+ curl examples. CTEM+ identity header. Suite-level breakdown.
 
 ---
 
@@ -669,19 +672,48 @@ Docker-isolated exploit verification with self-correction.
 
 ### 4.4 FAIL Engine — Fault & Attack Injection Layer [V3]
 
-**Prefix**: `/api/v1/fail` · **Source**: `suite-api/apps/api/fail_router.py`
+**Prefix**: `/api/v1/fail` · **Source**: `suite-api/apps/api/fail_router.py` · **10 endpoints**
 
-Chaos engineering for AppSec — inject faults, grade team response, generate labeled training data.
+FAIL (Fault & Attack Injection Layer) scoring — chaos engineering for AppSec. Score findings using the FAIL methodology (Feasibility, Attack-surface, Impact, Likelihood), grade team response, generate labeled training data.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/v1/fail/scenarios` | Create a FAIL scenario |
-| `GET` | `/api/v1/fail/scenarios` | List FAIL scenarios |
-| `GET` | `/api/v1/fail/scenarios/{id}` | Get scenario details |
-| `POST` | `/api/v1/fail/scenarios/{id}/execute` | Execute FAIL scenario |
-| `GET` | `/api/v1/fail/results` | List FAIL results |
-| `GET` | `/api/v1/fail/stats` | FAIL statistics |
-| `GET` | `/api/v1/fail/health` | Health check |
+| `POST` | `/api/v1/fail/score` | Score a single finding using FAIL methodology |
+| `POST` | `/api/v1/fail/score/batch` | Score multiple findings in batch |
+| `GET` | `/api/v1/fail/score/{score_id}` | Get a stored FAIL score by ID |
+| `GET` | `/api/v1/fail/scores` | List all FAIL scores (paginated) |
+| `GET` | `/api/v1/fail/top-risks` | Top risks ranked by FAIL score |
+| `GET` | `/api/v1/fail/stats` | FAIL score statistics |
+| `GET` | `/api/v1/fail/cve/{cve_id}` | Get FAIL scores for a specific CVE |
+| `DELETE` | `/api/v1/fail/score/{score_id}` | Delete a FAIL score |
+| `GET` | `/api/v1/fail/health` | FAIL engine health |
+| `GET` | `/api/v1/fail/status` | FAIL engine status |
+
+**Example — Score a finding with FAIL methodology:**
+
+```bash
+curl -X POST http://localhost:8000/api/v1/fail/score \
+  -H "X-API-Key: $FIXOPS_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "finding_id": "finding-abc123",
+    "cve_id": "CVE-2024-3094",
+    "context": {"environment": "production", "exposure": "internet-facing"}
+  }'
+```
+
+```json
+{
+  "score_id": "fail-x1y2z3",
+  "finding_id": "finding-abc123",
+  "feasibility": 0.85,
+  "attack_surface": 0.92,
+  "impact": 0.95,
+  "likelihood": 0.88,
+  "composite_score": 9.2,
+  "risk_level": "CRITICAL"
+}
+```
 
 ---
 
@@ -742,6 +774,38 @@ Zero-day discovery, community contribution, and ML-based vulnerability classific
 | `GET` | `/api/v1/vulns/stats` | Discovery statistics |
 | `GET` | `/api/v1/vulns/contributions` | List community contributions |
 | `GET` | `/api/v1/vulns/health` | Health check |
+
+### 4.7 MPTE Orchestrator — Unified Pentest & Decision API [V5] [V3]
+
+**Prefix**: `/api/v1/mpte-orchestrator` · **Source**: `suite-attack/api/mpte_orchestrator_router.py` · **8 endpoints**
+
+Bridges CLI-side `advanced-pentest` capabilities to the HTTP API surface — threat intelligence, business impact analysis, attack simulation, and remediation guidance for external integrations.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/mpte-orchestrator/threat-intel` | Get threat intelligence for a target/CVE |
+| `POST` | `/api/v1/mpte-orchestrator/business-impact` | Analyze business impact of a vulnerability |
+| `POST` | `/api/v1/mpte-orchestrator/simulate` | Run attack simulation |
+| `POST` | `/api/v1/mpte-orchestrator/remediation` | Get remediation guidance for a finding |
+| `POST` | `/api/v1/mpte-orchestrator/run` | Run a full orchestrated pentest |
+| `GET` | `/api/v1/mpte-orchestrator/status/{test_id}` | Get orchestrated test status |
+| `GET` | `/api/v1/mpte-orchestrator/capabilities` | List orchestrator capabilities |
+| `GET` | `/api/v1/mpte-orchestrator/health` | Health check |
+
+**Example — Run an orchestrated pentest with full analysis:**
+
+```bash
+curl -X POST http://localhost:8000/api/v1/mpte-orchestrator/run \
+  -H "X-API-Key: $FIXOPS_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "target": "https://testapp.example.com",
+    "cve_id": "CVE-2024-3094",
+    "include_threat_intel": true,
+    "include_business_impact": true,
+    "include_remediation": true
+  }'
+```
 
 ---
 
@@ -1067,14 +1131,43 @@ Multi-factor risk scoring combining CVSS, EPSS, business context, and exploitabi
 
 ### 6.4 Audit Trail [V10]
 
-**Prefix**: `/api/v1/audit` · **Source**: `suite-api/apps/api/audit_router.py`
+**Prefix**: `/api/v1/audit` · **Source**: `suite-api/apps/api/audit_router.py` · **14 endpoints**
+
+Full audit trail with compliance framework mapping, cryptographic chain verification, and decision tracking.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/v1/audit/logs` | Query audit logs |
-| `GET` | `/api/v1/audit/logs/{id}` | Get audit log entry |
-| `POST` | `/api/v1/audit/export` | Export audit logs |
-| `GET` | `/api/v1/audit/stats` | Audit statistics |
+| `GET` | `/api/v1/audit/logs` | Query audit logs (paginated, filterable) |
+| `GET` | `/api/v1/audit/logs/export` | Export audit logs (CSV/JSON) |
+| `GET` | `/api/v1/audit/logs/{id}` | Get specific audit log entry |
+| `GET` | `/api/v1/audit/user-activity` | User activity timeline |
+| `GET` | `/api/v1/audit/policy-changes` | Policy change history |
+| `GET` | `/api/v1/audit/decision-trail` | AI decision audit trail |
+| `GET` | `/api/v1/audit/compliance/frameworks` | List compliance frameworks |
+| `GET` | `/api/v1/audit/compliance/frameworks/{id}/status` | Framework compliance status |
+| `GET` | `/api/v1/audit/compliance/frameworks/{id}/gaps` | Framework compliance gaps |
+| `POST` | `/api/v1/audit/compliance/frameworks/{id}/report` | Generate compliance report |
+| `GET` | `/api/v1/audit/compliance/controls` | List all compliance controls |
+| `POST` | `/api/v1/audit/logs/chain` | Create cryptographic audit chain entry |
+| `GET` | `/api/v1/audit/chain/verify` | Verify audit chain integrity |
+| `GET` | `/api/v1/audit/retention` | Audit log retention policy |
+
+**Example — Verify audit chain integrity:**
+
+```bash
+curl -s http://localhost:8000/api/v1/audit/chain/verify \
+  -H "X-API-Key: $FIXOPS_API_TOKEN" | python3 -m json.tool
+```
+
+```json
+{
+  "chain_valid": true,
+  "total_entries": 1247,
+  "last_verified": "2026-03-02T14:00:00Z",
+  "hash_algorithm": "SHA-256",
+  "gaps_detected": 0
+}
+```
 
 ---
 
@@ -1663,7 +1756,7 @@ Low-level MCP server management — client connections, tool registry, and serve
 
 ### 8.3 Team Management
 
-**Prefix**: `/api/v1/teams` · **Scope**: `admin:all`
+**Prefix**: `/api/v1/teams` · **Scope**: `admin:all` · **8 endpoints**
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -1672,6 +1765,9 @@ Low-level MCP server management — client connections, tool registry, and serve
 | `GET` | `/api/v1/teams/{id}` | Get team details |
 | `PUT` | `/api/v1/teams/{id}` | Update team |
 | `DELETE` | `/api/v1/teams/{id}` | Delete team |
+| `GET` | `/api/v1/teams/{id}/members` | List team members |
+| `POST` | `/api/v1/teams/{id}/members` | Add member to team |
+| `DELETE` | `/api/v1/teams/{id}/members/{user_id}` | Remove member from team |
 
 ### 8.4 Admin
 
@@ -1692,14 +1788,15 @@ Low-level MCP server management — client connections, tool registry, and serve
 
 ### 8.5 System Configuration
 
-**Prefix**: `/api/v1/system` · **Scope**: `admin:all`
+**Prefix**: `/api/v1/system` · **Source**: `suite-api/apps/api/system_router.py` · **Scope**: `admin:all` · **5 endpoints**
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| `GET` | `/api/v1/system/health` | Detailed system health |
 | `GET` | `/api/v1/system/info` | System information |
 | `GET` | `/api/v1/system/config` | Get system configuration |
-| `PUT` | `/api/v1/system/config` | Update system configuration |
-| `GET` | `/api/v1/system/health` | Detailed system health |
+| `GET` | `/api/v1/system/metrics` | Platform operational metrics |
+| `GET` | `/api/v1/system/status` | System status |
 
 ### 8.6 Auth / SSO
 
@@ -1712,28 +1809,62 @@ Low-level MCP server management — client connections, tool registry, and serve
 | `GET` | `/api/v1/auth/sso/{id}` | Get SSO config |
 | `PUT` | `/api/v1/auth/sso/{id}` | Update SSO config |
 
-### 8.7 Reports
+### 8.7 Reports [V10]
 
-**Prefix**: `/api/v1/reports`
+**Prefix**: `/api/v1/reports` · **Source**: `suite-api/apps/api/reports_router.py` · **14 endpoints**
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/v1/reports` | List reports |
-| `POST` | `/api/v1/reports` | Generate report |
-| `GET` | `/api/v1/reports/{id}` | Get report |
-| `GET` | `/api/v1/reports/{id}/download` | Download report |
-
-### 8.8 Policies
-
-**Prefix**: `/api/v1/policies` · **Scope**: `write:findings`
+Report generation, scheduling, and export in multiple formats (PDF, SARIF, CSV, JSON).
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/v1/policies` | List security policies |
+| `GET` | `/api/v1/reports` | List reports (paginated) |
+| `POST` | `/api/v1/reports` | Create report metadata |
+| `POST` | `/api/v1/reports/generate` | Generate a full report |
+| `GET` | `/api/v1/reports/stats` | Report statistics |
+| `GET` | `/api/v1/reports/{id}` | Get report details |
+| `GET` | `/api/v1/reports/{id}/download` | Download report file |
+| `GET` | `/api/v1/reports/{id}/file` | Get report file content |
+| `POST` | `/api/v1/reports/schedule` | Schedule recurring report |
+| `GET` | `/api/v1/reports/schedules/list` | List report schedules |
+| `GET` | `/api/v1/reports/templates/list` | List report templates |
+| `POST` | `/api/v1/reports/export/sarif` | Export findings as SARIF |
+| `POST` | `/api/v1/reports/export/csv` | Export findings as CSV |
+| `GET` | `/api/v1/reports/export/csv/{export_id}/download` | Download CSV export |
+| `GET` | `/api/v1/reports/export/json` | Export findings as JSON |
+
+**Example — Generate a security report:**
+
+```bash
+curl -X POST http://localhost:8000/api/v1/reports/generate \
+  -H "X-API-Key: $FIXOPS_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "executive_summary",
+    "app_id": "myapp-001",
+    "format": "pdf",
+    "period": "last_30_days"
+  }'
+```
+
+### 8.8 Policies [V3]
+
+**Prefix**: `/api/v1/policies` · **Source**: `suite-api/apps/api/policies_router.py` · **Scope**: `write:findings` · **11 endpoints**
+
+Security policy lifecycle — create, validate, test, enforce, and simulate policies with conflict detection.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/policies` | List security policies (paginated) |
 | `POST` | `/api/v1/policies` | Create policy |
-| `GET` | `/api/v1/policies/{id}` | Get policy |
+| `GET` | `/api/v1/policies/{id}` | Get policy details |
 | `PUT` | `/api/v1/policies/{id}` | Update policy |
 | `DELETE` | `/api/v1/policies/{id}` | Delete policy |
+| `POST` | `/api/v1/policies/{id}/validate` | Validate policy rules |
+| `POST` | `/api/v1/policies/{id}/test` | Test policy against sample data |
+| `GET` | `/api/v1/policies/{id}/violations` | List policy violations |
+| `POST` | `/api/v1/policies/{id}/enforce` | Enforce policy on findings |
+| `POST` | `/api/v1/policies/simulate` | Simulate policy impact before applying |
+| `GET` | `/api/v1/policies/conflicts` | Detect conflicting policies |
 
 ### 8.9 Webhooks
 
@@ -1747,25 +1878,76 @@ Low-level MCP server management — client connections, tool registry, and serve
 | `DELETE` | `/api/v1/webhooks/{id}` | Delete webhook |
 | `POST` | `/api/v1/webhooks/{id}/test` | Test webhook delivery |
 
-### 8.10 Bulk Operations
+### 8.10 Bulk Operations [V3]
 
-**Prefix**: `/api/v1/bulk` · **Scope**: `write:findings`
+**Prefix**: `/api/v1/bulk` · **Source**: `suite-api/apps/api/bulk_router.py` · **Scope**: `write:findings` · **13 endpoints**
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/v1/bulk/import` | Bulk import findings |
-| `POST` | `/api/v1/bulk/export` | Bulk export |
-| `POST` | `/api/v1/bulk/analyze` | Bulk analysis |
-
-### 8.11 Collaboration
-
-**Prefix**: `/api/v1/collaboration`
+Asynchronous bulk operations for findings, clusters, policies, and exports with job tracking.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/v1/collaboration/comments` | Add comment |
-| `GET` | `/api/v1/collaboration/comments` | List comments |
-| `POST` | `/api/v1/collaboration/mentions` | Create mention |
+| `POST` | `/api/v1/bulk/clusters/status` | Bulk update cluster statuses |
+| `POST` | `/api/v1/bulk/clusters/assign` | Bulk assign clusters to teams |
+| `POST` | `/api/v1/bulk/clusters/accept-risk` | Bulk accept risk for clusters |
+| `POST` | `/api/v1/bulk/clusters/create-tickets` | Bulk create tickets from clusters |
+| `POST` | `/api/v1/bulk/export` | Bulk export findings (async) |
+| `GET` | `/api/v1/bulk/exports/{filename}` | Download bulk export file |
+| `GET` | `/api/v1/bulk/jobs/{job_id}` | Get bulk job status |
+| `GET` | `/api/v1/bulk/jobs` | List all bulk jobs |
+| `DELETE` | `/api/v1/bulk/jobs/{job_id}` | Cancel/delete a bulk job |
+| `POST` | `/api/v1/bulk/findings/update` | Bulk update findings |
+| `POST` | `/api/v1/bulk/findings/delete` | Bulk delete findings |
+| `POST` | `/api/v1/bulk/findings/assign` | Bulk assign findings |
+| `POST` | `/api/v1/bulk/policies/apply` | Bulk apply policies to findings |
+
+### 8.11 Collaboration [V3]
+
+**Prefix**: `/api/v1/collaboration` · **Source**: `suite-api/apps/api/collaboration_router.py` · **23 endpoints**
+
+Full collaboration suite — comments, watchers, activity feeds, mentions, and notification delivery.
+
+#### Comments & Watchers
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/collaboration/comments` | Add comment to an entity |
+| `GET` | `/api/v1/collaboration/comments` | List comments (filterable by entity) |
+| `PUT` | `/api/v1/collaboration/comments/{comment_id}/promote` | Promote comment to decision |
+| `POST` | `/api/v1/collaboration/watchers` | Subscribe to entity updates |
+| `DELETE` | `/api/v1/collaboration/watchers` | Unsubscribe from entity |
+| `GET` | `/api/v1/collaboration/watchers` | List watchers for entity |
+| `GET` | `/api/v1/collaboration/watchers/user/{user_id}` | List entities watched by user |
+
+#### Activity Feed & Mentions
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/collaboration/activities` | Log an activity event |
+| `GET` | `/api/v1/collaboration/activities` | Get activity feed (paginated) |
+| `GET` | `/api/v1/collaboration/mentions/{user_id}` | List mentions for a user |
+| `PUT` | `/api/v1/collaboration/mentions/{mention_id}/acknowledge` | Acknowledge a mention |
+| `GET` | `/api/v1/collaboration/entity-types` | List supported entity types |
+| `GET` | `/api/v1/collaboration/activity-types` | List supported activity types |
+
+#### Notifications
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/collaboration/notifications/queue` | Queue a notification |
+| `POST` | `/api/v1/collaboration/notifications/notify-watchers` | Notify all watchers of an entity |
+| `GET` | `/api/v1/collaboration/notifications/pending` | List pending notifications |
+| `PUT` | `/api/v1/collaboration/notifications/{notification_id}/sent` | Mark notification as sent |
+| `GET` | `/api/v1/collaboration/notifications/preferences/{user_id}` | Get notification preferences |
+| `PUT` | `/api/v1/collaboration/notifications/preferences/{user_id}` | Update notification preferences |
+| `POST` | `/api/v1/collaboration/notifications/{notification_id}/deliver` | Deliver via configured channel |
+| `POST` | `/api/v1/collaboration/notifications/process` | Process pending notification queue |
+
+#### Health
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/collaboration/health` | Health check |
+| `GET` | `/api/v1/collaboration/status` | Status |
 
 ### 8.12 Validation
 
@@ -1778,16 +1960,28 @@ Low-level MCP server management — client connections, tool registry, and serve
 | `POST` | `/api/v1/validate/cve` | Validate CVE format |
 | `POST` | `/api/v1/validate/vex` | Validate VEX format |
 
-### 8.13 Marketplace
+### 8.13 Marketplace [V7]
 
-**Prefix**: `/api/v1/marketplace`
+**Prefix**: `/api/v1/marketplace` · **Source**: `suite-api/apps/api/marketplace_router.py` · **14 endpoints**
+
+Enterprise remediation pack marketplace — browse, contribute, purchase, and download compliance-ready remediation content.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/v1/marketplace/browse` | Browse marketplace |
-| `GET` | `/api/v1/marketplace/recommendations` | Get recommendations |
-| `GET` | `/api/v1/marketplace/items/{item_id}` | Get marketplace item |
-| `GET` | `/api/v1/marketplace/packs/{framework}/{control}` | Get remediation pack |
+| `GET` | `/api/v1/marketplace/browse` | Browse marketplace (filterable, paginated) |
+| `GET` | `/api/v1/marketplace/recommendations` | Get personalized recommendations |
+| `GET` | `/api/v1/marketplace/items/{item_id}` | Get marketplace item details |
+| `GET` | `/api/v1/marketplace/packs/{framework}/{control}` | Get remediation pack by framework/control |
+| `POST` | `/api/v1/marketplace/contribute` | Contribute a remediation pack |
+| `PUT` | `/api/v1/marketplace/items/{item_id}` | Update marketplace item |
+| `POST` | `/api/v1/marketplace/items/{item_id}/rate` | Rate a marketplace item |
+| `POST` | `/api/v1/marketplace/purchase/{item_id}` | Purchase a marketplace item |
+| `GET` | `/api/v1/marketplace/download/{token}` | Download purchased item |
+| `GET` | `/api/v1/marketplace/contributors` | List marketplace contributors |
+| `GET` | `/api/v1/marketplace/compliance-content/{stage}` | Get compliance content by CTEM stage |
+| `GET` | `/api/v1/marketplace/stats` | Marketplace statistics |
+| `GET` | `/api/v1/marketplace/health` | Health check |
+| `GET` | `/api/v1/marketplace/status` | Status |
 
 ### 8.14 Detailed Logs
 
@@ -2117,8 +2311,11 @@ The following hardening was applied to all endpoints by the Backend Hardener age
 
 ---
 
-*Generated by ALdeci Technical Writer Agent · v3.0 · 2026-03-02 · Sprint 2 Day 3 · Pillar [V3][V5][V7][V10]*
-*Source of truth: `suite-api/apps/api/app.py` (2,742 LOC, 34 router mounts) + 72 router files across 6 suites*
+*Generated by ALdeci Technical Writer Agent · v3.2 · 2026-03-02 · Sprint 2 Day 4 · Pillar [V3][V5][V7][V10]*
+*Source of truth: `suite-api/apps/api/app.py` (2,742 LOC, 34 router mounts) + 73 router files across 6 suites*
+*Suites: suite-api (233) · suite-core (286) · suite-attack (122) · suite-feeds (31) · suite-evidence-risk (45) · suite-integrations (51) · inline @app (25)*
 *Verified: E2E 58/58 (100%), OpenAPI 200, 780 routes mounted, 77+ unique prefixes*
-*v3.0 changes: +11 new sections (Reachability, Enhanced Analysis, expanded Attack Sim/Vuln Discovery/Dedup/Cases/Predictions/Algorithms/LLM), 30+ curl examples, corrected endpoint counts*
+*v3.2 changes: CTEM+ identity header, suite-level breakdown, deduplicated MPTE Orchestrator section, fixed section numbering (4.1→4.7), 34+ curl examples*
+*v3.1 changes: +73 previously undocumented endpoints: FAIL Engine (7→10), MPTE Orchestrator (new, 8ep), Audit Trail (4→14), Reports (4→14), Policies (5→11), Collaboration (3→23), Bulk Ops (3→13), Marketplace (4→14), Teams (5→8), System (4→5)*
+*v3.0 changes: +11 new sections (Reachability, Enhanced Analysis, expanded Attack Sim/Vuln Discovery/Dedup/Cases/Predictions/Algorithms/LLM), 30+ curl examples*
 *v2.2 changes: Vision Engines (V4/V6/V8/V9), MCP Server Gateway, Detailed Logs API*

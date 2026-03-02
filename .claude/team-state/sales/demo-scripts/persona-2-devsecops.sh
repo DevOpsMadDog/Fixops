@@ -14,6 +14,7 @@ G='\033[0;32m' B='\033[0;34m' C='\033[0;36m' Y='\033[1;33m' BOLD='\033[1m' N='\0
 say() { echo -e "\n${C}TALKING POINT:${N} ${BOLD}$1${N}\n"; }
 step() { echo -e "\n${B}--- Step $1: $2 ---${N}"; }
 api() { curl -s --max-time 10 -H "X-API-Key: $API_KEY" "$@"; }
+api_llm() { curl -s --max-time 30 -H "X-API-Key: $API_KEY" "$@"; }  # LLM-dependent
 
 echo -e "${G}============================================================${N}"
 echo -e "${G}  ALdeci Demo - Persona 2: DevSecOps (Raj Mehta)           ${N}"
@@ -84,8 +85,8 @@ step "3" "AutoFix — AI Generates the Code Fix [1:30-2:30]"
 
 AUTOFIX_PAYLOAD='{"finding":{"id":"SAST-SQL-001","title":"SQL Injection via string concatenation","severity":"critical","cwe":"CWE-89","code_snippet":"def query(user_input):\n    sql = \"SELECT * FROM users WHERE id=\" + user_input\n    return db.execute(sql)"}}'
 
-echo -e "${Y}>>>${N} Generating AI-powered fix..."
-R=$(api -X POST "$BASE/autofix/generate" \
+echo -e "${Y}>>>${N} Generating AI-powered fix (LLM-powered, ~10-20s)..."
+R=$(api_llm -X POST "$BASE/autofix/generate" \
   -H "Content-Type: application/json" \
   -d "$AUTOFIX_PAYLOAD")
 echo "$R" | python3 -c "

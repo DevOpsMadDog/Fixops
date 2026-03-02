@@ -42,6 +42,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Scanner Parser hardening** — Crash resilience on malformed input, output caps [V7]
 - **API Reference v2.1** — Updated to 769 endpoints, added 10 new router sections (IaC, IDE, Nerve Center, Decision Records, MindsDB ML, Copilot, Business Context, Graph Analysis, Webhooks full detail, MPTE Orchestrator), security hardening appendix [V3][V7]
 
+### Added — Day 4 (2026-03-02 Late)
+- **API Reference v3.1** — 73 previously undocumented endpoints now fully documented with method/path/description tables [V3][V5][V7][V10]
+- **MPTE Orchestrator section** — New section (4.7) documenting 8 endpoints for unified pentest/decision API [V5]
+- **FAIL Engine correction** — Section 4.4 corrected from scenario-based to score-based endpoints (10 endpoints) with curl example [V3]
+- **Expanded Audit Trail** — 14 endpoints (was 4) with compliance framework mapping, crypto chain verification [V10]
+- **Expanded Reports** — 14 endpoints (was 4) with scheduling, templates, multi-format export (SARIF/CSV/JSON) [V10]
+- **Expanded Policies** — 11 endpoints (was 5) with validation, testing, enforcement, simulation, conflict detection [V3]
+- **Expanded Collaboration** — 23 endpoints (was 3) with watchers, activity feeds, mentions, notification delivery [V3]
+- **Expanded Bulk Operations** — 13 endpoints (was 3) with cluster ops, async jobs, policy application [V3]
+- **Expanded Marketplace** — 14 endpoints (was 4) with contributions, ratings, purchases, compliance content [V7]
+- **Expanded Teams** — 8 endpoints (was 5) with member management [V3]
+- **System metrics endpoint** — Added `/api/v1/system/metrics` (was missing from docs) [V7]
+
 ### Added — Day 3 (2026-03-02 PM)
 - **API Reference v3.0** — 780 endpoints documented across 72 routers with 32 curl examples [V3][V5][V7][V10]
 - **Reachability Analysis API** — 7 new endpoints for static call-graph reachability analysis [V3]

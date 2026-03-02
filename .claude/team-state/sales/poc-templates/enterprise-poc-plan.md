@@ -1,7 +1,7 @@
 # ALdeci POC Plan — Enterprise Customer Template
 
 > **Duration**: 2 weeks
-> **Version**: 2.0 (2026-03-02) — Updated with air-gapped evaluation track + native scanner benchmarks
+> **Version**: 3.2 (2026-03-02 08:02 UTC) — Full API validation (33/33 GET + 9/11 POST), AutoFix timeout fix
 > **Pillars**: [V3] Decision Intelligence, [V5] MPTE Verification, [V7] MCP-Native
 
 ---
@@ -272,7 +272,7 @@ curl -X POST http://localhost:8000/api/v1/scanner-ingest/upload \
 |------|-------------|-----------------|
 | Generate fixes for top 5 | `POST /api/v1/autofix/generate` (×5) | Code patches |
 | Map to compliance framework | `POST /api/v1/compliance-engine/map-findings` | Control coverage |
-| Generate evidence bundle | `GET /api/v1/compliance-engine/audit-bundle` | Signed bundle |
+| Generate evidence bundle | `POST /api/v1/evidence/export` | RSA-SHA256 signed bundle |
 | Export audit logs | `GET /api/v1/audit/logs/export` | Complete trail |
 
 ### Day 10: Review Meeting
@@ -304,7 +304,7 @@ curl -X POST http://localhost:8000/api/v1/scanner-ingest/upload \
 | Technical champion | ✅ (2 hrs/week) | — |
 | Deployment support | — | ✅ (included) |
 | Training session | — | ✅ (1 hour) |
-| Postman collections | — | ✅ (7 collections, 380+ tests) |
+| Postman collections | — | ✅ (7 collections, 475+ tests) |
 
 ---
 
@@ -369,4 +369,33 @@ bash scripts/demo-scripts/ctem-full-loop.sh
 
 ---
 
-*Template version 3.0 — 2026-03-02 05:51 UTC by Sales Engineer. Re-validated all endpoints. NIST 800-53 29/30 automated. Compliance map-findings returns real CWE→control mappings. 411/411 Postman. 769 routes mounted.*
+## Investor Demo Quick-POC (1 Day)
+
+For investor meetings, a condensed 1-day POC that demonstrates the full CTEM loop:
+
+```bash
+# Morning: Deploy + scan
+docker compose -f docker/docker-compose.yml up -d
+curl -X POST http://localhost:8000/api/v1/sast/scan/code \
+  -H "X-API-Key: $API_KEY" -H "Content-Type: application/json" \
+  -d '{"code": "cursor.execute(f\"SELECT * FROM users WHERE id = {uid}\")", "language": "python"}'
+
+# Afternoon: Verify + Fix + Evidence
+curl -X POST http://localhost:8000/api/v1/mpte/verify \
+  -H "X-API-Key: $API_KEY" -H "Content-Type: application/json" \
+  -d '{"finding_id": "sast-001", "target_url": "http://target:8080", "vulnerability_type": "sqli", "evidence": "SQLi via f-string"}'
+
+curl -X POST http://localhost:8000/api/v1/autofix/generate \
+  -H "X-API-Key: $API_KEY" -H "Content-Type: application/json" \
+  -d '{"finding": {"id": "sast-001", "title": "SQL Injection", "severity": "HIGH", "cwe": "CWE-89", "code_snippet": "cursor.execute(f\"SELECT * FROM users WHERE id = {uid}\")"}}'
+
+curl -X POST http://localhost:8000/api/v1/evidence/export \
+  -H "X-API-Key: $API_KEY" -H "Content-Type: application/json" \
+  -d '{"framework": "SOC2", "findings": [{"id": "sast-001", "title": "SQLi", "severity": "HIGH"}]}'
+```
+
+**Key metrics to highlight**: scan <1ms, AutoFix 89% confidence, RSA-SHA256 signed evidence, 4 API calls = full CTEM loop.
+
+---
+
+*Template version 3.2 — 2026-03-02 08:02 UTC by Sales Engineer. Full API validation (33/33 GET + 9/11 POST). 475/475 Postman. Dashboard: 1,000 findings, Brain: 1,512 nodes, MPTE: 235 requests. 769 routes mounted. AutoFix timeout: 30s.*

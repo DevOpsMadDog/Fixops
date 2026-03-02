@@ -503,3 +503,489 @@
 14083 T
 12459 T
 [17:28:23] Sent SIGCONT to resume stopped processes
+[18:19:32] API DOWN — restarting...
+[18:19:36] API restart attempted (PID: 50880)
+[18:19:41] API recovered
+[18:29:47] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:29:47] Sent SIGCONT to resume stopped processes
+[18:30:48] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:30:48] Sent SIGCONT to resume stopped processes
+[18:31:49] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:31:49] Sent SIGCONT to resume stopped processes
+[18:32:49] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:32:49] Sent SIGCONT to resume stopped processes
+[18:33:50] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:33:50] Sent SIGCONT to resume stopped processes
+[18:34:51] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:34:51] Sent SIGCONT to resume stopped processes
+[18:35:51] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:35:51] Sent SIGCONT to resume stopped processes
+[18:36:52] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:36:52] Sent SIGCONT to resume stopped processes
+[18:37:52] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:37:52] Sent SIGCONT to resume stopped processes
+[18:38:53] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:38:53] Sent SIGCONT to resume stopped processes
+[18:39:54] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:39:54] Sent SIGCONT to resume stopped processes
+[18:40:54] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:40:54] Sent SIGCONT to resume stopped processes
+[18:41:55] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:41:55] Sent SIGCONT to resume stopped processes
+[18:42:55] STOPPED claude processes found — sending SIGCONT:
+65156 T
+65196 T
+[18:42:55] Sent SIGCONT to resume stopped processes
+[18:43:56] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:43:56] Sent SIGCONT to resume stopped processes
+[18:44:57] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:44:57] Sent SIGCONT to resume stopped processes
+[18:45:57] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:45:57] Sent SIGCONT to resume stopped processes
+[18:46:58] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:46:58] Sent SIGCONT to resume stopped processes
+[18:47:59] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:47:59] Sent SIGCONT to resume stopped processes
+[18:48:59] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:48:59] Sent SIGCONT to resume stopped processes
+[18:50:00] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:50:00] Sent SIGCONT to resume stopped processes
+[18:51:00] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:51:00] Sent SIGCONT to resume stopped processes
+[18:52:01] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:52:01] Sent SIGCONT to resume stopped processes
+[18:53:02] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:53:02] Sent SIGCONT to resume stopped processes
+[18:54:02] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:54:02] Sent SIGCONT to resume stopped processes
+[18:55:03] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:55:03] Sent SIGCONT to resume stopped processes
+[18:56:03] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:56:03] Sent SIGCONT to resume stopped processes
+[18:57:04] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:57:04] Sent SIGCONT to resume stopped processes
+[18:58:05] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:58:05] Sent SIGCONT to resume stopped processes
+[18:59:05] STOPPED claude processes found — sending SIGCONT:
+65196 T
+65156 T
+[18:59:05] Sent SIGCONT to resume stopped processes
+[19:30:24] STOPPED claude processes found — sending SIGCONT:
+10908 T
+[19:30:24] Sent SIGCONT to resume stopped processes
+[19:31:25] STOPPED claude processes found — sending SIGCONT:
+10908 T
+[19:31:25] Sent SIGCONT to resume stopped processes
+[19:32:26] STOPPED claude processes found — sending SIGCONT:
+10908 T
+[19:32:26] Sent SIGCONT to resume stopped processes
+[19:33:26] STOPPED claude processes found — sending SIGCONT:
+10908 T
+[19:33:26] Sent SIGCONT to resume stopped processes
+[19:34:27] STOPPED claude processes found — sending SIGCONT:
+10908 T
+[19:34:27] Sent SIGCONT to resume stopped processes
+[19:35:27] STOPPED claude processes found — sending SIGCONT:
+10908 T
+[19:35:27] Sent SIGCONT to resume stopped processes
+[19:36:28] STOPPED claude processes found — sending SIGCONT:
+10908 T
+[19:36:28] Sent SIGCONT to resume stopped processes
+[19:37:29] STOPPED claude processes found — sending SIGCONT:
+10908 T
+[19:37:29] Sent SIGCONT to resume stopped processes
+[19:38:29] STOPPED claude processes found — sending SIGCONT:
+10908 T
+[19:38:29] Sent SIGCONT to resume stopped processes
+[19:39:30] STOPPED claude processes found — sending SIGCONT:
+10908 T
+15304 T
+[19:39:30] Sent SIGCONT to resume stopped processes
+[19:40:30] STOPPED claude processes found — sending SIGCONT:
+15304 T
+10908 T
+[19:40:30] Sent SIGCONT to resume stopped processes
+[19:41:31] STOPPED claude processes found — sending SIGCONT:
+10908 T
+15304 T
+[19:41:31] Sent SIGCONT to resume stopped processes
+[19:42:32] STOPPED claude processes found — sending SIGCONT:
+15304 T
+10908 T
+[19:42:32] Sent SIGCONT to resume stopped processes
+[19:43:33] STOPPED claude processes found — sending SIGCONT:
+10908 T
+15304 T
+[19:43:33] Sent SIGCONT to resume stopped processes
+[19:44:33] STOPPED claude processes found — sending SIGCONT:
+15304 T
+10908 T
+[19:44:33] Sent SIGCONT to resume stopped processes
+[19:45:34] STOPPED claude processes found — sending SIGCONT:
+15304 T
+18040 T
+[19:45:34] Sent SIGCONT to resume stopped processes
+[19:46:34] STOPPED claude processes found — sending SIGCONT:
+18040 T
+15304 T
+[19:46:34] Sent SIGCONT to resume stopped processes
+[19:47:35] STOPPED claude processes found — sending SIGCONT:
+18040 T
+15304 T
+[19:47:35] Sent SIGCONT to resume stopped processes
+[19:48:36] STOPPED claude processes found — sending SIGCONT:
+18040 T
+15304 T
+[19:48:36] Sent SIGCONT to resume stopped processes
+[19:49:36] STOPPED claude processes found — sending SIGCONT:
+18040 T
+15304 T
+[19:49:36] Sent SIGCONT to resume stopped processes
+[19:50:37] STOPPED claude processes found — sending SIGCONT:
+18040 T
+15304 T
+[19:50:37] Sent SIGCONT to resume stopped processes
+[19:51:37] STOPPED claude processes found — sending SIGCONT:
+18040 T
+15304 T
+[19:51:37] Sent SIGCONT to resume stopped processes
+[19:52:38] STOPPED claude processes found — sending SIGCONT:
+18040 T
+15304 T
+[19:52:38] Sent SIGCONT to resume stopped processes
+[19:53:39] STOPPED claude processes found — sending SIGCONT:
+18040 T
+[19:53:39] Sent SIGCONT to resume stopped processes
+[19:54:39] STOPPED claude processes found — sending SIGCONT:
+25232 T
+18040 T
+[19:54:39] Sent SIGCONT to resume stopped processes
+[19:55:40] STOPPED claude processes found — sending SIGCONT:
+25232 T
+18040 T
+[19:55:40] Sent SIGCONT to resume stopped processes
+[19:56:41] STOPPED claude processes found — sending SIGCONT:
+25232 T
+18040 T
+[19:56:41] Sent SIGCONT to resume stopped processes
+[19:57:41] STOPPED claude processes found — sending SIGCONT:
+25232 T
+18040 T
+[19:57:41] Sent SIGCONT to resume stopped processes
+[19:58:42] STOPPED claude processes found — sending SIGCONT:
+25232 T
+18040 T
+[19:58:42] Sent SIGCONT to resume stopped processes
+[19:59:43] STOPPED claude processes found — sending SIGCONT:
+25232 T
+18040 T
+[19:59:43] Sent SIGCONT to resume stopped processes
+[20:00:43] STOPPED claude processes found — sending SIGCONT:
+27893 T
+25232 T
+[20:00:43] Sent SIGCONT to resume stopped processes
+[20:01:44] STOPPED claude processes found — sending SIGCONT:
+27893 T
+25232 T
+[20:01:44] Sent SIGCONT to resume stopped processes
+[20:02:44] STOPPED claude processes found — sending SIGCONT:
+27893 T
+25232 T
+[20:02:44] Sent SIGCONT to resume stopped processes
+[20:03:45] STOPPED claude processes found — sending SIGCONT:
+27893 T
+25232 T
+[20:03:45] Sent SIGCONT to resume stopped processes
+[20:04:46] STOPPED claude processes found — sending SIGCONT:
+27893 T
+25232 T
+[20:04:46] Sent SIGCONT to resume stopped processes
+[20:05:46] STOPPED claude processes found — sending SIGCONT:
+27893 T
+25232 T
+[20:05:46] Sent SIGCONT to resume stopped processes
+[20:06:47] STOPPED claude processes found — sending SIGCONT:
+27893 T
+25232 T
+[20:06:47] Sent SIGCONT to resume stopped processes
+[20:07:48] STOPPED claude processes found — sending SIGCONT:
+27893 T
+25232 T
+[20:07:48] Sent SIGCONT to resume stopped processes
+[20:08:48] STOPPED claude processes found — sending SIGCONT:
+27893 T
+[20:08:48] Sent SIGCONT to resume stopped processes
+[20:09:49] STOPPED claude processes found — sending SIGCONT:
+31383 T
+27893 T
+[20:09:49] Sent SIGCONT to resume stopped processes
+[20:10:49] STOPPED claude processes found — sending SIGCONT:
+27893 T
+31383 T
+[20:10:49] Sent SIGCONT to resume stopped processes
+[20:11:50] STOPPED claude processes found — sending SIGCONT:
+31383 T
+27893 T
+[20:11:50] Sent SIGCONT to resume stopped processes
+[20:12:51] STOPPED claude processes found — sending SIGCONT:
+31383 T
+27893 T
+[20:12:51] Sent SIGCONT to resume stopped processes
+[20:13:51] STOPPED claude processes found — sending SIGCONT:
+31383 T
+27893 T
+[20:13:51] Sent SIGCONT to resume stopped processes
+[20:14:52] STOPPED claude processes found — sending SIGCONT:
+31383 T
+27893 T
+[20:14:52] Sent SIGCONT to resume stopped processes
+[20:15:52] STOPPED claude processes found — sending SIGCONT:
+31383 T
+[20:15:52] Sent SIGCONT to resume stopped processes
+[20:16:53] STOPPED claude processes found — sending SIGCONT:
+31383 T
+[20:16:53] Sent SIGCONT to resume stopped processes
+[20:17:54] STOPPED claude processes found — sending SIGCONT:
+31383 T
+[20:17:54] Sent SIGCONT to resume stopped processes
+[20:18:54] STOPPED claude processes found — sending SIGCONT:
+31383 T
+[20:18:54] Sent SIGCONT to resume stopped processes
+[20:19:55] STOPPED claude processes found — sending SIGCONT:
+31383 T
+[20:19:55] Sent SIGCONT to resume stopped processes
+[20:20:56] STOPPED claude processes found — sending SIGCONT:
+31383 T
+[20:20:56] Sent SIGCONT to resume stopped processes
+[20:21:56] STOPPED claude processes found — sending SIGCONT:
+31383 T
+[20:21:56] Sent SIGCONT to resume stopped processes
+[20:22:57] STOPPED claude processes found — sending SIGCONT:
+31383 T
+[20:22:57] Sent SIGCONT to resume stopped processes
+[20:23:58] STOPPED claude processes found — sending SIGCONT:
+31383 T
+39490 T
+[20:23:58] Sent SIGCONT to resume stopped processes
+[20:24:58] STOPPED claude processes found — sending SIGCONT:
+39490 T
+[20:24:58] Sent SIGCONT to resume stopped processes
+[20:25:59] STOPPED claude processes found — sending SIGCONT:
+39490 T
+[20:25:59] Sent SIGCONT to resume stopped processes
+[20:26:59] STOPPED claude processes found — sending SIGCONT:
+39490 T
+[20:26:59] Sent SIGCONT to resume stopped processes
+[20:28:00] STOPPED claude processes found — sending SIGCONT:
+39490 T
+[20:28:00] Sent SIGCONT to resume stopped processes
+[20:29:01] STOPPED claude processes found — sending SIGCONT:
+39490 T
+[20:29:01] Sent SIGCONT to resume stopped processes
+[20:30:01] STOPPED claude processes found — sending SIGCONT:
+39490 T
+[20:30:01] Sent SIGCONT to resume stopped processes
+[20:31:02] STOPPED claude processes found — sending SIGCONT:
+39490 T
+[20:31:02] Sent SIGCONT to resume stopped processes
+[20:32:02] STOPPED claude processes found — sending SIGCONT:
+39490 T
+[20:32:02] Sent SIGCONT to resume stopped processes
+[20:33:03] STOPPED claude processes found — sending SIGCONT:
+45104 T
+39490 T
+[20:33:03] Sent SIGCONT to resume stopped processes
+[20:34:04] STOPPED claude processes found — sending SIGCONT:
+45104 T
+39490 T
+[20:34:04] Sent SIGCONT to resume stopped processes
+[20:35:04] STOPPED claude processes found — sending SIGCONT:
+45104 T
+39490 T
+[20:35:04] Sent SIGCONT to resume stopped processes
+[20:36:05] STOPPED claude processes found — sending SIGCONT:
+45104 T
+39490 T
+[20:36:05] Sent SIGCONT to resume stopped processes
+[20:37:06] STOPPED claude processes found — sending SIGCONT:
+45104 T
+39490 T
+[20:37:06] Sent SIGCONT to resume stopped processes
+[20:38:06] STOPPED claude processes found — sending SIGCONT:
+45104 T
+39490 T
+[20:38:06] Sent SIGCONT to resume stopped processes
+[20:39:07] STOPPED claude processes found — sending SIGCONT:
+48980 T
+45104 T
+[20:39:07] Sent SIGCONT to resume stopped processes
+[20:40:07] STOPPED claude processes found — sending SIGCONT:
+45104 T
+48980 T
+[20:40:07] Sent SIGCONT to resume stopped processes
+[20:41:08] STOPPED claude processes found — sending SIGCONT:
+48980 T
+45104 T
+[20:41:08] Sent SIGCONT to resume stopped processes
+[20:42:09] STOPPED claude processes found — sending SIGCONT:
+48980 T
+45104 T
+[20:42:09] Sent SIGCONT to resume stopped processes
+[20:43:09] STOPPED claude processes found — sending SIGCONT:
+48980 T
+45104 T
+[20:43:09] Sent SIGCONT to resume stopped processes
+[20:44:10] STOPPED claude processes found — sending SIGCONT:
+48980 T
+45104 T
+[20:44:10] Sent SIGCONT to resume stopped processes
+[20:45:10] STOPPED claude processes found — sending SIGCONT:
+45104 T
+48980 T
+[20:45:11] Sent SIGCONT to resume stopped processes
+[20:46:11] STOPPED claude processes found — sending SIGCONT:
+48980 T
+45104 T
+[20:46:11] Sent SIGCONT to resume stopped processes
+[20:47:12] STOPPED claude processes found — sending SIGCONT:
+48980 T
+[20:47:12] Sent SIGCONT to resume stopped processes
+[20:48:12] STOPPED claude processes found — sending SIGCONT:
+53379 T
+48980 T
+[20:48:12] Sent SIGCONT to resume stopped processes
+[20:49:13] STOPPED claude processes found — sending SIGCONT:
+53379 T
+48980 T
+[20:49:13] Sent SIGCONT to resume stopped processes
+[20:50:14] STOPPED claude processes found — sending SIGCONT:
+53379 T
+48980 T
+[20:50:14] Sent SIGCONT to resume stopped processes
+[20:51:14] STOPPED claude processes found — sending SIGCONT:
+53379 T
+48980 T
+[20:51:14] Sent SIGCONT to resume stopped processes
+[20:52:15] STOPPED claude processes found — sending SIGCONT:
+53379 T
+48980 T
+[20:52:15] Sent SIGCONT to resume stopped processes
+[20:53:15] STOPPED claude processes found — sending SIGCONT:
+53379 T
+48980 T
+[20:53:15] Sent SIGCONT to resume stopped processes
+[20:54:16] STOPPED claude processes found — sending SIGCONT:
+53379 T
+[20:54:16] Sent SIGCONT to resume stopped processes
+[20:55:17] STOPPED claude processes found — sending SIGCONT:
+57278 T
+53379 T
+[20:55:17] Sent SIGCONT to resume stopped processes
+[20:56:17] STOPPED claude processes found — sending SIGCONT:
+53379 T
+57278 T
+[20:56:17] Sent SIGCONT to resume stopped processes
+[20:57:18] STOPPED claude processes found — sending SIGCONT:
+53379 T
+57278 T
+[20:57:18] Sent SIGCONT to resume stopped processes
+[20:58:18] STOPPED claude processes found — sending SIGCONT:
+53379 T
+57278 T
+[20:58:18] Sent SIGCONT to resume stopped processes
+[20:59:19] STOPPED claude processes found — sending SIGCONT:
+57278 T
+53379 T
+[20:59:19] Sent SIGCONT to resume stopped processes
+[21:00:20] STOPPED claude processes found — sending SIGCONT:
+53379 T
+57278 T
+[21:00:20] Sent SIGCONT to resume stopped processes
+[21:01:20] STOPPED claude processes found — sending SIGCONT:
+53379 T
+57278 T
+[21:01:20] Sent SIGCONT to resume stopped processes
+[21:02:21] STOPPED claude processes found — sending SIGCONT:
+53379 T
+57278 T
+[21:02:21] Sent SIGCONT to resume stopped processes
+[21:03:22] STOPPED claude processes found — sending SIGCONT:
+61676 T
+57278 T
+[21:03:22] Sent SIGCONT to resume stopped processes
+[21:04:22] STOPPED claude processes found — sending SIGCONT:
+61676 T
+57278 T
+[21:04:22] Sent SIGCONT to resume stopped processes
+[21:05:23] STOPPED claude processes found — sending SIGCONT:
+61676 T
+57278 T
+[21:05:23] Sent SIGCONT to resume stopped processes
+[21:06:23] STOPPED claude processes found — sending SIGCONT:
+57278 T
+61676 T
+[21:06:23] Sent SIGCONT to resume stopped processes
+[21:07:24] STOPPED claude processes found — sending SIGCONT:
+57278 T
+61676 T
+[21:07:24] Sent SIGCONT to resume stopped processes
+[21:08:25] STOPPED claude processes found — sending SIGCONT:
+57278 T
+61676 T
+[21:08:25] Sent SIGCONT to resume stopped processes

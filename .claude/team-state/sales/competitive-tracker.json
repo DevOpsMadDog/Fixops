@@ -1,15 +1,24 @@
 {
   "metadata": {
-    "version": "4.0",
-    "updated": "2026-03-02T05:51Z",
+    "version": "6.1",
+    "updated": "2026-03-02T08:02Z",
     "author": "sales-engineer",
-    "sprint": "Sprint 2 Day 2 Late — 4 days to enterprise demo",
-    "validation": "35/37 GET=200, 7/9 POST=200, 411/411 Postman",
+    "sprint": "Sprint 2 Day 3 — 4 days to enterprise demo",
+    "validation": "33/33 GET=200, 9/11 POST=200, 475/475 Postman, FULL comprehensive re-validation 08:02 UTC",
+    "live_stats": {
+      "total_findings": 1000,
+      "knowledge_graph_nodes": 1512,
+      "mpte_requests": 235,
+      "confirmed_exploitable": 4,
+      "compliance_frameworks": 4,
+      "mcp_tools": 100,
+      "scanner_parsers": 25
+    },
     "sources": [
       "docs/CTEM_PLUS_IDENTITY.md",
       "docs/COMPETITIVE_ANALYSIS_GROK_RESPONSE.md",
       ".claude/team-state/research/",
-      "live API validation 2026-03-02 05:51 UTC"
+      "live API validation 2026-03-02 08:01 UTC"
     ]
   },
   "competitors": [
@@ -213,6 +222,53 @@
       "differentiators": "Claude finds vulns better than anyone. ALdeci DECIDES what to do about them. Together = unstoppable. We ingest Claude output and add Brain Pipeline + MPTE + AutoFix + Evidence.",
       "threat_level": "LOW (complementary, not competitive)",
       "overlap": "Vulnerability discovery — but Claude has no pipeline"
+    },
+    {
+      "name": "DefectDojo / ArcherySec",
+      "category": "Open-Source Vulnerability Management",
+      "wins": [],
+      "losses": [],
+      "strengths": [
+        "Free and open-source",
+        "Large community and plugin ecosystem",
+        "30+ scanner parsers (DefectDojo)",
+        "Good finding grouping and dedup"
+      ],
+      "weaknesses": [
+        "No native scanners — pure aggregator",
+        "No AI-powered triage or decisions",
+        "No exploit verification",
+        "No AutoFix code generation",
+        "No compliance evidence signing",
+        "No MCP gateway or AI integration",
+        "Community support only (no SLA)"
+      ],
+      "differentiators": "Same parser coverage + 8 native scanners + Brain Pipeline + MPTE + AutoFix + signed evidence. DefectDojo collects; ALdeci decides.",
+      "threat_level": "LOW",
+      "overlap": "Finding aggregation, scanner parsing"
+    },
+    {
+      "name": "Endor Labs / Socket",
+      "category": "Next-Gen SCA with Reachability",
+      "wins": [],
+      "losses": [],
+      "strengths": [
+        "Best-in-class dependency reachability analysis",
+        "Call-graph based prioritization",
+        "Real-time package monitoring (Socket)",
+        "Good supply chain intelligence"
+      ],
+      "weaknesses": [
+        "SCA focused only — no SAST/DAST/Container/IaC",
+        "No exploit verification (MPTE equivalent)",
+        "No AutoFix beyond dependency updates",
+        "No compliance evidence signing",
+        "No knowledge graph (beyond call graph)",
+        "No air-gapped deployment"
+      ],
+      "differentiators": "ALdeci ingests Endor/Socket output and adds full CTEM pipeline: MPTE verification, 10 AutoFix types, compliance evidence, air-gapped operation. Endor has best reachability; ALdeci has best pipeline.",
+      "threat_level": "LOW",
+      "overlap": "SCA, dependency vulnerability management"
     }
   ],
   "winRate": 0,

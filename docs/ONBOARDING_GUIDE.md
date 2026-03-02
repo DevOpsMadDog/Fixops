@@ -1,7 +1,7 @@
 # ALdeci Customer Onboarding Guide
 
-> **Version**: 3.0 | **Platform**: CTEM+ Decision Intelligence for Application Security
-> **Updated**: 2026-03-02 | **Duration**: 2-4 hours from install to first actionable report
+> **Version**: 4.1 | **Platform**: CTEM+ Decision Intelligence for Application Security
+> **Updated**: 2026-03-02 08:01 UTC | **Duration**: 2-4 hours from install to first actionable report
 
 ---
 
@@ -582,4 +582,4 @@ docker stats fixops-api
 
 ---
 
-*ALdeci Customer Onboarding Guide v4.0 — 2026-03-02 05:51 UTC. All core endpoints re-validated against live API. 35/37 GET = 200, 7/9 POST = 200. NIST 800-53: 29/30 automated. Compliance map-findings returns real CWE→control mappings. 25 scanner parsers. 769 API routes.*
+*ALdeci Customer Onboarding Guide v4.1 — 2026-03-02 08:01 UTC. All core endpoints re-validated against live API (10/10 critical re-verified at 08:01). Dashboard: 1000 findings, Brain: 1512 nodes, MPTE: 235 requests. NIST 800-53: 29/30 automated. 475/475 Postman. 25 scanner parsers. 769 API routes.*

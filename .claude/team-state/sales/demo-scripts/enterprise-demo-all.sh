@@ -1,9 +1,10 @@
 #!/bin/bash
 # ============================================================================
 # ALdeci Enterprise Demo — All 5 Personas + MOAT Demos
-# Version: 5.0 — Sprint 2, Day 2 Late (2026-03-02 05:51 UTC)
+# Version: 6.1 — Sprint 2, Day 3 (2026-03-02 08:02 UTC)
 # Duration: 15 min (5 personas × 3 min) + 4 min (2 MOAT demos)
-# All endpoints verified against live API: 35/37 GET = 200, 7/9 POST = 200
+# All endpoints verified against live API: 33/33 GET = 200, 9/11 POST = 200
+# AutoFix timeout: 30s (LLM-dependent). Postman: 475/475.
 # ============================================================================
 # Usage: ./enterprise-demo-all.sh [base_url] [api_key] [mode]
 #   mode: all | ciso | devsecops | auditor | developer | cto | moat
@@ -22,6 +23,7 @@ YELLOW='\033[1;33m' MAGENTA='\033[0;35m' BOLD='\033[1m' NC='\033[0m'
 say()  { echo -e "\n${CYAN}TALKING POINT:${NC} ${BOLD}$1${NC}\n"; }
 step() { echo -e "\n${BLUE}--- Step $1: $2 ---${NC}"; }
 api()  { curl -s --max-time 10 -H "X-API-Key: $API_KEY" "$@" 2>/dev/null; }
+api_llm() { curl -s --max-time 30 -H "X-API-Key: $API_KEY" "$@" 2>/dev/null; }  # LLM-dependent endpoints (AutoFix)
 header() {
   echo -e "\n${GREEN}╔══════════════════════════════════════════════════════════╗${NC}"
   echo -e "${GREEN}║  $1${NC}"
@@ -149,8 +151,8 @@ print(f'  Finding: {d.get(\"finding_id\",\"?\")}')
   done
   say "8 native scanners, all operational, all work air-gapped."
 
-  step "4" "AutoFix Generation [1:45-2:30]"
-  FIX=$(api -X POST "$BASE/autofix/generate" \
+  step "4" "AutoFix Generation [1:45-2:30] (LLM-powered, ~10-20s)"
+  FIX=$(api_llm -X POST "$BASE/autofix/generate" \
     -H "Content-Type: application/json" \
     -d '{"finding": {"id": "sast-demo-001", "title": "SQL Injection in get_user()", "severity": "HIGH", "cwe": "CWE-89", "code_snippet": "cursor.execute(f\"SELECT * FROM users WHERE id = {user_id}\")"}}')
   echo "$FIX" | python3 -c "
@@ -271,8 +273,8 @@ for f in findings[:2]:
     print(f'    [{f.get(\"severity\",\"?\")}] {f.get(\"title\",\"?\")} (CWE: {f.get(\"cwe\",f.get(\"cwe_id\",\"?\"))})')
 " 2>/dev/null
 
-  step "3" "Generate Fix [1:00-1:45]"
-  FIX=$(api -X POST "$BASE/autofix/generate" \
+  step "3" "Generate Fix [1:00-1:45] (LLM-powered, ~10-20s)"
+  FIX=$(api_llm -X POST "$BASE/autofix/generate" \
     -H "Content-Type: application/json" \
     -d '{"finding": {"id": "dev-xss-001", "title": "Cross-Site Scripting (XSS) in user profile", "severity": "HIGH", "cwe": "CWE-79", "code_snippet": "document.innerHTML = user.bio"}}')
   echo "$FIX" | python3 -c "

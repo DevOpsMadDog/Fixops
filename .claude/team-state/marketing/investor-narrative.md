@@ -1,8 +1,8 @@
 # ALdeci — Investor Narrative
 
-**Version**: 5.1 | **Date**: 2026-03-02 (Run 4) | **Owner**: VP Marketing
+**Version**: 5.2 | **Date**: 2026-03-02 (Run 5) | **Owner**: VP Marketing
 **Pillars**: [V3] Decision Intelligence, [V5] MPTE, [V7] MCP-Native
-**Sprint 2**: 11/12 done (91.7%). Postman 411/411 (100%). 11 security hardening fixes applied. Enterprise demo: March 6.
+**Sprint 2**: 11/12 done (91.7%). Postman 475/475 assertions (100%) — 8th consecutive green. Knowledge Graph: 73 nodes, 110 edges. 11 security hardening fixes applied. Enterprise demo: March 6.
 
 ---
 
@@ -76,7 +76,7 @@ Scanner Output → Ingest → Normalize → Identity-Map → Deduplicate → Gra
 | Knowledge Graph (attack paths, blast radius) | `falkordb_client.py` | 835+ |
 | 10 Security Tool Connectors | `security_connectors.py` | 1,335 |
 | 7 Workflow Connectors | `connectors.py` | 3,005 |
-| **Total platform** | **6 suites, 78 router files** | **401,992** |
+| **Total platform** | **6 suites, 78 router files** | **401,993** |
 
 ---
 
@@ -155,7 +155,7 @@ Solo founder building a self-running security company with 16 AI agents as the t
 
 **The meta-insight**: ALdeci uses multi-AI consensus in its product (3+ LLMs vote on security decisions). The company uses multi-agent debate to build the product (16 agents propose, challenge, and verify each other's work). The approach that makes the product work is the same approach that builds the product.
 
-**401,992 lines of production Python code**. 13,221 tests. 796 API endpoints across 78 router files. 25+ scanner format parsers (3,352 LOC). 8 native scanners (4,757+ LOC). Built by AI agents, coordinated by a human CEO. Enterprise demo on March 6 — 11/12 items done (91.7%), Postman 411/411 (100%), all systems live.
+**401,993 lines of production Python code**. 13,221 tests. 796 API endpoints across 78 router files. 25+ scanner format parsers (3,352 LOC). 8 native scanners (4,757+ LOC). Built by AI agents, coordinated by a human CEO. Enterprise demo on March 6 — 11/12 items done (91.7%), Postman 411/411 (100%), all systems live.
 
 ---
 
@@ -182,4 +182,4 @@ Solo founder building a self-running security company with 16 AI agents as the t
 
 ---
 
-*All product claims re-verified against codebase (2026-03-02, Run 4, `wc -l` on all cited files). All LOC counts unchanged from Run 3. Scanner parsers: 15 tool-specific in `scanner_parsers.py` (1,238 LOC) + 10 format parsers in `ingestion.py` (2,114 LOC) = 3,352 LOC total. Total Python LOC: 401,992. Tests: 13,221. Sprint 2: 11/12 done (91.7%). Postman 411/411 (100%). Backend: 11 security hardening fixes (XXE, SSRF, shell injection, code injection, secrets leakage). Market data from AI Researcher pulse (2026-03-02 Pass 3), sourced from NVD, CISA KEV, EPSS, Anthropic, CNBC, Axios, TechCrunch, VentureBeat, Bloomberg, CrowdStrike, SecurityWeek, Forrester, Gartner, Futurum Group.*
+*All product claims re-verified against codebase (2026-03-02, Run 4, `wc -l` on all cited files). All LOC counts unchanged from Run 3. Scanner parsers: 15 tool-specific in `scanner_parsers.py` (1,238 LOC) + 10 format parsers in `ingestion.py` (2,114 LOC) = 3,352 LOC total. Total Python LOC: 401,993. Tests: 13,221. Sprint 2: 11/12 done (91.7%). Postman 411/411 (100%). Backend: 11 security hardening fixes (XXE, SSRF, shell injection, code injection, secrets leakage). Market data from AI Researcher pulse (2026-03-02 Pass 3), sourced from NVD, CISA KEV, EPSS, Anthropic, CNBC, Axios, TechCrunch, VentureBeat, Bloomberg, CrowdStrike, SecurityWeek, Forrester, Gartner, Futurum Group.*

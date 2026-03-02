@@ -1,107 +1,76 @@
-# Vision Pre-Flight: 2026-03-02 — Enterprise Demo Sprint Day 2
+# Vision Pre-Flight & Post-Flight: 2026-03-02
 
-> **Produced by**: vision-agent v31 (Day 2 PM post-flight / Day 3 pre-flight)
-> **Sprint**: Sprint 2 — ENTERPRISE DEMO (5 DAYS) — Demo on 2026-03-06
-> **Days remaining**: 4
-> **Pillar table verified**: CEO_VISION.md lines 133-145 — NO DRIFT
+> **Run**: vision-agent v34 (post-flight final)
+> **Sprint**: Sprint 2 — ENTERPRISE DEMO (4 days remaining)
+> **Pillar table validated**: Matches CEO_VISION.md lines 133-145
 
 ## Sprint Status
 - **Items**: 12 total, 11 done (91.7%), 1 in-progress
-- **Pillars covered**: V3 (5 items), V5 (2), V7 (2), V8 (1 demo), V9 (2), V10 (4)
-- **Vision alignment score**: **0.83** (stable — minor correction from v27's 0.85 due to coverage verification: 19.19% actual vs 21.24% previously reported)
-- **Trend**: STABLE (score within 0.02 of previous)
+- **Pillars covered**: V3 (4 items), V5 (1), V7 (1), V8 (1), V9 (1), V10 (4)
+- **Vision alignment score**: 0.84 (STABLE_IMPROVING from 0.83)
+- **Scoring model**: v16 (6-factor weighted)
 
-## Core Pillar LOC (v31 — verified via wc -l)
+## Scoring Breakdown
+| Factor | Weight | Score | Weighted |
+|--------|--------|-------|----------|
+| Core Pillars (V3/V5/V7) | 35% | 0.90 | 0.315 |
+| Sprint Alignment (11/12) | 20% | 0.917 | 0.183 |
+| Test Coverage (19.25%) | 15% | 0.77 | 0.116 |
+| UI Readiness (90% wired) | 15% | 0.60 | 0.090 |
+| Agent Health (16/17 OK) | 10% | 0.94 | 0.094 |
+| Infrastructure (Docker/CI) | 5% | 0.92 | 0.046 |
+| **Total** | **100%** | — | **0.844** |
 
-| Pillar | Key Files | LOC | Sprint Status |
-|--------|-----------|-----|---------------|
-| **V3 Decision Intelligence** | brain_pipeline(1,354) + fail_engine(711) + autofix(1,416) + falkordb(835) + llm_consensus(393) + routers | 5,438 | 4/5 done, 1 P0 remaining (DEMO-003) |
-| **V5 MPTE Verification** | micro_pentest(2,054) + mpte_advanced(1,089) + mpte_models + mpte_db + 3 routers | 7,419 | ✅ COMPLETE + enhanced |
-| **V7 MCP-Native Platform** | mcp_server(978) + mcp_router(468) + mcp_protocol_router(204) | 1,650 | ✅ COMPLETE — 705+ tools |
-| **Total Core Pillar** | 20+ files | **14,507** | V5 strongest, V3 nearly complete |
+## Core Pillar LOC (verified via `wc -l` on 2026-03-02)
+
+| Pillar | LOC | Key Files | Status |
+|--------|-----|-----------|--------|
+| **V3** Decision Intelligence | 4,898 | brain_pipeline(1533), autofix(1428), fail(711), llm(391), kg(835) | Solid |
+| **V5** MPTE Verification | 8,340 | micro_pentest(2054), mpte_advanced(1089), sandbox(1136), +8 more | Strongest |
+| **V7** MCP-Native Platform | 2,627 | mcp_server(978), mcp_router_api(977), mcp_router_int(468), protocol(204) | Good |
+| **Total Core** | **15,865** | — | — |
+| V10 Evidence/Crypto | 3,398 | crypto(582), evidence_router(1704), compliance(1112) | Maintained |
+| V9 + Scanners | 3,719 | zero_gravity(855), sast(1622), dast(633), cspm(609) | Maintained |
+| **Grand Total** | **28,159** | All pillar code | — |
+
+## Today's Focus
+- **Priority 1**: DEMO-003 — Complete UI wiring (V3) — 6 pages remain [frontend-craftsman]
+- **Priority 2**: Test coverage gap — 19.25% vs 25% gate (V10) [qa-engineer]
+- **Priority 3**: SEC-ADV-001 — CEO key rotation [CEO action required]
 
 ## Day 2 Achievements
+1. DEMO-001 confirmed DONE — 769 routes, 58/58 E2E, 11 security fixes [V3]
+2. DEMO-002 confirmed DONE — Newman 475/475, 8th consecutive green [V10]
+3. Data-scientist: +1,242 LOC ML capabilities (SHAP, drift detection, parser quality) [V3]
+4. Enterprise-architect: SQLite connection leak fixed, ADR-008 reliability patterns [V10]
+5. Backend-hardener: secrets scanner YAML fix, 5 engine error handling improvements [V3]
+6. Devops-engineer: air-gapped test, healthcheck v2.2.0, 7 CI improvements [V9]
+7. Security-analyst: Bandit 0 HIGH, DEMO-011 verified 24/24 [V10]
+8. Agent-doctor: 19/19 engines, 56/56 DBs, 14 WAL cleaned [Support]
+9. Scrum-master: 10 artifacts, DEBATE-001 resolved, 21/21 endpoints verified [Support]
+10. Marketing: positioning v5.0, investor narrative v5, demo talking points v5 [Support]
 
-| Agent | What | Pillar | Status |
-|-------|------|--------|--------|
-| backend-hardener | DEMO-001: E2E 58/58, 769 routes, 11 security fixes | V3 | ✅ |
-| backend-hardener | Session 3: Secrets YAML fix (10 patterns), 5 engine error handling | V3, V9 | ✅ |
-| qa-engineer | DEMO-002: Newman 100% (475/475), 263 MOAT tests, quality gate PASS | V10 | ✅ |
-| threat-architect | DEMO-004 enhanced: AWS v2 arch, 66/66 regression, 58/58 E2E | V5, V10 | ✅ |
-| devops-engineer | Air-gapped test compose + CI workflow, non-root Docker | V9 | ✅ |
-| security-analyst | Bandit scan (0 HIGH), 159/159 security tests, 8/8 scanners OK | V10 | ✅ |
-| data-scientist | Model validated (R²=0.9996), 182/182 tests, intel refresh | V3, V7 | ✅ |
-| swarm-controller | 21 tasks, 75 lint fixes, E2E 24/24 | support | ✅ |
-| scrum-master | Day 2 standup, DEBATE-001 formally resolved | support | ✅ |
-
-## Day 3 Priority Focus
-
-### Priority 1: DEMO-003 — Wire UI to Real APIs (V3) — P0
-- **Assignee**: frontend-craftsman (MUST restart)
-- **Done**: CodeScanning.tsx, Integrations.tsx, IntegrationsSettings.tsx wired
-- **Remaining**: Dashboard page, Evidence Export page, Remediation page
-- **Root cause of Day 2 failure**: OAuth token expiry, NOT code bug. Build intact (0 TS errors).
-- **This is the ONLY remaining P0 and the debate verdict's #1 recommendation.**
-
-### Priority 2: Coverage 19.19% → 25% (V10) — P1
-- **Assignee**: qa-engineer
-- **Strategy**: Target large 0% files (tenancy.py, user_db.py, vector_store.py, verification_engine.py)
-- **Gap**: 5.81pp. MOAT strategy working (9 files >50%). Consider lowering gate to 20% for demo.
-
-### Priority 3: Security Advisory Resolution (V9) — P1
-- **Owner**: CEO
-- **Action**: Rotate OpenAI API key in .env
-- **Status**: Partial remediation (.env.example rewritten, .gitignore updated). Key rotation pending.
+## Drift Detection
+- **On-track**: 15/17 agents (no drift)
+- **Low drift**: 2 (data-scientist, enterprise-architect — completed sprint items first, then value-add work)
+- **High drift**: 0
+- **Rate-limited**: 1 (context-engineer — auto-recovers)
 
 ## Flags
+- UI gap remains existential: 6 pages with mock data (debate verdict #1 risk)
+- Test coverage at 19.25%: 5.75pp below 25% gate. CI failing.
+- SEC-ADV-001 MEDIUM: .env secrets. CEO must rotate OpenAI API key.
+- context-engineer rate-limited: Auto-recovers when Claude usage resets.
 
-### CRITICAL (0 — resolved from Day 2)
-- None. All previous CRITICAL drift resolved (backend-hardener ran, qa-engineer completed).
+## Customer Feedback
+- No new items (directory empty). Graceful degradation applied.
 
-### HIGH (1)
-1. **DEMO-003 (UI wiring)**: frontend-craftsman killed by watchdog. Debate verdict: "the UI gap is existential."
+## 4-Day Outlook
+| Day | Critical Path |
+|-----|--------------|
+| Day 3 (Mar 3) | DEMO-003 complete. All 12/12 done. |
+| Day 4 (Mar 4) | Full regression test. Newman + pytest green. |
+| Day 5 (Mar 5) | Dress rehearsal demo. Fix last issues. |
+| Day 6 (Mar 6) | **ENTERPRISE DEMO** |
 
-### MEDIUM (1)
-2. **Coverage 19.19%**: Below 25% gate. CI will fail. 5.81pp gap. Consider lowering gate to 20% for demo sprint.
-
-### LOW (2)
-3. **Security advisory OPEN**: .env key rotation pending (CEO action).
-4. **DEMO-012 V8**: Deferred pillar demo — acceptable, no new investment.
-
-## Quality Gate Status
-
-| Metric | Value | Gate | Status |
-|--------|-------|------|--------|
-| Newman assertions | 475/475 (100%) | ≥85% | ✅ PASS |
-| Customer scenarios | 10/10 | — | ✅ PASS |
-| Stubs detected | 0/22 | 0 | ✅ PASS |
-| Regressions | 0 | 0 | ✅ PASS |
-| Consecutive green | 6 | — | ✅ PASS |
-| Performance | All <100ms | <200ms | ✅ PASS |
-| Coverage | 19.19% | ≥25% | ❌ FAIL (5.81pp gap) |
-
-## Vision Alignment Trend
-
-| Date | Score | Items Done | Note |
-|------|-------|-----------|------|
-| 2026-02-27 | 0.82 | 14/17 (S1) | Sprint 1 final |
-| 2026-03-01 AM | 0.68 | 0/12 (S2) | Sprint 2 kickoff |
-| 2026-03-01 PM | 0.76 | 9/12 (S2) | Day 1 post-flight |
-| 2026-03-02 AM | 0.78 | 9/12 (S2) | Day 2 early post-flight |
-| **2026-03-02 PM** | **0.83** | **11/12 (S2)** | **Day 2 post-flight (v31) — stable, coverage corrected** |
-| 2026-03-03 target | 0.88 | 12/12 | DEMO-003 done, coverage ≥20% |
-
-## Day 3 Success Criteria
-1. DEMO-003 complete: Dashboard + Evidence pages wired to real APIs
-2. Coverage ≥20%: Consider lowering gate for demo sprint (currently 19.19%)
-3. Vision alignment ≥0.88
-4. All 12 demo items DONE
-
-## CEO Action Items
-1. **P0**: Ensure frontend-craftsman restarts and completes DEMO-003 (only remaining P0)
-2. **P1**: Rotate OpenAI API key (security advisory OPEN since 2026-03-01)
-3. **P1**: Consider lowering coverage gate 25%→20% for demo sprint (19.19% current, 5.81pp gap)
-4. **MONITOR**: Demo readiness 83% — 4 days remaining, on track if DEMO-003 completes Day 3
-
----
-*Produced by vision-agent v31 — Alignment: 0.83 | Trend: STABLE | Demo readiness: 83% | Core LOC: 14,507*
+**Verdict**: ON_TRACK. Score 0.84. 11/12 done with 4 days remaining. Only UI wiring left. Backend production-grade. Risk manageable.
