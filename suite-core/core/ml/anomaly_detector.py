@@ -30,7 +30,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 import numpy as np
 
@@ -451,6 +451,173 @@ class AnomalyDetector:
             )
             self._model.fit(X)
 
+    def detect_drift(
+        self,
+        current_findings: List[Dict[str, Any]],
+        previous_findings: List[Dict[str, Any]],
+    ) -> "DriftResult":
+        """Detect scan-over-scan drift between two consecutive scans.
+
+        [V3] Decision Intelligence — identifies regression or improvement trends.
+
+        Compares two scans and identifies:
+        - New vulnerabilities (appeared since last scan)
+        - Resolved vulnerabilities (disappeared since last scan)
+        - Severity changes (upgraded or downgraded)
+        - Distribution shifts (statistical comparison)
+
+        Parameters
+        ----------
+        current_findings : list of dict
+            Findings from the current (latest) scan.
+        previous_findings : list of dict
+            Findings from the previous scan.
+
+        Returns
+        -------
+        DriftResult
+            Drift analysis with new/resolved/changed findings.
+        """
+        t0 = time.monotonic()
+
+        # Extract features for both scans
+        curr_features = extract_scan_features(current_findings)
+        prev_features = extract_scan_features(previous_findings)
+
+        # Feature-level deltas
+        feature_deltas = {}
+        for i, name in enumerate(SCAN_FEATURE_NAMES):
+            delta = float(curr_features[i] - prev_features[i])
+            pct_change = (
+                delta / prev_features[i] * 100
+                if prev_features[i] != 0 else (100.0 if delta > 0 else 0.0)
+            )
+            feature_deltas[name] = {
+                "current": float(curr_features[i]),
+                "previous": float(prev_features[i]),
+                "delta": round(delta, 4),
+                "pct_change": round(pct_change, 2),
+            }
+
+        # Identity-based diff (using CVE + title + location as key)
+        curr_ids = self._extract_finding_identities(current_findings)
+        prev_ids = self._extract_finding_identities(previous_findings)
+
+        new_ids = curr_ids - prev_ids
+        resolved_ids = prev_ids - curr_ids
+        persistent_ids = curr_ids & prev_ids
+
+        # Severity shifts on persistent findings
+        curr_map = self._build_identity_map(current_findings)
+        prev_map = self._build_identity_map(previous_findings)
+        severity_changes = []
+        for fid in persistent_ids:
+            curr_sev = curr_map.get(fid, {}).get("severity", "unknown").lower()
+            prev_sev = prev_map.get(fid, {}).get("severity", "unknown").lower()
+            if curr_sev != prev_sev:
+                severity_changes.append({
+                    "identity": fid,
+                    "previous_severity": prev_sev,
+                    "current_severity": curr_sev,
+                    "direction": "upgraded" if SEVERITY_ORDER.get(curr_sev, 0) > SEVERITY_ORDER.get(prev_sev, 0) else "downgraded",
+                })
+
+        # Drift classification
+        finding_count_delta = int(curr_features[0] - prev_features[0])
+        critical_delta = curr_features[1] - prev_features[1]
+
+        drift_alerts = []
+        if abs(finding_count_delta) > max(5, 0.2 * prev_features[0]):
+            direction = "increase" if finding_count_delta > 0 else "decrease"
+            drift_alerts.append(
+                f"Finding count {direction}: {int(prev_features[0])} → {int(curr_features[0])} "
+                f"(Δ{finding_count_delta:+d})"
+            )
+
+        if abs(critical_delta) > 0.05:
+            direction = "increase" if critical_delta > 0 else "decrease"
+            drift_alerts.append(
+                f"Critical severity ratio {direction}: "
+                f"{prev_features[1]:.1%} → {curr_features[1]:.1%}"
+            )
+
+        if len(new_ids) > max(3, 0.1 * len(prev_ids)):
+            drift_alerts.append(
+                f"{len(new_ids)} new findings appeared since last scan"
+            )
+
+        if len(resolved_ids) > max(3, 0.1 * len(prev_ids)):
+            drift_alerts.append(
+                f"{len(resolved_ids)} findings resolved since last scan"
+            )
+
+        # Classify overall drift
+        if not drift_alerts:
+            drift_type = "stable"
+        elif finding_count_delta > 0 or critical_delta > 0.05:
+            drift_type = "regression"
+        elif finding_count_delta < 0 or critical_delta < -0.05:
+            drift_type = "improvement"
+        else:
+            drift_type = "shift"
+
+        dt = (time.monotonic() - t0) * 1000
+        return DriftResult(
+            drift_type=drift_type,
+            new_findings_count=len(new_ids),
+            resolved_findings_count=len(resolved_ids),
+            persistent_findings_count=len(persistent_ids),
+            severity_changes=severity_changes,
+            feature_deltas=feature_deltas,
+            drift_alerts=drift_alerts,
+            detection_time_ms=dt,
+        )
+
+    def _extract_finding_identities(
+        self, findings: List[Dict[str, Any]]
+    ) -> Set[str]:
+        """Extract identity keys for finding deduplication and diffing."""
+        identities = set()
+        for f in findings:
+            # Prefer CVE ID, then title+location, then title+severity
+            cve_id = f.get("cve_id", "")
+            title = f.get("title", "")
+            location = f.get("file_path", f.get("url", f.get("host", "")))
+            severity = f.get("severity", "")
+
+            if cve_id:
+                key = f"{cve_id}|{location}"
+            elif title:
+                key = f"{title}|{location}|{severity}"
+            else:
+                # Fallback to description hash
+                desc = f.get("description", "")
+                key = f"desc:{hash(desc)}|{severity}"
+
+            identities.add(key)
+        return identities
+
+    def _build_identity_map(
+        self, findings: List[Dict[str, Any]]
+    ) -> Dict[str, Dict[str, Any]]:
+        """Build a mapping from identity key → finding dict."""
+        result = {}
+        for f in findings:
+            cve_id = f.get("cve_id", "")
+            title = f.get("title", "")
+            location = f.get("file_path", f.get("url", f.get("host", "")))
+            severity = f.get("severity", "")
+
+            if cve_id:
+                key = f"{cve_id}|{location}"
+            elif title:
+                key = f"{title}|{location}|{severity}"
+            else:
+                desc = f.get("description", "")
+                key = f"desc:{hash(desc)}|{severity}"
+            result[key] = f
+        return result
+
     def _heuristic_detect(self, features: np.ndarray) -> List[str]:
         """Simple heuristic detection when no baseline is available."""
         reasons = []
@@ -466,6 +633,50 @@ class AnomalyDetector:
             reasons.append(f"High KEV ratio: {kev_ratio:.1%}")
 
         return reasons
+
+
+# ---------------------------------------------------------------------------
+# Drift result data class
+# ---------------------------------------------------------------------------
+
+@dataclass
+class DriftResult:
+    """Result of scan-over-scan drift detection.
+
+    [V3] Decision Intelligence — tracks security posture changes over time.
+    """
+    drift_type: str  # "stable", "regression", "improvement", "shift"
+    new_findings_count: int
+    resolved_findings_count: int
+    persistent_findings_count: int
+    severity_changes: List[Dict[str, Any]]
+    feature_deltas: Dict[str, Dict[str, float]]
+    drift_alerts: List[str]
+    detection_time_ms: float
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "drift_type": self.drift_type,
+            "new_findings_count": self.new_findings_count,
+            "resolved_findings_count": self.resolved_findings_count,
+            "persistent_findings_count": self.persistent_findings_count,
+            "severity_changes": self.severity_changes,
+            "feature_deltas": self.feature_deltas,
+            "drift_alerts": self.drift_alerts,
+            "detection_time_ms": round(self.detection_time_ms, 4),
+        }
+
+    @property
+    def is_regression(self) -> bool:
+        return self.drift_type == "regression"
+
+    @property
+    def is_improvement(self) -> bool:
+        return self.drift_type == "improvement"
+
+    @property
+    def net_change(self) -> int:
+        return self.new_findings_count - self.resolved_findings_count
 
 
 # ---------------------------------------------------------------------------
@@ -491,6 +702,7 @@ def get_anomaly_detector() -> AnomalyDetector:
 __all__ = [
     "AnomalyDetector",
     "AnomalyResult",
+    "DriftResult",
     "extract_scan_features",
     "get_anomaly_detector",
     "SCAN_FEATURE_NAMES",

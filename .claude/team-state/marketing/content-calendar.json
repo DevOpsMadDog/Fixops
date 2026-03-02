@@ -2,16 +2,16 @@
   "sprint": "Sprint 2 — Enterprise Demo",
   "date_range": "2026-03-01 to 2026-03-06",
   "owner": "marketing-head",
-  "last_updated": "2026-03-02T22:00:00Z",
+  "last_updated": "2026-03-02T00:00:00Z",
   "week_1": [
     {
       "type": "one_pager",
-      "title": "Enterprise Demo Talking Points — 9 Differentiators (v4.0)",
+      "title": "Enterprise Demo Talking Points — 9 Differentiators (v5.1)",
       "status": "done",
       "file": ".claude/team-state/marketing/enterprise-demo-talking-points.md",
       "pillar": "V3, V5, V7",
       "due": "2026-03-01",
-      "updated": "2026-03-02 — v4.0 with corrected parser LOC, verified scanner counts, 4-day urgency"
+      "updated": "2026-03-02 — v5.1, LOC re-verified Run 4, 11 security fixes, SA-001 remediated"
     },
     {
       "type": "one_pager",
@@ -20,7 +20,7 @@
       "file": ".claude/team-state/marketing/content/one-pager-enterprise-product.md",
       "pillar": "V3, V5, V7",
       "due": "2026-03-02",
-      "updated": "2026-03-02 — NEW: formal customer-facing product one-pager with ROI table"
+      "updated": "2026-03-02 — formal customer-facing product one-pager with ROI table"
     },
     {
       "type": "blog",
@@ -40,6 +40,15 @@
       "note": "Response to Anthropic Claude Code Security launch (Feb 20). Time-sensitive."
     },
     {
+      "type": "blog",
+      "title": "Why the Pentagon-Anthropic Crisis Makes Multi-Model Security Non-Negotiable",
+      "status": "done",
+      "file": ".claude/team-state/marketing/content/blog-pentagon-multi-model-resilience.md",
+      "pillar": "V3, V9",
+      "due": "2026-03-03",
+      "note": "Geopolitical AI resilience thought leadership. Time-sensitive — publish before RSA."
+    },
+    {
       "type": "linkedin",
       "title": "The 11,300 Finding Problem — And How We Solved It",
       "status": "done",
@@ -57,20 +66,40 @@
       "note": "Claude Code Security hook for LinkedIn audience"
     },
     {
+      "type": "linkedin",
+      "title": "The Pentagon Just Proved Multi-Model Security Isn't Optional",
+      "status": "done",
+      "file": ".claude/team-state/marketing/content/linkedin-pentagon-proves-multi-model.md",
+      "pillar": "V3, V9",
+      "due": "2026-03-03",
+      "note": "Pentagon-Anthropic crisis → multi-model resilience argument. Highest urgency."
+    },
+    {
       "type": "demo_video_script",
       "title": "ALdeci 5-Min Enterprise Demo Script",
-      "status": "in-progress",
+      "status": "done",
       "file": ".claude/team-state/marketing/content/demo-video-script-5min.md",
       "pillar": "V3, V5, V7",
-      "due": "2026-03-04"
+      "due": "2026-03-04",
+      "updated": "2026-03-02 — Complete with 5 acts, objection handles, pre-demo checklist, all endpoints verified"
     },
     {
       "type": "email",
-      "title": "Post-Demo Follow-Up Email Template",
-      "status": "planned",
-      "file": "",
-      "pillar": "V3",
-      "due": "2026-03-06"
+      "title": "Pre-Demo Customer Email Templates (3 variants)",
+      "status": "done",
+      "file": ".claude/team-state/marketing/content/email-pre-demo-enterprise.md",
+      "pillar": "V3, V5, V7",
+      "due": "2026-03-04",
+      "updated": "2026-03-02 — NEW: Standard, short confirmation, and security engineering variants"
+    },
+    {
+      "type": "email",
+      "title": "Post-Demo Follow-Up Email Templates (4 variants)",
+      "status": "done",
+      "file": ".claude/team-state/marketing/content/email-post-demo-followup.md",
+      "pillar": "V3, V5, V7",
+      "due": "2026-03-06",
+      "updated": "2026-03-02 — NEW: Standard, design partner invitation, technical deep-dive, and recap variants"
     }
   ],
   "week_2": [
@@ -108,10 +137,10 @@
     }
   ],
   "content_stats": {
-    "total_pieces": 12,
-    "done": 6,
-    "in_progress": 1,
-    "planned": 5,
-    "completion_rate": "50%"
+    "total_pieces": 15,
+    "done": 11,
+    "in_progress": 0,
+    "planned": 4,
+    "completion_rate": "73.3%"
   }
 }

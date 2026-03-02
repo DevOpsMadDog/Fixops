@@ -3,7 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   Brain, Activity, Shield, Zap, CheckCircle2,
-  ArrowRight, Radio, Loader2, Network, TrendingUp,
+  ArrowRight, Radio, Network, TrendingUp,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -57,8 +57,29 @@ export default function NerveCenter() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      <div className="space-y-6">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="h-9 w-72 bg-gray-700/30 rounded-md animate-pulse" />
+            <div className="h-5 w-96 bg-gray-700/20 rounded animate-pulse" />
+          </div>
+          <div className="h-10 w-36 bg-gray-700/20 rounded-md animate-pulse" />
+        </div>
+        {/* Pulse skeleton */}
+        <div className="h-28 w-full bg-gray-700/10 rounded-lg border border-gray-700/30 animate-pulse" />
+        {/* Suite grid skeleton */}
+        <div className="grid grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => (
+            <div key={i} className="h-28 bg-gray-700/10 rounded-lg border border-gray-700/20 animate-pulse" />
+          ))}
+        </div>
+        {/* Metrics skeleton */}
+        <div className="grid grid-cols-3 gap-4">
+          {[1,2,3].map(i => (
+            <div key={i} className="h-40 bg-gray-700/10 rounded-lg border border-gray-700/20 animate-pulse" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -127,28 +148,39 @@ export default function NerveCenter() {
       )}
 
       {/* Suite Status Grid */}
-      <div className="grid grid-cols-4 gap-4">
-        {suites.map((s: any, i: number) => (
-          <motion.div key={s.suite} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-            <Card className="glass-card">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-medium text-sm">{s.suite.replace('suite-', '').toUpperCase()}</h3>
-                  <div className={`flex items-center gap-1 text-xs ${statusColor[s.status] || 'text-gray-400'}`}>
-                    <Radio className="w-3 h-3" /> {s.status}
+      {suites.length > 0 ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {suites.map((s: any, i: number) => (
+            <motion.div key={s.suite} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
+              whileHover={{ scale: 1.02, y: -3 }}>
+              <Card className="glass-card backdrop-blur-md bg-gray-900/40 border-gray-700/40 hover:border-primary/30 transition-all">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-medium text-sm">{s.suite.replace('suite-', '').toUpperCase()}</h3>
+                    <div className={`flex items-center gap-1 text-xs ${statusColor[s.status] || 'text-gray-400'}`}>
+                      <Radio className="w-3 h-3" /> {s.status}
+                    </div>
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div><span className="text-muted-foreground">Endpoints:</span> <span className="font-mono">{s.endpoints}</span></div>
-                  <div><span className="text-muted-foreground">Latency:</span> <span className="font-mono">{s.latency_ms}ms</span></div>
-                  <div><span className="text-muted-foreground">Active:</span> <span className="font-mono">{s.active_tasks}</span></div>
-                  <div><span className="text-muted-foreground">Health:</span> <CheckCircle2 className="w-3 h-3 inline text-green-400" /></div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div><span className="text-muted-foreground">Endpoints:</span> <span className="font-mono">{s.endpoints}</span></div>
+                    <div><span className="text-muted-foreground">Latency:</span> <span className="font-mono">{s.latency_ms}ms</span></div>
+                    <div><span className="text-muted-foreground">Active:</span> <span className="font-mono">{s.active_tasks}</span></div>
+                    <div><span className="text-muted-foreground">Health:</span> <CheckCircle2 className="w-3 h-3 inline text-green-400" /></div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      ) : (
+        <Card className="glass-card backdrop-blur-md bg-gray-900/40 border-gray-700/40">
+          <CardContent className="flex flex-col items-center justify-center py-10 text-center">
+            <Network className="w-10 h-10 text-muted-foreground/40 mb-3" />
+            <p className="text-sm font-medium">No suite data available</p>
+            <p className="text-xs text-muted-foreground mt-1">Backend services are initializing...</p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Metrics Row */}
       <div className="grid grid-cols-3 gap-4">
@@ -237,7 +269,7 @@ export default function NerveCenter() {
             <CardTitle className="text-sm flex items-center gap-2"><TrendingUp className="w-4 h-4" /> Live Data Flows</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {links.map((link: any, i: number) => (
+            {links.length > 0 ? links.map((link: any, i: number) => (
               <div key={i} className="flex items-center justify-between p-2 rounded border border-border/50 hover:bg-accent/30 transition-colors">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <Badge variant="outline" className="text-[10px] shrink-0">{link.source_suite.replace('suite-', '')}</Badge>
@@ -247,7 +279,12 @@ export default function NerveCenter() {
                 </div>
                 <span className="text-xs font-mono text-primary ml-2">{link.events_per_min}/min</span>
               </div>
-            ))}
+            )) : (
+              <div className="text-center py-6 text-muted-foreground">
+                <Activity className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                <p className="text-xs">Waiting for data flows...</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -257,8 +294,8 @@ export default function NerveCenter() {
             <CardTitle className="text-sm flex items-center gap-2"><Zap className="w-4 h-4 text-yellow-400" /> Recent Auto-Remediation</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {actions.map((action: any) => (
-              <div key={action.id} className="p-2 rounded border border-border/50 space-y-1">
+            {actions.length > 0 ? actions.map((action: any) => (
+              <div key={action.id} className="p-2 rounded border border-border/50 space-y-1 hover:bg-accent/20 transition-colors">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium truncate max-w-[70%]">{action.trigger}</span>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full ${actionStatusBadge[action.status] || ''}`}>{action.status}</span>
@@ -269,7 +306,12 @@ export default function NerveCenter() {
                   <span>Confidence: <span className="font-mono text-green-400">{(action.confidence * 100).toFixed(0)}%</span></span>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="text-center py-6 text-muted-foreground">
+                <Zap className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                <p className="text-xs">No auto-remediation actions yet</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

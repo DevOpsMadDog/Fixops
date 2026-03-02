@@ -1,0 +1,34 @@
+{
+  "task_id": "swarm-iac-scanner-deep",
+  "worker_id": "junior-sonnet-4-6",
+  "status": "completed",
+  "files_modified": [],
+  "files_created": [
+    "tests/test_iac_scanner_deep.py"
+  ],
+  "summary": "Created 101 new supplementary unit tests in tests/test_iac_scanner_deep.py covering all previously uncovered lines (173-181, 199-249, 362-693). Combined with the existing 141 tests, coverage jumped from 35.85% to 99.46% (242 tests, all passing in 0.34s).",
+  "issues": [],
+  "needs_senior_review": false,
+  "confidence": 0.99,
+  "duration_turns": 8,
+  "metrics": {
+    "tests_written": 101,
+    "total_tests_combined": 242,
+    "coverage_before": "35.85%",
+    "coverage_after": "99.46%",
+    "pass_rate": "100%",
+    "duration_seconds": 0.34,
+    "lines_remaining_uncovered": "230->249, 415->418 (branch-only, not line misses)"
+  },
+  "test_classes": [
+    "TestVerifyContainment (7 tests) - lines 173-181",
+    "TestDetectProvider (19 tests) - lines 199-249",
+    "TestGetAvailableScanners (5 tests) - lines 196-202",
+    "TestRunCheckov (18 tests) - lines 362-453",
+    "TestRunTfsec (14 tests) - lines 455-535",
+    "TestScanContent (24 tests) - lines 537-702",
+    "TestGetIacScannerSingleton (3 tests) - lines 705-713",
+    "TestCheckovContainmentCheck (2 tests) - containment stages",
+    "TestTfsecContainmentCheck (2 tests) - containment stages"
+  ]
+}

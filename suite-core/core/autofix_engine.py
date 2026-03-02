@@ -900,22 +900,34 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
             issues.append("No patches, dependency fixes, or config changes generated")
 
         # Check 2: No dangerous patterns in patches
+        # Expanded dangerous pattern list — prevents AutoFix from introducing new vulns
         dangerous = [
-            "rm -rf",
-            "DROP TABLE",
-            "DELETE FROM",
-            "FORMAT C:",
-            "; curl",
-            "wget |",
-            "eval(",
+            # OS command execution
+            "rm -rf", "FORMAT C:", "; curl", "wget |", "eval(",
+            # SQL destructive operations
+            "DROP TABLE", "DELETE FROM", "TRUNCATE TABLE",
+            # Shell injection vectors
+            "os.system(", "subprocess.call(", "child_process.exec(",
+            # Code injection
+            "exec(", "__import__(",
+            # Credential patterns
+            "password=", "secret=", "api_key=",
+            # Unsafe deserialization
+            "pickle.loads(", "yaml.load(",
+            # Network backdoors
+            "0.0.0.0", "bind(", "socket.listen(",
         ]
         total_checks += 1
         safe = True
         for patch in suggestion.code_patches:
+            new_code_lower = patch.new_code.lower()
+            old_code_lower = patch.old_code.lower()
             for pattern in dangerous:
-                if pattern.lower() in patch.new_code.lower():
+                pat_lower = pattern.lower()
+                # Only flag if pattern is NEW (not already in old code)
+                if pat_lower in new_code_lower and pat_lower not in old_code_lower:
                     issues.append(
-                        f"Dangerous pattern '{pattern}' in patch for {patch.file_path}"
+                        f"Dangerous pattern '{pattern}' introduced in patch for {patch.file_path}"
                     )
                     safe = False
         if safe:

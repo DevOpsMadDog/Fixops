@@ -53,7 +53,7 @@ def test_execute_outbox_item_success(client, outbox_db, monkeypatch):
     """Test executing outbox item successfully."""
     from core.connectors import ConnectorOutcome
 
-    monkeypatch.setattr("apps.api.webhooks_router._get_db_path", lambda: outbox_db)
+    monkeypatch.setattr("api.webhooks_router._get_db_path", lambda: outbox_db)
 
     conn = sqlite3.connect(outbox_db)
     cursor = conn.cursor()
@@ -80,7 +80,7 @@ def test_execute_outbox_item_success(client, outbox_db, monkeypatch):
     mock_connectors.deliver.return_value = mock_outcome
 
     with patch(
-        "apps.api.webhooks_router.AutomationConnectors", return_value=mock_connectors
+        "api.webhooks_router.AutomationConnectors", return_value=mock_connectors
     ):
         response = client.post("/api/v1/webhooks/outbox/test-outbox-1/execute")
 
@@ -93,7 +93,7 @@ def test_execute_outbox_item_success(client, outbox_db, monkeypatch):
 
 def test_execute_outbox_item_not_found(client, outbox_db, monkeypatch):
     """Test executing non-existent outbox item."""
-    monkeypatch.setattr("apps.api.webhooks_router._get_db_path", lambda: outbox_db)
+    monkeypatch.setattr("api.webhooks_router._get_db_path", lambda: outbox_db)
 
     response = client.post("/api/v1/webhooks/outbox/nonexistent/execute")
     assert response.status_code == 404
@@ -101,7 +101,7 @@ def test_execute_outbox_item_not_found(client, outbox_db, monkeypatch):
 
 def test_execute_outbox_item_wrong_status(client, outbox_db, monkeypatch):
     """Test executing outbox item with wrong status."""
-    monkeypatch.setattr("apps.api.webhooks_router._get_db_path", lambda: outbox_db)
+    monkeypatch.setattr("api.webhooks_router._get_db_path", lambda: outbox_db)
 
     conn = sqlite3.connect(outbox_db)
     cursor = conn.cursor()
@@ -134,7 +134,7 @@ def test_execute_outbox_item_failure_with_retry(client, outbox_db, monkeypatch):
     """Test executing outbox item that fails and needs retry."""
     from core.connectors import ConnectorOutcome
 
-    monkeypatch.setattr("apps.api.webhooks_router._get_db_path", lambda: outbox_db)
+    monkeypatch.setattr("api.webhooks_router._get_db_path", lambda: outbox_db)
 
     conn = sqlite3.connect(outbox_db)
     cursor = conn.cursor()
@@ -161,7 +161,7 @@ def test_execute_outbox_item_failure_with_retry(client, outbox_db, monkeypatch):
     mock_connectors.deliver.return_value = mock_outcome
 
     with patch(
-        "apps.api.webhooks_router.AutomationConnectors", return_value=mock_connectors
+        "api.webhooks_router.AutomationConnectors", return_value=mock_connectors
     ):
         response = client.post("/api/v1/webhooks/outbox/test-outbox-3/execute")
 
@@ -177,7 +177,7 @@ def test_execute_outbox_item_failure_max_retries(client, outbox_db, monkeypatch)
     """Test executing outbox item that fails after max retries."""
     from core.connectors import ConnectorOutcome
 
-    monkeypatch.setattr("apps.api.webhooks_router._get_db_path", lambda: outbox_db)
+    monkeypatch.setattr("api.webhooks_router._get_db_path", lambda: outbox_db)
 
     conn = sqlite3.connect(outbox_db)
     cursor = conn.cursor()
@@ -204,7 +204,7 @@ def test_execute_outbox_item_failure_max_retries(client, outbox_db, monkeypatch)
     mock_connectors.deliver.return_value = mock_outcome
 
     with patch(
-        "apps.api.webhooks_router.AutomationConnectors", return_value=mock_connectors
+        "api.webhooks_router.AutomationConnectors", return_value=mock_connectors
     ):
         response = client.post("/api/v1/webhooks/outbox/test-outbox-4/execute")
 
@@ -325,7 +325,7 @@ def test_process_pending_outbox_items(client, outbox_db, monkeypatch):
     """Test processing pending outbox items."""
     from core.connectors import ConnectorOutcome
 
-    monkeypatch.setattr("apps.api.webhooks_router._get_db_path", lambda: outbox_db)
+    monkeypatch.setattr("api.webhooks_router._get_db_path", lambda: outbox_db)
 
     conn = sqlite3.connect(outbox_db)
     cursor = conn.cursor()
@@ -367,7 +367,7 @@ def test_process_pending_outbox_items(client, outbox_db, monkeypatch):
     mock_connectors.deliver.return_value = mock_outcome
 
     with patch(
-        "apps.api.webhooks_router.AutomationConnectors", return_value=mock_connectors
+        "api.webhooks_router.AutomationConnectors", return_value=mock_connectors
     ):
         response = client.post("/api/v1/webhooks/outbox/process-pending?limit=10")
 
@@ -379,7 +379,7 @@ def test_process_pending_outbox_items(client, outbox_db, monkeypatch):
 
 def test_process_pending_outbox_items_with_exception(client, outbox_db, monkeypatch):
     """Test processing pending outbox items when execute_outbox_item raises an exception."""
-    monkeypatch.setattr("apps.api.webhooks_router._get_db_path", lambda: outbox_db)
+    monkeypatch.setattr("api.webhooks_router._get_db_path", lambda: outbox_db)
 
     conn = sqlite3.connect(outbox_db)
     cursor = conn.cursor()
@@ -403,7 +403,7 @@ def test_process_pending_outbox_items_with_exception(client, outbox_db, monkeypa
 
     # Mock execute_outbox_item to raise an exception
     with patch(
-        "apps.api.webhooks_router.execute_outbox_item",
+        "api.webhooks_router.execute_outbox_item",
         side_effect=Exception("Simulated failure"),
     ):
         response = client.post("/api/v1/webhooks/outbox/process-pending?limit=10")

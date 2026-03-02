@@ -1,6 +1,6 @@
 # Integration Architecture — ALdeci CTEM+ Platform
 
-**Last Updated**: 2026-03-02 by enterprise-architect
+**Last Updated**: 2026-03-02 (afternoon) by enterprise-architect
 **Pillars**: V7 (MCP-Native), V3 (Decision Intelligence), V9 (Air-Gapped)
 
 ---
@@ -14,7 +14,10 @@ ALdeci integrates with external systems in three modes:
 | **Outbound Connectors** | ALdeci → Tool | 7 | `_BaseConnector` subclass |
 | **Security Connectors** | ALdeci → Scanner API | 10 | `_BaseConnector` subclass |
 | **Inbound Parsers** | Scanner → ALdeci | 15 | Webhook normalizer class |
-| **Total** | | **32** | |
+| **Webhook Receivers** | External → ALdeci | 4 | HMAC-verified webhook endpoints |
+| **MCP Gateway** | AI Agent → ALdeci | 705 tools | JSON-RPC auto-discovered |
+| **Threat Feeds** | Public DB → ALdeci | 4 | Pull + cache |
+| **Total Integration Points** | | **32 connectors + 705 MCP tools** | |
 
 ---
 
@@ -82,7 +85,7 @@ When external scanner APIs are unreachable:
 
 ## 4. Inbound Parsers (15)
 
-**File**: `suite-core/core/scanner_parsers.py` (1,089 LOC)
+**File**: `suite-core/core/scanner_parsers.py` (1,100+ LOC, defusedxml hardened)
 **API**: `suite-api/apps/api/scanner_ingest_router.py` (388 LOC)
 **Pattern**: Webhook normalizer — scanner pushes output to ALdeci.
 
@@ -107,7 +110,7 @@ When external scanner APIs are unreachable:
 ### Ingestion Flow
 ```
 CI/CD Pipeline → POST /api/v1/scanner-ingest/webhook/{type}
-              → scanner_parsers.py normalizer
+              → scanner_parsers.py normalizer (defusedxml for XML)
               → List[UnifiedFinding]
               → (optional) Brain Pipeline Step 1
 ```
@@ -121,9 +124,35 @@ curl -X POST /api/v1/scanner-ingest/upload \
 # Response: {"detected": "checkmarx", "confidence": 0.95}
 ```
 
+### Security (Updated 2026-03-02)
+- XML parsing uses `defusedxml.defuse_stdlib()` for XXE protection
+- Primary parser: `defusedxml.ElementTree.fromstring`
+- Fallback: regex DOCTYPE/ENTITY stripping + stdlib parser
+- Size limits: 100 MB for XML and JSON inputs
+- All 142 parser tests passing
+
 ---
 
-## 5. MCP Gateway (V7)
+## 5. Webhook Receivers (4)
+
+**File**: `suite-integrations/api/webhooks_router.py` (1,800+ LOC)
+**Pattern**: HMAC signature verification, no API key required.
+
+| Receiver | Source | Auth | Handler |
+|----------|--------|------|---------|
+| `/api/v1/webhooks/jira` | Jira | HMAC-SHA256 | Issue sync |
+| `/api/v1/webhooks/servicenow` | ServiceNow | HMAC-SHA256 | Incident sync |
+| `/api/v1/webhooks/gitlab` | GitLab | X-Gitlab-Token header | MR/pipeline events |
+| `/api/v1/webhooks/azure-devops` | Azure DevOps | Token header | Work item events |
+
+### Security
+- Uses `hmac.compare_digest()` for constant-time comparison (prevents timing attacks)
+- Secrets stored in environment variables
+- No API key required (webhook authentication is signature-based per industry standard)
+
+---
+
+## 6. MCP Gateway (V7)
 
 **Files**: `suite-integrations/api/mcp_router.py` (468 LOC), `suite-core/core/mcp_server.py` (979 LOC)
 **Protocol**: JSON-RPC 2.0 over HTTP (stdio + SSE + WebSocket transports)
@@ -137,13 +166,18 @@ AI Agent → POST /api/v1/mcp-protocol/rpc → JSON-RPC request
 
 ### Tools Auto-Discovery
 ALdeci auto-discovers MCP tools from its own OpenAPI specification:
-- 705 tools auto-generated from 759 API endpoints
+- 705 tools auto-generated from 769 API endpoints
 - Each tool maps to one REST endpoint with typed parameters
 - Schema exported via `GET /api/v1/mcp/tools`
 
+### Security
+- All MCP endpoints require API key authentication
+- Tool execution is subject to same auth/scope as the underlying endpoint
+- Rate limited (120 req/min shared with all other endpoints)
+
 ---
 
-## 6. Threat Feeds (suite-feeds)
+## 7. Threat Feeds (suite-feeds)
 
 **File**: `suite-feeds/api/feeds_router.py` (31 endpoints)
 **Pattern**: Pull from public databases, cache locally.
@@ -157,7 +191,7 @@ ALdeci auto-discovers MCP tools from its own OpenAPI specification:
 
 ---
 
-## 7. External Services
+## 8. External Services
 
 | Service | Port | Purpose | Required |
 |---------|------|---------|----------|
@@ -168,7 +202,7 @@ ALdeci auto-discovers MCP tools from its own OpenAPI specification:
 
 ---
 
-## 8. Failure Modes & Recovery
+## 9. Failure Modes & Recovery
 
 | Scenario | Impact | Recovery |
 |----------|--------|----------|
@@ -180,6 +214,29 @@ ALdeci auto-discovers MCP tools from its own OpenAPI specification:
 | Internet down | No feeds/LLMs | Full air-gapped mode (V9) |
 
 **Design Principle**: Every external dependency has an offline fallback. ALdeci degrades gracefully, never crashes.
+
+---
+
+## 10. API Contract Summary
+
+### ALdeci Calls OUT
+| Destination | Protocol | Auth | Timeout | Retry |
+|-------------|----------|------|---------|-------|
+| Jira/Confluence | REST HTTPS | API Token | 15s | 3x with backoff |
+| Slack | REST HTTPS | Bot Token | 10s | 3x with backoff |
+| GitHub/GitLab/Azure | REST HTTPS | PAT | 15s | 3x with backoff |
+| ServiceNow | REST HTTPS | OAuth2 | 15s | 3x with backoff |
+| Scanner APIs (10) | REST HTTPS | Various | 30s | 3x with backoff |
+| LLM APIs | REST HTTPS | API Key | 60s | 2x |
+| Threat Feeds | REST HTTPS | None/API Key | 30s | 3x |
+
+### External Systems Call IN
+| Source | Protocol | Auth | Rate Limit |
+|--------|----------|------|-----------|
+| Webhook providers | REST HTTPS | HMAC Signature | 120/min |
+| CI/CD scanners | REST HTTPS | API Key | 120/min |
+| AI Agents (MCP) | JSON-RPC over HTTPS | API Key | 120/min |
+| User browsers | HTTPS | JWT | 120/min |
 
 ---
 

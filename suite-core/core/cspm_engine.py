@@ -340,7 +340,14 @@ class CSPMEngine:
 
     Scans cloud configurations (Terraform, CloudFormation, ARM templates)
     and optionally queries live cloud APIs via boto3/azure-sdk/google-cloud.
+
+    Security limits:
+    - MAX_CONFIG_SIZE: 5 MB max per configuration input
+    - MAX_FINDINGS: 2,000 findings cap per scan
     """
+
+    MAX_CONFIG_SIZE = 5 * 1024 * 1024  # 5 MB
+    MAX_FINDINGS = 2_000
 
     def __init__(self):
         self._boto3_available = False
@@ -365,10 +372,18 @@ class CSPMEngine:
         except ImportError:
             pass
 
+    def _validate_config_size(self, content: str, label: str = "config") -> None:
+        """Validate configuration input size to prevent DoS."""
+        if len(content) > self.MAX_CONFIG_SIZE:
+            raise ValueError(
+                f"{label} size {len(content)} exceeds maximum {self.MAX_CONFIG_SIZE} bytes"
+            )
+
     def scan_terraform(
         self, tf_content: str, filename: str = "main.tf"
     ) -> CspmScanResult:
         """Scan Terraform HCL configuration for cloud misconfigurations."""
+        self._validate_config_size(tf_content, "Terraform config")
         t0 = time.time()
         findings: List[CspmFinding] = []
         provider = self._detect_provider_tf(tf_content)
@@ -497,6 +512,7 @@ class CSPMEngine:
 
     def scan_cloudformation(self, cf_content: str) -> CspmScanResult:
         """Scan CloudFormation JSON/YAML for AWS misconfigurations."""
+        self._validate_config_size(cf_content, "CloudFormation template")
         t0 = time.time()
         findings: List[CspmFinding] = []
         try:

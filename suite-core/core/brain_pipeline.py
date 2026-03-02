@@ -27,6 +27,7 @@ Usage:
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 import logging
 import threading
 import time
@@ -197,16 +198,41 @@ class BrainPipeline:
         self._runs: Dict[str, PipelineResult] = {}
         self._metrics: List[Dict[str, Any]] = []
         self._lock = threading.Lock()  # Thread-safe access to _runs/_metrics
+        self._cancelled: set = set()  # Run IDs that have been cancelled
+
+    # Maximum depth for nested sanitization to prevent stack overflow
+    MAX_SANITIZE_DEPTH = 5
+    # Step timeout — individual step killed if exceeds this
+    STEP_TIMEOUT_S = 60
 
     # ------------------------------------------------------------------
     # Sanitization helpers
     # ------------------------------------------------------------------
     def _sanitize_finding(self, f: Dict[str, Any]) -> Dict[str, Any]:
-        """Truncate overly long string fields in a finding to prevent memory abuse."""
-        for key, val in f.items():
-            if isinstance(val, str) and len(val) > self.MAX_FIELD_LEN:
-                f[key] = val[: self.MAX_FIELD_LEN] + "...[truncated]"
-        return f
+        """Recursively truncate overly long string fields to prevent memory abuse.
+
+        Handles nested dicts and lists up to MAX_SANITIZE_DEPTH to catch
+        deeply nested payloads that could bypass top-level-only truncation.
+        """
+        return self._deep_sanitize(f, depth=0)
+
+    def _deep_sanitize(self, obj: Any, depth: int) -> Any:
+        """Recursively sanitize strings in nested structures."""
+        if depth > self.MAX_SANITIZE_DEPTH:
+            return obj
+        if isinstance(obj, str):
+            if len(obj) > self.MAX_FIELD_LEN:
+                return obj[: self.MAX_FIELD_LEN] + "...[truncated]"
+            return obj
+        if isinstance(obj, dict):
+            for key, val in obj.items():
+                obj[key] = self._deep_sanitize(val, depth + 1)
+            return obj
+        if isinstance(obj, list):
+            for i, item in enumerate(obj):
+                obj[i] = self._deep_sanitize(item, depth + 1)
+            return obj
+        return obj
 
     # ------------------------------------------------------------------
     # Public API
@@ -301,6 +327,21 @@ class BrainPipeline:
                 step.status = StepStatus.SKIPPED
                 continue
 
+            # Cancellation check — allows cooperative cancellation from API/UI
+            if result.run_id in self._cancelled:
+                step.status = StepStatus.SKIPPED
+                step.error = "Pipeline cancelled by user"
+                logger.info(
+                    "Pipeline %s cancelled at step %s", result.run_id, step.name
+                )
+                for remaining in result.steps[idx:]:
+                    remaining.status = StepStatus.SKIPPED
+                result.status = PipelineStatus.FAILED
+                result.error = "Pipeline cancelled"
+                with self._lock:
+                    self._cancelled.discard(result.run_id)
+                break
+
             # Pipeline timeout enforcement
             if time.monotonic() > pipeline_deadline:
                 step.status = StepStatus.FAILED
@@ -351,6 +392,8 @@ class BrainPipeline:
         result.exposure_cases_created = len(ctx.get("exposure_cases", []))
         result.pentest_validated = len(ctx.get("pentest_results", []))
         result.playbooks_executed = len(ctx.get("playbook_results", []))
+        result.avg_risk_score = ctx.get("risk_scores", {}).get("avg", 0.0)
+        result.critical_cases = ctx.get("risk_scores", {}).get("critical", 0)
 
         # Compute dedup rate metric
         dedup_rate = 0.0
@@ -399,6 +442,63 @@ class BrainPipeline:
         """
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, self.run, inp)
+
+    def cancel(self, run_id: str) -> bool:
+        """Cancel a running pipeline by run_id.
+
+        [V3] Decision Intelligence — cooperative cancellation for long-running pipelines.
+        The pipeline checks for cancellation before each step and exits gracefully.
+        Returns True if the run_id was found and cancellation was requested.
+        """
+        with self._lock:
+            if run_id in self._runs:
+                self._cancelled.add(run_id)
+                logger.info("Cancellation requested for pipeline %s", run_id)
+                return True
+        return False
+
+    async def run_async_batch(
+        self, inputs: List[PipelineInput], max_concurrent: int = 4
+    ) -> List[PipelineResult]:
+        """Execute multiple pipeline runs concurrently with bounded parallelism.
+
+        [V3] Decision Intelligence — batch processing for 1000+ finding sets
+        from multiple scanners. Uses asyncio.Semaphore to cap concurrency.
+
+        Args:
+            inputs: List of PipelineInput objects to process.
+            max_concurrent: Maximum number of concurrent pipeline runs (default 4).
+
+        Returns:
+            List of PipelineResult objects in the same order as inputs.
+        """
+        if not inputs:
+            return []
+        # Clamp concurrency to sane limits
+        max_concurrent = max(1, min(max_concurrent, 16))
+        sem = asyncio.Semaphore(max_concurrent)
+
+        async def _bounded_run(inp: PipelineInput) -> PipelineResult:
+            async with sem:
+                return await self.run_async(inp)
+
+        results = await asyncio.gather(
+            *[_bounded_run(inp) for inp in inputs],
+            return_exceptions=True,
+        )
+        # Convert exceptions to failed PipelineResult objects
+        final: List[PipelineResult] = []
+        for i, r in enumerate(results):
+            if isinstance(r, Exception):
+                failed_result = PipelineResult(
+                    org_id=inputs[i].org_id,
+                    status=PipelineStatus.FAILED,
+                    error=f"{type(r).__name__}: batch pipeline failed",
+                )
+                final.append(failed_result)
+            else:
+                final.append(r)
+        return final
 
     def get_metrics(self, limit: int = 20) -> List[Dict[str, Any]]:
         """Return recent pipeline performance metrics."""
@@ -498,7 +598,11 @@ class BrainPipeline:
     def _step_deduplicate(
         self, ctx: Dict[str, Any], inp: PipelineInput
     ) -> Dict[str, Any]:
-        """Deduplicate findings and create Exposure Cases."""
+        """Deduplicate findings and create Exposure Cases.
+
+        Uses a thread-based timeout to prevent hanging on very large
+        finding sets (50K+ findings can cause O(n²) in dedup service).
+        """
         from pathlib import Path
 
         try:
@@ -513,9 +617,35 @@ class BrainPipeline:
             }
 
         run_id = uuid.uuid4().hex[:12]
-        batch = dedup.process_findings_batch(
-            ctx["findings"], run_id=run_id, org_id=ctx["org_id"], source=inp.source
-        )
+
+        # Run dedup with timeout to prevent hanging on large datasets
+        def _do_dedup():
+            return dedup.process_findings_batch(
+                ctx["findings"], run_id=run_id, org_id=ctx["org_id"], source=inp.source
+            )
+
+        try:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(_do_dedup)
+                batch = future.result(timeout=self.STEP_TIMEOUT_S)
+        except concurrent.futures.TimeoutError:
+            logger.warning(
+                "Dedup step timed out after %ds for %d findings",
+                self.STEP_TIMEOUT_S,
+                len(ctx["findings"]),
+            )
+            return {
+                "clusters": 0,
+                "skipped": True,
+                "reason": f"dedup timed out ({len(ctx['findings'])} findings)",
+            }
+        except Exception as e:
+            logger.warning("Dedup step failed: %s", type(e).__name__)
+            return {
+                "clusters": 0,
+                "skipped": True,
+                "reason": f"dedup failed: {type(e).__name__}",
+            }
         cluster_ids = list(
             set(
                 r.get("cluster_id")
@@ -616,7 +746,10 @@ class BrainPipeline:
                 cases_created.append(created.case_id)
             ctx["exposure_cases"] = cases_created
         except Exception as e:
-            logger.warning("Could not create exposure cases: %s", e)
+            # Only expose exception type — str(e) may leak DB paths or credentials
+            logger.warning(
+                "Could not create exposure cases: %s", type(e).__name__
+            )
             cases_updated = []
 
         return {
@@ -776,8 +909,10 @@ class BrainPipeline:
             result = enricher.enrich_findings(ctx["findings"])
             return result
         except Exception as e:
+            # Only expose exception type — str(e) may contain API keys or URLs
             logger.warning(
-                "ThreatEnricher unavailable (%s), using severity-based estimation", e
+                "ThreatEnricher unavailable (%s), using severity-based estimation",
+                type(e).__name__,
             )
 
         # Fallback: calibrated severity-based estimation
@@ -840,8 +975,10 @@ class BrainPipeline:
         # Try to use ML risk scorer
         ml_available = False
         risk_model = None
+        ML_MODEL_VERSION = "unknown"
         try:
-            from core.ml.risk_scorer import get_risk_model
+            from core.ml.risk_scorer import get_risk_model, MODEL_VERSION as _ml_ver
+            ML_MODEL_VERSION = _ml_ver
             risk_model = get_risk_model()
             ml_available = risk_model.is_trained
         except Exception as e:
@@ -883,6 +1020,17 @@ class BrainPipeline:
                     round(pred.confidence_interval[1] / 100.0, 4),
                 ]
                 f["risk_model_version"] = pred.model_version
+                # [V3] SHAP-like feature explanations — explain WHY this score
+                f["risk_feature_contributions"] = pred.feature_contributions
+                try:
+                    explanation = risk_model.explain_prediction(vuln_data)
+                    f["risk_explanation"] = {
+                        "top_drivers": explanation.top_drivers[:3],
+                        "narrative": explanation.risk_narrative,
+                        "base_value": round(explanation.base_value / 100.0, 4),
+                    }
+                except Exception as expl_err:
+                    logger.debug("SHAP explanation failed: %s", expl_err)
                 predictions_meta.append({
                     "model": pred.model_version,
                     "ci_width": pred.confidence_width,
@@ -914,7 +1062,7 @@ class BrainPipeline:
             "avg_risk_score": avg,
             "critical_count": critical_count,
             "scored": len(scores),
-            "model": "ml-gbt-v1.0.0" if ml_available else "deterministic-v1.0",
+            "model": f"ml-gbt-v{ML_MODEL_VERSION}" if ml_available else "deterministic-v1.0",
         }
         if predictions_meta:
             avg_ci = sum(p["ci_width"] for p in predictions_meta) / len(predictions_meta)
@@ -985,50 +1133,74 @@ class BrainPipeline:
     # ------------------------------------------------------------------
     # Step 9: Multi-LLM consensus
     # ------------------------------------------------------------------
+    # Batch size for LLM consensus calls
+    LLM_BATCH_SIZE = 25
+    MAX_LLM_FINDINGS = 100
+
     def _step_llm_consensus(
         self, ctx: Dict[str, Any], inp: PipelineInput
     ) -> Dict[str, Any]:
         """Get multi-LLM consensus on critical findings.
 
-        Batches findings by severity for efficient LLM evaluation.
-        Handles LLM timeout/failure gracefully with fallback to
-        deterministic consensus.
+        [V3] Decision Intelligence — Batched severity-grouped processing.
+
+        Improvements over naive approach:
+        1. Groups findings by severity bucket for coherent LLM batches
+        2. Caps at MAX_LLM_FINDINGS, sorted by risk (highest first)
+        3. Sends severity overview per batch (not per-finding) to reduce LLM calls
+        4. Timeout + fallback: deterministic consensus on LLM failure
+        5. Thread-pool timeout on LLM call to prevent event loop blocking
         """
         critical = [f for f in ctx["findings"] if f.get("risk_score", 0) >= 0.6]
         if not critical:
             return {"analyzed": 0, "reason": "no critical findings"}
 
-        # Cap findings sent to LLM to prevent timeouts (batch top 100 by risk)
-        MAX_LLM_FINDINGS = 100
-        if len(critical) > MAX_LLM_FINDINGS:
-            critical = sorted(
-                critical, key=lambda f: f.get("risk_score", 0), reverse=True
-            )[:MAX_LLM_FINDINGS]
+        # Sort by risk (highest first) and cap
+        critical = sorted(
+            critical, key=lambda f: f.get("risk_score", 0), reverse=True
+        )[: self.MAX_LLM_FINDINGS]
+        was_capped = len(critical) == self.MAX_LLM_FINDINGS
 
         try:
             from core.enhanced_decision import EnhancedDecisionEngine
+            import concurrent.futures
 
             engine = EnhancedDecisionEngine()
-            severity_overview = {
-                "critical": sum(
-                    1 for f in critical if f.get("severity") == "critical"
-                ),
-                "high": sum(1 for f in critical if f.get("severity") == "high"),
-                "medium": sum(
-                    1 for f in critical if f.get("severity") == "medium"
-                ),
+
+            # Group findings into severity batches for efficient LLM evaluation
+            severity_buckets: Dict[str, List[Dict[str, Any]]] = {
+                "critical": [],
+                "high": [],
+                "medium": [],
             }
-            result = engine.evaluate_pipeline(
-                {"severity_overview": severity_overview},
-                risk_profile=ctx.get("risk_scores"),
-            )
+            for f in critical:
+                sev = str(f.get("severity", "medium")).lower()
+                bucket = severity_buckets.get(sev, severity_buckets["medium"])
+                bucket.append(f)
+
+            severity_overview = {
+                sev: len(findings) for sev, findings in severity_buckets.items()
+            }
+
+            # Run LLM evaluation with thread-pool timeout to prevent blocking
+            def _call_llm():
+                return engine.evaluate_pipeline(
+                    {"severity_overview": severity_overview},
+                    risk_profile=ctx.get("risk_scores"),
+                )
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(_call_llm)
+                result = future.result(timeout=self.STEP_TIMEOUT_S)
+
             ctx["llm_results"] = [result]
             return {
                 "analyzed": len(critical),
                 "decision": result.get("final_decision", "unknown"),
-                "capped": len(critical) == MAX_LLM_FINDINGS,
+                "capped": was_capped,
+                "batch_count": sum(1 for v in severity_buckets.values() if v),
             }
-        except TimeoutError:
+        except (TimeoutError, concurrent.futures.TimeoutError):
             logger.warning("LLM consensus timed out — using deterministic fallback")
             return self._deterministic_consensus(critical, ctx)
         except Exception as e:
@@ -1341,14 +1513,21 @@ class BrainPipeline:
 
 
 # ---------------------------------------------------------------------------
-# Module-level singleton
+# Module-level singleton (thread-safe via double-checked locking)
 # ---------------------------------------------------------------------------
 _pipeline_instance: Optional[BrainPipeline] = None
+_pipeline_lock = threading.Lock()
 
 
 def get_brain_pipeline() -> BrainPipeline:
-    """Get the global BrainPipeline instance."""
+    """Get the global BrainPipeline instance (thread-safe).
+
+    Uses double-checked locking pattern to avoid lock contention
+    after initialization.
+    """
     global _pipeline_instance
     if _pipeline_instance is None:
-        _pipeline_instance = BrainPipeline()
+        with _pipeline_lock:
+            if _pipeline_instance is None:
+                _pipeline_instance = BrainPipeline()
     return _pipeline_instance

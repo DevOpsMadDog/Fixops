@@ -199,10 +199,28 @@ FastAPI app endpoint enumeration via `create_app()` route inspection:
 - **Source behavior**: `_validate_image_ref()` runs regex format check on raw (unstripped)
   string, then returns `.strip()`. Leading/trailing spaces fail the regex before strip.
 - **Coverage command**: `--cov=core.container_scanner` (module notation, not filesystem path)
-- **Mock pattern for asyncio.create_subprocess_exec**:
+- **Mock pattern for asyncio.create_subprocess_exec** (iac_scanner pattern):
   ```python
-  mock_proc = MagicMock()
-  mock_proc.communicate = AsyncMock(return_value=(output_bytes, b""))
-  with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock, return_value=mock_proc):
-      result = await scanner.scan_image("nginx:1.25")
+  proc = MagicMock(); proc.returncode = 0
+  proc.communicate = AsyncMock(return_value=(stdout_bytes, b""))
+  with patch("core.iac_scanner.asyncio.create_subprocess_exec", return_value=proc): ...
   ```
+  Key: patch at `core.module.asyncio.create_subprocess_exec`, not global `asyncio.*`
+
+### IaC Scanner Deep Test Pattern (swarm-iac-scanner-deep)
+`tests/test_iac_scanner_deep.py` has 101 tests; combined with 141 existing = 242 total.
+Coverage: 35.85% -> 99.46% in 0.34s.
+- **os.path.realpath mock**: Use `patch("core.iac_scanner.os.path.realpath")` with a side_effect
+  function that returns trusted/base/candidate values based on the input path string.
+- **Three-stage containment**: The scanner checks (1) candidate under trusted_root,
+  (2) base under trusted_root, (3) candidate under base. To test failure of stage N,
+  make realpath return a value that fails only that stage's comparison.
+- **safe_tempdir mock pattern** (for scan_content):
+  ```python
+  @contextmanager
+  def fake_tempdir(base):
+      yield "/path/to/tmpdir"
+  with patch("core.iac_scanner.safe_tempdir", fake_tempdir): ...
+  ```
+- **Provider detection mocks**: Patch `core.iac_scanner.safe_isfile`, `safe_isdir`,
+  `safe_read_text`, `safe_iterdir` at the iac_scanner module level (not safe_path_ops).

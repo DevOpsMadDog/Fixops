@@ -103,32 +103,33 @@ say "Attack path analysis shows how an attacker reaches sensitive data. Blast ra
 # [1:45-2:30] AI Agent & MCP
 step "3" "AI Agent & MCP — The AI-Native Platform [1:45-2:30]"
 
-echo -e "${Y}>>>${N} AI Agent status:"
-R=$(api "$BASE/ai-agent/status")
+echo -e "${Y}>>>${N} Sandbox health (safe exploit verification env):"
+R=$(api "$BASE/sandbox/health")
 echo "$R" | python3 -c "
 import json,sys
 d=json.load(sys.stdin)
 print(f'  Status: {d.get(\"status\",\"?\")}')
-if d.get('active_model'):
-    print(f'  Active model: {d.get(\"active_model\")}')
-if d.get('capabilities'):
-    caps=d.get('capabilities',[])
-    if isinstance(caps,list):
-        print(f'  Capabilities: {len(caps)}')
-" 2>/dev/null || echo "  (AI Agent loading...)"
+if d.get('components'):
+    for k,v in d['components'].items():
+        print(f'    {k}: {v}')
+elif d.get('checks'):
+    for k,v in d['checks'].items():
+        print(f'    {k}: {v}')
+" 2>/dev/null || echo "  (sandbox health loading...)"
 
-echo -e "\n${Y}>>>${N} AI backends (self-hosted + cloud):"
-R=$(api "$BASE/ai-agent/backends")
+echo -e "\n${Y}>>>${N} Active workflows:"
+R=$(api "$BASE/workflows")
 echo "$R" | python3 -c "
 import json,sys
 d=json.load(sys.stdin)
-backends=d if isinstance(d,list) else d.get('backends',[])
-for b in backends[:5]:
-    if isinstance(b,dict):
-        print(f'    * {b.get(\"name\",\"?\")} ({b.get(\"type\",\"?\")}) -- {b.get(\"status\",\"?\")}')
+wf=d if isinstance(d,list) else d.get('workflows',[])
+print(f'  Active workflows: {len(wf)}')
+for w in wf[:5]:
+    if isinstance(w,dict):
+        print(f'    * {w.get(\"name\",w.get(\"id\",\"?\"))} -- {w.get(\"status\",\"?\")}')
     else:
-        print(f'    * {b}')
-" 2>/dev/null || echo "  (backends loading...)"
+        print(f'    * {w}')
+" 2>/dev/null || echo "  (workflows loading...)"
 
 echo -e "\n${Y}>>>${N} MCP Tools — AI-consumable security API:"
 R=$(api "$BASE/mcp/tools")
@@ -154,4 +155,4 @@ echo "$R" | head -15 2>/dev/null || echo "  (export loading...)"
 
 say "Priya, this is what no competitor has: a knowledge graph connecting findings to architecture, an AI consensus engine proving decisions, and an MCP gateway making it all programmable. ALdeci is not a tool. It is the intelligence layer for your entire security stack."
 
-echo -e "\n${G}  CTO Demo Complete | 10 endpoints | V3 + V7${N}"
+echo -e "\n${G}  CTO Demo Complete | 10 endpoints | V3 + V7 (v4.0 verified endpoints)${N}"

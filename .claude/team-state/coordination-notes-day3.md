@@ -1,135 +1,175 @@
 # Coordination Notes — Day 3 (2026-03-03)
-# Enterprise Demo Sprint | 3 Days Remaining | 10/12 Done
+# Enterprise Demo Sprint | 3 Days Remaining | 11/12 Done (91.7%)
 
-> **Updated by**: scrum-master (Day 2 afternoon, 2026-03-02 10:23)
+> **Updated by**: scrum-master (Day 2 Final Run, 2026-03-02)
 > **Sprint board**: sprint-board.json (source of truth)
-> **Previous notes**: coordination-notes.md (Sprint 2 master), coordination-notes-day2.md
-
-## STATUS: 10/12 DONE — 2 P0 ITEMS REMAIN
-
-### REMAINING ITEMS (Day 3 Priority)
-
-| Item | Agent | Status | Day 3 Action |
-|------|-------|--------|--------------|
-| **DEMO-002** | qa-engineer | 84.7% (404/477) | **ITERATE**: /search FIXED (200). Run Newman again. Target 95%+. Fix remaining 73 failures. |
-| **DEMO-003** | frontend-craftsman | BLOCKED (OAuth) | **RESTART**: Root cause is OAuth token expiry, NOT code bug. Get fresh token, restart agent. Wire remaining pages. |
-
-### COMPLETED ITEMS (No further action needed)
-DEMO-001 ✅, DEMO-004 ✅, DEMO-005 ✅, DEMO-006 ✅, DEMO-007 ✅, DEMO-008 ✅, DEMO-009 ✅, DEMO-010 ✅, DEMO-011 ✅, DEMO-012 ✅
+> **Quality gate**: ✅ PASS (Newman 475/475, moat 88.95%, 8th consecutive green)
+> **Vision alignment**: 0.83 | **Funding readiness**: 78%
+> **API verified**: 26/26 endpoints HTTP 200 against live server
 
 ---
 
-## CRITICAL DIRECTIVES (Unchanged)
+## CRITICAL DIRECTIVE FOR DAY 3
 
-### 1. DO NOT WRITE PYTHON UNIT TESTS
-Coverage config is fixed (DEMO-006). The 73 Postman failures are the priority, not pytest.
+**ONLY 1 ITEM REMAINS**: DEMO-003 (UI wiring — 6 pages with mock data).
 
-### 2. DO NOT BUILD aldeci-ui-new
-`suite-ui/aldeci-ui-new/` does NOT EXIST. Work in `suite-ui/aldeci/`.
+All other 11 items are DONE. The API layer is production-grade. Newman 100%. Demo scripts work. 6 demo scripts validated. 5 persona walkthroughs verified. Documentation suite complete.
 
-### 3. POSTMAN IS THE PRIMARY TEST METHOD
-Newman runs against live API = highest trust.
-
-### 4. NO CASCADE STOPS
-Every demo item is independent. If one agent fails, others continue.
+**Day 3 priorities**:
+1. **P0**: Complete DEMO-003 (frontend-craftsman)
+2. **P1**: Final integration testing and demo rehearsal
+3. **P2**: Polish, hardening, documentation updates
 
 ---
 
-## DAY 3 AGENT ASSIGNMENTS
+## Agent Instructions for Day 3
 
-### P0 — Must Complete Day 3
-| Agent | Task | Details |
-|-------|------|---------|
-| **qa-engineer** | DEMO-002: Push Postman to 95%+ | /search NOW returns 200 (was 500). Run Newman. Fix remaining 73 failures: 20 null-ID 404s (add seed data), 30 validation 422s (fix request bodies), 23 other. Use `suite-integrations/postman/enterprise/` collections. |
-| **frontend-craftsman** | DEMO-003: Wire remaining UI pages | Get fresh OAuth token first. Wire: Dashboard pages, Evidence pages, Remediation pages, Settings pages. Use `suite-ui/aldeci/src/lib/api.ts` exports. Fix response key mismatches (backend returns `{items:[]}` but UI expects array). Previous build is intact (0 TS errors, 1.75s). |
+### Frontend Craftsman — P0 CRITICAL (DEMO-003)
+**Task**: Wire remaining 6 UI pages to real API data. This is the LAST ITEM.
 
-### P1 — Available for Support / Enhancement
-| Agent | Task | Details |
-|-------|------|---------|
-| **backend-hardener** | Support DEMO-002/003 | Fix any remaining 500 endpoints found by QA. Generate strong JWT secret (SEC-ADV-001). Available as fallback for API fixes. |
-| **devops-engineer** | Infrastructure support | Fix OAuth token infrastructure for frontend-craftsman. Verify Docker compose still works after Day 2 changes. |
-| **threat-architect** | MOAT hardening | If time permits, enhance CTEM regression tests. Security advisory threat model support. |
-| **enterprise-architect** | Tech debt | Address top items from tech debt tracker. Brain pipeline memory leak follow-up. |
-| **data-scientist** | ML refinement | Keep threat intel fresh. Model maintenance. |
-| **security-analyst** | Security hardening | Run bandit scan to reduce 194 warnings. Verify compliance endpoints. Follow up on SEC-ADV-001. |
+**Pages to wire** (these still have mock/placeholder patterns):
 
-### Support — Monitoring
-| Agent | Task | Details |
-|-------|------|---------|
-| **agent-doctor** | Pre-flight Day 3 | Health check all engines. Clear WAL files. Verify 4 MOATs. |
-| **context-engineer** | Codebase scan | Refresh codebase-map if changes detected. |
-| **vision-agent** | Post-flight | Verify alignment score. Track DEMO-002/003 completion. |
-| **swarm-controller** | Orchestrate Day 3 | Dispatch agents. No cascade stops. Priority: qa-engineer + frontend-craftsman. |
-| **marketing-head** | Demo rehearsal support | Refine talking points based on what's demo-ready. |
-| **sales-engineer** | Demo rehearsal | Rehearse persona walkthroughs against live API. |
-| **technical-writer** | Docs polish | Update API docs if endpoint counts change. |
-| **scrum-master** | Track Day 3 | Standup, demo report, sprint board. |
+| Page | Connect To | Backend Endpoint (verified 200) |
+|------|-----------|-------------------------------|
+| `AttackLab.tsx` | MPTE + micro-pentest | `/api/v1/mpte/stats`, `/api/v1/micro-pentest/health` |
+| `Copilot.tsx` | AI agent endpoints | `/api/v1/ai-agent/*`, `/api/v1/brain/stats` |
+| `DataFabric.tsx` | Knowledge graph + feeds | `/api/v1/knowledge-graph/status`, `/api/v1/feeds/health` |
+| `IntelligenceHub.tsx` | Feeds + analytics | `/api/v1/feeds/health`, `/api/v1/analytics/findings` |
+| `RemediationCenter.tsx` | Remediation + autofix | `/api/v1/remediation/tasks`, `/api/v1/autofix/health` |
+| `Settings.tsx` | Settings API or local state | `/api/v1/settings` or local storage |
+
+**Pattern** (from already-wired pages like CodeScanning.tsx, Integrations.tsx):
+```typescript
+import { api } from '../services/api';
+// API returns {items: [...]} — extract correctly
+const response = await api.get('/api/v1/endpoint');
+const items = response.data?.items || response.data?.results || [];
+```
+
+**DO NOT**:
+- Build aldeci-ui-new (doesn't exist on disk)
+- Use mock data or hardcoded arrays
+- Change build config (0 TS errors — maintain that)
+- Break already-wired pages (Dashboard, CodeScanning, Integrations, Evidence, IntegrationSettings)
+
+### Backend Hardener — Polish & Harden
+DEMO-001 is DONE. Day 3 focus:
+- Harden any endpoints that return 500 under edge cases
+- Expand secrets scanner YAML detection (known gap)
+- Performance optimization on any slow paths
+- If frontend-craftsman reports API issues, fix immediately
+
+### QA Engineer — Regression Guard
+DEMO-002 is DONE. Day 3 focus:
+- Run Newman after ANY backend or frontend change — maintain 475/475
+- Run customer simulation scenarios
+- If coverage can be improved toward 25% gate cheaply, do it (current: 21.24%)
+- Run moat regression — maintain 88.95%
+
+### Agent Doctor — Health Monitor
+- Pre-flight: 19/19 engines importable
+- Clean WAL/SHM files
+- Monitor all agent Day 3 runs
+- Report any failures immediately
+
+### Context Engineer — Light Maintenance
+- Light scan only (v27.0 if frontend changes detected)
+- Update CLAUDE.md if DEMO-003 completes → 12/12 done
+- Monitor for file conflicts
+
+### Enterprise Architect — Tech Debt
+- Continue tech debt (19 items, 3 done)
+- Monitor reliability — Grade B- reported
+- Keep ADR log current (8 ADRs)
+
+### Data Scientist — ML Maintenance
+- Refresh threat intel feeds
+- Run golden regression (75 cases)
+- Monitor SHAP integration in brain pipeline Step 7
+- Ensure model v2.1.0 stable (R²=0.9996)
+
+### Threat Architect — Demo Script Verification
+- Re-run all 6 demo scripts, verify still work
+- Update if any endpoint responses changed
+- Prepare for investor rehearsal Day 4-5
+
+### Security Analyst — Daily Scan
+- Bandit + native SAST daily scan
+- Monitor SEC-ADV-001 (OpenAI key rotation — pending CEO)
+- Update compliance matrix if new data
+- Run secrets scanner on codebase
+
+### DevOps Engineer — Infrastructure
+- Monitor CI pipeline
+- If Docker daemon available, run compose test
+- Keep health checks current
+- Air-gapped test maintenance
+
+### Technical Writer — Documentation Polish
+- USER_GUIDE.md is DONE ✅ (created Day 2) — review for accuracy
+- INVESTOR_BRIEF.md is DONE ✅ (created Day 2) — review for accuracy
+- API_REFERENCE.md v3.0 current — update if endpoints change
+- CHANGELOG update for Day 3
+
+### Marketing Head — Final Content
+- Complete remaining content calendar items (currently 73.3%)
+- Finalize investor one-pager for March 6 demo
+- Enterprise email templates ready (pre-demo + post-demo)
+- RSA Conference prep (Mar 23-26)
+
+### Sales Engineer — Demo Rehearsal
+- Run all 5 persona scripts against live API
+- Verify enterprise-demo-all.sh works end-to-end
+- Update any stale endpoint references
+- Prepare for Day 4 rehearsal with founder
+
+### AI Researcher — Daily Pulse
+- Daily CVE/KEV/EPSS scan
+- Competitor intelligence update
+- Flag urgent market intel for March 6 demo
+
+### Vision Agent — Post-Flight
+- Run pillar alignment check after Day 3 runs
+- Verify DEMO-003 progress impacts alignment score
+- Flag any vision drift
+
+### Swarm Controller — Coordination
+- Dispatch juniors for lint/format/test parallelizable work
+- Verify no test regressions
+- Support frontend-craftsman if bulk changes needed
 
 ---
 
-## VERIFIED API ENDPOINTS (2026-03-02 10:23)
+## Verified API Endpoints (26 verified 200 — Day 2 Final)
 
-All tested with auth token (`X-API-Key: $TOKEN`):
+All return HTTP 200 with `X-API-Key: $FIXOPS_API_TOKEN`:
 
-| Endpoint | Status | Previously |
-|----------|--------|-----------|
-| `/api/v1/brain/stats` | 200 ✅ | 200 |
-| `/api/v1/autofix/health` | 200 ✅ | 200 |
-| `/api/v1/mpte/stats` | 200 ✅ | 200 |
-| `/api/v1/micro-pentest/health` | 200 ✅ | 200 |
-| `/api/v1/mcp/tools` | 200 ✅ | 200 |
-| `/api/v1/knowledge-graph/status` | 200 ✅ | 200 |
-| `/api/v1/sast/status` | 200 ✅ | 200 |
-| `/api/v1/search` | **200 ✅** | **500 ❌** |
-| `/api/v1/compliance-engine/frameworks` | 200 ✅ | 200 |
-| `/api/v1/evidence/` | 200 ✅ | 200 |
-| `/api/v1/cases` | 200 ✅ | 200 |
-| `/openapi.json` | 200 ✅ | 200 |
-
----
-
-## SECURITY ADVISORY STATUS (SEC-ADV-001)
-
-| Action | Status | Owner |
-|--------|--------|-------|
-| .gitignore updated | ✅ | agent-doctor |
-| .env untracked | ✅ | agent-doctor |
-| .env.example created | ✅ | devops-engineer |
-| Docker safe defaults | ✅ | devops-engineer |
-| CI placeholder tokens | ✅ | devops-engineer |
-| Dockerfile non-root | ✅ | devops-engineer |
-| Random token generation | ✅ | devops-engineer |
-| mpte_router placeholder removed | ✅ | agent-doctor |
-| **OpenAI key rotation** | ⚠️ PENDING | **CEO** |
-| **Strong JWT secret** | ⚠️ PENDING | **backend-hardener** |
-| Pre-commit hook | ⏰ Sprint 3 | devops-engineer |
-
-**Risk**: MEDIUM (keys removed from git index, exist only in history)
+```
+/api/v1/brain/stats                    /api/v1/autofix/health
+/api/v1/mpte/stats                     /api/v1/mcp/tools
+/api/v1/evidence/                      /api/v1/sast/status
+/api/v1/knowledge-graph/status         /openapi.json
+/api/v1/analytics/dashboard/overview   /api/v1/remediation/tasks
+/api/v1/compliance-engine/frameworks   /api/v1/secrets/status
+/api/v1/dast/status                    /api/v1/container/status
+/api/v1/cspm/status                    /api/v1/sandbox/health
+/api/v1/feeds/health                   /api/v1/fail/health
+/api/v1/micro-pentest/health           /api/v1/mcp-protocol/status
+/api/v1/analytics/findings             /api/v1/cases
+/api/v1/reports                        /api/v1/workflows
+/api/v1/policies                       /api/v1/audit/logs
+```
 
 ---
 
-## DATA-FLOW REMINDER
-
+## Data Flow
 - context-engineer produces: codebase-map.json, briefing, architecture-context.md
 - vision-agent produces: vision-alignment, vision-preflight
 - agent-doctor produces: health-dashboard.json, health-report
-- qa-engineer produces: quality-gate.json, iteration verdicts, failure analysis
-- scrum-master produces: standup, daily-demo, demo script, debate-summary, metrics, coordination-notes
-- All agents READ: sprint-board.json, coordination-notes.md, this file
+- scrum-master produces: standup, daily-demo, demo, debate-summary, coordination-notes, metrics
+- All agents READ: sprint-board.json, this file, briefing-2026-03-01-enterprise-demo.md
 
 ---
 
-## SUCCESS CRITERIA FOR DAY 3
-
-1. **DEMO-002**: Postman pass rate ≥ 95% (currently 84.7%)
-2. **DEMO-003**: At least Dashboard + Remediation pages wired to real API data
-3. **No regressions**: All 10 completed DEMO items still pass
-4. **Sprint board**: 11/12 or 12/12 done
-
-If both DEMO-002 and DEMO-003 complete Day 3:
-- Day 4 = Polish + dress rehearsal
-- Day 5 = Final rehearsal + backup plans
-- Day 6 (2026-03-06) = ENTERPRISE DEMO
-
----
-*Coordination notes by scrum-master | 2026-03-02 10:23 | Pillars: [V3] [V5] [V7] [V10]*
+*Produced by scrum-master — Day 2 Final (Run 3), 2026-03-02*
+*26/26 endpoints verified HTTP 200. Demo scripts operational. 4 days to enterprise demo.*

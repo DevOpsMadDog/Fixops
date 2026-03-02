@@ -1,6 +1,7 @@
 """
 Team management API endpoints.
 """
+import logging
 from typing import List, Optional
 
 from apps.api.dependencies import get_org_id
@@ -8,6 +9,8 @@ from core.user_db import UserDB
 from core.user_models import Team
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/teams", tags=["teams"])
 db = UserDB()
@@ -83,12 +86,14 @@ async def create_team(team_data: TeamCreate):
         created_team = db.create_team(team)
         return TeamResponse(**created_team.to_dict())
     except sqlite3.IntegrityError as e:
-        if "UNIQUE constraint failed" in str(e):
+        err_msg = str(e)
+        if "UNIQUE constraint failed" in err_msg:
             raise HTTPException(
                 status_code=409,
                 detail=f"Team with name '{team_data.name}' already exists",
             )
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Team creation failed: %s", e)
+        raise HTTPException(status_code=500, detail=f"Team creation failed: {type(e).__name__}")
 
 
 @router.get("/{id}", response_model=TeamResponse)

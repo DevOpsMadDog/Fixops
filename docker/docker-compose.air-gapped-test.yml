@@ -8,7 +8,7 @@
 #
 # What this tests:
 #   1. API starts with network isolation (no DNS, no internet)
-#   2. All 8 native scanners respond to health checks
+#   2. All 8 native scanners respond to health checks (each by name)
 #   3. Brain Pipeline processes findings through 12 steps
 #   4. AutoFix generates fixes using local/offline mode
 #   5. Evidence bundles generated with RSA-SHA256 signatures
@@ -132,16 +132,23 @@ services:
         check "API v1 Health"         "$$API/api/v1/health"
         echo ""
 
-        # ── Phase 2: 8 Native Scanners [V9] ────────────
-        echo "Phase 2: 8 Native Scanner Engines [V9]"
-        check "SAST Scanner"          "$$API/api/v1/sast/status"
-        check "DAST Scanner"          "$$API/api/v1/dast/status"
-        check "Secrets Scanner"       "$$API/api/v1/secrets/status"
-        check "Container Scanner"     "$$API/api/v1/container/status"
-        check "CSPM Scanner"          "$$API/api/v1/cspm/status"
-        check "Sandbox (IaC/Malware)" "$$API/api/v1/sandbox/health"
-        check "MPTE (API Fuzzer)"     "$$API/api/v1/mpte/stats"
-        check "Micro-Pentest"         "$$API/api/v1/micro-pentest/health"
+        # ── Phase 2: All 8 Native Scanners [V9] ────────────
+        echo "Phase 2: All 8 Native Scanner Engines [V9]"
+        check "1. SAST Scanner"       "$$API/api/v1/sast/status"
+        check "2. DAST Scanner"       "$$API/api/v1/dast/status"
+        check "3. Secrets Scanner"    "$$API/api/v1/secrets/status"
+        check "4. Container Scanner"  "$$API/api/v1/container/status"
+        check "5. CSPM Scanner"       "$$API/api/v1/cspm/status"
+        check "6. IaC Scanner"        "$$API/api/v1/iac/scanners/status"
+        check "7. Malware Scanner"    "$$API/api/v1/malware/status"
+        check "8. API Fuzzer"         "$$API/api/v1/api-fuzzer/status"
+        echo ""
+
+        # ── Phase 2b: Supporting Engine Health ─────────
+        echo "Phase 2b: Supporting Engine Health"
+        check "Sandbox Verifier"      "$$API/api/v1/sandbox/health"
+        check "MPTE Engine"           "$$API/api/v1/mpte/stats"
+        check "Micro-Pentest Engine"  "$$API/api/v1/micro-pentest/health"
         echo ""
 
         # ── Phase 3: Brain Pipeline [V3] ───────────────

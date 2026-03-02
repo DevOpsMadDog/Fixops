@@ -1,0 +1,59 @@
+org:
+  name: "IndustriaSafe OT Solutions"
+  industry: manufacturing_ot
+  size: enterprise
+  compliance:
+    - IEC-62443
+    - NIST-CSF
+    - CIS-Controls-v8
+    - NERC-CIP
+
+crown_jewels:
+  - name: scada-integration-layer
+    type: ot_bridge
+    criticality: critical
+    data_classification: operational_critical
+    sla_target: 99.999
+    owner: ot-security-team
+    dependencies:
+      - plc-controllers
+      - mqtt-brokers
+      - historian-db
+
+  - name: edge-gateway-fleet
+    type: edge_compute
+    criticality: critical
+    data_classification: operational
+    sla_target: 99.95
+    owner: edge-engineering
+    dependencies:
+      - mqtt-brokers
+      - kafka-cluster
+
+  - name: process-historian
+    type: timeseries_analytics
+    criticality: high
+    data_classification: operational
+    sla_target: 99.9
+    owner: process-engineering
+    dependencies:
+      - influxdb
+      - timescaledb
+      - grafana
+
+environments:
+  - name: production-ot
+    cloud: on-premise
+    location: plant-floor
+    classification: iec62443-zone3
+    network: purdue-level3
+  - name: production-it
+    cloud: hybrid
+    location: datacenter
+    classification: confidential
+    network: it-ot-dmz
+  - name: cloud-analytics
+    cloud: aws
+    region: us-east-1
+    classification: operational
+    network: vpc-isolated

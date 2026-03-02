@@ -150,7 +150,7 @@ def test_health_command_reports_status(
     )
     overlay.allowed_data_roots = (tmp_path,)
 
-    monkeypatch.setattr(cli, "load_overlay", lambda path=None: overlay)
+    monkeypatch.setattr("core.overlay_runtime.prepare_overlay", lambda **kwargs: overlay)
 
     args = parser.parse_args(["health", "--pretty"])
     exit_code = args.func(args)

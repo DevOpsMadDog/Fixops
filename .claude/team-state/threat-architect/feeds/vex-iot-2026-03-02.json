@@ -1,0 +1,113 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://aldeci.com/vex/iot-ot-platform/2026-03-02",
+  "author": "ALdeci ThreatArchitect",
+  "role": "threat-architect-agent",
+  "timestamp": "2026-03-02T00:00:00Z",
+  "version": 1,
+  "tooling": "ALdeci CTEM+ v2.0",
+  "architecture": "iot-ot-platform",
+  "statements": [
+    {
+      "vulnerability": {
+        "@id": "https://nvd.nist.gov/vuln/detail/CVE-2023-49083",
+        "name": "CVE-2023-49083",
+        "description": "PyCA cryptography PKCS12 null pointer dereference — crash on malformed PKCS#12 input"
+      },
+      "products": [
+        {"@id": "pkg:pypi/cryptography@41.0.5"}
+      ],
+      "status": "affected",
+      "justification": "vulnerable_code_in_use",
+      "impact_statement": "IEC 62443 SL-2 SAFETY IMPACT: The edge gateway uses cryptography 41.0.5 (fix requires 41.0.6) to parse X.509 certificates in PKCS#12 format for MQTT TLS mutual authentication. The OT control network uses PKI-based device authentication — each PLC/sensor has a PKCS#12 certificate bundle. A malicious device on the OT network that presents a crafted PKCS#12 bundle during TLS handshake can crash the Python MQTT broker gateway process, disrupting all device telemetry for the zone. This is a safety-impacting DoS in a process control environment.",
+      "action_statement": "Upgrade cryptography to 41.0.6 immediately. Interim mitigation: add network-level controls to ensure only pre-registered MAC addresses can initiate TLS connections to the MQTT gateway. Validate PKCS#12 bundle size and format at the network boundary before handing to the Python process.",
+      "action_statement_timestamp": "2026-03-02T00:00:00Z"
+    },
+    {
+      "vulnerability": {
+        "@id": "https://nvd.nist.gov/vuln/detail/CVE-2024-24762",
+        "name": "CVE-2024-24762",
+        "description": "python-multipart ReDoS in multipart form boundary parsing — CPU exhaustion via crafted Content-Type"
+      },
+      "products": [
+        {"@id": "pkg:pypi/python-multipart@0.0.6"},
+        {"@id": "pkg:pypi/fastapi@0.104.1"}
+      ],
+      "status": "affected",
+      "justification": "vulnerable_code_in_use",
+      "impact_statement": "IEC 62443 Zone 3 IMPACT: The OT device management API (FastAPI 0.104.1 + python-multipart 0.0.6) accepts multipart form data for firmware uploads. A crafted Content-Type header with a specially constructed boundary string causes catastrophic regex backtracking, consuming 100% CPU and crashing the device management API. Loss of the device management API prevents emergency firmware updates and remote device configuration changes during OT incidents.",
+      "action_statement": "Upgrade python-multipart to 0.0.7+. Upgrade FastAPI to 0.105.0+ which requires python-multipart 0.0.7. As interim mitigation: configure FastAPI to reject multipart Content-Type headers with boundary strings longer than 70 characters via a request validation middleware.",
+      "action_statement_timestamp": "2026-03-02T00:00:00Z"
+    },
+    {
+      "vulnerability": {
+        "@id": "https://nvd.nist.gov/vuln/detail/CVE-2024-3651",
+        "name": "CVE-2024-3651",
+        "description": "idna library quadratic complexity DoS via long label string"
+      },
+      "products": [
+        {"@id": "pkg:pypi/fastapi@0.104.1"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execution_path",
+      "impact_statement": "The IoT platform device management API receives device identifiers as numeric device IDs and IP addresses, not as internationalized domain names. The idna library's encode() function is not called with user-supplied input in the OT device management code paths. OPC-UA and Modbus device addresses are numeric (IP:port) and do not go through IDNA encoding.",
+      "action_statement": "Upgrade idna to 3.7+ as part of routine dependency maintenance even though the execution path is not exposed. Run: pip install --upgrade idna.",
+      "action_statement_timestamp": "2026-03-02T00:00:00Z"
+    },
+    {
+      "vulnerability": {
+        "@id": "https://nvd.nist.gov/vuln/detail/CVE-2023-28370",
+        "name": "CVE-2023-28370",
+        "description": "Tornado web server StaticFileHandler open redirect via URL-encoded path"
+      },
+      "products": [
+        {"@id": "pkg:pypi/paho-mqtt@1.6.1"}
+      ],
+      "status": "not_affected",
+      "justification": "component_not_present",
+      "impact_statement": "The production OT platform does not use Tornado web server. Paho-mqtt 1.6.1 does not depend on Tornado in production configuration. Tornado is only used in paho-mqtt's development/test tooling which is not installed in the production container images. Verified via Docker image layer inspection.",
+      "action_statement": "No action required. Verify that Dockerfile uses --no-dev dependencies flag (pip install --no-deps or poetry install --no-dev) to exclude test dependencies.",
+      "action_statement_timestamp": "2026-03-02T00:00:00Z"
+    },
+    {
+      "vulnerability": {
+        "@id": "https://nvd.nist.gov/vuln/detail/CVE-2024-27306",
+        "name": "CVE-2024-27306",
+        "description": "aiohttp SSL certificate hostname validation bypass for IP-addressed connections"
+      },
+      "products": [
+        {"@id": "pkg:pypi/fastapi@0.104.1"}
+      ],
+      "status": "under_investigation",
+      "justification": "inline_mitigations_already_exist",
+      "impact_statement": "Investigating whether aiohttp is used as an optional async HTTP client in the OT gateway for outbound calls to the Azure IoT Hub REST API. If the gateway uses aiohttp with IP addresses instead of DNS hostnames for Azure IoT Hub endpoints, certificate hostname validation may be bypassed. Safety impact: a MITM attack against the Azure IoT Hub connection could inject false device commands. Assessment in progress.",
+      "action_statement": "Audit all outbound HTTP calls in edge-gateway/ and ot-management/ for aiohttp usage. If present, upgrade aiohttp to 3.9.4+. Ensure all outbound TLS connections use DNS hostnames (not IP addresses) to allow proper hostname validation. Assessment due 2026-03-05.",
+      "action_statement_timestamp": "2026-03-02T00:00:00Z"
+    },
+    {
+      "vulnerability": {
+        "@id": "https://nvd.nist.gov/vuln/detail/CVE-2023-46695",
+        "name": "CVE-2023-46695",
+        "description": "Django EmailValidator/URLValidator ReDoS via specially crafted input"
+      },
+      "products": [
+        {"@id": "pkg:pypi/influxdb-client@1.38.0"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execution_path",
+      "impact_statement": "The InfluxDB analytics layer does not use Django. influxdb-client 1.38.0 does not depend on Django. The analytics dashboard is a separate Grafana instance, not a Django application. Django is not present in the production OT platform requirements.txt.",
+      "action_statement": "No action required. The vulnerability analysis initially flagged this as a potential transitive dependency — confirmed it is not present in the OT platform supply chain.",
+      "action_statement_timestamp": "2026-03-02T00:00:00Z"
+    }
+  ],
+  "summary": {
+    "total_statements": 6,
+    "affected": 2,
+    "not_affected": 3,
+    "under_investigation": 1,
+    "action_required": 2,
+    "safety_impacting_statements": 2,
+    "iec62443_zone2_impact": 1,
+    "iec62443_zone3_impact": 1
+  }
+}

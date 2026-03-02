@@ -1,0 +1,108 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [{
+    "tool": {
+      "driver": {
+        "name": "ALdeci-ThreatArchitect",
+        "version": "3.0.0",
+        "rules": [
+          {"id": "CWE-89", "shortDescription": {"text": "SQL Injection"}, "defaultConfiguration": {"level": "error"}, "properties": {"tags": ["security", "sql", "owasp-a03"]}},
+          {"id": "CWE-79", "shortDescription": {"text": "Cross-Site Scripting (Reflected)"}, "defaultConfiguration": {"level": "warning"}, "properties": {"tags": ["security", "xss", "owasp-a03"]}},
+          {"id": "CWE-918", "shortDescription": {"text": "Server-Side Request Forgery"}, "defaultConfiguration": {"level": "error"}, "properties": {"tags": ["security", "ssrf", "owasp-a10"]}},
+          {"id": "CWE-502", "shortDescription": {"text": "Deserialization of Untrusted Data"}, "defaultConfiguration": {"level": "error"}, "properties": {"tags": ["security", "deserialization"]}},
+          {"id": "CWE-312", "shortDescription": {"text": "Cleartext Storage of Sensitive Information"}, "defaultConfiguration": {"level": "error"}, "properties": {"tags": ["security", "secrets"]}},
+          {"id": "CWE-601", "shortDescription": {"text": "Open Redirect"}, "defaultConfiguration": {"level": "warning"}, "properties": {"tags": ["security", "redirect"]}},
+          {"id": "CWE-863", "shortDescription": {"text": "Incorrect Authorization"}, "defaultConfiguration": {"level": "error"}, "properties": {"tags": ["security", "authz"]}},
+          {"id": "CWE-327", "shortDescription": {"text": "Use of Broken Crypto Algorithm"}, "defaultConfiguration": {"level": "error"}, "properties": {"tags": ["security", "crypto"]}}
+        ]
+      }
+    },
+    "results": [
+      {
+        "ruleId": "CWE-89",
+        "level": "error",
+        "message": {"text": "User search endpoint constructs SQL query by concatenating user input. Use parameterized query with JPA @Query or Criteria API."},
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/main/java/com/acme/ecommerce/user/UserRepository.java"}, "region": {"startLine": 47, "startColumn": 12}}}],
+        "properties": {"severity": "critical", "confidence": "high", "component": "user-service"}
+      },
+      {
+        "ruleId": "CWE-89",
+        "level": "error",
+        "message": {"text": "Order filter endpoint uses string formatting for SQL WHERE clause. Vulnerable to SQL injection via orderStatus parameter."},
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/main/java/com/acme/ecommerce/order/OrderController.java"}, "region": {"startLine": 128, "startColumn": 8}}}],
+        "properties": {"severity": "critical", "confidence": "high", "component": "order-service"}
+      },
+      {
+        "ruleId": "CWE-79",
+        "level": "warning",
+        "message": {"text": "Product review content rendered without HTML entity encoding. User-submitted reviews can inject script tags."},
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/components/ProductReview.tsx"}, "region": {"startLine": 34, "startColumn": 5}}}],
+        "properties": {"severity": "high", "confidence": "medium", "component": "storefront-spa"}
+      },
+      {
+        "ruleId": "CWE-918",
+        "level": "error",
+        "message": {"text": "Catalog image URL fetcher does not validate URL scheme or hostname. Attacker can supply internal URLs (http://169.254.169.254/latest/meta-data/) to access IMDS."},
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/services/catalog/imageProxy.js"}, "region": {"startLine": 22, "startColumn": 3}}}],
+        "properties": {"severity": "critical", "confidence": "high", "component": "catalog-service"}
+      },
+      {
+        "ruleId": "CWE-502",
+        "level": "error",
+        "message": {"text": "SQS message body deserialized with Java ObjectInputStream. Replace with JSON deserialization using Jackson with type validation."},
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/main/java/com/acme/ecommerce/order/SqsMessageProcessor.java"}, "region": {"startLine": 65, "startColumn": 16}}}],
+        "properties": {"severity": "critical", "confidence": "high", "component": "order-processor-lambda"}
+      },
+      {
+        "ruleId": "CWE-312",
+        "level": "error",
+        "message": {"text": "Stripe API key stored in application.properties as plaintext. Use AWS Secrets Manager or environment variable injection."},
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/main/resources/application.properties"}, "region": {"startLine": 18, "startColumn": 1}}}],
+        "properties": {"severity": "critical", "confidence": "high", "component": "payment-service"}
+      },
+      {
+        "ruleId": "CWE-312",
+        "level": "error",
+        "message": {"text": "Database password in docker-compose.yml environment block. Use Docker secrets or Secrets Manager."},
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": "docker-compose.yml"}, "region": {"startLine": 45, "startColumn": 7}}}],
+        "properties": {"severity": "high", "confidence": "high", "component": "infrastructure"}
+      },
+      {
+        "ruleId": "CWE-601",
+        "level": "warning",
+        "message": {"text": "Login redirect URL taken from query parameter without domain validation. Attacker can redirect to phishing site after authentication."},
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/main/java/com/acme/ecommerce/auth/AuthController.java"}, "region": {"startLine": 89, "startColumn": 12}}}],
+        "properties": {"severity": "high", "confidence": "medium", "component": "auth-service"}
+      },
+      {
+        "ruleId": "CWE-863",
+        "level": "error",
+        "message": {"text": "Admin endpoint /api/admin/users lacks role-based authorization check. Any authenticated user can access admin functions."},
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/main/java/com/acme/ecommerce/admin/AdminController.java"}, "region": {"startLine": 23, "startColumn": 5}}}],
+        "properties": {"severity": "critical", "confidence": "high", "component": "user-service"}
+      },
+      {
+        "ruleId": "CWE-327",
+        "level": "error",
+        "message": {"text": "JWT tokens signed with HS256 symmetric algorithm. Use RS256 asymmetric signing to prevent key leakage attacks."},
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/main/java/com/acme/ecommerce/auth/JwtTokenProvider.java"}, "region": {"startLine": 41, "startColumn": 8}}}],
+        "properties": {"severity": "high", "confidence": "high", "component": "auth-service"}
+      },
+      {
+        "ruleId": "CWE-79",
+        "level": "warning",
+        "message": {"text": "Search results page renders product names with dangerouslySetInnerHTML for rich text formatting."},
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/components/SearchResults.tsx"}, "region": {"startLine": 67, "startColumn": 9}}}],
+        "properties": {"severity": "medium", "confidence": "medium", "component": "storefront-spa"}
+      },
+      {
+        "ruleId": "CWE-918",
+        "level": "error",
+        "message": {"text": "Webhook callback URL in notification settings is not validated against allowlist. Can be used for SSRF to internal services."},
+        "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/services/notification/webhook_handler.py"}, "region": {"startLine": 33, "startColumn": 4}}}],
+        "properties": {"severity": "high", "confidence": "high", "component": "notification-service"}
+      }
+    ]
+  }]
+}

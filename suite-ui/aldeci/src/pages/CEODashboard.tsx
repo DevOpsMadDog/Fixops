@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { Skeleton } from '../components/ui/skeleton';
 import { dashboardApi, analyticsApi, feedsApi, api } from '../lib/api';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -244,6 +245,32 @@ export default function CEODashboard() {
 
   const riskTrend = riskVelocity?.daily_counts?.map((d: any) => d.count ?? d.value ?? 0) ?? [];
 
+  // Executive Summary — key takeaway for CEO
+  const summaryMessage = useMemo(() => {
+    if (criticalCount > 0) return { text: `${criticalCount} critical findings require immediate attention`, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/30' };
+    if (highCount > 5) return { text: `${highCount} high-severity findings trending — review recommended`, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/30' };
+    if (slaCompliance >= 90) return { text: 'Security posture strong — all SLAs on track', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30' };
+    return { text: 'Risk levels within acceptable range', color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/30' };
+  }, [criticalCount, highCount, slaCompliance]);
+
+  if (overviewLoading) {
+    return (
+      <div className="space-y-6 max-w-[1440px] mx-auto">
+        <div className="space-y-2">
+          <Skeleton className="h-9 w-96" />
+          <Skeleton className="h-5 w-64" />
+        </div>
+        <Skeleton className="h-16 w-full rounded-lg" />
+        <div className="grid grid-cols-3 gap-6">
+          {[1,2,3].map(i => <Skeleton key={i} className="h-48 rounded-lg" />)}
+        </div>
+        <div className="grid grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => <Skeleton key={i} className="h-32 rounded-lg" />)}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative space-y-6 max-w-[1440px] mx-auto">
       {/* Header */}
@@ -257,9 +284,25 @@ export default function CEODashboard() {
             Real-time risk posture for leadership — {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
-        <Badge variant="outline" className="text-xs border-emerald-500/40 text-emerald-400">
-          Live
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-xs border-indigo-500/40 text-indigo-400">
+            CTEM+
+          </Badge>
+          <Badge variant="outline" className="text-xs border-emerald-500/40 text-emerald-400">
+            Live
+          </Badge>
+        </div>
+      </motion.div>
+
+      {/* Executive Summary Banner */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+        <div className={`flex items-center gap-3 px-5 py-3.5 rounded-lg border ${summaryMessage.bg}`}>
+          <Shield className={`w-5 h-5 ${summaryMessage.color} flex-shrink-0`} />
+          <p className={`text-sm font-medium ${summaryMessage.color}`}>{summaryMessage.text}</p>
+          <span className="ml-auto text-xs text-muted-foreground whitespace-nowrap">
+            Updated {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        </div>
       </motion.div>
 
       {/* ── Top-Level Score Rings ──────────────────────────────────────────── */}

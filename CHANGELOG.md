@@ -33,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added — Day 2 (2026-03-02)
 - **DEMO-001 complete**: All 769 routes mounted, E2E 58/58 (100%), OpenAPI returns 200 [V3]
+- **DEMO-002 complete**: Postman 411/411 assertions passing (100.0%), all 7 collections GREEN [V10]
 - **11 security hardening fixes** — XXE, SSRF, shell injection, code injection, secrets leakage prevention [V10]
 - **Health + Status endpoints** — Every router now has both `/health` and `/status` endpoints [V7]
 - **Secrets scanner YAML patterns** — 10 new patterns for YAML/env/config unquoted values [V5]
@@ -41,11 +42,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Scanner Parser hardening** — Crash resilience on malformed input, output caps [V7]
 - **API Reference v2.1** — Updated to 769 endpoints, added 10 new router sections (IaC, IDE, Nerve Center, Decision Records, MindsDB ML, Copilot, Business Context, Graph Analysis, Webhooks full detail, MPTE Orchestrator), security hardening appendix [V3][V7]
 
+### Added — Day 3 (2026-03-02 PM)
+- **API Reference v3.0** — 780 endpoints documented across 72 routers with 32 curl examples [V3][V5][V7][V10]
+- **Reachability Analysis API** — 7 new endpoints for static call-graph reachability analysis [V3]
+- **Enhanced Decision Analysis API** — 4 new endpoints for multi-LLM comparison and signal analysis [V3]
+- **Expanded Deduplication Engine** — 20 endpoints documented (was 4) with cluster management, correlation, baseline comparison [V3]
+- **Expanded Attack Simulation** — 13 endpoints documented (was 5) with MITRE ATT&CK heatmap, breach impact [V5]
+- **Expanded Vulnerability Discovery** — 11 endpoints documented (was 5) with ML retraining, community contributions [V5]
+- **Expanded Algorithmic Scoring** — 11 endpoints documented (was 3) with Monte Carlo, causal inference, GNN analysis [V3]
+- **Expanded Predictions** — 10 endpoints documented (was 4) with Markov chains, Bayesian networks [V3]
+- **Expanded Exposure Cases** — 10 endpoints documented (was 5) with state machine transitions [V3]
+- **User Guide** — Comprehensive 15-section user guide: 5-minute quickstart, 8 scanner walkthroughs, Brain Pipeline, MPTE, AutoFix, compliance, MCP, air-gapped deployment, troubleshooting [V3][V5][V7][V10]
+- **Investor Technical Brief** — Product overview, TAM/SAM/SOM analysis, competitive matrix, architecture maturity evidence, business model, roadmap milestones [V3]
+- **README documentation table** — Added links to User Guide, Investor Brief, Architecture, CTEM+ Identity docs [V7]
+
 ### Changed
-- **README hero section** — Updated to CTEM+ Decision Intelligence Platform positioning with 8 native scanners, 25+ parsers, 769 endpoints [V3]
-- **API endpoint count** — Updated from 704 to 769 endpoints across 68 routers (verified E2E)
+- **README hero section** — Updated to CTEM+ Decision Intelligence Platform positioning with 8 native scanners, 25+ parsers, 780 endpoints [V3]
+- **API endpoint count** — Updated from 769 to 780 endpoints across 72 routers (discovered 4 undocumented router files) [V7]
 - **Scanner parser count** — Updated from 10 to 25 normalizers (ZAP, Burp, Nessus, Qualys, Checkmarx, Fortify, Veracode, Snyk, SonarQube, Semgrep, Trivy, Grype, Dependabot, Bandit, ESLint, Anchore, Aqua, Prisma Cloud, AWS Inspector, Nuclei, GitLeaks, TruffleHog, Hadolint, Tfsec, Checkov) [V7]
-- **Architecture doc** — Updated LOC counts, added security hardening details, verified 769 routes [V3]
+- **Architecture doc** — Updated LOC counts, added security hardening details, verified 780 routes [V3]
 
 ### Fixed
 - **SQL injection in scan parameters** — Input validation added on all API endpoints [V10]
@@ -55,7 +70,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Brain Pipeline thread safety** — Added proper locking for concurrent requests [V3]
 
 ### Security
-- **Input validation** — All 769 endpoints use Pydantic v2 validation
+- **Input validation** — All 780 endpoints use Pydantic v2 validation
 - **XXE prevention** — XML external entity parsing disabled on scanner ingest [V10]
 - **SSRF protection** — URL validation on DAST/MPTE/micro-pentest target parameters [V5]
 - **Shell injection prevention** — Command escaping on all subprocess calls [V10]

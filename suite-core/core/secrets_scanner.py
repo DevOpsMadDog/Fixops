@@ -270,10 +270,8 @@ class SecretsDetector:
                     "scanner": "gitleaks",
                     "rule_id": item.get("RuleID"),
                     "description": item.get("Description"),
-                    "author": item.get("Author"),
-                    "email": item.get("Email"),
+                    # PII fields redacted — author/email stored server-side logs only
                     "date": item.get("Date"),
-                    "message": item.get("Message"),
                     "fingerprint": item.get("Fingerprint"),
                     "tags": item.get("Tags", []),
                 },
@@ -323,9 +321,9 @@ class SecretsDetector:
                     "detector_name": item.get("DetectorName"),
                     "decoder_name": item.get("DecoderName"),
                     "verified": item.get("Verified", False),
-                    "raw_v2": item.get("RawV2"),
+                    # raw_v2 redacted — may contain actual secret values
                     "redacted": item.get("Redacted"),
-                    "extra_data": item.get("ExtraData", {}),
+                    # extra_data filtered — may contain sensitive context
                 },
             )
             findings.append(finding)

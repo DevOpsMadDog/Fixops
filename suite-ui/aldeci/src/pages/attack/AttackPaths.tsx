@@ -91,25 +91,18 @@ export default function AttackPaths() {
     },
   });
 
-  // Map GNN attack paths to display format + fallback
-  const rawPaths = graphData?.attack_paths || graphData?.result?.attack_paths || graphData?.paths || [];
-  const attackPaths: AttackPath[] = rawPaths.length > 0
-    ? rawPaths.map((p: any, i: number) => ({
-        id: p.id || String(i + 1),
-        name: (p.path || []).join(' → ') || p.name || `Path ${i + 1}`,
-        source: p.entry_point || (p.path || [])[0] || 'Unknown',
-        target: p.target || (p.path || []).slice(-1)[0] || 'Unknown',
-        hops: (p.path || []).length || p.hops || 1,
-        risk_score: Math.round((p.impact_score || p.risk_score || 0.5) * 100),
-        exploitability: (p.probability || 0) > 0.7 ? 'HIGH' : (p.probability || 0) > 0.3 ? 'MEDIUM' : 'LOW',
-        status: p.status || 'active',
-      }))
-    : [
-        { id: '1', name: 'Internet → Web Server → Database', source: 'External', target: 'Production DB', hops: 3, risk_score: 92, exploitability: 'HIGH', status: 'active' as const },
-        { id: '2', name: 'VPN → Jump Host → Admin Console', source: 'Contractor VPN', target: 'Admin Portal', hops: 2, risk_score: 78, exploitability: 'MEDIUM', status: 'investigating' as const },
-        { id: '3', name: 'Container → K8s API → Secrets', source: 'Workload Pod', target: 'Secrets Store', hops: 2, risk_score: 85, exploitability: 'HIGH', status: 'active' as const },
-        { id: '4', name: 'CI/CD → Registry → Production', source: 'Build Pipeline', target: 'Prod Cluster', hops: 4, risk_score: 67, exploitability: 'MEDIUM', status: 'mitigated' as const },
-      ];
+  // Map GNN attack paths to display format - zero mock data
+  const rawPaths = graphData?.attack_paths || graphData?.result?.attack_paths || graphData?.paths || (Array.isArray(graphData) ? graphData : []);
+  const attackPaths: AttackPath[] = rawPaths.map((p: any, i: number) => ({
+    id: p.id || String(i + 1),
+    name: (p.path || []).join(' → ') || p.name || `Path ${i + 1}`,
+    source: p.entry_point || (p.path || [])[0] || 'Unknown',
+    target: p.target || (p.path || []).slice(-1)[0] || 'Unknown',
+    hops: (p.path || []).length || p.hops || 1,
+    risk_score: Math.round((p.impact_score || p.risk_score || 0.5) * 100),
+    exploitability: (p.probability || 0) > 0.7 ? 'HIGH' : (p.probability || 0) > 0.3 ? 'MEDIUM' : 'LOW',
+    status: p.status || 'active',
+  }));
 
   const filteredPaths = attackPaths.filter(p => 
     p.name.toLowerCase().includes(filterText.toLowerCase()) ||
@@ -272,6 +265,19 @@ export default function AttackPaths() {
           {graphLoading || reachabilityLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : filteredPaths.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <Network className="w-16 h-16 text-muted-foreground/30 mb-4" />
+              <h3 className="text-lg font-semibold text-muted-foreground mb-2">No Attack Paths Found</h3>
+              <p className="text-sm text-muted-foreground/70 max-w-md mb-4">
+                Run a GNN analysis to discover potential attack vectors in your infrastructure.
+                Attack paths show how an adversary could move laterally through your environment.
+              </p>
+              <Button onClick={() => analyzeMutation.mutate()} disabled={analyzeMutation.isPending}>
+                {analyzeMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
+                Run GNN Analysis
+              </Button>
             </div>
           ) : (
             <div className="space-y-3">

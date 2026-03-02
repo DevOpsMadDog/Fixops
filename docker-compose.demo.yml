@@ -1,4 +1,6 @@
-version: '3.9'
+# ALdeci CTEM+ Demo — OpenTelemetry Observability Stack
+# NOTE: This is a legacy compose file for OTel demo, not the main demo stack.
+# Main demo: docker compose -f docker/docker-compose.yml up
 services:
   collector:
     image: otel/opentelemetry-collector:0.94.0

@@ -1,0 +1,7 @@
+component,owner,criticality,notes
+payment-gateway,payments-team,critical,PCI-DSS scoped - handles card tokenization
+user-auth-service,identity-team,critical,OAuth2/OIDC provider - session management
+notification-engine,platform-team,medium,Email/SMS/push notifications
+audit-logger,compliance-team,high,SOX compliance audit trail
+data-pipeline,data-team,medium,ETL for analytics warehouse
+api-gateway,infra-team,high,Rate limiting and request routing

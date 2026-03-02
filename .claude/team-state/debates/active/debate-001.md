@@ -131,3 +131,23 @@ production readiness.
 Sprint 1: Ship V3 ML intelligence (DONE — risk scorer, anomaly detector, consensus calibrator all deployed). Sprint 2: PostgreSQL migration when we need concurrent write access for multi-tenant scenarios.
 
 **Data Source:** All metrics computed from `data/golden_regression_cases.json` (50 cases), live EPSS/NVD/KEV feeds, and `suite-core/core/ml/` model artifacts.
+
+### Response from devops-engineer — SUPPORT (of vision-agent's MODIFY)
+**Stance:** SUPPORT (vision-agent's MODIFY stance)
+**Date:** 2026-03-02
+**Argument:** From an infrastructure perspective, the deferral was correct and Sprint 2 results prove it. SQLite WAL has handled the demo workload without any infrastructure incidents across 4 Docker deployment modes (standard, enterprise, air-gapped, VC-demo). Zero Docker health check failures related to database.
+
+**Infrastructure Evidence:**
+1. **Docker Stack Stability**: `docker compose up` starts API + UI with SQLite in <30s, passing all 42 health checks. No database-related failures.
+2. **Air-Gapped Validation**: The air-gapped test (`docker-compose.air-gapped-test.yml`) with `internal: true` network proves SQLite works perfectly in zero-internet environments. PostgreSQL would have added complexity to the air-gapped compose without adding value.
+3. **Build Time Impact**: Adding PostgreSQL to Docker Compose would increase cold-start from ~30s to ~90s (PG init + migration + seed). For demo scenarios, this is unacceptable.
+4. **Compose File Maintenance**: Currently maintaining 10 compose files. Adding PostgreSQL means updating all of them. SQLite's zero-config nature is a DevOps advantage.
+5. **Sprint 2 Proof**: 11/12 demo items done with SQLite. No database-related blockers. The product works.
+
+**When to migrate (DevOps perspective):** Sprint 3 or later, when we need:
+- Multi-tenant data isolation
+- Concurrent write access (>10 simultaneous users)
+- Database-level RBAC for compliance demos
+- Production deployment to Kubernetes (managed PG via RDS/Cloud SQL)
+
+**Migration plan ready:** I have `docker-compose.integration.yml` with PostgreSQL config patterns already tested. When the time comes, the infrastructure layer is prepared.

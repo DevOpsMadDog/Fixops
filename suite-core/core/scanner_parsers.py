@@ -27,8 +27,17 @@ from __future__ import annotations
 import json
 import logging
 import re
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET  # noqa: B405 — defusedxml.defuse_stdlib() called below
 from typing import Any, Dict, List, Optional
+
+# Harden stdlib XML parsers against XXE/entity-expansion attacks.
+# defusedxml.defuse_stdlib() monkey-patches xml.etree.ElementTree (and others)
+# so that even fallback code paths are safe.
+try:
+    import defusedxml
+    defusedxml.defuse_stdlib()
+except ImportError:
+    pass  # defusedxml not installed — regex stripping in _parse_xml_safe provides defense
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +48,6 @@ try:
     from apps.api.ingestion import (
         BaseNormalizer,
         FindingSeverity,
-        FindingType,
         NormalizerConfig,
         SourceFormat,
         UnifiedFinding,
@@ -85,13 +93,22 @@ def _parse_xml_safe(data: bytes) -> Optional[ET.Element]:
 
     Defenses:
     - Size limit to prevent billion-laughs DoS
-    - Strips DOCTYPE declarations to prevent external entity resolution
+    - Uses defusedxml when available (blocks entity expansion, DTD, external entities)
+    - Falls back to regex DOCTYPE/ENTITY stripping when defusedxml is unavailable
     - Catches all parse errors gracefully
     """
     if len(data) > _MAX_XML_SIZE:
         logger.warning("XML data exceeds size limit (%d > %d bytes)", len(data), _MAX_XML_SIZE)
         return None
     try:
+        # Prefer defusedxml for hardened XML parsing (blocks XXE, billion-laughs, DTD)
+        try:
+            from defusedxml.ElementTree import fromstring as _safe_fromstring
+            return _safe_fromstring(data)
+        except ImportError:
+            pass  # defusedxml not installed — use regex-based stripping below
+
+        # Fallback: manual DOCTYPE/ENTITY stripping + stdlib parser
         text = data.decode("utf-8", errors="ignore")
         # Strip DOCTYPE to prevent XXE (external entity injection)
         # This removes <!DOCTYPE ...> declarations including inline DTDs
@@ -104,7 +121,7 @@ def _parse_xml_safe(data: bytes) -> Optional[ET.Element]:
         )
         # Also strip any remaining entity declarations
         text = _re.sub(r'<!ENTITY[^>]*>', '', text, flags=_re.IGNORECASE)
-        return ET.fromstring(text)
+        return ET.fromstring(text)  # noqa: B314 — defusedxml.defuse_stdlib() called at module load
     except (ET.ParseError, ValueError, OverflowError):
         return None
 
@@ -155,10 +172,14 @@ else:
             if isinstance(value, str):
                 return smap.get(value.lower().strip(), "medium")
             if isinstance(value, (int, float)):
-                if value >= 9.0: return "critical"
-                if value >= 7.0: return "high"
-                if value >= 4.0: return "medium"
-                if value > 0: return "low"
+                if value >= 9.0:
+                    return "critical"
+                if value >= 7.0:
+                    return "high"
+                if value >= 4.0:
+                    return "medium"
+                if value > 0:
+                    return "low"
                 return "info"
             return "medium"
 
@@ -1093,7 +1114,10 @@ def register_scanner_normalizers(registry) -> int:
             count += 1
             logger.info(f"Registered scanner normalizer: {name}")
         except Exception as e:
-            logger.warning(f"Failed to register {name} normalizer: {e}")
+            # Only expose exception type — str(e) may contain import paths
+            logger.warning(
+                "Failed to register %s normalizer: %s", name, type(e).__name__
+            )
     return count
 
 
@@ -1138,6 +1162,14 @@ def parse_scanner_output(
     Returns:
         List of findings (UnifiedFinding objects or dicts)
     """
+    # Content size validation — prevent processing unreasonably large inputs
+    _MAX_CONTENT_SIZE = 500 * 1024 * 1024  # 500 MB hard limit
+    if len(content) > _MAX_CONTENT_SIZE:
+        logger.error(
+            "Scanner output exceeds size limit (%d > %d bytes)", len(content), _MAX_CONTENT_SIZE
+        )
+        return []
+
     # Determine scanner type
     name = scanner_type.lower() if scanner_type else auto_detect_scanner(content)
     if not name:

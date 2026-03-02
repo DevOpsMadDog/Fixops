@@ -1,153 +1,153 @@
 {
-  "timestamp": "2026-03-02T13:45:00Z",
+  "timestamp": "2026-03-02T14:00:00Z",
   "overall": "GREEN",
   "mode": "ENTERPRISE_DEMO",
   "sprint": "Sprint 2 — Enterprise Demo (4 days remaining)",
-  "run_id": "agent-doctor-sprint2-day2-run28",
-  "previous_run_id": "agent-doctor-sprint2-day2-run27",
+  "run_id": "agent-doctor-sprint2-day2-run29",
+  "previous_run_id": "agent-doctor-sprint2-day2-run28",
   "agents": {
     "total": 17,
-    "completed": 15,
-    "running": 2,
+    "completed": 16,
+    "running": 1,
     "failed": 0,
     "stale": 0,
     "crashed": 0,
     "details": {
       "context-engineer": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 5,
-        "model": "claude-opus-4-6-fast", "maxTurns": 200,
-        "runs_completed": 22, "success_rate": 1.0,
+        "model": "claude-opus-4-6-fast", "maxTurns": 250,
+        "runs_completed": 23, "success_rate": 1.0,
         "last_duration_s": 536, "attempts": 1,
-        "run_id": "swarm-2026-03-01_19-30-59",
+        "run_id": "swarm-2026-03-02_10-34",
         "last_7_days": ["A", "A", "A", "A", "A", "A", "A"]
       },
       "ai-researcher": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 8,
         "model": "claude-opus-4-6-fast", "maxTurns": 200,
-        "runs_completed": 2, "success_rate": 1.0,
+        "runs_completed": 3, "success_rate": 1.0,
         "last_duration_s": 942, "attempts": 1,
-        "run_id": "swarm-2026-03-01_19-30-59",
-        "last_7_days": ["A", "A"]
+        "run_id": "swarm-2026-03-02_10-34",
+        "last_7_days": ["A", "A", "A"]
       },
       "data-scientist": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 7,
-        "model": "claude-opus-4-6-fast", "maxTurns": 200,
-        "runs_completed": 3, "success_rate": 1.0,
+        "model": "claude-opus-4-6-fast", "maxTurns": 300,
+        "runs_completed": 4, "success_rate": 1.0,
         "last_duration_s": 740, "attempts": 1,
-        "run_id": "swarm-2026-03-01_19-30-59",
-        "last_7_days": ["A", "A", "A"]
+        "run_id": "swarm-2026-03-02_10-34",
+        "last_7_days": ["A", "A", "A", "A"]
       },
       "enterprise-architect": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 9,
-        "model": "claude-opus-4-6-fast", "maxTurns": 200,
-        "runs_completed": 2, "success_rate": 1.0,
+        "model": "claude-opus-4-6-fast", "maxTurns": 300,
+        "runs_completed": 3, "success_rate": 1.0,
         "last_duration_s": 838, "attempts": 1,
-        "run_id": "swarm-2026-03-01_19-30-59",
-        "last_7_days": ["A", "A"]
+        "run_id": "swarm-2026-03-02_10-34",
+        "last_7_days": ["A", "A", "A"]
       },
       "backend-hardener": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 6, "scanner_refs": 16,
-        "model": "claude-opus-4-6-fast", "maxTurns": 200,
-        "runs_completed": 4, "success_rate": 0.75,
+        "model": "claude-opus-4-6-fast", "maxTurns": 300,
+        "runs_completed": 5, "success_rate": 0.80,
         "last_duration_s": 993, "attempts": 1,
         "run_id": "swarm-2026-03-02_hardening_v3",
-        "last_7_days": ["F", "A", "B", "A"],
+        "last_7_days": ["F", "A", "B", "A", "A"],
         "notes": "Session 3: secrets YAML fix + error handling across 5 engines. DEMO-001 DONE (E2E 58/58). 314 tests passing."
       },
       "frontend-craftsman": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 6,
-        "model": "claude-opus-4-6-fast", "maxTurns": 200,
-        "runs_completed": 6, "success_rate": 0.83,
+        "model": "claude-opus-4-6-fast", "maxTurns": 300,
+        "runs_completed": 7, "success_rate": 0.86,
         "last_duration_s": 993, "attempts": 1,
         "run_id": "swarm-2026-03-02_00-05-50",
-        "last_7_days": ["F", "A", "A", "A", "B", "A"],
+        "last_7_days": ["F", "A", "A", "A", "B", "A", "A"],
         "notes": "DEMO-003 in progress. UI wiring to real APIs. 16m 33s run."
       },
       "threat-architect": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 8, "scanner_refs": 18,
-        "model": "claude-opus-4-6-fast", "maxTurns": 200,
-        "runs_completed": 2, "success_rate": 1.0,
+        "model": "claude-opus-4-6-fast", "maxTurns": 300,
+        "runs_completed": 3, "success_rate": 1.0,
         "last_duration_s": 1442, "attempts": 1,
-        "run_id": "swarm-2026-03-01_19-30-59",
-        "last_7_days": ["A", "A"]
+        "run_id": "swarm-2026-03-02_10-34",
+        "last_7_days": ["A", "A", "A"]
       },
       "security-analyst": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 6, "scanner_refs": 15,
-        "model": "claude-opus-4-6-fast", "maxTurns": 200,
-        "runs_completed": 2, "success_rate": 1.0,
+        "model": "claude-opus-4-6-fast", "maxTurns": 250,
+        "runs_completed": 3, "success_rate": 1.0,
         "last_duration_s": 390, "attempts": 1,
-        "run_id": "swarm-2026-03-02_00-05-50",
-        "last_7_days": ["A", "A"],
+        "run_id": "swarm-2026-03-02_11-20",
+        "last_7_days": ["A", "A", "A"],
         "notes": "Bandit: 475 findings (0 HIGH). Security advisory OPEN: .env secrets. 159/159 security tests pass."
       },
       "qa-engineer": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 4, "scanner_refs": 18,
-        "model": "claude-opus-4-6-fast", "maxTurns": 200,
-        "runs_completed": 2, "success_rate": 1.0,
+        "model": "claude-opus-4-6-fast", "maxTurns": 250,
+        "runs_completed": 3, "success_rate": 1.0,
         "last_duration_s": 606, "attempts": 2,
-        "run_id": "swarm-2026-03-02_00-05-50",
-        "last_7_days": ["A", "A"],
+        "run_id": "swarm-2026-03-02_13-44",
+        "last_7_days": ["A", "A", "A"],
         "notes": "DEMO-002 DONE: Postman 411/411 (100%). 74 collection fixes. All 7 collections GREEN."
       },
       "devops-engineer": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 6,
-        "model": "claude-opus-4-6-fast", "maxTurns": 200,
-        "runs_completed": 2, "success_rate": 1.0,
+        "model": "claude-opus-4-6-fast", "maxTurns": 250,
+        "runs_completed": 3, "success_rate": 1.0,
         "last_duration_s": 801, "attempts": 1,
-        "run_id": "swarm-2026-03-01_19-30-59",
-        "last_7_days": ["A", "A"]
+        "run_id": "swarm-2026-03-02_10-34",
+        "last_7_days": ["A", "A", "A"]
       },
       "marketing-head": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 6,
         "model": "claude-opus-4-6-fast", "maxTurns": 200,
-        "runs_completed": 1, "success_rate": 1.0,
+        "runs_completed": 2, "success_rate": 1.0,
         "last_duration_s": 633, "attempts": 1,
-        "run_id": "swarm-2026-03-01_19-30-59",
-        "last_7_days": ["A"]
+        "run_id": "swarm-2026-03-02_10-34",
+        "last_7_days": ["A", "A"]
       },
       "technical-writer": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 11,
         "model": "claude-opus-4-6-fast", "maxTurns": 200,
-        "runs_completed": 1, "success_rate": 1.0,
+        "runs_completed": 2, "success_rate": 1.0,
         "last_duration_s": 660, "attempts": 1,
-        "run_id": "swarm-2026-03-01_19-30-59",
-        "last_7_days": ["A"]
+        "run_id": "swarm-2026-03-02_10-34",
+        "last_7_days": ["A", "A"]
       },
       "sales-engineer": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 4,
         "model": "claude-opus-4-6-fast", "maxTurns": 200,
-        "runs_completed": 1, "success_rate": 1.0,
+        "runs_completed": 2, "success_rate": 1.0,
         "last_duration_s": 869, "attempts": 1,
-        "run_id": "swarm-2026-03-01_19-30-59",
-        "last_7_days": ["A"]
+        "run_id": "swarm-2026-03-02_10-34",
+        "last_7_days": ["A", "A"]
       },
       "scrum-master": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 6,
         "model": "claude-opus-4-6-fast", "maxTurns": 200,
-        "runs_completed": 2, "success_rate": 1.0,
+        "runs_completed": 3, "success_rate": 1.0,
         "last_duration_s": 549, "attempts": 1,
-        "run_id": "swarm-2026-03-02_00-01-07",
-        "last_7_days": ["A", "A"]
+        "run_id": "swarm-2026-03-02_10-34",
+        "last_7_days": ["A", "A", "A"]
       },
       "agent-doctor": {
         "status": "running", "grade": "A", "yaml_valid": true, "ctem_refs": 10,
         "model": "claude-opus-4-6-fast", "maxTurns": 200,
-        "runs_completed": 28, "success_rate": 0.96,
-        "run_id": "agent-doctor-sprint2-day2-run28",
+        "runs_completed": 29, "success_rate": 0.97,
+        "run_id": "agent-doctor-sprint2-day2-run29",
         "last_7_days": ["A", "A", "A", "A", "A", "A", "A"]
       },
       "swarm-controller": {
         "status": "completed", "grade": "A", "yaml_valid": true, "ctem_refs": 4,
-        "model": "claude-opus-4-6-fast", "maxTurns": 200,
-        "runs_completed": 2, "success_rate": 1.0,
+        "model": "claude-opus-4-6-fast", "maxTurns": 150,
+        "runs_completed": 3, "success_rate": 1.0,
         "last_duration_s": 815, "attempts": 1,
-        "run_id": "swarm-2026-03-01_19-30-59",
-        "last_7_days": ["A", "A"]
+        "run_id": "swarm-2026-03-02_10-34",
+        "last_7_days": ["A", "A", "A"]
       },
       "vision-agent": {
         "status": "running", "grade": "A", "yaml_valid": true, "ctem_refs": 12,
         "model": "claude-opus-4-6-fast", "maxTurns": 200,
-        "runs_completed": 28, "success_rate": 1.0,
+        "runs_completed": 29, "success_rate": 1.0,
         "run_id": "swarm-2026-03-02_13-35-43",
         "last_7_days": ["A", "A", "A", "A", "A", "A", "A"],
         "notes": "Currently running Day 2 afternoon alignment scan."
@@ -159,9 +159,10 @@
     "healthy": 19,
     "failed": 0,
     "total_loc": 20527,
+    "total_loc_with_connectors": 22164,
     "loc_delta_since_sprint1": "+2367",
-    "loc_delta_since_run27": "+480",
-    "import_verified": "2026-03-02T13:45:00Z",
+    "loc_delta_since_run28": "+0",
+    "import_verified": "2026-03-02T14:00:00Z",
     "categories": {
       "scanner": {
         "count": 6,
@@ -178,6 +179,10 @@
         "engines": ["BrainPipeline(1354)", "AutoFixEngine(1416)", "FAILEngine(711)", "AdvancedMPTEClient(1089)", "run_micro_pentest(2054)", "RSAKeyManager(582)", "AutomationConnectors(3005)"],
         "total_loc": 10211
       }
+    },
+    "additional_modules": {
+      "universal_connector": {"loc": 1637, "path": "suite-core/connectors/universal_connector.py"},
+      "scanner_parsers": {"loc": 1206, "path": "suite-core/core/scanner_parsers.py"}
     }
   },
   "moats": {
@@ -211,27 +216,30 @@
     }
   },
   "databases": {
-    "total_found": 56,
+    "total_found": 55,
     "all_writable": true,
-    "writable": 56,
+    "writable": 55,
     "failed": 0,
-    "wal_cleaned_this_run": 20,
-    "critical_fix": "fixops_brain.db was corrupted (2.5GB WAL, malformed disk image) — recreated successfully",
-    "notes": "56/56 DBs writable. 20 WAL+SHM files cleaned (12 initial + 8 post-test). fixops_brain.db recovered from corruption."
+    "integrity_checked": 5,
+    "integrity_passed": 5,
+    "wal_cleaned_this_run": 10,
+    "wal_total_size_cleaned_mb": 1.6,
+    "largest_dbs_mb": ["api_detailed_logs(264)", "fixops_dedup(112)", "api_detailed_logs_fixops(109)", "feeds(60)", "feeds_suite_api(46)"],
+    "notes": "55/55 DBs writable. 5/5 integrity checks pass. 10 WAL+SHM files cleaned (1.6MB). All DBs healthy."
   },
   "tests": {
-    "total_collected": 12400,
-    "total_collected_delta": "+2044",
+    "total_collected": 12565,
+    "total_collected_delta": "+165 since run28",
     "collection_errors": 0,
-    "core_tests_passing": 1128,
-    "core_tests_delta": "+180",
+    "core_tests_passing": 1143,
+    "core_tests_delta": "+15 since run28",
     "core_test_files": 15,
-    "core_test_time_s": 28.42,
-    "coverage_pct": 19.19,
+    "core_test_time_s": 39.87,
+    "coverage_pct": 19.22,
     "coverage_gate": 25,
     "coverage_status": "FAILING",
-    "coverage_gap_pp": 5.81,
-    "notes": "1,128 core tests passing (28.42s, 3x faster than run27). 12,400 total collected (+2,044). Coverage 19.19% (gate 25%). DEMO-006 config applied but still below gate."
+    "coverage_gap_pp": 5.78,
+    "notes": "1,143 core tests passing (39.87s across 15 files). 12,565 total collected (+165 since run28). Coverage 19.22% (gate 25%, gap 5.78pp)."
   },
   "sprint_items": {
     "total": 12,
@@ -241,22 +249,17 @@
     "blocked": 0,
     "completion_pct": 91.7,
     "remaining_p0": [
-      "DEMO-003 (frontend-craftsman: wire UI to APIs — in progress)"
-    ],
-    "completed_since_run27": [
-      "DEMO-001 (backend-hardener: E2E 58/58, 769 routes, 11 security hardening fixes)",
-      "DEMO-002 (qa-engineer: Postman 411/411 = 100%, 74 collection fixes)"
+      "DEMO-003 (frontend-craftsman: wire UI to APIs — in progress, partially done)"
     ],
     "days_remaining": 4
   },
   "infrastructure": {
     "lock_files_active": 3,
     "lock_files_stale": 0,
-    "state_dir_size_mb": 800,
-    "log_dir_size_mb": 5,
+    "stale_fix_files_cleaned": 4,
+    "state_dir_healthy": true,
     "disk_free_gb": 749,
-    "all_dirs_exist": true,
-    "notes": "3 lock files active (PIDs alive). 749GB disk free. State dir grew to 800MB (agent artifacts)."
+    "all_dirs_exist": true
   },
   "ctem_integrity": {
     "all_agents_have_ctem_refs": true,
@@ -264,37 +267,39 @@
     "marketing_positioned_correctly": true,
     "no_aggregator_mislabeling": true,
     "min_ctem_refs": 4,
-    "max_ctem_refs": 12
+    "max_ctem_refs": 12,
+    "agents_checked": 16
   },
   "security_advisories": {
     "open": 1,
     "details": [{
-      "id": "security-advisory-001-env-secrets",
+      "id": "SA-001",
       "severity": "CRITICAL",
       "status": "OPEN",
       "finding": "Real API keys in .env (OpenAI sk-proj-*, JWT secret, API token)",
       "deadline": "before demo (2026-03-06)",
       "owner": "security-analyst",
-      "days_open": 2
+      "days_open": 3
     }]
   },
   "performance_summary": {
     "fastest_agent": "security-analyst (390s / 6m 30s)",
-    "slowest_agent": "frontend-craftsman (993s / 16m 33s)",
-    "avg_duration_s": 726,
-    "grade_distribution": {"A": 15, "B": 0, "C": 0, "D": 0, "F": 0}
+    "slowest_agent": "threat-architect (1442s / 24m)",
+    "avg_duration_s": 756,
+    "all_agents_grade_a": true,
+    "grade_distribution": {"A": 17, "B": 0, "C": 0, "D": 0, "F": 0}
   },
-  "fixes_applied_today": [
-    "Verified 19/19 engines importable (20,527 LOC, +480 since run27, +2,367 since Sprint 1)",
-    "Verified 17/17 agent configs valid YAML + CTEM refs",
-    "Verified 4/4 MOATs PASS (Brain Pipeline 12 steps, MPTE, MCP, Crypto)",
-    "FIXED fixops_brain.db corruption (2.5GB WAL caused malformed disk image) — recreated DB",
-    "Verified 56/56 DBs writable (after brain.db recovery)",
-    "Cleaned 20 WAL+SHM files (12 initial + 8 post-test regeneration)",
-    "Verified 1,128 core tests passing (28.42s — 3x faster than run27)",
-    "Verified 12,400 total tests collected (+2,044 since run27, 0 collection errors)",
-    "All 3 lock files confirmed active (PIDs alive)",
-    "Updated sprint tracking: 11/12 done (91.7%) — DEMO-001 and DEMO-002 completed today"
+  "fixes_applied_this_run": [
+    "Cleaned 10 WAL+SHM files (1.6MB total)",
+    "Removed 4 stale fix-* status files (fix-frontend-craftsman, fix-security-analyst, fix-swarm-controller, fix-vision-agent)",
+    "Verified all 19/19 engines importable (20,527 LOC)",
+    "Verified 4/4 MOATs PASS",
+    "Verified 55/55 DBs writable, 5/5 integrity pass",
+    "Verified 16/16 agent configs valid YAML + CTEM refs",
+    "Verified 1,143 core tests pass (15 files, 39.87s)",
+    "Verified 12,565 total tests collected (0 collection errors)",
+    "Verified 12/12 Brain Pipeline steps registered",
+    "Confirmed 3 lock file PIDs all alive"
   ],
-  "notes": "Sprint 2 Day 2 Afternoon — FULL HEALTH CHECK PASS. GREEN. All 19 engines (20,527 LOC). 4/4 MOATs. 56/56 DBs. 1,128 core tests. CRITICAL FIX: fixops_brain.db recovered from corruption. 11/12 sprint items done (91.7%). Only DEMO-003 (UI wiring) remaining. 4 days to demo. Security advisory OPEN re .env secrets — must rotate before demo."
+  "notes": "Run29 — Sprint 2 Day 2 PM. FULL HEALTH: GREEN. All 19 engines (20,527 LOC). 4/4 MOATs PASS. 55/55 DBs writable. 1,143 core tests (39.87s). 12,565 total tests. Coverage 19.22% (gate 25% — still FAILING). 11/12 sprint items done (91.7%). 4 days to demo. SA-001 OPEN: .env secrets rotation needed before demo."
 }

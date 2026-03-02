@@ -1,0 +1,40 @@
+{
+  "task_id": "swarm-301",
+  "worker_id": "junior-worker",
+  "status": "completed",
+  "files_modified": [
+    ".claude/team-state/sales/demo-scripts/persona-1-ciso.sh",
+    ".claude/team-state/sales/demo-scripts/persona-2-devsecops.sh",
+    ".claude/team-state/sales/demo-scripts/persona-3-auditor.sh",
+    ".claude/team-state/sales/demo-scripts/persona-4-developer.sh",
+    ".claude/team-state/sales/demo-scripts/persona-5-cto.sh"
+  ],
+  "files_created": [],
+  "summary": "Updated all 5 persona demo scripts to v4.0 verified endpoints. Replaced all broken endpoints with working alternatives, fixed AutoFix request body format to use {finding: {id, title, severity, cwe, code_snippet}}, confirmed MPTE evidence is already a string.",
+  "changes_per_file": {
+    "persona-1-ciso.sh": [
+      "Replaced /fail/top-risks with /brain/stats (verified GET)",
+      "Replaced /audit/logs/export with /audit/decision-trail (verified GET)"
+    ],
+    "persona-2-devsecops.sh": [
+      "Fixed AUTOFIX_PAYLOAD body to use {finding: {id, title, severity, cwe, code_snippet}} format",
+      "MPTE_PAYLOAD evidence field was already a string - no change needed"
+    ],
+    "persona-3-auditor.sh": [
+      "Replaced /compliance-engine/cwe-mapping/CWE-89 (unverified) with /scanner-ingest/supported (verified GET)"
+    ],
+    "persona-4-developer.sh": [
+      "Replaced /analytics/findings?severity=critical (unverified) with /cases (verified GET)",
+      "Replaced /fail/top-risks with /brain/stats (verified GET)",
+      "Fixed autofix/generate body to use {finding: {id, title, severity, cwe, code_snippet}} format"
+    ],
+    "persona-5-cto.sh": [
+      "Replaced /ai-agent/status (broken 404) with /sandbox/health (verified GET)",
+      "Replaced /ai-agent/backends (broken 404) with /workflows (verified GET)"
+    ]
+  },
+  "issues": [],
+  "needs_senior_review": false,
+  "confidence": 0.93,
+  "duration_turns": 14
+}

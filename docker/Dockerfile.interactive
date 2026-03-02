@@ -1,9 +1,16 @@
 # ============================================================================
-#  FixOps Interactive API & CLI Tester - Docker Image
-#  A fancy animated wrapper for testing all FixOps endpoints
+#  ALdeci Interactive API & CLI Tester - Docker Image
+#  A fancy animated wrapper for testing all ALdeci CTEM+ endpoints
+# ============================================================================
+# Build:   docker build -f docker/Dockerfile.interactive -t aldeci-interactive:local .
+# Run:     docker run -it aldeci-interactive:local
+# API:     docker run -it aldeci-interactive:local api-only
+# CLI:     docker run -it aldeci-interactive:local cli --help
+# Shell:   docker run -it aldeci-interactive:local shell
 # ============================================================================
 
-FROM python:3.11-slim as builder
+# ── Stage 1: Builder ────────────────────────────────────────
+FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
@@ -20,86 +27,85 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Install CPU-only PyTorch first (much smaller than GPU version)
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
-# Copy and install requirements
+# Copy and install requirements (cached layer)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# ============================================================================
-# Final stage - Interactive testing image
-# ============================================================================
+# ── Stage 2: Interactive Runtime ────────────────────────────
 FROM python:3.11-slim
+
+# Add non-root user for security
+RUN groupadd -r aldeci && useradd -r -g aldeci -m -s /bin/bash aldeci
 
 WORKDIR /app
 
 # Install runtime dependencies including tools for interactive shell
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
     curl \
     jq \
     nano \
     vim \
     less \
     ncurses-bin \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy virtual environment from builder
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Copy application code
-COPY apps/ ./apps/
-COPY core/ ./core/
-COPY risk/ ./risk/
-COPY integrations/ ./integrations/
-COPY config/ ./config/
-COPY samples/ ./samples/
-COPY simulations/ ./simulations/
-COPY data/ ./data/
-COPY backend/ ./backend/
-COPY agents/ ./agents/
-COPY scripts/ ./scripts/
-COPY services/ ./services/
-COPY telemetry/ ./telemetry/
-COPY fixops/ ./fixops/
-COPY domain/ ./domain/
-COPY new_apps/ ./new_apps/
-COPY new_backend/ ./new_backend/
-COPY fixops-enterprise/ ./fixops-enterprise/
-COPY *.py ./
-COPY *.txt ./
-COPY *.yml ./
-COPY *.yaml ./
-COPY *.md ./
-COPY docs/ ./docs/
-COPY cli/ ./cli/
-COPY evidence/ ./evidence/
-COPY lib4sbom/ ./lib4sbom/
+# Copy suite architecture (current layout)
+COPY suite-api/ ./suite-api/
+COPY suite-core/ ./suite-core/
+COPY suite-attack/ ./suite-attack/
+COPY suite-feeds/ ./suite-feeds/
+COPY suite-evidence-risk/ ./suite-evidence-risk/
+COPY suite-integrations/ ./suite-integrations/
 
-# Make the scripts executable
-RUN chmod +x /app/scripts/fixops-interactive.sh /app/scripts/aldeci-demo-runner.sh /app/scripts/docker-entrypoint.sh
+# Copy essential supporting files
+COPY scripts/docker-entrypoint.sh ./scripts/docker-entrypoint.sh
+COPY scripts/fixops-interactive.sh ./scripts/fixops-interactive.sh
+COPY scripts/aldeci-demo-runner.sh ./scripts/aldeci-demo-runner.sh
+COPY scripts/demo-healthcheck.sh ./scripts/demo-healthcheck.sh
+
+# Copy Python entry point (sitecustomize.py for import resolution)
+COPY sitecustomize.py ./
+COPY requirements.txt ./
 
 # Create data directories
-RUN mkdir -p /app/.fixops_data /tmp/fixops-interactive
+RUN mkdir -p /app/.fixops_data /app/data /tmp/fixops-interactive \
+    && chown -R aldeci:aldeci /app/.fixops_data /app/data /tmp/fixops-interactive
 
-# Set environment variables
-ENV FIXOPS_MODE=demo
-ENV FIXOPS_DATA_DIR=/app/.fixops_data
-ENV FIXOPS_API_TOKEN=demo-token-12345
-ENV FIXOPS_API_URL=http://localhost:8000
-ENV FIXOPS_TEMP_DIR=/tmp/fixops-interactive
-ENV PYTHONUNBUFFERED=1
-ENV FIXOPS_DISABLE_TELEMETRY=1
-ENV TERM=xterm-256color
-ENV EDITOR=nano
+# Make scripts executable
+RUN chmod +x /app/scripts/*.sh
 
-# Expose port for API server
+# Set ownership for non-root user
+RUN chown -R aldeci:aldeci /app
+
+# Switch to non-root user
+USER aldeci
+
+# Environment variables
+ENV FIXOPS_MODE=enterprise \
+    FIXOPS_DATA_DIR=/app/.fixops_data \
+    FIXOPS_API_URL=http://localhost:8000 \
+    FIXOPS_DISABLE_TELEMETRY=1 \
+    FIXOPS_DISABLE_RATE_LIMIT=1 \
+    PYTHONUNBUFFERED=1 \
+    TERM=xterm-256color \
+    EDITOR=nano \
+    PYTHONPATH=/app/suite-api:/app/suite-core:/app/suite-attack:/app/suite-feeds:/app/suite-evidence-risk:/app/suite-integrations:/app
+
+# Labels
+LABEL org.opencontainers.image.title="ALdeci CTEM+ Interactive"
+LABEL org.opencontainers.image.description="Interactive testing and debugging for ALdeci CTEM+ Platform"
+LABEL org.opencontainers.image.vendor="ALdeci"
+
 EXPOSE 8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD curl -sf http://localhost:8000/health || exit 1
 
-# Default entrypoint - uses the docker-entrypoint.sh script copied from scripts/
+# Default entrypoint
 ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
 CMD ["interactive"]

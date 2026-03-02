@@ -25,16 +25,16 @@
 
 | Space | Page | Status | LOC | Score | Notes |
 |-------|------|--------|-----|-------|-------|
-| mission-control | Dashboard.tsx | ✅ A | 472 | 85% | Real page |
-| mission-control | CEODashboard.tsx | ✅ A | 454 | 85% | Real page |
-| mission-control | NerveCenter.tsx | ✅ A | 306 | 85% | Real page |
+| mission-control | Dashboard.tsx | ✅ A | 571 | 85% | Real page |
+| mission-control | CEODashboard.tsx | ✅ A | 497 | 85% | Real page |
+| mission-control | NerveCenter.tsx | ✅ A | 348 | 85% | Real page |
 | discover | CodeScanning.tsx | ⚠️ Stub | 738 | 65% | placeholder  |
 | discover | SecretsDetection.tsx | ⚠️ Stub | 400 | 65% | placeholder  |
 | discover | IaCScanning.tsx | ⚠️ Stub | 335 | 65% | placeholder  |
 | discover | ContainerSecurity.tsx | ✅ B | 134 | 75% | Real page |
 | discover | SBOMGeneration.tsx | ✅ B | 136 | 75% | Real page |
 | discover | KnowledgeGraphExplorer.tsx | ⚠️ Stub | 589 | 65% | placeholder  |
-| discover | AttackPaths.tsx | ⚠️ Stub | 468 | 65% | placeholder  |
+| discover | AttackPaths.tsx | ⚠️ Stub | 474 | 65% | placeholder  |
 | discover | ThreatFeeds.tsx | ⚠️ Stub | 354 | 65% | placeholder  |
 | validate | MPTEConsole.tsx | ⚠️ Stub | 2070 | 65% | placeholder  |
 | validate | AttackSimulation.tsx | ✅ B | 153 | 75% | Real page |
@@ -45,7 +45,7 @@
 | remediate | BulkOperations.tsx | ⚠️ Stub | 412 | 65% | placeholder  |
 | remediate | Collaboration.tsx | ⚠️ Stub | 411 | 65% | placeholder  |
 | remediate | Workflows.tsx | ⚠️ Stub | 488 | 65% | placeholder  |
-| remediate | Playbooks.tsx | ⚠️ Stub | 523 | 65% | placeholder  |
+| remediate | Playbooks.tsx | ⚠️ Stub | 504 | 65% | placeholder  |
 | comply | EvidenceBundles.tsx | ⚠️ Stub | 2091 | 65% | placeholder  |
 | comply | ComplianceReports.tsx | ✅ A | 626 | 85% | Real page |
 | comply | SOC2EvidenceUI.tsx | ✅ A | 337 | 85% | Real page |
@@ -63,4 +63,4 @@
 - **D (20%+):** Minimal, mostly stub
 - **F:** Missing or empty
 
-*Generated at 2026-03-02 13:04:20 by JARVIS Controller*
+*Generated at 2026-03-02 17:28:44 by JARVIS Controller*

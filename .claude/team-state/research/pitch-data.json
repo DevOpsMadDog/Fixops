@@ -1,6 +1,7 @@
 {
-  "last_updated": "2026-03-02T14:00:00Z",
+  "last_updated": "2026-03-02T22:30:00Z",
   "analyst": "ai-researcher",
+  "pulse_version": "2026-03-02-v3",
   "market_size": {
     "tam": "$380B — Global cybersecurity market (2026 est.)",
     "sam": "$28.5B — Application Security Testing + DevSecOps + CTEM (2026 est.)",
@@ -9,18 +10,34 @@
   "market_growth": {
     "cybersecurity_vc_2025": "$13.97B across 392 VC rounds (47% YoY) + $20.7B total incl. growth equity across 820 deals",
     "cybersecurity_ma_2025": "$84B+ disclosed, 426 deals total, 8 deals >$1B",
-    "ma_jan_2026": "38 deals — 3rd highest monthly count ever, ~477 projected annually",
+    "ma_jan_2026": "34-38 deals — 3rd highest monthly count ever, ~477 projected annually",
+    "ma_2026_trend": "Sovereign M&A — US vendors acquiring EU firms for NIS2/CRA compliance",
     "gartner_ctem_prediction": "3x breach reduction for CTEM adopters by 2026",
-    "agentic_ai_adoption": "67% of orgs (Kiteworks 2026 report), 100% of security leaders have it on roadmap",
+    "agentic_ai_adoption": "67% of orgs using agentic AI (Kiteworks 2026). 48% believe agentic AI = top attack vector by EOY 2026",
     "mcp_adoption_forecast": "30% of enterprise app vendors will launch MCP servers in 2026 (Forrester)",
     "mcp_sdk_downloads": "97M monthly across Python + TypeScript",
+    "webmcp_chrome": "Browser-native MCP in Chrome early preview (Mar 2026)",
     "ai_adversary_ops_growth": "89% YoY increase (CrowdStrike 2026 Threat Report)",
-    "epss_database_size": "317,833 CVEs scored",
-    "cisa_kev_entries": "1,529 as of v2026.02.26",
-    "vllm_status": "v0.16.0 — FIPS 140-3 compliant, production standard for self-hosted inference",
+    "epss_database_size": "317,858 CVEs scored",
+    "epss_high_risk_cves": "1,339 CVEs with >90% exploitation probability",
+    "cisa_kev_entries": "1,529 as of v2026.02.26. 2026 pace: 45 entries in Jan-Feb (~270/year)",
+    "vllm_status": "v0.16.0 — mature production ecosystem. SGLang 400K+ GPU deployments globally",
+    "sglang_status": "400K+ GPU deployments. De facto standard for raw performance. 16,200 TPS on H100",
     "claude_code_security": "Feb 20, 2026 — 500+ zero-days found, cyber stocks dropped, industry disruption",
+    "anthropic_pentagon_crisis": "Feb 27, 2026 — Blacklisted as supply chain risk. Claude hit #1 App Store. Signups all-time records. Paid subs 2x in 2026",
+    "openai_pentagon_deal": "Feb 27, 2026 — OpenAI struck Pentagon deal within hours of Anthropic blacklist",
     "ai_agent_adoption": "77% of orgs running GenAI in security, 67% using agentic AI (Kiteworks 2026)",
-    "eCrime_breakout_time": "29 minutes average, 27 seconds fastest (CrowdStrike 2026)"
+    "eCrime_breakout_time": "29 minutes average, 27 seconds fastest (CrowdStrike 2026)",
+    "openai_market_share_decline": "62% (2024) → 53% projected (2026) — validates multi-model approach",
+    "anthropic_market_share_growth": "14% (2024) → 18% projected (2026). Claude #1 App Store overtaking ChatGPT",
+    "shadow_ai_risk": "92% of security professionals concerned about AI agent risks (2026)",
+    "nist_agentic_ai": "CAISI RFI on AI agent security — deadline March 9, 2026. NCCoE draft on agent identity/authorization",
+    "cybersecurity_llm_development": "Trend Micro (Llama 3 cybersec model, open weights), Cisco+Google+Meta collaboration",
+    "rsa_2026": "March 23-26, Moscone Center SF. Keynotes: Jacinda Ardern, Ben Horowitz, Adam Savage",
+    "semgrep_scale": "18K+ orgs, 75M scans in 2025, 5.3M AI triage decisions, 740K autofixes, 95% agreement rate",
+    "crowdstrike_falconid": "Phishing-resistant MFA GA — FIDO2 biometric authentication",
+    "checkmarx_kiro": "AWS Kiro IDE integration — 90% security rework elimination claim",
+    "wiz_orca_settlement": "Jan 2026 — dismissed with prejudice. PTAB invalidated 3/6 Orca patents"
   },
   "competitors": [
     {
@@ -29,9 +46,10 @@
       "funding": "$1.3B+",
       "valuation": "$3.7B (down from $8.5B peak)",
       "arr": "$300-340M (est.)",
-      "key_features": ["SCA/SAST", "IDE integration", "Snyk Studio (agentic dev)", "Package Health Check"],
-      "status": "IPO uncertain, growth decelerated to ~12%",
-      "aldeci_advantage": "Full CTEM lifecycle vs. SCA+SAST only. Multi-LLM consensus vs. single model."
+      "key_features": ["SCA/SAST", "IDE integration", "Snyk Studio (agentic dev)", "Package Health Check", "Ruby 4.0", "Reachability (JS/Java/Python)"],
+      "status": "IPO uncertain, growth ~12%. Reachability expanded Mar 9. Embracing Claude Code Security.",
+      "aldeci_advantage": "Full CTEM lifecycle vs. SCA+SAST only. Multi-LLM consensus vs. single model. 97% noise reduction across ALL scanners vs SCA reachability only.",
+      "latest_update": "2026-03-02: Reachability improvements for JS/Java/Python (Mar 9). Package Health Check for agentic dev. IPO crossroads."
     },
     {
       "name": "Wiz",
@@ -39,9 +57,10 @@
       "funding": "$1.9B+",
       "valuation": "$32B (Google acquisition price)",
       "arr": "$500M+ (est.)",
-      "key_features": ["Agentless cloud scanning", "DSPM", "CDR", "Code scanning", "MCP integration"],
-      "status": "Google acquisition closing March 2026. DOJ cleared, EU unconditionally approved Feb 10. Only AU/ZA/TR remain.",
-      "aldeci_advantage": "Scanner-neutral Switzerland vs. Google lock-in. AppSec-focused vs. cloud-only."
+      "key_features": ["Agentless cloud scanning", "DSPM", "CDR", "Code scanning", "MCP integration", "Dazz remediation"],
+      "status": "Google acquisition closing MID-MARCH 2026. EU approved. DOJ cleared. Orca lawsuit settled (Jan 2026). CISPE alarmed.",
+      "aldeci_advantage": "Scanner-neutral Switzerland vs. Google lock-in. AppSec-focused vs. cloud-only. Air-gapped capable. PEAK Switzerland moment NOW.",
+      "latest_update": "2026-03-02: Closing mid-March. Orca lawsuit dismissed with prejudice. Clean entry to Google."
     },
     {
       "name": "Semgrep",
@@ -49,9 +68,10 @@
       "funding": "$100M+",
       "valuation": "Unknown (private)",
       "arr": "Unknown",
-      "key_features": ["Multimodal AppSec engine (SAST+LLM)", "18K orgs", "740K auto-fixes", "StackHawk DAST integration"],
-      "status": "Growing. Semgrep Secure 2026 event (Feb 25). Claims zero false positives.",
-      "aldeci_advantage": "Multi-LLM consensus (3+ models) vs. single-model. Full CTEM lifecycle vs. SAST-only."
+      "key_features": ["Multimodal AppSec engine (SAST+LLM)", "18K orgs", "75M scans/yr", "740K auto-fixes", "AI Detection product", "5.3M AI triage decisions at 95% agreement"],
+      "status": "Growing. Series D. RSA 2026 Booth #1743. AI Detection product launch. Opengrep fork by 10 companies.",
+      "aldeci_advantage": "Multi-LLM consensus (3+ models) vs. single-model 95%. Full CTEM lifecycle vs. SAST-only. MPTE verification.",
+      "latest_update": "2026-03-02: RSA 2026 presence. AI Detection product. 75M scans, 740K autofixes in 2025."
     },
     {
       "name": "Checkmarx",
@@ -59,9 +79,10 @@
       "funding": "PE-backed (H&F, $1.15B acquisition in 2020)",
       "valuation": "$1.5-2.5B (for sale)",
       "arr": "$150M+ (Checkmarx One)",
-      "key_features": ["SAST/DAST/SCA/IaC", "Checkmarx Assist (AI agents via Tromzo)", "Gartner Leader 7x"],
-      "status": "Acquired Tromzo (Dec 2025). Sale process unclear/stalled.",
-      "aldeci_advantage": "We already have AI agents (Brain Pipeline). They just acquired them. Air-gapped capable."
+      "key_features": ["SAST/DAST/SCA/IaC", "Checkmarx Assist (Tromzo AI agents)", "AWS Kiro IDE integration", "90% rework elimination claim"],
+      "status": "AWS Kiro IDE integration. Sale process stalled. Directly threatened by Claude Code Security.",
+      "aldeci_advantage": "Enterprise-wide Decision Intelligence vs IDE-only. Air-gapped capability. Vendor stability (no sale uncertainty).",
+      "latest_update": "2026-03-02: AWS Kiro IDE integration. Tromzo agents launching as Checkmarx Assist. Sale still stalled."
     },
     {
       "name": "Endor Labs",
@@ -69,19 +90,21 @@
       "funding": "$188M",
       "valuation": "Unknown",
       "arr": "Unknown (30x ARR growth, 166% NRR)",
-      "key_features": ["Reachability analysis", "97% noise reduction (SCA)", "Autonomous Plane (containers)", "Citi Ventures backed"],
-      "status": "Acquired Autonomous Plane (Feb 2026). Strong growth.",
-      "aldeci_advantage": "97% noise reduction across ALL scanner types (not just SCA). MPTE verification vs. static analysis."
+      "key_features": ["Reachability analysis", "90% noise reduction (SCA)", "Autonomous Plane (code-to-container)", "OpenClaw AI agent security", "ArmorCode integration"],
+      "status": "Acquired Autonomous Plane (Feb 2026). RSA 2026 exhibitor. Rising in Cyber.",
+      "aldeci_advantage": "97% noise reduction across ALL scanner types (not just SCA). MPTE verification vs. static analysis. Full CTEM lifecycle.",
+      "latest_update": "2026-03-02: Autonomous Plane acquisition for full-stack reachability. 6 OpenClaw zero-days. ArmorCode integration."
     },
     {
       "name": "CrowdStrike",
-      "category": "Endpoint + Cloud Security",
+      "category": "Endpoint + Cloud + Identity Security",
       "funding": "Public (CRWD)",
       "valuation": "$90B+ market cap",
       "arr": "$4B+",
-      "key_features": ["Falcon XDR", "SGNL (identity)", "Seraphic (browser)", "Cloud workload security"],
-      "status": "Aggressive M&A. SGNL ($740M) + Seraphic in Jan 2026.",
-      "aldeci_advantage": "AppSec-focused vs. endpoint-first. CTEM lifecycle vs. detection-only. Developer-centric."
+      "key_features": ["Falcon XDR", "FalconID (FIDO2 MFA)", "SGNL (identity)", "Seraphic (browser)", "281+ adversaries tracked"],
+      "status": "FalconID GA. Fal.Con Gov Mar 18. SGNL ($740M) + Seraphic ($420M) acquired.",
+      "aldeci_advantage": "AppSec-focused vs. endpoint-first. CTEM lifecycle vs. detection-only. Developer-centric. Air-gapped AI capability.",
+      "latest_update": "2026-03-02: FalconID phishing-resistant MFA GA. Fal.Con Gov Mar 18 with White House, CISA, DoW leaders."
     },
     {
       "name": "Orca Security",
@@ -89,9 +112,10 @@
       "funding": "$732M",
       "valuation": "$1.8B",
       "arr": "Unknown",
-      "key_features": ["Agentless scanning", "Static reachability analysis (90% reduction)", "CIEM", "CDR"],
-      "status": "Forrester Strong Performer. Settled Wiz lawsuit.",
-      "aldeci_advantage": "MPTE proves exploitability vs. static analysis. Full AppSec vs. cloud-workload-only."
+      "key_features": ["Agentless scanning", "Static reachability (90% reduction)", "CIEM", "CDR", "Zscaler partnership"],
+      "status": "Patent lawsuit vs Wiz settled (lost 3/6 patents at PTAB). Mindshare declining (4.0%→2.6%). 495 employees.",
+      "aldeci_advantage": "MPTE proves exploitability vs. static analysis. Full AppSec vs. cloud-workload-only. Growing vs. declining mindshare.",
+      "latest_update": "2026-03-02: Wiz lawsuit settled. PTAB invalidated 3/6 patents. Mindshare declining."
     },
     {
       "name": "ArmorCode",
@@ -99,9 +123,10 @@
       "funding": "$100M+",
       "valuation": "Unknown",
       "arr": "Unknown",
-      "key_features": ["Anya agentic AI", "320+ integrations", "40B findings processed", "MCP Server", "IDC Leader"],
-      "status": "Closest ASPM competitor. MCP integration validates our V7.",
-      "aldeci_advantage": "Native scanners (they aggregate only). MPTE verification. Multi-LLM consensus. Air-gapped capable."
+      "key_features": ["Anya agentic AI", "320+ integrations", "40B findings processed", "MCP Server", "IDC Leader", "Endor Labs integration"],
+      "status": "Closest ASPM competitor. MCP server validates V7. Endor Labs SCA integration.",
+      "aldeci_advantage": "Native scanners (they aggregate only). MPTE verification. Multi-LLM consensus. Air-gapped capable.",
+      "latest_update": "2026-03-02: Endor Labs SCA integration. MCP server validates V7 thesis."
     },
     {
       "name": "Cyera",
@@ -110,45 +135,54 @@
       "valuation": "$9B (Series F, Jan 2026)",
       "arr": "Unknown (3.4x revenue growth)",
       "key_features": ["AI-native data security", "~20% Fortune 500 customers", "DSPM"],
-      "status": "One of most heavily funded cybersecurity companies ever. Different category from ALdeci.",
-      "aldeci_advantage": "Different market (DSPM vs. CTEM). Potential integration partner."
+      "status": "Most heavily funded cybersecurity company. Different category (DSPM vs. CTEM).",
+      "aldeci_advantage": "Different market (DSPM vs. CTEM). Potential integration partner.",
+      "latest_update": "2026-03-02: No new updates. Valuation benchmark for AI-native security."
     }
   ],
   "trends": [
+    "BREAKING: Anthropic blacklisted by Pentagon — Claude hits #1 App Store, OpenAI strikes Pentagon deal",
+    "Single-LLM-provider dependency is now GEOPOLITICAL risk — one executive order can cut access",
+    "Wiz-Google $32B closing mid-March 2026 — creates Switzerland opportunity for independent vendors",
+    "SGLang at 400K+ GPUs — becoming de facto LLM inference standard globally",
+    "WebMCP in Chrome early preview — browser-native MCP integration emerging",
+    "NIST CAISI agentic AI security RFI (deadline Mar 9) — regulation catching up to agentic AI",
+    "RSA 2026 (Mar 23-26) — biggest cybersecurity conference, agentic AI is dominant theme",
+    "AI arms race: Claude Opus 4.6, Sonnet 4.6, GPT-5.3-Codex all launched same period",
+    "OpenAI market share declining (62%→53%) — validates multi-model approach",
+    "Open-weight cybersecurity LLMs emerging (Trend Micro Llama 3, Cisco collab)",
     "Agentic AI is the defining theme of 2026 — every vendor embedding autonomous agents",
-    "MCP (Model Context Protocol) becoming dominant standard for agent-tool connectivity",
-    "Platform consolidation via aggressive M&A (38 deals in Jan 2026 alone)",
-    "AI-generated code security emerging as new category (ArmorCode, Semgrep, Endor Labs)",
-    "Wiz → Google creates Switzerland opportunity for independent vendors",
-    "Browser + identity security expansion by endpoint vendors (CrowdStrike)",
-    "AI-enabled adversary operations up 89% YoY (CrowdStrike 2026 Threat Report)",
-    "Cybersecurity VC funding remains strong at $20.7B in 2025 (52% YoY growth)",
+    "MCP (Model Context Protocol) becoming dominant standard (97M SDK downloads/month)",
+    "Platform consolidation via aggressive M&A (477 deals projected for 2026, record pace)",
+    "Sovereign M&A — US vendors acquiring EU firms for NIS2/CRA compliance",
+    "AI-generated code security emerging as new category",
+    "Claude Code Security disrupted traditional SAST/DAST — reasoning vulnerability hunting",
+    "AI adversary operations up 89% YoY (CrowdStrike 2026 Threat Report)",
+    "27-second eCrime breakout — automated remediation now critical",
+    "CrowdStrike FalconID — endpoint vendors moving into identity security",
+    "Checkmarx AWS Kiro IDE — IDE-native agentic AppSec emerging",
+    "Post-quantum cryptography entering production (Google HTTPS PQC, NIST ML-KEM)",
+    "1,339 CVEs with >90% exploitation probability in EPSS",
+    "Wiz-Orca patent battle settled — PTAB invalidated 3/6 Orca patents",
     "Premium valuations for AI-native security startups vs. non-AI peers",
-    "Post-quantum cryptography entering production (Google HTTPS PQC, NIST ML-KEM standardized)",
-    "vLLM v0.16 achieves FIPS 140-3 — self-hosted LLM is enterprise-grade",
-    "OpenAI deploying to classified DoD networks — air-gapped AI is national security priority",
-    "MCP security concerns emerging (prompt injection, tool poisoning) — governance tools launching",
-    "Tenable predicts automated remediation gets enterprise go-ahead in 2026",
-    "Claude Code Security disrupts traditional SAST/DAST vendors — cyber stocks dropped Feb 20",
-    "AI agent security emerges as new category — 92% of professionals concerned about AI agent risks",
-    "'Vibe hacking' — adversaries exploiting AI agents via prompt injection and tool misuse",
-    "eCrime breakout time hits 27 seconds — automated remediation now critical",
-    "Wiz Code integrating Dazz ($450M) for cloud-to-code remediation",
-    "Semgrep StackHawk integration addresses DAST gap — validating all-in-one approach"
+    "Opengrep fork of Semgrep CE — community trust in open-source under strain"
   ],
   "differentiators": [
+    "Geopolitical resilience — multi-LLM + air-gap = no single executive order can disable security AI",
     "8 built-in fallback scanners (works air-gapped, no external tools needed)",
     "12-step Brain Pipeline (full CTEM lifecycle — no competitor has full loop)",
-    "Multi-LLM Consensus (3+ LLMs vote, 85% threshold — beats single-model confidence)",
+    "Multi-LLM Consensus (3+ LLMs vote, 85% threshold — validated by Pentagon crisis)",
     "19-phase MPTE Verification (proves exploitability, doesn't just detect)",
     "FAIL Engine (chaos engineering for AppSec — industry first, zero competitors)",
-    "Air-gapped deployment with full scanner capability (defense/critical infra ready)",
+    "Air-gapped deployment with vLLM v0.16 + open-weight cybersecurity models ($0/mo)",
     "AI-powered AutoFix with 10 fix types and confidence-based auto-apply",
-    "MCP-native with 650+ auto-discovered tools (first-mover in AI-native AppSec)",
-    "Scanner-neutral Switzerland positioning (no vendor lock-in, day 1 value)",
+    "MCP-native with 705+ auto-discovered tools (first-mover in AI-native AppSec)",
+    "Scanner-neutral Switzerland positioning (critical as Wiz → Google this month)",
     "Quantum-secure evidence (FIPS 204 ML-DSA + RSA hybrid — 5-year head start)",
-    "Claude Code Security integration story — 'Claude finds, ALdeci decides' — complementary positioning",
-    "AI agent security testing via MPTE — emerging attack surface validation"
+    "Claude Code Security integration — 'Claude finds, ALdeci decides' — category creation",
+    "AI agent security testing via MPTE — emerging attack surface validation",
+    "16-agent autonomous AI company model — unique investor narrative",
+    "NIST-ready agentic AI security — ahead of CAISI regulatory framework"
   ],
   "demo_010_data": {
     "status": "COMPLETED",
@@ -163,6 +197,7 @@
       "risk_multiplier": 9.1
     },
     "top_attack_path_risk": 9.2,
-    "endpoint": "POST /api/v1/knowledge-graph/seed-demo"
+    "endpoint": "POST /api/v1/knowledge-graph/seed-demo",
+    "tests_passing": "75/75"
   }
 }

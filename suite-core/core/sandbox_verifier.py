@@ -171,6 +171,24 @@ class SandboxVerifier:
         PoCLanguage.GO: ["go", "run", "/poc/script.go"],
     }
 
+    # Maximum PoC script size (bytes) — prevent DoS via huge scripts
+    MAX_POC_SIZE = 64 * 1024  # 64 KB
+
+    # Dangerous patterns blocked in PoC code (defense-in-depth beyond Docker isolation)
+    _BLOCKED_PATTERNS = [
+        r"import\s+os\s*;\s*os\.system",  # Direct OS command via import
+        r"__import__\s*\(\s*['\"]os",  # Dynamic OS import
+        r"subprocess\.call.*shell\s*=\s*True",  # Shell injection via subprocess
+        r"eval\s*\(\s*input",  # Eval of user input
+        r"exec\s*\(\s*input",  # Exec of user input
+        r"/dev/sd[a-z]",  # Direct disk access
+        r"mkfs\.",  # Filesystem formatting
+        r"dd\s+if=",  # Raw disk I/O
+        r":(){ :|:& };:",  # Fork bomb
+        r"\bkill\s+-9\s+1\b",  # Kill init
+        r"rm\s+-rf\s+/[^t]",  # rm -rf / (except /tmp)
+    ]
+
     def __init__(
         self,
         memory_limit: str = "128m",
@@ -183,6 +201,11 @@ class SandboxVerifier:
         self.max_attempts = max_attempts
         self._docker_available = docker_available
         self._results_store: List[VerificationResult] = []
+        # Compile blocked patterns once
+        import re
+        self._compiled_blocks = [
+            re.compile(p, re.IGNORECASE) for p in self._BLOCKED_PATTERNS
+        ]
 
     @property
     def docker_available(self) -> bool:
@@ -198,6 +221,28 @@ class SandboxVerifier:
         except (FileNotFoundError, subprocess.TimeoutExpired):
             self._docker_available = False
         return self._docker_available
+
+    def _validate_poc_code(self, code: str, poc: PoCScript) -> Optional[str]:
+        """Validate PoC code for safety before execution.
+
+        Returns error message if code is rejected, None if OK.
+        Defense-in-depth: Docker isolation is the primary control,
+        but this catches obviously malicious payloads early.
+        """
+        # Size limit
+        if len(code) > self.MAX_POC_SIZE:
+            return f"PoC script exceeds size limit ({len(code)} > {self.MAX_POC_SIZE} bytes)"
+
+        # Empty code
+        if not code.strip():
+            return "PoC script is empty"
+
+        # Blocked patterns
+        for pattern in self._compiled_blocks:
+            if pattern.search(code):
+                return f"PoC contains blocked pattern: {pattern.pattern[:40]}..."
+
+        return None
 
     def verify(
         self,
@@ -215,6 +260,16 @@ class SandboxVerifier:
                 finding_id=finding_id,
                 cve_id=poc.cve_id,
                 error_message="Docker not available. Install Docker for sandbox verification.",
+            )
+
+        # Validate PoC code before execution
+        validation_err = self._validate_poc_code(poc.code, poc)
+        if validation_err:
+            return VerificationResult(
+                status=VerificationStatus.ERROR,
+                finding_id=finding_id,
+                cve_id=poc.cve_id,
+                error_message=f"PoC rejected: {validation_err}",
             )
 
         last_result = None
@@ -240,7 +295,14 @@ class SandboxVerifier:
             # Self-correction: analyze failure and try to fix
             corrected = self._self_correct(poc, current_code, result)
             if corrected and corrected != current_code:
-                logger.info(f"Self-correcting PoC (attempt {attempt+1}): {poc.cve_id}")
+                # Re-validate corrected code — self-correction must not bypass safety
+                corr_err = self._validate_poc_code(corrected, poc)
+                if corr_err:
+                    logger.warning(
+                        "Self-corrected PoC rejected: %s (cve=%s)", corr_err, poc.cve_id
+                    )
+                    break
+                logger.info("Self-correcting PoC (attempt %d): %s", attempt + 1, poc.cve_id)
                 current_code = corrected
             else:
                 break  # No correction possible
@@ -287,12 +349,13 @@ class SandboxVerifier:
 
             docker_cmd = [
                 "docker", "run", "--rm",
+                "--user", "65534:65534",  # Run as nobody — never root in container
                 "--memory", self.memory_limit,
                 "--memory-swap", self.memory_limit,  # Prevent swap usage
                 f"--cpus={self.cpu_limit}",
                 "--cap-drop=ALL",  # Drop all Linux capabilities
                 "--read-only",
-                "--tmpfs", "/tmp:rw,noexec,nosuid,nodev,size=64m",
+                "--tmpfs", "/tmp:rw,nosuid,nodev,size=64m",
                 "-v", f"{tmpdir}:/poc:ro",
                 "--security-opt", "no-new-privileges",
                 "--pids-limit", "30",  # Reduced from 50

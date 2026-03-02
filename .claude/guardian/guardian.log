@@ -309,3 +309,102 @@
 [2026-03-02T02:44:53Z] POST-AGENT: qa-engineer (exit: 0, risk: medium)
 [2026-03-02T02:44:56Z] POST-AGENT: qa-engineer — ACCEPTED (impact: 137044, pillars: NONE, violations: 0)
 [2026-03-02T02:44:56Z]   ⚠️  HIGH IMPACT SCORE (137044) — review recommended
+[2026-03-02T02:45:47Z] POST-AGENT: agent-doctor (exit: 0, risk: )
+[2026-03-02T02:45:47Z] POST-AGENT: agent-doctor — ACCEPTED (impact: 54, pillars: NONE, violations: 0)
+[2026-03-02T02:50:06Z] Guardian initialized for run swarm-2026-03-02_13-50-06
+[2026-03-02T02:59:12Z] POST-AGENT: vision-agent (exit: 0, risk: )
+[2026-03-02T02:59:16Z] POST-AGENT: vision-agent — ACCEPTED (impact: 148288, pillars: NONE, violations: 0)
+[2026-03-02T02:59:16Z]   ⚠️  HIGH IMPACT SCORE (148288) — review recommended
+[2026-03-02T02:59:39Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-03-02T02:59:43Z] POST-AGENT: context-engineer — ACCEPTED (impact: 148349, pillars: NONE, violations: 0)
+[2026-03-02T02:59:43Z]   ⚠️  HIGH IMPACT SCORE (148349) — review recommended
+[2026-03-02T03:00:40Z] POST-AGENT: agent-doctor (exit: 0, risk: )
+[2026-03-02T03:00:44Z] POST-AGENT: agent-doctor — ACCEPTED (impact: 148310, pillars: NONE, violations: 0)
+[2026-03-02T03:00:44Z]   ⚠️  HIGH IMPACT SCORE (148310) — review recommended
+[2026-03-02T03:10:01Z] POST-AGENT: ai-researcher (exit: 0, risk: medium)
+[2026-03-02T03:10:05Z] POST-AGENT: ai-researcher — ACCEPTED (impact: 150958, pillars: NONE, violations: 0)
+[2026-03-02T03:10:05Z]   ⚠️  HIGH IMPACT SCORE (150958) — review recommended
+[2026-03-02T03:11:34Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-03-02T03:11:38Z] POST-AGENT: context-engineer — ACCEPTED (impact: 150987, pillars: NONE, violations: 0)
+[2026-03-02T03:11:38Z]   ⚠️  HIGH IMPACT SCORE (150987) — review recommended
+[2026-03-02T03:14:44Z] POST-AGENT: enterprise-architect (exit: 0, risk: medium)
+[2026-03-02T03:14:48Z] POST-AGENT: enterprise-architect — ACCEPTED (impact: 151008, pillars: NONE, violations: 0)
+[2026-03-02T03:14:48Z]   ⚠️  HIGH IMPACT SCORE (151008) — review recommended
+[2026-03-02T03:24:16Z] POST-AGENT: ai-researcher (exit: 0, risk: medium)
+[2026-03-02T03:24:21Z] POST-AGENT: ai-researcher — ACCEPTED (impact: 151198, pillars: NONE, violations: 0)
+[2026-03-02T03:24:21Z]   ⚠️  HIGH IMPACT SCORE (151198) — review recommended
+[2026-03-02T03:25:08Z] POST-AGENT: enterprise-architect (exit: 0, risk: medium)
+[2026-03-02T03:25:12Z] POST-AGENT: enterprise-architect — ACCEPTED (impact: 151220, pillars: NONE, violations: 0)
+[2026-03-02T03:25:12Z]   ⚠️  HIGH IMPACT SCORE (151220) — review recommended
+[2026-03-02T03:28:22Z] POST-AGENT: data-scientist (exit: 0, risk: medium)
+[2026-03-02T03:28:26Z] POST-AGENT: data-scientist — ACCEPTED (impact: 151236, pillars: NONE, violations: 0)
+[2026-03-02T03:28:26Z]   ⚠️  HIGH IMPACT SCORE (151236) — review recommended
+[2026-03-02T03:34:16Z] POST-AGENT: data-scientist (exit: 0, risk: medium)
+[2026-03-02T03:34:21Z] POST-AGENT: data-scientist — ACCEPTED (impact: 151344, pillars: NONE, violations: 0)
+[2026-03-02T03:34:21Z]   ⚠️  HIGH IMPACT SCORE (151344) — review recommended
+[2026-03-02T03:46:05Z] POST-AGENT: frontend-craftsman (exit: 0, risk: medium)
+[2026-03-02T03:46:11Z] POST-AGENT: frontend-craftsman — ACCEPTED (impact: 151550, pillars: NONE, violations: 0)
+[2026-03-02T03:46:11Z]   ⚠️  HIGH IMPACT SCORE (151550) — review recommended
+[2026-03-02T03:46:56Z] POST-AGENT: frontend-craftsman (exit: 0, risk: medium)
+[2026-03-02T03:47:01Z] POST-AGENT: frontend-craftsman — ACCEPTED (impact: 151556, pillars: NONE, violations: 0)
+[2026-03-02T03:47:01Z]   ⚠️  HIGH IMPACT SCORE (151556) — review recommended
+[2026-03-02T03:49:07Z] POST-AGENT: backend-hardener (exit: 0, risk: medium)
+[2026-03-02T03:49:11Z] POST-AGENT: backend-hardener — ACCEPTED (impact: 151582, pillars: NONE, violations: 0)
+[2026-03-02T03:49:11Z]   ⚠️  HIGH IMPACT SCORE (151582) — review recommended
+[2026-03-02T03:50:10Z] POST-AGENT: backend-hardener (exit: 0, risk: medium)
+[2026-03-02T03:50:14Z] POST-AGENT: backend-hardener — ACCEPTED (impact: 151639, pillars: NONE, violations: 0)
+[2026-03-02T03:50:14Z]   ⚠️  HIGH IMPACT SCORE (151639) — review recommended
+[2026-03-02T03:53:10Z] POST-AGENT: threat-architect (exit: 0, risk: medium)
+[2026-03-02T03:53:15Z] POST-AGENT: threat-architect — ACCEPTED (impact: 151661, pillars: NONE, violations: 0)
+[2026-03-02T03:53:15Z]   ⚠️  HIGH IMPACT SCORE (151661) — review recommended
+[2026-03-02T04:36:18Z] POST-AGENT: swarm-controller (exit: 0, risk: medium)
+[2026-03-02T04:36:23Z] POST-AGENT: swarm-controller — ACCEPTED (impact: 151853, pillars: NONE, violations: 0)
+[2026-03-02T04:36:23Z]   ⚠️  HIGH IMPACT SCORE (151853) — review recommended
+[2026-03-02T04:46:11Z] POST-AGENT: security-analyst (exit: 0, risk: medium)
+[2026-03-02T04:46:16Z] POST-AGENT: security-analyst — ACCEPTED (impact: 151982, pillars: NONE, violations: 0)
+[2026-03-02T04:46:16Z]   ⚠️  HIGH IMPACT SCORE (151982) — review recommended
+[2026-03-02T04:58:42Z] POST-AGENT: qa-engineer (exit: 0, risk: medium)
+[2026-03-02T04:58:47Z] POST-AGENT: qa-engineer — ACCEPTED (impact: 152090, pillars: NONE, violations: 0)
+[2026-03-02T04:58:47Z]   ⚠️  HIGH IMPACT SCORE (152090) — review recommended
+[2026-03-02T05:05:11Z] POST-AGENT: swarm-controller (exit: 0, risk: medium)
+[2026-03-02T05:05:16Z] POST-AGENT: swarm-controller — ACCEPTED (impact: 152126, pillars: NONE, violations: 0)
+[2026-03-02T05:05:16Z]   ⚠️  HIGH IMPACT SCORE (152126) — review recommended
+[2026-03-02T05:08:30Z] POST-AGENT: devops-engineer (exit: 0, risk: medium)
+[2026-03-02T05:08:35Z] POST-AGENT: devops-engineer — ACCEPTED (impact: 152145, pillars: NONE, violations: 0)
+[2026-03-02T05:08:35Z]   ⚠️  HIGH IMPACT SCORE (152145) — review recommended
+[2026-03-02T05:17:23Z] POST-AGENT: security-analyst (exit: 0, risk: medium)
+[2026-03-02T05:17:28Z] POST-AGENT: security-analyst — ACCEPTED (impact: 152162, pillars: NONE, violations: 0)
+[2026-03-02T05:17:28Z]   ⚠️  HIGH IMPACT SCORE (152162) — review recommended
+[2026-03-02T05:31:56Z] POST-AGENT: qa-engineer (exit: 0, risk: medium)
+[2026-03-02T05:32:01Z] POST-AGENT: qa-engineer — ACCEPTED (impact: 152190, pillars: NONE, violations: 0)
+[2026-03-02T05:32:01Z]   ⚠️  HIGH IMPACT SCORE (152190) — review recommended
+[2026-03-02T05:43:19Z] POST-AGENT: devops-engineer (exit: 0, risk: medium)
+[2026-03-02T05:43:23Z] POST-AGENT: devops-engineer — ACCEPTED (impact: 152637, pillars: NONE, violations: 0)
+[2026-03-02T05:43:23Z]   ⚠️  HIGH IMPACT SCORE (152637) — review recommended
+[2026-03-02T05:43:40Z] POST-AGENT: technical-writer (exit: 0, risk: medium)
+[2026-03-02T05:43:47Z] POST-AGENT: technical-writer — ACCEPTED (impact: 152648, pillars: NONE, violations: 0)
+[2026-03-02T05:43:47Z]   ⚠️  HIGH IMPACT SCORE (152648) — review recommended
+[2026-03-02T05:46:19Z] POST-AGENT: marketing-head (exit: 0, risk: medium)
+[2026-03-02T05:46:24Z] POST-AGENT: marketing-head — ACCEPTED (impact: 152750, pillars: NONE, violations: 0)
+[2026-03-02T05:46:24Z]   ⚠️  HIGH IMPACT SCORE (152750) — review recommended
+[2026-03-02T05:48:32Z] POST-AGENT: sales-engineer (exit: 0, risk: medium)
+[2026-03-02T05:48:37Z] POST-AGENT: sales-engineer — ACCEPTED (impact: 152766, pillars: NONE, violations: 0)
+[2026-03-02T05:48:37Z]   ⚠️  HIGH IMPACT SCORE (152766) — review recommended
+[2026-03-02T05:56:29Z] POST-AGENT: marketing-head (exit: 0, risk: medium)
+[2026-03-02T05:56:34Z] POST-AGENT: marketing-head — ACCEPTED (impact: 152911, pillars: NONE, violations: 0)
+[2026-03-02T05:56:34Z]   ⚠️  HIGH IMPACT SCORE (152911) — review recommended
+[2026-03-02T05:59:31Z] POST-AGENT: technical-writer (exit: 0, risk: medium)
+[2026-03-02T05:59:36Z] POST-AGENT: technical-writer — ACCEPTED (impact: 152969, pillars: NONE, violations: 0)
+[2026-03-02T05:59:36Z]   ⚠️  HIGH IMPACT SCORE (152969) — review recommended
+[2026-03-02T06:01:44Z] POST-AGENT: scrum-master (exit: 0, risk: medium)
+[2026-03-02T06:01:49Z] POST-AGENT: scrum-master — ACCEPTED (impact: 152985, pillars: NONE, violations: 0)
+[2026-03-02T06:01:49Z]   ⚠️  HIGH IMPACT SCORE (152985) — review recommended
+[2026-03-02T06:02:38Z] POST-AGENT: sales-engineer (exit: 0, risk: medium)
+[2026-03-02T06:02:43Z] POST-AGENT: sales-engineer — ACCEPTED (impact: 153022, pillars: NONE, violations: 0)
+[2026-03-02T06:02:43Z]   ⚠️  HIGH IMPACT SCORE (153022) — review recommended
+[2026-03-02T06:11:15Z] POST-AGENT: scrum-master (exit: 0, risk: medium)
+[2026-03-02T06:11:20Z] POST-AGENT: scrum-master — ACCEPTED (impact: 153049, pillars: NONE, violations: 0)
+[2026-03-02T06:11:20Z]   ⚠️  HIGH IMPACT SCORE (153049) — review recommended
+[2026-03-02T06:13:18Z] POST-AGENT: scrum-master (exit: 0, risk: medium)
+[2026-03-02T06:13:23Z] POST-AGENT: scrum-master — ACCEPTED (impact: 153055, pillars: NONE, violations: 0)
+[2026-03-02T06:13:23Z]   ⚠️  HIGH IMPACT SCORE (153055) — review recommended

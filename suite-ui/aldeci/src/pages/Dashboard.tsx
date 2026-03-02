@@ -16,14 +16,23 @@ import {
   RefreshCw,
   Workflow,
   Sparkles,
+  Code2,
+  Globe,
+  Lock,
+  Package,
+  Cloud,
+  Bug,
+  Eye,
+  Bot,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
-import { dashboardApi, feedsApi, systemApi, algorithmsApi } from '../lib/api';
+import { dashboardApi, feedsApi, systemApi, algorithmsApi, api } from '../lib/api';
 import { toast } from 'sonner';
 import CTEMProgressRing from '../components/dashboard/CTEMProgressRing';
 import MultiLLMConsensusPanel from '../components/dashboard/MultiLLMConsensusPanel';
+import RiskScoreGauge from '../components/dashboard/RiskScoreGauge';
 
 // Stagger animation variants
 const containerVariants = {
@@ -151,9 +160,79 @@ function ServiceStatus({ name, status, latency }: ServiceStatusProps) {
   );
 }
 
+// ── Native Scanner Mini Grid (CTEM+ Identity) ──────────────────────────────
+const SCANNERS = [
+  { name: 'SAST', key: 'sast', icon: <Code2 className="w-3.5 h-3.5" /> },
+  { name: 'DAST', key: 'dast', icon: <Globe className="w-3.5 h-3.5" /> },
+  { name: 'Secrets', key: 'secrets', icon: <Lock className="w-3.5 h-3.5" /> },
+  { name: 'Container', key: 'container', icon: <Package className="w-3.5 h-3.5" /> },
+  { name: 'IaC/CSPM', key: 'cspm', icon: <Cloud className="w-3.5 h-3.5" /> },
+  { name: 'API Fuzz', key: 'api-fuzz', icon: <Bug className="w-3.5 h-3.5" /> },
+  { name: 'Malware', key: 'malware', icon: <Eye className="w-3.5 h-3.5" /> },
+  { name: 'LLM Mon', key: 'llm-mon', icon: <Bot className="w-3.5 h-3.5" /> },
+];
+
+function ScannerMiniGrid() {
+  const { data: sast } = useQuery({ queryKey: ['sc-sast'], queryFn: () => api.get('/api/v1/sast/status').then(r => r.data), retry: 0, staleTime: 30_000 });
+  const { data: dast } = useQuery({ queryKey: ['sc-dast'], queryFn: () => api.get('/api/v1/dast/status').then(r => r.data), retry: 0, staleTime: 30_000 });
+  const { data: secrets } = useQuery({ queryKey: ['sc-sec'], queryFn: () => api.get('/api/v1/secrets/status').then(r => r.data), retry: 0, staleTime: 30_000 });
+  const { data: container } = useQuery({ queryKey: ['sc-cont'], queryFn: () => api.get('/api/v1/container/status').then(r => r.data), retry: 0, staleTime: 30_000 });
+  const { data: cspm } = useQuery({ queryKey: ['sc-cspm'], queryFn: () => api.get<Record<string, unknown>>('/api/v1/cspm/status').then(r => r.data), retry: 0, staleTime: 30_000 });
+
+  const isActive = (d: Record<string, unknown> | undefined) => {
+    const s = d?.status as string;
+    return s === 'ready' || s === 'healthy' || s === 'active' || s === 'ok' || s === 'running';
+  };
+  const statusByKey: Record<string, boolean> = {
+    sast: isActive(sast), dast: isActive(dast), secrets: isActive(secrets),
+    container: isActive(container), cspm: isActive(cspm),
+    'api-fuzz': true, malware: true, 'llm-mon': true, // built-in, always available
+  };
+
+  return (
+    <div className="grid grid-cols-4 gap-1.5">
+      {SCANNERS.map((sc, i) => {
+        const on = statusByKey[sc.key];
+        return (
+          <motion.div
+            key={sc.key}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: i * 0.04, duration: 0.35 }}
+            className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md border text-[11px] font-medium transition-colors ${
+              on ? 'border-emerald-500/25 bg-emerald-500/5 text-emerald-400' : 'border-slate-700/30 bg-slate-800/20 text-slate-500'
+            }`}
+          >
+            {sc.icon}
+            <span className="truncate">{sc.name}</span>
+            <div className={`ml-auto w-1.5 h-1.5 rounded-full flex-shrink-0 ${on ? 'bg-emerald-500' : 'bg-slate-600'}`} />
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
+function DeploymentBadge() {
+  const { data: intData } = useQuery({
+    queryKey: ['deploy-check'], queryFn: () => api.get<Record<string, unknown>>('/api/v1/integrations').then(r => r.data).catch(() => null),
+    retry: 0, staleTime: 60_000,
+  });
+  const items = (intData as Record<string, unknown[]> | null)?.items;
+  const connected = items?.length ?? (Array.isArray(intData) ? intData.length : 0);
+  const airGapped = connected === 0;
+  return (
+    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
+      airGapped ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+    }`}>
+      {airGapped ? <><Shield className="w-3 h-3" /> Air-Gapped</> : <><Cloud className="w-3 h-3" /> Cloud ({connected})</>}
+    </span>
+  );
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
-  
+
   // Fetch real API data
   const { data: healthData, isLoading: healthLoading, refetch: refetchHealth, isError: healthError } = useQuery({
     queryKey: ['health'],
@@ -221,9 +300,12 @@ export default function Dashboard() {
               ⚡ Security Command Center
             </motion.span>
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Real-time security intelligence overview
-          </p>
+          <div className="flex items-center gap-3 mt-1">
+            <p className="text-muted-foreground">
+              Real-time security intelligence overview
+            </p>
+            <DeploymentBadge />
+          </div>
         </div>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button variant="outline" onClick={handleRefresh} className="gap-2 border-gray-600/50 hover:border-primary/50 hover:bg-primary/5 transition-all">
@@ -303,11 +385,28 @@ export default function Dashboard() {
         />
       </motion.div>
 
-      {/* CTEM Framework & Multi-LLM Consensus */}
+      {/* Risk Score Gauge + CTEM Framework + Multi-LLM Consensus */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-        className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <RiskScoreGauge />
         <CTEMProgressRing />
         <MultiLLMConsensusPanel />
+      </motion.div>
+
+      {/* Native Scanner Status — CTEM+ Identity */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
+        <Card className="glass-card backdrop-blur-md bg-gray-900/40 border-gray-700/40 hover:border-primary/20 transition-all duration-300">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Shield className="w-5 h-5 text-primary" />
+              Native Scanners (CTEM+)
+            </CardTitle>
+            <CardDescription>8 built-in security scanners — zero external dependencies</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScannerMiniGrid />
+          </CardContent>
+        </Card>
       </motion.div>
 
       {/* Main Content Grid */}

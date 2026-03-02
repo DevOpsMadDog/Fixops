@@ -503,7 +503,7 @@ class TestListAndGetScenario:
 class TestGenerateScenarioWithLlm:
     def test_no_llm_returns_scenario(self):
         engine = make_engine()
-        engine._llm = None  # Force no LLM
+        engine._llm = False  # Force no LLM (False bypasses _get_llm() re-init, unlike None)
         scenario = run(
             engine.generate_scenario_with_llm(
                 target_description="Web application login endpoint",
@@ -518,7 +518,7 @@ class TestGenerateScenarioWithLlm:
     def test_no_llm_complexity_is_high(self):
         """With no LLM, confidence defaults to 0.6 → complexity = 'high'."""
         engine = make_engine()
-        engine._llm = None
+        engine._llm = False  # False bypasses _get_llm() re-init, unlike None
         scenario = run(
             engine.generate_scenario_with_llm(target_description="Target XYZ")
         )
@@ -594,7 +594,7 @@ class TestGenerateScenarioWithLlm:
 
     def test_cves_stored_in_scenario(self):
         engine = make_engine()
-        engine._llm = None
+        engine._llm = False  # False bypasses _get_llm() re-init, unlike None
         cves = ["CVE-2023-1234", "CVE-2023-5678"]
         scenario = run(
             engine.generate_scenario_with_llm(target_description="Target", cve_ids=cves)

@@ -74,7 +74,7 @@ const RuntimeProtection = () => {
             <Progress value={agents.length ? (activeCount / agents.length) * 100 : 0} className="flex-1 h-3" />
             <span className="text-sm font-medium">{agents.length ? Math.round((activeCount / agents.length) * 100) : 0}%</span>
           </div>
-          {loading ? <div className="text-center py-8 text-muted-foreground">Loading...</div> : (
+          {loading ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 py-4">{[1,2,3,4,5,6].map(i => <div key={i} className="h-28 bg-gray-700/15 rounded-lg animate-pulse" />)}</div> : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {agents.map((agent: any, i: number) => (
               <motion.div key={i} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.03 }}>

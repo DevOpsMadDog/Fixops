@@ -1,6 +1,7 @@
 {
   "iteration": 1,
-  "date": "2026-03-02T11:45:00Z",
+  "date": "2026-03-02T04:55:00Z",
+  "run_id": "swarm-2026-03-02_13-35-43",
   "collections": {
     "1": {
       "name": "MissionControl",
@@ -32,7 +33,7 @@
       "assertions_failed": 0,
       "assertions_passed": 53,
       "requests_total": 49,
-      "requests_failed": 5
+      "requests_failed": 0
     },
     "5": {
       "name": "Comply",
@@ -40,7 +41,7 @@
       "assertions_failed": 0,
       "assertions_passed": 53,
       "requests_total": 51,
-      "requests_failed": 8
+      "requests_failed": 0
     },
     "6": {
       "name": "PersonaWorkflows",
@@ -65,7 +66,25 @@
     "assertions_failed": 0,
     "pass_rate": 100.0,
     "requests_total": 402,
-    "request_transport_errors": 14
+    "request_transport_errors": 1
+  },
+  "customer_simulations": {
+    "brain_pipeline": {"status": "PASS", "noise_reduction_pct": 80, "duration_ms": 28},
+    "sast_scan": {"status": "PASS", "findings": 3},
+    "secrets_scan": {"status": "PASS", "secrets": 4},
+    "cspm_scan": {"status": "PASS", "misconfigs": 4},
+    "mcp_discovery": {"status": "PASS", "tools": 100},
+    "mpte_verify": {"status": "PASS", "total_requests": 223}
+  },
+  "moat_tests": {
+    "total": 3252,
+    "passed": 3252,
+    "failed": 0,
+    "new_file": "test_mpte_advanced.py (167 tests, 100% coverage)",
+    "fixes": 4,
+    "moat_coverage_pct": 79.9,
+    "files_above_80": 14,
+    "files_at_100": 4
   },
   "verdict": "PASS"
 }

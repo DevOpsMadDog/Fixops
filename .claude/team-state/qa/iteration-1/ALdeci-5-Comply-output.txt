@@ -9,130 +9,130 @@ newman
   ✓  Returns log entries
 
 ↳ Verify Audit Chain
-  GET http://localhost:8000/api/v1/audit/chain/verify [200 OK, 442B, 3ms]
+  GET http://localhost:8000/api/v1/audit/chain/verify [200 OK, 442B, 7ms]
   ✓  Chain verification returns 200
   ✓  Chain is valid
 
 ↳ Audit Chain Status
-  GET http://localhost:8000/api/v1/audit/logs [200 OK, 347B, 8ms]
+  GET http://localhost:8000/api/v1/audit/logs [200 OK, 347B, 9ms]
   ✓  Chain status returns 200
 
 ↳ List Compliance Frameworks
-  GET http://localhost:8000/api/v1/audit/compliance/frameworks [200 OK, 347B, 8ms]
+  GET http://localhost:8000/api/v1/audit/compliance/frameworks [200 OK, 347B, 10ms]
   ✓  Frameworks returns 200
   ✓  Capture frameworkId
 
 ↳ Framework Compliance Status
-  GET http://localhost:8000/api/v1/audit/compliance/frameworks/soc2/status [404 Not Found, 341B, 9ms]
+  GET http://localhost:8000/api/v1/audit/compliance/frameworks/soc2/status [404 Not Found, 341B, 10ms]
   ✓  Framework status returns 200
 
 ↳ Framework Gap Analysis
-  GET http://localhost:8000/api/v1/audit/compliance/frameworks/soc2/gaps [404 Not Found, 341B, 8ms]
+  GET http://localhost:8000/api/v1/audit/compliance/frameworks/soc2/gaps [404 Not Found, 341B, 11ms]
   ✓  Gap analysis returns 200
 
 ↳ Control Mappings
-  GET http://localhost:8000/api/v1/audit/compliance/controls [200 OK, 347B, 9ms]
+  GET http://localhost:8000/api/v1/audit/compliance/controls [200 OK, 347B, 8ms]
   ✓  Mappings returns 200
 
 ↳ Generate Audit Evidence
-  POST http://localhost:8000/api/v1/audit/compliance/frameworks/soc2/report [404 Not Found, 341B, 7ms]
+  POST http://localhost:8000/api/v1/audit/compliance/frameworks/soc2/report [404 Not Found, 341B, 9ms]
   ✓  Generate evidence returns 200
 
 ↳ Compliance Score History
-  GET http://localhost:8000/api/v1/analytics/dashboard/compliance-status [200 OK, 442B, 20ms]
+  GET http://localhost:8000/api/v1/analytics/dashboard/compliance-status [200 OK, 442B, 17ms]
   ✓  Score history returns 200
 
 ❏ 🔐 Evidence Vault (V6 — Quantum-Secure)
 ↳ List Evidence Bundles
-  GET http://localhost:8000/api/v1/evidence/bundles [200 OK, 1.55kB, 18ms]
+  GET http://localhost:8000/api/v1/evidence/bundles [200 OK, 1.54kB, 15ms]
   ✓  Evidence bundles returns 200
   ✓  Capture bundleId
 
 ↳ Create Evidence Bundle
-  POST http://localhost:8000/api/v1/evidence/bundles/generate [200 OK, 1.04kB, 10ms]
+  POST http://localhost:8000/api/v1/evidence/bundles/generate [200 OK, 1.04kB, 7ms]
   ✓  Create bundle returns 200/201
   ✓  Capture bundleId
 
 ↳ Get Evidence Bundle
-  GET http://localhost:8000/api/v1/evidence/bundles [200 OK, 1.54kB, 9ms]
+  GET http://localhost:8000/api/v1/evidence/bundles [200 OK, 1.54kB, 11ms]
   GET http://localhost:8000/api/v1/evidence/bundles/incident-IR-2025-001 [404 Not Found, 331B, 5ms]
   ✓  Get bundle returns 200
 
 ↳ Verify Evidence Bundle Signature
-  GET http://localhost:8000/api/v1/evidence/bundles [200 OK, 1.54kB, 9ms]
-  POST http://localhost:8000/api/v1/evidence/bundles/incident-IR-2025-001/verify [200 OK, 594B, 6ms]
+  GET http://localhost:8000/api/v1/evidence/bundles [200 OK, 1.54kB, 12ms]
+  POST http://localhost:8000/api/v1/evidence/bundles/incident-IR-2025-001/verify [200 OK, 594B, 5ms]
   ✓  Verify evidence returns 200
   ✓  Signature verification response
 
 ↳ Export Evidence Bundle
-  GET http://localhost:8000/api/v1/evidence/bundles [200 OK, 1.54kB, 10ms]
-  GET http://localhost:8000/api/v1/evidence/bundles/incident-IR-2025-001/download [200 OK, 1.63kB, 6ms]
+  GET http://localhost:8000/api/v1/evidence/bundles [200 OK, 1.54kB, 6ms]
+  GET http://localhost:8000/api/v1/evidence/bundles/incident-IR-2025-001/download [200 OK, 1.63kB, 4ms]
   ✓  Export bundle returns 200
 
 ↳ Supply Chain Provenance Attestation
-  GET http://localhost:8000/api/v1/audit/decision-trail [200 OK, 328B, 7ms]
+  GET http://localhost:8000/api/v1/audit/decision-trail [200 OK, 328B, 6ms]
   ✓  Attestation returns 200/201
 
 ↳ List Provenance Attestations
-  GET http://localhost:8000/api/v1/feeds/supply-chain [200 OK, 24.31kB, 11ms]
+  GET http://localhost:8000/api/v1/feeds/supply-chain [200 OK, 24.31kB, 16ms]
   ✓  List attestations returns 200
 
 ❏ 📊 Reports & Analytics
 ↳ List Reports
-  GET http://localhost:8000/api/v1/reports [200 OK, 39.76kB, 6ms]
+  GET http://localhost:8000/api/v1/reports [200 OK, 39.79kB, 16ms]
   ✓  List reports returns 200
   ✓  Capture reportId
 
 ↳ Generate Executive Report
-  POST http://localhost:8000/api/v1/reports/generate [201 Created, 715B, 25ms]
+  POST http://localhost:8000/api/v1/reports/generate [201 Created, 715B, 20ms]
   ✓  Generate report returns 200
   ✓  Capture reportId
 
 ↳ Get Report
-  GET http://localhost:8000/api/v1/reports [200 OK, 39.76kB, 8ms]
-  GET http://localhost:8000/api/v1/reports/ee589fcd-9cff-4c05-bb77-1cada50f6117 [200 OK, 709B, 7ms]
+  GET http://localhost:8000/api/v1/reports [200 OK, 39.79kB, 10ms]
+  GET http://localhost:8000/api/v1/reports/f755af3a-ed85-4b9f-bd2b-04abd99ac8ed [200 OK, 709B, 5ms]
   ✓  Get report returns 200
 
 ↳ Export Report — SARIF
-  POST http://localhost:8000/api/v1/reports/export/sarif [200 OK, 784B, 4ms]
+  POST http://localhost:8000/api/v1/reports/export/sarif [200 OK, 784B, 9ms]
   ✓  SARIF export returns 200
 
 ↳ Export Report — CSV
-  POST http://localhost:8000/api/v1/reports/export/csv [200 OK, 495B, 12ms]
+  POST http://localhost:8000/api/v1/reports/export/csv [200 OK, 495B, 15ms]
   ✓  CSV export returns 200
 
 ↳ Schedule Report
-  POST http://localhost:8000/api/v1/reports/schedule [422 Unprocessable Content, 692B, 9ms]
+  POST http://localhost:8000/api/v1/reports/schedule [422 Unprocessable Content, 692B, 8ms]
   ✓  Schedule report returns 200
 
 ↳ Report Templates
-  GET http://localhost:8000/api/v1/reports/templates/list [200 OK, 347B, 11ms]
+  GET http://localhost:8000/api/v1/reports/templates/list [200 OK, 347B, 10ms]
   ✓  Templates returns 200
 
 ❏ 📜 Policy Engine
 ↳ List Policies
-  GET http://localhost:8000/api/v1/policies [200 OK, 4.52kB, 13ms]
+  GET http://localhost:8000/api/v1/policies [200 OK, 4.52kB, 12ms]
   ✓  List policies returns 200
   ✓  Capture policyId
 
 ↳ Create Policy
-  POST http://localhost:8000/api/v1/policies [201 Created, 670B, 13ms]
+  POST http://localhost:8000/api/v1/policies [201 Created, 670B, 12ms]
   ✓  Create policy returns 200/201
   ✓  Capture policyId
 
 ↳ Get Policy
-  GET http://localhost:8000/api/v1/policies [200 OK, 4.89kB, 9ms]
-  GET http://localhost:8000/api/v1/policies/f577a23e-2efe-4d8c-a738-c9867010907c [200 OK, 665B, 6ms]
+  GET http://localhost:8000/api/v1/policies [200 OK, 4.89kB, 10ms]
+  GET http://localhost:8000/api/v1/policies/a889e0a4-4710-4c87-b42a-3722668dfb53 [200 OK, 665B, 6ms]
   ✓  Get policy returns 200
 
 ↳ Update Policy
-  GET http://localhost:8000/api/v1/policies [200 OK, 4.89kB, 6ms]
-  PUT http://localhost:8000/api/v1/policies/f577a23e-2efe-4d8c-a738-c9867010907c [200 OK, 671B, 6ms]
+  GET http://localhost:8000/api/v1/policies [200 OK, 4.89kB, 10ms]
+  PUT http://localhost:8000/api/v1/policies/a889e0a4-4710-4c87-b42a-3722668dfb53 [200 OK, 671B, 6ms]
   ✓  Update policy returns 200
 
 ↳ Validate Against Policy
-  GET http://localhost:8000/api/v1/policies [200 OK, 4.89kB, 8ms]
-  POST http://localhost:8000/api/v1/policies/f577a23e-2efe-4d8c-a738-c9867010907c/validate [200 OK, 482B, 7ms]
+  GET http://localhost:8000/api/v1/policies [200 OK, 4.89kB, 12ms]
+  POST http://localhost:8000/api/v1/policies/a889e0a4-4710-4c87-b42a-3722668dfb53/validate [200 OK, 482B, 6ms]
   ✓  Policy validation returns 200
 
 ↳ Simulate Policy Impact
@@ -141,62 +141,62 @@ newman
 
 ↳ Delete Policy
   GET http://localhost:8000/api/v1/policies [200 OK, 4.89kB, 9ms]
-  DELETE http://localhost:8000/api/v1/policies/f577a23e-2efe-4d8c-a738-c9867010907c [204 No Content, 290B, 6ms]
+  DELETE http://localhost:8000/api/v1/policies/a889e0a4-4710-4c87-b42a-3722668dfb53 [204 No Content, 290B, 7ms]
   ✓  Delete policy returns 200/204
 
 ❏ 🏪 Compliance Marketplace
 ↳ List Marketplace Packs
-  GET http://localhost:8000/api/v1/marketplace/browse [200 OK, 2.11kB, 9ms]
+  GET http://localhost:8000/api/v1/marketplace/browse [200 OK, 2.11kB, 14ms]
   ✓  Marketplace packs returns 200
 
 ↳ Install Compliance Pack
-  POST http://localhost:8000/api/v1/marketplace/purchase/pack-soc2-basic?purchaser=org-001 [403 Forbidden, 425B, 7ms]
+  POST http://localhost:8000/api/v1/marketplace/purchase/pack-soc2-basic?purchaser=org-001 [403 Forbidden, 425B, 11ms]
   ✓  Install pack returns 200
 
 ↳ List Contributions
-  GET http://localhost:8000/api/v1/marketplace/contributors [200 OK, 611B, 11ms]
+  GET http://localhost:8000/api/v1/marketplace/contributors [200 OK, 611B, 9ms]
   ✓  Contributions returns 200
 
 ↳ Submit Contribution
-  POST http://localhost:8000/api/v1/marketplace/contribute?author=test&organization=org-001&name=test-contribution [422 Unprocessable Content, 560B, 8ms]
+  POST http://localhost:8000/api/v1/marketplace/contribute?author=test&organization=org-001&name=test-contribution [422 Unprocessable Content, 560B, 11ms]
   ✓  Submit contribution returns 200/201
 
 ❏ 📎 Business Context (Jira/Confluence)
 ↳ Get Business Context Settings
-  GET http://localhost:8000/api/v1/business-context/stored [200 OK, 346B, 10ms]
+  GET http://localhost:8000/api/v1/business-context/stored [200 OK, 346B, 12ms]
   ✓  Business context settings returns 200
 
 ↳ Import from Jira
-  POST http://localhost:8000/api/v1/business-context/upload [422 Unprocessable Content, 580B, 11ms]
+  POST http://localhost:8000/api/v1/business-context/upload [422 Unprocessable Content, 580B, 13ms]
   ✓  Jira import returns 200
 
 ↳ Import from Confluence
-  POST http://localhost:8000/api/v1/business-context/upload [422 Unprocessable Content, 580B, 10ms]
+  POST http://localhost:8000/api/v1/business-context/upload [422 Unprocessable Content, 580B, 9ms]
   ✓  Confluence import returns 200
 
 ↳ Upload Business Context
-  POST http://localhost:8000/api/v1/business-context/upload [422 Unprocessable Content, 580B, 8ms]
+  POST http://localhost:8000/api/v1/business-context/upload [422 Unprocessable Content, 580B, 12ms]
   ✓  Upload context returns 200
 
 ↳ Validate Business Context
-  POST http://localhost:8000/api/v1/business-context/validate [422 Unprocessable Content, 498B, 10ms]
+  POST http://localhost:8000/api/v1/business-context/validate [422 Unprocessable Content, 498B, 13ms]
   ✓  Validate context returns 200
 
 ❏ 🔑 Auth & SSO
 ↳ Auth Status
-  GET http://localhost:8000/api/v1/auth/sso [200 OK, 607B, 13ms]
+  GET http://localhost:8000/api/v1/auth/sso [200 OK, 607B, 12ms]
   ✓  Auth status returns 200
 
 ↳ Login
-  POST http://localhost:8000/api/v1/auth/sso [500 Internal Server Error, 174B, 33ms]
+  POST http://localhost:8000/api/v1/auth/sso [500 Internal Server Error, 174B, 26ms]
   ✓  Login returns 200
 
 ↳ RBAC Check
-  POST http://localhost:8000/api/v1/auth/sso [500 Internal Server Error, 174B, 18ms]
+  POST http://localhost:8000/api/v1/auth/sso [500 Internal Server Error, 174B, 27ms]
   ✓  RBAC check returns 200
 
 ↳ SSO Config
-  GET http://localhost:8000/api/v1/auth/sso [200 OK, 607B, 9ms]
+  GET http://localhost:8000/api/v1/auth/sso [200 OK, 607B, 10ms]
   ✓  SSO config returns 200
 
 ┌─────────────────────────┬──────────────────┬─────────────────┐
@@ -214,7 +214,7 @@ newman
 ├─────────────────────────┴──────────────────┴─────────────────┤
 │ total run duration: 5.7s                                     │
 ├──────────────────────────────────────────────────────────────┤
-│ total data received: 141.02kB (approx)                       │
+│ total data received: 141.08kB (approx)                       │
 ├──────────────────────────────────────────────────────────────┤
-│ average response time: 10ms [min: 3ms, max: 33ms, s.d.: 5ms] │
+│ average response time: 11ms [min: 4ms, max: 27ms, s.d.: 4ms] │
 └──────────────────────────────────────────────────────────────┘

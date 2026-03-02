@@ -1,0 +1,409 @@
+{
+  "threat_model": {
+    "id": "TM-ALDECI-SELF-2026-03-02",
+    "name": "ALdeci Platform Self-Threat Model",
+    "version": "3.0",
+    "date": "2026-03-02",
+    "methodology": "STRIDE + MITRE ATT&CK + DREAD",
+    "scope": "ALdeci CTEM+ Decision Intelligence Platform — full attack surface",
+    "architecture_type": "Modular Monolith (FastAPI, 6 suites, SQLite, Docker)",
+    "total_loc": 185000,
+    "total_endpoints": 759,
+    "total_routers": 64,
+    "compliance_targets": ["SOC2-Type-II", "ISO-27001", "GDPR"]
+  },
+  "architecture": {
+    "deployment": {
+      "type": "Docker containerized single-process monolith",
+      "runtime": "Python 3.11+ / uvicorn ASGI",
+      "port": 8000,
+      "database": "SQLite WAL (34 .db files across data/, .fixops_data/, suite-api/data/)",
+      "auth": "API key header (X-API-Key) + JWT HS256 tokens",
+      "tls": "Terminated at reverse proxy (no built-in TLS)"
+    },
+    "components": [
+      {"id": "COMP-API", "name": "FastAPI Gateway", "type": "api_gateway", "file": "suite-api/apps/api/app.py", "loc": 2742, "trust_level": "external_facing"},
+      {"id": "COMP-BRAIN", "name": "Brain Pipeline (12-step CTEM)", "type": "decision_engine", "file": "suite-core/core/brain_pipeline.py", "loc": 1533, "trust_level": "internal"},
+      {"id": "COMP-SAST", "name": "SAST Engine", "type": "scanner", "file": "suite-core/core/sast_engine.py", "loc": 1622, "trust_level": "internal"},
+      {"id": "COMP-DAST", "name": "DAST Engine", "type": "scanner", "file": "suite-core/core/dast_engine.py", "loc": 633, "trust_level": "internal"},
+      {"id": "COMP-SECRETS", "name": "Secrets Scanner", "type": "scanner", "file": "suite-core/core/secrets_scanner.py", "loc": 848, "trust_level": "internal"},
+      {"id": "COMP-CONTAINER", "name": "Container Scanner", "type": "scanner", "file": "suite-core/core/container_scanner.py", "loc": 410, "trust_level": "internal"},
+      {"id": "COMP-CSPM", "name": "CSPM/IaC Scanner", "type": "scanner", "file": "suite-core/core/cspm_engine.py", "loc": 586, "trust_level": "internal"},
+      {"id": "COMP-MPTE", "name": "MPTE Micro-Pentest Engine", "type": "offensive_security", "file": "suite-core/core/micro_pentest.py", "loc": 2054, "trust_level": "elevated"},
+      {"id": "COMP-AUTOFIX", "name": "AutoFix Engine", "type": "remediation", "file": "suite-core/core/autofix_engine.py", "loc": 1428, "trust_level": "internal"},
+      {"id": "COMP-CRYPTO", "name": "Crypto/Evidence Signing", "type": "cryptographic", "file": "suite-core/core/crypto.py", "loc": 582, "trust_level": "privileged"},
+      {"id": "COMP-MCP", "name": "MCP Server (AI Agent Gateway)", "type": "ai_integration", "file": "suite-core/core/mcp_server.py", "loc": 979, "trust_level": "external_facing"},
+      {"id": "COMP-CONNECTORS", "name": "Integration Connectors", "type": "integrations", "file": "suite-core/core/connectors.py", "loc": 3005, "trust_level": "internal"},
+      {"id": "COMP-SANDBOX", "name": "Sandbox PoC Verifier", "type": "sandbox", "file": "suite-core/core/sandbox_verifier.py", "loc": 500, "trust_level": "isolated"},
+      {"id": "COMP-SQLITE", "name": "SQLite Database Layer", "type": "database", "files": "34 .db files", "trust_level": "internal"},
+      {"id": "COMP-FEEDS", "name": "Threat Intelligence Feeds", "type": "data_feeds", "file": "suite-feeds/", "loc": 4400, "trust_level": "external_data"}
+    ],
+    "trust_boundaries": [
+      {"id": "TB-1", "name": "Internet → API Gateway", "description": "External requests hit FastAPI through reverse proxy", "controls": ["API key auth", "Rate limiting", "CORS", "Input validation"]},
+      {"id": "TB-2", "name": "API Gateway → Core Engines", "description": "Validated requests dispatched to business logic", "controls": ["Request validation", "Pydantic models", "Auth propagation"]},
+      {"id": "TB-3", "name": "Core Engines → Database", "description": "Engines read/write SQLite databases", "controls": ["Parameterized queries (partial)", "File permissions"]},
+      {"id": "TB-4", "name": "Core Engines → External Services", "description": "MPTE, DAST, Connectors reach external targets", "controls": ["SSRF allowlist", "Timeout limits", "Credential management"]},
+      {"id": "TB-5", "name": "MCP Gateway → AI Agents", "description": "AI agents consume security tools via MCP protocol", "controls": ["API key auth", "Tool-level permissions", "Rate limiting"]},
+      {"id": "TB-6", "name": "Sandbox → Docker Containers", "description": "PoC verification runs in isolated Docker containers", "controls": ["Container isolation", "Network restrictions", "Resource limits", "Evidence hash chain"]}
+    ],
+    "data_flows": [
+      {"from": "External Client", "to": "COMP-API", "data": "API requests, scan targets, code snippets", "classification": "varies"},
+      {"from": "COMP-API", "to": "COMP-BRAIN", "data": "Findings, org context", "classification": "confidential"},
+      {"from": "COMP-BRAIN", "to": "COMP-MPTE", "data": "Findings for verification", "classification": "confidential"},
+      {"from": "COMP-MPTE", "to": "External Targets", "data": "Exploit verification probes", "classification": "sensitive"},
+      {"from": "COMP-BRAIN", "to": "COMP-AUTOFIX", "data": "Code snippets, fix requests", "classification": "confidential"},
+      {"from": "COMP-AUTOFIX", "to": "External LLM", "data": "Code context for fix generation", "classification": "sensitive"},
+      {"from": "COMP-BRAIN", "to": "COMP-CRYPTO", "data": "Evidence for signing", "classification": "integrity-critical"},
+      {"from": "COMP-FEEDS", "to": "COMP-BRAIN", "data": "CVE/EPSS/KEV data", "classification": "public"},
+      {"from": "COMP-API", "to": "COMP-SQLITE", "data": "All persisted state", "classification": "confidential"}
+    ]
+  },
+  "threats": [
+    {
+      "id": "T-ALDECI-001",
+      "category": "Spoofing",
+      "component": "COMP-API",
+      "title": "API Key Theft via Default Token in Codebase",
+      "description": "The default API token is hardcoded in multiple scripts and test files. An attacker who obtains the codebase (open-source or leaked) can authenticate as any user.",
+      "mitre_technique": "T1078 — Valid Accounts",
+      "mitre_tactic": "Initial Access",
+      "cwe": "CWE-798",
+      "likelihood": 4,
+      "impact": 5,
+      "risk_score": 20,
+      "dread": {"damage": 5, "reproducibility": 5, "exploitability": 5, "affected_users": 5, "discoverability": 5},
+      "affected_files": ["suite-api/apps/api/app.py", "scripts/ctem_full_loop_demo.py", "scripts/enterprise_e2e_test.py"],
+      "mitigations": [
+        "Rotate default token before any external deployment",
+        "Implement per-user API key management with database-backed storage",
+        "Add token expiration and rotation policies",
+        "Remove hardcoded tokens from all scripts — use environment variables exclusively"
+      ],
+      "status": "identified",
+      "priority": "P0"
+    },
+    {
+      "id": "T-ALDECI-002",
+      "category": "Tampering",
+      "component": "COMP-SQLITE",
+      "title": "SQLite Database Tampering via Direct File Access",
+      "description": "34 SQLite database files are stored on local filesystem with standard file permissions. A compromised process or container escape gives full read/write access to all finding data, evidence, and configuration.",
+      "mitre_technique": "T1565.001 — Stored Data Manipulation",
+      "mitre_tactic": "Impact",
+      "cwe": "CWE-284",
+      "likelihood": 3,
+      "impact": 5,
+      "risk_score": 15,
+      "dread": {"damage": 5, "reproducibility": 4, "exploitability": 3, "affected_users": 5, "discoverability": 3},
+      "affected_files": ["data/*.db", ".fixops_data/*.db", "suite-api/data/*.db"],
+      "mitigations": [
+        "Encrypt SQLite databases at rest using SQLCipher",
+        "Restrict file permissions to application user only",
+        "Implement database integrity checks on startup",
+        "Add audit logging for all database write operations"
+      ],
+      "status": "identified",
+      "priority": "P1"
+    },
+    {
+      "id": "T-ALDECI-003",
+      "category": "Repudiation",
+      "component": "COMP-CRYPTO",
+      "title": "Evidence Signing Key Generated Ephemeral Without HSM",
+      "description": "RSA signing keys for evidence bundles are generated at runtime and stored on the filesystem. No HSM or KMS integration. An attacker who gains filesystem access can forge evidence bundles.",
+      "mitre_technique": "T1588.004 — Digital Certificates",
+      "mitre_tactic": "Resource Development",
+      "cwe": "CWE-321",
+      "likelihood": 2,
+      "impact": 5,
+      "risk_score": 10,
+      "dread": {"damage": 5, "reproducibility": 3, "exploitability": 2, "affected_users": 4, "discoverability": 2},
+      "affected_files": ["suite-core/core/crypto.py"],
+      "mitigations": [
+        "Integrate with AWS KMS / Azure Key Vault / HashiCorp Vault for key storage",
+        "Implement key rotation with versioned signing",
+        "Add timestamping authority (TSA) integration for non-repudiation",
+        "Hardware Security Module (HSM) for production deployments"
+      ],
+      "status": "identified",
+      "priority": "P1"
+    },
+    {
+      "id": "T-ALDECI-004",
+      "category": "Information Disclosure",
+      "component": "COMP-AUTOFIX",
+      "title": "Customer Code Leakage to External LLM Providers",
+      "description": "AutoFix engine sends customer code snippets to external LLM APIs (OpenAI, Anthropic) for fix generation. Code snippets may contain proprietary algorithms, secrets, or regulated data (PHI, PCI).",
+      "mitre_technique": "T1530 — Data from Cloud Storage",
+      "mitre_tactic": "Collection",
+      "cwe": "CWE-200",
+      "likelihood": 4,
+      "impact": 4,
+      "risk_score": 16,
+      "dread": {"damage": 4, "reproducibility": 5, "exploitability": 4, "affected_users": 5, "discoverability": 3},
+      "affected_files": ["suite-core/core/autofix_engine.py"],
+      "mitigations": [
+        "Implement data classification tags — never send PCI/PHI-classified code externally",
+        "Add air-gapped mode using local LLM (Ollama/vLLM) for sensitive environments",
+        "Redact secrets and credentials from code snippets before LLM submission",
+        "Add customer consent workflow for external LLM code analysis",
+        "Log all external LLM API calls with data classification audit trail"
+      ],
+      "status": "identified",
+      "priority": "P0"
+    },
+    {
+      "id": "T-ALDECI-005",
+      "category": "Denial of Service",
+      "component": "COMP-BRAIN",
+      "title": "Brain Pipeline O(n²) Graph Step Causes Resource Exhaustion",
+      "description": "The build_graph step in the Brain Pipeline uses O(n²) algorithm for knowledge graph construction. With large finding sets (>10,000), this can exhaust CPU and memory, blocking all subsequent requests since the application is single-threaded.",
+      "mitre_technique": "T1499.004 — Application or System Exploitation",
+      "mitre_tactic": "Impact",
+      "cwe": "CWE-400",
+      "likelihood": 3,
+      "impact": 4,
+      "risk_score": 12,
+      "dread": {"damage": 4, "reproducibility": 4, "exploitability": 3, "affected_users": 5, "discoverability": 3},
+      "affected_files": ["suite-core/core/brain_pipeline.py"],
+      "mitigations": [
+        "Implement pagination/batching for graph construction",
+        "Add finding count limits per pipeline run (configurable)",
+        "Move brain pipeline to background worker (async execution)",
+        "Add circuit breaker: abort graph step if >30s elapsed"
+      ],
+      "status": "identified",
+      "priority": "P1"
+    },
+    {
+      "id": "T-ALDECI-006",
+      "category": "Elevation of Privilege",
+      "component": "COMP-MPTE",
+      "title": "MPTE Scanner Used as SSRF Proxy to Internal Networks",
+      "description": "The MPTE comprehensive scan accepts user-supplied target URLs. An authenticated attacker can scan internal network hosts (169.254.169.254 metadata service, internal microservices) using ALdeci as a proxy.",
+      "mitre_technique": "T1090 — Proxy",
+      "mitre_tactic": "Command and Control",
+      "cwe": "CWE-918",
+      "likelihood": 4,
+      "impact": 4,
+      "risk_score": 16,
+      "dread": {"damage": 4, "reproducibility": 5, "exploitability": 4, "affected_users": 3, "discoverability": 4},
+      "affected_files": ["suite-core/core/micro_pentest.py", "suite-core/core/dast_engine.py"],
+      "mitigations": [
+        "Implement strict SSRF allowlist for MPTE/DAST target URLs",
+        "Block RFC 1918 private ranges, link-local (169.254.x.x), localhost",
+        "Block cloud metadata endpoints (169.254.169.254, metadata.google.internal)",
+        "Add DNS rebinding protection — resolve and validate IP before connecting",
+        "Rate limit MPTE scans per user/org (max 10/hour)"
+      ],
+      "status": "partially_mitigated",
+      "priority": "P0"
+    },
+    {
+      "id": "T-ALDECI-007",
+      "category": "Spoofing",
+      "component": "COMP-API",
+      "title": "JWT Secret Auto-Generated Without Rotation",
+      "description": "JWT signing secret is auto-generated on first startup and persisted to .fixops_data/.jwt_secret file. No rotation mechanism exists. If the secret is compromised, all JWTs are forgeable indefinitely.",
+      "mitre_technique": "T1078.004 — Cloud Accounts",
+      "mitre_tactic": "Persistence",
+      "cwe": "CWE-330",
+      "likelihood": 2,
+      "impact": 5,
+      "risk_score": 10,
+      "dread": {"damage": 5, "reproducibility": 4, "exploitability": 2, "affected_users": 5, "discoverability": 2},
+      "affected_files": ["suite-api/apps/api/app.py"],
+      "mitigations": [
+        "Implement JWT key rotation (e.g., every 24 hours with grace period)",
+        "Use asymmetric signing (RS256) so public key can be distributed safely",
+        "Store JWT secret in external KMS, not filesystem",
+        "Add JTI (JWT ID) claim for token revocation capability"
+      ],
+      "status": "identified",
+      "priority": "P1"
+    },
+    {
+      "id": "T-ALDECI-008",
+      "category": "Tampering",
+      "component": "COMP-SAST",
+      "title": "Malicious Code Injection via SAST Scan Input",
+      "description": "SAST scanner accepts arbitrary code snippets via POST /api/v1/sast/scan/code. While the scanner parses code using AST, a crafted input could trigger Python's ast.parse or exec vulnerabilities, or cause regex catastrophic backtracking in vulnerability pattern matching.",
+      "mitre_technique": "T1059.006 — Python",
+      "mitre_tactic": "Execution",
+      "cwe": "CWE-94",
+      "likelihood": 2,
+      "impact": 4,
+      "risk_score": 8,
+      "dread": {"damage": 4, "reproducibility": 3, "exploitability": 2, "affected_users": 3, "discoverability": 2},
+      "affected_files": ["suite-core/core/sast_engine.py"],
+      "mitigations": [
+        "Limit input code size (max 1MB)",
+        "Add timeout to AST parsing (max 5s per scan)",
+        "Run SAST engine in sandboxed subprocess with resource limits",
+        "Test regex patterns for ReDoS vulnerability",
+        "Never execute or eval scanned code — parse only"
+      ],
+      "status": "partially_mitigated",
+      "priority": "P2"
+    },
+    {
+      "id": "T-ALDECI-009",
+      "category": "Information Disclosure",
+      "component": "COMP-MCP",
+      "title": "MCP Tool Discovery Exposes Internal API Surface to AI Agents",
+      "description": "The MCP endpoint GET /api/v1/mcp/tools returns all 100 available security tools to any authenticated AI agent. This reveals the complete internal API surface, including offensive security tools (MPTE, DAST, Sandbox) that an adversarial AI agent could weaponize.",
+      "mitre_technique": "T1046 — Network Service Discovery",
+      "mitre_tactic": "Discovery",
+      "cwe": "CWE-200",
+      "likelihood": 3,
+      "impact": 3,
+      "risk_score": 9,
+      "dread": {"damage": 3, "reproducibility": 5, "exploitability": 3, "affected_users": 3, "discoverability": 5},
+      "affected_files": ["suite-integrations/api/mcp_router.py", "suite-core/core/mcp_server.py"],
+      "mitigations": [
+        "Implement tool-level RBAC — restrict offensive tools to admin-level tokens",
+        "Add MCP agent registration with capability-based permissions",
+        "Log all MCP tool invocations with agent identity",
+        "Rate limit MCP tool calls per agent session"
+      ],
+      "status": "identified",
+      "priority": "P1"
+    },
+    {
+      "id": "T-ALDECI-010",
+      "category": "Denial of Service",
+      "component": "COMP-API",
+      "title": "Rate Limiting Bypass via Environment Variable",
+      "description": "Rate limiting can be completely disabled by setting FIXOPS_DISABLE_RATE_LIMIT=1. If this environment variable is accidentally set in production, the API has zero rate limiting protection against DDoS or brute-force attacks.",
+      "mitre_technique": "T1498 — Network Denial of Service",
+      "mitre_tactic": "Impact",
+      "cwe": "CWE-16",
+      "likelihood": 2,
+      "impact": 4,
+      "risk_score": 8,
+      "dread": {"damage": 4, "reproducibility": 5, "exploitability": 2, "affected_users": 5, "discoverability": 2},
+      "affected_files": ["suite-api/apps/api/app.py"],
+      "mitigations": [
+        "Remove FIXOPS_DISABLE_RATE_LIMIT environment variable override",
+        "Implement defense-in-depth rate limiting (API gateway + application + database)",
+        "Add startup warning if rate limiting is disabled",
+        "Require explicit configuration override in config file, not env var"
+      ],
+      "status": "identified",
+      "priority": "P2"
+    },
+    {
+      "id": "T-ALDECI-011",
+      "category": "Elevation of Privilege",
+      "component": "COMP-SANDBOX",
+      "title": "Sandbox Container Escape via Docker Socket Access",
+      "description": "The sandbox verifier creates Docker containers for PoC verification. If the host Docker socket is mounted or the container has elevated privileges, an attacker could escape the sandbox and access the host system.",
+      "mitre_technique": "T1611 — Escape to Host",
+      "mitre_tactic": "Privilege Escalation",
+      "cwe": "CWE-250",
+      "likelihood": 2,
+      "impact": 5,
+      "risk_score": 10,
+      "dread": {"damage": 5, "reproducibility": 3, "exploitability": 2, "affected_users": 3, "discoverability": 2},
+      "affected_files": ["suite-core/core/sandbox_verifier.py"],
+      "mitigations": [
+        "Use rootless Docker or Podman for sandbox containers",
+        "Never mount Docker socket into sandbox containers",
+        "Apply seccomp and AppArmor profiles to sandbox containers",
+        "Use gVisor or Kata Containers for additional isolation",
+        "Set CPU/memory/network limits on all sandbox containers"
+      ],
+      "status": "identified",
+      "priority": "P1"
+    },
+    {
+      "id": "T-ALDECI-012",
+      "category": "Information Disclosure",
+      "component": "COMP-FEEDS",
+      "title": "Threat Feed Cache Contains Stale Vulnerability Data",
+      "description": "NVD/EPSS/KEV feeds are cached locally in SQLite databases. If feed updates fail silently, the platform may report outdated risk scores, missing critical CVEs, or incorrect EPSS probabilities — leading to wrong triage decisions.",
+      "mitre_technique": "T1562.006 — Indicator Blocking",
+      "mitre_tactic": "Defense Evasion",
+      "cwe": "CWE-1104",
+      "likelihood": 3,
+      "impact": 3,
+      "risk_score": 9,
+      "dread": {"damage": 3, "reproducibility": 4, "exploitability": 2, "affected_users": 5, "discoverability": 3},
+      "affected_files": ["suite-feeds/"],
+      "mitigations": [
+        "Add feed staleness alerts (>24h without update = warning, >72h = error)",
+        "Display last-updated timestamp prominently in all risk assessments",
+        "Implement feed health monitoring with automatic retry and fallback",
+        "Tag all findings with feed_freshness metadata"
+      ],
+      "status": "partially_mitigated",
+      "priority": "P2"
+    }
+  ],
+  "risk_summary": {
+    "total_threats": 12,
+    "by_category": {
+      "Spoofing": 2,
+      "Tampering": 2,
+      "Repudiation": 1,
+      "Information Disclosure": 3,
+      "Denial of Service": 2,
+      "Elevation of Privilege": 2
+    },
+    "by_priority": {
+      "P0": 3,
+      "P1": 6,
+      "P2": 3
+    },
+    "avg_risk_score": 11.9,
+    "max_risk_score": 20,
+    "critical_threats": ["T-ALDECI-001", "T-ALDECI-004", "T-ALDECI-006"],
+    "mitre_attack_coverage": {
+      "tactics_covered": ["Initial Access", "Persistence", "Privilege Escalation", "Defense Evasion", "Discovery", "Collection", "Command and Control", "Impact", "Execution", "Resource Development"],
+      "techniques_mapped": 12,
+      "coverage_pct": 83.3
+    }
+  },
+  "recommendations": [
+    {
+      "priority": 1,
+      "title": "Rotate Default API Token Before Demo",
+      "threat_ids": ["T-ALDECI-001"],
+      "effort": "low",
+      "impact": "critical",
+      "description": "Remove hardcoded API tokens from all scripts. Use FIXOPS_API_TOKEN environment variable exclusively. Generate unique token per deployment."
+    },
+    {
+      "priority": 2,
+      "title": "Implement Code Redaction for External LLM Calls",
+      "threat_ids": ["T-ALDECI-004"],
+      "effort": "medium",
+      "impact": "high",
+      "description": "Add PII/PHI/PCI detection before sending code to external LLMs. Implement air-gapped LLM option for sensitive environments."
+    },
+    {
+      "priority": 3,
+      "title": "Harden SSRF Protection on MPTE/DAST",
+      "threat_ids": ["T-ALDECI-006"],
+      "effort": "medium",
+      "impact": "high",
+      "description": "Implement comprehensive SSRF allowlist. Block private IP ranges, metadata endpoints, and link-local addresses. Add DNS rebinding protection."
+    },
+    {
+      "priority": 4,
+      "title": "Migrate to External Key Management for Evidence Signing",
+      "threat_ids": ["T-ALDECI-003", "T-ALDECI-007"],
+      "effort": "high",
+      "impact": "high",
+      "description": "Integrate with AWS KMS or HashiCorp Vault for RSA key storage and JWT secret management. Critical for enterprise credibility."
+    },
+    {
+      "priority": 5,
+      "title": "Implement Brain Pipeline Resource Limits",
+      "threat_ids": ["T-ALDECI-005"],
+      "effort": "low",
+      "impact": "medium",
+      "description": "Add configurable limits: max 5,000 findings per pipeline run, 30s timeout per step, async execution for large batches."
+    }
+  ]
+}

@@ -1,61 +1,64 @@
-# Debate Summary — 2026-03-02
+# Debate Summary — 2026-03-02 (Day 2 Final)
 
 ## Active Debates
 | ID | Title | Proposed By | Support | Challenge | Modify | Status |
 |----|-------|-------------|---------|-----------|--------|--------|
-| SEC-ADV-001 | .env secrets exposure | security-analyst | 3 (devops, threat-arch, agent-doctor) | 0 | 0 | OPEN — Partial remediation |
+| SEC-ADV-001 | .env Secrets Exposure | security-analyst | 7 (all) | 0 | 0 | OPEN — MEDIUM severity. Infra 100% remediated. CEO key rotation pending. |
+
+> Note: SEC-ADV-001 is a security advisory, not a debate. Security Analyst has implicit VETO on security matters. Tracked here for completeness.
 
 ## Resolved Today
 | ID | Title | Resolution | Outcome | Action Items |
 |----|-------|------------|---------|--------------|
-| — | No new debates resolved today | — | — | — |
+| DEBATE-001 | SQLite → PostgreSQL Migration | ACCEPTED (DEFER) — 6/6 unanimous | Defer to Sprint 3+ | Keep SQLite WAL. DevOps has infra ready. Migrate when multi-tenant needed. |
 
-## Previously Resolved (Sprint 2)
-| ID | Title | Resolution | Outcome | Action Items |
-|----|-------|------------|---------|--------------|
-| DEBATE-001 | SQLite→PostgreSQL Migration | MODIFIED + ACCEPTED | Defer to Sprint 2/3. SQLite WAL adequate for demo. | PostgreSQL migration in future sprint when multi-tenant needed. |
+### DEBATE-001 Resolution Details
 
-## Security Advisory Status: SEC-ADV-001
+**Verdict**: DEFER PostgreSQL migration. SQLite WAL adequate for demo and early enterprise customers.
 
-### Original Finding (2026-03-01)
-Real API keys committed in .env file — CRITICAL severity.
+**Vote Tally** (6/6 — unanimous):
+| Agent | Stance | Key Argument |
+|-------|--------|-------------|
+| vision-agent | MODIFY (→ defer) | UI > DB migration per debate verdict. V10 is constraint, not core pillar. |
+| agent-doctor | SUPPORT defer | Swarm stability > DB migration. PG adds Docker complexity. |
+| ai-researcher | SUPPORT defer | Investors ask about decision engine, not DB. $20.7B AppSec VC. |
+| data-scientist | SUPPORT defer | ML pipeline DB-agnostic. R²=0.9996 same on SQLite/PG. |
+| enterprise-architect | (proposer) | Acknowledged timing wrong. Will propose again Sprint 3+. |
+| devops-engineer | SUPPORT defer | 11/12 done with SQLite. Zero DB failures across 4 Docker modes. |
 
-### Remediation Progress (2026-03-02)
-| Action | Status | Owner |
-|--------|--------|-------|
-| .gitignore updated | ✅ DONE | agent-doctor |
-| .env untracked from git | ✅ DONE | agent-doctor |
-| mpte_router placeholder removed | ✅ DONE | agent-doctor |
+**Sprint 2 Validated Deferral**: 11/12 items done. Zero database-related issues.
+
+**Migration Trigger Criteria** (agreed by consensus):
+1. Multi-tenant data isolation required
+2. Concurrent writes >10 simultaneous users
+3. Database-level RBAC for compliance
+4. Kubernetes production deployment (managed PG)
+
+### SEC-ADV-001 Remediation Tracker
+
+**Finding**: Real API keys committed in .env (downgraded CRITICAL → MEDIUM)
+
+| Remediation | Status | Owner |
+|-------------|--------|-------|
+| .gitignore updated | ✅ DONE | devops-engineer |
+| .env untracked from git | ✅ DONE | devops-engineer |
 | .env.example created (100+ lines) | ✅ DONE | devops-engineer |
 | Docker safe defaults | ✅ DONE | devops-engineer |
-| CI uses placeholder tokens | ✅ DONE | devops-engineer |
-| Dockerfile non-root user | ✅ DONE | devops-engineer |
-| Entrypoint generates random tokens | ✅ DONE | devops-engineer |
-| OpenAI API key rotation | ⚠️ PENDING | **CEO** |
-| Strong JWT secret generation | ⚠️ PENDING | backend-hardener |
-| Pre-commit secret detection hook | ⏰ Sprint 3 | devops-engineer |
+| .dockerignore excludes .env | ✅ DONE | devops-engineer |
+| CI placeholder tokens | ✅ DONE | devops-engineer |
+| Dockerfile non-root | ✅ DONE | devops-engineer |
+| Entrypoint random tokens | ✅ DONE | devops-engineer |
+| mpte_router placeholder removed | ✅ DONE | agent-doctor |
+| **OpenAI API key rotation** | **⚠️ PENDING** | **CEO** |
+| Pre-commit hooks | 📅 Sprint 3 | devops-engineer |
 
-### Risk Assessment
-- **Original**: CRITICAL (real API keys in git, JWT forgery possible)
-- **Current**: MEDIUM (keys removed from index, but exist in git history. No key rotation yet.)
-- **After CEO rotates key**: LOW (residual risk in git history only)
+**Supporting agents**: security-analyst, agent-doctor, devops-engineer, threat-architect, qa-engineer, data-scientist, enterprise-architect (7/7)
 
-### Supporters
-- devops-engineer: SUPPORT (completed all infrastructure remediations)
-- threat-architect: SUPPORT (validated with threat model mapping)
-- agent-doctor: SUPPORT (completed gitignore and untracking)
-
-### Note
-Security advisory is NOT a debate — it requires action. No VETO needed since everyone agrees.
+## Auto-Resolved (No Consensus)
+| ID | Title | Why | Vision Agent Decision |
+|----|-------|-----|--------------------|
+| — | None | No unresolved debates | — |
 
 ---
 
-## Debate Activity Summary
-- **Total active debates**: 1 (SEC-ADV-001, advisory not debate)
-- **Debates opened today**: 0
-- **Debates resolved today**: 0
-- **VETO used**: No
-- **Consensus health**: GOOD — no contentious issues in Sprint 2
-
----
-*Generated by Scrum Master | 2026-03-02*
+*Produced by scrum-master — Sprint 2 Day 2 Final, 2026-03-02*

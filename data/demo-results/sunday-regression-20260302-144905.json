@@ -1,0 +1,63 @@
+{
+  "suite": "ALdeci CTEM+ Sunday Regression",
+  "timestamp": "2026-03-02T03:49:05.906166+00:00",
+  "elapsed_ms": 35091.93,
+  "architectures_tested": [
+    "ecommerce"
+  ],
+  "total_checks": 52,
+  "passed": 51,
+  "failed": 1,
+  "pass_rate": 98.1,
+  "sections": {
+    "Platform Health": {
+      "passed": 16,
+      "total": 16,
+      "pct": 100.0
+    },
+    "Scanners \u2014 E-Commerce Platform (AWS)": {
+      "passed": 6,
+      "total": 7,
+      "pct": 85.7
+    },
+    "CTEM Pipeline \u2014 E-Commerce Platform (AWS)": {
+      "passed": 10,
+      "total": 10,
+      "pct": 100.0
+    },
+    "Cross-Architecture Analytics": {
+      "passed": 14,
+      "total": 14,
+      "pct": 100.0
+    },
+    "ALdeci Self-Scan (Dogfooding)": {
+      "passed": 5,
+      "total": 5,
+      "pct": 100.0
+    }
+  },
+  "artifacts": {
+    "ecommerce_sast_python": 6,
+    "ecommerce_sast_java": 4,
+    "ecommerce_secrets": 0,
+    "ecommerce_container": 5,
+    "ecommerce_terraform": 4,
+    "ecommerce_cloudformation": 0,
+    "ecommerce_brain_run_id": "BR-DB4A633E8189",
+    "ecommerce_brain_steps": 9,
+    "ecommerce_noise_reduction": 50.0,
+    "ecommerce_fix_id": "fix-cc08b6f815a45260",
+    "ecommerce_fix_confidence": 0.867363867901846,
+    "ecommerce_evidence_id": "",
+    "ecommerce_evidence_hash": "",
+    "ecommerce_compliance_score": 0.8636,
+    "total_analytics_findings": 0,
+    "total_pipeline_runs": 4,
+    "knowledge_graph_nodes": 0,
+    "mcp_tools_count": 100,
+    "total_autofix_count": 0,
+    "self_sast_findings": 1,
+    "self_brain_steps": 9
+  },
+  "success": false
+}

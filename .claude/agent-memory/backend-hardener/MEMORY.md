@@ -62,10 +62,15 @@ sleep 10 && python scripts/enterprise_e2e_test.py
 - `suite-core/core/fail_engine.py` -- FAIL Engine core
 - `suite-core/core/fail_db.py` -- FAIL DB persistence
 - `suite-core/automation/remediation.py` -- Self-healing remediation with CWE fixes
-- `suite-core/core/brain_pipeline.py` -- Brain pipeline (12-step CTEM)
+- `suite-core/core/brain_pipeline.py` -- Brain pipeline (12-step CTEM + cancel + batch async)
 - `tests/test_hardening_2026_03_02.py` -- 41 hardening tests (brain pipeline, scanner ingest, parsers, sandbox, DAST, container)
+- `tests/test_hardening_2026_03_02_v3.py` -- 37 hardening tests (cancellation, batch async, SAST redaction, PII, sandbox)
 - `suite-api/apps/api/scanner_ingest_router.py` -- Scanner ingest router (hardened)
-- `suite-core/core/scanner_parsers.py` -- Scanner parsers (crash resilience added)
+- `suite-core/core/scanner_parsers.py` -- Scanner parsers (crash resilience + size limits)
+- `suite-core/core/sandbox_verifier.py` -- Sandbox verifier (code validation + non-root)
+- `suite-core/core/sast_engine.py` -- SAST engine (CWE-798 snippet redaction)
+- `suite-core/core/dast_engine.py` -- DAST engine (URL length validation)
+- `suite-core/core/secrets_scanner.py` -- Secrets scanner (PII redaction)
 
 ## Brain Pipeline Notes
 - `inp.org_id` can be empty string but not None (existing tests use `org_id=""`)
@@ -80,6 +85,9 @@ sleep 10 && python scripts/enterprise_e2e_test.py
 - String sanitization: MAX_FIELD_LEN=10,000 chars, truncated with `...[truncated]` suffix
 - Step 10 async loop safety: detects running event loop, uses ThreadPoolExecutor fallback
 - **50K findings dedup is SLOW** (~hangs). Tests should use small finding sets (<1000). DoS protection works but dedup step needs O(n) optimization for large sets.
+- **Cancellation**: `cancel(run_id)` adds to `_cancelled` set; checked before each step. Set is cleaned after processing.
+- **Batch async**: `run_async_batch(inputs, max_concurrent=4)` uses asyncio.Semaphore. Exceptions → failed PipelineResult.
+- **Singleton**: `get_brain_pipeline()` uses double-checked locking with `_pipeline_lock`.
 
 ## Scanner Ingest Hardening
 - Upload limit: 100MB (_MAX_UPLOAD_BYTES), webhook limit: 50MB (_MAX_WEBHOOK_BYTES)
@@ -108,3 +116,9 @@ sleep 10 && python scripts/enterprise_e2e_test.py
 22. **AutoFix LLM response parsing** — `re.search(r"\{[\s\S]*\}", resp.reasoning)` + `json.loads()` is common pattern. Always wrap with JSONDecodeError handler.
 23. **API error messages**: NEVER use `str(exc)` in API responses or metadata. Use `type(exc).__name__` only. The full error is logged server-side.
 24. **Test assertions after hardening**: Existing tests may assert on old error message format (e.g., "Unexpected error"). Update to check for exception type name pattern instead.
+25. **SAST CWE-798 redaction**: Regex `r"""(=\s*['"])[A-Za-z0-9+/=_\-]{4}[A-Za-z0-9+/=_\-]*(['"])"""` replaces secret values with `****...` in snippets. Only applies to CWE-798 findings.
+26. **PII in secrets metadata**: Gitleaks stores Author/Email, Trufflehog stores RawV2/ExtraData — all contain sensitive data. Strip before returning to API.
+27. **Sandbox code validation**: Defense-in-depth beyond Docker isolation. Block fork bombs, rm -rf /, disk access, eval(input), etc. 64KB size limit. Non-root (65534:65534).
+28. **DAST URL length**: RFC 2616 recommends 2048 chars max. Enforce before SSRF check.
+29. **Class names**: DAST=`DASTEngine`, SAST=`SASTEngine`, Secrets=`SecretsDetector` (not `DastScanner`/`SastEngine`/`RealSecretsScanner`). `RealSecretsScanner` is in `real_scanner.py` (different file).
+30. **Scanner parsers content limit**: 500MB hard cap in `parse_scanner_output()` prevents OOM on huge uploads.

@@ -2,6 +2,10 @@
 # ============================================
 # ALdeci CTEM+ Platform — Demo Health Check
 # ============================================
+# Version: 2.2.0 (2026-03-02)
+# Checks: 42 endpoints across all CTEM+ pillars
+# Scanners: All 8 native scanners verified
+#
 # Verifies that the ALdeci stack is running and
 # healthy after `docker compose up`.
 #
@@ -87,18 +91,21 @@ JSON_RESULTS="[]"
 json_add_result() {
     local name="$1" url="$2" status="$3" expected="$4" result="$5"
     if [[ "$JSON_MODE" == "true" ]]; then
-        JSON_RESULTS=$(echo "$JSON_RESULTS" | python3 -c "
-import sys, json
+        # Pass values via env vars to avoid shell injection via single quotes
+        JSON_RESULTS=$(HC_NAME="$name" HC_URL="$url" HC_STATUS="$status" \
+            HC_EXPECTED="$expected" HC_RESULT="$result" \
+            python3 -c "
+import sys, json, os
 results = json.load(sys.stdin)
 results.append({
-    'name': '$name',
-    'url': '$url',
-    'status_code': '$status',
-    'expected': '$expected',
-    'result': '$result'
+    'name': os.environ['HC_NAME'],
+    'url': os.environ['HC_URL'],
+    'status_code': os.environ['HC_STATUS'],
+    'expected': os.environ['HC_EXPECTED'],
+    'result': os.environ['HC_RESULT']
 })
 print(json.dumps(results))
-" 2>/dev/null || echo "$JSON_RESULTS")
+" <<< "$JSON_RESULTS" 2>/dev/null || echo "$JSON_RESULTS")
     fi
 }
 
@@ -109,7 +116,7 @@ banner() {
     echo -e "${CYAN}"
     echo "  ┌─────────────────────────────────────────────┐"
     echo "  │     ALdeci CTEM+ Platform Health Check       │"
-    echo "  │     Enterprise Demo Verification             │"
+    echo "  │     Enterprise Demo — 42 Checks, 8 Scanners │"
     echo "  └─────────────────────────────────────────────┘"
     echo -e "${NC}"
     echo -e "  ${BOLD}API:${NC} ${API_BASE}"
@@ -272,15 +279,17 @@ else
     check "MCP Protocol Status"    "${API_BASE}/api/v1/mcp-protocol/status" "200" "true"
     check "MCP Tools Discovery"    "${API_BASE}/api/v1/mcp/tools"          "200" "true"
 
-    # Phase 6: Native Scanners [V9]
+    # Phase 6: All 8 Native Scanners [V9]
     section "8 Native Scanners [V9]"
-    check "SAST Scanner"           "${API_BASE}/api/v1/sast/status"        "200" "true"
-    check "DAST Scanner"           "${API_BASE}/api/v1/dast/status"        "200" "true"
-    check "Secrets Scanner"        "${API_BASE}/api/v1/secrets/status"     "200" "true"
-    check "Container Scanner"      "${API_BASE}/api/v1/container/status"   "200" "true"
-    check "CSPM/IaC Scanner"       "${API_BASE}/api/v1/cspm/status"       "200" "true"
-    check "Sandbox Health"         "${API_BASE}/api/v1/sandbox/health"     "200" "true"
-    check "Attack Surface"         "${API_BASE}/api/v1/mpte/stats"         "200" "true"
+    check "1. SAST Scanner"        "${API_BASE}/api/v1/sast/status"              "200" "true"
+    check "2. DAST Scanner"        "${API_BASE}/api/v1/dast/status"              "200" "true"
+    check "3. Secrets Scanner"     "${API_BASE}/api/v1/secrets/status"            "200" "true"
+    check "4. Container Scanner"   "${API_BASE}/api/v1/container/status"          "200" "true"
+    check "5. CSPM Scanner"        "${API_BASE}/api/v1/cspm/status"              "200" "true"
+    check "6. IaC Scanner"         "${API_BASE}/api/v1/iac/scanners/status"      "200" "true"
+    check "7. Malware Scanner"     "${API_BASE}/api/v1/malware/status"           "200" "true"
+    check "8. API Fuzzer"          "${API_BASE}/api/v1/api-fuzzer/status"        "200" "true"
+    check "Sandbox Verifier"       "${API_BASE}/api/v1/sandbox/health"           "200" "true"
 
     # Phase 7: Evidence & Compliance [V10]
     section "Evidence & Compliance [V10]"
@@ -299,6 +308,8 @@ else
     check "Users"                  "${API_BASE}/api/v1/users"              "200" "true"
     check "Teams"                  "${API_BASE}/api/v1/teams"              "200" "true"
     check "Feeds Health"           "${API_BASE}/api/v1/feeds/health"       "200" "true"
+    check "Self-Learning [V8]"     "${API_BASE}/api/v1/self-learning/status"  "200" "true"
+    check "Zero-Gravity [V9]"      "${API_BASE}/api/v1/zero-gravity/status"  "200" "true"
 
     # Phase 9: Docker container health (only when running in Docker)
     if [[ "$JSON_MODE" != "true" ]]; then
@@ -350,22 +361,24 @@ if [[ "$JSON_MODE" == "true" ]]; then
     else
         VERDICT="fail"
     fi
+    HC_VERDICT="$VERDICT" HC_PASS="$PASS" HC_FAIL="$FAIL" HC_WARN="$WARN" \
+    HC_TOTAL="$TOTAL" HC_DURATION="$DURATION" HC_API="$API_BASE" HC_UI="$UI_BASE" \
     python3 -c "
-import json, sys
-results = json.loads('${JSON_RESULTS}')
+import json, sys, os
+results = json.load(sys.stdin)
 output = {
-    'status': '${VERDICT}',
-    'passed': ${PASS},
-    'failed': ${FAIL},
-    'warnings': ${WARN},
-    'total': ${TOTAL},
-    'duration_sec': ${DURATION},
-    'api_base': '${API_BASE}',
-    'ui_base': '${UI_BASE}',
+    'status': os.environ['HC_VERDICT'],
+    'passed': int(os.environ['HC_PASS']),
+    'failed': int(os.environ['HC_FAIL']),
+    'warnings': int(os.environ['HC_WARN']),
+    'total': int(os.environ['HC_TOTAL']),
+    'duration_sec': int(os.environ['HC_DURATION']),
+    'api_base': os.environ['HC_API'],
+    'ui_base': os.environ['HC_UI'],
     'checks': results
 }
 print(json.dumps(output, indent=2))
-"
+" <<< "$JSON_RESULTS"
 else
     echo ""
     echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"

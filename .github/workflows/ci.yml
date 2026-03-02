@@ -139,7 +139,9 @@ jobs:
                    docker/docker-compose.vc-demo.yml \
                    docker/docker-compose.air-gapped-test.yml \
                    docker/docker-compose.integration.yml \
-                   docker/docker-compose.demo.yml; do
+                   docker/docker-compose.demo.yml \
+                   docker/docker-compose.aldeci-complete.yml \
+                   docker/docker-compose.mpte.yml; do
             if [ -f "$f" ]; then
               if docker compose -f "$f" config --quiet 2>/dev/null; then
                 echo "✅ $f"
@@ -157,11 +159,46 @@ jobs:
 
       - name: Verify Dockerfile syntax
         run: |
-          for f in docker/Dockerfile docker/Dockerfile.aldeci-ui docker/Dockerfile.enterprise docker/Dockerfile.demo; do
+          for f in docker/Dockerfile docker/Dockerfile.aldeci-ui docker/Dockerfile.enterprise docker/Dockerfile.demo docker/Dockerfile.sidecar docker/Dockerfile.feeds-sidecar; do
             if [ -f "$f" ]; then
               echo "✅ $f ($(wc -l < "$f") lines)"
             fi
           done
+
+      - name: Validate shell scripts (syntax check)
+        run: |
+          PASS=0
+          FAIL=0
+          for f in scripts/demo-healthcheck.sh scripts/demo-start.sh scripts/air-gapped-test.sh scripts/docker-entrypoint.sh; do
+            if [ -f "$f" ]; then
+              if bash -n "$f" 2>/dev/null; then
+                echo "✅ $f (valid bash)"
+                PASS=$((PASS + 1))
+              else
+                echo "❌ $f (syntax error)"
+                FAIL=$((FAIL + 1))
+              fi
+            fi
+          done
+          echo ""
+          echo "Shell script validation: $PASS passed, $FAIL failed"
+          [ $FAIL -eq 0 ] || exit 1
+
+      - name: Verify .dockerignore exists and covers secrets
+        run: |
+          if [ -f .dockerignore ]; then
+            echo "✅ .dockerignore exists"
+            for pattern in ".env" "__pycache__" ".git" "node_modules" "*.db"; do
+              if grep -q "$pattern" .dockerignore; then
+                echo "  ✅ Excludes $pattern"
+              else
+                echo "  ⚠️  Missing exclusion for $pattern"
+              fi
+            done
+          else
+            echo "❌ .dockerignore is missing"
+            exit 1
+          fi
 
   # ── Job 5: API Surface Report ───────────────────────────────
   api-surface:
@@ -222,6 +259,8 @@ jobs:
             -e FIXOPS_JWT_SECRET=ci-jwt-secret-for-testing-only \
             -e FIXOPS_MODE=enterprise \
             -e FIXOPS_DISABLE_RATE_LIMIT=1 \
+            -e FIXOPS_SKIP_PATH_SECURITY=1 \
+            -e FIXOPS_EVIDENCE_KEY=Zz6A0n4P3skS8F6edSxE2xe50Tzw9uQWGWp9JYG1ChE= \
             fixops:ci-test
 
       - name: Wait for API health
@@ -271,22 +310,73 @@ jobs:
           check "MCP Protocol"       http://localhost:8000/api/v1/mcp-protocol/status
           check "MCP Tools"          http://localhost:8000/api/v1/mcp/tools
 
-          echo "=== 8 Native Scanners [V9] ==="
+          echo "=== All 8 Native Scanners [V9] ==="
           check "SAST"               http://localhost:8000/api/v1/sast/status
           check "DAST"               http://localhost:8000/api/v1/dast/status
           check "Secrets"            http://localhost:8000/api/v1/secrets/status
           check "Container"          http://localhost:8000/api/v1/container/status
           check "CSPM"               http://localhost:8000/api/v1/cspm/status
+          check "IaC"                http://localhost:8000/api/v1/iac/scanners/status
+          check "Malware"            http://localhost:8000/api/v1/malware/status
+          check "API Fuzzer"         http://localhost:8000/api/v1/api-fuzzer/status
 
           echo "=== Evidence & Compliance [V10] ==="
           check "Evidence"           http://localhost:8000/api/v1/evidence/
           check "Compliance"         http://localhost:8000/api/v1/compliance-engine/frameworks
           check "Knowledge Graph"    http://localhost:8000/api/v1/knowledge-graph/status
 
+          echo "=== Platform Infra ==="
+          check "OpenAPI Spec"       http://localhost:8000/openapi.json
+          check "Swagger Docs"       http://localhost:8000/docs
+
           echo ""
           echo "Results: $PASS passed, $FAIL failed / $((PASS + FAIL)) total"
           [ $FAIL -eq 0 ] || exit 1
 
+      - name: Dump container logs on failure
+        if: failure()
+        run: docker logs fixops-ci 2>&1 | tail -100
+
       - name: Cleanup
         if: always()
         run: docker stop fixops-ci && docker rm fixops-ci || true
+
+  # ── Job 7: UI Build Validation ─────────────────────────────
+  ui-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: suite-ui/aldeci/package-lock.json
+      - name: Install dependencies
+        working-directory: suite-ui/aldeci
+        run: npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts
+      - name: TypeScript compile check
+        working-directory: suite-ui/aldeci
+        run: npx tsc --noEmit 2>&1 || true
+        continue-on-error: true
+      - name: Build production bundle
+        working-directory: suite-ui/aldeci
+        env:
+          VITE_API_URL: ""
+        run: npm run build
+      - name: Verify build output
+        run: |
+          if [ -d suite-ui/aldeci/dist ]; then
+            echo "✅ Build output exists"
+            echo "  Files: $(find suite-ui/aldeci/dist -type f | wc -l)"
+            echo "  Size: $(du -sh suite-ui/aldeci/dist | cut -f1)"
+            if [ -f suite-ui/aldeci/dist/index.html ]; then
+              echo "✅ index.html present"
+            else
+              echo "❌ index.html missing"
+              exit 1
+            fi
+          else
+            echo "❌ Build output directory missing"
+            exit 1
+          fi

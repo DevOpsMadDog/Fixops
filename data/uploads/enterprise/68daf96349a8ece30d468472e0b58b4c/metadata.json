@@ -1,0 +1,14 @@
+{
+  "session_id": "68daf96349a8ece30d468472e0b58b4c",
+  "stage": "sbom",
+  "filename": "test.json",
+  "total_bytes": 1000,
+  "received_bytes": 1000,
+  "progress": 1.0,
+  "completed": true,
+  "checksum": null,
+  "content_type": "application/json",
+  "created_at": 1772424807.588705,
+  "updated_at": 1772424807.6062012,
+  "path": "/Users/devops.ai/developement/fixops/Fixops/data/uploads/enterprise/68daf96349a8ece30d468472e0b58b4c/payload.bin"
+}

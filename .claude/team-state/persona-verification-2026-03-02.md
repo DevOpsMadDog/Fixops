@@ -6,31 +6,31 @@
 ## Summary
 
 - **Total Agents:** 17
-- **Verified (B+ grade):** 14 (82%)
+- **Verified (B+ grade):** 17 (100%)
 - **Failed:** 0
-- **Stubs/Fakes Detected:** 3
+- **Stubs/Fakes Detected:** 0
 
 ## Per-Agent Scores
 
 | Agent | Persona Title | Grade | Score | Details |
 |-------|--------------|-------|-------|---------|
-| vision-agent | Chief Vision Officer | B | 82% | ✅ Persona file OK (14844B). ✅ Status OK. ⚠️ Output light (1596B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
-| agent-doctor | System Reliability Engineer | B | 77% | ✅ Persona file OK (14967B). ✅ Status OK. ⚠️ Output light (1982B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
-| context-engineer | Codebase Intelligence Architect | A | 92% | ✅ Persona file OK (10904B). ✅ Status OK. ⚠️ Output light (1602B). ✅ Persona match 100%. ✅ Completed. ✅ No stubs.  |
-| ai-researcher | AI/ML Research Scientist | B | 72% | ✅ Persona file OK (11737B). ✅ Status OK. ⚠️ Output light (1981B). ❌ Low match 33%. ✅ Completed. ✅ No stubs.  |
-| data-scientist | Data Analytics Lead | B | 72% | ✅ Persona file OK (10693B). ✅ Status OK. ⚠️ Output light (1677B). ❌ Low match 33%. ✅ Completed. ✅ No stubs.  |
-| enterprise-architect | Enterprise Solutions Architect | C | 68% | ✅ Persona file OK (13101B). ✅ Status OK. ⚠️ Output light (1478B). ❌ Low match 20%. ✅ Completed. ✅ No stubs.  |
-| backend-hardener | Backend Security Engineer | B | 82% | ✅ Persona file OK (11886B). ✅ Status OK. ⚠️ Output light (2190B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
-| frontend-craftsman | UI/UX Engineering Lead | B | 77% | ✅ Persona file OK (12953B). ✅ Status OK. ⚠️ Output light (1656B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
-| threat-architect | Offensive Security Architect | B | 82% | ✅ Persona file OK (26112B). ✅ Status OK. ⚠️ Output light (2691B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
-| swarm-controller | Swarm Orchestration Lead | B | 77% | ✅ Persona file OK (12678B). ✅ Status OK. ⚠️ Output light (2418B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
-| security-analyst | Security Analyst & Pentester | B | 82% | ✅ Persona file OK (12357B). ✅ Status OK. ⚠️ Output light (4231B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
-| qa-engineer | Quality Assurance Lead | B | 77% | ✅ Persona file OK (19354B). ✅ Status OK. ⚠️ Output light (1218B). ✅ Persona match 83%. ✅ Completed. ❌ Stub/placeholder detected.  |
-| devops-engineer | DevOps & Infrastructure Lead | B | 82% | ✅ Persona file OK (11300B). ✅ Status OK. ⚠️ Output light (2067B). ✅ Persona match 100%. ✅ Completed. ❌ Stub/placeholder detected.  |
-| marketing-head | Product Marketing Lead | B | 77% | ✅ Persona file OK (9919B). ✅ Status OK. ⚠️ Output light (1844B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
-| technical-writer | Technical Documentation Lead | B | 77% | ✅ Persona file OK (10085B). ✅ Status OK. ⚠️ Output light (2088B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
-| sales-engineer | Solutions Engineering Lead | C | 67% | ✅ Persona file OK (11150B). ✅ Status OK. ⚠️ Output light (1036B). ❌ Low match 16%. ✅ Completed. ✅ No stubs.  |
-| scrum-master | Agile Delivery Lead | C | 67% | ✅ Persona file OK (13225B). ✅ Status OK. ⚠️ Output light (3155B). ⚠️ Partial match 50%. ✅ Completed. ❌ Stub/placeholder detected.  |
+| vision-agent | Chief Vision Officer | B | 82% | ✅ Persona file OK (14844B). ✅ Status OK. ⚠️ Output light (2080B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
+| agent-doctor | System Reliability Engineer | B | 82% | ✅ Persona file OK (14967B). ✅ Status OK. ⚠️ Output light (2205B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
+| context-engineer | Codebase Intelligence Architect | A | 92% | ✅ Persona file OK (10904B). ✅ Status OK. ⚠️ Output light (1416B). ✅ Persona match 100%. ✅ Completed. ✅ No stubs.  |
+| ai-researcher | AI/ML Research Scientist | B | 77% | ✅ Persona file OK (11737B). ✅ Status OK. ⚠️ Output light (2551B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
+| data-scientist | Data Analytics Lead | B | 72% | ✅ Persona file OK (10693B). ✅ Status OK. ⚠️ Output light (2403B). ❌ Low match 33%. ✅ Completed. ✅ No stubs.  |
+| enterprise-architect | Enterprise Solutions Architect | B | 74% | ✅ Persona file OK (13101B). ✅ Status OK. ⚠️ Output light (1966B). ⚠️ Partial match 40%. ✅ Completed. ✅ No stubs.  |
+| backend-hardener | Backend Security Engineer | B | 77% | ✅ Persona file OK (11886B). ✅ Status OK. ⚠️ Output light (2909B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
+| frontend-craftsman | UI/UX Engineering Lead | B | 80% | ✅ Persona file OK (12953B). ✅ Status OK. ⚠️ Output light (1220B). ⚠️ Partial match 62%. ✅ Completed. ✅ No stubs.  |
+| threat-architect | Offensive Security Architect | B | 77% | ✅ Persona file OK (26112B). ✅ Status OK. ⚠️ Output light (1696B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
+| swarm-controller | Swarm Orchestration Lead | B | 77% | ✅ Persona file OK (12678B). ✅ Status OK. ⚠️ Output light (1651B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
+| security-analyst | Security Analyst & Pentester | B | 77% | ✅ Persona file OK (12357B). ✅ Status OK. ⚠️ Output light (2172B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
+| qa-engineer | Quality Assurance Lead | B | 82% | ✅ Persona file OK (19354B). ✅ Status OK. ⚠️ Output light (1017B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
+| devops-engineer | DevOps & Infrastructure Lead | B | 82% | ✅ Persona file OK (11300B). ✅ Status OK. ⚠️ Output light (2302B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
+| marketing-head | Product Marketing Lead | B | 77% | ✅ Persona file OK (9919B). ✅ Status OK. ⚠️ Output light (2004B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
+| technical-writer | Technical Documentation Lead | B | 82% | ✅ Persona file OK (10085B). ✅ Status OK. ⚠️ Output light (1923B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
+| sales-engineer | Solutions Engineering Lead | B | 82% | ✅ Persona file OK (11150B). ✅ Status OK. ⚠️ Output light (1874B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
+| scrum-master | Agile Delivery Lead | B | 77% | ✅ Persona file OK (13225B). ✅ Status OK. ⚠️ Output light (1809B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
 
 
 ## Scoring Criteria
@@ -52,19 +52,19 @@
 | agent-doctor | - | - | `-` |
 | context-engineer | - | - | `-` |
 | ai-researcher | - | - | `-` |
-| data-scientist | core/autofix_engine.py | test_autofix_engine_unit.py | `pytest tests/test_autofix_engine_unit.py -v --no-cov` |
-| enterprise-architect | core/scanner_parsers.py | - | `-` |
-| backend-hardener | core/autofix_engine.py,core/container_scanner.py,core/cspm_engine.py,core/dast_engine.py,core/real_scanner.py,core/secrets_scanner.py | test_secrets_scanner.py | `pytest tests/test_secrets_scanner.py -v --no-cov` |
-| frontend-craftsman | API-wired, Marketplace.tsx and OverlayConfig.ts | - | `-` |
+| data-scientist | - | - | `-` |
+| enterprise-architect | - | - | `-` |
+| backend-hardener | core/brain_pipeline.py,core/dast_engine.py,core/sandbox_verifier.py,core/sast_engine.py,core/scanner_parsers.py,core/secrets_scanner.py | - | `-` |
+| frontend-craftsman | - | - | `-` |
 | threat-architect | - | - | `-` |
-| swarm-controller | /api/v1/__init__,/api/v1/cicd | test_cicd_signature.py | `pytest tests/test_cicd_signature.py -v --no-cov` |
-| security-analyst | /api/v1/evidence/export,/api/v1/evidence/export/status,/api/v1/evidence/export/verify,core/crypto.py,core/sandbox_verifier.py | test_secrets_scanner.py | `pytest tests/test_secrets_scanner.py -v --no-cov` |
-| qa-engineer | - | test_autofix_engine.py,test_crypto.py,test_dast_engine.py,test_sast_engine.py | `pytest tests/test_autofix_engine.py -v --no-cov` |
+| swarm-controller | router.py | - | `-` |
+| security-analyst | - | - | `-` |
+| qa-engineer | - | - | `-` |
 | devops-engineer | - | - | `-` |
 | marketing-head | - | - | `-` |
 | technical-writer | - | - | `-` |
 | sales-engineer | - | - | `-` |
-| scrum-master | /api/v1/search | - | `-` |
+| scrum-master | - | - | `-` |
 
 
 ### How to Replicate Testing Locally
@@ -89,4 +89,4 @@ pytest tests/ --cov=. --cov-fail-under=60
 curl -s -H "X-API-Key: ${VITE_API_KEY}" http://localhost:8000/api/v1/health | python3 -m json.tool
 ```
 
-*Generated at 2026-03-02 13:04:20 by JARVIS Controller*
+*Generated at 2026-03-02 17:28:43 by JARVIS Controller*

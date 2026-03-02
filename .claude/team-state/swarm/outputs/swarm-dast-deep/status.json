@@ -1,0 +1,23 @@
+{
+  "task_id": "swarm-dast-deep",
+  "worker_id": "junior-sonnet-4-6",
+  "status": "completed",
+  "files_modified": [],
+  "files_created": [
+    "tests/test_dast_engine_deep.py"
+  ],
+  "summary": "Created 118 supplementary unit tests for dast_engine.py covering all uncovered async scan methods (lines 270, 298, 318-353, 376-406, 411-448, 453-483, 486-515, 520-545, 550-582, 587-623), lifting combined coverage from 47.80% to 100.00%.",
+  "issues": [
+    "AsyncMock.side_effect with sync functions did not work as expected for _check_info_disclosure tests — fixed by using async coroutine functions directly assigned to mock_client.get.",
+    "Info disclosure 'body > 50 chars' guard caused 4 tests to fail initially — fixed by ensuring all test bodies exceed 50 characters."
+  ],
+  "needs_senior_review": false,
+  "confidence": 0.99,
+  "duration_turns": 14,
+  "coverage_before": "47.80%",
+  "coverage_after": "100.00%",
+  "tests_count": 118,
+  "all_tests_pass": true,
+  "combined_tests": 167,
+  "combined_pass": 167
+}

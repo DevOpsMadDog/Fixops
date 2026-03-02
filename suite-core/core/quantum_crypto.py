@@ -112,14 +112,16 @@ class MLDSAEngine:
         """Detect available ML-DSA backend."""
         # Try production backends first
         try:
-            import dilithium  # type: ignore
-            return "dilithium-py"
-        except ImportError:
+            import importlib.util
+            if importlib.util.find_spec("dilithium"):
+                return "dilithium-py"
+        except (ImportError, ValueError):
             pass
         try:
-            import oqs  # type: ignore
-            return "liboqs"
-        except ImportError:
+            import importlib.util as _ilu
+            if _ilu.find_spec("oqs"):
+                return "liboqs"
+        except (ImportError, ValueError):
             pass
         # Fall back to simplified deterministic impl
         return "simplified"

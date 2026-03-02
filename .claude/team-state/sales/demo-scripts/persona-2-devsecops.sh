@@ -82,7 +82,7 @@ print(f'  False positives eliminated: {exp.get(\"unexploitable\",0)}')
 # [1:30-2:30] AutoFix
 step "3" "AutoFix — AI Generates the Code Fix [1:30-2:30]"
 
-AUTOFIX_PAYLOAD='{"finding_id":"SAST-SQL-001","vulnerability_type":"sql_injection","source_code":"def query(user_input):\n    sql = \"SELECT * FROM users WHERE id=\" + user_input\n    return db.execute(sql)","language":"python","fix_type":"CODE_PATCH"}'
+AUTOFIX_PAYLOAD='{"finding":{"id":"SAST-SQL-001","title":"SQL Injection via string concatenation","severity":"critical","cwe":"CWE-89","code_snippet":"def query(user_input):\n    sql = \"SELECT * FROM users WHERE id=\" + user_input\n    return db.execute(sql)"}}'
 
 echo -e "${Y}>>>${N} Generating AI-powered fix..."
 R=$(api -X POST "$BASE/autofix/generate" \
@@ -117,4 +117,4 @@ for t in types[:10]:
 
 say "Scan -> Verify -> Fix. No scanner needed, no internet needed, no human needed for HIGH confidence fixes. This entire flow works air-gapped. That is the CTEM+ difference."
 
-echo -e "\n${G}  DevSecOps Demo Complete | 6 endpoints | V3 + V5${N}"
+echo -e "\n${G}  DevSecOps Demo Complete | 6 endpoints | V3 + V5 (v4.0 verified endpoints)${N}"

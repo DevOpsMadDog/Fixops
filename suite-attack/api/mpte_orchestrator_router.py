@@ -485,8 +485,8 @@ async def simulate_attack(body: SimulateRequest):
     except HTTPException:
         raise
     except Exception as exc:
-        logger.error("mpte_orchestrator.simulate.error", error=str(exc))
-        raise HTTPException(500, detail=f"Simulation failed: {str(exc)}")
+        logger.error("mpte_orchestrator.simulate.error", error=str(exc), exc_info=True)
+        raise HTTPException(500, detail=f"Simulation failed: {type(exc).__name__}")
 
 
 @router.post("/remediation")
@@ -632,8 +632,8 @@ async def run_pentest(body: PentestRunRequest):
     except HTTPException:
         raise
     except Exception as exc:
-        logger.error("mpte_orchestrator.run.error", error=str(exc))
-        raise HTTPException(500, detail=f"Pentest run failed: {str(exc)}")
+        logger.error("mpte_orchestrator.run.error", error=str(exc), exc_info=True)
+        raise HTTPException(500, detail=f"Pentest run failed: {type(exc).__name__}")
 
 
 @router.get("/status/{test_id}")

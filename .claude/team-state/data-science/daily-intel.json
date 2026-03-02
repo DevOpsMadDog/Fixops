@@ -1,6 +1,6 @@
 {
   "date": "2026-03-02",
-  "collected_at": "2026-03-01T13:32:13.741211+00:00",
+  "collected_at": "2026-03-02T03:14:16.318679+00:00",
   "epss": {
     "high_probability_cves": [
       {
@@ -24,126 +24,586 @@
         "percentile": 1.0
       },
       {
-        "cve_id": "CVE-2024-27199",
-        "epss": 0.94489,
-        "percentile": 0.99999
+        "cve_id": "CVE-2016-10033",
+        "epss": 0.94491,
+        "percentile": 1.0
       },
       {
         "cve_id": "CVE-2018-7600",
         "epss": 0.94489,
-        "percentile": 0.99999
+        "percentile": 1.0
       },
       {
         "cve_id": "CVE-2021-22986",
         "epss": 0.94485,
-        "percentile": 0.99999
+        "percentile": 1.0
       },
       {
         "cve_id": "CVE-2018-13379",
         "epss": 0.94475,
-        "percentile": 0.99998
+        "percentile": 1.0
       },
       {
         "cve_id": "CVE-2019-17558",
         "epss": 0.94474,
-        "percentile": 0.99998
+        "percentile": 1.0
       },
       {
         "cve_id": "CVE-2019-3396",
         "epss": 0.94471,
-        "percentile": 0.99998
+        "percentile": 1.0
       },
       {
-        "cve_id": "CVE-2016-10033",
+        "cve_id": "CVE-2014-0160",
         "epss": 0.9447,
-        "percentile": 0.99997
+        "percentile": 1.0
       },
       {
         "cve_id": "CVE-2022-46169",
         "epss": 0.94469,
-        "percentile": 0.99997
+        "percentile": 1.0
       },
       {
         "cve_id": "CVE-2020-1938",
         "epss": 0.94469,
-        "percentile": 0.99997
+        "percentile": 1.0
       },
       {
         "cve_id": "CVE-2024-6670",
         "epss": 0.94468,
-        "percentile": 0.99996
+        "percentile": 1.0
       },
       {
         "cve_id": "CVE-2023-35078",
         "epss": 0.94468,
-        "percentile": 0.99996
+        "percentile": 1.0
       },
       {
         "cve_id": "CVE-2019-2725",
         "epss": 0.94468,
-        "percentile": 0.99996
+        "percentile": 1.0
       },
       {
         "cve_id": "CVE-2021-22205",
         "epss": 0.94467,
-        "percentile": 0.99995
+        "percentile": 1.0
       },
       {
         "cve_id": "CVE-2018-1000861",
         "epss": 0.94467,
-        "percentile": 0.99995
+        "percentile": 1.0
       },
       {
         "cve_id": "CVE-2024-23897",
         "epss": 0.94466,
-        "percentile": 0.99995
+        "percentile": 1.0
       },
       {
-        "cve_id": "CVE-2014-0160",
-        "epss": 0.94464,
-        "percentile": 0.99995
+        "cve_id": "CVE-2022-22963",
+        "epss": 0.94462,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2019-11510",
+        "epss": 0.94462,
+        "percentile": 1.0
+      },
+      {
+        "cve_id": "CVE-2022-22947",
+        "epss": 0.94461,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2021-44529",
+        "epss": 0.94461,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2019-16662",
+        "epss": 0.94461,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2019-15107",
+        "epss": 0.94461,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2022-44877",
+        "epss": 0.94457,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2021-22005",
+        "epss": 0.94457,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2022-1388",
+        "epss": 0.94456,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2020-14882",
+        "epss": 0.94454,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2019-0708",
+        "epss": 0.94454,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2023-40044",
+        "epss": 0.94449,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2022-30525",
+        "epss": 0.94445,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2022-22954",
+        "epss": 0.94444,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2019-19781",
+        "epss": 0.94442,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2023-32315",
+        "epss": 0.94441,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2019-1003000",
+        "epss": 0.94441,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2022-24112",
+        "epss": 0.94439,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2022-1040",
+        "epss": 0.94439,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2020-14883",
+        "epss": 0.94439,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2023-38035",
+        "epss": 0.94438,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2020-14750",
+        "epss": 0.94438,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2020-3452",
+        "epss": 0.94437,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2024-7593",
+        "epss": 0.94436,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2023-46747",
+        "epss": 0.94436,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2023-46604",
+        "epss": 0.94436,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2021-36260",
+        "epss": 0.94436,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2019-6340",
+        "epss": 0.94436,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2022-29464",
+        "epss": 0.94434,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2021-40438",
+        "epss": 0.94432,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2018-11776",
+        "epss": 0.94431,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2019-9670",
+        "epss": 0.9443,
+        "percentile": 0.9999
+      },
+      {
+        "cve_id": "CVE-2019-16759",
+        "epss": 0.9443,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2022-36804",
+        "epss": 0.94429,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2019-7609",
+        "epss": 0.94429,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2022-22965",
+        "epss": 0.94428,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2024-4040",
+        "epss": 0.94426,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2020-5902",
+        "epss": 0.94426,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2024-36401",
+        "epss": 0.94425,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2021-40539",
+        "epss": 0.94424,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2023-35082",
+        "epss": 0.94423,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2017-10271",
+        "epss": 0.94423,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2021-43798",
+        "epss": 0.94422,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2018-2628",
+        "epss": 0.94422,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2020-11651",
+        "epss": 0.94421,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2018-15961",
+        "epss": 0.94421,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2021-26084",
+        "epss": 0.9442,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2023-43208",
+        "epss": 0.94416,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2020-25223",
+        "epss": 0.94415,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2019-0604",
+        "epss": 0.94415,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2021-21985",
+        "epss": 0.94412,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2017-7269",
+        "epss": 0.94411,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2021-42013",
+        "epss": 0.9441,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2022-26134",
+        "epss": 0.94408,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2020-0796",
+        "epss": 0.94408,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2019-7256",
+        "epss": 0.94406,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2022-24990",
+        "epss": 0.94404,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2021-20090",
+        "epss": 0.94401,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2020-25213",
+        "epss": 0.94401,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2022-40684",
+        "epss": 0.94399,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2024-27199",
+        "epss": 0.94398,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2022-0543",
+        "epss": 0.94398,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2022-21587",
+        "epss": 0.94397,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2024-3273",
+        "epss": 0.94396,
+        "percentile": 0.9998
+      },
+      {
+        "cve_id": "CVE-2020-0688",
+        "epss": 0.94396,
+        "percentile": 0.9997
+      },
+      {
+        "cve_id": "CVE-2022-35914",
+        "epss": 0.94395,
+        "percentile": 0.9997
+      },
+      {
+        "cve_id": "CVE-2023-20887",
+        "epss": 0.94393,
+        "percentile": 0.9997
+      },
+      {
+        "cve_id": "CVE-2019-16278",
+        "epss": 0.94393,
+        "percentile": 0.9997
+      },
+      {
+        "cve_id": "CVE-2017-3506",
+        "epss": 0.94393,
+        "percentile": 0.9997
+      },
+      {
+        "cve_id": "CVE-2022-24706",
+        "epss": 0.94392,
+        "percentile": 0.9997
+      },
+      {
+        "cve_id": "CVE-2021-38647",
+        "epss": 0.94392,
+        "percentile": 0.9997
+      },
+      {
+        "cve_id": "CVE-2021-41773",
+        "epss": 0.94391,
+        "percentile": 0.9997
+      },
+      {
+        "cve_id": "CVE-2021-21975",
+        "epss": 0.9439,
+        "percentile": 0.9997
+      },
+      {
+        "cve_id": "CVE-2023-24489",
+        "epss": 0.94389,
+        "percentile": 0.9997
+      },
+      {
+        "cve_id": "CVE-2023-33246",
+        "epss": 0.94388,
+        "percentile": 0.9997
+      },
+      {
+        "cve_id": "CVE-2020-16846",
+        "epss": 0.94387,
+        "percentile": 0.9997
+      },
+      {
+        "cve_id": "CVE-2021-35464",
+        "epss": 0.94386,
+        "percentile": 0.9997
+      },
+      {
+        "cve_id": "CVE-2019-11580",
+        "epss": 0.94386,
+        "percentile": 0.9997
+      },
+      {
+        "cve_id": "CVE-2012-1823",
+        "epss": 0.94386,
+        "percentile": 0.9997
+      },
+      {
+        "cve_id": "CVE-2020-2551",
+        "epss": 0.94385,
+        "percentile": 0.9997
+      },
+      {
+        "cve_id": "CVE-2018-7602",
+        "epss": 0.94385,
+        "percentile": 0.9997
       }
     ],
     "trending_up": [
       {
         "cve_id": "CVE-2024-27198",
-        "epss": 0.94579
+        "epss": 0.94579,
+        "signal": "high_exploitation_probability"
       },
       {
         "cve_id": "CVE-2023-23752",
-        "epss": 0.94527
+        "epss": 0.94527,
+        "signal": "high_exploitation_probability"
       },
       {
         "cve_id": "CVE-2017-8917",
-        "epss": 0.94513
+        "epss": 0.94513,
+        "signal": "high_exploitation_probability"
       },
       {
         "cve_id": "CVE-2017-1000353",
-        "epss": 0.94508
+        "epss": 0.94508,
+        "signal": "high_exploitation_probability"
       },
       {
-        "cve_id": "CVE-2024-27199",
-        "epss": 0.94489
+        "cve_id": "CVE-2016-10033",
+        "epss": 0.94491,
+        "signal": "high_exploitation_probability"
       },
       {
         "cve_id": "CVE-2018-7600",
-        "epss": 0.94489
+        "epss": 0.94489,
+        "signal": "high_exploitation_probability"
       },
       {
         "cve_id": "CVE-2021-22986",
-        "epss": 0.94485
+        "epss": 0.94485,
+        "signal": "high_exploitation_probability"
       },
       {
         "cve_id": "CVE-2018-13379",
-        "epss": 0.94475
+        "epss": 0.94475,
+        "signal": "high_exploitation_probability"
       },
       {
         "cve_id": "CVE-2019-17558",
-        "epss": 0.94474
+        "epss": 0.94474,
+        "signal": "high_exploitation_probability"
       },
       {
         "cve_id": "CVE-2019-3396",
-        "epss": 0.94471
+        "epss": 0.94471,
+        "signal": "high_exploitation_probability"
+      },
+      {
+        "cve_id": "CVE-2014-0160",
+        "epss": 0.9447,
+        "signal": "high_exploitation_probability"
+      },
+      {
+        "cve_id": "CVE-2022-46169",
+        "epss": 0.94469,
+        "signal": "high_exploitation_probability"
+      },
+      {
+        "cve_id": "CVE-2020-1938",
+        "epss": 0.94469,
+        "signal": "high_exploitation_probability"
+      },
+      {
+        "cve_id": "CVE-2024-6670",
+        "epss": 0.94468,
+        "signal": "high_exploitation_probability"
+      },
+      {
+        "cve_id": "CVE-2023-35078",
+        "epss": 0.94468,
+        "signal": "high_exploitation_probability"
+      },
+      {
+        "cve_id": "CVE-2019-2725",
+        "epss": 0.94468,
+        "signal": "high_exploitation_probability"
+      },
+      {
+        "cve_id": "CVE-2021-22205",
+        "epss": 0.94467,
+        "signal": "high_exploitation_probability"
+      },
+      {
+        "cve_id": "CVE-2018-1000861",
+        "epss": 0.94467,
+        "signal": "high_exploitation_probability"
+      },
+      {
+        "cve_id": "CVE-2024-23897",
+        "epss": 0.94466,
+        "signal": "high_exploitation_probability"
+      },
+      {
+        "cve_id": "CVE-2022-22963",
+        "epss": 0.94462,
+        "signal": "high_exploitation_probability"
       }
     ],
     "newly_weaponized": [
@@ -164,8 +624,8 @@
         "epss": 0.94508
       },
       {
-        "cve_id": "CVE-2024-27199",
-        "epss": 0.94489
+        "cve_id": "CVE-2016-10033",
+        "epss": 0.94491
       },
       {
         "cve_id": "CVE-2018-7600",
@@ -186,202 +646,1686 @@
       {
         "cve_id": "CVE-2019-3396",
         "epss": 0.94471
+      },
+      {
+        "cve_id": "CVE-2014-0160",
+        "epss": 0.9447
+      },
+      {
+        "cve_id": "CVE-2022-46169",
+        "epss": 0.94469
+      },
+      {
+        "cve_id": "CVE-2020-1938",
+        "epss": 0.94469
+      },
+      {
+        "cve_id": "CVE-2024-6670",
+        "epss": 0.94468
+      },
+      {
+        "cve_id": "CVE-2023-35078",
+        "epss": 0.94468
+      },
+      {
+        "cve_id": "CVE-2019-2725",
+        "epss": 0.94468
+      },
+      {
+        "cve_id": "CVE-2021-22205",
+        "epss": 0.94467
+      },
+      {
+        "cve_id": "CVE-2018-1000861",
+        "epss": 0.94467
+      },
+      {
+        "cve_id": "CVE-2024-23897",
+        "epss": 0.94466
+      },
+      {
+        "cve_id": "CVE-2022-22963",
+        "epss": 0.94462
+      },
+      {
+        "cve_id": "CVE-2019-11510",
+        "epss": 0.94462
+      },
+      {
+        "cve_id": "CVE-2022-22947",
+        "epss": 0.94461
+      },
+      {
+        "cve_id": "CVE-2021-44529",
+        "epss": 0.94461
+      },
+      {
+        "cve_id": "CVE-2019-16662",
+        "epss": 0.94461
+      },
+      {
+        "cve_id": "CVE-2019-15107",
+        "epss": 0.94461
+      },
+      {
+        "cve_id": "CVE-2022-44877",
+        "epss": 0.94457
+      },
+      {
+        "cve_id": "CVE-2021-22005",
+        "epss": 0.94457
+      },
+      {
+        "cve_id": "CVE-2022-1388",
+        "epss": 0.94456
+      },
+      {
+        "cve_id": "CVE-2020-14882",
+        "epss": 0.94454
+      },
+      {
+        "cve_id": "CVE-2019-0708",
+        "epss": 0.94454
+      },
+      {
+        "cve_id": "CVE-2023-40044",
+        "epss": 0.94449
+      },
+      {
+        "cve_id": "CVE-2022-30525",
+        "epss": 0.94445
+      },
+      {
+        "cve_id": "CVE-2022-22954",
+        "epss": 0.94444
+      },
+      {
+        "cve_id": "CVE-2019-19781",
+        "epss": 0.94442
+      },
+      {
+        "cve_id": "CVE-2023-32315",
+        "epss": 0.94441
+      },
+      {
+        "cve_id": "CVE-2019-1003000",
+        "epss": 0.94441
+      },
+      {
+        "cve_id": "CVE-2022-24112",
+        "epss": 0.94439
+      },
+      {
+        "cve_id": "CVE-2022-1040",
+        "epss": 0.94439
+      },
+      {
+        "cve_id": "CVE-2020-14883",
+        "epss": 0.94439
+      },
+      {
+        "cve_id": "CVE-2023-38035",
+        "epss": 0.94438
+      },
+      {
+        "cve_id": "CVE-2020-14750",
+        "epss": 0.94438
+      },
+      {
+        "cve_id": "CVE-2020-3452",
+        "epss": 0.94437
+      },
+      {
+        "cve_id": "CVE-2024-7593",
+        "epss": 0.94436
+      },
+      {
+        "cve_id": "CVE-2023-46747",
+        "epss": 0.94436
+      },
+      {
+        "cve_id": "CVE-2023-46604",
+        "epss": 0.94436
+      },
+      {
+        "cve_id": "CVE-2021-36260",
+        "epss": 0.94436
+      },
+      {
+        "cve_id": "CVE-2019-6340",
+        "epss": 0.94436
+      },
+      {
+        "cve_id": "CVE-2022-29464",
+        "epss": 0.94434
+      },
+      {
+        "cve_id": "CVE-2021-40438",
+        "epss": 0.94432
+      },
+      {
+        "cve_id": "CVE-2018-11776",
+        "epss": 0.94431
+      },
+      {
+        "cve_id": "CVE-2019-9670",
+        "epss": 0.9443
+      },
+      {
+        "cve_id": "CVE-2019-16759",
+        "epss": 0.9443
+      },
+      {
+        "cve_id": "CVE-2022-36804",
+        "epss": 0.94429
+      },
+      {
+        "cve_id": "CVE-2019-7609",
+        "epss": 0.94429
+      },
+      {
+        "cve_id": "CVE-2022-22965",
+        "epss": 0.94428
+      },
+      {
+        "cve_id": "CVE-2024-4040",
+        "epss": 0.94426
+      },
+      {
+        "cve_id": "CVE-2020-5902",
+        "epss": 0.94426
+      },
+      {
+        "cve_id": "CVE-2024-36401",
+        "epss": 0.94425
+      },
+      {
+        "cve_id": "CVE-2021-40539",
+        "epss": 0.94424
+      },
+      {
+        "cve_id": "CVE-2023-35082",
+        "epss": 0.94423
+      },
+      {
+        "cve_id": "CVE-2017-10271",
+        "epss": 0.94423
+      },
+      {
+        "cve_id": "CVE-2021-43798",
+        "epss": 0.94422
+      },
+      {
+        "cve_id": "CVE-2018-2628",
+        "epss": 0.94422
+      },
+      {
+        "cve_id": "CVE-2020-11651",
+        "epss": 0.94421
+      },
+      {
+        "cve_id": "CVE-2018-15961",
+        "epss": 0.94421
+      },
+      {
+        "cve_id": "CVE-2021-26084",
+        "epss": 0.9442
+      },
+      {
+        "cve_id": "CVE-2023-43208",
+        "epss": 0.94416
+      },
+      {
+        "cve_id": "CVE-2020-25223",
+        "epss": 0.94415
+      },
+      {
+        "cve_id": "CVE-2019-0604",
+        "epss": 0.94415
+      },
+      {
+        "cve_id": "CVE-2021-21985",
+        "epss": 0.94412
+      },
+      {
+        "cve_id": "CVE-2017-7269",
+        "epss": 0.94411
+      },
+      {
+        "cve_id": "CVE-2021-42013",
+        "epss": 0.9441
+      },
+      {
+        "cve_id": "CVE-2022-26134",
+        "epss": 0.94408
+      },
+      {
+        "cve_id": "CVE-2020-0796",
+        "epss": 0.94408
+      },
+      {
+        "cve_id": "CVE-2019-7256",
+        "epss": 0.94406
+      },
+      {
+        "cve_id": "CVE-2022-24990",
+        "epss": 0.94404
+      },
+      {
+        "cve_id": "CVE-2021-20090",
+        "epss": 0.94401
+      },
+      {
+        "cve_id": "CVE-2020-25213",
+        "epss": 0.94401
+      },
+      {
+        "cve_id": "CVE-2022-40684",
+        "epss": 0.94399
+      },
+      {
+        "cve_id": "CVE-2024-27199",
+        "epss": 0.94398
+      },
+      {
+        "cve_id": "CVE-2022-0543",
+        "epss": 0.94398
+      },
+      {
+        "cve_id": "CVE-2022-21587",
+        "epss": 0.94397
+      },
+      {
+        "cve_id": "CVE-2024-3273",
+        "epss": 0.94396
+      },
+      {
+        "cve_id": "CVE-2020-0688",
+        "epss": 0.94396
+      },
+      {
+        "cve_id": "CVE-2022-35914",
+        "epss": 0.94395
+      },
+      {
+        "cve_id": "CVE-2023-20887",
+        "epss": 0.94393
+      },
+      {
+        "cve_id": "CVE-2019-16278",
+        "epss": 0.94393
+      },
+      {
+        "cve_id": "CVE-2017-3506",
+        "epss": 0.94393
+      },
+      {
+        "cve_id": "CVE-2022-24706",
+        "epss": 0.94392
+      },
+      {
+        "cve_id": "CVE-2021-38647",
+        "epss": 0.94392
+      },
+      {
+        "cve_id": "CVE-2021-41773",
+        "epss": 0.94391
+      },
+      {
+        "cve_id": "CVE-2021-21975",
+        "epss": 0.9439
+      },
+      {
+        "cve_id": "CVE-2023-24489",
+        "epss": 0.94389
+      },
+      {
+        "cve_id": "CVE-2023-33246",
+        "epss": 0.94388
+      },
+      {
+        "cve_id": "CVE-2020-16846",
+        "epss": 0.94387
+      },
+      {
+        "cve_id": "CVE-2021-35464",
+        "epss": 0.94386
+      },
+      {
+        "cve_id": "CVE-2019-11580",
+        "epss": 0.94386
+      },
+      {
+        "cve_id": "CVE-2012-1823",
+        "epss": 0.94386
+      },
+      {
+        "cve_id": "CVE-2020-2551",
+        "epss": 0.94385
+      },
+      {
+        "cve_id": "CVE-2018-7602",
+        "epss": 0.94385
       }
     ],
-    "total_tracked": 30
+    "source": "live",
+    "fetch_time": "2026-03-02T03:14:14.789973+00:00"
   },
   "nvd": {
     "new_critical": [
       {
-        "cve_id": "CVE-1999-0426",
-        "cvss": 9.8
+        "cve_id": "CVE-2026-23552",
+        "cvss_score": 9.1,
+        "severity": "CRITICAL",
+        "description": "Cross-Realm Token Acceptance Bypass in KeycloakSecurityPolicy Apache Camel Keycloak component.\u00a0\n\nThe Camel-Keycloak KeycloakSecurityPolicy does not validate the iss (issuer) claim of JWT tokens agains",
+        "published": "2026-02-23T09:17:00.857"
       },
       {
-        "cve_id": "CVE-1999-1324",
-        "cvss": 9.8
+        "cve_id": "CVE-2025-70043",
+        "cvss_score": 9.1,
+        "severity": "CRITICAL",
+        "description": "An issue pertaining to CWE-295: Improper Certificate Validation was discovered in Ayms node-To master. The application disables TLS/SSL certificate validation by setting 'rejectUnauthorized': false in",
+        "published": "2026-02-23T16:29:36.093"
       },
       {
-        "cve_id": "CVE-2000-1218",
-        "cvss": 9.8
+        "cve_id": "CVE-2025-70327",
+        "cvss_score": 9.8,
+        "severity": "CRITICAL",
+        "description": "TOTOLINK X5000R v9.1.0cu_2415_B20250515 contains an argument injection vulnerability in the setDiagnosisCfg handler of the /usr/sbin/lighttpd executable. The ip parameter is retrieved via websGetVar a",
+        "published": "2026-02-23T21:19:09.270"
       },
       {
-        "cve_id": "CVE-2000-0944",
-        "cvss": 9.8
+        "cve_id": "CVE-2026-23693",
+        "cvss_score": 10.0,
+        "severity": "CRITICAL",
+        "description": "ElementsKit Elementor Addons \u2013 Advanced Widgets & Templates Addons for Elementor (elementskit-lite) WordPress plugin versions prior to 3.7.9 expose the REST endpoint /wp-json/elementskit/v1/widget/mai",
+        "published": "2026-02-23T21:19:10.157"
       },
       {
-        "cve_id": "CVE-2001-1339",
-        "cvss": 9.8
+        "cve_id": "CVE-2026-3061",
+        "cvss_score": 9.1,
+        "severity": "CRITICAL",
+        "description": "Out of bounds read in Media in Google Chrome prior to 145.0.7632.116 allowed a remote attacker to perform an out of bounds memory read via a crafted HTML page. (Chromium security severity: High)",
+        "published": "2026-02-23T23:16:15.850"
       },
       {
-        "cve_id": "CVE-2001-0248",
-        "cvss": 9.8
+        "cve_id": "CVE-2026-3062",
+        "cvss_score": 9.8,
+        "severity": "CRITICAL",
+        "description": "Out of bounds read and write in Tint in Google Chrome on Mac prior to 145.0.7632.116 allowed a remote attacker to perform out of bounds memory access via a crafted HTML page. (Chromium security severi",
+        "published": "2026-02-23T23:16:15.997"
       },
       {
-        "cve_id": "CVE-2001-0249",
-        "cvss": 9.8
-      },
-      {
-        "cve_id": "CVE-2001-0395",
-        "cvss": 9.8
-      },
-      {
-        "cve_id": "CVE-2001-1291",
-        "cvss": 9.8
-      },
-      {
-        "cve_id": "CVE-2001-0609",
-        "cvss": 9.8
+        "cve_id": "CVE-2024-58041",
+        "cvss_score": 9.1,
+        "severity": "CRITICAL",
+        "description": "Smolder versions through 1.51 for Perl uses insecure rand() function for cryptographic functions.\n\nSmolder 1.51 and earlier for Perl uses the rand() function as the default source of entropy, which is",
+        "published": "2026-02-24T00:16:17.820"
       }
     ],
-    "new_high": [],
-    "total_critical_all_time": 29329,
-    "affecting_our_stack": []
+    "new_high": [
+      {
+        "cve_id": "CVE-2026-2998",
+        "cvss_score": 7.8,
+        "severity": "HIGH",
+        "description": "ERP developed by eAI Technologies has a DLL Hijacking vulnerability, allowing authenticated local attackers to place a crafted DLL file in the same directory as the program, thereby executing arbitrar",
+        "published": "2026-02-23T04:16:02.537"
+      },
+      {
+        "cve_id": "CVE-2026-1367",
+        "cvss_score": 8.3,
+        "severity": "HIGH",
+        "description": "Zohocorp ManageEngine ADSelfService Plus versions 6522 and below are vulnerable to authenticated SQL Injection in the search report option.",
+        "published": "2026-02-23T08:16:13.460"
+      },
+      {
+        "cve_id": "CVE-2026-25747",
+        "cvss_score": 8.8,
+        "severity": "HIGH",
+        "description": "Deserialization of Untrusted Data vulnerability in Apache Camel LevelDB component.\n\nThe Camel-LevelDB DefaultLevelDBSerializer class deserializes data read from the LevelDB aggregation repository usin",
+        "published": "2026-02-23T09:17:01.043"
+      },
+      {
+        "cve_id": "CVE-2026-2980",
+        "cvss_score": 7.2,
+        "severity": "HIGH",
+        "description": "A vulnerability has been found in UTT HiPER 810G up to 1.7.7-1711. Impacted is the function strcpy of the file /goform/setSysAdm. The manipulation of the argument passwd1 leads to buffer overflow. The",
+        "published": "2026-02-23T09:17:01.647"
+      },
+      {
+        "cve_id": "CVE-2026-2981",
+        "cvss_score": 8.8,
+        "severity": "HIGH",
+        "description": "A vulnerability was found in UTT HiPER 810G up to 1.7.7-1711. The affected element is the function strcpy of the file /goform/formTaskEdit_ap. The manipulation of the argument txtMin2 results in buffe",
+        "published": "2026-02-23T09:17:01.877"
+      },
+      {
+        "cve_id": "CVE-2026-2983",
+        "cvss_score": 7.3,
+        "severity": "HIGH",
+        "description": "A vulnerability was determined in SourceCodester Student Result Management System 1.0. The impacted element is an unknown function of the file /admin/core/import_users.php of the component Bulk Import",
+        "published": "2026-02-23T10:16:58.757"
+      },
+      {
+        "cve_id": "CVE-2025-69700",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "Tenda FH1203 V2.0.1.6 contains a stack-based buffer overflow vulnerability in the modify_add_client_prio function, which is reachable via the formSetClientPrio CGI handler.",
+        "published": "2026-02-23T14:16:21.233"
+      },
+      {
+        "cve_id": "CVE-2026-21420",
+        "cvss_score": 7.3,
+        "severity": "HIGH",
+        "description": "Dell Repository Manager (DRM), versions prior to 3.4.8, contains an Uncontrolled Search Path Element vulnerability. A low privileged attacker with local access could potentially exploit this vulnerabi",
+        "published": "2026-02-23T14:16:21.823"
+      },
+      {
+        "cve_id": "CVE-2025-14905",
+        "cvss_score": 7.2,
+        "severity": "HIGH",
+        "description": "A flaw was found in the 389-ds-base server. A heap buffer overflow vulnerability exists in the `schema_attr_enum_callback` function within the `schema.c` file. This occurs because the code incorrectly",
+        "published": "2026-02-23T16:29:35.620"
+      },
+      {
+        "cve_id": "CVE-2025-70045",
+        "cvss_score": 7.4,
+        "severity": "HIGH",
+        "description": "An issue pertaining to CWE-295: Improper Certificate Validation was discovered in jxcore jxm master. The application disables TLS/SSL certificate validation by setting 'rejectUnauthorized': false in H",
+        "published": "2026-02-23T16:29:36.323"
+      },
+      {
+        "cve_id": "CVE-2025-70058",
+        "cvss_score": 7.4,
+        "severity": "HIGH",
+        "description": "An issue pertaining to CWE-295: Improper Certificate Validation was discovered in YMFE yapi v1.12.0. The application disables TLS/SSL certificate validation by setting 'rejectUnauthorized': false in t",
+        "published": "2026-02-23T16:29:36.433"
+      },
+      {
+        "cve_id": "CVE-2026-3015",
+        "cvss_score": 8.8,
+        "severity": "HIGH",
+        "description": "A vulnerability was determined in UTT HiPER 810G up to 1.7.7-171114. Impacted is the function strcpy of the file /goform/formPolicyRouteConf. Executing a manipulation of the argument GroupName can lea",
+        "published": "2026-02-23T16:29:37.950"
+      },
+      {
+        "cve_id": "CVE-2026-3016",
+        "cvss_score": 8.8,
+        "severity": "HIGH",
+        "description": "A vulnerability was identified in UTT HiPER 810G up to 1.7.7-171114. The affected element is the function strcpy of the file /goform/formP2PLimitConfig. The manipulation of the argument except leads t",
+        "published": "2026-02-23T16:29:38.170"
+      },
+      {
+        "cve_id": "CVE-2026-22567",
+        "cvss_score": 7.6,
+        "severity": "HIGH",
+        "description": "Improper validation of user-supplied input in the ZIA Admin UI could allow an authenticated administrator to initiate backend functions through specific input fields in limited scenarios.",
+        "published": "2026-02-23T17:23:28.913"
+      },
+      {
+        "cve_id": "CVE-2025-61144",
+        "cvss_score": 7.3,
+        "severity": "HIGH",
+        "description": "libtiff up to v4.7.1 was discovered to contain a stack overflow via the readSeparateStripsIntoBuffer function.",
+        "published": "2026-02-23T19:22:56.643"
+      },
+      {
+        "cve_id": "CVE-2025-63945",
+        "cvss_score": 7.4,
+        "severity": "HIGH",
+        "description": "A privilege escalation (PE) vulnerability in the Tencent iOA app thru 210.9.28693.621001 on Windows devices enables a local user to execute programs with elevated privileges. However, execution requir",
+        "published": "2026-02-23T20:28:52.910"
+      },
+      {
+        "cve_id": "CVE-2025-63946",
+        "cvss_score": 7.4,
+        "severity": "HIGH",
+        "description": "A privilege escalation (PE) vulnerability in the Tencent PC Manager app thru 17.10.28554.205 on Windows devices enables a local user to execute programs with elevated privileges. However, execution re",
+        "published": "2026-02-23T20:28:53.100"
+      },
+      {
+        "cve_id": "CVE-2025-67733",
+        "cvss_score": 8.5,
+        "severity": "HIGH",
+        "description": "Valkey is a distributed key-value database. Prior to versions 9.0.2, 8.1.6, 8.0.7, and 7.2.12, a malicious user can use scripting commands to inject arbitrary information into the response stream for ",
+        "published": "2026-02-23T20:28:53.280"
+      },
+      {
+        "cve_id": "CVE-2025-70329",
+        "cvss_score": 8.0,
+        "severity": "HIGH",
+        "description": "TOTOLink X5000R v9.1.0cu_2415_B20250515 contains an OS command injection vulnerability in the setIptvCfg handler of the /usr/sbin/lighttpd executable. The vlanVidLan1 (and other vlanVidLanX) parameter",
+        "published": "2026-02-23T20:28:53.603"
+      },
+      {
+        "cve_id": "CVE-2026-21863",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "Valkey is a distributed key-value database. Prior to versions 9.0.2, 8.1.6, 8.0.7, and 7.2.12, a malicious actor with access to the Valkey clusterbus port can send an invalid packet that may cause an ",
+        "published": "2026-02-23T20:28:53.853"
+      },
+      {
+        "cve_id": "CVE-2026-27623",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "Valkey is a distributed key-value database. Starting in version 9.0.0 and prior to version 9.0.3, a malicious actor with network access to Valkey can cause the system to abort by triggering an asserti",
+        "published": "2026-02-23T20:28:55.217"
+      },
+      {
+        "cve_id": "CVE-2025-68930",
+        "cvss_score": 7.1,
+        "severity": "HIGH",
+        "description": "Versions of the Traccar open-source GPS tracking system up to and including 6.11.1 contain a Cross-Site WebSocket Hijacking (CSWSH) vulnerability in the `/api/socket` endpoint. The application fails t",
+        "published": "2026-02-23T21:19:08.500"
+      },
+      {
+        "cve_id": "CVE-2025-70328",
+        "cvss_score": 8.8,
+        "severity": "HIGH",
+        "description": "TOTOLINK X6000R v9.4.0cu.1498_B20250826 contains an OS command injection vulnerability in the NTPSyncWithHost handler of the /usr/sbin/shttpd executable. The host_time parameter is retrieved via sub_4",
+        "published": "2026-02-23T21:19:09.393"
+      },
+      {
+        "cve_id": "CVE-2025-71056",
+        "cvss_score": 8.1,
+        "severity": "HIGH",
+        "description": "Improper session management in GCOM EPON 1GE ONU version C00R371V00B01 allows attackers to execute a session hijacking attack via spoofing the IP address of an authenticated user.",
+        "published": "2026-02-23T21:19:09.680"
+      },
+      {
+        "cve_id": "CVE-2026-25648",
+        "cvss_score": 8.7,
+        "severity": "HIGH",
+        "description": "Versions of the Traccar open-source GPS tracking system starting with 6.11.1 contain an issue in which authenticated users can execute arbitrary JavaScript in the context of other users' browsers by u",
+        "published": "2026-02-23T21:19:10.690"
+      },
+      {
+        "cve_id": "CVE-2026-3025",
+        "cvss_score": 7.3,
+        "severity": "HIGH",
+        "description": "A flaw has been found in ShuoRen Smart Heating Integrated Management Platform 1.0.0. Affected by this vulnerability is an unknown functionality of the file /MP/Service/Webservice/ExampleNodeService.as",
+        "published": "2026-02-23T21:19:12.497"
+      },
+      {
+        "cve_id": "CVE-2026-3026",
+        "cvss_score": 7.3,
+        "severity": "HIGH",
+        "description": "A vulnerability has been found in erzhongxmu JEEWMS 3.7. Affected by this issue is some unknown functionality of the file /plug-in/ueditor/jsp/getRemoteImage.jsp of the component UEditor. The manipula",
+        "published": "2026-02-23T21:19:12.713"
+      },
+      {
+        "cve_id": "CVE-2025-69232",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "free5GC is an open-source project for 5th generation (5G) mobile core networks. free5GC go-upf versions up to and including 1.2.6, corresponding to free5gc smf up to and including 1.4.0, have an Impro",
+        "published": "2026-02-23T22:16:20.893"
+      },
+      {
+        "cve_id": "CVE-2025-69247",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "free5GC go-upf is the User Plane Function (UPF) implementation for 5G networks that is part of the free5GC project. Versions prior to 1.2.8 have a Heap-based Buffer Overflow (CWE-122) vulnerability le",
+        "published": "2026-02-23T22:16:21.057"
+      },
+      {
+        "cve_id": "CVE-2025-69248",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "free5GC is an open-source project for 5th generation (5G) mobile core networks. Versions up to and including 1.4.1 of free5GC's AMF service have a Buffer Overflow vulnerability leading to Denial of Se",
+        "published": "2026-02-23T22:16:21.220"
+      },
+      {
+        "cve_id": "CVE-2026-25649",
+        "cvss_score": 7.3,
+        "severity": "HIGH",
+        "description": "Versions of the Traccar open-source GPS tracking system up to and including 6.11.1 contain an issue in which authenticated users can steal OAuth 2.0 authorization codes by exploiting an open redirect ",
+        "published": "2026-02-23T22:16:24.927"
+      },
+      {
+        "cve_id": "CVE-2025-69250",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "free5gc UDM provides Unified Data Management (UDM) for free5GC, an open-source project for 5th generation (5G) mobile core networks. In versions up to and including 1.4.1, the service reliably leaks d",
+        "published": "2026-02-24T00:16:18.330"
+      },
+      {
+        "cve_id": "CVE-2025-69252",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "free5gc UDM provides Unified Data Management (UDM) for free5GC, an open-source project for 5th generation (5G) mobile core networks. Versions up to and including 1.4.1 have a NULL Pointer Dereference ",
+        "published": "2026-02-24T00:16:18.707"
+      },
+      {
+        "cve_id": "CVE-2026-3042",
+        "cvss_score": 7.3,
+        "severity": "HIGH",
+        "description": "A vulnerability was detected in itsourcecode Event Management System 1.0. The affected element is an unknown function of the file /admin/index.php. Performing a manipulation of the argument ID results",
+        "published": "2026-02-24T00:16:18.900"
+      },
+      {
+        "cve_id": "CVE-2026-3044",
+        "cvss_score": 8.8,
+        "severity": "HIGH",
+        "description": "A vulnerability has been found in Tenda AC8 16.03.34.06. This affects the function webCgiGetUploadFile of the file /cgi-bin/UploadCfg of the component Httpd Service. The manipulation of the argument b",
+        "published": "2026-02-24T00:16:19.420"
+      },
+      {
+        "cve_id": "CVE-2026-24481",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a heap information disclosure vulnerability exists in ImageMagi",
+        "published": "2026-02-24T01:16:12.423"
+      },
+      {
+        "cve_id": "CVE-2026-24485",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, when a PCD file does not contain a valid Sync marker, the Decod",
+        "published": "2026-02-24T01:16:12.757"
+      },
+      {
+        "cve_id": "CVE-2026-25501",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "free5GC SMF provides Session Management Function for free5GC, an open-source project for 5th generation (5G) mobile core networks. In versions up to and including 1.4.1, SMF panics due to nil pointer ",
+        "published": "2026-02-24T01:16:12.927"
+      }
+    ],
+    "affecting_our_stack": [
+      {
+        "cve_id": "CVE-2026-2966",
+        "cvss_score": 3.7,
+        "severity": "LOW",
+        "description": "A weakness has been identified in Cesanta Mongoose up to 7.20. The impacted element is the function mg_sendnsreq of the file /src/dns.c of the component DNS Transaction ID Handler. Executing a manipul",
+        "published": "2026-02-23T03:15:59.373",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-2967",
+        "cvss_score": 3.7,
+        "severity": "LOW",
+        "description": "A security vulnerability has been detected in Cesanta Mongoose up to 7.20. This affects the function getpeer of the file /src/net_builtin.c of the component TCP Sequence Number Handler. The manipulati",
+        "published": "2026-02-23T04:16:02.040",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-2968",
+        "cvss_score": 3.7,
+        "severity": "LOW",
+        "description": "A vulnerability was detected in Cesanta Mongoose up to 7.20. This impacts the function mg_chacha20_poly1305_decrypt of the file /src/tls_chacha20.c of the component Poly1305 Authentication Tag Handler",
+        "published": "2026-02-23T04:16:02.283",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-2969",
+        "cvss_score": 4.7,
+        "severity": "MEDIUM",
+        "description": "A flaw has been found in datapizza-labs datapizza-ai 0.0.2. Affected is the function ChatPromptTemplate of the file datapizza-ai-core/datapizza/modules/prompt/prompt.py of the component Jinja2 Templat",
+        "published": "2026-02-23T05:16:19.833",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-2970",
+        "cvss_score": 4.6,
+        "severity": "MEDIUM",
+        "description": "A vulnerability has been found in datapizza-labs datapizza-ai 0.0.2. Affected by this vulnerability is the function RedisCache of the file datapizza-ai-cache/redis/datapizza/cache/redis/cache.py. Such",
+        "published": "2026-02-23T05:16:20.400",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-2971",
+        "cvss_score": 4.3,
+        "severity": "MEDIUM",
+        "description": "A vulnerability was found in a466350665 Smart-SSO up to 2.1.1. Affected by this issue is some unknown functionality of the file smart-sso-server/src/main/resources/templates/login.html of the componen",
+        "published": "2026-02-23T05:16:20.663",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-2972",
+        "cvss_score": 2.4,
+        "severity": "LOW",
+        "description": "A vulnerability was determined in a466350665 Smart-SSO up to 2.1.1. This affects the function Save of the file smart-sso-server/src/main/java/openjoe/smart/sso/server/controller/admin/UserController.j",
+        "published": "2026-02-23T06:16:15.347",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-2975",
+        "cvss_score": 5.3,
+        "severity": "MEDIUM",
+        "description": "A security flaw has been discovered in FastApiAdmin up to 2.2.0. Affected by this vulnerability is the function reset_api_docs of the file /backend/app/plugin/init_app.py of the component Custom Docum",
+        "published": "2026-02-23T07:16:21.243",
+        "matched_technology": "fastapi"
+      },
+      {
+        "cve_id": "CVE-2026-2976",
+        "cvss_score": 4.3,
+        "severity": "MEDIUM",
+        "description": "A weakness has been identified in FastApiAdmin up to 2.2.0. Affected by this issue is the function download_controller of the file /backend/app/api/v1/module_common/file/controller.py of the component",
+        "published": "2026-02-23T07:16:22.680",
+        "matched_technology": "fastapi"
+      },
+      {
+        "cve_id": "CVE-2026-2977",
+        "cvss_score": 6.3,
+        "severity": "MEDIUM",
+        "description": "A security vulnerability has been detected in FastApiAdmin up to 2.2.0. This affects the function upload_controller of the file /backend/app/api/v1/module_common/file/controller.py of the component Sc",
+        "published": "2026-02-23T08:16:13.757",
+        "matched_technology": "fastapi"
+      },
+      {
+        "cve_id": "CVE-2026-2978",
+        "cvss_score": 6.3,
+        "severity": "MEDIUM",
+        "description": "A vulnerability was detected in FastApiAdmin up to 2.2.0. This vulnerability affects the function upload_file_controller of the file /backend/app/api/v1/module_system/params/controller.py of the compo",
+        "published": "2026-02-23T08:16:13.983",
+        "matched_technology": "fastapi"
+      },
+      {
+        "cve_id": "CVE-2026-23552",
+        "cvss_score": 9.1,
+        "severity": "CRITICAL",
+        "description": "Cross-Realm Token Acceptance Bypass in KeycloakSecurityPolicy Apache Camel Keycloak component.\u00a0\n\nThe Camel-Keycloak KeycloakSecurityPolicy does not validate the iss (issuer) claim of JWT tokens agains",
+        "published": "2026-02-23T09:17:00.857",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25747",
+        "cvss_score": 8.8,
+        "severity": "HIGH",
+        "description": "Deserialization of Untrusted Data vulnerability in Apache Camel LevelDB component.\n\nThe Camel-LevelDB DefaultLevelDBSerializer class deserializes data read from the LevelDB aggregation repository usin",
+        "published": "2026-02-23T09:17:01.043",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-2979",
+        "cvss_score": 6.3,
+        "severity": "MEDIUM",
+        "description": "A flaw has been found in FastApiAdmin up to 2.2.0. This issue affects the function user_avatar_upload_controller of the file /backend/app/api/v1/module_system/user/controller.py of the component Sched",
+        "published": "2026-02-23T09:17:01.427",
+        "matched_technology": "fastapi"
+      },
+      {
+        "cve_id": "CVE-2026-2980",
+        "cvss_score": 7.2,
+        "severity": "HIGH",
+        "description": "A vulnerability has been found in UTT HiPER 810G up to 1.7.7-1711. Impacted is the function strcpy of the file /goform/setSysAdm. The manipulation of the argument passwd1 leads to buffer overflow. The",
+        "published": "2026-02-23T09:17:01.647",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-2981",
+        "cvss_score": 8.8,
+        "severity": "HIGH",
+        "description": "A vulnerability was found in UTT HiPER 810G up to 1.7.7-1711. The affected element is the function strcpy of the file /goform/formTaskEdit_ap. The manipulation of the argument txtMin2 results in buffe",
+        "published": "2026-02-23T09:17:01.877",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-2983",
+        "cvss_score": 7.3,
+        "severity": "HIGH",
+        "description": "A vulnerability was determined in SourceCodester Student Result Management System 1.0. The impacted element is an unknown function of the file /admin/core/import_users.php of the component Bulk Import",
+        "published": "2026-02-23T10:16:58.757",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-2984",
+        "cvss_score": 6.5,
+        "severity": "MEDIUM",
+        "description": "A vulnerability was identified in SourceCodester Student Result Management System 1.0. This affects an unknown function of the file /admin/core/drop_user.php. Such manipulation of the argument ID lead",
+        "published": "2026-02-23T11:16:39.443",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-69700",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "Tenda FH1203 V2.0.1.6 contains a stack-based buffer overflow vulnerability in the modify_add_client_prio function, which is reachable via the formSetClientPrio CGI handler.",
+        "published": "2026-02-23T14:16:21.233",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-21420",
+        "cvss_score": 7.3,
+        "severity": "HIGH",
+        "description": "Dell Repository Manager (DRM), versions prior to 3.4.8, contains an Uncontrolled Search Path Element vulnerability. A low privileged attacker with local access could potentially exploit this vulnerabi",
+        "published": "2026-02-23T14:16:21.823",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-70043",
+        "cvss_score": 9.1,
+        "severity": "CRITICAL",
+        "description": "An issue pertaining to CWE-295: Improper Certificate Validation was discovered in Ayms node-To master. The application disables TLS/SSL certificate validation by setting 'rejectUnauthorized': false in",
+        "published": "2026-02-23T16:29:36.093",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-70044",
+        "cvss_score": 6.5,
+        "severity": "MEDIUM",
+        "description": "An issue pertaining to CWE-295: Improper Certificate Validation was discovered in fofolee uTools-quickcommand 5.0.3.",
+        "published": "2026-02-23T16:29:36.213",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-70045",
+        "cvss_score": 7.4,
+        "severity": "HIGH",
+        "description": "An issue pertaining to CWE-295: Improper Certificate Validation was discovered in jxcore jxm master. The application disables TLS/SSL certificate validation by setting 'rejectUnauthorized': false in H",
+        "published": "2026-02-23T16:29:36.323",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-70058",
+        "cvss_score": 7.4,
+        "severity": "HIGH",
+        "description": "An issue pertaining to CWE-295: Improper Certificate Validation was discovered in YMFE yapi v1.12.0. The application disables TLS/SSL certificate validation by setting 'rejectUnauthorized': false in t",
+        "published": "2026-02-23T16:29:36.433",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-2697",
+        "cvss_score": 6.3,
+        "severity": "MEDIUM",
+        "description": "An Indirect Object Reference (IDOR) in Security Center allows an authenticated remote attacker to escalate privileges via the 'owner' parameter.",
+        "published": "2026-02-23T16:29:37.323",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-3015",
+        "cvss_score": 8.8,
+        "severity": "HIGH",
+        "description": "A vulnerability was determined in UTT HiPER 810G up to 1.7.7-171114. Impacted is the function strcpy of the file /goform/formPolicyRouteConf. Executing a manipulation of the argument GroupName can lea",
+        "published": "2026-02-23T16:29:37.950",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-3016",
+        "cvss_score": 8.8,
+        "severity": "HIGH",
+        "description": "A vulnerability was identified in UTT HiPER 810G up to 1.7.7-171114. The affected element is the function strcpy of the file /goform/formP2PLimitConfig. The manipulation of the argument except leads t",
+        "published": "2026-02-23T16:29:38.170",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-22567",
+        "cvss_score": 7.6,
+        "severity": "HIGH",
+        "description": "Improper validation of user-supplied input in the ZIA Admin UI could allow an authenticated administrator to initiate backend functions through specific input fields in limited scenarios.",
+        "published": "2026-02-23T17:23:28.913",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-22568",
+        "cvss_score": 5.5,
+        "severity": "MEDIUM",
+        "description": "Improper neutralization of special elements in user-supplied input within the ZIA Admin UI could allow an authenticated administrator to access or retrieve unauthorized internal information in rare co",
+        "published": "2026-02-23T17:23:29.073",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-27511",
+        "cvss_score": 4.3,
+        "severity": "MEDIUM",
+        "description": "Shenzhen Tenda F3 Wireless Router\u00a0firmware V12.01.01.55_multi contains a clickjacking vulnerability in the web-based administrative interface. The interface does not set the X-Frame-Options header, al",
+        "published": "2026-02-23T17:23:29.473",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-27512",
+        "cvss_score": 6.1,
+        "severity": "MEDIUM",
+        "description": "Shenzhen Tenda F3 Wireless Router\u00a0firmware V12.01.01.55_multi contains a content-type confusion vulnerability in the administrative interface. Responses omit the X-Content-Type-Options: nosniff header",
+        "published": "2026-02-23T17:23:29.687",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-27513",
+        "cvss_score": 4.3,
+        "severity": "MEDIUM",
+        "description": "Shenzhen Tenda F3 Wireless Router\u00a0firmware V12.01.01.55_multi contains a cross-site request forgery (CSRF) vulnerability in the web-based administrative interface. The interface does not implement ant",
+        "published": "2026-02-23T17:23:29.890",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-27514",
+        "cvss_score": 6.5,
+        "severity": "MEDIUM",
+        "description": "Shenzhen Tenda F3 Wireless Router\u00a0firmware V12.01.01.55_multi contains a sensitive information exposure vulnerability in the configuration download functionality. The configuration download response i",
+        "published": "2026-02-23T17:23:30.087",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-2698",
+        "cvss_score": 6.5,
+        "severity": "MEDIUM",
+        "description": "An improper access control vulnerability exists where an authenticated user could access areas outside of their authorized scope.",
+        "published": "2026-02-23T17:23:30.390",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-26464",
+        "cvss_score": 6.1,
+        "severity": "MEDIUM",
+        "description": "Stored Cross-Site Scripting (XSS) was found in the /admin/edit_user.php page of Society Management System Portal V1.0, which allows remote attackers to inject and store arbitrary JavaScript code that ",
+        "published": "2026-02-23T18:25:51.630",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-61143",
+        "cvss_score": 5.5,
+        "severity": "MEDIUM",
+        "description": "libtiff up to v4.7.1 was discovered to contain a NULL pointer dereference via the component libtiff/tif_open.c.",
+        "published": "2026-02-23T19:22:56.517",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-61144",
+        "cvss_score": 7.3,
+        "severity": "HIGH",
+        "description": "libtiff up to v4.7.1 was discovered to contain a stack overflow via the readSeparateStripsIntoBuffer function.",
+        "published": "2026-02-23T19:22:56.643",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-61145",
+        "cvss_score": 5.0,
+        "severity": "MEDIUM",
+        "description": "libtiff up to v4.7.1 was discovered to contain a double free via the component tools/tiffcrop.c.",
+        "published": "2026-02-23T19:22:56.757",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-61146",
+        "cvss_score": 4.0,
+        "severity": "MEDIUM",
+        "description": "saitoha libsixel until v1.8.7 was discovered to contain a memory leak via the component malloc_stub.c.",
+        "published": "2026-02-23T19:22:56.880",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-63945",
+        "cvss_score": 7.4,
+        "severity": "HIGH",
+        "description": "A privilege escalation (PE) vulnerability in the Tencent iOA app thru 210.9.28693.621001 on Windows devices enables a local user to execute programs with elevated privileges. However, execution requir",
+        "published": "2026-02-23T20:28:52.910",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-63946",
+        "cvss_score": 7.4,
+        "severity": "HIGH",
+        "description": "A privilege escalation (PE) vulnerability in the Tencent PC Manager app thru 17.10.28554.205 on Windows devices enables a local user to execute programs with elevated privileges. However, execution re",
+        "published": "2026-02-23T20:28:53.100",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-67733",
+        "cvss_score": 8.5,
+        "severity": "HIGH",
+        "description": "Valkey is a distributed key-value database. Prior to versions 9.0.2, 8.1.6, 8.0.7, and 7.2.12, a malicious user can use scripting commands to inject arbitrary information into the response stream for ",
+        "published": "2026-02-23T20:28:53.280",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-70329",
+        "cvss_score": 8.0,
+        "severity": "HIGH",
+        "description": "TOTOLink X5000R v9.1.0cu_2415_B20250515 contains an OS command injection vulnerability in the setIptvCfg handler of the /usr/sbin/lighttpd executable. The vlanVidLan1 (and other vlanVidLanX) parameter",
+        "published": "2026-02-23T20:28:53.603",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-21863",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "Valkey is a distributed key-value database. Prior to versions 9.0.2, 8.1.6, 8.0.7, and 7.2.12, a malicious actor with access to the Valkey clusterbus port can send an invalid packet that may cause an ",
+        "published": "2026-02-23T20:28:53.853",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-27623",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "Valkey is a distributed key-value database. Starting in version 9.0.0 and prior to version 9.0.3, a malicious actor with network access to Valkey can cause the system to abort by triggering an asserti",
+        "published": "2026-02-23T20:28:55.217",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-68930",
+        "cvss_score": 7.1,
+        "severity": "HIGH",
+        "description": "Versions of the Traccar open-source GPS tracking system up to and including 6.11.1 contain a Cross-Site WebSocket Hijacking (CSWSH) vulnerability in the `/api/socket` endpoint. The application fails t",
+        "published": "2026-02-23T21:19:08.500",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-70327",
+        "cvss_score": 9.8,
+        "severity": "CRITICAL",
+        "description": "TOTOLINK X5000R v9.1.0cu_2415_B20250515 contains an argument injection vulnerability in the setDiagnosisCfg handler of the /usr/sbin/lighttpd executable. The ip parameter is retrieved via websGetVar a",
+        "published": "2026-02-23T21:19:09.270",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-70328",
+        "cvss_score": 8.8,
+        "severity": "HIGH",
+        "description": "TOTOLINK X6000R v9.4.0cu.1498_B20250826 contains an OS command injection vulnerability in the NTPSyncWithHost handler of the /usr/sbin/shttpd executable. The host_time parameter is retrieved via sub_4",
+        "published": "2026-02-23T21:19:09.393",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-23521",
+        "cvss_score": 6.5,
+        "severity": "MEDIUM",
+        "description": "Versions of the Traccar open-source GPS tracking system up to and including 6.11.1 contain an issue in which authenticated users who can create or edit devices can set a device `uniqueId` to an absolu",
+        "published": "2026-02-23T21:19:09.990",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25648",
+        "cvss_score": 8.7,
+        "severity": "HIGH",
+        "description": "Versions of the Traccar open-source GPS tracking system starting with 6.11.1 contain an issue in which authenticated users can execute arbitrary JavaScript in the context of other users' browsers by u",
+        "published": "2026-02-23T21:19:10.690",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-3025",
+        "cvss_score": 7.3,
+        "severity": "HIGH",
+        "description": "A flaw has been found in ShuoRen Smart Heating Integrated Management Platform 1.0.0. Affected by this vulnerability is an unknown functionality of the file /MP/Service/Webservice/ExampleNodeService.as",
+        "published": "2026-02-23T21:19:12.497",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-3026",
+        "cvss_score": 7.3,
+        "severity": "HIGH",
+        "description": "A vulnerability has been found in erzhongxmu JEEWMS 3.7. Affected by this issue is some unknown functionality of the file /plug-in/ueditor/jsp/getRemoteImage.jsp of the component UEditor. The manipula",
+        "published": "2026-02-23T21:19:12.713",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-3027",
+        "cvss_score": 4.3,
+        "severity": "MEDIUM",
+        "description": "A vulnerability was found in erzhongxmu JEEWMS up to 3.7. This affects an unknown part of the file src/main/webapp/plug-in/ueditor/jsp/getContent.jsp of the component UEditor. The manipulation of the ",
+        "published": "2026-02-23T21:19:12.920",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-69208",
+        "cvss_score": 5.3,
+        "severity": "MEDIUM",
+        "description": "free5GC UDR is the user data repository (UDR) for free5GC, an an open-source project for 5th generation (5G) mobile core networks. Versions prior to 1.4.1 contain an Improper Error Handling vulnerabil",
+        "published": "2026-02-23T22:16:20.717",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-69232",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "free5GC is an open-source project for 5th generation (5G) mobile core networks. free5GC go-upf versions up to and including 1.2.6, corresponding to free5gc smf up to and including 1.4.0, have an Impro",
+        "published": "2026-02-23T22:16:20.893",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-69247",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "free5GC go-upf is the User Plane Function (UPF) implementation for 5G networks that is part of the free5GC project. Versions prior to 1.2.8 have a Heap-based Buffer Overflow (CWE-122) vulnerability le",
+        "published": "2026-02-23T22:16:21.057",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-69248",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "free5GC is an open-source project for 5th generation (5G) mobile core networks. Versions up to and including 1.4.1 of free5GC's AMF service have a Buffer Overflow vulnerability leading to Denial of Se",
+        "published": "2026-02-23T22:16:21.220",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25649",
+        "cvss_score": 7.3,
+        "severity": "HIGH",
+        "description": "Versions of the Traccar open-source GPS tracking system up to and including 6.11.1 contain an issue in which authenticated users can steal OAuth 2.0 authorization codes by exploiting an open redirect ",
+        "published": "2026-02-23T22:16:24.927",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-27741",
+        "cvss_score": 4.3,
+        "severity": "MEDIUM",
+        "description": "Bludit version 3.16.1 contains a cross-site request forgery (CSRF) vulnerability in the /admin/uninstall-plugin/ and /admin/install-theme/ endpoints. The application does not implement anti-CSRF token",
+        "published": "2026-02-23T22:16:25.233",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-27742",
+        "cvss_score": 5.4,
+        "severity": "MEDIUM",
+        "description": "Bludit version 3.16.2 contains a stored cross-site scripting (XSS) vulnerability in the post content functionality. The application performs client-side sanitation of content input but does not enforc",
+        "published": "2026-02-23T22:16:25.440",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-3028",
+        "cvss_score": 4.3,
+        "severity": "MEDIUM",
+        "description": "A vulnerability was determined in erzhongxmu JEEWMS up to 3.7. This vulnerability affects the function doAdd of the file src/main/java/com/jeecg/demo/controller/JeecgListDemoController.java. This mani",
+        "published": "2026-02-23T22:16:25.743",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-3040",
+        "cvss_score": 4.7,
+        "severity": "MEDIUM",
+        "description": "A vulnerability was identified in DrayTek Vigor 300B up to 1.5.1.6. This affects the function cgiGetFile of the file /cgi-bin/mainfunction.cgi/uploadlangs of the component Web Management Interface. Th",
+        "published": "2026-02-23T22:16:25.960",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-3061",
+        "cvss_score": 9.1,
+        "severity": "CRITICAL",
+        "description": "Out of bounds read in Media in Google Chrome prior to 145.0.7632.116 allowed a remote attacker to perform an out of bounds memory read via a crafted HTML page. (Chromium security severity: High)",
+        "published": "2026-02-23T23:16:15.850",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-3062",
+        "cvss_score": 9.8,
+        "severity": "CRITICAL",
+        "description": "Out of bounds read and write in Tint in Google Chrome on Mac prior to 145.0.7632.116 allowed a remote attacker to perform out of bounds memory access via a crafted HTML page. (Chromium security severi",
+        "published": "2026-02-23T23:16:15.997",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-3063",
+        "cvss_score": 5.4,
+        "severity": "MEDIUM",
+        "description": "Inappropriate implementation in DevTools in Google Chrome prior to 145.0.7632.116 allowed an attacker who convinced a user to install a malicious extension to inject scripts or HTML into a privileged ",
+        "published": "2026-02-23T23:16:16.107",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-69250",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "free5gc UDM provides Unified Data Management (UDM) for free5GC, an open-source project for 5th generation (5G) mobile core networks. In versions up to and including 1.4.1, the service reliably leaks d",
+        "published": "2026-02-24T00:16:18.330",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-69251",
+        "cvss_score": 5.3,
+        "severity": "MEDIUM",
+        "description": "free5gc UDM provides Unified Data Management (UDM) for free5GC, an open-source project for 5th generation (5G) mobile core networks. In versions up to and including 1.4.1, remote attackers can inject ",
+        "published": "2026-02-24T00:16:18.520",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-69252",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "free5gc UDM provides Unified Data Management (UDM) for free5GC, an open-source project for 5th generation (5G) mobile core networks. Versions up to and including 1.4.1 have a NULL Pointer Dereference ",
+        "published": "2026-02-24T00:16:18.707",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-3042",
+        "cvss_score": 7.3,
+        "severity": "HIGH",
+        "description": "A vulnerability was detected in itsourcecode Event Management System 1.0. The affected element is an unknown function of the file /admin/index.php. Performing a manipulation of the argument ID results",
+        "published": "2026-02-24T00:16:18.900",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-3043",
+        "cvss_score": 4.3,
+        "severity": "MEDIUM",
+        "description": "A flaw has been found in itsourcecode Event Management System 1.0. The impacted element is an unknown function of the file /admin/navbar.php. Executing a manipulation of the argument page can lead to ",
+        "published": "2026-02-24T00:16:19.157",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-3044",
+        "cvss_score": 8.8,
+        "severity": "HIGH",
+        "description": "A vulnerability has been found in Tenda AC8 16.03.34.06. This affects the function webCgiGetUploadFile of the file /cgi-bin/UploadCfg of the component Httpd Service. The manipulation of the argument b",
+        "published": "2026-02-24T00:16:19.420",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2025-69253",
+        "cvss_score": 5.3,
+        "severity": "MEDIUM",
+        "description": "free5GC is an open-source project for 5th generation (5G) mobile core networks. Versions up to and including 1.4.1 of the User Data Repository are affected by Improper Error Handling with Information ",
+        "published": "2026-02-24T01:16:11.913",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-21864",
+        "cvss_score": 6.5,
+        "severity": "MEDIUM",
+        "description": "Valkey-Bloom is a Rust based Valkey module which brings a Bloom Filter (Module) data type into the Valkey distributed key-value database. Prior to commit a68614b6e3845777d383b3a513cedcc08b3b7ccd, a sp",
+        "published": "2026-02-24T01:16:12.267",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-24481",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a heap information disclosure vulnerability exists in ImageMagi",
+        "published": "2026-02-24T01:16:12.423",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-24484",
+        "cvss_score": 5.3,
+        "severity": "MEDIUM",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, Magick fails to check for multi-layer nested mvg conversions to",
+        "published": "2026-02-24T01:16:12.590",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-24485",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, when a PCD file does not contain a valid Sync marker, the Decod",
+        "published": "2026-02-24T01:16:12.757",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25501",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "free5GC SMF provides Session Management Function for free5GC, an open-source project for 5th generation (5G) mobile core networks. In versions up to and including 1.4.1, SMF panics due to nil pointer ",
+        "published": "2026-02-24T01:16:12.927",
+        "matched_technology": "node"
+      }
+    ],
+    "source": "live",
+    "fetch_time": "2026-03-02T03:14:16.040035+00:00"
   },
   "kev": {
-    "total_kev_entries": 1529,
     "new_additions": [
       {
         "cve_id": "CVE-2022-20775",
-        "name": "Cisco SD-WAN Path Traversal Vulnerability",
+        "vendor": "Cisco",
+        "product": "SD-WAN",
+        "vulnerability_name": "Cisco SD-WAN Path Traversal Vulnerability",
         "date_added": "2026-02-25",
         "due_date": "2026-02-27"
       },
       {
         "cve_id": "CVE-2026-20127",
-        "name": "Cisco Catalyst SD-WAN Controller and Manager Authentication Bypass Vulnerability",
+        "vendor": "Cisco",
+        "product": "Catalyst SD-WAN Controller and Manager",
+        "vulnerability_name": "Cisco Catalyst SD-WAN Controller and Manager Authentication Bypass Vulnerability",
         "date_added": "2026-02-25",
         "due_date": "2026-02-27"
       },
       {
         "cve_id": "CVE-2026-25108",
-        "name": "Soliton Systems K.K FileZen OS Command Injection Vulnerability",
+        "vendor": "Soliton Systems K.K",
+        "product": "FileZen",
+        "vulnerability_name": "Soliton Systems K.K FileZen OS Command Injection Vulnerability",
         "date_added": "2026-02-24",
         "due_date": "2026-03-17"
       },
       {
         "cve_id": "CVE-2025-49113",
-        "name": "RoundCube Webmail Deserialization of Untrusted Data Vulnerability",
+        "vendor": "Roundcube",
+        "product": "Webmail",
+        "vulnerability_name": "RoundCube Webmail Deserialization of Untrusted Data Vulnerability",
         "date_added": "2026-02-20",
         "due_date": "2026-03-13"
       },
       {
         "cve_id": "CVE-2025-68461",
-        "name": "RoundCube Webmail Cross-site Scripting Vulnerability",
+        "vendor": "Roundcube",
+        "product": "Webmail",
+        "vulnerability_name": "RoundCube Webmail Cross-site Scripting Vulnerability",
         "date_added": "2026-02-20",
         "due_date": "2026-03-13"
       },
       {
         "cve_id": "CVE-2021-22175",
-        "name": "GitLab Server-Side Request Forgery (SSRF) Vulnerability",
+        "vendor": "GitLab",
+        "product": "GitLab",
+        "vulnerability_name": "GitLab Server-Side Request Forgery (SSRF) Vulnerability",
         "date_added": "2026-02-18",
         "due_date": "2026-03-11"
       },
       {
         "cve_id": "CVE-2026-22769",
-        "name": "Dell RecoverPoint for Virtual Machines (RP4VMs) Use of Hard-coded Credentials Vu",
+        "vendor": "Dell",
+        "product": "RecoverPoint for Virtual Machines (RP4VMs)",
+        "vulnerability_name": "Dell RecoverPoint for Virtual Machines (RP4VMs) Use of Hard-coded Credentials Vulnerability",
         "date_added": "2026-02-18",
         "due_date": "2026-02-21"
       },
       {
         "cve_id": "CVE-2020-7796",
-        "name": "Synacor Zimbra Collaboration Suite (ZCS) Server-Side Request Forgery Vulnerabili",
+        "vendor": "Synacor",
+        "product": "Zimbra Collaboration Suite",
+        "vulnerability_name": "Synacor Zimbra Collaboration Suite (ZCS) Server-Side Request Forgery Vulnerability",
         "date_added": "2026-02-17",
         "due_date": "2026-03-10"
       },
       {
         "cve_id": "CVE-2024-7694",
-        "name": "TeamT5 ThreatSonar Anti-Ransomware Unrestricted Upload of File with Dangerous Ty",
+        "vendor": "TeamT5",
+        "product": "ThreatSonar Anti-Ransomware",
+        "vulnerability_name": "TeamT5 ThreatSonar Anti-Ransomware Unrestricted Upload of File with Dangerous Type Vulnerability",
         "date_added": "2026-02-17",
         "due_date": "2026-03-10"
       },
       {
         "cve_id": "CVE-2008-0015",
-        "name": " Microsoft Windows Video ActiveX Control Remote Code Execution Vulnerability",
+        "vendor": "Microsoft",
+        "product": "Windows",
+        "vulnerability_name": " Microsoft Windows Video ActiveX Control Remote Code Execution Vulnerability",
         "date_added": "2026-02-17",
         "due_date": "2026-03-10"
       },
       {
         "cve_id": "CVE-2026-2441",
-        "name": "Google Chromium CSS Use-After-Free Vulnerability",
+        "vendor": "Google",
+        "product": "Chromium",
+        "vulnerability_name": "Google Chromium CSS Use-After-Free Vulnerability",
         "date_added": "2026-02-17",
         "due_date": "2026-03-10"
       },
       {
         "cve_id": "CVE-2026-1731",
-        "name": "BeyondTrust Remote Support (RS) and Privileged Remote Access (PRA) OS Command In",
+        "vendor": "BeyondTrust",
+        "product": "Remote Support (RS) and Privileged Remote Access (PRA)",
+        "vulnerability_name": "BeyondTrust Remote Support (RS) and Privileged Remote Access (PRA) OS Command Injection Vulnerability",
         "date_added": "2026-02-13",
         "due_date": "2026-02-16"
       },
       {
         "cve_id": "CVE-2026-20700",
-        "name": "Apple Multiple Buffer Overflow Vulnerability",
+        "vendor": "Apple",
+        "product": "Multiple Products",
+        "vulnerability_name": "Apple Multiple Buffer Overflow Vulnerability",
         "date_added": "2026-02-12",
         "due_date": "2026-03-05"
       },
       {
         "cve_id": "CVE-2024-43468",
-        "name": "Microsoft Configuration Manager SQL Injection Vulnerability",
+        "vendor": "Microsoft",
+        "product": "Configuration Manager",
+        "vulnerability_name": "Microsoft Configuration Manager SQL Injection Vulnerability",
         "date_added": "2026-02-12",
         "due_date": "2026-03-05"
       },
       {
         "cve_id": "CVE-2025-15556",
-        "name": "Notepad++ Download of Code Without Integrity Check Vulnerability",
+        "vendor": "Notepad++",
+        "product": "Notepad++",
+        "vulnerability_name": "Notepad++ Download of Code Without Integrity Check Vulnerability",
         "date_added": "2026-02-12",
         "due_date": "2026-03-05"
+      },
+      {
+        "cve_id": "CVE-2025-40536",
+        "vendor": "SolarWinds",
+        "product": "Web Help Desk",
+        "vulnerability_name": "SolarWinds Web Help Desk Security Control Bypass Vulnerability",
+        "date_added": "2026-02-12",
+        "due_date": "2026-02-15"
+      },
+      {
+        "cve_id": "CVE-2026-21513",
+        "vendor": "Microsoft",
+        "product": "Windows",
+        "vulnerability_name": "Microsoft MSHTML Framework Protection Mechanism Failure Vulnerability",
+        "date_added": "2026-02-10",
+        "due_date": "2026-03-03"
+      },
+      {
+        "cve_id": "CVE-2026-21525",
+        "vendor": "Microsoft",
+        "product": "Windows",
+        "vulnerability_name": "Microsoft Windows NULL Pointer Dereference Vulnerability",
+        "date_added": "2026-02-10",
+        "due_date": "2026-03-03"
+      },
+      {
+        "cve_id": "CVE-2026-21510",
+        "vendor": "Microsoft",
+        "product": "Windows",
+        "vulnerability_name": "Microsoft Windows Shell Protection Mechanism Failure Vulnerability",
+        "date_added": "2026-02-10",
+        "due_date": "2026-03-03"
+      },
+      {
+        "cve_id": "CVE-2026-21533",
+        "vendor": "Microsoft",
+        "product": "Windows",
+        "vulnerability_name": "Microsoft Windows Improper Privilege Management Vulnerability",
+        "date_added": "2026-02-10",
+        "due_date": "2026-03-03"
+      },
+      {
+        "cve_id": "CVE-2026-21519",
+        "vendor": "Microsoft",
+        "product": "Windows",
+        "vulnerability_name": "Microsoft Windows Type Confusion Vulnerability",
+        "date_added": "2026-02-10",
+        "due_date": "2026-03-03"
+      },
+      {
+        "cve_id": "CVE-2026-21514",
+        "vendor": "Microsoft",
+        "product": "Office",
+        "vulnerability_name": "Microsoft Office Word Reliance on Untrusted Inputs in a Security Decision Vulnerability",
+        "date_added": "2026-02-10",
+        "due_date": "2026-03-03"
+      },
+      {
+        "cve_id": "CVE-2025-11953",
+        "vendor": "React Native Community",
+        "product": "CLI",
+        "vulnerability_name": "React Native Community CLI OS Command Injection Vulnerability",
+        "date_added": "2026-02-05",
+        "due_date": "2026-02-26"
+      },
+      {
+        "cve_id": "CVE-2026-24423",
+        "vendor": "SmarterTools",
+        "product": "SmarterMail",
+        "vulnerability_name": "SmarterTools SmarterMail Missing Authentication for Critical Function Vulnerability",
+        "date_added": "2026-02-05",
+        "due_date": "2026-02-26"
+      },
+      {
+        "cve_id": "CVE-2021-39935",
+        "vendor": "GitLab",
+        "product": "Community and Enterprise Editions",
+        "vulnerability_name": "GitLab Community and Enterprise Editions Server-Side Request Forgery (SSRF) Vulnerability",
+        "date_added": "2026-02-03",
+        "due_date": "2026-02-24"
+      },
+      {
+        "cve_id": "CVE-2025-64328",
+        "vendor": "Sangoma",
+        "product": "FreePBX ",
+        "vulnerability_name": "Sangoma FreePBX OS Command Injection Vulnerability",
+        "date_added": "2026-02-03",
+        "due_date": "2026-02-24"
+      },
+      {
+        "cve_id": "CVE-2019-19006",
+        "vendor": "Sangoma",
+        "product": "FreePBX",
+        "vulnerability_name": " Sangoma FreePBX Improper Authentication Vulnerability",
+        "date_added": "2026-02-03",
+        "due_date": "2026-02-24"
+      },
+      {
+        "cve_id": "CVE-2025-40551",
+        "vendor": "SolarWinds",
+        "product": "Web Help Desk",
+        "vulnerability_name": "SolarWinds Web Help Desk Deserialization of Untrusted Data Vulnerability",
+        "date_added": "2026-02-03",
+        "due_date": "2026-02-06"
       }
     ],
     "due_soon": [
       {
-        "cve_id": "CVE-2022-20775",
-        "name": "Cisco SD-WAN Path Traversal Vulnerability",
-        "due_date": "2026-02-27"
-      },
-      {
-        "cve_id": "CVE-2026-20127",
-        "name": "Cisco Catalyst SD-WAN Controller and Manager Authentication Bypass Vulnerability",
-        "due_date": "2026-02-27"
-      },
-      {
         "cve_id": "CVE-2025-49113",
-        "name": "RoundCube Webmail Deserialization of Untrusted Data Vulnerability",
+        "vendor": "Roundcube",
+        "product": "Webmail",
+        "vulnerability_name": "RoundCube Webmail Deserialization of Untrusted Data Vulnerability",
+        "date_added": "2026-02-20",
         "due_date": "2026-03-13"
       },
       {
         "cve_id": "CVE-2025-68461",
-        "name": "RoundCube Webmail Cross-site Scripting Vulnerability",
+        "vendor": "Roundcube",
+        "product": "Webmail",
+        "vulnerability_name": "RoundCube Webmail Cross-site Scripting Vulnerability",
+        "date_added": "2026-02-20",
         "due_date": "2026-03-13"
       },
       {
         "cve_id": "CVE-2021-22175",
-        "name": "GitLab Server-Side Request Forgery (SSRF) Vulnerability",
+        "vendor": "GitLab",
+        "product": "GitLab",
+        "vulnerability_name": "GitLab Server-Side Request Forgery (SSRF) Vulnerability",
+        "date_added": "2026-02-18",
         "due_date": "2026-03-11"
       },
       {
-        "cve_id": "CVE-2026-22769",
-        "name": "Dell RecoverPoint for Virtual Machines (RP4VMs) Use of Hard-coded Credentials Vu",
-        "due_date": "2026-02-21"
-      },
-      {
         "cve_id": "CVE-2020-7796",
-        "name": "Synacor Zimbra Collaboration Suite (ZCS) Server-Side Request Forgery Vulnerabili",
+        "vendor": "Synacor",
+        "product": "Zimbra Collaboration Suite",
+        "vulnerability_name": "Synacor Zimbra Collaboration Suite (ZCS) Server-Side Request Forgery Vulnerability",
+        "date_added": "2026-02-17",
         "due_date": "2026-03-10"
       },
       {
         "cve_id": "CVE-2024-7694",
-        "name": "TeamT5 ThreatSonar Anti-Ransomware Unrestricted Upload of File with Dangerous Ty",
+        "vendor": "TeamT5",
+        "product": "ThreatSonar Anti-Ransomware",
+        "vulnerability_name": "TeamT5 ThreatSonar Anti-Ransomware Unrestricted Upload of File with Dangerous Type Vulnerability",
+        "date_added": "2026-02-17",
         "due_date": "2026-03-10"
       },
       {
         "cve_id": "CVE-2008-0015",
-        "name": " Microsoft Windows Video ActiveX Control Remote Code Execution Vulnerability",
+        "vendor": "Microsoft",
+        "product": "Windows",
+        "vulnerability_name": " Microsoft Windows Video ActiveX Control Remote Code Execution Vulnerability",
+        "date_added": "2026-02-17",
         "due_date": "2026-03-10"
       },
       {
         "cve_id": "CVE-2026-2441",
-        "name": "Google Chromium CSS Use-After-Free Vulnerability",
+        "vendor": "Google",
+        "product": "Chromium",
+        "vulnerability_name": "Google Chromium CSS Use-After-Free Vulnerability",
+        "date_added": "2026-02-17",
         "due_date": "2026-03-10"
+      },
+      {
+        "cve_id": "CVE-2026-20700",
+        "vendor": "Apple",
+        "product": "Multiple Products",
+        "vulnerability_name": "Apple Multiple Buffer Overflow Vulnerability",
+        "date_added": "2026-02-12",
+        "due_date": "2026-03-05"
+      },
+      {
+        "cve_id": "CVE-2024-43468",
+        "vendor": "Microsoft",
+        "product": "Configuration Manager",
+        "vulnerability_name": "Microsoft Configuration Manager SQL Injection Vulnerability",
+        "date_added": "2026-02-12",
+        "due_date": "2026-03-05"
+      },
+      {
+        "cve_id": "CVE-2025-15556",
+        "vendor": "Notepad++",
+        "product": "Notepad++",
+        "vulnerability_name": "Notepad++ Download of Code Without Integrity Check Vulnerability",
+        "date_added": "2026-02-12",
+        "due_date": "2026-03-05"
+      },
+      {
+        "cve_id": "CVE-2026-21513",
+        "vendor": "Microsoft",
+        "product": "Windows",
+        "vulnerability_name": "Microsoft MSHTML Framework Protection Mechanism Failure Vulnerability",
+        "date_added": "2026-02-10",
+        "due_date": "2026-03-03"
+      },
+      {
+        "cve_id": "CVE-2026-21525",
+        "vendor": "Microsoft",
+        "product": "Windows",
+        "vulnerability_name": "Microsoft Windows NULL Pointer Dereference Vulnerability",
+        "date_added": "2026-02-10",
+        "due_date": "2026-03-03"
+      },
+      {
+        "cve_id": "CVE-2026-21510",
+        "vendor": "Microsoft",
+        "product": "Windows",
+        "vulnerability_name": "Microsoft Windows Shell Protection Mechanism Failure Vulnerability",
+        "date_added": "2026-02-10",
+        "due_date": "2026-03-03"
+      },
+      {
+        "cve_id": "CVE-2026-21533",
+        "vendor": "Microsoft",
+        "product": "Windows",
+        "vulnerability_name": "Microsoft Windows Improper Privilege Management Vulnerability",
+        "date_added": "2026-02-10",
+        "due_date": "2026-03-03"
+      },
+      {
+        "cve_id": "CVE-2026-21519",
+        "vendor": "Microsoft",
+        "product": "Windows",
+        "vulnerability_name": "Microsoft Windows Type Confusion Vulnerability",
+        "date_added": "2026-02-10",
+        "due_date": "2026-03-03"
+      },
+      {
+        "cve_id": "CVE-2026-21514",
+        "vendor": "Microsoft",
+        "product": "Office",
+        "vulnerability_name": "Microsoft Office Word Reliance on Untrusted Inputs in a Security Decision Vulnerability",
+        "date_added": "2026-02-10",
+        "due_date": "2026-03-03"
       }
-    ]
+    ],
+    "total_kev_count": 1529,
+    "source": "live",
+    "fetch_time": "2026-03-02T03:14:16.317789+00:00"
+  },
+  "summary": {
+    "epss_high_count": 100,
+    "epss_weaponized_count": 100,
+    "nvd_critical_count": 7,
+    "nvd_high_count": 38,
+    "nvd_stack_affected_count": 77,
+    "kev_new_count": 28,
+    "kev_due_soon_count": 16,
+    "kev_total": 1529,
+    "data_sources": {
+      "epss": "live",
+      "nvd": "live",
+      "kev": "live"
+    }
   }
 }

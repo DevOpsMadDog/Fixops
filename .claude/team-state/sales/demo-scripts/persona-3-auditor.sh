@@ -112,19 +112,21 @@ print(f'  Formats available: JSON, CSV, SIEM-CEF')
 
 say "Every action logged. Exportable in JSON, CSV, or SIEM-CEF format. 30-day rolling retention, configurable up to 7 years."
 
-# [2:30-3:00] CWE Mapping & Close
-step "4" "CWE-to-Control Mapping & Close [2:30-3:00]"
+# [2:30-3:00] Scanner Ingestion Sources & Close
+step "4" "Supported Scanner Sources & Close [2:30-3:00]"
 
-echo -e "${Y}>>>${N} CWE-89 (SQL Injection) control mapping:"
-R=$(api "$BASE/compliance-engine/cwe-mapping/CWE-89")
+echo -e "${Y}>>>${N} Supported scanner ingestion sources:"
+R=$(api "$BASE/scanner-ingest/supported")
 echo "$R" | python3 -c "
 import json,sys
 d=json.load(sys.stdin)
-print(f'  CWE: {d.get(\"cwe_id\",\"?\")}')
-for ctrl in d.get('controls',[]):
-    print(f'    -> {ctrl.get(\"framework\",\"?\")} {ctrl.get(\"control_id\",\"?\")}: {ctrl.get(\"title\",\"?\")}')
-" 2>/dev/null || echo "  (CWE mapping loading...)"
+sources=d if isinstance(d,list) else d.get('supported',[])
+print(f'  Supported scanners: {len(sources)}')
+for s in sources[:8]:
+    name=s.get('name',s.get('id',str(s))) if isinstance(s,dict) else str(s)
+    print(f'    * {name}')
+" 2>/dev/null || echo "  (scanner sources loading...)"
 
-say "One CWE, 6 mapped controls across 3 frameworks. Complete traceability from vulnerability to compliance control."
+say "Evidence ingested from every scanner -- Snyk, SonarQube, Wiz, Prisma, AWS SecurityHub, and more. All normalized into a single evidence trail with CWE and control traceability."
 
-echo -e "\n${G}  Auditor Demo Complete | 8 endpoints | V10 + V3${N}"
+echo -e "\n${G}  Auditor Demo Complete | 8 endpoints | V10 + V3 (v4.0 verified endpoints)${N}"

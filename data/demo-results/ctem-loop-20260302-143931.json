@@ -1,0 +1,52 @@
+{
+  "demo": "ALdeci CTEM+ Full Loop",
+  "version": "1.0.0",
+  "timestamp": "2026-03-02T03:39:31.944618+00:00",
+  "total_elapsed_ms": 49481.03,
+  "phases": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0
+  },
+  "steps": {
+    "total": 36,
+    "passed": 36,
+    "failed": 0
+  },
+  "success": true,
+  "artifacts": {
+    "sast_python_findings": "int",
+    "sast_python_scan_id": "sast-43026c5e857b",
+    "sast_java_findings": "int",
+    "secrets_findings": "int",
+    "container_findings": "int",
+    "iac_findings": "int",
+    "graph_entities": "int",
+    "total_discover_findings": "int",
+    "brain_run_id": "BR-96E00EC9452F",
+    "brain_steps_completed": "int",
+    "brain_avg_risk_score": "float",
+    "mpte_scan_status": "scan_started",
+    "mpte_requests": "int",
+    "mpte_verification_result": "pending",
+    "sandbox_verification": "sandbox_unavailable",
+    "fail_scores": "int",
+    "fix_types_available": "int",
+    "autofix_id": "fix-1d69d782ba2d5031",
+    "autofix_confidence": "float",
+    "autofix_secret_id": "fix-e65372b26fe49715",
+    "autofix_bulk_count": "int",
+    "remediation_tasks": "int",
+    "evidence_releases": "int",
+    "evidence_bundle_id": "EVB-2026-417749",
+    "evidence_bundle_hash": "sha256:568106147ba5c167ada2147f39b4b29b58a280e2c678968dc904c8df23f4b569",
+    "compliance_pack_id": "EP-57164e2de8d2",
+    "compliance_score": "float",
+    "compliance_frameworks": "int",
+    "audit_log_entries": "int",
+    "analytics_findings_total": "int",
+    "exposure_cases": "int",
+    "pipeline_runs_total": "int",
+    "mcp_tools": "int"
+  }
+}

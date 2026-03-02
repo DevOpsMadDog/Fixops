@@ -526,7 +526,7 @@ except ImportError as e:
 
 mcp_router: Optional[APIRouter] = None
 try:
-    from api.mcp_router import router as mcp_router
+    from api.mcp_router import router as mcp_router  # noqa: F401
 
     _logger.info("Loaded MCP router from suite-integrations")
 except ImportError as e:

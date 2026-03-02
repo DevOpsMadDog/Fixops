@@ -265,6 +265,10 @@ class DASTEngine:
         import socket
         from urllib.parse import urlparse
 
+        # URL length limit (RFC 2616 recommendation + safety margin)
+        if len(url) > 2048:
+            raise ValueError("URL exceeds maximum length (2048 characters)")
+
         parsed = urlparse(url)
         if parsed.scheme not in ("http", "https"):
             raise ValueError(f"Blocked scheme '{parsed.scheme}' — only http/https allowed")

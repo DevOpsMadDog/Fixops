@@ -89,7 +89,7 @@ const navigationSections: NavSection[] = [
       { id: 'knowledge-graph', label: 'Knowledge Graph', icon: Network, path: '/core/knowledge-graph', badge: 'BRAIN' },
       { id: 'brain-pipeline', label: 'Brain Pipeline', icon: Workflow, path: '/core/brain-pipeline', badge: 'E2E' },
       { id: 'exposure-cases', label: 'Exposure Cases', icon: FolderKanban, path: '/core/exposure-cases', badge: 'NEW' },
-      { id: 'copilot', label: 'AI Copilot', icon: MessageSquare, path: '/attack/micro-pentest', badge: 'AI' },
+      { id: 'copilot', label: 'AI Copilot', icon: MessageSquare, path: '/copilot', badge: 'AI' },
     ],
   },
   // CODE SUITE (FR-ING: Ingest)
@@ -122,7 +122,8 @@ const navigationSections: NavSection[] = [
     id: 'attack-suite',
     title: '⚔️ ATTACK SUITE',
     items: [
-      { id: 'attack-lab', label: 'AI Pentesting (MPTE)', icon: Swords, path: '/attack/micro-pentest' },
+      { id: 'mpte-console', label: 'MPTE Console', icon: Swords, path: '/attack/mpte', badge: 'V5' },
+      { id: 'micro-pentest', label: 'Micro Pentest', icon: Target, path: '/attack/micro-pentest' },
       { id: 'sandbox-verify', label: 'Sandbox Verification', icon: FlaskConical, path: '/attack/sandbox', badge: 'V5' },
       { id: 'attack-simulation', label: 'Attack Simulation', icon: Target, path: '/attack/attack-simulation' },
       { id: 'playbooks', label: 'Playbooks & Campaigns', icon: ClipboardList, path: '/protect/playbooks' },
@@ -379,8 +380,14 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 onChange={(e) => handleSearchChange(e.target.value)}
                 onFocus={() => searchQuery.length >= 2 && setShowSearchResults(true)}
                 onBlur={() => setTimeout(() => setShowSearchResults(false), 200)}
-                className="pl-10 bg-background/50"
+                className="pl-10 pr-20 bg-background/50"
               />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none">
+                <kbd className="px-1.5 py-0.5 bg-gray-800/80 border border-gray-600/50 rounded text-[10px] text-gray-400 font-mono">
+                  {navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'}
+                </kbd>
+                <kbd className="px-1.5 py-0.5 bg-gray-800/80 border border-gray-600/50 rounded text-[10px] text-gray-400 font-mono">K</kbd>
+              </div>
               
               {/* Search Results Dropdown */}
               <AnimatePresence>

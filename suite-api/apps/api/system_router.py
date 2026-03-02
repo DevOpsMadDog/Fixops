@@ -48,7 +48,7 @@ def _check_db(db_path: str) -> Dict[str, Any]:
         size_mb = round(path.stat().st_size / (1024 * 1024), 2)
         return {"status": "healthy", "size_mb": size_mb}
     except Exception as e:
-        return {"status": "unhealthy", "error": str(e)}
+        return {"status": "unhealthy", "error": type(e).__name__}
 
 
 @router.get("/health", summary="Comprehensive system health")
@@ -88,7 +88,7 @@ async def system_health(request: Request) -> Dict[str, Any]:
         else:
             subsystems["configuration"] = {"status": "degraded", "message": "App state not initialized"}
     except Exception as e:
-        subsystems["configuration"] = {"status": "unhealthy", "error": str(e)}
+        subsystems["configuration"] = {"status": "unhealthy", "error": type(e).__name__}
         overall_healthy = False
 
     # 3. Database checks
@@ -139,7 +139,7 @@ async def system_health(request: Request) -> Dict[str, Any]:
                 else:
                     scanner_status[name] = {"status": "not_found"}
         except Exception as e:
-            scanner_status[name] = {"status": "error", "error": str(e)}
+            scanner_status[name] = {"status": "error", "error": type(e).__name__}
 
     available_scanners = sum(
         1 for v in scanner_status.values() if v["status"] in ("loaded", "available")
@@ -161,7 +161,7 @@ async def system_health(request: Request) -> Dict[str, Any]:
                 "status": "available" if brain_path.exists() else "not_found",
             }
     except Exception as e:
-        subsystems["brain_pipeline"] = {"status": "error", "error": str(e)}
+        subsystems["brain_pipeline"] = {"status": "error", "error": type(e).__name__}
 
     # 6. Data directories
     dir_checks: Dict[str, str] = {}

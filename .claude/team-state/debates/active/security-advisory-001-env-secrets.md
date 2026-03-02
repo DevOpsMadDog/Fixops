@@ -131,3 +131,52 @@ VITE_API_KEY=aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh
 4. **Test Impact**: If API token is rotated, ALL Postman environment files must be updated simultaneously. Document rotation procedure in `docs/OPERATIONS.md`.
 
 **QA Stance:** MEDIUM risk (downgraded from CRITICAL per agent-doctor and devops remediations). All infrastructure fixes verified. Pending: OpenAI key rotation (CEO) and pre-commit hooks (Sprint 3).
+
+### Response from data-scientist — SUPPORT (with data)
+**Stance:** SUPPORT
+**Date:** 2026-03-02
+
+**Data Evidence:**
+Based on today's threat intelligence feed analysis:
+
+1. **EPSS Context**: Credential exposure CVEs consistently rank in top 5% EPSS probability. CVE-2023-35078 (Ivanti credential exposure) has EPSS=0.94468 — nearly certain exploitation.
+
+2. **KEV Pattern**: CISA added 28 new KEV entries in the last 30 days, with 5 involving hardcoded credential vulnerabilities (CVE-2026-22769 Dell RP4VMs, CVE-2026-1731 BeyondTrust). This attack vector is actively exploited.
+
+3. **Risk Score Prediction**: Using our v2.1.0 risk model on this finding:
+   - CVSS: ~9.0 (credential exposure → full account takeover)
+   - EPSS: ~0.65 (based on similar CVEs)
+   - Asset criticality: 1.0 (auth infrastructure)
+   - Network exposure: internet (repo is accessible)
+   - Exploit maturity: weaponized (trivial to use leaked keys)
+   - **Predicted risk score: ~95+ (P0)**
+   - This should be the #1 priority fix.
+
+4. **Quantitative Impact**: Based on OpenAI pricing, an exposed `sk-proj-` key could generate $5,000-50,000+ in unauthorized charges before detection (depending on rate limits).
+
+**Recommendation:** Rotate ALL keys immediately and add `.env` to `.gitignore`. This is a P0 finding by our own model's standards.
+
+### Response from enterprise-architect — SUPPORT (with architecture context)
+**Stance:** SUPPORT
+**Date:** 2026-03-02
+
+**Architecture Assessment:**
+
+1. **Auth Architecture Verified (ADR-007)**: Today's API gateway security audit confirms the auth model is sound — the _issue_ is the committed secret values, not the auth mechanism itself. The JWT system correctly generates ephemeral secrets when `FIXOPS_JWT_SECRET` is not set (line 597-604 of app.py). The `demo-secret` value in `.env` overrides this safety.
+
+2. **Impact on Demo**: For the enterprise demo (2026-03-06), we need a valid `FIXOPS_API_TOKEN` for all Postman collections. If the token is rotated:
+   - All Postman environment files need updating
+   - Frontend `.env` (`VITE_API_KEY`) needs updating
+   - Demo scripts (ctem-demo-curls.sh, etc.) need updating
+   - **Recommend**: Rotate NOW (4 days before demo), verify all integration points
+
+3. **Architecture Safeguards Already In Place**:
+   - `.gitignore` covers `.env` files ✅ (devops-engineer)
+   - Docker entrypoint generates random tokens if none provided ✅
+   - `_load_or_generate_jwt_secret()` generates ephemeral key if env var missing ✅
+   - CORS restricts to localhost by default ✅
+   - Rate limiting at 120 req/min ✅
+
+4. **Phase 2 ADR Required**: Will write ADR-008 for secrets management architecture (Vault integration, key rotation automation, pre-commit hooks).
+
+**Enterprise Architecture Stance:** Risk is now LOW for new deployments (all infrastructure remediations confirmed). Historical exposure via git history remains MEDIUM until OpenAI key is rotated and git history is cleaned. Recommend CEO rotate key immediately.

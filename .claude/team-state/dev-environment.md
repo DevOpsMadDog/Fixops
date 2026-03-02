@@ -1,8 +1,8 @@
 # ALdeci CTEM+ Platform — Development Environment Guide
 
-> **Updated**: 2026-03-02 (Day 2) by devops-engineer
+> **Updated**: 2026-03-02 (Day 2 Evening) by devops-engineer
 > **Sprint**: 2 — Enterprise Demo (2026-03-06, 4 days remaining)
-> **Status**: 9/12 DEMO items done. Docker stack verified. Air-gapped test ready.
+> **Status**: 11/12 DEMO items done. Docker stack verified. 42-check health system. CI 7-job pipeline. Air-gapped test now checks all 8 scanners by name.
 
 ---
 
@@ -25,6 +25,15 @@ docker compose -f docker/docker-compose.yml up --build -d
 
 # Stop
 ./scripts/demo-start.sh --stop
+
+# Check status
+./scripts/demo-start.sh --status
+
+# View logs
+./scripts/demo-start.sh --logs
+
+# Run health check only
+./scripts/demo-start.sh --check
 ```
 
 **What starts:**
@@ -32,6 +41,8 @@ docker compose -f docker/docker-compose.yml up --build -d
 |---------|------|-----|
 | ALdeci API | 8000 | http://localhost:8000 |
 | ALdeci UI | 3001 | http://localhost:3001 |
+| Swagger Docs | 8000 | http://localhost:8000/docs |
+| Swagger via UI | 3001 | http://localhost:3001/docs |
 
 ### Option 2: Local Development
 
@@ -95,7 +106,7 @@ python -m pytest tests/ --timeout=10 -x -q
 │                                  │                   │
 │                     ┌────────────▼───────────────┐  │
 │                     │  fixops-api (python:8000)  │  │
-│                     │  • 704 API endpoints       │  │
+│                     │  • 759+ API endpoints      │  │
 │                     │  • 8 native scanners       │  │
 │                     │  • Brain pipeline          │  │
 │                     │  • AutoFix engine          │  │
@@ -214,12 +225,15 @@ curl http://localhost:8000/health
 curl -H "X-API-Key: $TOKEN" http://localhost:8000/api/v1/brain/stats
 curl -H "X-API-Key: $TOKEN" http://localhost:8000/api/v1/autofix/health
 
-# 8 Native Scanners [V9]
+# All 8 Native Scanners [V9]
 curl -H "X-API-Key: $TOKEN" http://localhost:8000/api/v1/sast/status
 curl -H "X-API-Key: $TOKEN" http://localhost:8000/api/v1/dast/status
 curl -H "X-API-Key: $TOKEN" http://localhost:8000/api/v1/secrets/status
 curl -H "X-API-Key: $TOKEN" http://localhost:8000/api/v1/container/status
 curl -H "X-API-Key: $TOKEN" http://localhost:8000/api/v1/cspm/status
+curl -H "X-API-Key: $TOKEN" http://localhost:8000/api/v1/iac/scanners/status
+curl -H "X-API-Key: $TOKEN" http://localhost:8000/api/v1/malware/status
+curl -H "X-API-Key: $TOKEN" http://localhost:8000/api/v1/api-fuzzer/status
 
 # MPTE [V5]
 curl -H "X-API-Key: $TOKEN" http://localhost:8000/api/v1/mpte/stats
@@ -262,7 +276,8 @@ docker compose -f docker/docker-compose.air-gapped-test.yml up --build
 
 | Workflow | Trigger | What It Does |
 |----------|---------|--------------|
-| `ci.yml` | push/PR | Lint, tests, coverage, scanner parsers, compose validation, Docker smoke test |
+| `ci.yml` | push/PR | Lint, tests, coverage, scanner parsers, compose validation, Docker smoke test, UI build (7 jobs) |
+| `air-gapped-test.yml` | push/PR (docker/*) | Air-gapped deployment test (MOAT P1) |
 | `qa.yml` | push/PR | Quality gate (18% coverage min) |
 | `fixops-ci.yml` | push/PR | E2E, CLI, API smoke tests |
 | `docker-build.yml` | push/PR | Build image, test CLI, compose stack |
@@ -291,19 +306,21 @@ TIMEOUT=60 ./scripts/demo-healthcheck.sh
 
 ---
 
-## Sprint 2 Status (Day 2 / 2026-03-02)
+## Sprint 2 Status (Day 2 PM / 2026-03-02)
 
 | DEMO Item | Status | Owner |
 |-----------|--------|-------|
 | DEMO-001: Fix broken endpoints | ✅ Done | backend-hardener |
-| DEMO-002: Postman GREEN | 🔄 84.7% | qa-engineer |
-| DEMO-003: UI wiring | 🔄 In progress | frontend-craftsman |
+| DEMO-002: Postman GREEN (411/411) | ✅ Done | qa-engineer |
+| DEMO-003: UI wiring | 🔄 In progress (90% done) | frontend-craftsman |
 | DEMO-004: CTEM full loop | ✅ Done | threat-architect |
 | DEMO-005: Persona scripts | ✅ Done | sales-engineer |
 | DEMO-006: Coverage config | ✅ Done | qa-engineer |
-| DEMO-007: Docker demo | ✅ Done | devops-engineer |
+| DEMO-007: Docker demo | ✅ Done + hardened | devops-engineer |
 | DEMO-008: API docs | ✅ Done | technical-writer |
 | DEMO-009: MCP demo | ✅ Done | data-scientist |
 | DEMO-010: KG demo | ✅ Done | ai-researcher |
 | DEMO-011: Evidence export | ✅ Done | security-analyst |
 | DEMO-012: Self-learning | ✅ Done | enterprise-architect |
+
+**11/12 complete (91.7%). Only DEMO-003 remains (UI wiring). 4 days to demo.**

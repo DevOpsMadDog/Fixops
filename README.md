@@ -22,7 +22,7 @@
 &nbsp;
 [![License](https://img.shields.io/badge/license-proprietary-red)](LICENSE)
 &nbsp;
-[![Endpoints](https://img.shields.io/badge/API_endpoints-769-blue)]()
+[![Endpoints](https://img.shields.io/badge/API_endpoints-780-blue)]()
 &nbsp;
 [![Scanners](https://img.shields.io/badge/native_scanners-8-green)]()
 &nbsp;
@@ -34,7 +34,7 @@
 
 <br/>
 
-*ALdeci is a **CTEM+ (Continuous Threat Exposure Management Plus)** platform with **769 API endpoints** that ingests your security chaos — SBOM, SARIF, CVE, CNAPP — normalizes it through 25+ scanner parsers, correlates via an AI Knowledge Graph, verifies exploitability with a 19-phase pentest engine, auto-fixes with 10 remediation types, and generates cryptographically signed evidence bundles. 8 built-in native scanners work fully air-gapped. All endpoints hardened with input validation, injection prevention, and SSRF guards.*
+*ALdeci is a **CTEM+ (Continuous Threat Exposure Management Plus)** platform with **780 API endpoints** that ingests your security chaos — SBOM, SARIF, CVE, CNAPP — normalizes it through 25+ scanner parsers, correlates via an AI Knowledge Graph, verifies exploitability with a 19-phase pentest engine, auto-fixes with 10 remediation types, and generates cryptographically signed evidence bundles. 8 built-in native scanners work fully air-gapped. All endpoints hardened with input validation, injection prevention, and SSRF guards.*
 
 <br/>
 
@@ -150,7 +150,7 @@ ALdeci is a **CTEM+ Decision Intelligence Platform** for application security. I
 
 <div align="center">
 
-| 616 | 114+ | 75+ | 7 | 5 | 19 | 50+ | 13+ |
+| 780 | 22 | 75+ | 6 | 5 | 19 | 50+ | 13+ |
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | API Endpoints | CLI Commands | Features | Suites | Compliance Frameworks | Pentest Phases | Threat Feed Sources | Connectors |
 
@@ -596,7 +596,7 @@ cp .env.example .env
 
 ## 📡 API & CLI
 
-**616 REST endpoints** across 51 router modules. **114+ CLI commands** across 34 groups.
+**780 REST endpoints** across 73 router files in 6 suites. **22 CLI commands** for scripting and automation.
 
 All authenticated endpoints require the `X-API-Key` header:
 
@@ -960,7 +960,7 @@ Test dependencies in [requirements-test.txt](requirements-test.txt): pytest, pyt
 
 | Phase | Timeline | Features | Status |
 |---|---|---|---|
-| **v1 — Foundation** | Done | 616 API endpoints, 12-stage pipeline, multi-LLM consensus, MPTE, evidence bundles, 13 integrations, 75+ features | ✅ Shipped |
+| **v1 — Foundation** | Done | 780 API endpoints, 12-stage pipeline, multi-LLM consensus, MPTE, evidence bundles, 13 integrations, 75+ features | ✅ Shipped |
 | **v2 — Developer Experience** | Next | VS Code extension, GitHub App (PR comments), `aldeci fix CVE-XXXX` one-liner, JetBrains plugin | 🔄 Building |
 | **v3 — Cloud Attack Paths** | Planned | AWS/GCP/Azure resource ingestion, visual attack path graph, blast radius calculation, code-to-cloud-to-internet chain | 📋 Planned |
 | **v4 — AST AutoFix** | Planned | AST-based code transforms (not regex), test generation for fixes, fix confidence scoring, 4 language support | 📋 Planned |
@@ -974,10 +974,14 @@ Test dependencies in [requirements-test.txt](requirements-test.txt): pytest, pyt
 
 | Resource | Description |
 |----------|-------------|
+| [API Reference (780 endpoints)](docs/API_REFERENCE.md) | Complete endpoint documentation with curl examples, grouped by CTEM lifecycle |
+| [User Guide](docs/USER_GUIDE.md) | 5-minute quickstart, scanner walkthroughs, troubleshooting |
+| [Architecture](docs/ARCHITECTURE.md) | System overview with Mermaid diagrams, 6-suite architecture, data flow |
+| [CTEM+ Identity](docs/CTEM_PLUS_IDENTITY.md) | Canonical platform identity — 8 scanners, 12-step pipeline, competitor matrix |
+| [Investor Brief](docs/INVESTOR_BRIEF.md) | Technical product overview for investors and advisors |
+| [CEO Vision](docs/CEO_VISION.md) | North-star vision document — 10 pillars, business model, roadmap |
 | [Feature Audit (75+ features)](docs/FEATURE_AUDIT.md) | Complete source-verified feature catalog with endpoints |
 | [A Day in the Life (25 personas)](docs/USER_STORY_APP_FLOW.md) | How 25 real personas use ALdeci — 28 chapters, 72 features |
-| [Architecture Overview](docs/SUITE_ARCHITECTURE.md) | Suite design, data flow, component interactions |
-| [API Reference](docs/API_REFERENCE.md) | Complete endpoint documentation |
 | [Developer Guide](docs/DEVELOPER_GUIDE.md) | Contributing, testing, local setup |
 | [Playbook Language](docs/PLAYBOOK_LANGUAGE_REFERENCE.md) | YAML playbook authoring reference |
 | [PRD](docs/PRD.md) | Product Requirements Document |
@@ -1001,7 +1005,7 @@ ALdeci/
 │   └── apps/api/
 │       ├── app.py              Application factory, 27 include_router() calls
 │       ├── dependencies.py     Auth (X-API-Key), rate limiting, org context
-│       ├── *_router.py         51 router modules across all suites
+│       ├── *_router.py         73 router files across 6 suites
 │       └── ...
 ├── suite-core/                 Core Engine
 │   └── core/

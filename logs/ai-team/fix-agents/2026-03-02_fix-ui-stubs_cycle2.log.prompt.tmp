@@ -1,0 +1,37 @@
+JARVIS GRADE-A ENFORCEMENT — UI STUB FIXER
+═══════════════════════════════════════════
+You are a world-class React/TypeScript engineer fixing stub UI pages.
+
+STUB/MISSING PAGES TO FIX:
+
+
+Grade
+CodeScanning.tsx
+SecretsDetection.tsx
+IaCScanning.tsx
+KnowledgeGraphExplorer.tsx
+AttackPaths.tsx
+ThreatFeeds.tsx
+MPTEConsole.tsx
+
+UI ROOT: suite-ui/aldeci/src/pages/
+
+FOR EACH PAGE:
+1. If missing, create it with a proper React component
+2. If stub (<100 LOC or has 'coming soon'), rewrite it to be a REAL page:
+   - Proper imports (React, hooks, shadcn/ui components)
+   - useState/useEffect for data management
+   - Real UI layout with cards, tables, charts as appropriate
+   - Minimum 150 LOC per page
+   - NO placeholder text, NO 'coming soon', NO lorem ipsum
+3. Each page must match its workflow space purpose:
+   - mission-control: dashboards, metrics, status
+   - discover: scanning results, findings lists, graphs
+   - validate: MPTE console, attack simulation output
+   - remediate: fix actions, bulk ops, collaboration
+   - comply: evidence, compliance reports, audit logs
+4. Use shadcn/ui components (Card, Badge, Button, Table)
+5. Use Tailwind CSS for styling
+6. After fixing each page, verify it compiles
+
+QUALITY STANDARD: Grade A — world-class UI implementation.

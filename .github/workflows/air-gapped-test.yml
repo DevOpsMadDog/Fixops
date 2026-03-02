@@ -39,10 +39,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build enterprise image
+      - name: Build air-gapped image
         run: |
-          echo "Building ALdeci enterprise image for air-gapped test..."
-          docker build -f docker/Dockerfile.enterprise -t aldeci-enterprise:local .
+          echo "Building ALdeci image for air-gapped test..."
+          echo "Note: compose file uses docker/Dockerfile (same scanner engines)"
+          docker build -f docker/Dockerfile -t fixops:local .
 
       - name: Start air-gapped services
         run: |

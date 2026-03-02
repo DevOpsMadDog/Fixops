@@ -1,0 +1,30 @@
+{
+  "task_id": "swarm-test-sbom-risk",
+  "worker_id": "junior-worker",
+  "status": "completed",
+  "files_modified": [],
+  "files_created": [],
+  "summary": "Executed 7 test suites (SBOM deterministic, generator unit, quality, comprehensive SBOM/supply chain, risk scoring). All 268 tests passed in 0.76 seconds with 15s timeout. No test failures, errors, or skips.",
+  "test_results": {
+    "total_passed": 268,
+    "total_failed": 0,
+    "total_errors": 0,
+    "total_skipped": 0,
+    "duration_seconds": 0.76,
+    "final_pytest_line": "============================= 268 passed in 0.76s =============================="
+  },
+  "test_suites_run": [
+    "tests/test_sbom_deterministic.py",
+    "tests/test_sbom_generator_unit.py",
+    "tests/test_sbom_quality.py",
+    "tests/test_comprehensive_sbom_generation.py",
+    "tests/test_comprehensive_supply_chain_risk.py",
+    "tests/test_risk_scoring.py",
+    "tests/test_risk_scoring_unit.py"
+  ],
+  "note": "test_ml_models_unit.py not found in repository; excluded from run",
+  "issues": [],
+  "needs_senior_review": false,
+  "confidence": 0.99,
+  "duration_turns": 3
+}

@@ -1,17 +1,17 @@
 {
   "date": "2026-03-02",
-  "audit_version": "v27",
-  "run_id": "vision-agent-2026-03-02-postflight-v27",
+  "audit_version": "v31",
+  "run_id": "vision-agent-2026-03-02-postflight-v31",
   "sprint": "Sprint 2 — Enterprise Demo (Day 2 of 5)",
   "demo_date": "2026-03-06",
   "days_remaining": 4,
-  "overall_alignment": 0.85,
-  "previous_alignment": 0.78,
+  "overall_alignment": 0.83,
+  "previous_alignment": 0.85,
   "threshold": 0.60,
   "status": "ON_TRACK",
-  "trend": "IMPROVING",
-  "consecutive_improving_count": 2,
-  "trend_reason": "Sprint 2 Day 2 delivered 2 more P0 items (DEMO-001, DEMO-002). All P0 blockers except DEMO-003 (UI wiring) resolved. Newman 100% (475/475, 6th consecutive green). Coverage improved 19.19→21.24%. All 15 agents completed today. Score improved from 0.78 to 0.85 — largest single-day gain in Sprint 2.",
+  "trend": "STABLE",
+  "consecutive_improving_count": 0,
+  "trend_reason": "Sprint 2 Day 2 PM audit. 11/12 done (91.7%). DEMO-001 + DEMO-002 completed today. All P0 except DEMO-003 resolved. Newman 100% (475/475). Coverage 19.19% (verified via metrics.json). Core LOC verified via wc -l: V3=5,438 V5=7,419 V7=1,650 (14,507 total — higher than v27 due to including router files). Score stable at 0.83 — minor dip from previous 0.85 due to coverage correction (21.24→19.19% per authoritative metrics.json).",
 
   "pillar_table_verified": true,
   "pillar_table_source": "CEO_VISION.md lines 133-145 — NO DRIFT",
@@ -182,11 +182,11 @@
   },
 
   "core_pillar_totals": {
-    "V3_loc": 3969,
-    "V5_loc": 5943,
-    "V7_loc": 1651,
-    "total_core_loc": 11563,
-    "note": "All counts verified via wc -l. Consistent with v26 baseline."
+    "V3_loc": 5438,
+    "V5_loc": 7419,
+    "V7_loc": 1650,
+    "total_core_loc": 14507,
+    "note": "v31 verification via wc -l. V3 includes brain_pipeline(1354)+fail_engine(711)+autofix_engine(1416)+falkordb_client(835)+llm_consensus(393)+brain_router+autofix_router. V5 includes micro_pentest(2054)+mpte_advanced(1089)+mpte_models+mpte_db+mpte_router+micro_pentest_router+mpte_orchestrator_router. V7 includes mcp_server(978)+mcp_router(468)+mcp_protocol_router(204). Higher than v27 because v31 includes all related router files."
   },
 
   "drift_detected": [
@@ -361,11 +361,11 @@
   "verification": {
     "pillar_table_source": "CEO_VISION.md lines 133-145",
     "pillar_table_drift": false,
-    "loc_verified_method": "Verified against metrics.json coreEngineLOC and previous v26 report",
-    "endpoint_count_source": "quality-gate.json (749 routes), sprint-board.json (769 routes)",
-    "newman_source": "quality-gate.json iteration-3-sprint2-day2 (475/475)",
-    "coverage_source": "quality-gate.json (21.24%), metrics.json (21.24%)",
-    "agent_status_source": "All 17 *-status.md files read directly",
-    "metrics_source": "metrics.json, sprint-board.json, quality-gate.json, iteration-summary.md, failures.md"
+    "loc_verified_method": "v31: Fresh wc -l on all source files. V3=5,438 V5=7,419 V7=1,650 (14,507 total)",
+    "endpoint_count_source": "v31: grep -rE '@(router|app)\\.(get|post|put|delete|patch)' = 773 endpoints",
+    "newman_source": "sprint-board.json verdict.json: 475/475 assertions, 100% pass rate",
+    "coverage_source": "metrics.json (19.19% — authoritative, updated 2026-03-02T13:45:00Z by agent-doctor)",
+    "agent_status_source": "All 17 *-status.md files read directly in v31 run",
+    "metrics_source": "metrics.json, sprint-board.json, verdict.json, all *-status.md files"
   }
 }

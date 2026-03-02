@@ -54,7 +54,7 @@ def readiness_check(request: Request, response: Response) -> Dict[str, Any]:
         else:
             checks["app_state"] = {"status": "healthy"}
     except Exception as exc:
-        checks["app_state"] = {"status": "unhealthy", "error": str(exc)}
+        checks["app_state"] = {"status": "unhealthy", "error": type(exc).__name__}
         overall_ready = False
 
     try:
@@ -68,7 +68,7 @@ def readiness_check(request: Request, response: Response) -> Dict[str, Any]:
                 "mode": overlay.mode,
             }
     except Exception as exc:
-        checks["overlay"] = {"status": "unhealthy", "error": str(exc)}
+        checks["overlay"] = {"status": "unhealthy", "error": type(exc).__name__}
         overall_ready = False
 
     try:
@@ -81,7 +81,7 @@ def readiness_check(request: Request, response: Response) -> Dict[str, Any]:
         else:
             checks["enhanced_engine"] = {"status": "healthy"}
     except Exception as exc:
-        checks["enhanced_engine"] = {"status": "degraded", "error": str(exc)}
+        checks["enhanced_engine"] = {"status": "degraded", "error": type(exc).__name__}
 
     try:
         archive = getattr(request.app.state, "archive", None)
@@ -97,7 +97,7 @@ def readiness_check(request: Request, response: Response) -> Dict[str, Any]:
                 "base_directory": str(archive.base_directory),
             }
     except Exception as exc:
-        checks["storage"] = {"status": "unhealthy", "error": str(exc)}
+        checks["storage"] = {"status": "unhealthy", "error": type(exc).__name__}
         overall_ready = False
 
     if not overall_ready:

@@ -387,7 +387,7 @@ async def list_compliance_bundles(request: Request) -> dict[str, Any]:
     if manifest_dir and manifest_dir.exists():
         for manifest_path in sorted(manifest_dir.glob("*.yaml")):
             tag = manifest_path.stem
-            bundle_file = bundle_dir / f"{tag}.zip" if bundle_dir else None
+            _bundle_file = bundle_dir / f"{tag}.zip" if bundle_dir else None  # noqa: F841
             try:
                 with manifest_path.open("r", encoding="utf-8") as fh:
                     manifest_data = yaml.safe_load(fh) or {}

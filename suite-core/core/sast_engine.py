@@ -1399,6 +1399,12 @@ class SASTEngine:
     - Cross-cutting:                SAST-005, 009..010, 015, 093..110 (22 rules)
     """
 
+    # Security limits to prevent DoS via excessive input
+    MAX_CODE_SIZE = 10 * 1024 * 1024  # 10 MB max per code string
+    MAX_LINE_LENGTH = 10_000  # Skip lines longer than this (likely minified/binary)
+    MAX_FILES = 500  # Max files per scan_files() call
+    MAX_FINDINGS_PER_SCAN = 5_000  # Cap findings to prevent memory exhaustion
+
     def __init__(self):
         self._compiled_rules: List[
             Tuple[str, str, str, str, re.Pattern, str, str, List[str]]
@@ -1411,8 +1417,20 @@ class SASTEngine:
 
     # ── Public API ──────────────────────────────────────────────────
     def scan_code(self, code: str, filename: str = "input.py") -> SastScanResult:
-        """Scan a single code string and return findings."""
+        """Scan a single code string and return findings.
+
+        Input limits:
+        - Code size: MAX_CODE_SIZE (10 MB)
+        - Line length: MAX_LINE_LENGTH (10,000 chars) — skips longer lines
+        - Total findings capped at MAX_FINDINGS_PER_SCAN
+        """
         import time
+
+        # Input validation: reject oversized code
+        if len(code) > self.MAX_CODE_SIZE:
+            raise ValueError(
+                f"Code size {len(code)} exceeds maximum {self.MAX_CODE_SIZE} bytes"
+            )
 
         t0 = time.time()
         lang = detect_language(filename)
@@ -1422,13 +1440,29 @@ class SASTEngine:
 
         # Rule-based scanning
         for line_num, line in enumerate(lines, 1):
+            # Skip overly long lines (likely minified JS/CSS or binary data)
+            if len(line) > self.MAX_LINE_LENGTH:
+                continue
             stripped = line.strip()
             if not stripped or stripped.startswith("#") or stripped.startswith("//"):
                 continue
+            # Cap total findings to prevent memory exhaustion
+            if len(findings) >= self.MAX_FINDINGS_PER_SCAN:
+                break
             for rid, title, sev, cwe, pattern, msg, fix, langs in self._compiled_rules:
                 if lang.value not in langs and lang != Language.UNKNOWN:
                     continue
                 if pattern.search(line):
+                    # Redact secret values in snippets for CWE-798 (hardcoded
+                    # secrets) to prevent accidental leakage in API responses,
+                    # logs, or evidence bundles.
+                    snippet_text = stripped[:200]
+                    if cwe == "CWE-798":
+                        snippet_text = re.sub(
+                            r"""(=\s*['"])[A-Za-z0-9+/=_\-]{4}[A-Za-z0-9+/=_\-]*(['"])""",
+                            r"\1****...\2",
+                            snippet_text,
+                        )
                     findings.append(
                         SastFinding(
                             rule_id=rid,
@@ -1438,7 +1472,7 @@ class SASTEngine:
                             language=lang,
                             file_path=filename,
                             line_number=line_num,
-                            snippet=stripped[:200],
+                            snippet=snippet_text,
                             message=msg,
                             fix_suggestion=fix,
                         )
@@ -1467,13 +1501,24 @@ class SASTEngine:
         )
 
     def scan_files(self, file_contents: Dict[str, str]) -> SastScanResult:
-        """Scan multiple files. Keys are filenames, values are code strings."""
+        """Scan multiple files. Keys are filenames, values are code strings.
+
+        Limits: MAX_FILES (500) files per call. Each file subject to
+        MAX_CODE_SIZE. Aggregated findings capped at MAX_FINDINGS_PER_SCAN.
+        """
         import time
+
+        if len(file_contents) > self.MAX_FILES:
+            raise ValueError(
+                f"Too many files ({len(file_contents)}), maximum is {self.MAX_FILES}"
+            )
 
         t0 = time.time()
         all_findings: List[SastFinding] = []
         all_taint: List[Dict[str, Any]] = []
         for fname, code in file_contents.items():
+            if len(all_findings) >= self.MAX_FINDINGS_PER_SCAN:
+                break
             result = self.scan_code(code, fname)
             all_findings.extend(result.findings)
             all_taint.extend(result.taint_flows)

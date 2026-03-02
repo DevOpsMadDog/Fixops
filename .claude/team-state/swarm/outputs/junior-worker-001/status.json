@@ -1,0 +1,30 @@
+{
+  "task_id": "junior-worker-001",
+  "worker_id": "junior-worker-001",
+  "status": "partial_completion",
+  "files_modified": [],
+  "files_created": [],
+  "summary": "Executed test_analytics_comprehensive.py successfully (41 passed in 2.88s). File test_integration_layer.py does not exist in the test suite.",
+  "issues": [
+    "test_integration_layer.py not found - test was requested but file does not exist"
+  ],
+  "test_results": {
+    "test_analytics_comprehensive.py": {
+      "status": "PASSED",
+      "total_tests": 41,
+      "passed": 41,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "duration": "2.88s",
+      "last_line": "============================== 41 passed in 2.88s =============================="
+    },
+    "test_integration_layer.py": {
+      "status": "FILE_NOT_FOUND",
+      "error": "ERROR: file or directory not found: tests/test_integration_layer.py"
+    }
+  },
+  "needs_senior_review": true,
+  "confidence": 0.95,
+  "duration_turns": 5
+}

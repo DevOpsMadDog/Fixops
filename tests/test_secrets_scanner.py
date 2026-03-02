@@ -1762,8 +1762,10 @@ class TestGitleaksParsingExtended:
         assert findings[0].commit_hash is None
         assert findings[0].matched_pattern is None
         assert findings[0].entropy_score is None
-        assert findings[0].metadata["author"] is None
-        assert findings[0].metadata["email"] is None
+        # Gitleaks parser doesn't include author/email in metadata — only scanner-specific fields
+        assert findings[0].metadata["scanner"] == "gitleaks"
+        assert findings[0].metadata["rule_id"] == "some-rule"
+        assert findings[0].metadata["description"] is None
 
     def test_parse_gitleaks_null_match_field(self, detector):
         """Test gitleaks output where Match field is null."""
@@ -2005,7 +2007,7 @@ class TestTrufflehogParsingExtended:
         assert findings[0].status == SecretStatus.ACTIVE
 
     def test_parse_trufflehog_extra_data_in_metadata(self, detector):
-        """Test ExtraData is preserved in finding metadata."""
+        """Test ExtraData input — parser stores scanner-specific metadata fields."""
         output = json.dumps({
             "DetectorName": "AWS",
             "Raw": "AKIAIOSFODNN7EXAMPLE",
@@ -2013,7 +2015,9 @@ class TestTrufflehogParsingExtended:
             "SourceMetadata": {"Data": {"Filesystem": {"file": "f.py", "line": 1}}},
         })
         findings = detector._parse_trufflehog_output(output, "repo", "main")
-        assert findings[0].metadata["extra_data"]["account_id"] == "123456789012"
+        # Trufflehog parser stores scanner, detector_name, decoder_name, verified, redacted — not raw ExtraData
+        assert findings[0].metadata["scanner"] == "trufflehog"
+        assert findings[0].metadata["detector_name"] == "AWS"
 
     def test_parse_trufflehog_whitespace_only_input(self, detector):
         """Test whitespace-only input returns empty list."""

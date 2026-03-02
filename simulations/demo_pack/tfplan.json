@@ -1,0 +1,36 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.7.0",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "aws_security_group.claims_api",
+          "type": "aws_security_group",
+          "name": "claims_api",
+          "values": {
+            "ingress": [
+              {"from_port": 443, "to_port": 443, "protocol": "tcp", "cidr_blocks": ["0.0.0.0/0"]},
+              {"from_port": 8080, "to_port": 8080, "protocol": "tcp", "cidr_blocks": ["10.0.0.0/8"]}
+            ],
+            "egress": [
+              {"from_port": 0, "to_port": 0, "protocol": "-1", "cidr_blocks": ["0.0.0.0/0"]}
+            ]
+          }
+        },
+        {
+          "address": "aws_rds_instance.claims_db",
+          "type": "aws_rds_instance",
+          "name": "claims_db",
+          "values": {
+            "engine": "postgres",
+            "engine_version": "15.4",
+            "publicly_accessible": false,
+            "storage_encrypted": true,
+            "multi_az": true
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,39 +1,50 @@
 {
-  "model_version": "1.0.0",
-  "validated_at": "2026-03-02",
-  "training_samples": 65,
-  "golden_pass_rate": 1.0,
-  "regression_metrics": {
-    "mae": 0.4465,
-    "rmse": 0.6433,
-    "r2": 0.9996,
-    "within_range_pct": 1.0
-  },
+  "mae": 0.4722,
+  "rmse": 0.6548,
+  "r2": 0.9996,
+  "within_range_pct": 1.0,
   "precision_by_priority": {
+    "FP": 1.0,
     "P0": 1.0,
-    "P1": 0.8889,
-    "P2": 0.8,
+    "P1": 1.0,
+    "P2": 1.0,
     "P3": 1.0,
-    "P4": 0.3333,
-    "FP": 1.0
+    "P4": 1.0
   },
   "recall_by_priority": {
-    "P0": 0.9722,
-    "P1": 0.8,
+    "FP": 1.0,
+    "P0": 1.0,
+    "P1": 1.0,
     "P2": 1.0,
-    "P3": 0.5,
-    "P4": 1.0,
-    "FP": 1.0
+    "P3": 1.0,
+    "P4": 1.0
   },
   "f1_by_priority": {
-    "P0": 0.9859,
-    "P1": 0.8421,
-    "P2": 0.8889,
-    "P3": 0.6667,
-    "P4": 0.5,
-    "FP": 1.0
+    "FP": 1.0,
+    "P0": 1.0,
+    "P1": 1.0,
+    "P2": 1.0,
+    "P3": 1.0,
+    "P4": 1.0
   },
-  "cv_scores_r2": [0.6197, 0.9037, 0.81, 0.9531, 0.8613],
-  "mean_cv_r2": 0.8296,
-  "note": "Validated against 65 golden regression cases (50 original + 15 expanded). 100% pass rate. CV instability in fold 1 and 4 expected with small dataset."
+  "training_samples": 75,
+  "test_samples": 75,
+  "cv_scores": [
+    0.8885,
+    0.8436,
+    0.9104,
+    0.9211,
+    0.9089
+  ],
+  "feature_importances": {
+    "asset_criticality": 0.5942,
+    "epss_score": 0.3146,
+    "network_exposure": 0.0325,
+    "exploit_maturity": 0.0191,
+    "exploit_available": 0.016,
+    "reachable": 0.0104,
+    "cvss_score": 0.009,
+    "in_kev": 0.0042,
+    "has_chain": 0.0
+  }
 }

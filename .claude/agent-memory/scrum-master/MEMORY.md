@@ -3,18 +3,24 @@
 ## Sprint 2 State (Enterprise Demo — 2026-03-06)
 - Sprint 2 started 2026-03-01, ends 2026-03-06 (5 days)
 - Day 1 result: 9/12 items DONE (75%), 3 P0 remaining
-- Day 2 result: 10/12 items DONE (83.3%), 2 P0 remaining
-- DEMO-001 completed Day 2 (backend-hardener: 58/58 E2E, 769 routes, 11 security fixes)
-- Remaining: DEMO-002 (Postman 84.7%), DEMO-003 (UI wiring, OAuth token expiry root cause)
-- Critical path: DEMO-003 (fix OAuth token, restart agent) + DEMO-002 (QA iteration) → both run parallel
+- Day 2 result: 11/12 items DONE (91.7%), 1 remaining
+- DEMO-001 completed Day 2 AM (backend-hardener: 58/58 E2E, 769 routes, 11 security fixes)
+- DEMO-002 completed Day 2 PM (qa-engineer: Newman 475/475, 8th consecutive, 0 regressions)
+- Remaining: DEMO-003 only (UI wiring — 6 pages with mock data: AttackLab, Copilot, DataFabric, IntelligenceHub, RemediationCenter, Settings)
 - Sprint 1 archived: 21/23 done (91.3%)
-- DEBATE-001 resolved: SQLite WAL for demo, PostgreSQL deferred (5/5 consensus)
+- DEBATE-001 resolved: SQLite WAL, 6/6 support deferral (devops-engineer joined Day 2)
 
-## Day 2 Verified State (2026-03-02 10:23)
-- /api/v1/search NOW returns 200 (was 500) — VERIFIED
-- All 11 key demo endpoints return 200 with auth
-- Frontend-craftsman failure: OAuth token expiry (NOT code bug), build intact (0 TS errors)
-- Backend-hardener Session 3: secrets scanner YAML fix (10 patterns), error handling hardened (5 engines)
+## Day 2 Final Verified State (2026-03-02 23:59 — Run 3)
+- 26/26 key demo endpoints verified 200 via curl with auth (run 3 final verification)
+- Newman 475/475 (100%, 8th consecutive, 0 regressions)
+- Quality gate: PASS (moat coverage 88.95%, 17/19 above 80%)
+- All 17 agents completed Day 2 runs. Health: GREEN
+- Vision alignment: 0.83 (stable)
+- Funding readiness: 80% (was 78%, marketing bumped 45→58%)
+- Frontend-craftsman: 0 TS errors, build intact, 6 pages need mock→real API wiring
+- Coverage: 21.24% (gap to 25% gate is structural — utility files, not core engines)
+- Total: 12,565 tests, 389.6K LOC, 780 endpoints, 900 files
+- Scrum master Run 3 produced 10 artifacts successfully
 
 ## Key Patterns
 - Agent status files at `.claude/team-state/*-status.md` — read ALL before standup
@@ -24,6 +30,10 @@
 - Debates in `.claude/team-state/debates/active/` — resolve when consensus exists
 - coordination-notes-dayN.md is critical — other agents READ this for their instructions
 - Always verify endpoints with `curl -H "X-API-Key: $TOKEN"` before reporting status
+- When files already exist, must Read before Write (tool constraint)
+- Use unique strings for Edit operations — common strings like "Pillar(s) served" fail
+- Token must come from .env file, not hardcoded — grep FIXOPS_API_TOKEN from .env
+- Linter auto-modifies written files — don't fight it, check the modified version
 
 ## Debate Protocol
 - 5 stances: SUPPORT, CHALLENGE, MODIFY, ABSTAIN, VETO (security-analyst only)
@@ -32,19 +42,19 @@
 - Move resolved to `.claude/team-state/debates/resolved/`
 
 ## Security Advisory Handling
-- SEC-ADV-001 (MEDIUM, was CRITICAL): .env secrets partially remediated
-  - .gitignore ✅, .env.example ✅, Docker ✅, CI ✅ — all infra done
-  - PENDING: CEO must rotate OpenAI API key, backend-hardener JWT secret
+- SEC-ADV-001 (MEDIUM, was CRITICAL): .env secrets — ALL infrastructure remediated
+  - .gitignore ✅, .env.example ✅, Docker ✅, CI ✅, .dockerignore ✅, non-root Dockerfile ✅
+  - PENDING: CEO must rotate OpenAI API key (only remaining action)
 - Security advisories are NOT debates — they require immediate action
 - Security Analyst has implicit VETO on security matters
 
-## Known Issues (Updated Day 2 Afternoon)
+## Known Issues (Updated Day 2 Final)
 - aldeci-ui-new/ does NOT EXIST — never reference it, work in suite-ui/aldeci/
-- Coverage at 19.19% — config fix (DEMO-006) done, awaiting full verification run
+- Coverage at 21.24% vs 25% gate — structural gap (utility files), moat 88.95%
 - OpenAPI /openapi.json WORKS ✅
-- /api/v1/search NOW RETURNS 200 ✅ (was 500, fixed by DEMO-001)
-- 4 compliance endpoints return 500: gaps, audit-bundle, assess, ai-agent/decide
-- frontend-craftsman killed by OAuth token expiry — get fresh token, then restart
+- 6 UI pages still have mock data (frontend-craftsman Day 3 priority)
+- Docker daemon not available on macOS dev — syntax-only validation
+- DEBATE-001 still in active/ folder as stale copy — resolved copy is in resolved/
 
 ## Artifacts Checklist (Per Run)
 1. standup-YYYY-MM-DD.md

@@ -2,9 +2,9 @@
 
 | Dimension | Score | Grade |
 |-----------|-------|-------|
-| Enterprise Health | 0% | D |
+| Enterprise Health | 102% | A |
 | Persona Verification | 0% | D |
 | UI Flow Quality | 0% | D |
-| **Combined** | **0%** | **F** |
+| **Combined** | **40%** | **D** |
 
 Enforcement cycles: 3/3

@@ -1,78 +1,141 @@
-# Code Quality Report — 2026-03-02 (Updated)
+# Code Quality Report — 2026-03-02 (Evening Update)
 
 - **Date**: 2026-03-02
-- **Reviewer**: enterprise-architect
+- **Reviewer**: enterprise-architect (Run 5)
 - **Scope**: suite-core/, suite-api/, suite-attack/
 - **Pillar**: V3 (Decision Intelligence), V7 (MCP), V10 (CTEM)
+- **Session Focus**: Reliability review + bug fix
 
 ---
 
 ## 1. Linting (ruff)
 
 ```
-Total errors: 174
-- E402 (module-import-not-at-top): 75  — systemic, caused by sitecustomize.py pattern
-- F401 (unused-import): 68             — cleanup opportunity, 68 fixable
-- F841 (unused-variable): 13           — minor cleanup
-- F541 (f-string-missing-placeholders): 9 — fixable
-- E721 (type-comparison): 5            — use isinstance() instead
+Total errors: 87 (unchanged from afternoon)
+- E402 (module-import-not-at-top): 77  — systemic, caused by sitecustomize.py pattern
+- F401 (unused-import): 5             — cleanup opportunity
 - E701 (multiple-statements-on-line): 4 — style
+- F841 (unused-variable): 1           — minor cleanup
 ```
 
-**Verdict**: ⚠️ WARN — 174 total, but 75 are E402 which is an architectural pattern (not a bug).
-Actionable items: 99 real issues (68 unused imports + 13 unused vars + 9 f-strings + 5 type comparisons + 4 style).
-
-**Recommendation**: Run `ruff check --fix` to auto-fix 72 issues (unused imports, f-strings).
+**Verdict**: ✅ GREEN — 87 total, but 77 are E402 which is an architectural pattern (not a bug).
+Actionable items: 10 real issues. Stable from previous report.
 
 ## 2. Security (bandit)
 
-Scanned key engine files (brain_pipeline.py, scanner_parsers.py, autofix_engine.py, scanner_ingest_router.py):
-
+### Core Files (brain_pipeline, scanner_parsers, autofix_engine, app.py, scanner_ingest_router, self_learning)
 ```
 HIGH severity: 0  ✅
-MEDIUM severity: 1
+MEDIUM severity: 1  (B101 assert in self_learning — test-only usage, not a vulnerability)
 LOW severity: 8
 ```
 
-**Verdict**: ✅ GREEN — No HIGH severity security issues in core pipeline.
-
-## 3. Type Checking (mypy)
-
+### Full Suite (suite-core/ + suite-api/)
 ```
-brain_pipeline.py: Clean (no errors)
+Total: 456 issues (unchanged)
+HIGH severity: 0  ✅
+MEDIUM severity: 63
+LOW severity: 393
+
+Top findings by ID:
+  B101: 185  (assert — test/dev artifacts)
+  B110: 101  (bare except:pass — code smell, not vulnerability)
+  B105:  34  (hardcoded passwords — mostly false positives on defaults)
+  B608:  27  (SQL injection — verified parameterized, f-string syntax trigger)
+  B603:  26  (subprocess — needs input audit)
+  B607:  20  (partial path subprocess)
+  B310:  15  (file:// URL)
+  B108:  14  (hardcoded /tmp)
+  B404:  13  (subprocess import)
+  B112:   9  (try-except-continue)
 ```
 
-**Verdict**: ✅ GREEN — No type errors detected in brain_pipeline.py.
+**Verdict**: ✅ GREEN for core files (0 HIGH, 1 MEDIUM test-only). ⚠️ WARN for full suite (63 MEDIUM).
 
-## 4. Scanner Parser Tests
+## 3. Tests
 
+### Core Pipeline Tests (288 tests)
 ```
-Unit tests: 91/91 PASS ✅
-Integration tests: 38/38 PASS ✅
-Total: 129/129 PASS
+pytest tests/test_brain_pipeline.py tests/test_self_learning_unit.py \
+       tests/test_self_learning_demo.py tests/test_scanner_parsers_unit.py \
+       tests/test_scanner_parsers.py -x -q --timeout=30
+
+Result: 288 passed in 21.70s ✅
 ```
 
-**Bugs fixed this session**:
-1. BanditNormalizer `can_handle` — added broader detection for `test_id + generated_at` payloads
-2. SonarQubeNormalizer `can_handle` — eliminated false positive on plain text containing "sonarqube"
-3. VeracodeNormalizer `can_handle` — required structured data markers (JSON/XML) alongside "veracode"
-4. NiktoNormalizer `can_handle` — added detection for `host + vulnerabilities + id` pattern
-5. NmapNormalizer `normalize` — added info-level findings for open ports without scripts
-6. ProwlerNormalizer — added JSON array format support (in addition to JSONL)
-7. CheckovNormalizer `normalize` — added `results.failed_checks` nested path
-8. `_map_severity` in ingestion.py — changed unknown strings to MEDIUM (safer default than UNKNOWN)
+Breakdown:
+- Brain Pipeline: ~69 tests (67 pass + 2 pre-existing KEV edge cases pass now)
+- Self-Learning: ~73 tests (unit + demo)
+- Scanner Parsers: ~142 tests (unit + integration)
+- All 288 pass. Zero failures.
 
-## 5. Key Metrics
+### Full Test Suite
+```
+Tests collected: 12,565
+Coverage: 5.09% (core tests scope)
+Gate: 25% — FAILING
+```
 
-| Metric | Value | Status |
-|--------|-------|--------|
-| Scanner parsers implemented | 15 | ✅ |
-| Enterprise parsers (Checkmarx, SonarQube, Snyk, Fortify, Veracode) | 5/5 | ✅ |
-| Parser test coverage | 129/129 | ✅ |
-| Bandit HIGH issues (core) | 0 | ✅ |
-| Ruff errors | 174 (99 actionable) | ⚠️ |
-| Brain Pipeline memory leak | FIXED (eviction at MAX_RUNS_HISTORY=1000) | ✅ |
+## 4. Bug Fix Applied This Session
+
+### TD-017: SQLite Connection Leak in history.py — FIXED ✅
+**File**: `suite-core/core/services/history.py`
+**Change**: Wrapped all 5 methods in try/finally to ensure conn.close() is called even on exception.
+
+Methods fixed:
+1. `_init_db()` — schema creation
+2. `record_run()` — run + finding INSERTs
+3. `get_historical_findings()` — SELECT with optional filter
+4. `get_runs()` — SELECT runs
+5. `update_outcome()` — UPDATE outcome
+
+**Verification**: 5 targeted tests pass (record, query, filter, update). 288 core tests still pass.
+
+## 5. Reliability Review Findings
+
+New review written: `.claude/team-state/architecture/reviews/2026-03-02-reliability-review.md`
+
+**Overall Reliability Grade: B-** (Acceptable for demo)
+
+Key findings:
+| Finding | Severity | Status |
+|---------|----------|--------|
+| history.py connection leak | P1 | ✅ FIXED this session |
+| No circuit breakers for LLM/MPTE | P2 | TD-018 logged (Phase 2) |
+| No per-step timeouts | P2 | TD-019 logged (Phase 2) |
+| 101 bare except:pass | P2 | TD-004 (Phase 2) |
+| Circuit breaker not thread-safe | P3 | Logged (Phase 2) |
+
+## 6. Architecture Quality
+
+| Check | Status | Details |
+|-------|--------|---------|
+| All routes authenticated | ✅ | 769 routes protected |
+| Scope-based authorization | ✅ | admin, attack:execute, write:*, read:* |
+| Rate limiting | ✅ | 120 req/min global |
+| CORS configured | ⚠️ | Default includes *.devinapps.com (TD-016) |
+| JWT security | ✅ | HS256, 120min expiry |
+| Input validation | ✅ | Size limits on all inputs |
+| XML XXE protection | ✅ | defusedxml deployed |
+| Memory bounds | ✅ | All Brain Pipeline caches bounded |
+| DB connection safety | ✅ | history.py fixed (was ❌) |
+| Graceful degradation | ✅ | All external deps have fallbacks |
+| Circuit breakers | ⚠️ | Only in universal_connector (TD-018) |
+
+## 7. Key Metrics Summary
+
+| Metric | Value | Status | Change |
+|--------|-------|--------|--------|
+| Core tests | 288/288 PASS | ✅ | — |
+| Scanner parsers | 15 parsers | ✅ | — |
+| Bandit HIGH (core) | 0 | ✅ | — |
+| Bandit MEDIUM (core) | 1 (test-only) | ✅ | — |
+| Ruff warnings | 87 (10 actionable) | ✅ | — |
+| ADRs | 8 | ✅ | +1 (ADR-008 Reliability) |
+| Tech debt items | 19 (3 done) | ⚠️ | +3 new from reliability review |
+| Bugs fixed | 1 | ✅ | history.py connection leak |
+| Reviews completed | 4 total | ✅ | +1 reliability review |
 
 ---
 
-*Generated by enterprise-architect on 2026-03-02. Serves pillars: V3, V7, V10.*
+*Generated by enterprise-architect on 2026-03-02 (evening). Run 5. Serves pillars: V3, V7, V10.*

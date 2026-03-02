@@ -23,6 +23,7 @@ class ExploitabilityLevel(Enum):
     UNEXPLOITABLE = "unexploitable"
     BLOCKED = "blocked"
     INCONCLUSIVE = "inconclusive"
+    UNKNOWN = "unknown"
 
 
 class PenTestPriority(Enum):

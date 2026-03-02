@@ -24,41 +24,34 @@ echo -e "${G}============================================================${N}"
 step "1" "Finding Detail — Context, Not Just an Alert [0:00-0:45]"
 say "Mike, you just got a Jira ticket saying 'Fix critical vulnerability.' Let's see what ALdeci gives you."
 
-echo -e "${Y}>>>${N} Critical findings with context:"
-R=$(api "$BASE/analytics/findings?severity=critical&limit=3")
-echo "$R" | python3 -c "
-import json,sys
-findings=json.load(sys.stdin)
-if isinstance(findings,list):
-    for f in findings[:3]:
-        print(f'  [{f.get(\"severity\",\"?\").upper()}] {f.get(\"title\",\"?\")}')
-        print(f'    Rule: {f.get(\"rule_id\",\"N/A\")} | Source: {f.get(\"source\",\"?\")} | Status: {f.get(\"status\",\"?\")}')
-        print(f'    Description: {str(f.get(\"description\",\"N/A\"))[:80]}')
-        print()
-elif isinstance(findings,dict):
-    items=findings.get('items',findings.get('findings',[]))
-    for f in items[:3]:
-        print(f'  [{f.get(\"severity\",\"?\").upper()}] {f.get(\"title\",\"?\")}')
-        print(f'    Rule: {f.get(\"rule_id\",\"N/A\")} | Source: {f.get(\"source\",\"?\")}')
-" 2>/dev/null || echo "  (findings loading...)"
-
-say "Not just 'CVE-2026-1847 CRITICAL.' You get: title, source scanner, remediation status, and description in plain English."
-
-echo -e "\n${Y}>>>${N} FAIL score for top risk:"
-R=$(api "$BASE/fail/top-risks?limit=1")
+echo -e "${Y}>>>${N} Open remediation cases:"
+R=$(api "$BASE/cases")
 echo "$R" | python3 -c "
 import json,sys
 d=json.load(sys.stdin)
-risks=d.get('risks',[])
-if risks:
-    r=risks[0]
-    print(f'  FAIL Score: {r.get(\"fail_score\",0):.1f}/100')
-    print(f'  Grade: {r.get(\"grade\",\"?\")}')
-    print(f'  Action: {r.get(\"recommended_action\",\"?\")}')
-    print(f'  CVE: {r.get(\"cve_id\",\"N/A\")}')
-else:
-    print('  (Run FAIL scoring to see prioritized results)')
-" 2>/dev/null || echo "  (FAIL data loading...)"
+cases=d if isinstance(d,list) else d.get('cases',d.get('items',[]))
+print(f'  Open cases: {len(cases)}')
+for c in cases[:3]:
+    if isinstance(c,dict):
+        print(f'  [{c.get(\"severity\",\"?\").upper()}] {c.get(\"title\",c.get(\"name\",\"?\"))}')
+        print(f'    Status: {c.get(\"status\",\"?\")} | Source: {c.get(\"source\",\"N/A\")}')
+        print(f'    Description: {str(c.get(\"description\",\"N/A\"))[:80]}')
+        print()
+    else:
+        print(f'  * {c}')
+" 2>/dev/null || echo "  (cases loading...)"
+
+say "Not just 'CVE-2026-1847 CRITICAL.' You get: title, source scanner, remediation status, and description in plain English."
+
+echo -e "\n${Y}>>>${N} Brain pipeline stats (risk scoring context):"
+R=$(api "$BASE/brain/stats")
+echo "$R" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+print(f'  Knowledge graph: {d.get(\"total_nodes\",0):,} nodes, {d.get(\"total_edges\",0):,} edges')
+print(f'  Node types: {len(d.get(\"node_types\",{}))} categories tracked')
+print('  ALdeci combines CVSS, EPSS, asset criticality, and MPTE into one decision score')
+" 2>/dev/null || echo "  (brain stats loading...)"
 
 say "FAIL scoring combines CVSS, EPSS, asset criticality, and MPTE verification into one number. Fix the highest score first."
 
@@ -69,7 +62,7 @@ say "Let me generate a fix right now -- watch ALdeci's AutoFix engine analyze th
 echo -e "${Y}>>>${N} Generating AI-powered code fix..."
 R=$(api -X POST "$BASE/autofix/generate" \
   -H "Content-Type: application/json" \
-  -d '{"finding_id":"finding-001","vulnerability_type":"sql_injection","source_code":"def get_user(id):\n    return db.execute(f\"SELECT * FROM users WHERE id={id}\")","language":"python","fix_type":"CODE_PATCH"}')
+  -d '{"finding":{"id":"finding-001","title":"SQL Injection via f-string","severity":"critical","cwe":"CWE-89","code_snippet":"def get_user(id):\n    return db.execute(f\"SELECT * FROM users WHERE id={id}\")"}}')
 echo "$R" | python3 -c "
 import json,sys
 d=json.load(sys.stdin)
@@ -139,4 +132,4 @@ print(f'  By confidence: HIGH={by_conf.get(\"high\",0)} MEDIUM={by_conf.get(\"me
 
 say "Mike went from 'research the CVE for 2 hours' to 'review and merge the PR in 20 minutes.' That is Decision Intelligence for developers."
 
-echo -e "\n${G}  Developer Demo Complete | 7 endpoints | V3 + V5${N}"
+echo -e "\n${G}  Developer Demo Complete | 7 endpoints | V3 + V5 (v4.0 verified endpoints)${N}"

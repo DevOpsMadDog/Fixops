@@ -10,6 +10,19 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split heavy vendor libs into separate chunks
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-query': ['@tanstack/react-query'],
+          'vendor-motion': ['framer-motion'],
+          'vendor-ui': ['sonner', 'lucide-react'],
+        },
+      },
+    },
+  },
   server: {
     port: 3001,
     proxy: {

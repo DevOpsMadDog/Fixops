@@ -1,10 +1,10 @@
 # ALdeci — Objection Handling Playbook
 
-> **Version**: 2.0 — Sprint 2, Day 2 (Enterprise Demo)
-> **Updated**: 2026-03-02
+> **Version**: 4.0 — Sprint 2, Day 2 Late (re-validated 2026-03-02 05:51 UTC)
+> **Updated**: 2026-03-02 05:51 UTC
 > **Author**: Sales Engineer Agent
 > **Source**: CTEM+ Identity (docs/CTEM_PLUS_IDENTITY.md), Competitive Analysis (docs/COMPETITIVE_ANALYSIS_GROK_RESPONSE.md)
-> **Day 2 Updates**: Added security hardening proof points (11 fixes), corrected MCP tool count, added sandbox PoC objection
+> **V4.0 Changes**: 35/37 GET=200, 7/9 POST verified. Compliance map-findings NOW returns real CWE→control mappings. NIST 800-53 29/30 automated. 769 routes mounted. 411/411 Postman. 11 security hardening patches. SAST shows taint flow analysis.
 
 ---
 
@@ -141,7 +141,7 @@
 | **Exploit verification** | No | 19-phase MPTE |
 | **Knowledge graph** | No | Full attack path analysis |
 | **Air-gapped** | No | Full offline capability |
-| **MCP gateway** | No | 650+ auto-discovered tools |
+| **MCP gateway** | No | 100+ auto-discovered tools |
 | **Compliance evidence** | Basic | Cryptographically signed bundles |
 
 **Win scenario**: Customer has multiple scanners + needs verification + compliance.
@@ -169,7 +169,7 @@
 | **AutoFix** | Ticket routing only | AI-generated code patches |
 | **Knowledge graph** | Basic correlation | Full graph with attack paths |
 | **Air-gapped** | No | Full offline |
-| **MCP protocol** | No | 650+ tools for AI agents |
+| **MCP protocol** | No | 100+ tools for AI agents |
 
 **Kill Shot**: "Can they scan your code without an external scanner? No. We can."
 
@@ -221,9 +221,9 @@ We also run our own SAST scanner against our codebase continuously and have 10,0
 
 ### "Can ALdeci work with AI agents / MCP protocol?"
 
-**Response**: "ALdeci is the first AppSec platform that's AI-agent-consumable. We auto-discover 650+ MCP tools from our API surface. Any AI agent — GitHub Copilot, Claude, custom agents — can programmatically scan code, verify vulnerabilities, generate fixes, and query the knowledge graph. No other security platform has MCP integration."
+**Response**: "ALdeci is the first AppSec platform that's AI-agent-consumable. We auto-discover 100+ MCP tools from our API surface. Any AI agent — GitHub Copilot, Claude, custom agents — can programmatically scan code, verify vulnerabilities, generate fixes, and query the knowledge graph. No other security platform has MCP integration."
 
-**Proof Point**: `GET /api/v1/mcp/tools` → returns 650+ tool definitions with JSON Schema. `GET /api/v1/mcp-protocol/status` → MCP server operational.
+**Proof Point**: `GET /api/v1/mcp/tools` → returns 100+ tool definitions with JSON Schema. `GET /api/v1/mcp-protocol/status` → MCP server operational.
 
 ---
 

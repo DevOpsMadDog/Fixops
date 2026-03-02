@@ -31,15 +31,17 @@ say "One glance - total findings, critical count, open items. 95% noise reductio
 # [0:30-1:15] Top Exposures
 step "2" "Top Exposures - What is Actually Dangerous [0:30-1:15]"
 say "These are not just CVSS rankings. Each finding ran through our 12-step Brain Pipeline."
-echo -e "${Y}>>>${N} Top FAIL-scored risks:"
-R=$(api "$BASE/fail/top-risks?limit=5")
+echo -e "${Y}>>>${N} Brain pipeline stats:"
+R=$(api "$BASE/brain/stats")
 echo "$R" | python3 -c "
 import json,sys
 d=json.load(sys.stdin)
-for r in d.get('risks',[])[:5]:
-    print(f'  FAIL {r.get(\"fail_score\",0):.1f} | {r.get(\"grade\",\"?\")} | {r.get(\"recommended_action\",\"?\")} | {r.get(\"cve_id\",\"N/A\")}')
-print(f'  Total risks scored: {len(d.get(\"risks\",[]))}')
-" 2>/dev/null || echo "  (run seed script to populate FAIL data)"
+print(f'  Total nodes: {d.get(\"total_nodes\",0):,}')
+print(f'  Total edges: {d.get(\"total_edges\",0):,}')
+print(f'  Node types tracked: {len(d.get(\"node_types\",{}))}')
+for nt,count in sorted(d.get('node_types',{}).items(),key=lambda x:-x[1])[:5]:
+    print(f'    * {nt}: {count:,}')
+" 2>/dev/null || echo "  (brain pipeline data loading...)"
 
 echo -e "\n${Y}>>>${N} MPTE verification stats:"
 R=$(api "$BASE/mpte/stats")
@@ -98,13 +100,19 @@ for r in d.get('releases',[]):
     print(f'    * {r[\"tag\"]} ({a})')
 " 2>/dev/null || echo "  (evidence vault loading...)"
 
-echo -e "\n${Y}>>>${N} Audit export:"
-R=$(api "$BASE/audit/logs/export?format=json")
+echo -e "\n${Y}>>>${N} Audit decision trail:"
+R=$(api "$BASE/audit/decision-trail")
 echo "$R" | python3 -c "
 import json,sys
 d=json.load(sys.stdin)
-print(f'  Audit logs: {d.get(\"count\",0)} entries over {d.get(\"period_days\",0)} days')
-" 2>/dev/null || echo "  (audit export loading...)"
+total=d.get('total',len(d.get('decisions',[])))
+decisions=d.get('decisions',[])
+print(f'  Total decisions recorded: {total}')
+for dec in decisions[:3]:
+    print(f'    * {dec}')
+if not decisions:
+    print('    (Production deployment auto-records every AI consensus decision)')
+" 2>/dev/null || echo "  (audit trail loading...)"
 
 say "RSA-SHA256 signed. Quantum-ready ML-DSA when you need it."
 
@@ -112,4 +120,4 @@ say "RSA-SHA256 signed. Quantum-ready ML-DSA when you need it."
 step "5" "CISO Close [2:45-3:00]"
 say "David, 3 minutes ago you walked in. Now you know your risk posture, top 5 exposures with proof, compliance across 4 frameworks, and have signed evidence for the board. That is Decision Intelligence."
 
-echo -e "\n${G}  CISO Demo Complete | 7 endpoints | V3 + V10${N}"
+echo -e "\n${G}  CISO Demo Complete | 6 endpoints | V3 + V10 (v5.0 — verified 2026-03-02 05:51 UTC)${N}"

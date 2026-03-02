@@ -116,23 +116,30 @@ export default function CloudPosture() {
     },
   });
 
-  // Sample cloud resources (would come from API)
-  const cloudResources: CloudResource[] = (inventoryData as CloudResource[]) || [
-    { id: 'r-1', name: 'prod-web-server', type: 'EC2 Instance', provider: 'aws', region: 'us-east-1', status: 'compliant', findings: 0, lastScanned: '5 min ago' },
-    { id: 'r-2', name: 'db-primary', type: 'RDS Instance', provider: 'aws', region: 'us-east-1', status: 'non-compliant', findings: 3, lastScanned: '10 min ago' },
-    { id: 'r-3', name: 'storage-bucket', type: 'S3 Bucket', provider: 'aws', region: 'us-west-2', status: 'warning', findings: 1, lastScanned: '15 min ago' },
-    { id: 'r-4', name: 'k8s-cluster', type: 'AKS Cluster', provider: 'azure', region: 'eastus', status: 'compliant', findings: 0, lastScanned: '1 hour ago' },
-    { id: 'r-5', name: 'gcp-vm-prod', type: 'Compute Instance', provider: 'gcp', region: 'us-central1', status: 'non-compliant', findings: 2, lastScanned: '30 min ago' },
-  ];
+  // Cloud resources from inventory API - zero mock data
+  const rawInventory = inventoryData?.items || inventoryData?.assets || (Array.isArray(inventoryData) ? inventoryData : []);
+  const cloudResources: CloudResource[] = rawInventory.map((item: any) => ({
+    id: item.id || item.asset_id || `r-${Math.random().toString(36).slice(2, 8)}`,
+    name: item.name || item.hostname || 'Unknown Resource',
+    type: item.type || item.resource_type || 'Unknown',
+    provider: (item.provider || item.cloud_provider || 'aws').toLowerCase() as 'aws' | 'azure' | 'gcp',
+    region: item.region || item.location || 'unknown',
+    status: item.compliance_status === 'compliant' || item.findings === 0 ? 'compliant'
+      : item.compliance_status === 'warning' ? 'warning' : 'non-compliant',
+    findings: item.findings_count ?? item.findings ?? 0,
+    lastScanned: item.last_scanned || item.updated_at || undefined,
+  }));
 
-  // Sample misconfigurations (would come from CNAPP API)
-  const misconfigurations: Misconfiguration[] = cnappData?.findings || [
-    { id: 'mc-1', resource: 'db-primary', title: 'RDS instance not encrypted at rest', severity: 'critical', framework: 'CIS AWS', status: 'open' },
-    { id: 'mc-2', resource: 'db-primary', title: 'RDS public accessibility enabled', severity: 'high', framework: 'CIS AWS', status: 'open' },
-    { id: 'mc-3', resource: 'storage-bucket', title: 'S3 bucket ACL allows public read', severity: 'high', framework: 'PCI DSS', status: 'open' },
-    { id: 'mc-4', resource: 'gcp-vm-prod', title: 'Firewall rule allows 0.0.0.0/0 ingress', severity: 'critical', framework: 'CIS GCP', status: 'open' },
-    { id: 'mc-5', resource: 'db-primary', title: 'Automated backups not configured', severity: 'medium', framework: 'SOC2', status: 'open' },
-  ];
+  // Misconfigurations from CNAPP API - zero mock data
+  const rawFindings = cnappData?.findings || cnappData?.items || (Array.isArray(cnappData) ? cnappData : []);
+  const misconfigurations: Misconfiguration[] = rawFindings.map((f: any) => ({
+    id: f.id || f.finding_id || `mc-${Math.random().toString(36).slice(2, 8)}`,
+    resource: f.resource || f.asset_name || f.resource_id || 'Unknown',
+    title: f.title || f.description || f.rule_id || 'Unnamed finding',
+    severity: (f.severity || 'medium').toLowerCase() as 'critical' | 'high' | 'medium' | 'low',
+    framework: f.framework || f.compliance_framework || f.rule_set || 'CIS',
+    status: (f.status || 'open').toLowerCase() as 'open' | 'resolved' | 'accepted',
+  }));
 
   const filteredMisconfigs = misconfigurations.filter(m => 
     m.title.toLowerCase().includes(filterText.toLowerCase()) ||
@@ -276,6 +283,24 @@ export default function CloudPosture() {
           </div>
         </CardHeader>
         <CardContent>
+          {(cnappLoading || inventoryLoading) ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : cloudResources.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <Cloud className="w-16 h-16 text-muted-foreground/30 mb-4" />
+              <h3 className="text-lg font-semibold text-muted-foreground mb-2">No Cloud Resources Discovered</h3>
+              <p className="text-sm text-muted-foreground/70 max-w-md mb-4">
+                Run a CSPM scan to discover cloud resources across AWS, Azure, and GCP.
+                Resources will appear here with their compliance status.
+              </p>
+              <Button onClick={() => scanMutation.mutate(undefined)} disabled={scanMutation.isPending}>
+                {scanMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Shield className="w-4 h-4 mr-2" />}
+                Run Cloud Scan
+              </Button>
+            </div>
+          ) : (
           <div className="space-y-2">
             {cloudResources
               .filter(r => selectedProvider === 'all' || r.provider === selectedProvider)
@@ -318,6 +343,7 @@ export default function CloudPosture() {
                 </div>
               ))}
           </div>
+          )}
         </CardContent>
       </Card>
 
@@ -347,6 +373,14 @@ export default function CloudPosture() {
           {cnappLoading || inventoryLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : filteredMisconfigs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <CheckCircle2 className="w-12 h-12 text-green-500/30 mb-3" />
+              <h3 className="text-md font-semibold text-muted-foreground mb-1">No Misconfigurations Found</h3>
+              <p className="text-sm text-muted-foreground/70">
+                {filterText ? 'No results match your filter. Try a different search term.' : 'Run a CSPM scan to check for cloud security misconfigurations.'}
+              </p>
             </div>
           ) : (
             <div className="space-y-3">

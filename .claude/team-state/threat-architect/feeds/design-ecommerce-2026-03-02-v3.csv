@@ -1,0 +1,59 @@
+type,id,name,technology,tier,from,to,protocol,trust_boundary,pci_scope
+component,C001,React SPA (Storefront),React 18.3 + Next.js 14.1,presentation,,,,Internet,false
+component,C002,CloudFront CDN,AWS CloudFront,edge,,,,Edge,false
+component,C003,AWS WAF v2,AWS WAFv2,edge,,,,Edge,false
+component,C004,Route 53 DNS,AWS Route 53,edge,,,,Edge,false
+component,C005,Application Load Balancer,AWS ALB,network,,,,DMZ,false
+component,C006,API Gateway (REST),AWS API Gateway v2,network,,,,DMZ,false
+component,C007,Auth Service,Spring Boot 3.2.3 + Java 21,application,,,,Application,false
+component,C008,User Service,Spring Boot 3.2.3 + Java 21,application,,,,Application,false
+component,C009,Catalog Service,Node.js 20.11 + Express 4.18,application,,,,Application,false
+component,C010,Cart Service,Node.js 20.11 + Express 4.18,application,,,,Application,false
+component,C011,Order Service,Spring Boot 3.2.3 + Java 21,application,,,,Application,true
+component,C012,Payment Service,Spring Boot 3.2.3 + Java 21,application,,,,PCI-CDE,true
+component,C013,Inventory Service,Python 3.12 + FastAPI 0.109,application,,,,Application,false
+component,C014,Notification Service,Python 3.12 + FastAPI 0.109,application,,,,Application,false
+component,C015,Search Service,Python 3.12 + FastAPI + OpenSearch,application,,,,Application,false
+component,C016,Recommendation Engine,Python 3.12 + scikit-learn,application,,,,Application,false
+component,C017,Lambda: Order Processor,AWS Lambda Python 3.12,processing,,,,Serverless,true
+component,C018,Lambda: Image Resizer,AWS Lambda Node.js 20,processing,,,,Serverless,false
+component,C019,Lambda: Fraud Detector,AWS Lambda Python 3.12,processing,,,,PCI-CDE,true
+component,C020,RDS PostgreSQL (Users),Amazon RDS PostgreSQL 16.1,data,,,,Data,false
+component,C021,RDS PostgreSQL (Orders),Amazon RDS PostgreSQL 16.1 Multi-AZ,data,,,,PCI-CDE,true
+component,C022,ElastiCache Redis Cluster,Amazon ElastiCache Redis 7.1,data,,,,Data,false
+component,C023,OpenSearch Domain,Amazon OpenSearch 2.11,data,,,,Data,false
+component,C024,S3: Media Assets,Amazon S3,data,,,,Data,false
+component,C025,S3: Order Documents,Amazon S3 SSE-KMS,data,,,,PCI-CDE,true
+component,C026,SQS: Order Queue,Amazon SQS FIFO,messaging,,,,Messaging,true
+component,C027,SNS: Notification Topic,Amazon SNS,messaging,,,,Messaging,false
+component,C028,EventBridge: Domain Events,Amazon EventBridge,messaging,,,,Messaging,false
+component,C029,KMS: Encryption Keys,AWS KMS CMK,security,,,,Security,true
+component,C030,Secrets Manager,AWS Secrets Manager,security,,,,Security,true
+component,C031,Cognito User Pool,Amazon Cognito,security,,,,Edge,false
+component,C032,CloudWatch + X-Ray,AWS CloudWatch + X-Ray,observability,,,,Observability,false
+component,C033,ECS Fargate Cluster,AWS ECS Fargate,infrastructure,,,,Infrastructure,false
+component,C034,ECR Registry,Amazon ECR,infrastructure,,,,Infrastructure,false
+component,C035,Stripe Payment Gateway,Stripe API v2024-01,external,,,,External,true
+connection,,SPA to CDN,HTTPS/TLS1.3,,C001,C002,HTTPS,Internet->Edge,false
+connection,,CDN to WAF,HTTPS,,C002,C003,HTTPS,Edge,false
+connection,,WAF to ALB,HTTPS,,C003,C005,HTTPS,Edge->DMZ,false
+connection,,ALB to Auth,HTTP/8080,,C005,C007,HTTP,DMZ->App,false
+connection,,ALB to Users,HTTP/8081,,C005,C008,HTTP,DMZ->App,false
+connection,,ALB to Catalog,HTTP/3000,,C005,C009,HTTP,DMZ->App,false
+connection,,ALB to Cart,HTTP/3001,,C005,C010,HTTP,DMZ->App,false
+connection,,ALB to Orders,HTTP/8082,,C005,C011,HTTP,DMZ->App,true
+connection,,ALB to Payments,HTTP/8083,,C005,C012,HTTP,DMZ->PCI,true
+connection,,Auth to Cognito,HTTPS,,C007,C031,HTTPS,App->Edge,false
+connection,,Auth to Redis,TCP/6379,,C007,C022,TCP,App->Data,false
+connection,,Users to RDS,TCP/5432-TLS,,C008,C020,TCP,App->Data,false
+connection,,Catalog to OpenSearch,HTTPS/9200,,C009,C023,HTTPS,App->Data,false
+connection,,Cart to Redis,TCP/6379,,C010,C022,TCP,App->Data,false
+connection,,Orders to RDS,TCP/5432-TLS,,C011,C021,TCP,App->PCI,true
+connection,,Orders to SQS,HTTPS,,C011,C026,HTTPS,App->Messaging,true
+connection,,Payments to Stripe,HTTPS/TLS1.3,,C012,C035,HTTPS,PCI->External,true
+connection,,Payments to RDS,TCP/5432-TLS,,C012,C021,TCP,PCI->PCI,true
+connection,,Payments to KMS,HTTPS,,C012,C029,HTTPS,PCI->Security,true
+connection,,Lambda to SQS,HTTPS,,C017,C026,HTTPS,Serverless->Messaging,true
+connection,,Lambda to EventBridge,HTTPS,,C017,C028,HTTPS,Serverless->Messaging,false
+connection,,Fraud to EventBridge,HTTPS,,C019,C028,HTTPS,PCI->Messaging,true
+connection,,Fraud to RDS,TCP/5432-TLS,,C019,C021,TCP,PCI->PCI,true

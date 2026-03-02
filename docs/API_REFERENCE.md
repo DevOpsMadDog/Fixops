@@ -1,10 +1,10 @@
 # ALdeci CTEM+ API Reference
 
-> **Version**: 2.2 — Enterprise Demo Edition (Sprint 2, Day 2)
+> **Version**: 3.0 — Enterprise Demo Edition (Sprint 2, Day 3)
 > **Last updated**: 2026-03-02
 > **Base URL**: `http://localhost:8000`
-> **Total endpoints**: 769 across 68 routers + 25 inline definitions (verified E2E 58/58 — 100%)
-> **Total routes mounted**: 769 routes, 77 unique prefixes
+> **Total endpoints**: 780 across 72 router files + 25 inline definitions (verified E2E 58/58 — 100%)
+> **Total routes mounted**: 780 routes, 77+ unique prefixes
 > **Authentication**: API Key (`X-API-Key` header) or JWT Bearer token
 > **OpenAPI Spec**: `GET /openapi.json` (verified 200 OK)
 > **Pillar**: [V3] Decision Intelligence · [V5] MPTE Verification · [V7] MCP-Native · [V10] CTEM Full Loop
@@ -124,7 +124,7 @@ JWT tokens expire after `FIXOPS_JWT_EXP_MINUTES` (default: 120 minutes).
 
 ## 2. CTEM Lifecycle Overview
 
-ALdeci organizes its 769 endpoints around the **Continuous Threat Exposure Management (CTEM)** lifecycle:
+ALdeci organizes its 780 endpoints around the **Continuous Threat Exposure Management (CTEM)** lifecycle:
 
 ```
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
@@ -133,7 +133,7 @@ ALdeci organizes its 769 endpoints around the **Continuous Threat Exposure Manag
 │ 8 Scanners  │    │ MPTE 19-ph  │    │ AutoFix 10  │    │ Evidence    │
 │ 25 Parsers  │    │ Sandbox PoC │    │ Workflows   │    │ Compliance  │
 │ 6 Feeds     │    │ FAIL Engine │    │ Connectors  │    │ Audit Trail │
-│ ~195 endpts │    │ ~130 endpts │    │ ~110 endpts │    │ ~85 endpts  │
+│ ~140 endpts │    │ ~145 endpts │    │ ~110 endpts │    │ ~85 endpts  │
 └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
         │                │                  │                   │
         └────────────────┴──────────────────┴───────────────────┘
@@ -687,29 +687,61 @@ Chaos engineering for AppSec — inject faults, grade team response, generate la
 
 ### 4.5 Attack Simulation [V5]
 
-**Prefix**: `/api/v1/attack-sim` · **Source**: `suite-attack/api/attack_sim_router.py`
+**Prefix**: `/api/v1/attack-sim` · **Source**: `suite-attack/api/attack_sim_router.py` · **13 endpoints**
+
+Full attack campaign simulation with MITRE ATT&CK mapping, breach impact analysis, and automated recommendations.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/v1/attack-sim/scenarios` | Create attack simulation |
-| `GET` | `/api/v1/attack-sim/scenarios` | List simulations |
-| `POST` | `/api/v1/attack-sim/scenarios/{id}/run` | Execute simulation |
-| `GET` | `/api/v1/attack-sim/results` | Get simulation results |
-| `GET` | `/api/v1/attack-sim/status` | Status |
+| `POST` | `/api/v1/attack-sim/scenarios` | Create attack scenario |
+| `POST` | `/api/v1/attack-sim/scenarios/generate` | AI-generate attack scenario |
+| `GET` | `/api/v1/attack-sim/scenarios` | List scenarios |
+| `GET` | `/api/v1/attack-sim/scenarios/{scenario_id}` | Get scenario details |
+| `POST` | `/api/v1/attack-sim/campaigns/run` | Execute attack campaign |
+| `GET` | `/api/v1/attack-sim/campaigns` | List campaigns |
+| `GET` | `/api/v1/attack-sim/campaigns/{campaign_id}` | Get campaign details |
+| `GET` | `/api/v1/attack-sim/campaigns/{campaign_id}/attack-paths` | Get campaign attack paths |
+| `GET` | `/api/v1/attack-sim/campaigns/{campaign_id}/breach-impact` | Get breach impact analysis |
+| `GET` | `/api/v1/attack-sim/campaigns/{campaign_id}/recommendations` | Get remediation recommendations |
+| `GET` | `/api/v1/attack-sim/mitre/heatmap` | MITRE ATT&CK coverage heatmap |
+| `GET` | `/api/v1/attack-sim/mitre/techniques` | List MITRE techniques with coverage |
+| `GET` | `/api/v1/attack-sim/health` | Health check |
+
+**Example — Run an attack simulation campaign:**
+
+```bash
+curl -X POST http://localhost:8000/api/v1/attack-sim/campaigns/run \
+  -H "X-API-Key: $FIXOPS_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "scenario_id": "scenario-001",
+    "target_app_id": "myapp-001",
+    "attack_types": ["sqli", "xss", "ssrf"],
+    "safe_mode": true
+  }'
+```
 
 ---
 
 ### 4.6 Vulnerability Discovery [V5]
 
-**Prefix**: `/api/v1/vulns` · **Source**: `suite-attack/api/vuln_discovery_router.py`
+**Prefix**: `/api/v1/vulns` · **Source**: `suite-attack/api/vuln_discovery_router.py` · **11 endpoints**
+
+Zero-day discovery, community contribution, and ML-based vulnerability classification.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/v1/vulns` | List discovered vulnerabilities |
-| `POST` | `/api/v1/vulns` | Create vulnerability record |
-| `GET` | `/api/v1/vulns/{id}` | Get vulnerability details |
-| `PUT` | `/api/v1/vulns/{id}` | Update vulnerability |
-| `GET` | `/api/v1/vulns/status` | Status |
+| `GET` | `/api/v1/vulns/discovered` | List discovered vulnerabilities (paginated) |
+| `POST` | `/api/v1/vulns/discovered` | Report a discovered vulnerability |
+| `POST` | `/api/v1/vulns/contribute` | Contribute vulnerability to community DB |
+| `GET` | `/api/v1/vulns/internal` | List internal vulnerability assessments |
+| `GET` | `/api/v1/vulns/internal/{vuln_id}` | Get internal vuln details |
+| `PATCH` | `/api/v1/vulns/internal/{vuln_id}` | Update internal vuln assessment |
+| `POST` | `/api/v1/vulns/train` | Trigger ML model retraining |
+| `GET` | `/api/v1/vulns/train/{job_id}` | Get training job status |
+| `GET` | `/api/v1/vulns/stats` | Discovery statistics |
+| `GET` | `/api/v1/vulns/contributions` | List community contributions |
+| `GET` | `/api/v1/vulns/health` | Health check |
 
 ---
 
@@ -1281,40 +1313,86 @@ Specialized AI agents for security analysis, triage, and remediation.
 
 ### 7.6 Exposure Cases [V3]
 
-**Prefix**: `/api/v1/cases` · **Source**: `suite-core/api/exposure_case_router.py`
+**Prefix**: `/api/v1/cases` · **Source**: `suite-core/api/exposure_case_router.py` · **10 endpoints**
+
+Track exposure cases through their lifecycle — from discovery to closure with full state machine transitions.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/v1/cases` | List exposure cases |
+| `GET` | `/api/v1/cases/stats/summary` | Case summary statistics |
 | `POST` | `/api/v1/cases` | Create exposure case |
-| `GET` | `/api/v1/cases/{id}` | Get case details |
-| `PUT` | `/api/v1/cases/{id}` | Update case |
-| `DELETE` | `/api/v1/cases/{id}` | Close case |
+| `GET` | `/api/v1/cases` | List exposure cases |
+| `GET` | `/api/v1/cases/{case_id}` | Get case details |
+| `PATCH` | `/api/v1/cases/{case_id}` | Update case |
+| `POST` | `/api/v1/cases/{case_id}/transition` | Transition case state |
+| `POST` | `/api/v1/cases/{case_id}/clusters` | Link finding clusters to case |
+| `GET` | `/api/v1/cases/{case_id}/transitions` | Get case transition history |
+| `GET` | `/api/v1/cases/health` | Health check |
+| `GET` | `/api/v1/cases/status` | Status |
 
 ---
 
 ### 7.7 Deduplication Engine [V3]
 
-**Prefix**: `/api/v1/deduplication` · **Source**: `suite-core/api/deduplication_router.py`
+**Prefix**: `/api/v1/deduplication` · **Source**: `suite-core/api/deduplication_router.py` · **20 endpoints**
+
+Cross-scanner deduplication with cluster management, correlation analysis, and baseline comparison.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/v1/deduplication/run` | Run deduplication on findings |
+| `POST` | `/api/v1/deduplication/process` | Process findings for deduplication |
+| `POST` | `/api/v1/deduplication/process/batch` | Batch deduplication processing |
+| `GET` | `/api/v1/deduplication/clusters` | List dedup clusters |
+| `GET` | `/api/v1/deduplication/clusters/{cluster_id}` | Get cluster details |
+| `PUT` | `/api/v1/deduplication/clusters/{cluster_id}/status` | Update cluster status |
+| `PUT` | `/api/v1/deduplication/clusters/{cluster_id}/assign` | Assign cluster to team |
+| `PUT` | `/api/v1/deduplication/clusters/{cluster_id}/ticket` | Link external ticket |
+| `GET` | `/api/v1/deduplication/clusters/{cluster_id}/related` | Get related clusters |
+| `GET` | `/api/v1/deduplication/correlations` | List finding correlations |
+| `POST` | `/api/v1/deduplication/correlations` | Create correlation rule |
 | `GET` | `/api/v1/deduplication/stats` | Deduplication statistics |
-| `GET` | `/api/v1/deduplication/clusters` | View finding clusters |
+| `GET` | `/api/v1/deduplication/stats/{org_id}` | Org-specific dedup stats |
+| `POST` | `/api/v1/deduplication/correlate/cross-stage` | Cross-stage correlation |
+| `GET` | `/api/v1/deduplication/graph` | Dedup cluster graph |
+| `POST` | `/api/v1/deduplication/feedback` | Submit dedup feedback |
+| `POST` | `/api/v1/deduplication/baseline/compare` | Compare against baseline |
+| `POST` | `/api/v1/deduplication/clusters/merge` | Merge duplicate clusters |
+| `POST` | `/api/v1/deduplication/clusters/{cluster_id}/split` | Split mismatched cluster |
+| `GET` | `/api/v1/deduplication/health` | Health check |
 | `GET` | `/api/v1/deduplication/status` | Status |
+
+**Example — Deduplicate findings from multiple scanners:**
+
+```bash
+curl -X POST http://localhost:8000/api/v1/deduplication/process \
+  -H "X-API-Key: $FIXOPS_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "app_id": "myapp-001",
+    "finding_ids": ["f-001", "f-002", "f-003"],
+    "strategy": "cross_scanner"
+  }'
+```
 
 ---
 
 ### 7.8 Predictions & ML [V3]
 
-**Prefix**: `/api/v1/predictions` · **Source**: `suite-core/api/predictions_router.py`
+**Prefix**: `/api/v1/predictions` · **Source**: `suite-core/api/predictions_router.py` · **10 endpoints**
+
+Advanced predictive analytics with Markov chains, Bayesian networks, and combined risk assessment.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/v1/predictions/risk` | Predict risk for finding |
-| `POST` | `/api/v1/predictions/exploitability` | Predict exploitability |
-| `GET` | `/api/v1/predictions/models` | List ML models |
+| `POST` | `/api/v1/predictions/attack-chain` | Predict attack chain probability |
+| `POST` | `/api/v1/predictions/risk-trajectory` | Predict risk trajectory over time |
+| `POST` | `/api/v1/predictions/simulate-attack` | Monte Carlo attack simulation |
+| `GET` | `/api/v1/predictions/markov/states` | Get Markov model states |
+| `GET` | `/api/v1/predictions/markov/transitions` | Get state transition matrix |
+| `POST` | `/api/v1/predictions/bayesian/update` | Update Bayesian belief network |
+| `POST` | `/api/v1/predictions/bayesian/risk-assessment` | Bayesian risk assessment |
+| `POST` | `/api/v1/predictions/combined-analysis` | Combined multi-model analysis |
+| `GET` | `/api/v1/predictions/health` | Health check |
 | `GET` | `/api/v1/predictions/status` | Status |
 
 ---
@@ -1323,23 +1401,51 @@ Specialized AI agents for security analysis, triage, and remediation.
 
 #### Algorithmic Scoring
 
-**Prefix**: `/api/v1/algorithms` · **Source**: `suite-core/api/algorithmic_router.py`
+**Prefix**: `/api/v1/algorithms` · **Source**: `suite-core/api/algorithmic_router.py` · **11 endpoints**
+
+Advanced risk quantification using Monte Carlo simulation, causal inference, and Graph Neural Networks.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/v1/algorithms/ssvc` | SSVC decision tree scoring |
-| `POST` | `/api/v1/algorithms/epss` | EPSS-based scoring |
+| `POST` | `/api/v1/algorithms/monte-carlo/quantify` | Monte Carlo risk quantification |
+| `POST` | `/api/v1/algorithms/monte-carlo/cve` | CVE-specific Monte Carlo analysis |
+| `POST` | `/api/v1/algorithms/monte-carlo/portfolio` | Portfolio risk Monte Carlo |
+| `POST` | `/api/v1/algorithms/causal/analyze` | Causal analysis of vulnerability factors |
+| `POST` | `/api/v1/algorithms/causal/counterfactual` | Counterfactual "what-if" analysis |
+| `POST` | `/api/v1/algorithms/causal/treatment-effect` | Remediation treatment effect |
+| `POST` | `/api/v1/algorithms/gnn/attack-surface` | GNN attack surface analysis |
+| `POST` | `/api/v1/algorithms/gnn/critical-nodes` | GNN critical node identification |
+| `POST` | `/api/v1/algorithms/gnn/risk-propagation` | GNN risk propagation modeling |
 | `GET` | `/api/v1/algorithms/status` | Status |
+| `GET` | `/api/v1/algorithms/capabilities` | List available algorithms |
+
+**Example — Run Monte Carlo risk quantification:**
+
+```bash
+curl -X POST http://localhost:8000/api/v1/algorithms/monte-carlo/quantify \
+  -H "X-API-Key: $FIXOPS_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "finding_ids": ["f-001", "f-002"],
+    "simulations": 10000,
+    "time_horizon_days": 365
+  }'
+```
 
 #### LLM Provider Management
 
-**Prefix**: `/api/v1/llm` · **Source**: `suite-core/api/llm_router.py`
+**Prefix**: `/api/v1/llm` · **Source**: `suite-core/api/llm_router.py` · **6 endpoints**
+
+Multi-LLM consensus configuration — manage providers, test connections, and tune settings.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| `GET` | `/api/v1/llm/status` | LLM configuration and provider status |
+| `POST` | `/api/v1/llm/test` | Test LLM provider connection |
+| `GET` | `/api/v1/llm/settings` | Get LLM consensus settings |
+| `PATCH` | `/api/v1/llm/settings` | Update LLM consensus settings |
 | `GET` | `/api/v1/llm/providers` | List configured LLM providers |
-| `POST` | `/api/v1/llm/analyze` | Send analysis request to LLM |
-| `GET` | `/api/v1/llm/status` | LLM service status |
+| `GET` | `/api/v1/llm/health` | Health check |
 
 #### Nerve Center — Central Health Hub [V3]
 
@@ -1451,6 +1557,52 @@ Graph-based risk analysis with attack path computation and blast radius estimati
 | `GET` | `/api/v1/graph/stats` | Graph statistics |
 | `GET` | `/api/v1/graph/health` | Health check |
 | `GET` | `/api/v1/graph/status` | Status |
+
+#### Reachability Analysis [V3]
+
+**Prefix**: `/api/v1/reachability` · **Source**: `suite-evidence-risk/risk/reachability/api.py` · **7 endpoints**
+
+Analyze whether vulnerable code paths are actually reachable in production — reduces false positives by proving exploitability through static call-graph analysis.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/reachability/analyze` | Analyze reachability of a vulnerability |
+| `POST` | `/api/v1/reachability/analyze/bulk` | Bulk reachability analysis |
+| `GET` | `/api/v1/reachability/job/{job_id}` | Get analysis job status |
+| `GET` | `/api/v1/reachability/results/{cve_id}` | Get reachability results for a CVE |
+| `DELETE` | `/api/v1/reachability/results/{cve_id}` | Delete reachability results |
+| `GET` | `/api/v1/reachability/health` | Health check |
+| `GET` | `/api/v1/reachability/metrics` | Reachability analysis metrics |
+
+**Example — Check if a CVE is reachable in your application:**
+
+```bash
+curl -X POST http://localhost:8000/api/v1/reachability/analyze \
+  -H "X-API-Key: $FIXOPS_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cve_id": "CVE-2024-3094",
+    "app_id": "myapp-001",
+    "entry_points": ["src/main.py", "src/api/routes.py"]
+  }'
+```
+
+---
+
+#### Enhanced Decision Analysis [V3]
+
+**Prefix**: `/api/v1/enhanced` · **Source**: `suite-api/apps/api/routes/enhanced.py` · **4 endpoints**
+
+Advanced multi-LLM comparison and signal analysis for decision intelligence.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/enhanced/analysis` | Run enhanced decision analysis |
+| `POST` | `/api/v1/enhanced/compare-llms` | Compare LLM provider responses side-by-side |
+| `GET` | `/api/v1/enhanced/capabilities` | List enhanced analysis capabilities |
+| `GET` | `/api/v1/enhanced/signals` | Get decision signal definitions |
+
+---
 
 #### Streaming / SSE
 
@@ -1868,14 +2020,16 @@ export FIXOPS_DISABLE_RATE_LIMIT=1
 | **Intelligence** | Algorithms | 11 | 1 |
 | **Intelligence** | LLM Provider | 6 | 1 |
 | **Intelligence** | Graph Risk Analysis | 6 | 1 |
+| **Intelligence** | Reachability Analysis | 7 | 1 |
+| **Intelligence** | Enhanced Decision Analysis | 4 | 1 |
 | **Intelligence** | Streaming / SSE | 4 | 1 |
-| | **Intelligence Subtotal** | **220** | **18** |
+| | **Intelligence Subtotal** | **231** | **20** |
 | **Platform** | Users | 6 | 1 |
 | **Platform** | Teams | 8 | 1 |
 | **Platform** | Admin | 10 | 1 |
 | **Platform** | Auth / SSO | 4 | 1 |
 | **Platform** | System Configuration | 5 | 1 |
-| **Platform** | Health (root-level) | 4 | — |
+| **Platform** | Health (root-level) | 4 | 1 |
 | **Platform** | Reports | 14 | 1 |
 | **Platform** | Policies | 11 | 1 |
 | **Platform** | Bulk Operations | 13 | 1 |
@@ -1890,7 +2044,7 @@ export FIXOPS_DISABLE_RATE_LIMIT=1
 | **Vision** | Self-Hosted AI Agent (V4) | 6 | 1 |
 | | **Vision Subtotal** | **35** | **4** |
 | | | | |
-| | **GRAND TOTAL** | **769** | **68 routers + inline** |
+| | **GRAND TOTAL** | **780** | **72 routers + inline** |
 
 ---
 
@@ -1950,7 +2104,7 @@ The following hardening was applied to all endpoints by the Backend Hardener age
 
 | Category | Change | Scope |
 |----------|--------|-------|
-| **Input Validation** | Pydantic v2 models on all POST/PUT endpoints | All 769 endpoints |
+| **Input Validation** | Pydantic v2 models on all POST/PUT endpoints | All 780 endpoints |
 | **Path Traversal** | File path sanitization on upload endpoints | Scanner Ingest, Evidence, Reports |
 | **Size Limits** | Request body size limits (10MB default, 50MB uploads) | All POST endpoints |
 | **Injection Prevention** | SQL parameter binding, shell command escaping | Brain Pipeline, Scanner Parsers |
@@ -1963,7 +2117,8 @@ The following hardening was applied to all endpoints by the Backend Hardener age
 
 ---
 
-*Generated by ALdeci Technical Writer Agent · v2.2 · 2026-03-02 · Sprint 2 Day 2 · Pillar [V3][V5][V7][V10]*
-*Source of truth: `suite-api/apps/api/app.py` (2,742 LOC, 34 router mounts) + 68 router files across 6 suites*
-*Verified: E2E 58/58 (100%), OpenAPI 200, 769 routes mounted, 77 unique prefixes*
-*Sections added in v2.2: Vision Engines (V4/V6/V8/V9), MCP Server Gateway, Detailed Logs API*
+*Generated by ALdeci Technical Writer Agent · v3.0 · 2026-03-02 · Sprint 2 Day 3 · Pillar [V3][V5][V7][V10]*
+*Source of truth: `suite-api/apps/api/app.py` (2,742 LOC, 34 router mounts) + 72 router files across 6 suites*
+*Verified: E2E 58/58 (100%), OpenAPI 200, 780 routes mounted, 77+ unique prefixes*
+*v3.0 changes: +11 new sections (Reachability, Enhanced Analysis, expanded Attack Sim/Vuln Discovery/Dedup/Cases/Predictions/Algorithms/LLM), 30+ curl examples, corrected endpoint counts*
+*v2.2 changes: Vision Engines (V4/V6/V8/V9), MCP Server Gateway, Detailed Logs API*

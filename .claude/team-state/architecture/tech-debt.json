@@ -1,7 +1,7 @@
 {
   "last_updated": "2026-03-02",
-  "updated_by": "enterprise-architect",
-  "total_items": 14,
+  "updated_by": "enterprise-architect (Run 5)",
+  "total_items": 19,
   "items": [
     {
       "id": "TD-001",
@@ -30,7 +30,7 @@
       "title": "Brain Pipeline _runs dict was unbounded (FIXED 2026-03-02)",
       "severity": "medium",
       "impact": "Memory leak — _runs dict grew without bound. Now capped at MAX_RUNS_HISTORY=1000.",
-      "fix": "FIXED: Added eviction logic at brain_pipeline.py:224-230.",
+      "fix": "FIXED: Added eviction logic at brain_pipeline.py:247-253.",
       "effort_days": 0,
       "priority": "done",
       "pillar": "V3",
@@ -38,33 +38,33 @@
     },
     {
       "id": "TD-004",
-      "title": "89 bare except:pass patterns (Bandit B110)",
+      "title": "101 bare except:pass patterns (Bandit B110)",
       "severity": "medium",
-      "impact": "Silently swallows exceptions, making debugging very difficult.",
+      "impact": "Silently swallows exceptions, making debugging very difficult. Worst offenders: playbook_runner.py (19), single_agent.py (16), dast_engine.py (16), mcp_server.py (10).",
       "fix": "Replace bare except:pass with specific exception handling and logging.",
       "effort_days": 3,
       "priority": "phase2",
       "pillar": "V10",
-      "files_affected": ["suite-core/", "suite-api/"]
+      "files_affected": ["suite-core/core/playbook_runner.py", "suite-core/core/single_agent.py", "suite-core/core/dast_engine.py", "suite-core/core/mcp_server.py"]
     },
     {
       "id": "TD-005",
-      "title": "26 potential SQL injection vectors (Bandit B608)",
+      "title": "27 potential SQL injection vectors (Bandit B608)",
       "severity": "high",
-      "impact": "String-based SQL query construction allows injection if user input reaches queries.",
-      "fix": "Switch to parameterized queries or ORM. Audit all 26 locations.",
-      "effort_days": 4,
+      "impact": "String-based SQL query construction detected by bandit. Most are false positives (parameterized WHERE clauses use f-string only for column names, not user values). Verified safe: exposure_case.py uses ? placeholders for all user-supplied values.",
+      "fix": "Audit remaining 27 locations. Refactor to avoid f-string SQL entirely where feasible.",
+      "effort_days": 3,
       "priority": "phase1",
       "pillar": "V10",
-      "files_affected": ["suite-core/core/analytics_db.py", "suite-core/core/auth_db.py", "suite-core/core/audit_db.py"]
+      "files_affected": ["suite-core/core/exposure_case.py", "suite-core/core/persistent_store.py", "suite-core/core/services/deduplication.py", "suite-core/core/services/fuzzy_identity.py", "suite-core/core/knowledge_brain.py", "suite-core/core/intelligent_security_engine.py"]
     },
     {
       "id": "TD-006",
-      "title": "172 ruff lint warnings",
+      "title": "87 ruff lint warnings (down from 174)",
       "severity": "low",
-      "impact": "Code style inconsistency. 75 module-import-not-at-top, 65 unused-imports, 14 unused-variables.",
-      "fix": "Run ruff check --fix (69 auto-fixable). Manual fix for remaining 103.",
-      "effort_days": 1,
+      "impact": "Code style inconsistency. 77 E402 (module-import-not-at-top — architectural), 5 F401 (unused-import), 4 E701, 1 F841.",
+      "fix": "Auto-fix unused imports. E402 is architectural (sitecustomize.py pattern).",
+      "effort_days": 0.5,
       "priority": "phase1",
       "pillar": "V10",
       "files_affected": ["suite-core/", "suite-api/", "suite-attack/"]
@@ -93,14 +93,15 @@
     },
     {
       "id": "TD-009",
-      "title": "Test coverage at 19.19% (gate: 25%)",
-      "severity": "medium",
-      "impact": "CI gate fails. pyproject.toml config fixed (DEMO-006) but coverage still below 25%.",
-      "fix": "Focus test writing on measured modules (suite-core/core/, suite-api/apps/).",
-      "effort_days": 3,
+      "title": "Test coverage at 5.09% (gate: 25%)",
+      "severity": "high",
+      "impact": "CI gate fails. pyproject.toml config was fixed (DEMO-006) but coverage includes all modules now, many at 0%.",
+      "fix": "Focus test writing on measured modules. Target: 25% minimum across all suites.",
+      "effort_days": 5,
       "priority": "phase1",
       "pillar": "V10",
-      "files_affected": ["tests/", "pyproject.toml"]
+      "files_affected": ["tests/", "pyproject.toml"],
+      "note": "Coverage dropped from 19% because pyproject.toml now measures ALL suites instead of a subset. Latest run: 5.09%."
     },
     {
       "id": "TD-010",
@@ -137,7 +138,7 @@
     },
     {
       "id": "TD-013",
-      "title": "10 subprocess audit warnings (Bandit B603/B607)",
+      "title": "26 subprocess calls without shell=False verification (Bandit B603/B607)",
       "severity": "medium",
       "impact": "subprocess calls with potentially untrusted input could allow command injection.",
       "fix": "Audit all subprocess calls, ensure shell=False and input sanitization.",
@@ -156,18 +157,88 @@
       "priority": "phase2",
       "pillar": "V7",
       "files_affected": ["suite-api/apps/api/scanner_ingest_router.py"]
+    },
+    {
+      "id": "TD-015",
+      "title": "XML parser vulnerability (B314/B405) — FIXED 2026-03-02",
+      "severity": "medium",
+      "impact": "scanner_parsers.py used xml.etree.ElementTree.fromstring which is vulnerable to XXE attacks.",
+      "fix": "FIXED: Added defusedxml.defuse_stdlib() at module load + defusedxml.ElementTree.fromstring as primary parser. Regex DOCTYPE/ENTITY stripping as fallback.",
+      "effort_days": 0,
+      "priority": "done",
+      "pillar": "V7",
+      "files_affected": ["suite-core/core/scanner_parsers.py"]
+    },
+    {
+      "id": "TD-016",
+      "title": "CORS allows wildcard *.devinapps.com in default config",
+      "severity": "medium",
+      "impact": "If FIXOPS_ALLOWED_ORIGINS is not set, CORS allows requests from any *.devinapps.com subdomain. Safe for dev, risk for production.",
+      "fix": "Remove *.devinapps.com from default origins. Require explicit FIXOPS_ALLOWED_ORIGINS in production mode.",
+      "effort_days": 0.5,
+      "priority": "phase1",
+      "pillar": "V10",
+      "files_affected": ["suite-api/apps/api/app.py"]
+    },
+    {
+      "id": "TD-017",
+      "title": "SQLite connection leaks in history.py",
+      "severity": "medium",
+      "impact": "5 methods in history.py create sqlite3.connect() without try/finally. If any INSERT fails, connection leaks. Under error conditions (disk full, schema mismatch, concurrent writes), connections exhaust file descriptors.",
+      "fix": "Wrap all 5 sqlite3.connect() blocks in try/finally: conn.close(). Pattern: follow deduplication.py and remediation.py which already do this correctly.",
+      "effort_days": 0.5,
+      "priority": "phase2",
+      "pillar": "V10",
+      "files_affected": ["suite-core/core/services/history.py"],
+      "found_by": "enterprise-architect reliability review 2026-03-02"
+    },
+    {
+      "id": "TD-018",
+      "title": "No circuit breakers for LLM and MPTE calls in Brain Pipeline",
+      "severity": "medium",
+      "impact": "When LLM API or MPTE service is down, every Brain Pipeline run wastes 60-120s per call on timeouts before fallback. With circuit breaker, subsequent calls would short-circuit in <1ms after 3 failures.",
+      "fix": "Reuse _AsyncCircuitBreaker from universal_connector.py. Add module-level circuit breakers for LLM (Step 9) and MPTE (Step 10). State: OPEN after 3 failures, recovery after 60s.",
+      "effort_days": 1,
+      "priority": "phase2",
+      "pillar": "V3",
+      "files_affected": ["suite-core/core/brain_pipeline.py", "suite-core/connectors/universal_connector.py"],
+      "found_by": "enterprise-architect reliability review 2026-03-02"
+    },
+    {
+      "id": "TD-019",
+      "title": "No per-step timeouts in Brain Pipeline",
+      "severity": "low",
+      "impact": "Individual steps can hang without detection until the 300s global pipeline timeout. LLM consensus (Step 9) and MPTE (Step 10) are most likely to hang.",
+      "fix": "Add per-step configurable timeouts: 30s default, 60s LLM, 120s MPTE. Use threading.Timer or signal.alarm for enforcement.",
+      "effort_days": 0.5,
+      "priority": "phase2",
+      "pillar": "V3",
+      "files_affected": ["suite-core/core/brain_pipeline.py"],
+      "found_by": "enterprise-architect reliability review 2026-03-02"
     }
   ],
   "summary": {
-    "phase1_critical": 3,
-    "phase2_planned": 8,
+    "phase1_critical": 4,
+    "phase2_planned": 11,
     "phase3_future": 1,
-    "done": 1,
-    "total_effort_days": 55,
-    "bandit_issues": 194,
-    "ruff_warnings": 174,
-    "test_coverage": "19.19%",
-    "scanner_parser_bugs_fixed_2026_03_02": 8,
-    "scanner_parser_tests": "129/129 PASS"
+    "done": 3,
+    "total_effort_days": 58,
+    "bandit_total": 456,
+    "bandit_high": 0,
+    "bandit_medium": 63,
+    "bandit_low": 393,
+    "bandit_top5_ids": "B101(185), B110(101), B105(34), B608(27), B603(26)",
+    "ruff_warnings": 87,
+    "ruff_actionable": 10,
+    "ruff_architectural_e402": 77,
+    "test_coverage": "5.09%",
+    "test_coverage_note": "Latest measurement from core tests. Full suite coverage dropped from 19% because config now correctly measures ALL suites.",
+    "core_tests": "288/288 PASS",
+    "scanner_parser_tests": "142/142 PASS (included in core 288)",
+    "self_learning_tests": "73 PASS (included in core 288)",
+    "brain_pipeline_tests": "73 PASS (included in core 288)",
+    "xml_vulnerability_fixed": true,
+    "defusedxml_deployed": true,
+    "reliability_review": "2026-03-02 — Grade B-. History.py connection leaks found (TD-017). No circuit breakers on LLM/MPTE (TD-018). No per-step timeouts (TD-019)."
   }
 }

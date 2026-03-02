@@ -1,0 +1,138 @@
+{
+  "updated": "2026-03-02T14:30:00Z",
+  "updatedBy": "security-analyst",
+  "description": "False positive tracking for security scans. Findings listed here have been manually reviewed and dismissed.",
+  "bandit": {
+    "B608": {
+      "count": 27,
+      "reason": "All SQL queries use parameterized ? placeholders or f-string table names with regex validation",
+      "dismiss_count": 3,
+      "last_dismissed": "2026-03-02",
+      "files": ["detailed_logging.py", "mindsdb_agents.py", "persistent_store.py"]
+    },
+    "B310": {
+      "count": 15,
+      "reason": "Intentional URL opens in CLI single_agent mode — not user-controlled input",
+      "dismiss_count": 3,
+      "last_dismissed": "2026-03-02"
+    },
+    "B108": {
+      "count": 14,
+      "reason": "Temp file/directory usage in sandbox verifier and test code — acceptable risk",
+      "dismiss_count": 3,
+      "last_dismissed": "2026-03-02"
+    },
+    "B314": {
+      "count": 1,
+      "reason": "defusedxml.defuse_stdlib() called at module load in scanner_parsers.py — all XML parsing is safe",
+      "dismiss_count": 3,
+      "last_dismissed": "2026-03-02"
+    }
+  },
+  "native_sast": {
+    "SAST-024": {
+      "count": 11,
+      "severity": "CRITICAL",
+      "reason": "Admin endpoints have auth enforced at router mount level via Depends(_verify_api_key, _require_scope('admin:all')) in app.py:990-994",
+      "verdict": "FALSE_POSITIVE",
+      "dismiss_count": 1,
+      "last_dismissed": "2026-03-02"
+    },
+    "SAST-007": {
+      "count": 9,
+      "severity": "CRITICAL",
+      "reason": "Pattern strings in SAST rule detection lists (e.g., 'pickle.loads(' in autofix_engine.py:916), not actual deserialization calls",
+      "verdict": "FALSE_POSITIVE",
+      "dismiss_count": 1,
+      "last_dismissed": "2026-03-02"
+    },
+    "SAST-077": {
+      "count": 5,
+      "severity": "CRITICAL",
+      "reason": "Pattern strings in SAST rule detection lists (e.g., 'eval(' in autofix_engine.py:906), not actual eval usage",
+      "verdict": "FALSE_POSITIVE",
+      "dismiss_count": 1,
+      "last_dismissed": "2026-03-02"
+    },
+    "SAST-089": {
+      "count": 5,
+      "severity": "CRITICAL",
+      "reason": "Code actually BLOCKS cloud metadata endpoints (workflows_router.py:290 — blocked set includes 169.254.169.254). DAST engine references are for testing.",
+      "verdict": "FALSE_POSITIVE",
+      "dismiss_count": 1,
+      "last_dismissed": "2026-03-02"
+    },
+    "SAST-028": {
+      "count": 3,
+      "severity": "CRITICAL",
+      "reason": "Configurable verify_ssl for pen-testing tools (micro_pentest.py:190). Self-signed cert support is required for MPTE.",
+      "verdict": "ACCEPTABLE",
+      "dismiss_count": 1,
+      "last_dismissed": "2026-03-02"
+    },
+    "SAST-065": {
+      "count": 1,
+      "severity": "CRITICAL",
+      "reason": "Pattern string 'yaml.load(' in SAST rule detection list, not actual yaml.load call",
+      "verdict": "FALSE_POSITIVE",
+      "dismiss_count": 1,
+      "last_dismissed": "2026-03-02"
+    },
+    "SAST-081": {
+      "count": 1,
+      "severity": "CRITICAL",
+      "reason": "Pattern string 'pickle.loads(' in SAST rule detection list, not actual pickle usage",
+      "verdict": "FALSE_POSITIVE",
+      "dismiss_count": 1,
+      "last_dismissed": "2026-03-02"
+    },
+    "SAST-001": {
+      "count": 3,
+      "severity": "CRITICAL",
+      "reason": "PersistentDict table name validation added (regex [a-zA-Z0-9_]). All queries parameterized.",
+      "verdict": "FALSE_POSITIVE",
+      "dismiss_count": 1,
+      "last_dismissed": "2026-03-02"
+    },
+    "SAST-091": {
+      "count": 7,
+      "severity": "HIGH",
+      "reason": "Scanner engines intentionally test various URL schemes (file://, ftp://) — this is their purpose",
+      "verdict": "FALSE_POSITIVE",
+      "dismiss_count": 1,
+      "last_dismissed": "2026-03-02"
+    },
+    "SAST-006": {
+      "count": 3,
+      "severity": "HIGH",
+      "reason": "Enum values (API_KEY='api_key', PASSWORD='password') — not actual credentials",
+      "verdict": "FALSE_POSITIVE",
+      "dismiss_count": 1,
+      "last_dismissed": "2026-03-02"
+    },
+    "SAST-027": {
+      "count": 4,
+      "severity": "HIGH",
+      "reason": "SAST rule detection patterns for ECB mode, not actual ECB usage",
+      "verdict": "FALSE_POSITIVE",
+      "dismiss_count": 1,
+      "last_dismissed": "2026-03-02"
+    }
+  },
+  "secrets": {
+    "graph_py_format_token": {
+      "file": "suite-core/services/graph/graph.py:649",
+      "pattern": "format_token = \"%H%x1f%P%x1f%an%x1f%ad%x1f%s%x1e\"",
+      "reason": "Git log format string, not a secret token",
+      "dismiss_count": 3,
+      "last_dismissed": "2026-03-02"
+    },
+    "scanner_dashboard_example": {
+      "file": "suite-ui/aldeci/src/pages/discover/ScannerDashboard.tsx:326",
+      "pattern": "password = \"admin123\"",
+      "reason": "Example code shown in UI demo for scanner demonstration",
+      "dismiss_count": 3,
+      "last_dismissed": "2026-03-02"
+    }
+  }
+}

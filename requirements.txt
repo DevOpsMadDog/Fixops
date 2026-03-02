@@ -7,7 +7,7 @@ requests>=2.32,<3.0
 httpx>=0.27.0,<1.0
 pgmpy==0.1.24
 PyJWT>=2.8,<3.0
-cryptography>=46.0.3,<47.0.0
+cryptography>=46.0.5,<47.0.0
 cffi>=2.0.0
 structlog>=25.4.0,<26.0.0
 PyYAML>=6.0.1,<7.0

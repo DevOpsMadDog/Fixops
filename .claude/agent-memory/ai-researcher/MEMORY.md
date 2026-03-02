@@ -1,63 +1,63 @@
 # AI Researcher Agent Memory
 
-## Key Market Intelligence (Updated 2026-03-02)
+## Key Market Intelligence (Updated 2026-03-02, Pass 3)
+
+### 🔴 CRITICAL: Anthropic-Pentagon Standoff (Feb 27, 2026)
+- Pentagon blacklisted Anthropic as "supply chain risk" after Dario Amodei refused to remove AI safety guardrails (mass surveillance, autonomous weapons)
+- Claude hit #1 on US App Store overtaking ChatGPT. Daily signups at all-time records. Free users +60%, paid subs 2x in 2026
+- OpenAI struck Pentagon deal within hours — positioning as "patriotic" AI
+- Pentagon contract (~$200M) being severed, 6-month wind-down
+- ALdeci positioning: Multi-LLM + air-gap = GEOPOLITICAL resilience. New messaging: "Your security AI shouldn't be one executive order away from shutdown."
+- vLLM integration UPGRADED to P1 — self-hosted LLM now critical for DoD/IC customers
 
 ### CRITICAL: Claude Code Security (Feb 20, 2026)
-- Anthropic launched Claude Code Security — found 500+ zero-days in production OSS code
-- Cyber stocks dropped (Bloomberg). Veracode, Checkmarx, Snyk, Black Duck threatened.
-- ALdeci positioning: COMPLEMENTARY — "Claude finds. ALdeci decides."
-- Integration play: Claude findings -> brain pipeline -> MPTE -> AutoFix -> evidence
-- Snyk published "embrace" blog post — classic PR strategy
-- Available as limited research preview for Enterprise/Team customers
+- 500+ zero-days found in production OSS code. Cyber stocks dropped.
+- ALdeci: COMPLEMENTARY — "Claude finds. ALdeci decides."
+- Pentagon standoff amplifies Claude popularity → more findings → more need for ALdeci decision layer
 
 ### Competitor Landscape
-- **Wiz**: Google acquisition $32B closing END OF MARCH 2026. Switzerland moment NOW. Dazz ($450M) integrated into Wiz Code. MCP integration with Gemini Code Assist.
-- **Snyk**: IPO uncertain — growth ~12%, valuation $3.7B. ARR ~$300-340M. Ruby 4.0 + Package Health Check. Embracing Claude Code Security.
-- **Endor Labs**: $188M funded, acquired Autonomous Plane (Feb 11). 30x ARR growth, 166% NRR. 6 OpenClaw zero-days found. Rising in Cyber. ArmorCode integration.
-- **Checkmarx**: Acquired Tromzo (Dec 2025). Sale stalled ~$1.5B. Directly threatened by Claude Code Security. Checkmarx Assist (AI agents) launching.
-- **Semgrep**: $100M Series D. "Multimodal AppSec engine" (SAST+LLM). StackHawk DAST integration. 95% single-model rate. Inc. Best AI Implementation.
-- **CrowdStrike**: SGNL ($740M) + Seraphic acquisitions. 27-second eCrime breakout. AI adversary ops +89% YoY. Fal.Con Gov (Mar 18, DC).
-- **Orca Security**: Forrester Strong Performer. Agentless reachability (90% reduction). $1.8B valuation. Cloud-only.
-- **ArmorCode**: Anya agentic AI GA. 320+ integrations, 40B findings. MCP Server — validates V7. Endor Labs integration.
-- **Cyera**: $9B valuation (Series F, $400M, Jan 2026). DSPM category (different market).
-- **Tenable**: 2026 Cloud/AI Risk Report — "zero-margin AI exposure gap." Predicts automated remediation go-ahead.
+- **Wiz**: Google $32B closing **MID-MARCH 2026**. EU approved. DOJ cleared. Orca lawsuit settled (Jan 2026, dismissed with prejudice). CISPE alarmed. Switzerland PEAK.
+- **Snyk**: IPO uncertain. $3.7B. Reachability expanded Mar 9 (JS/Java/Python). Package Health Check for agentic dev.
+- **Endor Labs**: $188M. Autonomous Plane acquisition (Feb 11). 6 OpenClaw zero-days. RSA 2026 exhibitor.
+- **Checkmarx**: Sale stalled ~$1.5B. AWS Kiro IDE integration (90% rework reduction claim). Tromzo agents launching as Checkmarx Assist.
+- **Semgrep**: $100M Series D. RSA 2026 Booth #1743. AI Detection product. 18K orgs, 75M scans, 740K autofixes, 95% agreement.
+- **CrowdStrike**: FalconID GA (phishing-resistant MFA, FIDO2). SGNL ($740M) + Seraphic ($420M). Fal.Con Gov Mar 18. 27-sec breakout.
+- **Orca Security**: Lost patent battle vs Wiz (PTAB invalidated 3/6 patents). Mindshare declining 4.0%→2.6%. Settlement Jan 2026.
+- **ArmorCode**: MCP Server validates V7. Anya agentic AI GA. 320+ integrations. Endor Labs integration.
+- **Cyera**: $9B valuation. DSPM category (different market).
 
 ### Market Metrics
-- Cybersecurity VC 2025: $13.97B across 392 rounds (+47% YoY)
-- Cybersecurity M&A 2025: $84B+, 426 deals, 8 >$1B
-- 77% of orgs running GenAI in security stacks, 67% using agentic AI
-- 92% of security professionals concerned about AI agent risks
-- eCrime breakout: 29 min avg, 27 sec fastest (CrowdStrike 2026)
-- Gartner CTEM prediction: 3x breach reduction for adopters by 2026
-- MCP adoption: 30% of enterprise vendors will launch MCP servers in 2026 (Forrester)
-- vLLM v0.16: 793 TPS (19x Ollama), de facto standard for self-hosted inference
-- EPSS database: 317,833 CVEs. CISA KEV: 1,529 entries (v2026.02.26)
+- Cybersecurity VC 2025: $13.97B (+47% YoY)
+- M&A 2025: $84B+, 426 deals. Jan 2026: 34-38 deals (~477/year pace)
+- CISA KEV 2026 pace: 45 in Jan-Feb (~270/year). 1,529 total entries.
+- EPSS: 317,858 CVEs. 1,339 >90% exploitation probability.
+- RSA 2026: Mar 23-26, Moscone SF. Ardern, Horowitz, Savage keynotes.
+- NIST CAISI: Agentic AI security RFI deadline Mar 9.
 
-### Positioning Insights
-- "Claude finds. ALdeci decides." — primary messaging against Claude Code Security
-- "500 more vulns? You need a brain, not another dashboard." — noise reduction story
-- "27 seconds to breach. Can your team triage 500 new vulns that fast?" — urgency
-- "Switzerland" — peak value as Wiz goes Google this month
-- "97% noise reduction across ALL scanners" vs. Endor Labs SCA-only
-- "Multi-model consensus beats single-model" vs. Semgrep's 95%
-- "We ship what they just acquired" — vs. Checkmarx/Tromzo
-- "The only security platform that works when the internet doesn't" — vLLM air-gap
+### Positioning Insights (Ordered by Urgency)
+1. "Your security AI shouldn't be one executive order away from shutdown." — geopolitical resilience [NEW]
+2. "Claude finds. ALdeci decides." — decision layer above scanners
+3. "Google bought your security vendor." — Switzerland peak (Wiz mid-March)
+4. "3 models voting beats 1 model guessing." — validated by Pentagon crisis + market share shifts
+5. "The only security platform that works when the internet doesn't" — vLLM air-gap (P1 urgency)
+6. "27 seconds to breach." — speed urgency (CrowdStrike data)
+7. "NIST says secure your AI agents. We already do." — regulatory positioning
+8. "97% noise reduction across ALL scanners" vs. Endor Labs SCA-only
 
 ### API Patterns
-- NVD API: Filter by pubStartDate. Weekend publishing gaps are normal (0 on weekends).
-- CISA KEV: Sort by dateAdded desc for latest. 1,529 entries as of v2026.02.26.
-- EPSS API: `order=!epss` for highest scores. Newest CVEs have very low scores.
-- HackerNews: Filter top 60 stories by 30+ security/AI keywords — yields 15-18 items.
+- NVD API: Weekend gaps normal (0 critical CVEs Mar 1-2). Filter by pubStartDate.
+- CISA KEV: Old CVEs being retroactively added (2008, 2020, 2021 CVEs in 2026).
+- EPSS API: `order=!epss` for highest. New CVEs have very low EPSS (too new for exploitation data).
+- HackerNews: Top stories reliably have security/AI content. 18/60 relevant on typical day.
 
 ### Technology Research
-- vLLM v0.16: READY FOR IMPLEMENTATION. deepseek-coder-v2:16b or qwen2.5-coder:32b for AutoFix.
-- Tree-sitter AST for SAST: DEFER to Sprint 3. sast_engine.py already 1,577 LOC.
-- LiteLLM: DEPRIORITIZED — vLLM has OpenAI-compatible API directly.
-- MCP security: Document gateway security for demo.
+- **vLLM**: v0.16.0. P1 priority (was P2). Most mature production ecosystem.
+- **SGLang**: 400K+ GPU deployments globally. "De facto standard." 16,200 TPS. Evaluate Sprint 4.
+- **Trend Micro cybersecurity LLM**: Open-weight Llama 3. Evaluate for AutoFix.
+- **WebMCP**: Chrome early preview. Browser-native MCP integration.
+- Tree-sitter SAST: DEFER to Sprint 3. LiteLLM: DEPRIORITIZED. ChromaDB RAG: Sprint 4+.
 
 ### DEMO-010 Knowledge
-- KnowledgeGraphEngine uses NetworkX in-memory backend (FalkorDB fallback)
-- Engine must be singleton for state persistence across requests
-- Seed demo: 73 nodes, 110 edges, 10+ attack paths
-- Blast radius from Log4Shell: 41 affected nodes, 9.1x risk multiplier
-- Top attack path risk score: 9.2 (SQLi -> Payment Processor)
+- KnowledgeGraphEngine: NetworkX in-memory. Singleton for state persistence.
+- Seed demo: 73 nodes, 110 edges, 10+ attack paths. 75/75 tests passing.
+- Blast radius from Log4Shell: 41 affected nodes, 9.1x risk multiplier.

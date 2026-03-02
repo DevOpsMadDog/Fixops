@@ -731,10 +731,10 @@ class MCPProtocolHandler:
                 self._audit(request, result)
             return MCPResponse.success(request.id, result)
         except KeyError as e:
-            return MCPResponse.error_response(request.id, INVALID_PARAMS, str(e))
+            return MCPResponse.error_response(request.id, INVALID_PARAMS, f"Missing parameter: {e}")
         except Exception as e:
-            logger.error(f"MCP handler error: {e}")
-            return MCPResponse.error_response(request.id, INTERNAL_ERROR, str(e))
+            logger.error("MCP handler error: %s: %s", type(e).__name__, e, exc_info=True)
+            return MCPResponse.error_response(request.id, INTERNAL_ERROR, f"Internal error: {type(e).__name__}")
 
     def handle_raw(self, raw_json: str) -> str:
         """Handle a raw JSON-RPC 2.0 message string."""

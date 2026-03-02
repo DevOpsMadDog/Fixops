@@ -1,8 +1,8 @@
 services:
   fixops-demo:
     build:
-      context: .
-      dockerfile: Dockerfile.demo
+      context: ..
+      dockerfile: docker/Dockerfile.demo
     container_name: fixops-vc-demo
     ports:
       - "8000:8000"

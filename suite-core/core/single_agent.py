@@ -257,8 +257,8 @@ class GGUFBackend(BaseInferenceBackend):
         if not self.model_path or not os.path.exists(self.model_path):
             return False
         try:
-            from llama_cpp import Llama  # type: ignore
-            return True
+            import importlib.util
+            return importlib.util.find_spec("llama_cpp") is not None
         except ImportError:
             return False
 

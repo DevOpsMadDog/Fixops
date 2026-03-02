@@ -18,6 +18,7 @@ Usage::
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import threading
 from pathlib import Path
@@ -25,11 +26,18 @@ from typing import Any, Dict, Iterator
 
 _DEFAULT_DB = "data/state.db"
 
+# Only allow alphanumeric + underscore table names (defense-in-depth)
+_SAFE_TABLE_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,127}$")
+
 
 class PersistentDict:
     """Dict-like object backed by a single SQLite table."""
 
     def __init__(self, table: str, db_path: str = _DEFAULT_DB) -> None:
+        if not _SAFE_TABLE_RE.match(table):
+            raise ValueError(
+                f"Invalid table name {table!r}: must match [A-Za-z_][A-Za-z0-9_]{{0,127}}"
+            )
         self._table = table
         self._db_path = db_path
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)

@@ -1,9 +1,9 @@
 {
   "_meta": {
-    "version": "24.1",
-    "generated": "2026-03-02T12:30:00Z",
+    "version": "26.0",
+    "generated": "2026-03-02T19:30:00Z",
     "generated_by": "context-engineer",
-    "note": "No dependency changes from v24.0. requirements.txt still 30 lines (29 packages + 1 networkx conditional). npm deps 41+15. Suite import graph unchanged. Sprint 2 Day 2 verified."
+    "note": "No dependency changes from v25.0. requirements.txt hashes unchanged. npm deps 41+15. Suite import graph unchanged. v26.0 verified."
   },
   "python": {
     "production": {

@@ -333,7 +333,7 @@ async def _process_bulk_status(
                 i + 1,
                 success,
                 failure,
-                error={"id": cluster_id, "error": str(e)},
+                error={"id": cluster_id, "error": type(e).__name__},
             )
         except Exception as e:
             failure += 1
@@ -343,7 +343,7 @@ async def _process_bulk_status(
                 i + 1,
                 success,
                 failure,
-                error={"id": cluster_id, "error": str(e)},
+                error={"id": cluster_id, "error": type(e).__name__},
             )
 
     final_status = (
@@ -403,7 +403,7 @@ async def _process_bulk_assign(
                 i + 1,
                 success,
                 failure,
-                error={"id": cluster_id, "error": str(e)},
+                error={"id": cluster_id, "error": type(e).__name__},
             )
 
     final_status = (
@@ -477,7 +477,7 @@ async def _process_bulk_accept_risk(
                 i + 1,
                 success,
                 failure,
-                error={"id": cluster_id, "error": str(e)},
+                error={"id": cluster_id, "error": type(e).__name__},
             )
         except Exception as e:
             failure += 1
@@ -487,7 +487,7 @@ async def _process_bulk_accept_risk(
                 i + 1,
                 success,
                 failure,
-                error={"id": cluster_id, "error": str(e)},
+                error={"id": cluster_id, "error": type(e).__name__},
             )
 
     final_status = (
@@ -661,7 +661,7 @@ async def _process_bulk_tickets(
                 i + 1,
                 success,
                 failure,
-                error={"id": cluster_id, "error": str(e)},
+                error={"id": cluster_id, "error": type(e).__name__},
             )
 
     final_status = (
@@ -816,7 +816,7 @@ async def _process_bulk_export(
         )
     except Exception as e:
         logger.exception("Export job %s failed", job_id)
-        _jobs[job_id]["errors"].append({"error": str(e)})
+        _jobs[job_id]["errors"].append({"error": type(e).__name__})
         _complete_job(job_id, JobStatus.FAILED.value)
 
 
@@ -1099,7 +1099,7 @@ async def bulk_update_findings(request: BulkUpdateRequest):
             db.update_finding(finding)
             success += 1
         except Exception as e:
-            errors.append({"id": finding_id, "error": str(e)})
+            errors.append({"id": finding_id, "error": type(e).__name__})
 
     return BulkOperationResponse(
         success_count=success,
@@ -1123,7 +1123,7 @@ async def bulk_delete_findings(request: BulkDeleteRequest):
             else:
                 errors.append({"id": finding_id, "error": "Finding not found"})
         except Exception as e:
-            errors.append({"id": finding_id, "error": str(e)})
+            errors.append({"id": finding_id, "error": type(e).__name__})
 
     return BulkOperationResponse(
         success_count=success,
@@ -1154,7 +1154,7 @@ async def bulk_assign_findings(request: BulkAssignRequest):
             db.update_finding(finding)
             success += 1
         except Exception as e:
-            errors.append({"id": finding_id, "error": str(e)})
+            errors.append({"id": finding_id, "error": type(e).__name__})
 
     return BulkOperationResponse(
         success_count=success,
@@ -1214,7 +1214,7 @@ async def bulk_apply_policies(request: BulkApplyPoliciesRequest):
             adb.update_finding(finding)
             success += 1
         except Exception as e:
-            errors.append({"id": finding_id, "error": str(e)})
+            errors.append({"id": finding_id, "error": type(e).__name__})
 
     return BulkOperationResponse(
         success_count=success,

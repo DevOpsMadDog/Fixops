@@ -338,7 +338,7 @@ async def _run_mpte_verification_background(
     service = get_mpte_service()
     if service:
         try:
-            result = await asyncio.wait_for(
+            await asyncio.wait_for(
                 service.trigger_pen_test_from_finding(
                     finding_id=data.finding_id,
                     target_url=data.target_url,

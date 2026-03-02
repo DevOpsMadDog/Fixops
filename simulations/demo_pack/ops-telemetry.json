@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-03-01T12:00:00Z",
+  "app_name": "life-claims-portal",
+  "environment": "production",
+  "metrics": {
+    "cpu_utilization_pct": 42.5,
+    "memory_utilization_pct": 68.2,
+    "request_rate_rps": 1250,
+    "error_rate_pct": 0.12,
+    "p99_latency_ms": 245,
+    "active_connections": 890
+  },
+  "security_events": [
+    {"type": "failed_auth", "count": 23, "source_ips": ["192.168.1.100", "10.0.5.42"]},
+    {"type": "rate_limited", "count": 5, "endpoint": "/api/v1/claims/search"},
+    {"type": "waf_blocked", "count": 2, "rule": "SQL-INJECTION-DETECT"}
+  ],
+  "dependencies": {
+    "database": {"status": "healthy", "connection_pool_used": 45, "connection_pool_max": 100},
+    "cache": {"status": "healthy", "hit_rate": 0.92},
+    "queue": {"status": "healthy", "depth": 12, "processing_rate": 50}
+  }
+}

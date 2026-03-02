@@ -1,0 +1,73 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://aldeci.com/vex/acme-ecommerce-v3-2026-03-02",
+  "author": "ALdeci ThreatArchitect",
+  "timestamp": "2026-03-02T15:00:00Z",
+  "version": 1,
+  "tooling": "ALdeci CTEM+ Platform v3.0.0",
+  "statements": [
+    {
+      "vulnerability": {"@id": "CVE-2024-22259", "name": "CVE-2024-22259", "description": "Spring Framework SSRF via UriComponentsBuilder"},
+      "products": [{"@id": "pkg:maven/org.springframework.boot/spring-boot-starter-web@3.2.3"}],
+      "status": "affected",
+      "justification": "vulnerable_code_in_use",
+      "impact_statement": "Payment service uses UriComponentsBuilder for Stripe callback URL construction. SSRF to internal metadata service confirmed via threat model TM-EC3-004.",
+      "action_statement": "Upgrade to Spring Boot 3.2.4+ which patches CVE-2024-22259. Add URL scheme and hostname allowlist.",
+      "timestamp": "2026-03-02T15:00:00Z"
+    },
+    {
+      "vulnerability": {"@id": "CVE-2024-22243", "name": "CVE-2024-22243", "description": "Spring Framework open redirect"},
+      "products": [{"@id": "pkg:maven/org.springframework.boot/spring-boot-starter-web@3.2.3"}],
+      "status": "affected",
+      "justification": "vulnerable_code_in_use",
+      "impact_statement": "Auth service login redirect uses UriComponentsBuilder to construct redirect URLs from user input. Matches CVE pattern.",
+      "action_statement": "Upgrade to Spring Boot 3.2.3+ and implement domain allowlist for redirect URLs.",
+      "timestamp": "2026-03-02T15:00:00Z"
+    },
+    {
+      "vulnerability": {"@id": "CVE-2024-22234", "name": "CVE-2024-22234", "description": "Spring Security authorization bypass"},
+      "products": [{"@id": "pkg:maven/org.springframework.boot/spring-boot-starter-security@3.2.3"}],
+      "status": "affected",
+      "justification": "vulnerable_code_in_use",
+      "impact_statement": "Admin controller endpoint uses HttpServletRequest.getRemoteUser() which returns null for unauthenticated requests, bypassing authorization.",
+      "action_statement": "Replace getRemoteUser() with SecurityContextHolder.getContext().getAuthentication(). Upgrade Spring Security.",
+      "timestamp": "2026-03-02T15:00:00Z"
+    },
+    {
+      "vulnerability": {"@id": "CVE-2024-21626", "name": "CVE-2024-21626", "description": "runc container escape"},
+      "products": [{"@id": "pkg:generic/amazon-ecs-fargate@1.4.0"}],
+      "status": "not_affected",
+      "justification": "infrastructure_not_reachable",
+      "impact_statement": "AWS Fargate manages the underlying runtime and patched runc in February 2024. ECS Fargate tasks are not affected because customers do not control the container runtime.",
+      "action_statement": "No action required. AWS manages Fargate runtime patching.",
+      "timestamp": "2026-03-02T15:00:00Z"
+    },
+    {
+      "vulnerability": {"@id": "CVE-2024-3094", "name": "CVE-2024-3094", "description": "XZ Utils backdoor"},
+      "products": [{"@id": "pkg:generic/amazon-ecs-fargate@1.4.0"}],
+      "status": "not_affected",
+      "justification": "component_not_present",
+      "impact_statement": "Container base images use Amazon Linux 2023 which ships xz 5.4.x, not affected versions 5.6.0/5.6.1.",
+      "action_statement": "Verify base image xz version via 'xz --version'. Pin to Amazon Linux 2023 images.",
+      "timestamp": "2026-03-02T15:00:00Z"
+    },
+    {
+      "vulnerability": {"@id": "CVE-2023-41056", "name": "CVE-2023-41056", "description": "Redis heap buffer overflow"},
+      "products": [{"@id": "pkg:generic/amazon-elasticache-redis@7.1"}],
+      "status": "under_investigation",
+      "justification": "requires_further_analysis",
+      "impact_statement": "ElastiCache Redis 7.1 may be affected. AWS has not confirmed patch status for managed Redis. Session data at risk if exploited.",
+      "action_statement": "Contact AWS support to confirm Redis engine version. Enable encryption in transit as defense-in-depth.",
+      "timestamp": "2026-03-02T15:00:00Z"
+    },
+    {
+      "vulnerability": {"@id": "CVE-2024-28834", "name": "CVE-2024-28834", "description": "GnuTLS RSA side-channel"},
+      "products": [{"@id": "pkg:pypi/cryptography@42.0.4"}],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Cryptography library uses OpenSSL backend, not GnuTLS. RSA-PSK key exchange not used in application.",
+      "action_statement": "No action required. Monitor for OpenSSL-specific advisories.",
+      "timestamp": "2026-03-02T15:00:00Z"
+    }
+  ]
+}

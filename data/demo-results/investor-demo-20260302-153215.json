@@ -1,0 +1,22 @@
+{
+  "demo": "ctem-investor-demo",
+  "timestamp": "2026-03-02T04:33:41.560174Z",
+  "duration_seconds": 86,
+  "total_steps": 24,
+  "passed": 22,
+  "failed": 1,
+  "pass_rate": 91.7,
+  "phases": [
+    "DISCOVER",
+    "VALIDATE",
+    "REMEDIATE",
+    "COMPLY",
+    "PLATFORM"
+  ],
+  "pillars": [
+    "V3",
+    "V5",
+    "V7",
+    "V10"
+  ]
+}

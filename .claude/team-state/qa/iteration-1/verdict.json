@@ -1,13 +1,35 @@
 {
   "iteration": 1,
-  "date": "2026-03-02T02:35:20Z",
+  "date": "2026-03-02T04:55:00Z",
   "total_collections": 7,
-  "total_assertions": 382,
-  "passed": 341,
-  "failed": 41,
-  "pass_rate": 89.2,
+  "total_assertions": 475,
+  "passed": 475,
+  "failed": 0,
+  "pass_rate": 100.0,
   "newman_threshold": 85,
-  "verdict": "WARN",
+  "verdict": "PASS",
   "can_exit_early": true,
-  "run_id": "swarm-2026-03-02_00-05-50"
+  "run_id": "swarm-2026-03-02_13-35-43",
+  "moat_tests": {
+    "total": 3252,
+    "passed": 3252,
+    "failed": 0,
+    "new_tests_added": 167,
+    "tests_fixed": 4,
+    "moat_coverage_pct": 79.9
+  },
+  "customer_simulations": {
+    "brain_pipeline": "PASS",
+    "sast_scan": "PASS",
+    "secrets_scan": "PASS",
+    "cspm_scan": "PASS",
+    "mcp_discovery": "PASS",
+    "mpte_verify": "PASS"
+  },
+  "improvements": [
+    "mpte_advanced.py: 0% → 100% coverage (167 new tests)",
+    "micro_pentest.py: 1 test fix (httpx.ConnectError)",
+    "attack_simulation_engine.py: 2 test fixes (_llm=False sentinel)",
+    "secrets_scanner.py: 2 test fixes (metadata key assertions)"
+  ]
 }

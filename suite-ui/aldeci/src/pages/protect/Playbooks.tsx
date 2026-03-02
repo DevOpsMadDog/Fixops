@@ -117,50 +117,18 @@ export default function Playbooks() {
     },
   });
 
-  // Extract playbooks from API response (handles {items:[...]}, {workflows:[...]}, or array)
-  const rawData = workflowsData?.items || workflowsData?.workflows || (Array.isArray(workflowsData) ? workflowsData : null);
-  const playbooks: Playbook[] = Array.isArray(rawData) && rawData.length > 0 ? rawData : [
-    { 
-      id: 'pb-1', 
-      name: 'Critical CVE Response', 
-      description: 'Auto-create Jira ticket and notify Slack for critical CVEs',
-      trigger: 'critical_vulnerability',
-      status: 'active',
-      lastRun: '2 hours ago',
-      runCount: 47,
-      actions: ['Create Jira Ticket', 'Send Slack Alert', 'Assign to Security Team']
-    },
-    { 
-      id: 'pb-2', 
-      name: 'KEV Remediation', 
-      description: 'Immediate escalation for Known Exploited Vulnerabilities',
-      trigger: 'kev_detected',
-      status: 'active',
-      lastRun: '1 day ago',
-      runCount: 12,
-      actions: ['Escalate to CISO', 'Block in Firewall', 'Create Emergency Ticket']
-    },
-    { 
-      id: 'pb-3', 
-      name: 'SBOM Violation Alert', 
-      description: 'Alert when unapproved dependencies detected',
-      trigger: 'sbom_violation',
-      status: 'paused',
-      lastRun: '3 days ago',
-      runCount: 8,
-      actions: ['Send Email', 'Block Pipeline', 'Log Violation']
-    },
-    { 
-      id: 'pb-4', 
-      name: 'Weekly Security Report', 
-      description: 'Generate and distribute weekly security summary',
-      trigger: 'schedule_weekly',
-      status: 'active',
-      lastRun: '5 days ago',
-      runCount: 23,
-      actions: ['Generate Report', 'Email to Stakeholders', 'Archive to S3']
-    },
-  ];
+  // Extract playbooks from API response - zero mock data
+  const rawData = workflowsData?.items || workflowsData?.workflows || (Array.isArray(workflowsData) ? workflowsData : []);
+  const playbooks: Playbook[] = (Array.isArray(rawData) ? rawData : []).map((w: any) => ({
+    id: w.id || w.workflow_id || `pb-${Math.random().toString(36).slice(2, 8)}`,
+    name: w.name || 'Unnamed Playbook',
+    description: w.description || '',
+    trigger: w.trigger || w.trigger_type || 'manual',
+    status: (w.status === 'active' || w.enabled) ? 'active' : w.status === 'draft' ? 'draft' : 'paused',
+    lastRun: w.last_run || w.last_executed || undefined,
+    runCount: w.run_count || w.execution_count || 0,
+    actions: w.actions || w.steps?.map((s: any) => s.name || s.type) || [],
+  }));
 
   const stats = {
     total: playbooks.length,
@@ -298,6 +266,19 @@ export default function Playbooks() {
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : playbooks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <ClipboardList className="w-16 h-16 text-muted-foreground/30 mb-4" />
+              <h3 className="text-lg font-semibold text-muted-foreground mb-2">No Playbooks Yet</h3>
+              <p className="text-sm text-muted-foreground/70 max-w-md mb-4">
+                Create automated response playbooks to handle security events. Playbooks can auto-create tickets,
+                send alerts, and trigger remediation workflows.
+              </p>
+              <Button onClick={() => setShowCreateModal(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Your First Playbook
+              </Button>
             </div>
           ) : (
             <div className="space-y-3">

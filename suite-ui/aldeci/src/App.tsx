@@ -6,6 +6,7 @@ import { Toaster } from 'sonner';
 import MainLayout from './layouts/MainLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import ApiActivityPanel from './components/ApiActivityPanel';
+import CommandPalette from './components/CommandPalette';
 import { logNavigation, logClick } from './lib/api';
 
 // Lazy load pages for better performance
@@ -97,10 +98,45 @@ const ScannerIngestUpload = lazy(() => import('./pages/discover/ScannerIngestUpl
 // Validate Space — Sandbox Verification (V5 MPTE)
 const SandboxVerification = lazy(() => import('./pages/attack/SandboxVerification'));
 
-// Loading fallback
+// 404 Page
+const NotFound = lazy(() => import('./pages/NotFound'));
+
+// Loading fallback — skeleton instead of spinner for Apple-quality feel
 const PageLoader = () => (
-  <div className="flex items-center justify-center h-full">
-    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+  <div className="space-y-6 p-6 animate-in fade-in duration-200">
+    {/* Header skeleton */}
+    <div className="flex items-center justify-between">
+      <div className="space-y-2">
+        <div className="h-8 w-64 bg-gray-700/30 rounded-md animate-pulse" />
+        <div className="h-4 w-96 bg-gray-700/20 rounded animate-pulse" />
+      </div>
+      <div className="flex gap-2">
+        <div className="h-10 w-24 bg-gray-700/20 rounded-md animate-pulse" />
+        <div className="h-10 w-32 bg-gray-700/20 rounded-md animate-pulse" />
+      </div>
+    </div>
+    {/* Stat cards skeleton */}
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {[1,2,3,4].map(i => (
+        <div key={i} className="border border-gray-700/20 bg-gray-900/30 rounded-lg p-6">
+          <div className="h-3 w-20 bg-gray-700/30 rounded animate-pulse mb-3" />
+          <div className="h-8 w-16 bg-gray-700/30 rounded animate-pulse" />
+        </div>
+      ))}
+    </div>
+    {/* Content skeleton */}
+    <div className="border border-gray-700/20 bg-gray-900/30 rounded-lg p-6 space-y-4">
+      <div className="h-5 w-40 bg-gray-700/30 rounded animate-pulse" />
+      {[1,2,3,4,5].map(i => (
+        <div key={i} className="flex items-center gap-4 py-3">
+          <div className="h-3 w-3 bg-gray-700/30 rounded-full animate-pulse" />
+          <div className="flex-1 space-y-2">
+            <div className="h-4 w-48 bg-gray-700/20 rounded animate-pulse" />
+            <div className="h-3 w-80 bg-gray-700/15 rounded animate-pulse" />
+          </div>
+        </div>
+      ))}
+    </div>
   </div>
 );
 
@@ -154,10 +190,13 @@ function AnimatedRoutes() {
     <AnimatePresence mode="wait">
       <motion.div
         key={location.pathname}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={{ duration: 0.2 }}
+        initial={{ opacity: 0, y: 12, scale: 0.995 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -8, scale: 0.995 }}
+        transition={{
+          duration: 0.25,
+          ease: [0.16, 1, 0.3, 1], // Apple ease-out-expo
+        }}
         className="h-full"
       >
         <Suspense fallback={<PageLoader />}>
@@ -260,8 +299,8 @@ function AnimatedRoutes() {
             <Route path="/remediation-center" element={<RemediationCenter />} />
             <Route path="/evidence-vault" element={<EvidenceVault />} />
             
-            {/* Fallback */}
-            <Route path="*" element={<Dashboard />} />
+            {/* 404 */}
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
       </motion.div>
@@ -275,6 +314,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <NavigationLogger />
+        <CommandPalette />
         <GlobalClickLogger>
         <MainLayout>
           <ErrorBoundary>

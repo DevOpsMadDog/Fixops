@@ -348,8 +348,13 @@ async def _call_llm_agent(
     content_parts.append(llm_response.reasoning)
 
     if llm_response.mitre_techniques:
+        # Handle both List[str] and List[Dict] formats from different providers
+        technique_strs = [
+            t if isinstance(t, str) else t.get("technique_id", t.get("name", str(t)))
+            for t in llm_response.mitre_techniques
+        ]
         content_parts.append(
-            "\n**MITRE ATT&CK:** " + ", ".join(llm_response.mitre_techniques)
+            "\n**MITRE ATT&CK:** " + ", ".join(technique_strs)
         )
     if llm_response.compliance_concerns:
         content_parts.append(

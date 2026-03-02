@@ -185,7 +185,7 @@ async def score_finding(
         return FAILScoreResponse(**result_dict)
     except Exception as e:
         logger.exception("FAIL scoring failed: %s", e)
-        raise HTTPException(status_code=500, detail=f"Scoring failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Scoring failed: {type(e).__name__}")
 
 
 @router.post("/score/batch", response_model=FAILBatchResponse, summary="Score multiple findings")

@@ -1,0 +1,163 @@
+{
+  "suite": "ALdeci CTEM+ Sunday Regression",
+  "timestamp": "2026-03-02T03:53:58.685816+00:00",
+  "elapsed_ms": 169227.28,
+  "architectures_tested": [
+    "ecommerce",
+    "healthcare",
+    "finserv",
+    "iot",
+    "govcloud"
+  ],
+  "total_checks": 120,
+  "passed": 119,
+  "failed": 1,
+  "pass_rate": 99.2,
+  "sections": {
+    "Platform Health": {
+      "passed": 16,
+      "total": 16,
+      "pct": 100.0
+    },
+    "Scanners \u2014 E-Commerce Platform (AWS)": {
+      "passed": 7,
+      "total": 7,
+      "pct": 100.0
+    },
+    "CTEM Pipeline \u2014 E-Commerce Platform (AWS)": {
+      "passed": 10,
+      "total": 10,
+      "pct": 100.0
+    },
+    "Scanners \u2014 Healthcare SaaS (Azure)": {
+      "passed": 6,
+      "total": 7,
+      "pct": 85.7
+    },
+    "CTEM Pipeline \u2014 Healthcare SaaS (Azure)": {
+      "passed": 10,
+      "total": 10,
+      "pct": 100.0
+    },
+    "Scanners \u2014 Financial Services (Multi-Cloud)": {
+      "passed": 7,
+      "total": 7,
+      "pct": 100.0
+    },
+    "CTEM Pipeline \u2014 Financial Services (Multi-Cloud)": {
+      "passed": 10,
+      "total": 10,
+      "pct": 100.0
+    },
+    "Scanners \u2014 IoT/OT Platform (On-Prem + Cloud)": {
+      "passed": 7,
+      "total": 7,
+      "pct": 100.0
+    },
+    "CTEM Pipeline \u2014 IoT/OT Platform (On-Prem + Cloud)": {
+      "passed": 10,
+      "total": 10,
+      "pct": 100.0
+    },
+    "Scanners \u2014 Government/Defense (FedRAMP High)": {
+      "passed": 7,
+      "total": 7,
+      "pct": 100.0
+    },
+    "CTEM Pipeline \u2014 Government/Defense (FedRAMP High)": {
+      "passed": 10,
+      "total": 10,
+      "pct": 100.0
+    },
+    "Cross-Architecture Analytics": {
+      "passed": 14,
+      "total": 14,
+      "pct": 100.0
+    },
+    "ALdeci Self-Scan (Dogfooding)": {
+      "passed": 5,
+      "total": 5,
+      "pct": 100.0
+    }
+  },
+  "artifacts": {
+    "ecommerce_sast_python": 6,
+    "ecommerce_sast_java": 4,
+    "ecommerce_secrets": 4,
+    "ecommerce_container": 5,
+    "ecommerce_terraform": 4,
+    "ecommerce_cloudformation": 0,
+    "ecommerce_brain_run_id": "BR-50EACCF18BE1",
+    "ecommerce_brain_steps": 9,
+    "ecommerce_noise_reduction": 50.0,
+    "ecommerce_fix_id": "fix-5c4dfc95e1b2b350",
+    "ecommerce_fix_confidence": 0.8664568696880889,
+    "ecommerce_evidence_id": "",
+    "ecommerce_evidence_hash": "",
+    "ecommerce_compliance_score": 0.8636,
+    "healthcare_sast_python": 5,
+    "healthcare_sast_java": 3,
+    "healthcare_secrets": 2,
+    "healthcare_container": 5,
+    "healthcare_terraform": 0,
+    "healthcare_cloudformation": 0,
+    "healthcare_brain_run_id": "BR-E57D8C19FDB1",
+    "healthcare_brain_steps": 9,
+    "healthcare_noise_reduction": 66.7,
+    "healthcare_fix_id": "fix-a78b24ec95b564af",
+    "healthcare_fix_confidence": 0.8664568696880889,
+    "healthcare_evidence_id": "",
+    "healthcare_evidence_hash": "",
+    "healthcare_compliance_score": 0.8636,
+    "finserv_sast_python": 7,
+    "finserv_sast_java": 3,
+    "finserv_secrets": 3,
+    "finserv_container": 5,
+    "finserv_terraform": 1,
+    "finserv_cloudformation": 0,
+    "finserv_brain_run_id": "BR-CF531AC04D76",
+    "finserv_brain_steps": 9,
+    "finserv_noise_reduction": 66.7,
+    "finserv_fix_id": "fix-d4b5465f8effeefd",
+    "finserv_fix_confidence": 0.8664568696880889,
+    "finserv_evidence_id": "",
+    "finserv_evidence_hash": "",
+    "finserv_compliance_score": 0.8636,
+    "iot_sast_python": 6,
+    "iot_sast_java": 4,
+    "iot_secrets": 2,
+    "iot_container": 6,
+    "iot_terraform": 2,
+    "iot_cloudformation": 0,
+    "iot_brain_run_id": "BR-4F3442245C9F",
+    "iot_brain_steps": 9,
+    "iot_noise_reduction": 66.7,
+    "iot_fix_id": "fix-7193c0b217bdc132",
+    "iot_fix_confidence": 0.8664568696880889,
+    "iot_evidence_id": "",
+    "iot_evidence_hash": "",
+    "iot_compliance_score": 0.8636,
+    "govcloud_sast_python": 5,
+    "govcloud_sast_java": 4,
+    "govcloud_secrets": 3,
+    "govcloud_container": 5,
+    "govcloud_terraform": 4,
+    "govcloud_cloudformation": 0,
+    "govcloud_brain_run_id": "BR-3E516AA5558E",
+    "govcloud_brain_steps": 9,
+    "govcloud_noise_reduction": 66.7,
+    "govcloud_fix_id": "fix-e15338f723f97517",
+    "govcloud_fix_confidence": 0.866456869688089,
+    "govcloud_evidence_id": "",
+    "govcloud_evidence_hash": "",
+    "govcloud_compliance_score": 0.8636,
+    "total_analytics_findings": 0,
+    "total_pipeline_runs": 19,
+    "knowledge_graph_nodes": 0,
+    "mcp_tools_count": 100,
+    "total_autofix_count": 0,
+    "self_sast_findings": 1,
+    "self_brain_steps": 9
+  },
+  "success": false
+}

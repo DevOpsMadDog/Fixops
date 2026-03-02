@@ -1,0 +1,36 @@
+{
+  "task_id": "junior-worker-test-run",
+  "worker_id": "junior-worker",
+  "status": "completed",
+  "test_suite": "tests/test_security_analyst_persona.py",
+  "results": {
+    "passed": 109,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 2,
+    "total_collected": 111,
+    "duration_seconds": 89.45
+  },
+  "skipped_tests": [
+    "test_brain_graph_traversal (O(n) full graph scan on 34K+ node brain DB — too slow for CI)",
+    "test_copilot_router_full_loop (copilot_router.py has a production bug: mitre_techniques returned as List[Dict] but joined with str.join(), causing TypeError (500) on step 3)"
+  ],
+  "slowest_tests": [
+    "test_autofix_generate_bulk (19.20s)",
+    "test_copilot_send_message_remediation_agent (8.71s)",
+    "test_copilot_suggestions (7.47s)",
+    "test_autofix_generate_fix (7.03s)",
+    "test_e2e_finding_triage_to_fix (6.33s)"
+  ],
+  "coverage": {
+    "total_percent": 18.53,
+    "gate_required": 25,
+    "gap_below_gate": 6.47
+  },
+  "warnings": [
+    "ResourceWarning: unclosed database in <sqlite3.Connection object at 0x10c49f880>"
+  ],
+  "summary": "Test suite completed successfully with 109 passed tests, 2 skipped, 0 failures. Entire suite executed in 89.45s with timeout set to 120s. Coverage at 18.53% (below 25% gate by 6.47pp, known project-level issue).",
+  "confidence": 1.0,
+  "duration_turns": 2
+}

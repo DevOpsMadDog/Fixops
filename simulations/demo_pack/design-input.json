@@ -1,0 +1,35 @@
+{
+  "app_name": "life-claims-portal",
+  "version": "2.1.0",
+  "architecture": "microservices",
+  "components": [
+    {
+      "name": "claims-api",
+      "language": "java",
+      "framework": "spring-boot",
+      "exposure": "public",
+      "data_classification": "PII"
+    },
+    {
+      "name": "claims-processor",
+      "language": "python",
+      "framework": "celery",
+      "exposure": "internal",
+      "data_classification": "PHI"
+    },
+    {
+      "name": "document-store",
+      "language": "go",
+      "framework": "gin",
+      "exposure": "internal",
+      "data_classification": "confidential"
+    }
+  ],
+  "threat_model": {
+    "trust_boundaries": ["DMZ", "internal-network", "database-tier"],
+    "data_flows": [
+      {"from": "claims-api", "to": "claims-processor", "protocol": "AMQP", "encrypted": true},
+      {"from": "claims-processor", "to": "document-store", "protocol": "gRPC", "encrypted": true}
+    ]
+  }
+}

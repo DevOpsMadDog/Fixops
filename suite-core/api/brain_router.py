@@ -13,9 +13,83 @@ from typing import Any, Dict, List, Optional
 from core.event_bus import Event, EventType, get_event_bus
 from core.knowledge_brain import EdgeType, EntityType, GraphEdge, GraphNode, get_brain
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field, field_validator
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/brain", tags=["knowledge-brain"])
+
+# ---------------------------------------------------------------------------
+# Pydantic models for input validation (P0 — prevent injection/type confusion)
+# ---------------------------------------------------------------------------
+_MAX_ID_LEN = 512
+_MAX_FIELD_LEN = 10_000
+
+
+class NodeCreateRequest(BaseModel):
+    """Validated request for creating/updating a Knowledge Graph node."""
+    node_id: str = Field(..., min_length=1, max_length=_MAX_ID_LEN)
+    node_type: str = Field(..., min_length=1, max_length=64)
+    org_id: Optional[str] = Field(None, max_length=_MAX_ID_LEN)
+    properties: Dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("node_id", "node_type")
+    @classmethod
+    def no_null_bytes(cls, v: str) -> str:
+        if "\x00" in v:
+            raise ValueError("Null bytes not allowed in identifiers")
+        return v.strip()
+
+
+class EdgeCreateRequest(BaseModel):
+    """Validated request for creating a Knowledge Graph edge."""
+    source_id: str = Field(..., min_length=1, max_length=_MAX_ID_LEN)
+    target_id: str = Field(..., min_length=1, max_length=_MAX_ID_LEN)
+    edge_type: str = Field(..., min_length=1, max_length=64)
+    properties: Dict[str, Any] = Field(default_factory=dict)
+    confidence: float = Field(1.0, ge=0.0, le=1.0)
+
+
+class IngestCVERequest(BaseModel):
+    """Validated CVE ingest request."""
+    cve_id: str = Field(..., min_length=1, max_length=30, pattern=r"^CVE-\d{4}-\d{4,}$")
+    org_id: Optional[str] = Field(None, max_length=_MAX_ID_LEN)
+    severity: Optional[str] = Field(None, max_length=20)
+    cvss_score: Optional[float] = Field(None, ge=0.0, le=10.0)
+    description: Optional[str] = Field(None, max_length=_MAX_FIELD_LEN)
+
+
+class IngestFindingRequest(BaseModel):
+    """Validated finding ingest request."""
+    finding_id: str = Field(..., min_length=1, max_length=_MAX_ID_LEN)
+    org_id: Optional[str] = Field(None, max_length=_MAX_ID_LEN)
+    cve_id: Optional[str] = Field(None, max_length=30)
+    title: Optional[str] = Field(None, max_length=500)
+    severity: Optional[str] = Field(None, max_length=20)
+    source: Optional[str] = Field(None, max_length=100)
+
+
+class IngestScanRequest(BaseModel):
+    """Validated scan ingest request."""
+    scan_id: str = Field(..., min_length=1, max_length=_MAX_ID_LEN)
+    org_id: Optional[str] = Field(None, max_length=_MAX_ID_LEN)
+    scanner: Optional[str] = Field(None, max_length=100)
+    findings: Optional[List[Dict[str, Any]]] = None
+
+
+class IngestAssetRequest(BaseModel):
+    """Validated asset ingest request."""
+    asset_id: str = Field(..., min_length=1, max_length=_MAX_ID_LEN)
+    org_id: Optional[str] = Field(None, max_length=_MAX_ID_LEN)
+    name: Optional[str] = Field(None, max_length=500)
+    asset_type: Optional[str] = Field(None, max_length=100)
+
+
+class IngestRemediationRequest(BaseModel):
+    """Validated remediation task ingest request."""
+    task_id: str = Field(..., min_length=1, max_length=_MAX_ID_LEN)
+    org_id: Optional[str] = Field(None, max_length=_MAX_ID_LEN)
+    finding_id: Optional[str] = Field(None, max_length=_MAX_ID_LEN)
+    status: Optional[str] = Field(None, max_length=50)
 
 
 # ---------------------------------------------------------------------------
@@ -24,20 +98,14 @@ router = APIRouter(prefix="/api/v1/brain", tags=["knowledge-brain"])
 
 
 @router.post("/nodes", status_code=201)
-async def create_or_update_node(body: Dict[str, Any]) -> Dict[str, Any]:
+async def create_or_update_node(body: NodeCreateRequest) -> Dict[str, Any]:
     """Create or update a node in the Knowledge Graph."""
-    node_id = body.get("node_id")
-    node_type = body.get("node_type")
-    if not node_id or not node_type:
-        raise HTTPException(
-            status_code=422, detail="node_id and node_type are required"
-        )
     brain = get_brain()
     node = GraphNode(
-        node_id=node_id,
-        node_type=node_type,
-        org_id=body.get("org_id"),
-        properties=body.get("properties", {}),
+        node_id=body.node_id,
+        node_type=body.node_type,
+        org_id=body.org_id,
+        properties=body.properties,
     )
     result = brain.upsert_node(node)
     bus = get_event_bus()
@@ -45,8 +113,8 @@ async def create_or_update_node(body: Dict[str, Any]) -> Dict[str, Any]:
         Event(
             event_type=EventType.GRAPH_UPDATED,
             source="brain_router",
-            data={"action": "upsert_node", "node_id": node_id, "node_type": node_type},
-            org_id=body.get("org_id"),
+            data={"action": "upsert_node", "node_id": body.node_id, "node_type": body.node_type},
+            org_id=body.org_id,
         )
     )
     return {
@@ -117,22 +185,15 @@ async def delete_node(node_id: str) -> Dict[str, Any]:
 
 
 @router.post("/edges", status_code=201)
-async def create_edge(body: Dict[str, Any]) -> Dict[str, Any]:
+async def create_edge(body: EdgeCreateRequest) -> Dict[str, Any]:
     """Create or update an edge between two nodes."""
-    source_id = body.get("source_id")
-    target_id = body.get("target_id")
-    edge_type = body.get("edge_type")
-    if not source_id or not target_id or not edge_type:
-        raise HTTPException(
-            status_code=422, detail="source_id, target_id, and edge_type are required"
-        )
     brain = get_brain()
     edge = GraphEdge(
-        source_id=source_id,
-        target_id=target_id,
-        edge_type=edge_type,
-        properties=body.get("properties", {}),
-        confidence=body.get("confidence", 1.0),
+        source_id=body.source_id,
+        target_id=body.target_id,
+        edge_type=body.edge_type,
+        properties=body.properties,
+        confidence=body.confidence,
     )
     result = brain.add_edge(edge)
     return {
@@ -337,95 +398,72 @@ async def list_edge_types() -> Dict[str, Any]:
 
 
 @router.post("/ingest/cve")
-async def ingest_cve(body: Dict[str, Any]) -> Dict[str, Any]:
+async def ingest_cve(body: IngestCVERequest) -> Dict[str, Any]:
     """Ingest a CVE into the Knowledge Brain."""
-    cve_id = body.get("cve_id")
-    if not cve_id:
-        raise HTTPException(status_code=422, detail="cve_id is required")
     brain = get_brain()
-    org_id = body.pop("org_id", None)
-    cve_id_val = body.pop("cve_id")
-    node = brain.ingest_cve(cve_id_val, org_id=org_id, **body)
+    extra = body.model_dump(exclude={"cve_id", "org_id"}, exclude_none=True)
+    node = brain.ingest_cve(body.cve_id, org_id=body.org_id, **extra)
     bus = get_event_bus()
     await bus.emit(
         Event(
             event_type=EventType.CVE_DISCOVERED,
             source="brain_router",
-            data={"cve_id": cve_id_val, **body},
-            org_id=org_id,
+            data={"cve_id": body.cve_id, **extra},
+            org_id=body.org_id,
         )
     )
     return {"node_id": node.node_id, "node_type": "cve", "ingested": True}
 
 
 @router.post("/ingest/finding")
-async def ingest_finding(body: Dict[str, Any]) -> Dict[str, Any]:
+async def ingest_finding(body: IngestFindingRequest) -> Dict[str, Any]:
     """Ingest a security finding into the Knowledge Brain."""
-    finding_id = body.get("finding_id")
-    if not finding_id:
-        raise HTTPException(status_code=422, detail="finding_id is required")
     brain = get_brain()
-    org_id = body.pop("org_id", None)
-    fid = body.pop("finding_id")
-    cve_id = body.pop("cve_id", None)
-    node = brain.ingest_finding(fid, org_id=org_id, cve_id=cve_id, **body)
+    extra = body.model_dump(exclude={"finding_id", "org_id", "cve_id"}, exclude_none=True)
+    node = brain.ingest_finding(body.finding_id, org_id=body.org_id, cve_id=body.cve_id, **extra)
     bus = get_event_bus()
     await bus.emit(
         Event(
             event_type=EventType.FINDING_CREATED,
             source="brain_router",
-            data={"finding_id": fid, "cve_id": cve_id, **body},
-            org_id=org_id,
+            data={"finding_id": body.finding_id, "cve_id": body.cve_id, **extra},
+            org_id=body.org_id,
         )
     )
     return {"node_id": node.node_id, "node_type": "finding", "ingested": True}
 
 
 @router.post("/ingest/scan")
-async def ingest_scan(body: Dict[str, Any]) -> Dict[str, Any]:
+async def ingest_scan(body: IngestScanRequest) -> Dict[str, Any]:
     """Ingest a scan result into the Knowledge Brain."""
-    scan_id = body.get("scan_id")
-    if not scan_id:
-        raise HTTPException(status_code=422, detail="scan_id is required")
     brain = get_brain()
-    org_id = body.pop("org_id", None)
-    sid = body.pop("scan_id")
-    findings = body.pop("findings", None)
-    node = brain.ingest_scan(sid, org_id=org_id, findings=findings, **body)
+    extra = body.model_dump(exclude={"scan_id", "org_id", "findings"}, exclude_none=True)
+    node = brain.ingest_scan(body.scan_id, org_id=body.org_id, findings=body.findings, **extra)
     return {"node_id": node.node_id, "node_type": "scan", "ingested": True}
 
 
 @router.post("/ingest/asset")
-async def ingest_asset(body: Dict[str, Any]) -> Dict[str, Any]:
+async def ingest_asset(body: IngestAssetRequest) -> Dict[str, Any]:
     """Ingest an asset into the Knowledge Brain."""
-    asset_id = body.get("asset_id")
-    if not asset_id:
-        raise HTTPException(status_code=422, detail="asset_id is required")
     brain = get_brain()
-    org_id = body.pop("org_id", None)
-    aid = body.pop("asset_id")
-    node = brain.ingest_asset(aid, org_id=org_id, **body)
+    extra = body.model_dump(exclude={"asset_id", "org_id"}, exclude_none=True)
+    node = brain.ingest_asset(body.asset_id, org_id=body.org_id, **extra)
     return {"node_id": node.node_id, "node_type": "asset", "ingested": True}
 
 
 @router.post("/ingest/remediation")
-async def ingest_remediation(body: Dict[str, Any]) -> Dict[str, Any]:
+async def ingest_remediation(body: IngestRemediationRequest) -> Dict[str, Any]:
     """Ingest a remediation task into the Knowledge Brain."""
-    task_id = body.get("task_id")
-    if not task_id:
-        raise HTTPException(status_code=422, detail="task_id is required")
     brain = get_brain()
-    org_id = body.pop("org_id", None)
-    tid = body.pop("task_id")
-    finding_id = body.pop("finding_id", None)
-    node = brain.ingest_remediation(tid, finding_id=finding_id, org_id=org_id, **body)
+    extra = body.model_dump(exclude={"task_id", "org_id", "finding_id"}, exclude_none=True)
+    node = brain.ingest_remediation(body.task_id, finding_id=body.finding_id, org_id=body.org_id, **extra)
     bus = get_event_bus()
     await bus.emit(
         Event(
             event_type=EventType.REMEDIATION_CREATED,
             source="brain_router",
-            data={"task_id": tid, "finding_id": finding_id, **body},
-            org_id=org_id,
+            data={"task_id": body.task_id, "finding_id": body.finding_id, **extra},
+            org_id=body.org_id,
         )
     )
     return {"node_id": node.node_id, "node_type": "remediation", "ingested": True}

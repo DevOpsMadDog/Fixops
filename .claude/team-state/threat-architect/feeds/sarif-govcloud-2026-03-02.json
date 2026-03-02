@@ -1,0 +1,120 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "ALdeci-ThreatArchitect-SAST",
+          "version": "2.0.0",
+          "semanticVersion": "2.0.0",
+          "rules": [
+            {"id": "CWE-287", "name": "ImproperAuthentication", "shortDescription": {"text": "Improper Authentication"}, "defaultConfiguration": {"level": "error"}},
+            {"id": "CWE-522", "name": "InsufficientlyProtectedCredentials", "shortDescription": {"text": "Insufficiently Protected Credentials"}, "defaultConfiguration": {"level": "error"}},
+            {"id": "CWE-312", "name": "CleartextStorage", "shortDescription": {"text": "Cleartext Storage of Sensitive Information"}, "defaultConfiguration": {"level": "error"}},
+            {"id": "CWE-319", "name": "CleartextTransmission", "shortDescription": {"text": "Cleartext Transmission of Sensitive Information"}, "defaultConfiguration": {"level": "error"}},
+            {"id": "CWE-276", "name": "IncorrectDefaultPermissions", "shortDescription": {"text": "Incorrect Default Permissions"}, "defaultConfiguration": {"level": "warning"}},
+            {"id": "CWE-613", "name": "InsufficientSessionExpiration", "shortDescription": {"text": "Insufficient Session Expiration"}, "defaultConfiguration": {"level": "warning"}},
+            {"id": "CWE-798", "name": "HardcodedCredentials", "shortDescription": {"text": "Use of Hardcoded Credentials"}, "defaultConfiguration": {"level": "error"}},
+            {"id": "CWE-311", "name": "MissingEncryption", "shortDescription": {"text": "Missing Encryption of Sensitive Data"}, "defaultConfiguration": {"level": "error"}},
+            {"id": "CWE-601", "name": "OpenRedirect", "shortDescription": {"text": "URL Redirection to Untrusted Site"}, "defaultConfiguration": {"level": "error"}},
+            {"id": "CWE-400", "name": "UncontrolledResourceConsumption", "shortDescription": {"text": "Uncontrolled Resource Consumption"}, "defaultConfiguration": {"level": "warning"}}
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "CWE-601",
+          "level": "error",
+          "message": {"text": "Keycloak 23.0.3 redirect_uri validation bypass (CVE-2024-1132). The ASP.NET Core OpenID Connect middleware passes the Keycloak-issued authorization code to redirect_uri values that bypass Keycloak's validation via path traversal sequences (e.g., %2F). Authorization codes for government SSO users can be intercepted by attacker-controlled endpoints."},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/GovPlatform.Api/Auth/KeycloakAuthHandler.cs"}, "region": {"startLine": 58, "startColumn": 20}}}],
+          "fingerprints": {"primaryLocationLineHash": "f1e2d3c4b5a69780"},
+          "properties": {"severity": "critical", "confidence": "high", "cve": "CVE-2024-1132", "cvss_score": 8.1, "nist_control": "IA-8", "fedramp_impact": true}
+        },
+        {
+          "ruleId": "CWE-522",
+          "level": "error",
+          "message": {"text": "HashiCorp Vault PKI issuer endpoint permits issuer configuration overwrite (CVE-2023-5077). An operator with limited PKI access can replace the root CA issuer, causing all subsequently issued certificates to chain to an attacker-controlled root. FedRAMP control SC-12 violation — cryptographic key management compromised."},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "infrastructure/vault/pki-policy.hcl"}, "region": {"startLine": 23}}}],
+          "fingerprints": {"primaryLocationLineHash": "e2d3c4b5a6978012"},
+          "properties": {"severity": "critical", "confidence": "high", "cve": "CVE-2023-5077", "cvss_score": 7.5, "nist_control": "SC-12", "fedramp_impact": true}
+        },
+        {
+          "ruleId": "CWE-287",
+          "level": "error",
+          "message": {"text": "CAC/PIV smart card certificate validation in Keycloak X.509 authenticator flow does not check CRL (Certificate Revocation List). Revoked government CAC cards can still authenticate if the CRL distribution point is unreachable or CRL checking is disabled in the Keycloak realm configuration."},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "infrastructure/keycloak/realm-gov-export.json"}, "region": {"startLine": 347}}}],
+          "fingerprints": {"primaryLocationLineHash": "d3c4b5a697801234"},
+          "properties": {"severity": "critical", "confidence": "high", "nist_control": "IA-5(2)", "fedramp_impact": true, "cmmc_impact": true}
+        },
+        {
+          "ruleId": "CWE-312",
+          "level": "error",
+          "message": {"text": "CUI (Controlled Unclassified Information) document content cached in Redis ElastiCache GovCloud without encryption. Redis is configured with requirepass but no TLS. Documents in-memory are accessible to any process on the cache host with redis-cli access."},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/GovPlatform.Core/Caching/RedisCacheService.cs"}, "region": {"startLine": 92, "startColumn": 24}}}],
+          "fingerprints": {"primaryLocationLineHash": "c4b5a69780123456"},
+          "properties": {"severity": "critical", "confidence": "high", "nist_control": "SC-28", "fedramp_impact": true, "data_classification": "CUI"}
+        },
+        {
+          "ruleId": "CWE-319",
+          "level": "error",
+          "message": {"text": "Inter-service HTTP calls between .NET microservices use HTTP (not HTTPS) for internal Kubernetes service-to-service communication within the same namespace. Istio mTLS is configured in PERMISSIVE mode, allowing plaintext. NIST 800-53 SC-8 requires encryption in transit."},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "infrastructure/istio/peer-authentication.yaml"}, "region": {"startLine": 18}}}],
+          "fingerprints": {"primaryLocationLineHash": "b5a6978012345678"},
+          "properties": {"severity": "high", "confidence": "high", "nist_control": "SC-8", "fedramp_impact": true}
+        },
+        {
+          "ruleId": "CWE-798",
+          "level": "error",
+          "message": {"text": "Vault AppRole secret_id hardcoded in Kubernetes Secret manifest checked into git. The secret_id grants access to the 'gov-platform' Vault role which has read access to all GovCloud secrets. GitHub history contains the plaintext secret_id."},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "infrastructure/k8s/secrets/vault-approle-secret.yaml"}, "region": {"startLine": 9}}}],
+          "fingerprints": {"primaryLocationLineHash": "a6978012345678bc"},
+          "properties": {"severity": "critical", "confidence": "high", "nist_control": "IA-5"}
+        },
+        {
+          "ruleId": "CWE-276",
+          "level": "warning",
+          "message": {"text": "PostgreSQL data directory /var/lib/postgresql/16/main has permissions 0777 on the GovCloud EC2 instance. Any local process can read database files directly, bypassing all PostgreSQL access controls and encryption (pg_crypto). Violates NIST 800-53 AC-3."},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "infrastructure/postgres/postgresql.conf"}, "region": {"startLine": 4}}}],
+          "fingerprints": {"primaryLocationLineHash": "978012345678bcde"},
+          "properties": {"severity": "high", "confidence": "high", "nist_control": "AC-3"}
+        },
+        {
+          "ruleId": "CWE-613",
+          "level": "warning",
+          "message": {"text": "Keycloak realm 'gov-platform' has access token lifetime set to 8 hours and refresh token lifetime to 30 days. FedRAMP requires session timeout for high-impact systems per NIST 800-53 AC-12 (Session Termination). 15-minute access token lifetime required."},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "infrastructure/keycloak/realm-gov-export.json"}, "region": {"startLine": 12}}}],
+          "fingerprints": {"primaryLocationLineHash": "80123456789abcde"},
+          "properties": {"severity": "high", "confidence": "high", "nist_control": "AC-12", "fedramp_impact": true}
+        },
+        {
+          "ruleId": "CWE-311",
+          "level": "error",
+          "message": {"text": "PostgreSQL column-level encryption using pgcrypto uses DES (not AES-256) for legacy compatibility with existing data migration from predecessor system. DES is not FIPS-140-2 approved. NIST 800-53 SC-13 requires FIPS-approved cryptography."},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/GovPlatform.Core/Data/Migrations/20240115_encrypt_legacy_columns.sql"}, "region": {"startLine": 34}}}],
+          "fingerprints": {"primaryLocationLineHash": "0123456789abcdef"},
+          "properties": {"severity": "critical", "confidence": "high", "nist_control": "SC-13", "fedramp_impact": true, "fips_violation": true}
+        },
+        {
+          "ruleId": "CWE-400",
+          "level": "warning",
+          "message": {"text": "Istio EnvoyFilter for rate limiting not applied to the /api/public/health and /api/public/version endpoints. These unauthenticated endpoints can be hit at unlimited rate, potentially used for HTTP/2 Rapid Reset DoS (CVE-2023-44487) against the Kestrel server before patch."},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "infrastructure/istio/rate-limit-filter.yaml"}, "region": {"startLine": 28}}}],
+          "fingerprints": {"primaryLocationLineHash": "123456789abcdef0"},
+          "properties": {"severity": "medium", "confidence": "medium", "cve": "CVE-2023-44487", "nist_control": "SI-4"}
+        }
+      ],
+      "invocations": [{"executionSuccessful": true, "startTimeUtc": "2026-03-02T00:00:00Z", "endTimeUtc": "2026-03-02T00:04:59Z"}],
+      "properties": {
+        "architecture": "govcloud-fedramp-platform",
+        "total_findings": 10,
+        "critical": 6,
+        "high": 3,
+        "medium": 1,
+        "fedramp_impacting": 8,
+        "fips_violations": 1,
+        "cisa_kev_related": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+org:
+  name: "QuantumTrade Financial Services"
+  industry: financial_services
+  size: enterprise
+  compliance:
+    - PCI-DSS-v4.0
+    - SOX
+    - GLBA
+    - FFIEC
+
+crown_jewels:
+  - name: trading-engine
+    type: microservice
+    criticality: critical
+    data_classification: PCI
+    sla_target: 99.999
+    owner: trading-platform-team
+    dependencies:
+      - cloud-spanner
+      - alloydb
+      - pub-sub
+      - cloud-kms
+
+  - name: payment-gateway
+    type: microservice
+    criticality: critical
+    data_classification: PCI
+    sla_target: 99.99
+    owner: payments-team
+    dependencies:
+      - cloud-spanner
+      - cloud-kms
+      - vpc-service-controls
+
+  - name: fraud-detection-ml
+    type: ml_service
+    criticality: high
+    data_classification: confidential
+    sla_target: 99.95
+    owner: risk-analytics-team
+    dependencies:
+      - bigquery
+      - pub-sub
+
+  - name: customer-accounts
+    type: microservice
+    criticality: high
+    data_classification: PII
+    sla_target: 99.95
+    owner: identity-team
+
+environments:
+  - name: production
+    cloud: multi-cloud
+    regions:
+      - gcp-us-central1
+      - aws-us-east-1
+    classification: pci-zone-1
+    network: vpc-service-controls
+  - name: dr-site
+    cloud: aws
+    region: us-west-2
+    classification: pci-zone-1
+    network: transit-gateway
+  - name: staging
+    cloud: gcp
+    region: us-central1
+    classification: pci-dev
+    network: isolated-vpc

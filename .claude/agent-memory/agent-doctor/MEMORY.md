@@ -17,12 +17,13 @@ When launching claude CLI as child processes on macOS:
 - State: `.claude/team-state/`
 - Logs: `logs/ai-team/`
 
-### Sprint 2 Pre-Flight (run24→run28, 2026-03-01→02)
+### Sprint 2 Pre-Flight (run24→run29, 2026-03-01→02)
 - Enterprise demo in 4 days (2026-03-06). Sprint 2: 11/12 done (91.7%), 1 P0 blocker (DEMO-003 UI wiring).
-- Run28 (Day 2 PM): 17/17 agents OK, 19/19 engines (20,527 LOC, +480), 4/4 MOATs PASS, 56/56 DBs writable
-- Run28: 1,128 core tests pass (28.42s, 15 test files), 12,400 total tests (+2,044), coverage 19.19%
+- Run29 (Day 2 PM): 17/17 agents OK, 19/19 engines (20,527 LOC), 4/4 MOATs PASS, 55/55 DBs writable
+- Run29: 1,143 core tests pass (39.87s, 15 test files), 12,565 total tests (+165), coverage 19.22%
+- Run29: 10 WAL+SHM cleaned (1.6MB). All 5 DB integrity checks pass. Brain.db stable post-recovery.
+- Run29: All 17 agents Grade A (perfect health). 0 failures. 4 stale fix-* status files removed.
 - Run28: 20 WAL+SHM cleaned (including 2.5GB fixops_brain.db-wal). CRITICAL: brain.db was corrupted, recreated.
-- Run28: All 15 completed agents Grade A (perfect health). 0 failures.
 - RSAKeyManager needs explicit key paths (private_key_path, public_key_path) — default "." causes IsADirectoryError
 - Coverage with --collect-only shows 19.35% vs actual 19.19% with expanded scope
 - Lock files: jarvis.pid, jarvis.lock, controller-watchdog.pid — ALWAYS check if PIDs alive before cleaning
@@ -84,11 +85,11 @@ When launching claude CLI as child processes on macOS:
 - Use `bash -c '...'` wrapper for scripts with `[[ ]]` syntax — zsh parses `[[ ! ]]` differently
 - Or use `[ ]` (POSIX) instead of `[[ ]]` (bash)
 
-### Sprint Artifacts (as of 2026-03-02 run28)
+### Sprint Artifacts (as of 2026-03-02 run29)
 - Sprint 1 ARCHIVED: 21/23 done (91.3%)
 - Sprint 2 ACTIVE: 11/12 done (91.7%). 1 P0 blocker: DEMO-003 (UI wiring). 4 days to demo.
-- 345+ test files, 12,400 tests collected, 1,128 core tests passing (28.42s)
-- 19.19% coverage (gate: 25% — FAILING, gap 5.81pp)
+- 360+ test files, 12,565 tests collected, 1,143 core tests passing (39.87s)
+- 19.22% coverage (gate: 25% — FAILING, gap 5.78pp)
 - 20,527 LOC across 19 engines (+2,367 from Sprint 1)
 
 ### Core Test Files (verified run v6 — 948 tests, ~68s)
@@ -114,11 +115,11 @@ When launching claude CLI as child processes on macOS:
 - mpte_models.py: exports `PenTestConfig`, `PenTestRequest`, `PenTestResult` — NOT `MPTETarget`
 - Always use `import core.module_name` pattern, not `from core.module_name import ClassName`
 
-### Healthy Agents (verified run v10 — 2026-03-01)
-- 10 Grade A: context-engineer, ai-researcher, data-scientist, backend-hardener, frontend-craftsman, qa-engineer, devops-engineer, sales-engineer, agent-doctor, vision-agent
-- 7 Grade D (stale): enterprise-architect, threat-architect, security-analyst, marketing-head, technical-writer, scrum-master, swarm-controller — configs valid, awaiting swarm re-run
-- Run v10: 19 engines verified (18,160 LOC). 1076 core tests (74.47s). 9332 tests (+671). Coverage 17.99% (context-engineer corrected from 19.27%). Health: YELLOW-IMPROVING.
-- Run v10 FIX: +103 tests (2 new test files for feeds_service, code_analysis). Cleaned 8 WAL total.
+### Healthy Agents (verified run29 — 2026-03-02)
+- 17 Grade A: ALL agents healthy (perfect health, 0 failures)
+- Run29: 19 engines (20,527 LOC). 1,143 core tests (39.87s). 12,565 total tests. Coverage 19.22%. Health: GREEN.
+- Run29: 10 WAL+SHM cleaned (1.6MB). 5/5 DB integrity pass. 4 stale fix-* files removed.
+- Run28 FIX: fixops_brain.db corruption recovered. 20 WAL cleaned (~2.55GB).
 
 ### Coverage Acceleration Strategy (updated run v8)
 - **v6 strategy** (suite-core modules): diminishing returns — tests hit already-covered code

@@ -1,9 +1,9 @@
 {
   "date": "2026-03-02",
   "recommended_weights": {
-    "claude": 0.3273,
-    "gpt4": 0.3379,
-    "gemini": 0.3348
+    "claude": 0.3294,
+    "gpt4": 0.3301,
+    "gemini": 0.3405
   },
   "previous_weights": {
     "claude": 0.4,
@@ -11,62 +11,62 @@
     "gemini": 0.35
   },
   "weight_changes": {
-    "claude": -0.0727,
-    "gpt4": 0.0879,
-    "gemini": -0.0152
+    "claude": -0.0706,
+    "gpt4": 0.0801,
+    "gemini": -0.0095
   },
-  "ensemble_f1": 0.9494,
+  "ensemble_f1": 0.9081,
   "model_performance": {
     "claude": {
       "model_name": "claude",
-      "precision": 0.98,
-      "recall": 0.889,
-      "f1": 0.932,
-      "accuracy": 0.892,
-      "total_predictions": 65,
+      "precision": 0.9057,
+      "recall": 0.8889,
+      "f1": 0.8972,
+      "accuracy": 0.8533,
+      "total_predictions": 75,
       "confusion_matrix": {
         "tp": 48,
-        "fp": 1,
+        "fp": 5,
         "fn": 6,
-        "tn": 10
+        "tn": 16
       },
-      "avg_confidence": 0.775,
-      "evaluated_at": "2026-03-01T13:37:12.823190+00:00"
+      "avg_confidence": 0.7063,
+      "evaluated_at": "2026-03-02T03:20:40.790502+00:00"
     },
     "gpt4": {
       "model_name": "gpt4",
-      "precision": 0.981,
-      "recall": 0.944,
-      "f1": 0.962,
-      "accuracy": 0.938,
-      "total_predictions": 65,
+      "precision": 0.8909,
+      "recall": 0.9074,
+      "f1": 0.8991,
+      "accuracy": 0.8533,
+      "total_predictions": 75,
       "confusion_matrix": {
-        "tp": 51,
-        "fp": 1,
-        "fn": 3,
-        "tn": 10
+        "tp": 49,
+        "fp": 6,
+        "fn": 5,
+        "tn": 15
       },
-      "avg_confidence": 0.791,
-      "evaluated_at": "2026-03-01T13:37:12.823300+00:00"
+      "avg_confidence": 0.7284,
+      "evaluated_at": "2026-03-02T03:20:40.790780+00:00"
     },
     "gemini": {
       "model_name": "gemini",
-      "precision": 0.962,
-      "recall": 0.944,
-      "f1": 0.953,
-      "accuracy": 0.923,
-      "total_predictions": 65,
+      "precision": 0.9107,
+      "recall": 0.9444,
+      "f1": 0.9273,
+      "accuracy": 0.8933,
+      "total_predictions": 75,
       "confusion_matrix": {
         "tp": 51,
-        "fp": 2,
+        "fp": 5,
         "fn": 3,
-        "tn": 9
+        "tn": 16
       },
-      "avg_confidence": 0.768,
-      "evaluated_at": "2026-03-01T13:37:12.823301+00:00"
+      "avg_confidence": 0.7061,
+      "evaluated_at": "2026-03-02T03:20:40.790852+00:00"
     }
   },
   "degraded_models": [],
   "calibration_method": "f1_weighted",
-  "calibrated_at": "2026-03-01T13:37:12.823302+00:00"
+  "calibrated_at": "2026-03-02T03:20:40.790865+00:00"
 }

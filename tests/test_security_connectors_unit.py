@@ -86,24 +86,24 @@ class TestSnykConnector:
         result = conn.list_projects()
         assert result.success is False
 
-    @patch("core.security_connectors.requests.get")
-    def test_list_projects_success(self, mock_get):
+    @patch("core.connectors.requests.Session.request")
+    def test_list_projects_success(self, mock_request):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {"projects": [{"id": "p1", "name": "project1"}]}
         mock_resp.raise_for_status = MagicMock()
-        mock_get.return_value = mock_resp
+        mock_request.return_value = mock_resp
         conn = self._make()
         result = conn.list_projects()
         assert result.success is True
 
-    @patch("core.security_connectors.requests.get")
-    def test_get_issues(self, mock_get):
+    @patch("core.connectors.requests.Session.request")
+    def test_get_issues(self, mock_request):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {"issues": []}
         mock_resp.raise_for_status = MagicMock()
-        mock_get.return_value = mock_resp
+        mock_request.return_value = mock_resp
         conn = self._make()
         result = conn.get_issues("project-123")
         assert result.success is True
@@ -113,13 +113,13 @@ class TestSnykConnector:
         health = conn.health_check()
         assert health.healthy is False
 
-    @patch("core.security_connectors.requests.get")
-    def test_health_check_success(self, mock_get):
+    @patch("core.connectors.requests.Session.request")
+    def test_health_check_success(self, mock_request):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {"orgs": [{"id": "org1"}]}
         mock_resp.raise_for_status = MagicMock()
-        mock_get.return_value = mock_resp
+        mock_request.return_value = mock_resp
         conn = self._make()
         health = conn.health_check()
         assert health.healthy is True
@@ -155,24 +155,24 @@ class TestSonarQubeConnector:
         headers = conn._headers()
         assert isinstance(headers, dict)
 
-    @patch("core.security_connectors.requests.get")
-    def test_get_issues(self, mock_get):
+    @patch("core.connectors.requests.Session.request")
+    def test_get_issues(self, mock_request):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {"issues": [], "total": 0}
         mock_resp.raise_for_status = MagicMock()
-        mock_get.return_value = mock_resp
+        mock_request.return_value = mock_resp
         conn = self._make()
         result = conn.get_issues()
         assert result.success is True
 
-    @patch("core.security_connectors.requests.get")
-    def test_get_quality_gate(self, mock_get):
+    @patch("core.connectors.requests.Session.request")
+    def test_get_quality_gate(self, mock_request):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {"projectStatus": {"status": "OK"}}
         mock_resp.raise_for_status = MagicMock()
-        mock_get.return_value = mock_resp
+        mock_request.return_value = mock_resp
         conn = self._make()
         result = conn.get_quality_gate()
         assert result.success is True
@@ -213,13 +213,13 @@ class TestDependabotConnector:
         headers = conn._headers()
         assert "Authorization" in headers
 
-    @patch("core.security_connectors.requests.get")
-    def test_list_alerts(self, mock_get):
+    @patch("core.connectors.requests.Session.request")
+    def test_list_alerts(self, mock_request):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = [{"number": 1, "state": "open"}]
         mock_resp.raise_for_status = MagicMock()
-        mock_get.return_value = mock_resp
+        mock_request.return_value = mock_resp
         conn = self._make()
         result = conn.list_alerts()
         assert result.success is True

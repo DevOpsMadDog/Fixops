@@ -13,6 +13,9 @@
 #   ./scripts/demo-start.sh --quick  # Skip rebuild (use cached images)
 #   ./scripts/demo-start.sh --stop   # Stop all services
 #   ./scripts/demo-start.sh --reset  # Stop, remove volumes, rebuild
+#   ./scripts/demo-start.sh --status # Check running container status
+#   ./scripts/demo-start.sh --logs   # Tail logs from all services
+#   ./scripts/demo-start.sh --check  # Run health check only
 # ============================================
 set -euo pipefail
 
@@ -64,6 +67,44 @@ check_prereqs() {
             echo "  Or set FIXOPS_PORT / ALDECI_UI_PORT environment variables"
         fi
     done
+}
+
+do_status() {
+    echo -e "${BOLD}ALdeci Service Status${NC}"
+    echo ""
+    docker compose -f "${COMPOSE_FILE}" ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || {
+        echo -e "  ${YELLOW}No services running.${NC}"
+        echo "  Start with: ./scripts/demo-start.sh"
+    }
+
+    echo ""
+    # Quick health probe
+    local api_port="${FIXOPS_PORT:-8000}"
+    local ui_port="${ALDECI_UI_PORT:-3001}"
+    if curl -sf "http://localhost:${api_port}/health" --max-time 2 > /dev/null 2>&1; then
+        echo -e "  ${GREEN}✅${NC} API (port ${api_port}): healthy"
+    else
+        echo -e "  ${RED}❌${NC} API (port ${api_port}): not responding"
+    fi
+    if curl -sf "http://localhost:${ui_port}/nginx-health" --max-time 2 > /dev/null 2>&1; then
+        echo -e "  ${GREEN}✅${NC} UI  (port ${ui_port}): healthy"
+    else
+        echo -e "  ${RED}❌${NC} UI  (port ${ui_port}): not responding"
+    fi
+}
+
+do_logs() {
+    echo -e "${BOLD}Tailing ALdeci logs (Ctrl+C to stop)...${NC}"
+    echo ""
+    docker compose -f "${COMPOSE_FILE}" logs -f --tail 50 2>/dev/null || {
+        echo -e "  ${YELLOW}No services running.${NC}"
+    }
+}
+
+do_check() {
+    echo -e "${BOLD}Running health check...${NC}"
+    echo ""
+    "${SCRIPT_DIR}/demo-healthcheck.sh" "$@" || true
 }
 
 do_stop() {
@@ -176,6 +217,16 @@ case "${1:-}" in
     --quick|-q)
         do_start true
         ;;
+    --status)
+        do_status
+        ;;
+    --logs|-l)
+        do_logs
+        ;;
+    --check|-c)
+        shift
+        do_check "$@"
+        ;;
     --help|-h)
         echo "Usage: $0 [OPTIONS]"
         echo ""
@@ -184,6 +235,9 @@ case "${1:-}" in
         echo "  --quick    Start without rebuilding (use cached images)"
         echo "  --stop     Stop all services"
         echo "  --reset    Stop, remove volumes and images, rebuild"
+        echo "  --status   Show service status and quick health probe"
+        echo "  --logs     Tail logs from all services"
+        echo "  --check    Run the full 42-endpoint health check"
         echo "  --help     Show this help message"
         ;;
     *)

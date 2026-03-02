@@ -1,0 +1,119 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "ALdeci-ThreatArchitect-SAST",
+          "version": "2.0.0",
+          "semanticVersion": "2.0.0",
+          "rules": [
+            {"id": "CWE-918", "name": "ServerSideRequestForgery", "shortDescription": {"text": "Server-Side Request Forgery (SSRF)"}, "defaultConfiguration": {"level": "error"}},
+            {"id": "CWE-89", "name": "SqlInjection", "shortDescription": {"text": "SQL Injection"}, "defaultConfiguration": {"level": "error"}},
+            {"id": "CWE-346", "name": "OriginValidationError", "shortDescription": {"text": "Origin Validation Error"}, "defaultConfiguration": {"level": "error"}},
+            {"id": "CWE-798", "name": "HardcodedCredentials", "shortDescription": {"text": "Use of Hardcoded Credentials"}, "defaultConfiguration": {"level": "error"}},
+            {"id": "CWE-330", "name": "InsufficientRandom", "shortDescription": {"text": "Use of Insufficiently Random Values"}, "defaultConfiguration": {"level": "warning"}},
+            {"id": "CWE-200", "name": "InfoExposure", "shortDescription": {"text": "Exposure of Sensitive Information"}, "defaultConfiguration": {"level": "warning"}},
+            {"id": "CWE-352", "name": "CrossSiteRequestForgery", "shortDescription": {"text": "Cross-Site Request Forgery (CSRF)"}, "defaultConfiguration": {"level": "warning"}},
+            {"id": "CWE-601", "name": "OpenRedirect", "shortDescription": {"text": "URL Redirection to Untrusted Site (Open Redirect)"}, "defaultConfiguration": {"level": "warning"}},
+            {"id": "CWE-400", "name": "UncontrolledResourceConsumption", "shortDescription": {"text": "Uncontrolled Resource Consumption"}, "defaultConfiguration": {"level": "warning"}},
+            {"id": "CWE-285", "name": "ImproperAuthorization", "shortDescription": {"text": "Improper Authorization"}, "defaultConfiguration": {"level": "error"}}
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "CWE-918",
+          "level": "error",
+          "message": {"text": "Next.js 14.0.4 SSRF via Host header in Server Actions. The trading dashboard's server-side data fetching action for real-time price feeds uses the Host header to construct upstream API URLs without validation. CVE-2024-34351."},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "apps/trading-dashboard/app/actions/priceActions.ts"}, "region": {"startLine": 31, "startColumn": 14}}}],
+          "fingerprints": {"primaryLocationLineHash": "1a2b3c4d5e6f7890"},
+          "properties": {"severity": "critical", "confidence": "high", "cve": "CVE-2024-34351", "cvss_score": 7.5, "pci_impact": true}
+        },
+        {
+          "ruleId": "CWE-89",
+          "level": "error",
+          "message": {"text": "SQL injection in trade order history API. AlloyDB query built via string concatenation with 'ticker' parameter in order-history endpoint. Unauthenticated access to trade records possible."},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "services/order-service/src/repositories/OrderRepository.js"}, "region": {"startLine": 78, "startColumn": 22}}}],
+          "fingerprints": {"primaryLocationLineHash": "2b3c4d5e6f789012"},
+          "properties": {"severity": "critical", "confidence": "high", "cvss_score": 9.8, "pci_impact": true, "sox_impact": true}
+        },
+        {
+          "ruleId": "CWE-346",
+          "level": "error",
+          "message": {"text": "WebSocket connection for real-time trade feed does not validate Origin header. Cross-origin WebSocket connections from any domain can subscribe to live trade data streams and trigger trade executions."},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "services/market-data/src/websocket/TradeFeedServer.js"}, "region": {"startLine": 45, "startColumn": 8}}}],
+          "fingerprints": {"primaryLocationLineHash": "3c4d5e6f78901234"},
+          "properties": {"severity": "critical", "confidence": "high", "cvss_score": 9.0, "finra_impact": true}
+        },
+        {
+          "ruleId": "CWE-798",
+          "level": "error",
+          "message": {"text": "Hardcoded Plaid API client secret in environment config fallback in bank-link service. Code falls back to hardcoded value when PLAID_SECRET env var is not set."},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "services/bank-link/src/config/plaidConfig.js"}, "region": {"startLine": 12}}}],
+          "fingerprints": {"primaryLocationLineHash": "4d5e6f7890123456"},
+          "properties": {"severity": "critical", "confidence": "high", "pci_impact": true}
+        },
+        {
+          "ruleId": "CWE-330",
+          "level": "warning",
+          "message": {"text": "Trade order idempotency keys generated using Math.random() (non-cryptographic). Predictable keys could allow replay of trade orders or idempotency key collisions on Cloud Spanner."},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "services/order-service/src/utils/IdempotencyKeyGenerator.js"}, "region": {"startLine": 8}}}],
+          "fingerprints": {"primaryLocationLineHash": "5e6f78901234567a"},
+          "properties": {"severity": "high", "confidence": "high", "cvss_score": 7.5, "sox_impact": true}
+        },
+        {
+          "ruleId": "CWE-200",
+          "level": "warning",
+          "message": {"text": "Go risk engine /health endpoint returns detailed dependency graph including internal Spanner DSN, Redis cluster addresses, and AlloyDB connection strings in the health response body. No authentication required."},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "services/risk-engine/internal/handlers/health.go"}, "region": {"startLine": 67, "startColumn": 2}}}],
+          "fingerprints": {"primaryLocationLineHash": "6f7890123456789b"},
+          "properties": {"severity": "medium", "confidence": "high"}
+        },
+        {
+          "ruleId": "CWE-352",
+          "level": "warning",
+          "message": {"text": "Express BFF layer does not set CSRF tokens for state-changing trade order endpoints (POST /api/orders, PUT /api/orders/:id). SameSite=Lax cookie policy provides partial mitigation but not sufficient for cross-origin subresource requests."},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "services/bff/src/middleware/session.js"}, "region": {"startLine": 33, "startColumn": 4}}}],
+          "fingerprints": {"primaryLocationLineHash": "7890123456789abc"},
+          "properties": {"severity": "medium", "confidence": "medium", "pci_impact": true}
+        },
+        {
+          "ruleId": "CWE-601",
+          "level": "warning",
+          "message": {"text": "Next.js OAuth callback handler (CVE-2024-34351) allows open redirect via return_url parameter post-authentication. Attacker can redirect user to phishing page after successful SSO login."},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "apps/trading-dashboard/app/api/auth/[...nextauth]/route.ts"}, "region": {"startLine": 24}}}],
+          "fingerprints": {"primaryLocationLineHash": "890123456789abcd"},
+          "properties": {"severity": "medium", "confidence": "medium", "cve": "CVE-2024-34351"}
+        },
+        {
+          "ruleId": "CWE-400",
+          "level": "warning",
+          "message": {"text": "Market data ingestion websocket handler has no connection rate limiting or message size cap. A single client can flood the service with large JSON payloads (tick data) causing memory exhaustion. Node.js heap can be exhausted with sustained 10MB/s messages."},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "services/market-data/src/websocket/TickIngestor.js"}, "region": {"startLine": 89, "startColumn": 6}}}],
+          "fingerprints": {"primaryLocationLineHash": "90123456789abcde"},
+          "properties": {"severity": "high", "confidence": "medium", "cvss_score": 7.5}
+        },
+        {
+          "ruleId": "CWE-285",
+          "level": "error",
+          "message": {"text": "Go risk engine /approve endpoint lacks authorization check for trade approval role. Any authenticated user (trader role) can approve trades that should require risk-officer role. Broken Object Level Authorization (BOLA) pattern."},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "services/risk-engine/internal/handlers/approval.go"}, "region": {"startLine": 102, "startColumn": 2}}}],
+          "fingerprints": {"primaryLocationLineHash": "0123456789abcdef"},
+          "properties": {"severity": "critical", "confidence": "high", "cvss_score": 9.1, "sox_impact": true, "finra_impact": true}
+        }
+      ],
+      "invocations": [{"executionSuccessful": true, "startTimeUtc": "2026-03-02T00:00:00Z", "endTimeUtc": "2026-03-02T00:03:51Z"}],
+      "properties": {
+        "architecture": "finserv-trading-platform",
+        "total_findings": 10,
+        "critical": 5,
+        "high": 3,
+        "medium": 2,
+        "pci_impacting": 5,
+        "sox_impacting": 3
+      }
+    }
+  ]
+}
