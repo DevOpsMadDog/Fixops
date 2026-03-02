@@ -1,10 +1,10 @@
 {
-  "run_id": "swarm-2026-03-02_13-35-43",
-  "crash_time": "2026-03-02T07:20:29Z",
+  "run_id": "swarm-2026-03-02_18-18-27",
+  "crash_time": "2026-03-02T10:14:51Z",
   "exit_code": 1,
   "current_iteration": 1,
   "total_iterations": 1,
-  "elapsed_seconds": 17086,
-  "last_agent": "agent-doctor",
+  "elapsed_seconds": 10584,
+  "last_agent": "context-engineer",
   "recovery": "Run with --resume to continue from last checkpoint"
 }

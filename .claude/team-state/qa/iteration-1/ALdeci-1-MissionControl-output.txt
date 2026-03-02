@@ -4,7 +4,7 @@ newman
 
 ❏ 🏥 Platform Health & Readiness
 ↳ Legacy Health Check
-  GET http://localhost:8000/api/v1/health [200 OK, 412B, 19ms]
+  GET http://localhost:8000/api/v1/health [200 OK, 413B, 54ms]
   ✓  Health endpoint returns 200
   ✓  Response contains status field
 
@@ -14,36 +14,36 @@ newman
   ✓  Contains component status
 
 ↳ Readiness Check (K8s Probe)
-  GET http://localhost:8000/api/v1/ready [200 OK, 651B, 13ms]
+  GET http://localhost:8000/api/v1/ready [200 OK, 651B, 10ms]
   ✓  Readiness check returns 200
 
 ↳ Version Info
-  GET http://localhost:8000/api/v1/version [200 OK, 444B, 9ms]
+  GET http://localhost:8000/api/v1/version [200 OK, 444B, 12ms]
   ✓  Version endpoint returns 200
   ✓  Contains version string
 
 ↳ Prometheus Metrics
-  GET http://localhost:8000/api/v1/metrics [200 OK, 460B, 11ms]
+  GET http://localhost:8000/api/v1/metrics [200 OK, 460B, 12ms]
   ✓  Metrics endpoint returns 200
 
 ↳ Authenticated Status
-  GET http://localhost:8000/api/v1/status [200 OK, 407B, 8ms]
+  GET http://localhost:8000/api/v1/status [200 OK, 407B, 10ms]
   ✓  Authenticated status returns 200
 
 ↳ FAIL Engine Health
-  GET http://localhost:8000/api/v1/fail/health [200 OK, 388B, 8ms]
+  GET http://localhost:8000/api/v1/fail/health [200 OK, 389B, 12ms]
   ✓  FAIL engine healthy
 
 ↳ AutoFix Health
-  GET http://localhost:8000/api/v1/autofix/health [200 OK, 399B, 11ms]
+  GET http://localhost:8000/api/v1/autofix/health [200 OK, 401B, 12ms]
   ✓  AutoFix engine healthy
 
 ↳ Knowledge Brain Health
-  GET http://localhost:8000/api/v1/brain/health [200 OK, 396B, 15ms]
+  GET http://localhost:8000/api/v1/brain/health [200 OK, 396B, 7ms]
   ✓  Brain healthy
 
 ↳ Copilot Health
-  GET http://localhost:8000/api/v1/copilot/health [200 OK, 682B, 14ms]
+  GET http://localhost:8000/api/v1/copilot/health [200 OK, 682B, 10ms]
   ✓  Copilot healthy
 
 ↳ Agent Swarm Health
@@ -51,97 +51,97 @@ newman
   ✓  Agent swarm healthy
 
 ↳ LLM Health
-  GET http://localhost:8000/api/v1/llm/health [200 OK, 573B, 15ms]
+  GET http://localhost:8000/api/v1/llm/health [200 OK, 573B, 12ms]
   ✓  LLM healthy
 
 ↳ Feeds Health
-  GET http://localhost:8000/api/v1/feeds/health [200 OK, 1.26kB, 50ms]
+  GET http://localhost:8000/api/v1/feeds/health [200 OK, 1.26kB, 66ms]
   ✓  Feeds healthy
 
 ↳ MPTE Health
-  GET http://localhost:8000/api/v1/micro-pentest/health [200 OK, 603B, 16ms]
+  GET http://localhost:8000/api/v1/micro-pentest/health [200 OK, 604B, 13ms]
   ✓  MPTE healthy
 
 ↳ Reachability Health
-  GET http://localhost:8000/api/v1/reachability/health [200 OK, 435B, 164ms]
+  GET http://localhost:8000/api/v1/reachability/health [200 OK, 435B, 170ms]
   ✓  Reachability analysis healthy
 
 ↳ Attack Simulation Health
-  GET http://localhost:8000/api/v1/attack-sim/health [200 OK, 611B, 9ms]
+  GET http://localhost:8000/api/v1/attack-sim/health [200 OK, 611B, 8ms]
   ✓  Attack Sim healthy
 
 ❏ 📊 Command Dashboard (Sarah CISO)
 ↳ Dashboard Overview
-  GET http://localhost:8000/api/v1/analytics/dashboard/overview [200 OK, 461B, 9ms]
+  GET http://localhost:8000/api/v1/analytics/dashboard/overview [200 OK, 462B, 23ms]
   ✓  Dashboard overview returns 200
   ✓  Contains dashboard data
 
 ↳ Dashboard Trends
-  GET http://localhost:8000/api/v1/analytics/dashboard/trends [200 OK, 2.3kB, 16ms]
+  GET http://localhost:8000/api/v1/analytics/dashboard/trends [200 OK, 2.1kB, 14ms]
   ✓  Trends data returns 200
   ✓  Contains trend data
 
 ↳ Top Risks
-  GET http://localhost:8000/api/v1/analytics/dashboard/top-risks [200 OK, 5.71kB, 12ms]
+  GET http://localhost:8000/api/v1/analytics/dashboard/top-risks [200 OK, 5.71kB, 14ms]
   ✓  Top risks returns 200
   ✓  Returns risk array or object
 
 ↳ Compliance Status
-  GET http://localhost:8000/api/v1/analytics/dashboard/compliance-status [200 OK, 442B, 24ms]
+  GET http://localhost:8000/api/v1/analytics/dashboard/compliance-status [200 OK, 442B, 22ms]
   ✓  Compliance status returns 200
 
 ↳ Analytics Summary
-  GET http://localhost:8000/api/v1/analytics/summary [200 OK, 588B, 23ms]
+  GET http://localhost:8000/api/v1/analytics/summary [200 OK, 589B, 26ms]
   ✓  Summary returns 200
 
 ↳ Analytics Stats
-  GET http://localhost:8000/api/v1/analytics/stats [200 OK, 588B, 23ms]
+  GET http://localhost:8000/api/v1/analytics/stats [200 OK, 589B, 25ms]
   ✓  Stats returns 200
 
 ↳ MTTR Metrics
-  GET http://localhost:8000/api/v1/analytics/mttr [200 OK, 385B, 10ms]
+  GET http://localhost:8000/api/v1/analytics/mttr [200 OK, 385B, 12ms]
   ✓  MTTR returns 200
 
 ↳ Security Coverage
-  GET http://localhost:8000/api/v1/analytics/coverage [200 OK, 622B, 23ms]
+  GET http://localhost:8000/api/v1/analytics/coverage [200 OK, 623B, 18ms]
   ✓  Coverage returns 200
 
 ↳ ROI Analysis
-  GET http://localhost:8000/api/v1/analytics/roi [200 OK, 450B, 23ms]
+  GET http://localhost:8000/api/v1/analytics/roi [200 OK, 451B, 24ms]
   ✓  ROI returns 200
 
 ↳ Noise Reduction
-  GET http://localhost:8000/api/v1/analytics/noise-reduction [200 OK, 474B, 23ms]
+  GET http://localhost:8000/api/v1/analytics/noise-reduction [200 OK, 474B, 24ms]
   ✓  Noise reduction returns 200
 
 ↳ Risk Velocity
-  GET http://localhost:8000/api/v1/analytics/risk-velocity [200 OK, 709B, 23ms]
+  GET http://localhost:8000/api/v1/analytics/risk-velocity [200 OK, 709B, 27ms]
   ✓  Risk velocity returns 200
 
 ↳ Severity Over Time
-  GET http://localhost:8000/api/v1/analytics/trends/severity-over-time [200 OK, 852B, 23ms]
+  GET http://localhost:8000/api/v1/analytics/trends/severity-over-time [200 OK, 852B, 25ms]
   ✓  Severity trends returns 200
 
 ↳ Trend Anomalies
-  GET http://localhost:8000/api/v1/analytics/trends/anomalies [200 OK, 634B, 22ms]
+  GET http://localhost:8000/api/v1/analytics/trends/anomalies [200 OK, 633B, 24ms]
   ✓  Anomalies returns 200
 
 ↳ Period Comparison
-  GET http://localhost:8000/api/v1/analytics/compare?period1_start=2025-01-01&period1_end=2025-06-30&period2_start=2025-07-01&period2_end=2025-12-31 [200 OK, 798B, 21ms]
+  GET http://localhost:8000/api/v1/analytics/compare?period1_start=2025-01-01&period1_end=2025-06-30&period2_start=2025-07-01&period2_end=2025-12-31 [200 OK, 798B, 26ms]
   ✓  Period comparison returns 200
 
 ↳ Export Analytics
-  GET http://localhost:8000/api/v1/analytics/export?format=json [200 OK, 444.13kB, 44ms]
+  GET http://localhost:8000/api/v1/analytics/export?format=json [200 OK, 444.62kB, 50ms]
   ✓  Export returns 200
 
 ❏ 🧠 Nerve Center (Real-Time Intelligence)
 ↳ Threat Pulse
-  GET http://localhost:8000/api/v1/nerve-center/pulse [200 OK, 439B, 23ms]
+  GET http://localhost:8000/api/v1/nerve-center/pulse [200 OK, 439B, 18ms]
   ✓  Threat pulse returns 200
   ✓  Contains threat data
 
 ↳ Nerve Center State
-  GET http://localhost:8000/api/v1/nerve-center/state [200 OK, 2.66kB, 104ms]
+  GET http://localhost:8000/api/v1/nerve-center/state [200 OK, 5.34kB, 101ms]
   ✓  Nerve center state returns 200
 
 ↳ Intelligence Map
@@ -149,20 +149,20 @@ newman
   ✓  Intelligence map returns 200
 
 ↳ List Playbooks
-  GET http://localhost:8000/api/v1/nerve-center/playbooks [200 OK, 1.18kB, 11ms]
+  GET http://localhost:8000/api/v1/nerve-center/playbooks [200 OK, 1.18kB, 12ms]
   ✓  Playbooks list returns 200
 
 ↳ Get Overlay Config
-  GET http://localhost:8000/api/v1/nerve-center/overlay [200 OK, 2.83kB, 13ms]
+  GET http://localhost:8000/api/v1/nerve-center/overlay [200 OK, 2.83kB, 14ms]
   ✓  Overlay config returns 200
 
 ❏ ⚡ Decision Engine
 ↳ Decision Metrics
-  GET http://localhost:8000/api/v1/decisions/metrics [200 OK, 806B, 10ms]
+  GET http://localhost:8000/api/v1/decisions/metrics [200 OK, 806B, 11ms]
   ✓  Decision metrics returns 200
 
 ↳ Recent Decisions
-  GET http://localhost:8000/api/v1/decisions/recent [200 OK, 332B, 12ms]
+  GET http://localhost:8000/api/v1/decisions/recent [200 OK, 332B, 13ms]
   ✓  Recent decisions returns 200
 
 ↳ SSDLC Stage Data
@@ -170,93 +170,93 @@ newman
   ✓  SSDLC stages returns 200
 
 ↳ Core Components Status
-  GET http://localhost:8000/api/v1/decisions/core-components [200 OK, 408B, 14ms]
+  GET http://localhost:8000/api/v1/decisions/core-components [200 OK, 408B, 12ms]
   ✓  Core components returns 200
 
 ❏ 📈 Risk Overview
 ↳ Risk Summary
-  GET http://localhost:8000/api/v1/analytics/risk-velocity [200 OK, 709B, 27ms]
+  GET http://localhost:8000/api/v1/analytics/risk-velocity [200 OK, 709B, 24ms]
   ✓  Risk summary returns 200
 
 ↳ CVE Risk Score
-  GET http://localhost:8000/api/v1/feeds/nvd/CVE-2024-3094 [404 Not Found, 362B, 11ms]
+  GET http://localhost:8000/api/v1/feeds/nvd/CVE-2024-3094 [404 Not Found, 362B, 13ms]
   ✓  CVE risk returns 200
 
 ↳ Supply Chain Graph Summary
-  GET http://localhost:8000/api/v1/graph [404 Not Found, 390B, 14ms]
+  GET http://localhost:8000/api/v1/graph [404 Not Found, 390B, 9ms]
   ✓  Graph summary returns 200
 
 ↳ KEV-Affected Components
-  GET http://localhost:8000/api/v1/graph/kev-components [200 OK, 304B, 46ms]
+  GET http://localhost:8000/api/v1/graph/kev-components [200 OK, 304B, 56ms]
   ✓  KEV components returns 200
 
 ↳ Version Anomalies
-  GET http://localhost:8000/api/v1/graph/anomalies [200 OK, 304B, 42ms]
+  GET http://localhost:8000/api/v1/graph/anomalies [200 OK, 304B, 44ms]
   ✓  Anomalies returns 200
 
 ❏ 👥 User & Team Management
 ↳ List Users
-  GET http://localhost:8000/api/v1/users [200 OK, 20.31kB, 10ms]
+  GET http://localhost:8000/api/v1/users [200 OK, 20.59kB, 12ms]
   ✓  List users returns 200
   ✓  Returns array or paginated result
 
 ↳ Create User
-  POST http://localhost:8000/api/v1/users [201 Created, 589B, 197ms]
+  POST http://localhost:8000/api/v1/users [201 Created, 589B, 196ms]
   ✓  Create user returns 200 or 201
   ✓  Capture userId
 
 ↳ Get User by ID
-  GET http://localhost:8000/api/v1/users/b1732d57-2097-459d-8c40-7cf66fffd152 [200 OK, 582B, 4ms]
+  GET http://localhost:8000/api/v1/users/4b9def81-0df7-41e7-85ee-b48de7ebca2a [200 OK, 582B, 6ms]
   ✓  Get user returns 200
 
 ↳ List Teams
-  GET http://localhost:8000/api/v1/teams [200 OK, 2.84kB, 6ms]
+  GET http://localhost:8000/api/v1/teams [200 OK, 2.84kB, 9ms]
   ✓  List teams returns 200
 
 ↳ Create Team
-  POST http://localhost:8000/api/v1/teams [409 Conflict, 372B, 5ms]
+  POST http://localhost:8000/api/v1/teams [409 Conflict, 372B, 13ms]
   ✓  Create team returns 200 or 201
   ✓  Capture teamId
 
 ↳ Get Team
-  GET http://localhost:8000/api/v1/teams/ [200 OK, 2.84kB, 21ms]
+  GET http://localhost:8000/api/v1/teams/ [200 OK, 2.84kB, 10ms]
   ✓  Get team returns 200
 
 ↳ List SSO Configs
-  GET http://localhost:8000/api/v1/auth/sso [200 OK, 607B, 11ms]
+  GET http://localhost:8000/api/v1/auth/sso [200 OK, 607B, 10ms]
   ✓  SSO configs returns 200
 
 ❏ 📝 Logs & Monitoring
 ↳ Query Logs
-  GET http://localhost:8000/api/v1/logs [200 OK, 263.99kB, 48ms]
+  GET http://localhost:8000/api/v1/logs [200 OK, 253.7kB, 49ms]
   ✓  Logs returns 200
 
 ↳ Log Stats
-  GET http://localhost:8000/api/v1/logs/stats [200 OK, 508B, 731ms]
+  GET http://localhost:8000/api/v1/logs/stats [200 OK, 508B, 727ms]
   ✓  Log stats returns 200
 
 ↳ Recent Logs
-  GET http://localhost:8000/api/v1/logs/recent [200 OK, 113.88kB, 6ms]
+  GET http://localhost:8000/api/v1/logs/recent [200 OK, 105.01kB, 7ms]
   ✓  Recent logs returns 200
 
 ↳ ML Status
-  GET http://localhost:8000/api/v1/ml/status [200 OK, 2.35kB, 14ms]
+  GET http://localhost:8000/api/v1/ml/status [200 OK, 1.37kB, 11ms]
   ✓  ML status returns 200
 
 ↳ ML Models
-  GET http://localhost:8000/api/v1/ml/models [200 OK, 1.36kB, 7ms]
+  GET http://localhost:8000/api/v1/ml/models [200 OK, 1.36kB, 9ms]
   ✓  ML models returns 200
 
 ↳ Algorithm Status
-  GET http://localhost:8000/api/v1/algorithms/status [200 OK, 1.2kB, 8ms]
+  GET http://localhost:8000/api/v1/algorithms/status [200 OK, 1.2kB, 7ms]
   ✓  Algorithm status returns 200
 
 ↳ Algorithm Capabilities
-  GET http://localhost:8000/api/v1/algorithms/capabilities [200 OK, 1.63kB, 10ms]
+  GET http://localhost:8000/api/v1/algorithms/capabilities [200 OK, 1.63kB, 4ms]
   ✓  Algorithm capabilities returns 200
 
 ↳ LLM Status
-  GET http://localhost:8000/api/v1/llm/status [200 OK, 946B, 8ms]
+  GET http://localhost:8000/api/v1/llm/status [200 OK, 946B, 5ms]
   ✓  LLM status returns 200
 
 ↳ LLM Providers
@@ -265,11 +265,11 @@ newman
 
 ❏ 🔍 Global Search
 ↳ Global Search — CVE
-  GET http://localhost:8000/api/v1/search?q=CVE-2024-3094 [500 Internal Server Error, 174B, 30ms]
+  GET http://localhost:8000/api/v1/search?q=CVE-2024-3094 [500 Internal Server Error, 174B, 24ms]
   ✓  CVE search returns result
 
 ↳ Global Search — Keyword
-  GET http://localhost:8000/api/v1/search?q=critical [500 Internal Server Error, 174B, 22ms]
+  GET http://localhost:8000/api/v1/search?q=critical [500 Internal Server Error, 174B, 23ms]
   ✓  Keyword search returns result
 
 ┌─────────────────────────┬───────────────────┬──────────────────┐
@@ -285,9 +285,9 @@ newman
 ├─────────────────────────┼───────────────────┼──────────────────┤
 │              assertions │                73 │                0 │
 ├─────────────────────────┴───────────────────┴──────────────────┤
-│ total run duration: 9.7s                                       │
+│ total run duration: 9.9s                                       │
 ├────────────────────────────────────────────────────────────────┤
-│ total data received: 878.87kB (approx)                         │
+│ total data received: 861.99kB (approx)                         │
 ├────────────────────────────────────────────────────────────────┤
-│ average response time: 34ms [min: 4ms, max: 731ms, s.d.: 94ms] │
+│ average response time: 36ms [min: 4ms, max: 727ms, s.d.: 93ms] │
 └────────────────────────────────────────────────────────────────┘

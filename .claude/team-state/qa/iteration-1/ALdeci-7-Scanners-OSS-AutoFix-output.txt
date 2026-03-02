@@ -4,29 +4,29 @@ ALdeci-7-Scanners-OSS-AutoFix
 
 ❏ 1. SAST Scanner
 ↳ SAST — Scan Code Snippet
-  POST http://localhost:8000/api/v1/sast/scan/code [200 OK, 2.06kB, 27ms]
+  POST http://localhost:8000/api/v1/sast/scan/code [200 OK, 2.06kB, 22ms]
   ✓  SAST returns 200
   ✓  SAST detects code injection
   ✓  SAST response has scan_id
 
 ↳ SAST — Scan Files
-  POST http://localhost:8000/api/v1/sast/scan/files [200 OK, 2.27kB, 7ms]
+  POST http://localhost:8000/api/v1/sast/scan/files [200 OK, 2.26kB, 9ms]
   ✓  SAST file scan returns 200
   ✓  Response has scan results
 
 ↳ SAST — Get Rules
-  GET http://localhost:8000/api/v1/sast/rules [200 OK, 30.18kB, 10ms]
+  GET http://localhost:8000/api/v1/sast/rules [200 OK, 30.18kB, 9ms]
   ✓  SAST rules returns 200
   ✓  Rules include multiple languages
 
 ↳ SAST — Scanner Status
-  GET http://localhost:8000/api/v1/sast/status [200 OK, 508B, 9ms]
+  GET http://localhost:8000/api/v1/sast/status [200 OK, 508B, 8ms]
   ✓  SAST status returns 200
   ✓  Scanner is operational
 
 ❏ 2. DAST Scanner
 ↳ DAST — Run Scan
-  POST http://localhost:8000/api/v1/dast/scan [200 OK, 3.8kB, 3.3s]
+  POST http://localhost:8000/api/v1/dast/scan [200 OK, 3.8kB, 3.8s]
   ✓  DAST scan returns 200
   ✓  DAST returns scan results
 
@@ -37,7 +37,7 @@ ALdeci-7-Scanners-OSS-AutoFix
 
 ❏ 3. Secrets Scanner
 ↳ Secrets — Scanner Status
-  GET http://localhost:8000/api/v1/secrets/status [200 OK, 549B, 20ms]
+  GET http://localhost:8000/api/v1/secrets/status [200 OK, 550B, 20ms]
   ✓  Secrets scanner status 200
 
 ↳ Secrets — Scan Content
@@ -46,19 +46,19 @@ ALdeci-7-Scanners-OSS-AutoFix
   ✓  Detects AWS credentials
 
 ↳ Secrets — List Findings
-  GET http://localhost:8000/api/v1/secrets [200 OK, 48.8kB, 13ms]
+  GET http://localhost:8000/api/v1/secrets [200 OK, 49.28kB, 17ms]
   ✓  List secrets returns 200
 
 ↳ Secrets — Create Finding
-  POST http://localhost:8000/api/v1/secrets [422 Unprocessable Content, 950B, 12ms]
+  POST http://localhost:8000/api/v1/secrets [422 Unprocessable Content, 950B, 9ms]
   ✓  Create secret finding returns 200/201
 
 ↳ Secrets — Get Finding
-  GET http://localhost:8000/api/v1/secrets/d8bcfd24-677f-44e9-850d-59e387bd1012 [200 OK, 783B, 11ms]
+  GET http://localhost:8000/api/v1/secrets/0ac282e8-b336-4fbb-aa74-f0243604bb37 [200 OK, 783B, 9ms]
   ✓  Get secret finding returns 200
 
 ↳ Secrets — Resolve Finding
-  POST http://localhost:8000/api/v1/secrets/d8bcfd24-677f-44e9-850d-59e387bd1012/resolve [200 OK, 815B, 9ms]
+  POST http://localhost:8000/api/v1/secrets/0ac282e8-b336-4fbb-aa74-f0243604bb37/resolve [200 OK, 815B, 8ms]
   ✓  Resolve secret returns 200
 
 ↳ Secrets — All Scanners Status
@@ -67,80 +67,80 @@ ALdeci-7-Scanners-OSS-AutoFix
 
 ❏ 4. Container Scanner
 ↳ Container — Scan Dockerfile
-  POST http://localhost:8000/api/v1/container/scan/dockerfile [200 OK, 1.87kB, 12ms]
+  POST http://localhost:8000/api/v1/container/scan/dockerfile [200 OK, 1.87kB, 9ms]
   ✓  Container Dockerfile scan returns 200
   ✓  Detects root user issue
 
 ↳ Container — Scan Image
-  POST http://localhost:8000/api/v1/container/scan/image [200 OK, 542B, 11ms]
+  POST http://localhost:8000/api/v1/container/scan/image [200 OK, 542B, 7ms]
   ✓  Container image scan returns 200
 
 ↳ Container — Scanner Status
-  GET http://localhost:8000/api/v1/container/status [200 OK, 556B, 10ms]
+  GET http://localhost:8000/api/v1/container/status [200 OK, 556B, 12ms]
   ✓  Container scanner status 200
 
 ❏ 5. CSPM & IaC Scanner
 ↳ CSPM — Scan Terraform
-  POST http://localhost:8000/api/v1/cspm/scan/terraform [200 OK, 1.37kB, 15ms]
+  POST http://localhost:8000/api/v1/cspm/scan/terraform [200 OK, 1.37kB, 11ms]
   ✓  CSPM Terraform scan returns 200
   ✓  Detects misconfigurations
 
 ↳ CSPM — Scan CloudFormation
-  POST http://localhost:8000/api/v1/cspm/scan/cloudformation [200 OK, 531B, 13ms]
+  POST http://localhost:8000/api/v1/cspm/scan/cloudformation [200 OK, 531B, 14ms]
   ✓  CSPM CloudFormation scan returns 200
 
 ↳ CSPM — Get Rules
-  GET http://localhost:8000/api/v1/cspm/rules [200 OK, 2.15kB, 9ms]
+  GET http://localhost:8000/api/v1/cspm/rules [200 OK, 2.15kB, 10ms]
   ✓  CSPM rules returns 200
 
 ↳ CSPM — Scanner Status
-  GET http://localhost:8000/api/v1/cspm/status [200 OK, 425B, 6ms]
+  GET http://localhost:8000/api/v1/cspm/status [200 OK, 425B, 7ms]
   ✓  CSPM scanner status 200
 
 ↳ IaC — List Scans
-  GET http://localhost:8000/api/v1/iac [200 OK, 44.96kB, 7ms]
+  GET http://localhost:8000/api/v1/iac [200 OK, 44.96kB, 11ms]
   ✓  IaC list scans returns 200
 
 ↳ IaC — Create Scan
-  POST http://localhost:8000/api/v1/iac [422 Unprocessable Content, 1.7kB, 4ms]
+  POST http://localhost:8000/api/v1/iac [422 Unprocessable Content, 1.7kB, 12ms]
   ✓  IaC create scan returns 200/201
 
 ↳ IaC — Get Findings
-  GET http://localhost:8000/api/v1/iac [200 OK, 44.96kB, 6ms]
+  GET http://localhost:8000/api/v1/iac [200 OK, 44.96kB, 10ms]
   ✓  IaC findings returns 200
 
 ↳ IaC — Get Rules
-  GET http://localhost:8000/api/v1/iac/scanners/status [200 OK, 377B, 10ms]
+  GET http://localhost:8000/api/v1/iac/scanners/status [200 OK, 377B, 9ms]
   ✓  IaC rules returns 200
 
 ↳ IaC — Scanner Status
-  GET http://localhost:8000/api/v1/iac/scanners/status [200 OK, 377B, 11ms]
+  GET http://localhost:8000/api/v1/iac/scanners/status [200 OK, 377B, 7ms]
   ✓  IaC scanner status 200
 
 ❏ 6. API Fuzzer
 ↳ API Fuzzer — Discover Endpoints
-  POST http://localhost:8000/api/v1/api-fuzzer/discover [200 OK, 328B, 13ms]
+  POST http://localhost:8000/api/v1/api-fuzzer/discover [200 OK, 328B, 12ms]
   ✓  API discovery returns 200
 
 ↳ API Fuzzer — Fuzz Endpoint
-  POST http://localhost:8000/api/v1/api-fuzzer/fuzz [422 Unprocessable Content, 666B, 8ms]
+  POST http://localhost:8000/api/v1/api-fuzzer/fuzz [422 Unprocessable Content, 666B, 13ms]
   ✓  API fuzz returns 200
 
 ↳ API Fuzzer — Status
-  GET http://localhost:8000/api/v1/api-fuzzer/status [200 OK, 360B, 12ms]
+  GET http://localhost:8000/api/v1/api-fuzzer/status [200 OK, 360B, 13ms]
   ✓  API fuzzer status 200
 
 ❏ 7. Malware Detector
 ↳ Malware — Scan Content
-  POST http://localhost:8000/api/v1/malware/scan/content [200 OK, 501B, 16ms]
+  POST http://localhost:8000/api/v1/malware/scan/content [200 OK, 501B, 8ms]
   ✓  Malware content scan returns 200
 
 ↳ Malware — Scan Files
-  POST http://localhost:8000/api/v1/malware/scan/files [200 OK, 501B, 8ms]
+  POST http://localhost:8000/api/v1/malware/scan/files [200 OK, 501B, 13ms]
   ✓  Malware file scan returns 200
 
 ↳ Malware — Get Signatures
-  GET http://localhost:8000/api/v1/malware/signatures [200 OK, 1.45kB, 9ms]
+  GET http://localhost:8000/api/v1/malware/signatures [200 OK, 1.45kB, 4ms]
   ✓  Malware signatures returns 200
 
 ↳ Malware — Scanner Status
@@ -149,160 +149,160 @@ ALdeci-7-Scanners-OSS-AutoFix
 
 ❏ 8. LLM Monitor
 ↳ LLM Monitor — Analyze Prompt
-  POST http://localhost:8000/api/v1/llm-monitor/analyze [200 OK, 1kB, 18ms]
+  POST http://localhost:8000/api/v1/llm-monitor/analyze [200 OK, 1kB, 11ms]
   ✓  LLM Monitor returns 200
   ✓  Detects prompt injection
 
 ↳ LLM Monitor — Scan Prompt Batch
-  POST http://localhost:8000/api/v1/llm-monitor/scan/prompt [200 OK, 345B, 11ms]
+  POST http://localhost:8000/api/v1/llm-monitor/scan/prompt [200 OK, 345B, 13ms]
   ✓  LLM prompt scan returns 200
 
 ↳ LLM Monitor — Get Patterns
-  GET http://localhost:8000/api/v1/llm-monitor/patterns [200 OK, 376B, 7ms]
+  GET http://localhost:8000/api/v1/llm-monitor/patterns [200 OK, 376B, 10ms]
   ✓  LLM patterns returns 200
 
 ↳ LLM Monitor — Status
-  GET http://localhost:8000/api/v1/llm-monitor/status [200 OK, 361B, 12ms]
+  GET http://localhost:8000/api/v1/llm-monitor/status [200 OK, 361B, 15ms]
   ✓  LLM monitor status 200
 
 ❏ 9. OSS/SCA Tools
 ↳ OSS — Tools Status
-  GET http://localhost:8000/api/v1/oss/status [200 OK, 708B, 9ms]
+  GET http://localhost:8000/api/v1/oss/status [200 OK, 708B, 10ms]
   ✓  OSS status returns 200
 
 ↳ OSS — Comprehensive Scan
-  POST http://localhost:8000/api/v1/oss/scan/comprehensive [200 OK, 377B, 13ms]
+  POST http://localhost:8000/api/v1/oss/scan/comprehensive [200 OK, 377B, 14ms]
   ✓  OSS comprehensive scan returns 200
 
 ↳ OSS — Trivy Scan
-  POST http://localhost:8000/api/v1/oss/scan/trivy [404 Not Found, 341B, 8ms]
+  POST http://localhost:8000/api/v1/oss/scan/trivy [404 Not Found, 341B, 11ms]
   ✓  Trivy scan returns 200
 
 ↳ OSS — Grype Scan
-  POST http://localhost:8000/api/v1/oss/scan/grype [404 Not Found, 341B, 8ms]
+  POST http://localhost:8000/api/v1/oss/scan/grype [404 Not Found, 341B, 11ms]
   ✓  Grype scan returns 200
 
 ↳ OSS — Sigstore Verify
-  POST http://localhost:8000/api/v1/oss/verify/sigstore [404 Not Found, 351B, 4ms]
+  POST http://localhost:8000/api/v1/oss/verify/sigstore [404 Not Found, 351B, 12ms]
   ✓  Sigstore verify returns 200
 
 ↳ OSS — OPA Policy Evaluate
-  POST http://localhost:8000/api/v1/oss/policy/evaluate [404 Not Found, 339B, 7ms]
+  POST http://localhost:8000/api/v1/oss/policy/evaluate [404 Not Found, 339B, 15ms]
   ✓  OPA policy evaluate returns 200
 
 ↳ OSS — List Policies
-  GET http://localhost:8000/api/v1/oss/policies [200 OK, 509B, 8ms]
+  GET http://localhost:8000/api/v1/oss/policies [200 OK, 509B, 12ms]
   ✓  OSS policies returns 200
 
 ↳ OSS — List Tools
-  GET http://localhost:8000/api/v1/oss/tools [200 OK, 1.34kB, 9ms]
+  GET http://localhost:8000/api/v1/oss/tools [200 OK, 1.34kB, 13ms]
   ✓  OSS tools list returns 200
 
 ❏ 10. AutoFix Engine
 ↳ AutoFix — Generate Fix
-  POST http://localhost:8000/api/v1/autofix/generate [200 OK, 2.12kB, 5.9s]
+  POST http://localhost:8000/api/v1/autofix/generate [200 OK, 2.12kB, 5.3s]
   ✓  AutoFix generate returns 200
   ✓  Fix has confidence level
 
 ↳ AutoFix — Generate Bulk Fixes
-  POST http://localhost:8000/api/v1/autofix/generate/bulk [200 OK, 5.63kB, 14s]
+  POST http://localhost:8000/api/v1/autofix/generate/bulk [200 OK, 5.63kB, 17.4s]
   ✓  Bulk autofix returns 200
 
 ↳ AutoFix — Apply Fix
-  POST http://localhost:8000/api/v1/autofix/apply [422 Unprocessable Content, 477B, 4ms]
+  POST http://localhost:8000/api/v1/autofix/apply [422 Unprocessable Content, 477B, 6ms]
   ✓  AutoFix apply returns 200
 
 ↳ AutoFix — Validate Fix
-  POST http://localhost:8000/api/v1/autofix/validate [404 Not Found, 348B, 5ms]
+  POST http://localhost:8000/api/v1/autofix/validate [404 Not Found, 348B, 9ms]
   ✓  AutoFix validate returns 200
 
 ↳ AutoFix — Rollback Fix
-  POST http://localhost:8000/api/v1/autofix/rollback [200 OK, 344B, 9ms]
+  POST http://localhost:8000/api/v1/autofix/rollback [200 OK, 344B, 7ms]
   ✓  AutoFix rollback returns 200
 
 ↳ AutoFix — Get Fix Details
-  GET http://localhost:8000/api/v1/autofix/fixes/fix-test-001 [404 Not Found, 348B, 8ms]
+  GET http://localhost:8000/api/v1/autofix/fixes/fix-test-001 [404 Not Found, 348B, 10ms]
   ✓  Get fix details returns 200
 
 ↳ AutoFix — Get Suggestions for Finding
-  GET http://localhost:8000/api/v1/autofix/suggestions/{{sast_finding_id}} [200 OK, 379B, 7ms]
+  GET http://localhost:8000/api/v1/autofix/suggestions/{{sast_finding_id}} [200 OK, 379B, 13ms]
   ✓  AutoFix suggestions returns 200
 
 ↳ AutoFix — History
-  GET http://localhost:8000/api/v1/autofix/history [200 OK, 1.18kB, 8ms]
+  GET http://localhost:8000/api/v1/autofix/history [200 OK, 1.86kB, 10ms]
   ✓  AutoFix history returns 200
   ✓  History is array
 
 ↳ AutoFix — Statistics
-  GET http://localhost:8000/api/v1/autofix/stats [200 OK, 582B, 6ms]
+  GET http://localhost:8000/api/v1/autofix/stats [200 OK, 603B, 11ms]
   ✓  AutoFix stats returns 200
   ✓  Stats has fix counts
 
 ↳ AutoFix — Health
-  GET http://localhost:8000/api/v1/autofix/health [200 OK, 399B, 8ms]
+  GET http://localhost:8000/api/v1/autofix/health [200 OK, 399B, 18ms]
   ✓  AutoFix health returns 200
   ✓  Engine is healthy
 
 ↳ AutoFix — List Fix Types
-  GET http://localhost:8000/api/v1/autofix/fix-types [200 OK, 824B, 7ms]
+  GET http://localhost:8000/api/v1/autofix/fix-types [200 OK, 824B, 6ms]
   ✓  Fix types returns 200
   ✓  Has 10 fix types
 
 ↳ AutoFix — Confidence Levels
-  GET http://localhost:8000/api/v1/autofix/confidence-levels [200 OK, 515B, 8ms]
+  GET http://localhost:8000/api/v1/autofix/confidence-levels [200 OK, 515B, 6ms]
   ✓  Confidence levels returns 200
   ✓  Has HIGH/MEDIUM/LOW levels
 
 ❏ 11. SBOM & Validation
 ↳ Inventory — Generate SBOM
-  POST http://localhost:8000/api/v1/inventory/applications [422 Unprocessable Content, 810B, 7ms]
+  POST http://localhost:8000/api/v1/inventory/applications [422 Unprocessable Content, 810B, 6ms]
   ✓  SBOM generation returns 200
   ✓  SBOM has components
 
 ↳ Inventory — License Compliance
-  POST http://localhost:8000/api/v1/inventory/applications [422 Unprocessable Content, 714B, 8ms]
+  POST http://localhost:8000/api/v1/inventory/applications [422 Unprocessable Content, 714B, 11ms]
   ✓  License compliance returns 200
 
 ↳ Validation — Validate Input (SARIF)
-  POST http://localhost:8000/api/v1/validate/input [422 Unprocessable Content, 410B, 7ms]
+  POST http://localhost:8000/api/v1/validate/input [422 Unprocessable Content, 410B, 5ms]
   ✓  Validation result valid
 
 ↳ Validation — Batch Validate
-  POST http://localhost:8000/api/v1/validate/batch [422 Unprocessable Content, 411B, 8ms]
+  POST http://localhost:8000/api/v1/validate/batch [422 Unprocessable Content, 411B, 10ms]
   ✓  Batch validation returns 200
 
 ❏ 12. Brain Pipeline (CTEM Lifecycle)
 ↳ Pipeline — Get Status
-  GET http://localhost:8000/api/v1/brain/stats [200 OK, 1.19kB, 10ms]
+  GET http://localhost:8000/api/v1/brain/stats [200 OK, 1.19kB, 13ms]
   ✓  Pipeline status returns 200
   ✓  Pipeline has 12 steps
 
 ↳ Pipeline — Process Finding
-  POST http://localhost:8000/api/v1/brain/pipeline/run [200 OK, 3.27kB, 67ms]
+  POST http://localhost:8000/api/v1/brain/pipeline/run [200 OK, 3.27kB, 33ms]
   ✓  Pipeline process returns 200
   ✓  Finding processed through pipeline
 
 ↳ Pipeline — Get Metrics
-  GET http://localhost:8000/api/v1/brain/stats [200 OK, 1.19kB, 5ms]
+  GET http://localhost:8000/api/v1/brain/stats [200 OK, 1.19kB, 7ms]
   ✓  Pipeline metrics returns 200
 
 ↳ Pipeline — Health Check
-  GET http://localhost:8000/api/v1/brain/health [200 OK, 396B, 8ms]
+  GET http://localhost:8000/api/v1/brain/health [200 OK, 396B, 5ms]
   ✓  Pipeline health returns 200
 
 ❏ 13. Air-Gapped Mode Verification
 ↳ Air-Gap — All Scanner Health Check
-  GET http://localhost:8000/api/v1/health [200 OK, 412B, 6ms]
+  GET http://localhost:8000/api/v1/health [200 OK, 413B, 9ms]
   ✓  Platform health returns 200
   ✓  All systems operational
 
 ↳ Air-Gap — SAST Scan (No External Tool)
-  POST http://localhost:8000/api/v1/sast/scan/code [200 OK, 1.87kB, 10ms]
+  POST http://localhost:8000/api/v1/sast/scan/code [200 OK, 1.87kB, 13ms]
   ✓  Air-gapped SAST works
   ✓  Detects insecure deserialization
 
 ↳ Air-Gap — AutoFix Without Cloud LLM
-  POST http://localhost:8000/api/v1/autofix/generate [200 OK, 2.12kB, 6.1s]
+  POST http://localhost:8000/api/v1/autofix/generate [200 OK, 2.12kB, 7.5s]
   ✓  Air-gapped AutoFix works
   ✓  Fix generated without cloud API
 
@@ -324,9 +324,9 @@ ALdeci-7-Scanners-OSS-AutoFix
 ├─────────────────────────┼───────────────────┼───────────────────┤
 │              assertions │                92 │                 0 │
 ├─────────────────────────┴───────────────────┴───────────────────┤
-│ total run duration: 38.2s                                       │
+│ total run duration: 43s                                         │
 ├─────────────────────────────────────────────────────────────────┤
-│ total data received: 212.6kB (approx)                           │
+│ total data received: 213.78kB (approx)                          │
 ├─────────────────────────────────────────────────────────────────┤
-│ average response time: 443ms [min: 4ms, max: 14s, s.d.: 1984ms] │
+│ average response time: 512ms [min: 4ms, max: 17.4s, s.d.: 2.3s] │
 └─────────────────────────────────────────────────────────────────┘

@@ -989,3 +989,6 @@
 57278 T
 61676 T
 [21:08:25] Sent SIGCONT to resume stopped processes
+[21:17:14] STOPPED claude processes found — sending SIGCONT:
+61676 T
+[21:17:14] Sent SIGCONT to resume stopped processes

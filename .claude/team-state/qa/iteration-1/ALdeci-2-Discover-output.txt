@@ -4,26 +4,26 @@ newman
 
 ❏ 📋 Finding Explorer
 ↳ List Findings
-  GET http://localhost:8000/api/v1/analytics/findings [200 OK, 45.54kB, 16ms]
+  GET http://localhost:8000/api/v1/analytics/findings [200 OK, 45.58kB, 17ms]
   ✓  List findings returns 200
   ✓  Returns findings array
 
 ↳ Create Finding
-  POST http://localhost:8000/api/v1/analytics/findings [201 Created, 807B, 5ms]
+  POST http://localhost:8000/api/v1/analytics/findings [201 Created, 807B, 4ms]
   ✓  Create finding returns 200/201
   ✓  Capture findingId
 
 ↳ Get Finding by ID
-  GET http://localhost:8000/api/v1/analytics/findings/cc67be8e-fcc6-469b-92f3-902ea5b01563 [200 OK, 802B, 7ms]
+  GET http://localhost:8000/api/v1/analytics/findings/f8dc7751-d441-4eab-8e93-e6fc46e05534 [200 OK, 802B, 6ms]
   ✓  Get finding returns 200
   ✓  Finding has required fields
 
 ↳ Update Finding
-  PUT http://localhost:8000/api/v1/analytics/findings/cc67be8e-fcc6-469b-92f3-902ea5b01563 [200 OK, 808B, 8ms]
+  PUT http://localhost:8000/api/v1/analytics/findings/f8dc7751-d441-4eab-8e93-e6fc46e05534 [200 OK, 808B, 9ms]
   ✓  Update finding returns 200
 
 ↳ Custom Analytics Query
-  POST http://localhost:8000/api/v1/analytics/custom-query [200 OK, 44.2kB, 11ms]
+  POST http://localhost:8000/api/v1/analytics/custom-query [200 OK, 44.29kB, 12ms]
   ✓  Custom query returns 200
 
 ❏ 🧩 Deduplication & Correlation
@@ -33,58 +33,58 @@ newman
   ✓  Capture clusterId
 
 ↳ List Clusters
-  GET http://localhost:8000/api/v1/deduplication/clusters?org_id=org-001 [200 OK, 1.35kB, 11ms]
+  GET http://localhost:8000/api/v1/deduplication/clusters?org_id=org-001 [200 OK, 1.35kB, 9ms]
   ✓  List clusters returns 200
   ✓  Capture first clusterId
 
 ↳ Get Cluster
-  GET http://localhost:8000/api/v1/deduplication/clusters/test-cluster-001?org_id=org-001 [404 Not Found, 342B, 9ms]
+  GET http://localhost:8000/api/v1/deduplication/clusters/test-cluster-001?org_id=org-001 [404 Not Found, 339B, 10ms]
   ✓  Get cluster returns 200
 
 ↳ Related Clusters
-  GET http://localhost:8000/api/v1/deduplication/clusters?org_id=org-001 [200 OK, 1.35kB, 11ms]
+  GET http://localhost:8000/api/v1/deduplication/clusters?org_id=org-001 [200 OK, 1.35kB, 10ms]
   ✓  Related clusters returns 200
 
 ↳ List Correlations
-  GET http://localhost:8000/api/v1/deduplication/correlations [200 OK, 1.9kB, 10ms]
+  GET http://localhost:8000/api/v1/deduplication/correlations [200 OK, 1.9kB, 13ms]
   ✓  Correlations returns 200
 
 ↳ Correlation Graph
-  GET http://localhost:8000/api/v1/deduplication/graph?org_id=org-001 [200 OK, 703B, 10ms]
+  GET http://localhost:8000/api/v1/deduplication/graph?org_id=org-001 [200 OK, 703B, 14ms]
   ✓  Correlation graph returns 200
 
 ↳ Deduplication Stats (Global)
-  GET http://localhost:8000/api/v1/deduplication/stats [200 OK, 438B, 11ms]
+  GET http://localhost:8000/api/v1/deduplication/stats [200 OK, 438B, 16ms]
   ✓  Dedup stats returns 200
 
 ↳ Cross-Stage Correlation
-  POST http://localhost:8000/api/v1/deduplication/correlate/cross-stage?org_id=org-001 [200 OK, 505B, 7ms]
+  POST http://localhost:8000/api/v1/deduplication/correlate/cross-stage?org_id=org-001 [200 OK, 505B, 11ms]
   ✓  Cross-stage correlation returns 200
 
 ❏ 🧠 Knowledge Brain Graph
 ↳ Create Node
-  POST http://localhost:8000/api/v1/brain/nodes [201 Created, 562B, 8ms]
-  ✓  Create node returns 200/201
-  ✓  Capture nodeId
+  POST http://localhost:8000/api/v1/brain/nodes [500 Internal Server Error, 174B, 24ms]
+  1. Create node returns 200/201
+  2. Capture nodeId
 
 ↳ Query Nodes
-  GET http://localhost:8000/api/v1/brain/nodes [200 OK, 23.35kB, 20ms]
+  GET http://localhost:8000/api/v1/brain/nodes [200 OK, 21.08kB, 12ms]
   ✓  Query nodes returns 200
 
 ↳ Get Node
-  GET http://localhost:8000/api/v1/brain/nodes/app-payment-service [200 OK, 557B, 10ms]
+  GET http://localhost:8000/api/v1/brain/nodes/ [200 OK, 21.08kB, 18ms]
   ✓  Get node returns 200
 
 ↳ Create Edge
-  POST http://localhost:8000/api/v1/brain/edges [201 Created, 462B, 11ms]
+  POST http://localhost:8000/api/v1/brain/edges [422 Unprocessable Content, 471B, 7ms]
   ✓  Create edge returns 200/201
 
 ↳ Get Neighbors (2 hops)
-  GET http://localhost:8000/api/v1/brain/neighbors/app-payment-service?hops=2 [200 OK, 866B, 12ms]
-  ✓  Neighbors returns 200
+  GET http://localhost:8000/api/v1/brain/neighbors/?hops=2 [404 Not Found, 331B, 10ms]
+  3. Neighbors returns 200
 
 ↳ Graph Stats
-  GET http://localhost:8000/api/v1/brain/stats [200 OK, 1.19kB, 10ms]
+  GET http://localhost:8000/api/v1/brain/stats [200 OK, 1.19kB, 9ms]
   ✓  Graph stats returns 200
 
 ↳ Most Connected Nodes
@@ -93,1020 +93,313 @@ newman
   ✓  Most connected nodes returns valid response or timeout
 
 ↳ Node Risk Score
-  GET http://localhost:8000/api/v1/brain/riskapp-payment-service [errored]
-     ESOCKETTIMEDOUT
-  3. Node risk returns 200
+  GET http://localhost:8000/api/v1/brain/risk [404 Not Found, 331B, 11ms]
+  ✓  Node risk returns 200
 
 ↳ Entity Types
-  GET http://localhost:8000/api/v1/brain/meta/entity-types [errored]
-     ESOCKETTIMEDOUT
-  5. Entity types returns 200
+  GET http://localhost:8000/api/v1/brain/meta/entity-types [200 OK, 1.46kB, 9ms]
+  ✓  Entity types returns 200
 
 ↳ Edge Types
-  GET http://localhost:8000/api/v1/brain/meta/edge-types [errored]
-     ESOCKETTIMEDOUT
-  7. Edge types returns 200
+  GET http://localhost:8000/api/v1/brain/meta/edge-types [200 OK, 1.6kB, 8ms]
+  ✓  Edge types returns 200
 
 ↳ Ingest CVE into Brain
-  POST http://localhost:8000/api/v1/brain/ingest/cve [errored]
-     ESOCKETTIMEDOUT
-  9. Ingest CVE returns 200/201
+  POST http://localhost:8000/api/v1/brain/ingest/cve [200 OK, 368B, 18ms]
+  ✓  Ingest CVE returns 200/201
 
 ↳ Ingest Finding into Brain
-  POST http://localhost:8000/api/v1/brain/ingest/finding [errored]
-     ESOCKETTIMEDOUT
- 11. Ingest finding returns 200/201
+  POST http://localhost:8000/api/v1/brain/ingest/finding [200 OK, 398B, 12ms]
+  ✓  Ingest finding returns 200/201
 
 ❏ 🔬 Security Scanners
 ↳ SAST — Scan Code
-  POST http://localhost:8000/api/v1/sast/scan/code [errored]
-     ESOCKETTIMEDOUT
- 13. SAST scan returns 200
- 14. Returns scan results
+  POST http://localhost:8000/api/v1/sast/scan/code [200 OK, 1.41kB, 24ms]
+  ✓  SAST scan returns 200
+  ✓  Returns scan results
 
 ↳ SAST — List Rules
-  GET http://localhost:8000/api/v1/sast/rules [errored]
-     ESOCKETTIMEDOUT
- 16. SAST rules returns 200
+  GET http://localhost:8000/api/v1/sast/rules [200 OK, 30.18kB, 11ms]
+  ✓  SAST rules returns 200
 
 ↳ SAST — Status
-  GET http://localhost:8000/api/v1/sast/status [errored]
-     ESOCKETTIMEDOUT
- 18. SAST status returns 200
+  GET http://localhost:8000/api/v1/sast/status [200 OK, 508B, 9ms]
+  ✓  SAST status returns 200
 
 ↳ DAST — Scan
-  POST http://localhost:8000/api/v1/dast/scan [errored]
-     ESOCKETTIMEDOUT
- 20. DAST scan returns 200
+  POST http://localhost:8000/api/v1/dast/scan [200 OK, 3.8kB, 4.7s]
+  ✓  DAST scan returns 200
 
 ↳ DAST — Status
-  GET http://localhost:8000/api/v1/dast/status [errored]
-     ESOCKETTIMEDOUT
- 22. DAST status returns 200
+  GET http://localhost:8000/api/v1/dast/status [200 OK, 354B, 10ms]
+  ✓  DAST status returns 200
 
 ↳ CSPM — Scan Terraform
-  POST http://localhost:8000/api/v1/cspm/scan/terraform [errored]
-     ESOCKETTIMEDOUT
- 24. CSPM Terraform scan returns 200
+  POST http://localhost:8000/api/v1/cspm/scan/terraform [200 OK, 1.37kB, 13ms]
+  ✓  CSPM Terraform scan returns 200
 
 ↳ CSPM — Rules
-  GET http://localhost:8000/api/v1/cspm/rules [errored]
-     ESOCKETTIMEDOUT
- 26. CSPM rules returns 200
+  GET http://localhost:8000/api/v1/cspm/rules [200 OK, 2.15kB, 7ms]
+  ✓  CSPM rules returns 200
 
 ↳ Container — Scan Dockerfile
-  POST http://localhost:8000/api/v1/container/scan/dockerfile [errored]
-     ESOCKETTIMEDOUT
- 28. Container scan returns 200
+  POST http://localhost:8000/api/v1/container/scan/dockerfile [200 OK, 1.87kB, 11ms]
+  ✓  Container scan returns 200
 
 ↳ Secrets — List Findings
-  GET http://localhost:8000/api/v1/secrets [errored]
-     ESOCKETTIMEDOUT
- 30. Secrets list returns 200
+  GET http://localhost:8000/api/v1/secrets [200 OK, 48.84kB, 17ms]
+  ✓  Secrets list returns 200
 
 ↳ Secrets — Scan Content
-  POST http://localhost:8000/api/v1/secrets/scan/content [errored]
-     ESOCKETTIMEDOUT
- 32. Secrets scan returns 200
+  POST http://localhost:8000/api/v1/secrets/scan/content [200 OK, 1.75kB, 16ms]
+  ✓  Secrets scan returns 200
 
 ↳ IaC — Scan Content
-  POST http://localhost:8000/api/v1/iac/scan/content [errored]
-     ESOCKETTIMEDOUT
- 34. IaC scan returns 200
+  POST http://localhost:8000/api/v1/iac/scan/content [200 OK, 661B, 12ms]
+  ✓  IaC scan returns 200
 
 ↳ API Fuzzer — Discover APIs
-  POST http://localhost:8000/api/v1/api-fuzzer/discover [errored]
-     ESOCKETTIMEDOUT
- 36. API fuzzer discover returns 200
+  POST http://localhost:8000/api/v1/api-fuzzer/discover [200 OK, 328B, 15ms]
+  ✓  API fuzzer discover returns 200
 
 ↳ Malware — Scan Content
-  POST http://localhost:8000/api/v1/malware/scan/content [errored]
-     ESOCKETTIMEDOUT
- 38. Malware scan returns 200
+  POST http://localhost:8000/api/v1/malware/scan/content [200 OK, 501B, 11ms]
+  ✓  Malware scan returns 200
 
 ❏ 📡 Threat Intelligence Feeds
 ↳ EPSS Scores
-  GET http://localhost:8000/api/v1/feeds/epss [errored]
-     ESOCKETTIMEDOUT
- 40. EPSS scores returns 200
+  GET http://localhost:8000/api/v1/feeds/epss [200 OK, 24.54kB, 22ms]
+  ✓  EPSS scores returns 200
 
 ↳ KEV Entries
-  GET http://localhost:8000/api/v1/feeds/kev [errored]
-     ESOCKETTIMEDOUT
- 42. KEV entries returns 200
+  GET http://localhost:8000/api/v1/feeds/kev [200 OK, 387B, 37ms]
+  ✓  KEV entries returns 200
 
 ↳ Recent NVD CVEs
-  GET http://localhost:8000/api/v1/feeds/nvd/recent [errored]
-     ESOCKETTIMEDOUT
- 44. NVD recent returns 200
+  GET http://localhost:8000/api/v1/feeds/nvd/recent [200 OK, 67.51kB, 9ms]
+  ✓  NVD recent returns 200
 
 ↳ Get NVD CVE by ID
-  GET http://localhost:8000/api/v1/feeds/status [errored]
-     ESOCKETTIMEDOUT
- 46. NVD CVE lookup returns 200
+  GET http://localhost:8000/api/v1/feeds/status [200 OK, 1.26kB, 58ms]
+  ✓  NVD CVE lookup returns 200
 
 ↳ List All Exploits
-  GET http://localhost:8000/api/v1/feeds/exploits [errored]
-     ESOCKETTIMEDOUT
- 48. Exploits list returns 200
+  GET http://localhost:8000/api/v1/feeds/exploits [200 OK, 25.51kB, 21ms]
+  ✓  Exploits list returns 200
 
 ↳ Exploits for CVE
-  GET http://localhost:8000/api/v1/feeds/exploits/CVE-2024-3094 [errored]
-     ESOCKETTIMEDOUT
- 50. CVE exploits returns 200
+  GET http://localhost:8000/api/v1/feeds/exploits/CVE-2024-3094 [200 OK, 553B, 8ms]
+  ✓  CVE exploits returns 200
 
 ↳ Threat Actors
-  GET http://localhost:8000/api/v1/feeds/threat-actors [errored]
-     ESOCKETTIMEDOUT
- 52. Threat actors returns 200
+  GET http://localhost:8000/api/v1/feeds/threat-actors [200 OK, 850B, 11ms]
+  ✓  Threat actors returns 200
 
 ↳ Supply Chain Vulns
-  GET http://localhost:8000/api/v1/feeds/supply-chain [errored]
-     ESOCKETTIMEDOUT
- 54. Supply chain returns 200
+  GET http://localhost:8000/api/v1/feeds/supply-chain [200 OK, 24.31kB, 13ms]
+  ✓  Supply chain returns 200
 
 ↳ Exploit Confidence Score
-  GET http://localhost:8000/api/v1/feeds/exploit-confidence/CVE-2024-3094 [errored]
-     ESOCKETTIMEDOUT
- 56. Exploit confidence returns 200
+  GET http://localhost:8000/api/v1/feeds/exploit-confidence/CVE-2024-3094 [200 OK, 497B, 4ms]
+  ✓  Exploit confidence returns 200
 
 ↳ Geo-Weighted Risk
-  GET http://localhost:8000/api/v1/feeds/geo-risk/CVE-2024-3094 [errored]
-     ESOCKETTIMEDOUT
- 58. Geo risk returns 200
+  GET http://localhost:8000/api/v1/feeds/geo-risk/CVE-2024-3094 [200 OK, 500B, 6ms]
+  ✓  Geo risk returns 200
 
 ↳ Feed Stats
-  GET http://localhost:8000/api/v1/feeds/stats [errored]
-     ESOCKETTIMEDOUT
- 60. Feed stats returns 200
+  GET http://localhost:8000/api/v1/feeds/stats [200 OK, 1.92kB, 134ms]
+  ✓  Feed stats returns 200
 
 ↳ Feed Categories
-  GET http://localhost:8000/api/v1/feeds/categories [errored]
-     ESOCKETTIMEDOUT
- 62. Feed categories returns 200
+  GET http://localhost:8000/api/v1/feeds/categories [200 OK, 2.1kB, 6ms]
+  ✓  Feed categories returns 200
 
 ↳ Feed Sources
-  GET http://localhost:8000/api/v1/feeds/sources [errored]
-     ESOCKETTIMEDOUT
- 64. Feed sources returns 200
+  GET http://localhost:8000/api/v1/feeds/sources [200 OK, 9.04kB, 6ms]
+  ✓  Feed sources returns 200
 
 ↳ Enrich Findings with Feed Data
-  POST http://localhost:8000/api/v1/feeds/enrich [errored]
-     ESOCKETTIMEDOUT
- 66. Enrichment returns 200
+  POST http://localhost:8000/api/v1/feeds/enrich [200 OK, 805B, 12ms]
+  ✓  Enrichment returns 200
 
 ❏ 🏢 Asset Inventory
 ↳ List Assets
-  GET http://localhost:8000/api/v1/inventory/assets [errored]
-     ESOCKETTIMEDOUT
- 68. Assets list returns 200
+  GET http://localhost:8000/api/v1/inventory/assets [200 OK, 27.5kB, 15ms]
+  ✓  Assets list returns 200
 
 ↳ List Applications
-  GET http://localhost:8000/api/v1/inventory/applications [errored]
-     ESOCKETTIMEDOUT
- 70. Applications list returns 200
- 71. Capture applicationId
+  GET http://localhost:8000/api/v1/inventory/applications [200 OK, 32.38kB, 10ms]
+  ✓  Applications list returns 200
+  ✓  Capture applicationId
 
 ↳ Create Application
-  POST http://localhost:8000/api/v1/inventory/applications [errored]
-     ESOCKETTIMEDOUT
- 73. Create app returns 200/201
- 74. Capture applicationId
+  POST http://localhost:8000/api/v1/inventory/applications [201 Created, 649B, 9ms]
+  ✓  Create app returns 200/201
+  ✓  Capture applicationId
 
 ↳ Get Application
-  GET http://localhost:8000/api/v1/inventory/applications/ [errored]
-     ESOCKETTIMEDOUT
- 76. Get app returns 200
+  GET http://localhost:8000/api/v1/inventory/applications/c13e8539-06e3-4c94-9584-5840a3625a56 [200 OK, 644B, 9ms]
+  ✓  Get app returns 200
 
 ↳ App SBOM
-  GET http://localhost:8000/api/v1/inventory/applications//sbom [errored]
-     ESOCKETTIMEDOUT
- 78. SBOM returns 200
+  GET http://localhost:8000/api/v1/inventory/applications/c13e8539-06e3-4c94-9584-5840a3625a56/sbom [200 OK, 699B, 9ms]
+  ✓  SBOM returns 200
 
 ↳ App License Compliance
-  GET http://localhost:8000/api/v1/inventory/applications//license-compliance [errored]
-     ESOCKETTIMEDOUT
- 80. License compliance returns 200
+  GET http://localhost:8000/api/v1/inventory/applications/c13e8539-06e3-4c94-9584-5840a3625a56/license-compliance [200 OK, 458B, 8ms]
+  ✓  License compliance returns 200
 
 ↳ Search Inventory
-  GET http://localhost:8000/api/v1/inventory/search?q=payment [errored]
-     ESOCKETTIMEDOUT
- 82. Search returns 200
+  GET http://localhost:8000/api/v1/inventory/search?q=payment [200 OK, 23.74kB, 11ms]
+  ✓  Search returns 200
 
 ↳ List Services
-  GET http://localhost:8000/api/v1/inventory/services [errored]
-     ESOCKETTIMEDOUT
- 84. Services returns 200
+  GET http://localhost:8000/api/v1/inventory/services [200 OK, 347B, 8ms]
+  ✓  Services returns 200
 
 ↳ List APIs
-  GET http://localhost:8000/api/v1/inventory/apis [errored]
-     ESOCKETTIMEDOUT
- 86. APIs returns 200
+  GET http://localhost:8000/api/v1/inventory/apis [200 OK, 347B, 8ms]
+  ✓  APIs returns 200
 
 ❏ 📥 Data Ingestion
 ↳ Ingest SARIF
-  POST http://localhost:8000/inputs/sarif [errored]
-     ESOCKETTIMEDOUT
- 88. SARIF ingest returns 200
+  POST http://localhost:8000/inputs/sarif [422 Unprocessable Content, 410B, 10ms]
+  ✓  SARIF ingest returns 200
 
 ↳ Ingest SBOM
-  POST http://localhost:8000/inputs/sbom [errored]
-     ESOCKETTIMEDOUT
- 90. SBOM ingest returns 200
+  POST http://localhost:8000/inputs/sbom [422 Unprocessable Content, 410B, 11ms]
+  ✓  SBOM ingest returns 200
 
 ↳ Ingest CVE
-  POST http://localhost:8000/inputs/cve [errored]
-     ESOCKETTIMEDOUT
- 92. CVE ingest returns 200
+  POST http://localhost:8000/inputs/cve [422 Unprocessable Content, 410B, 8ms]
+  ✓  CVE ingest returns 200
 
 ↳ Ingest Design Context
-  POST http://localhost:8000/inputs/design [errored]
-     ESOCKETTIMEDOUT
- 94. Design ingest returns 200
+  POST http://localhost:8000/inputs/design [422 Unprocessable Content, 410B, 9ms]
+  ✓  Design ingest returns 200
 
 ↳ List Supported Formats
-  GET http://localhost:8000/api/v1/ingest/formats [errored]
-     ESOCKETTIMEDOUT
- 96. Formats returns 200
+  GET http://localhost:8000/api/v1/ingest/formats [200 OK, 2.97kB, 49ms]
+  ✓  Formats returns 200
 
 ↳ Validate Input Format
-  POST http://localhost:8000/api/v1/validate/input [errored]
-     ESOCKETTIMEDOUT
- 98. Validation returns 200
+  POST http://localhost:8000/api/v1/validate/input [422 Unprocessable Content, 410B, 8ms]
+  ✓  Validation returns 200
 
 ❏ 🔮 Predictions & Algorithms
 ↳ Predict Attack Chain
-  POST http://localhost:8000/api/v1/predictions/attack-chain [errored]
-     ESOCKETTIMEDOUT
-100. Attack chain prediction returns 200
+  POST http://localhost:8000/api/v1/predictions/attack-chain [200 OK, 5.64kB, 18ms]
+  ✓  Attack chain prediction returns 200
 
 ↳ Risk Trajectory
-  POST http://localhost:8000/api/v1/predictions/risk-trajectory [errored]
-     ESOCKETTIMEDOUT
-102. Risk trajectory returns 200
+  POST http://localhost:8000/api/v1/predictions/risk-trajectory [200 OK, 2.58kB, 10ms]
+  ✓  Risk trajectory returns 200
 
 ↳ Monte Carlo Risk Quantification
-  POST http://localhost:8000/api/v1/algorithms/monte-carlo/quantify [errored]
-     ESOCKETTIMEDOUT
-104. Monte Carlo returns 200
+  POST http://localhost:8000/api/v1/algorithms/monte-carlo/quantify [200 OK, 900B, 42ms]
+  ✓  Monte Carlo returns 200
 
 ↳ Bayesian Risk Assessment
-  POST http://localhost:8000/api/v1/algorithms/monte-carlo/cve [errored]
-     ESOCKETTIMEDOUT
-106. Bayesian assessment returns 200
+  POST http://localhost:8000/api/v1/algorithms/monte-carlo/cve [200 OK, 1.02kB, 82ms]
+  ✓  Bayesian assessment returns 200
 
 ↳ GNN Attack Surface
-  POST http://localhost:8000/api/v1/algorithms/gnn/attack-surface [errored]
-     ESOCKETTIMEDOUT
-108. GNN analysis returns 200
+  POST http://localhost:8000/api/v1/algorithms/gnn/attack-surface [200 OK, 550B, 9ms]
+  ✓  GNN analysis returns 200
 
 ↳ Reachability Analysis
-  POST http://localhost:8000/api/v1/reachability/analyze [errored]
-     ESOCKETTIMEDOUT
-110. Reachability returns 200
+  POST http://localhost:8000/api/v1/reachability/analyze [422 Unprocessable Content, 641B, 176ms]
+  ✓  Reachability returns 200
 
 ↳ Code-to-Cloud Trace
-  POST http://localhost:8000/api/v1/code-to-cloud/trace [errored]
-     ESOCKETTIMEDOUT
-112. Code-to-cloud trace returns 200
+  POST http://localhost:8000/api/v1/code-to-cloud/trace [200 OK, 976B, 14ms]
+  ✓  Code-to-cloud trace returns 200
 
 ❏ 🆔 Fuzzy Identity Resolution
 ↳ Register Canonical Identity
-  POST http://localhost:8000/api/v1/identity/canonical [errored]
-     ESOCKETTIMEDOUT
-114. Register canonical returns 200/201
+  POST http://localhost:8000/api/v1/identity/canonical [200 OK, 360B, 15ms]
+  ✓  Register canonical returns 200/201
 
 ↳ Resolve Fuzzy Name
-  POST http://localhost:8000/api/v1/identity/resolve [errored]
-     ESOCKETTIMEDOUT
-116. Resolution returns 200
+  POST http://localhost:8000/api/v1/identity/resolve [200 OK, 367B, 25ms]
+  ✓  Resolution returns 200
 
 ↳ Identity Stats
-  GET http://localhost:8000/api/v1/identity/stats [errored]
-     ESOCKETTIMEDOUT
-118. Identity stats returns 200
+  GET http://localhost:8000/api/v1/identity/stats [200 OK, 472B, 42ms]
+  ✓  Identity stats returns 200
 
 ❏ 🔌 Vulnerability Discovery
 ↳ List Discovered Vulnerabilities
-  GET http://localhost:8000/api/v1/vulns/discovered [errored]
-     ESOCKETTIMEDOUT
-120. Discovered vulns returns 200
+  GET http://localhost:8000/api/v1/vulns/discovered [200 OK, 1.74kB, 3ms]
+  ✓  Discovered vulns returns 200
 
 ↳ List Internal Vulnerabilities
-  GET http://localhost:8000/api/v1/vulns/internal [errored]
-     ESOCKETTIMEDOUT
-122. Internal vulns returns 200
+  GET http://localhost:8000/api/v1/vulns/internal [200 OK, 1.74kB, 4ms]
+  ✓  Internal vulns returns 200
 
 ↳ Vulnerability Stats
-  GET http://localhost:8000/api/v1/vulns/stats [errored]
-     ESOCKETTIMEDOUT
-124. Vuln stats returns 200
+  GET http://localhost:8000/api/v1/vulns/stats [200 OK, 635B, 9ms]
+  ✓  Vuln stats returns 200
 
 ↳ List Contributions
-  GET http://localhost:8000/api/v1/vulns/contributions [errored]
-     ESOCKETTIMEDOUT
-126. Contributions returns 200
+  GET http://localhost:8000/api/v1/vulns/contributions [200 OK, 386B, 8ms]
+  ✓  Contributions returns 200
 
 ❏ 🧮 Brain Pipeline
 ↳ Run Full Pipeline
-  POST http://localhost:8000/api/v1/brain/pipeline/run [errored]
-     ESOCKETTIMEDOUT
-128. Pipeline run returns 200
-129. Capture pipelineRunId
+  POST http://localhost:8000/api/v1/brain/pipeline/run [200 OK, 3.32kB, 64ms]
+  ✓  Pipeline run returns 200
+  ✓  Capture pipelineRunId
 
 ↳ List Pipeline Runs
-  GET http://localhost:8000/api/v1/brain/pipeline/runs [errored]
-     ESOCKETTIMEDOUT
-131. Pipeline runs returns 200
+  GET http://localhost:8000/api/v1/brain/pipeline/runs [200 OK, 3.36kB, 6ms]
+  ✓  Pipeline runs returns 200
 
 ↳ Get Pipeline Run
-  GET http://localhost:8000/api/v1/brain/pipeline/runs/ [errored]
-     ESOCKETTIMEDOUT
-133. Get pipeline run returns 200
+  GET http://localhost:8000/api/v1/brain/pipeline/runs/BR-EAFC4EBF95B6 [200 OK, 3.32kB, 9ms]
+  ✓  Get pipeline run returns 200
 
-┌─────────────────────────┬──────────────────┬─────────────────┐
-│                         │         executed │          failed │
-├─────────────────────────┼──────────────────┼─────────────────┤
-│              iterations │                1 │               0 │
-├─────────────────────────┼──────────────────┼─────────────────┤
-│                requests │               84 │              65 │
-├─────────────────────────┼──────────────────┼─────────────────┤
-│            test-scripts │               84 │               0 │
-├─────────────────────────┼──────────────────┼─────────────────┤
-│      prerequest-scripts │               85 │               0 │
-├─────────────────────────┼──────────────────┼─────────────────┤
-│              assertions │               94 │              68 │
-├─────────────────────────┴──────────────────┴─────────────────┤
-│ total run duration: 32m 40.6s                                │
-├──────────────────────────────────────────────────────────────┤
-│ total data received: 120.52kB (approx)                       │
-├──────────────────────────────────────────────────────────────┤
-│ average response time: 10ms [min: 5ms, max: 20ms, s.d.: 3ms] │
-└──────────────────────────────────────────────────────────────┘
+┌─────────────────────────┬───────────────────┬──────────────────┐
+│                         │          executed │           failed │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│              iterations │                 1 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│                requests │                84 │                1 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│            test-scripts │                84 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│      prerequest-scripts │                85 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│              assertions │                94 │                3 │
+├─────────────────────────┴───────────────────┴──────────────────┤
+│ total run duration: 46.3s                                      │
+├────────────────────────────────────────────────────────────────┤
+│ total data received: 496kB (approx)                            │
+├────────────────────────────────────────────────────────────────┤
+│ average response time: 73ms [min: 3ms, max: 4.7s, s.d.: 508ms] │
+└────────────────────────────────────────────────────────────────┘
 
-[31m    # [39m[31m failure        [39m[31m detail                                                                 [39m
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 001.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 002.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 003.  AssertionError  Node risk returns 200                                                  
-                       expected undefined to be one of [ 200, 201, 202, 404, 409, 422 ]       
-                       at assertion:0 in test-script                                          
-                       inside "🧠 Knowledge Brain Graph / Node Risk Score"                    
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 004.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 005.  AssertionError  Entity types returns 200                                               
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🧠 Knowledge Brain Graph / Entity Types"                       
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 006.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 007.  AssertionError  Edge types returns 200                                                 
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🧠 Knowledge Brain Graph / Edge Types"                         
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 008.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 009.  AssertionError  Ingest CVE returns 200/201                                             
-                       expected undefined to be one of [ 200, 201, 202, 409, 422, 500 ]       
-                       at assertion:0 in test-script                                          
-                       inside "🧠 Knowledge Brain Graph / Ingest CVE into Brain"              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 010.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 011.  AssertionError  Ingest finding returns 200/201                                         
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🧠 Knowledge Brain Graph / Ingest Finding into Brain"          
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 012.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 013.  AssertionError  SAST scan returns 200                                                  
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔬 Security Scanners / SAST — Scan Code"                       
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 014.  JSONError       Returns scan results                                                   
-                       "undefined" is not valid JSON                                          
-                       at assertion:1 in test-script                                          
-                       inside "🔬 Security Scanners / SAST — Scan Code"                       
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 015.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 016.  AssertionError  SAST rules returns 200                                                 
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔬 Security Scanners / SAST — List Rules"                      
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 017.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 018.  AssertionError  SAST status returns 200                                                
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔬 Security Scanners / SAST — Status"                          
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 019.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 020.  AssertionError  DAST scan returns 200                                                  
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔬 Security Scanners / DAST — Scan"                            
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 021.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 022.  AssertionError  DAST status returns 200                                                
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔬 Security Scanners / DAST — Status"                          
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 023.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 024.  AssertionError  CSPM Terraform scan returns 200                                        
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔬 Security Scanners / CSPM — Scan Terraform"                  
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 025.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 026.  AssertionError  CSPM rules returns 200                                                 
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔬 Security Scanners / CSPM — Rules"                           
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 027.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 028.  AssertionError  Container scan returns 200                                             
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔬 Security Scanners / Container — Scan Dockerfile"            
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 029.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 030.  AssertionError  Secrets list returns 200                                               
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔬 Security Scanners / Secrets — List Findings"                
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 031.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 032.  AssertionError  Secrets scan returns 200                                               
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔬 Security Scanners / Secrets — Scan Content"                 
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 033.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 034.  AssertionError  IaC scan returns 200                                                   
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔬 Security Scanners / IaC — Scan Content"                     
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 035.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 036.  AssertionError  API fuzzer discover returns 200                                        
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔬 Security Scanners / API Fuzzer — Discover APIs"             
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 037.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 038.  AssertionError  Malware scan returns 200                                               
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔬 Security Scanners / Malware — Scan Content"                 
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 039.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 040.  AssertionError  EPSS scores returns 200                                                
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "📡 Threat Intelligence Feeds / EPSS Scores"                    
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 041.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 042.  AssertionError  KEV entries returns 200                                                
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "📡 Threat Intelligence Feeds / KEV Entries"                    
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 043.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 044.  AssertionError  NVD recent returns 200                                                 
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "📡 Threat Intelligence Feeds / Recent NVD CVEs"                
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 045.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 046.  AssertionError  NVD CVE lookup returns 200                                             
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "📡 Threat Intelligence Feeds / Get NVD CVE by ID"              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 047.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 048.  AssertionError  Exploits list returns 200                                              
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "📡 Threat Intelligence Feeds / List All Exploits"              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 049.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 050.  AssertionError  CVE exploits returns 200                                               
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "📡 Threat Intelligence Feeds / Exploits for CVE"               
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 051.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 052.  AssertionError  Threat actors returns 200                                              
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "📡 Threat Intelligence Feeds / Threat Actors"                  
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 053.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 054.  AssertionError  Supply chain returns 200                                               
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "📡 Threat Intelligence Feeds / Supply Chain Vulns"             
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 055.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 056.  AssertionError  Exploit confidence returns 200                                         
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "📡 Threat Intelligence Feeds / Exploit Confidence Score"       
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 057.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 058.  AssertionError  Geo risk returns 200                                                   
-                       expected undefined to be one of [ 200, 201, 202, 404, 409, 422 ]       
-                       at assertion:0 in test-script                                          
-                       inside "📡 Threat Intelligence Feeds / Geo-Weighted Risk"              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 059.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 060.  AssertionError  Feed stats returns 200                                                 
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "📡 Threat Intelligence Feeds / Feed Stats"                     
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 061.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 062.  AssertionError  Feed categories returns 200                                            
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "📡 Threat Intelligence Feeds / Feed Categories"                
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 063.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 064.  AssertionError  Feed sources returns 200                                               
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "📡 Threat Intelligence Feeds / Feed Sources"                   
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 065.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 066.  AssertionError  Enrichment returns 200                                                 
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "📡 Threat Intelligence Feeds / Enrich Findings with Feed Data" 
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 067.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 068.  AssertionError  Assets list returns 200                                                
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🏢 Asset Inventory / List Assets"                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 069.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 070.  AssertionError  Applications list returns 200                                          
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🏢 Asset Inventory / List Applications"                        
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 071.  JSONError       Capture applicationId                                                  
-                       "undefined" is not valid JSON                                          
-                       at assertion:1 in test-script                                          
-                       inside "🏢 Asset Inventory / List Applications"                        
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 072.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 073.  AssertionError  Create app returns 200/201                                             
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🏢 Asset Inventory / Create Application"                       
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 074.  JSONError       Capture applicationId                                                  
-                       "undefined" is not valid JSON                                          
-                       at assertion:1 in test-script                                          
-                       inside "🏢 Asset Inventory / Create Application"                       
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 075.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 076.  AssertionError  Get app returns 200                                                    
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🏢 Asset Inventory / Get Application"                          
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 077.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 078.  AssertionError  SBOM returns 200                                                       
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🏢 Asset Inventory / App SBOM"                                 
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 079.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 080.  AssertionError  License compliance returns 200                                         
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🏢 Asset Inventory / App License Compliance"                   
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 081.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 082.  AssertionError  Search returns 200                                                     
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🏢 Asset Inventory / Search Inventory"                         
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 083.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 084.  AssertionError  Services returns 200                                                   
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🏢 Asset Inventory / List Services"                            
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 085.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 086.  AssertionError  APIs returns 200                                                       
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🏢 Asset Inventory / List APIs"                                
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 087.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 088.  AssertionError  SARIF ingest returns 200                                               
-                       expected undefined to be one of [ 200, 201, 202, 422 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "📥 Data Ingestion / Ingest SARIF"                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 089.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 090.  AssertionError  SBOM ingest returns 200                                                
-                       expected undefined to be one of [ 200, 201, 202, 422 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "📥 Data Ingestion / Ingest SBOM"                               
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 091.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 092.  AssertionError  CVE ingest returns 200                                                 
-                       expected undefined to be one of [ 200, 201, 202, 422 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "📥 Data Ingestion / Ingest CVE"                                
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 093.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 094.  AssertionError  Design ingest returns 200                                              
-                       expected undefined to be one of [ 200, 201, 202, 422 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "📥 Data Ingestion / Ingest Design Context"                     
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 095.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 096.  AssertionError  Formats returns 200                                                    
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "📥 Data Ingestion / List Supported Formats"                    
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 097.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 098.  AssertionError  Validation returns 200                                                 
-                       expected undefined to be one of [ 200, 201, 202, 422 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "📥 Data Ingestion / Validate Input Format"                     
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 099.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 100.  AssertionError  Attack chain prediction returns 200                                    
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔮 Predictions & Algorithms / Predict Attack Chain"            
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 101.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 102.  AssertionError  Risk trajectory returns 200                                            
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔮 Predictions & Algorithms / Risk Trajectory"                 
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 103.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 104.  AssertionError  Monte Carlo returns 200                                                
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔮 Predictions & Algorithms / Monte Carlo Risk Quantification" 
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 105.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 106.  AssertionError  Bayesian assessment returns 200                                        
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔮 Predictions & Algorithms / Bayesian Risk Assessment"        
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 107.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 108.  AssertionError  GNN analysis returns 200                                               
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔮 Predictions & Algorithms / GNN Attack Surface"              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 109.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 110.  AssertionError  Reachability returns 200                                               
-                       expected undefined to be one of [ 200, 201, 202, 404, 409, 422 ]       
-                       at assertion:0 in test-script                                          
-                       inside "🔮 Predictions & Algorithms / Reachability Analysis"           
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 111.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 112.  AssertionError  Code-to-cloud trace returns 200                                        
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔮 Predictions & Algorithms / Code-to-Cloud Trace"             
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 113.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 114.  AssertionError  Register canonical returns 200/201                                     
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🆔 Fuzzy Identity Resolution / Register Canonical Identity"    
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 115.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 116.  AssertionError  Resolution returns 200                                                 
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🆔 Fuzzy Identity Resolution / Resolve Fuzzy Name"             
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 117.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 118.  AssertionError  Identity stats returns 200                                             
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🆔 Fuzzy Identity Resolution / Identity Stats"                 
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 119.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 120.  AssertionError  Discovered vulns returns 200                                           
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔌 Vulnerability Discovery / List Discovered Vulnerabilities"  
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 121.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 122.  AssertionError  Internal vulns returns 200                                             
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔌 Vulnerability Discovery / List Internal Vulnerabilities"    
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 123.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 124.  AssertionError  Vuln stats returns 200                                                 
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔌 Vulnerability Discovery / Vulnerability Stats"              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 125.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 126.  AssertionError  Contributions returns 200                                              
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🔌 Vulnerability Discovery / List Contributions"               
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 127.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 128.  AssertionError  Pipeline run returns 200                                               
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🧮 Brain Pipeline / Run Full Pipeline"                         
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 129.  JSONError       Capture pipelineRunId                                                  
-                       "undefined" is not valid JSON                                          
-                       at assertion:1 in test-script                                          
-                       inside "🧮 Brain Pipeline / Run Full Pipeline"                         
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 130.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 131.  AssertionError  Pipeline runs returns 200                                              
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🧮 Brain Pipeline / List Pipeline Runs"                        
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 132.  Error                                                                                  
-                       ESOCKETTIMEDOUT                                                        
-                       at request                                                             
-                       inside ""                                                              
-[90m      [39m[90m                [39m[90m                                                                        [39m
- 133.  AssertionError  Get pipeline run returns 200                                           
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                 
-                       at assertion:0 in test-script                                          
-                       inside "🧮 Brain Pipeline / Get Pipeline Run"                          
+[31m  # [39m[31m failure        [39m[31m detail                                                     [39m
+[90m    [39m[90m                [39m[90m                                                            [39m
+ 1.  AssertionError  Create node returns 200/201                                
+                     expected 500 to be one of [ 200, 201, 202, 409 ]           
+                     at assertion:0 in test-script                              
+                     inside "🧠 Knowledge Brain Graph / Create Node"            
+[90m    [39m[90m                [39m[90m                                                            [39m
+ 2.  JSONError       Capture nodeId                                             
+                     Unexpected token 'I' at 1:1                                
+                     Internal Server Error                                      
+                     ^                                                          
+                     at assertion:1 in test-script                              
+                     inside "🧠 Knowledge Brain Graph / Create Node"            
+[90m    [39m[90m                [39m[90m                                                            [39m
+ 3.  AssertionError  Neighbors returns 200                                      
+                     expected 404 to be one of [ 200, 201, 202, 409 ]           
+                     at assertion:0 in test-script                              
+                     inside "🧠 Knowledge Brain Graph / Get Neighbors (2 hops)" 
+[90m    [39m[90m                [39m[90m                                                            [39m
+ 4.  Error                                                                      
+                     ESOCKETTIMEDOUT                                            
+                     at request                                                 
+                     inside ""                                                  

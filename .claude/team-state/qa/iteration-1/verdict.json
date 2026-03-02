@@ -1,13 +1,13 @@
 {
   "iteration": 1,
-  "date": "2026-03-02T07:20:29Z",
+  "date": "2026-03-02T10:14:51Z",
   "total_collections": 7,
-  "total_assertions": 371,
-  "passed": 239,
-  "failed": 132,
-  "pass_rate": 64.4,
+  "total_assertions": 475,
+  "passed": 468,
+  "failed": 7,
+  "pass_rate": 98.5,
   "newman_threshold": 85,
-  "verdict": "FAIL",
-  "can_exit_early": false,
-  "run_id": "swarm-2026-03-02_13-35-43"
+  "verdict": "WARN",
+  "can_exit_early": true,
+  "run_id": "swarm-2026-03-02_18-18-27"
 }

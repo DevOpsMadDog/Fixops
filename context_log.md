@@ -3450,3 +3450,11 @@
 - **Next steps**: v29 scan after frontend-craftsman completes DEMO-003, or Day 3 morning scan
 - **Pillar(s) served**: V3, V5, V7, V10
 
+
+### [2026-03-02 21:14] run-ctem-swarm — ITERATIVE 1/1
+- **What**: Iterative swarm run (1 iterations, claude-opus-4-6-fast)
+- **Run ID**: swarm-2026-03-02_18-18-27
+- **Duration**: 2h 56m
+- **Converged**: NO
+- **Outcome**: PARTIAL — did not converge in 1 iterations
+- **Pillar focus**: V3, V5, V7 (core) | V1, V2, V9, V10 (constraints)

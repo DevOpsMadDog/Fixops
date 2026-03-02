@@ -173,3 +173,5 @@
 {"ts":"2026-03-02T09:23:47Z","label":"post-context-engineer","cpu":23.7,"mem_pct":88,"disk_pct":20,"load":1.98}
 {"ts":"2026-03-02T09:23:58Z","label":"pre-context-engineer","cpu":25.7,"mem_pct":88,"disk_pct":20,"load":2.11}
 {"ts":"2026-03-02T09:32:03Z","label":"post-context-engineer","cpu":45.1,"mem_pct":89,"disk_pct":20,"load":1.25}
+{"ts":"2026-03-02T10:16:14Z","label":"pre-vision-agent","cpu":304.5,"mem_pct":96,"disk_pct":20,"load":1.93}
+{"ts":"2026-03-02T10:16:14Z","label":"pre-agent-doctor","cpu":308.1,"mem_pct":96,"disk_pct":20,"load":1.93}

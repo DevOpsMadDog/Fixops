@@ -4,770 +4,223 @@ newman
 
 ❏ 🔥 FAIL Engine (Differentiator #1)
 ↳ Score Single Finding
-  POST http://localhost:8000/api/v1/fail/score [errored]
-     ESOCKETTIMEDOUT
-  2. FAIL score returns 200
-  3. Returns FAIL score
+  POST http://localhost:8000/api/v1/fail/score [200 OK, 1.2kB, 15ms]
+  ✓  FAIL score returns 200
+  ✓  Returns FAIL score
 
 ↳ Score Batch
-  POST http://localhost:8000/api/v1/fail/score/batch [errored]
-     ESOCKETTIMEDOUT
-  5. Batch FAIL score returns 200
+  POST http://localhost:8000/api/v1/fail/score/batch [200 OK, 3.2kB, 7ms]
+  ✓  Batch FAIL score returns 200
 
 ↳ Get FAIL Score
-  GET http://localhost:8000/api/v1/fail/score/ [errored]
-     ESOCKETTIMEDOUT
-  7. Get FAIL score returns 200
+  GET http://localhost:8000/api/v1/fail/score/FAIL-D11D4CDD1CAC [200 OK, 1.74kB, 6ms]
+  ✓  Get FAIL score returns 200
 
 ↳ List FAIL Scores
-  GET http://localhost:8000/api/v1/fail/scores [errored]
-     ESOCKETTIMEDOUT
-  9. List scores returns 200
+  GET http://localhost:8000/api/v1/fail/scores [200 OK, 149.24kB, 13ms]
+  ✓  List scores returns 200
 
 ↳ Top Risks by FAIL Score
-  GET http://localhost:8000/api/v1/fail/top-risks [errored]
-     ESOCKETTIMEDOUT
- 11. Top risks returns 200
+  GET http://localhost:8000/api/v1/fail/top-risks [200 OK, 31.01kB, 10ms]
+  ✓  Top risks returns 200
 
 ↳ FAIL Stats
-  GET http://localhost:8000/api/v1/fail/stats [errored]
-     ESOCKETTIMEDOUT
- 13. FAIL stats returns 200
+  GET http://localhost:8000/api/v1/fail/stats [200 OK, 451B, 8ms]
+  ✓  FAIL stats returns 200
 
 ↳ CVE FAIL Scores
-  GET http://localhost:8000/api/v1/fail/cve/CVE-2024-3094 [errored]
-     ESOCKETTIMEDOUT
- 15. CVE FAIL scores returns 200
+  GET http://localhost:8000/api/v1/fail/cve/CVE-2024-3094 [200 OK, 68.95kB, 9ms]
+  ✓  CVE FAIL scores returns 200
 
 ❏ 🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6)
 ↳ List MPTE Requests
-  GET http://localhost:8000/api/v1/mpte/requests [errored]
-     ESOCKETTIMEDOUT
- 17. MPTE requests returns 200
+  GET http://localhost:8000/api/v1/mpte/requests [200 OK, 34.5kB, 11ms]
+  ✓  MPTE requests returns 200
 
 ↳ Create MPTE Request
-  POST http://localhost:8000/api/v1/mpte/requests [errored]
-     ESOCKETTIMEDOUT
- 19. Create MPTE request returns 200/201
+  POST http://localhost:8000/api/v1/mpte/requests [201 Created, 628B, 9ms]
+  ✓  Create MPTE request returns 200/201
   ✓  Capture mpteRequestId
 
 ↳ Get MPTE Request
-  GET http://localhost:8000/api/v1/mpte/requests/ [errored]
-     ESOCKETTIMEDOUT
- 21. Get MPTE request returns 200
+  GET http://localhost:8000/api/v1/mpte/requests/8efb9cc9-a77c-4b7b-b0ad-9b1491ac4338 [200 OK, 653B, 5ms]
+  ✓  Get MPTE request returns 200
 
 ↳ Start MPTE Request
-  POST http://localhost:8000/api/v1/mpte/requests//start [errored]
-     ESOCKETTIMEDOUT
-  -  [skipped] Start MPTE returns 200 — skipped due to missing mpteRequestId
+  POST http://localhost:8000/api/v1/mpte/requests/8efb9cc9-a77c-4b7b-b0ad-9b1491ac4338/start [200 OK, 684B, 7ms]
+  ✓  Start MPTE returns 200
 
 ↳ Verify Exploitability
-  POST http://localhost:8000/api/v1/mpte/verify [errored]
-     ESOCKETTIMEDOUT
- 24. Verify exploitability returns 200
- 25. Returns exploitability verdict
+  POST http://localhost:8000/api/v1/mpte/verify [422 Unprocessable Content, 529B, 7ms]
+  ✓  Verify exploitability returns 200
+  ✓  Returns exploitability verdict
 
 ↳ Comprehensive MPTE Scan
-  POST http://localhost:8000/api/v1/mpte/scan/comprehensive [errored]
-     ESOCKETTIMEDOUT
- 27. Comprehensive scan returns 200
+  POST http://localhost:8000/api/v1/mpte/scan/comprehensive [201 Created, 350B, 20s]
+  ✓  Comprehensive scan returns 200
 
 ↳ MPTE Results
-  GET http://localhost:8000/api/v1/mpte/results [errored]
-     ESOCKETTIMEDOUT
- 29. MPTE results returns 200
+  GET http://localhost:8000/api/v1/mpte/results [200 OK, 5.09kB, 10ms]
+  ✓  MPTE results returns 200
 
 ↳ MPTE Configs
-  GET http://localhost:8000/api/v1/mpte/configs [errored]
-     ESOCKETTIMEDOUT
- 31. MPTE configs returns 200
+  GET http://localhost:8000/api/v1/mpte/configs [200 OK, 8.26kB, 10ms]
+  ✓  MPTE configs returns 200
 
 ↳ MPTE Stats
-  GET http://localhost:8000/api/v1/mpte/stats [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 33. MPTE stats returns 200
+  GET http://localhost:8000/api/v1/mpte/stats [200 OK, 541B, 22ms]
+  ✓  MPTE stats returns 200
 
 ↳ Finding Exploitability
-  GET http://localhost:8000/api/v1/mpte/findings//exploitability [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 35. Exploitability returns 200
+  GET http://localhost:8000/api/v1/mpte/findings//exploitability [404 Not Found, 331B, 11ms]
+  ✓  Exploitability returns 200
 
 ❏ 🧪 Micro Pentest Engine
 ↳ Run Micro Pentest
-  POST http://localhost:8000/api/v1/micro-pentest/run [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 37. Micro pentest returns 200
- 38. Capture scanId
+  POST http://localhost:8000/api/v1/micro-pentest/run [201 Created, 504B, 22ms]
+  ✓  Micro pentest returns 200
+  ✓  Capture scanId
 
 ↳ Enterprise Scan
-  POST http://localhost:8000/api/v1/micro-pentest/enterprise/scan [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 40. Enterprise scan returns 200
- 41. Capture scanId
+  POST http://localhost:8000/api/v1/micro-pentest/enterprise/scan [422 Unprocessable Content, 814B, 9ms]
+  ✓  Enterprise scan returns 200
+  ✓  Capture scanId
 
 ↳ List Enterprise Scans
-  GET http://localhost:8000/api/v1/micro-pentest/enterprise/scans [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 43. List scans returns 200
+  GET http://localhost:8000/api/v1/micro-pentest/enterprise/scans [200 OK, 324B, 10ms]
+  ✓  List scans returns 200
 
 ↳ Attack Vectors
-  GET http://localhost:8000/api/v1/micro-pentest/enterprise/attack-vectors [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 45. Attack vectors returns 200
+  GET http://localhost:8000/api/v1/micro-pentest/enterprise/attack-vectors [200 OK, 2.07kB, 10ms]
+  ✓  Attack vectors returns 200
 
 ↳ Threat Categories
-  GET http://localhost:8000/api/v1/micro-pentest/enterprise/threat-categories [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 47. Threat categories returns 200
+  GET http://localhost:8000/api/v1/micro-pentest/enterprise/threat-categories [200 OK, 1.27kB, 12ms]
+  ✓  Threat categories returns 200
 
 ↳ Scan Modes
-  GET http://localhost:8000/api/v1/micro-pentest/enterprise/scan-modes [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 49. Scan modes returns 200
+  GET http://localhost:8000/api/v1/micro-pentest/enterprise/scan-modes [200 OK, 698B, 9ms]
+  ✓  Scan modes returns 200
 
 ↳ Generate Pentest Report
-  POST http://localhost:8000/api/v1/micro-pentest/report/generate [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 51. Report generation returns 200
+  POST http://localhost:8000/api/v1/micro-pentest/report/generate [503 Service Unavailable, 434B, 13ms]
+  ✓  Report generation returns 200
 
 ❏ ⚔️ Attack Simulation (BAS)
 ↳ Create Attack Scenario
-  POST http://localhost:8000/api/v1/attack-sim/scenarios [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 53. Create scenario returns 200/201
- 54. Capture scenarioId
+  POST http://localhost:8000/api/v1/attack-sim/scenarios [200 OK, 804B, 12ms]
+  ✓  Create scenario returns 200/201
+  ✓  Capture scenarioId
 
 ↳ AI-Generate Scenario
-  POST http://localhost:8000/api/v1/attack-sim/scenarios/generate [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 56. AI scenario generation returns 200
+  POST http://localhost:8000/api/v1/attack-sim/scenarios/generate [200 OK, 802B, 16s]
+  ✓  AI scenario generation returns 200
 
 ↳ List Scenarios
-  GET http://localhost:8000/api/v1/attack-sim/scenarios [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 58. List scenarios returns 200
+  GET http://localhost:8000/api/v1/attack-sim/scenarios [200 OK, 1.3kB, 9ms]
+  ✓  List scenarios returns 200
 
 ↳ Run Attack Campaign
-  POST http://localhost:8000/api/v1/attack-sim/campaigns/run [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 60. Campaign run returns 200
- 61. Capture campaignId
+  POST http://localhost:8000/api/v1/attack-sim/campaigns/run [422 Unprocessable Content, 496B, 12ms]
+  ✓  Campaign run returns 200
+  ✓  Capture campaignId
 
 ↳ List Campaigns
-  GET http://localhost:8000/api/v1/attack-sim/campaigns [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 63. List campaigns returns 200
+  GET http://localhost:8000/api/v1/attack-sim/campaigns [200 OK, 303B, 9ms]
+  ✓  List campaigns returns 200
 
 ↳ Campaign Attack Paths
-  GET http://localhost:8000/api/v1/attack-sim/campaigns/test-campaign-001/attack-paths [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 65. Attack paths returns 200
+  GET http://localhost:8000/api/v1/attack-sim/campaigns/test-campaign-001/attack-paths [404 Not Found, 358B, 9ms]
+  ✓  Attack paths returns 200
 
 ↳ Breach Impact Analysis
-  GET http://localhost:8000/api/v1/attack-sim/campaigns/test-campaign-001/breach-impact [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 67. Breach impact returns 200
+  GET http://localhost:8000/api/v1/attack-sim/campaigns/test-campaign-001/breach-impact [404 Not Found, 358B, 10ms]
+  ✓  Breach impact returns 200
 
 ↳ MITRE ATT&CK Heatmap
-  GET http://localhost:8000/api/v1/attack-sim/mitre/heatmap [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 69. MITRE heatmap returns 200
+  GET http://localhost:8000/api/v1/attack-sim/mitre/heatmap [200 OK, 336B, 12ms]
+  ✓  MITRE heatmap returns 200
 
 ↳ MITRE Techniques
-  GET http://localhost:8000/api/v1/attack-sim/mitre/techniques [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 71. MITRE techniques returns 200
+  GET http://localhost:8000/api/v1/attack-sim/mitre/techniques [200 OK, 3.24kB, 11ms]
+  ✓  MITRE techniques returns 200
 
 ❏ 🤖 MPTE Orchestrator
 ↳ Orchestrator Capabilities
-  GET http://localhost:8000/api/v1/mpte-orchestrator/capabilities [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 73. Capabilities returns 200
+  GET http://localhost:8000/api/v1/mpte-orchestrator/capabilities [200 OK, 1.32kB, 14ms]
+  ✓  Capabilities returns 200
 
 ↳ Run Threat Intel Analysis
-  POST http://localhost:8000/api/v1/mpte-orchestrator/threat-intel [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 75. Threat intel returns 200
+  POST http://localhost:8000/api/v1/mpte-orchestrator/threat-intel [200 OK, 695B, 14ms]
+  ✓  Threat intel returns 200
 
 ↳ Business Impact Analysis
-  POST http://localhost:8000/api/v1/mpte-orchestrator/business-impact [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 77. Business impact returns 200
+  POST http://localhost:8000/api/v1/mpte-orchestrator/business-impact [200 OK, 896B, 7ms]
+  ✓  Business impact returns 200
 
 ↳ Run Full Orchestration
-  POST http://localhost:8000/api/v1/mpte-orchestrator/run [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 79. Full orchestration returns 200
+  POST http://localhost:8000/api/v1/mpte-orchestrator/run [200 OK, 630B, 11ms]
+  ✓  Full orchestration returns 200
 
 ❏ 🧠 Multi-LLM Consensus (V4)
 ↳ Make Security Decision
-  POST http://localhost:8000/api/v1/decisions/make-decision [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 81. Decision returns 200
- 82. Contains decision fields
+  POST http://localhost:8000/api/v1/decisions/make-decision [200 OK, 1.73kB, 91ms]
+  ✓  Decision returns 200
+  ✓  Contains decision fields
 
 ↳ Enhanced Multi-LLM Analysis
-  POST http://localhost:8000/api/v1/enhanced/analysis [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 84. Enhanced analysis returns 200
+  POST http://localhost:8000/api/v1/enhanced/analysis [200 OK, 3.97kB, 2.6s]
+  ✓  Enhanced analysis returns 200
 
 ↳ Compare LLM Responses
-  POST http://localhost:8000/api/v1/enhanced/compare-llms [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 86. LLM comparison returns 200
+  POST http://localhost:8000/api/v1/enhanced/compare-llms [200 OK, 3.48kB, 8s]
+  ✓  LLM comparison returns 200
 
 ↳ LLM Monitor — Scan Prompt
-  POST http://localhost:8000/api/v1/llm-monitor/scan/prompt [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 88. Prompt scan returns 200
+  POST http://localhost:8000/api/v1/llm-monitor/scan/prompt [200 OK, 786B, 20ms]
+  ✓  Prompt scan returns 200
 
 ❏ 🤖 AI Copilot — Analyst Agent
 ↳ Analyze Vulnerability
-  POST http://localhost:8000/api/v1/copilot/agents/analyst/analyze [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 90. Agent analysis returns 200
+  POST http://localhost:8000/api/v1/copilot/agents/analyst/analyze [200 OK, 471B, 13ms]
+  ✓  Agent analysis returns 200
 
 ↳ Gather Threat Intel
-  POST http://localhost:8000/api/v1/copilot/agents/analyst/threat-intel [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 92. Threat intel returns 200
+  POST http://localhost:8000/api/v1/copilot/agents/analyst/threat-intel [200 OK, 653B, 15ms]
+  ✓  Threat intel returns 200
 
 ↳ Prioritize Findings
-  POST http://localhost:8000/api/v1/copilot/agents/analyst/prioritize [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 94. Prioritize returns 200
+  POST http://localhost:8000/api/v1/copilot/agents/analyst/prioritize [200 OK, 598B, 15ms]
+  ✓  Prioritize returns 200
 
 ↳ Analyze Attack Paths
-  POST http://localhost:8000/api/v1/copilot/agents/analyst/attack-path [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 96. Attack path analysis returns 200
+  POST http://localhost:8000/api/v1/copilot/agents/analyst/attack-path [200 OK, 551B, 11ms]
+  ✓  Attack path analysis returns 200
 
 ↳ Trending Threats
-  GET http://localhost:8000/api/v1/copilot/agents/analyst/trending [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
- 98. Trending threats returns 200
+  GET http://localhost:8000/api/v1/copilot/agents/analyst/trending [200 OK, 1.58kB, 163ms]
+  ✓  Trending threats returns 200
 
 ↳ CVE Deep Analysis
-  GET http://localhost:8000/api/v1/copilot/agents/analyst/cve/CVE-2024-3094 [errored]
-     connect ETIMEDOUT 127.0.0.1:8000
-100. CVE analysis returns 200
+  GET http://localhost:8000/api/v1/copilot/agents/analyst/cve/CVE-2024-3094 [200 OK, 629B, 6ms]
+  ✓  CVE analysis returns 200
 
-┌─────────────────────────┬──────────┬──────────┐
-│                         │ executed │   failed │
-├─────────────────────────┼──────────┼──────────┤
-│              iterations │        1 │        0 │
-├─────────────────────────┼──────────┼──────────┤
-│                requests │       47 │       47 │
-├─────────────────────────┼──────────┼──────────┤
-│            test-scripts │       47 │        0 │
-├─────────────────────────┼──────────┼──────────┤
-│      prerequest-scripts │       50 │        0 │
-├─────────────────────────┼──────────┼──────────┤
-│              assertions │       55 │       53 │
-├─────────────────────────┴──────────┴──────────┤
-│ total run duration: 11m 45.8s                 │
-├───────────────────────────────────────────────┤
-│ total data received: 0B (approx)              │
-└───────────────────────────────────────────────┘
-
-[31m    # [39m[31m failure        [39m[31m detail                                                                                            [39m
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 001.  Error                                                                                                             
-                       ESOCKETTIMEDOUT                                                                                   
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 002.  AssertionError  FAIL score returns 200                                                                            
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🔥 FAIL Engine (Differentiator #1) / Score Single Finding"                                
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 003.  JSONError       Returns FAIL score                                                                                
-                       "undefined" is not valid JSON                                                                     
-                       at assertion:1 in test-script                                                                     
-                       inside "🔥 FAIL Engine (Differentiator #1) / Score Single Finding"                                
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 004.  Error                                                                                                             
-                       ESOCKETTIMEDOUT                                                                                   
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 005.  AssertionError  Batch FAIL score returns 200                                                                      
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🔥 FAIL Engine (Differentiator #1) / Score Batch"                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 006.  Error                                                                                                             
-                       ESOCKETTIMEDOUT                                                                                   
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 007.  AssertionError  Get FAIL score returns 200                                                                        
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🔥 FAIL Engine (Differentiator #1) / Get FAIL Score"                                      
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 008.  Error                                                                                                             
-                       ESOCKETTIMEDOUT                                                                                   
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 009.  AssertionError  List scores returns 200                                                                           
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🔥 FAIL Engine (Differentiator #1) / List FAIL Scores"                                    
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 010.  Error                                                                                                             
-                       ESOCKETTIMEDOUT                                                                                   
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 011.  AssertionError  Top risks returns 200                                                                             
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🔥 FAIL Engine (Differentiator #1) / Top Risks by FAIL Score"                             
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 012.  Error                                                                                                             
-                       ESOCKETTIMEDOUT                                                                                   
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 013.  AssertionError  FAIL stats returns 200                                                                            
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🔥 FAIL Engine (Differentiator #1) / FAIL Stats"                                          
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 014.  Error                                                                                                             
-                       ESOCKETTIMEDOUT                                                                                   
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 015.  AssertionError  CVE FAIL scores returns 200                                                                       
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🔥 FAIL Engine (Differentiator #1) / CVE FAIL Scores"                                     
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 016.  Error                                                                                                             
-                       ESOCKETTIMEDOUT                                                                                   
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 017.  AssertionError  MPTE requests returns 200                                                                         
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / List MPTE Requests"      
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 018.  Error                                                                                                             
-                       ESOCKETTIMEDOUT                                                                                   
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 019.  AssertionError  Create MPTE request returns 200/201                                                               
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / Create MPTE Request"     
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 020.  Error                                                                                                             
-                       ESOCKETTIMEDOUT                                                                                   
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 021.  AssertionError  Get MPTE request returns 200                                                                      
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / Get MPTE Request"        
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 022.  Error                                                                                                             
-                       ESOCKETTIMEDOUT                                                                                   
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 023.  Error                                                                                                             
-                       ESOCKETTIMEDOUT                                                                                   
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 024.  AssertionError  Verify exploitability returns 200                                                                 
-                       expected undefined to be one of [ 200, 201, 202, 400, 404, 405, …(4) ]                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / Verify Exploitability"   
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 025.  JSONError       Returns exploitability verdict                                                                    
-                       "undefined" is not valid JSON                                                                     
-                       at assertion:1 in test-script                                                                     
-                       inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / Verify Exploitability"   
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 026.  Error                                                                                                             
-                       ESOCKETTIMEDOUT                                                                                   
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 027.  AssertionError  Comprehensive scan returns 200                                                                    
-                       expected undefined to be one of [ 200, 201, 202, 409, 500, 504 ]                                  
-                       at assertion:0 in test-script                                                                     
-                       inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / Comprehensive MPTE Scan" 
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 028.  Error                                                                                                             
-                       ESOCKETTIMEDOUT                                                                                   
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 029.  AssertionError  MPTE results returns 200                                                                          
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / MPTE Results"            
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 030.  Error                                                                                                             
-                       ESOCKETTIMEDOUT                                                                                   
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 031.  AssertionError  MPTE configs returns 200                                                                          
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / MPTE Configs"            
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 032.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 033.  AssertionError  MPTE stats returns 200                                                                            
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / MPTE Stats"              
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 034.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 035.  AssertionError  Exploitability returns 200                                                                        
-                       expected undefined to be one of [ 200, 201, 202, 400, 404, 405, …(4) ]                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / Finding Exploitability"  
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 036.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 037.  AssertionError  Micro pentest returns 200                                                                         
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🧪 Micro Pentest Engine / Run Micro Pentest"                                              
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 038.  JSONError       Capture scanId                                                                                    
-                       "undefined" is not valid JSON                                                                     
-                       at assertion:1 in test-script                                                                     
-                       inside "🧪 Micro Pentest Engine / Run Micro Pentest"                                              
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 039.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 040.  AssertionError  Enterprise scan returns 200                                                                       
-                       expected undefined to be one of [ 200, 201, 202, 400, 404, 405, …(4) ]                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🧪 Micro Pentest Engine / Enterprise Scan"                                                
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 041.  JSONError       Capture scanId                                                                                    
-                       "undefined" is not valid JSON                                                                     
-                       at assertion:1 in test-script                                                                     
-                       inside "🧪 Micro Pentest Engine / Enterprise Scan"                                                
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 042.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 043.  AssertionError  List scans returns 200                                                                            
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🧪 Micro Pentest Engine / List Enterprise Scans"                                          
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 044.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 045.  AssertionError  Attack vectors returns 200                                                                        
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🧪 Micro Pentest Engine / Attack Vectors"                                                 
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 046.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 047.  AssertionError  Threat categories returns 200                                                                     
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🧪 Micro Pentest Engine / Threat Categories"                                              
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 048.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 049.  AssertionError  Scan modes returns 200                                                                            
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🧪 Micro Pentest Engine / Scan Modes"                                                     
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 050.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 051.  AssertionError  Report generation returns 200                                                                     
-                       expected undefined to be one of [ 200, 201, 202, 400, 404, 405, …(4) ]                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🧪 Micro Pentest Engine / Generate Pentest Report"                                        
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 052.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 053.  AssertionError  Create scenario returns 200/201                                                                   
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "⚔️ Attack Simulation (BAS) / Create Attack Scenario"                                      
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 054.  JSONError       Capture scenarioId                                                                                
-                       "undefined" is not valid JSON                                                                     
-                       at assertion:1 in test-script                                                                     
-                       inside "⚔️ Attack Simulation (BAS) / Create Attack Scenario"                                      
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 055.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 056.  AssertionError  AI scenario generation returns 200                                                                
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "⚔️ Attack Simulation (BAS) / AI-Generate Scenario"                                        
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 057.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 058.  AssertionError  List scenarios returns 200                                                                        
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "⚔️ Attack Simulation (BAS) / List Scenarios"                                              
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 059.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 060.  AssertionError  Campaign run returns 200                                                                          
-                       expected undefined to be one of [ 200, 201, 202, 400, 404, 405, …(4) ]                            
-                       at assertion:0 in test-script                                                                     
-                       inside "⚔️ Attack Simulation (BAS) / Run Attack Campaign"                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 061.  JSONError       Capture campaignId                                                                                
-                       "undefined" is not valid JSON                                                                     
-                       at assertion:1 in test-script                                                                     
-                       inside "⚔️ Attack Simulation (BAS) / Run Attack Campaign"                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 062.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 063.  AssertionError  List campaigns returns 200                                                                        
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "⚔️ Attack Simulation (BAS) / List Campaigns"                                              
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 064.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 065.  AssertionError  Attack paths returns 200                                                                          
-                       expected undefined to be one of [ 200, 201, 202, 400, 404, 405, …(4) ]                            
-                       at assertion:0 in test-script                                                                     
-                       inside "⚔️ Attack Simulation (BAS) / Campaign Attack Paths"                                       
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 066.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 067.  AssertionError  Breach impact returns 200                                                                         
-                       expected undefined to be one of [ 200, 201, 202, 400, 404, 405, …(4) ]                            
-                       at assertion:0 in test-script                                                                     
-                       inside "⚔️ Attack Simulation (BAS) / Breach Impact Analysis"                                      
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 068.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 069.  AssertionError  MITRE heatmap returns 200                                                                         
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "⚔️ Attack Simulation (BAS) / MITRE ATT&CK Heatmap"                                        
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 070.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 071.  AssertionError  MITRE techniques returns 200                                                                      
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "⚔️ Attack Simulation (BAS) / MITRE Techniques"                                            
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 072.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 073.  AssertionError  Capabilities returns 200                                                                          
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🤖 MPTE Orchestrator / Orchestrator Capabilities"                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 074.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 075.  AssertionError  Threat intel returns 200                                                                          
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🤖 MPTE Orchestrator / Run Threat Intel Analysis"                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 076.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 077.  AssertionError  Business impact returns 200                                                                       
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🤖 MPTE Orchestrator / Business Impact Analysis"                                          
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 078.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 079.  AssertionError  Full orchestration returns 200                                                                    
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🤖 MPTE Orchestrator / Run Full Orchestration"                                            
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 080.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 081.  AssertionError  Decision returns 200                                                                              
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🧠 Multi-LLM Consensus (V4) / Make Security Decision"                                     
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 082.  JSONError       Contains decision fields                                                                          
-                       "undefined" is not valid JSON                                                                     
-                       at assertion:1 in test-script                                                                     
-                       inside "🧠 Multi-LLM Consensus (V4) / Make Security Decision"                                     
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 083.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 084.  AssertionError  Enhanced analysis returns 200                                                                     
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🧠 Multi-LLM Consensus (V4) / Enhanced Multi-LLM Analysis"                                
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 085.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 086.  AssertionError  LLM comparison returns 200                                                                        
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🧠 Multi-LLM Consensus (V4) / Compare LLM Responses"                                      
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 087.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 088.  AssertionError  Prompt scan returns 200                                                                           
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🧠 Multi-LLM Consensus (V4) / LLM Monitor — Scan Prompt"                                  
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 089.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 090.  AssertionError  Agent analysis returns 200                                                                        
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🤖 AI Copilot — Analyst Agent / Analyze Vulnerability"                                    
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 091.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 092.  AssertionError  Threat intel returns 200                                                                          
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🤖 AI Copilot — Analyst Agent / Gather Threat Intel"                                      
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 093.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 094.  AssertionError  Prioritize returns 200                                                                            
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🤖 AI Copilot — Analyst Agent / Prioritize Findings"                                      
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 095.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 096.  AssertionError  Attack path analysis returns 200                                                                  
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🤖 AI Copilot — Analyst Agent / Analyze Attack Paths"                                     
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 097.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 098.  AssertionError  Trending threats returns 200                                                                      
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🤖 AI Copilot — Analyst Agent / Trending Threats"                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 099.  Error                                                                                                             
-                       connect ETIMEDOUT 127.0.0.1:8000                                                                  
-                       at request                                                                                        
-                       inside ""                                                                                         
-[90m      [39m[90m                [39m[90m                                                                                                   [39m
- 100.  AssertionError  CVE analysis returns 200                                                                          
-                       expected undefined to be one of [ 200, 201, 202, 409 ]                                            
-                       at assertion:0 in test-script                                                                     
-                       inside "🤖 AI Copilot — Analyst Agent / CVE Deep Analysis"                                        
+┌─────────────────────────┬───────────────────┬──────────────────┐
+│                         │          executed │           failed │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│              iterations │                 1 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│                requests │                47 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│            test-scripts │                47 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│      prerequest-scripts │                50 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│              assertions │                55 │                0 │
+├─────────────────────────┴───────────────────┴──────────────────┤
+│ total run duration: 53.1s                                      │
+├────────────────────────────────────────────────────────────────┤
+│ total data received: 325.07kB (approx)                         │
+├────────────────────────────────────────────────────────────────┤
+│ average response time: 1010ms [min: 5ms, max: 20s, s.d.: 3.8s] │
+└────────────────────────────────────────────────────────────────┘
