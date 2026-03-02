@@ -179,3 +179,12 @@
 2026-03-02,devops-engineer,claude-opus-4-6-fast,691s,2639B,58L,success,swarm-2026-03-02_21-24-11
 2026-03-02,qa-engineer,claude-opus-4-6-fast,1013s,1566B,39L,success,swarm-2026-03-02_21-16-13
 2026-03-02,marketing-head,claude-opus-4-6-fast,560s,2250B,43L,success,swarm-2026-03-02_21-16-13
+2026-03-02,scrum-master,claude-opus-4-6-fast,758s,1816B,39L,success,swarm-2026-03-02_21-24-11
+2026-03-03,vision-agent,claude-opus-4-6-fast,614s,2512B,51L,success,swarm-2026-03-03_02-25-46
+2026-03-02,technical-writer,claude-opus-4-6-fast,1015s,1280B,26L,success,swarm-2026-03-02_21-24-11
+2026-03-03,agent-doctor,claude-opus-4-6-fast,1122s,2398B,39L,success,swarm-2026-03-03_02-25-46
+2026-03-03,context-engineer,claude-opus-4-6-fast,756s,1758B,48L,success,swarm-2026-03-03_02-25-46
+2026-03-02,sales-engineer,claude-opus-4-6-fast,765s,2149B,40L,success,swarm-2026-03-02_21-24-11
+2026-03-03,ai-researcher,claude-opus-4-6-fast,556s,2467B,41L,success,swarm-2026-03-03_02-25-46
+2026-03-03,enterprise-architect,claude-opus-4-6-fast,881s,2711B,59L,success,swarm-2026-03-03_02-25-46
+2026-03-03,data-scientist,claude-opus-4-6-fast,1315s,2715B,51L,success,swarm-2026-03-03_02-25-46

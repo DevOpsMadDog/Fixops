@@ -1,7 +1,7 @@
 # ALdeci POC Plan — Enterprise Customer Template
 
 > **Duration**: 2 weeks
-> **Version**: 3.2 (2026-03-02 08:02 UTC) — Full API validation (33/33 GET + 9/11 POST), AutoFix timeout fix
+> **Version**: 4.0 (2026-03-03 15:48 UTC) — Full API validation (34/36 GET + 7/7 POST), 93% AutoFix confidence, 1,717 KG nodes
 > **Pillars**: [V3] Decision Intelligence, [V5] MPTE Verification, [V7] MCP-Native
 
 ---

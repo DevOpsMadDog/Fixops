@@ -1,10 +1,10 @@
 # ALdeci — Objection Handling Playbook
 
-> **Version**: 5.1 — Sprint 2, Day 3 (FULL re-validation 2026-03-02 08:02 UTC)
-> **Updated**: 2026-03-02 08:02 UTC
+> **Version**: 6.0 — Sprint 2, Day 3 (FULL re-validation 2026-03-03 15:48 UTC)
+> **Updated**: 2026-03-03 15:48 UTC
 > **Author**: Sales Engineer Agent
 > **Source**: CTEM+ Identity (docs/CTEM_PLUS_IDENTITY.md), Competitive Analysis (docs/COMPETITIVE_ANALYSIS_GROK_RESPONSE.md)
-> **V5.1 Changes**: 33/33 GET=200, 9/11 POST=200/201. 475/475 Postman. AutoFix 9 generated (avg 87.65% confidence). Dashboard: 1,000 findings. Brain: 1,512 nodes, 1,447 edges. Added Tier 8 (OSS competitors + reachability).
+> **V6.0 Changes**: 34/36 GET=200, 7/7 POST=200/201. 475/475 Postman (10th green). Moat 95.60%. AutoFix: 93% confidence (auto-apply eligible). Dashboard: 1,203 findings. Brain: 1,717 nodes, 1,664 edges. MPTE: 277 requests. 3 days to demo.
 
 ---
 

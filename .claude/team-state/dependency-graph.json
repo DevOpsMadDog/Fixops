@@ -1,9 +1,9 @@
 {
   "_meta": {
-    "version": "30.0",
-    "generated": "2026-03-02T23:30:00Z",
+    "version": "31.0",
+    "generated": "2026-03-03T20:00:00Z",
     "generated_by": "context-engineer",
-    "note": "No dependency changes from v28/v29. requirements.txt unchanged (30 packages). npm deps 41+15. Suite import graph unchanged. Codebase frozen for demo — zero code changes to any suite since v27. v30 corrects v29 file count (914, not 913)."
+    "note": "No dependency changes from v30. requirements.txt unchanged (30 packages). npm deps 41+15. Suite import graph unchanged. Engine hardening continues (brain +130, autofix +87, sandbox +42) but no new dependencies added."
   },
   "python": {
     "production": {

@@ -1,0 +1,13 @@
+{
+  "agent": "agent-doctor",
+  "status": "completed",
+  "run_id": "swarm-2026-03-03_02-25-46",
+  "timestamp": "2026-03-02T15:44:33Z",
+  "duration_s": 1122,
+  "attempts": 1,
+  "output_bytes": 2398,
+  "confidence": "HIGH",
+  "free_ram_mb": 6127,
+  "git_changes": " ...hitect_swarm-2026-03-02_21-16-13.log.prompt.tmp |      82 -  logs/jarvis/crash-history.log                      |       1 +  logs/jarvis/daily-digest-2026-03-02.md             |     260 +-  logs/jarvis/run-4-20260302_212411.log              |     172 +  233 files changed, 727099 insertions(+), 41381154 deletions(-) ",
+  "log_file": "/Users/devops.ai/developement/fixops/Fixops/logs/ai-team/2026-03-03_agent-doctor_swarm-2026-03-03_02-25-46.log"
+}

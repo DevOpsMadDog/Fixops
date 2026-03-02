@@ -50,7 +50,7 @@ Application Startup
 
 ### 2. MCP Protocol Engine (JSON-RPC 2.0)
 **File**: `suite-core/core/mcp_server.py` (979 LOC)
-**Prefix**: `/api/v1/mcp-protocol/*` (via `suite-integrations/api/mcp_protocol_router.py`)
+**Prefix**: `/api/v1/mcp-protocol/*` (via `suite-core/api/mcp_protocol_router.py`)
 
 Full MCP 2024-11-05 spec implementation:
 
@@ -126,7 +126,7 @@ The 705 MCP tools are self-discovered from ALdeci's own 769 API endpoints. This 
 - MCP Specification: https://spec.modelcontextprotocol.io/specification/2024-11-05/
 - `suite-api/apps/api/mcp_router.py` — Auto-discovery router (977 LOC)
 - `suite-core/core/mcp_server.py` — Protocol engine (979 LOC)
-- `suite-integrations/api/mcp_protocol_router.py` — JSON-RPC HTTP adapter
+- `suite-core/api/mcp_protocol_router.py` — JSON-RPC HTTP adapter
 - ADR-007: API Gateway Security (auth mechanism shared with MCP)
 
 ---

@@ -1,8 +1,8 @@
 # Iterative Swarm Summary — 2026-03-02
-- **Run ID:** swarm-2026-03-02_18-21-11
+- **Run ID:** swarm-2026-03-02_21-16-13
 - **Total iterations:** 1/1
-- **Total runtime:** 3h 1m
-- **Converged:** NO
+- **Total runtime:** 5h 7m
+- **Converged:** YES
 - **Newman threshold:** 85%
 - **Min runtime target:** 2h
 
@@ -11,15 +11,15 @@
 ```json
 {
   "iteration": 1,
-  "date": "2026-03-02T10:22:49Z",
+  "date": "2026-03-02T15:23:43Z",
   "total_collections": 7,
   "total_assertions": 475,
-  "passed": 468,
-  "failed": 7,
-  "pass_rate": 98.5,
+  "passed": 475,
+  "failed": 0,
+  "pass_rate": 100.0,
   "newman_threshold": 85,
-  "verdict": "WARN",
+  "verdict": "PASS",
   "can_exit_early": true,
-  "run_id": "swarm-2026-03-02_18-21-11"
+  "run_id": "swarm-2026-03-02_21-16-13"
 }
 ```

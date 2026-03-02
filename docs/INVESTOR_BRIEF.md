@@ -9,14 +9,14 @@
 
 ## Executive Summary
 
-ALdeci is a **CTEM+ (Continuous Threat Exposure Management Plus) Decision Intelligence Platform** for application security. It is the first platform that unifies scanning, verification, remediation, and compliance into a single AI-powered pipeline — with 8 built-in native scanners, 25 third-party parser integrations, and 780 API endpoints.
+ALdeci is a **CTEM+ (Continuous Threat Exposure Management Plus) Decision Intelligence Platform** for application security. It is the first platform that unifies scanning, verification, remediation, and compliance into a single AI-powered pipeline — with 8 built-in native scanners, 25 third-party parser integrations, and 781 API endpoints.
 
 **The problem**: Enterprises run 5-15 security scanners. Each generates thousands of findings. No tool tells them what to *do*. Result: 11,300 findings/week, 68% false positives, 14-day MTTR, $4,200 cost per fix.
 
 **ALdeci's answer**: A brain layer that sits above all scanners, deduplicates (97% noise reduction), verifies exploitability via automated micro-pentests, auto-fixes with AI-generated patches, and generates cryptographically signed evidence bundles for auditors.
 
 **Key metrics**:
-- 780 API endpoints across 6 product suites (verified, all returning 200 OK)
+- 781 API endpoints across 6 product suites (verified, all returning 200 OK)
 - 8 native scanners (SAST, DAST, Secrets, Container, CSPM, API Fuzzer, Malware, LLM Monitor)
 - 25+ third-party scanner parsers (Snyk, Semgrep, ZAP, Burp, Nessus, Checkmarx, etc.)
 - 12-step AI Brain Pipeline with Multi-LLM consensus (85% agreement threshold)
@@ -129,7 +129,7 @@ Raw Findings (11,300/week)
 
 ### Production-Grade API Surface
 
-- **780 verified endpoints** across 73 router files and 6 product suites
+- **781 verified endpoints** across 72 router files + 2 dynamic routers and 6 product suites
 - **E2E test pass rate**: 58/58 (100%) — all key demo endpoints return 200 OK
 - **Postman validation**: 411/411 assertions passing (100%) across 7 collections
 - **OpenAPI spec**: Auto-generated, returns 200 OK at `/openapi.json`
@@ -139,7 +139,7 @@ Raw Findings (11,300/week)
 ### Suite Architecture
 
 ```
-ALdeci Platform (780 endpoints)
+ALdeci Platform (781 endpoints)
 ├── suite-api      (258 endpoints) — Gateway, auth, analytics, workflows
 ├── suite-core     (248 endpoints) — Brain pipeline, AI engines, scanners
 ├── suite-attack   (106 endpoints) — MPTE, attack sim, native scanners
@@ -172,7 +172,7 @@ ALdeci secures its own codebase with the same rigor it offers customers:
 
 | Category | Status |
 |----------|--------|
-| Input validation | All 780 endpoints use Pydantic v2 |
+| Input validation | All 781 endpoints use Pydantic v2 |
 | XXE prevention | XML external entity parsing disabled |
 | SSRF protection | URL validation on all target parameters |
 | Shell injection | Command escaping on all subprocess calls |
@@ -217,7 +217,7 @@ ALdeci secures its own codebase with the same rigor it offers customers:
 
 ### Q1 2026 (Current) — Foundation
 
-- [x] 780 API endpoints live and hardened
+- [x] 781 API endpoints live and hardened
 - [x] 8 native scanners operational
 - [x] 12-step Brain Pipeline complete
 - [x] MPTE 19-phase verification engine
@@ -288,7 +288,7 @@ ALdeci is built by a team of 16 AI agents operating as a virtual company — the
 | Metric | Value | Evidence |
 |--------|-------|---------|
 | Total LOC (quality code) | ~300K+ | Verified via `cloc` across 6 suites |
-| API endpoints | 780 | Verified via `grep @router` + `@app` |
+| API endpoints | 781 | Verified via `grep @router` + `@app` |
 | Test cases | 12,500+ | pytest collection output |
 | E2E pass rate | 100% (58/58) | Demo health check script |
 | Postman assertions | 411/411 (100%) | Newman collection run |
@@ -304,13 +304,13 @@ ALdeci is built by a team of 16 AI agents operating as a virtual company — the
 
 2. **Massive efficiency gain**: 97% noise reduction. 11,300 findings → 340 actionable. $110K/year savings per enterprise customer. The ROI sells itself.
 
-3. **Technical moat**: 780 endpoints, 8 native scanners, 12-step AI pipeline, MCP protocol. This is not a wrapper — it's a platform.
+3. **Technical moat**: 781 endpoints, 8 native scanners, 12-step AI pipeline, MCP protocol. This is not a wrapper — it's a platform.
 
 4. **Air-gapped differentiation**: Government, defense, and critical infrastructure customers pay 2-5x more and have zero alternatives with ALdeci's capabilities.
 
 5. **AI-native architecture**: Built from day one for AI agents. MCP support means every security AI agent in the world can use ALdeci as its backbone.
 
-6. **Capital efficiency**: Built by AI agent team. Entire platform — 300K+ LOC, 780 endpoints, 12,500 tests — built in weeks, not years.
+6. **Capital efficiency**: Built by AI agent team. Entire platform — 300K+ LOC, 781 endpoints, 12,500 tests — built in weeks, not years.
 
 7. **Proven execution**: Sprint 2 delivered 11/12 items (91.7% velocity). E2E 100%. Postman 100%. Docker deploys in 30 seconds.
 

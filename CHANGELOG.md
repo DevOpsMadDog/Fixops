@@ -69,11 +69,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Investor Technical Brief** — Product overview, TAM/SAM/SOM analysis, competitive matrix, architecture maturity evidence, business model, roadmap milestones [V3]
 - **README documentation table** — Added links to User Guide, Investor Brief, Architecture, CTEM+ Identity docs [V7]
 
+### Added — Day 3 Actual (2026-03-03)
+- **API Reference v4.0** — Full grep audit: 781 verified endpoints (was 780). Corrected undercounted routers: Inventory (7→19), Sandbox (5→8), Connectors (4→8), Evidence (13→15), Compliance (9→10), MCP Gateway (7→8), MCP Protocol (8→9), Brain (30→31). 4 Vision engine health endpoints added. 41 curl examples. Appendix A fully reconciled [V3][V5][V7][V10]
+- **Inventory API expanded** — 19 endpoints documented (was 7) with assets, services, APIs, components, dependencies, search [V1]
+- **Sandbox PoC API expanded** — 8 endpoints documented (was 5) with reachability analysis and status [V5]
+- **Connectors API expanded** — 8 endpoints documented (was 4) with register, test, types, and ticket creation [V1]
+- **Suite-level breakdown corrected** — suite-api (238), suite-core (253), suite-attack (106), suite-feeds (31), suite-evidence-risk (56), suite-integrations (59), sandbox (8), logs (5), @app (25) [V7]
+
 ### Changed
-- **README hero section** — Updated to CTEM+ Decision Intelligence Platform positioning with 8 native scanners, 25+ parsers, 780 endpoints [V3]
-- **API endpoint count** — Updated from 769 to 780 endpoints across 72 routers (discovered 4 undocumented router files) [V7]
+- **README hero section** — Updated to CTEM+ Decision Intelligence Platform positioning with 8 native scanners, 25+ parsers, 781 endpoints [V3]
+- **API endpoint count** — Updated from 780 to 781 endpoints via full grep audit. Corrected suite-level breakdown [V7]
 - **Scanner parser count** — Updated from 10 to 25 normalizers (ZAP, Burp, Nessus, Qualys, Checkmarx, Fortify, Veracode, Snyk, SonarQube, Semgrep, Trivy, Grype, Dependabot, Bandit, ESLint, Anchore, Aqua, Prisma Cloud, AWS Inspector, Nuclei, GitLeaks, TruffleHog, Hadolint, Tfsec, Checkov) [V7]
-- **Architecture doc** — Updated LOC counts, added security hardening details, verified 780 routes [V3]
+- **Architecture doc** — Updated LOC counts, added security hardening details, verified 781 routes [V3]
+- **All docs** — Updated endpoint count references from 780→781 across INVESTOR_BRIEF.md, USER_GUIDE.md, ARCHITECTURE.md [V7]
 
 ### Fixed
 - **SQL injection in scan parameters** — Input validation added on all API endpoints [V10]
@@ -83,7 +91,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Brain Pipeline thread safety** — Added proper locking for concurrent requests [V3]
 
 ### Security
-- **Input validation** — All 780 endpoints use Pydantic v2 validation
+- **Input validation** — All 781 endpoints use Pydantic v2 validation
 - **XXE prevention** — XML external entity parsing disabled on scanner ingest [V10]
 - **SSRF protection** — URL validation on DAST/MPTE/micro-pentest target parameters [V5]
 - **Shell injection prevention** — Command escaping on all subprocess calls [V10]

@@ -117,3 +117,8 @@ _*.sh
 data/archive/
 data/exports/
 data/reachability/
+
+# Environment secrets - never commit
+.env
+.env.local
+.env.production

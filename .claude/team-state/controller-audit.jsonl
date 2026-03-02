@@ -150,3 +150,9 @@
 {"ts":"2026-03-02T14:54:24Z","type":"fix_agent","target":"marketing-head","cycle":3,"exit_code":0,"output_bytes":622,"reason":"Persona verification failed — agent not performing at world-class level"}
 {"ts":"2026-03-02T15:08:30Z","type":"fix_agent","target":"scrum-master","cycle":3,"exit_code":124,"output_bytes":0,"reason":"unknown"}
 {"ts":"2026-03-02T15:18:50Z","type":"grade_a_cycle","cycle":3,"grade":"D","score":40,"fix_targets":"persona ui ","health":102,"persona":0,"ui":0}
+{"ts":"2026-03-02T15:21:13Z","type":"reconcile_success","agent":"scrum-master","cycle":3}
+{"ts":"2026-03-02T15:22:37Z","type":"fix_agent","target":"technical-writer","cycle":1,"exit_code":0,"output_bytes":1096,"reason":"Persona verification failed — agent not performing at world-class level"}
+{"ts":"2026-03-02T15:44:59Z","type":"grade_a_cycle","cycle":1,"grade":"F","score":29,"fix_targets":"persona ui ","health":73,"persona":0,"ui":0}
+{"ts":"2026-03-02T15:46:01Z","type":"fix_agent","target":"sales-engineer","cycle":2,"exit_code":0,"output_bytes":622,"reason":"Persona verification failed — agent not performing at world-class level"}
+{"ts":"2026-03-02T16:14:06Z","type":"grade_a_cycle","cycle":2,"grade":"F","score":29,"fix_targets":"persona ui ","health":73,"persona":0,"ui":0}
+{"ts":"2026-03-02T16:20:26Z","type":"grade_a_cycle","cycle":3,"grade":"F","score":29,"fix_targets":"persona ui ","health":73,"persona":0,"ui":0}

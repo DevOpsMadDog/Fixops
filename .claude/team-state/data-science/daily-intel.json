@@ -1,6 +1,6 @@
 {
   "date": "2026-03-02",
-  "collected_at": "2026-03-02T10:51:15.159371+00:00",
+  "collected_at": "2026-03-02T16:00:33.879317+00:00",
   "epss": {
     "high_probability_cves": [
       {
@@ -1009,7 +1009,7 @@
       }
     ],
     "source": "live",
-    "fetch_time": "2026-03-02T10:51:12.029981+00:00"
+    "fetch_time": "2026-03-02T16:00:30.673498+00:00"
   },
   "nvd": {
     "new_critical": [
@@ -1057,20 +1057,6 @@
       }
     ],
     "new_high": [
-      {
-        "cve_id": "CVE-2025-69700",
-        "cvss_score": 7.5,
-        "severity": "HIGH",
-        "description": "Tenda FH1203 V2.0.1.6 contains a stack-based buffer overflow vulnerability in the modify_add_client_prio function, which is reachable via the formSetClientPrio CGI handler.",
-        "published": "2026-02-23T14:16:21.233"
-      },
-      {
-        "cve_id": "CVE-2026-21420",
-        "cvss_score": 7.3,
-        "severity": "HIGH",
-        "description": "Dell Repository Manager (DRM), versions prior to 3.4.8, contains an Uncontrolled Search Path Element vulnerability. A low privileged attacker with local access could potentially exploit this vulnerabi",
-        "published": "2026-02-23T14:16:21.823"
-      },
       {
         "cve_id": "CVE-2025-14905",
         "cvss_score": 7.2,
@@ -1329,33 +1315,30 @@
         "severity": "HIGH",
         "description": "A security vulnerability has been detected in itsourcecode E-Logbook with Health Monitoring System for COVID-19 1.0. This vulnerability affects unknown code of the file /check_profile_old.php. The man",
         "published": "2026-02-24T01:16:15.873"
+      },
+      {
+        "cve_id": "CVE-2026-25965",
+        "cvss_score": 8.6,
+        "severity": "HIGH",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, ImageMagick\u2019s path security policy is enforced on the raw filen",
+        "published": "2026-02-24T02:16:01.167"
+      },
+      {
+        "cve_id": "CVE-2026-25967",
+        "cvss_score": 7.4,
+        "severity": "HIGH",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to version 7.1.2-15, a stack-based buffer overflow exists in the ImageMagick FTXT image reader. A c",
+        "published": "2026-02-24T02:16:01.483"
+      },
+      {
+        "cve_id": "CVE-2026-25968",
+        "cvss_score": 7.4,
+        "severity": "HIGH",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a stack buffer overflow occurs when processing the an attribute",
+        "published": "2026-02-24T02:16:01.647"
       }
     ],
     "affecting_our_stack": [
-      {
-        "cve_id": "CVE-2026-2984",
-        "cvss_score": 6.5,
-        "severity": "MEDIUM",
-        "description": "A vulnerability was identified in SourceCodester Student Result Management System 1.0. This affects an unknown function of the file /admin/core/drop_user.php. Such manipulation of the argument ID lead",
-        "published": "2026-02-23T11:16:39.443",
-        "matched_technology": "node"
-      },
-      {
-        "cve_id": "CVE-2025-69700",
-        "cvss_score": 7.5,
-        "severity": "HIGH",
-        "description": "Tenda FH1203 V2.0.1.6 contains a stack-based buffer overflow vulnerability in the modify_add_client_prio function, which is reachable via the formSetClientPrio CGI handler.",
-        "published": "2026-02-23T14:16:21.233",
-        "matched_technology": "node"
-      },
-      {
-        "cve_id": "CVE-2026-21420",
-        "cvss_score": 7.3,
-        "severity": "HIGH",
-        "description": "Dell Repository Manager (DRM), versions prior to 3.4.8, contains an Uncontrolled Search Path Element vulnerability. A low privileged attacker with local access could potentially exploit this vulnerabi",
-        "published": "2026-02-23T14:16:21.823",
-        "matched_technology": "node"
-      },
       {
         "cve_id": "CVE-2025-70043",
         "cvss_score": 9.1,
@@ -1995,10 +1978,66 @@
         "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, an Integer Overflow vulnerability exists in the sun decoder. On",
         "published": "2026-02-24T02:16:00.837",
         "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25898",
+        "cvss_score": 6.5,
+        "severity": "MEDIUM",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, the UIL and XPM image encoder do not validate the pixel index v",
+        "published": "2026-02-24T02:16:01.000",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25965",
+        "cvss_score": 8.6,
+        "severity": "HIGH",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, ImageMagick\u2019s path security policy is enforced on the raw filen",
+        "published": "2026-02-24T02:16:01.167",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25966",
+        "cvss_score": 5.9,
+        "severity": "MEDIUM",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. The shipped \"secure\" security policy includes a rule intended to prevent reading/writing from standard st",
+        "published": "2026-02-24T02:16:01.330",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25967",
+        "cvss_score": 7.4,
+        "severity": "HIGH",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to version 7.1.2-15, a stack-based buffer overflow exists in the ImageMagick FTXT image reader. A c",
+        "published": "2026-02-24T02:16:01.483",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25968",
+        "cvss_score": 7.4,
+        "severity": "HIGH",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a stack buffer overflow occurs when processing the an attribute",
+        "published": "2026-02-24T02:16:01.647",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25969",
+        "cvss_score": 5.3,
+        "severity": "MEDIUM",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to version 7.1.2-15, a memory leak exists in `coders/ashlar.c`. The `WriteASHLARImage` allocates a ",
+        "published": "2026-02-24T02:16:01.807",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25970",
+        "cvss_score": 5.3,
+        "severity": "MEDIUM",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a signed integer overflow vulnerability in ImageMagick's SIXEL ",
+        "published": "2026-02-24T02:16:01.963",
+        "matched_technology": "node"
       }
     ],
     "source": "live",
-    "fetch_time": "2026-03-02T10:51:14.887931+00:00"
+    "fetch_time": "2026-03-02T16:00:33.465245+00:00"
   },
   "kev": {
     "new_additions": [
@@ -2359,14 +2398,14 @@
     ],
     "total_kev_count": 1529,
     "source": "live",
-    "fetch_time": "2026-03-02T10:51:15.158470+00:00"
+    "fetch_time": "2026-03-02T16:00:33.878315+00:00"
   },
   "summary": {
     "epss_high_count": 100,
     "epss_weaponized_count": 100,
     "nvd_critical_count": 6,
-    "nvd_high_count": 39,
-    "nvd_stack_affected_count": 83,
+    "nvd_high_count": 40,
+    "nvd_stack_affected_count": 87,
     "kev_new_count": 28,
     "kev_due_soon_count": 16,
     "kev_total": 1529,

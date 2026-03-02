@@ -255,3 +255,8 @@
 {"ts":"2026-03-02T14:54:25Z","label":"pre-marketing-head","cpu":81.7,"mem_pct":87,"disk_pct":20,"load":1.98}
 {"ts":"2026-03-02T15:03:45Z","label":"post-marketing-head","cpu":289.4,"mem_pct":89,"disk_pct":20,"load":1.97}
 {"ts":"2026-03-02T15:08:30Z","label":"pre-scrum-master","cpu":13.5,"mem_pct":89,"disk_pct":20,"load":1.38}
+{"ts":"2026-03-02T15:21:08Z","label":"post-scrum-master","cpu":17.9,"mem_pct":90,"disk_pct":20,"load":1.84}
+{"ts":"2026-03-02T15:22:39Z","label":"pre-technical-writer","cpu":363.9,"mem_pct":89,"disk_pct":20,"load":2.11}
+{"ts":"2026-03-02T15:39:34Z","label":"post-technical-writer","cpu":14.5,"mem_pct":76,"disk_pct":20,"load":2.08}
+{"ts":"2026-03-02T15:46:05Z","label":"pre-sales-engineer","cpu":12.3,"mem_pct":65,"disk_pct":20,"load":3.27}
+{"ts":"2026-03-02T15:58:50Z","label":"post-sales-engineer","cpu":441.9,"mem_pct":97,"disk_pct":20,"load":4.12}

@@ -2,13 +2,6 @@
   "context-engineer": {
     "runs": [
       {
-        "date": "2026-02-27",
-        "duration": 606,
-        "output_bytes": 1459,
-        "success": true,
-        "attempts": 1
-      },
-      {
         "date": "2026-02-28",
         "duration": 720,
         "output_bytes": 1814,
@@ -210,12 +203,19 @@
         "output_bytes": 2018,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 756,
+        "output_bytes": 1758,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 716,
+    "avg_duration": 721,
     "success_rate": 93.3,
     "total_runs": 30,
-    "avg_output": 1838
+    "avg_output": 1848
   },
   "data-scientist": {
     "runs": [
@@ -288,12 +288,19 @@
         "output_bytes": 2208,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 1315,
+        "output_bytes": 2715,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 937,
-    "success_rate": 80.0,
-    "total_runs": 10,
-    "avg_output": 1681
+    "avg_duration": 971,
+    "success_rate": 81.8,
+    "total_runs": 11,
+    "avg_output": 1775
   },
   "ai-researcher": {
     "runs": [
@@ -366,12 +373,19 @@
         "output_bytes": 2498,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 556,
+        "output_bytes": 2467,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 607,
-    "success_rate": 80.0,
-    "total_runs": 10,
-    "avg_output": 1895
+    "avg_duration": 602,
+    "success_rate": 81.8,
+    "total_runs": 11,
+    "avg_output": 1947
   },
   "enterprise-architect": {
     "runs": [
@@ -437,12 +451,19 @@
         "output_bytes": 2516,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 881,
+        "output_bytes": 2711,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 650,
-    "success_rate": 77.8,
-    "total_runs": 9,
-    "avg_output": 1703
+    "avg_duration": 673,
+    "success_rate": 80.0,
+    "total_runs": 10,
+    "avg_output": 1803
   },
   "frontend-craftsman": {
     "runs": [
@@ -1118,12 +1139,19 @@
         "output_bytes": 60,
         "success": false,
         "attempts": 3
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 1015,
+        "output_bytes": 1280,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 392,
-    "success_rate": 63.6,
-    "total_runs": 11,
-    "avg_output": 1299
+    "avg_duration": 444,
+    "success_rate": 66.7,
+    "total_runs": 12,
+    "avg_output": 1298
   },
   "sales-engineer": {
     "runs": [
@@ -1203,22 +1231,22 @@
         "output_bytes": 60,
         "success": false,
         "attempts": 3
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 765,
+        "output_bytes": 2149,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 593,
-    "success_rate": 63.6,
-    "total_runs": 11,
-    "avg_output": 1091
+    "avg_duration": 607,
+    "success_rate": 66.7,
+    "total_runs": 12,
+    "avg_output": 1179
   },
   "vision-agent": {
     "runs": [
-      {
-        "date": "2026-02-27",
-        "duration": 123,
-        "output_bytes": 59,
-        "success": false,
-        "attempts": 5
-      },
       {
         "date": "2026-02-28",
         "duration": 499,
@@ -1421,12 +1449,19 @@
         "output_bytes": 1645,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 614,
+        "output_bytes": 2512,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 464,
-    "success_rate": 93.3,
+    "avg_duration": 480,
+    "success_rate": 96.7,
     "total_runs": 30,
-    "avg_output": 1620
+    "avg_output": 1702
   },
   "scrum-master": {
     "runs": [
@@ -1520,22 +1555,22 @@
         "output_bytes": 2332,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 758,
+        "output_bytes": 1816,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 475,
-    "success_rate": 69.2,
-    "total_runs": 13,
-    "avg_output": 1822
+    "avg_duration": 495,
+    "success_rate": 71.4,
+    "total_runs": 14,
+    "avg_output": 1821
   },
   "agent-doctor": {
     "runs": [
-      {
-        "date": "2026-02-27",
-        "duration": 123,
-        "output_bytes": 59,
-        "success": false,
-        "attempts": 5
-      },
       {
         "date": "2026-02-28",
         "duration": 604,
@@ -1738,11 +1773,18 @@
         "output_bytes": 1794,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 1122,
+        "output_bytes": 2398,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 692,
-    "success_rate": 90.0,
+    "avg_duration": 725,
+    "success_rate": 93.3,
     "total_runs": 30,
-    "avg_output": 1533
+    "avg_output": 1611
   }
 }

@@ -1,8 +1,8 @@
 # ALdeci Architecture Context
 
-> **Generated**: 2026-03-02 (v30.0 scan) by context-engineer
-> **Version**: 30.0 (914 files, 402,142 LOC, 759 endpoints, 19.25% coverage)
-> **Sprint**: 2 — ENTERPRISE DEMO (4 days to 2026-03-06) | 11/12 done
+> **Generated**: 2026-03-03 (v31.0 scan) by context-engineer
+> **Version**: 31.0 (927 files, 416,927 LOC, 768 endpoints, 19.23% coverage)
+> **Sprint**: 2 — ENTERPRISE DEMO (3 days to 2026-03-06) | 11/12 done
 > **Pillars**: V3 (Decision Intelligence), V5 (MPTE), V7 (MCP-Native)
 
 ---
@@ -15,11 +15,11 @@ ALdeci is a **modular monolith** — 6 Python suites mounted on a single FastAPI
 ┌─────────────────────────────────────────────────────────────┐
 │                    FastAPI Gateway (port 8000)                │
 │                  suite-api/apps/api/app.py                   │
-│                   2,742 LOC | 34 router mounts               │
-│                   759 total endpoints (687+47+25)            │
+│                   2,752 LOC | 34 router mounts               │
+│                   768 total endpoints (696+47+25)            │
 ├─────────┬──────────┬──────────┬──────────┬──────────┬────────┤
 │suite-api│suite-core│suite-atk │suite-feed│suite-evid│suite-int│
-│ 22.2K   │ 134.3K   │  6.3K    │  4.4K    │ 20.3K    │  6.7K  │
+│ 22.5K   │ 134.9K   │  6.3K    │  4.4K    │ 20.3K    │  6.7K  │
 │ 20 rtrs │ 21 rtrs  │ 12 rtrs  │  1 rtr   │  5 rtrs  │  5 rtrs│
 └─────────┴──────────┴──────────┴──────────┴──────────┴────────┘
                               │
@@ -47,7 +47,7 @@ External Sources          Internal Pipeline              Outputs
 ─────────────────    ──────────────────────────    ──────────────────
 NVD/KEV/EPSS/OSV ──→ FeedsService (4,353 LOC) ──→ feeds.db
 SAST scan results ──→ sast_engine.py (1,622 LOC)──→ ┐
-DAST scan results ──→ dast_engine.py (633 LOC) ──→ ├→ Brain Pipeline (1,533 LOC, 12 steps)
+DAST scan results ──→ dast_engine.py (633 LOC) ──→ ├→ Brain Pipeline (1,663 LOC, 12 steps)
 Secrets detection ──→ secrets_scanner (848 LOC) ──→│    ├→ Step 1: Normalize findings
 Container scans   ──→ container_scanner (445 LOC)──→│    ├→ Step 2-3: Deduplicate + correlate
 CSPM analysis     ──→ cspm_engine.py (609 LOC) ──→ │    ├→ Step 4-5: Enrich + classify
@@ -55,7 +55,7 @@ API fuzz results  ──→ api_fuzzer_router (55 LOC)──→│    ├→ Ste
 Malware detection ──→ malware_router (58 LOC) ──→  │    ├→ Step 7: Knowledge graph + SHAP (836 LOC)
 LLM monitor       ──→ llm_monitor_router (64 LOC)─┘    ├→ Step 8: Attack paths (networkx)
 3rd-party scanners──→ scanner_parsers (1,238 LOC)──→    ├→ Step 9: Prioritize
-                      scanner_ingest_router (387 LOC)    ├→ Step 10: AutoFix (1,428 LOC)
+                      scanner_ingest_router (387 LOC)    ├→ Step 10: AutoFix (1,515 LOC)
                                                         ├→ Step 11: Evidence bundle
                                                         └→ Step 12: Compliance verification
                                                               │
@@ -64,12 +64,12 @@ LLM monitor       ──→ llm_monitor_router (64 LOC)─┘    ├→ Step 8: 
                                     │ MPTE Verification [V5]             │
                                     │ micro_pentest.py (2,054 LOC)       │
                                     │ 19-phase exploitability proof       │
-                                    │ sandbox_verifier.py (1,073 LOC)    │
+                                    │ sandbox_verifier.py (1,178 LOC)    │
                                     └─────────────┬─────────────────────┘
                                                   ▼
                                     ┌───────────────────────────────────┐
                                     │ Remediation                        │
-                                    │ AutoFix Engine (1,428 LOC, 10 types)│
+                                    │ AutoFix Engine (1,515 LOC, 10 types)│
                                     │ Connectors: Jira, GitHub, Slack    │
                                     │ Evidence: crypto-signed bundles    │
                                     └───────────────────────────────────┘
@@ -83,9 +83,9 @@ LLM monitor       ──→ llm_monitor_router (64 LOC)─┘    ├→ Step 8: 
 
 | Component | File | LOC | Purpose |
 |-----------|------|-----|---------|
-| Brain Pipeline | `core/brain_pipeline.py` | 1,533 | 12-step CTEM decision pipeline (+179 SHAP integration) |
+| Brain Pipeline | `core/brain_pipeline.py` | 1,663 | 12-step CTEM decision pipeline (+179 SHAP integration) |
 | FAIL Engine | `core/fail_engine.py` | 711 | $FACT→$ASSESS→$IMPACT→$LIKELIHOOD scoring |
-| AutoFix Engine | `core/autofix_engine.py` | 1,428 | LLM-powered auto-remediation (10 fix types) |
+| AutoFix Engine | `core/autofix_engine.py` | 1,515 | LLM-powered auto-remediation (10 fix types) |
 | FalkorDB Client | `core/falkordb_client.py` | 835 | Knowledge graph + attack path analysis |
 | Exposure Case | `core/exposure_case.py` | 646 | Triage case management |
 | Enhanced Decision | `core/enhanced_decision.py` | 1,279 | Advanced decision engine |

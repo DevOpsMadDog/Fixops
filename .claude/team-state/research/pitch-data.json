@@ -1,7 +1,7 @@
 {
-  "last_updated": "2026-03-02T23:55:00Z",
+  "last_updated": "2026-03-03T12:00:00Z",
   "analyst": "ai-researcher",
-  "pulse_version": "2026-03-02-v5-FINAL",
+  "pulse_version": "2026-03-03-v1",
   "market_size": {
     "tam": "$380B — Global cybersecurity market (2026 est.)",
     "sam": "$28.5B — Application Security Testing + DevSecOps + CTEM (2026 est.)",
@@ -32,16 +32,23 @@
     "chinese_labs_anthropic_abuse": "DeepSeek, Moonshot AI, MiniMax: 24,000+ fraudulent accounts, 16M+ interactions on Anthropic platform.",
     "mcp_tenable_stat": "70% of orgs have AI/MCP third-party packages. 86% host packages with critical vulnerabilities (Tenable 2026).",
     "snyk_valuation_corrected": "$8.5B (corrected from $3.7B). ARR $343M (+12%). IPO dimming.",
-    "epss_over_50pct": "7,079 CVEs with >50% exploitation probability. Top 2026 CVE: CVE-2026-24061 (78% EPSS).",
+    "epss_over_50pct": "7,073 CVEs with >50% exploitation probability. Top 2026 CVE: CVE-2026-24061 (77.9% EPSS). NEW: CVE-2026-27180 (61.8%), CVE-2026-27174 (60.3%).",
     "shadow_ai_risk": "47% using GenAI via personal accounts (Netskope). Data violations doubled YoY. 92% of security pros concerned.",
     "nist_agentic_ai": "CAISI RFI on AI agent security — deadline March 9, 2026. NCCoE draft on agent identity/authorization.",
     "cybersecurity_llm_development": "Trend Micro (Llama 3 cybersec model, open weights), Cisco+Google+Meta collaboration",
     "rsa_2026": "March 23-26, Moscone Center SF. Theme: Power of Community. PQC focus.",
-    "crowdstrike_q4_earnings": "March 3, 2026. Startup Accelerator pitch day March 24 at RSA. FalconID GA.",
+    "crowdstrike_q4_earnings": "March 3, 2026 — TODAY. Expected: $1.30B revenue (+22.6% YoY), $4.92B ARR (+23% YoY), EPS $1.10. $1.16B in Jan acquisitions. Startup Accelerator pitch day March 24 at RSA. FalconID GA.",
     "eCrime_breakout_time": "29 minutes average, 27 seconds fastest (CrowdStrike 2026)",
     "openai_market_share_decline": "62% (2024) → 53% projected (2026)",
     "anthropic_market_share_growth": "14% (2024) → 18% projected (2026). Claude #1 App Store.",
-    "wiz_google_closing": "End of March 2026. All major regulatory approvals secured. CISPE alarmed."
+    "wiz_google_closing": "Mid-March 2026. EU unconditional Phase I clearance Feb 10. DOJ terminated. Only AU/ZA/TR remaining. Staff $2-2.5B payout. CISPE alarmed.",
+    "snyk_ai_security_fabric": "Feb 3, 2026 — Unified SDLC security layer. Delta Findings, Agent Fix, Evo agentic system. 288% ROI (Forrester TEI). IPO dimming.",
+    "armorcode_mcp_server": "MCP Server for LLM querying. 320+ integrations, 40B findings. Anya AI 80% MTTR reduction. Closest ASPM competitor with MCP.",
+    "semgrep_managed_scans_milestone": "1M+ weekly scans. 96% agreement with researchers. 60% false positive filtering. PHP reachability (11th lang).",
+    "vega_security_series_b": "$120M Series B, $185M total. Cloud security unicorn trajectory. 5 months after $65M Series A.",
+    "ai_attacks_surge": "AI-enhanced attacks +72% YoY. 87% of orgs experienced AI-driven incidents. Claude weaponized in 10-agency breach.",
+    "rsa_2026_innovation_sandbox": "Top 10 finalists announced. Competition March 23. Theme: operationalizing AI defense + Identity Fabric.",
+    "nvd_critical_march_2026": "3 critical CVEs (CVSS 9.8): CVE-2026-2999, CVE-2026-3000 (IDExpert RCE), CVE-2026-3422 (U-Office deserialization)"
   },
   "competitors": [
     {
@@ -50,10 +57,10 @@
       "funding": "$1.3B+",
       "valuation": "$8.5B (Series G, per latest PitchBook/Tracxn data)",
       "arr": "$343M (+12% YoY from $305M in 2024). ~$400M cash. ~$30M burn H1 2025.",
-      "key_features": ["SCA/SAST", "IDE integration", "DeepCode AI auto-fix", "Reachability (JS/Java/Python)", "Snyk Studio", "Package Health Check"],
-      "status": "IPO uncertain. Reachability expanded Mar 9. Microsoft PAT change Mar 15 impacts Azure DevOps integration.",
-      "aldeci_advantage": "Full CTEM lifecycle vs. SCA+SAST only. Multi-LLM consensus vs. single model. 97% noise reduction across ALL scanners.",
-      "latest_update": "2026-03-02 Pass 5: Valuation $8.5B corrected. ARR $343M. IPO dimming per BankInfoSecurity. Package Health Check for agentic dev."
+      "key_features": ["SCA/SAST", "IDE integration", "DeepCode AI auto-fix", "Reachability (JS/Java/Python)", "Snyk Studio", "Package Health Check", "AI Security Fabric (Feb 2026)", "Evo agentic system", "Agent Fix", "Delta Findings"],
+      "status": "IPO uncertain. AI Security Fabric launched Feb 3. Evo agentic preview. Forrester TEI: 288% ROI. Microsoft PAT change Mar 15 impacts Azure DevOps.",
+      "aldeci_advantage": "Full CTEM lifecycle vs. SCA+SAST only. Multi-LLM consensus vs. single model. 97% noise reduction across ALL scanners. Brain Pipeline = decision layer ABOVE Snyk.",
+      "latest_update": "2026-03-03: AI Security Fabric (Delta Findings + Agent Fix + Evo). 288% ROI Forrester study. IPO dimming. $8.5B valuation, ARR $343M."
     },
     {
       "name": "Wiz",
@@ -106,9 +113,9 @@
       "valuation": "$90B+ market cap",
       "arr": "$4B+",
       "key_features": ["Falcon XDR", "FalconID (FIDO2)", "SGNL", "Seraphic", "281+ adversaries", "Startup Accelerator"],
-      "status": "Q4 FY2026 earnings March 3. Fal.Con Gov Mar 18. Startup Accelerator pitch day Mar 24 at RSA. FalconID GA.",
-      "aldeci_advantage": "AppSec-focused vs endpoint-first. CTEM lifecycle. Developer-centric. Air-gapped AI.",
-      "latest_update": "2026-03-02 Pass 5: Q4 earnings March 3. SGNL ($740M) + Seraphic ($420M) + Pangea + Onum. 35 startups in accelerator."
+      "status": "Q4 FY2026 earnings TODAY (Mar 3 after close). Expected $1.30B revenue, $4.92B ARR. Fal.Con Gov Mar 18. RSA startup pitch Mar 24.",
+      "aldeci_advantage": "AppSec-focused vs endpoint-first. CTEM lifecycle. Developer-centric. Air-gapped AI. CrowdStrike building platform via M&A — different approach.",
+      "latest_update": "2026-03-03: Q4 earnings TODAY. Expected $1.30B rev (+22.6%), $4.92B ARR (+23%), EPS $1.10. $1.16B acquisitions in Jan (SGNL+Seraphic+Pangea+Onum)."
     },
     {
       "name": "Orca Security",
@@ -128,9 +135,9 @@
       "valuation": "Unknown",
       "arr": "Unknown",
       "key_features": ["Anya agentic AI", "320+ integrations", "40B findings", "MCP Server", "Endor Labs integration"],
-      "status": "Closest ASPM competitor. MCP server validates V7.",
-      "aldeci_advantage": "Native scanners (they aggregate only). MPTE. Multi-LLM consensus. Air-gapped.",
-      "latest_update": "2026-03-02 Pass 4: No new changes."
+      "status": "Closest ASPM competitor. MCP Server for LLM querying. Anya AI Code Insights for env-specific remediation.",
+      "aldeci_advantage": "705 MCP tools vs ArmorCode's 1 MCP endpoint. Native scanners (they aggregate only). MPTE. Multi-LLM consensus. Air-gapped.",
+      "latest_update": "2026-03-03: MCP Server enables Claude/ChatGPT/Copilot to query security data. Anya Code Insights for contextual fixes. 80% MTTR reduction. 40B+ findings."
     },
     {
       "name": "Cyera",

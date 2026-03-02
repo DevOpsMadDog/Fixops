@@ -50,7 +50,7 @@ ALdeci is a **full CTEM platform** with native scanning capabilities AND a neutr
 | **Malware** | `suite-attack/api/malware_router.py` | ~200 | 4 |
 | **LLM Monitor** | `suite-core/api/llm_monitor_router.py` | ~200 | 4 |
 
-### AutoFix Engine (~1,428 LOC — `suite-core/core/autofix_engine.py`)
+### AutoFix Engine (~1,515 LOC — `suite-core/core/autofix_engine.py`)
 10 fix types: CODE_PATCH, DEPENDENCY_UPDATE, CONFIG_HARDENING, IAC_FIX, SECRET_ROTATION, PERMISSION_FIX, INPUT_VALIDATION, OUTPUT_ENCODING, WAF_RULE, CONTAINER_FIX.
 Confidence: HIGH=auto-apply, MEDIUM=review, LOW=manual. 14 API endpoints.
 
@@ -126,7 +126,7 @@ Leadership (CISO, VP Eng, CTO, CFO), Security Ops (9 roles), Engineering (6 role
 | Suite | Purpose | Key Files |
 |-------|---------|-----------|
 | `suite-api` | FastAPI gateway, 61 routers, auth | `apps/api/app.py`, `*_router.py` |
-| `suite-core` | Brain, pipeline, decisions, connectors, **native scanners**, **AutoFix engine** | `core/brain_pipeline.py` (1,533 LOC), `core/sast_engine.py`, `core/dast_engine.py`, `core/secrets_scanner.py`, `core/container_scanner.py`, `core/cspm_engine.py`, `core/autofix_engine.py` (~1,428 LOC), `core/connectors.py` |
+| `suite-core` | Brain, pipeline, decisions, connectors, **native scanners**, **AutoFix engine** | `core/brain_pipeline.py` (1,663 LOC), `core/sast_engine.py`, `core/dast_engine.py`, `core/secrets_scanner.py`, `core/container_scanner.py`, `core/cspm_engine.py`, `core/autofix_engine.py` (~1,515 LOC), `core/connectors.py` |
 | `suite-attack` | MPTE, attack sim, FAIL engine | `attack/micro_pentest.py`, `attack/mpte_advanced.py` |
 | `suite-feeds` | Threat intel (NVD, KEV, EPSS, OSV, ExploitDB, GitHub) | `feeds/*.py` |
 | `suite-evidence-risk` | Compliance, evidence bundles, risk scoring | `risk/*.py`, `evidence/*.py` |
@@ -134,9 +134,9 @@ Leadership (CISO, VP Eng, CTO, CFO), Security Ops (9 roles), Engineering (6 role
 | `suite-ui` | React frontends | `aldeci/` (ACTIVE — being wired to real APIs). NOTE: `aldeci-ui-new/` does NOT exist on disk. |
 
 ### Codebase Scale
-- **~456 Python backend files** (~193K LOC) + **~95 TypeScript source files** (~42K LOC)
-- **759 API endpoints** across 64 router files + 8 non-standard files in 6 backend suites
-- **375 test files**, 13,221 tests collected (~187K test LOC)
+- **~465 Python backend files** (~195K LOC) + **~99 TypeScript source files** (~42K LOC)
+- **768 API endpoints** across 64 router files + 8 non-standard files in 6 backend suites
+- **385 test files**, 13,674 tests collected (~183K test LOC)
 - **17 production connectors** (7 integration in `core/connectors.py` + 10 security tool in `core/security_connectors.py`) + universal REST/MCP ingest (4,340 total LOC)
 
 ## Critical Patterns

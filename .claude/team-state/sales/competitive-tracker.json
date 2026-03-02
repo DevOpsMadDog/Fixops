@@ -1,24 +1,27 @@
 {
   "metadata": {
-    "version": "6.1",
-    "updated": "2026-03-02T08:02Z",
+    "version": "7.0",
+    "updated": "2026-03-03T15:48Z",
     "author": "sales-engineer",
-    "sprint": "Sprint 2 Day 3 — 4 days to enterprise demo",
-    "validation": "33/33 GET=200, 9/11 POST=200, 475/475 Postman, FULL comprehensive re-validation 08:02 UTC",
+    "sprint": "Sprint 2 Day 3 — 3 days to enterprise demo",
+    "validation": "34/36 GET=200, 7/7 POST=200, 475/475 Postman (10th green), Moat 95.60%",
     "live_stats": {
-      "total_findings": 1000,
-      "knowledge_graph_nodes": 1512,
-      "mpte_requests": 235,
+      "total_findings": 1203,
+      "knowledge_graph_nodes": 1717,
+      "knowledge_graph_edges": 1664,
+      "mpte_requests": 277,
       "confirmed_exploitable": 4,
       "compliance_frameworks": 4,
       "mcp_tools": 100,
-      "scanner_parsers": 25
+      "scanner_parsers": 25,
+      "autofix_confidence": 0.9326,
+      "sast_multi_vuln_findings": 7
     },
     "sources": [
       "docs/CTEM_PLUS_IDENTITY.md",
       "docs/COMPETITIVE_ANALYSIS_GROK_RESPONSE.md",
       ".claude/team-state/research/",
-      "live API validation 2026-03-02 08:01 UTC"
+      "live API validation 2026-03-03 15:48 UTC"
     ]
   },
   "competitors": [

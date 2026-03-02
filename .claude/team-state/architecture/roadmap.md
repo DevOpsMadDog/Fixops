@@ -1,8 +1,8 @@
 # ALdeci Technical Roadmap
 
-**Last Updated**: 2026-03-02 (Run 7) by enterprise-architect
+**Last Updated**: 2026-03-03 (Run 8) by enterprise-architect
 **Current Phase**: Phase 1 — Funding Ready
-**Demo Date**: 2026-03-06 (Enterprise Demo) — 4 days remaining
+**Demo Date**: 2026-03-06 (Enterprise Demo) — 3 days remaining
 
 ---
 
@@ -36,7 +36,7 @@
 | API endpoints responding | 100% | 100% (769 routes) | ✅ |
 | Postman assertions passing | 100% | 100% (475/475) | ✅ |
 | UI pages wired to real data | 95% | ~90% | ⚠️ DEMO-003 in progress |
-| Test coverage | 25% (gate) | 4.71% | ❌ Config measures all suites now |
+| Test coverage | 25% (gate) | 19.23% | ❌ Config measures all suites, gap 5.77pp |
 | Docker one-command deploy | Working | ✅ Working (34/34 health) | ✅ |
 | Bandit HIGH issues | 0 | 0 HIGH | ✅ |
 | Bandit MEDIUM issues | <10 core | 2 core (63 full suite) | ✅ Core clean |
@@ -46,6 +46,9 @@
 | XML vulnerability | Fixed | defusedxml deployed | ✅ |
 | SQLite connection leaks | Fixed | history.py + deduplication.py patched | ✅ |
 | AutoFixEngine loop perf | Fixed | Hoisted outside loop | ✅ |
+| AutoFix _fixes memory | Fixed | MAX_FIXES_STORED=5000, eviction logic | ✅ |
+| AutoFix _history memory | Fixed | MAX_HISTORY_ENTRIES=10000, eviction | ✅ |
+| ADR-009 broken path ref | Fixed | suite-integrations→suite-core | ✅ |
 
 ---
 
@@ -121,13 +124,13 @@
 
 ---
 
-## Architecture Metrics (Verified 2026-03-02, Run 7)
+## Architecture Metrics (Verified 2026-03-03, Run 8)
 
-| Metric | Value | Change from Run 6 |
+| Metric | Value | Change from Run 7 |
 |--------|-------|--------|
-| Total LOC | ~790K | — |
+| Total LOC | ~417K Python + 42K TS | +15K since Run 7 |
 | Python suites | 6 | — |
-| API endpoints | 769 | — |
+| API endpoints | 768 | — |
 | Router files | 64 | — |
 | Native scanners | 8 | — |
 | Inbound parsers | 15 | — |
@@ -135,21 +138,24 @@
 | Security connectors | 10 | — |
 | Total integration points | 32 | — |
 | Brain Pipeline steps | 12 | — |
+| Brain Pipeline LOC | 1,663 | +130 since Sprint 1 |
 | AutoFix types | 10 | — |
+| AutoFix LOC | 1,534 | +19 (memory bounds) |
 | Self-Learning loops | 5 | — |
-| Tests collected | 12,565 | — |
-| Core tests passing | 288/288 | ✅ Verified (21.40s) |
-| Test coverage | 4.99% | Up from 4.71% |
+| Tests collected | 13,674 | +1,109 since Run 7 |
+| Core tests passing | 288/288 | ✅ Verified (28.46s) |
+| AutoFix tests passing | 556/556 | ✅ Verified (58.88s) |
+| Test coverage | 19.23% | Per agent-doctor measurement |
 | Docker services | 8 (compose) | — |
-| ADRs written | 9 | +1 (ADR-009 MCP Auto-Discovery) |
-| ADRs validated | 9/9 | All file refs verified |
-| Tech debt items | 22 (5 done) | — |
-| Bandit total issues | 456 | — |
-| Bandit HIGH | 0 | — |
-| Bandit MEDIUM (core) | 2 | Stable |
-| Ruff warnings | 77 (0 actionable) | -2 (fixed F821) |
-| Bug fixes this run | 1 | F821 TYPE_CHECKING import |
-| Reviews completed | 5 total | Updated performance review |
+| ADRs written | 9 | Stable (1 ref FIXED) |
+| ADRs validated | 9/9 | 1 broken ref fixed in ADR-009 |
+| Tech debt items | 26 (7 done) | +4 new, +2 FIXED |
+| Bandit total issues | 458 | +2 (0 HIGH) |
+| Bandit HIGH | 0 | ✅ Stable |
+| Bandit MEDIUM (core) | 2 | ✅ Stable |
+| Ruff warnings | 77 (0 actionable) | ✅ Stable |
+| Bug fixes this run | 3 | _fixes evict, _history evict, ADR path |
+| Reviews completed | 6 total | +1 (AutoFix engine B+) |
 
 ---
 

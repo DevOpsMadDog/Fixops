@@ -4,54 +4,54 @@ newman
 
 ❏ 🔥 FAIL Engine (Differentiator #1)
 ↳ Score Single Finding
-  POST http://localhost:8000/api/v1/fail/score [200 OK, 1.2kB, 19ms]
+  POST http://localhost:8000/api/v1/fail/score [200 OK, 1.2kB, 26ms]
   ✓  FAIL score returns 200
   ✓  Returns FAIL score
 
 ↳ Score Batch
-  POST http://localhost:8000/api/v1/fail/score/batch [200 OK, 3.19kB, 6ms]
+  POST http://localhost:8000/api/v1/fail/score/batch [200 OK, 3.19kB, 7ms]
   ✓  Batch FAIL score returns 200
 
 ↳ Get FAIL Score
-  GET http://localhost:8000/api/v1/fail/score/FAIL-140F2234B674 [200 OK, 1.74kB, 6ms]
+  GET http://localhost:8000/api/v1/fail/score/FAIL-BFEDDFC6EFB0 [200 OK, 1.74kB, 10ms]
   ✓  Get FAIL score returns 200
 
 ↳ List FAIL Scores
-  GET http://localhost:8000/api/v1/fail/scores [200 OK, 149.35kB, 25ms]
+  GET http://localhost:8000/api/v1/fail/scores [200 OK, 148.85kB, 18ms]
   ✓  List scores returns 200
 
 ↳ Top Risks by FAIL Score
-  GET http://localhost:8000/api/v1/fail/top-risks [200 OK, 31.09kB, 17ms]
+  GET http://localhost:8000/api/v1/fail/top-risks [200 OK, 30.93kB, 13ms]
   ✓  Top risks returns 200
 
 ↳ FAIL Stats
-  GET http://localhost:8000/api/v1/fail/stats [200 OK, 451B, 9ms]
+  GET http://localhost:8000/api/v1/fail/stats [200 OK, 451B, 5ms]
   ✓  FAIL stats returns 200
 
 ↳ CVE FAIL Scores
-  GET http://localhost:8000/api/v1/fail/cve/CVE-2024-3094 [200 OK, 70.43kB, 19ms]
+  GET http://localhost:8000/api/v1/fail/cve/CVE-2024-3094 [200 OK, 76.38kB, 76ms]
   ✓  CVE FAIL scores returns 200
 
 ❏ 🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6)
 ↳ List MPTE Requests
-  GET http://localhost:8000/api/v1/mpte/requests [200 OK, 34.58kB, 14ms]
+  GET http://localhost:8000/api/v1/mpte/requests [200 OK, 34.99kB, 13ms]
   ✓  MPTE requests returns 200
 
 ↳ Create MPTE Request
-  POST http://localhost:8000/api/v1/mpte/requests [201 Created, 628B, 42ms]
+  POST http://localhost:8000/api/v1/mpte/requests [201 Created, 628B, 16ms]
   ✓  Create MPTE request returns 200/201
   ✓  Capture mpteRequestId
 
 ↳ Get MPTE Request
-  GET http://localhost:8000/api/v1/mpte/requests/a48f52c3-548e-4b97-a6e6-dc8cf7db43cc [200 OK, 653B, 11ms]
+  GET http://localhost:8000/api/v1/mpte/requests/be3aa2ce-196e-45ec-ab74-11c3305eec85 [200 OK, 653B, 6ms]
   ✓  Get MPTE request returns 200
 
 ↳ Start MPTE Request
-  POST http://localhost:8000/api/v1/mpte/requests/a48f52c3-548e-4b97-a6e6-dc8cf7db43cc/start [200 OK, 684B, 9ms]
+  POST http://localhost:8000/api/v1/mpte/requests/be3aa2ce-196e-45ec-ab74-11c3305eec85/start [200 OK, 684B, 4ms]
   ✓  Start MPTE returns 200
 
 ↳ Verify Exploitability
-  POST http://localhost:8000/api/v1/mpte/verify [422 Unprocessable Content, 529B, 12ms]
+  POST http://localhost:8000/api/v1/mpte/verify [422 Unprocessable Content, 529B, 7ms]
   ✓  Verify exploitability returns 200
   ✓  Returns exploitability verdict
 
@@ -60,11 +60,11 @@ newman
   ✓  Comprehensive scan returns 200
 
 ↳ MPTE Results
-  GET http://localhost:8000/api/v1/mpte/results [200 OK, 5.09kB, 12ms]
+  GET http://localhost:8000/api/v1/mpte/results [200 OK, 5.09kB, 10ms]
   ✓  MPTE results returns 200
 
 ↳ MPTE Configs
-  GET http://localhost:8000/api/v1/mpte/configs [200 OK, 8.6kB, 12ms]
+  GET http://localhost:8000/api/v1/mpte/configs [200 OK, 10.33kB, 10ms]
   ✓  MPTE configs returns 200
 
 ↳ MPTE Stats
@@ -72,22 +72,22 @@ newman
   ✓  MPTE stats returns 200
 
 ↳ Finding Exploitability
-  GET http://localhost:8000/api/v1/mpte/findings//exploitability [404 Not Found, 331B, 14ms]
+  GET http://localhost:8000/api/v1/mpte/findings//exploitability [404 Not Found, 331B, 8ms]
   ✓  Exploitability returns 200
 
 ❏ 🧪 Micro Pentest Engine
 ↳ Run Micro Pentest
-  POST http://localhost:8000/api/v1/micro-pentest/run [201 Created, 504B, 25ms]
+  POST http://localhost:8000/api/v1/micro-pentest/run [201 Created, 501B, 20ms]
   ✓  Micro pentest returns 200
   ✓  Capture scanId
 
 ↳ Enterprise Scan
-  POST http://localhost:8000/api/v1/micro-pentest/enterprise/scan [422 Unprocessable Content, 814B, 10ms]
+  POST http://localhost:8000/api/v1/micro-pentest/enterprise/scan [422 Unprocessable Content, 814B, 13ms]
   ✓  Enterprise scan returns 200
   ✓  Capture scanId
 
 ↳ List Enterprise Scans
-  GET http://localhost:8000/api/v1/micro-pentest/enterprise/scans [200 OK, 324B, 8ms]
+  GET http://localhost:8000/api/v1/micro-pentest/enterprise/scans [200 OK, 324B, 9ms]
   ✓  List scans returns 200
 
 ↳ Attack Vectors
@@ -95,59 +95,59 @@ newman
   ✓  Attack vectors returns 200
 
 ↳ Threat Categories
-  GET http://localhost:8000/api/v1/micro-pentest/enterprise/threat-categories [200 OK, 1.27kB, 9ms]
+  GET http://localhost:8000/api/v1/micro-pentest/enterprise/threat-categories [200 OK, 1.27kB, 11ms]
   ✓  Threat categories returns 200
 
 ↳ Scan Modes
-  GET http://localhost:8000/api/v1/micro-pentest/enterprise/scan-modes [200 OK, 698B, 7ms]
+  GET http://localhost:8000/api/v1/micro-pentest/enterprise/scan-modes [200 OK, 698B, 10ms]
   ✓  Scan modes returns 200
 
 ↳ Generate Pentest Report
-  POST http://localhost:8000/api/v1/micro-pentest/report/generate [503 Service Unavailable, 434B, 7ms]
+  POST http://localhost:8000/api/v1/micro-pentest/report/generate [503 Service Unavailable, 434B, 11ms]
   ✓  Report generation returns 200
 
 ❏ ⚔️ Attack Simulation (BAS)
 ↳ Create Attack Scenario
-  POST http://localhost:8000/api/v1/attack-sim/scenarios [200 OK, 804B, 11ms]
+  POST http://localhost:8000/api/v1/attack-sim/scenarios [200 OK, 804B, 12ms]
   ✓  Create scenario returns 200/201
   ✓  Capture scenarioId
 
 ↳ AI-Generate Scenario
-  POST http://localhost:8000/api/v1/attack-sim/scenarios/generate [200 OK, 802B, 11.1s]
+  POST http://localhost:8000/api/v1/attack-sim/scenarios/generate [200 OK, 802B, 10.5s]
   ✓  AI scenario generation returns 200
 
 ↳ List Scenarios
-  GET http://localhost:8000/api/v1/attack-sim/scenarios [200 OK, 1.3kB, 7ms]
+  GET http://localhost:8000/api/v1/attack-sim/scenarios [200 OK, 2.35kB, 8ms]
   ✓  List scenarios returns 200
 
 ↳ Run Attack Campaign
-  POST http://localhost:8000/api/v1/attack-sim/campaigns/run [422 Unprocessable Content, 496B, 13ms]
+  POST http://localhost:8000/api/v1/attack-sim/campaigns/run [422 Unprocessable Content, 496B, 12ms]
   ✓  Campaign run returns 200
   ✓  Capture campaignId
 
 ↳ List Campaigns
-  GET http://localhost:8000/api/v1/attack-sim/campaigns [200 OK, 303B, 11ms]
+  GET http://localhost:8000/api/v1/attack-sim/campaigns [200 OK, 303B, 8ms]
   ✓  List campaigns returns 200
 
 ↳ Campaign Attack Paths
-  GET http://localhost:8000/api/v1/attack-sim/campaigns/test-campaign-001/attack-paths [404 Not Found, 358B, 11ms]
+  GET http://localhost:8000/api/v1/attack-sim/campaigns/test-campaign-001/attack-paths [404 Not Found, 358B, 7ms]
   ✓  Attack paths returns 200
 
 ↳ Breach Impact Analysis
-  GET http://localhost:8000/api/v1/attack-sim/campaigns/test-campaign-001/breach-impact [404 Not Found, 358B, 10ms]
+  GET http://localhost:8000/api/v1/attack-sim/campaigns/test-campaign-001/breach-impact [404 Not Found, 358B, 8ms]
   ✓  Breach impact returns 200
 
 ↳ MITRE ATT&CK Heatmap
-  GET http://localhost:8000/api/v1/attack-sim/mitre/heatmap [200 OK, 336B, 9ms]
+  GET http://localhost:8000/api/v1/attack-sim/mitre/heatmap [200 OK, 336B, 10ms]
   ✓  MITRE heatmap returns 200
 
 ↳ MITRE Techniques
-  GET http://localhost:8000/api/v1/attack-sim/mitre/techniques [200 OK, 3.24kB, 13ms]
+  GET http://localhost:8000/api/v1/attack-sim/mitre/techniques [200 OK, 3.24kB, 10ms]
   ✓  MITRE techniques returns 200
 
 ❏ 🤖 MPTE Orchestrator
 ↳ Orchestrator Capabilities
-  GET http://localhost:8000/api/v1/mpte-orchestrator/capabilities [200 OK, 1.32kB, 12ms]
+  GET http://localhost:8000/api/v1/mpte-orchestrator/capabilities [200 OK, 1.32kB, 16ms]
   ✓  Capabilities returns 200
 
 ↳ Run Threat Intel Analysis
@@ -155,25 +155,25 @@ newman
   ✓  Threat intel returns 200
 
 ↳ Business Impact Analysis
-  POST http://localhost:8000/api/v1/mpte-orchestrator/business-impact [200 OK, 896B, 10ms]
+  POST http://localhost:8000/api/v1/mpte-orchestrator/business-impact [200 OK, 896B, 9ms]
   ✓  Business impact returns 200
 
 ↳ Run Full Orchestration
-  POST http://localhost:8000/api/v1/mpte-orchestrator/run [200 OK, 630B, 9ms]
+  POST http://localhost:8000/api/v1/mpte-orchestrator/run [200 OK, 630B, 10ms]
   ✓  Full orchestration returns 200
 
 ❏ 🧠 Multi-LLM Consensus (V4)
 ↳ Make Security Decision
-  POST http://localhost:8000/api/v1/decisions/make-decision [200 OK, 1.73kB, 57ms]
+  POST http://localhost:8000/api/v1/decisions/make-decision [200 OK, 1.73kB, 83ms]
   ✓  Decision returns 200
   ✓  Contains decision fields
 
 ↳ Enhanced Multi-LLM Analysis
-  POST http://localhost:8000/api/v1/enhanced/analysis [200 OK, 3.97kB, 3.9s]
+  POST http://localhost:8000/api/v1/enhanced/analysis [200 OK, 3.97kB, 2.1s]
   ✓  Enhanced analysis returns 200
 
 ↳ Compare LLM Responses
-  POST http://localhost:8000/api/v1/enhanced/compare-llms [200 OK, 3.65kB, 4.5s]
+  POST http://localhost:8000/api/v1/enhanced/compare-llms [200 OK, 3.63kB, 4.2s]
   ✓  LLM comparison returns 200
 
 ↳ LLM Monitor — Scan Prompt
@@ -182,27 +182,27 @@ newman
 
 ❏ 🤖 AI Copilot — Analyst Agent
 ↳ Analyze Vulnerability
-  POST http://localhost:8000/api/v1/copilot/agents/analyst/analyze [200 OK, 471B, 14ms]
+  POST http://localhost:8000/api/v1/copilot/agents/analyst/analyze [200 OK, 471B, 15ms]
   ✓  Agent analysis returns 200
 
 ↳ Gather Threat Intel
-  POST http://localhost:8000/api/v1/copilot/agents/analyst/threat-intel [200 OK, 653B, 9ms]
+  POST http://localhost:8000/api/v1/copilot/agents/analyst/threat-intel [200 OK, 653B, 13ms]
   ✓  Threat intel returns 200
 
 ↳ Prioritize Findings
-  POST http://localhost:8000/api/v1/copilot/agents/analyst/prioritize [200 OK, 598B, 12ms]
+  POST http://localhost:8000/api/v1/copilot/agents/analyst/prioritize [200 OK, 598B, 9ms]
   ✓  Prioritize returns 200
 
 ↳ Analyze Attack Paths
-  POST http://localhost:8000/api/v1/copilot/agents/analyst/attack-path [200 OK, 551B, 12ms]
+  POST http://localhost:8000/api/v1/copilot/agents/analyst/attack-path [200 OK, 551B, 13ms]
   ✓  Attack path analysis returns 200
 
 ↳ Trending Threats
-  GET http://localhost:8000/api/v1/copilot/agents/analyst/trending [200 OK, 1.58kB, 61ms]
+  GET http://localhost:8000/api/v1/copilot/agents/analyst/trending [200 OK, 1.58kB, 164ms]
   ✓  Trending threats returns 200
 
 ↳ CVE Deep Analysis
-  GET http://localhost:8000/api/v1/copilot/agents/analyst/cve/CVE-2024-3094 [200 OK, 629B, 6ms]
+  GET http://localhost:8000/api/v1/copilot/agents/analyst/cve/CVE-2024-3094 [200 OK, 629B, 8ms]
   ✓  CVE analysis returns 200
 
 ┌─────────────────────────┬──────────────────┬──────────────────┐
@@ -218,9 +218,9 @@ newman
 ├─────────────────────────┼──────────────────┼──────────────────┤
 │              assertions │               55 │                0 │
 ├─────────────────────────┴──────────────────┴──────────────────┤
-│ total run duration: 46s                                       │
+│ total run duration: 43.3s                                     │
 ├───────────────────────────────────────────────────────────────┤
-│ total data received: 327.33kB (approx)                        │
+│ total data received: 335.77kB (approx)                        │
 ├───────────────────────────────────────────────────────────────┤
-│ average response time: 858ms [min: 6ms, max: 20s, s.d.: 3.3s] │
+│ average response time: 803ms [min: 4ms, max: 20s, s.d.: 3.2s] │
 └───────────────────────────────────────────────────────────────┘

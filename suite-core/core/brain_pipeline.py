@@ -993,6 +993,26 @@ class BrainPipeline:
         if graph_errors > 0:
             result["graph_errors"] = graph_errors
             logger.warning("Graph step completed with %d errors", graph_errors)
+
+        # [V3] GNN attack-path analysis on the built graph
+        try:
+            from core.ml.attack_path_gnn import build_gnn_from_knowledge_graph
+
+            gnn = build_gnn_from_knowledge_graph(brain)
+            if gnn.is_fitted and gnn.metrics:
+                ctx["gnn_model"] = gnn
+                result["gnn_fitted"] = True
+                result["gnn_coverage"] = round(gnn.metrics.coverage, 4)
+                result["gnn_attention_entropy"] = round(gnn.metrics.attention_entropy, 4)
+                result["gnn_fit_ms"] = round(gnn.metrics.fit_time_ms, 2)
+
+                # Find top risk hotspots
+                hotspots = gnn.get_attention_hotspots(top_k=5)
+                if hotspots:
+                    result["gnn_hotspots"] = [h["node_id"] for h in hotspots[:3]]
+        except Exception as gnn_err:
+            logger.debug("GNN analysis skipped: %s", type(gnn_err).__name__)
+
         return result
 
     # ------------------------------------------------------------------

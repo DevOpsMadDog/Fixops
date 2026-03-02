@@ -17,26 +17,28 @@ When launching claude CLI as child processes on macOS:
 - State: `.claude/team-state/`
 - Logs: `logs/ai-team/`
 
-### Sprint 2 Pre-Flight (run24→run33, 2026-03-01→02)
-- Enterprise demo in 4 days (2026-03-06). Sprint 2: 11/12 done (91.7%), 1 P0 blocker (DEMO-003 UI wiring).
-- **Run33 (latest)**: 17/17 Grade A. 19/19 engines (20,783 LOC). 4/4 MOATs. 56/56 DBs writable. 1,143 core tests (29.02s). 13,221 total. Coverage 19.15%. GREEN.
-- **Run33 FIX**: data/fixops_brain.db CORRUPTED AGAIN (3rd time). Recovered from suite-api/data copy. 12 WAL+SHM cleaned (0 bytes).
-- **fixops_brain.db corruption is RECURRING** (run28, run31+, run33). Root cause: WAL accumulation without checkpointing. suite-api/data/fixops_brain.db serves as healthy fallback.
+### Sprint 2 Pre-Flight (run24→run34, 2026-03-01→03)
+- Enterprise demo in 3 days (2026-03-06). Sprint 2: 11/12 done (91.7%), 1 P0 blocker (DEMO-003 UI wiring).
+- **Run34 (latest)**: 16/17 Grade A, 1 Grade C (sales-engineer rate-limited). 19/19 engines (21,000 LOC). 4/4 MOATs. 56/56 DBs writable. 1,143 core tests (30.46s). 13,674 total (+453). GREEN.
+- **Run34 FIX**: data/fixops_brain.db CORRUPTED AGAIN (4th time! pages 643/640/641/638). Recovered from suite-api/data copy. 18 WAL+SHM cleaned (0 bytes).
+- **Run34 CLEANUP**: QA directory 971MB → 228MB (freed 743MB). Team state 998MB → 255MB.
+- **Run34 SA-001**: Added .env to .gitignore (partial fix). Key rotation STILL NEEDED (6 days open).
+- **fixops_brain.db corruption is RECURRING** (run28, run31+, run33, run34). Root cause: WAL accumulation without checkpointing. suite-api/data/fixops_brain.db serves as healthy fallback.
 - Lock files: jarvis.pid, jarvis.lock, controller-watchdog.pid — ALWAYS check if PIDs alive before cleaning
-- SA-001: .env secrets rotation CRITICAL (5 days open, must fix before demo)
+- SA-001: .env secrets rotation CRITICAL (6 days open, .gitignore fix applied, key rotation pending)
 
-### CTEM+ Engine Inventory (verified 2026-03-02 run28)
-- 6 scanner engines: sast (1577), dast (629), secrets (850), container (445), iac (713), cspm (593) = 4,807 LOC
-- Brain pipeline: `brain_pipeline.py` (1,354 LOC, 12 steps via _step_* methods, has `run()` method) — growing since run15
+### CTEM+ Engine Inventory (verified 2026-03-03 run34)
+- 6 scanner engines: sast (1622), dast (633), secrets (848), container (445), iac (713), cspm (609) = 4,870 LOC
+- Brain pipeline: `brain_pipeline.py` (1,663 LOC, 12 steps via _step_* methods, has `run()` method) — growing since run15
 - MPTE: mpte_advanced.py (1,089, AdvancedMPTEClient), mpte_db.py (536, MPTEDB), mpte_models.py (141, PenTestConfig/Request/Result), micro_pentest.py (2,054, run_micro_pentest) = 3,820 LOC
-- AutoFix: `autofix_engine.py` (1,416 LOC, AutoFixEngine, 8 public methods)
+- AutoFix: `autofix_engine.py` (1,515 LOC, AutoFixEngine, 8 public methods)
 - FAIL Engine: `fail_engine.py` (711 LOC, FAILEngine, 8 public methods)
 - Connectors: `connectors.py` (3,005 LOC, AutomationConnectors) + `universal_connector.py` (1,637 LOC)
 - MCP: `mcp_server.py` (979 LOC, MCPProtocolHandler NOT MCPServer) + `mcp_router.py` (468 in suite-integrations)
 - 6 vision engines: falkordb_client (835, KnowledgeGraphEngine), single_agent (818, SingleAgentEngine), quantum_crypto (664, HybridQuantumSigner), mcp_server (978, MCPProtocolHandler), self_learning (1359, SelfLearningEngine), zero_gravity (855, ZeroGravityEngine) = 5,509 LOC
 - **Module names (NOT _engine suffix)**: `core.single_agent`, `core.self_learning`, `core.zero_gravity` — NOT `core.single_agent_engine` etc.
 - Crypto: `crypto.py` (582 LOC, RSAKeyManager/RSASigner/RSAVerifier — NOT CryptoEngine)
-- Total 19 engines verified importable: 6 scanner + 6 vision + 7 core = 20,527 LOC (was 18,160 at Sprint 1 end)
+- Total 19 engines verified importable: 6 scanner + 6 vision + 7 core = 21,000 LOC (was 18,160 at Sprint 1 end)
 - CTEM_PLUS_IDENTITY.md says `cspm_analyzer.py` but actual is `cspm_engine.py`
 
 ### Test-Code Drift Pattern (RC7 — resolved run9)
@@ -88,14 +90,15 @@ When launching claude CLI as child processes on macOS:
 - Use `bash -c '...'` wrapper for scripts with `[[ ]]` syntax — zsh parses `[[ ! ]]` differently
 - Or use `[ ]` (POSIX) instead of `[[ ]]` (bash)
 
-### Sprint Artifacts (as of 2026-03-02 run33)
+### Sprint Artifacts (as of 2026-03-03 run34)
 - Sprint 1 ARCHIVED: 21/23 done (91.3%)
-- Sprint 2 ACTIVE: 11/12 done (91.7%). 1 P0 blocker: DEMO-003 (UI wiring). 4 days to demo.
-- 369 test files, 13,221 tests collected, 1,143 core tests passing (29.02s)
-- 19.15% coverage (gate: 25% — FAILING, gap 5.85pp)
-- 20,783 LOC across 19 engines (+2,623 from Sprint 1)
-- WAL trend: 2.5GB (run28) → 393MB (run30) → 12MB (run31) → 0KB (run33) — STABLE
-- SA-001: .env secrets rotation CRITICAL (5 days open, must fix before demo)
+- Sprint 2 ACTIVE: 11/12 done (91.7%). 1 P0 blocker: DEMO-003 (UI wiring). 3 days to demo.
+- 13,674 tests collected (+453 since run33), 1,143 core tests passing (30.46s)
+- Coverage: measuring (gate: 25% — FAILING)
+- 21,000 LOC across 19 engines (+2,840 from Sprint 1)
+- WAL trend: 2.5GB (run28) → 393MB (run30) → 12MB (run31) → 0KB (run33-34) — STABLE
+- SA-001: .env secrets rotation CRITICAL (6 days open, .gitignore fix applied, key rotation pending)
+- QA disk cleanup: 971MB → 228MB (run34)
 
 ### Core Test Files (verified run v6 — 948 tests, ~68s)
 - test_brain_pipeline.py (159 tests)
@@ -120,11 +123,12 @@ When launching claude CLI as child processes on macOS:
 - mpte_models.py: exports `PenTestConfig`, `PenTestRequest`, `PenTestResult` — NOT `MPTETarget`
 - Always use `import core.module_name` pattern, not `from core.module_name import ClassName`
 
-### Healthy Agents (verified run33 — 2026-03-02)
-- 17/17 Grade A (14 completed, 3 running). 0 failures, 0 rate-limited. Health: GREEN.
-- Run33: 19/19 engines (20,783 LOC). 4/4 MOATs. 56/56 DBs. 1,143 core tests (29.02s). Coverage 19.15%.
-- Run33: 12 WAL+SHM cleaned (0 bytes). fixops_brain.db corruption recovered. WAL trend: EXCELLENT (0KB).
-- fixops_brain.db corruption: 3rd occurrence. Always keep suite-api/data/fixops_brain.db as backup.
+### Healthy Agents (verified run34 — 2026-03-03)
+- 16/17 Grade A, 1 Grade C (sales-engineer rate-limited). Health: GREEN.
+- Run34: 19/19 engines (21,000 LOC). 4/4 MOATs. 56/56 DBs. 1,143 core tests (30.46s). 13,674 total.
+- Run34: 18 WAL+SHM cleaned (0 bytes). fixops_brain.db corruption recovered (4th time). WAL trend: EXCELLENT.
+- fixops_brain.db corruption: 4th occurrence (run28, run31+, run33, run34). Always keep suite-api/data/fixops_brain.db as backup.
+- QA cleanup: 971MB → 228MB (freed 743MB). SA-001 .gitignore fix applied.
 
 ### Coverage Acceleration Strategy (updated run v8)
 - **v6 strategy** (suite-core modules): diminishing returns — tests hit already-covered code
@@ -156,10 +160,11 @@ When launching claude CLI as child processes on macOS:
 - The fallback is NOT detected by `metadata.fallback` in the AIDecision — it flows through normal path
 - To detect fallback: check `confidence == 0.5` and `reasoning` contains "Fallback"
 
-### Coverage Measurement Note (run16, updated v6)
-- Agent-doctor's full `pytest --cov` measures 17.99% as of v6 (authoritative)
-- Vision-agent reported 18.02% at run16 — likely different `--cov` scope or subset run
-- Always use agent-doctor's measurement for official coverage metric
+### Coverage Measurement Note (run16, updated run34)
+- Agent-doctor's full `pytest --cov=.` measures 19.23% as of run34 (authoritative)
+- Previous: 17.99% (v6), 19.15% (run33), 19.23% (run34) — slow upward trend
+- Context-engineer reported 19.25% at v30 — close match (different scope/timing)
+- Always use agent-doctor's `--cov=.` measurement for official coverage metric
 - `stat -f '%m'` on macOS: use `date -r FILE` instead — avoids zsh parsing issues
 
 ### WAL File Accumulation Pattern (run19, updated run28)

@@ -3938,3 +3938,124 @@
 - **Files touched**: `.claude/team-state/marketing/enterprise-demo-talking-points.md` (v6.0), `.claude/team-state/marketing/positioning.md` (v6.0), `.claude/team-state/marketing/investor-narrative.md` (v6.0), `.claude/team-state/marketing-head-status.md`, `.claude/team-state/decisions.log`
 - **Outcome**: SUCCESS
 - **Pillar(s) served**: V3, V5, V7
+
+### [2026-03-03 18:00] scrum-master — DAILY_STANDUP_AND_DEMO (Run 6)
+- **What**: Day 3 FINAL comprehensive standup, daily demo report, demo script, debate summary, sprint board update, metrics update, coordination notes update. Verified 31/32 endpoints via live curl. All quality metrics improved over Run 5. 10 artifacts produced.
+- **Files touched**: standup-2026-03-03.md, daily-demo-2026-03-03.md, demo-2026-03-03.md, debate-summary-2026-03-03.md, sprint-board.json, metrics.json, coordination-notes-day4.md, scrum-master-status.md, decisions.log, context_log.md
+- **Outcome**: SUCCESS
+- **Key metrics**: 11/12 sprint items done (91.7%), 31/32 endpoints verified 200, Newman 475/475 (10th green), moat 95.60%, security 95, funding 81%, vision 0.85
+- **Pillar(s) served**: V3 (Decision Intelligence), V5 (MPTE), V7 (MCP), V9 (Air-Gapped), V10 (CTEM/Evidence)
+
+### [2026-03-03 02:23] run-ctem-swarm — ITERATIVE 1/1
+- **What**: Iterative swarm run (1 iterations, claude-opus-4-6-fast)
+- **Run ID**: swarm-2026-03-02_21-16-13
+- **Duration**: 5h 7m
+- **Converged**: YES
+- **Outcome**: SUCCESS — converged
+- **Pillar focus**: V3, V5, V7 (core) | V1, V2, V9, V10 (constraints)
+
+### [2026-03-03 02:50] vision-agent — POST_FLIGHT_AUDIT
+- **What**: Vision alignment audit for 2026-03-03 (Sprint 2, Day 3)
+- **Overall alignment**: 0.83 (down from 0.85 — UI architecture drift)
+- **Pillars active**: V3 (3,889 LOC, growing), V5 (5,405 LOC, stable), V7 (1,446 LOC, stable)
+- **Drift detected**: 1 agent (frontend-craftsman: sidebar not restructured from 8 suites to 5 spaces)
+- **Customer feedback**: 0 new items processed
+- **Outcome**: DRIFT_DETECTED
+- **CEO action required**: YES — 3 items:
+  1. CRITICAL: Sidebar shows 8 Technical Suites, not 5 Workflow Spaces (CEO Vision Section V). frontend-craftsman must execute UX Directive #1 today.
+  2. HIGH: SEC-ADV-001 key rotation 2 days outstanding. Rotate OpenAI key + JWT secret.
+  3. MEDIUM: Math.random() in MPTE Console (15+ instances) — demo will show fake data.
+- **Key metrics** (verified via CLI):
+  - Tests: 13,674 collected (+453) | Coverage: 19.23% (gate: 25%)
+  - Newman: 475/475 (10th green) | Moat: 95.60% (+6.65pp)
+  - Core LOC: V3=3,889 V5=5,405 V7=1,446 (total 10,740)
+  - UI: 99 files, 41,423 LOC (+4,335)
+- **Artifacts**: vision-alignment-2026-03-03.json, vision-preflight-2026-03-03.md
+- **New scoring model**: v17 adds ui_architecture factor (5% weight) to catch sidebar drift
+
+### [2026-03-03 02:30] agent-doctor — PRE-FLIGHT_HEALTH_CHECK (Run 34)
+- **What**: Day 3 enterprise demo pre-flight health check. Full agent, engine, MOAT, DB, and test verification. Critical fixops_brain.db corruption recovered (4th time). SA-001 partially fixed. QA cleanup freed 743MB.
+- **Files touched**: .claude/team-state/health-dashboard.json, .claude/team-state/agent-doctor-status.md, .claude/team-state/health-report-2026-03-03.md, .claude/team-state/decisions.log, .gitignore, data/fixops_brain.db (recovered), 18 WAL+SHM files (cleaned), 17 QA iteration dirs + 7 collection JSONs (removed)
+- **Outcome**: SUCCESS
+- **Decisions made**: (1) Recovered fixops_brain.db from suite-api backup, (2) Added .env to .gitignore (SA-001 partial fix), (3) Cleaned 743MB QA data, (4) Classified sales-engineer as RC11 rate-limited (Grade C, not F)
+- **Key metrics**: 17/17 agents (16A, 1C). 19/19 engines (21,000 LOC). 4/4 MOATs. 56/56 DBs writable. 1,143 core tests (30.46s). 13,674 total tests (+453). Coverage pending.
+- **Blockers**: SA-001 key rotation still needed (6 days open). DEMO-003 P0 (6 UI pages remaining).
+- **Next steps**: Coverage measurement completing. Next agent run should focus on DEMO-003 (frontend-craftsman) and SA-001 key rotation.
+- **Pillar(s) served**: V3, V5, V7, V10
+
+### [2026-03-03 10:30] technical-writer — DEMO-008 API DOCUMENTATION v4.0
+- **What**: Full grep audit of all API endpoints. Updated API_REFERENCE.md from v3.2 to v4.0 with verified 781 endpoint count (was 780). Expanded 5 underdocumented sections: Inventory (7→19), Sandbox (5→8), Connectors (4→8), Evidence (13→15), Compliance (9→10). Corrected Appendix A subtotals. Updated all supporting docs (README, CHANGELOG, INVESTOR_BRIEF, USER_GUIDE, ARCHITECTURE) with corrected counts. 41 curl examples, 2,420 lines, 17 sections.
+- **Files touched**: docs/API_REFERENCE.md, README.md, CHANGELOG.md, docs/INVESTOR_BRIEF.md, docs/USER_GUIDE.md, docs/ARCHITECTURE.md, .claude/team-state/technical-writer-status.md, .claude/team-state/decisions.log
+- **Outcome**: SUCCESS
+- **Decisions made**: Endpoint count verified at 781 via grep (764 @router + 8 sandbox + 5 logs + 25 @app - 21 unmounted). Suite breakdown corrected.
+- **Blockers**: None
+- **Next steps**: 1) Validate curl examples against live server 2) Add pagination examples 3) WebSocket/SSE documentation
+- **Pillar(s) served**: V3, V5, V7, V10
+
+### [2026-03-03 20:00] context-engineer — DAILY_SCAN v31.0
+- **What**: Full codebase scan Day 3 of Sprint 2 enterprise demo. Measured growth: +13 files, +14,785 LOC, +9 endpoints, +453 tests. Updated all artifacts. 25th moat honesty clean scan.
+- **Files touched**: .claude/team-state/codebase-map.json, .claude/team-state/briefing-2026-03-03.md, .claude/team-state/architecture-context.md, .claude/team-state/dependency-graph.json, .claude/team-state/metrics.json, CLAUDE.md, .claude/team-state/context-engineer-status.md, .claude/team-state/decisions.log
+- **Outcome**: SUCCESS
+- **Decisions made**: Accepted 768 endpoint count (+9 from v30). Brain pipeline +130 LOC, AutoFix +87 LOC, Sandbox +42 LOC confirmed. UI grew to 99 src files, 41,806 LOC.
+- **Blockers**: DEMO-003 (UI wiring) still in-progress, P0. self-learning/stats 404.
+- **Next steps**: v32.0 on 2026-03-04. Pre-demo freeze verification. DEMO-003 completion check.
+- **Pillar(s) served**: V3, V5, V7, V10
+
+### [2026-03-03 15:48] sales-engineer — DEMO_COLLATERAL_UPDATE v7.0
+- **What**: Full Day 3 sales collateral refresh. Verified 36 GET + 7 POST endpoints against live API. Updated all 9 deliverables to v7.0 with fresh metrics: 1,203 findings (was 1,000), 1,717 KG nodes (was 1,512), 277 MPTE requests (was 235), 93% AutoFix confidence (was 87.65%). Created Day 3 demo readiness report. Fixed 2 newly discovered 404s (knowledge-graph/nodes, scanner-ingest/parsers) — removed from demo scripts, alternatives documented. All 26 demo endpoints verified 200/201. New broken endpoint warnings added (now 20 items).
+- **Files touched**: docs/DEMO_PERSONA_SCRIPTS.md (v7.0), .claude/team-state/sales/demo-scripts/enterprise-demo-all.sh (v7.0), .claude/team-state/sales/battle-cards.md (v7.0), .claude/team-state/sales/objection-handling.md (v6.0), .claude/team-state/sales/competitive-tracker.json (v7.0), .claude/team-state/sales/poc-templates/enterprise-poc-plan.md (v4.0), docs/ONBOARDING_GUIDE.md (v5.0), .claude/team-state/sales/demo-readiness-day3.md (NEW), .claude/team-state/sales-engineer-status.md
+- **Outcome**: SUCCESS
+- **Decisions made**: scanner-ingest/parsers replaced with /supported. knowledge-graph/nodes removed (use brain/stats). API key sourcing warning added.
+- **Blockers**: None
+- **Next steps**: Day 4 dry run, demo video recording, messaging sync with marketing-head
+- **Pillar(s) served**: V3, V5, V7
+
+### [2026-03-03 12:00] ai-researcher — DAILY_RESEARCH_BRIEF
+- **What**: Produced daily pulse for 2026-03-03 (Sprint 2 Day 3). Fetched NVD (3 critical CVEs), CISA KEV (1,529), EPSS (7,073 >50%), HN (11/40 relevant). Web searched 8 competitors + AI/LLM security + funding/M&A + RSA 2026. Updated pitch-data.json with 8 new market data points and 3 competitor updates.
+- **Files touched**:
+  - `.claude/team-state/research/pulse-2026-03-03.md` (CREATED — ~350 lines)
+  - `.claude/team-state/research/pitch-data.json` (UPDATED — 8 new data points, 3 competitor entries)
+  - `.claude/team-state/ai-researcher-status.md` (UPDATED)
+  - `.claude/team-state/decisions.log` (APPENDED — 3 decisions)
+  - `.claude/agent-memory/ai-researcher/MEMORY.md` (UPDATED)
+  - `context_log.md` (APPENDED)
+- **Outcome**: SUCCESS
+- **Key findings**:
+  1. CrowdStrike Q4 FY26 earnings TODAY — $1.30B rev, $4.92B ARR expected
+  2. Snyk AI Security Fabric launched — Evo agentic, 288% ROI (Forrester)
+  3. ArmorCode MCP Server — first ASPM competitor with MCP. Threat level MEDIUM-HIGH.
+  4. Claude Code Security (Feb 20) — 500+ bugs, cybersec stocks plunged
+  5. EPSS: 7,073 CVEs >50% exploitation probability. 2 new high-EPSS 2026 entries.
+  6. Wiz-Google mid-March close confirmed (EU cleared unconditionally)
+  7. RSA 2026 Innovation Sandbox Top 10 finalists announced
+  8. AI-enhanced attacks +72% YoY, 87% of orgs affected
+- **Decisions made**: ArmorCode elevated to MEDIUM-HIGH threat. Claude Code Security recommended as 9th scanner. Snyk AI Security Fabric tracked as decision intelligence move.
+- **Blockers**: None
+- **Next steps**: CrowdStrike Q4 actual results analysis (post-close tonight). RSA 2026 deep dive. vLLM Sprint 3 plan.
+- **Pillar(s) served**: V3, V5, V7, V9
+
+### [2026-03-03 14:00] enterprise-architect — ARCHITECTURE_REVIEW + BUG_FIX
+- **What**: Run 8 daily mission — AutoFix Engine deep architecture review (V3 Decision Intelligence). Fixed 3 bugs: (1) AutoFix _fixes dict unbounded → MAX_FIXES_STORED=5000, (2) AutoFix _history list unbounded → MAX_HISTORY_ENTRIES=10000, (3) ADR-009 broken file path reference. Quality scans: Ruff 77 (stable), Bandit 0 HIGH/64 MEDIUM, Core tests 288/288 PASS, AutoFix tests 556/556 PASS. Tech debt updated (26 items, 7 done). Roadmap updated for Day 3.
+- **Files touched**: suite-core/core/autofix_engine.py (memory bounds), .claude/team-state/architecture/adrs/ADR-009-mcp-auto-discovery.md (path fix), .claude/team-state/architecture/reviews/2026-03-03-autofix-engine-review.md (new), .claude/team-state/architecture/quality-report.md (updated), .claude/team-state/architecture/tech-debt.json (updated), .claude/team-state/architecture/roadmap.md (updated), .claude/team-state/enterprise-architect-status.md (updated), .claude/team-state/decisions.log (4 entries)
+- **Outcome**: SUCCESS
+- **Decisions made**: (1) Fixed _fixes unbounded → 5K cap (TD-023), (2) Fixed _history unbounded → 10K cap (TD-025), (3) Fixed ADR-009 path, (4) Deferred TD-024 (prompt injection) to Phase 2
+- **Blockers**: None
+- **Next steps**: Phase 2 hardening — prompt injection protection, endpoint-level auth, bulk request limits
+- **Pillar(s) served**: V3 (AutoFix architecture), V7 (ADR-009 MCP fix), V10 (quality gates)
+
+### [2026-03-03 03:20] data-scientist — ML_MODULES_BUILT
+- **What**: Built 2 new ML modules (2,099 LOC) + 85 tests. Online Learning Pipeline enables user feedback to flow into model retraining via warm-start GBT with golden regression gate. Attack-Path GNN implements 2-layer GAT for topology-aware risk analysis. Both integrated into brain pipeline and EventBus.
+- **Files touched**:
+  - NEW: `suite-core/core/ml/online_learning.py` (1,176 LOC)
+  - NEW: `suite-core/core/ml/attack_path_gnn.py` (923 LOC)
+  - NEW: `tests/test_ml_online_learning.py` (47 tests)
+  - NEW: `tests/test_ml_attack_path_gnn.py` (38 tests)
+  - MODIFIED: `suite-core/core/event_subscribers.py` (added online learning handlers)
+  - MODIFIED: `suite-core/core/brain_pipeline.py` (added GNN to Step 5)
+  - UPDATED: `.claude/team-state/data-science/ml-dashboard.json`
+  - UPDATED: `.claude/team-state/data-science/daily-intel.json`
+  - UPDATED: `.claude/team-state/data-scientist-status.md`
+- **Outcome**: SUCCESS
+- **Decisions made**: Pure numpy GNN (V9 compliance), warm-start GBT for online learning, thread-safe buffer with rate limiting
+- **Tests**: 514 ALL PASS (429 existing + 85 new, 0 regressions)
+- **Pillar(s) served**: V3 (Decision Intelligence), V7 (MCP validated), V9 (Air-Gapped)

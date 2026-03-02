@@ -86,15 +86,18 @@ self-learning/stats — assigned to backend-hardener (P1)
 
 ---
 
-## Quality Metrics Snapshot (2026-03-03)
-- Newman: 475/475 (9th consecutive green)
-- Tests: 13,614 collected
-- Coverage: 19.23% (moat: 89.68%)
-- Endpoints: 25/26 verified 200
+## Quality Metrics Snapshot (2026-03-03 Run 6 — FINAL)
+- Newman: 475/475 (10th consecutive green, 0 regressions)
+- Tests: 13,614+ collected
+- Coverage: ~21% (moat: 95.60% — all 19/19 above 80%, 6 at 100%)
+- Endpoints: 31/32 verified 200 (only self-learning/stats 404)
 - Bandit: 0 HIGH findings
+- Security score: 95 (SecurityHeadersMiddleware added)
 - TS errors: 0
 - Build: passing
 - Docker: 10/11 compose files valid
+- Customer sims: 8/8 PASS
+- Vision alignment: 0.85 (STABLE)
 
 ## Critical Rules (Unchanged)
 1. DO NOT build aldeci-ui-new — it does NOT exist

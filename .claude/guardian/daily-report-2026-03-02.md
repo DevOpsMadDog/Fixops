@@ -1,7 +1,7 @@
 # Guardian Daily Report — 2026-03-02
 
-> **Run ID**: swarm-2026-03-02_21-16-13
-> **Generated**: 2026-03-02T15:18:50Z
+> **Run ID**: swarm-2026-03-02_21-24-11
+> **Generated**: 2026-03-02T16:20:26Z
 > **Vision**: Every change must serve V1-V10. This report proves it.
 
 ---
@@ -10,11 +10,11 @@
 
 | Metric | Value |
 |--------|-------|
-| Total agent runs | 21 |
+| Total agent runs | 22 |
 | ✅ Accepted | 14 |
 | 🔄 Rolled Back | 0
 0 |
-| ❌ Failed | 7 |
+| ❌ Failed | 8 |
 | 🛡️ Codebase Protected | No rollbacks needed |
 
 ## Vision Pillar Activity
@@ -46,27 +46,28 @@ Which pillars were advanced today:
 
 | Agent | Risk | Status | Vision Pillars | Impact | Details |
 |-------|------|--------|----------------|--------|---------|
-| vision-agent |  | ✅ ACCEPTED | NONE | 35251 | files:36 +131507/-110327 violations:0 syntax_err:0 test_fail:0 changed:[.claude/ |
-| agent-doctor |  | ✅ ACCEPTED | NONE | 39719 | files:46 +146327/-125209 violations:0 syntax_err:0 test_fail:0 changed:[.claude/ |
-| context-engineer | unknown | ✅ ACCEPTED | NONE | 39918 | files:56 +146862/-125602 violations:0 syntax_err:0 test_fail:0 changed:[.claude/ |
-| enterprise-architect | unknown | ✅ ACCEPTED | NONE | 42680 | files:82 +158025/-133570 violations:0 syntax_err:0 test_fail:0 changed:[.claude/ |
-| data-scientist | unknown | ✅ ACCEPTED | NONE | 42678 | files:83 +157982/-133571 violations:0 syntax_err:0 test_fail:0 changed:[.claude/ |
-| ai-researcher | unknown | ✅ ACCEPTED | NONE | 42681 | files:84 +157986/-133576 violations:0 syntax_err:0 test_fail:0 changed:[.claude/ |
-| backend-hardener | unknown | ✅ ACCEPTED | NONE | 43257 | files:117 +162124/-134059 violations:0 syntax_err:0 test_fail:0 changed:[.claude |
-| frontend-craftsman | unknown | ✅ ACCEPTED | NONE | 43363 | files:122 +162938/-134132 violations:0 syntax_err:0 test_fail:0 changed:[.claude |
-| swarm-controller | unknown | ✅ ACCEPTED | NONE | 43867 | files:254 +164225/-134685 violations:0 syntax_err:0 test_fail:0 changed:[.claude |
-| security-analyst | unknown | ✅ ACCEPTED | NONE | 43994 | files:262 +164934/-134887 violations:0 syntax_err:0 test_fail:0 changed:[.claude |
+| vision-agent |  | ✅ ACCEPTED | NONE | 39754 | files:48 +146496/-125289 violations:0 syntax_err:0 test_fail:0 changed:[.claude/ |
+| agent-doctor |  | ✅ ACCEPTED | NONE | 39808 | files:53 +146672/-125442 violations:0 syntax_err:0 test_fail:0 changed:[.claude/ |
+| context-engineer | unknown | ✅ ACCEPTED | NONE | 42336 | files:66 +156511/-132765 violations:0 syntax_err:0 test_fail:0 changed:[.claude/ |
+| ai-researcher | unknown | ✅ ACCEPTED | NONE | 42739 | files:88 +158368/-133636 violations:0 syntax_err:0 test_fail:0 changed:[.claude/ |
+| enterprise-architect | unknown | ✅ ACCEPTED | NONE | 42742 | files:88 +158371/-133647 violations:0 syntax_err:0 test_fail:0 changed:[.claude/ |
+| data-scientist | unknown | ✅ ACCEPTED | NONE | 42861 | files:93 +159228/-133766 violations:0 syntax_err:0 test_fail:0 changed:[.claude/ |
+| frontend-craftsman | unknown | ✅ ACCEPTED | NONE | 43009 | files:112 +160157/-133851 violations:0 syntax_err:0 test_fail:0 changed:[.claude |
+| backend-hardener | unknown | ✅ ACCEPTED | NONE | 43384 | files:122 +163133/-134137 violations:0 syntax_err:0 test_fail:0 changed:[.claude |
+| threat-architect | unknown | ✅ ACCEPTED | NONE | 43432 | files:124 +163546/-134151 violations:0 syntax_err:0 test_fail:0 changed:[.claude |
+| swarm-controller | unknown | ❌ FAILED | NONE | 0 | Agent failed with exit code 1 |
 | qa-engineer | unknown | ❌ FAILED | NONE | 0 | Agent failed with exit code 1 |
+| security-analyst | unknown | ❌ FAILED | NONE | 0 | Agent failed with exit code 1 |
 | devops-engineer | unknown | ❌ FAILED | NONE | 0 | Agent failed with exit code 1 |
-| sales-engineer | unknown | ❌ FAILED | NONE | 0 | Agent failed with exit code 1 |
 | technical-writer | unknown | ❌ FAILED | NONE | 0 | Agent failed with exit code 1 |
 | marketing-head | unknown | ❌ FAILED | NONE | 0 | Agent failed with exit code 1 |
+| sales-engineer | unknown | ❌ FAILED | NONE | 0 | Agent failed with exit code 1 |
 | scrum-master | unknown | ❌ FAILED | NONE | 0 | Agent failed with exit code 1 |
-| devops-engineer | unknown | ❌ FAILED | NONE | 0 | Agent failed with exit code 1 |
-| scrum-master | unknown | ✅ ACCEPTED | NONE | 44275 | files:287 +166776/-135122 violations:0 syntax_err:0 test_fail:0 changed:[.claude |
-| security-analyst | unknown | ✅ ACCEPTED | NONE | 44330 | files:293 +167057/-135195 violations:0 syntax_err:0 test_fail:0 changed:[.claude |
-| qa-engineer | unknown | ✅ ACCEPTED | NONE | 44419 | files:304 +167558/-135284 violations:0 syntax_err:0 test_fail:0 changed:[.claude |
-| marketing-head | unknown | ✅ ACCEPTED | NONE | 44478 | files:309 +167820/-135394 violations:0 syntax_err:0 test_fail:0 changed:[.claude |
+| swarm-controller | unknown | ✅ ACCEPTED | NONE | 44243 | files:285 +166574/-135083 violations:0 syntax_err:0 test_fail:0 changed:[.claude |
+| devops-engineer | unknown | ✅ ACCEPTED | NONE | 44401 | files:302 +167440/-135267 violations:0 syntax_err:0 test_fail:0 changed:[.claude |
+| scrum-master | unknown | ✅ ACCEPTED | NONE | 98367 | files:21 +385352/-298953 violations:0 syntax_err:0 test_fail:0 changed:[.claude/ |
+| technical-writer | unknown | ✅ ACCEPTED | NONE | 8349400 | files:232 +727096/-41381138 violations:0 syntax_err:0 test_fail:0 changed:[.clau |
+| sales-engineer | unknown | ✅ ACCEPTED | NONE | 8349608 | files:255 +727806/-41381590 violations:0 syntax_err:0 test_fail:0 changed:[.clau |
 
 ## Critical File Health
 

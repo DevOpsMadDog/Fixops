@@ -86,14 +86,29 @@ risk = min((cvss/10 * 0.4 + epss * 0.3 + 0.3) * kev_boost * asset_crit, 1.0)
 - Test files: test_brain_pipeline.py, test_self_learning_unit.py, test_self_learning_demo.py, test_scanner_parsers_unit.py, test_scanner_parsers.py
 - Always run existing tests before writing new ones to verify no breakage
 
-## Quality Metrics (2026-03-02 Run 7, verified)
+### AutoFix Engine Architecture (Run 8 review, V3)
+- Engine: `suite-core/core/autofix_engine.py` (1,534 LOC)
+- Router: `suite-core/api/autofix_router.py` (276 LOC)
+- 10 fix types, 8 fix statuses, 3 confidence levels
+- 13 REST endpoints (5 POST, 8 GET)
+- LLM-powered generation with deterministic rule-based fallback
+- ML confidence model (AutoFixConfidenceModel) with fallback
+- 7-point safety gate: dangerous patterns (55+), path traversal, imports, size
+- MAX_FIXES_STORED=5000 with eviction (FIXED Run 8)
+- MAX_HISTORY_ENTRIES=10000 with eviction (FIXED Run 8)
+- CWE → category mapping: 20+ CWEs across 9 vulnerability classes
+- Known weakness: prompt injection in LLM calls (mitigated by safety gate) — TD-024
+- Private method access from router (_validate_fix) — code smell, not security
+
+## Quality Metrics (2026-03-03 Run 8, verified)
 - Bandit (core files): 0 HIGH, 2 MEDIUM (bind-all + xml.etree), 9 LOW
-- Bandit (full suite): 456 issues (0 HIGH, 63 MEDIUM, 393 LOW)
+- Bandit (full suite): 458 issues (0 HIGH, 64 MEDIUM, 394 LOW)
 - Ruff: 77 warnings (0 actionable, all E402 architectural pattern)
-- Test coverage: 4.99% (gate: 25%)
-- Core tests: 288/288 PASS (21.40s)
-- ADRs: 9/9 validated (25 file refs, 100% exist)
-- Tech debt: 22 items (5 done)
+- Test coverage: 19.23% (gate: 25%, per agent-doctor)
+- Core tests: 288/288 PASS (28.46s)
+- AutoFix tests: 556/556 PASS (58.88s)
+- ADRs: 9/9 validated (1 broken ref FIXED in ADR-009)
+- Tech debt: 26 items (7 done)
 
 ## Reliability Patterns
 - SQLite connections: MUST use try/finally (history.py + deduplication.py both fixed)
@@ -121,6 +136,9 @@ risk = min((cvss/10 * 0.4 + epss * 0.3 + 0.3) * kev_boost * asset_crit, 1.0)
 - AutoFixEngine loop hoist FIXED (brain_pipeline.py Step 11, O(n)→O(1))
 - 5 F401 unused imports FIXED (enterprise service files)
 - 2 F821 undefined-name FIXED (eventbus_integration.py, TYPE_CHECKING import)
+- AutoFix _fixes unbounded FIXED (MAX_FIXES_STORED=5000, eviction logic)
+- AutoFix _history unbounded FIXED (MAX_HISTORY_ENTRIES=10000, tail eviction)
+- ADR-009 broken path reference FIXED (suite-integrations→suite-core)
 
 ### MCP Auto-Discovery Architecture (ADR-009, V7)
 - Two subsystems: Auto-Discovery Router (/api/v1/mcp/*) + Protocol Engine (/api/v1/mcp-protocol/*)
@@ -136,3 +154,4 @@ risk = min((cvss/10 * 0.4 + epss * 0.3 + 0.3) * kev_boost * asset_crit, 1.0)
 3. 2026-03-02: Brain pipeline data flow review
 4. 2026-03-02: Reliability review (ADR-008, Grade B-)
 5. 2026-03-02: Performance & data flow review (Grade B, updated Run 7)
+6. 2026-03-03: AutoFix engine architecture review (Grade B+)

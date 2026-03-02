@@ -1,44 +1,64 @@
 {
-  "generated_at": "2026-03-02T10:53:51.923631+00:00",
-  "date": "2026-03-02",
+  "generated_at": "2026-03-03T03:15:00.000000+00:00",
+  "date": "2026-03-03",
   "ml_modules": {
     "risk_scorer": {
       "loc": 1211,
-      "tests": 42
+      "tests": 42,
+      "purpose": "GBT risk scoring + SHAP explanations (Step 7)"
     },
     "anomaly_detector": {
       "loc": 709,
-      "tests": 21
+      "tests": 21,
+      "purpose": "Isolation Forest + scan drift detection"
     },
     "consensus_calibrator": {
       "loc": 560,
-      "tests": 24
+      "tests": 24,
+      "purpose": "Multi-LLM weight calibration (Step 9)"
     },
     "threat_enricher": {
       "loc": 602,
-      "tests": 29
+      "tests": 29,
+      "purpose": "Real EPSS/KEV/CVSS enrichment (Step 6)"
     },
     "autofix_confidence": {
       "loc": 734,
-      "tests": 38
+      "tests": 38,
+      "purpose": "AutoFix quality prediction"
     },
     "daily_intel": {
       "loc": 423,
-      "tests": 0
+      "tests": 0,
+      "purpose": "Daily threat intelligence collector"
     },
     "parser_quality": {
       "loc": 693,
-      "tests": 16
+      "tests": 16,
+      "purpose": "Scanner parser data quality validator"
     },
     "eventbus_integration": {
-      "loc": 292,
-      "tests": 30
+      "loc": 294,
+      "tests": 30,
+      "purpose": "EventBus wiring for ML alerts"
+    },
+    "online_learning": {
+      "loc": 1176,
+      "tests": 47,
+      "purpose": "User feedback → model retraining pipeline (NEW 2026-03-03)"
+    },
+    "attack_path_gnn": {
+      "loc": 923,
+      "tests": 38,
+      "purpose": "Graph Neural Network for attack-path analysis (NEW 2026-03-03)"
     },
     "shap_explanations": {
-      "tests": 36
+      "tests": 36,
+      "purpose": "SHAP explanation tests"
     },
     "drift_detection": {
-      "tests": 21
+      "tests": 21,
+      "purpose": "Drift detection tests"
     }
   },
   "model_status": {
@@ -72,18 +92,67 @@
       },
       "degraded_models": [],
       "calibrated_at": "2026-03-02T10:52:19.347511+00:00"
+    },
+    "online_learning": {
+      "status": "READY",
+      "min_feedback_for_retrain": 10,
+      "max_buffer_size": 500,
+      "rate_limit_seconds": 600,
+      "golden_pass_threshold": 0.95,
+      "max_mae_increase": 0.05,
+      "event_handlers": ["DECISION_MADE", "REMEDIATION_COMPLETED"],
+      "wired_to_eventbus": true
+    },
+    "attack_path_gnn": {
+      "status": "READY",
+      "architecture": "2-layer GAT (12→32×4→16)",
+      "node_features": 12,
+      "hidden_dim": 32,
+      "output_dim": 16,
+      "attention_heads": 4,
+      "wired_to_brain_pipeline_step5": true,
+      "inference_sub_10ms": true,
+      "air_gapped": true
     }
   },
   "daily_intel_summary": {
     "date": "2026-03-02",
-    "high_probability_cves": 100,
-    "newly_weaponized": 100,
-    "new_critical_nvd": 6,
-    "new_high_nvd": 39,
-    "affecting_our_stack": 83,
+    "epss_high_count": 100,
+    "epss_weaponized_count": 100,
+    "nvd_critical_count": 6,
+    "nvd_high_count": 40,
+    "nvd_stack_affected_count": 87,
     "kev_new_additions": 28,
-    "kev_due_soon": 16
+    "kev_due_soon": 16,
+    "kev_total": 1529,
+    "data_sources": {"epss": "live", "nvd": "live", "kev": "live"}
   },
-  "total_ml_loc": 5224,
-  "total_ml_tests": 257
+  "total_ml_loc": 7325,
+  "total_ml_tests": 342,
+  "total_ml_plus_integration_tests": 514,
+  "new_today": {
+    "modules_added": ["online_learning (1,176 LOC)", "attack_path_gnn (923 LOC)"],
+    "tests_added": ["test_ml_online_learning (47 tests)", "test_ml_attack_path_gnn (38 tests)"],
+    "integrations": [
+      "Online learning wired to EventBus (DECISION_MADE, REMEDIATION_COMPLETED)",
+      "GNN wired to brain pipeline Step 5 (build_graph)",
+      "Online learning registered in event_subscribers.py"
+    ],
+    "total_new_loc": 2099,
+    "total_new_tests": 85
+  },
+  "year1_roadmap_progress": {
+    "gradient_boosted_risk_scoring": "DONE (v2.1.0, 200 estimators)",
+    "consensus_weight_calibration": "DONE (F1=0.9081)",
+    "shap_explanations": "DONE (interventional SHAP)",
+    "scan_drift_detection": "DONE (Isolation Forest)",
+    "parser_quality_validation": "DONE (wired to Step 2)",
+    "eventbus_ml_alerts": "DONE (4 event types)",
+    "autofix_confidence_model": "DONE (v1.0.0, 83.7% accuracy)",
+    "online_learning_pipeline": "DONE (2026-03-03, feedback→retrain→deploy)",
+    "gnn_attack_path_foundation": "DONE (2026-03-03, GAT with attention)"
+  },
+  "year2_roadmap_progress": {
+    "gnn_for_attack_path_analysis": "FOUNDATION BUILT (2026-03-03)"
+  }
 }

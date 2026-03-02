@@ -1,0 +1,15 @@
+{"ts":"2026-03-02T15:25:46Z","label":"pre-vision-agent","cpu":70.7,"mem_pct":99,"disk_pct":20,"load":1.44}
+{"ts":"2026-03-02T15:25:46Z","label":"pre-agent-doctor","cpu":155.3,"mem_pct":99,"disk_pct":20,"load":1.44}
+{"ts":"2026-03-02T15:36:01Z","label":"post-vision-agent","cpu":24.8,"mem_pct":75,"disk_pct":20,"load":3.19}
+{"ts":"2026-03-02T15:44:29Z","label":"post-agent-doctor","cpu":19.5,"mem_pct":70,"disk_pct":20,"load":2.36}
+{"ts":"2026-03-02T15:44:49Z","label":"pre-context-engineer","cpu":310.6,"mem_pct":88,"disk_pct":20,"load":2.71}
+{"ts":"2026-03-02T15:57:25Z","label":"post-context-engineer","cpu":19.8,"mem_pct":80,"disk_pct":20,"load":2.55}
+{"ts":"2026-03-02T15:57:41Z","label":"pre-ai-researcher","cpu":326.9,"mem_pct":87,"disk_pct":20,"load":2.78}
+{"ts":"2026-03-02T15:57:41Z","label":"pre-data-scientist","cpu":326.9,"mem_pct":87,"disk_pct":20,"load":2.78}
+{"ts":"2026-03-02T15:57:41Z","label":"pre-enterprise-architect","cpu":326.9,"mem_pct":87,"disk_pct":20,"load":2.78}
+{"ts":"2026-03-02T16:06:57Z","label":"post-ai-researcher","cpu":421.3,"mem_pct":97,"disk_pct":20,"load":5.09}
+{"ts":"2026-03-02T16:12:22Z","label":"post-enterprise-architect","cpu":348.1,"mem_pct":79,"disk_pct":20,"load":4.75}
+{"ts":"2026-03-02T16:19:36Z","label":"post-data-scientist","cpu":50.3,"mem_pct":75,"disk_pct":20,"load":2.62}
+{"ts":"2026-03-02T16:19:54Z","label":"pre-backend-hardener","cpu":14.4,"mem_pct":73,"disk_pct":20,"load":2.85}
+{"ts":"2026-03-02T16:19:54Z","label":"pre-frontend-craftsman","cpu":26.0,"mem_pct":73,"disk_pct":20,"load":2.85}
+{"ts":"2026-03-02T16:19:54Z","label":"pre-threat-architect","cpu":18.3,"mem_pct":73,"disk_pct":20,"load":2.85}

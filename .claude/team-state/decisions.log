@@ -4389,3 +4389,189 @@
   ACTION: Updated positioning.md and investor-narrative.md Snyk sections. Changed from "down from $8.5B" to "$8.5B valuation, $343M ARR."
   RESULT: SUCCESS
   ROLLBACK: N/A — data correction, not opinion change
+
+[2026-03-03 18:00] agent:scrum-master DECISION: Day 3 FINAL comprehensive standup and demo report (Run 6)
+  CONTEXT: Day 3 of Sprint 2 Enterprise Demo. Previous run (Run 5) had 25/26 endpoints. Today verified 31/32 (+6 new endpoints probed). Quality metrics significantly improved: moat 89.68%→95.60%, Newman 9th→10th consecutive green, autofix 93.76%→98.22%, micro_pentest 92.26%→99.35%, security score 93→95.
+  ACTION: Produced 10 artifacts: standup, daily-demo, demo script, debate summary, sprint board update, metrics update, coordination notes update, status update, decisions log, context log. All artifacts reflect verified live data (31/32 curl probes 200).
+  RESULT: SUCCESS
+  ROLLBACK: Revert all .claude/team-state/ files to previous git state
+
+[2026-03-03 18:01] agent:scrum-master DECISION: Track SEC-ADV-002 (Docker hardening) as PARTIALLY RESOLVED
+  CONTEXT: Security analyst published SEC-ADV-002 on Day 3. Credential fixes DONE. Docker socket mount is intentional MPTE design requirement. DevOps engineer verified all 10 compose files. DinD migration deferred to Sprint 3.
+  ACTION: Documented in debate-summary-2026-03-03.md and coordination-notes-day4.md. No further action needed this sprint.
+  RESULT: SUCCESS
+  ROLLBACK: N/A (status tracking only)
+
+[2026-03-03 18:02] agent:scrum-master DECISION: Confirm self-learning/stats as sole remaining broken endpoint
+  CONTEXT: Probed 32 endpoints via live curl. 31 return 200. Only self-learning/stats returns 404. This is consistent with Run 5 findings. Already assigned to backend-hardener as P1.
+  ACTION: Documented in coordination-notes-day4.md. Confirmed backend-hardener assignment. Not a demo blocker (use /self-learning/health or /self-learning/status instead).
+  RESULT: SUCCESS
+  ROLLBACK: N/A (diagnostic only)
+
+[2026-03-03 02:45] agent:vision-agent DECISION: Flag UI architecture as CRITICAL vision drift (score 0.0)
+  CONTEXT: MainLayout.tsx sidebar still uses 8 Technical Suite groups (CODE SUITE, CLOUD SUITE, etc.) instead of CEO Vision Section V's 5 Workflow Spaces (Mission Control, Discover, Validate, Remediate, Comply). UX Directive #1 created by Day 3 coordination notes but not yet executed. Demo in 3 days.
+  ACTION: Set ui_architecture_score to 0.0 in vision-alignment-2026-03-03.json. Added to ceo_action_items as CRITICAL. Lowered overall alignment from 0.85 to 0.83.
+  RESULT: SUCCESS
+  ROLLBACK: Update ui_architecture_score in vision-alignment-2026-03-03.json
+
+[2026-03-03 02:46] agent:vision-agent DECISION: Escalate SEC-ADV-001 to HIGH urgency (2 days outstanding)
+  CONTEXT: API key rotation advisory has been open since 2026-03-01. Infrastructure mitigations in place (.gitignore, no commit), but actual key rotation requires CEO action. Enterprise demo in 3 days — rotated keys are a security requirement.
+  ACTION: Escalated SEC-ADV-001 from MEDIUM to HIGH urgency in ceo_action_items. Added age_days: 2 to active_debates entry.
+  RESULT: SUCCESS
+  ROLLBACK: Revert urgency to MEDIUM in vision-alignment-2026-03-03.json
+
+[2026-03-03 02:47] agent:vision-agent DECISION: Add ui_architecture as new scoring factor (weight 5%)
+  CONTEXT: Previous scoring model (v16) had no explicit UI information architecture check. This allowed the sidebar to remain in 8 Technical Suite layout for weeks without detection. Coordination-notes-day3.md self-learning directive explicitly requires this check.
+  ACTION: Updated scoring model from v16 to v17. Added ui_architecture factor at 5% weight. Reduced core_pillars from 35% to 30% and test_coverage from 15% to 10% to accommodate.
+  RESULT: SUCCESS
+  ROLLBACK: Revert to v16 scoring model in future vision-alignment reports
+
+[2026-03-03 02:48] agent:vision-agent DECISION: Flag Math.random() in MPTEConsole.tsx as V5 data integrity issue
+  CONTEXT: MPTEConsole.tsx contains 15+ Math.random() calls generating fake confidence scores, phase durations, risk scores, and report IDs. This is the V5 (MPTE Verification) flagship page — it must show real micro-pentest results from the API, not randomly generated numbers.
+  ACTION: Added P1 recommendation to remove Math.random() from all display pages. Linked to UX Directive #2. Flagged in ceo_action_items as MEDIUM.
+  RESULT: SUCCESS
+  ROLLBACK: Remove recommendation from vision-alignment-2026-03-03.json
+
+[2026-03-03 02:30] agent:agent-doctor DECISION: Recover fixops_brain.db from suite-api backup (4th corruption)
+  CONTEXT: data/fixops_brain.db integrity check failed: invalid pages 643/640/641/638. This is the 4th corruption since run28. Root cause: WAL accumulation during concurrent test/agent runs without checkpointing.
+  ACTION: Copied suite-api/data/fixops_brain.db (integrity: ok) to data/fixops_brain.db. Verified replacement integrity: ok. Cleaned WAL+SHM files.
+  RESULT: SUCCESS
+  ROLLBACK: N/A (corrupted file had no recoverable unique data)
+
+[2026-03-03 02:31] agent:agent-doctor DECISION: Add .env to .gitignore (SA-001 partial fix)
+  CONTEXT: SA-001 has been OPEN for 6 days. .env contains FIXOPS_JWT_SECRET, FIXOPS_API_TOKEN, OPENAI_API_KEY. .env was NOT in .gitignore (despite not being tracked by git). Demo in 3 days.
+  ACTION: Added .env, .env.local, .env.production to .gitignore. Key rotation still required by CEO.
+  RESULT: PARTIAL (gitignore done, key rotation still needed)
+  ROLLBACK: Remove .env entries from .gitignore
+
+[2026-03-03 02:32] agent:agent-doctor DECISION: Clean QA directory (971MB -> 228MB, freed 743MB)
+  CONTEXT: .claude/team-state/ was 998MB (approaching 1GB warning threshold). 97% was in qa/ directory — old Sprint 1 and early Sprint 2 iteration data no longer needed.
+  ACTION: Removed 17 old iteration directories and 7 large collection result JSON files. Kept 3 most recent iterations.
+  RESULT: SUCCESS
+  ROLLBACK: Data is git-recoverable if needed
+
+[2026-03-03 02:33] agent:agent-doctor DECISION: Classify sales-engineer failure as RC11 (rate-limited), not config failure
+  CONTEXT: sales-engineer failed with "3 attempts exhausted" but log shows 60-byte "You're out of extra usage" message. DEMO-005 already completed in previous run.
+  ACTION: Graded as C (not F). No config change. Will auto-recover when usage cap resets.
+  RESULT: SUCCESS
+  ROLLBACK: N/A (diagnostic only)
+
+[2026-03-03 10:15] agent:technical-writer DECISION: Update endpoint count from 780 to 781
+  CONTEXT: Full grep audit revealed 764 @router + 8 sandbox + 5 logs + 25 @app = 802 in code, 781 mounted (21 unmounted in mpte_integration.py). Previous count of 780 missed 1 endpoint (sandbox_verifier added /reachability/single).
+  ACTION: Updated API_REFERENCE.md v4.0 with verified counts. Updated README.md, CHANGELOG.md, INVESTOR_BRIEF.md, USER_GUIDE.md, ARCHITECTURE.md to match.
+  RESULT: SUCCESS
+  ROLLBACK: Find-replace 781→780 in all docs
+
+[2026-03-03 10:20] agent:technical-writer DECISION: Expand underdocumented endpoint sections
+  CONTEXT: Grep audit found 5 routers significantly underdocumented: Inventory (7→19 endpoints), Sandbox (5→8), Connectors (4→8), Evidence (13→15), Compliance (9→10). These gaps would be visible to enterprise customers reviewing the API reference.
+  ACTION: Expanded all 5 sections with full endpoint tables, descriptions, and curl examples where appropriate.
+  RESULT: SUCCESS
+  ROLLBACK: Revert to v3.2 of API_REFERENCE.md
+
+[2026-03-03 10:25] agent:technical-writer DECISION: Reconcile Appendix A to match verified counts
+  CONTEXT: Appendix A (endpoint count by CTEM phase) had subtotals that didn't match the per-section counts. Validate went from 94→97 (sandbox +3), Comply 54→57 (evidence +2, compliance +1), Intelligence 231→234 (brain +1, mcp gw +1, mcp proto +1), Vision 35→39 (+4 health endpoints).
+  ACTION: Rewrote entire Appendix A with grep-verified counts and verification date stamp.
+  RESULT: SUCCESS
+  ROLLBACK: Restore previous Appendix A from git
+
+[2026-03-03 20:00] agent:context-engineer DECISION: Produce v31.0 codebase scan with updated metrics
+  CONTEXT: Daily mission Day 3 of Sprint 2 enterprise demo. Last scan v30.0 was 2026-03-02. New swarm runs produced significant growth.
+  ACTION: Full codebase scan. Updated codebase-map.json, briefing, architecture-context.md, dependency-graph.json, metrics.json, CLAUDE.md. Measured 927 files (+13), 416,927 LOC (+14,785), 768 endpoints (+9), 13,674 tests (+453), 19.23% coverage.
+  RESULT: SUCCESS
+  ROLLBACK: Revert to v30.0 files from git
+
+[2026-03-03 20:01] agent:context-engineer DECISION: Accept endpoint growth from 759 to 768 (+9) as genuine
+  CONTEXT: 9 new endpoints found across 8 routers. Consistent with backend-hardener's health/status alias work and evidence router additions.
+  ACTION: Updated all artifacts with 768 endpoint count. Verified per-router counts individually.
+  RESULT: SUCCESS
+  ROLLBACK: N/A (measurement only)
+
+[2026-03-03 20:02] agent:context-engineer DECISION: Moat honesty 25th consecutive clean scan confirmed
+  CONTEXT: P0 moat mission. Searched for "AST-based", "675+", "20+ entropy" across entire codebase. All remaining references are in historical docs, roadmap items labeled "Planned", or sales objection handling correctly positioned.
+  ACTION: Logged 25th clean scan. Zero violations. No fixes needed.
+  RESULT: SUCCESS
+  ROLLBACK: N/A
+
+[2026-03-03 15:48] agent:sales-engineer DECISION: Update all demo collateral to v7.0 with live-verified data
+  CONTEXT: Day 3 of Sprint 2. Enterprise demo in 3 days. API data has grown significantly since last validation (1,203 findings vs 1,000, 1,717 nodes vs 1,512). Need fresh numbers in all demo scripts.
+  ACTION: Ran 43-endpoint verification sweep. Updated DEMO_PERSONA_SCRIPTS.md, battle-cards.md, objection-handling.md, competitive-tracker.json, POC template, and onboarding guide. Created demo-readiness-day3.md report.
+  RESULT: SUCCESS
+  ROLLBACK: Git revert on docs/DEMO_PERSONA_SCRIPTS.md and .claude/team-state/sales/
+
+[2026-03-03 15:48] agent:sales-engineer DECISION: Replace scanner-ingest/parsers with /supported in all demo scripts
+  CONTEXT: scanner-ingest/parsers endpoint now returns 404. scanner-ingest/supported returns 200 with correct data.
+  ACTION: Updated DEMO_PERSONA_SCRIPTS.md MOAT Demo A section and "Things to Avoid" list.
+  RESULT: SUCCESS
+  ROLLBACK: Change /supported back to /parsers if backend-hardener restores the route
+
+[2026-03-03 15:48] agent:sales-engineer DECISION: Remove knowledge-graph/nodes from demo (use brain/stats)
+  CONTEXT: knowledge-graph/nodes returns 404. brain/stats contains all node data with full type distribution.
+  ACTION: Updated CTO persona script and Things to Avoid list. brain/stats is the canonical graph data source.
+  RESULT: SUCCESS
+  ROLLBACK: Re-add /nodes endpoint if backend-hardener creates it
+
+[2026-03-03 15:48] agent:sales-engineer DECISION: Add API key sourcing warning to all demo documentation
+  CONTEXT: API key contains "--" characters that break bash when pasted directly. Must use `source .env` or `export $(grep...)`.
+  ACTION: Added note to Pre-Demo Setup and Things to Avoid in DEMO_PERSONA_SCRIPTS.md and demo-readiness-day3.md.
+  RESULT: SUCCESS
+  ROLLBACK: Remove warning if API key is regenerated without special characters
+
+[2026-03-03 12:00] agent:ai-researcher DECISION: Publish daily pulse with ArmorCode MCP Server as elevated threat
+  CONTEXT: ArmorCode launched MCP Server enabling LLMs to query security data. First ASPM competitor with MCP. Directly competes with V7 MCP-native positioning.
+  ACTION: Updated competitor threat level to MEDIUM-HIGH. Added messaging: "705 MCP tools vs ArmorCode's 1 endpoint." Updated pitch-data.json.
+  RESULT: SUCCESS
+  ROLLBACK: Revert pitch-data.json ArmorCode entry
+
+[2026-03-03 12:01] agent:ai-researcher DECISION: Flag Claude Code Security as 9th scanner integration candidate
+  CONTEXT: Anthropic launched Claude Code Security Feb 20. Found 500+ bugs in production open-source code. Multi-stage verification. Cybersec stocks plunged. Creates both threat and opportunity.
+  ACTION: Added to pulse Section E gaps. Positioned as "Claude finds, ALdeci decides" opportunity. Sprint 3 candidate.
+  RESULT: SUCCESS
+  ROLLBACK: N/A (research recommendation only)
+
+[2026-03-03 12:02] agent:ai-researcher DECISION: Track Snyk AI Security Fabric as competitive move toward decision intelligence
+  CONTEXT: Snyk launched AI Security Fabric Feb 3 — unified SDLC security with Delta Findings, Agent Fix, Evo agentic system. Moving from tool to platform. 288% ROI per Forrester.
+  ACTION: Updated competitor entry with 4 new features. Flagged as messaging priority — Brain Pipeline is our response. No code changes needed.
+  RESULT: SUCCESS
+  ROLLBACK: N/A (research update only)
+
+[2026-03-03 14:00] agent:enterprise-architect DECISION: Fix AutoFix _fixes dict unbounded memory (TD-023)
+  CONTEXT: AutoFix engine review revealed _fixes dict grows without bound. Each fix 5-50KB. At 10K fixes = ~500MB. Production risk.
+  ACTION: Added MAX_FIXES_STORED=5000 constant and eviction logic in autofix_engine.py. Oldest entries evicted when cap exceeded.
+  RESULT: SUCCESS (288+556 tests pass, 0 regressions)
+  ROLLBACK: Remove lines 230-231 (constants) and 406-415 (eviction) from autofix_engine.py
+
+[2026-03-03 14:01] agent:enterprise-architect DECISION: Fix AutoFix _history list unbounded memory (TD-025)
+  CONTEXT: Same review — _history list grew without bound. get_history(limit) only sliced on read.
+  ACTION: Added MAX_HISTORY_ENTRIES=10000 constant and tail eviction after each append in autofix_engine.py.
+  RESULT: SUCCESS (288+556 tests pass, 0 regressions)
+  ROLLBACK: Remove MAX_HISTORY_ENTRIES constant and eviction line (424-425) from autofix_engine.py
+
+[2026-03-03 14:02] agent:enterprise-architect DECISION: Fix ADR-009 broken file path reference
+  CONTEXT: ADR validation found 1 broken ref — ADR-009 referenced suite-integrations/api/mcp_protocol_router.py but actual path is suite-core/api/mcp_protocol_router.py.
+  ACTION: Updated 2 occurrences in ADR-009-mcp-auto-discovery.md (lines 53 and 129).
+  RESULT: SUCCESS (all 9/9 ADRs now have 100% valid file refs)
+  ROLLBACK: Revert ADR-009 path references to suite-integrations/api/
+
+[2026-03-03 14:03] agent:enterprise-architect DECISION: Defer prompt injection protection (TD-024) to Phase 2
+  CONTEXT: AutoFix review found LLM prompts use f-strings with user content. Prompt injection possible but MITIGATED by 7-point safety gate.
+  ACTION: Logged as TD-024 in tech-debt.json. Priority: Phase 2. Defense-in-depth: safety gate catches dangerous outputs even if prompt is injected.
+  RESULT: SUCCESS (deferred, not blocked)
+  ROLLBACK: N/A (informational decision)
+
+[2026-03-03 03:10] agent:data-scientist DECISION: Build online learning pipeline (core/ml/online_learning.py)
+  CONTEXT: Year 1 roadmap item #8. No mechanism existed to flow user feedback from self_learning.py into ML model retraining. Critical for V3 continuous improvement.
+  ACTION: Built 1,176 LOC module: FeedbackConverter (4 types), FeedbackBuffer (thread-safe), IncrementalTrainer (warm-start GBT + golden regression gate), OnlineLearningPipeline (orchestrator). Registered in event_subscribers.py. 47 tests all pass.
+  RESULT: SUCCESS
+  ROLLBACK: Remove online_learning.py, revert event_subscribers.py, remove test_ml_online_learning.py
+
+[2026-03-03 03:12] agent:data-scientist DECISION: Build attack-path GNN foundation (core/ml/attack_path_gnn.py)
+  CONTEXT: Year 2 roadmap — GNN for attack-path analysis. Knowledge graph has topology data (nodes/edges) but no ML-powered path scoring. Foundation needed for brain pipeline Step 5/7 enhancement.
+  ACTION: Built 923 LOC module: 2-layer GAT (12→32×4→16), pure numpy (V9 air-gap), attention-weighted path scoring, risk propagation with BFS+decay, hotspot detection. Wired into brain pipeline Step 5. 38 tests all pass.
+  RESULT: SUCCESS
+  ROLLBACK: Remove attack_path_gnn.py, revert brain_pipeline.py Step 5, remove test_ml_attack_path_gnn.py
+
+[2026-03-03 03:15] agent:data-scientist DECISION: Wire GNN into brain pipeline Step 5 (build_graph)
+  CONTEXT: GNN model needs to analyze the knowledge graph after it's built in Step 5. This adds topology-aware intelligence to the pipeline.
+  ACTION: Added GNN fit + hotspot analysis to _step_build_graph() output. Defensive try/except — GNN failure doesn't break pipeline. Added gnn_fitted, gnn_coverage, gnn_hotspots to step output.
+  RESULT: SUCCESS
+  ROLLBACK: Revert brain_pipeline.py to remove GNN section in _step_build_graph

@@ -6,9 +6,9 @@
 ## Summary
 
 - **Total Agents:** 17
-- **Verified (B+ grade):** 14 (82%)
+- **Verified (B+ grade):** 16 (94%)
 - **Failed:** 0
-- **Stubs/Fakes Detected:** 3
+- **Stubs/Fakes Detected:** 0
 
 ## Per-Agent Scores
 
@@ -18,7 +18,7 @@
 | agent-doctor | System Reliability Engineer | B | 72% | ✅ Persona file OK (14967B). ✅ Status OK. ⚠️ Output light (1758B). ❌ Low match 33%. ✅ Completed. ✅ No stubs.  |
 | context-engineer | Codebase Intelligence Architect | A | 92% | ✅ Persona file OK (10903B). ✅ Status OK. ⚠️ Output light (2018B). ✅ Persona match 100%. ✅ Completed. ✅ No stubs.  |
 | ai-researcher | AI/ML Research Scientist | B | 72% | ✅ Persona file OK (11737B). ✅ Status OK. ⚠️ Output light (2498B). ❌ Low match 33%. ✅ Completed. ✅ No stubs.  |
-| data-scientist | Data Analytics Lead | B | 77% | ✅ Persona file OK (10693B). ✅ Status OK. ⚠️ Output light (2208B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
+| data-scientist | Data Analytics Lead | C | 67% | ✅ Persona file OK (10693B). ✅ Status OK. ⚠️ Output light (2208B). ⚠️ Partial match 50%. 🔄 Running. ✅ No stubs.  |
 | enterprise-architect | Enterprise Solutions Architect | B | 74% | ✅ Persona file OK (13202B). ✅ Status OK. ⚠️ Output light (2516B). ⚠️ Partial match 40%. ✅ Completed. ✅ No stubs.  |
 | backend-hardener | Backend Security Engineer | B | 72% | ✅ Persona file OK (12191B). ✅ Status OK. ⚠️ Output light (1791B). ❌ Low match 33%. ✅ Completed. ✅ No stubs.  |
 | frontend-craftsman | UI/UX Engineering Lead | B | 80% | ✅ Persona file OK (13257B). ✅ Status OK. ⚠️ Output light (2652B). ⚠️ Partial match 62%. ✅ Completed. ✅ No stubs.  |
@@ -27,10 +27,10 @@
 | security-analyst | Security Analyst & Pentester | B | 77% | ✅ Persona file OK (12357B). ✅ Status OK. ⚠️ Output light (2005B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
 | qa-engineer | Quality Assurance Lead | B | 82% | ✅ Persona file OK (19694B). ✅ Status OK. ⚠️ Output light (1566B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
 | devops-engineer | DevOps & Infrastructure Lead | B | 82% | ✅ Persona file OK (11300B). ✅ Status OK. ⚠️ Output light (2639B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
-| marketing-head | Product Marketing Lead | D | 35% | ✅ Persona file OK (9919B). ✅ Status OK. ❌ Output empty/fake (60B). ❌ Low match 0%. ❌ Not complete. ✅ No stubs.  |
-| technical-writer | Technical Documentation Lead | D | 35% | ✅ Persona file OK (10085B). ✅ Status OK. ❌ Output empty/fake (60B). ❌ Low match 0%. ❌ Not complete. ✅ No stubs.  |
-| sales-engineer | Solutions Engineering Lead | D | 35% | ✅ Persona file OK (11467B). ✅ Status OK. ❌ Output empty/fake (60B). ❌ Low match 0%. ❌ Not complete. ✅ No stubs.  |
-| scrum-master | Agile Delivery Lead | B | 77% | ✅ Persona file OK (13225B). ✅ Status OK. ⚠️ Output light (2332B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
+| marketing-head | Product Marketing Lead | B | 72% | ✅ Persona file OK (9919B). ✅ Status OK. ⚠️ Output light (2250B). ❌ Low match 33%. ✅ Completed. ✅ No stubs.  |
+| technical-writer | Technical Documentation Lead | B | 82% | ✅ Persona file OK (10085B). ✅ Status OK. ⚠️ Output light (1280B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
+| sales-engineer | Solutions Engineering Lead | B | 82% | ✅ Persona file OK (11467B). ✅ Status OK. ⚠️ Output light (2149B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
+| scrum-master | Agile Delivery Lead | B | 77% | ✅ Persona file OK (13225B). ✅ Status OK. ⚠️ Output light (1816B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
 
 
 ## Scoring Criteria
@@ -64,7 +64,7 @@
 | marketing-head | - | - | `-` |
 | technical-writer | - | - | `-` |
 | sales-engineer | - | - | `-` |
-| scrum-master | /api/v1/mcp/tools | - | `-` |
+| scrum-master | - | - | `-` |
 
 
 ### How to Replicate Testing Locally
@@ -89,4 +89,4 @@ pytest tests/ --cov=. --cov-fail-under=60
 curl -s -H "X-API-Key: ${VITE_API_KEY}" http://localhost:8000/api/v1/health | python3 -m json.tool
 ```
 
-*Generated at 2026-03-03 01:53:40 by JARVIS Controller*
+*Generated at 2026-03-03 03:14:22 by JARVIS Controller*

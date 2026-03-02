@@ -4,53 +4,53 @@ newman
 
 ❏ 🔧 Remediation Center
 ↳ List Remediation Tasks
-  GET http://localhost:8000/api/v1/remediation/tasks [200 OK, 6.21kB, 23ms]
+  GET http://localhost:8000/api/v1/remediation/tasks [200 OK, 6.21kB, 24ms]
   ✓  List remediation tasks returns 200
   ✓  Capture first taskId
 
 ↳ Create Remediation Task
-  POST http://localhost:8000/api/v1/remediation/tasks [500 Internal Server Error, 174B, 19ms]
-  1. Create task returns 200/201
-  2. Capture taskId
+  POST http://localhost:8000/api/v1/remediation/tasks [200 OK, 529B, 10ms]
+  ✓  Create task returns 200/201
+  ✓  Capture taskId
 
 ↳ Get Remediation Task
-  GET http://localhost:8000/api/v1/remediation/tasks [200 OK, 6.21kB, 6ms]
+  GET http://localhost:8000/api/v1/remediation/tasks [200 OK, 6.21kB, 7ms]
   GET http://localhost:8000/api/v1/remediation/tasks/f140dd29-e57e-4d1e-8479-776c0f169147 [200 OK, 836B, 4ms]
   ✓  Get task returns 200
 
 ↳ Update Task Status
-  GET http://localhost:8000/api/v1/remediation/tasks [200 OK, 6.21kB, 10ms]
-  PUT http://localhost:8000/api/v1/remediation/tasks/f140dd29-e57e-4d1e-8479-776c0f169147/status [400 Bad Request, 425B, 4ms]
+  GET http://localhost:8000/api/v1/remediation/tasks [200 OK, 6.21kB, 9ms]
+  PUT http://localhost:8000/api/v1/remediation/tasks/f140dd29-e57e-4d1e-8479-776c0f169147/status [400 Bad Request, 425B, 6ms]
   ✓  Update task returns 200
 
 ↳ Remediation Metrics
-  GET http://localhost:8000/api/v1/remediation/metrics [200 OK, 508B, 4ms]
+  GET http://localhost:8000/api/v1/remediation/metrics [200 OK, 508B, 9ms]
   ✓  Remediation metrics returns 200
 
 ↳ SLA Status
-  POST http://localhost:8000/api/v1/remediation/sla/check?org_id=org-001&org_id=org-001 [200 OK, 355B, 11ms]
+  POST http://localhost:8000/api/v1/remediation/sla/check?org_id=org-001&org_id=org-001 [200 OK, 355B, 10ms]
   ✓  SLA status returns 200
 
 ↳ Remediation History
-  GET http://localhost:8000/api/v1/remediation/statuses [200 OK, 666B, 12ms]
+  GET http://localhost:8000/api/v1/remediation/statuses [200 OK, 666B, 10ms]
   ✓  History returns 200
 
 ❏ ⚡ AutoFix Engine
 ↳ Generate AutoFix
-  POST http://localhost:8000/api/v1/autofix/generate [200 OK, 2.12kB, 10.9s]
+  POST http://localhost:8000/api/v1/autofix/generate [200 OK, 2.13kB, 7.5s]
   ✓  AutoFix generation returns 200
   ✓  Capture fixId
 
 ↳ Get AutoFix Details
-  GET http://localhost:8000/api/v1/autofix/fixes/fix-test-001 [404 Not Found, 348B, 7ms]
+  GET http://localhost:8000/api/v1/autofix/fixes/fix-test-001 [404 Not Found, 348B, 8ms]
   ✓  Get fix returns 200
 
 ↳ Validate Fix
-  POST http://localhost:8000/api/v1/autofix/validate [404 Not Found, 348B, 12ms]
+  POST http://localhost:8000/api/v1/autofix/validate [404 Not Found, 348B, 9ms]
   ✓  Validate fix returns 200
 
 ↳ Apply Fix
-  POST http://localhost:8000/api/v1/autofix/apply [422 Unprocessable Content, 477B, 9ms]
+  POST http://localhost:8000/api/v1/autofix/apply [422 Unprocessable Content, 477B, 14ms]
   ✓  Apply fix returns 200
 
 ↳ Rollback Fix
@@ -58,36 +58,36 @@ newman
   ✓  Rollback returns 200
 
 ↳ AutoFix Metrics
-  GET http://localhost:8000/api/v1/autofix/stats [200 OK, 582B, 12ms]
+  GET http://localhost:8000/api/v1/autofix/stats [200 OK, 582B, 11ms]
   ✓  AutoFix metrics returns 200
 
 ↳ AutoFix Languages
-  GET http://localhost:8000/api/v1/autofix/fix-types [200 OK, 824B, 8ms]
+  GET http://localhost:8000/api/v1/autofix/fix-types [200 OK, 824B, 11ms]
   ✓  Languages returns 200
 
 ❏ 📦 Bulk Operations
 ↳ Bulk Update Findings
-  POST http://localhost:8000/api/v1/bulk/findings/update [422 Unprocessable Content, 686B, 9ms]
+  POST http://localhost:8000/api/v1/bulk/findings/update [422 Unprocessable Content, 686B, 12ms]
   ✓  Bulk update returns 200
 
 ↳ Bulk Risk Accept
-  POST http://localhost:8000/api/v1/bulk/findings/update [422 Unprocessable Content, 686B, 9ms]
+  POST http://localhost:8000/api/v1/bulk/findings/update [422 Unprocessable Content, 686B, 12ms]
   ✓  Bulk risk accept returns 200
 
 ↳ Bulk Assign
-  POST http://localhost:8000/api/v1/bulk/findings/assign [200 OK, 399B, 9ms]
+  POST http://localhost:8000/api/v1/bulk/findings/assign [200 OK, 399B, 8ms]
   ✓  Bulk assign returns 200
 
 ↳ Bulk Create Tickets
-  POST http://localhost:8000/api/v1/bulk/clusters/create-tickets [200 OK, 444B, 13ms]
+  POST http://localhost:8000/api/v1/bulk/clusters/create-tickets [200 OK, 444B, 14ms]
   ✓  Bulk ticket creation returns 200
 
 ↳ Cluster Bulk Actions
-  POST http://localhost:8000/api/v1/bulk/clusters/status [200 OK, 442B, 5ms]
+  POST http://localhost:8000/api/v1/bulk/clusters/status [200 OK, 442B, 12ms]
   ✓  Cluster action returns 200
 
 ↳ Bulk Operations History
-  GET http://localhost:8000/api/v1/bulk/jobs [200 OK, 4.65kB, 3ms]
+  GET http://localhost:8000/api/v1/bulk/jobs [200 OK, 8.76kB, 8ms]
   ✓  Bulk history returns 200
 
 ❏ 💬 Collaboration Hub
@@ -96,12 +96,12 @@ newman
   ✓  List comments returns 200
 
 ↳ Add Comment
-  POST http://localhost:8000/api/v1/collaboration/comments [200 OK, 497B, 13ms]
+  POST http://localhost:8000/api/v1/collaboration/comments [200 OK, 497B, 15ms]
   ✓  Add comment returns 200/201
   ✓  Capture commentId
 
 ↳ Add Watcher
-  POST http://localhost:8000/api/v1/collaboration/watchers [422 Unprocessable Content, 646B, 10ms]
+  POST http://localhost:8000/api/v1/collaboration/watchers [422 Unprocessable Content, 646B, 9ms]
   ✓  Add watcher returns 200/201
 
 ↳ Activity Feed
@@ -109,16 +109,16 @@ newman
   ✓  Activities returns 200
 
 ↳ List Notifications
-  GET http://localhost:8000/api/v1/collaboration/notifications/pending [200 OK, 3.91kB, 11ms]
+  GET http://localhost:8000/api/v1/collaboration/notifications/pending [200 OK, 3.91kB, 10ms]
   ✓  Notifications returns 200
   ✓  Capture notificationId
 
 ↳ Mark Notification Read
-  POST http://localhost:8000/api/v1/collaboration/notifications/process [200 OK, 2.21kB, 15ms]
+  POST http://localhost:8000/api/v1/collaboration/notifications/process [200 OK, 2.21kB, 16ms]
   ✓  Mark read returns 200
 
 ↳ Team Activity Summary
-  GET http://localhost:8000/api/v1/collaboration/activities?org_id=org-001 [200 OK, 24.05kB, 12ms]
+  GET http://localhost:8000/api/v1/collaboration/activities?org_id=org-001 [200 OK, 24.05kB, 11ms]
   ✓  Team activity returns 200
 
 ❏ ⚙️ Workflow Automation
@@ -128,7 +128,7 @@ newman
   ✓  Capture workflowId
 
 ↳ Create Workflow
-  POST http://localhost:8000/api/v1/workflows [409 Conflict, 380B, 8ms]
+  POST http://localhost:8000/api/v1/workflows [409 Conflict, 380B, 12ms]
   ✓  Create workflow returns 200/201
   ✓  Capture workflowId
 
@@ -138,37 +138,37 @@ newman
   ✓  Get workflow returns 200
 
 ↳ Execute Workflow
-  POST http://localhost:8000/api/v1/workflows/619dfce4-fef8-4f85-a603-f8347f99cf16/execute [200 OK, 745B, 16ms]
+  POST http://localhost:8000/api/v1/workflows/619dfce4-fef8-4f85-a603-f8347f99cf16/execute [200 OK, 744B, 14ms]
   ✓  Execute workflow returns 200
 
 ↳ Workflow SLA Status
-  GET http://localhost:8000/api/v1/workflows/619dfce4-fef8-4f85-a603-f8347f99cf16/sla [200 OK, 394B, 7ms]
+  GET http://localhost:8000/api/v1/workflows/619dfce4-fef8-4f85-a603-f8347f99cf16/sla [200 OK, 394B, 8ms]
   ✓  Workflow SLA returns 200
 
 ↳ Workflow Timeline
-  GET http://localhost:8000/api/v1/workflows/619dfce4-fef8-4f85-a603-f8347f99cf16/history [200 OK, 11.9kB, 9ms]
+  GET http://localhost:8000/api/v1/workflows/619dfce4-fef8-4f85-a603-f8347f99cf16/history [200 OK, 13.23kB, 10ms]
   ✓  Timeline returns 200
 
 ❏ 🤖 AI Copilot — Remediation Agent
 ↳ Get Remediation Guidance
-  POST http://localhost:8000/api/v1/copilot/agents/remediation/generate-fix [200 OK, 724B, 7.1s]
+  POST http://localhost:8000/api/v1/copilot/agents/remediation/generate-fix [200 OK, 724B, 6.2s]
   ✓  Remediation guidance returns 200
 
 ↳ Generate Code Fix
-  POST http://localhost:8000/api/v1/copilot/agents/remediation/generate-fix [200 OK, 724B, 6.5s]
+  POST http://localhost:8000/api/v1/copilot/agents/remediation/generate-fix [200 OK, 724B, 7s]
   ✓  Code fix returns 200
 
 ↳ Generate Remediation Plan
-  POST http://localhost:8000/api/v1/copilot/agents/remediation/playbook [200 OK, 846B, 7ms]
+  POST http://localhost:8000/api/v1/copilot/agents/remediation/playbook [200 OK, 846B, 10ms]
   ✓  Remediation plan returns 200
 
 ↳ Remediation Best Practices
-  GET http://localhost:8000/api/v1/copilot/agents/remediation/queue [200 OK, 4.78kB, 16ms]
+  GET http://localhost:8000/api/v1/copilot/agents/remediation/queue [200 OK, 4.68kB, 14ms]
   ✓  Best practices returns 200
 
 ❏ 🎫 Exposure Case Management
 ↳ List Exposure Cases
-  GET http://localhost:8000/api/v1/cases [200 OK, 90.35kB, 22ms]
+  GET http://localhost:8000/api/v1/cases [200 OK, 90.81kB, 12ms]
   ✓  List cases returns 200
   ✓  Capture caseId
 
@@ -178,58 +178,44 @@ newman
   ✓  Capture caseId
 
 ↳ Get Exposure Case
-  GET http://localhost:8000/api/v1/cases [200 OK, 90.35kB, 17ms]
-  GET http://localhost:8000/api/v1/cases/EC-D28C7FDB49A0 [200 OK, 976B, 6ms]
+  GET http://localhost:8000/api/v1/cases [200 OK, 90.81kB, 15ms]
+  GET http://localhost:8000/api/v1/cases/EC-EE8635BB34B1 [200 OK, 976B, 8ms]
   ✓  Get case returns 200
 
 ↳ Update Case Status
-  GET http://localhost:8000/api/v1/cases [200 OK, 90.35kB, 12ms]
-  PATCH http://localhost:8000/api/v1/cases/EC-D28C7FDB49A0 [400 Bad Request, 343B, 5ms]
+  GET http://localhost:8000/api/v1/cases [200 OK, 90.81kB, 15ms]
+  PATCH http://localhost:8000/api/v1/cases/EC-EE8635BB34B1 [400 Bad Request, 343B, 5ms]
   ✓  Update case returns 200
 
 ❏ 🔗 Integration Tickets (Jira/GitHub)
 ↳ List Integrations
-  GET http://localhost:8000/api/v1/integrations [200 OK, 34.43kB, 12ms]
+  GET http://localhost:8000/api/v1/integrations [200 OK, 34.43kB, 8ms]
   ✓  List integrations returns 200
 
 ↳ Test Jira Connection
-  POST http://localhost:8000/api/v1/integrations/jira-test-001/test [404 Not Found, 343B, 9ms]
+  POST http://localhost:8000/api/v1/integrations/jira-test-001/test [404 Not Found, 343B, 6ms]
   ✓  Jira test returns 200
 
 ↳ Webhook Health
-  GET http://localhost:8000/api/v1/webhooks/health [200 OK, 360B, 10ms]
+  GET http://localhost:8000/api/v1/webhooks/health [200 OK, 360B, 7ms]
   ✓  Webhook health returns 200
 
-┌─────────────────────────┬──────────────────┬──────────────────┐
-│                         │         executed │           failed │
-├─────────────────────────┼──────────────────┼──────────────────┤
-│              iterations │                1 │                0 │
-├─────────────────────────┼──────────────────┼──────────────────┤
-│                requests │               49 │                0 │
-├─────────────────────────┼──────────────────┼──────────────────┤
-│            test-scripts │               44 │                0 │
-├─────────────────────────┼──────────────────┼──────────────────┤
-│      prerequest-scripts │               54 │                0 │
-├─────────────────────────┼──────────────────┼──────────────────┤
-│              assertions │               53 │                2 │
-├─────────────────────────┴──────────────────┴──────────────────┤
-│ total run duration: 30.6s                                     │
-├───────────────────────────────────────────────────────────────┤
-│ total data received: 407.51kB (approx)                        │
-├───────────────────────────────────────────────────────────────┤
-│ average response time: 513ms [min: 3ms, max: 10.9s, s.d.: 2s] │
-└───────────────────────────────────────────────────────────────┘
-
-[31m  # [39m[31m failure        [39m[31m detail                                                   [39m
-[90m    [39m[90m                [39m[90m                                                          [39m
- 1.  AssertionError  Create task returns 200/201                              
-                     expected 500 to be one of [ 200, 201, 202, 409 ]         
-                     at assertion:0 in test-script                            
-                     inside "🔧 Remediation Center / Create Remediation Task" 
-[90m    [39m[90m                [39m[90m                                                          [39m
- 2.  JSONError       Capture taskId                                           
-                     Unexpected token 'I' at 1:1                              
-                     Internal Server Error                                    
-                     ^                                                        
-                     at assertion:1 in test-script                            
-                     inside "🔧 Remediation Center / Create Remediation Task" 
+┌─────────────────────────┬────────────────────┬───────────────────┐
+│                         │           executed │            failed │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│              iterations │                  1 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│                requests │                 49 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│            test-scripts │                 44 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│      prerequest-scripts │                 54 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│              assertions │                 53 │                 0 │
+├─────────────────────────┴────────────────────┴───────────────────┤
+│ total run duration: 26.9s                                        │
+├──────────────────────────────────────────────────────────────────┤
+│ total data received: 414.44kB (approx)                           │
+├──────────────────────────────────────────────────────────────────┤
+│ average response time: 436ms [min: 4ms, max: 7.5s, s.d.: 1671ms] │
+└──────────────────────────────────────────────────────────────────┘

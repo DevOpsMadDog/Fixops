@@ -1,17 +1,17 @@
 # ALdeci CTEM+ API Reference
 
-> **Version**: 3.2 — Enterprise Demo Edition (Sprint 2, Day 4)
-> **Last updated**: 2026-03-02
+> **Version**: 4.0 — Enterprise Demo Edition (Sprint 2, Day 3)
+> **Last updated**: 2026-03-03
 > **Base URL**: `http://localhost:8000`
-> **Total endpoints**: 780 across 73 router files + 25 inline definitions (verified E2E 58/58 — 100%)
-> **Total routes mounted**: 780 routes, 77+ unique prefixes
-> **Suites**: suite-api (233) · suite-core (286) · suite-attack (122) · suite-feeds (31) · suite-evidence-risk (45) · suite-integrations (51) · inline @app (25)
+> **Total endpoints**: 781 across 72 router files + 2 dynamic routers + 25 inline @app (verified via grep 2026-03-03)
+> **Total routes mounted**: 781 routes, 77+ unique prefixes
+> **Suites**: suite-api (238) · suite-core (253) · suite-attack (106) · suite-feeds (31) · suite-evidence-risk (56) · suite-integrations (59) · sandbox (8) · logs (5) · inline @app (25)
 > **Authentication**: API Key (`X-API-Key` header) or JWT Bearer token
 > **OpenAPI Spec**: `GET /openapi.json` (verified 200 OK)
 > **Pillar**: [V3] Decision Intelligence · [V5] MPTE Verification · [V7] MCP-Native · [V10] CTEM Full Loop
 > **Security**: All endpoints hardened — Pydantic v2 validation, path traversal prevention, size limits, injection guards (Sprint 2)
 > **CTEM+ Identity**: ALdeci is a complete CTEM+ platform with 8 built-in scanners, 25 third-party parsers, a 12-step Brain Pipeline, and AI-powered AutoFix — see [CTEM+ Identity](CTEM_PLUS_IDENTITY.md)
-> **v3.2 changes**: All 780 endpoints fully documented inline (expanded from v3.1). Reports (4→14), Bulk (3→13), Collaboration (3→23), Marketplace (4→14), Audit (4→14), MPTE Orchestrator (0→8). 32+ curl examples. CTEM+ identity header. Suite-level breakdown.
+> **v4.0 changes**: Full endpoint audit (verified 781 via code grep). Suite-level breakdown corrected. Inventory (7→19), Sandbox (5→8), Connectors (4→8), MCP Protocol (8→9). 36+ curl examples. Appendix A reconciled to verified counts.
 
 ---
 
@@ -127,7 +127,7 @@ JWT tokens expire after `FIXOPS_JWT_EXP_MINUTES` (default: 120 minutes).
 
 ## 2. CTEM Lifecycle Overview
 
-ALdeci organizes its 780 endpoints around the **Continuous Threat Exposure Management (CTEM)** lifecycle:
+ALdeci organizes its 781 endpoints around the **Continuous Threat Exposure Management (CTEM)** lifecycle:
 
 ```
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
@@ -136,7 +136,7 @@ ALdeci organizes its 780 endpoints around the **Continuous Threat Exposure Manag
 │ 8 Scanners  │    │ MPTE 19-ph  │    │ AutoFix 10  │    │ Evidence    │
 │ 25 Parsers  │    │ Sandbox PoC │    │ Workflows   │    │ Compliance  │
 │ 6 Feeds     │    │ FAIL Engine │    │ Connectors  │    │ Audit Trail │
-│ ~140 endpts │    │ ~145 endpts │    │ ~110 endpts │    │ ~85 endpts  │
+│ 134 endpts  │    │ 97 endpts   │    │ 78 endpts   │    │ 57 endpts   │
 └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
         │                │                  │                   │
         └────────────────┴──────────────────┴───────────────────┘
@@ -146,7 +146,7 @@ ALdeci organizes its 780 endpoints around the **Continuous Threat Exposure Manag
                     │ Brain Pipeline     │
                     │ Knowledge Graph    │
                     │ AI Copilot / MCP   │
-                    │ ~249 endpoints     │
+                    │ 234 endpoints      │
                     └────────────────────┘
 ```
 
@@ -445,19 +445,52 @@ Build and query a security knowledge graph connecting assets, findings, CVEs, an
 
 ### 3.5 Asset Inventory [V1]
 
-**Prefix**: `/api/v1/inventory` · **Source**: `suite-api/apps/api/inventory_router.py`
+**Prefix**: `/api/v1/inventory` · **Source**: `suite-api/apps/api/inventory_router.py` · **19 endpoints**
 
-APP_ID-centric asset management — every finding traces to an application.
+APP_ID-centric asset management — every finding traces to an application, component, service, or API.
+
+#### Applications
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/v1/inventory/applications` | List all applications |
+| `GET` | `/api/v1/inventory/applications` | List all applications (paginated) |
 | `POST` | `/api/v1/inventory/applications` | Register a new application |
-| `GET` | `/api/v1/inventory/applications/{app_id}` | Get application details |
-| `PUT` | `/api/v1/inventory/applications/{app_id}` | Update application |
-| `DELETE` | `/api/v1/inventory/applications/{app_id}` | Delete application |
-| `GET` | `/api/v1/inventory/sbom` | Generate SBOM (CycloneDX/SPDX) |
-| `GET` | `/api/v1/inventory/license-compliance` | License compliance check |
+| `GET` | `/api/v1/inventory/applications/{id}` | Get application details |
+| `PUT` | `/api/v1/inventory/applications/{id}` | Update application |
+| `DELETE` | `/api/v1/inventory/applications/{id}` | Delete application |
+| `GET` | `/api/v1/inventory/applications/{id}/components` | List application components |
+| `GET` | `/api/v1/inventory/applications/{id}/apis` | List application APIs |
+| `POST` | `/api/v1/inventory/applications/{id}/dependencies` | Add dependency |
+| `GET` | `/api/v1/inventory/applications/{id}/dependencies` | List dependencies |
+| `GET` | `/api/v1/inventory/applications/{id}/license-compliance` | License compliance check |
+| `GET` | `/api/v1/inventory/applications/{id}/sbom` | Generate SBOM (CycloneDX/SPDX) |
+
+#### Assets, Services & APIs
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/inventory/assets` | List all assets (paginated) |
+| `GET` | `/api/v1/inventory/services` | List all services |
+| `POST` | `/api/v1/inventory/services` | Register a service |
+| `GET` | `/api/v1/inventory/services/{id}` | Get service details |
+| `GET` | `/api/v1/inventory/apis` | List all APIs |
+| `POST` | `/api/v1/inventory/apis` | Register an API |
+| `GET` | `/api/v1/inventory/apis/{id}/security` | Get API security assessment |
+| `GET` | `/api/v1/inventory/search` | Search across all inventory |
+
+**Example — Register an application and generate SBOM:**
+
+```bash
+# Register an application
+curl -X POST http://localhost:8000/api/v1/inventory/applications \
+  -H "X-API-Key: $FIXOPS_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "payment-service", "team": "platform", "criticality": "high"}'
+
+# Generate CycloneDX SBOM for the application
+curl -s http://localhost:8000/api/v1/inventory/applications/payment-service/sbom \
+  -H "X-API-Key: $FIXOPS_API_TOKEN" | python3 -m json.tool
+```
 
 ---
 
@@ -654,9 +687,9 @@ curl -X POST http://localhost:8000/api/v1/micro-pentest/run \
 
 ### 4.3 Sandbox PoC Verifier [V5]
 
-**Prefix**: `/api/v1/sandbox` · **Source**: `suite-core/core/sandbox_verifier.py` (500 LOC)
+**Prefix**: `/api/v1/sandbox` · **Source**: `suite-core/core/sandbox_verifier.py` (500 LOC, dynamic router) · **8 endpoints**
 
-Docker-isolated exploit verification with self-correction.
+Docker-isolated exploit verification with self-correction and reachability analysis.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -664,9 +697,38 @@ Docker-isolated exploit verification with self-correction.
 | `POST` | `/api/v1/sandbox/verify-finding` | Verify a specific finding |
 | `GET` | `/api/v1/sandbox/results` | List verification results |
 | `GET` | `/api/v1/sandbox/stats` | Sandbox statistics |
+| `POST` | `/api/v1/sandbox/reachability` | Analyze reachability of a vulnerability path |
+| `POST` | `/api/v1/sandbox/reachability/single` | Single-finding reachability check |
 | `GET` | `/api/v1/sandbox/health` | Health check |
+| `GET` | `/api/v1/sandbox/status` | Status |
 
 **Isolation Model**: Memory-limited (512MB), CPU-limited (1 core), network-controlled, read-only filesystem. Self-corrects `ModuleNotFoundError`, `ConnectionRefused`, and `PermissionDenied`.
+
+**Example — Verify an exploit in a sandboxed container:**
+
+```bash
+curl -X POST http://localhost:8000/api/v1/sandbox/verify \
+  -H "X-API-Key: $FIXOPS_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "poc_code": "import requests\nrequests.get(\"http://target/admin\")",
+    "language": "python",
+    "timeout_seconds": 30,
+    "network_access": false
+  }'
+```
+
+```json
+{
+  "verification_id": "sandbox-v1x2y3",
+  "status": "completed",
+  "exploitable": true,
+  "exit_code": 0,
+  "output": "HTTP 200 — admin panel accessible without auth",
+  "execution_time_ms": 1200,
+  "isolation": {"memory_mb": 512, "cpu_cores": 1, "network": false}
+}
+```
 
 ---
 
@@ -947,22 +1009,47 @@ Orchestrate multi-step remediation workflows with SLA tracking.
 
 ### 5.4 Connectors — Jira, GitHub, Slack [V1]
 
-**Prefix**: `/api/v1/connectors` · **Source**: `suite-api/apps/api/connectors_router.py`
+**Prefix**: `/api/v1/connectors` · **Source**: `suite-api/apps/api/connectors_router.py` · **8 endpoints**
 
-Fan-out remediation actions to external tools.
+Fan-out remediation actions to external tools. Register, test, and manage 7 integration connectors.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/v1/connectors/jira/create-issue` | Create Jira ticket for finding |
-| `POST` | `/api/v1/connectors/github/create-issue` | Create GitHub issue |
-| `POST` | `/api/v1/connectors/slack/notify` | Send Slack notification |
-| `GET` | `/api/v1/connectors/status` | Connector health status |
+| `GET` | `/api/v1/connectors/types` | List supported connector types |
+| `GET` | `/api/v1/connectors` | List registered connectors |
+| `POST` | `/api/v1/connectors/register` | Register a new connector |
+| `POST` | `/api/v1/connectors/test` | Test all connectors |
+| `POST` | `/api/v1/connectors/create-ticket` | Create ticket from finding (Jira/GitHub/ServiceNow) |
+| `POST` | `/api/v1/connectors/{name}/test` | Test a specific connector |
+| `DELETE` | `/api/v1/connectors/{name}` | Remove a connector |
+| `GET` | `/api/v1/connectors/health` | Connectors health |
+
+**Supported connectors**: Jira, GitHub, GitLab, Slack, ServiceNow, Azure DevOps, Confluence.
+
+**Example — Register a Jira connector and create a ticket:**
+
+```bash
+# Register the connector
+curl -X POST http://localhost:8000/api/v1/connectors/register \
+  -H "X-API-Key: $FIXOPS_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "jira",
+    "config": {"url": "https://company.atlassian.net", "project": "SEC"}
+  }'
+
+# Create a ticket from a finding
+curl -X POST http://localhost:8000/api/v1/connectors/create-ticket \
+  -H "X-API-Key: $FIXOPS_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"finding_id": "finding-abc123", "connector": "jira", "priority": "high"}'
+```
 
 ---
 
 ### 5.5 Integrations Management [V7]
 
-**Prefix**: `/api/v1/integrations` · **Source**: `suite-integrations/api/integrations_router.py`
+**Prefix**: `/api/v1/integrations` · **Source**: `suite-integrations/api/integrations_router.py` · **8 endpoints**
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -972,6 +1059,7 @@ Fan-out remediation actions to external tools.
 | `PUT` | `/api/v1/integrations/{id}` | Update integration |
 | `DELETE` | `/api/v1/integrations/{id}` | Delete integration |
 | `POST` | `/api/v1/integrations/{id}/sync` | Sync integration |
+| `GET` | `/api/v1/integrations/{id}/sync-status` | Get sync status |
 | `POST` | `/api/v1/integrations/{id}/test` | Test connection |
 
 ### 5.6 Webhooks — Bidirectional Sync [V7]
@@ -1010,7 +1098,7 @@ Full webhook lifecycle management with bidirectional sync — both outgoing noti
 
 ### 6.1 Evidence Engine [V10]
 
-**Prefix**: `/api/v1/evidence` · **Source**: `suite-evidence-risk/api/evidence_router.py` · **13 endpoints**
+**Prefix**: `/api/v1/evidence` · **Source**: `suite-evidence-risk/api/evidence_router.py` · **15 endpoints**
 
 Generate, sign, and verify compliance evidence bundles with RSA-SHA256 cryptographic signatures.
 
@@ -1029,6 +1117,8 @@ Generate, sign, and verify compliance evidence bundles with RSA-SHA256 cryptogra
 | `POST` | `/api/v1/evidence/export/verify` | Verify exported evidence integrity |
 | `GET` | `/api/v1/evidence/export/status` | Export job status |
 | `POST` | `/api/v1/evidence/sign` | Sign evidence with RSA-SHA256 |
+| `GET` | `/api/v1/evidence/health` | Health check |
+| `GET` | `/api/v1/evidence/status` | Status |
 
 **Example — Generate a signed evidence bundle for SOC2:**
 
@@ -1072,7 +1162,7 @@ curl -X POST http://localhost:8000/api/v1/evidence/verify \
 
 ### 6.2 Compliance Engine [V10]
 
-**Prefix**: `/api/v1/compliance-engine` · **Source**: `suite-evidence-risk/api/compliance_engine_router.py` · **9 endpoints**
+**Prefix**: `/api/v1/compliance-engine` · **Source**: `suite-evidence-risk/api/compliance_engine_router.py` · **10 endpoints**
 
 Map findings to compliance frameworks (SOC2, PCI-DSS, HIPAA, GDPR, ISO 27001).
 
@@ -1087,6 +1177,7 @@ Map findings to compliance frameworks (SOC2, PCI-DSS, HIPAA, GDPR, ISO 27001).
 | `GET` | `/api/v1/compliance-engine/audit-bundle` | Generate audit-ready bundle |
 | `GET` | `/api/v1/compliance-engine/cwe-mapping/{cwe_id}` | Map CWE to framework controls |
 | `GET` | `/api/v1/compliance-engine/control/{control_id}` | Get control details |
+| `GET` | `/api/v1/compliance-engine/health` | Health check |
 
 **Example — Assess compliance against SOC2:**
 
@@ -1191,7 +1282,7 @@ curl -s http://localhost:8000/api/v1/audit/chain/verify \
 
 ### 7.1 Brain Pipeline — 12-Step CTEM Engine [V3]
 
-**Prefix**: `/api/v1/brain` · **Source**: `suite-core/api/brain_router.py` + `pipeline_router.py` · **Engine**: `suite-core/core/brain_pipeline.py` (1,000 LOC) · **30 endpoints**
+**Prefix**: `/api/v1/brain` · **Source**: `suite-core/api/brain_router.py` (23) + `pipeline_router.py` (8) · **Engine**: `suite-core/core/brain_pipeline.py` (1,533 LOC) · **31 endpoints**
 
 The core decision engine — 12 steps from ingestion to evidence.
 
@@ -1331,17 +1422,18 @@ curl -s http://localhost:8000/api/v1/analytics/dashboard/overview \
 
 ### 7.3 MCP Gateway — AI Agent Platform [V7]
 
-**Prefix**: `/api/v1/mcp` · **Source**: `suite-api/apps/api/mcp_router.py` · **7 endpoints**
+**Prefix**: `/api/v1/mcp` · **Source**: `suite-api/apps/api/mcp_router.py` · **8 endpoints**
 
 Model Context Protocol — makes ALdeci the first AppSec platform AI agents can programmatically use.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/v1/mcp/tools` | List all MCP-available tools (auto-discovered) |
+| `GET` | `/api/v1/mcp/tools` | List all MCP-available tools (auto-discovered from 781 routes) |
 | `GET` | `/api/v1/mcp/tools/{tool_name}` | Get tool schema definition |
 | `POST` | `/api/v1/mcp/execute` | Execute an MCP tool |
 | `GET` | `/api/v1/mcp/schemas` | OpenAPI schemas for all tools |
 | `GET` | `/api/v1/mcp/health` | MCP gateway health |
+| `GET` | `/api/v1/mcp/status` | MCP gateway status |
 | `GET` | `/api/v1/mcp/stats` | MCP usage statistics |
 | `POST` | `/api/v1/mcp/refresh` | Refresh tool catalog |
 
@@ -1368,19 +1460,20 @@ curl -X POST http://localhost:8000/api/v1/mcp/execute \
 
 ### 7.4 MCP Protocol Server [V7]
 
-**Prefix**: `/api/v1/mcp-protocol` · **Source**: `suite-core/api/mcp_protocol_router.py` · **8 endpoints**
+**Prefix**: `/api/v1/mcp-protocol` · **Source**: `suite-core/api/mcp_protocol_router.py` · **9 endpoints**
 
-Low-level MCP protocol implementation for agent-to-agent communication.
+Low-level MCP protocol implementation for agent-to-agent communication via JSON-RPC and SSE.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/api/v1/mcp-protocol/status` | Protocol server status |
-| `POST` | `/api/v1/mcp-protocol/initialize` | Initialize MCP session |
-| `POST` | `/api/v1/mcp-protocol/tools/list` | List available tools |
-| `POST` | `/api/v1/mcp-protocol/tools/call` | Call a tool |
-| `POST` | `/api/v1/mcp-protocol/resources/list` | List resources |
-| `POST` | `/api/v1/mcp-protocol/resources/read` | Read a resource |
-| `POST` | `/api/v1/mcp-protocol/prompts/list` | List prompts |
+| `POST` | `/api/v1/mcp-protocol/jsonrpc` | JSON-RPC 2.0 message handler |
+| `POST` | `/api/v1/mcp-protocol/raw` | Raw MCP message passthrough |
+| `GET` | `/api/v1/mcp-protocol/sse` | Server-Sent Events stream for real-time updates |
+| `GET` | `/api/v1/mcp-protocol/tools` | List available MCP tools |
+| `GET` | `/api/v1/mcp-protocol/resources` | List available resources |
+| `GET` | `/api/v1/mcp-protocol/prompts` | List available prompts |
+| `POST` | `/api/v1/mcp-protocol/discover` | Auto-discover tools from FastAPI routes |
 | `GET` | `/api/v1/mcp-protocol/health` | Health check |
 
 ---
@@ -2006,12 +2099,13 @@ Full request/response payload logging with streaming support for real-time debug
 
 ### 9.1 Self-Learning Engine [V8]
 
-**Prefix**: `/api/v1/self-learning` · **Source**: `suite-core/api/self_learning_router.py` · **Engine**: `suite-core/core/self_learning.py` (832 LOC) · **18 endpoints**
+**Prefix**: `/api/v1/self-learning` · **Source**: `suite-core/api/self_learning_router.py` · **Engine**: `suite-core/core/self_learning.py` (832 LOC) · **19 endpoints**
 
 Five feedback loops that continuously improve ALdeci's decision quality over time.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| `GET` | `/api/v1/self-learning/health` | Health check |
 | `GET` | `/api/v1/self-learning/status` | Engine status and loop health |
 | `POST` | `/api/v1/self-learning/feedback/decision` | Record decision feedback (was the AI right?) |
 | `POST` | `/api/v1/self-learning/feedback/mpte` | Record MPTE verification feedback |
@@ -2051,12 +2145,13 @@ curl -X POST http://localhost:8000/api/v1/self-learning/feedback/false-positive 
 
 ### 9.2 Quantum-Secure Cryptography [V6]
 
-**Prefix**: `/api/v1/quantum-crypto` · **Source**: `suite-core/api/quantum_crypto_router.py` · **Engine**: `suite-core/core/quantum_crypto.py` (666 LOC) · **5 endpoints**
+**Prefix**: `/api/v1/quantum-crypto` · **Source**: `suite-core/api/quantum_crypto_router.py` · **Engine**: `suite-core/core/quantum_crypto.py` (666 LOC) · **6 endpoints**
 
 Hybrid RSA-SHA256 + ML-DSA (FIPS 204) evidence signing for post-quantum security.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| `GET` | `/api/v1/quantum-crypto/health` | Health check |
 | `GET` | `/api/v1/quantum-crypto/status` | Cryptographic engine status |
 | `POST` | `/api/v1/quantum-crypto/sign` | Sign content with hybrid quantum-safe signature |
 | `POST` | `/api/v1/quantum-crypto/verify` | Verify hybrid signature |
@@ -2079,12 +2174,13 @@ curl -X POST http://localhost:8000/api/v1/quantum-crypto/sign \
 
 ### 9.3 Zero-Gravity Data Lifecycle [V9]
 
-**Prefix**: `/api/v1/zero-gravity` · **Source**: `suite-core/api/zero_gravity_router.py` · **Engine**: `suite-core/core/zero_gravity.py` (857 LOC) · **6 endpoints**
+**Prefix**: `/api/v1/zero-gravity` · **Source**: `suite-core/api/zero_gravity_router.py` · **Engine**: `suite-core/core/zero_gravity.py` (857 LOC) · **7 endpoints**
 
 Intelligent data lifecycle management — 95% storage reduction (20 GB → 1 GB/year) via ZSTD compression, coreset selection, and MinHash deduplication.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| `GET` | `/api/v1/zero-gravity/health` | Health check |
 | `GET` | `/api/v1/zero-gravity/status` | Data lifecycle engine status |
 | `POST` | `/api/v1/zero-gravity/ingest` | Ingest data with compression |
 | `GET` | `/api/v1/zero-gravity/retrieve/{data_id}` | Retrieve compressed data |
@@ -2096,12 +2192,13 @@ Intelligent data lifecycle management — 95% storage reduction (20 GB → 1 GB/
 
 ### 9.4 Self-Hosted AI Agent [V4]
 
-**Prefix**: `/api/v1/ai-agent` · **Source**: `suite-core/api/single_agent_router.py` · **Engine**: `suite-core/core/single_agent.py` (819 LOC) · **6 endpoints**
+**Prefix**: `/api/v1/ai-agent` · **Source**: `suite-core/api/single_agent_router.py` · **Engine**: `suite-core/core/single_agent.py` (819 LOC) · **7 endpoints**
 
 Self-hosted LLM that assumes 4 expert roles sequentially — $0 API tokens vs $6,000/mo multi-vendor.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| `GET` | `/api/v1/ai-agent/health` | Health check |
 | `GET` | `/api/v1/ai-agent/status` | Agent engine status and model info |
 | `POST` | `/api/v1/ai-agent/decide` | Send decision request to self-hosted agent |
 | `POST` | `/api/v1/ai-agent/batch-decide` | Batch decision processing |
@@ -2163,6 +2260,8 @@ export FIXOPS_DISABLE_RATE_LIMIT=1
 
 ## Appendix A: Endpoint Count by CTEM Phase
 
+> Verified via `grep -r '@router\.\(get\|post\|put\|delete\|patch\)'` across all suites on 2026-03-03.
+
 | Phase | Category | Endpoints | Routers |
 |-------|----------|-----------|---------|
 | **Discover** | 8 Native Scanners (SAST, DAST, Secrets, Container, CSPM, API Fuzzer, Malware, LLM Monitor) | 36 | 8 |
@@ -2179,30 +2278,30 @@ export FIXOPS_DISABLE_RATE_LIMIT=1
 | **Validate** | MPTE Engine (19-phase verification) | 23 | 1 |
 | **Validate** | Micro-Pentest Runner | 19 | 1 |
 | **Validate** | MPTE Orchestrator | 8 | 1 |
-| **Validate** | Sandbox PoC Verifier | 5 | 1 |
+| **Validate** | Sandbox PoC Verifier (dynamic router) | 8 | 1 |
 | **Validate** | FAIL Engine (chaos for AppSec) | 10 | 1 |
 | **Validate** | Attack Simulation | 13 | 1 |
 | **Validate** | Vulnerability Discovery | 11 | 1 |
 | **Validate** | Validation (SARIF/SBOM/CVE/VEX) | 5 | 1 |
-| | **Validate Subtotal** | **94** | **8** |
+| | **Validate Subtotal** | **97** | **8** |
 | **Remediate** | AutoFix Engine (10 fix types) | 13 | 1 |
 | **Remediate** | Remediation Tasks & SLAs | 15 | 1 |
 | **Remediate** | Workflows & Automation | 13 | 1 |
-| **Remediate** | Connectors (Jira, GitHub, Slack) | 8 | 1 |
+| **Remediate** | Connectors (Jira, GitHub, Slack, ServiceNow) | 8 | 1 |
 | **Remediate** | Integrations Management | 8 | 1 |
 | **Remediate** | Webhooks (bidirectional) | 21 | 1 |
 | | **Remediate Subtotal** | **78** | **6** |
-| **Comply** | Evidence Engine (RSA-SHA256 signing) | 13 | 1 |
-| **Comply** | Compliance Engine (SOC2, PCI-DSS, HIPAA) | 9 | 1 |
+| **Comply** | Evidence Engine (RSA-SHA256 signing) | 15 | 1 |
+| **Comply** | Compliance Engine (SOC2, PCI-DSS, HIPAA) | 10 | 1 |
 | **Comply** | Risk Scoring (multi-factor) | 5 | 1 |
 | **Comply** | Audit Trail | 14 | 1 |
 | **Comply** | Provenance Tracking | 4 | 1 |
 | **Comply** | Business Context | 9 | 2 |
-| | **Comply Subtotal** | **54** | **7** |
-| **Intelligence** | Brain Pipeline (12-step CTEM) | 30 | 2 |
+| | **Comply Subtotal** | **57** | **7** |
+| **Intelligence** | Brain Pipeline (12-step CTEM) | 31 | 2 |
 | **Intelligence** | Analytics & Dashboard | 23 | 1 |
-| **Intelligence** | MCP Gateway (AI agent platform) | 7 | 1 |
-| **Intelligence** | MCP Protocol (JSON-RPC) | 8 | 1 |
+| **Intelligence** | MCP Gateway (AI agent platform) | 8 | 1 |
+| **Intelligence** | MCP Protocol (JSON-RPC, SSE) | 9 | 1 |
 | **Intelligence** | MCP Server Integration | 10 | 1 |
 | **Intelligence** | AI Copilot & Agents | 46 | 2 |
 | **Intelligence** | Exposure Cases | 10 | 1 |
@@ -2217,7 +2316,7 @@ export FIXOPS_DISABLE_RATE_LIMIT=1
 | **Intelligence** | Reachability Analysis | 7 | 1 |
 | **Intelligence** | Enhanced Decision Analysis | 4 | 1 |
 | **Intelligence** | Streaming / SSE | 4 | 1 |
-| | **Intelligence Subtotal** | **231** | **20** |
+| | **Intelligence Subtotal** | **234** | **20** |
 | **Platform** | Users | 6 | 1 |
 | **Platform** | Teams | 8 | 1 |
 | **Platform** | Admin | 10 | 1 |
@@ -2232,13 +2331,13 @@ export FIXOPS_DISABLE_RATE_LIMIT=1
 | **Platform** | Detailed Logs | 5 | 1 |
 | **Platform** | Direct @app endpoints | 25 | — |
 | | **Platform Subtotal** | **142** | **14+** |
-| **Vision** | Self-Learning (V8) | 18 | 1 |
-| **Vision** | Zero-Gravity Data (V9) | 6 | 1 |
-| **Vision** | Quantum Crypto (V6) | 5 | 1 |
-| **Vision** | Self-Hosted AI Agent (V4) | 6 | 1 |
-| | **Vision Subtotal** | **35** | **4** |
+| **Vision** | Self-Learning (V8) | 19 | 1 |
+| **Vision** | Zero-Gravity Data (V9) | 7 | 1 |
+| **Vision** | Quantum Crypto (V6) | 6 | 1 |
+| **Vision** | Self-Hosted AI Agent (V4) | 7 | 1 |
+| | **Vision Subtotal** | **39** | **4** |
 | | | | |
-| | **GRAND TOTAL** | **780** | **72 routers + inline** |
+| | **GRAND TOTAL** | **781** | **72 routers + 2 dynamic + inline** |
 
 ---
 
@@ -2298,7 +2397,7 @@ The following hardening was applied to all endpoints by the Backend Hardener age
 
 | Category | Change | Scope |
 |----------|--------|-------|
-| **Input Validation** | Pydantic v2 models on all POST/PUT endpoints | All 780 endpoints |
+| **Input Validation** | Pydantic v2 models on all POST/PUT endpoints | All 781 endpoints |
 | **Path Traversal** | File path sanitization on upload endpoints | Scanner Ingest, Evidence, Reports |
 | **Size Limits** | Request body size limits (10MB default, 50MB uploads) | All POST endpoints |
 | **Injection Prevention** | SQL parameter binding, shell command escaping | Brain Pipeline, Scanner Parsers |
@@ -2311,11 +2410,11 @@ The following hardening was applied to all endpoints by the Backend Hardener age
 
 ---
 
-*Generated by ALdeci Technical Writer Agent · v3.2 · 2026-03-02 · Sprint 2 Day 4 · Pillar [V3][V5][V7][V10]*
-*Source of truth: `suite-api/apps/api/app.py` (2,742 LOC, 34 router mounts) + 73 router files across 6 suites*
-*Suites: suite-api (233) · suite-core (286) · suite-attack (122) · suite-feeds (31) · suite-evidence-risk (45) · suite-integrations (51) · inline @app (25)*
-*Verified: E2E 58/58 (100%), OpenAPI 200, 780 routes mounted, 77+ unique prefixes*
-*v3.2 changes: CTEM+ identity header, suite-level breakdown, deduplicated MPTE Orchestrator section, fixed section numbering (4.1→4.7), 34+ curl examples*
-*v3.1 changes: +73 previously undocumented endpoints: FAIL Engine (7→10), MPTE Orchestrator (new, 8ep), Audit Trail (4→14), Reports (4→14), Policies (5→11), Collaboration (3→23), Bulk Ops (3→13), Marketplace (4→14), Teams (5→8), System (4→5)*
-*v3.0 changes: +11 new sections (Reachability, Enhanced Analysis, expanded Attack Sim/Vuln Discovery/Dedup/Cases/Predictions/Algorithms/LLM), 30+ curl examples*
-*v2.2 changes: Vision Engines (V4/V6/V8/V9), MCP Server Gateway, Detailed Logs API*
+*Generated by ALdeci Technical Writer Agent · v4.0 · 2026-03-03 · Sprint 2 Day 3 · Pillar [V3][V5][V7][V10]*
+*Source of truth: `suite-api/apps/api/app.py` (2,742 LOC, 34 router mounts) + 72 router files + 2 dynamic routers across 6 suites*
+*Suites: suite-api (238) · suite-core (253) · suite-attack (106) · suite-feeds (31) · suite-evidence-risk (56) · suite-integrations (59) · sandbox (8) · logs (5) · inline @app (25)*
+*Verified: grep-audited 2026-03-03, E2E 58/58 (100%), OpenAPI 200, 781 routes mounted, 77+ unique prefixes*
+*v4.0 changes: Full grep audit of all endpoints. Corrected: Inventory (7→19), Sandbox (5→8), Connectors (4→8), Evidence (13→15), Compliance (9→10), MCP Gateway (7→8), MCP Protocol (8→9), Brain (30→31), Vision engines (+4 health endpoints). Appendix A reconciled. 36+ curl examples.*
+*v3.2 changes: CTEM+ identity header, suite-level breakdown, deduplicated MPTE Orchestrator section, 34+ curl examples*
+*v3.1 changes: +73 previously undocumented endpoints: FAIL Engine (7→10), MPTE Orchestrator (new, 8ep), Audit Trail (4→14), Reports (4→14), Policies (5→11), Collaboration (3→23), Bulk Ops (3→13), Marketplace (4→14), Teams (5→8)*
+*v3.0 changes: +11 new sections (Reachability, Enhanced Analysis, Attack Sim, Vuln Discovery, Dedup, Predictions, Algorithms), 30+ curl examples*

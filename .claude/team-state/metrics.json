@@ -1,6 +1,6 @@
 {
   "project": "ALdeci",
-  "lastUpdated": "2026-03-03T18:00:00Z",
+  "lastUpdated": "2026-03-03T20:00:00Z",
   "fundingReadiness": {
     "score": 81,
     "target": 90,
@@ -14,17 +14,17 @@
     }
   },
   "codebase": {
-    "totalFiles": 914,
-    "totalLines": 415073,
+    "totalFiles": 927,
+    "totalLines": 416927,
     "languages": {
-      "python": 415073,
-      "typescript_tsx": 37173
+      "python": 416927,
+      "typescript_tsx": 41806
     },
-    "testCoverage": 21.24,
-    "testCoverageNote": "~21% via pyproject.toml --cov scope. Gate: 25%. Gap: ~4pp (structural). 13,614+ tests collected. Moat coverage 96.82% (19/19 above 80%, 6 at 100%).",
-    "testsCollected": 13614,
+    "testCoverage": 19.23,
+    "testCoverageNote": "19.23% via --cov=. (full scope, agent-doctor run34 measurement). Gate: 25%. Gap: 5.77pp. 13,674 tests collected. Moat coverage 95.60% (19/19 above 80%, 6 at 100%).",
+    "testsCollected": 13674,
     "testCollectionErrors": 0,
-    "testCollectionErrorNote": "13,614+ tests collected (0 errors). Newman 100% (475/475, 10th consecutive green run). 0 stubs. Quality gate: PASS.",
+    "testCollectionErrorNote": "13,674 tests collected (0 errors, +453 since run33). Newman 100% (475/475, 10th green). 0 stubs. Quality gate: PASS.",
     "coreTestsPassing": 3625,
     "coreTestPassRate": 1.0,
     "newmanPassRate": 100.0,
@@ -46,8 +46,8 @@
       "filesAt100pct": 6,
       "deepTestImprovements": "autofix_engine 50.62%→98.22%, micro_pentest 68.26%→99.35%, iac_scanner 35.85%→99.46%, dast_engine 47.80%→100%, brain_pipeline 62.84%→94.43%"
     },
-    "testFiles": 369,
-    "testLOC": 180506,
+    "testFiles": 385,
+    "testLOC": 182668,
     "lintScore": 79,
     "lintScoreNote": "140 ruff errors remaining (was 669 before v6 swarm run). 132 are E402 structural (import order). Score = (1 - 140/669) * 100.",
     "typeCheckScore": 100,
@@ -55,8 +55,8 @@
     "securityScore": 95,
     "securityScoreNote": "Improved from 93: +SecurityHeadersMiddleware (7 headers), +Docker compose hardening. 0 HIGH/CRITICAL findings. 4th consecutive clean dep scan.",
     "coreEngineLOC": {
-      "brain_pipeline": 1533,
-      "brain_pipeline_note": "v27: was 1,354 in v26, now 1,533 (+179 SHAP integration)",
+      "brain_pipeline": 1663,
+      "brain_pipeline_note": "v37: was 1,533, now 1,663 (+130). Verified via wc -l 2026-03-03.",
       "fail_engine": 713,
       "llm_consensus": 393,
       "mpte_total": 8441,
@@ -67,8 +67,8 @@
       "ceo_dashboard_ui": 458,
       "native_scanners": 7084,
       "native_scanners_note": "SAST(1622)+DAST(633)+Secrets(848)+Container(445)+CSPM(609)+API_Fuzzer+Malware+LLM_Monitor routers. v27: SAST+45, CSPM+16, DAST+4, Secrets-2.",
-      "autofix_engine": 1428,
-      "autofix_engine_note": "v27: was 1,416 in v26, now 1,428 (+12)",
+      "autofix_engine": 1515,
+      "autofix_engine_note": "v37: was 1,428, now 1,515 (+87). Verified via wc -l 2026-03-03.",
       "crypto_module": 582,
       "feeds_service": 4252,
       "remediation_engine": 1543,
@@ -79,20 +79,20 @@
   },
   "agentPerformance": {
     "vision-agent": {
-      "runsCompleted": 36,
-      "lastRun": "2026-03-02T23:59:00Z",
-      "avgDuration": 265,
-      "artifactsProduced": 227,
+      "runsCompleted": 37,
+      "lastRun": "2026-03-03T02:50:00Z",
+      "avgDuration": 260,
+      "artifactsProduced": 231,
       "successRate": 1.0,
-      "note": "Run 36 (v36): Sprint 2 Day 2 Final stability confirmation. Score 0.85 (STABLE). 11/12 done. Core LOC verified via wc -l: V3=4,063 V5=5,363 V7=1,446 (10,872 total). 6 artifacts produced. 3 decisions logged. Only DEMO-003 remaining. Zero drift. Debate verdict compliance verified."
+      "note": "Run 37 (v37): Sprint 2 Day 3 Post-Flight. Score 0.83 (SLIGHT_DECLINE from 0.85). CRITICAL: UI architecture score 0.0 (8 Technical Suites vs 5 Workflow Spaces). Core LOC verified via wc -l: V3=3,889 V5=5,405 V7=1,446 (10,740 total). 4 artifacts produced. 4 decisions logged. Scoring model upgraded v16→v17 (+ui_architecture factor). Math.random() flagged in 8 files. Only DEMO-003 remaining. 1 drift (frontend-craftsman sidebar). 3 days to demo."
     },
     "context-engineer": {
-      "runsCompleted": 30,
-      "lastRun": "2026-03-02T23:30:00Z",
-      "avgDuration": 230,
-      "artifactsProduced": 210,
+      "runsCompleted": 31,
+      "lastRun": "2026-03-03T20:00:00Z",
+      "avgDuration": 225,
+      "artifactsProduced": 217,
       "successRate": 1.0,
-      "note": "v30.0 scan (triple-verified 3 methods): 914 files, 402,142 LOC, 759 endpoints (7th stable), 13,221 tests, 19.25% coverage. Moat 24th clean. All suite metrics identical v26-v30. Non-suite ±1 file variance normal. 11/12 sprint done. 4 days to demo."
+      "note": "v31.0 scan: 927 files (+13), 416,927 LOC (+14,785), 768 endpoints (+9), 13,674 tests (+453), 19.23% coverage. Brain +130 LOC, AutoFix +87 LOC, Sandbox +42 LOC. UI 99 files (+4), 41,806 LOC (+4,633). Moat 25th clean. 11/12 sprint done. 3 days to demo."
     },
     "ai-researcher": {
       "runsCompleted": 2,
@@ -119,12 +119,12 @@
       "note": "Run 8: Day 2 Session 3 COMPLETE. DEMO-003 90% done (3 mock pages fixed, 0 mock data remaining). 5 new components built: CommandPalette, RiskScoreGauge, Skeleton system, 404 page, ScannerMiniGrid wired to Dashboard. Bundle 540→193KB (-64%). 37,088 LOC, 62 pages, 25 components. 0 TS errors. Grade A."
     },
     "enterprise-architect": {
-      "runsCompleted": 7,
-      "lastRun": "2026-03-02T23:30:00Z",
-      "avgDuration": 1350,
-      "artifactsProduced": 42,
+      "runsCompleted": 8,
+      "lastRun": "2026-03-03T14:00:00Z",
+      "avgDuration": 1300,
+      "artifactsProduced": 48,
       "successRate": 1.0,
-      "note": "Run 7: Daily mission COMPLETE. ADR-009 (MCP Auto-Discovery). F821 bug fix in eventbus_integration.py. Performance review updated with parallelization blueprint. 9/9 ADRs validated (25 file refs, 100% exist). Ruff: 77 (0 actionable). 288/288 tests pass. Coverage 4.99%. 4 decisions logged."
+      "note": "Run 8: Daily mission COMPLETE. AutoFix engine deep review (Grade B+). 3 bugs fixed: _fixes unbounded (TD-023), _history unbounded (TD-025), ADR-009 path ref. Ruff: 77 (stable). Bandit: 0 HIGH, 64 MEDIUM. 288/288 core + 556/556 autofix tests PASS. 9/9 ADRs validated. Tech debt 26 items (7 done). 6 reviews completed. 4 decisions logged."
     },
     "data-scientist": {
       "runsCompleted": 5,
@@ -387,22 +387,24 @@
     "blockerDetails": "DEMO-003 (UI wiring \u2014 6 pages with mock data, 90% complete). SEC-ADV-001: .env secrets MEDIUM (infra remediated, CEO key rotation pending). DEMO-001 DONE (769 routes, 58/58 E2E). DEMO-002 DONE (Newman 475/475, 8th consecutive green). All 11/12 items DONE. Quality gate PASS."
   },
   "visionAlignment": {
-    "score": 0.85,
-    "previousScore": 0.84,
+    "score": 0.83,
+    "previousScore": 0.85,
     "threshold": 0.6,
     "status": "ON_TRACK",
-    "trend": "STABLE",
-    "lastAudit": "2026-03-02",
-    "lastAuditRun": "vision-agent-v36-postflight-stability",
-    "scoringModel": "v16 (6-factor: core_pillars 35%, sprint_alignment 20%, test_coverage 15%, ui_readiness 15%, agent_health 10%, infrastructure 5%)",
-    "note": "v36 Stability confirmation. 11/12 done (91.7%). Core LOC verified via wc -l: V3=4,063 V5=5,363 V7=1,446 (10,872 core total). Newman best 475/475, latest 468/475. Coverage 19.25%. Score 0.85 (STABLE). Zero drift. Only DEMO-003 remaining. All debate verdict directives COMPLIANT.",
+    "trend": "SLIGHT_DECLINE",
+    "lastAudit": "2026-03-03",
+    "lastAuditRun": "vision-agent-v37-postflight-day3",
+    "scoringModel": "v17 (7-factor: core_pillars 30%, sprint_alignment 20%, test_coverage 10%, ui_readiness 20%, ui_architecture 5%, agent_health 10%, infrastructure 5%)",
+    "note": "v37 Day 3. 11/12 done (91.7%). UI architecture CRITICAL: sidebar 8 Technical Suites vs 5 Workflow Spaces (score 0.0). Core LOC via wc -l: V3=3,889 V5=5,405 V7=1,446 (10,740 total). Newman 475/475 (10th green). Moat 95.60%. Coverage 19.23%. Score 0.83 (down from 0.85). 1 drift (frontend-craftsman sidebar). UX Directive #1 issued. 3 days to demo.",
     "coreGaps": [
-      "RESOLVED: DEMO-001 (backend-hardener: E2E 58/58, 769 routes, 11 security fixes)",
-      "RESOLVED: DEMO-002 (qa-engineer: Newman 475/475, 8th consecutive green)",
-      "IN-PROGRESS: DEMO-003 (frontend-craftsman: UI wiring) — 6 mock pages remain",
-      "Test coverage at 19.25% — CI gate FAILING at 25%. Gap: 5.75pp.",
-      "SEC-ADV-001 MEDIUM: .env secrets — CEO key rotation pending",
-      "Core LOC (strict wc -l): V3=4,063 V5=5,363 V7=1,446 (10,872 total)"
+      "CRITICAL: UI architecture score 0.0 — sidebar shows 8 Technical Suites, not 5 Workflow Spaces (UX Directive #1 issued)",
+      "CRITICAL: Math.random() in 8 UI files (MPTEConsole.tsx worst: 15+ instances) — fake data in display pages",
+      "IN-PROGRESS: DEMO-003 (frontend-craftsman: UI wiring + sidebar restructure) — 6 mock pages + sidebar",
+      "Test coverage at 19.23% — CI gate FAILING at 25%. Gap: 5.77pp.",
+      "SEC-ADV-001 HIGH: .env secrets — CEO key rotation pending (2 days old)",
+      "Core LOC (strict wc -l): V3=3,889 V5=5,405 V7=1,446 (10,740 total)",
+      "sales-engineer FAILED 3/3 attempts (non-blocking, DEMO-005 already done)",
+      "0 dark: classes in UI (P2, post-demo)"
     ],
     "fixesApplied": [
       "Added SPRINT1-014,015,016 for 3 UI screens",
@@ -487,11 +489,14 @@
       "method": "IsolationForest"
     },
     "dailyIntel": {
-      "lastFetch": "2026-03-02",
+      "lastFetch": "2026-03-03",
       "allFeedsLive": true,
       "epssHighCount": 100,
-      "nvdCriticalCount": 7,
+      "nvdCriticalCount": 6,
+      "nvdHighCount": 40,
+      "nvdStackAffected": 87,
       "kevNewCount": 28,
+      "kevDueSoon": 16,
       "kevTotal": 1529
     },
     "shapExplanations": {
@@ -502,7 +507,7 @@
     },
     "eventBusIntegration": {
       "enabled": true,
-      "handlers": ["anomaly_detector", "parser_quality"],
+      "handlers": ["anomaly_detector", "parser_quality", "online_learning"],
       "wiredToAppStartup": true,
       "testCount": 30
     },
@@ -510,15 +515,33 @@
       "avgRiskScorePropagation": "fixed",
       "criticalCasesPropagation": "fixed"
     },
-    "totalMLTests": 280,
-    "totalMLTestsPassing": 280,
+    "onlineLearning": {
+      "enabled": true,
+      "feedbackTypes": ["decision_outcome", "false_positive", "mpte_result", "remediation_success"],
+      "minFeedbackForRetrain": 10,
+      "goldenPassThreshold": 0.95,
+      "maxMAEIncrease": 0.05,
+      "eventHandlers": ["DECISION_MADE", "REMEDIATION_COMPLETED"],
+      "wiredToEventBus": true,
+      "testCount": 47
+    },
+    "attackPathGNN": {
+      "enabled": true,
+      "architecture": "2-layer GAT (12->32x4->16)",
+      "method": "Graph Attention Network",
+      "pureNumpy": true,
+      "wiredToBrainPipelineStep5": true,
+      "testCount": 38
+    },
+    "totalMLTests": 365,
+    "totalMLTestsPassing": 365,
     "totalBrainPipelineTests": 73,
     "totalAutofixTests": 54,
     "totalMCPDemoTests": 22,
-    "totalMLRelatedTests": 429,
+    "totalMLRelatedTests": 514,
     "allTestsPassing": true,
-    "mlModuleLOC": 5255,
-    "mlModuleCount": 8,
-    "newCapabilities": ["SHAP_explanations", "scan_drift_detection", "parser_quality_validator", "eventbus_ml_alerts", "ml_demo_showcase"]
+    "mlModuleLOC": 7325,
+    "mlModuleCount": 10,
+    "newCapabilities": ["SHAP_explanations", "scan_drift_detection", "parser_quality_validator", "eventbus_ml_alerts", "ml_demo_showcase", "online_learning_pipeline", "attack_path_gnn"]
   }
 }

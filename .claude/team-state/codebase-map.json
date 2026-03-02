@@ -1,81 +1,82 @@
 {
   "_meta": {
-    "version": "30.0",
-    "generated": "2026-03-02T23:30:00Z",
+    "version": "31.0",
+    "generated": "2026-03-03T20:00:00Z",
     "generated_by": "context-engineer",
     "incomplete": false,
     "pillars_served": ["V3", "V5", "V7", "V10"],
-    "sprint": "Sprint 2 — ENTERPRISE DEMO (4 DAYS)",
+    "sprint": "Sprint 2 — ENTERPRISE DEMO (3 DAYS)",
     "demo_date": "2026-03-06",
-    "changes_from_v29": {
-      "headline": "v30.0: CURRENT STATE = 914 files, 402,142 LOC (triple-verified this session via 3 methods). v29.1 measured 913 in an earlier session. Both may be correct at their timestamps — 1 non-suite script file fluctuates between swarm runs. All 6 SUITE metrics are IDENTICAL across v27-v30. This is what matters. 11/12 sprint done. Honesty: 24th clean.",
-      "file_count_note": "914 total (464 in-suite + 450 non-suite). Suites: 42+312+13+3+71+23=464 — UNCHANGED since v26. Non-suite area has ±1 file variance between sessions.",
-      "endpoint_change": "759 total (UNCHANGED 7th consecutive scan). Router: 687, Non-standard: 47, App.py direct: 25.",
-      "engine_changes": "ALL engine LOC unchanged from v28. Zero code changes to any engine.",
-      "test_growth": "0 change. 369 files, 180,506 LOC, 13,221 tests.",
-      "coverage_change": "19.25% (unchanged). CI gate 25%, FAILING (gap: 5.75pp).",
-      "moat_status": "CLEAN — zero active violations. 24th consecutive clean scan.",
-      "ui_change": "95 src TS/TSX files, 37,173 LOC. Unchanged."
+    "changes_from_v30": {
+      "headline": "v31.0: SIGNIFICANT GROWTH. 927 files (+13), 416,927 LOC (+14,785). 768 endpoints (+9). 13,674 tests (+453). Coverage stable 19.23%. Brain pipeline +130 LOC, AutoFix +87 LOC, Sandbox +42 LOC. UI grew to 99 src files (+4), 41,806 LOC (+4,633). 11/12 sprint done. Moat: 25th clean.",
+      "file_count_delta": "+13 Python files (914→927). Suite +1 (suite-core). Non-suite +12 (tests, tools, scripts).",
+      "loc_delta": "+14,785 total LOC. Suite +939 (api +261, core +606, attack +34, evidence-risk +38). Non-suite +13,846 (tests, ML modules, scripts).",
+      "endpoint_change": "+9 endpoints (759→768). Router: 687→696 (+9). Non-standard: 47. App.py direct: 25.",
+      "endpoint_details": "New endpoints: mcp_router +1, mcp_protocol_router +1, quantum_crypto_router +1, self_learning_router +1, single_agent_router +1, zero_gravity_router +1, compliance_engine_router +1, evidence_router +2.",
+      "engine_changes": "brain_pipeline 1,533→1,663 (+130). autofix_engine 1,428→1,515 (+87). sandbox_verifier 1,136→1,178 (+42). app.py 2,742→2,752 (+10).",
+      "test_growth": "+16 test files (369→385), +2,162 test LOC, +453 tests collected (13,221→13,674).",
+      "coverage_change": "19.23% (essentially stable from 19.25%). CI gate 25%, FAILING (gap: 5.77pp).",
+      "moat_status": "CLEAN — zero active violations. 25th consecutive clean scan.",
+      "ui_change": "+4 src TS/TSX files (95→99), +4,633 LOC (37,173→41,806). Frontend-craftsman building new components."
     }
   },
   "summary": {
-    "totalPythonFiles": 914,
-    "totalPythonLOC": 402142,
-    "totalTestFiles": 369,
-    "totalTestLOC": 180506,
-    "totalTestsCollected": 13221,
+    "totalPythonFiles": 927,
+    "totalPythonLOC": 416927,
+    "totalTestFiles": 385,
+    "totalTestLOC": 182668,
+    "totalTestsCollected": 13674,
     "testCollectionErrors": 0,
-    "testCollectionTime": "7.91s",
-    "testCoveragePct": 19.25,
+    "testCollectionTime": "16.12s",
+    "testCoveragePct": 19.23,
     "coverageGatePct": 25,
     "coverageGateStatus": "FAILING",
-    "coverageTrend": "19.25% (stable since v26). Tests 13,221. Collection time 7.91s (40% faster). CI gate 25%, gap 5.75pp.",
-    "apiEndpointsRouter": 687,
+    "coverageTrend": "19.23% (stable ~19.2% since v26). Tests 13,674 (+453). CI gate 25%, gap 5.77pp.",
+    "apiEndpointsRouter": 696,
     "apiEndpointsNonStandard": 47,
     "apiEndpointsAppDirect": 25,
-    "apiEndpointsTotal": 759,
+    "apiEndpointsTotal": 768,
     "routerFiles": 64,
     "nonStandardEndpointFiles": 8,
     "routerMountsInApp": 34,
     "sqliteDatabases": 56,
-    "uiSourceFiles": 95,
-    "uiSourceLOC": 37173,
+    "uiSourceFiles": 99,
+    "uiSourceLOC": 41806,
     "uiNewExists": false,
     "connectorsTotal": 17,
     "connectorsIntegration": 7,
     "connectorsSecurity": 10,
-    "appPyLOC": 2742
+    "appPyLOC": 2752
   },
   "suites": {
     "suite-api": {
       "files": 42,
-      "loc": 22195,
+      "loc": 22456,
       "description": "FastAPI gateway — 20 routers, JWT auth, CORS, health checks",
       "entryPoint": "apps/api/app.py",
-      "entryPointLOC": 2742,
+      "entryPointLOC": 2752,
       "routers": 20,
-      "routerEndpoints": 229,
+      "routerEndpoints": 230,
       "pillar": "V7",
-      "change_v30": "Unchanged."
+      "change_v31": "+261 LOC (22,195→22,456). mcp_router +1 endpoint. app.py +10 LOC."
     },
     "suite-core": {
-      "files": 312,
-      "loc": 134268,
+      "files": 313,
+      "loc": 134874,
       "description": "Core engines — brain pipeline, scanners, connectors, CLI, vision engines, ML modules",
       "routers": 21,
-      "routerEndpoints": 233,
+      "routerEndpoints": 238,
       "pillar": "V3",
-      "change_v30_note": "enhanced_decision_engine.py confirmed at services/enterprise/ (686 LOC).",
-      "change_v30": "Unchanged."
+      "change_v31": "+1 file, +606 LOC. brain_pipeline +130, autofix_engine +87, sandbox_verifier +42. 5 routers each +1 endpoint."
     },
     "suite-attack": {
       "files": 13,
-      "loc": 6300,
+      "loc": 6334,
       "description": "Offensive security — MPTE, attack sim, scanner API routers",
       "routers": 12,
       "routerEndpoints": 106,
       "pillar": "V5",
-      "change_v30": "Unchanged."
+      "change_v31": "+34 LOC (6,300→6,334). Routers unchanged."
     },
     "suite-feeds": {
       "files": 3,
@@ -84,16 +85,16 @@
       "routers": 1,
       "routerEndpoints": 31,
       "pillar": "V3",
-      "change_v30": "Unchanged."
+      "change_v31": "Unchanged."
     },
     "suite-evidence-risk": {
       "files": 71,
-      "loc": 20275,
+      "loc": 20313,
       "description": "Evidence, risk scoring, compliance, provenance, business context",
       "routers": 5,
-      "routerEndpoints": 37,
+      "routerEndpoints": 40,
       "pillar": "V10",
-      "change_v30": "Unchanged."
+      "change_v31": "+38 LOC (20,275→20,313). compliance_engine_router +1 endpoint, evidence_router +2 endpoints."
     },
     "suite-integrations": {
       "files": 23,
@@ -102,7 +103,7 @@
       "routers": 5,
       "routerEndpoints": 51,
       "pillar": "V7",
-      "change_v30": "Unchanged."
+      "change_v31": "Unchanged."
     }
   },
   "scanners": {
@@ -111,8 +112,8 @@
       "loc": 1622,
       "router": "suite-attack/api/sast_router.py",
       "endpoints": 5,
-      "description": "Regex-based pattern matching (air-gapped). Grew 465→1,577→1,622 across Sprint 1-2.",
-      "change_v30": "Unchanged."
+      "description": "Regex-based pattern matching (air-gapped). Grew 465->1,577->1,622 across Sprint 1-2.",
+      "change_v31": "Unchanged."
     },
     "dast_engine": {
       "file": "suite-core/core/dast_engine.py",
@@ -120,7 +121,7 @@
       "router": "suite-attack/api/dast_router.py",
       "endpoints": 3,
       "description": "Dynamic application security testing",
-      "change_v30": "Unchanged."
+      "change_v31": "Unchanged."
     },
     "secrets_scanner": {
       "file": "suite-core/core/secrets_scanner.py",
@@ -128,7 +129,7 @@
       "router": "suite-attack/api/secrets_router.py",
       "endpoints": 8,
       "description": "gitleaks/trufflehog wrapper with air-gapped fallback",
-      "change_v30": "Unchanged."
+      "change_v31": "Unchanged."
     },
     "container_scanner": {
       "file": "suite-core/core/container_scanner.py",
@@ -136,7 +137,7 @@
       "router": "suite-attack/api/container_router.py",
       "endpoints": 4,
       "description": "Container image vulnerability scanning",
-      "change_v30": "Unchanged."
+      "change_v31": "Unchanged."
     },
     "cspm_engine": {
       "file": "suite-core/core/cspm_engine.py",
@@ -144,7 +145,7 @@
       "router": "suite-attack/api/cspm_router.py",
       "endpoints": 5,
       "description": "Cloud Security Posture Management analyzer",
-      "change_v30": "Unchanged."
+      "change_v31": "Unchanged."
     },
     "api_fuzzer": {
       "router": "suite-attack/api/api_fuzzer_router.py",
@@ -165,24 +166,24 @@
   "visionEngines": {
     "brain_pipeline": {
       "file": "suite-core/core/brain_pipeline.py",
-      "loc": 1533,
+      "loc": 1663,
       "steps": 12,
       "router": "suite-core/api/brain_router.py",
       "routerEndpoints": 23,
       "pillar": "V3",
       "status": "LIVE",
-      "change_v30": "Unchanged."
+      "change_v31": "+130 LOC (1,533->1,663). Active hardening by backend-hardener."
     },
     "autofix_engine": {
       "file": "suite-core/core/autofix_engine.py",
-      "loc": 1428,
+      "loc": 1515,
       "fixTypes": 10,
       "router": "suite-core/api/autofix_router.py",
       "routerEndpoints": 13,
       "pillar": "V3",
       "status": "LIVE",
       "description": "LLM-powered code generation (10 fix types)",
-      "change_v30": "Unchanged."
+      "change_v31": "+87 LOC (1,428->1,515). Active hardening by backend-hardener."
     },
     "fail_engine": {
       "file": "suite-core/core/fail_engine.py",
@@ -191,7 +192,7 @@
       "routerEndpoints": 10,
       "pillar": "V3",
       "status": "LIVE",
-      "change_v30": "Unchanged."
+      "change_v31": "Unchanged."
     },
     "micro_pentest": {
       "file": "suite-core/core/micro_pentest.py",
@@ -201,7 +202,7 @@
       "routerEndpoints": 19,
       "pillar": "V5",
       "status": "LIVE",
-      "change_v30": "Unchanged."
+      "change_v31": "Unchanged."
     },
     "mpte_advanced": {
       "file": "suite-core/core/mpte_advanced.py",
@@ -210,7 +211,7 @@
       "routerEndpoints": 23,
       "pillar": "V5",
       "status": "LIVE",
-      "change_v30": "Unchanged."
+      "change_v31": "Unchanged."
     },
     "exposure_case": {
       "file": "suite-core/core/exposure_case.py",
@@ -219,7 +220,7 @@
       "routerEndpoints": 10,
       "pillar": "V3",
       "status": "LIVE",
-      "change_v30": "Unchanged."
+      "change_v31": "Unchanged."
     },
     "connectors": {
       "file": "suite-core/core/connectors.py",
@@ -229,7 +230,7 @@
       "connectors": ["Jira", "Confluence", "Slack", "ServiceNow", "GitLab", "AzureDevOps", "GitHub"],
       "pillar": "V1",
       "status": "LIVE",
-      "change_v30": "Unchanged."
+      "change_v31": "Unchanged."
     },
     "security_connectors": {
       "file": "suite-core/core/security_connectors.py",
@@ -239,25 +240,25 @@
       "connectors": ["Snyk", "SonarQube", "Dependabot", "AWS SecurityHub", "Azure Defender", "Wiz", "Prisma Cloud", "Orca", "Lacework", "ThreatMapper"],
       "pillar": "V1",
       "status": "LIVE",
-      "change_v30": "Unchanged."
+      "change_v31": "Unchanged."
     },
     "mcp_server": {
       "file": "suite-core/core/mcp_server.py",
       "loc": 978,
       "router": "suite-core/api/mcp_protocol_router.py",
-      "routerEndpoints": 8,
+      "routerEndpoints": 9,
       "pillar": "V7",
       "status": "LIVE",
-      "change_v30": "Unchanged."
+      "change_v31": "mcp_protocol_router +1 endpoint (8->9)."
     },
     "mcp_auto_discovery": {
       "file": "suite-api/apps/api/mcp_router.py",
       "loc": 977,
-      "routerEndpoints": 7,
+      "routerEndpoints": 8,
       "pillar": "V7",
       "status": "LIVE",
       "description": "Auto-discovers all FastAPI routes and exposes as MCP tools",
-      "change_v30": "Unchanged."
+      "change_v31": "+1 endpoint (7->8)."
     },
     "falkordb_client": {
       "file": "suite-core/core/falkordb_client.py",
@@ -266,50 +267,50 @@
       "routerEndpoints": 10,
       "pillar": "V3",
       "status": "LIVE",
-      "change_v30": "Unchanged."
+      "change_v31": "Unchanged."
     },
     "single_agent": {
       "file": "suite-core/core/single_agent.py",
       "loc": 818,
       "router": "suite-core/api/single_agent_router.py",
-      "routerEndpoints": 6,
+      "routerEndpoints": 7,
       "pillar": "V4",
       "status": "LIVE",
-      "change_v30": "Unchanged."
+      "change_v31": "+1 endpoint (6->7)."
     },
     "quantum_crypto": {
       "file": "suite-core/core/quantum_crypto.py",
       "loc": 666,
       "router": "suite-core/api/quantum_crypto_router.py",
-      "routerEndpoints": 5,
+      "routerEndpoints": 6,
       "pillar": "V6",
       "status": "LIVE",
-      "change_v30": "Unchanged."
+      "change_v31": "+1 endpoint (5->6)."
     },
     "self_learning": {
       "file": "suite-core/core/self_learning.py",
       "loc": 1359,
       "router": "suite-core/api/self_learning_router.py",
-      "routerEndpoints": 18,
+      "routerEndpoints": 19,
       "pillar": "V8",
       "status": "LIVE",
-      "change_v30": "Unchanged."
+      "change_v31": "+1 endpoint (18->19)."
     },
     "zero_gravity": {
       "file": "suite-core/core/zero_gravity.py",
       "loc": 855,
       "router": "suite-core/api/zero_gravity_router.py",
-      "routerEndpoints": 6,
+      "routerEndpoints": 7,
       "pillar": "V9",
       "status": "LIVE",
-      "change_v30": "Unchanged."
+      "change_v31": "+1 endpoint (6->7)."
     },
     "enhanced_decision": {
       "file": "suite-core/core/enhanced_decision.py",
       "loc": 1279,
       "pillar": "V3",
       "status": "LIVE",
-      "change_v30": "Unchanged."
+      "change_v31": "Unchanged."
     },
     "crypto": {
       "file": "suite-core/core/crypto.py",
@@ -317,7 +318,7 @@
       "pillar": "V10",
       "status": "LIVE",
       "description": "RSA-SHA256 evidence signing",
-      "change_v30": "Unchanged."
+      "change_v31": "Unchanged."
     },
     "scanner_parsers": {
       "file": "suite-core/core/scanner_parsers.py",
@@ -327,15 +328,15 @@
       "pillar": "V7",
       "status": "LIVE",
       "description": "15 third-party scanner normalizers + universal ingest API",
-      "change_v30": "Unchanged."
+      "change_v31": "Unchanged."
     },
     "sandbox_verifier": {
       "file": "suite-core/core/sandbox_verifier.py",
-      "loc": 1136,
+      "loc": 1178,
       "pillar": "V5",
       "status": "LIVE",
       "description": "Docker sandbox PoC verification",
-      "change_v30": "Unchanged."
+      "change_v31": "+42 LOC (1,136->1,178)."
     }
   },
   "oss_sca": {
@@ -347,7 +348,7 @@
   },
   "endpointInventory": {
     "suite-api": {
-      "total": 229,
+      "total": 230,
       "routers": {
         "admin_router.py": 10,
         "analytics_router.py": 23,
@@ -359,7 +360,7 @@
         "fail_router.py": 10,
         "inventory_router.py": 19,
         "marketplace_router.py": 14,
-        "mcp_router.py": 7,
+        "mcp_router.py": 8,
         "policies_router.py": 11,
         "remediation_router.py": 15,
         "reports_router.py": 14,
@@ -372,7 +373,7 @@
       }
     },
     "suite-core": {
-      "total": 233,
+      "total": 238,
       "routers": {
         "agents_router.py": 32,
         "algorithmic_router.py": 11,
@@ -386,15 +387,15 @@
         "knowledge_graph_router.py": 10,
         "llm_monitor_router.py": 4,
         "llm_router.py": 6,
-        "mcp_protocol_router.py": 8,
+        "mcp_protocol_router.py": 9,
         "mindsdb_router.py": 14,
         "pipeline_router.py": 8,
         "predictions_router.py": 10,
-        "quantum_crypto_router.py": 5,
-        "self_learning_router.py": 18,
-        "single_agent_router.py": 6,
+        "quantum_crypto_router.py": 6,
+        "self_learning_router.py": 19,
+        "single_agent_router.py": 7,
         "streaming_router.py": 4,
-        "zero_gravity_router.py": 6
+        "zero_gravity_router.py": 7
       }
     },
     "suite-attack": {
@@ -421,10 +422,10 @@
       }
     },
     "suite-evidence-risk": {
-      "total": 37,
+      "total": 40,
       "routers": {
-        "compliance_engine_router.py": 9,
-        "evidence_router.py": 13,
+        "compliance_engine_router.py": 10,
+        "evidence_router.py": 15,
         "graph_router.py": 6,
         "provenance_router.py": 4,
         "risk_router.py": 5
@@ -456,12 +457,12 @@
     }
   },
   "honestyStatus": {
-    "scanNumber": 24,
+    "scanNumber": 25,
     "status": "CLEAN",
     "violations": 0,
     "details": {
       "ast_based_sast": "CORRECTED everywhere. Only in historical v1 docs, roadmap (labeled 'Planned'), or real ast module usage.",
-      "ast_based_autofix": "CORRECTED everywhere. README:964 'v4 — AST AutoFix' correctly labeled 'Planned'.",
+      "ast_based_autofix": "CORRECTED everywhere. README:964 'v4 - AST AutoFix' correctly labeled 'Planned'.",
       "entropy_patterns": "CORRECTED everywhere. No active violations.",
       "integration_points": "CORRECTED everywhere. No active violations.",
       "connector_count": "VERIFIED CORRECT. 17 total (7 integration + 10 security)."
@@ -471,8 +472,8 @@
     "sprint": 2,
     "itemsDone": 11,
     "itemsTotal": 12,
-    "remaining": ["DEMO-003 (UI wiring — frontend-craftsman, 6 mock pages remain, 90% complete)"],
-    "daysToDemo": 4,
+    "remaining": ["DEMO-003 (UI wiring -- frontend-craftsman, 6 mock pages + sidebar restructure)"],
+    "daysToDemo": 3,
     "demoDate": "2026-03-06"
   }
 }

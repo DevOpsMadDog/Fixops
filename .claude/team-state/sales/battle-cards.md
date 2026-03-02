@@ -1,11 +1,11 @@
 # ALdeci Competitive Battle Cards
 
-> **Version**: 6.1 — Sprint 2, Day 3 (full re-validation 2026-03-02 08:02 UTC)
-> **Updated**: 2026-03-02T08:02Z
+> **Version**: 7.0 — Sprint 2, Day 3 (full re-validation 2026-03-03 15:48 UTC)
+> **Updated**: 2026-03-03T15:48Z
 > **Author**: Sales Engineer Agent
 > **Sources**: docs/CTEM_PLUS_IDENTITY.md, docs/COMPETITIVE_ANALYSIS_GROK_RESPONSE.md, live API validation
 > **Honesty Rule**: Every claim verified against running API. MCP = 100 tools (actual). Weak spots noted honestly.
-> **V6.1 Changes**: 33/33 GET + 9/11 POST verified. 475/475 Postman. AutoFix 9 fixes generated (avg 87.65% confidence). Dashboard: 1,000 findings. Brain: 1,512 nodes. MPTE: 235 requests, 4 confirmed exploitable.
+> **V7.0 Changes**: 34/36 GET + 7/7 POST verified. 475/475 Postman (10th green). Moat 95.60%. AutoFix: 93% confidence. Dashboard: 1,203 findings. Brain: 1,717 nodes, 1,664 edges. MPTE: 277 requests, 4 confirmed exploitable.
 
 ---
 
@@ -31,11 +31,11 @@
 
 **Honest Weakness**: Our native SAST uses regex patterns, not AST analysis. For deep code analysis, Snyk is superior. Our value is the pipeline, not the scanner.
 
-**Demo Proof** (all verified 200 on 2026-03-02):
-1. `POST /api/v1/sast/scan/code` — scan code in <1ms, finds SQL injection
+**Demo Proof** (all verified 200 on 2026-03-03):
+1. `POST /api/v1/sast/scan/code` — scan code in <1ms, finds SQL injection (CWE-89 CRITICAL)
 2. `POST /api/v1/mpte/verify` — 19-phase exploit verification (201 Created)
-3. `POST /api/v1/autofix/generate` — AI fix with 89% confidence score
-4. `POST /api/v1/evidence/export` — RSA-SHA256 signed evidence bundle
+3. `POST /api/v1/autofix/generate` — AI fix with 93% confidence score (auto-apply eligible)
+4. `POST /api/v1/evidence/export` — RSA-SHA256 signed evidence bundle (684-char signature)
 
 ---
 

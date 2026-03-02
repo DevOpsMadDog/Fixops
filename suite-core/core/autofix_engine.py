@@ -223,6 +223,10 @@ class AutoFixEngine:
     - Event Bus for fix lifecycle notifications
     """
 
+    # Memory bounds: prevent unbounded growth in long-running processes
+    MAX_FIXES_STORED = 5000
+    MAX_HISTORY_ENTRIES = 10000
+
     def __init__(self) -> None:
         self._fixes: Dict[str, AutoFixSuggestion] = {}
         self._history: List[Dict[str, Any]] = []
@@ -395,8 +399,20 @@ class AutoFixEngine:
             suggestion.status = FixStatus.FAILED
             suggestion.metadata["error"] = f"Generation failed ({type(exc).__name__})"
 
-        # Store and track
+        # Store and track (with memory bounds enforcement)
         self._fixes[fix_id] = suggestion
+        # Evict oldest fixes when exceeding MAX_FIXES_STORED
+        if len(self._fixes) > self.MAX_FIXES_STORED:
+            oldest_keys = list(self._fixes.keys())[
+                : len(self._fixes) - self.MAX_FIXES_STORED
+            ]
+            for k in oldest_keys:
+                del self._fixes[k]
+            logger.debug(
+                "[AutoFix] Evicted %d old fixes (cap=%d)",
+                len(oldest_keys),
+                self.MAX_FIXES_STORED,
+            )
         self._update_stats(suggestion)
         self._history.append(
             {
@@ -408,6 +424,9 @@ class AutoFixEngine:
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         )
+        # Evict oldest history entries when exceeding MAX_HISTORY_ENTRIES
+        if len(self._history) > self.MAX_HISTORY_ENTRIES:
+            self._history = self._history[-self.MAX_HISTORY_ENTRIES :]
 
         # Emit event
         try:

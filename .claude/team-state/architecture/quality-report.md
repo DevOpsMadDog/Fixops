@@ -1,58 +1,52 @@
-# Code Quality Report — 2026-03-02 (Run 7 Final)
+# Code Quality Report — 2026-03-03 (Run 8)
 
-- **Date**: 2026-03-02
-- **Reviewer**: enterprise-architect (Run 7)
+- **Date**: 2026-03-03
+- **Reviewer**: enterprise-architect (Run 8)
 - **Scope**: suite-core/, suite-api/, suite-attack/
 - **Pillar**: V3 (Decision Intelligence), V7 (MCP), V10 (CTEM)
-- **Session Focus**: Quality scans + ADR-009 + performance review update
+- **Session Focus**: AutoFix engine review, memory bounds fixes, quality scans
 
 ---
 
 ## 1. Linting (ruff)
 
 ```
-Total errors: 77 (down from 82)
+Total errors: 77 (stable from Run 7)
 - E402 (module-import-not-at-top): 77  — systemic, caused by sitecustomize.py pattern
-- F401 (unused-import): 0              — ALL FIXED (Run 6) ✅
-- F821 (undefined-name): 0             — 2 FIXED THIS SESSION (Run 7) ✅
+- F401 (unused-import): 0              — ALL FIXED (Run 6)
+- F821 (undefined-name): 0             — ALL FIXED (Run 7)
 - E701/F841: 0                         — resolved
 ```
 
-**Verdict**: ✅ GREEN — 77 total, ALL architectural E402. Zero actionable issues.
-
-**F821 fixes applied (Run 7)**:
-- `suite-core/core/ml/eventbus_integration.py` — Added `TYPE_CHECKING` import for `Event` class. Fixed 2 forward reference errors.
-
-**F401 fixes applied to**:
-1. `suite-core/core/services/enterprise/id_allocator.py` — removed `os`, `datetime`, `timezone`
-2. `suite-core/core/services/enterprise/run_registry.py` — removed `Optional`
-3. `suite-core/core/services/enterprise/signing.py` — removed `Optional`
+**Verdict**: GREEN — 77 total, ALL architectural E402. Zero actionable issues.
 
 ## 2. Security (bandit)
 
 ### Core Files (brain_pipeline, scanner_parsers, autofix_engine, app.py, scanner_ingest_router, self_learning)
 ```
-HIGH severity: 0  ✅
+HIGH severity: 0
 MEDIUM severity: 2  (B104 bind-all-interfaces in autofix_engine, B314 xml.etree in scanner_parsers)
-LOW severity: 8
+LOW severity: 9
 ```
 
 ### Full Suite (suite-core/ + suite-api/)
 ```
-Total: 456 issues (unchanged)
-HIGH severity: 0  ✅
-MEDIUM severity: 63
-LOW severity: 393
+Total: 458 issues (+2 from Run 7)
+HIGH severity: 0
+MEDIUM severity: 64  (+1 from Run 7)
+LOW severity: 394  (+1 from Run 7)
 
 Top findings by ID:
   B101: 185  (assert — test/dev artifacts)
-  B110: 101  (bare except:pass — code smell, not vulnerability)
+  B110: 102  (bare except:pass — code smell, not vulnerability)
   B105:  34  (hardcoded passwords — mostly false positives on defaults)
   B608:  27  (SQL injection — verified parameterized, f-string syntax trigger)
   B603:  26  (subprocess — needs input audit)
 ```
 
-**Verdict**: ✅ GREEN for core files. ⚠️ WARN for full suite (63 MEDIUM, 0 HIGH).
+**Verdict**: GREEN for core files. WARN for full suite (64 MEDIUM, 0 HIGH).
+
+**Change from Run 7**: +2 total issues (1 MEDIUM, 1 LOW). Likely from new code added by other agents (brain_pipeline +130 LOC, autofix_engine +87 LOC, etc.). No HIGH severity introduced.
 
 ## 3. Tests
 
@@ -62,86 +56,103 @@ pytest tests/test_brain_pipeline.py tests/test_self_learning_unit.py \
        tests/test_self_learning_demo.py tests/test_scanner_parsers_unit.py \
        tests/test_scanner_parsers.py -x -q --timeout=30
 
-Result: 288 passed in 21.40s ✅ (Run 7 verified)
+Result: 288 passed in 28.46s (Run 8 verified)
+```
+
+### AutoFix Tests (556 tests)
+```
+pytest tests/ -k "autofix" -x -q --timeout=30
+
+Result: 556 passed in 58.88s (Run 8 verified)
 ```
 
 ### Full Test Suite
 ```
-Tests collected: ~12,565
-Coverage: 4.99% (measured with all suites)
-Gate: 25% — FAILING
+Tests collected: ~13,674
+Coverage: 19.23% (measured with all suites, per agent-doctor)
+Gate: 25% — FAILING (gap 5.77pp)
 ```
 
 ## 4. Bug Fixes Applied This Session (3 fixes)
 
-### Fix 1: TD-006 — 5 Unused Imports (F401) ✅
-**Files**: `suite-core/core/services/enterprise/{id_allocator,run_registry,signing}.py`
-**Change**: Auto-fixed via `ruff --fix --select F401`. Removed `os`, `datetime`, `timezone`, `Optional`.
-**Impact**: Ruff warnings 87 → 82. All actionable warnings now resolved.
+### Fix 1: TD-023 — AutoFix _fixes Dict Unbounded
+**File**: `suite-core/core/autofix_engine.py`
+**Change**: Added `MAX_FIXES_STORED = 5000` constant and eviction logic after fix storage. When _fixes exceeds 5K entries, oldest entries are deleted.
+**Impact**: Prevents memory leak in long-running processes. At 50KB per fix, caps at ~250MB max.
+**Verification**: 288 core + 556 autofix tests pass.
 
-### Fix 2: TD-022 — AutoFixEngine Hoisted Outside Loop ✅
-**File**: `suite-core/core/brain_pipeline.py` (Step 11: _step_run_playbooks)
-**Change**: Moved `AutoFixEngine()` instantiation from inside the per-finding loop to before the loop. Now O(1) init instead of O(n).
-**Impact**: For 50 blocked findings, saves 49 unnecessary engine instantiations.
-**Verification**: 288 core tests pass.
+### Fix 2: TD-025 — AutoFix _history List Unbounded
+**File**: `suite-core/core/autofix_engine.py`
+**Change**: Added `MAX_HISTORY_ENTRIES = 10000` constant and tail eviction after each history append.
+**Impact**: Caps history at 10K entries. At ~200 bytes per entry, max ~2MB.
+**Verification**: 288 core + 556 autofix tests pass.
 
-### Fix 3: Deduplication Connection Leak ✅
-**File**: `suite-core/core/services/deduplication.py` (process_finding method)
-**Change**: Wrapped `sqlite3.connect()` in `try/finally: conn.close()`. Previously, if any SQL operation threw an exception, the connection would leak.
-**Impact**: Prevents file descriptor exhaustion under error conditions.
-**Verification**: 288 core tests pass.
+### Fix 3: ADR-009 Broken File Path
+**File**: `.claude/team-state/architecture/adrs/ADR-009-mcp-auto-discovery.md`
+**Change**: Fixed 2 references from `suite-integrations/api/mcp_protocol_router.py` to `suite-core/api/mcp_protocol_router.py`.
+**Impact**: ADR file references now 100% accurate.
+**Verification**: Path verified with Glob tool.
 
-## 5. Performance Review Findings
+## 5. AutoFix Engine Review
 
-New review written: `.claude/team-state/architecture/reviews/2026-03-02-performance-review.md`
+New review written: `.claude/team-state/architecture/reviews/2026-03-03-autofix-engine-review.md`
 
-**Overall Performance Grade: B+** (Good for demo, optimizations needed for production)
+**Overall Grade: B+** (Good for demo, production hardening needed)
 
 Key findings:
 | Finding | Severity | Status |
 |---------|----------|--------|
-| AutoFixEngine per-finding (TD-022) | P2 | ✅ FIXED this session |
-| Dedup connection leak | P1 | ✅ FIXED this session |
-| Dedup N connections per batch (TD-020) | P2 | Logged (Phase 2) |
-| Steps 9+10 sequential (TD-021) | P2 | Logged (Phase 2) |
-| No per-step timeout on 6 steps (TD-019) | P3 | Logged (Phase 2) |
+| _fixes dict unbounded (TD-023) | MEDIUM | FIXED this session |
+| _history list unbounded (TD-025) | LOW | FIXED this session |
+| No prompt injection protection (TD-024) | MEDIUM | Logged (Phase 2) |
+| Bulk request unbounded (TD-026) | LOW | Logged (Phase 2) |
+| Private method access from router | LOW | Logged (Phase 2) |
+| No endpoint-level auth | MEDIUM | Mitigated by global middleware |
+
+Strengths:
+- 7-point safety gate for LLM-generated code (55+ dangerous patterns)
+- ML confidence model with deterministic fallback
+- 10 fix types, 8 fix statuses
+- Event bus integration for lifecycle notifications
+- Error handling prevents secret leakage in logs
 
 ## 6. ADR Validation
 
-All 9 ADRs validated (Run 7):
-- **9/9 fully valid** — 25 file references across all ADRs, 100% exist on disk
-- **0 missing files** across all ADRs
-- **0 stale references**
-- **ADR-009 written this session** — MCP Auto-Discovery Architecture (V7)
+All 9 ADRs validated (Run 8):
+- **9/9 fully valid** — all file references verified on disk
+- **1 broken path FIXED** in ADR-009 (suite-integrations → suite-core)
+- **0 remaining stale references**
 
 ## 7. Architecture Quality
 
 | Check | Status | Details |
 |-------|--------|---------|
-| All routes authenticated | ✅ | 769 routes protected |
-| Memory bounds enforced | ✅ | All Brain Pipeline caches bounded |
-| DB connection safety | ✅ | history.py + deduplication.py both fixed |
-| Graceful degradation | ✅ | All external deps have fallbacks |
-| Error sanitization | ✅ | No PII/secret leakage in error messages |
-| Thread safety | ✅ | Double-checked locking on singleton |
-| Pipeline timeout | ✅ | 300s global, 60s step (dedup/LLM), 120s (MPTE) |
-| Cooperative cancellation | ✅ | Checked before each step |
+| All routes authenticated | Global middleware | 769 routes |
+| Memory bounds enforced | AutoFix added | Brain Pipeline + AutoFix both bounded |
+| DB connection safety | history + dedup | try/finally pattern |
+| Graceful degradation | All external deps | Fallback chains for LLM, graph, MPTE |
+| Error sanitization | No PII leakage | type(exc).__name__ pattern |
+| Thread safety | Double-checked lock | Singleton |
+| Pipeline timeout | 300s global | Step-level: 60s dedup/LLM, 120s MPTE |
+| AutoFix safety gate | 7 checks | Dangerous patterns, traversal, imports, size |
 
 ## 8. Key Metrics Summary
 
-| Metric | Value | Status | Change (Run 7) |
+| Metric | Value | Status | Change (Run 8) |
 |--------|-------|--------|--------|
-| Core tests | 288/288 PASS | ✅ | Verified 21.40s |
-| Ruff warnings | 77 (0 actionable) | ✅ | -2 (fixed F821) |
-| Bandit HIGH (core) | 0 | ✅ | — |
-| Bandit MEDIUM (core) | 2 | ✅ | Stable |
-| ADRs written | 9 | ✅ | +1 (ADR-009 MCP) |
-| ADRs validated | 9/9 | ✅ | All file refs verified |
-| Tech debt items | 22 (5 done) | ⚠️ | Stable |
-| Bugs fixed (Run 7) | 1 | ✅ | F821 TYPE_CHECKING |
-| Bugs fixed (cumulative) | 4 | ✅ | F401, AutoFix, dedup, F821 |
-| Reviews completed | 5 total | ✅ | Performance updated |
+| Core tests | 288/288 PASS | GREEN | Verified (28.46s) |
+| AutoFix tests | 556/556 PASS | GREEN | NEW: first dedicated run |
+| Ruff warnings | 77 (0 actionable) | GREEN | Stable |
+| Bandit HIGH (core) | 0 | GREEN | Stable |
+| Bandit MEDIUM (core) | 2 | GREEN | Stable |
+| Bandit total (full) | 458 | WARN | +2 from Run 7 |
+| ADRs written | 9 | GREEN | 1 ref FIXED |
+| ADRs validated | 9/9 | GREEN | 100% file refs valid |
+| Tech debt items | 26 (7 done) | WARN | +4 new, +2 FIXED |
+| Bugs fixed (Run 8) | 3 | GREEN | _fixes, _history, ADR path |
+| Bugs fixed (cumulative) | 7 | GREEN | All sessions combined |
+| Reviews completed | 6 total | GREEN | +1 AutoFix engine review |
 
 ---
 
-*Generated by enterprise-architect on 2026-03-02 (Run 7 Final). Serves pillars: V3, V5, V7, V10.*
+*Generated by enterprise-architect on 2026-03-03 (Run 8). Serves pillars: V3, V5, V7, V10.*

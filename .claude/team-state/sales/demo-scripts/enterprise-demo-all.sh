@@ -1,10 +1,11 @@
 #!/bin/bash
 # ============================================================================
 # ALdeci Enterprise Demo — All 5 Personas + MOAT Demos
-# Version: 6.1 — Sprint 2, Day 3 (2026-03-02 08:02 UTC)
+# Version: 7.0 — Sprint 2, Day 3 (2026-03-03 15:48 UTC)
 # Duration: 15 min (5 personas × 3 min) + 4 min (2 MOAT demos)
-# All endpoints verified against live API: 33/33 GET = 200, 9/11 POST = 200
-# AutoFix timeout: 30s (LLM-dependent). Postman: 475/475.
+# All endpoints verified against live API: 34/36 GET = 200, 7/7 POST = 200
+# AutoFix timeout: 30s (LLM-dependent). Postman: 475/475 (10th green). Moat: 95.60%.
+# Data: 1203 findings, 1717 graph nodes, 277 MPTE requests, 93% AutoFix confidence.
 # ============================================================================
 # Usage: ./enterprise-demo-all.sh [base_url] [api_key] [mode]
 #   mode: all | ciso | devsecops | auditor | developer | cto | moat

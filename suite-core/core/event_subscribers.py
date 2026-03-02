@@ -188,14 +188,24 @@ def register_all_subscribers() -> int:
     except Exception as exc:
         logger.debug("ML EventBus handlers skipped: %s", exc)
 
+    # [V3] Register Online Learning handlers (DECISION_MADE, REMEDIATION_COMPLETED → retrain)
+    online_learning_registered = False
+    try:
+        from core.ml.online_learning import register_online_learning_handlers
+
+        register_online_learning_handlers(bus)
+        online_learning_registered = True
+        logger.info("Online learning EventBus handlers registered (feedback→retrain)")
+    except Exception as exc:
+        logger.debug("Online learning handlers skipped: %s", exc)
+
     _registered = True
-    count = len(handlers) + 1  # +1 for wildcard
-    if ml_handlers_registered:
-        count += 2  # anomaly_detector + parser_quality on SCAN_COMPLETED
+    ml_count = (2 if ml_handlers_registered else 0) + (2 if online_learning_registered else 0)
+    count = len(handlers) + 1 + ml_count  # +1 for wildcard
     logger.info(
         "Registered %d event subscribers (%d typed + 1 wildcard + %d ML)",
         count,
         len(handlers),
-        2 if ml_handlers_registered else 0,
+        ml_count,
     )
     return count

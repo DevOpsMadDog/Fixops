@@ -1,767 +1,11 @@
 {
   "resultsPerPage": 100,
   "startIndex": 0,
-  "totalResults": 973,
+  "totalResults": 1007,
   "format": "NVD_CVE",
   "version": "2.0",
-  "timestamp": "2026-03-02T10:51:12.716",
+  "timestamp": "2026-03-02T16:00:31.582",
   "vulnerabilities": [
-    {
-      "cve": {
-        "id": "CVE-2025-40701",
-        "sourceIdentifier": "cve-coordination@incibe.es",
-        "published": "2026-02-23T11:16:20.680",
-        "lastModified": "2026-02-23T18:13:53.397",
-        "vulnStatus": "Awaiting Analysis",
-        "cveTags": [],
-        "descriptions": [
-          {
-            "lang": "en",
-            "value": "Reflected Cross-Site Scripting vulnerability in SOTESHOP, version 8.3.4. THis vulnerability allows an attacker execute JavaScript code in the victim's browser when a malicious URL with the 'id' parameter in '/adsTracker/checkAds' is sent to the victim. The vulnerability can be exploited to steal sensitive user information such as session cookies, or to perform actions on their behalf."
-          },
-          {
-            "lang": "es",
-            "value": "Vulnerabilidad de Cross-Site cripting (XSS) reflejado en SOTESHOP, versi\u00f3n 8.3.4. Esta permite a un atacante ejecutar c\u00f3digo JavaScript en el navegador de la v\u00edctima cuando se env\u00eda a la v\u00edctima una URL maliciosa con el par\u00e1metro 'id' en '/adsTracker/checkAds'. La vulnerabilidad se puede explotar para robar informaci\u00f3n sensible del usuario como cookies de sesi\u00f3n, o para realizar acciones en su nombre."
-          }
-        ],
-        "metrics": {
-          "cvssMetricV40": [
-            {
-              "source": "cve-coordination@incibe.es",
-              "type": "Secondary",
-              "cvssData": {
-                "version": "4.0",
-                "vectorString": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:A/VC:N/VI:N/VA:N/SC:L/SI:L/SA:N/E:X/CR:X/IR:X/AR:X/MAV:X/MAC:X/MAT:X/MPR:X/MUI:X/MVC:X/MVI:X/MVA:X/MSC:X/MSI:X/MSA:X/S:X/AU:X/R:X/V:X/RE:X/U:X",
-                "baseScore": 5.1,
-                "baseSeverity": "MEDIUM",
-                "attackVector": "NETWORK",
-                "attackComplexity": "LOW",
-                "attackRequirements": "NONE",
-                "privilegesRequired": "NONE",
-                "userInteraction": "ACTIVE",
-                "vulnConfidentialityImpact": "NONE",
-                "vulnIntegrityImpact": "NONE",
-                "vulnAvailabilityImpact": "NONE",
-                "subConfidentialityImpact": "LOW",
-                "subIntegrityImpact": "LOW",
-                "subAvailabilityImpact": "NONE",
-                "exploitMaturity": "NOT_DEFINED",
-                "confidentialityRequirement": "NOT_DEFINED",
-                "integrityRequirement": "NOT_DEFINED",
-                "availabilityRequirement": "NOT_DEFINED",
-                "modifiedAttackVector": "NOT_DEFINED",
-                "modifiedAttackComplexity": "NOT_DEFINED",
-                "modifiedAttackRequirements": "NOT_DEFINED",
-                "modifiedPrivilegesRequired": "NOT_DEFINED",
-                "modifiedUserInteraction": "NOT_DEFINED",
-                "modifiedVulnConfidentialityImpact": "NOT_DEFINED",
-                "modifiedVulnIntegrityImpact": "NOT_DEFINED",
-                "modifiedVulnAvailabilityImpact": "NOT_DEFINED",
-                "modifiedSubConfidentialityImpact": "NOT_DEFINED",
-                "modifiedSubIntegrityImpact": "NOT_DEFINED",
-                "modifiedSubAvailabilityImpact": "NOT_DEFINED",
-                "Safety": "NOT_DEFINED",
-                "Automatable": "NOT_DEFINED",
-                "Recovery": "NOT_DEFINED",
-                "valueDensity": "NOT_DEFINED",
-                "vulnerabilityResponseEffort": "NOT_DEFINED",
-                "providerUrgency": "NOT_DEFINED"
-              }
-            }
-          ]
-        },
-        "weaknesses": [
-          {
-            "source": "cve-coordination@incibe.es",
-            "type": "Primary",
-            "description": [
-              {
-                "lang": "en",
-                "value": "CWE-79"
-              }
-            ]
-          }
-        ],
-        "references": [
-          {
-            "url": "https://www.incibe.es/en/incibe-cert/notices/aviso/reflected-cross-site-scripting-xss-sotes-soteshop",
-            "source": "cve-coordination@incibe.es"
-          }
-        ]
-      }
-    },
-    {
-      "cve": {
-        "id": "CVE-2025-40986",
-        "sourceIdentifier": "cve-coordination@incibe.es",
-        "published": "2026-02-23T11:16:20.910",
-        "lastModified": "2026-02-23T18:13:53.397",
-        "vulnStatus": "Awaiting Analysis",
-        "cveTags": [],
-        "descriptions": [
-          {
-            "lang": "en",
-            "value": "Reflected Cross-Site Scripting (XSS) vulnerability in PideTuCita. This vulnerability allows an attacker to execute JavaScript code in the victim's browser by sending him/her a malicious URL using the endpoint 'cookies/indes.php/<XSS>'. This vulnerability can be exploited to steal confidential user data, such as session cookies or to perform actions on behalf of the user."
-          },
-          {
-            "lang": "es",
-            "value": "vulnerabilidad de tipo Cross-Site Scripting (XSS) reflejado en PideTuCita. Esta permite a un atacante ejecutar c\u00f3digo JavaScript en el navegador de la v\u00edctima envi\u00e1ndole una URL maliciosa utilizando el endpoint '/cookies/index.php/'. Esta vulnerabilidad puede explotarse para robar datos confidenciales del usuario, como cookies de sesi\u00f3n, o para realizar acciones en nombre del usuario."
-          }
-        ],
-        "metrics": {
-          "cvssMetricV40": [
-            {
-              "source": "cve-coordination@incibe.es",
-              "type": "Secondary",
-              "cvssData": {
-                "version": "4.0",
-                "vectorString": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:A/VC:N/VI:N/VA:N/SC:L/SI:L/SA:N/E:X/CR:X/IR:X/AR:X/MAV:X/MAC:X/MAT:X/MPR:X/MUI:X/MVC:X/MVI:X/MVA:X/MSC:X/MSI:X/MSA:X/S:X/AU:X/R:X/V:X/RE:X/U:X",
-                "baseScore": 5.1,
-                "baseSeverity": "MEDIUM",
-                "attackVector": "NETWORK",
-                "attackComplexity": "LOW",
-                "attackRequirements": "NONE",
-                "privilegesRequired": "NONE",
-                "userInteraction": "ACTIVE",
-                "vulnConfidentialityImpact": "NONE",
-                "vulnIntegrityImpact": "NONE",
-                "vulnAvailabilityImpact": "NONE",
-                "subConfidentialityImpact": "LOW",
-                "subIntegrityImpact": "LOW",
-                "subAvailabilityImpact": "NONE",
-                "exploitMaturity": "NOT_DEFINED",
-                "confidentialityRequirement": "NOT_DEFINED",
-                "integrityRequirement": "NOT_DEFINED",
-                "availabilityRequirement": "NOT_DEFINED",
-                "modifiedAttackVector": "NOT_DEFINED",
-                "modifiedAttackComplexity": "NOT_DEFINED",
-                "modifiedAttackRequirements": "NOT_DEFINED",
-                "modifiedPrivilegesRequired": "NOT_DEFINED",
-                "modifiedUserInteraction": "NOT_DEFINED",
-                "modifiedVulnConfidentialityImpact": "NOT_DEFINED",
-                "modifiedVulnIntegrityImpact": "NOT_DEFINED",
-                "modifiedVulnAvailabilityImpact": "NOT_DEFINED",
-                "modifiedSubConfidentialityImpact": "NOT_DEFINED",
-                "modifiedSubIntegrityImpact": "NOT_DEFINED",
-                "modifiedSubAvailabilityImpact": "NOT_DEFINED",
-                "Safety": "NOT_DEFINED",
-                "Automatable": "NOT_DEFINED",
-                "Recovery": "NOT_DEFINED",
-                "valueDensity": "NOT_DEFINED",
-                "vulnerabilityResponseEffort": "NOT_DEFINED",
-                "providerUrgency": "NOT_DEFINED"
-              }
-            }
-          ]
-        },
-        "weaknesses": [
-          {
-            "source": "cve-coordination@incibe.es",
-            "type": "Primary",
-            "description": [
-              {
-                "lang": "en",
-                "value": "CWE-79"
-              }
-            ]
-          }
-        ],
-        "references": [
-          {
-            "url": "https://www.incibe.es/en/incibe-cert/notices/aviso/reflected-cross-site-scripting-pidetucita",
-            "source": "cve-coordination@incibe.es"
-          }
-        ]
-      }
-    },
-    {
-      "cve": {
-        "id": "CVE-2025-59873",
-        "sourceIdentifier": "psirt@hcl.com",
-        "published": "2026-02-23T11:16:21.080",
-        "lastModified": "2026-02-26T22:20:43.070",
-        "vulnStatus": "Awaiting Analysis",
-        "cveTags": [],
-        "descriptions": [
-          {
-            "lang": "en",
-            "value": "An information exposure vulnerability exists in\n\nVulnerability in HCL Software ZIE for Web.\n\nThe application transmits sensitive session tokens and authentication identifiers within the URL query parameters . An attacker who gains access to any network log or operates a site linked from the application can hijack user sessions\n\nThis issue affects ZIE for Web: v16."
-          },
-          {
-            "lang": "es",
-            "value": "Hay una vulnerabilidad de exposici\u00f3n de informaci\u00f3n en HCL Software ZIE for Web.\n\nLa aplicaci\u00f3n transmite tokens de sesi\u00f3n sensibles e identificadores de autenticaci\u00f3n dentro de los par\u00e1metros de consulta de la URL. Un atacante que obtiene acceso a cualquier registro de red o que opera un sitio enlazado desde la aplicaci\u00f3n puede secuestrar sesiones de usuario.\n\nEste problema afecta a ZIE for Web: v16."
-          }
-        ],
-        "metrics": {
-          "cvssMetricV31": [
-            {
-              "source": "psirt@hcl.com",
-              "type": "Secondary",
-              "cvssData": {
-                "version": "3.1",
-                "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:L/A:N",
-                "baseScore": 5.9,
-                "baseSeverity": "MEDIUM",
-                "attackVector": "NETWORK",
-                "attackComplexity": "HIGH",
-                "privilegesRequired": "NONE",
-                "userInteraction": "REQUIRED",
-                "scope": "UNCHANGED",
-                "confidentialityImpact": "HIGH",
-                "integrityImpact": "LOW",
-                "availabilityImpact": "NONE"
-              },
-              "exploitabilityScore": 1.6,
-              "impactScore": 4.2
-            }
-          ]
-        },
-        "weaknesses": [
-          {
-            "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
-            "type": "Secondary",
-            "description": [
-              {
-                "lang": "en",
-                "value": "CWE-598"
-              }
-            ]
-          }
-        ],
-        "references": [
-          {
-            "url": "https://support.hcl-software.com/csm?id=kb_article&sysparm_article=KB0128902",
-            "source": "psirt@hcl.com"
-          }
-        ]
-      }
-    },
-    {
-      "cve": {
-        "id": "CVE-2026-2984",
-        "sourceIdentifier": "cna@vuldb.com",
-        "published": "2026-02-23T11:16:39.443",
-        "lastModified": "2026-02-24T18:29:16.143",
-        "vulnStatus": "Analyzed",
-        "cveTags": [],
-        "descriptions": [
-          {
-            "lang": "en",
-            "value": "A vulnerability was identified in SourceCodester Student Result Management System 1.0. This affects an unknown function of the file /admin/core/drop_user.php. Such manipulation of the argument ID leads to denial of service. The attack can be executed remotely. The exploit is publicly available and might be used."
-          },
-          {
-            "lang": "es",
-            "value": "Se identific\u00f3 una vulnerabilidad en SourceCodester Student Result Management System 1.0. Esto afecta una funci\u00f3n desconocida del archivo /admin/core/drop_user.PHP. Dicha manipulaci\u00f3n del argumento ID conduce a denegaci\u00f3n de servicio. El ataque puede ejecutarse de forma remota. El exploit est\u00e1 disponible p\u00fablicamente y podr\u00eda ser utilizado."
-          }
-        ],
-        "metrics": {
-          "cvssMetricV40": [
-            {
-              "source": "cna@vuldb.com",
-              "type": "Secondary",
-              "cvssData": {
-                "version": "4.0",
-                "vectorString": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:L/VA:L/SC:N/SI:N/SA:N/E:P/CR:X/IR:X/AR:X/MAV:X/MAC:X/MAT:X/MPR:X/MUI:X/MVC:X/MVI:X/MVA:X/MSC:X/MSI:X/MSA:X/S:X/AU:X/R:X/V:X/RE:X/U:X",
-                "baseScore": 6.9,
-                "baseSeverity": "MEDIUM",
-                "attackVector": "NETWORK",
-                "attackComplexity": "LOW",
-                "attackRequirements": "NONE",
-                "privilegesRequired": "NONE",
-                "userInteraction": "NONE",
-                "vulnConfidentialityImpact": "NONE",
-                "vulnIntegrityImpact": "LOW",
-                "vulnAvailabilityImpact": "LOW",
-                "subConfidentialityImpact": "NONE",
-                "subIntegrityImpact": "NONE",
-                "subAvailabilityImpact": "NONE",
-                "exploitMaturity": "PROOF_OF_CONCEPT",
-                "confidentialityRequirement": "NOT_DEFINED",
-                "integrityRequirement": "NOT_DEFINED",
-                "availabilityRequirement": "NOT_DEFINED",
-                "modifiedAttackVector": "NOT_DEFINED",
-                "modifiedAttackComplexity": "NOT_DEFINED",
-                "modifiedAttackRequirements": "NOT_DEFINED",
-                "modifiedPrivilegesRequired": "NOT_DEFINED",
-                "modifiedUserInteraction": "NOT_DEFINED",
-                "modifiedVulnConfidentialityImpact": "NOT_DEFINED",
-                "modifiedVulnIntegrityImpact": "NOT_DEFINED",
-                "modifiedVulnAvailabilityImpact": "NOT_DEFINED",
-                "modifiedSubConfidentialityImpact": "NOT_DEFINED",
-                "modifiedSubIntegrityImpact": "NOT_DEFINED",
-                "modifiedSubAvailabilityImpact": "NOT_DEFINED",
-                "Safety": "NOT_DEFINED",
-                "Automatable": "NOT_DEFINED",
-                "Recovery": "NOT_DEFINED",
-                "valueDensity": "NOT_DEFINED",
-                "vulnerabilityResponseEffort": "NOT_DEFINED",
-                "providerUrgency": "NOT_DEFINED"
-              }
-            }
-          ],
-          "cvssMetricV31": [
-            {
-              "source": "cna@vuldb.com",
-              "type": "Primary",
-              "cvssData": {
-                "version": "3.1",
-                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:L",
-                "baseScore": 6.5,
-                "baseSeverity": "MEDIUM",
-                "attackVector": "NETWORK",
-                "attackComplexity": "LOW",
-                "privilegesRequired": "NONE",
-                "userInteraction": "NONE",
-                "scope": "UNCHANGED",
-                "confidentialityImpact": "NONE",
-                "integrityImpact": "LOW",
-                "availabilityImpact": "LOW"
-              },
-              "exploitabilityScore": 3.9,
-              "impactScore": 2.5
-            }
-          ],
-          "cvssMetricV2": [
-            {
-              "source": "cna@vuldb.com",
-              "type": "Secondary",
-              "cvssData": {
-                "version": "2.0",
-                "vectorString": "AV:N/AC:L/Au:N/C:N/I:P/A:P",
-                "baseScore": 6.4,
-                "accessVector": "NETWORK",
-                "accessComplexity": "LOW",
-                "authentication": "NONE",
-                "confidentialityImpact": "NONE",
-                "integrityImpact": "PARTIAL",
-                "availabilityImpact": "PARTIAL"
-              },
-              "baseSeverity": "MEDIUM",
-              "exploitabilityScore": 10.0,
-              "impactScore": 4.9,
-              "acInsufInfo": false,
-              "obtainAllPrivilege": false,
-              "obtainUserPrivilege": false,
-              "obtainOtherPrivilege": false,
-              "userInteractionRequired": false
-            }
-          ]
-        },
-        "weaknesses": [
-          {
-            "source": "cna@vuldb.com",
-            "type": "Primary",
-            "description": [
-              {
-                "lang": "en",
-                "value": "CWE-404"
-              }
-            ]
-          }
-        ],
-        "configurations": [
-          {
-            "nodes": [
-              {
-                "operator": "OR",
-                "negate": false,
-                "cpeMatch": [
-                  {
-                    "vulnerable": true,
-                    "criteria": "cpe:2.3:a:munyweki:student_result_management_system:1.0:*:*:*:*:*:*:*",
-                    "matchCriteriaId": "5DD5CE8A-702E-4CE4-BDC6-1EA5B0A05272"
-                  }
-                ]
-              }
-            ]
-          }
-        ],
-        "references": [
-          {
-            "url": "https://github.com/Shaon-Xis/SRMS-1.0---Unauthenticated-SMTP-Hijacking-to-Account-Takeover#vulnerability-3-unauthenticated-arbitrary-account-deletion-dos",
-            "source": "cna@vuldb.com",
-            "tags": [
-              "Exploit",
-              "Mitigation",
-              "Third Party Advisory"
-            ]
-          },
-          {
-            "url": "https://vuldb.com/?ctiid.347367",
-            "source": "cna@vuldb.com",
-            "tags": [
-              "Permissions Required",
-              "VDB Entry"
-            ]
-          },
-          {
-            "url": "https://vuldb.com/?id.347367",
-            "source": "cna@vuldb.com",
-            "tags": [
-              "Third Party Advisory",
-              "VDB Entry"
-            ]
-          },
-          {
-            "url": "https://vuldb.com/?submit.756136",
-            "source": "cna@vuldb.com",
-            "tags": [
-              "Third Party Advisory",
-              "VDB Entry"
-            ]
-          },
-          {
-            "url": "https://www.sourcecodester.com/",
-            "source": "cna@vuldb.com",
-            "tags": [
-              "Product"
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "cve": {
-        "id": "CVE-2026-2985",
-        "sourceIdentifier": "cna@vuldb.com",
-        "published": "2026-02-23T11:16:39.770",
-        "lastModified": "2026-02-23T18:13:53.397",
-        "vulnStatus": "Awaiting Analysis",
-        "cveTags": [],
-        "descriptions": [
-          {
-            "lang": "en",
-            "value": "A security flaw has been discovered in Tiandy Video Surveillance System \u89c6\u9891\u76d1\u63a7\u5e73\u53f0 7.17.0. This impacts the function downloadImage of the file /com/tiandy/easy7/core/bo/CLSBODownLoad.java. Performing a manipulation of the argument urlPath results in server-side request forgery. The attack is possible to be carried out remotely. The exploit has been released to the public and may be used for attacks. The vendor was contacted early about this disclosure but did not respond in any way."
-          },
-          {
-            "lang": "es",
-            "value": "Se ha descubierto una vulnerabilidad de seguridad en el Sistema de Videovigilancia Tiandy ?????? 7.17.0. Esta afecta a la funci\u00f3n downloadImage del archivo /com/tiandy/easy7/core/bo/CLSBODownLoad.java. Si se manipula el argumento urlPath se provoca una falsificaci\u00f3n de petici\u00f3n del lado del servidor. Puede lanzarse el ataque en remoto. Se ha publicado el exploit y puede ser utilizado para ataques. Antes de la divulgar esta vulnerabilidad se contact\u00f3 con el proveedor, pero no respondi\u00f3 de ninguna manera."
-          }
-        ],
-        "metrics": {
-          "cvssMetricV40": [
-            {
-              "source": "cna@vuldb.com",
-              "type": "Secondary",
-              "cvssData": {
-                "version": "4.0",
-                "vectorString": "CVSS:4.0/AV:N/AC:L/AT:N/PR:L/UI:N/VC:L/VI:L/VA:L/SC:N/SI:N/SA:N/E:P/CR:X/IR:X/AR:X/MAV:X/MAC:X/MAT:X/MPR:X/MUI:X/MVC:X/MVI:X/MVA:X/MSC:X/MSI:X/MSA:X/S:X/AU:X/R:X/V:X/RE:X/U:X",
-                "baseScore": 5.3,
-                "baseSeverity": "MEDIUM",
-                "attackVector": "NETWORK",
-                "attackComplexity": "LOW",
-                "attackRequirements": "NONE",
-                "privilegesRequired": "LOW",
-                "userInteraction": "NONE",
-                "vulnConfidentialityImpact": "LOW",
-                "vulnIntegrityImpact": "LOW",
-                "vulnAvailabilityImpact": "LOW",
-                "subConfidentialityImpact": "NONE",
-                "subIntegrityImpact": "NONE",
-                "subAvailabilityImpact": "NONE",
-                "exploitMaturity": "PROOF_OF_CONCEPT",
-                "confidentialityRequirement": "NOT_DEFINED",
-                "integrityRequirement": "NOT_DEFINED",
-                "availabilityRequirement": "NOT_DEFINED",
-                "modifiedAttackVector": "NOT_DEFINED",
-                "modifiedAttackComplexity": "NOT_DEFINED",
-                "modifiedAttackRequirements": "NOT_DEFINED",
-                "modifiedPrivilegesRequired": "NOT_DEFINED",
-                "modifiedUserInteraction": "NOT_DEFINED",
-                "modifiedVulnConfidentialityImpact": "NOT_DEFINED",
-                "modifiedVulnIntegrityImpact": "NOT_DEFINED",
-                "modifiedVulnAvailabilityImpact": "NOT_DEFINED",
-                "modifiedSubConfidentialityImpact": "NOT_DEFINED",
-                "modifiedSubIntegrityImpact": "NOT_DEFINED",
-                "modifiedSubAvailabilityImpact": "NOT_DEFINED",
-                "Safety": "NOT_DEFINED",
-                "Automatable": "NOT_DEFINED",
-                "Recovery": "NOT_DEFINED",
-                "valueDensity": "NOT_DEFINED",
-                "vulnerabilityResponseEffort": "NOT_DEFINED",
-                "providerUrgency": "NOT_DEFINED"
-              }
-            }
-          ],
-          "cvssMetricV31": [
-            {
-              "source": "cna@vuldb.com",
-              "type": "Primary",
-              "cvssData": {
-                "version": "3.1",
-                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:L",
-                "baseScore": 6.3,
-                "baseSeverity": "MEDIUM",
-                "attackVector": "NETWORK",
-                "attackComplexity": "LOW",
-                "privilegesRequired": "LOW",
-                "userInteraction": "NONE",
-                "scope": "UNCHANGED",
-                "confidentialityImpact": "LOW",
-                "integrityImpact": "LOW",
-                "availabilityImpact": "LOW"
-              },
-              "exploitabilityScore": 2.8,
-              "impactScore": 3.4
-            }
-          ],
-          "cvssMetricV2": [
-            {
-              "source": "cna@vuldb.com",
-              "type": "Secondary",
-              "cvssData": {
-                "version": "2.0",
-                "vectorString": "AV:N/AC:L/Au:S/C:P/I:P/A:P",
-                "baseScore": 6.5,
-                "accessVector": "NETWORK",
-                "accessComplexity": "LOW",
-                "authentication": "SINGLE",
-                "confidentialityImpact": "PARTIAL",
-                "integrityImpact": "PARTIAL",
-                "availabilityImpact": "PARTIAL"
-              },
-              "baseSeverity": "MEDIUM",
-              "exploitabilityScore": 8.0,
-              "impactScore": 6.4,
-              "acInsufInfo": false,
-              "obtainAllPrivilege": false,
-              "obtainUserPrivilege": false,
-              "obtainOtherPrivilege": false,
-              "userInteractionRequired": false
-            }
-          ]
-        },
-        "weaknesses": [
-          {
-            "source": "cna@vuldb.com",
-            "type": "Primary",
-            "description": [
-              {
-                "lang": "en",
-                "value": "CWE-918"
-              }
-            ]
-          }
-        ],
-        "references": [
-          {
-            "url": "https://my.feishu.cn/wiki/C1TIwBoJziINWlkGt8ucnZJPnEb?from=from_copylink",
-            "source": "cna@vuldb.com"
-          },
-          {
-            "url": "https://vuldb.com/?ctiid.347368",
-            "source": "cna@vuldb.com"
-          },
-          {
-            "url": "https://vuldb.com/?id.347368",
-            "source": "cna@vuldb.com"
-          },
-          {
-            "url": "https://vuldb.com/?submit.756137",
-            "source": "cna@vuldb.com"
-          }
-        ]
-      }
-    },
-    {
-      "cve": {
-        "id": "CVE-2025-69700",
-        "sourceIdentifier": "cve@mitre.org",
-        "published": "2026-02-23T14:16:21.233",
-        "lastModified": "2026-02-24T20:37:59.887",
-        "vulnStatus": "Analyzed",
-        "cveTags": [],
-        "descriptions": [
-          {
-            "lang": "en",
-            "value": "Tenda FH1203 V2.0.1.6 contains a stack-based buffer overflow vulnerability in the modify_add_client_prio function, which is reachable via the formSetClientPrio CGI handler."
-          },
-          {
-            "lang": "es",
-            "value": "Tenda FH1203 V2.0.1.6 contiene una vulnerabilidad de desbordamiento de b\u00fafer basado en pila en la funci\u00f3n modify_add_client_prio, a la que se puede acceder a trav\u00e9s del gestor CGI formSetClientPrio."
-          }
-        ],
-        "metrics": {
-          "cvssMetricV31": [
-            {
-              "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
-              "type": "Secondary",
-              "cvssData": {
-                "version": "3.1",
-                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
-                "baseScore": 7.5,
-                "baseSeverity": "HIGH",
-                "attackVector": "NETWORK",
-                "attackComplexity": "LOW",
-                "privilegesRequired": "NONE",
-                "userInteraction": "NONE",
-                "scope": "UNCHANGED",
-                "confidentialityImpact": "NONE",
-                "integrityImpact": "NONE",
-                "availabilityImpact": "HIGH"
-              },
-              "exploitabilityScore": 3.9,
-              "impactScore": 3.6
-            }
-          ]
-        },
-        "weaknesses": [
-          {
-            "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
-            "type": "Secondary",
-            "description": [
-              {
-                "lang": "en",
-                "value": "CWE-121"
-              }
-            ]
-          }
-        ],
-        "configurations": [
-          {
-            "operator": "AND",
-            "nodes": [
-              {
-                "operator": "OR",
-                "negate": false,
-                "cpeMatch": [
-                  {
-                    "vulnerable": true,
-                    "criteria": "cpe:2.3:o:tenda:fh1203_firmware:2.0.1.6:*:*:*:*:*:*:*",
-                    "matchCriteriaId": "E28AF51D-EBFB-4EC8-9FCB-C3DFAE1DBB2E"
-                  }
-                ]
-              },
-              {
-                "operator": "OR",
-                "negate": false,
-                "cpeMatch": [
-                  {
-                    "vulnerable": false,
-                    "criteria": "cpe:2.3:h:tenda:fh1203:-:*:*:*:*:*:*:*",
-                    "matchCriteriaId": "4E7A0DCB-AC18-4F32-86E2-F2C2E9118A71"
-                  }
-                ]
-              }
-            ]
-          }
-        ],
-        "references": [
-          {
-            "url": "https://github.com/xhh0124/SemVulLLM",
-            "source": "cve@mitre.org",
-            "tags": [
-              "Exploit",
-              "Third Party Advisory"
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "cve": {
-        "id": "CVE-2026-21420",
-        "sourceIdentifier": "security_alert@emc.com",
-        "published": "2026-02-23T14:16:21.823",
-        "lastModified": "2026-02-24T21:56:03.183",
-        "vulnStatus": "Analyzed",
-        "cveTags": [],
-        "descriptions": [
-          {
-            "lang": "en",
-            "value": "Dell Repository Manager (DRM), versions prior to 3.4.8, contains an Uncontrolled Search Path Element vulnerability. A low privileged attacker with local access could potentially exploit this vulnerability, leading to arbitrary code execution and escalation of privileges."
-          },
-          {
-            "lang": "es",
-            "value": "Dell Repository Manager (DRM), versiones anteriores a la 3.4.8, contiene una vulnerabilidad de elemento de ruta de b\u00fasqueda no controlada (Uncontrolled Search Path Element). Un atacante con pocos privilegios y acceso local podr\u00eda potencialmente explotar esta vulnerabilidad, lo que llevar\u00eda a la ejecuci\u00f3n de c\u00f3digo arbitrario y a la escalada de privilegios."
-          }
-        ],
-        "metrics": {
-          "cvssMetricV31": [
-            {
-              "source": "security_alert@emc.com",
-              "type": "Secondary",
-              "cvssData": {
-                "version": "3.1",
-                "vectorString": "CVSS:3.1/AV:L/AC:L/PR:L/UI:R/S:U/C:H/I:H/A:H",
-                "baseScore": 7.3,
-                "baseSeverity": "HIGH",
-                "attackVector": "LOCAL",
-                "attackComplexity": "LOW",
-                "privilegesRequired": "LOW",
-                "userInteraction": "REQUIRED",
-                "scope": "UNCHANGED",
-                "confidentialityImpact": "HIGH",
-                "integrityImpact": "HIGH",
-                "availabilityImpact": "HIGH"
-              },
-              "exploitabilityScore": 1.3,
-              "impactScore": 5.9
-            },
-            {
-              "source": "nvd@nist.gov",
-              "type": "Primary",
-              "cvssData": {
-                "version": "3.1",
-                "vectorString": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
-                "baseScore": 7.8,
-                "baseSeverity": "HIGH",
-                "attackVector": "LOCAL",
-                "attackComplexity": "LOW",
-                "privilegesRequired": "LOW",
-                "userInteraction": "NONE",
-                "scope": "UNCHANGED",
-                "confidentialityImpact": "HIGH",
-                "integrityImpact": "HIGH",
-                "availabilityImpact": "HIGH"
-              },
-              "exploitabilityScore": 1.8,
-              "impactScore": 5.9
-            }
-          ]
-        },
-        "weaknesses": [
-          {
-            "source": "security_alert@emc.com",
-            "type": "Primary",
-            "description": [
-              {
-                "lang": "en",
-                "value": "CWE-427"
-              }
-            ]
-          }
-        ],
-        "configurations": [
-          {
-            "nodes": [
-              {
-                "operator": "OR",
-                "negate": false,
-                "cpeMatch": [
-                  {
-                    "vulnerable": true,
-                    "criteria": "cpe:2.3:a:dell:repository_manager:*:*:*:*:*:*:*:*",
-                    "versionEndExcluding": "3.4.8",
-                    "matchCriteriaId": "484E9D6E-BEA4-4B97-8B99-8D2769826E35"
-                  }
-                ]
-              }
-            ]
-          }
-        ],
-        "references": [
-          {
-            "url": "https://www.dell.com/support/kbdoc/en-us/000430183/dsa-2026-059-security-update-for-dell-repository-manager-vulnerability",
-            "source": "security_alert@emc.com",
-            "tags": [
-              "Patch",
-              "Vendor Advisory"
-            ]
-          }
-        ]
-      }
-    },
     {
       "cve": {
         "id": "CVE-2025-14905",
@@ -15891,6 +15135,799 @@
             "source": "security-advisories@github.com",
             "tags": [
               "Vendor Advisory"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2026-25898",
+        "sourceIdentifier": "security-advisories@github.com",
+        "published": "2026-02-24T02:16:01.000",
+        "lastModified": "2026-02-25T11:53:20.467",
+        "vulnStatus": "Analyzed",
+        "cveTags": [],
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, the UIL and XPM image encoder do not validate the pixel index value returned by `GetPixelIndex()` before using it as an array subscript. In HDRI builds, `Quantum` is a floating-point type, so pixel index values can be negative. An attacker can craft an image with negative pixel index values to trigger a global buffer overflow read during conversion, leading to information disclosure or a process crash. Versions 7.1.2-15 and 6.9.13-40 contain a patch."
+          },
+          {
+            "lang": "es",
+            "value": "ImageMagick es software libre y de c\u00f3digo abierto utilizado para editar y manipular im\u00e1genes digitales. Antes de las versiones 7.1.2-15 y 6.9.13-40, el codificador de im\u00e1genes UIL y XPM no valida el valor del \u00edndice de p\u00edxel devuelto por 'GetPixelIndex()' antes de usarlo como sub\u00edndice de una matriz. En las compilaciones HDRI, 'Quantum' es un tipo de punto flotante, por lo que los valores del \u00edndice de p\u00edxel pueden ser negativos. Un atacante puede crear una imagen con valores de \u00edndice de p\u00edxel negativos para activar una lectura de desbordamiento de b\u00fafer global durante la conversi\u00f3n, lo que lleva a la revelaci\u00f3n de informaci\u00f3n o a un fallo del proceso. Las versiones 7.1.2-15 y 6.9.13-40 contienen un parche."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "security-advisories@github.com",
+              "type": "Secondary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:L",
+                "baseScore": 6.5,
+                "baseSeverity": "MEDIUM",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "LOW",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "LOW"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 2.5
+            },
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:H",
+                "baseScore": 9.1,
+                "baseSeverity": "CRITICAL",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "HIGH",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "HIGH"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 5.2
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "security-advisories@github.com",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-125"
+              }
+            ]
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionEndExcluding": "6.9.13-40",
+                    "matchCriteriaId": "C6F44A65-1733-4752-AAD0-BCCC7BDBC877"
+                  },
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionStartIncluding": "7.0.0-0",
+                    "versionEndExcluding": "7.1.2-15",
+                    "matchCriteriaId": "6AFFD439-1068-4B6F-AE01-724AC62CDCEA"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/ImageMagick/ImageMagick/security/advisories/GHSA-vpxv-r9pg-7gpr",
+            "source": "security-advisories@github.com",
+            "tags": [
+              "Third Party Advisory"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2026-25965",
+        "sourceIdentifier": "security-advisories@github.com",
+        "published": "2026-02-24T02:16:01.167",
+        "lastModified": "2026-02-25T11:54:18.593",
+        "vulnStatus": "Analyzed",
+        "cveTags": [],
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, ImageMagick\u2019s path security policy is enforced on the raw filename string before the filesystem resolves it. As a result, a policy rule such as /etc/* can be bypassed by a path traversal. The OS resolves the traversal and opens the sensitive file, but the policy matcher only sees the unnormalized path and therefore allows the read. This enables local file disclosure (LFI) even when policy-secure.xml is applied. Actions to prevent reading from files have been taken in versions .7.1.2-15 and 6.9.13-40 But it make sure writing is also not possible the following should be added to one's policy. This will also be included in ImageMagick's more secure policies by default."
+          },
+          {
+            "lang": "es",
+            "value": "ImageMagick es un software libre y de c\u00f3digo abierto utilizado para editar y manipular im\u00e1genes digitales. Antes de las versiones 7.1.2-15 y 6.9.13-40, la pol\u00edtica de seguridad de ruta de ImageMagick se aplica sobre la cadena de nombre de archivo sin procesar antes de que el sistema de archivos la resuelva. Como resultado, una regla de pol\u00edtica como /etc/* puede ser eludida mediante un salto de ruta. El sistema operativo resuelve el salto de ruta y abre el archivo sensible, pero el comparador de pol\u00edticas solo ve la ruta no normalizada y por lo tanto permite la lectura. Esto permite la divulgaci\u00f3n de archivos locales (LFI) incluso cuando se aplica policy-secure.xml. Se han tomado medidas para evitar la lectura de archivos en las versiones .7.1.2-15 y 6.9.13-40. Pero para asegurarse de que la escritura tampoco sea posible, se debe a\u00f1adir lo siguiente a la pol\u00edtica de uno. Esto tambi\u00e9n se incluir\u00e1 en las pol\u00edticas m\u00e1s seguras de ImageMagick por defecto."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "security-advisories@github.com",
+              "type": "Secondary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:N/A:N",
+                "baseScore": 8.6,
+                "baseSeverity": "HIGH",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "CHANGED",
+                "confidentialityImpact": "HIGH",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "NONE"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 4.0
+            },
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+                "baseScore": 7.5,
+                "baseSeverity": "HIGH",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "HIGH",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "NONE"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 3.6
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "security-advisories@github.com",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-22"
+              }
+            ]
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionEndExcluding": "6.9.13-40",
+                    "matchCriteriaId": "C6F44A65-1733-4752-AAD0-BCCC7BDBC877"
+                  },
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionStartIncluding": "7.0.0-0",
+                    "versionEndExcluding": "7.1.2-15",
+                    "matchCriteriaId": "6AFFD439-1068-4B6F-AE01-724AC62CDCEA"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/ImageMagick/ImageMagick/security/advisories/GHSA-8jvj-p28h-9gm7",
+            "source": "security-advisories@github.com",
+            "tags": [
+              "Third Party Advisory"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2026-25966",
+        "sourceIdentifier": "security-advisories@github.com",
+        "published": "2026-02-24T02:16:01.330",
+        "lastModified": "2026-02-25T11:59:20.327",
+        "vulnStatus": "Analyzed",
+        "cveTags": [],
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "ImageMagick is free and open-source software used for editing and manipulating digital images. The shipped \"secure\" security policy includes a rule intended to prevent reading/writing from standard streams. However, ImageMagick also supports fd:<n> pseudo-filenames (e.g., fd:0, fd:1). Prior to versions 7.1.2-15 and 6.9.13-40, this path form is not blocked by the secure policy templates, and therefore bypasses the protection goal of \"no stdin/stdout.\" Versions 7.1.2-15 and 6.9.13-40 contain a patch by including a change to the more secure policies by default. As a workaround, add the change to one's security policy manually."
+          },
+          {
+            "lang": "es",
+            "value": "ImageMagick es un software libre y de c\u00f3digo abierto utilizado para editar y manipular im\u00e1genes digitales. La pol\u00edtica de seguridad 'segura' que se distribuye incluye una regla destinada a prevenir la lectura/escritura desde flujos est\u00e1ndar. Sin embargo, ImageMagick tambi\u00e9n soporta pseudo-nombres de archivo fd: (por ejemplo, fd:0, fd:1). Antes de las versiones 7.1.2-15 y 6.9.13-40, esta forma de ruta no es bloqueada por las plantillas de pol\u00edtica segura, y por lo tanto elude el objetivo de protecci\u00f3n de 'no stdin/stdout'. Las versiones 7.1.2-15 y 6.9.13-40 contienen un parche al incluir un cambio en las pol\u00edticas m\u00e1s seguras por defecto. Como soluci\u00f3n alternativa, a\u00f1ada el cambio a la pol\u00edtica de seguridad propia manualmente."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "security-advisories@github.com",
+              "type": "Secondary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:L",
+                "baseScore": 5.9,
+                "baseSeverity": "MEDIUM",
+                "attackVector": "LOCAL",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "LOW",
+                "integrityImpact": "LOW",
+                "availabilityImpact": "LOW"
+              },
+              "exploitabilityScore": 2.5,
+              "impactScore": 3.4
+            },
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+                "baseScore": 7.8,
+                "baseSeverity": "HIGH",
+                "attackVector": "LOCAL",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "LOW",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "HIGH",
+                "integrityImpact": "HIGH",
+                "availabilityImpact": "HIGH"
+              },
+              "exploitabilityScore": 1.8,
+              "impactScore": 5.9
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "security-advisories@github.com",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-284"
+              }
+            ]
+          },
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "NVD-CWE-noinfo"
+              }
+            ]
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionEndExcluding": "6.9.13-40",
+                    "matchCriteriaId": "C6F44A65-1733-4752-AAD0-BCCC7BDBC877"
+                  },
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionStartIncluding": "7.0.0-0",
+                    "versionEndExcluding": "7.1.2-15",
+                    "matchCriteriaId": "6AFFD439-1068-4B6F-AE01-724AC62CDCEA"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/ImageMagick/ImageMagick/security/advisories/GHSA-xwc6-v6g8-pw2h",
+            "source": "security-advisories@github.com",
+            "tags": [
+              "Third Party Advisory"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2026-25967",
+        "sourceIdentifier": "security-advisories@github.com",
+        "published": "2026-02-24T02:16:01.483",
+        "lastModified": "2026-02-25T11:58:43.147",
+        "vulnStatus": "Analyzed",
+        "cveTags": [],
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to version 7.1.2-15, a stack-based buffer overflow exists in the ImageMagick FTXT image reader. A crafted FTXT file can cause out-of-bounds writes on the stack, leading to a crash. Version 7.1.2-15 contains a patch."
+          },
+          {
+            "lang": "es",
+            "value": "ImageMagick es un software libre y de c\u00f3digo abierto utilizado para editar y manipular im\u00e1genes digitales. Antes de la versi\u00f3n 7.1.2-15, existe un desbordamiento de b\u00fafer basado en pila en el lector de im\u00e1genes FTXT de ImageMagick. Un archivo FTXT manipulado puede causar escrituras fuera de los l\u00edmites en la pila, lo que lleva a un fallo. La versi\u00f3n 7.1.2-15 contiene un parche."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "security-advisories@github.com",
+              "type": "Secondary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:H",
+                "baseScore": 7.4,
+                "baseSeverity": "HIGH",
+                "attackVector": "NETWORK",
+                "attackComplexity": "HIGH",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "NONE",
+                "integrityImpact": "HIGH",
+                "availabilityImpact": "HIGH"
+              },
+              "exploitabilityScore": 2.2,
+              "impactScore": 5.2
+            },
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                "baseScore": 7.5,
+                "baseSeverity": "HIGH",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "NONE",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "HIGH"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 3.6
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "security-advisories@github.com",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-121"
+              }
+            ]
+          },
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-787"
+              }
+            ]
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionEndExcluding": "6.9.13-40",
+                    "matchCriteriaId": "C6F44A65-1733-4752-AAD0-BCCC7BDBC877"
+                  },
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionStartIncluding": "7.0.0-0",
+                    "versionEndExcluding": "7.1.2-15",
+                    "matchCriteriaId": "6AFFD439-1068-4B6F-AE01-724AC62CDCEA"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/ImageMagick/ImageMagick/security/advisories/GHSA-72hf-fj62-w6j4",
+            "source": "security-advisories@github.com",
+            "tags": [
+              "Third Party Advisory"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2026-25968",
+        "sourceIdentifier": "security-advisories@github.com",
+        "published": "2026-02-24T02:16:01.647",
+        "lastModified": "2026-02-25T11:58:14.647",
+        "vulnStatus": "Analyzed",
+        "cveTags": [],
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a stack buffer overflow occurs when processing the an attribute in msl.c. A long value overflows a fixed-size stack buffer, leading to memory corruption. Versions 7.1.2-15 and 6.9.13-40 contain a patch."
+          },
+          {
+            "lang": "es",
+            "value": "ImageMagick es un software libre y de c\u00f3digo abierto utilizado para editar y manipular im\u00e1genes digitales. Antes de las versiones 7.1.2-15 y 6.9.13-40, ocurre un desbordamiento de b\u00fafer de pila al procesar un atributo en msl.c. Un valor largo desborda un b\u00fafer de pila de tama\u00f1o fijo, lo que lleva a la corrupci\u00f3n de memoria. Las versiones 7.1.2-15 y 6.9.13-40 contienen un parche."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "security-advisories@github.com",
+              "type": "Secondary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:H",
+                "baseScore": 7.4,
+                "baseSeverity": "HIGH",
+                "attackVector": "NETWORK",
+                "attackComplexity": "HIGH",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "HIGH",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "HIGH"
+              },
+              "exploitabilityScore": 2.2,
+              "impactScore": 5.2
+            },
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                "baseScore": 9.8,
+                "baseSeverity": "CRITICAL",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "HIGH",
+                "integrityImpact": "HIGH",
+                "availabilityImpact": "HIGH"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 5.9
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "security-advisories@github.com",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-121"
+              }
+            ]
+          },
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-787"
+              }
+            ]
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionEndExcluding": "6.9.13-40",
+                    "matchCriteriaId": "C6F44A65-1733-4752-AAD0-BCCC7BDBC877"
+                  },
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionStartIncluding": "7.0.0-0",
+                    "versionEndExcluding": "7.1.2-15",
+                    "matchCriteriaId": "6AFFD439-1068-4B6F-AE01-724AC62CDCEA"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/ImageMagick/ImageMagick/security/advisories/GHSA-3mwp-xqp2-q6ph",
+            "source": "security-advisories@github.com",
+            "tags": [
+              "Third Party Advisory"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2026-25969",
+        "sourceIdentifier": "security-advisories@github.com",
+        "published": "2026-02-24T02:16:01.807",
+        "lastModified": "2026-02-25T11:57:35.757",
+        "vulnStatus": "Analyzed",
+        "cveTags": [],
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to version 7.1.2-15, a memory leak exists in `coders/ashlar.c`. The `WriteASHLARImage` allocates a structure.  However, when an exception is thrown, the allocated memory is not properly released, resulting in a potential memory leak. Version 7.1.2-15 contains a patch."
+          },
+          {
+            "lang": "es",
+            "value": "ImageMagick es un software libre y de c\u00f3digo abierto utilizado para editar y manipular im\u00e1genes digitales. Antes de la versi\u00f3n 7.1.2-15, existe una fuga de memoria en `coders/ashlar.c`. La `WriteASHLARImage` asigna una estructura. Sin embargo, cuando se lanza una excepci\u00f3n, la memoria asignada no se libera correctamente, lo que resulta en una posible fuga de memoria. La versi\u00f3n 7.1.2-15 contiene un parche."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "security-advisories@github.com",
+              "type": "Secondary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+                "baseScore": 5.3,
+                "baseSeverity": "MEDIUM",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "NONE",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "LOW"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 1.4
+            },
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                "baseScore": 7.5,
+                "baseSeverity": "HIGH",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "NONE",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "HIGH"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 3.6
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "security-advisories@github.com",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-401"
+              }
+            ]
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionEndExcluding": "7.1.2-15",
+                    "matchCriteriaId": "B89F5759-9F8D-4C89-8D35-0FCE2AE715A4"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/ImageMagick/ImageMagick/security/advisories/GHSA-xgm3-v4r9-wfgm",
+            "source": "security-advisories@github.com",
+            "tags": [
+              "Third Party Advisory"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2026-25970",
+        "sourceIdentifier": "security-advisories@github.com",
+        "published": "2026-02-24T02:16:01.963",
+        "lastModified": "2026-02-25T11:57:18.567",
+        "vulnStatus": "Analyzed",
+        "cveTags": [],
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a signed integer overflow vulnerability in ImageMagick's SIXEL decoder allows an attacker to trigger memory corruption and denial of service when processing a maliciously crafted SIXEL image file. The vulnerability occurs during buffer reallocation operations where pointer arithmetic using signed 32-bit integers overflows. Versions 7.1.2-15 and 6.9.13-40 contain a patch."
+          },
+          {
+            "lang": "es",
+            "value": "ImageMagick es un software libre y de c\u00f3digo abierto utilizado para editar y manipular im\u00e1genes digitales. Antes de las versiones 7.1.2-15 y 6.9.13-40, una vulnerabilidad de desbordamiento de entero con signo en el decodificador SIXEL de ImageMagick permite a un atacante activar la corrupci\u00f3n de memoria y la denegaci\u00f3n de servicio al procesar un archivo de imagen SIXEL creado maliciosamente. La vulnerabilidad ocurre durante las operaciones de reasignaci\u00f3n de b\u00fafer donde la aritm\u00e9tica de punteros que utiliza enteros con signo de 32 bits se desborda. Las versiones 7.1.2-15 y 6.9.13-40 contienen un parche."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "security-advisories@github.com",
+              "type": "Secondary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+                "baseScore": 5.3,
+                "baseSeverity": "MEDIUM",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "NONE",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "LOW"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 1.4
+            },
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                "baseScore": 7.5,
+                "baseSeverity": "HIGH",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "NONE",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "HIGH"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 3.6
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "security-advisories@github.com",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-190"
+              }
+            ]
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionEndExcluding": "6.9.13-40",
+                    "matchCriteriaId": "C6F44A65-1733-4752-AAD0-BCCC7BDBC877"
+                  },
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionStartIncluding": "7.0.0-0",
+                    "versionEndExcluding": "7.1.2-15",
+                    "matchCriteriaId": "6AFFD439-1068-4B6F-AE01-724AC62CDCEA"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/ImageMagick/ImageMagick/security/advisories/GHSA-xg29-8ghv-v4xr",
+            "source": "security-advisories@github.com",
+            "tags": [
+              "Third Party Advisory"
             ]
           }
         ]
