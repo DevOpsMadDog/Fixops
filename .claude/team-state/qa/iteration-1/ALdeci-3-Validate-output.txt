@@ -4,189 +4,224 @@ newman
 
 ❏ 🔥 FAIL Engine (Differentiator #1)
 ↳ Score Single Finding
-  POST http://localhost:8000/api/v1/fail/score [200 OK, 1.2kB, 18ms]
-  ✓  FAIL score returns 200
-  ✓  Returns FAIL score
+  POST http://localhost:8000/api/v1/fail/score [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+  2. FAIL score returns 200
+  3. Returns FAIL score
 
 ↳ Score Batch
-  POST http://localhost:8000/api/v1/fail/score/batch [200 OK, 3.19kB, 9ms]
-  ✓  Batch FAIL score returns 200
+  POST http://localhost:8000/api/v1/fail/score/batch [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+  5. Batch FAIL score returns 200
 
 ↳ Get FAIL Score
-  GET http://localhost:8000/api/v1/fail/score/FAIL-4D0256984D14 [200 OK, 1.74kB, 7ms]
-  ✓  Get FAIL score returns 200
+  GET http://localhost:8000/api/v1/fail/score/ [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+  7. Get FAIL score returns 200
 
 ↳ List FAIL Scores
-  GET http://localhost:8000/api/v1/fail/scores [200 OK, 46.98kB, 13ms]
-  ✓  List scores returns 200
+  GET http://localhost:8000/api/v1/fail/scores [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+  9. List scores returns 200
 
 ↳ Top Risks by FAIL Score
-  GET http://localhost:8000/api/v1/fail/top-risks [200 OK, 30.73kB, 18ms]
-  ✓  Top risks returns 200
+  GET http://localhost:8000/api/v1/fail/top-risks [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 11. Top risks returns 200
 
 ↳ FAIL Stats
-  GET http://localhost:8000/api/v1/fail/stats [200 OK, 444B, 6ms]
-  ✓  FAIL stats returns 200
+  GET http://localhost:8000/api/v1/fail/stats [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 13. FAIL stats returns 200
 
 ↳ CVE FAIL Scores
-  GET http://localhost:8000/api/v1/fail/cve/CVE-2024-3094 [200 OK, 29.02kB, 12ms]
-  ✓  CVE FAIL scores returns 200
+  GET http://localhost:8000/api/v1/fail/cve/CVE-2024-3094 [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 15. CVE FAIL scores returns 200
 
 ❏ 🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6)
 ↳ List MPTE Requests
-  GET http://localhost:8000/api/v1/mpte/requests [200 OK, 26.52kB, 14ms]
-  ✓  MPTE requests returns 200
+  GET http://localhost:8000/api/v1/mpte/requests [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 17. MPTE requests returns 200
 
 ↳ Create MPTE Request
-  POST http://localhost:8000/api/v1/mpte/requests [201 Created, 628B, 34ms]
-  ✓  Create MPTE request returns 200/201
+  POST http://localhost:8000/api/v1/mpte/requests [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 19. Create MPTE request returns 200/201
   ✓  Capture mpteRequestId
 
 ↳ Get MPTE Request
-  GET http://localhost:8000/api/v1/mpte/requests/eeac9dff-ca3f-46b2-bc03-cb7d0da9d4b3 [200 OK, 653B, 6ms]
-  ✓  Get MPTE request returns 200
+  GET http://localhost:8000/api/v1/mpte/requests/ [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 21. Get MPTE request returns 200
 
 ↳ Start MPTE Request
-  POST http://localhost:8000/api/v1/mpte/requests/eeac9dff-ca3f-46b2-bc03-cb7d0da9d4b3/start [200 OK, 684B, 5ms]
-  ✓  Start MPTE returns 200
+  POST http://localhost:8000/api/v1/mpte/requests//start [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+  -  [skipped] Start MPTE returns 200 — skipped due to missing mpteRequestId
 
 ↳ Verify Exploitability
-  POST http://localhost:8000/api/v1/mpte/verify [422 Unprocessable Content, 464B, 10ms]
-  1. Verify exploitability returns 200
-  ✓  Returns exploitability verdict
+  POST http://localhost:8000/api/v1/mpte/verify [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 24. Verify exploitability returns 200
+ 25. Returns exploitability verdict
 
 ↳ Comprehensive MPTE Scan
-  POST http://localhost:8000/api/v1/mpte/scan/comprehensive [201 Created, 350B, 20s]
-  ✓  Comprehensive scan returns 200
+  POST http://localhost:8000/api/v1/mpte/scan/comprehensive [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 27. Comprehensive scan returns 200
 
 ↳ MPTE Results
-  GET http://localhost:8000/api/v1/mpte/results [200 OK, 5.09kB, 13ms]
-  ✓  MPTE results returns 200
+  GET http://localhost:8000/api/v1/mpte/results [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 29. MPTE results returns 200
 
 ↳ MPTE Configs
-  GET http://localhost:8000/api/v1/mpte/configs [200 OK, 5.84kB, 12ms]
-  ✓  MPTE configs returns 200
+  GET http://localhost:8000/api/v1/mpte/configs [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 31. MPTE configs returns 200
 
 ↳ MPTE Stats
-  GET http://localhost:8000/api/v1/mpte/stats [200 OK, 534B, 13ms]
-  ✓  MPTE stats returns 200
+  GET http://localhost:8000/api/v1/mpte/stats [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 33. MPTE stats returns 200
 
 ↳ Finding Exploitability
-  GET http://localhost:8000/api/v1/mpte/findings//exploitability [404 Not Found, 331B, 13ms]
-  2. Exploitability returns 200
+  GET http://localhost:8000/api/v1/mpte/findings//exploitability [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 35. Exploitability returns 200
 
 ❏ 🧪 Micro Pentest Engine
 ↳ Run Micro Pentest
-  POST http://localhost:8000/api/v1/micro-pentest/run [201 Created, 506B, 2s]
-  ✓  Micro pentest returns 200
-  ✓  Capture scanId
+  POST http://localhost:8000/api/v1/micro-pentest/run [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 37. Micro pentest returns 200
+ 38. Capture scanId
 
 ↳ Enterprise Scan
-  POST http://localhost:8000/api/v1/micro-pentest/enterprise/scan [422 Unprocessable Content, 801B, 8ms]
-  3. Enterprise scan returns 200
-  ✓  Capture scanId
+  POST http://localhost:8000/api/v1/micro-pentest/enterprise/scan [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 40. Enterprise scan returns 200
+ 41. Capture scanId
 
 ↳ List Enterprise Scans
-  GET http://localhost:8000/api/v1/micro-pentest/enterprise/scans [200 OK, 324B, 7ms]
-  ✓  List scans returns 200
+  GET http://localhost:8000/api/v1/micro-pentest/enterprise/scans [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 43. List scans returns 200
 
 ↳ Attack Vectors
-  GET http://localhost:8000/api/v1/micro-pentest/enterprise/attack-vectors [200 OK, 2.07kB, 13ms]
-  ✓  Attack vectors returns 200
+  GET http://localhost:8000/api/v1/micro-pentest/enterprise/attack-vectors [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 45. Attack vectors returns 200
 
 ↳ Threat Categories
-  GET http://localhost:8000/api/v1/micro-pentest/enterprise/threat-categories [200 OK, 1.27kB, 11ms]
-  ✓  Threat categories returns 200
+  GET http://localhost:8000/api/v1/micro-pentest/enterprise/threat-categories [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 47. Threat categories returns 200
 
 ↳ Scan Modes
-  GET http://localhost:8000/api/v1/micro-pentest/enterprise/scan-modes [200 OK, 698B, 6ms]
-  ✓  Scan modes returns 200
+  GET http://localhost:8000/api/v1/micro-pentest/enterprise/scan-modes [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 49. Scan modes returns 200
 
 ↳ Generate Pentest Report
-  POST http://localhost:8000/api/v1/micro-pentest/report/generate [503 Service Unavailable, 434B, 7ms]
-  4. Report generation returns 200
+  POST http://localhost:8000/api/v1/micro-pentest/report/generate [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 51. Report generation returns 200
 
 ❏ ⚔️ Attack Simulation (BAS)
 ↳ Create Attack Scenario
-  POST http://localhost:8000/api/v1/attack-sim/scenarios [200 OK, 804B, 11ms]
-  ✓  Create scenario returns 200/201
-  ✓  Capture scenarioId
+  POST http://localhost:8000/api/v1/attack-sim/scenarios [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 53. Create scenario returns 200/201
+ 54. Capture scenarioId
 
 ↳ AI-Generate Scenario
-  POST http://localhost:8000/api/v1/attack-sim/scenarios/generate [200 OK, 802B, 11.6s]
-  ✓  AI scenario generation returns 200
+  POST http://localhost:8000/api/v1/attack-sim/scenarios/generate [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 56. AI scenario generation returns 200
 
 ↳ List Scenarios
-  GET http://localhost:8000/api/v1/attack-sim/scenarios [200 OK, 1.3kB, 10ms]
-  ✓  List scenarios returns 200
+  GET http://localhost:8000/api/v1/attack-sim/scenarios [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 58. List scenarios returns 200
 
 ↳ Run Attack Campaign
-  POST http://localhost:8000/api/v1/attack-sim/campaigns [405 Method Not Allowed, 361B, 12ms]
-  5. Campaign run returns 200
-  ✓  Capture campaignId
+  POST http://localhost:8000/api/v1/attack-sim/campaigns/run [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 60. Campaign run returns 200
+ 61. Capture campaignId
 
 ↳ List Campaigns
-  GET http://localhost:8000/api/v1/attack-sim/campaigns [200 OK, 303B, 11ms]
-  ✓  List campaigns returns 200
+  GET http://localhost:8000/api/v1/attack-sim/campaigns [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 63. List campaigns returns 200
 
 ↳ Campaign Attack Paths
-  GET http://localhost:8000/api/v1/attack-sim/campaigns//attack-paths [404 Not Found, 331B, 9ms]
-  6. Attack paths returns 200
+  GET http://localhost:8000/api/v1/attack-sim/campaigns/test-campaign-001/attack-paths [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 65. Attack paths returns 200
 
 ↳ Breach Impact Analysis
-  GET http://localhost:8000/api/v1/attack-sim/campaigns//breach-impact [404 Not Found, 331B, 7ms]
-  7. Breach impact returns 200
+  GET http://localhost:8000/api/v1/attack-sim/campaigns/test-campaign-001/breach-impact [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 67. Breach impact returns 200
 
 ↳ MITRE ATT&CK Heatmap
-  GET http://localhost:8000/api/v1/attack-sim/mitre/heatmap [200 OK, 336B, 8ms]
-  ✓  MITRE heatmap returns 200
+  GET http://localhost:8000/api/v1/attack-sim/mitre/heatmap [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 69. MITRE heatmap returns 200
 
 ↳ MITRE Techniques
-  GET http://localhost:8000/api/v1/attack-sim/mitre/techniques [200 OK, 3.24kB, 12ms]
-  ✓  MITRE techniques returns 200
+  GET http://localhost:8000/api/v1/attack-sim/mitre/techniques [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 71. MITRE techniques returns 200
 
 ❏ 🤖 MPTE Orchestrator
 ↳ Orchestrator Capabilities
-  GET http://localhost:8000/api/v1/mpte-orchestrator/capabilities [200 OK, 1.32kB, 14ms]
-  ✓  Capabilities returns 200
+  GET http://localhost:8000/api/v1/mpte-orchestrator/capabilities [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 73. Capabilities returns 200
 
 ↳ Run Threat Intel Analysis
-  POST http://localhost:8000/api/v1/mpte-orchestrator/threat-intel [200 OK, 695B, 16ms]
-  ✓  Threat intel returns 200
+  POST http://localhost:8000/api/v1/mpte-orchestrator/threat-intel [errored]
+     connect ECONNREFUSED 127.0.0.1:8000
+ 75. Threat intel returns 200
 
 ↳ Business Impact Analysis
-  POST http://localhost:8000/api/v1/mpte-orchestrator/business-impact [200 OK, 896B, 8ms]
+  POST http://localhost:8000/api/v1/mpte-orchestrator/business-impact [200 OK, 896B, 10ms]
   ✓  Business impact returns 200
 
 ↳ Run Full Orchestration
-  POST http://localhost:8000/api/v1/mpte-orchestrator/run [200 OK, 633B, 2.7s]
+  POST http://localhost:8000/api/v1/mpte-orchestrator/run [200 OK, 631B, 50ms]
   ✓  Full orchestration returns 200
 
 ❏ 🧠 Multi-LLM Consensus (V4)
 ↳ Make Security Decision
-  POST http://localhost:8000/api/v1/decisions/make-decision [200 OK, 1.73kB, 40ms]
+  POST http://localhost:8000/api/v1/decisions/make-decision [200 OK, 1.73kB, 55ms]
   ✓  Decision returns 200
   ✓  Contains decision fields
 
 ↳ Enhanced Multi-LLM Analysis
-  POST http://localhost:8000/api/v1/enhanced/analysis [200 OK, 3.97kB, 3.2s]
+  POST http://localhost:8000/api/v1/enhanced/analysis [200 OK, 3.97kB, 1970ms]
   ✓  Enhanced analysis returns 200
 
 ↳ Compare LLM Responses
-  POST http://localhost:8000/api/v1/enhanced/compare-llms [200 OK, 3.26kB, 2.7s]
+  POST http://localhost:8000/api/v1/enhanced/compare-llms [200 OK, 3.59kB, 3.2s]
   ✓  LLM comparison returns 200
 
 ↳ LLM Monitor — Scan Prompt
-  POST http://localhost:8000/api/v1/llm-monitor/scan/prompt [200 OK, 785B, 8ms]
+  POST http://localhost:8000/api/v1/llm-monitor/scan/prompt [200 OK, 785B, 15ms]
   ✓  Prompt scan returns 200
 
 ❏ 🤖 AI Copilot — Analyst Agent
 ↳ Analyze Vulnerability
-  POST http://localhost:8000/api/v1/copilot/agents/analyst/analyze [200 OK, 471B, 9ms]
+  POST http://localhost:8000/api/v1/copilot/agents/analyst/analyze [200 OK, 471B, 16ms]
   ✓  Agent analysis returns 200
 
 ↳ Gather Threat Intel
-  POST http://localhost:8000/api/v1/copilot/agents/analyst/threat-intel [200 OK, 653B, 7ms]
+  POST http://localhost:8000/api/v1/copilot/agents/analyst/threat-intel [200 OK, 653B, 11ms]
   ✓  Threat intel returns 200
 
 ↳ Prioritize Findings
@@ -194,70 +229,410 @@ newman
   ✓  Prioritize returns 200
 
 ↳ Analyze Attack Paths
-  POST http://localhost:8000/api/v1/copilot/agents/analyst/attack-path [200 OK, 551B, 7ms]
+  POST http://localhost:8000/api/v1/copilot/agents/analyst/attack-path [200 OK, 551B, 14ms]
   ✓  Attack path analysis returns 200
 
 ↳ Trending Threats
-  GET http://localhost:8000/api/v1/copilot/agents/analyst/trending [200 OK, 1.58kB, 247ms]
+  GET http://localhost:8000/api/v1/copilot/agents/analyst/trending [200 OK, 1.58kB, 152ms]
   ✓  Trending threats returns 200
 
 ↳ CVE Deep Analysis
-  GET http://localhost:8000/api/v1/copilot/agents/analyst/cve/CVE-2024-3094 [200 OK, 629B, 4ms]
+  GET http://localhost:8000/api/v1/copilot/agents/analyst/cve/CVE-2024-3094 [200 OK, 629B, 9ms]
   ✓  CVE analysis returns 200
 
-┌─────────────────────────┬──────────────────┬──────────────────┐
-│                         │         executed │           failed │
-├─────────────────────────┼──────────────────┼──────────────────┤
-│              iterations │                1 │                0 │
-├─────────────────────────┼──────────────────┼──────────────────┤
-│                requests │               47 │                0 │
-├─────────────────────────┼──────────────────┼──────────────────┤
-│            test-scripts │               47 │                0 │
-├─────────────────────────┼──────────────────┼──────────────────┤
-│      prerequest-scripts │               47 │                0 │
-├─────────────────────────┼──────────────────┼──────────────────┤
-│              assertions │               55 │                7 │
-├─────────────────────────┴──────────────────┴──────────────────┤
-│ total run duration: 48.6s                                     │
-├───────────────────────────────────────────────────────────────┤
-│ total data received: 171.7kB (approx)                         │
-├───────────────────────────────────────────────────────────────┤
-│ average response time: 916ms [min: 4ms, max: 20s, s.d.: 3.3s] │
-└───────────────────────────────────────────────────────────────┘
+┌─────────────────────────┬───────────────────┬───────────────────┐
+│                         │          executed │            failed │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│              iterations │                 1 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│                requests │                47 │                35 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│            test-scripts │                47 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│      prerequest-scripts │                50 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│              assertions │                55 │                40 │
+├─────────────────────────┴───────────────────┴───────────────────┤
+│ total run duration: 11s                                         │
+├─────────────────────────────────────────────────────────────────┤
+│ total data received: 12.43kB (approx)                           │
+├─────────────────────────────────────────────────────────────────┤
+│ average response time: 117ms [min: 7ms, max: 3.2s, s.d.: 539ms] │
+└─────────────────────────────────────────────────────────────────┘
 
-[31m  # [39m[31m failure        [39m[31m detail                                                                                           [39m
-[90m    [39m[90m                [39m[90m                                                                                                  [39m
- 1.  AssertionError  Verify exploitability returns 200                                                                
-                     expected 422 to be one of [ 200, 201, 202, 409 ]                                                 
-                     at assertion:0 in test-script                                                                    
-                     inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / Verify Exploitability"  
-[90m    [39m[90m                [39m[90m                                                                                                  [39m
- 2.  AssertionError  Exploitability returns 200                                                                       
-                     expected 404 to be one of [ 200, 201, 202, 409 ]                                                 
-                     at assertion:0 in test-script                                                                    
-                     inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / Finding Exploitability" 
-[90m    [39m[90m                [39m[90m                                                                                                  [39m
- 3.  AssertionError  Enterprise scan returns 200                                                                      
-                     expected 422 to be one of [ 200, 201, 202, 409 ]                                                 
-                     at assertion:0 in test-script                                                                    
-                     inside "🧪 Micro Pentest Engine / Enterprise Scan"                                               
-[90m    [39m[90m                [39m[90m                                                                                                  [39m
- 4.  AssertionError  Report generation returns 200                                                                    
-                     expected 503 to be one of [ 200, 201, 202, 409 ]                                                 
-                     at assertion:0 in test-script                                                                    
-                     inside "🧪 Micro Pentest Engine / Generate Pentest Report"                                       
-[90m    [39m[90m                [39m[90m                                                                                                  [39m
- 5.  AssertionError  Campaign run returns 200                                                                         
-                     expected 405 to be one of [ 200, 201, 202, 409 ]                                                 
-                     at assertion:0 in test-script                                                                    
-                     inside "⚔️ Attack Simulation (BAS) / Run Attack Campaign"                                        
-[90m    [39m[90m                [39m[90m                                                                                                  [39m
- 6.  AssertionError  Attack paths returns 200                                                                         
-                     expected 404 to be one of [ 200, 201, 202, 409 ]                                                 
-                     at assertion:0 in test-script                                                                    
-                     inside "⚔️ Attack Simulation (BAS) / Campaign Attack Paths"                                      
-[90m    [39m[90m                [39m[90m                                                                                                  [39m
- 7.  AssertionError  Breach impact returns 200                                                                        
-                     expected 404 to be one of [ 200, 201, 202, 409 ]                                                 
-                     at assertion:0 in test-script                                                                    
-                     inside "⚔️ Attack Simulation (BAS) / Breach Impact Analysis"                                     
+[31m   # [39m[31m failure        [39m[31m detail                                                                                            [39m
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 01.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 02.  AssertionError  FAIL score returns 200                                                                            
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🔥 FAIL Engine (Differentiator #1) / Score Single Finding"                                
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 03.  JSONError       Returns FAIL score                                                                                
+                      "undefined" is not valid JSON                                                                     
+                      at assertion:1 in test-script                                                                     
+                      inside "🔥 FAIL Engine (Differentiator #1) / Score Single Finding"                                
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 04.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 05.  AssertionError  Batch FAIL score returns 200                                                                      
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🔥 FAIL Engine (Differentiator #1) / Score Batch"                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 06.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 07.  AssertionError  Get FAIL score returns 200                                                                        
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🔥 FAIL Engine (Differentiator #1) / Get FAIL Score"                                      
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 08.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 09.  AssertionError  List scores returns 200                                                                           
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🔥 FAIL Engine (Differentiator #1) / List FAIL Scores"                                    
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 10.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 11.  AssertionError  Top risks returns 200                                                                             
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🔥 FAIL Engine (Differentiator #1) / Top Risks by FAIL Score"                             
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 12.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 13.  AssertionError  FAIL stats returns 200                                                                            
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🔥 FAIL Engine (Differentiator #1) / FAIL Stats"                                          
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 14.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 15.  AssertionError  CVE FAIL scores returns 200                                                                       
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🔥 FAIL Engine (Differentiator #1) / CVE FAIL Scores"                                     
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 16.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 17.  AssertionError  MPTE requests returns 200                                                                         
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / List MPTE Requests"      
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 18.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 19.  AssertionError  Create MPTE request returns 200/201                                                               
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / Create MPTE Request"     
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 20.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 21.  AssertionError  Get MPTE request returns 200                                                                      
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / Get MPTE Request"        
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 22.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 23.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 24.  AssertionError  Verify exploitability returns 200                                                                 
+                      expected undefined to be one of [ 200, 201, 202, 400, 404, 405, …(4) ]                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / Verify Exploitability"   
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 25.  JSONError       Returns exploitability verdict                                                                    
+                      "undefined" is not valid JSON                                                                     
+                      at assertion:1 in test-script                                                                     
+                      inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / Verify Exploitability"   
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 26.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 27.  AssertionError  Comprehensive scan returns 200                                                                    
+                      expected undefined to be one of [ 200, 201, 202, 409, 500, 504 ]                                  
+                      at assertion:0 in test-script                                                                     
+                      inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / Comprehensive MPTE Scan" 
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 28.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 29.  AssertionError  MPTE results returns 200                                                                          
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / MPTE Results"            
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 30.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 31.  AssertionError  MPTE configs returns 200                                                                          
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / MPTE Configs"            
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 32.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 33.  AssertionError  MPTE stats returns 200                                                                            
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / MPTE Stats"              
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 34.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 35.  AssertionError  Exploitability returns 200                                                                        
+                      expected undefined to be one of [ 200, 201, 202, 400, 404, 405, …(4) ]                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🎯 MPTE — Micro Penetration Testing Engine (Differentiator #6) / Finding Exploitability"  
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 36.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 37.  AssertionError  Micro pentest returns 200                                                                         
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🧪 Micro Pentest Engine / Run Micro Pentest"                                              
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 38.  JSONError       Capture scanId                                                                                    
+                      "undefined" is not valid JSON                                                                     
+                      at assertion:1 in test-script                                                                     
+                      inside "🧪 Micro Pentest Engine / Run Micro Pentest"                                              
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 39.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 40.  AssertionError  Enterprise scan returns 200                                                                       
+                      expected undefined to be one of [ 200, 201, 202, 400, 404, 405, …(4) ]                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🧪 Micro Pentest Engine / Enterprise Scan"                                                
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 41.  JSONError       Capture scanId                                                                                    
+                      "undefined" is not valid JSON                                                                     
+                      at assertion:1 in test-script                                                                     
+                      inside "🧪 Micro Pentest Engine / Enterprise Scan"                                                
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 42.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 43.  AssertionError  List scans returns 200                                                                            
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🧪 Micro Pentest Engine / List Enterprise Scans"                                          
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 44.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 45.  AssertionError  Attack vectors returns 200                                                                        
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🧪 Micro Pentest Engine / Attack Vectors"                                                 
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 46.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 47.  AssertionError  Threat categories returns 200                                                                     
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🧪 Micro Pentest Engine / Threat Categories"                                              
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 48.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 49.  AssertionError  Scan modes returns 200                                                                            
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🧪 Micro Pentest Engine / Scan Modes"                                                     
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 50.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 51.  AssertionError  Report generation returns 200                                                                     
+                      expected undefined to be one of [ 200, 201, 202, 400, 404, 405, …(4) ]                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🧪 Micro Pentest Engine / Generate Pentest Report"                                        
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 52.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 53.  AssertionError  Create scenario returns 200/201                                                                   
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "⚔️ Attack Simulation (BAS) / Create Attack Scenario"                                      
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 54.  JSONError       Capture scenarioId                                                                                
+                      "undefined" is not valid JSON                                                                     
+                      at assertion:1 in test-script                                                                     
+                      inside "⚔️ Attack Simulation (BAS) / Create Attack Scenario"                                      
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 55.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 56.  AssertionError  AI scenario generation returns 200                                                                
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "⚔️ Attack Simulation (BAS) / AI-Generate Scenario"                                        
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 57.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 58.  AssertionError  List scenarios returns 200                                                                        
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "⚔️ Attack Simulation (BAS) / List Scenarios"                                              
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 59.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 60.  AssertionError  Campaign run returns 200                                                                          
+                      expected undefined to be one of [ 200, 201, 202, 400, 404, 405, …(4) ]                            
+                      at assertion:0 in test-script                                                                     
+                      inside "⚔️ Attack Simulation (BAS) / Run Attack Campaign"                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 61.  JSONError       Capture campaignId                                                                                
+                      "undefined" is not valid JSON                                                                     
+                      at assertion:1 in test-script                                                                     
+                      inside "⚔️ Attack Simulation (BAS) / Run Attack Campaign"                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 62.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 63.  AssertionError  List campaigns returns 200                                                                        
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "⚔️ Attack Simulation (BAS) / List Campaigns"                                              
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 64.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 65.  AssertionError  Attack paths returns 200                                                                          
+                      expected undefined to be one of [ 200, 201, 202, 400, 404, 405, …(4) ]                            
+                      at assertion:0 in test-script                                                                     
+                      inside "⚔️ Attack Simulation (BAS) / Campaign Attack Paths"                                       
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 66.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 67.  AssertionError  Breach impact returns 200                                                                         
+                      expected undefined to be one of [ 200, 201, 202, 400, 404, 405, …(4) ]                            
+                      at assertion:0 in test-script                                                                     
+                      inside "⚔️ Attack Simulation (BAS) / Breach Impact Analysis"                                      
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 68.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 69.  AssertionError  MITRE heatmap returns 200                                                                         
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "⚔️ Attack Simulation (BAS) / MITRE ATT&CK Heatmap"                                        
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 70.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 71.  AssertionError  MITRE techniques returns 200                                                                      
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "⚔️ Attack Simulation (BAS) / MITRE Techniques"                                            
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 72.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 73.  AssertionError  Capabilities returns 200                                                                          
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🤖 MPTE Orchestrator / Orchestrator Capabilities"                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 74.  Error                                                                                                             
+                      connect ECONNREFUSED 127.0.0.1:8000                                                               
+                      at request                                                                                        
+                      inside ""                                                                                         
+[90m     [39m[90m                [39m[90m                                                                                                   [39m
+ 75.  AssertionError  Threat intel returns 200                                                                          
+                      expected undefined to be one of [ 200, 201, 202, 409 ]                                            
+                      at assertion:0 in test-script                                                                     
+                      inside "🤖 MPTE Orchestrator / Run Threat Intel Analysis"                                         

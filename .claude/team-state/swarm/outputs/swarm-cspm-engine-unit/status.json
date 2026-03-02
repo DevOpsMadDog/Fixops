@@ -1,0 +1,57 @@
+{
+  "task_id": "swarm-cspm-engine-unit",
+  "worker_id": "junior-01",
+  "status": "completed",
+  "files_modified": [],
+  "files_created": [
+    "tests/test_cspm_engine.py"
+  ],
+  "summary": "Wrote 136 pytest tests covering 97.01% of suite-core/core/cspm_engine.py. All 136 tests pass in 0.24s with no failures.",
+  "issues": [
+    "Lines 352, 358, 364 (boto3/azure/gcp optional SDK imports) are uncovered — these branches require real cloud SDKs which are not installed in the test environment and are structurally untestable without them.",
+    "Lines 507-509 (generic Exception handler in scan_cloudformation) not triggered — json.JSONDecodeError is always raised for malformed JSON before the generic handler is reached."
+  ],
+  "needs_senior_review": false,
+  "confidence": 0.97,
+  "duration_turns": 6,
+  "test_results": {
+    "total": 136,
+    "passed": 136,
+    "failed": 0,
+    "errors": 0,
+    "duration_s": 0.24,
+    "coverage_percent": 97.01
+  },
+  "test_classes": [
+    "TestCloudProvider (3)",
+    "TestCspmSeverity (2)",
+    "TestCspmCategory (1)",
+    "TestCspmFinding (6)",
+    "TestCspmScanResult (3)",
+    "TestRuleCatalogues (11)",
+    "TestCSPMEngineInit (2)",
+    "TestDetectProviderTf (8)",
+    "TestMakeFinding (13)",
+    "TestSummarize (4)",
+    "TestScanTerraformResultStructure (6)",
+    "TestScanTerraformS3Public (6)",
+    "TestScanTerraformOpenSecurityGroup (3)",
+    "TestScanTerraformUnencryptedEBS (4)",
+    "TestScanTerraformPublicRDS (4)",
+    "TestScanTerraformMissingCloudTrail (3)",
+    "TestScanTerraformIAMWildcard (3)",
+    "TestScanTerraformMultipleFindings (6)",
+    "TestScanTerraformSecureConfig (6)",
+    "TestScanTerraformAzureProvider (2)",
+    "TestScanTerraformGCPProvider (1)",
+    "TestScanTerraformEdgeCases (8)",
+    "TestScanCloudFormationStructure (5)",
+    "TestScanCloudFormationS3 (2)",
+    "TestScanCloudFormationSecurityGroup (4)",
+    "TestScanCloudFormationRDS (3)",
+    "TestScanCloudFormationEdgeCases (8)",
+    "TestGetCspmEngine (3)",
+    "TestComplianceScoreCalculation (3)",
+    "TestFindingSerialisation (2)"
+  ]
+}

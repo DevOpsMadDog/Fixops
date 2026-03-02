@@ -2389,3 +2389,475 @@ class TestSecretsScanResultDataclass:
             branch="b",
         )
         assert result.to_dict()["status"] == "cancelled"
+
+
+# ============================================================================
+# Tests to cover remaining uncovered lines:
+#   583-618  : _scan_content_builtin (direct call)
+#   699-703  : scan_content PermissionError fallback
+#   719->775 : inline builtin fallback with actual findings (for loop 733-754)
+# ============================================================================
+
+
+class TestScanContentBuiltinDirect:
+    """Tests for _scan_content_builtin called directly.
+
+    Lines 583-618 (+ 618-630): The direct _scan_content_builtin method.
+    This is a separate fallback path used when SCAN_BASE_PATH cannot be created.
+    """
+
+    @pytest.fixture
+    def detector(self):
+        return SecretsDetector(SecretsScannerConfig(timeout_seconds=30))
+
+    @pytest.mark.asyncio
+    async def test_scan_content_builtin_no_findings(self, detector):
+        """Test _scan_content_builtin with content that has no secrets."""
+        from unittest.mock import MagicMock, patch
+
+        mock_scanner = MagicMock()
+        mock_scanner.scan_content.return_value = []
+
+        with patch("core.real_scanner.get_real_secrets_scanner", return_value=mock_scanner):
+            result = await detector._scan_content_builtin(
+                content="print('hello world')",
+                filename="hello.py",
+                repository="test-repo",
+                branch="main",
+            )
+
+        assert result.status == SecretsScanStatus.COMPLETED
+        assert len(result.findings) == 0
+        assert result.target_path == "hello.py"
+        assert result.repository == "test-repo"
+        assert result.branch == "main"
+        assert result.metadata.get("fallback") == "builtin_scanner"
+        assert result.metadata.get("reason") == "scan_path_unavailable"
+        assert result.scanner == SecretsScanner.GITLEAKS
+        assert result.duration_seconds is not None
+        assert result.duration_seconds >= 0.0
+
+    @pytest.mark.asyncio
+    async def test_scan_content_builtin_with_findings(self, detector):
+        """Test _scan_content_builtin converts real findings to SecretFinding objects.
+
+        This exercises lines 592-613 (the for loop that converts RealFinding objects).
+        """
+        from dataclasses import dataclass, field as dc_field
+        from datetime import datetime
+        from unittest.mock import MagicMock
+
+        # Build a mock RealFinding with the shape real_scanner.RealFinding has
+        @dataclass
+        class MockRealFinding:
+            finding_id: str = "rf-001"
+            description: str = "AWS Access Key detected"
+            verified: bool = True
+            evidence: dict = dc_field(default_factory=lambda: {
+                "secret_type": "aws-access-key",
+                "line_number": 5,
+                "redacted_match": "AKIA***EXAMPLE",
+            })
+
+        mock_scanner = MagicMock()
+        mock_scanner.scan_content.return_value = [MockRealFinding()]
+
+        with patch("core.real_scanner.get_real_secrets_scanner", return_value=mock_scanner):
+            result = await detector._scan_content_builtin(
+                content="AWS_KEY = 'AKIAIOSFODNN7EXAMPLE'",
+                filename="secrets.py",
+                repository="my-repo",
+                branch="dev",
+            )
+
+        assert result.status == SecretsScanStatus.COMPLETED
+        assert len(result.findings) == 1
+        finding = result.findings[0]
+        assert finding.id == "rf-001"
+        assert finding.file_path == "secrets.py"
+        assert finding.line_number == 5
+        assert finding.repository == "my-repo"
+        assert finding.branch == "dev"
+        assert finding.commit_hash is None
+        assert finding.matched_pattern == "AKIA***EXAMPLE"
+        assert finding.entropy_score is None
+        assert finding.metadata["scanner"] == "builtin"
+        assert finding.metadata["verified"] is True
+        assert finding.status == SecretStatus.ACTIVE
+        # Secret type is mapped from "aws-access-key" -> AWS_KEY
+        assert finding.secret_type == SecretType.AWS_KEY
+
+    @pytest.mark.asyncio
+    async def test_scan_content_builtin_multiple_findings(self, detector):
+        """Test _scan_content_builtin with multiple real findings."""
+        from dataclasses import dataclass, field as dc_field
+        from unittest.mock import MagicMock
+
+        @dataclass
+        class MockRealFinding:
+            finding_id: str = "rf-001"
+            description: str = "secret found"
+            verified: bool = True
+            evidence: dict = dc_field(default_factory=dict)
+
+        mock_findings = [
+            MockRealFinding(finding_id="rf-001", description="AWS key", evidence={"secret_type": "aws-key", "line_number": 1, "redacted_match": "AKIA..."}),
+            MockRealFinding(finding_id="rf-002", description="GitHub token", evidence={"secret_type": "github-token", "line_number": 10, "redacted_match": "ghp_..."}),
+            MockRealFinding(finding_id="rf-003", description="Password found", evidence={"secret_type": "password", "line_number": 20, "redacted_match": "pass..."}),
+        ]
+
+        mock_scanner = MagicMock()
+        mock_scanner.scan_content.return_value = mock_findings
+
+        with patch("core.real_scanner.get_real_secrets_scanner", return_value=mock_scanner):
+            result = await detector._scan_content_builtin(
+                content="code with secrets",
+                filename="multi.py",
+            )
+
+        assert result.status == SecretsScanStatus.COMPLETED
+        assert len(result.findings) == 3
+        assert result.findings[0].id == "rf-001"
+        assert result.findings[1].id == "rf-002"
+        assert result.findings[2].id == "rf-003"
+        # All findings have their file_path set to the provided filename
+        for f in result.findings:
+            assert f.file_path == "multi.py"
+
+    @pytest.mark.asyncio
+    async def test_scan_content_builtin_default_params(self, detector):
+        """Test _scan_content_builtin uses default repository and branch."""
+        from unittest.mock import MagicMock
+
+        mock_scanner = MagicMock()
+        mock_scanner.scan_content.return_value = []
+
+        with patch("core.real_scanner.get_real_secrets_scanner", return_value=mock_scanner):
+            result = await detector._scan_content_builtin(
+                content="",
+                filename="empty.py",
+            )
+
+        assert result.repository == "inline"
+        assert result.branch == "main"
+        assert result.status == SecretsScanStatus.COMPLETED
+
+    @pytest.mark.asyncio
+    async def test_scan_content_builtin_timestamps_set(self, detector):
+        """Test that _scan_content_builtin sets started_at and completed_at."""
+        from unittest.mock import MagicMock
+
+        mock_scanner = MagicMock()
+        mock_scanner.scan_content.return_value = []
+
+        with patch("core.real_scanner.get_real_secrets_scanner", return_value=mock_scanner):
+            result = await detector._scan_content_builtin("content", "f.py")
+
+        assert result.started_at is not None
+        assert result.completed_at is not None
+        assert result.completed_at >= result.started_at
+
+    @pytest.mark.asyncio
+    async def test_scan_content_builtin_finding_no_redacted_match(self, detector):
+        """Test _scan_content_builtin when evidence has no redacted_match."""
+        from dataclasses import dataclass, field as dc_field
+        from unittest.mock import MagicMock
+
+        @dataclass
+        class MockRealFinding:
+            finding_id: str = "rf-no-match"
+            description: str = "some secret"
+            verified: bool = False
+            evidence: dict = dc_field(default_factory=lambda: {
+                "secret_type": "generic",
+                "line_number": 3,
+                # No "redacted_match" key
+            })
+
+        mock_scanner = MagicMock()
+        mock_scanner.scan_content.return_value = [MockRealFinding()]
+
+        with patch("core.real_scanner.get_real_secrets_scanner", return_value=mock_scanner):
+            result = await detector._scan_content_builtin("code", "f.py")
+
+        assert len(result.findings) == 1
+        # evidence.get("redacted_match") returns None when key absent
+        assert result.findings[0].matched_pattern is None
+        assert result.findings[0].metadata["verified"] is False
+
+
+class TestScanContentPermissionErrorFallback:
+    """Tests for scan_content PermissionError fallback (lines 699-705).
+
+    When os.makedirs(SCAN_BASE_PATH) raises PermissionError or OSError,
+    scan_content must fall back to _scan_content_builtin.
+    """
+
+    @pytest.fixture
+    def detector(self):
+        return SecretsDetector(SecretsScannerConfig(timeout_seconds=30))
+
+    @pytest.mark.asyncio
+    async def test_scan_content_permission_error_falls_back_to_builtin(self, detector):
+        """Test scan_content falls back to builtin scanner on PermissionError."""
+        from unittest.mock import MagicMock, AsyncMock
+
+        mock_scanner = MagicMock()
+        mock_scanner.scan_content.return_value = []
+
+        with patch("os.makedirs", side_effect=PermissionError("cannot create /var/fixops")):
+            with patch("core.real_scanner.get_real_secrets_scanner", return_value=mock_scanner):
+                result = await detector.scan_content(
+                    content="API_KEY = 'supersecretkey123'",
+                    filename="config.py",
+                    repository="fallback-test",
+                    branch="main",
+                )
+
+        assert result.status == SecretsScanStatus.COMPLETED
+        assert result.repository == "fallback-test"
+        assert result.branch == "main"
+        assert result.metadata.get("fallback") == "builtin_scanner"
+        assert result.metadata.get("reason") == "scan_path_unavailable"
+
+    @pytest.mark.asyncio
+    async def test_scan_content_oserror_falls_back_to_builtin(self, detector):
+        """Test scan_content falls back to builtin scanner on generic OSError."""
+        from unittest.mock import MagicMock
+
+        mock_scanner = MagicMock()
+        mock_scanner.scan_content.return_value = []
+
+        with patch("os.makedirs", side_effect=OSError("disk full")):
+            with patch("core.real_scanner.get_real_secrets_scanner", return_value=mock_scanner):
+                result = await detector.scan_content(
+                    content="password = 'topsecret'",
+                    filename="settings.py",
+                )
+
+        assert result.status == SecretsScanStatus.COMPLETED
+        assert result.metadata.get("reason") == "scan_path_unavailable"
+
+    @pytest.mark.asyncio
+    async def test_scan_content_permission_error_with_findings(self, detector):
+        """Test PermissionError fallback converts builtin findings correctly."""
+        from dataclasses import dataclass, field as dc_field
+        from unittest.mock import MagicMock
+
+        @dataclass
+        class MockRealFinding:
+            finding_id: str = "perm-rf-001"
+            description: str = "AWS key detected"
+            verified: bool = True
+            evidence: dict = dc_field(default_factory=lambda: {
+                "secret_type": "aws-access-key",
+                "line_number": 2,
+                "redacted_match": "AKIA****EXAMPLE",
+            })
+
+        mock_scanner = MagicMock()
+        mock_scanner.scan_content.return_value = [MockRealFinding()]
+
+        with patch("os.makedirs", side_effect=PermissionError("no access")):
+            with patch("core.real_scanner.get_real_secrets_scanner", return_value=mock_scanner):
+                result = await detector.scan_content(
+                    content="AWS_KEY = 'AKIAIOSFODNN7EXAMPLE'",
+                    filename="aws_config.py",
+                )
+
+        assert result.status == SecretsScanStatus.COMPLETED
+        assert len(result.findings) == 1
+        assert result.findings[0].id == "perm-rf-001"
+        assert result.findings[0].file_path == "aws_config.py"
+        assert result.findings[0].secret_type == SecretType.AWS_KEY
+
+
+class TestScanContentBuiltinFallbackInline:
+    """Tests for the inline builtin fallback inside scan_content (lines 719-775).
+
+    This path is triggered when scan_content creates the temp file but no
+    external scanners are available. The inner for loop (lines 733-754) must
+    execute with actual mock findings to cover those lines.
+    """
+
+    @pytest.fixture
+    def temp_dir_setup(self):
+        """Create SCAN_BASE_PATH so os.makedirs succeeds."""
+        from core.secrets_scanner import SCAN_BASE_PATH
+        os.makedirs(SCAN_BASE_PATH, exist_ok=True)
+
+    @pytest.fixture
+    def detector(self, temp_dir_setup):
+        return SecretsDetector(SecretsScannerConfig(timeout_seconds=30))
+
+    @pytest.mark.asyncio
+    async def test_scan_content_inline_builtin_with_actual_findings(self, detector):
+        """Test inline builtin fallback in scan_content executes for-loop with findings.
+
+        Lines 733-754: The loop that converts RealFinding -> SecretFinding.
+        We mock get_available_scanners to return [] and mock the real scanner
+        to return non-empty findings, so the for loop body executes.
+        """
+        from dataclasses import dataclass, field as dc_field
+        from unittest.mock import MagicMock
+
+        @dataclass
+        class MockRealFinding:
+            finding_id: str = "inline-rf-001"
+            description: str = "GitHub token detected"
+            verified: bool = True
+            evidence: dict = dc_field(default_factory=lambda: {
+                "secret_type": "github-token",
+                "line_number": 7,
+                "redacted_match": "ghp_****",
+            })
+
+        mock_scanner = MagicMock()
+        mock_scanner.scan_content.return_value = [MockRealFinding()]
+
+        with patch.object(detector, "get_available_scanners", return_value=[]):
+            with patch("core.real_scanner.get_real_secrets_scanner", return_value=mock_scanner):
+                result = await detector.scan_content(
+                    content="GITHUB_TOKEN = 'ghp_abcdefghijklmnopqrstuvwxyz123456'",
+                    filename="env.py",
+                    repository="inline-test",
+                    branch="feature",
+                )
+
+        assert result.status == SecretsScanStatus.COMPLETED
+        assert len(result.findings) == 1
+        assert result.findings[0].id == "inline-rf-001"
+        assert result.findings[0].file_path == "env.py"
+        assert result.findings[0].repository == "inline-test"
+        assert result.findings[0].branch == "feature"
+        assert result.findings[0].matched_pattern == "ghp_****"
+        assert result.findings[0].status == SecretStatus.ACTIVE
+        assert result.findings[0].metadata["scanner"] == "builtin"
+        assert result.findings[0].metadata["verified"] is True
+        assert result.metadata.get("fallback") == "builtin_scanner"
+        assert result.scanner == SecretsScanner.GITLEAKS
+
+    @pytest.mark.asyncio
+    async def test_scan_content_inline_builtin_multiple_findings(self, detector):
+        """Test inline builtin fallback with multiple findings from real scanner."""
+        from dataclasses import dataclass, field as dc_field
+        from unittest.mock import MagicMock
+
+        @dataclass
+        class MockRealFinding:
+            finding_id: str = "x"
+            description: str = "found"
+            verified: bool = True
+            evidence: dict = dc_field(default_factory=dict)
+
+        findings_list = [
+            MockRealFinding(finding_id="inline-001", evidence={"secret_type": "password", "line_number": 1, "redacted_match": "pass..."}),
+            MockRealFinding(finding_id="inline-002", evidence={"secret_type": "api-key", "line_number": 5, "redacted_match": "key..."}),
+        ]
+
+        mock_scanner = MagicMock()
+        mock_scanner.scan_content.return_value = findings_list
+
+        with patch.object(detector, "get_available_scanners", return_value=[]):
+            with patch("core.real_scanner.get_real_secrets_scanner", return_value=mock_scanner):
+                result = await detector.scan_content(
+                    content="password = 'mySecret' \n api_key = 'ABCDEFGHIJKLMNOPQRST'",
+                    filename="config.env",
+                )
+
+        assert result.status == SecretsScanStatus.COMPLETED
+        assert len(result.findings) == 2
+        assert result.findings[0].id == "inline-001"
+        assert result.findings[1].id == "inline-002"
+        # File path should be the input filename, not the temp path
+        assert result.findings[0].file_path == "config.env"
+        assert result.findings[1].file_path == "config.env"
+
+    @pytest.mark.asyncio
+    async def test_scan_content_inline_builtin_finding_no_redacted_match(self, detector):
+        """Test inline builtin fallback when finding evidence has no redacted_match."""
+        from dataclasses import dataclass, field as dc_field
+        from unittest.mock import MagicMock
+
+        @dataclass
+        class MockRealFinding:
+            finding_id: str = "nrm-001"
+            description: str = "secret"
+            verified: bool = False
+            evidence: dict = dc_field(default_factory=lambda: {
+                "secret_type": "token",
+                "line_number": 3,
+                # no "redacted_match"
+            })
+
+        mock_scanner = MagicMock()
+        mock_scanner.scan_content.return_value = [MockRealFinding()]
+
+        with patch.object(detector, "get_available_scanners", return_value=[]):
+            with patch("core.real_scanner.get_real_secrets_scanner", return_value=mock_scanner):
+                result = await detector.scan_content(
+                    content="TOKEN = 'some_token_value'",
+                    filename="tokens.py",
+                )
+
+        assert result.status == SecretsScanStatus.COMPLETED
+        assert len(result.findings) == 1
+        # matched_pattern should be None when redacted_match is absent
+        assert result.findings[0].matched_pattern is None
+        assert result.findings[0].metadata["verified"] is False
+
+    @pytest.mark.asyncio
+    async def test_scan_content_inline_builtin_result_timestamps(self, detector):
+        """Test inline builtin fallback sets valid timestamps on result."""
+        from unittest.mock import MagicMock
+
+        mock_scanner = MagicMock()
+        mock_scanner.scan_content.return_value = []
+
+        with patch.object(detector, "get_available_scanners", return_value=[]):
+            with patch("core.real_scanner.get_real_secrets_scanner", return_value=mock_scanner):
+                result = await detector.scan_content(
+                    content="no secrets here",
+                    filename="clean.py",
+                )
+
+        assert result.started_at is not None
+        assert result.completed_at is not None
+        assert result.completed_at >= result.started_at
+        assert result.duration_seconds >= 0.0
+
+    @pytest.mark.asyncio
+    async def test_scan_content_inline_builtin_passes_correct_args_to_real_scanner(self, detector):
+        """Test that inline builtin calls scan_content with original content and filename."""
+        from unittest.mock import MagicMock
+
+        mock_scanner = MagicMock()
+        mock_scanner.scan_content.return_value = []
+
+        original_content = "SECRET_KEY = 'some_value'"
+        original_filename = "my_module.py"
+
+        with patch.object(detector, "get_available_scanners", return_value=[]):
+            with patch("core.real_scanner.get_real_secrets_scanner", return_value=mock_scanner):
+                await detector.scan_content(
+                    content=original_content,
+                    filename=original_filename,
+                )
+
+        # Verify the builtin scanner was called with the original content and filename
+        mock_scanner.scan_content.assert_called_once_with(original_content, original_filename)
+
+    @pytest.mark.asyncio
+    async def test_scan_content_explicit_scanner_bypasses_builtin_fallback(self, detector):
+        """Test that explicitly specifying a scanner bypasses the builtin fallback path."""
+        with patch.object(detector, "_run_gitleaks") as mock_gitleaks:
+            mock_gitleaks.return_value = ([], "", None)
+            result = await detector.scan_content(
+                content="content",
+                filename="f.py",
+                scanner=SecretsScanner.GITLEAKS,
+            )
+
+        assert result.status == SecretsScanStatus.COMPLETED
+        mock_gitleaks.assert_called_once()
+

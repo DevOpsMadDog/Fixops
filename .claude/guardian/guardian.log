@@ -302,3 +302,10 @@
 [2026-03-02T02:25:15Z] POST-AGENT: qa-engineer (exit: 0, risk: medium)
 [2026-03-02T02:25:22Z] POST-AGENT: qa-engineer — ACCEPTED (impact: 228597, pillars: NONE, violations: 0)
 [2026-03-02T02:25:22Z]   ⚠️  HIGH IMPACT SCORE (228597) — review recommended
+[2026-03-02T02:35:43Z] Guardian initialized for run swarm-2026-03-02_13-35-43
+[2026-03-02T02:43:56Z] POST-AGENT: vision-agent (exit: 0, risk: )
+[2026-03-02T02:43:59Z] POST-AGENT: vision-agent — ACCEPTED (impact: 136970, pillars: NONE, violations: 0)
+[2026-03-02T02:43:59Z]   ⚠️  HIGH IMPACT SCORE (136970) — review recommended
+[2026-03-02T02:44:53Z] POST-AGENT: qa-engineer (exit: 0, risk: medium)
+[2026-03-02T02:44:56Z] POST-AGENT: qa-engineer — ACCEPTED (impact: 137044, pillars: NONE, violations: 0)
+[2026-03-02T02:44:56Z]   ⚠️  HIGH IMPACT SCORE (137044) — review recommended

@@ -65,3 +65,7 @@
 {"ts":"2026-03-02T02:03:54Z","label":"post-qa-engineer","cpu":50.7,"mem_pct":91,"disk_pct":20,"load":2.59}
 {"ts":"2026-03-02T02:19:20Z","label":"pre-qa-engineer","cpu":26.6,"mem_pct":92,"disk_pct":20,"load":2.40}
 {"ts":"2026-03-02T02:25:11Z","label":"post-qa-engineer","cpu":60.0,"mem_pct":89,"disk_pct":20,"load":1.94}
+{"ts":"2026-03-02T02:35:48Z","label":"pre-agent-doctor","cpu":31.0,"mem_pct":97,"disk_pct":20,"load":1.53}
+{"ts":"2026-03-02T02:35:48Z","label":"pre-vision-agent","cpu":31.0,"mem_pct":97,"disk_pct":20,"load":1.53}
+{"ts":"2026-03-02T02:43:54Z","label":"post-vision-agent","cpu":32.1,"mem_pct":90,"disk_pct":20,"load":3.36}
+{"ts":"2026-03-02T02:44:51Z","label":"post-qa-engineer","cpu":244.3,"mem_pct":92,"disk_pct":20,"load":4.34}

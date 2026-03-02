@@ -533,12 +533,19 @@
         "output_bytes": 1836,
         "success": true,
         "attempts": 2
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 1531,
+        "output_bytes": 1434,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 783,
-    "success_rate": 71.4,
-    "total_runs": 7,
-    "avg_output": 1367
+    "avg_duration": 877,
+    "success_rate": 75.0,
+    "total_runs": 8,
+    "avg_output": 1375
   },
   "security-analyst": {
     "runs": [
@@ -952,12 +959,19 @@
         "output_bytes": 1596,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-02",
+        "duration": 486,
+        "output_bytes": 1880,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 426,
-    "success_rate": 79.3,
-    "total_runs": 29,
-    "avg_output": 1389
+    "avg_duration": 428,
+    "success_rate": 80.0,
+    "total_runs": 30,
+    "avg_output": 1405
   },
   "scrum-master": {
     "runs": [

@@ -85,3 +85,5 @@
 2026-03-02,qa-engineer,claude-opus-4-6-fast,1437s,1949B,47L,success,swarm-2026-03-02_00-05-50
 2026-03-02,qa-engineer,claude-opus-4-6-fast,1308s,1218B,31L,success,swarm-2026-03-02_00-01-07
 2026-03-02,qa-engineer,claude-opus-4-6-fast,606s,1836B,45L,success,swarm-2026-03-02_00-05-50
+2026-03-02,vision-agent,claude-opus-4-6-fast,486s,1880B,43L,success,swarm-2026-03-02_13-35-43
+2026-03-02,qa-engineer,claude-opus-4-6-fast,1531s,1434B,35L,success,swarm-2026-03-02_00-01-07

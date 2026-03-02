@@ -1,7 +1,7 @@
 {
   "passed": true,
   "date": "2026-03-02",
-  "iteration": "2-day2-iter4",
+  "iteration": "3-sprint2-day2",
   "sprint": "Sprint 2 — Enterprise Demo",
   "criteria": {
     "newman_all_collections_pass": true,
@@ -16,8 +16,8 @@
       "col7_scanners_oss_autofix": "92/92"
     },
     "newman_regressions_from_previous": 0,
-    "newman_consecutive_green_runs": 5,
-    "newman_transport_errors": "1 ESOCKETTIMEDOUT on Col2 Most Connected Nodes (known: slow graph query)",
+    "newman_consecutive_green_runs": 6,
+    "newman_transport_errors": "1 transport error on Col2 (known: slow graph query)",
     "customer_scenario_a_brain_pipeline": true,
     "customer_scenario_b_sast_scanner": true,
     "customer_scenario_c_secrets_scanner": true,
@@ -26,15 +26,17 @@
     "customer_scenario_f_container_scanner": true,
     "customer_scenario_g_mcp_discovery": true,
     "customer_scenario_h_mpte_request": true,
+    "customer_scenario_i_compliance_frameworks": true,
+    "customer_scenario_j_evidence_bundles": true,
     "no_regressions": true,
     "api_live_and_healthy": true,
     "postman_collections_updated": true,
     "stubs_detected": 0,
-    "stubs_tested": 20,
+    "stubs_tested": 22,
     "coverage_above_25": false,
     "coverage_current": "21.24%",
     "coverage_gate": "25%",
-    "coverage_note": "Structural gap — large uncovered source files in core/ (tenancy, user_db, vector_store, verification_engine all 0%). Config already expanded to 26 --cov paths.",
+    "coverage_note": "Structural gap — large uncovered source files in core/ (tenancy, user_db, vector_store, verification_engine all 0%). Config already expanded to 26 --cov paths. Writing moat file tests to improve.",
     "moat_coverage": {
       "well_tested_above_50pct": 9,
       "partial_1_to_49pct": 2,
@@ -42,14 +44,14 @@
       "highlights": "autofix_engine 91.67%, crypto 97.86%, sast_engine 99.07%, fail_engine 99.75%, api_fuzzer 100%, malware_detector 100%, attack_sim 92.74%, llm_consensus 98.73%, brain_pipeline 66.62%"
     },
     "performance": {
-      "brain_stats_avg_ms": 26,
-      "mcp_discovery_avg_ms": 3,
-      "mpte_stats_avg_ms": 3,
-      "autofix_health_avg_ms": 2,
-      "search_avg_ms": 2,
-      "slow_endpoints": "none"
+      "health_ms": 26,
+      "brain_stats_ms": 62,
+      "mpte_stats_ms": 22,
+      "mcp_tools_ms": 22,
+      "sast_status_ms": 22,
+      "slow_endpoints": "none — all under 100ms"
     }
   },
   "verdict": "PASS",
-  "notes": "5th consecutive Newman 100% green run — 475/475 assertions. All 8 customer simulation scenarios PASS with real data (SAST 4 findings, Secrets 4 secrets, CSPM 4 misconfigs, Brain 12 steps, MCP 100 tools, MPTE request created). 17/20 endpoints verified REAL (0 stubs, 3 path mismatches). All core endpoints under 50ms avg response time. API healthy on port 8000."
+  "notes": "6th consecutive Newman 100% green run — 475/475 assertions. All 10 customer simulation scenarios PASS. 22/22 endpoints verified REAL (0 stubs). SAST 3 findings, Secrets 5 secrets, CSPM 4 misconfigs, Brain pipeline 50ms completion, MCP 100 tools from 749 routes, MPTE 201 tracked requests. Performance: all key endpoints under 100ms."
 }

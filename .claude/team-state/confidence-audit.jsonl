@@ -108,3 +108,5 @@
 {"ts":"2026-03-02T01:29:40Z","agent":"qa-engineer","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-02_00-05-50"}
 {"ts":"2026-03-02T02:03:54Z","agent":"qa-engineer","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-02_00-01-07"}
 {"ts":"2026-03-02T02:25:11Z","agent":"qa-engineer","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-02_00-05-50"}
+{"ts":"2026-03-02T02:43:54Z","agent":"vision-agent","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-02_13-35-43"}
+{"ts":"2026-03-02T02:44:51Z","agent":"qa-engineer","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-02_00-01-07"}

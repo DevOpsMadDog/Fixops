@@ -2419,3 +2419,653 @@ Terminated: 15             /opt/homebrew/bin/bash -c '
 [0;34m[13:25:22][0m CONTROLLER: Background watchdog stopped (PID: 33972)
 [0;32m[✓][0m Guardian daily report: 
 [0;34m[13:25:24][0m Auto-committing 640 changes (206 modified, 434 new)...
+[features/intermediate-stage 3dd29860] [JARVIS] Autonomous swarm run swarm-2026-03-02_00-05-50
+ 640 files changed, 41838626 insertions(+), 644360 deletions(-)
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-01-07_agent-doctor.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-01-07_ai-researcher.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-01-07_context-engineer.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-01-07_data-scientist.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-01-07_devops-engineer.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-01-07_enterprise-architect.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-01-07_frontend-craftsman.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-01-07_marketing-head.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-01-07_sales-engineer.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-01-07_scrum-master.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-01-07_swarm-controller.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-01-07_technical-writer.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-01-07_vision-agent.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-05-50_agent-doctor.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-05-50_ai-researcher.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-05-50_backend-hardener.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-05-50_context-engineer.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-05-50_data-scientist.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-05-50_devops-engineer.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-05-50_enterprise-architect.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-05-50_frontend-craftsman.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-05-50_marketing-head.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-05-50_qa-engineer.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-05-50_sales-engineer.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-05-50_scrum-master.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-05-50_security-analyst.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-05-50_technical-writer.done
+ create mode 100644 .claude/checkpoints/swarm-2026-03-02_00-05-50_vision-agent.done
+ create mode 100644 .claude/guardian/daily-report-2026-03-02.md
+ create mode 100644 .claude/team-state/.api-server.pid
+ create mode 100644 .claude/team-state/architecture/adrs/ADR-001-multi-suite-monorepo.md
+ create mode 100644 .claude/team-state/architecture/adrs/ADR-002-fastapi-backend.md
+ create mode 100644 .claude/team-state/architecture/adrs/ADR-003-multi-ai-consensus.md
+ create mode 100644 .claude/team-state/architecture/adrs/ADR-004-pentagi-integration.md
+ create mode 100644 .claude/team-state/architecture/adrs/ADR-006-scanner-ingest-parsers.md
+ create mode 100644 .claude/team-state/architecture/integrations.md
+ create mode 100644 .claude/team-state/architecture/quality-report.md
+ create mode 100644 .claude/team-state/architecture/reviews/2026-03-02-brain-pipeline-data-flow.md
+ create mode 100644 .claude/team-state/architecture/roadmap.md
+ create mode 100644 .claude/team-state/architecture/tech-debt.json
+ create mode 100644 .claude/team-state/briefing-2026-03-02.md
+ create mode 100644 .claude/team-state/coordination-notes-day3.md
+ create mode 100644 .claude/team-state/crash-state.json
+ create mode 100644 .claude/team-state/daily-demo-2026-03-02.md
+ create mode 100644 .claude/team-state/data-science/models/autofix_confidence_bootstrap_v1_0_0.pkl
+ create mode 100644 .claude/team-state/data-science/models/autofix_confidence_meta_v1_0_0.json
+ create mode 100644 .claude/team-state/data-science/models/autofix_confidence_scaler_v1_0_0.pkl
+ create mode 100644 .claude/team-state/data-science/models/autofix_confidence_v1_0_0.pkl
+ create mode 100644 .claude/team-state/data-science/models/validation_v2_0_0.json
+ create mode 100644 .claude/team-state/debate-summary-2026-03-02.md
+ create mode 100644 .claude/team-state/demo-2026-03-02.md
+ create mode 100644 .claude/team-state/fix-frontend-craftsman-status.md
+ create mode 100644 .claude/team-state/fix-security-analyst-status.md
+ create mode 100644 .claude/team-state/fix-swarm-controller-status.md
+ create mode 100644 .claude/team-state/health-report-2026-03-02.md
+ create mode 100644 .claude/team-state/iteration-summary.md
+ create mode 100644 .claude/team-state/marketing/content/blog-claude-finds-aldeci-decides.md
+ create mode 100644 .claude/team-state/marketing/content/demo-video-script-5min.md
+ create mode 100644 .claude/team-state/marketing/content/linkedin-500-more-zero-days.md
+ create mode 100644 .claude/team-state/marketing/content/one-pager-enterprise-product.md
+ create mode 100644 .claude/team-state/persona-verification-2026-03-02.md
+ create mode 100644 .claude/team-state/qa-engineer-hallucination-report.json
+ create mode 100644 .claude/team-state/qa/col1-results.json
+ create mode 100644 .claude/team-state/qa/col2-results.json
+ create mode 100644 .claude/team-state/qa/col3-results.json
+ create mode 100644 .claude/team-state/qa/col4-results.json
+ create mode 100644 .claude/team-state/qa/col5-results.json
+ create mode 100644 .claude/team-state/qa/col6-results.json
+ create mode 100644 .claude/team-state/qa/col7-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1-day2/col1-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1-day2/col2-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1-day2/col3-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1-day2/col4-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1-day2/col5-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1-day2/col6-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1-day2/col7-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1-day2/failures.md
+ create mode 100644 .claude/team-state/qa/iteration-1-day2/verdict.json
+ create mode 100644 .claude/team-state/qa/iteration-1-sprint2-day2/col1-final.json
+ create mode 100644 .claude/team-state/qa/iteration-1-sprint2-day2/col1-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1-sprint2-day2/col1-retry.json
+ create mode 100644 .claude/team-state/qa/iteration-1-sprint2-day2/col2-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1-sprint2-day2/col3-final.json
+ create mode 100644 .claude/team-state/qa/iteration-1-sprint2-day2/col3-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1-sprint2-day2/col3-retry.json
+ create mode 100644 .claude/team-state/qa/iteration-1-sprint2-day2/col3-retry2.json
+ create mode 100644 .claude/team-state/qa/iteration-1-sprint2-day2/col4-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1-sprint2-day2/col5-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1-sprint2-day2/col6-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1-sprint2-day2/col7-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1-sprint2-day2/failures.md
+ create mode 100644 .claude/team-state/qa/iteration-1-sprint2-day2/verdict.json
+ create mode 100644 .claude/team-state/qa/iteration-1/ALdeci-3-Validate-output.txt
+ create mode 100644 .claude/team-state/qa/iteration-1/ALdeci-4-Remediate-output.txt
+ create mode 100644 .claude/team-state/qa/iteration-1/ALdeci-5-Comply-output.txt
+ create mode 100644 .claude/team-state/qa/iteration-1/ALdeci-6-PersonaWorkflows-output.txt
+ create mode 100644 .claude/team-state/qa/iteration-1/ALdeci-7-Scanners-OSS-AutoFix-output.txt
+ create mode 100644 .claude/team-state/qa/iteration-1/ALdeci-7-Scanners-OSS-AutoFix-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1/col1-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1/col2-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1/col3-results-v3.json
+ create mode 100644 .claude/team-state/qa/iteration-1/col3-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1/col4-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1/col5-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1/col6-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1/col7-results.json
+ create mode 100644 .claude/team-state/qa/iteration-1/failures.md
+ create mode 100644 .claude/team-state/qa/iteration-1/summary.json
+ create mode 100644 .claude/team-state/qa/iteration-1/verdict.json
+ create mode 100644 .claude/team-state/qa/iteration-2-sprint2-day2/col1-results.json
+ create mode 100644 .claude/team-state/qa/iteration-2-sprint2-day2/col2-results.json
+ create mode 100644 .claude/team-state/qa/iteration-2-sprint2-day2/col3-results.json
+ create mode 100644 .claude/team-state/qa/iteration-2-sprint2-day2/col4-results.json
+ create mode 100644 .claude/team-state/qa/iteration-2-sprint2-day2/col5-results.json
+ create mode 100644 .claude/team-state/qa/iteration-2-sprint2-day2/col6-results.json
+ create mode 100644 .claude/team-state/qa/iteration-2-sprint2-day2/col7-results.json
+ create mode 100644 .claude/team-state/qa/iteration-2-sprint2-day2/failures.md
+ create mode 100644 .claude/team-state/qa/iteration-2-sprint2-day2/verdict.json
+ create mode 100644 .claude/team-state/qa/iteration-3-sprint2-day2/col1-results.json
+ create mode 100644 .claude/team-state/qa/iteration-3-sprint2-day2/col2-results.json
+ create mode 100644 .claude/team-state/qa/iteration-3-sprint2-day2/col3-results.json
+ create mode 100644 .claude/team-state/qa/iteration-3-sprint2-day2/col4-results.json
+ create mode 100644 .claude/team-state/qa/iteration-3-sprint2-day2/col5-results.json
+ create mode 100644 .claude/team-state/qa/iteration-3-sprint2-day2/col6-results.json
+ create mode 100644 .claude/team-state/qa/iteration-3-sprint2-day2/col7-results.json
+ create mode 100644 .claude/team-state/qa/performance-baselines.json
+ create mode 100644 .claude/team-state/qa/sprint2-day2-fresh/ALdeci-1-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-day2-fresh/ALdeci-2-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-day2-fresh/ALdeci-3-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-day2-fresh/ALdeci-4-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-day2-fresh/ALdeci-5-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-day2-fresh/ALdeci-6-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-day2-fresh/ALdeci-7-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-day2-fresh/failures.md
+ create mode 100644 .claude/team-state/qa/sprint2-day2-fresh/verdict.json
+ create mode 100644 .claude/team-state/qa/sprint2-final/c1-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-final/c2-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-final/c3-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-final/c4-results-v2.json
+ create mode 100644 .claude/team-state/qa/sprint2-final/c4-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-final/c5-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-final/c6-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-final/c7-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-final/definitive-summary.json
+ create mode 100644 .claude/team-state/qa/sprint2-final/summary.json
+ create mode 100644 .claude/team-state/qa/sprint2-fresh/c1-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-fresh/c2-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-fresh/c3-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-fresh/c4-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-fresh/c5-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-fresh/c6-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-fresh/c7-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r1-full/ALdeci-1-MissionControl-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r1-full/ALdeci-2-Discover-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r1-full/ALdeci-3-Validate-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r1-full/ALdeci-4-Remediate-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r1-full/ALdeci-5-Comply-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r1-full/ALdeci-6-PersonaWorkflows-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r1-full/ALdeci-7-Scanners-OSS-AutoFix-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r1/ALdeci-1-MissionControl-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r1/ALdeci-2-Discover-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r1/ALdeci-3-Validate-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r1/ALdeci-4-Remediate-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r1/ALdeci-5-Comply-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r1/ALdeci-6-PersonaWorkflows-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r1/ALdeci-7-Scanners-OSS-AutoFix-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r2/ALdeci-1-MissionControl-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r2/ALdeci-2-Discover-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r2/ALdeci-3-Validate-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r2/ALdeci-4-Remediate-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r2/ALdeci-5-Comply-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r2/ALdeci-6-PersonaWorkflows-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r2/ALdeci-7-Scanners-OSS-AutoFix-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r3/ALdeci-1-MissionControl-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r3/ALdeci-2-Discover-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r3/ALdeci-3-Validate-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r3/ALdeci-4-Remediate-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r3/ALdeci-5-Comply-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r3/ALdeci-6-PersonaWorkflows-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r3/ALdeci-7-Scanners-OSS-AutoFix-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r3/failures.md
+ create mode 100644 .claude/team-state/qa/sprint2-r3/verdict.json
+ create mode 100644 .claude/team-state/qa/sprint2-r4/c1-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r4/c2-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r4/c3-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r4/c4-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r4/c5-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r4/c6-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r4/c7-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r4/failures.md
+ create mode 100644 .claude/team-state/qa/sprint2-r4/verdict.json
+ create mode 100644 .claude/team-state/qa/sprint2-r5/c1-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r5/c2-results-v2.json
+ create mode 100644 .claude/team-state/qa/sprint2-r5/c2-results-v3.json
+ create mode 100644 .claude/team-state/qa/sprint2-r5/c2-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r5/c3-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r5/c4-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r5/c5-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r5/c6-results-v2.json
+ create mode 100644 .claude/team-state/qa/sprint2-r5/c6-results.json
+ create mode 100644 .claude/team-state/qa/sprint2-r5/c7-results-v2.json
+ create mode 100644 .claude/team-state/qa/sprint2-r5/c7-results.json
+ create mode 100644 .claude/team-state/quality-snapshot-2026-03-02.md
+ create mode 100644 .claude/team-state/research/pulse-2026-03-02.md
+ create mode 100644 .claude/team-state/sales/battle-cards.md
+ create mode 100755 .claude/team-state/sales/demo-scripts/persona-1-ciso.sh
+ create mode 100755 .claude/team-state/sales/demo-scripts/persona-2-devsecops.sh
+ create mode 100755 .claude/team-state/sales/demo-scripts/persona-3-auditor.sh
+ create mode 100755 .claude/team-state/sales/demo-scripts/persona-4-developer.sh
+ create mode 100755 .claude/team-state/sales/demo-scripts/persona-5-cto.sh
+ create mode 100755 .claude/team-state/sales/demo-scripts/sandbox-poc-demo.sh
+ create mode 100755 .claude/team-state/sales/demo-scripts/scanner-ingestion-demo.sh
+ create mode 100644 .claude/team-state/standup-2026-03-02.md
+ create mode 100644 .claude/team-state/swarm/merge-log-2026-03-02.md
+ create mode 100644 .claude/team-state/swarm/outputs/swarm-205/result.md
+ create mode 100644 .claude/team-state/swarm/outputs/swarm-205/status.json
+ create mode 100644 .claude/team-state/swarm/outputs/swarm-207/result.md
+ create mode 100644 .claude/team-state/swarm/outputs/swarm-207/status.json
+ create mode 100644 .claude/team-state/swarm/outputs/swarm-208/result.md
+ create mode 100644 .claude/team-state/swarm/outputs/swarm-208/status.json
+ create mode 100644 .claude/team-state/swarm/outputs/swarm-209/result.md
+ create mode 100644 .claude/team-state/swarm/outputs/swarm-209/status.json
+ create mode 100644 .claude/team-state/swarm/outputs/swarm-210/result.md
+ create mode 100644 .claude/team-state/swarm/outputs/swarm-210/status.json
+ create mode 100644 .claude/team-state/swarm/outputs/swarm-212/result.md
+ create mode 100644 .claude/team-state/swarm/outputs/swarm-212/status.json
+ create mode 100644 .claude/team-state/swarm/outputs/swarm-api-fuzzer-unit/status.json
+ create mode 100644 .claude/team-state/swarm/outputs/swarm-attack-sim-unit/status.json
+ create mode 100644 .claude/team-state/swarm/outputs/swarm-crypto-unit/status.json
+ create mode 100644 .claude/team-state/swarm/outputs/swarm-malware-detector-unit/status.json
+ create mode 100644 .claude/team-state/swarm/outputs/swarm-playbook-runner-unit/status.json
+ create mode 100644 .claude/team-state/swarm/outputs/swarm-postman-discover-fix/status.json
+ create mode 100644 .claude/team-state/swarm/outputs/swarm-postman-fix/status.json
+ create mode 100644 .claude/team-state/swarm/outputs/swarm-secrets-scanner-unit/status.json
+ create mode 100644 .claude/team-state/swarm/swarm-report-2026-03-02.md
+ create mode 100644 .claude/team-state/telemetry-2026-03-02.jsonl
+ create mode 100644 .claude/team-state/threat-architect/architectures/ecommerce-aws-2026-03-02.json
+ create mode 100644 .claude/team-state/threat-architect/feeds/cnapp-ecommerce-2026-03-02.json
+ create mode 100644 .claude/team-state/threat-architect/feeds/context-ecommerce-2026-03-02.yaml
+ create mode 100644 .claude/team-state/threat-architect/feeds/cve-feed-ecommerce-2026-03-02.json
+ create mode 100644 .claude/team-state/threat-architect/feeds/design-ecommerce-2026-03-02.csv
+ create mode 100644 .claude/team-state/threat-architect/feeds/sarif-ecommerce-2026-03-02.json
+ create mode 100644 .claude/team-state/threat-architect/feeds/sbom-ecommerce-2026-03-02.json
+ create mode 100644 .claude/team-state/threat-architect/feeds/vex-ecommerce-2026-03-02.json
+ create mode 100644 .claude/team-state/threat-architect/report-2026-03-02.md
+ create mode 100644 .claude/team-state/threat-architect/threat-cards-critical-2026-03-02.txt
+ create mode 100644 .claude/team-state/threat-architect/threat-models/ecommerce-2026-03-02.json
+ create mode 100644 .claude/team-state/ui-flow-verification-2026-03-02.md
+ create mode 100644 .claude/team-state/vision-alignment-2026-03-02.json
+ create mode 100644 .github/workflows/air-gapped-test.yml
+ create mode 100644 data/analytics/exploit_snapshots/10449e1d1227482cba2bb45c662fe607/1772410075-b54de210f59a4585871c5475e8ce8852.json
+ create mode 100644 data/analytics/exploit_snapshots/179eceea078b4ebd9154912eed1c8204/1772408769-786c29331cab4e4cb6e361264f6bca9a.json
+ create mode 100644 data/analytics/exploit_snapshots/1cd758b7ccba4aba8f4068ce0ef70164/1772414648-c8f8d7e78d564c85ace0b305b7084a40.json
+ create mode 100644 data/analytics/exploit_snapshots/2eafd2d1344a45c6b22ee5b0a467a086/1772372726-78530c33abe74be4bda6f84379373c2f.json
+ create mode 100644 data/analytics/exploit_snapshots/54a3af6a346a49099d6f417847744ef1/1772408267-bd04370e66de4f06bd24b7f8c0553c17.json
+ create mode 100644 data/analytics/exploit_snapshots/57337d7fbeb44bacb39184dd047eacba/1772409069-30b4188f3e314c85b31ca73783e2d9ba.json
+ create mode 100644 data/analytics/exploit_snapshots/66446f30422a4cf58ed511ab009bbf67/1772410554-0031a3489cad4eb6a5247db7c51965f6.json
+ create mode 100644 data/analytics/exploit_snapshots/68db6e5a252c44ce933c9acf84899537/1772414470-01cee0b347264127a354005195ba303c.json
+ create mode 100644 data/analytics/exploit_snapshots/7caec42115dc4643a776e0508531420a/1772408571-a1b72f0f62a749e580fda008aba43f5d.json
+ create mode 100644 data/analytics/exploit_snapshots/7e8802ae361c4fe38daeecc7baf13c6f/1772413724-d47f8b953caf497ea4ed1baf241095c8.json
+ create mode 100644 data/analytics/exploit_snapshots/9170dd792c1f476fa521fa86c5d40736/1772411018-a40a8f730d7f462d96a9615cc5e05215.json
+ create mode 100644 data/analytics/exploit_snapshots/b7fd64d16a384200bd32c54d53d89705/1772412290-c3337e9621ae482f8541670957d9aee5.json
+ create mode 100644 data/analytics/exploit_snapshots/d99ab146e2c44f0f863d7232bdeded39/1772408868-6bf30c72d5a845798af2068123444f38.json
+ create mode 100644 data/analytics/exploit_snapshots/da5e52a0ad6d406f95f793f3be43407c/1772414629-84015b3a3abf47f88d8596e8abbf952d.json
+ create mode 100644 data/analytics/exploit_snapshots/dc3ac53ba0134843bd946294c02c204f/1772410274-4f1156750dda40d2a7e2ceb3ff3de8d5.json
+ create mode 100644 data/analytics/exploit_snapshots/e896e62f73194204a095fba91a815dfe/1772409198-e696eb317a0a4363ac273e6e0172e873.json
+ create mode 100644 data/analytics/exploit_snapshots/f7f1203db0ce4a99838a3a2d72131680/1772408636-c37906ff1c8947b4b56c3143c97a6bcb.json
+ create mode 100644 data/analytics/exploit_snapshots/fb3943a0c98c4c059f88a4f44cfbe5cf/1772415351-32bb6438aa6d4728b28cd2fb19f35bc1.json
+ create mode 100644 data/analytics/forecasts/10449e1d1227482cba2bb45c662fe607/1772410075-56007fe4d59a43558d4c9598093fa3cb.json
+ create mode 100644 data/analytics/forecasts/179eceea078b4ebd9154912eed1c8204/1772408769-cbba1ff8190e44f3b1b35bd0e5a49979.json
+ create mode 100644 data/analytics/forecasts/1cd758b7ccba4aba8f4068ce0ef70164/1772414648-cb5f164579844705b4e15d339858cd95.json
+ create mode 100644 data/analytics/forecasts/2eafd2d1344a45c6b22ee5b0a467a086/1772372726-5ddccbac6ebb4971a964487603759710.json
+ create mode 100644 data/analytics/forecasts/54a3af6a346a49099d6f417847744ef1/1772408267-c7536bf5d52148689f8b7e4b36674b86.json
+ create mode 100644 data/analytics/forecasts/57337d7fbeb44bacb39184dd047eacba/1772409069-a94f981904c74d9f80b3023507bb4dda.json
+ create mode 100644 data/analytics/forecasts/66446f30422a4cf58ed511ab009bbf67/1772410554-7e8aafa894764ed1a4aebe255e627efe.json
+ create mode 100644 data/analytics/forecasts/68db6e5a252c44ce933c9acf84899537/1772414470-78ab5fcc2b7843a4b1dce76bc9416e84.json
+ create mode 100644 data/analytics/forecasts/7caec42115dc4643a776e0508531420a/1772408571-ce816a5de50143eaa624b7f59cf7e1c7.json
+ create mode 100644 data/analytics/forecasts/7e8802ae361c4fe38daeecc7baf13c6f/1772413724-44f014de9dd64ac89aeb6eea498f6f6f.json
+ create mode 100644 data/analytics/forecasts/9170dd792c1f476fa521fa86c5d40736/1772411018-e2849158606246b984db6921b3e2aa75.json
+ create mode 100644 data/analytics/forecasts/b7fd64d16a384200bd32c54d53d89705/1772412290-b5bd68ee1bf64254b0f73ebf2de67403.json
+ create mode 100644 data/analytics/forecasts/d99ab146e2c44f0f863d7232bdeded39/1772408868-c5ffc75dbf7f44e493d0248fb8bf1354.json
+ create mode 100644 data/analytics/forecasts/da5e52a0ad6d406f95f793f3be43407c/1772414629-8eaeb96ef5154490a2abee9e64f09714.json
+ create mode 100644 data/analytics/forecasts/dc3ac53ba0134843bd946294c02c204f/1772410274-59a2547ddfb6461d8494cf5a6630b7e0.json
+ create mode 100644 data/analytics/forecasts/e896e62f73194204a095fba91a815dfe/1772409198-2fef45922b5d4f149e37f81f9c666bb6.json
+ create mode 100644 data/analytics/forecasts/f7f1203db0ce4a99838a3a2d72131680/1772408636-8dd50b786393421792d35d33b71aec4d.json
+ create mode 100644 data/analytics/forecasts/fb3943a0c98c4c059f88a4f44cfbe5cf/1772415351-3b3f561c7f484d4c847b7f84dd15f598.json
+ create mode 100644 data/analytics/ticket_metrics/10449e1d1227482cba2bb45c662fe607/1772410075-466b69587b184cf4aa79638eeb129d4f.json
+ create mode 100644 data/analytics/ticket_metrics/179eceea078b4ebd9154912eed1c8204/1772408769-30503dbe4bb84ab4b92d7620585937db.json
+ create mode 100644 data/analytics/ticket_metrics/1cd758b7ccba4aba8f4068ce0ef70164/1772414648-3f7cbe76d40c443aa409c02b12d4b234.json
+ create mode 100644 data/analytics/ticket_metrics/2eafd2d1344a45c6b22ee5b0a467a086/1772372726-dd43d10767004131940425be4c3b1a7d.json
+ create mode 100644 data/analytics/ticket_metrics/54a3af6a346a49099d6f417847744ef1/1772408267-37b538b5e6d34d52beb702e7e682092e.json
+ create mode 100644 data/analytics/ticket_metrics/57337d7fbeb44bacb39184dd047eacba/1772409069-c6bf93748ca847fba7f586ebe6487def.json
+ create mode 100644 data/analytics/ticket_metrics/66446f30422a4cf58ed511ab009bbf67/1772410554-9f19e88c097d4c20a2af6fdac50c6775.json
+ create mode 100644 data/analytics/ticket_metrics/68db6e5a252c44ce933c9acf84899537/1772414470-94b277632a184bd7b9bb7a6bf4b9440f.json
+ create mode 100644 data/analytics/ticket_metrics/7caec42115dc4643a776e0508531420a/1772408571-41b06c6702cd4dfeb3352f21d53b0bcb.json
+ create mode 100644 data/analytics/ticket_metrics/7e8802ae361c4fe38daeecc7baf13c6f/1772413724-030218d69e2b457c84d9df09e617222e.json
+ create mode 100644 data/analytics/ticket_metrics/9170dd792c1f476fa521fa86c5d40736/1772411018-f7f87edb18c24f1da0a1dce6eb49685f.json
+ create mode 100644 data/analytics/ticket_metrics/b7fd64d16a384200bd32c54d53d89705/1772412290-ff2c136326cd4d8c980f51f17e68d7b4.json
+ create mode 100644 data/analytics/ticket_metrics/d99ab146e2c44f0f863d7232bdeded39/1772408868-0ffceda35dd747fa94ce0ddc292fae0f.json
+ create mode 100644 data/analytics/ticket_metrics/da5e52a0ad6d406f95f793f3be43407c/1772414629-24958e1a3e984f6fb0616790f91ee3f3.json
+ create mode 100644 data/analytics/ticket_metrics/dc3ac53ba0134843bd946294c02c204f/1772410274-97e6e8f33dc6444bbbfab0afc9ce54ba.json
+ create mode 100644 data/analytics/ticket_metrics/e896e62f73194204a095fba91a815dfe/1772409198-f72a06c400394cbc86cc4048891e9e36.json
+ create mode 100644 data/analytics/ticket_metrics/f7f1203db0ce4a99838a3a2d72131680/1772408636-f65962d66498451b9bca10b00b0726f4.json
+ create mode 100644 data/analytics/ticket_metrics/fb3943a0c98c4c059f88a4f44cfbe5cf/1772415351-16beb44e4e324ac7a51428fed793f557.json
+ create mode 100644 data/demo-results/ctem-loop-20260302-004858.json
+ create mode 100644 data/demo-results/ctem-loop-20260302-005006.json
+ create mode 100644 data/demo-results/ctem-loop-20260302-094250.json
+ create mode 100644 data/demo-results/scanner-sweep-20260302-005953.json
+ create mode 100644 data/demo-results/scanner-sweep-20260302-010232.json
+ create mode 100644 data/demo-results/scanner-sweep-20260302-010345.json
+ create mode 100644 data/demo-results/scanner-sweep-20260302-010459.json
+ create mode 100644 data/feeds/epss-enrichment-cache.json
+ create mode 100644 data/uploads/enterprise/171d9b3466b4ba119f4d474e061e81ea/metadata.json
+ create mode 100644 data/uploads/enterprise/171d9b3466b4ba119f4d474e061e81ea/payload.bin
+ create mode 100644 data/uploads/enterprise/262f1a936b92f9caf88e9143f6a0a580/metadata.json
+ create mode 100644 data/uploads/enterprise/262f1a936b92f9caf88e9143f6a0a580/payload.bin
+ create mode 100644 data/uploads/enterprise/3e53171ba780523ebb5581da3ff1795c/metadata.json
+ create mode 100644 data/uploads/enterprise/3e53171ba780523ebb5581da3ff1795c/payload.bin
+ create mode 100644 data/uploads/enterprise/4760327d8d52c2aaff61d70d85b3d13e/metadata.json
+ create mode 100644 data/uploads/enterprise/4760327d8d52c2aaff61d70d85b3d13e/payload.bin
+ create mode 100644 data/uploads/enterprise/5381662ac6fbcc97bd85a15036f3ce3d/metadata.json
+ create mode 100644 data/uploads/enterprise/5381662ac6fbcc97bd85a15036f3ce3d/payload.bin
+ create mode 100644 data/uploads/enterprise/5566864728d7a4afc059b63ec71d60af/metadata.json
+ create mode 100644 data/uploads/enterprise/5566864728d7a4afc059b63ec71d60af/payload.bin
+ create mode 100644 data/uploads/enterprise/73db8079bbbd4f4486b4b1c733287c2e/metadata.json
+ create mode 100644 data/uploads/enterprise/73db8079bbbd4f4486b4b1c733287c2e/payload.bin
+ create mode 100644 data/uploads/enterprise/79ac11216d3fed52ad243927fd67a934/metadata.json
+ create mode 100644 data/uploads/enterprise/79ac11216d3fed52ad243927fd67a934/payload.bin
+ create mode 100644 data/uploads/enterprise/7fb1d74f86f77019e54e95c49465440b/metadata.json
+ create mode 100644 data/uploads/enterprise/7fb1d74f86f77019e54e95c49465440b/payload.bin
+ create mode 100644 data/uploads/enterprise/8344861276b630b74def053d418f7b98/metadata.json
+ create mode 100644 data/uploads/enterprise/8344861276b630b74def053d418f7b98/payload.bin
+ create mode 100644 data/uploads/enterprise/a7c2ad5a80e2e4dbc4a6adf2e6b06a3b/metadata.json
+ create mode 100644 data/uploads/enterprise/a7c2ad5a80e2e4dbc4a6adf2e6b06a3b/payload.bin
+ create mode 100644 data/uploads/enterprise/a8bfeaf873c3b3bb4020be802258a109/metadata.json
+ create mode 100644 data/uploads/enterprise/a8bfeaf873c3b3bb4020be802258a109/payload.bin
+ create mode 100644 data/uploads/enterprise/af4952e9c57ac1f61a883e2f70a52e60/metadata.json
+ create mode 100644 data/uploads/enterprise/af4952e9c57ac1f61a883e2f70a52e60/payload.bin
+ create mode 100644 data/uploads/enterprise/b8111787086f89388f088574bfb7ee23/metadata.json
+ create mode 100644 data/uploads/enterprise/b8111787086f89388f088574bfb7ee23/payload.bin
+ create mode 100644 data/uploads/enterprise/eba9d6f23082891979abc87bc908f720/metadata.json
+ create mode 100644 data/uploads/enterprise/eba9d6f23082891979abc87bc908f720/payload.bin
+ create mode 100644 docker/docker-compose.air-gapped-test.yml
+ delete mode 100644 logs/ai-team/2026-03-01_qa-engineer_swarm-2026-03-01_19-30-59.log.prompt.tmp
+ create mode 100644 logs/ai-team/2026-03-02_agent-doctor_swarm-2026-03-02_00-01-07.log
+ create mode 100644 logs/ai-team/2026-03-02_agent-doctor_swarm-2026-03-02_00-05-50.log
+ create mode 100644 logs/ai-team/2026-03-02_ai-researcher_swarm-2026-03-02_00-01-07.log
+ create mode 100644 logs/ai-team/2026-03-02_ai-researcher_swarm-2026-03-02_00-05-50.log
+ create mode 100644 logs/ai-team/2026-03-02_backend-hardener_swarm-2026-03-02_00-01-07.log
+ create mode 100644 logs/ai-team/2026-03-02_backend-hardener_swarm-2026-03-02_00-01-07.log.prompt.tmp
+ create mode 100644 logs/ai-team/2026-03-02_backend-hardener_swarm-2026-03-02_00-05-50.log
+ create mode 100644 logs/ai-team/2026-03-02_context-engineer_swarm-2026-03-02_00-01-07.log
+ create mode 100644 logs/ai-team/2026-03-02_context-engineer_swarm-2026-03-02_00-05-50.log
+ create mode 100644 logs/ai-team/2026-03-02_controller-watchdog.log
+ create mode 100644 logs/ai-team/2026-03-02_data-scientist_swarm-2026-03-02_00-01-07.log
+ create mode 100644 logs/ai-team/2026-03-02_data-scientist_swarm-2026-03-02_00-05-50.log
+ create mode 100644 logs/ai-team/2026-03-02_debate_swarm-2026-03-02_00-01-07.log
+ create mode 100644 logs/ai-team/2026-03-02_debate_swarm-2026-03-02_00-05-50.log
+ create mode 100644 logs/ai-team/2026-03-02_devops-engineer_swarm-2026-03-02_00-01-07.log
+ create mode 100644 logs/ai-team/2026-03-02_devops-engineer_swarm-2026-03-02_00-05-50.log
+ create mode 100644 logs/ai-team/2026-03-02_enterprise-architect_swarm-2026-03-02_00-01-07.log
+ create mode 100644 logs/ai-team/2026-03-02_enterprise-architect_swarm-2026-03-02_00-05-50.log
+ create mode 100644 logs/ai-team/2026-03-02_frontend-craftsman_swarm-2026-03-02_00-01-07.log
+ create mode 100644 logs/ai-team/2026-03-02_frontend-craftsman_swarm-2026-03-02_00-05-50.log
+ create mode 100644 logs/ai-team/2026-03-02_marketing-head_swarm-2026-03-02_00-01-07.log
+ create mode 100644 logs/ai-team/2026-03-02_marketing-head_swarm-2026-03-02_00-05-50.log
+ create mode 100644 logs/ai-team/2026-03-02_qa-engineer_swarm-2026-03-02_00-01-07.log
+ create mode 100644 logs/ai-team/2026-03-02_qa-engineer_swarm-2026-03-02_00-01-07.log.prompt.tmp
+ create mode 100644 logs/ai-team/2026-03-02_qa-engineer_swarm-2026-03-02_00-05-50.log
+ create mode 100644 logs/ai-team/2026-03-02_sales-engineer_swarm-2026-03-02_00-01-07.log
+ create mode 100644 logs/ai-team/2026-03-02_sales-engineer_swarm-2026-03-02_00-05-50.log
+ create mode 100644 logs/ai-team/2026-03-02_scrum-master_swarm-2026-03-02_00-01-07.log
+ create mode 100644 logs/ai-team/2026-03-02_scrum-master_swarm-2026-03-02_00-05-50.log
+ create mode 100644 logs/ai-team/2026-03-02_security-analyst_swarm-2026-03-02_00-05-50.log
+ create mode 100644 logs/ai-team/2026-03-02_swarm-controller_swarm-2026-03-02_00-01-07.log
+ create mode 100644 logs/ai-team/2026-03-02_technical-writer_swarm-2026-03-02_00-01-07.log
+ create mode 100644 logs/ai-team/2026-03-02_technical-writer_swarm-2026-03-02_00-05-50.log
+ create mode 100644 logs/ai-team/2026-03-02_threat-architect_swarm-2026-03-02_00-01-07.log
+ create mode 100644 logs/ai-team/2026-03-02_threat-architect_swarm-2026-03-02_00-01-07.log.prompt.tmp
+ create mode 100644 logs/ai-team/2026-03-02_threat-architect_swarm-2026-03-02_00-05-50.log
+ create mode 100644 logs/ai-team/2026-03-02_threat-architect_swarm-2026-03-02_00-05-50.log.prompt.tmp
+ create mode 100644 logs/ai-team/2026-03-02_vision-agent_swarm-2026-03-02_00-01-07.log
+ create mode 100644 logs/ai-team/2026-03-02_vision-agent_swarm-2026-03-02_00-05-50.log
+ create mode 100644 logs/ai-team/fix-agents/2026-03-02_fix-frontend-craftsman_cycle1.log
+ create mode 100644 logs/ai-team/fix-agents/2026-03-02_fix-security-analyst_cycle2.log
+ create mode 100644 logs/ai-team/fix-agents/2026-03-02_fix-swarm-controller_cycle1.log
+ create mode 100644 logs/ai-team/fix-agents/2026-03-02_fix-ui-stubs_cycle1.log
+ create mode 100644 logs/ai-team/fix-agents/2026-03-02_fix-ui-stubs_cycle2.log
+ create mode 100644 logs/ai-team/fix-agents/2026-03-02_fix-ui-stubs_cycle3.log
+ create mode 100644 logs/jarvis/run-1-20260302_000107.log
+ create mode 100644 logs/jarvis/run-1-20260302_000550.log
+ create mode 100644 newman/newman-run-report-2026-03-02-01-40-22-331-0.json
+ create mode 100644 newman/newman-run-report-2026-03-02-01-41-16-012-0.json
+ create mode 100644 newman/newman-run-report-2026-03-02-01-45-06-294-0.json
+ create mode 100644 newman/newman-run-report-2026-03-02-01-45-48-650-0.json
+ create mode 100644 newman/newman-run-report-2026-03-02-01-46-22-791-0.json
+ create mode 100644 newman/newman-run-report-2026-03-02-01-47-16-241-0.json
+ create mode 100644 newman/newman-run-report-2026-03-02-01-48-21-772-0.json
+ create mode 100644 newman/newman-run-report-2026-03-02-01-49-16-630-0.json
+ create mode 100644 newman/newman-run-report-2026-03-02-01-52-40-874-0.json
+ create mode 100644 newman/newman-run-report-2026-03-02-01-53-23-558-0.json
+ create mode 100644 newman/newman-run-report-2026-03-02-01-53-40-238-0.json
+ create mode 100644 newman/newman-run-report-2026-03-02-01-54-27-990-0.json
+ create mode 100644 newman/newman-run-report-2026-03-02-01-55-44-511-0.json
+ create mode 100644 newman/newman-run-report-2026-03-02-01-56-37-565-0.json
+ create mode 100644 newman/newman-run-report-2026-03-02-01-58-10-651-0.json
+ create mode 100644 newman/newman-run-report-2026-03-02-01-59-49-534-0.json
+ create mode 100644 newman/newman-run-report-2026-03-02-02-00-25-148-0.json
+ create mode 100644 newman/newman-run-report-2026-03-02-02-00-41-763-0.json
+ create mode 100644 newman/newman-run-report-2026-03-02-02-01-31-162-0.json
+ create mode 100755 scripts/air-gapped-test.sh
+ create mode 100755 scripts/ctem_architecture_regression.py
+ create mode 100644 scripts/fix_postman_collections.py
+ create mode 100644 scripts/scanner_sweep_demo.py
+ create mode 100644 suite-core/api/v1/cicd.py
+ create mode 100644 suite-core/core/ml/autofix_confidence.py
+ create mode 100644 suite-core/core/ml/threat_enricher.py
+ create mode 100644 suite-ui/aldeci/.claude/team-state/swarm/outputs/swarm-001/status.json
+ create mode 100644 suite-ui/aldeci/.claude/team-state/swarm/outputs/swarm-frontend-scanner-ingest/status.json
+ create mode 100644 suite-ui/aldeci/.claude/team-state/swarm/outputs/swarm-sandbox-verification/status.json
+ create mode 100644 suite-ui/aldeci/src/components/AirGappedIndicator.tsx
+ create mode 100644 suite-ui/aldeci/src/pages/attack/SandboxVerification.tsx
+ create mode 100644 suite-ui/aldeci/src/pages/discover/ScannerIngestUpload.tsx
+ create mode 100644 tests/test_api_fuzzer.py
+ create mode 100644 tests/test_attack_simulation_engine.py
+ create mode 100644 tests/test_autofix_engine.py
+ create mode 100644 tests/test_dast_engine.py
+ create mode 100644 tests/test_hardening_2026_03_02.py
+ create mode 100644 tests/test_malware_detector.py
+ create mode 100644 tests/test_micro_pentest.py
+ create mode 100644 tests/test_ml_autofix_confidence.py
+ create mode 100644 tests/test_ml_threat_enricher.py
+ create mode 100644 tests/test_playbook_runner.py
+ create mode 100644 tests/test_sast_engine.py
+ create mode 100644 tests/test_security_hardening_v2.py
+[0;32m[✓][0m Auto-committed 640 changes
+
+[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1m[0;35m  ✦ DAILY DIGEST — 2026-03-02 ✦[0m
+[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+[0;36m╔══════════════════════════════════════════════════════════════════╗[0m
+[0;36m║[0m  [1m📊 DAILY DIGEST — 2026-03-02[0m                              [0;36m║[0m
+[0;36m║[0m  [2mRun: swarm-2026-03-02_00-05-50 | Grade: A (90/100)[0m              [0;36m║[0m
+[0;36m╠══════════════════════════════════════════════════════════════════╣[0m
+[0;36m║[0m  ⏱️  Runtime:    13h 19m
+[0;36m║[0m  🤖 Agents:     17/17 completed, 0 failed, 0 running
+[0;36m║[0m  🎯 Pillars:    10/10 touched (core: V3, V5, V7)
+[0;36m║[0m  🧠 Decisions:  153 autonomous decisions
+[0;36m║[0m  📁 Changes:    0 app files modified, +0/-0 lines, 0 new (1 agent/state files ignored)
+[0;36m║[0m  📦 Artifacts:  149 state artifacts updated
+[0;36m║[0m  🏥 Newman:     Verdict: PASS | Pass rate: 100.0% | Passed: 411 | Failed: 0
+[0;36m╠══════════════════════════════════════════════════════════════════╣[0m
+[0;36m║[0m  [1mVision Pillar Coverage:[0m
+[0;36m║[0m   ✅ V1 APP_ID-Centric            
+[0;36m║[0m   ✅ V2 Security Lifecycle        
+[0;36m║[0m   ✅ V3 Decision Intelligence    🎯
+[0;36m║[0m   ✅ V4 Multi-LLM Consensus       
+[0;36m║[0m   ✅ V5 MPTE Verification        🎯
+[0;36m║[0m   ✅ V6 Quantum-Secure Evidence   
+[0;36m║[0m   ✅ V7 MCP-Native Platform      🎯
+[0;36m║[0m   ✅ V8 Self-Learning             
+[0;36m║[0m   ✅ V9 Air-Gapped Deploy         
+[0;36m║[0m   ✅ V10 CTEM+Crypto Proof         
+[0;36m╠══════════════════════════════════════════════════════════════════╣[0m
+[0;36m║[0m  [1m🎛️  JARVIS Controller Self-Healing:[0m
+[0;36m║[0m   Fix Agents Spawned:   25 (4 successful)
+[0;36m║[0m   API Recoveries:       1
+[0;36m║[0m   Agents Reconciled:    [0;32m0[0m
+[0;36m║[0m   Still Failed:         [0;31m6[0m
+[0;36m║[0m   Deferred Queue:       1
+[0;36m╠══════════════════════════════════════════════════════════════════╣[0m
+[0;36m║[0m  [1m🛡️  Quality Assurance Report:[0m
+[0;36m║[0m   5-Layer Hallucination Checks: 128 total
+[0;36m║[0m     L1 Vision Alignment:  0  L2 Realtime:  0  L3 Deep:  111
+[0;36m║[0m     L4 Cross-Agent:       11  L5 Code:      6
+[0;36m║[0m   Enterprise Health Score: [1mA (90/100)[0m
+[0;36m║[0m   Output Verification:    Every output verified — no stubs, no fakes
+[0;36m║[0m   Controller Mode:        ✅ Active (Never Give Up)
+[0;36m╠══════════════════════════════════════════════════════════════════╣[0m
+[0;36m║[0m  [1m🎭 Persona & UI Verification:[0m
+[0;36m║[0m   Agent Persona Score:    0%
+[0;36m║[0m   UI Flow Score:          0%
+[0;36m║[0m   Combined Quality Grade: [1mF (0%)[0m
+[0;36m║[0m   Grade-A Certification:  [0;31m⚠️  NOT YET CERTIFIED[0m
+[0;36m╠══════════════════════════════════════════════════════════════════╣[0m
+[0;36m║[0m  [1m🔬 Persona → Function → E2E Test Map (Realtime):[0m
+[0;36m║[0m  [2mWhat functions each persona owns + what's tested 100% by agents[0m
+[0;36m║[0m
+[0;36m║[0m   ✅ backend-hardener     [2m9 funcs, 84 endpoints[0m [0;32m[9/9 e2e tested][0m
+[0;36m║[0m     [2m  └─ ✅ /connectors (8 eps) Connector registration, health, CRUD[0m
+[0;36m║[0m     [2m  └─ ✅ /admin (10 eps) User & team administration[0m
+[0;36m║[0m     [2m  └─ ✅ /system (5 eps) System health, info, config, metrics[0m
+[0;36m║[0m     [2m  └─ ✅ /audit (14 eps) Audit logging & export[0m
+[0;36m║[0m     [2m  └─ ✅ /auth (4 eps) SSO & authentication[0m
+[0;36m║[0m     [2m  └─ ✅ /users (6 eps) User login, CRUD[0m
+[0;36m║[0m     [2m  └─ ✅ /teams (8 eps) Team CRUD & membership[0m
+[0;36m║[0m     [2m  └─ ✅ /integrations (8 eps) Integration lifecycle[0m
+[0;36m║[0m     [2m  └─ ✅ /webhooks (21 eps) Webhook mappings & outbox[0m
+[0;36m║[0m   ✅ threat-architect     [2m13 funcs, 111 endpoints[0m [0;32m[12/13 e2e tested][0m
+[0;36m║[0m     [2m  └─ ✅ /mpte (23 eps) MPTE scanning & verification[0m
+[0;36m║[0m     [2m  └─ ✅ /micro-pentest (19 eps) Enterprise micro-pentesting (19-phase)[0m
+[0;36m║[0m     [2m  └─ ✅ /fail (10 eps) FAIL scoring & risk ranking[0m
+[0;36m║[0m     [2m  └─ ✅ /attack-sim (13 eps) Attack simulation & MITRE mapping[0m
+[0;36m║[0m     [2m  └─ ✅ /malware (4 eps) Malware scanning & signatures[0m
+[0;36m║[0m     [2m  └─ ✅ /api-fuzzer (3 eps) API fuzzing & discovery[0m
+[0;36m║[0m     [2m  └─ ✅ /feeds (31 eps) Threat feeds (NVD, KEV, EPSS, OSV)[0m
+[0;36m║[0m     [2m  └─ ✅ /mpte-orchestrator (8 eps) MPTE orchestration & threat-intel[0m
+[0;36m║[0m     [2m  └─ ✅ — (0 eps) MPTE advanced engine (1089 LOC)[0m
+[0;36m║[0m     [2m  └─ ✅ — (0 eps) Attack simulation engine (1145 LOC)[0m
+[0;36m║[0m     [2m  └─ ✅ — (0 eps) Malware detection engine (381 LOC)[0m
+[0;36m║[0m     [2m  └─ ✅ — (0 eps) API fuzzer engine (361 LOC)[0m
+[0;36m║[0m     [2m  └─ ❌ — (0 eps) Attack playbook runner (1273 LOC)[0m
+[0;36m║[0m   ❌ security-analyst     [2m9 funcs, 36 endpoints[0m
+[0;36m║[0m     [2m  └─ ❌ /sast (5 eps) Static analysis scanning[0m
+[0;36m║[0m     [2m  └─ ❌ /dast (3 eps) Dynamic analysis scanning[0m
+[0;36m║[0m     [2m  └─ ❌ /secrets (8 eps) Secret detection & scanning[0m
+[0;36m║[0m     [2m  └─ ❌ /container (4 eps) Container image scanning[0m
+[0;36m║[0m     [2m  └─ ❌ /cspm (5 eps) Cloud security posture (IaC)[0m
+[0;36m║[0m     [2m  └─ ❌ /vuln-discovery (11 eps) Vulnerability discovery[0m
+[0;36m║[0m     [2m  └─ ❌ — (0 eps) IaC scanner engine (713 LOC)[0m
+[0;36m║[0m     [2m  └─ ❌ — (0 eps) CSPM analysis engine (586 LOC)[0m
+[0;36m║[0m     [2m  └─ ❌ — (0 eps) Verification engine (757 LOC)[0m
+[0;36m║[0m   ❌ enterprise-architect [2m7 funcs, 63 endpoints[0m
+[0;36m║[0m     [2m  └─ ❌ /brain (23 eps) 12-step Brain Pipeline[0m
+[0;36m║[0m     [2m  └─ ❌ /knowledge-graph (10 eps) Knowledge graph queries[0m
+[0;36m║[0m     [2m  └─ ❌ /deduplication (20 eps) Finding deduplication[0m
+[0;36m║[0m     [2m  └─ ❌ /code-to-cloud (2 eps) Code-to-cloud tracing[0m
+[0;36m║[0m     [2m  └─ ❌ /pipeline (8 eps) Pipeline orchestration[0m
+[0;36m║[0m     [2m  └─ ❌ — (0 eps) FalkorDB knowledge graph client (835 LOC)[0m
+[0;36m║[0m     [2m  └─ ❌ — (0 eps) Knowledge brain engine (852 LOC)[0m
+[0;36m║[0m   ❌ frontend-craftsman   [2m2 funcs, 0 endpoints[0m
+[0;36m║[0m     [2m  └─ ❌ — (0 eps) 5 Workflow Space pages (React/TSX)[0m
+[0;36m║[0m     [2m  └─ ❌ — (0 eps) UI components (shadcn + custom)[0m
+[0;36m║[0m   ❌ ai-researcher        [2m6 funcs, 30 endpoints[0m
+[0;36m║[0m     [2m  └─ ❌ /llm (6 eps) Multi-LLM consensus[0m
+[0;36m║[0m     [2m  └─ ❌ /llm-monitor (4 eps) LLM usage monitoring[0m
+[0;36m║[0m     [2m  └─ ❌ /copilot (14 eps) Copilot AI assistant[0m
+[0;36m║[0m     [2m  └─ ❌ /single-agent (6 eps) Self-hosted AI engine[0m
+[0;36m║[0m     [2m  └─ ❌ — (0 eps) Multi-LLM consensus engine (393 LOC)[0m
+[0;36m║[0m     [2m  └─ ❌ — (0 eps) LLM usage monitor engine (312 LOC)[0m
+[0;36m║[0m   ❌ qa-engineer          [2m3 funcs, 26 endpoints[0m
+[0;36m║[0m     [2m  └─ ❌ /autofix (13 eps) AutoFix engine (10 fix types)[0m
+[0;36m║[0m     [2m  └─ ❌ /validation (5 eps) Input validation[0m
+[0;36m║[0m     [2m  └─ ❌ — (8 eps) OSS/SCA tools (Trivy/Grype/Cosign, 205 LOC)[0m
+[0;36m║[0m   ❌ devops-engineer      [2m6 funcs, 29 endpoints[0m
+[0;36m║[0m     [2m  └─ ❌ /mcp (10 eps) MCP gateway (650 tools)[0m
+[0;36m║[0m     [2m  └─ ❌ /mcp-protocol (8 eps) MCP protocol endpoints[0m
+[0;36m║[0m     [2m  └─ ❌ /mcp-server (7 eps) MCP tool execution[0m
+[0;36m║[0m     [2m  └─ ❌ /streaming (4 eps) SSE streaming events[0m
+[0;36m║[0m     [2m  └─ ❌ — (0 eps) Event bus (pub/sub engine, 243 LOC)[0m
+[0;36m║[0m     [2m  └─ ❌ — (0 eps) CLI (22 commands, 5911 LOC)[0m
+[0;36m║[0m   ❌ data-scientist       [2m4 funcs, 49 endpoints[0m
+[0;36m║[0m     [2m  └─ ❌ /analytics (23 eps) Dashboard analytics & trends[0m
+[0;36m║[0m     [2m  └─ ❌ /predictions (10 eps) ML predictions engine[0m
+[0;36m║[0m     [2m  └─ ❌ /algorithmic (11 eps) Algorithmic scoring[0m
+[0;36m║[0m     [2m  └─ ❌ /risk (5 eps) Risk scoring & calculation[0m
+[0;36m║[0m   ❌ vision-agent         [2m7 funcs, 31 endpoints[0m
+[0;36m║[0m     [2m  └─ ❌ /compliance (9 eps) Compliance framework mapping[0m
+[0;36m║[0m     [2m  └─ ❌ /evidence (13 eps) Evidence bundles & vault[0m
+[0;36m║[0m     [2m  └─ ❌ /quantum-crypto (5 eps) Quantum-secure crypto (ML-DSA)[0m
+[0;36m║[0m     [2m  └─ ❌ /provenance (4 eps) Provenance chain tracking[0m
+[0;36m║[0m     [2m  └─ ❌ — (0 eps) Compliance framework engine (133 LOC)[0m
+[0;36m║[0m     [2m  └─ ❌ — (0 eps) SOC2 evidence generator (554 LOC)[0m
+[0;36m║[0m     [2m  └─ ❌ — (0 eps) Reachability monitoring (264 LOC)[0m
+[0;36m║[0m   ❌ context-engineer     [2m2 funcs, 46 endpoints[0m
+[0;36m║[0m     [2m  └─ ❌ /agents (32 eps) Agent lifecycle management[0m
+[0;36m║[0m     [2m  └─ ❌ /mindsdb (14 eps) MindsDB integration[0m
+[0;36m║[0m   ❌ scrum-master         [2m5 funcs, 78 endpoints[0m
+[0;36m║[0m     [2m  └─ ❌ /workflows (13 eps) Workflow orchestration[0m
+[0;36m║[0m     [2m  └─ ❌ /remediation (15 eps) Remediation task tracking[0m
+[0;36m║[0m     [2m  └─ ❌ /collaboration (23 eps) Comments, watchers, sharing[0m
+[0;36m║[0m     [2m  └─ ❌ /bulk (13 eps) Bulk operations[0m
+[0;36m║[0m     [2m  └─ ❌ /reports (14 eps) Report generation & export[0m
+[0;36m║[0m   ❌ marketing-head       [2m1 funcs, 14 endpoints[0m
+[0;36m║[0m     [2m  └─ ❌ /marketplace (14 eps) Fix pack marketplace[0m
+[0;36m║[0m   ❌ technical-writer     [2m1 funcs, 11 endpoints[0m
+[0;36m║[0m     [2m  └─ ❌ /policies (11 eps) Policy CRUD & validation[0m
+[0;36m║[0m   ❌ sales-engineer       [2m2 funcs, 24 endpoints[0m
+[0;36m║[0m     [2m  └─ ❌ /inventory (19 eps) Asset & app inventory[0m
+[0;36m║[0m     [2m  └─ ❌ /ide (5 eps) IDE plugin integration[0m
+[0;36m║[0m   ❌ agent-doctor         [2m3 funcs, 30 endpoints[0m
+[0;36m║[0m     [2m  └─ ❌ /self-learning (18 eps) 5 Feedback loops engine[0m
+[0;36m║[0m     [2m  └─ ❌ /zero-gravity (6 eps) 4-tier data aging[0m
+[0;36m║[0m     [2m  └─ ❌ /graph (6 eps) Knowledge graph visualization[0m
+[0;36m║[0m   ❌ swarm-controller     [2m3 funcs, 26 endpoints[0m
+[0;36m║[0m     [2m  └─ ❌ /exposure-cases (10 eps) Exposure case management[0m
+[0;36m║[0m     [2m  └─ ❌ /fuzzy-identity (9 eps) Fuzzy identity resolution[0m
+[0;36m║[0m     [2m  └─ ❌ /iac (7 eps) IaC scanning integration[0m
+[0;36m║[0m
+[0;36m║[0m   [1mE2E Coverage: [0;31m21/83 functions have test scripts (25%)[0m
+[0;36m║[0m   [2mRegistry: .claude/team-state/persona-e2e-registry.json[0m
+[0;36m║[0m   [2mAs agents add functions → e2e tests auto-accumulate in registry[0m
+[0;36m║[0m   [1;33m⚠️  62 functions untested: 7 agents stale-failed (pre-RC6), never re-ran to create test scripts[0m
+[0;36m║[0m   [2m   Fix: Re-run 7 stale agents → they create scripts/test-<agent>.sh → coverage auto-grows[0m
+[0;36m║[0m   [0;32m🏃 backend-hardener live: 100% (A+)[0m
+[0;36m║[0m   [0;32m🏃 threat-architect live:  ⚠️ no output[0m
+[0;36m╚══════════════════════════════════════════════════════════════════╝[0m
+
+[0;32m[✓][0m Daily digest saved to:
+[0;34m[13:27:03][0m   → .claude/team-state/daily-digest-2026-03-02.md
+[0;34m[13:27:03][0m   → logs/jarvis/daily-digest-2026-03-02.md
+
+[0;34m[13:27:03][0m Iteration 1 completed in 48072s (801m)
+
+[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1m[0;35m  ✦ Convergence Gate — Iteration 1/1 ✦[0m
+[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[0;34m[13:27:03][0m Checking if API server is running on port 8000...
+[0;32m[✓][0m API server is live on port 8000
+[0;34m[13:27:03][0m   Running: ALdeci-1-MissionControl
+[0;34m[13:27:14][0m   Running: ALdeci-2-Discover
+/Users/devops.ai/developement/fixops/Fixops/scripts/run-ctem-swarm.sh: line 5751: 28766 Killed: 9                  newman run "$collection" -e "$env_file" --reporters cli,json --reporter-json-export "$result_file" --timeout-request 30000 --delay-request 100 --suppress-exit-code > "$output_file" 2>&1
+[1;33m[!][0m   Newman failed for ALdeci-2-Discover
+[0;34m[13:33:55][0m   Running: ALdeci-3-Validate
+[0;34m[13:34:07][0m   Running: ALdeci-4-Remediate
+[0;34m[13:34:29][0m   Running: ALdeci-5-Comply
+[0;34m[13:34:35][0m   Running: ALdeci-6-PersonaWorkflows
+[0;34m[13:34:46][0m   Running: ALdeci-7-Scanners-OSS-AutoFix
+
+  [1mConvergence Gate Results — Iteration 1[0m
+  Collections tested: 7
+  Assertions passed:  [0;32m341[0m
+  Assertions failed:  [0;31m41[0m
+  Pass rate:          89.2%
+  Verdict:            "[0;31mWARN[0m"
+
+[1;33m[!][0m Convergence gate FAILED at iteration 1 — final iteration
+
+
+[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1m[0;35m  ✦ ITERATIVE SWARM COMPLETE ✦[0m
+[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+  [0;35m✦ Total iterations:  1/1[0m
+  [0;35m✦ Total runtime:     13h 29m[0m
+  [0;35m✦ Converged:         ${RED}NO${NC}[0m
+
+
+[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1m[0;35m  ✦ DAILY DIGEST — 2026-03-02 ✦[0m
+[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+
+[0;31m[CRASH RECOVERY] Swarm interrupted (exit code: 1)[0m
+[1;33m[CRASH RECOVERY] Saving state to .claude/team-state/crash-state.json[0m
+[1;33m[CRASH RECOVERY] Cleaned 4 stale prompt.tmp files[0m
+[0;32m[CRASH RECOVERY] State saved. Resume with: ./scripts/run-ctem-swarm.sh --resume[0m

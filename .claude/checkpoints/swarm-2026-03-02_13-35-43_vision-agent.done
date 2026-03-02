@@ -1,0 +1,13 @@
+{
+  "agent": "vision-agent",
+  "status": "completed",
+  "run_id": "swarm-2026-03-02_13-35-43",
+  "timestamp": "2026-03-02T02:43:56Z",
+  "duration_s": 486,
+  "attempts": 1,
+  "output_bytes": 1880,
+  "confidence": "HIGH",
+  "free_ram_mb": 7813,
+  "git_changes": " ...hitect_swarm-2026-03-02_00-05-50.log.prompt.tmp |     78 -  logs/jarvis/crash-history.log                      |      1 +  logs/jarvis/run-1-20260302_000550.log              |    650 +  tests/test_secrets_scanner.py                      |    472 +  50 files changed, 377219 insertions(+), 495994 deletions(-) ",
+  "log_file": "/Users/devops.ai/developement/fixops/Fixops/logs/ai-team/2026-03-02_vision-agent_swarm-2026-03-02_13-35-43.log"
+}

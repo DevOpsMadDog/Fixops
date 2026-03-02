@@ -1,0 +1,261 @@
+[0;35m[1m
+   ╔═══════════════════════════════════════════════════════════╗
+   ║                                                           ║
+   ║     █████╗ ██╗     ██████╗ ███████╗ ██████╗██╗            ║
+   ║    ██╔══██╗██║     ██╔══██╗██╔════╝██╔════╝██║            ║
+   ║    ███████║██║     ██║  ██║█████╗  ██║     ██║            ║
+   ║    ██╔══██║██║     ██║  ██║██╔══╝  ██║     ██║            ║
+   ║    ██║  ██║███████╗██████╔╝███████╗╚██████╗██║            ║
+   ║    ╚═╝  ╚═╝╚══════╝╚═════╝ ╚══════╝ ╚═════╝╚═╝            ║
+   ║                                                           ║
+   ║         CTEM+ AI SWARM — JARVIS Autonomous Engine        ║
+   ║     Decision Intelligence · MPTE · MCP-Native Platform    ║
+   ║         Full Autonomy · Self-Healing · No Human Gate      ║
+   ║                                                           ║
+   ╚═══════════════════════════════════════════════════════════╝
+[0m
+[0;34m[13:35:43][0m Pre-flight self-healing checks...
+[0;32m[✓][0m Agent Guardian loaded — 19 critical files + 5 frozen files protected
+[0;32m[✓][0m Claude CLI: 2.1.61 (Claude Code)
+[0;32m[✓][0m Project root: /Users/devops.ai/developement/fixops/Fixops
+[0;32m[✓][0m Agent files: 17 agents found
+[0;32m[✓][0m Timeout command: gtimeout
+[0;32m[✓][0m Pre-flight complete — all systems go
+
+[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1m[0;35m  ✦ ITERATIVE SWARM — 1 iterations, 2h minimum ✦[0m
+[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+  [0;35m✦ Iterations:    1[0m
+  [0;35m✦ Min runtime:   2 hours[0m
+  [0;35m✦ Newman gate:   85% pass rate to exit early[0m
+  [0;35m✦ Mode:          Build → Test → Fix → Retest (Convergence Loop)[0m
+
+[0;34m[13:35:43][0m CONTROLLER: Starting background health watchdog...
+[0;34m[13:35:43][0m CONTROLLER: Background watchdog started (PID: 33336)
+
+[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1m[0;35m  ✦ ╔══════════════════════════════════════════════════╗ ✦[0m
+[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1m[0;35m  ✦ ║  ITERATION 1/1 — BUILD          ║ ✦[0m
+[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1m[0;35m  ✦ ╚══════════════════════════════════════════════════╝ ✦[0m
+[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[0;34m[13:35:43][0m Checking if API server is running on port 8000...
+[1;33m[!][0m API server not running — starting it...
+[0;32m[✓][0m API server started (PID: 33345)
+
+[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1m[0;35m  ✦ CTEM+ SWARM — Full Execution ✦[0m
+[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+  [0;35m✦ Run ID:      swarm-2026-03-02_13-35-43[0m
+  [0;35m✦ Model:       claude-opus-4-6-fast[0m
+  [0;35m✦ Mode:        CTEM+ SWARM[0m
+  [0;35m✦ Agents:      17[0m
+  [0;35m✦ Timeout:     1800s (critical: 2700s)[0m
+  [0;35m✦ Max retries: 3[0m
+  [0;35m✦ Cascade:     ON (deps enforced)[0m
+  [0;35m✦ Fail limit:  10 agents before halt[0m
+  [0;35m✦ Parallel:    YES[0m
+  [0;35m✦ Free RAM:    8159MB[0m
+  [0;35m✦ Day:         Monday 2026-03-02[0m
+
+
+[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1m[0;35m  ✦ Phase 0 — Vision Agent (pre-flight) + Agent Doctor ✦[0m
+[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[0;34m[13:35:48][0m [DEBUG] run_agent ENTERED for vision-agent
+[0;34m[13:35:48][0m [DEBUG] vision-agent: wrote current-agent file
+[0;34m[13:35:48][0m [DEBUG] vision-agent: calling get_smart_timeout...
+[0;34m[13:35:48][0m [DEBUG] run_agent ENTERED for agent-doctor
+[0;34m[13:35:48][0m [DEBUG] agent-doctor: wrote current-agent file
+[0;34m[13:35:48][0m [DEBUG] agent-doctor: calling get_smart_timeout...
+[0;34m[13:35:48][0m [DEBUG] vision-agent: timeout=1152
+[0;34m[13:35:48][0m [DEBUG] agent-doctor: timeout=1720
+[0;34m[13:35:48][0m [DEBUG] vision-agent: agent file exists
+[0;34m[13:35:48][0m [DEBUG] agent-doctor: agent file exists
+[0;34m[13:35:48][0m [DEBUG] vision-agent: capture_system_snapshot...
+[0;34m[13:35:48][0m [DEBUG] agent-doctor: capture_system_snapshot...
+[0;34m[13:35:48][0m [DEBUG] vision-agent: snapshot done
+[0;34m[13:35:48][0m [DEBUG] agent-doctor: snapshot done
+[0;34m[13:35:48][0m [DEBUG] vision-agent: guardian skipped (was blocking)
+[0;34m[13:35:48][0m [DEBUG] agent-doctor: guardian skipped (was blocking)
+[0;34m[13:35:48][0m Starting: [1mvision-agent[0m  [✦ claude-opus-4-6-fast]  timeout=1152s  turns=50
+[0;34m[13:35:48][0m Starting: [1magent-doctor[0m  [✦ claude-opus-4-6-fast]  timeout=1720s  turns=50
+[0;34m[13:35:48][0m [DEBUG] vision-agent: voice done
+[0;34m[13:35:48][0m [DEBUG] agent-doctor: voice done
+[0;34m[13:35:48][0m [DEBUG] Building SCP context for agent-doctor...
+[0;34m[13:35:48][0m [DEBUG] Building SCP context for vision-agent...
+/Users/devops.ai/developement/fixops/Fixops/scripts/run-ctem-swarm.sh: line 3883: File: unbound variable
+/Users/devops.ai/developement/fixops/Fixops/scripts/run-ctem-swarm.sh: line 3883: File: unbound variable
+[0;34m[13:35:48][0m [DEBUG] SCP context built (0 bytes)
+[0;34m[13:35:48][0m [DEBUG] SCP context built (0 bytes)
+[0;34m[13:35:48][0m [DEBUG] Applying hallucination layer 1...
+[0;34m[13:35:48][0m [DEBUG] Applying hallucination layer 1...
+[0;34m[13:35:48][0m [DEBUG] Prompt ready (4688 bytes). Launching Claude CLI...
+[0;34m[13:35:48][0m [DEBUG] Prompt ready (4688 bytes). Launching Claude CLI...
+[0;34m[13:35:48][0m [DEBUG] Launching subshell for agent-doctor (attempt 1, timeout=1720s, turns=50)...
+[0;34m[13:35:48][0m [DEBUG] Launching subshell for vision-agent (attempt 1, timeout=1152s, turns=50)...
+[0;34m[13:35:48][0m [DEBUG] run_cmd='gtimeout 1720 claude' prompt_file='/Users/devops.ai/developement/fixops/Fixops/logs/ai-team/2026-03-02_agent-doctor_swarm-2026-03-02_13-35-43.log.prompt.tmp' log_file='/Users/devops.ai/developement/fixops/Fixops/logs/ai-team/2026-03-02_agent-doctor_swarm-2026-03-02_13-35-43.log'
+[0;34m[13:35:48][0m [DEBUG] run_cmd='gtimeout 1152 claude' prompt_file='/Users/devops.ai/developement/fixops/Fixops/logs/ai-team/2026-03-02_vision-agent_swarm-2026-03-02_13-35-43.log.prompt.tmp' log_file='/Users/devops.ai/developement/fixops/Fixops/logs/ai-team/2026-03-02_vision-agent_swarm-2026-03-02_13-35-43.log'
+
+[0;36m┌──────────────────────────────────────────────────────────────┐[0m
+[0;36m│[0m [1m⏱ JARVIS Status — 13:36:50[0m  │  Phase 0 — 1m2s  │  0/2 done
+[0;36m├──────────────────────────────────────────────────────────────┤[0m
+[0;36m│[0m  🤖 [1mvision-agent[0m  [0B]
+[0;36m│[0m  🤖 [1magent-doctor[0m  [0B]
+[0;36m├──────────────────────────────────────────────────────────────┤[0m
+[0;36m│[0m  📁 Files: 1 modified, 0 staged, 0 new
+[0;36m│[0m  📝 Recently changed:
+[0;36m│[0m     └─ .claude/team-state/jarvis-heartbeat.json
+[0;36m│[0m     └─ .claude/team-state/vision-agent-status.md
+[0;36m│[0m     └─ .claude/team-state/telemetry-2026-03-02.jsonl
+[0;36m│[0m     └─ .claude/team-state/agent-doctor-status.md
+[0;36m│[0m     └─ .claude/team-state/.jarvis-current-agent
+[0;36m└──────────────────────────────────────────────────────────────┘[0m
+
+
+[0;36m┌──────────────────────────────────────────────────────────────┐[0m
+[0;36m│[0m [1m⏱ JARVIS Status — 13:37:51[0m  │  Phase 0 — 2m3s  │  0/2 done
+[0;36m├──────────────────────────────────────────────────────────────┤[0m
+[0;36m│[0m  🤖 [1mvision-agent[0m  [0B]
+[0;36m│[0m  🤖 [1magent-doctor[0m  [0B]
+[0;36m├──────────────────────────────────────────────────────────────┤[0m
+[0;36m│[0m  📁 Files: 1 modified, 0 staged, 0 new
+[0;36m│[0m  📝 Recently changed:
+[0;36m│[0m     └─ .claude/team-state/jarvis-heartbeat.json
+[0;36m│[0m     └─ .claude/team-state/vision-agent-status.md
+[0;36m│[0m     └─ .claude/team-state/telemetry-2026-03-02.jsonl
+[0;36m│[0m     └─ .claude/team-state/agent-doctor-status.md
+[0;36m│[0m     └─ .claude/team-state/.jarvis-current-agent
+[0;36m└──────────────────────────────────────────────────────────────┘[0m
+
+
+[0;36m┌──────────────────────────────────────────────────────────────┐[0m
+[0;36m│[0m [1m⏱ JARVIS Status — 13:38:53[0m  │  Phase 0 — 3m5s  │  0/2 done
+[0;36m├──────────────────────────────────────────────────────────────┤[0m
+[0;36m│[0m  🤖 [1mvision-agent[0m  [0B]
+[0;36m│[0m  🤖 [1magent-doctor[0m  [0B]
+[0;36m├──────────────────────────────────────────────────────────────┤[0m
+[0;36m│[0m  📁 Files: 2 modified, 0 staged, 2 new
+[0;36m│[0m  📝 Recently changed:
+[0;36m│[0m     └─ .claude/team-state/jarvis-heartbeat.json
+[0;36m│[0m     └─ tests/test_secrets_scanner.py
+[0;36m│[0m     └─ data/feeds/epss-enrichment-cache.json
+[0;36m│[0m     └─ .claude/team-state/vision-agent-status.md
+[0;36m│[0m     └─ .claude/team-state/telemetry-2026-03-02.jsonl
+[0;36m│[0m  ✨ New files:
+[0;36m│[0m     └─ tests/test_cspm_engine.py
+[0;36m│[0m     └─ tests/test_mcp_server.py
+[0;36m└──────────────────────────────────────────────────────────────┘[0m
+
+
+[0;36m┌──────────────────────────────────────────────────────────────┐[0m
+[0;36m│[0m [1m⏱ JARVIS Status — 13:39:55[0m  │  Phase 0 — 4m7s  │  0/2 done
+[0;36m├──────────────────────────────────────────────────────────────┤[0m
+[0;36m│[0m  🤖 [1mvision-agent[0m  [0B]
+[0;36m│[0m  🤖 [1magent-doctor[0m  [0B]
+[0;36m├──────────────────────────────────────────────────────────────┤[0m
+[0;36m│[0m  📁 Files: 2 modified, 0 staged, 3 new
+[0;36m│[0m  📝 Recently changed:
+[0;36m│[0m     └─ .claude/team-state/vision-alignment-2026-03-02.json
+[0;36m│[0m     └─ .claude/team-state/jarvis-heartbeat.json
+[0;36m│[0m     └─ tests/test_secrets_scanner.py
+[0;36m│[0m     └─ data/feeds/epss-enrichment-cache.json
+[0;36m│[0m     └─ .claude/team-state/vision-agent-status.md
+[0;36m│[0m  ✨ New files:
+[0;36m│[0m     └─ tests/test_container_scanner.py
+[0;36m│[0m     └─ tests/test_cspm_engine.py
+[0;36m│[0m     └─ tests/test_mcp_server.py
+[0;36m└──────────────────────────────────────────────────────────────┘[0m
+
+
+[0;36m┌──────────────────────────────────────────────────────────────┐[0m
+[0;36m│[0m [1m⏱ JARVIS Status — 13:40:56[0m  │  Phase 0 — 5m8s  │  0/2 done
+[0;36m├──────────────────────────────────────────────────────────────┤[0m
+[0;36m│[0m  🤖 [1mvision-agent[0m  [0B]
+[0;36m│[0m  🤖 [1magent-doctor[0m  [0B]
+[0;36m├──────────────────────────────────────────────────────────────┤[0m
+[0;36m│[0m  📁 Files: 2 modified, 0 staged, 3 new
+[0;36m│[0m  📝 Recently changed:
+[0;36m│[0m     └─ .claude/team-state/health-dashboard.json
+[0;36m│[0m     └─ .claude/team-state/jarvis-heartbeat.json
+[0;36m│[0m     └─ .claude/team-state/vision-alignment-2026-03-02.json
+[0;36m│[0m     └─ tests/test_secrets_scanner.py
+[0;36m│[0m     └─ data/feeds/epss-enrichment-cache.json
+[0;36m│[0m  ✨ New files:
+[0;36m│[0m     └─ tests/test_container_scanner.py
+[0;36m│[0m     └─ tests/test_cspm_engine.py
+[0;36m│[0m     └─ tests/test_mcp_server.py
+[0;36m└──────────────────────────────────────────────────────────────┘[0m
+
+
+[0;36m┌──────────────────────────────────────────────────────────────┐[0m
+[0;36m│[0m [1m⏱ JARVIS Status — 13:41:58[0m  │  Phase 0 — 6m10s  │  0/2 done
+[0;36m├──────────────────────────────────────────────────────────────┤[0m
+[0;36m│[0m  🤖 [1mvision-agent[0m  [0B]
+[0;36m│[0m  🤖 [1magent-doctor[0m  [0B]
+[0;36m├──────────────────────────────────────────────────────────────┤[0m
+[0;36m│[0m  📁 Files: 2 modified, 0 staged, 3 new
+[0;36m│[0m  📝 Recently changed:
+[0;36m│[0m     └─ .claude/team-state/decisions.log
+[0;36m│[0m     └─ .claude/team-state/metrics.json
+[0;36m│[0m     └─ .claude/team-state/jarvis-heartbeat.json
+[0;36m│[0m     └─ .claude/team-state/qa-engineer-status.md
+[0;36m│[0m     └─ .claude/team-state/vision-preflight-2026-03-02.md
+[0;36m│[0m  ✨ New files:
+[0;36m│[0m     └─ tests/test_container_scanner.py
+[0;36m│[0m     └─ tests/test_cspm_engine.py
+[0;36m│[0m     └─ tests/test_mcp_server.py
+[0;36m└──────────────────────────────────────────────────────────────┘[0m
+
+
+[0;36m┌──────────────────────────────────────────────────────────────┐[0m
+[0;36m│[0m [1m⏱ JARVIS Status — 13:43:00[0m  │  Phase 0 — 7m12s  │  0/2 done
+[0;36m├──────────────────────────────────────────────────────────────┤[0m
+[0;36m│[0m  🤖 [1mvision-agent[0m  [0B]
+[0;36m│[0m  🤖 [1magent-doctor[0m  [0B]
+[0;36m├──────────────────────────────────────────────────────────────┤[0m
+[0;36m│[0m  📁 Files: 2 modified, 0 staged, 3 new
+[0;36m│[0m  📝 Recently changed:
+[0;36m│[0m     └─ .claude/team-state/metrics.json
+[0;36m│[0m     └─ .claude/team-state/jarvis-heartbeat.json
+[0;36m│[0m     └─ .claude/team-state/decisions.log
+[0;36m│[0m     └─ .claude/team-state/agent-doctor-status.md
+[0;36m│[0m     └─ context_log.md
+[0;36m│[0m  ✨ New files:
+[0;36m│[0m     └─ tests/test_container_scanner.py
+[0;36m│[0m     └─ tests/test_cspm_engine.py
+[0;36m│[0m     └─ tests/test_mcp_server.py
+[0;36m└──────────────────────────────────────────────────────────────┘[0m
+
+[0;34m[13:43:54][0m [DEBUG] Agent subshell completed: exit_code=0
+<stdin>:173: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+[0;32m[✓][0m   LAYER 3: vision-agent — 🟢 Confidence: HIGH (100/100) | severity: 0/100
+[0;32m[✓][0m vision-agent completed in 486s (attempt 1, 1880 bytes, confidence: HIGH)
+/Users/devops.ai/developement/fixops/Fixops/scripts/agent-guardian.sh: line 133: vision-agent: expression recursion level exceeded (error token is "agent")
+/Users/devops.ai/developement/fixops/Fixops/scripts/agent-guardian.sh: line 133: vision-agent: expression recursion level exceeded (error token is "agent")
+
+[0;36m┌──────────────────────────────────────────────────────────────┐[0m
+[0;36m│[0m [1m⏱ JARVIS Status — 13:44:01[0m  │  Phase 0 — 8m13s  │  1/2 done
+[0;36m├──────────────────────────────────────────────────────────────┤[0m
+[0;36m│[0m  🤖 [1magent-doctor[0m  [0B]
+[0;36m├──────────────────────────────────────────────────────────────┤[0m
+[0;36m│[0m  📁 Files: 2 modified, 0 staged, 3 new
+[0;36m│[0m  📝 Recently changed:
+[0;36m│[0m     └─ .claude/team-state/cost-log.csv
+[0;36m│[0m     └─ .claude/guardian/vision-changelog.jsonl
+[0;36m│[0m     └─ .claude/guardian/guardian.log
+[0;36m│[0m     └─ .claude/team-state/vision-agent-status.md
+[0;36m│[0m     └─ .claude/team-state/vision-agent-hallucination-report.json
+[0;36m│[0m  ✨ New files:
+[0;36m│[0m     └─ tests/test_container_scanner.py
+[0;36m│[0m     └─ tests/test_cspm_engine.py
+[0;36m│[0m     └─ tests/test_mcp_server.py
+[0;36m└──────────────────────────────────────────────────────────────┘[0m
+

@@ -4,215 +4,200 @@ newman
 
 ❏ 🔧 Remediation Center
 ↳ List Remediation Tasks
-  GET http://localhost:8000/api/v1/remediation/tasks [200 OK, 6.21kB, 15ms]
+  GET http://localhost:8000/api/v1/remediation/tasks [200 OK, 6.21kB, 19ms]
   ✓  List remediation tasks returns 200
   ✓  Capture first taskId
 
 ↳ Create Remediation Task
-  POST http://localhost:8000/api/v1/remediation/tasks [200 OK, 529B, 5ms]
+  POST http://localhost:8000/api/v1/remediation/tasks [200 OK, 529B, 8ms]
   ✓  Create task returns 200/201
   ✓  Capture taskId
 
 ↳ Get Remediation Task
-  GET {{baseUrl}}/api/{{apiVersion}}/remediation/tasks [errored]
-     getaddrinfo ENOTFOUND {{baseurl}}
-  GET http://localhost:8000/api/v1/remediation/tasks/51a06128-5803-4c0b-bc6c-73af99509f58 [200 OK, 933B, 4ms]
+  GET http://localhost:8000/api/v1/remediation/tasks [200 OK, 6.21kB, 10ms]
+  GET http://localhost:8000/api/v1/remediation/tasks/f140dd29-e57e-4d1e-8479-776c0f169147 [200 OK, 836B, 6ms]
   ✓  Get task returns 200
 
 ↳ Update Task Status
-  GET {{baseUrl}}/api/{{apiVersion}}/remediation/tasks [errored]
-     getaddrinfo ENOTFOUND {{baseurl}}
-  PUT http://localhost:8000/api/v1/remediation/tasks/51a06128-5803-4c0b-bc6c-73af99509f58/status [200 OK, 452B, 4ms]
+  GET http://localhost:8000/api/v1/remediation/tasks [200 OK, 6.21kB, 11ms]
+  PUT http://localhost:8000/api/v1/remediation/tasks/f140dd29-e57e-4d1e-8479-776c0f169147/status [400 Bad Request, 425B, 5ms]
   ✓  Update task returns 200
 
 ↳ Remediation Metrics
-  GET http://localhost:8000/api/v1/remediation/metrics [200 OK, 508B, 4ms]
+  GET http://localhost:8000/api/v1/remediation/metrics [200 OK, 508B, 7ms]
   ✓  Remediation metrics returns 200
 
 ↳ SLA Status
-  POST http://localhost:8000/api/v1/remediation/tasks/check [405 Method Not Allowed, 361B, 9ms]
-  3. SLA status returns 200
+  POST http://localhost:8000/api/v1/remediation/sla/check?org_id=org-001&org_id=org-001 [200 OK, 355B, 4ms]
+  ✓  SLA status returns 200
 
 ↳ Remediation History
-  GET http://localhost:8000/api/v1/remediation/statuses [200 OK, 666B, 6ms]
+  GET http://localhost:8000/api/v1/remediation/statuses [200 OK, 666B, 10ms]
   ✓  History returns 200
 
 ❏ ⚡ AutoFix Engine
 ↳ Generate AutoFix
-  POST http://localhost:8000/api/v1/autofix/generate [200 OK, 1.63kB, 6.9s]
+  POST http://localhost:8000/api/v1/autofix/generate [200 OK, 2.12kB, 4.7s]
   ✓  AutoFix generation returns 200
   ✓  Capture fixId
 
 ↳ Get AutoFix Details
-  GET {{baseUrl}}/api/{{apiVersion}}/autofix/history [errored]
-     getaddrinfo ENOTFOUND {{baseurl}}
-  GET http://localhost:8000/api/v1/autofix/fixes/ [404 Not Found, 331B, 6ms]
-  5. Get fix returns 200
+  GET http://localhost:8000/api/v1/autofix/fixes/fix-test-001 [404 Not Found, 348B, 8ms]
+  ✓  Get fix returns 200
 
 ↳ Validate Fix
-  POST http://localhost:8000/api/v1/autofix/validate [404 Not Found, 336B, 5ms]
-  6. Validate fix returns 200
+  POST http://localhost:8000/api/v1/autofix/validate [404 Not Found, 348B, 6ms]
+  ✓  Validate fix returns 200
 
 ↳ Apply Fix
-  POST http://localhost:8000/api/v1/autofix/apply [422 Unprocessable Content, 487B, 5ms]
-  7. Apply fix returns 200
+  POST http://localhost:8000/api/v1/autofix/apply [422 Unprocessable Content, 477B, 4ms]
+  ✓  Apply fix returns 200
 
 ↳ Rollback Fix
-  POST http://localhost:8000/api/v1/autofix/rollback [200 OK, 344B, 5ms]
+  POST http://localhost:8000/api/v1/autofix/rollback [200 OK, 356B, 4ms]
   ✓  Rollback returns 200
 
 ↳ AutoFix Metrics
-  GET http://localhost:8000/api/v1/autofix/stats [200 OK, 569B, 6ms]
+  GET http://localhost:8000/api/v1/autofix/stats [200 OK, 581B, 3ms]
   ✓  AutoFix metrics returns 200
 
 ↳ AutoFix Languages
-  GET http://localhost:8000/api/v1/autofix/fix-types [200 OK, 824B, 5ms]
+  GET http://localhost:8000/api/v1/autofix/fix-types [200 OK, 824B, 7ms]
   ✓  Languages returns 200
 
 ❏ 📦 Bulk Operations
 ↳ Bulk Update Findings
-  POST http://localhost:8000/api/v1/bulk/findings/update [422 Unprocessable Content, 628B, 6ms]
-  8. Bulk update returns 200
+  POST http://localhost:8000/api/v1/bulk/findings/update [422 Unprocessable Content, 686B, 11ms]
+  ✓  Bulk update returns 200
 
 ↳ Bulk Risk Accept
-  POST http://localhost:8000/api/v1/bulk/findings/update [422 Unprocessable Content, 549B, 5ms]
-  9. Bulk risk accept returns 200
+  POST http://localhost:8000/api/v1/bulk/findings/update [422 Unprocessable Content, 686B, 10ms]
+  ✓  Bulk risk accept returns 200
 
 ↳ Bulk Assign
-  POST http://localhost:8000/api/v1/bulk/findings/assign [200 OK, 399B, 8ms]
+  POST http://localhost:8000/api/v1/bulk/findings/assign [200 OK, 399B, 18ms]
   ✓  Bulk assign returns 200
 
 ↳ Bulk Create Tickets
-  POST http://localhost:8000/api/v1/bulk/clusters/create-tickets [200 OK, 444B, 5ms]
+  POST http://localhost:8000/api/v1/bulk/clusters/create-tickets [200 OK, 444B, 11ms]
   ✓  Bulk ticket creation returns 200
 
 ↳ Cluster Bulk Actions
-  POST http://localhost:8000/api/v1/bulk/clusters/status [200 OK, 442B, 5ms]
+  POST http://localhost:8000/api/v1/bulk/clusters/status [200 OK, 442B, 10ms]
   ✓  Cluster action returns 200
 
 ↳ Bulk Operations History
-  GET http://localhost:8000/api/v1/bulk/jobs [200 OK, 4.65kB, 3ms]
+  GET http://localhost:8000/api/v1/bulk/jobs [200 OK, 8.73kB, 10ms]
   ✓  Bulk history returns 200
 
 ❏ 💬 Collaboration Hub
 ↳ List Finding Comments
-  GET http://localhost:8000/api/v1/collaboration/comments?finding_id= [200 OK, 365B, 5ms]
+  GET http://localhost:8000/api/v1/collaboration/comments?finding_id= [200 OK, 365B, 13ms]
   ✓  List comments returns 200
 
 ↳ Add Comment
-  POST http://localhost:8000/api/v1/collaboration/comments [200 OK, 497B, 5ms]
+  POST http://localhost:8000/api/v1/collaboration/comments [200 OK, 497B, 12ms]
   ✓  Add comment returns 200/201
   ✓  Capture commentId
 
 ↳ Add Watcher
-  POST http://localhost:8000/api/v1/collaboration/watchers [422 Unprocessable Content, 550B, 3ms]
- 10. Add watcher returns 200/201
+  POST http://localhost:8000/api/v1/collaboration/watchers [422 Unprocessable Content, 646B, 12ms]
+  ✓  Add watcher returns 200/201
 
 ↳ Activity Feed
-  GET http://localhost:8000/api/v1/collaboration/activities?org_id=org-001 [200 OK, 1.77kB, 3ms]
+  GET http://localhost:8000/api/v1/collaboration/activities?org_id=org-001 [200 OK, 24.05kB, 12ms]
   ✓  Activities returns 200
 
 ↳ List Notifications
-  GET http://localhost:8000/api/v1/collaboration/notifications/pending [200 OK, 3.91kB, 4ms]
+  GET http://localhost:8000/api/v1/collaboration/notifications/pending [200 OK, 3.91kB, 8ms]
   ✓  Notifications returns 200
   ✓  Capture notificationId
 
 ↳ Mark Notification Read
-  POST http://localhost:8000/api/v1/collaboration/notifications/process [200 OK, 2.21kB, 8ms]
+  POST http://localhost:8000/api/v1/collaboration/notifications/process [200 OK, 2.21kB, 16ms]
   ✓  Mark read returns 200
 
 ↳ Team Activity Summary
-  GET http://localhost:8000/api/v1/collaboration/activities?org_id=org-001 [200 OK, 1.77kB, 8ms]
+  GET http://localhost:8000/api/v1/collaboration/activities?org_id=org-001 [200 OK, 24.05kB, 9ms]
   ✓  Team activity returns 200
 
 ❏ ⚙️ Workflow Automation
 ↳ List Workflows
-  GET http://localhost:8000/api/v1/workflows [200 OK, 1.58kB, 5ms]
+  GET http://localhost:8000/api/v1/workflows [200 OK, 1.58kB, 12ms]
   ✓  List workflows returns 200
   ✓  Capture workflowId
 
 ↳ Create Workflow
-  POST http://localhost:8000/api/v1/workflows [409 Conflict, 380B, 6ms]
+  POST http://localhost:8000/api/v1/workflows [409 Conflict, 380B, 7ms]
   ✓  Create workflow returns 200/201
   ✓  Capture workflowId
 
 ↳ Get Workflow
-  GET {{baseUrl}}/api/{{apiVersion}}/workflows [errored]
-     getaddrinfo ENOTFOUND {{baseurl}}
-  GET http://localhost:8000/api/v1/workflows/ [200 OK, 1.58kB, 9ms]
+  GET http://localhost:8000/api/v1/workflows [200 OK, 1.58kB, 10ms]
+  GET http://localhost:8000/api/v1/workflows/619dfce4-fef8-4f85-a603-f8347f99cf16 [200 OK, 530B, 6ms]
   ✓  Get workflow returns 200
 
 ↳ Execute Workflow
-  GET {{baseUrl}}/api/{{apiVersion}}/workflows [errored]
-     getaddrinfo ENOTFOUND {{baseurl}}
-  POST http://localhost:8000/api/v1/workflows//execute [404 Not Found, 331B, 3ms]
- 13. Execute workflow returns 200
+  POST http://localhost:8000/api/v1/workflows/619dfce4-fef8-4f85-a603-f8347f99cf16/execute [200 OK, 744B, 13ms]
+  ✓  Execute workflow returns 200
 
 ↳ Workflow SLA Status
-  GET {{baseUrl}}/api/{{apiVersion}}/workflows [errored]
-     getaddrinfo ENOTFOUND {{baseurl}}
-  GET http://localhost:8000/api/v1/workflows//sla [404 Not Found, 331B, 3ms]
- 15. Workflow SLA returns 200
+  GET http://localhost:8000/api/v1/workflows/619dfce4-fef8-4f85-a603-f8347f99cf16/sla [200 OK, 394B, 10ms]
+  ✓  Workflow SLA returns 200
 
 ↳ Workflow Timeline
-  GET {{baseUrl}}/api/{{apiVersion}}/workflows [errored]
-     getaddrinfo ENOTFOUND {{baseurl}}
-  GET http://localhost:8000/api/v1/workflows//history [404 Not Found, 331B, 6ms]
- 17. Timeline returns 200
+  GET http://localhost:8000/api/v1/workflows/619dfce4-fef8-4f85-a603-f8347f99cf16/history [200 OK, 9.25kB, 10ms]
+  ✓  Timeline returns 200
 
 ❏ 🤖 AI Copilot — Remediation Agent
 ↳ Get Remediation Guidance
-  POST http://localhost:8000/api/v1/copilot/agents/remediation/generate-fix [200 OK, 710B, 5.3s]
+  POST http://localhost:8000/api/v1/copilot/agents/remediation/generate-fix [200 OK, 724B, 6.3s]
   ✓  Remediation guidance returns 200
 
 ↳ Generate Code Fix
-  POST http://localhost:8000/api/v1/copilot/agents/remediation/generate-fix [200 OK, 710B, 4.4s]
+  POST http://localhost:8000/api/v1/copilot/agents/remediation/generate-fix [200 OK, 724B, 4.8s]
   ✓  Code fix returns 200
 
 ↳ Generate Remediation Plan
-  POST http://localhost:8000/api/v1/copilot/agents/remediation/playbook [200 OK, 846B, 5ms]
+  POST http://localhost:8000/api/v1/copilot/agents/remediation/playbook [200 OK, 846B, 6ms]
   ✓  Remediation plan returns 200
 
 ↳ Remediation Best Practices
-  GET http://localhost:8000/api/v1/copilot/agents/remediation/queue [200 OK, 4.77kB, 10ms]
+  GET http://localhost:8000/api/v1/copilot/agents/remediation/queue [200 OK, 4.98kB, 9ms]
   ✓  Best practices returns 200
 
 ❏ 🎫 Exposure Case Management
 ↳ List Exposure Cases
-  GET http://localhost:8000/api/v1/cases [200 OK, 90.2kB, 11ms]
+  GET http://localhost:8000/api/v1/cases [200 OK, 90.32kB, 13ms]
   ✓  List cases returns 200
   ✓  Capture caseId
 
 ↳ Create Exposure Case
-  POST http://localhost:8000/api/v1/cases [200 OK, 976B, 6ms]
+  POST http://localhost:8000/api/v1/cases [200 OK, 977B, 52ms]
   ✓  Create case returns 200/201
   ✓  Capture caseId
 
 ↳ Get Exposure Case
-  GET {{baseUrl}}/api/{{apiVersion}}/cases [errored]
-     getaddrinfo ENOTFOUND {{baseurl}}
-  GET http://localhost:8000/api/v1/cases/EC-82F7905647DA [200 OK, 976B, 3ms]
+  GET http://localhost:8000/api/v1/cases [200 OK, 90.32kB, 16ms]
+  GET http://localhost:8000/api/v1/cases/EC-125615516D2F [200 OK, 976B, 3ms]
   ✓  Get case returns 200
 
 ↳ Update Case Status
-  GET {{baseUrl}}/api/{{apiVersion}}/cases [errored]
-     getaddrinfo ENOTFOUND {{baseurl}}
-  PATCH http://localhost:8000/api/v1/cases/EC-82F7905647DA [400 Bad Request, 343B, 6ms]
- 20. Update case returns 200
+  GET http://localhost:8000/api/v1/cases [200 OK, 90.32kB, 7ms]
+  PATCH http://localhost:8000/api/v1/cases/EC-125615516D2F [400 Bad Request, 343B, 3ms]
+  ✓  Update case returns 200
 
 ❏ 🔗 Integration Tickets (Jira/GitHub)
 ↳ List Integrations
-  GET http://localhost:8000/api/v1/integrations [200 OK, 34.43kB, 9ms]
+  GET http://localhost:8000/api/v1/integrations [200 OK, 34.43kB, 12ms]
   ✓  List integrations returns 200
 
 ↳ Test Jira Connection
-  GET {{baseUrl}}/api/{{apiVersion}}/integrations [errored]
-     getaddrinfo ENOTFOUND {{baseurl}}
-  POST http://localhost:8000/api/v1/integrations/{{integrationId}}/test [404 Not Found, 343B, 16ms]
- 22. Jira test returns 200
+  POST http://localhost:8000/api/v1/integrations/jira-test-001/test [404 Not Found, 343B, 9ms]
+  ✓  Jira test returns 200
 
 ↳ Webhook Health
-  GET http://localhost:8000/api/v1/webhooks/health [200 OK, 360B, 9ms]
+  GET http://localhost:8000/api/v1/webhooks/health [200 OK, 360B, 10ms]
   ✓  Webhook health returns 200
 
 ┌─────────────────────────┬────────────────────┬───────────────────┐
@@ -220,129 +205,17 @@ newman
 ├─────────────────────────┼────────────────────┼───────────────────┤
 │              iterations │                  1 │                 0 │
 ├─────────────────────────┼────────────────────┼───────────────────┤
-│                requests │                 54 │                10 │
+│                requests │                 49 │                 0 │
 ├─────────────────────────┼────────────────────┼───────────────────┤
 │            test-scripts │                 44 │                 0 │
 ├─────────────────────────┼────────────────────┼───────────────────┤
 │      prerequest-scripts │                 54 │                 0 │
 ├─────────────────────────┼────────────────────┼───────────────────┤
-│              assertions │                 53 │                12 │
+│              assertions │                 53 │                 0 │
 ├─────────────────────────┴────────────────────┴───────────────────┤
-│ total run duration: 22.1s                                        │
+│ total run duration: 21.9s                                        │
 ├──────────────────────────────────────────────────────────────────┤
-│ total data received: 158.06kB (approx)                           │
+│ total data received: 409.24kB (approx)                           │
 ├──────────────────────────────────────────────────────────────────┤
-│ average response time: 368ms [min: 3ms, max: 6.9s, s.d.: 1413ms] │
+│ average response time: 333ms [min: 3ms, max: 6.3s, s.d.: 1279ms] │
 └──────────────────────────────────────────────────────────────────┘
-
-[31m   # [39m[31m failure        [39m[31m detail                                                               [39m
-[90m     [39m[90m                [39m[90m                                                                      [39m
- 01.  Error                                                                                
-                      getaddrinfo ENOTFOUND {{baseurl}}                                    
-                      at request                                                           
-                      inside ""                                                            
-[90m     [39m[90m                [39m[90m                                                                      [39m
- 02.  Error                                                                                
-                      getaddrinfo ENOTFOUND {{baseurl}}                                    
-                      at request                                                           
-                      inside ""                                                            
-[90m     [39m[90m                [39m[90m                                                                      [39m
- 03.  AssertionError  SLA status returns 200                                               
-                      expected 405 to be one of [ 200, 201, 202, 409 ]                     
-                      at assertion:0 in test-script                                        
-                      inside "🔧 Remediation Center / SLA Status"                          
-[90m     [39m[90m                [39m[90m                                                                      [39m
- 04.  Error                                                                                
-                      getaddrinfo ENOTFOUND {{baseurl}}                                    
-                      at request                                                           
-                      inside ""                                                            
-[90m     [39m[90m                [39m[90m                                                                      [39m
- 05.  AssertionError  Get fix returns 200                                                  
-                      expected 404 to be one of [ 200, 201, 202, 409 ]                     
-                      at assertion:0 in test-script                                        
-                      inside "⚡ AutoFix Engine / Get AutoFix Details"                     
-[90m     [39m[90m                [39m[90m                                                                      [39m
- 06.  AssertionError  Validate fix returns 200                                             
-                      expected 404 to be one of [ 200, 201, 202, 409 ]                     
-                      at assertion:0 in test-script                                        
-                      inside "⚡ AutoFix Engine / Validate Fix"                            
-[90m     [39m[90m                [39m[90m                                                                      [39m
- 07.  AssertionError  Apply fix returns 200                                                
-                      expected 422 to be one of [ 200, 201, 202, 409 ]                     
-                      at assertion:0 in test-script                                        
-                      inside "⚡ AutoFix Engine / Apply Fix"                               
-[90m     [39m[90m                [39m[90m                                                                      [39m
- 08.  AssertionError  Bulk update returns 200                                              
-                      expected 422 to be one of [ 200, 201, 202, 409 ]                     
-                      at assertion:0 in test-script                                        
-                      inside "📦 Bulk Operations / Bulk Update Findings"                   
-[90m     [39m[90m                [39m[90m                                                                      [39m
- 09.  AssertionError  Bulk risk accept returns 200                                         
-                      expected 422 to be one of [ 200, 201, 202, 409 ]                     
-                      at assertion:0 in test-script                                        
-                      inside "📦 Bulk Operations / Bulk Risk Accept"                       
-[90m     [39m[90m                [39m[90m                                                                      [39m
- 10.  AssertionError  Add watcher returns 200/201                                          
-                      expected 422 to be one of [ 200, 201, 202, 409 ]                     
-                      at assertion:0 in test-script                                        
-                      inside "💬 Collaboration Hub / Add Watcher"                          
-[90m     [39m[90m                [39m[90m                                                                      [39m
- 11.  Error                                                                                
-                      getaddrinfo ENOTFOUND {{baseurl}}                                    
-                      at request                                                           
-                      inside ""                                                            
-[90m     [39m[90m                [39m[90m                                                                      [39m
- 12.  Error                                                                                
-                      getaddrinfo ENOTFOUND {{baseurl}}                                    
-                      at request                                                           
-                      inside ""                                                            
-[90m     [39m[90m                [39m[90m                                                                      [39m
- 13.  AssertionError  Execute workflow returns 200                                         
-                      expected 404 to be one of [ 200, 201, 202, 409 ]                     
-                      at assertion:0 in test-script                                        
-                      inside "⚙️ Workflow Automation / Execute Workflow"                   
-[90m     [39m[90m                [39m[90m                                                                      [39m
- 14.  Error                                                                                
-                      getaddrinfo ENOTFOUND {{baseurl}}                                    
-                      at request                                                           
-                      inside ""                                                            
-[90m     [39m[90m                [39m[90m                                                                      [39m
- 15.  AssertionError  Workflow SLA returns 200                                             
-                      expected 404 to be one of [ 200, 201, 202, 409 ]                     
-                      at assertion:0 in test-script                                        
-                      inside "⚙️ Workflow Automation / Workflow SLA Status"                
-[90m     [39m[90m                [39m[90m                                                                      [39m
- 16.  Error                                                                                
-                      getaddrinfo ENOTFOUND {{baseurl}}                                    
-                      at request                                                           
-                      inside ""                                                            
-[90m     [39m[90m                [39m[90m                                                                      [39m
- 17.  AssertionError  Timeline returns 200                                                 
-                      expected 404 to be one of [ 200, 201, 202, 409 ]                     
-                      at assertion:0 in test-script                                        
-                      inside "⚙️ Workflow Automation / Workflow Timeline"                  
-[90m     [39m[90m                [39m[90m                                                                      [39m
- 18.  Error                                                                                
-                      getaddrinfo ENOTFOUND {{baseurl}}                                    
-                      at request                                                           
-                      inside ""                                                            
-[90m     [39m[90m                [39m[90m                                                                      [39m
- 19.  Error                                                                                
-                      getaddrinfo ENOTFOUND {{baseurl}}                                    
-                      at request                                                           
-                      inside ""                                                            
-[90m     [39m[90m                [39m[90m                                                                      [39m
- 20.  AssertionError  Update case returns 200                                              
-                      expected 400 to be one of [ 200, 201, 202, 409 ]                     
-                      at assertion:0 in test-script                                        
-                      inside "🎫 Exposure Case Management / Update Case Status"            
-[90m     [39m[90m                [39m[90m                                                                      [39m
- 21.  Error                                                                                
-                      getaddrinfo ENOTFOUND {{baseurl}}                                    
-                      at request                                                           
-                      inside ""                                                            
-[90m     [39m[90m                [39m[90m                                                                      [39m
- 22.  AssertionError  Jira test returns 200                                                
-                      expected 404 to be one of [ 200, 201, 202, 409 ]                     
-                      at assertion:0 in test-script                                        
-                      inside "🔗 Integration Tickets (Jira/GitHub) / Test Jira Connection" 

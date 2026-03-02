@@ -189,3 +189,20 @@ FastAPI app endpoint enumeration via `create_app()` route inspection:
 - **Collection method**: `python3 -c "from apps.api.app import create_app; app = create_app();"` then iterate `app.routes` filtering `/api/v1/` paths
 - **Key insight**: Monolith has achieved high service modularity (77 distinct APIs) while remaining single-process; no horizontal scaling
 - Output location: `.claude/team-state/swarm/outputs/swarm-120/` contains result.md (comprehensive inventory with tier/pillar attribution) and status.json
+
+### Container Scanner Tests (swarm-container-scanner-unit)
+`tests/test_container_scanner.py` has 165 tests covering 100% of
+`suite-core/core/container_scanner.py` (146 stmts, 50 branches). All pass in 0.21s.
+- **Source bug**: `USER nonroot` does NOT suppress "No USER Directive" meta-rule because
+  the code checks `"root" not in stripped.lower()` and "nonroot" contains "root" as a
+  substring. Use `USER appuser` or `USER 1000` in tests to get a genuinely non-root user.
+- **Source behavior**: `_validate_image_ref()` runs regex format check on raw (unstripped)
+  string, then returns `.strip()`. Leading/trailing spaces fail the regex before strip.
+- **Coverage command**: `--cov=core.container_scanner` (module notation, not filesystem path)
+- **Mock pattern for asyncio.create_subprocess_exec**:
+  ```python
+  mock_proc = MagicMock()
+  mock_proc.communicate = AsyncMock(return_value=(output_bytes, b""))
+  with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock, return_value=mock_proc):
+      result = await scanner.scan_image("nginx:1.25")
+  ```

@@ -87,7 +87,7 @@
 - CSPM: `{"content":"resource \"aws_s3_bucket\" \"test\" {\n  acl = \"public-read\"\n}", "filename":"main.tf"}` → 2 findings
 - Brain pipeline: needs `org_id` field. 12 steps, 8 completed for typical input. Returns dedup, scoring, enrichment.
 
-## New Test Files (Updated 2026-03-02 Iter 2)
+## New Test Files (Updated 2026-03-02 Iter 3)
 - `tests/test_api_fuzzer.py`: 110 tests, ALL PASS. Covers api_fuzzer.py (361 LOC). Uses async tests (asyncio_mode=auto).
 - `tests/test_malware_detector.py`: 146 tests, ALL PASS. Covers malware_detector.py (381 LOC). Found XHR regex bug (XMLHttpRequest vs lowercase).
 - `tests/test_attack_simulation_engine.py`: 163 tests, ALL PASS. Covers attack_simulation_engine.py (1146 LOC). Python 3.14 asyncio fix needed.
@@ -95,20 +95,30 @@
 - `tests/test_sast_engine.py`: 57 tests, ALL PASS. Covers sast_engine.py (1577 LOC, 99.07% coverage). Tests real pattern detection.
 - `tests/test_dast_engine.py`: 49 tests, ALL PASS. Covers dast_engine.py (629 LOC, 47.78% coverage). Tests SSRF protection, URL validation, link parsing.
 - `tests/test_crypto.py`: 45 tests, ALL PASS. Pre-existing. Covers crypto.py (582 LOC, 97.86% coverage).
+- `tests/test_mcp_server.py`: 102 tests, ALL PASS. Covers mcp_server.py (979 LOC, 93.42% coverage). MCP 2025 protocol, JSON-RPC, SSE.
+- `tests/test_secrets_scanner.py`: 169 tests, ALL PASS. Covers secrets_scanner.py (775 LOC, 99.47% coverage). All secret types.
+- `tests/test_container_scanner.py`: 165 tests, ALL PASS. Covers container_scanner.py (410 LOC, 100% coverage). Dockerfile rules, trivy mock.
+- `tests/test_cspm_engine.py`: 136 tests, ALL PASS. Covers cspm_engine.py (586 LOC, 97.01% coverage). TF + CFN scanning.
+- `tests/test_iac_scanner.py`: 141 tests, ALL PASS. Covers iac_scanner.py (713 LOC, 35.85% coverage). Needs deeper function tests.
 
-## Moat File Coverage (Updated 2026-03-02 Iter 2)
-- autofix_engine.py: 91.67% (566 stmts) — NEW tests, excellent
-- crypto.py: 97.86% (194 stmts) — excellent
-- sast_engine.py: 99.07% (161 stmts) — NEW tests, excellent
-- dast_engine.py: 47.78% (280 stmts) — NEW tests, async scan methods uncovered (need network)
-- fail_engine.py: 99.75% (314 stmts) — excellent
+## Moat File Coverage (Updated 2026-03-02 Iter 3)
+- container_scanner.py: 100.00% — perfect
 - api_fuzzer.py: 100% (137 stmts) — perfect
 - malware_detector.py: 100% (119 stmts) — perfect
-- attack_simulation_engine.py: 92.74% (427 stmts) — excellent
+- sast_engine.py: 99.07% (161 stmts) — excellent
+- fail_engine.py: 99.75% (314 stmts) — excellent
+- secrets_scanner.py: 99.47% — NEW Iter 3, excellent
 - llm_consensus.py: 98.73% (128 stmts) — excellent
+- crypto.py: 97.86% (194 stmts) — excellent
+- cspm_engine.py: 97.01% — NEW Iter 3, excellent
+- mcp_server.py: 93.42% — NEW Iter 3, excellent
+- attack_simulation_engine.py: 92.74% (427 stmts) — excellent
+- autofix_engine.py: 91.67% (566 stmts) — excellent
 - brain_pipeline.py: 66.62% (552 stmts) — good but needs more
 - scanner_parsers.py: 47.94% (589 stmts) — partial, needs more
-- 8 moat files at 0%: micro_pentest, mpte_advanced, playbook_runner, secrets, container, cspm, iac, mcp_server
+- dast_engine.py: 47.78% (280 stmts) — async scan methods uncovered (need network)
+- iac_scanner.py: 35.85% — NEW Iter 3, needs deeper function tests
+- 3 moat files at 0%: micro_pentest, mpte_advanced, playbook_runner
 
 ## Full Test Suite Notes
 - 10,911 tests collected (excluding e2e)
@@ -122,6 +132,7 @@
 - Day 2 Iter 1: 100% (475/475) — zero regressions, 402 requests
 - Day 2 Iter 2: 100% (475/475) — 3rd consecutive zero regressions
 - Day 2 Iter 3: 100% (472/472) — 4th consecutive zero regressions. Fixed Col 2 (5 fails) and Col 3 (7 fails).
+- Day 2 Iter 4-6: 100% (475/475) — 6th consecutive zero regressions. 713 new moat tests written. 14/19 moat files tested.
 
 ## Customer Simulation Scenarios (Verified 2026-03-02)
 - Brain Pipeline: `POST /api/v1/brain/pipeline/run` with 5 findings + org_id → 12 steps, 119ms

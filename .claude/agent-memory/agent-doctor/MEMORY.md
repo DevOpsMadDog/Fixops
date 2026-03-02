@@ -17,29 +17,30 @@ When launching claude CLI as child processes on macOS:
 - State: `.claude/team-state/`
 - Logs: `logs/ai-team/`
 
-### Sprint 2 Pre-Flight (run24→run27, 2026-03-01→02)
-- Enterprise demo in 4 days (2026-03-06). Sprint 2: 9/12 done, 3 P0 blockers.
-- Run27 (Day 2): 17/17 agents OK, 19/19 engines (20,047 LOC, +1,887), 4/4 MOATs PASS, 56/56 DBs writable
-- Run27: 948 core tests pass (83.20s, 15 test files), 10,356 total tests, coverage 19.19%
-- Run27: 10 WAL+SHM cleaned (post-test regeneration). All 3 lock files have active PIDs.
+### Sprint 2 Pre-Flight (run24→run28, 2026-03-01→02)
+- Enterprise demo in 4 days (2026-03-06). Sprint 2: 11/12 done (91.7%), 1 P0 blocker (DEMO-003 UI wiring).
+- Run28 (Day 2 PM): 17/17 agents OK, 19/19 engines (20,527 LOC, +480), 4/4 MOATs PASS, 56/56 DBs writable
+- Run28: 1,128 core tests pass (28.42s, 15 test files), 12,400 total tests (+2,044), coverage 19.19%
+- Run28: 20 WAL+SHM cleaned (including 2.5GB fixops_brain.db-wal). CRITICAL: brain.db was corrupted, recreated.
+- Run28: All 15 completed agents Grade A (perfect health). 0 failures.
 - RSAKeyManager needs explicit key paths (private_key_path, public_key_path) — default "." causes IsADirectoryError
 - Coverage with --collect-only shows 19.35% vs actual 19.19% with expanded scope
 - Lock files: jarvis.pid, jarvis.lock, controller-watchdog.pid — ALWAYS check if PIDs alive before cleaning
-- Engine LOC growth tracked: sast_engine 465→1577, self_learning 832→1363, brain_pipeline 1000→1161
+- Engine LOC growth: brain_pipeline 1161→1354, autofix 1259→1416, dast 533→629 (backend-hardener work)
 - Security advisory SA-001 OPEN: Real API keys committed in .env (OpenAI, JWT, API token) — needs rotation before demo
 
-### CTEM+ Engine Inventory (verified 2026-03-02 run26)
-- 6 scanner engines: sast (1577), dast (533), secrets (845), container (410), iac (713), cspm (586) = 4,664 LOC
-- Brain pipeline: `brain_pipeline.py` (1,161 LOC, 12 steps via _step_* methods, has `run()` method) — growing since run15
+### CTEM+ Engine Inventory (verified 2026-03-02 run28)
+- 6 scanner engines: sast (1577), dast (629), secrets (850), container (445), iac (713), cspm (593) = 4,807 LOC
+- Brain pipeline: `brain_pipeline.py` (1,354 LOC, 12 steps via _step_* methods, has `run()` method) — growing since run15
 - MPTE: mpte_advanced.py (1,089, AdvancedMPTEClient), mpte_db.py (536, MPTEDB), mpte_models.py (141, PenTestConfig/Request/Result), micro_pentest.py (2,054, run_micro_pentest) = 3,820 LOC
-- AutoFix: `autofix_engine.py` (1,259 LOC, AutoFixEngine, 8 public methods)
-- FAIL Engine: `fail_engine.py` (713 LOC, FAILEngine, 8 public methods)
+- AutoFix: `autofix_engine.py` (1,416 LOC, AutoFixEngine, 8 public methods)
+- FAIL Engine: `fail_engine.py` (711 LOC, FAILEngine, 8 public methods)
 - Connectors: `connectors.py` (3,005 LOC, AutomationConnectors) + `universal_connector.py` (1,637 LOC)
 - MCP: `mcp_server.py` (979 LOC, MCPProtocolHandler NOT MCPServer) + `mcp_router.py` (468 in suite-integrations)
-- 6 vision engines: falkordb_client (836, KnowledgeGraphEngine), single_agent (819, SingleAgentEngine), quantum_crypto (666, HybridQuantumSigner), mcp_server (979, MCPProtocolHandler), self_learning (1363, SelfLearningEngine), zero_gravity (857, ZeroGravityEngine) = 5,520 LOC
+- 6 vision engines: falkordb_client (835, KnowledgeGraphEngine), single_agent (818, SingleAgentEngine), quantum_crypto (664, HybridQuantumSigner), mcp_server (978, MCPProtocolHandler), self_learning (1359, SelfLearningEngine), zero_gravity (855, ZeroGravityEngine) = 5,509 LOC
 - **Module names (NOT _engine suffix)**: `core.single_agent`, `core.self_learning`, `core.zero_gravity` — NOT `core.single_agent_engine` etc.
 - Crypto: `crypto.py` (582 LOC, RSAKeyManager/RSASigner/RSAVerifier — NOT CryptoEngine)
-- Total 19 engines verified importable: 6 scanner + 6 vision + 7 core = 20,047 LOC (was 18,160 at Sprint 1 end)
+- Total 19 engines verified importable: 6 scanner + 6 vision + 7 core = 20,527 LOC (was 18,160 at Sprint 1 end)
 - CTEM_PLUS_IDENTITY.md says `cspm_analyzer.py` but actual is `cspm_engine.py`
 
 ### Test-Code Drift Pattern (RC7 — resolved run9)
@@ -83,12 +84,12 @@ When launching claude CLI as child processes on macOS:
 - Use `bash -c '...'` wrapper for scripts with `[[ ]]` syntax — zsh parses `[[ ! ]]` differently
 - Or use `[ ]` (POSIX) instead of `[[ ]]` (bash)
 
-### Sprint Artifacts (as of 2026-03-02 run27)
+### Sprint Artifacts (as of 2026-03-02 run28)
 - Sprint 1 ARCHIVED: 21/23 done (91.3%)
-- Sprint 2 ACTIVE: 9/12 done (75%). 3 P0 blockers: DEMO-001, DEMO-002, DEMO-003. 4 days to demo.
-- 339+ test files, 10,356 tests collected, 948 core tests passing (83.20s)
+- Sprint 2 ACTIVE: 11/12 done (91.7%). 1 P0 blocker: DEMO-003 (UI wiring). 4 days to demo.
+- 345+ test files, 12,400 tests collected, 1,128 core tests passing (28.42s)
 - 19.19% coverage (gate: 25% — FAILING, gap 5.81pp)
-- 20,047 LOC across 19 engines (+1,887 from Sprint 1)
+- 20,527 LOC across 19 engines (+2,367 from Sprint 1)
 
 ### Core Test Files (verified run v6 — 948 tests, ~68s)
 - test_brain_pipeline.py (159 tests)
@@ -155,11 +156,13 @@ When launching claude CLI as child processes on macOS:
 - Always use agent-doctor's measurement for official coverage metric
 - `stat -f '%m'` on macOS: use `date -r FILE` instead — avoids zsh parsing issues
 
-### WAL File Accumulation Pattern (run19, updated v6)
+### WAL File Accumulation Pattern (run19, updated run28)
 - SQLite WAL files grow during pytest runs — each test that creates/writes DB produces WAL
 - Run15: 5 WAL (13.1MB), Run16: 9 WAL (29MB), Run17: 2 WAL (0 bytes), Run18: 0 WAL, Run19: 3 WAL (8.1MB), Run v6: 5 WAL (0 bytes)
-- Safe to clean: `rm -f` on WAL + SHM files. DB files remain intact.
-- Pattern RECURRING: WAL accumulate between runs. Always check and clean.
+- **Run28: 12 WAL (2.55GB!!!) — fixops_brain.db had 2.5GB WAL causing CORRUPTION (malformed disk image)**
+- **CRITICAL LESSON**: Large WAL files can corrupt the parent DB. fixops_brain.db had to be recreated.
+- Safe to clean: `rm -f` on WAL + SHM files. DB files remain intact IF not already corrupted.
+- Pattern RECURRING: WAL accumulate between runs. Always check and clean. Check DB integrity after cleaning large WALs.
 
 ### PersistentDict Resource Leak (RC9 — resolved run19)
 - `persistent_store.py` `_conn()` method created NEW `sqlite3.connect()` on every call

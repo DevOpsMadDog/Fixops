@@ -4,349 +4,217 @@ newman
 
 ❏ 📋 Audit Trail & Chain
 ↳ Get Audit Logs
-  GET http://localhost:8000/api/v1/audit/logs [200 OK, 347B, 24ms]
+  GET http://localhost:8000/api/v1/audit/logs [200 OK, 347B, 22ms]
   ✓  Audit logs returns 200
   ✓  Returns log entries
 
 ↳ Verify Audit Chain
-  GET http://localhost:8000/api/v1/audit/chain/verify [200 OK, 442B, 8ms]
+  GET http://localhost:8000/api/v1/audit/chain/verify [200 OK, 442B, 3ms]
   ✓  Chain verification returns 200
   ✓  Chain is valid
 
 ↳ Audit Chain Status
-  GET http://localhost:8000/api/v1/audit/logs [200 OK, 347B, 5ms]
+  GET http://localhost:8000/api/v1/audit/logs [200 OK, 347B, 8ms]
   ✓  Chain status returns 200
 
 ↳ List Compliance Frameworks
-  GET http://localhost:8000/api/v1/audit/compliance/frameworks [200 OK, 347B, 7ms]
+  GET http://localhost:8000/api/v1/audit/compliance/frameworks [200 OK, 347B, 8ms]
   ✓  Frameworks returns 200
   ✓  Capture frameworkId
 
 ↳ Framework Compliance Status
   GET http://localhost:8000/api/v1/audit/compliance/frameworks/soc2/status [404 Not Found, 341B, 9ms]
-  1. Framework status returns 200
+  ✓  Framework status returns 200
 
 ↳ Framework Gap Analysis
-  GET http://localhost:8000/api/v1/audit/compliance/frameworks/soc2/gaps [404 Not Found, 341B, 5ms]
-  2. Gap analysis returns 200
+  GET http://localhost:8000/api/v1/audit/compliance/frameworks/soc2/gaps [404 Not Found, 341B, 8ms]
+  ✓  Gap analysis returns 200
 
 ↳ Control Mappings
-  GET http://localhost:8000/api/v1/audit/compliance/controls [200 OK, 347B, 7ms]
+  GET http://localhost:8000/api/v1/audit/compliance/controls [200 OK, 347B, 9ms]
   ✓  Mappings returns 200
 
 ↳ Generate Audit Evidence
-  POST http://localhost:8000/api/v1/audit/compliance/frameworks/soc2/report [404 Not Found, 341B, 6ms]
-  3. Generate evidence returns 200
+  POST http://localhost:8000/api/v1/audit/compliance/frameworks/soc2/report [404 Not Found, 341B, 7ms]
+  ✓  Generate evidence returns 200
 
 ↳ Compliance Score History
-  GET http://localhost:8000/api/v1/analytics/dashboard/compliance-status [200 OK, 441B, 11ms]
+  GET http://localhost:8000/api/v1/analytics/dashboard/compliance-status [200 OK, 442B, 20ms]
   ✓  Score history returns 200
 
 ❏ 🔐 Evidence Vault (V6 — Quantum-Secure)
 ↳ List Evidence Bundles
-  GET http://localhost:8000/api/v1/evidence/bundles [200 OK, 1.54kB, 10ms]
+  GET http://localhost:8000/api/v1/evidence/bundles [200 OK, 1.55kB, 18ms]
   ✓  Evidence bundles returns 200
   ✓  Capture bundleId
 
 ↳ Create Evidence Bundle
-  POST http://localhost:8000/api/v1/evidence/bundles/generate [200 OK, 1.04kB, 7ms]
+  POST http://localhost:8000/api/v1/evidence/bundles/generate [200 OK, 1.04kB, 10ms]
   ✓  Create bundle returns 200/201
   ✓  Capture bundleId
 
 ↳ Get Evidence Bundle
-  GET {{baseUrl}}/api/{{apiVersion}}/evidence/bundles [errored]
-     getaddrinfo ENOTFOUND {{baseurl}}
-  GET http://localhost:8000/api/v1/evidence/bundles/EVB-2026-E9FC35 [404 Not Found, 331B, 3ms]
-  5. Get bundle returns 200
+  GET http://localhost:8000/api/v1/evidence/bundles [200 OK, 1.54kB, 9ms]
+  GET http://localhost:8000/api/v1/evidence/bundles/incident-IR-2025-001 [404 Not Found, 331B, 5ms]
+  ✓  Get bundle returns 200
 
 ↳ Verify Evidence Bundle Signature
-  GET {{baseUrl}}/api/{{apiVersion}}/evidence/bundles [errored]
-     getaddrinfo ENOTFOUND {{baseurl}}
-  POST http://localhost:8000/api/v1/evidence/bundles/EVB-2026-E9FC35/verify [200 OK, 589B, 5ms]
+  GET http://localhost:8000/api/v1/evidence/bundles [200 OK, 1.54kB, 9ms]
+  POST http://localhost:8000/api/v1/evidence/bundles/incident-IR-2025-001/verify [200 OK, 594B, 6ms]
   ✓  Verify evidence returns 200
-  7. Signature is valid
+  ✓  Signature verification response
 
 ↳ Export Evidence Bundle
-  GET {{baseUrl}}/api/{{apiVersion}}/evidence/bundles [errored]
-     getaddrinfo ENOTFOUND {{baseurl}}
-  GET http://localhost:8000/api/v1/evidence/bundles/EVB-2026-E9FC35/download [200 OK, 1.62kB, 6ms]
+  GET http://localhost:8000/api/v1/evidence/bundles [200 OK, 1.54kB, 10ms]
+  GET http://localhost:8000/api/v1/evidence/bundles/incident-IR-2025-001/download [200 OK, 1.63kB, 6ms]
   ✓  Export bundle returns 200
 
 ↳ Supply Chain Provenance Attestation
-  GET http://localhost:8000/api/v1/audit/decision-trail [200 OK, 328B, 5ms]
+  GET http://localhost:8000/api/v1/audit/decision-trail [200 OK, 328B, 7ms]
   ✓  Attestation returns 200/201
 
 ↳ List Provenance Attestations
-  GET http://localhost:8000/api/v1/feeds/supply-chain [200 OK, 24.31kB, 9ms]
+  GET http://localhost:8000/api/v1/feeds/supply-chain [200 OK, 24.31kB, 11ms]
   ✓  List attestations returns 200
 
 ❏ 📊 Reports & Analytics
 ↳ List Reports
-  GET http://localhost:8000/api/v1/reports [200 OK, 7.48kB, 6ms]
+  GET http://localhost:8000/api/v1/reports [200 OK, 39.76kB, 6ms]
   ✓  List reports returns 200
   ✓  Capture reportId
 
 ↳ Generate Executive Report
-  POST http://localhost:8000/api/v1/reports/generate [201 Created, 714B, 12ms]
+  POST http://localhost:8000/api/v1/reports/generate [201 Created, 715B, 25ms]
   ✓  Generate report returns 200
   ✓  Capture reportId
 
 ↳ Get Report
-  GET {{baseUrl}}/api/{{apiVersion}}/reports [errored]
-     getaddrinfo ENOTFOUND {{baseurl}}
-  GET http://localhost:8000/api/v1/reports/aad9322f-7989-4e37-9ff7-52ff3eff817f [200 OK, 709B, 6ms]
+  GET http://localhost:8000/api/v1/reports [200 OK, 39.76kB, 8ms]
+  GET http://localhost:8000/api/v1/reports/ee589fcd-9cff-4c05-bb77-1cada50f6117 [200 OK, 709B, 7ms]
   ✓  Get report returns 200
 
 ↳ Export Report — SARIF
-  POST http://localhost:8000/api/v1/reports/export/sarif [200 OK, 784B, 5ms]
+  POST http://localhost:8000/api/v1/reports/export/sarif [200 OK, 784B, 4ms]
   ✓  SARIF export returns 200
 
 ↳ Export Report — CSV
-  POST http://localhost:8000/api/v1/reports/export/csv [200 OK, 493B, 6ms]
+  POST http://localhost:8000/api/v1/reports/export/csv [200 OK, 495B, 12ms]
   ✓  CSV export returns 200
 
 ↳ Schedule Report
-  POST http://localhost:8000/api/v1/reports/schedule [422 Unprocessable Content, 586B, 6ms]
- 10. Schedule report returns 200
+  POST http://localhost:8000/api/v1/reports/schedule [422 Unprocessable Content, 692B, 9ms]
+  ✓  Schedule report returns 200
 
 ↳ Report Templates
-  GET http://localhost:8000/api/v1/reports/templates/list [200 OK, 347B, 3ms]
+  GET http://localhost:8000/api/v1/reports/templates/list [200 OK, 347B, 11ms]
   ✓  Templates returns 200
 
 ❏ 📜 Policy Engine
 ↳ List Policies
-  GET http://localhost:8000/api/v1/policies [200 OK, 4.52kB, 4ms]
+  GET http://localhost:8000/api/v1/policies [200 OK, 4.52kB, 13ms]
   ✓  List policies returns 200
   ✓  Capture policyId
 
 ↳ Create Policy
-  POST http://localhost:8000/api/v1/policies [201 Created, 670B, 6ms]
+  POST http://localhost:8000/api/v1/policies [201 Created, 670B, 13ms]
   ✓  Create policy returns 200/201
   ✓  Capture policyId
 
 ↳ Get Policy
-  GET {{baseUrl}}/api/{{apiVersion}}/policies [errored]
-     getaddrinfo ENOTFOUND {{baseurl}}
-  GET http://localhost:8000/api/v1/policies/37fb0390-6890-4841-a897-d8f17afbd318 [200 OK, 665B, 5ms]
+  GET http://localhost:8000/api/v1/policies [200 OK, 4.89kB, 9ms]
+  GET http://localhost:8000/api/v1/policies/f577a23e-2efe-4d8c-a738-c9867010907c [200 OK, 665B, 6ms]
   ✓  Get policy returns 200
 
 ↳ Update Policy
-  GET {{baseUrl}}/api/{{apiVersion}}/policies [errored]
-     getaddrinfo ENOTFOUND {{baseurl}}
-  PUT http://localhost:8000/api/v1/policies/37fb0390-6890-4841-a897-d8f17afbd318 [200 OK, 671B, 4ms]
+  GET http://localhost:8000/api/v1/policies [200 OK, 4.89kB, 6ms]
+  PUT http://localhost:8000/api/v1/policies/f577a23e-2efe-4d8c-a738-c9867010907c [200 OK, 671B, 6ms]
   ✓  Update policy returns 200
 
 ↳ Validate Against Policy
-  GET {{baseUrl}}/api/{{apiVersion}}/policies [errored]
-     getaddrinfo ENOTFOUND {{baseurl}}
-  POST http://localhost:8000/api/v1/policies/37fb0390-6890-4841-a897-d8f17afbd318/validate [200 OK, 482B, 3ms]
+  GET http://localhost:8000/api/v1/policies [200 OK, 4.89kB, 8ms]
+  POST http://localhost:8000/api/v1/policies/f577a23e-2efe-4d8c-a738-c9867010907c/validate [200 OK, 482B, 7ms]
   ✓  Policy validation returns 200
 
 ↳ Simulate Policy Impact
-  POST http://localhost:8000/api/v1/policies/simulate [200 OK, 796B, 8ms]
+  POST http://localhost:8000/api/v1/policies/simulate [200 OK, 796B, 11ms]
   ✓  Policy simulation returns 200
 
 ↳ Delete Policy
-  GET {{baseUrl}}/api/{{apiVersion}}/policies [errored]
-     getaddrinfo ENOTFOUND {{baseurl}}
-  DELETE http://localhost:8000/api/v1/policies/37fb0390-6890-4841-a897-d8f17afbd318 [204 No Content, 290B, 5ms]
+  GET http://localhost:8000/api/v1/policies [200 OK, 4.89kB, 9ms]
+  DELETE http://localhost:8000/api/v1/policies/f577a23e-2efe-4d8c-a738-c9867010907c [204 No Content, 290B, 6ms]
   ✓  Delete policy returns 200/204
 
 ❏ 🏪 Compliance Marketplace
 ↳ List Marketplace Packs
-  GET http://localhost:8000/api/v1/marketplace [404 Not Found, 331B, 6ms]
- 15. Marketplace packs returns 200
+  GET http://localhost:8000/api/v1/marketplace/browse [200 OK, 2.11kB, 9ms]
+  ✓  Marketplace packs returns 200
 
 ↳ Install Compliance Pack
-  GET {{baseUrl}}/api/{{apiVersion}}/marketplace/browse [errored]
-     getaddrinfo ENOTFOUND {{baseurl}}
-  POST http://localhost:8000/api/v1/marketplace/purchase/{{itemId}}?purchaser=org-001 [403 Forbidden, 425B, 3ms]
- 17. Install pack returns 200
+  POST http://localhost:8000/api/v1/marketplace/purchase/pack-soc2-basic?purchaser=org-001 [403 Forbidden, 425B, 7ms]
+  ✓  Install pack returns 200
 
 ↳ List Contributions
-  GET http://localhost:8000/api/v1/marketplace/contributors [200 OK, 611B, 5ms]
+  GET http://localhost:8000/api/v1/marketplace/contributors [200 OK, 611B, 11ms]
   ✓  Contributions returns 200
 
 ↳ Submit Contribution
-  POST http://localhost:8000/api/v1/marketplace/contribute?author=test&organization=org-001&name=test-contribution [422 Unprocessable Content, 553B, 10ms]
- 18. Submit contribution returns 200/201
+  POST http://localhost:8000/api/v1/marketplace/contribute?author=test&organization=org-001&name=test-contribution [422 Unprocessable Content, 560B, 8ms]
+  ✓  Submit contribution returns 200/201
 
 ❏ 📎 Business Context (Jira/Confluence)
 ↳ Get Business Context Settings
-  GET http://localhost:8000/api/v1/business-context/stored [200 OK, 346B, 8ms]
+  GET http://localhost:8000/api/v1/business-context/stored [200 OK, 346B, 10ms]
   ✓  Business context settings returns 200
 
 ↳ Import from Jira
   POST http://localhost:8000/api/v1/business-context/upload [422 Unprocessable Content, 580B, 11ms]
- 19. Jira import returns 200
+  ✓  Jira import returns 200
 
 ↳ Import from Confluence
-  POST http://localhost:8000/api/v1/business-context/upload [422 Unprocessable Content, 581B, 27ms]
- 20. Confluence import returns 200
+  POST http://localhost:8000/api/v1/business-context/upload [422 Unprocessable Content, 580B, 10ms]
+  ✓  Confluence import returns 200
 
 ↳ Upload Business Context
-  POST http://localhost:8000/api/v1/business-context/upload [422 Unprocessable Content, 580B, 11ms]
- 21. Upload context returns 200
+  POST http://localhost:8000/api/v1/business-context/upload [422 Unprocessable Content, 580B, 8ms]
+  ✓  Upload context returns 200
 
 ↳ Validate Business Context
-  POST http://localhost:8000/api/v1/business-context/validate [422 Unprocessable Content, 498B, 9ms]
- 22. Validate context returns 200
+  POST http://localhost:8000/api/v1/business-context/validate [422 Unprocessable Content, 498B, 10ms]
+  ✓  Validate context returns 200
 
 ❏ 🔑 Auth & SSO
 ↳ Auth Status
-  GET http://localhost:8000/api/v1/auth/sso [200 OK, 607B, 7ms]
+  GET http://localhost:8000/api/v1/auth/sso [200 OK, 607B, 13ms]
   ✓  Auth status returns 200
 
 ↳ Login
-  POST http://localhost:8000/api/v1/auth/sso [500 Internal Server Error, 174B, 20ms]
- 23. Login returns 200
+  POST http://localhost:8000/api/v1/auth/sso [500 Internal Server Error, 174B, 33ms]
+  ✓  Login returns 200
 
 ↳ RBAC Check
-  POST http://localhost:8000/api/v1/auth/sso [500 Internal Server Error, 174B, 20ms]
- 24. RBAC check returns 200
+  POST http://localhost:8000/api/v1/auth/sso [500 Internal Server Error, 174B, 18ms]
+  ✓  RBAC check returns 200
 
 ↳ SSO Config
-  GET http://localhost:8000/api/v1/auth/sso [200 OK, 607B, 15ms]
+  GET http://localhost:8000/api/v1/auth/sso [200 OK, 607B, 9ms]
   ✓  SSO config returns 200
 
-┌─────────────────────────┬─────────────────┬─────────────────┐
-│                         │        executed │          failed │
-├─────────────────────────┼─────────────────┼─────────────────┤
-│              iterations │               1 │               0 │
-├─────────────────────────┼─────────────────┼─────────────────┤
-│                requests │              52 │               9 │
-├─────────────────────────┼─────────────────┼─────────────────┤
-│            test-scripts │              43 │               0 │
-├─────────────────────────┼─────────────────┼─────────────────┤
-│      prerequest-scripts │              52 │               0 │
-├─────────────────────────┼─────────────────┼─────────────────┤
-│              assertions │              53 │              15 │
-├─────────────────────────┴─────────────────┴─────────────────┤
-│ total run duration: 5.4s                                    │
-├─────────────────────────────────────────────────────────────┤
-│ total data received: 45.32kB (approx)                       │
-├─────────────────────────────────────────────────────────────┤
-│ average response time: 8ms [min: 3ms, max: 27ms, s.d.: 5ms] │
-└─────────────────────────────────────────────────────────────┘
-
-[31m   # [39m[31m failure        [39m[31m detail                                                                              [39m
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 01.  AssertionError  Framework status returns 200                                                        
-                      expected 404 to be one of [ 200, 201, 202, 409 ]                                    
-                      at assertion:0 in test-script                                                       
-                      inside "📋 Audit Trail & Chain / Framework Compliance Status"                       
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 02.  AssertionError  Gap analysis returns 200                                                            
-                      expected 404 to be one of [ 200, 201, 202, 409 ]                                    
-                      at assertion:0 in test-script                                                       
-                      inside "📋 Audit Trail & Chain / Framework Gap Analysis"                            
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 03.  AssertionError  Generate evidence returns 200                                                       
-                      expected 404 to be one of [ 200, 201, 202, 409 ]                                    
-                      at assertion:0 in test-script                                                       
-                      inside "📋 Audit Trail & Chain / Generate Audit Evidence"                           
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 04.  Error                                                                                               
-                      getaddrinfo ENOTFOUND {{baseurl}}                                                   
-                      at request                                                                          
-                      inside ""                                                                           
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 05.  AssertionError  Get bundle returns 200                                                              
-                      expected 404 to be one of [ 200, 201, 202, 409 ]                                    
-                      at assertion:0 in test-script                                                       
-                      inside "🔐 Evidence Vault (V6 — Quantum-Secure) / Get Evidence Bundle"              
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 06.  Error                                                                                               
-                      getaddrinfo ENOTFOUND {{baseurl}}                                                   
-                      at request                                                                          
-                      inside ""                                                                           
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 07.  AssertionError  Signature is valid                                                                  
-                      expected false to be true                                                           
-                      at assertion:1 in test-script                                                       
-                      inside "🔐 Evidence Vault (V6 — Quantum-Secure) / Verify Evidence Bundle Signature" 
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 08.  Error                                                                                               
-                      getaddrinfo ENOTFOUND {{baseurl}}                                                   
-                      at request                                                                          
-                      inside ""                                                                           
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 09.  Error                                                                                               
-                      getaddrinfo ENOTFOUND {{baseurl}}                                                   
-                      at request                                                                          
-                      inside ""                                                                           
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 10.  AssertionError  Schedule report returns 200                                                         
-                      expected 422 to be one of [ 200, 201, 202, 409 ]                                    
-                      at assertion:0 in test-script                                                       
-                      inside "📊 Reports & Analytics / Schedule Report"                                   
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 11.  Error                                                                                               
-                      getaddrinfo ENOTFOUND {{baseurl}}                                                   
-                      at request                                                                          
-                      inside ""                                                                           
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 12.  Error                                                                                               
-                      getaddrinfo ENOTFOUND {{baseurl}}                                                   
-                      at request                                                                          
-                      inside ""                                                                           
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 13.  Error                                                                                               
-                      getaddrinfo ENOTFOUND {{baseurl}}                                                   
-                      at request                                                                          
-                      inside ""                                                                           
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 14.  Error                                                                                               
-                      getaddrinfo ENOTFOUND {{baseurl}}                                                   
-                      at request                                                                          
-                      inside ""                                                                           
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 15.  AssertionError  Marketplace packs returns 200                                                       
-                      expected 404 to be one of [ 200, 201, 202, 409 ]                                    
-                      at assertion:0 in test-script                                                       
-                      inside "🏪 Compliance Marketplace / List Marketplace Packs"                         
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 16.  Error                                                                                               
-                      getaddrinfo ENOTFOUND {{baseurl}}                                                   
-                      at request                                                                          
-                      inside ""                                                                           
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 17.  AssertionError  Install pack returns 200                                                            
-                      expected 403 to be one of [ 200, 201, 202, 409 ]                                    
-                      at assertion:0 in test-script                                                       
-                      inside "🏪 Compliance Marketplace / Install Compliance Pack"                        
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 18.  AssertionError  Submit contribution returns 200/201                                                 
-                      expected 422 to be one of [ 200, 201, 202, 409 ]                                    
-                      at assertion:0 in test-script                                                       
-                      inside "🏪 Compliance Marketplace / Submit Contribution"                            
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 19.  AssertionError  Jira import returns 200                                                             
-                      expected 422 to be one of [ 200, 201, 202, 409 ]                                    
-                      at assertion:0 in test-script                                                       
-                      inside "📎 Business Context (Jira/Confluence) / Import from Jira"                   
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 20.  AssertionError  Confluence import returns 200                                                       
-                      expected 422 to be one of [ 200, 201, 202, 409 ]                                    
-                      at assertion:0 in test-script                                                       
-                      inside "📎 Business Context (Jira/Confluence) / Import from Confluence"             
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 21.  AssertionError  Upload context returns 200                                                          
-                      expected 422 to be one of [ 200, 201, 202, 409 ]                                    
-                      at assertion:0 in test-script                                                       
-                      inside "📎 Business Context (Jira/Confluence) / Upload Business Context"            
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 22.  AssertionError  Validate context returns 200                                                        
-                      expected 422 to be one of [ 200, 201, 202, 409 ]                                    
-                      at assertion:0 in test-script                                                       
-                      inside "📎 Business Context (Jira/Confluence) / Validate Business Context"          
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 23.  AssertionError  Login returns 200                                                                   
-                      expected 500 to be one of [ 200, 201, 202, 409 ]                                    
-                      at assertion:0 in test-script                                                       
-                      inside "🔑 Auth & SSO / Login"                                                      
-[90m     [39m[90m                [39m[90m                                                                                     [39m
- 24.  AssertionError  RBAC check returns 200                                                              
-                      expected 500 to be one of [ 200, 201, 202, 409 ]                                    
-                      at assertion:0 in test-script                                                       
-                      inside "🔑 Auth & SSO / RBAC Check"                                                 
+┌─────────────────────────┬──────────────────┬─────────────────┐
+│                         │         executed │          failed │
+├─────────────────────────┼──────────────────┼─────────────────┤
+│              iterations │                1 │               0 │
+├─────────────────────────┼──────────────────┼─────────────────┤
+│                requests │               51 │               0 │
+├─────────────────────────┼──────────────────┼─────────────────┤
+│            test-scripts │               43 │               0 │
+├─────────────────────────┼──────────────────┼─────────────────┤
+│      prerequest-scripts │               52 │               0 │
+├─────────────────────────┼──────────────────┼─────────────────┤
+│              assertions │               53 │               0 │
+├─────────────────────────┴──────────────────┴─────────────────┤
+│ total run duration: 5.7s                                     │
+├──────────────────────────────────────────────────────────────┤
+│ total data received: 141.02kB (approx)                       │
+├──────────────────────────────────────────────────────────────┤
+│ average response time: 10ms [min: 3ms, max: 33ms, s.d.: 5ms] │
+└──────────────────────────────────────────────────────────────┘
