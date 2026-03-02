@@ -52,7 +52,7 @@ import threading
 import time
 import uuid
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -686,7 +686,6 @@ class IncrementalTrainer:
         golden_cases: List[Dict],
     ) -> Dict[str, float]:
         """Evaluate a model on golden data, return metrics."""
-        from core.ml.risk_scorer import extract_features
 
         mae_sum = 0.0
         mse_sum = 0.0
@@ -764,7 +763,6 @@ class IncrementalTrainer:
             return float(np.clip(raw * 100.0, 0.0, 100.0))
         elif hasattr(model, 'predict') and hasattr(model, 'is_trained'):
             # It's a RiskScoringModel instance
-            from core.ml.risk_scorer import extract_features
             # Build a dummy vuln dict from features
             result = model.predict(self._features_to_dict(x))
             return result.risk_score

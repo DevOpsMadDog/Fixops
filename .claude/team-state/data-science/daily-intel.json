@@ -1,6 +1,6 @@
 {
-  "date": "2026-03-02",
-  "collected_at": "2026-03-02T16:00:33.879317+00:00",
+  "date": "2026-03-03",
+  "collected_at": "2026-03-02T16:55:13.833441+00:00",
   "epss": {
     "high_probability_cves": [
       {
@@ -1009,17 +1009,10 @@
       }
     ],
     "source": "live",
-    "fetch_time": "2026-03-02T16:00:30.673498+00:00"
+    "fetch_time": "2026-03-02T16:50:42.141717+00:00"
   },
   "nvd": {
     "new_critical": [
-      {
-        "cve_id": "CVE-2025-70043",
-        "cvss_score": 9.1,
-        "severity": "CRITICAL",
-        "description": "An issue pertaining to CWE-295: Improper Certificate Validation was discovered in Ayms node-To master. The application disables TLS/SSL certificate validation by setting 'rejectUnauthorized': false in",
-        "published": "2026-02-23T16:29:36.093"
-      },
       {
         "cve_id": "CVE-2025-70327",
         "cvss_score": 9.8,
@@ -1057,41 +1050,6 @@
       }
     ],
     "new_high": [
-      {
-        "cve_id": "CVE-2025-14905",
-        "cvss_score": 7.2,
-        "severity": "HIGH",
-        "description": "A flaw was found in the 389-ds-base server. A heap buffer overflow vulnerability exists in the `schema_attr_enum_callback` function within the `schema.c` file. This occurs because the code incorrectly",
-        "published": "2026-02-23T16:29:35.620"
-      },
-      {
-        "cve_id": "CVE-2025-70045",
-        "cvss_score": 7.4,
-        "severity": "HIGH",
-        "description": "An issue pertaining to CWE-295: Improper Certificate Validation was discovered in jxcore jxm master. The application disables TLS/SSL certificate validation by setting 'rejectUnauthorized': false in H",
-        "published": "2026-02-23T16:29:36.323"
-      },
-      {
-        "cve_id": "CVE-2025-70058",
-        "cvss_score": 7.4,
-        "severity": "HIGH",
-        "description": "An issue pertaining to CWE-295: Improper Certificate Validation was discovered in YMFE yapi v1.12.0. The application disables TLS/SSL certificate validation by setting 'rejectUnauthorized': false in t",
-        "published": "2026-02-23T16:29:36.433"
-      },
-      {
-        "cve_id": "CVE-2026-3015",
-        "cvss_score": 8.8,
-        "severity": "HIGH",
-        "description": "A vulnerability was determined in UTT HiPER 810G up to 1.7.7-171114. Impacted is the function strcpy of the file /goform/formPolicyRouteConf. Executing a manipulation of the argument GroupName can lea",
-        "published": "2026-02-23T16:29:37.950"
-      },
-      {
-        "cve_id": "CVE-2026-3016",
-        "cvss_score": 8.8,
-        "severity": "HIGH",
-        "description": "A vulnerability was identified in UTT HiPER 810G up to 1.7.7-171114. The affected element is the function strcpy of the file /goform/formP2PLimitConfig. The manipulation of the argument except leads t",
-        "published": "2026-02-23T16:29:38.170"
-      },
       {
         "cve_id": "CVE-2026-22567",
         "cvss_score": 7.6,
@@ -1336,65 +1294,16 @@
         "severity": "HIGH",
         "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a stack buffer overflow occurs when processing the an attribute",
         "published": "2026-02-24T02:16:01.647"
+      },
+      {
+        "cve_id": "CVE-2026-25985",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a crafted SVG file containing an malicious element causes Image",
+        "published": "2026-02-24T02:16:02.620"
       }
     ],
     "affecting_our_stack": [
-      {
-        "cve_id": "CVE-2025-70043",
-        "cvss_score": 9.1,
-        "severity": "CRITICAL",
-        "description": "An issue pertaining to CWE-295: Improper Certificate Validation was discovered in Ayms node-To master. The application disables TLS/SSL certificate validation by setting 'rejectUnauthorized': false in",
-        "published": "2026-02-23T16:29:36.093",
-        "matched_technology": "node"
-      },
-      {
-        "cve_id": "CVE-2025-70044",
-        "cvss_score": 6.5,
-        "severity": "MEDIUM",
-        "description": "An issue pertaining to CWE-295: Improper Certificate Validation was discovered in fofolee uTools-quickcommand 5.0.3.",
-        "published": "2026-02-23T16:29:36.213",
-        "matched_technology": "node"
-      },
-      {
-        "cve_id": "CVE-2025-70045",
-        "cvss_score": 7.4,
-        "severity": "HIGH",
-        "description": "An issue pertaining to CWE-295: Improper Certificate Validation was discovered in jxcore jxm master. The application disables TLS/SSL certificate validation by setting 'rejectUnauthorized': false in H",
-        "published": "2026-02-23T16:29:36.323",
-        "matched_technology": "node"
-      },
-      {
-        "cve_id": "CVE-2025-70058",
-        "cvss_score": 7.4,
-        "severity": "HIGH",
-        "description": "An issue pertaining to CWE-295: Improper Certificate Validation was discovered in YMFE yapi v1.12.0. The application disables TLS/SSL certificate validation by setting 'rejectUnauthorized': false in t",
-        "published": "2026-02-23T16:29:36.433",
-        "matched_technology": "node"
-      },
-      {
-        "cve_id": "CVE-2026-2697",
-        "cvss_score": 6.3,
-        "severity": "MEDIUM",
-        "description": "An Indirect Object Reference (IDOR) in Security Center allows an authenticated remote attacker to escalate privileges via the 'owner' parameter.",
-        "published": "2026-02-23T16:29:37.323",
-        "matched_technology": "node"
-      },
-      {
-        "cve_id": "CVE-2026-3015",
-        "cvss_score": 8.8,
-        "severity": "HIGH",
-        "description": "A vulnerability was determined in UTT HiPER 810G up to 1.7.7-171114. Impacted is the function strcpy of the file /goform/formPolicyRouteConf. Executing a manipulation of the argument GroupName can lea",
-        "published": "2026-02-23T16:29:37.950",
-        "matched_technology": "node"
-      },
-      {
-        "cve_id": "CVE-2026-3016",
-        "cvss_score": 8.8,
-        "severity": "HIGH",
-        "description": "A vulnerability was identified in UTT HiPER 810G up to 1.7.7-171114. The affected element is the function strcpy of the file /goform/formP2PLimitConfig. The manipulation of the argument except leads t",
-        "published": "2026-02-23T16:29:38.170",
-        "matched_technology": "node"
-      },
       {
         "cve_id": "CVE-2026-22567",
         "cvss_score": 7.6,
@@ -2034,10 +1943,74 @@
         "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a signed integer overflow vulnerability in ImageMagick's SIXEL ",
         "published": "2026-02-24T02:16:01.963",
         "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25971",
+        "cvss_score": 6.2,
+        "severity": "MEDIUM",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, Magick fails to check for circular references between two MSLs,",
+        "published": "2026-02-24T02:16:02.130",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25982",
+        "cvss_score": 6.5,
+        "severity": "MEDIUM",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a heap out-of-bounds read vulnerability exists in the `coders/d",
+        "published": "2026-02-24T02:16:02.303",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25983",
+        "cvss_score": 5.3,
+        "severity": "MEDIUM",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a crafted MSL script triggers a heap-use-after-free. The operat",
+        "published": "2026-02-24T02:16:02.463",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25985",
+        "cvss_score": 7.5,
+        "severity": "HIGH",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a crafted SVG file containing an malicious element causes Image",
+        "published": "2026-02-24T02:16:02.620",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25986",
+        "cvss_score": 5.3,
+        "severity": "MEDIUM",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a heap buffer overflow write vulnerability exists in ReadYUVIma",
+        "published": "2026-02-24T02:16:02.780",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25987",
+        "cvss_score": 5.3,
+        "severity": "MEDIUM",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a heap buffer over-read vulnerability exists in the MAP image d",
+        "published": "2026-02-24T02:16:02.937",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-25988",
+        "cvss_score": 5.3,
+        "severity": "MEDIUM",
+        "description": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, sometimes msl.c fails to update the stack index, so an image is",
+        "published": "2026-02-24T02:16:03.097",
+        "matched_technology": "node"
+      },
+      {
+        "cve_id": "CVE-2026-3052",
+        "cvss_score": 6.3,
+        "severity": "MEDIUM",
+        "description": "A vulnerability was found in DataLinkDC dinky up to 1.2.5. The impacted element is the function proxyUba of the file dinky-admin/src/main/java/org/dinky/controller/FlinkProxyController.java of the com",
+        "published": "2026-02-24T02:16:03.767",
+        "matched_technology": "node"
       }
     ],
     "source": "live",
-    "fetch_time": "2026-03-02T16:00:33.465245+00:00"
+    "fetch_time": "2026-03-02T16:50:45.817403+00:00"
   },
   "kev": {
     "new_additions": [
@@ -2398,14 +2371,14 @@
     ],
     "total_kev_count": 1529,
     "source": "live",
-    "fetch_time": "2026-03-02T16:00:33.878315+00:00"
+    "fetch_time": "2026-03-02T16:50:46.240179+00:00"
   },
   "summary": {
     "epss_high_count": 100,
     "epss_weaponized_count": 100,
-    "nvd_critical_count": 6,
-    "nvd_high_count": 40,
-    "nvd_stack_affected_count": 87,
+    "nvd_critical_count": 5,
+    "nvd_high_count": 36,
+    "nvd_stack_affected_count": 88,
     "kev_new_count": 28,
     "kev_due_soon_count": 16,
     "kev_total": 1529,

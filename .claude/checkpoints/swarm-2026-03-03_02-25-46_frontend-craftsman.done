@@ -1,0 +1,13 @@
+{
+  "agent": "frontend-craftsman",
+  "status": "completed",
+  "run_id": "swarm-2026-03-03_02-25-46",
+  "timestamp": "2026-03-02T16:46:06Z",
+  "duration_s": 1569,
+  "attempts": 1,
+  "output_bytes": 1926,
+  "confidence": "HIGH",
+  "free_ram_mb": 7510,
+  "git_changes": " .../aldeci/src/pages/code/SecretsDetection.tsx     |     11 +-  .../src/pages/evidence/EvidenceAnalytics.tsx       |     37 +-  .../aldeci/src/pages/evidence/SLSAProvenance.tsx   |      3 +-  .../aldeci/src/pages/protect/BulkOperations.tsx    |     13 +-  88 files changed, 638860 insertions(+), 603173 deletions(-) ",
+  "log_file": "/Users/devops.ai/developement/fixops/Fixops/logs/ai-team/2026-03-03_frontend-craftsman_swarm-2026-03-03_02-25-46.log"
+}

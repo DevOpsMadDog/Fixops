@@ -4,31 +4,31 @@ newman
 
 ❏ 📋 Finding Explorer
 ↳ List Findings
-  GET http://localhost:8000/api/v1/analytics/findings [200 OK, 45.49kB, 18ms]
+  GET http://localhost:8000/api/v1/analytics/findings [200 OK, 45.54kB, 16ms]
   ✓  List findings returns 200
   ✓  Returns findings array
 
 ↳ Create Finding
-  POST http://localhost:8000/api/v1/analytics/findings [201 Created, 807B, 9ms]
+  POST http://localhost:8000/api/v1/analytics/findings [201 Created, 807B, 6ms]
   ✓  Create finding returns 200/201
   ✓  Capture findingId
 
 ↳ Get Finding by ID
-  GET http://localhost:8000/api/v1/analytics/findings/7c4d53ee-f323-4456-acb1-a92d94713656 [200 OK, 802B, 5ms]
+  GET http://localhost:8000/api/v1/analytics/findings/b113c0a3-3495-4df5-9834-d027fb2d9961 [200 OK, 802B, 3ms]
   ✓  Get finding returns 200
   ✓  Finding has required fields
 
 ↳ Update Finding
-  PUT http://localhost:8000/api/v1/analytics/findings/7c4d53ee-f323-4456-acb1-a92d94713656 [200 OK, 808B, 8ms]
+  PUT http://localhost:8000/api/v1/analytics/findings/b113c0a3-3495-4df5-9834-d027fb2d9961 [200 OK, 808B, 4ms]
   ✓  Update finding returns 200
 
 ↳ Custom Analytics Query
-  POST http://localhost:8000/api/v1/analytics/custom-query [200 OK, 44.14kB, 13ms]
+  POST http://localhost:8000/api/v1/analytics/custom-query [200 OK, 44.21kB, 12ms]
   ✓  Custom query returns 200
 
 ❏ 🧩 Deduplication & Correlation
 ↳ Process Finding for Dedup
-  POST http://localhost:8000/api/v1/deduplication/process [200 OK, 574B, 12ms]
+  POST http://localhost:8000/api/v1/deduplication/process [200 OK, 574B, 17ms]
   ✓  Dedup process returns 200
   ✓  Capture clusterId
 
@@ -38,11 +38,11 @@ newman
   ✓  Capture first clusterId
 
 ↳ Get Cluster
-  GET http://localhost:8000/api/v1/deduplication/clusters/test-cluster-001?org_id=org-001 [404 Not Found, 342B, 7ms]
+  GET http://localhost:8000/api/v1/deduplication/clusters/test-cluster-001?org_id=org-001 [404 Not Found, 339B, 6ms]
   ✓  Get cluster returns 200
 
 ↳ Related Clusters
-  GET http://localhost:8000/api/v1/deduplication/clusters?org_id=org-001 [200 OK, 1.35kB, 6ms]
+  GET http://localhost:8000/api/v1/deduplication/clusters?org_id=org-001 [200 OK, 1.35kB, 7ms]
   ✓  Related clusters returns 200
 
 ↳ List Correlations
@@ -50,7 +50,7 @@ newman
   ✓  Correlations returns 200
 
 ↳ Correlation Graph
-  GET http://localhost:8000/api/v1/deduplication/graph?org_id=org-001 [200 OK, 703B, 8ms]
+  GET http://localhost:8000/api/v1/deduplication/graph?org_id=org-001 [200 OK, 703B, 7ms]
   ✓  Correlation graph returns 200
 
 ↳ Deduplication Stats (Global)
@@ -58,149 +58,148 @@ newman
   ✓  Dedup stats returns 200
 
 ↳ Cross-Stage Correlation
-  POST http://localhost:8000/api/v1/deduplication/correlate/cross-stage?org_id=org-001 [200 OK, 505B, 10ms]
+  POST http://localhost:8000/api/v1/deduplication/correlate/cross-stage?org_id=org-001 [200 OK, 505B, 8ms]
   ✓  Cross-stage correlation returns 200
 
 ❏ 🧠 Knowledge Brain Graph
 ↳ Create Node
-  POST http://localhost:8000/api/v1/brain/nodes [201 Created, 562B, 15ms]
+  POST http://localhost:8000/api/v1/brain/nodes [201 Created, 562B, 12ms]
   ✓  Create node returns 200/201
   ✓  Capture nodeId
 
 ↳ Query Nodes
-  GET http://localhost:8000/api/v1/brain/nodes [200 OK, 23.55kB, 15ms]
-  ✓  Query nodes returns 200
+  GET http://localhost:8000/api/v1/brain/nodes [500 Internal Server Error, 174B, 33ms]
+  1. Query nodes returns 200
 
 ↳ Get Node
-  GET http://localhost:8000/api/v1/brain/nodes/app-payment-service [200 OK, 557B, 3ms]
+  GET http://localhost:8000/api/v1/brain/nodes/app-payment-service [200 OK, 557B, 10ms]
   ✓  Get node returns 200
 
 ↳ Create Edge
-  POST http://localhost:8000/api/v1/brain/edges [201 Created, 462B, 6ms]
+  POST http://localhost:8000/api/v1/brain/edges [201 Created, 462B, 11ms]
   ✓  Create edge returns 200/201
 
 ↳ Get Neighbors (2 hops)
-  GET http://localhost:8000/api/v1/brain/neighbors/app-payment-service?hops=2 [200 OK, 866B, 11ms]
+  GET http://localhost:8000/api/v1/brain/neighbors/app-payment-service?hops=2 [200 OK, 866B, 12ms]
   ✓  Neighbors returns 200
 
 ↳ Graph Stats
-  GET http://localhost:8000/api/v1/brain/stats [200 OK, 1.28kB, 9ms]
+  GET http://localhost:8000/api/v1/brain/stats [200 OK, 1.28kB, 12ms]
   ✓  Graph stats returns 200
 
 ↳ Most Connected Nodes
-  GET http://localhost:8000/api/v1/brain/most-connected [errored]
-     ESOCKETTIMEDOUT
+  GET http://localhost:8000/api/v1/brain/most-connected [500 Internal Server Error, 174B, 27ms]
   ✓  Most connected nodes returns valid response or timeout
 
 ↳ Node Risk Score
-  GET http://localhost:8000/api/v1/brain/riskapp-payment-service [404 Not Found, 334B, 9ms]
+  GET http://localhost:8000/api/v1/brain/riskapp-payment-service [404 Not Found, 331B, 12ms]
   ✓  Node risk returns 200
 
 ↳ Entity Types
-  GET http://localhost:8000/api/v1/brain/meta/entity-types [200 OK, 1.46kB, 8ms]
+  GET http://localhost:8000/api/v1/brain/meta/entity-types [200 OK, 1.46kB, 10ms]
   ✓  Entity types returns 200
 
 ↳ Edge Types
-  GET http://localhost:8000/api/v1/brain/meta/edge-types [200 OK, 1.6kB, 5ms]
+  GET http://localhost:8000/api/v1/brain/meta/edge-types [200 OK, 1.6kB, 9ms]
   ✓  Edge types returns 200
 
 ↳ Ingest CVE into Brain
-  POST http://localhost:8000/api/v1/brain/ingest/cve [200 OK, 367B, 6ms]
+  POST http://localhost:8000/api/v1/brain/ingest/cve [200 OK, 367B, 8ms]
   ✓  Ingest CVE returns 200/201
 
 ↳ Ingest Finding into Brain
-  POST http://localhost:8000/api/v1/brain/ingest/finding [200 OK, 398B, 5ms]
+  POST http://localhost:8000/api/v1/brain/ingest/finding [200 OK, 398B, 12ms]
   ✓  Ingest finding returns 200/201
 
 ❏ 🔬 Security Scanners
 ↳ SAST — Scan Code
-  POST http://localhost:8000/api/v1/sast/scan/code [200 OK, 1.41kB, 14ms]
+  POST http://localhost:8000/api/v1/sast/scan/code [200 OK, 1.41kB, 11ms]
   ✓  SAST scan returns 200
   ✓  Returns scan results
 
 ↳ SAST — List Rules
-  GET http://localhost:8000/api/v1/sast/rules [200 OK, 30.18kB, 7ms]
+  GET http://localhost:8000/api/v1/sast/rules [200 OK, 30.18kB, 10ms]
   ✓  SAST rules returns 200
 
 ↳ SAST — Status
-  GET http://localhost:8000/api/v1/sast/status [200 OK, 508B, 6ms]
+  GET http://localhost:8000/api/v1/sast/status [200 OK, 508B, 8ms]
   ✓  SAST status returns 200
 
 ↳ DAST — Scan
-  POST http://localhost:8000/api/v1/dast/scan [200 OK, 3.8kB, 3.9s]
+  POST http://localhost:8000/api/v1/dast/scan [200 OK, 3.8kB, 4.8s]
   ✓  DAST scan returns 200
 
 ↳ DAST — Status
-  GET http://localhost:8000/api/v1/dast/status [200 OK, 354B, 11ms]
+  GET http://localhost:8000/api/v1/dast/status [200 OK, 354B, 8ms]
   ✓  DAST status returns 200
 
 ↳ CSPM — Scan Terraform
-  POST http://localhost:8000/api/v1/cspm/scan/terraform [200 OK, 1.37kB, 17ms]
+  POST http://localhost:8000/api/v1/cspm/scan/terraform [200 OK, 1.37kB, 12ms]
   ✓  CSPM Terraform scan returns 200
 
 ↳ CSPM — Rules
-  GET http://localhost:8000/api/v1/cspm/rules [200 OK, 2.15kB, 13ms]
+  GET http://localhost:8000/api/v1/cspm/rules [200 OK, 2.15kB, 8ms]
   ✓  CSPM rules returns 200
 
 ↳ Container — Scan Dockerfile
-  POST http://localhost:8000/api/v1/container/scan/dockerfile [200 OK, 1.87kB, 14ms]
+  POST http://localhost:8000/api/v1/container/scan/dockerfile [200 OK, 1.87kB, 10ms]
   ✓  Container scan returns 200
 
 ↳ Secrets — List Findings
-  GET http://localhost:8000/api/v1/secrets [200 OK, 50.74kB, 20ms]
+  GET http://localhost:8000/api/v1/secrets [200 OK, 50.31kB, 18ms]
   ✓  Secrets list returns 200
 
 ↳ Secrets — Scan Content
-  POST http://localhost:8000/api/v1/secrets/scan/content [200 OK, 1.75kB, 18ms]
+  POST http://localhost:8000/api/v1/secrets/scan/content [200 OK, 1.75kB, 12ms]
   ✓  Secrets scan returns 200
 
 ↳ IaC — Scan Content
-  POST http://localhost:8000/api/v1/iac/scan/content [200 OK, 661B, 14ms]
+  POST http://localhost:8000/api/v1/iac/scan/content [200 OK, 660B, 11ms]
   ✓  IaC scan returns 200
 
 ↳ API Fuzzer — Discover APIs
-  POST http://localhost:8000/api/v1/api-fuzzer/discover [200 OK, 328B, 15ms]
+  POST http://localhost:8000/api/v1/api-fuzzer/discover [200 OK, 328B, 11ms]
   ✓  API fuzzer discover returns 200
 
 ↳ Malware — Scan Content
-  POST http://localhost:8000/api/v1/malware/scan/content [200 OK, 501B, 11ms]
+  POST http://localhost:8000/api/v1/malware/scan/content [200 OK, 501B, 9ms]
   ✓  Malware scan returns 200
 
 ❏ 📡 Threat Intelligence Feeds
 ↳ EPSS Scores
-  GET http://localhost:8000/api/v1/feeds/epss [200 OK, 24.54kB, 22ms]
+  GET http://localhost:8000/api/v1/feeds/epss [200 OK, 24.54kB, 26ms]
   ✓  EPSS scores returns 200
 
 ↳ KEV Entries
-  GET http://localhost:8000/api/v1/feeds/kev [200 OK, 388B, 157ms]
+  GET http://localhost:8000/api/v1/feeds/kev [200 OK, 388B, 156ms]
   ✓  KEV entries returns 200
 
 ↳ Recent NVD CVEs
-  GET http://localhost:8000/api/v1/feeds/nvd/recent [200 OK, 67.51kB, 11ms]
+  GET http://localhost:8000/api/v1/feeds/nvd/recent [200 OK, 67.51kB, 7ms]
   ✓  NVD recent returns 200
 
 ↳ Get NVD CVE by ID
-  GET http://localhost:8000/api/v1/feeds/status [200 OK, 1.26kB, 57ms]
+  GET http://localhost:8000/api/v1/feeds/status [200 OK, 1.26kB, 49ms]
   ✓  NVD CVE lookup returns 200
 
 ↳ List All Exploits
-  GET http://localhost:8000/api/v1/feeds/exploits [200 OK, 25.51kB, 33ms]
+  GET http://localhost:8000/api/v1/feeds/exploits [200 OK, 25.51kB, 35ms]
   ✓  Exploits list returns 200
 
 ↳ Exploits for CVE
-  GET http://localhost:8000/api/v1/feeds/exploits/CVE-2024-3094 [200 OK, 553B, 11ms]
+  GET http://localhost:8000/api/v1/feeds/exploits/CVE-2024-3094 [200 OK, 553B, 3ms]
   ✓  CVE exploits returns 200
 
 ↳ Threat Actors
-  GET http://localhost:8000/api/v1/feeds/threat-actors [200 OK, 850B, 9ms]
+  GET http://localhost:8000/api/v1/feeds/threat-actors [200 OK, 850B, 3ms]
   ✓  Threat actors returns 200
 
 ↳ Supply Chain Vulns
-  GET http://localhost:8000/api/v1/feeds/supply-chain [200 OK, 24.31kB, 15ms]
+  GET http://localhost:8000/api/v1/feeds/supply-chain [200 OK, 24.31kB, 9ms]
   ✓  Supply chain returns 200
 
 ↳ Exploit Confidence Score
-  GET http://localhost:8000/api/v1/feeds/exploit-confidence/CVE-2024-3094 [200 OK, 497B, 12ms]
+  GET http://localhost:8000/api/v1/feeds/exploit-confidence/CVE-2024-3094 [200 OK, 497B, 10ms]
   ✓  Exploit confidence returns 200
 
 ↳ Geo-Weighted Risk
@@ -208,11 +207,11 @@ newman
   ✓  Geo risk returns 200
 
 ↳ Feed Stats
-  GET http://localhost:8000/api/v1/feeds/stats [200 OK, 1.92kB, 125ms]
+  GET http://localhost:8000/api/v1/feeds/stats [200 OK, 1.92kB, 139ms]
   ✓  Feed stats returns 200
 
 ↳ Feed Categories
-  GET http://localhost:8000/api/v1/feeds/categories [200 OK, 2.1kB, 8ms]
+  GET http://localhost:8000/api/v1/feeds/categories [200 OK, 2.1kB, 5ms]
   ✓  Feed categories returns 200
 
 ↳ Feed Sources
@@ -225,11 +224,11 @@ newman
 
 ❏ 🏢 Asset Inventory
 ↳ List Assets
-  GET http://localhost:8000/api/v1/inventory/assets [200 OK, 27.54kB, 16ms]
+  GET http://localhost:8000/api/v1/inventory/assets [200 OK, 27.55kB, 15ms]
   ✓  Assets list returns 200
 
 ↳ List Applications
-  GET http://localhost:8000/api/v1/inventory/applications [200 OK, 32.52kB, 10ms]
+  GET http://localhost:8000/api/v1/inventory/applications [200 OK, 32.56kB, 10ms]
   ✓  Applications list returns 200
   ✓  Capture applicationId
 
@@ -239,40 +238,40 @@ newman
   ✓  Capture applicationId
 
 ↳ Get Application
-  GET http://localhost:8000/api/v1/inventory/applications/04c98b30-a828-4edf-9fc6-5954d187573f [200 OK, 644B, 11ms]
+  GET http://localhost:8000/api/v1/inventory/applications/a8590e17-b786-49ce-a982-619231c78abf [200 OK, 644B, 9ms]
   ✓  Get app returns 200
 
 ↳ App SBOM
-  GET http://localhost:8000/api/v1/inventory/applications/04c98b30-a828-4edf-9fc6-5954d187573f/sbom [200 OK, 699B, 11ms]
+  GET http://localhost:8000/api/v1/inventory/applications/a8590e17-b786-49ce-a982-619231c78abf/sbom [200 OK, 699B, 8ms]
   ✓  SBOM returns 200
 
 ↳ App License Compliance
-  GET http://localhost:8000/api/v1/inventory/applications/04c98b30-a828-4edf-9fc6-5954d187573f/license-compliance [200 OK, 458B, 10ms]
+  GET http://localhost:8000/api/v1/inventory/applications/a8590e17-b786-49ce-a982-619231c78abf/license-compliance [200 OK, 458B, 7ms]
   ✓  License compliance returns 200
 
 ↳ Search Inventory
-  GET http://localhost:8000/api/v1/inventory/search?q=payment [200 OK, 25.11kB, 14ms]
+  GET http://localhost:8000/api/v1/inventory/search?q=payment [200 OK, 25.45kB, 10ms]
   ✓  Search returns 200
 
 ↳ List Services
-  GET http://localhost:8000/api/v1/inventory/services [200 OK, 347B, 11ms]
+  GET http://localhost:8000/api/v1/inventory/services [200 OK, 347B, 7ms]
   ✓  Services returns 200
 
 ↳ List APIs
-  GET http://localhost:8000/api/v1/inventory/apis [200 OK, 347B, 10ms]
+  GET http://localhost:8000/api/v1/inventory/apis [200 OK, 347B, 9ms]
   ✓  APIs returns 200
 
 ❏ 📥 Data Ingestion
 ↳ Ingest SARIF
-  POST http://localhost:8000/inputs/sarif [422 Unprocessable Content, 410B, 13ms]
+  POST http://localhost:8000/inputs/sarif [422 Unprocessable Content, 410B, 12ms]
   ✓  SARIF ingest returns 200
 
 ↳ Ingest SBOM
-  POST http://localhost:8000/inputs/sbom [422 Unprocessable Content, 410B, 11ms]
+  POST http://localhost:8000/inputs/sbom [422 Unprocessable Content, 410B, 10ms]
   ✓  SBOM ingest returns 200
 
 ↳ Ingest CVE
-  POST http://localhost:8000/inputs/cve [422 Unprocessable Content, 410B, 13ms]
+  POST http://localhost:8000/inputs/cve [422 Unprocessable Content, 410B, 10ms]
   ✓  CVE ingest returns 200
 
 ↳ Ingest Design Context
@@ -280,28 +279,28 @@ newman
   ✓  Design ingest returns 200
 
 ↳ List Supported Formats
-  GET http://localhost:8000/api/v1/ingest/formats [200 OK, 2.97kB, 61ms]
+  GET http://localhost:8000/api/v1/ingest/formats [200 OK, 2.96kB, 9ms]
   ✓  Formats returns 200
 
 ↳ Validate Input Format
-  POST http://localhost:8000/api/v1/validate/input [422 Unprocessable Content, 410B, 10ms]
+  POST http://localhost:8000/api/v1/validate/input [422 Unprocessable Content, 410B, 7ms]
   ✓  Validation returns 200
 
 ❏ 🔮 Predictions & Algorithms
 ↳ Predict Attack Chain
-  POST http://localhost:8000/api/v1/predictions/attack-chain [200 OK, 3.91kB, 16ms]
+  POST http://localhost:8000/api/v1/predictions/attack-chain [200 OK, 3.91kB, 11ms]
   ✓  Attack chain prediction returns 200
 
 ↳ Risk Trajectory
-  POST http://localhost:8000/api/v1/predictions/risk-trajectory [200 OK, 2.58kB, 11ms]
+  POST http://localhost:8000/api/v1/predictions/risk-trajectory [200 OK, 2.58kB, 9ms]
   ✓  Risk trajectory returns 200
 
 ↳ Monte Carlo Risk Quantification
-  POST http://localhost:8000/api/v1/algorithms/monte-carlo/quantify [200 OK, 901B, 45ms]
+  POST http://localhost:8000/api/v1/algorithms/monte-carlo/quantify [200 OK, 900B, 43ms]
   ✓  Monte Carlo returns 200
 
 ↳ Bayesian Risk Assessment
-  POST http://localhost:8000/api/v1/algorithms/monte-carlo/cve [200 OK, 1.02kB, 86ms]
+  POST http://localhost:8000/api/v1/algorithms/monte-carlo/cve [200 OK, 1.02kB, 84ms]
   ✓  Bayesian assessment returns 200
 
 ↳ GNN Attack Surface
@@ -309,11 +308,11 @@ newman
   ✓  GNN analysis returns 200
 
 ↳ Reachability Analysis
-  POST http://localhost:8000/api/v1/reachability/analyze [422 Unprocessable Content, 641B, 130ms]
+  POST http://localhost:8000/api/v1/reachability/analyze [422 Unprocessable Content, 641B, 136ms]
   ✓  Reachability returns 200
 
 ↳ Code-to-Cloud Trace
-  POST http://localhost:8000/api/v1/code-to-cloud/trace [200 OK, 976B, 9ms]
+  POST http://localhost:8000/api/v1/code-to-cloud/trace [200 OK, 976B, 8ms]
   ✓  Code-to-cloud trace returns 200
 
 ❏ 🆔 Fuzzy Identity Resolution
@@ -322,42 +321,42 @@ newman
   ✓  Register canonical returns 200/201
 
 ↳ Resolve Fuzzy Name
-  POST http://localhost:8000/api/v1/identity/resolve [200 OK, 367B, 18ms]
+  POST http://localhost:8000/api/v1/identity/resolve [200 OK, 367B, 23ms]
   ✓  Resolution returns 200
 
 ↳ Identity Stats
-  GET http://localhost:8000/api/v1/identity/stats [200 OK, 491B, 48ms]
+  GET http://localhost:8000/api/v1/identity/stats [200 OK, 491B, 47ms]
   ✓  Identity stats returns 200
 
 ❏ 🔌 Vulnerability Discovery
 ↳ List Discovered Vulnerabilities
-  GET http://localhost:8000/api/v1/vulns/discovered [200 OK, 1.74kB, 11ms]
+  GET http://localhost:8000/api/v1/vulns/discovered [200 OK, 1.74kB, 7ms]
   ✓  Discovered vulns returns 200
 
 ↳ List Internal Vulnerabilities
-  GET http://localhost:8000/api/v1/vulns/internal [200 OK, 1.74kB, 12ms]
+  GET http://localhost:8000/api/v1/vulns/internal [200 OK, 1.74kB, 6ms]
   ✓  Internal vulns returns 200
 
 ↳ Vulnerability Stats
-  GET http://localhost:8000/api/v1/vulns/stats [200 OK, 635B, 12ms]
+  GET http://localhost:8000/api/v1/vulns/stats [200 OK, 635B, 3ms]
   ✓  Vuln stats returns 200
 
 ↳ List Contributions
-  GET http://localhost:8000/api/v1/vulns/contributions [200 OK, 386B, 8ms]
+  GET http://localhost:8000/api/v1/vulns/contributions [200 OK, 386B, 5ms]
   ✓  Contributions returns 200
 
 ❏ 🧮 Brain Pipeline
 ↳ Run Full Pipeline
-  POST http://localhost:8000/api/v1/brain/pipeline/run [200 OK, 3.52kB, 89ms]
+  POST http://localhost:8000/api/v1/brain/pipeline/run [200 OK, 3.52kB, 29ms]
   ✓  Pipeline run returns 200
   ✓  Capture pipelineRunId
 
 ↳ List Pipeline Runs
-  GET http://localhost:8000/api/v1/brain/pipeline/runs [200 OK, 3.56kB, 8ms]
+  GET http://localhost:8000/api/v1/brain/pipeline/runs [200 OK, 6.77kB, 7ms]
   ✓  Pipeline runs returns 200
 
 ↳ Get Pipeline Run
-  GET http://localhost:8000/api/v1/brain/pipeline/runs/BR-F4858E35FFD6 [200 OK, 3.52kB, 4ms]
+  GET http://localhost:8000/api/v1/brain/pipeline/runs/BR-0B8F5DA676A7 [200 OK, 3.52kB, 10ms]
   ✓  Get pipeline run returns 200
 
 ┌─────────────────────────┬───────────────────┬──────────────────┐
@@ -365,24 +364,24 @@ newman
 ├─────────────────────────┼───────────────────┼──────────────────┤
 │              iterations │                 1 │                0 │
 ├─────────────────────────┼───────────────────┼──────────────────┤
-│                requests │                84 │                1 │
+│                requests │                84 │                0 │
 ├─────────────────────────┼───────────────────┼──────────────────┤
 │            test-scripts │                84 │                0 │
 ├─────────────────────────┼───────────────────┼──────────────────┤
 │      prerequest-scripts │                85 │                0 │
 ├─────────────────────────┼───────────────────┼──────────────────┤
-│              assertions │                94 │                0 │
+│              assertions │                94 │                1 │
 ├─────────────────────────┴───────────────────┴──────────────────┤
-│ total run duration: 45.5s                                      │
+│ total run duration: 16.3s                                      │
 ├────────────────────────────────────────────────────────────────┤
-│ total data received: 480.94kB (approx)                         │
+│ total data received: 461.02kB (approx)                         │
 ├────────────────────────────────────────────────────────────────┤
-│ average response time: 66ms [min: 3ms, max: 3.9s, s.d.: 428ms] │
+│ average response time: 75ms [min: 3ms, max: 4.8s, s.d.: 523ms] │
 └────────────────────────────────────────────────────────────────┘
 
-[31m  # [39m[31m failure [39m[31m detail          [39m
-[90m    [39m[90m         [39m[90m                 [39m
- 1.  Error                    
-              ESOCKETTIMEDOUT 
-              at request      
-              inside ""       
+[31m  # [39m[31m failure        [39m[31m detail                                           [39m
+[90m    [39m[90m                [39m[90m                                                  [39m
+ 1.  AssertionError  Query nodes returns 200                          
+                     expected 500 to be one of [ 200, 201, 202, 409 ] 
+                     at assertion:0 in test-script                    
+                     inside "🧠 Knowledge Brain Graph / Query Nodes"  

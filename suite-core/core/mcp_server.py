@@ -217,9 +217,9 @@ class MCPToolRegistry:
                     count += 1
 
         except Exception as e:
-            logger.error(f"Auto-discovery error: {e}")
+            logger.error("Auto-discovery error: %s", type(e).__name__)
 
-        logger.info(f"Auto-discovered {count} MCP tools from FastAPI routes")
+        logger.info("Auto-discovered %d MCP tools from FastAPI routes", count)
         return count
 
     def _path_to_tool_name(self, path: str, method: str) -> str:
@@ -652,7 +652,7 @@ class MCPSessionManager:
             rate_limit_remaining=self.rate_limit,
         )
         self._sessions[session.session_id] = session
-        logger.info(f"MCP session created: {session.session_id} ({client_name})")
+        logger.info("MCP session created: %s (%s)", session.session_id, client_name)
         return session
 
     def get_session(self, session_id: str) -> Optional[MCPSession]:
@@ -667,7 +667,7 @@ class MCPSessionManager:
     def close_session(self, session_id: str) -> None:
         if session_id in self._sessions:
             del self._sessions[session_id]
-            logger.info(f"MCP session closed: {session_id}")
+            logger.info("MCP session closed: %s", session_id)
 
     def active_sessions(self) -> List[MCPSession]:
         return list(self._sessions.values())

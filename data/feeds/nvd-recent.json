@@ -1,1000 +1,11 @@
 {
   "resultsPerPage": 100,
   "startIndex": 0,
-  "totalResults": 1007,
+  "totalResults": 1024,
   "format": "NVD_CVE",
   "version": "2.0",
-  "timestamp": "2026-03-02T16:00:31.582",
+  "timestamp": "2026-03-02T16:50:42.825",
   "vulnerabilities": [
-    {
-      "cve": {
-        "id": "CVE-2025-14905",
-        "sourceIdentifier": "secalert@redhat.com",
-        "published": "2026-02-23T16:29:35.620",
-        "lastModified": "2026-03-02T07:16:21.940",
-        "vulnStatus": "Awaiting Analysis",
-        "cveTags": [],
-        "descriptions": [
-          {
-            "lang": "en",
-            "value": "A flaw was found in the 389-ds-base server. A heap buffer overflow vulnerability exists in the `schema_attr_enum_callback` function within the `schema.c` file. This occurs because the code incorrectly calculates the buffer size by summing alias string lengths without accounting for additional formatting characters. When a large number of aliases are processed, this oversight can lead to a heap overflow, potentially allowing a remote attacker to cause a Denial of Service (DoS) or achieve Remote Code Execution (RCE)."
-          },
-          {
-            "lang": "es",
-            "value": "Se encontr\u00f3 un defecto en el servidor 389-ds-base. Existe una vulnerabilidad de desbordamiento de b\u00fafer de mont\u00edculo en la funci\u00f3n 'schema_attr_enum_callback' dentro del archivo 'schema.c'. Esto ocurre porque el c\u00f3digo calcula incorrectamente el tama\u00f1o del b\u00fafer al sumar las longitudes de las cadenas de alias sin tener en cuenta los caracteres de formato adicionales. Cuando se procesa un gran n\u00famero de alias, este descuido puede conducir a un desbordamiento de mont\u00edculo, lo que podr\u00eda permitir a un atacante remoto causar una denegaci\u00f3n de servicio (DoS) o lograr ejecuci\u00f3n remota de c\u00f3digo (RCE)."
-          }
-        ],
-        "metrics": {
-          "cvssMetricV31": [
-            {
-              "source": "secalert@redhat.com",
-              "type": "Secondary",
-              "cvssData": {
-                "version": "3.1",
-                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:H/UI:N/S:U/C:H/I:H/A:H",
-                "baseScore": 7.2,
-                "baseSeverity": "HIGH",
-                "attackVector": "NETWORK",
-                "attackComplexity": "LOW",
-                "privilegesRequired": "HIGH",
-                "userInteraction": "NONE",
-                "scope": "UNCHANGED",
-                "confidentialityImpact": "HIGH",
-                "integrityImpact": "HIGH",
-                "availabilityImpact": "HIGH"
-              },
-              "exploitabilityScore": 1.2,
-              "impactScore": 5.9
-            }
-          ]
-        },
-        "weaknesses": [
-          {
-            "source": "secalert@redhat.com",
-            "type": "Secondary",
-            "description": [
-              {
-                "lang": "en",
-                "value": "CWE-122"
-              }
-            ]
-          }
-        ],
-        "references": [
-          {
-            "url": "https://access.redhat.com/errata/RHSA-2026:3189",
-            "source": "secalert@redhat.com"
-          },
-          {
-            "url": "https://access.redhat.com/errata/RHSA-2026:3208",
-            "source": "secalert@redhat.com"
-          },
-          {
-            "url": "https://access.redhat.com/errata/RHSA-2026:3379",
-            "source": "secalert@redhat.com"
-          },
-          {
-            "url": "https://access.redhat.com/errata/RHSA-2026:3504",
-            "source": "secalert@redhat.com"
-          },
-          {
-            "url": "https://access.redhat.com/security/cve/CVE-2025-14905",
-            "source": "secalert@redhat.com"
-          },
-          {
-            "url": "https://bugzilla.redhat.com/show_bug.cgi?id=2423624",
-            "source": "secalert@redhat.com"
-          }
-        ]
-      }
-    },
-    {
-      "cve": {
-        "id": "CVE-2025-70043",
-        "sourceIdentifier": "cve@mitre.org",
-        "published": "2026-02-23T16:29:36.093",
-        "lastModified": "2026-02-23T18:13:53.397",
-        "vulnStatus": "Awaiting Analysis",
-        "cveTags": [],
-        "descriptions": [
-          {
-            "lang": "en",
-            "value": "An issue pertaining to CWE-295: Improper Certificate Validation was discovered in Ayms node-To master. The application disables TLS/SSL certificate validation by setting 'rejectUnauthorized': false in TLS socket options"
-          },
-          {
-            "lang": "es",
-            "value": "Un problema relacionado con CWE-295: Validaci\u00f3n Incorrecta de Certificados fue descubierto en Ayms node-To master. La aplicaci\u00f3n deshabilita la validaci\u00f3n de certificados TLS/SSL al establecer 'rejectUnauthorized': false en las opciones de socket TLS."
-          }
-        ],
-        "metrics": {
-          "cvssMetricV31": [
-            {
-              "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
-              "type": "Secondary",
-              "cvssData": {
-                "version": "3.1",
-                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
-                "baseScore": 9.1,
-                "baseSeverity": "CRITICAL",
-                "attackVector": "NETWORK",
-                "attackComplexity": "LOW",
-                "privilegesRequired": "NONE",
-                "userInteraction": "NONE",
-                "scope": "UNCHANGED",
-                "confidentialityImpact": "HIGH",
-                "integrityImpact": "HIGH",
-                "availabilityImpact": "NONE"
-              },
-              "exploitabilityScore": 3.9,
-              "impactScore": 5.2
-            }
-          ]
-        },
-        "weaknesses": [
-          {
-            "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
-            "type": "Secondary",
-            "description": [
-              {
-                "lang": "en",
-                "value": "CWE-295"
-              }
-            ]
-          }
-        ],
-        "references": [
-          {
-            "url": "https://gist.github.com/zcxlighthouse/33cc4342dfe650664548b4531d16b655",
-            "source": "cve@mitre.org"
-          },
-          {
-            "url": "https://github.com/Ayms",
-            "source": "cve@mitre.org"
-          },
-          {
-            "url": "https://github.com/Ayms/node-To",
-            "source": "cve@mitre.org"
-          }
-        ]
-      }
-    },
-    {
-      "cve": {
-        "id": "CVE-2025-70044",
-        "sourceIdentifier": "cve@mitre.org",
-        "published": "2026-02-23T16:29:36.213",
-        "lastModified": "2026-02-26T20:06:13.963",
-        "vulnStatus": "Analyzed",
-        "cveTags": [],
-        "descriptions": [
-          {
-            "lang": "en",
-            "value": "An issue pertaining to CWE-295: Improper Certificate Validation was discovered in fofolee uTools-quickcommand 5.0.3."
-          },
-          {
-            "lang": "es",
-            "value": "Un problema relacionado con CWE-295: Validaci\u00f3n inadecuada de certificados fue descubierto en fofolee uTools-quickcommand 5.0.3."
-          }
-        ],
-        "metrics": {
-          "cvssMetricV31": [
-            {
-              "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
-              "type": "Secondary",
-              "cvssData": {
-                "version": "3.1",
-                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:N",
-                "baseScore": 6.5,
-                "baseSeverity": "MEDIUM",
-                "attackVector": "NETWORK",
-                "attackComplexity": "LOW",
-                "privilegesRequired": "NONE",
-                "userInteraction": "NONE",
-                "scope": "UNCHANGED",
-                "confidentialityImpact": "LOW",
-                "integrityImpact": "LOW",
-                "availabilityImpact": "NONE"
-              },
-              "exploitabilityScore": 3.9,
-              "impactScore": 2.5
-            }
-          ]
-        },
-        "weaknesses": [
-          {
-            "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
-            "type": "Secondary",
-            "description": [
-              {
-                "lang": "en",
-                "value": "CWE-295"
-              }
-            ]
-          }
-        ],
-        "configurations": [
-          {
-            "nodes": [
-              {
-                "operator": "OR",
-                "negate": false,
-                "cpeMatch": [
-                  {
-                    "vulnerable": true,
-                    "criteria": "cpe:2.3:a:fofolee:utools-quickcommand:5.0.3:*:*:*:*:*:*:*",
-                    "matchCriteriaId": "4CA0545F-AA1F-4D6D-A0C3-F4E09935C54E"
-                  }
-                ]
-              }
-            ]
-          }
-        ],
-        "references": [
-          {
-            "url": "https://gist.github.com/zcxlighthouse/c00a0eef8ac41ec15ec43b75e2a2f7f8",
-            "source": "cve@mitre.org",
-            "tags": [
-              "Third Party Advisory"
-            ]
-          },
-          {
-            "url": "https://github.com/fofolee",
-            "source": "cve@mitre.org",
-            "tags": [
-              "Product"
-            ]
-          },
-          {
-            "url": "https://github.com/fofolee/uTools-quickcommand",
-            "source": "cve@mitre.org",
-            "tags": [
-              "Product"
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "cve": {
-        "id": "CVE-2025-70045",
-        "sourceIdentifier": "cve@mitre.org",
-        "published": "2026-02-23T16:29:36.323",
-        "lastModified": "2026-02-26T20:03:59.297",
-        "vulnStatus": "Analyzed",
-        "cveTags": [],
-        "descriptions": [
-          {
-            "lang": "en",
-            "value": "An issue pertaining to CWE-295: Improper Certificate Validation was discovered in jxcore jxm master. The application disables TLS/SSL certificate validation by setting 'rejectUnauthorized': false in HTTPS request options when 'jx_obj.IsSecure' is true"
-          },
-          {
-            "lang": "es",
-            "value": "Un problema relacionado con CWE-295: Validaci\u00f3n Incorrecta de Certificados fue descubierto en jxcore jxm master. La aplicaci\u00f3n deshabilita la validaci\u00f3n de certificados TLS/SSL al establecer 'rejectUnauthorized': false en las opciones de solicitud HTTPS cuando 'jx_obj.IsSecure' es true"
-          }
-        ],
-        "metrics": {
-          "cvssMetricV31": [
-            {
-              "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
-              "type": "Secondary",
-              "cvssData": {
-                "version": "3.1",
-                "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N",
-                "baseScore": 7.4,
-                "baseSeverity": "HIGH",
-                "attackVector": "NETWORK",
-                "attackComplexity": "HIGH",
-                "privilegesRequired": "NONE",
-                "userInteraction": "NONE",
-                "scope": "UNCHANGED",
-                "confidentialityImpact": "HIGH",
-                "integrityImpact": "HIGH",
-                "availabilityImpact": "NONE"
-              },
-              "exploitabilityScore": 2.2,
-              "impactScore": 5.2
-            }
-          ]
-        },
-        "weaknesses": [
-          {
-            "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
-            "type": "Secondary",
-            "description": [
-              {
-                "lang": "en",
-                "value": "CWE-295"
-              }
-            ]
-          }
-        ],
-        "configurations": [
-          {
-            "nodes": [
-              {
-                "operator": "OR",
-                "negate": false,
-                "cpeMatch": [
-                  {
-                    "vulnerable": true,
-                    "criteria": "cpe:2.3:a:jxcore:jxm:-:*:*:*:*:*:*:*",
-                    "matchCriteriaId": "1CBB3053-3600-42AA-8040-44A4A0BAC203"
-                  }
-                ]
-              }
-            ]
-          }
-        ],
-        "references": [
-          {
-            "url": "https://gist.github.com/zcxlighthouse/bd5852a409c97438016f2c476f8461d9",
-            "source": "cve@mitre.org",
-            "tags": [
-              "Third Party Advisory"
-            ]
-          },
-          {
-            "url": "https://github.com/jxcore",
-            "source": "cve@mitre.org",
-            "tags": [
-              "Product"
-            ]
-          },
-          {
-            "url": "https://github.com/jxcore/jxm",
-            "source": "cve@mitre.org",
-            "tags": [
-              "Product"
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "cve": {
-        "id": "CVE-2025-70058",
-        "sourceIdentifier": "cve@mitre.org",
-        "published": "2026-02-23T16:29:36.433",
-        "lastModified": "2026-02-26T20:03:06.150",
-        "vulnStatus": "Analyzed",
-        "cveTags": [],
-        "descriptions": [
-          {
-            "lang": "en",
-            "value": "An issue pertaining to CWE-295: Improper Certificate Validation was discovered in YMFE yapi v1.12.0. The application disables TLS/SSL certificate validation by setting 'rejectUnauthorized': false in the HTTPS agent configuration for Axios requests"
-          },
-          {
-            "lang": "es",
-            "value": "Un problema relacionado con CWE-295: Validaci\u00f3n Incorrecta de Certificados fue descubierto en YMFE yapi v1.12.0. La aplicaci\u00f3n deshabilita la validaci\u00f3n de certificados TLS/SSL al establecer 'rejectUnauthorized': false en la configuraci\u00f3n del agente HTTPS para las solicitudes de Axios."
-          }
-        ],
-        "metrics": {
-          "cvssMetricV31": [
-            {
-              "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
-              "type": "Secondary",
-              "cvssData": {
-                "version": "3.1",
-                "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N",
-                "baseScore": 7.4,
-                "baseSeverity": "HIGH",
-                "attackVector": "NETWORK",
-                "attackComplexity": "HIGH",
-                "privilegesRequired": "NONE",
-                "userInteraction": "NONE",
-                "scope": "UNCHANGED",
-                "confidentialityImpact": "HIGH",
-                "integrityImpact": "HIGH",
-                "availabilityImpact": "NONE"
-              },
-              "exploitabilityScore": 2.2,
-              "impactScore": 5.2
-            }
-          ]
-        },
-        "weaknesses": [
-          {
-            "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
-            "type": "Secondary",
-            "description": [
-              {
-                "lang": "en",
-                "value": "CWE-295"
-              }
-            ]
-          }
-        ],
-        "configurations": [
-          {
-            "nodes": [
-              {
-                "operator": "OR",
-                "negate": false,
-                "cpeMatch": [
-                  {
-                    "vulnerable": true,
-                    "criteria": "cpe:2.3:a:ymfe:yapi:1.12.0:*:*:*:*:*:*:*",
-                    "matchCriteriaId": "59E2A1BB-F4BF-47CA-8EC9-59F40B8585BC"
-                  }
-                ]
-              }
-            ]
-          }
-        ],
-        "references": [
-          {
-            "url": "https://gist.github.com/zcxlighthouse/11c53803faf23f607c2787c166e811d4",
-            "source": "cve@mitre.org",
-            "tags": [
-              "Third Party Advisory"
-            ]
-          },
-          {
-            "url": "https://github.com/YMFE",
-            "source": "cve@mitre.org",
-            "tags": [
-              "Product"
-            ]
-          },
-          {
-            "url": "https://github.com/YMFE/yapi",
-            "source": "cve@mitre.org",
-            "tags": [
-              "Product"
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "cve": {
-        "id": "CVE-2026-2697",
-        "sourceIdentifier": "vulnreport@tenable.com",
-        "published": "2026-02-23T16:29:37.323",
-        "lastModified": "2026-02-26T16:44:54.040",
-        "vulnStatus": "Analyzed",
-        "cveTags": [],
-        "descriptions": [
-          {
-            "lang": "en",
-            "value": "An Indirect Object Reference (IDOR) in Security Center allows an authenticated remote attacker to escalate privileges via the 'owner' parameter."
-          },
-          {
-            "lang": "es",
-            "value": "Una Referencia Indirecta a Objeto (IDOR) en Security Center permite a un atacante remoto autenticado escalar privilegios a trav\u00e9s del par\u00e1metro 'owner'."
-          }
-        ],
-        "metrics": {
-          "cvssMetricV40": [
-            {
-              "source": "vulnreport@tenable.com",
-              "type": "Secondary",
-              "cvssData": {
-                "version": "4.0",
-                "vectorString": "CVSS:4.0/AV:N/AC:L/AT:N/PR:L/UI:N/VC:L/VI:L/VA:L/SC:N/SI:N/SA:N/E:P/CR:X/IR:X/AR:X/MAV:X/MAC:X/MAT:X/MPR:X/MUI:X/MVC:X/MVI:X/MVA:X/MSC:X/MSI:X/MSA:X/S:X/AU:X/R:X/V:X/RE:X/U:X",
-                "baseScore": 5.3,
-                "baseSeverity": "MEDIUM",
-                "attackVector": "NETWORK",
-                "attackComplexity": "LOW",
-                "attackRequirements": "NONE",
-                "privilegesRequired": "LOW",
-                "userInteraction": "NONE",
-                "vulnConfidentialityImpact": "LOW",
-                "vulnIntegrityImpact": "LOW",
-                "vulnAvailabilityImpact": "LOW",
-                "subConfidentialityImpact": "NONE",
-                "subIntegrityImpact": "NONE",
-                "subAvailabilityImpact": "NONE",
-                "exploitMaturity": "PROOF_OF_CONCEPT",
-                "confidentialityRequirement": "NOT_DEFINED",
-                "integrityRequirement": "NOT_DEFINED",
-                "availabilityRequirement": "NOT_DEFINED",
-                "modifiedAttackVector": "NOT_DEFINED",
-                "modifiedAttackComplexity": "NOT_DEFINED",
-                "modifiedAttackRequirements": "NOT_DEFINED",
-                "modifiedPrivilegesRequired": "NOT_DEFINED",
-                "modifiedUserInteraction": "NOT_DEFINED",
-                "modifiedVulnConfidentialityImpact": "NOT_DEFINED",
-                "modifiedVulnIntegrityImpact": "NOT_DEFINED",
-                "modifiedVulnAvailabilityImpact": "NOT_DEFINED",
-                "modifiedSubConfidentialityImpact": "NOT_DEFINED",
-                "modifiedSubIntegrityImpact": "NOT_DEFINED",
-                "modifiedSubAvailabilityImpact": "NOT_DEFINED",
-                "Safety": "NOT_DEFINED",
-                "Automatable": "NOT_DEFINED",
-                "Recovery": "NOT_DEFINED",
-                "valueDensity": "NOT_DEFINED",
-                "vulnerabilityResponseEffort": "NOT_DEFINED",
-                "providerUrgency": "NOT_DEFINED"
-              }
-            }
-          ],
-          "cvssMetricV31": [
-            {
-              "source": "vulnreport@tenable.com",
-              "type": "Secondary",
-              "cvssData": {
-                "version": "3.1",
-                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:L",
-                "baseScore": 6.3,
-                "baseSeverity": "MEDIUM",
-                "attackVector": "NETWORK",
-                "attackComplexity": "LOW",
-                "privilegesRequired": "LOW",
-                "userInteraction": "NONE",
-                "scope": "UNCHANGED",
-                "confidentialityImpact": "LOW",
-                "integrityImpact": "LOW",
-                "availabilityImpact": "LOW"
-              },
-              "exploitabilityScore": 2.8,
-              "impactScore": 3.4
-            },
-            {
-              "source": "nvd@nist.gov",
-              "type": "Primary",
-              "cvssData": {
-                "version": "3.1",
-                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
-                "baseScore": 8.8,
-                "baseSeverity": "HIGH",
-                "attackVector": "NETWORK",
-                "attackComplexity": "LOW",
-                "privilegesRequired": "LOW",
-                "userInteraction": "NONE",
-                "scope": "UNCHANGED",
-                "confidentialityImpact": "HIGH",
-                "integrityImpact": "HIGH",
-                "availabilityImpact": "HIGH"
-              },
-              "exploitabilityScore": 2.8,
-              "impactScore": 5.9
-            }
-          ]
-        },
-        "weaknesses": [
-          {
-            "source": "vulnreport@tenable.com",
-            "type": "Secondary",
-            "description": [
-              {
-                "lang": "en",
-                "value": "CWE-639"
-              }
-            ]
-          }
-        ],
-        "configurations": [
-          {
-            "nodes": [
-              {
-                "operator": "OR",
-                "negate": false,
-                "cpeMatch": [
-                  {
-                    "vulnerable": true,
-                    "criteria": "cpe:2.3:a:tenable:security_center:*:*:*:*:*:*:*:*",
-                    "versionEndExcluding": "6.8.0",
-                    "matchCriteriaId": "17DB70B4-3F31-4D7A-BEBF-00E422A8FA3B"
-                  }
-                ]
-              }
-            ]
-          }
-        ],
-        "references": [
-          {
-            "url": "https://www.tenable.com/security/tns-2026-07",
-            "source": "vulnreport@tenable.com",
-            "tags": [
-              "Vendor Advisory"
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "cve": {
-        "id": "CVE-2026-3015",
-        "sourceIdentifier": "cna@vuldb.com",
-        "published": "2026-02-23T16:29:37.950",
-        "lastModified": "2026-02-24T20:02:06.640",
-        "vulnStatus": "Analyzed",
-        "cveTags": [],
-        "descriptions": [
-          {
-            "lang": "en",
-            "value": "A vulnerability was determined in UTT HiPER 810G up to 1.7.7-171114. Impacted is the function strcpy of the file /goform/formPolicyRouteConf. Executing a manipulation of the argument GroupName can lead to buffer overflow. The attack may be launched remotely. The exploit has been publicly disclosed and may be utilized."
-          },
-          {
-            "lang": "es",
-            "value": "Se detect\u00f3 una vulnerabilidad en UTT HiPER 810G hasta 1.7.7-171114 que afecta a la funci\u00f3n strcpy del archivo /goform/formPolicyRouteConf. Manipular el argumento GroupName puede conducir a un desbordamiento de b\u00fafer. El ataque puede lanzarse en remoto. El exploit ha sido divulgado p\u00fablicamente y puede utilizarse."
-          }
-        ],
-        "metrics": {
-          "cvssMetricV40": [
-            {
-              "source": "cna@vuldb.com",
-              "type": "Secondary",
-              "cvssData": {
-                "version": "4.0",
-                "vectorString": "CVSS:4.0/AV:N/AC:L/AT:N/PR:L/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N/E:P/CR:X/IR:X/AR:X/MAV:X/MAC:X/MAT:X/MPR:X/MUI:X/MVC:X/MVI:X/MVA:X/MSC:X/MSI:X/MSA:X/S:X/AU:X/R:X/V:X/RE:X/U:X",
-                "baseScore": 7.4,
-                "baseSeverity": "HIGH",
-                "attackVector": "NETWORK",
-                "attackComplexity": "LOW",
-                "attackRequirements": "NONE",
-                "privilegesRequired": "LOW",
-                "userInteraction": "NONE",
-                "vulnConfidentialityImpact": "HIGH",
-                "vulnIntegrityImpact": "HIGH",
-                "vulnAvailabilityImpact": "HIGH",
-                "subConfidentialityImpact": "NONE",
-                "subIntegrityImpact": "NONE",
-                "subAvailabilityImpact": "NONE",
-                "exploitMaturity": "PROOF_OF_CONCEPT",
-                "confidentialityRequirement": "NOT_DEFINED",
-                "integrityRequirement": "NOT_DEFINED",
-                "availabilityRequirement": "NOT_DEFINED",
-                "modifiedAttackVector": "NOT_DEFINED",
-                "modifiedAttackComplexity": "NOT_DEFINED",
-                "modifiedAttackRequirements": "NOT_DEFINED",
-                "modifiedPrivilegesRequired": "NOT_DEFINED",
-                "modifiedUserInteraction": "NOT_DEFINED",
-                "modifiedVulnConfidentialityImpact": "NOT_DEFINED",
-                "modifiedVulnIntegrityImpact": "NOT_DEFINED",
-                "modifiedVulnAvailabilityImpact": "NOT_DEFINED",
-                "modifiedSubConfidentialityImpact": "NOT_DEFINED",
-                "modifiedSubIntegrityImpact": "NOT_DEFINED",
-                "modifiedSubAvailabilityImpact": "NOT_DEFINED",
-                "Safety": "NOT_DEFINED",
-                "Automatable": "NOT_DEFINED",
-                "Recovery": "NOT_DEFINED",
-                "valueDensity": "NOT_DEFINED",
-                "vulnerabilityResponseEffort": "NOT_DEFINED",
-                "providerUrgency": "NOT_DEFINED"
-              }
-            }
-          ],
-          "cvssMetricV31": [
-            {
-              "source": "cna@vuldb.com",
-              "type": "Primary",
-              "cvssData": {
-                "version": "3.1",
-                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
-                "baseScore": 8.8,
-                "baseSeverity": "HIGH",
-                "attackVector": "NETWORK",
-                "attackComplexity": "LOW",
-                "privilegesRequired": "LOW",
-                "userInteraction": "NONE",
-                "scope": "UNCHANGED",
-                "confidentialityImpact": "HIGH",
-                "integrityImpact": "HIGH",
-                "availabilityImpact": "HIGH"
-              },
-              "exploitabilityScore": 2.8,
-              "impactScore": 5.9
-            }
-          ],
-          "cvssMetricV2": [
-            {
-              "source": "cna@vuldb.com",
-              "type": "Secondary",
-              "cvssData": {
-                "version": "2.0",
-                "vectorString": "AV:N/AC:L/Au:S/C:C/I:C/A:C",
-                "baseScore": 9.0,
-                "accessVector": "NETWORK",
-                "accessComplexity": "LOW",
-                "authentication": "SINGLE",
-                "confidentialityImpact": "COMPLETE",
-                "integrityImpact": "COMPLETE",
-                "availabilityImpact": "COMPLETE"
-              },
-              "baseSeverity": "HIGH",
-              "exploitabilityScore": 8.0,
-              "impactScore": 10.0,
-              "acInsufInfo": false,
-              "obtainAllPrivilege": false,
-              "obtainUserPrivilege": false,
-              "obtainOtherPrivilege": false,
-              "userInteractionRequired": false
-            }
-          ]
-        },
-        "weaknesses": [
-          {
-            "source": "cna@vuldb.com",
-            "type": "Primary",
-            "description": [
-              {
-                "lang": "en",
-                "value": "CWE-119"
-              },
-              {
-                "lang": "en",
-                "value": "CWE-120"
-              }
-            ]
-          }
-        ],
-        "configurations": [
-          {
-            "operator": "AND",
-            "nodes": [
-              {
-                "operator": "OR",
-                "negate": false,
-                "cpeMatch": [
-                  {
-                    "vulnerable": true,
-                    "criteria": "cpe:2.3:o:utt:810g_firmware:*:*:*:*:*:*:*:*",
-                    "versionEndIncluding": "1.7.7-171114",
-                    "matchCriteriaId": "EACA25AC-9976-4066-A6C6-6C2CA6D37BE3"
-                  }
-                ]
-              },
-              {
-                "operator": "OR",
-                "negate": false,
-                "cpeMatch": [
-                  {
-                    "vulnerable": false,
-                    "criteria": "cpe:2.3:h:utt:810g:3.0:*:*:*:*:*:*:*",
-                    "matchCriteriaId": "5C6B1A13-F7CD-422E-A90E-8020D076FC4A"
-                  }
-                ]
-              }
-            ]
-          }
-        ],
-        "references": [
-          {
-            "url": "https://github.com/xhsy0314/CVEReport/blob/main/UTT-1/README.md",
-            "source": "cna@vuldb.com",
-            "tags": [
-              "Exploit",
-              "Third Party Advisory"
-            ]
-          },
-          {
-            "url": "https://github.com/xhsy0314/CVEReport/blob/main/UTT-1/README.md#poc",
-            "source": "cna@vuldb.com",
-            "tags": [
-              "Exploit",
-              "Third Party Advisory"
-            ]
-          },
-          {
-            "url": "https://vuldb.com/?ctiid.347375",
-            "source": "cna@vuldb.com",
-            "tags": [
-              "Permissions Required",
-              "VDB Entry"
-            ]
-          },
-          {
-            "url": "https://vuldb.com/?id.347375",
-            "source": "cna@vuldb.com",
-            "tags": [
-              "Third Party Advisory",
-              "VDB Entry"
-            ]
-          },
-          {
-            "url": "https://vuldb.com/?submit.756248",
-            "source": "cna@vuldb.com",
-            "tags": [
-              "Third Party Advisory",
-              "VDB Entry"
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "cve": {
-        "id": "CVE-2026-3016",
-        "sourceIdentifier": "cna@vuldb.com",
-        "published": "2026-02-23T16:29:38.170",
-        "lastModified": "2026-02-24T21:40:07.930",
-        "vulnStatus": "Analyzed",
-        "cveTags": [],
-        "descriptions": [
-          {
-            "lang": "en",
-            "value": "A vulnerability was identified in UTT HiPER 810G up to 1.7.7-171114. The affected element is the function strcpy of the file /goform/formP2PLimitConfig. The manipulation of the argument except leads to buffer overflow. Remote exploitation of the attack is possible. The exploit is publicly available and might be used."
-          },
-          {
-            "lang": "es",
-            "value": "Se identific\u00f3 una vulnerabilidad en UTT HiPER 810G hasta 1.7.7-171114 que afecta a la funci\u00f3n strcpy del archivo /goform/formP2PLimitConfig. Si se manipula el argumento except se puede producir un desbordamiento del b\u00fafer. Es posible explotar en ataque en remoto. El exploit est\u00e1 disponible p\u00fablicamente y podr\u00eda ser utilizado."
-          }
-        ],
-        "metrics": {
-          "cvssMetricV40": [
-            {
-              "source": "cna@vuldb.com",
-              "type": "Secondary",
-              "cvssData": {
-                "version": "4.0",
-                "vectorString": "CVSS:4.0/AV:N/AC:L/AT:N/PR:L/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N/E:P/CR:X/IR:X/AR:X/MAV:X/MAC:X/MAT:X/MPR:X/MUI:X/MVC:X/MVI:X/MVA:X/MSC:X/MSI:X/MSA:X/S:X/AU:X/R:X/V:X/RE:X/U:X",
-                "baseScore": 7.4,
-                "baseSeverity": "HIGH",
-                "attackVector": "NETWORK",
-                "attackComplexity": "LOW",
-                "attackRequirements": "NONE",
-                "privilegesRequired": "LOW",
-                "userInteraction": "NONE",
-                "vulnConfidentialityImpact": "HIGH",
-                "vulnIntegrityImpact": "HIGH",
-                "vulnAvailabilityImpact": "HIGH",
-                "subConfidentialityImpact": "NONE",
-                "subIntegrityImpact": "NONE",
-                "subAvailabilityImpact": "NONE",
-                "exploitMaturity": "PROOF_OF_CONCEPT",
-                "confidentialityRequirement": "NOT_DEFINED",
-                "integrityRequirement": "NOT_DEFINED",
-                "availabilityRequirement": "NOT_DEFINED",
-                "modifiedAttackVector": "NOT_DEFINED",
-                "modifiedAttackComplexity": "NOT_DEFINED",
-                "modifiedAttackRequirements": "NOT_DEFINED",
-                "modifiedPrivilegesRequired": "NOT_DEFINED",
-                "modifiedUserInteraction": "NOT_DEFINED",
-                "modifiedVulnConfidentialityImpact": "NOT_DEFINED",
-                "modifiedVulnIntegrityImpact": "NOT_DEFINED",
-                "modifiedVulnAvailabilityImpact": "NOT_DEFINED",
-                "modifiedSubConfidentialityImpact": "NOT_DEFINED",
-                "modifiedSubIntegrityImpact": "NOT_DEFINED",
-                "modifiedSubAvailabilityImpact": "NOT_DEFINED",
-                "Safety": "NOT_DEFINED",
-                "Automatable": "NOT_DEFINED",
-                "Recovery": "NOT_DEFINED",
-                "valueDensity": "NOT_DEFINED",
-                "vulnerabilityResponseEffort": "NOT_DEFINED",
-                "providerUrgency": "NOT_DEFINED"
-              }
-            }
-          ],
-          "cvssMetricV31": [
-            {
-              "source": "cna@vuldb.com",
-              "type": "Primary",
-              "cvssData": {
-                "version": "3.1",
-                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
-                "baseScore": 8.8,
-                "baseSeverity": "HIGH",
-                "attackVector": "NETWORK",
-                "attackComplexity": "LOW",
-                "privilegesRequired": "LOW",
-                "userInteraction": "NONE",
-                "scope": "UNCHANGED",
-                "confidentialityImpact": "HIGH",
-                "integrityImpact": "HIGH",
-                "availabilityImpact": "HIGH"
-              },
-              "exploitabilityScore": 2.8,
-              "impactScore": 5.9
-            }
-          ],
-          "cvssMetricV2": [
-            {
-              "source": "cna@vuldb.com",
-              "type": "Secondary",
-              "cvssData": {
-                "version": "2.0",
-                "vectorString": "AV:N/AC:L/Au:S/C:C/I:C/A:C",
-                "baseScore": 9.0,
-                "accessVector": "NETWORK",
-                "accessComplexity": "LOW",
-                "authentication": "SINGLE",
-                "confidentialityImpact": "COMPLETE",
-                "integrityImpact": "COMPLETE",
-                "availabilityImpact": "COMPLETE"
-              },
-              "baseSeverity": "HIGH",
-              "exploitabilityScore": 8.0,
-              "impactScore": 10.0,
-              "acInsufInfo": false,
-              "obtainAllPrivilege": false,
-              "obtainUserPrivilege": false,
-              "obtainOtherPrivilege": false,
-              "userInteractionRequired": false
-            }
-          ]
-        },
-        "weaknesses": [
-          {
-            "source": "cna@vuldb.com",
-            "type": "Primary",
-            "description": [
-              {
-                "lang": "en",
-                "value": "CWE-119"
-              },
-              {
-                "lang": "en",
-                "value": "CWE-120"
-              }
-            ]
-          }
-        ],
-        "configurations": [
-          {
-            "operator": "AND",
-            "nodes": [
-              {
-                "operator": "OR",
-                "negate": false,
-                "cpeMatch": [
-                  {
-                    "vulnerable": true,
-                    "criteria": "cpe:2.3:o:utt:810g_firmware:*:*:*:*:*:*:*:*",
-                    "versionEndIncluding": "1.7.7-171114",
-                    "matchCriteriaId": "EACA25AC-9976-4066-A6C6-6C2CA6D37BE3"
-                  }
-                ]
-              },
-              {
-                "operator": "OR",
-                "negate": false,
-                "cpeMatch": [
-                  {
-                    "vulnerable": false,
-                    "criteria": "cpe:2.3:h:utt:810g:3.0:*:*:*:*:*:*:*",
-                    "matchCriteriaId": "5C6B1A13-F7CD-422E-A90E-8020D076FC4A"
-                  }
-                ]
-              }
-            ]
-          }
-        ],
-        "references": [
-          {
-            "url": "https://github.com/xhsy0314/CVEReport/blob/main/UTT-2/README.md",
-            "source": "cna@vuldb.com",
-            "tags": [
-              "Exploit",
-              "Third Party Advisory"
-            ]
-          },
-          {
-            "url": "https://github.com/xhsy0314/CVEReport/blob/main/UTT-2/README.md#poc",
-            "source": "cna@vuldb.com",
-            "tags": [
-              "Exploit",
-              "Third Party Advisory"
-            ]
-          },
-          {
-            "url": "https://vuldb.com/?ctiid.347376",
-            "source": "cna@vuldb.com",
-            "tags": [
-              "Permissions Required",
-              "VDB Entry"
-            ]
-          },
-          {
-            "url": "https://vuldb.com/?id.347376",
-            "source": "cna@vuldb.com",
-            "tags": [
-              "Third Party Advisory",
-              "VDB Entry"
-            ]
-          },
-          {
-            "url": "https://vuldb.com/?submit.756249",
-            "source": "cna@vuldb.com",
-            "tags": [
-              "Third Party Advisory",
-              "VDB Entry"
-            ]
-          }
-        ]
-      }
-    },
     {
       "cve": {
         "id": "CVE-2026-22567",
@@ -15928,6 +14939,978 @@
             "source": "security-advisories@github.com",
             "tags": [
               "Third Party Advisory"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2026-25971",
+        "sourceIdentifier": "security-advisories@github.com",
+        "published": "2026-02-24T02:16:02.130",
+        "lastModified": "2026-02-25T15:53:26.643",
+        "vulnStatus": "Analyzed",
+        "cveTags": [],
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, Magick fails to check for circular references between two MSLs, leading to a stack overflow. Versions 7.1.2-15 and 6.9.13-40 contain a patch."
+          },
+          {
+            "lang": "es",
+            "value": "ImageMagick es un software libre y de c\u00f3digo abierto utilizado para editar y manipular im\u00e1genes digitales. Antes de las versiones 7.1.2-15 y 6.9.13-40, Magick no verifica las referencias circulares entre dos MSL, lo que lleva a un desbordamiento de pila. Las versiones 7.1.2-15 y 6.9.13-40 contienen un parche."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "security-advisories@github.com",
+              "type": "Secondary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                "baseScore": 6.2,
+                "baseSeverity": "MEDIUM",
+                "attackVector": "LOCAL",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "NONE",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "HIGH"
+              },
+              "exploitabilityScore": 2.5,
+              "impactScore": 3.6
+            },
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                "baseScore": 9.8,
+                "baseSeverity": "CRITICAL",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "HIGH",
+                "integrityImpact": "HIGH",
+                "availabilityImpact": "HIGH"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 5.9
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "security-advisories@github.com",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-674"
+              }
+            ]
+          },
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-787"
+              }
+            ]
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionEndExcluding": "6.9.13-40",
+                    "matchCriteriaId": "C6F44A65-1733-4752-AAD0-BCCC7BDBC877"
+                  },
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionStartIncluding": "7.0.0-0",
+                    "versionEndExcluding": "7.1.2-15",
+                    "matchCriteriaId": "6AFFD439-1068-4B6F-AE01-724AC62CDCEA"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/ImageMagick/ImageMagick/security/advisories/GHSA-8mpr-6xr2-chhc",
+            "source": "security-advisories@github.com",
+            "tags": [
+              "Third Party Advisory"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2026-25982",
+        "sourceIdentifier": "security-advisories@github.com",
+        "published": "2026-02-24T02:16:02.303",
+        "lastModified": "2026-02-25T12:01:49.570",
+        "vulnStatus": "Analyzed",
+        "cveTags": [],
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a heap out-of-bounds read vulnerability exists in the `coders/dcm.c` module. When processing DICOM files with a specific configuration, the decoder loop incorrectly reads bytes per iteration. This causes the function to read past the end of the allocated buffer, potentially leading to a Denial of Service (crash) or Information Disclosure (leaking heap memory into the image). Versions 7.1.2-15 and 6.9.13-40 contain a patch."
+          },
+          {
+            "lang": "es",
+            "value": "ImageMagick es un software libre y de c\u00f3digo abierto utilizado para editar y manipular im\u00e1genes digitales. Antes de las versiones 7.1.2-15 y 6.9.13-40, existe una vulnerabilidad de lectura fuera de l\u00edmites del heap en el m\u00f3dulo 'coders/dcm.c'. Al procesar archivos DICOM con una configuraci\u00f3n espec\u00edfica, el bucle del decodificador lee incorrectamente los bytes por iteraci\u00f3n. Esto hace que la funci\u00f3n lea m\u00e1s all\u00e1 del final del b\u00fafer asignado, lo que podr\u00eda llevar a una Denegaci\u00f3n de Servicio (bloqueo) o Revelaci\u00f3n de Informaci\u00f3n (filtrando memoria del heap en la imagen). Las versiones 7.1.2-15 y 6.9.13-40 contienen un parche."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "security-advisories@github.com",
+              "type": "Secondary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:L",
+                "baseScore": 6.5,
+                "baseSeverity": "MEDIUM",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "LOW",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "LOW"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 2.5
+            },
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:L",
+                "baseScore": 6.5,
+                "baseSeverity": "MEDIUM",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "LOW",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "LOW"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 2.5
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "security-advisories@github.com",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-125"
+              }
+            ]
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionEndExcluding": "6.9.13-40",
+                    "matchCriteriaId": "C6F44A65-1733-4752-AAD0-BCCC7BDBC877"
+                  },
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionStartIncluding": "7.0.0-0",
+                    "versionEndExcluding": "7.1.2-15",
+                    "matchCriteriaId": "6AFFD439-1068-4B6F-AE01-724AC62CDCEA"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/ImageMagick/ImageMagick/security/advisories/GHSA-pmq6-8289-hx3v",
+            "source": "security-advisories@github.com",
+            "tags": [
+              "Third Party Advisory"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2026-25983",
+        "sourceIdentifier": "security-advisories@github.com",
+        "published": "2026-02-24T02:16:02.463",
+        "lastModified": "2026-02-25T15:53:20.203",
+        "vulnStatus": "Analyzed",
+        "cveTags": [],
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a crafted MSL script triggers a heap-use-after-free. The operation element handler replaces and frees the image while the parser continues reading from it, leading to a UAF in ReadBlobString during further parsing. Versions 7.1.2-15 and 6.9.13-40 contain a patch."
+          },
+          {
+            "lang": "es",
+            "value": "ImageMagick es un software libre y de c\u00f3digo abierto utilizado para editar y manipular im\u00e1genes digitales. Antes de las versiones 7.1.2-15 y 6.9.13-40, un script MSL manipulado desencadena un uso despu\u00e9s de liberaci\u00f3n en el heap. El gestor del elemento de operaci\u00f3n reemplaza y libera la imagen mientras el analizador contin\u00faa leyendo de ella, lo que lleva a un UAF en ReadBlobString durante un an\u00e1lisis posterior. Las versiones 7.1.2-15 y 6.9.13-40 contienen un parche."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "security-advisories@github.com",
+              "type": "Secondary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+                "baseScore": 5.3,
+                "baseSeverity": "MEDIUM",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "NONE",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "LOW"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 1.4
+            },
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                "baseScore": 9.8,
+                "baseSeverity": "CRITICAL",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "HIGH",
+                "integrityImpact": "HIGH",
+                "availabilityImpact": "HIGH"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 5.9
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "security-advisories@github.com",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-416"
+              }
+            ]
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionEndExcluding": "6.9.13-40",
+                    "matchCriteriaId": "C6F44A65-1733-4752-AAD0-BCCC7BDBC877"
+                  },
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionStartIncluding": "7.0.0-0",
+                    "versionEndExcluding": "7.1.2-15",
+                    "matchCriteriaId": "6AFFD439-1068-4B6F-AE01-724AC62CDCEA"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/ImageMagick/ImageMagick/security/advisories/GHSA-fwqw-2x5x-w566",
+            "source": "security-advisories@github.com",
+            "tags": [
+              "Third Party Advisory"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2026-25985",
+        "sourceIdentifier": "security-advisories@github.com",
+        "published": "2026-02-24T02:16:02.620",
+        "lastModified": "2026-02-25T12:10:42.060",
+        "vulnStatus": "Analyzed",
+        "cveTags": [],
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a crafted SVG file containing an malicious element causes ImageMagick to attempt to allocate ~674 GB of memory, leading to an out-of-memory abort. Versions 7.1.2-15 and 6.9.13-40 contain a patch."
+          },
+          {
+            "lang": "es",
+            "value": "ImageMagick es un software libre y de c\u00f3digo abierto utilizado para editar y manipular im\u00e1genes digitales. Antes de las versiones 7.1.2-15 y 6.9.13-40, un archivo SVG manipulado que contiene un elemento malicioso provoca que ImageMagick intente asignar ~674 GB de memoria, lo que lleva a un aborto por falta de memoria. Las versiones 7.1.2-15 y 6.9.13-40 contienen un parche."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "security-advisories@github.com",
+              "type": "Secondary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                "baseScore": 7.5,
+                "baseSeverity": "HIGH",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "NONE",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "HIGH"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 3.6
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "security-advisories@github.com",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-770"
+              },
+              {
+                "lang": "en",
+                "value": "CWE-789"
+              }
+            ]
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionEndExcluding": "6.9.13-40",
+                    "matchCriteriaId": "C6F44A65-1733-4752-AAD0-BCCC7BDBC877"
+                  },
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionStartIncluding": "7.0.0-0",
+                    "versionEndExcluding": "7.1.2-15",
+                    "matchCriteriaId": "6AFFD439-1068-4B6F-AE01-724AC62CDCEA"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/ImageMagick/ImageMagick/security/advisories/GHSA-v7g2-m8c5-mf84",
+            "source": "security-advisories@github.com",
+            "tags": [
+              "Third Party Advisory"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2026-25986",
+        "sourceIdentifier": "security-advisories@github.com",
+        "published": "2026-02-24T02:16:02.780",
+        "lastModified": "2026-02-25T15:53:11.963",
+        "vulnStatus": "Analyzed",
+        "cveTags": [],
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a heap buffer overflow write vulnerability exists in ReadYUVImage() (coders/yuv.c) when processing malicious YUV 4:2:2 (NoInterlace) images. The pixel-pair loop writes one pixel beyond the allocated row buffer. Versions 7.1.2-15 and 6.9.13-40 contain a patch."
+          },
+          {
+            "lang": "es",
+            "value": "ImageMagick es un software libre y de c\u00f3digo abierto utilizado para editar y manipular im\u00e1genes digitales. Antes de las versiones 7.1.2-15 y 6.9.13-40, existe una vulnerabilidad de escritura por desbordamiento de b\u00fafer de pila en ReadYUVImage() (coders/yuv.c) al procesar im\u00e1genes YUV 4:2:2 (NoInterlace) maliciosas. El bucle de pares de p\u00edxeles escribe un p\u00edxel m\u00e1s all\u00e1 del b\u00fafer de fila asignado. Las versiones 7.1.2-15 y 6.9.13-40 contienen un parche."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "security-advisories@github.com",
+              "type": "Secondary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+                "baseScore": 5.3,
+                "baseSeverity": "MEDIUM",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "NONE",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "LOW"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 1.4
+            },
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                "baseScore": 9.8,
+                "baseSeverity": "CRITICAL",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "HIGH",
+                "integrityImpact": "HIGH",
+                "availabilityImpact": "HIGH"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 5.9
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "security-advisories@github.com",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-787"
+              }
+            ]
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionEndExcluding": "6.9.13-40",
+                    "matchCriteriaId": "C6F44A65-1733-4752-AAD0-BCCC7BDBC877"
+                  },
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionStartIncluding": "7.0.0-0",
+                    "versionEndExcluding": "7.1.2-15",
+                    "matchCriteriaId": "6AFFD439-1068-4B6F-AE01-724AC62CDCEA"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/ImageMagick/ImageMagick/security/advisories/GHSA-mqfc-82jx-3mr2",
+            "source": "security-advisories@github.com",
+            "tags": [
+              "Third Party Advisory"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2026-25987",
+        "sourceIdentifier": "security-advisories@github.com",
+        "published": "2026-02-24T02:16:02.937",
+        "lastModified": "2026-02-25T12:10:01.520",
+        "vulnStatus": "Analyzed",
+        "cveTags": [],
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, a heap buffer over-read vulnerability exists in the MAP image decoder when processing crafted MAP files, potentially leading to crashes or unintended memory disclosure during image decoding. Versions 7.1.2-15 and 6.9.13-40 contain a patch."
+          },
+          {
+            "lang": "es",
+            "value": "ImageMagick es un software libre y de c\u00f3digo abierto utilizado para editar y manipular im\u00e1genes digitales. Antes de las versiones 7.1.2-15 y 6.9.13-40, existe una vulnerabilidad de lectura excesiva del b\u00fafer de pila en el decodificador de im\u00e1genes MAP al procesar archivos MAP especialmente dise\u00f1ados, lo que podr\u00eda provocar fallos o divulgaci\u00f3n de memoria no intencionada durante la decodificaci\u00f3n de im\u00e1genes. Las versiones 7.1.2-15 y 6.9.13-40 contienen un parche."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "security-advisories@github.com",
+              "type": "Secondary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+                "baseScore": 5.3,
+                "baseSeverity": "MEDIUM",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "LOW",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "NONE"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 1.4
+            },
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:H",
+                "baseScore": 9.1,
+                "baseSeverity": "CRITICAL",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "HIGH",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "HIGH"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 5.2
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "security-advisories@github.com",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-125"
+              }
+            ]
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionEndExcluding": "6.9.13-40",
+                    "matchCriteriaId": "C6F44A65-1733-4752-AAD0-BCCC7BDBC877"
+                  },
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionStartIncluding": "7.0.0-0",
+                    "versionEndExcluding": "7.1.2-15",
+                    "matchCriteriaId": "6AFFD439-1068-4B6F-AE01-724AC62CDCEA"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/ImageMagick/ImageMagick/security/advisories/GHSA-42p5-62qq-mmh7",
+            "source": "security-advisories@github.com",
+            "tags": [
+              "Third Party Advisory"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2026-25988",
+        "sourceIdentifier": "security-advisories@github.com",
+        "published": "2026-02-24T02:16:03.097",
+        "lastModified": "2026-02-25T11:56:36.800",
+        "vulnStatus": "Analyzed",
+        "cveTags": [],
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "ImageMagick is free and open-source software used for editing and manipulating digital images. Prior to versions 7.1.2-15 and 6.9.13-40, sometimes msl.c fails to update the stack index, so an image is stored in the wrong slot and never freed on error, causing leaks. Versions 7.1.2-15 and 6.9.13-40 contain a patch."
+          },
+          {
+            "lang": "es",
+            "value": "ImageMagick es un software libre y de c\u00f3digo abierto utilizado para editar y manipular im\u00e1genes digitales. Antes de las versiones 7.1.2-15 y 6.9.13-40, a veces msl.c no actualiza el \u00edndice de la pila, por lo que una imagen se almacena en la ranura incorrecta y nunca se libera en caso de error, causando fugas. Las versiones 7.1.2-15 y 6.9.13-40 contienen un parche."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "security-advisories@github.com",
+              "type": "Secondary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+                "baseScore": 5.3,
+                "baseSeverity": "MEDIUM",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "NONE",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "LOW"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 1.4
+            },
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                "baseScore": 7.5,
+                "baseSeverity": "HIGH",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "NONE",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "NONE",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "HIGH"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 3.6
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "security-advisories@github.com",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-401"
+              }
+            ]
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionEndExcluding": "6.9.13-40",
+                    "matchCriteriaId": "C6F44A65-1733-4752-AAD0-BCCC7BDBC877"
+                  },
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:imagemagick:imagemagick:*:*:*:*:*:*:*:*",
+                    "versionStartIncluding": "7.0.0-0",
+                    "versionEndExcluding": "7.1.2-15",
+                    "matchCriteriaId": "6AFFD439-1068-4B6F-AE01-724AC62CDCEA"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/ImageMagick/ImageMagick/security/advisories/GHSA-782x-jh29-9mf7",
+            "source": "security-advisories@github.com",
+            "tags": [
+              "Third Party Advisory"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2026-3052",
+        "sourceIdentifier": "cna@vuldb.com",
+        "published": "2026-02-24T02:16:03.767",
+        "lastModified": "2026-02-25T19:59:08.680",
+        "vulnStatus": "Analyzed",
+        "cveTags": [],
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "A vulnerability was found in DataLinkDC dinky up to 1.2.5. The impacted element is the function proxyUba of the file dinky-admin/src/main/java/org/dinky/controller/FlinkProxyController.java of the component Flink Proxy Controller. Performing a manipulation results in server-side request forgery. It is possible to initiate the attack remotely. The exploit has been made public and could be used. The vendor was contacted early about this disclosure but did not respond in any way."
+          },
+          {
+            "lang": "es",
+            "value": "Se encontr\u00f3 una vulnerabilidad en DataLinkDC dinky hasta 1.2.5. La cual impacta a la funci\u00f3n proxyUba del archivo dinky-admin/src/main/java/org/dinky/controller/FlinkProxyController.java del componente Flink Proxy Controller. Si se manipula se puede lograr una falsificaci\u00f3n de petici\u00f3n del lado del servidor. Es posible iniciar el ataque en remoto. El exploit ha sido hecho p\u00fablico y podr\u00eda ser usado. El proveedor fue contactado con antelaci\u00f3n sobre esta divulgaci\u00f3n pero no respondi\u00f3 de ninguna manera."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV40": [
+            {
+              "source": "cna@vuldb.com",
+              "type": "Secondary",
+              "cvssData": {
+                "version": "4.0",
+                "vectorString": "CVSS:4.0/AV:N/AC:L/AT:N/PR:L/UI:N/VC:L/VI:L/VA:L/SC:N/SI:N/SA:N/E:P/CR:X/IR:X/AR:X/MAV:X/MAC:X/MAT:X/MPR:X/MUI:X/MVC:X/MVI:X/MVA:X/MSC:X/MSI:X/MSA:X/S:X/AU:X/R:X/V:X/RE:X/U:X",
+                "baseScore": 5.3,
+                "baseSeverity": "MEDIUM",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "attackRequirements": "NONE",
+                "privilegesRequired": "LOW",
+                "userInteraction": "NONE",
+                "vulnConfidentialityImpact": "LOW",
+                "vulnIntegrityImpact": "LOW",
+                "vulnAvailabilityImpact": "LOW",
+                "subConfidentialityImpact": "NONE",
+                "subIntegrityImpact": "NONE",
+                "subAvailabilityImpact": "NONE",
+                "exploitMaturity": "PROOF_OF_CONCEPT",
+                "confidentialityRequirement": "NOT_DEFINED",
+                "integrityRequirement": "NOT_DEFINED",
+                "availabilityRequirement": "NOT_DEFINED",
+                "modifiedAttackVector": "NOT_DEFINED",
+                "modifiedAttackComplexity": "NOT_DEFINED",
+                "modifiedAttackRequirements": "NOT_DEFINED",
+                "modifiedPrivilegesRequired": "NOT_DEFINED",
+                "modifiedUserInteraction": "NOT_DEFINED",
+                "modifiedVulnConfidentialityImpact": "NOT_DEFINED",
+                "modifiedVulnIntegrityImpact": "NOT_DEFINED",
+                "modifiedVulnAvailabilityImpact": "NOT_DEFINED",
+                "modifiedSubConfidentialityImpact": "NOT_DEFINED",
+                "modifiedSubIntegrityImpact": "NOT_DEFINED",
+                "modifiedSubAvailabilityImpact": "NOT_DEFINED",
+                "Safety": "NOT_DEFINED",
+                "Automatable": "NOT_DEFINED",
+                "Recovery": "NOT_DEFINED",
+                "valueDensity": "NOT_DEFINED",
+                "vulnerabilityResponseEffort": "NOT_DEFINED",
+                "providerUrgency": "NOT_DEFINED"
+              }
+            }
+          ],
+          "cvssMetricV31": [
+            {
+              "source": "cna@vuldb.com",
+              "type": "Secondary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:L",
+                "baseScore": 6.3,
+                "baseSeverity": "MEDIUM",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "LOW",
+                "userInteraction": "NONE",
+                "scope": "UNCHANGED",
+                "confidentialityImpact": "LOW",
+                "integrityImpact": "LOW",
+                "availabilityImpact": "LOW"
+              },
+              "exploitabilityScore": 2.8,
+              "impactScore": 3.4
+            },
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:N/A:N",
+                "baseScore": 7.7,
+                "baseSeverity": "HIGH",
+                "attackVector": "NETWORK",
+                "attackComplexity": "LOW",
+                "privilegesRequired": "LOW",
+                "userInteraction": "NONE",
+                "scope": "CHANGED",
+                "confidentialityImpact": "HIGH",
+                "integrityImpact": "NONE",
+                "availabilityImpact": "NONE"
+              },
+              "exploitabilityScore": 3.1,
+              "impactScore": 4.0
+            }
+          ],
+          "cvssMetricV2": [
+            {
+              "source": "cna@vuldb.com",
+              "type": "Secondary",
+              "cvssData": {
+                "version": "2.0",
+                "vectorString": "AV:N/AC:L/Au:S/C:P/I:P/A:P",
+                "baseScore": 6.5,
+                "accessVector": "NETWORK",
+                "accessComplexity": "LOW",
+                "authentication": "SINGLE",
+                "confidentialityImpact": "PARTIAL",
+                "integrityImpact": "PARTIAL",
+                "availabilityImpact": "PARTIAL"
+              },
+              "baseSeverity": "MEDIUM",
+              "exploitabilityScore": 8.0,
+              "impactScore": 6.4,
+              "acInsufInfo": false,
+              "obtainAllPrivilege": false,
+              "obtainUserPrivilege": false,
+              "obtainOtherPrivilege": false,
+              "userInteractionRequired": false
+            }
+          ]
+        },
+        "weaknesses": [
+          {
+            "source": "cna@vuldb.com",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-918"
+              }
+            ]
+          }
+        ],
+        "configurations": [
+          {
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:dinky:dinky:*:*:*:*:*:*:*:*",
+                    "versionEndIncluding": "1.2.5",
+                    "matchCriteriaId": "13503CFA-F2AE-4F49-9A8F-A610FF025329"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/AnalogyC0de/public_exp/issues/7",
+            "source": "cna@vuldb.com",
+            "tags": [
+              "Exploit",
+              "Issue Tracking",
+              "Third Party Advisory"
+            ]
+          },
+          {
+            "url": "https://github.com/AnalogyC0de/public_exp/issues/7#issue-3935032160",
+            "source": "cna@vuldb.com",
+            "tags": [
+              "Exploit",
+              "Issue Tracking",
+              "Third Party Advisory"
+            ]
+          },
+          {
+            "url": "https://vuldb.com/?ctiid.347410",
+            "source": "cna@vuldb.com",
+            "tags": [
+              "Permissions Required",
+              "Third Party Advisory",
+              "VDB Entry"
+            ]
+          },
+          {
+            "url": "https://vuldb.com/?id.347410",
+            "source": "cna@vuldb.com",
+            "tags": [
+              "Third Party Advisory",
+              "VDB Entry"
+            ]
+          },
+          {
+            "url": "https://vuldb.com/?submit.757587",
+            "source": "cna@vuldb.com",
+            "tags": [
+              "Third Party Advisory",
+              "VDB Entry"
             ]
           }
         ]

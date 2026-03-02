@@ -1278,7 +1278,7 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
         if not suggestion:
             return AutoFixResult(success=False, error=f"Fix {fix_id} not found")
 
-        logger.info(f"[AutoFix] Applying fix {fix_id} to {repository}")
+        logger.info("[AutoFix] Applying fix %s to repository", fix_id)
 
         # Build changes map: file_path -> new content
         changes: Dict[str, str] = {}

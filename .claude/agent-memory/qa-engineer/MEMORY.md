@@ -102,27 +102,27 @@
 - `tests/test_iac_scanner.py`: 141 tests, ALL PASS. Covers iac_scanner.py (713 LOC, 35.85% coverage). Needs deeper function tests.
 - `tests/test_mpte_advanced.py`: 167 tests, ALL PASS. Covers mpte_advanced.py (1089 LOC, 100% coverage). NEW Iter 7. Mocks LLM, aiohttp, MPTEDB. 9 test classes.
 
-## Moat File Coverage (Updated 2026-03-03 Day 3)
-- micro_pentest.py: 99.35% (571 stmts) — DEEP TESTS DONE Day 3 (+23 AI analysis tests)
-- mpte_advanced.py: 100.00% (323 stmts) — perfect
+## Moat File Coverage (Updated 2026-03-03 Day 3 Iter 2)
+- api_fuzzer.py: 100.00% (137 stmts) — perfect
 - container_scanner.py: 100.00% (146 stmts) — perfect
 - dast_engine.py: 100.00% (282 stmts) — perfect
-- api_fuzzer.py: 100.00% (137 stmts) — perfect
 - malware_detector.py: 100.00% (119 stmts) — perfect
+- mpte_advanced.py: 100.00% (323 stmts) — perfect
 - fail_engine.py: 99.75% (314 stmts) — excellent
 - secrets_scanner.py: 99.47% (293 stmts) — excellent
 - iac_scanner.py: 99.46% (271 stmts) — excellent
+- micro_pentest.py: 98.84% (571 stmts) — excellent
 - llm_consensus.py: 98.73% (128 stmts) — excellent
 - crypto.py: 98.72% (194 stmts) — excellent
-- autofix_engine.py: 98.22% (605 stmts) — DEEP TESTS DONE Day 3 (+28 validation/JSON/path tests)
-- playbook_runner.py: 98.98% (655 stmts) — excellent
+- autofix_engine.py: 97.12% (614 stmts) — excellent
 - cspm_engine.py: 96.19% (170 stmts) — excellent
 - sast_engine.py: 95.90% (178 stmts) — excellent
-- brain_pipeline.py: 94.43% (697 stmts) — excellent
 - mcp_server.py: 93.42% (422 stmts) — excellent
-- attack_simulation_engine.py: 91.83% (427 stmts) — excellent
+- attack_simulation_engine.py: 92.20% (427 stmts) — excellent
+- brain_pipeline.py: 91.23% (795 stmts) — excellent
+- playbook_runner.py: 88.28% (655 stmts) — good (needs deep tests)
 - mcp_router.py: 83.42% (405 stmts) — good, above 80%
-- TOTAL: 6337 stmts measured, 96.82% covered, 19/19 above 80%, 6 at 100%
+- TOTAL: 6039 stmts measured, 220 missed, 95.77% covered, 19/19 above 80%, 5 at 100%
 
 ## Full Test Suite Notes
 - 10,911 tests collected (excluding e2e)
@@ -140,6 +140,7 @@
 - Day 2 Iter 7: 100% (475/475) — 7th consecutive zero regressions. +167 mpte_advanced tests. 4 test fixes. 3252 moat tests.
 - Day 2 Iter 8: 100% (475/475) — 8th consecutive zero regressions. 0 transport errors. +322 deep tests (iac 101, dast 118, brain 103). Moat coverage 79.9%→88.95%. 17/19 above 80%.
 - Day 3 Iter 1: 100% (475/475) — 10th consecutive zero regressions. 0 transport errors. +51 deep tests (autofix 28, micro_pentest 23). Moat coverage 88.95%→96.82%. 19/19 above 80%. 2 test fixes.
+- Day 3 Iter 2: 100% (475/475) — 11th consecutive green. Server restart fixed stale worker 500s. 8 collection fixes. 1 transport error. 3858 moat tests all pass. Moat coverage 95.77%.
 
 ## Customer Simulation Scenarios (Verified 2026-03-02)
 - Brain Pipeline: `POST /api/v1/brain/pipeline/run` with 5 findings + org_id → 12 steps, 119ms
@@ -186,6 +187,14 @@
 
 ## Test Suite Performance
 - Full 10K+ test suite with coverage: >10 min (too slow for quick iteration)
-- Core engine subset (3574 tests): ~28s with coverage
+- Core engine subset (3858 tests): ~32s with coverage
 - Single collection Newman: 3-42s depending on collection
 - All 7 Newman collections sequential: ~2 min total
+
+## Server Restart Gotcha (IMPORTANT)
+- Server started with `--workers 4` can develop stale workers that return plain text 500 (not JSON)
+- Symptom: `text/plain; charset=utf-8` 500 response instead of JSON from exception handler
+- Diagnostic: TestClient returns 200 but live server returns 500 → stale workers
+- Fix: `pkill -9 -f uvicorn` then restart with `--factory` pattern: `uvicorn apps.api.app:create_app --factory --port 8000`
+- Root cause: Multi-worker mode with module-level `app = create_app()` can leave workers in bad state after DB lock contention
+- ALWAYS restart server before Newman runs if it's been running for a long time

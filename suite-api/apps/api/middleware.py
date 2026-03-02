@@ -55,6 +55,15 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Prevent Flash/PDF cross-domain data loading
         response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
 
+        # Content-Security-Policy: restrict resource loading for any HTML responses
+        # API-focused: default-src 'none' blocks all resource loading
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'none'; frame-ancestors 'none'"
+        )
+
+        # X-XSS-Protection: legacy header, still respected by some browsers
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+
         return response
 
 

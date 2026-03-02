@@ -124,17 +124,8 @@ export default function BulkOperations() {
     selected: selectedFindings.has(f.id || `finding-${idx}`),
   }));
 
-  // If no real findings, use samples
-  const displayFindings = findings.length > 0 ? findings : [
-    { id: 'f-1', cve: 'CVE-2024-1234', title: 'Remote Code Execution in log4j', severity: 'critical' as const, status: 'open', selected: false },
-    { id: 'f-2', cve: 'CVE-2024-5678', title: 'SQL Injection in user input', severity: 'critical' as const, status: 'open', selected: false },
-    { id: 'f-3', cve: 'CVE-2024-9012', title: 'XSS vulnerability in comments', severity: 'high' as const, status: 'open', selected: false },
-    { id: 'f-4', cve: 'CVE-2024-3456', title: 'Insecure deserialization', severity: 'high' as const, status: 'open', selected: false },
-    { id: 'f-5', cve: 'CVE-2024-7890', title: 'Path traversal in file upload', severity: 'medium' as const, status: 'open', selected: false },
-    { id: 'f-6', cve: 'CVE-2024-2345', title: 'CSRF token missing', severity: 'medium' as const, status: 'in-progress', selected: false },
-    { id: 'f-7', cve: 'CVE-2024-6789', title: 'Weak password policy', severity: 'low' as const, status: 'open', selected: false },
-    { id: 'f-8', cve: 'CVE-2024-0123', title: 'Missing security headers', severity: 'low' as const, status: 'open', selected: false },
-  ];
+  // Display findings from real API — zero hardcoded fallback
+  const displayFindings = findings;
 
   const filteredFindings = displayFindings.filter(f => 
     f.title.toLowerCase().includes(filterText.toLowerCase()) ||

@@ -924,9 +924,9 @@ class RemediationService:
                                 {"task_id": breach["task_id"], "error": str(e)}
                             )
                 except Exception as e:
-                    logger.error(f"Failed to escalate task {breach['task_id']}: {e}")
+                    logger.error("Failed to escalate task %s: %s", breach.get("task_id"), type(e).__name__)
                     results.setdefault("escalation_failures", []).append(
-                        {"task_id": breach["task_id"], "error": str(e)}
+                        {"task_id": breach["task_id"], "error": type(e).__name__}
                     )
 
         # Check for tasks approaching SLA breach (24h warning)
@@ -1102,7 +1102,7 @@ class SLAScheduler:
                     f"{results['total_warnings']} warnings"
                 )
             except Exception as e:
-                logger.error(f"SLA check failed: {e}")
+                logger.error("SLA check failed: %s", type(e).__name__)
 
             await asyncio.sleep(delay_seconds)
 

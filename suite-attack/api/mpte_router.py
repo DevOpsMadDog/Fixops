@@ -1,8 +1,19 @@
-"""Enhanced API router for advanced MPTE pen testing integration."""
+"""Enhanced API router for advanced MPTE pen testing integration.
+
+Security hardening (2026-03-03):
+- SSRF protection on target_url fields (block RFC1918, localhost, metadata)
+- Input length limits on all string fields
+- Concurrent scan limits (DoS prevention)
+- f-string → %s logging (lazy eval, no injection)
+- Error messages use type(e).__name__ only
+"""
+import ipaddress
 import logging
 import os
+import threading
 from datetime import datetime, timezone
 from typing import List, Optional
+from urllib.parse import urlparse
 
 import httpx
 from core.mpte_db import MPTEDB
@@ -17,7 +28,7 @@ from core.mpte_models import (
 from core.tls_config import tls_verify
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from integrations.mpte_service import AdvancedMPTEService
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +39,92 @@ db = MPTEDB()
 _mpte_service: Optional[AdvancedMPTEService] = None
 # MPTE service URL from environment
 MPTE_URL = os.environ.get("MPTE_BASE_URL", "https://localhost:8443")
+
+# ---------------------------------------------------------------------------
+# Security: Input validation helpers
+# ---------------------------------------------------------------------------
+_MAX_URL_LEN = 2048  # RFC 2616
+_MAX_STR_FIELD = 4096  # General string field max
+_MAX_EVIDENCE_LEN = 65536  # Evidence can be larger
+_MAX_LIST_ITEMS = 100  # Max items in list fields
+
+# SSRF protection: block internal/metadata IPs
+_BLOCKED_NETS = [
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("169.254.0.0/16"),  # AWS metadata, link-local
+    ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("fc00::/7"),  # IPv6 unique local
+    ipaddress.ip_network("fe80::/10"),  # IPv6 link-local
+]
+
+_BLOCKED_HOSTS = frozenset({
+    "localhost",
+    "metadata.google.internal",
+    "metadata.google.com",
+    "169.254.169.254",
+})
+
+
+def _validate_target_url(url: str, field_name: str = "target_url") -> str:
+    """Validate a target URL for SSRF and injection attacks.
+
+    Raises HTTPException on invalid/blocked URLs.
+    """
+    if not url or not url.strip():
+        raise HTTPException(status_code=422, detail=f"{field_name} cannot be empty")
+    url = url.strip()
+    if len(url) > _MAX_URL_LEN:
+        raise HTTPException(
+            status_code=422, detail=f"{field_name} exceeds {_MAX_URL_LEN} chars"
+        )
+    parsed = urlparse(url)
+    if parsed.scheme and parsed.scheme.lower() not in ("http", "https"):
+        raise HTTPException(
+            status_code=422, detail=f"{field_name} must use http or https scheme"
+        )
+    hostname = parsed.hostname or ""
+    if hostname.lower() in _BLOCKED_HOSTS:
+        raise HTTPException(
+            status_code=422, detail=f"{field_name} targets a blocked host"
+        )
+    # Resolve hostname to check for internal IPs
+    try:
+        addr = ipaddress.ip_address(hostname)
+        for net in _BLOCKED_NETS:
+            if addr in net:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"{field_name} targets a blocked internal network",
+                )
+    except ValueError:
+        pass  # Not an IP literal — hostname is OK
+    return url
+
+
+# Concurrent scan limiter
+_MAX_CONCURRENT_SCANS = int(os.getenv("MPTE_MAX_CONCURRENT_SCANS", "10"))
+_active_scans = 0
+_scan_lock = threading.Lock()
+
+
+def _acquire_scan_slot() -> bool:
+    """Try to acquire a scan slot. Returns False if at capacity."""
+    global _active_scans
+    with _scan_lock:
+        if _active_scans >= _MAX_CONCURRENT_SCANS:
+            return False
+        _active_scans += 1
+        return True
+
+
+def _release_scan_slot() -> None:
+    """Release a scan slot."""
+    global _active_scans
+    with _scan_lock:
+        _active_scans = max(0, _active_scans - 1)
 # Demo mode disabled by default - all calls go to real MPTE service
 _BOOTSTRAP_MODE = os.environ.get("FIXOPS_BOOTSTRAP_MPTE", "false").lower() == "true"
 
@@ -70,7 +167,7 @@ def get_mpte_service() -> Optional[AdvancedMPTEService]:
                     db=db,
                 )
             except Exception as e:
-                logger.error(f"Failed to initialize MPTE service: {e}")
+                logger.error("Failed to initialize MPTE service: %s", type(e).__name__)
                 return None
         else:
             return None
@@ -104,6 +201,9 @@ async def _call_real_mpte_verify(data) -> dict:
     """Call real MPTE verification service."""
     import uuid
 
+    # SSRF check on target_url before calling external service
+    _validate_target_url(data.target_url, "target_url")
+
     async with httpx.AsyncClient(verify=tls_verify(), timeout=30.0) as client:
         try:
             # Call real MPTE API for verification
@@ -123,9 +223,9 @@ async def _call_real_mpte_verify(data) -> dict:
                 result["source"] = "mpte"
                 return result
             else:
-                logger.warning(f"MPTE verify returned {resp.status_code}")
+                logger.warning("MPTE verify returned %s", resp.status_code)
         except Exception as e:
-            logger.warning(f"MPTE verify call failed: {e}")
+            logger.warning("MPTE verify call failed: %s", type(e).__name__)
 
     # Fallback: return pending status for async processing
     return {
@@ -133,7 +233,7 @@ async def _call_real_mpte_verify(data) -> dict:
         "request_id": str(uuid.uuid4()),
         "finding_id": data.finding_id,
         "status": "pending",
-        "message": f"Verification queued for {data.vulnerability_type} at {data.target_url}",
+        "message": "Verification queued",
         "source": "queued",
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -143,116 +243,174 @@ async def _call_real_mpte_scan(data) -> dict:
     """Call real MPTE comprehensive scan service."""
     import uuid
 
-    async with httpx.AsyncClient(verify=tls_verify(), timeout=30.0) as client:
-        try:
-            # Call real MPTE API for scanning
-            payload = {
-                "target": data.target,
-                "scan_types": data.scan_types or ["xss", "sqli", "csrf"],
-                "depth": getattr(data, "depth", "standard"),
-            }
-            resp = await client.post(
-                f"{MPTE_URL}/api/v1/scan",
-                json=payload,
-                headers={"Content-Type": "application/json"},
-            )
-            if resp.status_code == 200 or resp.status_code == 201:
-                result = resp.json()
-                result["source"] = "mpte"
-                return result
-            else:
-                logger.warning(f"MPTE scan returned {resp.status_code}")
-        except Exception as e:
-            logger.warning(f"MPTE scan call failed: {e}")
+    # SSRF check on target before calling external service
+    _validate_target_url(data.target, "target")
 
-    # Fallback: return pending status for async processing
-    return {
-        "id": str(uuid.uuid4()),
-        "target": data.target,
-        "scan_types": data.scan_types or ["xss", "sqli", "csrf"],
-        "status": "pending",
-        "message": f"Scan queued for {data.target}",
-        "source": "queued",
-        "started_at": datetime.now(timezone.utc).isoformat(),
-    }
+    # Concurrent scan limit
+    if not _acquire_scan_slot():
+        raise HTTPException(
+            status_code=429,
+            detail="Too many concurrent scans. Try again later.",
+        )
+
+    try:
+        async with httpx.AsyncClient(verify=tls_verify(), timeout=30.0) as client:
+            try:
+                payload = {
+                    "target": data.target,
+                    "scan_types": data.scan_types or ["xss", "sqli", "csrf"],
+                    "depth": getattr(data, "depth", "standard"),
+                }
+                resp = await client.post(
+                    f"{MPTE_URL}/api/v1/scan",
+                    json=payload,
+                    headers={"Content-Type": "application/json"},
+                )
+                if resp.status_code in (200, 201):
+                    result = resp.json()
+                    result["source"] = "mpte"
+                    return result
+                else:
+                    logger.warning("MPTE scan returned %s", resp.status_code)
+            except Exception as e:
+                logger.warning("MPTE scan call failed: %s", type(e).__name__)
+
+        return {
+            "id": str(uuid.uuid4()),
+            "target": data.target,
+            "scan_types": data.scan_types or ["xss", "sqli", "csrf"],
+            "status": "pending",
+            "message": "Scan queued",
+            "source": "queued",
+            "started_at": datetime.now(timezone.utc).isoformat(),
+        }
+    finally:
+        _release_scan_slot()
 
 
 class CreatePenTestRequestModel(BaseModel):
-    """Model for creating pen test request."""
+    """Model for creating pen test request.
 
-    finding_id: str
-    target_url: str
-    vulnerability_type: str
-    test_case: str
-    priority: str = "medium"
+    Security: All string fields have length limits. target_url validated
+    for SSRF at the endpoint level (not in Pydantic, to give clear HTTP error).
+    """
+
+    finding_id: str = Field(..., min_length=1, max_length=256)
+    target_url: str = Field(..., min_length=1, max_length=_MAX_URL_LEN)
+    vulnerability_type: str = Field(..., min_length=1, max_length=256)
+    test_case: str = Field(..., min_length=1, max_length=_MAX_STR_FIELD)
+    priority: str = Field(default="medium", max_length=32)
     auto_verify: bool = True
+
+    @field_validator("priority")
+    @classmethod
+    def validate_priority(cls, v: str) -> str:
+        allowed = {"low", "medium", "high", "critical"}
+        if v.lower() not in allowed:
+            raise ValueError(f"priority must be one of: {', '.join(sorted(allowed))}")
+        return v.lower()
 
 
 class VerifyVulnerabilityModel(BaseModel):
     """Model for vulnerability verification."""
 
-    finding_id: str
-    target_url: str
-    vulnerability_type: str
-    evidence: str
+    finding_id: str = Field(..., min_length=1, max_length=256)
+    target_url: str = Field(..., min_length=1, max_length=_MAX_URL_LEN)
+    vulnerability_type: str = Field(..., min_length=1, max_length=256)
+    evidence: str = Field(..., min_length=1, max_length=_MAX_EVIDENCE_LEN)
 
 
 class ContinuousMonitoringModel(BaseModel):
     """Model for continuous monitoring setup."""
 
-    targets: List[str]
-    interval_minutes: int = 60
+    targets: List[str] = Field(..., max_length=_MAX_LIST_ITEMS)
+    interval_minutes: int = Field(default=60, ge=5, le=1440)
+
+    @field_validator("targets")
+    @classmethod
+    def validate_targets(cls, v: List[str]) -> List[str]:
+        if len(v) > _MAX_LIST_ITEMS:
+            raise ValueError(f"targets list cannot exceed {_MAX_LIST_ITEMS} items")
+        if not v:
+            raise ValueError("targets list cannot be empty")
+        for t in v:
+            if len(t) > _MAX_URL_LEN:
+                raise ValueError(f"target URL exceeds {_MAX_URL_LEN} chars")
+        return v
 
 
 class ComprehensiveScanModel(BaseModel):
     """Model for comprehensive scan."""
 
-    target: str
+    target: str = Field(..., min_length=1, max_length=_MAX_URL_LEN)
     scan_types: Optional[List[str]] = None
+
+    @field_validator("scan_types")
+    @classmethod
+    def validate_scan_types(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        if v is not None:
+            allowed = {"xss", "sqli", "csrf", "ssrf", "rce", "lfi", "rfi",
+                       "idor", "xxe", "ssti", "deserialization", "auth_bypass"}
+            if len(v) > 20:
+                raise ValueError("scan_types cannot exceed 20 items")
+            for st in v:
+                if st.lower() not in allowed:
+                    raise ValueError(f"Unknown scan type: {st}")
+        return v
 
 
 class UpdatePenTestRequestModel(BaseModel):
     """Model for updating pen test request."""
 
-    status: Optional[str] = None
-    mpte_job_id: Optional[str] = None
+    status: Optional[str] = Field(default=None, max_length=32)
+    mpte_job_id: Optional[str] = Field(default=None, max_length=256)
 
 
 class CreatePenTestResultModel(BaseModel):
     """Model for creating pen test result."""
 
-    request_id: str
-    finding_id: str
-    exploitability: str
+    request_id: str = Field(..., min_length=1, max_length=256)
+    finding_id: str = Field(..., min_length=1, max_length=256)
+    exploitability: str = Field(..., min_length=1, max_length=64)
     exploit_successful: bool
-    evidence: str
-    steps_taken: List[str] = Field(default_factory=list)
-    artifacts: List[str] = Field(default_factory=list)
-    confidence_score: float = 0.0
-    execution_time_seconds: float = 0.0
+    evidence: str = Field(..., max_length=_MAX_EVIDENCE_LEN)
+    steps_taken: List[str] = Field(default_factory=list, max_length=100)
+    artifacts: List[str] = Field(default_factory=list, max_length=100)
+    confidence_score: float = Field(default=0.0, ge=0.0, le=1.0)
+    execution_time_seconds: float = Field(default=0.0, ge=0.0, le=86400.0)
 
 
 class CreatePenTestConfigModel(BaseModel):
     """Model for creating MPTE configuration."""
 
-    name: str
-    mpte_url: str
-    api_key: Optional[str] = None
+    name: str = Field(..., min_length=1, max_length=256)
+    mpte_url: str = Field(..., min_length=1, max_length=_MAX_URL_LEN)
+    api_key: Optional[str] = Field(default=None, max_length=512)
     enabled: bool = True
-    max_concurrent_tests: int = 5
-    timeout_seconds: int = 300
+    max_concurrent_tests: int = Field(default=5, ge=1, le=50)
+    timeout_seconds: int = Field(default=300, ge=10, le=3600)
     auto_trigger: bool = False
     target_environments: List[str] = Field(default_factory=list)
+
+    @field_validator("target_environments")
+    @classmethod
+    def validate_envs(cls, v: List[str]) -> List[str]:
+        if len(v) > 20:
+            raise ValueError("target_environments cannot exceed 20 items")
+        for env in v:
+            if len(env) > 64:
+                raise ValueError("environment name too long (max 64)")
+        return v
 
 
 class UpdatePenTestConfigModel(BaseModel):
     """Model for updating MPTE configuration."""
 
-    mpte_url: Optional[str] = None
-    api_key: Optional[str] = None
+    mpte_url: Optional[str] = Field(default=None, max_length=_MAX_URL_LEN)
+    api_key: Optional[str] = Field(default=None, max_length=512)
     enabled: Optional[bool] = None
-    max_concurrent_tests: Optional[int] = None
-    timeout_seconds: Optional[int] = None
+    max_concurrent_tests: Optional[int] = Field(default=None, ge=1, le=50)
+    timeout_seconds: Optional[int] = Field(default=None, ge=10, le=3600)
     auto_trigger: Optional[bool] = None
     target_environments: Optional[List[str]] = None
 
@@ -283,7 +441,19 @@ async def create_pen_test_request(
     Creates the request immediately and runs verification in the background.
     If the external MPTE service is unreachable, falls back to the local
     micro-pentest engine (cve_tester + real_scanner).
+
+    Security: Validates target_url for SSRF, enforces concurrent scan limit.
     """
+    # [V5] SSRF protection: validate target URL before processing
+    _validate_target_url(data.target_url, "target_url")
+
+    # Concurrent scan limit
+    if not _acquire_scan_slot():
+        raise HTTPException(
+            status_code=429,
+            detail="Too many concurrent scans. Try again later.",
+        )
+
     try:
         priority = PenTestPriority(data.priority)
 
@@ -312,8 +482,10 @@ async def create_pen_test_request(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to create pen test: {e}")
+        logger.error("Failed to create pen test: %s", type(e).__name__)
         raise HTTPException(status_code=500, detail="Failed to create pen test")
+    finally:
+        _release_scan_slot()
 
 
 async def _run_mpte_verification_background(
@@ -350,12 +522,13 @@ async def _run_mpte_verification_background(
                 timeout=15,  # 15s max — don't hang for 5 minutes
             )
             # Service returned a request object; it manages its own DB updates
-            logger.info(f"MPTE service completed for request {request_id}")
+            logger.info("MPTE service completed for request %s", request_id)
             return
         except (asyncio.TimeoutError, Exception) as e:
             logger.warning(
-                f"MPTE service unavailable for request {request_id}, "
-                f"falling back to local engine: {e}"
+                "MPTE service unavailable for request %s, falling back to local engine: %s",
+                request_id,
+                type(e).__name__,
             )
 
     # --- Attempt 2: Local micro-pentest engine fallback ---
@@ -409,10 +582,10 @@ async def _run_mpte_verification_background(
         request.completed_at = datetime.now(timezone.utc)
         db.update_request(request)
 
-        logger.info(f"Local engine completed for request {request_id}")
+        logger.info("Local engine completed for request %s", request_id)
 
     except Exception as e:
-        logger.error(f"Local engine also failed for request {request_id}: {e}")
+        logger.error("Local engine also failed for request %s: %s", request_id, type(e).__name__)
         request.status = PenTestStatus.FAILED
         request.completed_at = datetime.now(timezone.utc)
         db.update_request(request)
@@ -643,7 +816,7 @@ async def verify_vulnerability(data: VerifyVulnerabilityModel):
         OSError,
         TimeoutError,
     ) as e:
-        logger.warning(f"MPTE service unavailable: {e}")
+        logger.warning("MPTE service unavailable: %s", type(e).__name__)
         # Try direct MPTE API call as fallback
         return await _call_real_mpte_verify(data)
     except Exception as e:
@@ -655,10 +828,10 @@ async def verify_vulnerability(data: VerifyVulnerabilityModel):
             or "refused" in error_str
             or "name or service not known" in error_str
         ):
-            logger.warning(f"MPTE service unavailable: {e}")
+            logger.warning("MPTE service unavailable: %s", type(e).__name__)
             # Try direct MPTE API call as fallback
             return await _call_real_mpte_verify(data)
-        logger.error(f"Failed to verify vulnerability: {e}")
+        logger.error("Failed to verify vulnerability: %s", type(e).__name__)
         raise HTTPException(status_code=500, detail="Failed to verify vulnerability")
 
 
@@ -690,7 +863,7 @@ async def setup_continuous_monitoring(data: ContinuousMonitoringModel):
         OSError,
         TimeoutError,
     ) as e:
-        logger.warning(f"MPTE service unavailable: {e}")
+        logger.warning("MPTE service unavailable: %s", type(e).__name__)
         raise HTTPException(
             status_code=503,
             detail="MPTE service unavailable. External pen testing service is not reachable.",
@@ -704,12 +877,12 @@ async def setup_continuous_monitoring(data: ContinuousMonitoringModel):
             or "refused" in error_str
             or "name or service not known" in error_str
         ):
-            logger.warning(f"MPTE service unavailable: {e}")
+            logger.warning("MPTE service unavailable: %s", type(e).__name__)
             raise HTTPException(
                 status_code=503,
                 detail="MPTE service unavailable. External pen testing service is not reachable.",
             )
-        logger.error(f"Failed to setup monitoring: {e}")
+        logger.error("Failed to setup monitoring: %s", type(e).__name__)
         raise HTTPException(status_code=500, detail="Failed to setup monitoring")
 
 
@@ -762,7 +935,7 @@ async def run_comprehensive_scan(data: ComprehensiveScanModel):
                 try:
                     resolved.add(MPTETestType(mapped))
                 except ValueError:
-                    logger.warning(f"Unknown scan type '{st}', skipping")
+                    logger.warning("Unknown scan type, skipping")
             scan_types = list(resolved) if resolved else None
 
         requests = await service.run_comprehensive_scan(
@@ -782,7 +955,7 @@ async def run_comprehensive_scan(data: ComprehensiveScanModel):
         OSError,
         TimeoutError,
     ) as e:
-        logger.warning(f"MPTE service unavailable: {e}")
+        logger.warning("MPTE service unavailable: %s", type(e).__name__)
         raise HTTPException(
             status_code=503,
             detail="MPTE service unavailable. External pen testing service is not reachable.",
@@ -796,20 +969,39 @@ async def run_comprehensive_scan(data: ComprehensiveScanModel):
             or "refused" in error_str
             or "name or service not known" in error_str
         ):
-            logger.warning(f"MPTE service unavailable: {e}")
+            logger.warning("MPTE service unavailable: %s", type(e).__name__)
             raise HTTPException(
                 status_code=503,
                 detail="MPTE service unavailable. External pen testing service is not reachable.",
             )
-        logger.error(f"Failed to start comprehensive scan: {e}")
+        logger.error("Failed to start comprehensive scan: %s", type(e).__name__)
         raise HTTPException(
             status_code=500, detail="Failed to start comprehensive scan"
         )
 
 
+_FINDING_ID_PATTERN = __import__("re").compile(r"^[a-zA-Z0-9_\-.:]+$")
+_MAX_FINDING_ID_LEN = 256
+
+
 @router.get("/findings/{finding_id}/exploitability")
 def get_finding_exploitability(finding_id: str):
-    """Get exploitability assessment for a finding."""
+    """Get exploitability assessment for a finding.
+
+    Security hardening (2026-03-03):
+    - finding_id validated: alphanumeric + hyphens/underscores/dots/colons only
+    - Max 256 chars to prevent DoS via huge path params
+    - Error logging uses type(e).__name__ only
+    """
+    # Input validation for path parameter
+    if not finding_id or len(finding_id) > _MAX_FINDING_ID_LEN:
+        raise HTTPException(status_code=422, detail="Invalid finding_id length")
+    if not _FINDING_ID_PATTERN.match(finding_id):
+        raise HTTPException(
+            status_code=422,
+            detail="finding_id contains invalid characters",
+        )
+
     try:
         service = get_mpte_service()
         if service:
@@ -838,9 +1030,7 @@ def get_finding_exploitability(finding_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        import logging
-
-        logging.getLogger(__name__).error(f"Failed to get exploitability: {e}")
+        logger.error("Failed to get exploitability: %s", type(e).__name__)
         raise HTTPException(
             status_code=500,
             detail="Failed to get exploitability",

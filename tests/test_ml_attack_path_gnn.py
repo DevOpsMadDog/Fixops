@@ -22,7 +22,6 @@ from core.ml.attack_path_gnn import (
     RiskPropagation,
     build_gnn_from_knowledge_graph,
     NODE_TYPE_MAP,
-    EDGE_TYPE_MAP,
     _leaky_relu,
     _softmax,
     _elu,

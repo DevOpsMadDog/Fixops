@@ -68,6 +68,7 @@
 ## Evidence Bundle Response (UPDATED 2026-03-02 session 4)
 - `POST /api/v1/evidence/bundles/generate` → response has `id` field (NOT `bundle_id`), `hash`, `sections` array
 - Valid framework names: `SOC2`, `PCI-DSS`, `ISO27001` (NOT `ISO-27001`), `HIPAA`, `GDPR`, `NIST-CSF`
+  - `HIPAA` confirmed working for bundles/generate, export, and brain evidence (session 9)
 - Returns 422 if unknown framework — check error detail
 - `POST /api/v1/evidence/export` → `signature` is plain STRING (RSA sig), algorithm in `signature_algorithm`
 - Brain pipeline `POST /api/v1/brain/evidence/generate` → `overall_score`, `overall_status` (not `compliance_score`)
@@ -142,13 +143,22 @@
   - FIX: `tests/test_autofix_engine.py` — total_checks 4→7 (backend-hardener added 3 checks)
   - 633 core tests pass (brain_pipeline + autofix + micro_pentest), 0 failures
   - 8 fresh Week 2 artifacts (SBOM 26, CVE 12, SARIF 12, CNAPP 10, VEX 9, Context 5, Design 35, Threats 48)
-- **2026-03-02 (session 8, latest)**: SUNDAY FULL REGRESSION + BUG FIXES
+- **2026-03-02 (session 8)**: SUNDAY FULL REGRESSION + BUG FIXES
   - Fixed 3 bugs in `ctem_attack_campaign.py`: bulk reachability schema, bulk autofix schema, validate 404
   - Fixed 1 bug in `ctem_week2_harness.py`: attack scenario LLM timeout (15s→60s)
   - Full regression: 191/193 (99.0%) across 7 scripts
   - Investor demo: 24/24 (was 22/24), attack campaign: 24/24 (was 22/24), week2: 61/63 (was 59/63)
   - Self-scan dogfood: 17/17 — ALdeci scans itself with 8 SAST findings, 3 secrets, 93% noise reduction
   - Total: 9 scripts, 191+ verified steps, DEMO READY
+- **2026-03-03 (session 9, latest)**: TUESDAY HEALTHCARE ARCHITECTURE DEEP DIVE
+  - NEW: `ctem_healthcare_demo.py` — 39 steps, 7 phases, 37/39 (94.9%), 73.5s
+  - Healthcare architecture v2: 52 components, 54 connections, 7 trust boundaries (was 32/10)
+  - 42 STRIDE threats (8 critical, 14 high, 28 PHI-impacting, 6 patient-safety)
+  - Full artifact suite: SBOM 33, CVE 16, SARIF 15, CNAPP 12, VEX 9, Context, Design
+  - Brain Pipeline: 12/12 steps, 91.7% noise reduction
+  - HIPAA evidence bundle signed, compliance score 86.4%
+  - Regression: investor 24/24, mpte 11/11, pytest 633/633
+  - Total: 10 scripts, 443+ verified steps, ~99% pass rate
 
 ## Secrets Scanner Format
 - Secrets scanner returns `findings` array, NOT `total_findings` or `secrets_found`
@@ -169,7 +179,8 @@
 - **CloudFormation**: Returns 0 findings for ALL templates — YAML resource parsing not implemented
 - **Azure Terraform**: `azurerm_*` resources return 0 findings — only `aws_*` and `google_*` supported
 - **GCP Terraform**: `google_*` resources return 0 findings (session 5 verification)
-- **SAST Java**: Detects 3-4 findings vs Python's 5-7 — Java pattern coverage gap
+- **SAST Java**: Improved! Now detects 9 findings (vs 3-4 in session 6) — better pattern matching
+  - Healthcare Java code with DB creds + SQL concat + XSS → 9 findings detected
 - **SAST endpoint**: Correct path is `/api/v1/sast/scan/code` (NOT `/api/v1/sast/scan` which returns 404)
 - **Sandbox**: Returns "sandbox_unavailable" without Docker daemon
 - **Brain steps 10-12**: Consistently skip without external services (MPTE target, playbook YAML, evidence config)
@@ -180,3 +191,6 @@
 - **Evidence export posture**: `posture.overall_score` returns 0.0 (vs brain evidence 86.4% — different calculation)
 - **API Fuzzer discover**: Returns 0 endpoints even with full OpenAPI spec — parsing/matching issue
 - **DAST httpbin.org**: External target can timeout (>60s) — use --max-time 10 in investor demos
+- **Reachability single-CVE**: `POST /api/v1/reachability/analyze` returns 422 (session 9) — use bulk endpoint instead
+- **Evidence export HIPAA**: posture.overall_score returns 0.95 in session 9 (was 0.0 in session 7) — may depend on ingested data volume
+- **Brain 12/12 all steps**: With 12 healthcare findings, all 12 steps complete (including micro_pentest, run_playbooks, generate_evidence)

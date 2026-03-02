@@ -296,7 +296,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cve_id\": \"{{cveId}}\",\n  \"target\": \"payment-service\",\n  \"environment\": \"staging\",\n  \"scan_type\": \"comprehensive\",\n  \"priority\": \"high\",\n  \"finding_id\": \"{{findingId}}\",\n  \"target_url\": \"http://localhost:8000\",\n  \"vulnerability_type\": \"sql_injection\",\n  \"scope\": \"quick\",\n  \"test_case\": \"verify_sql_injection\"\n}",
+              "raw": "{\n  \"cve_id\": \"{{cveId}}\",\n  \"target\": \"payment-service\",\n  \"environment\": \"staging\",\n  \"scan_type\": \"comprehensive\",\n  \"priority\": \"high\",\n  \"finding_id\": \"{{findingId}}\",\n  \"target_url\": \"https://example.com\",\n  \"vulnerability_type\": \"sql_injection\",\n  \"scope\": \"quick\",\n  \"test_case\": \"verify_sql_injection\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -315,6 +315,20 @@
             }
           },
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Generate findingId if not set",
+                  "if (!pm.environment.get('findingId') || pm.environment.get('findingId') === '') {",
+                  "    const uuid = 'finding-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 9);",
+                  "    pm.environment.set('findingId', uuid);",
+                  "    console.log('Generated findingId: ' + uuid);",
+                  "}"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -499,15 +513,14 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Comprehensive scan returns 200', function() {",
-                  "  if (pm.response && pm.response.code) {",
-                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 409, 500, 504]);",
-                  "  } else {",
-                  "    // Transport timeout is acceptable for comprehensive scans (>30s)",
-                  "    // ESOCKETTIMEDOUT means the scan is running but takes longer than Newman timeout",
-                  "    pm.expect(true).to.be.true;",
-                  "  }",
-                  "});"
+                  "// Comprehensive MPTE scan can take >30s \u2014 handle timeout gracefully",
+                  "if (pm.response) {",
+                  "    pm.test('MPTE comprehensive scan returns 200', function() {",
+                  "        pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 408, 504]);",
+                  "    });",
+                  "} else {",
+                  "    pm.test.skip('MPTE comprehensive scan \u2014 Transport timeout (expected for >30s scan)');",
+                  "}"
                 ]
               }
             }

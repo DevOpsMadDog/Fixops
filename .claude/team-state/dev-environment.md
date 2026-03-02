@@ -1,8 +1,8 @@
 # ALdeci CTEM+ Platform — Development Environment Guide
 
-> **Updated**: 2026-03-03 (Day 3) by devops-engineer
+> **Updated**: 2026-03-03 (Day 3, Run 6) by devops-engineer
 > **Sprint**: 2 — Enterprise Demo (2026-03-06, 3 days remaining)
-> **Status**: 11/12 DEMO items done. Docker stack verified. 42-check health system. CI 7-job pipeline. Air-gapped test validates all 8 scanners. Compose validator: 40/40 pass, 2 warnings.
+> **Status**: 11/12 DEMO items done. Docker stack verified. 44-check health system v2.3.0. CI 8-job pipeline (added dep-audit). Air-gapped test validates all 8 scanners. ALL 10 Dockerfiles now have HEALTHCHECK + USER. Compose validator: 10/11 pass (1 overlay).
 
 ---
 
@@ -30,7 +30,7 @@ git clone <repo-url> && cd Fixops
 # Or manually:
 docker compose -f docker/docker-compose.yml up --build -d
 
-# Verify everything is running (42 checks)
+# Verify everything is running (44 checks)
 ./scripts/demo-healthcheck.sh
 
 # Stop
@@ -116,7 +116,7 @@ python -m pytest tests/ --timeout=10 -x -q
 │                                  │                   │
 │                     ┌────────────▼───────────────┐  │
 │                     │  fixops-api (python:8000)  │  │
-│                     │  • 759+ API endpoints      │  │
+│                     │  • 768+ API endpoints      │  │
 │                     │  • 8 native scanners       │  │
 │                     │  • Brain pipeline (12-step)│  │
 │                     │  • AutoFix engine          │  │
@@ -262,6 +262,10 @@ curl -H "X-API-Key: $TOKEN" http://localhost:8000/api/v1/mcp-protocol/status
 curl -H "X-API-Key: $TOKEN" http://localhost:8000/api/v1/evidence/
 curl -H "X-API-Key: $TOKEN" http://localhost:8000/api/v1/compliance-engine/frameworks
 
+# Intelligence [V3+V8]
+curl -H "X-API-Key: $TOKEN" http://localhost:8000/api/v1/brain/trends
+curl -H "X-API-Key: $TOKEN" http://localhost:8000/api/v1/self-learning/stats
+
 # Swagger docs
 open http://localhost:8000/docs
 ```
@@ -272,7 +276,7 @@ open http://localhost:8000/docs
 
 | Script | Purpose | When to Use |
 |--------|---------|-------------|
-| `scripts/demo-healthcheck.sh` | 42-endpoint health check | After starting services |
+| `scripts/demo-healthcheck.sh` | 44-endpoint health check v2.3.0 | After starting services |
 | `scripts/demo-start.sh` | One-command launcher | Starting ALdeci for demos |
 | `scripts/compose-validate.sh` | Docker config validator | Before committing Docker changes |
 | `scripts/local-dev-setup.sh` | Zero-config environment setup | First time clone / onboarding |
@@ -303,7 +307,7 @@ docker compose -f docker/docker-compose.air-gapped-test.yml up --build
 
 | Workflow | Trigger | Jobs |
 |----------|---------|------|
-| `ci.yml` | push/PR | 7 jobs: lint, test+coverage, scanner-parsers, compose-validate, api-surface, docker-smoke (with layer cache + image size check), ui-build |
+| `ci.yml` | push/PR | 8 jobs: lint, test+coverage, scanner-parsers, compose-validate, api-surface, docker-smoke (22 CTEM+ endpoints), dep-audit (pip-audit), ui-build |
 | `air-gapped-test.yml` | push/PR (docker/*) | Air-gapped deployment test (MOAT P1) |
 
 ---
@@ -357,7 +361,7 @@ TIMEOUT=60 ./scripts/demo-healthcheck.sh
 
 | Control | Status | Details |
 |---------|--------|---------|
-| Non-root container | ✅ | `USER aldeci` in main + enterprise Dockerfiles |
+| Non-root container | ✅ | `USER aldeci`/`nextjs` in ALL 10 Dockerfiles |
 | .dockerignore secrets | ✅ | .env, .env.*, *.db excluded from build context |
 | No hardcoded secrets | ✅ | All compose files use `${VAR:-default}` pattern |
 | Health checks | ✅ | HEALTHCHECK in all primary Dockerfiles |

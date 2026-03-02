@@ -1,0 +1,13 @@
+{
+  "agent": "agent-doctor",
+  "status": "completed",
+  "run_id": "swarm-2026-03-03_03-26-49",
+  "timestamp": "2026-03-02T16:36:48Z",
+  "duration_s": 595,
+  "attempts": 1,
+  "output_bytes": 1956,
+  "confidence": "HIGH",
+  "free_ram_mb": 7327,
+  "git_changes": " suite-ui/aldeci/src/components/CommandPalette.tsx  |      2 +  suite-ui/aldeci/src/layouts/MainLayout.tsx         |    449 +-  .../aldeci/src/pages/code/SecretsDetection.tsx     |     11 +-  .../aldeci/src/pages/protect/BulkOperations.tsx    |     13 +-  68 files changed, 637852 insertions(+), 602944 deletions(-) ",
+  "log_file": "/Users/devops.ai/developement/fixops/Fixops/logs/ai-team/2026-03-03_agent-doctor_swarm-2026-03-03_03-26-49.log"
+}

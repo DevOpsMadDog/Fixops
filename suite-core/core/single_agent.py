@@ -304,7 +304,7 @@ class APIFallbackBackend(BaseInferenceBackend):
                 elif provider["name"] == "anthropic":
                     return self._call_anthropic(provider, prompt, system_prompt, max_tokens, temperature)
             except Exception as e:
-                logger.warning(f"API provider {provider['name']} failed: {e}")
+                logger.warning("API provider %s failed: %s", provider.get("name"), type(e).__name__)
                 continue
 
         raise RuntimeError("No API providers available")
@@ -472,7 +472,7 @@ class SingleAgentEngine:
                 try:
                     b = backend_cls()
                     if b.is_available():
-                        logger.info(f"Auto-selected backend: {b.model_info().get('backend')}")
+                        logger.info("Auto-selected backend: %s", b.model_info().get("backend"))
                         return b
                 except Exception:
                     continue
@@ -497,7 +497,7 @@ class SingleAgentEngine:
             json.dumps(finding, sort_keys=True, default=str).encode()
         ).hexdigest()[:16]
         if cache_key in self._decision_cache:
-            logger.debug(f"Cache hit for finding {finding_id}")
+            logger.debug("Cache hit for finding %s", finding_id)
             return self._decision_cache[cache_key]
 
         start_time = time.time()
@@ -512,7 +512,7 @@ class SingleAgentEngine:
                 opinion = self._get_expert_opinion(role, prompt)
                 opinions.append(opinion)
             except Exception as e:
-                logger.warning(f"Expert {role.value} failed: {e}")
+                logger.warning("Expert %s failed: %s", role.value, type(e).__name__)
                 opinions.append(ExpertOpinion(
                     role=role,
                     decision="UNABLE_TO_ASSESS",
@@ -752,7 +752,7 @@ class SingleAgentEngine:
                 decision = self.decide(finding, app_context)
                 results.append(decision)
             except Exception as e:
-                logger.error(f"Failed to decide on {finding.get('id', '?')}: {e}")
+                logger.error("Failed to decide on %s: %s", finding.get("id", "?"), type(e).__name__)
                 results.append(ConsensusDecision(
                     finding_id=finding.get("id", "unknown"),
                     decision="ERROR",

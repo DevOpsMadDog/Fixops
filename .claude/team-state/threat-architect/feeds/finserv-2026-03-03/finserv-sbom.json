@@ -1,0 +1,257 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-03-02T17:32:36.494136+00:00",
+    "component": {
+      "name": "securetrade-platform",
+      "version": "4.2.0",
+      "type": "application",
+      "description": "Multi-cloud financial trading platform (GCP+AWS)"
+    },
+    "tools": [
+      {
+        "vendor": "ALdeci",
+        "name": "threat-architect",
+        "version": "2.0"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "framework",
+      "name": "next",
+      "version": "14.2.3",
+      "purl": "pkg:npm/next@14.2.3",
+      "description": "React framework for trading dashboard with SSR"
+    },
+    {
+      "type": "library",
+      "name": "react",
+      "version": "18.3.1",
+      "purl": "pkg:npm/react@18.3.1"
+    },
+    {
+      "type": "library",
+      "name": "socket.io-client",
+      "version": "4.7.4",
+      "purl": "pkg:npm/socket.io-client@4.7.4",
+      "description": "WebSocket client for real-time price feeds"
+    },
+    {
+      "type": "library",
+      "name": "chart.js",
+      "version": "4.4.1",
+      "purl": "pkg:npm/chart.js@4.4.1"
+    },
+    {
+      "type": "framework",
+      "name": "express",
+      "version": "4.18.2",
+      "purl": "pkg:npm/express@4.18.2",
+      "description": "BFF (Backend-for-Frontend) API layer"
+    },
+    {
+      "type": "library",
+      "name": "jsonwebtoken",
+      "version": "9.0.2",
+      "purl": "pkg:npm/jsonwebtoken@9.0.2",
+      "description": "JWT authentication for trading sessions"
+    },
+    {
+      "type": "library",
+      "name": "helmet",
+      "version": "7.1.0",
+      "purl": "pkg:npm/helmet@7.1.0"
+    },
+    {
+      "type": "library",
+      "name": "rate-limiter-flexible",
+      "version": "5.0.3",
+      "purl": "pkg:npm/rate-limiter-flexible@5.0.3"
+    },
+    {
+      "type": "library",
+      "name": "org.springframework.boot:spring-boot-starter-web",
+      "version": "3.2.3",
+      "purl": "pkg:maven/org.springframework.boot/spring-boot-starter-web@3.2.3",
+      "description": "Order management and settlement service"
+    },
+    {
+      "type": "library",
+      "name": "org.springframework.boot:spring-boot-starter-security",
+      "version": "3.2.3",
+      "purl": "pkg:maven/org.springframework.boot/spring-boot-starter-security@3.2.3"
+    },
+    {
+      "type": "library",
+      "name": "io.grpc:grpc-netty-shaded",
+      "version": "1.62.2",
+      "purl": "pkg:maven/io.grpc/grpc-netty-shaded@1.62.2",
+      "description": "gRPC for Spanner and inter-service communication"
+    },
+    {
+      "type": "library",
+      "name": "com.google.cloud:google-cloud-spanner",
+      "version": "6.60.0",
+      "purl": "pkg:maven/com.google.cloud/google-cloud-spanner@6.60.0",
+      "description": "Cloud Spanner client for trade ledger"
+    },
+    {
+      "type": "library",
+      "name": "com.google.cloud:google-cloud-kms",
+      "version": "2.38.0",
+      "purl": "pkg:maven/com.google.cloud/google-cloud-kms@2.38.0",
+      "description": "Cloud KMS for PCI encryption key management"
+    },
+    {
+      "type": "library",
+      "name": "org.apache.kafka:kafka-clients",
+      "version": "3.7.0",
+      "purl": "pkg:maven/org.apache.kafka/kafka-clients@3.7.0",
+      "description": "Kafka for event streaming (trades, settlements)"
+    },
+    {
+      "type": "library",
+      "name": "io.lettuce:lettuce-core",
+      "version": "6.3.2",
+      "purl": "pkg:maven/io.lettuce/lettuce-core@6.3.2",
+      "description": "Redis client for session cache and rate limiting"
+    },
+    {
+      "type": "library",
+      "name": "com.fasterxml.jackson.core:jackson-databind",
+      "version": "2.16.1",
+      "purl": "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.16.1"
+    },
+    {
+      "type": "application",
+      "name": "risk-engine",
+      "version": "2.1.0",
+      "purl": "pkg:golang/securetrade/risk-engine@2.1.0",
+      "description": "Go-based real-time risk calculation engine"
+    },
+    {
+      "type": "library",
+      "name": "github.com/gin-gonic/gin",
+      "version": "1.9.1",
+      "purl": "pkg:golang/github.com/gin-gonic/gin@1.9.1",
+      "description": "Go HTTP framework for risk engine API"
+    },
+    {
+      "type": "library",
+      "name": "github.com/jackc/pgx/v5",
+      "version": "5.5.3",
+      "purl": "pkg:golang/github.com/jackc/pgx/v5@5.5.3",
+      "description": "PostgreSQL driver for AlloyDB risk models"
+    },
+    {
+      "type": "library",
+      "name": "github.com/redis/go-redis/v9",
+      "version": "9.5.1",
+      "purl": "pkg:golang/github.com/redis/go-redis/v9@9.5.1"
+    },
+    {
+      "type": "application",
+      "name": "fraud-detection-ml",
+      "version": "1.5.0",
+      "purl": "pkg:pypi/fraud-detection-ml@1.5.0",
+      "description": "Python ML service for real-time fraud scoring"
+    },
+    {
+      "type": "library",
+      "name": "tensorflow",
+      "version": "2.16.1",
+      "purl": "pkg:pypi/tensorflow@2.16.1"
+    },
+    {
+      "type": "library",
+      "name": "scikit-learn",
+      "version": "1.4.1",
+      "purl": "pkg:pypi/scikit-learn@1.4.1"
+    },
+    {
+      "type": "library",
+      "name": "pandas",
+      "version": "2.2.1",
+      "purl": "pkg:pypi/pandas@2.2.1"
+    },
+    {
+      "type": "library",
+      "name": "fastapi",
+      "version": "0.110.0",
+      "purl": "pkg:pypi/fastapi@0.110.0"
+    },
+    {
+      "type": "library",
+      "name": "cryptography",
+      "version": "42.0.5",
+      "purl": "pkg:pypi/cryptography@42.0.5",
+      "description": "TLS and PCI data encryption"
+    },
+    {
+      "type": "library",
+      "name": "boto3",
+      "version": "1.34.51",
+      "purl": "pkg:pypi/boto3@1.34.51",
+      "description": "AWS SDK for DR/failover operations"
+    },
+    {
+      "type": "library",
+      "name": "google-cloud-bigquery",
+      "version": "3.19.0",
+      "purl": "pkg:pypi/google-cloud-bigquery@3.19.0",
+      "description": "BigQuery client for analytics and regulatory reporting"
+    },
+    {
+      "type": "library",
+      "name": "celery",
+      "version": "5.3.6",
+      "purl": "pkg:pypi/celery@5.3.6",
+      "description": "Task queue for batch settlement processing"
+    },
+    {
+      "type": "library",
+      "name": "sqlalchemy",
+      "version": "2.0.27",
+      "purl": "pkg:pypi/sqlalchemy@2.0.27"
+    },
+    {
+      "type": "library",
+      "name": "pyjwt",
+      "version": "2.8.0",
+      "purl": "pkg:pypi/pyjwt@2.8.0"
+    },
+    {
+      "type": "library",
+      "name": "protobuf",
+      "version": "4.25.3",
+      "purl": "pkg:pypi/protobuf@4.25.3"
+    },
+    {
+      "type": "container",
+      "name": "node",
+      "version": "20.11-alpine",
+      "purl": "pkg:docker/node@20.11-alpine"
+    },
+    {
+      "type": "container",
+      "name": "eclipse-temurin",
+      "version": "21-jre-alpine",
+      "purl": "pkg:docker/eclipse-temurin@21-jre-alpine"
+    },
+    {
+      "type": "container",
+      "name": "python",
+      "version": "3.11-slim",
+      "purl": "pkg:docker/python@3.11-slim"
+    },
+    {
+      "type": "container",
+      "name": "golang",
+      "version": "1.22-alpine",
+      "purl": "pkg:docker/golang@1.22-alpine"
+    }
+  ]
+}

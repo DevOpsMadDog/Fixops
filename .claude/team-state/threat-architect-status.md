@@ -1,7 +1,10 @@
 # threat-architect Status
-- **Status:** 🔄 Running
+- **Status:** ❌ Failed (3 attempts exhausted)
 - **Runtime:** claude-opus-4-6-fast (CTEM+ Swarm)
 - **Mode:** Standard
-- **Started:** 2026-03-02T16:19:54Z
+- **Date:** 2026-03-03
+- **Duration:** 22s
+- **Attempts:** 3/3
 - **Run ID:** swarm-2026-03-03_02-25-46
 - **Log:** logs/ai-team/2026-03-03_threat-architect_swarm-2026-03-03_02-25-46.log
+- **Needs:** Manual review

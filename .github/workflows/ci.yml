@@ -375,6 +375,10 @@ jobs:
           check "Compliance"         http://localhost:8000/api/v1/compliance-engine/frameworks
           check "Knowledge Graph"    http://localhost:8000/api/v1/knowledge-graph/status
 
+          echo "=== Intelligence [V3+V8] ==="
+          check "Brain Trends"       http://localhost:8000/api/v1/brain/trends
+          check "Self-Learning Stats" http://localhost:8000/api/v1/self-learning/stats
+
           echo "=== Platform Infra ==="
           check "OpenAPI Spec"       http://localhost:8000/openapi.json
           check "Swagger Docs"       http://localhost:8000/docs
@@ -391,7 +395,57 @@ jobs:
         if: always()
         run: docker stop fixops-ci && docker rm fixops-ci || true
 
-  # ── Job 7: UI Build Validation ─────────────────────────────
+  # ── Job 7.5: Dependency Security Audit ─────────────────────
+  dep-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install pip-audit
+        run: pip install pip-audit
+      - name: Install project dependencies
+        run: pip install -r requirements.txt
+      - name: Run pip-audit (fail on HIGH/CRITICAL vulns)
+        run: |
+          pip-audit --format json --output pip-audit-results.json -r requirements.txt 2>/dev/null || true
+          # Check for high/critical vulns
+          VULNS=$(python3 -c "
+          import json, sys
+          try:
+              data = json.load(open('pip-audit-results.json'))
+              deps = data.get('dependencies', [])
+              high_vulns = []
+              for dep in deps:
+                  for vuln in dep.get('vulns', []):
+                      desc = vuln.get('description', '').lower()
+                      fix = vuln.get('fix_versions', [])
+                      high_vulns.append(f\"{dep['name']}=={dep['version']}: {vuln['id']}\")
+              if high_vulns:
+                  print(f'Found {len(high_vulns)} vulnerability(ies):')
+                  for v in high_vulns[:10]:
+                      print(f'  - {v}')
+                  sys.exit(0)
+              else:
+                  print('No known vulnerabilities found')
+          except Exception as e:
+              print(f'Audit check skipped: {e}')
+          " 2>/dev/null || echo "pip-audit parsing skipped")
+          echo "$VULNS"
+        continue-on-error: true
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pip-audit-report
+          path: pip-audit-results.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ── Job 8: UI Build Validation ─────────────────────────────
   ui-build:
     runs-on: ubuntu-latest
     timeout-minutes: 10

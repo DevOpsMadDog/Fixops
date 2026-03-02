@@ -1105,7 +1105,7 @@ class FeedsService:
             conn.commit()
             conn.close()
 
-            logger.info(f"EPSS refresh complete: {len(records)} records updated")
+            logger.info("EPSS refresh complete: %d records updated", len(records))
 
             return FeedRefreshResult(
                 feed_name="epss",
@@ -1214,7 +1214,7 @@ class FeedsService:
             conn.commit()
             conn.close()
 
-            logger.info(f"KEV refresh complete: {len(records)} records updated")
+            logger.info("KEV refresh complete: %d records updated", len(records))
 
             return FeedRefreshResult(
                 feed_name="kev",

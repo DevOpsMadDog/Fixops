@@ -334,7 +334,7 @@ async def scan_content_for_secrets(request: SecretsScanContentRequest):
         try:
             db.create_finding(finding)
         except Exception as e:
-            logger.warning(f"Failed to persist finding: {e}")
+            logger.warning("Failed to persist finding: %s", type(e).__name__)
 
     return SecretsScanResponse(
         scan_id=result.scan_id,

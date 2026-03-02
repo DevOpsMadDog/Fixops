@@ -1,82 +1,83 @@
 # AI Researcher Agent Memory
 
-## Key Market Intelligence (Updated 2026-03-03, Day 3)
+## Key Market Intelligence (Updated 2026-03-03 EVENING, Day 3)
 
-### 🔴 CRITICAL: Claude Code Security Launch (Feb 20, 2026)
-- Anthropic launched AI-powered vulnerability scanning in Claude Code
-- Found 500+ bugs in production open-source code — undetected for decades
-- Multi-stage verification, reasoning-based (not pattern matching), uses Opus 4.6
-- Cybersecurity stocks plunged on announcement. Snyk responded publicly.
-- ALdeci position: "Claude finds. ALdeci decides." — integrate as 9th scanner input in Sprint 3
-- Sources: TheHackerNews, VentureBeat, The Register
+### 🔴 CRITICAL: OpenAI Aardvark — GPT-5 Security Agent (NEW)
+- GPT-5 powered autonomous agent: finds, validates (sandbox), AND fixes vulnerabilities
+- 92% detection on benchmarks. 10 real CVEs discovered. Private beta.
+- Integrates with Codex for one-click patching
+- HIGH THREAT to V5 MPTE + V3 AutoFix
+- Differentiation: Single-model (GPT-5) vs our Multi-LLM Consensus (3+). One repo vs entire org.
+- Message: "One AI finding bugs is useful. Three AIs voting on what to fix is intelligence."
 
-### 🔴 CRITICAL: Claude Weaponized in Mexican Govt Attack
-- 1,000+ Claude Code prompts + GPT-4.1 → 10 Mexican govt agencies + 1 financial institution breached
-- 150GB stolen incl. 195M taxpayer records. Started Dec 2025, discovered Mar 2026.
-- AI-enhanced attacks +72% YoY. 87% of orgs experienced AI-driven incidents.
-- ALdeci: "AI agents are the new attack surface. We test them." Validates MPTE + LLM Monitor.
+### 🔴 CRITICAL: AWS Security Agent — Multi-Agent Automated Pentest (NEW)
+- Multi-agent architecture for automated pen testing. Frontier agents, hours not days.
+- Feb 25 update: shared VPC support across accounts. Preview since Dec 2025.
+- HIGH THREAT to V5 MPTE — but AWS-ONLY. ALdeci is cloud-agnostic + air-gapped.
+- Message: "AWS tests AWS. ALdeci tests everything."
 
-### 🔴 CRITICAL: MCP Security Crisis Deepening
-- Tenable: 70% of orgs have MCP packages, 86% contain critical vulns
-- JFrog: CVE-2025-6514 in mcp-remote (437K downloads, command injection, supply chain backdoor)
-- Unit42: New MCP sampling attacks — resource theft, conversation hijacking, covert tool invocation
-- Protocol design flaws: session IDs in URLs, no required auth, no message signing
-- WebMCP in Chrome early preview (340pts HN) — MCP going browser-native
+### 🔴 CRITICAL: RSA 2026 Innovation Sandbox — AI Security Wave (NEW)
+- 10 finalists, $5M each. 6/10 AI-security. Competition Mar 23.
+- HIGH relevance: ZeroPath (AI scanning), Clearly AI (code review), Geordie AI (agent governance), Realm Labs (AI decisions), Token Security (non-human identity)
+- KEY INSIGHT: No finalist occupies Decision Intelligence layer. ALdeci's category is OPEN.
 
-### Competitor Landscape (Updated 2026-03-03)
-- **Wiz**: Google $32B closing **MID-MARCH**. EU cleared unconditionally Feb 10. Staff $2-2.5B. Switzerland PEAK.
-- **Snyk**: $8.5B. **AI Security Fabric** (Feb 3): Delta Findings + Agent Fix + Evo agentic. 288% ROI (Forrester). IPO dimming.
-- **CrowdStrike**: Q4 FY26 earnings **TODAY Mar 3**. Expected $1.30B rev (+22.6%), $4.92B ARR (+23%), EPS $1.10. $1.16B acquisitions Jan.
-- **ArmorCode**: **MCP Server** for LLM querying (MEDIUM-HIGH threat). Anya Code Insights. 80% MTTR reduction. 40B+ findings. 320+ integrations.
-- **Semgrep**: Managed Scans 1M+/week. 96% researcher agreement. Gartner MQ. RSA Booth #1743.
-- **Endor Labs**: OpenClaw 6 vulns disclosed. Rising in Cyber (CISOs+VCs). $188M.
-- **Checkmarx**: Sale stalled ~$1.5B. 7th Gartner MQ. $150M+ ARR. Mindshare 1.7%.
-- **Orca Security**: Forrester Strong Performer CNAPP. Mindshare declining 4.0%→2.6%.
-- **Cyera**: $9B. DSPM (different market).
+### 🔴 CRITICAL: Cecuro Benchmark — Domain Expertise > Raw Models (NEW)
+- Purpose-built AI agent: 92% of DeFi exploits detected ($96.8M)
+- Generic GPT-5.1 agent: 34% ($7.5M). SAME underlying model.
+- PROVES: Domain-specific CTEM+ pipeline > raw LLM. Validates Brain Pipeline approach.
+
+### Competitor Landscape (Updated 2026-03-03 Evening)
+- **Wiz**: Google $32B closing **END OF MARCH** (updated from mid-March). NIS 20B erased from shekel strength.
+- **Snyk**: $8.5B. AI Security Fabric. IPO dimming. Gartner 4.4/5 (203 reviews).
+- **CrowdStrike**: Q4 FY26 — Nasdaq: "Results Top Estimates." Constellation: "Outlook light." $1.16B Jan acquisitions.
+- **ArmorCode**: MCP Server (MEDIUM-HIGH). Anya Code Insights. 320+ integrations.
+- **Semgrep**: Managed Scans 1M+/week. **Wiz integration** (code-to-cloud). Multimodal AppSec engine (LLM+deterministic). RSA Booth #1743.
+- **Endor Labs**: OpenClaw 6 vulns. Rising in Cyber. $188M.
+- **Checkmarx**: Sale stalled ~$1.5B. 7th Gartner MQ.
+- **Orca Security**: Forrester Strong Performer. Mindshare declining 4.0%→2.6%.
 
 ### Market Metrics
-- VC 2025: $13.97B (+47%). Early-stage: $7.5B at A/B (+63%). AI+security highest conviction.
-- M&A 2025: $84B+, 426 deals. CrowdStrike $1.16B in Jan 2026 alone.
-- CISA KEV: 1,529 total. 2026 pace: ~270/year.
-- EPSS: 7,073 CVEs >50% exploitation. Top: CVE-2025-8943 (81.6%), CVE-2026-24061 (77.9%).
-- NEW EPSS: CVE-2026-27180 (61.8%), CVE-2026-27174 (60.3%) — first appearance Mar 3.
-- NVD critical Mar 1-3: 3 CVEs (CVE-2026-2999/3000 IDExpert RCE, CVE-2026-3422 U-Office deser.)
-- Funding: Vega $120M Series B, Noma Security $100M Series B, Irregular $80M Series A.
+- VC 2025: $13.97B (+47%). All-stage: $18B (+26%). Early-stage: $7.5B at A/B (+63%).
+- M&A 2025: $84B+, 426 deals. 8 deals >$1B. 2026 pace: 477 deals/year.
+- Only 34% of enterprises have AI-specific security controls. <40% test AI models regularly.
+- AI-enhanced attacks +72% YoY. 87% of orgs experienced AI-driven incidents.
+- CISA KEV: 1,529 total. NVD critical Mar 1-3: 3 CVEs (all CVSS 9.8).
+- n8n CVE-2026-21858 (CVSS 10.0): AI workflow platform RCE, 100K servers.
 
-### Positioning Insights (Top 10)
+### Positioning Insights (Top 12)
 1. "Your security AI shouldn't be one executive order away from shutdown." [V3][V9]
 2. "AI agents are the new attack surface. We test them." [V5]
-3. "Claude finds. ALdeci decides." [V3] — Claude Code Security launch
-4. "Google bought your security vendor." [V3] — Wiz mid-March
+3. "Claude finds. ALdeci decides." [V3]
+4. "Google bought your security vendor." [V3] — Wiz end of March
 5. "3 models voting beats 1 model guessing." [V3]
 6. "70% of orgs have MCP packages with critical vulns. We secure them." [V7]
 7. "Gartner says CTEM = 3x fewer breaches. We're CTEM+." [V3][V10]
 8. "The only security platform that works when the internet doesn't." [V9]
-9. "705 AI-consumable security tools. ArmorCode has 1." [V7] — NEW
-10. "87% of orgs experienced AI-driven attacks. We simulate all of them." [V5] — NEW
+9. "705 AI-consumable security tools. ArmorCode has 1." [V7]
+10. "87% of orgs experienced AI-driven attacks. We simulate all of them." [V5]
+11. "One AI finding bugs is useful. Three AIs voting on what to fix is intelligence." [V3] — NEW (Aardvark)
+12. "AWS tests AWS. ALdeci tests everything." [V5] — NEW (AWS Security Agent)
 
 ### API Patterns
 - NVD API: Use pubStartDate/pubEndDate for date range. 3 critical CVEs for Mar 1-3 confirmed.
 - CISA KEV: Latest additions often retroactive (old CVEs). Catalog version date in JSON.
-- EPSS API: `order=!epss` for highest. `epss-gt=0.5` for >50%. Newest CVEs have very low EPSS initially.
-- HackerNews: 11/40 relevant on Mar 3 (27.5% rate). Score >300 = high-interest.
+- EPSS API: `order=!epss` for highest. New CVEs start LOW EPSS (e.g., CVE-2026-3422: 0.4% at 60.7th).
+- HackerNews: 8/40 relevant on Mar 3 evening (20% rate, down from AM 27.5%).
 
 ### Technology Research
-- **vLLM**: v0.16.0 (Feb 8). 30.8% throughput improvement. WebSocket Realtime API. AMD+NVIDIA+Ascend NPU. P1 Sprint 3.
-- **SGLang**: v0.5.8. 400K+ GPUs. RadixAttention 5x for agents. Sprint 4.
-- **llmfit**: HN 224pts — right-sizes LLM models to RAM/CPU/GPU. Useful for V9 air-gapped sizing.
+- **vLLM**: v0.16.0. P1 Sprint 3. 30.8% throughput. DeepSeek Coder V3 for air-gapped AutoFix.
+- **SGLang**: v0.5.8. 400K+ GPUs. RadixAttention 5x. Sprint 4.
 - Tree-sitter: Sprint 3. ChromaDB RAG: Sprint 4+.
 
 ### Upcoming Events
-- **Mar 3**: CrowdStrike Q4 earnings (TODAY)
-- Mar 6: **ALdeci Enterprise Demo**
+- Mar 6: **ALdeci Enterprise Demo** (3 DAYS)
 - Mar 9: NIST CAISI agentic AI RFI deadline
 - Mar 15: Microsoft PAT deprecation
+- End of March: Wiz-Google close
 - Mar 18: Fal.Con Gov 2026 (DC)
-- Mar 20: RSA 2026 registration close
-- Mar 23-26: RSA 2026 (Moscone SF) — Innovation Sandbox Top 10
-- Mar 24: CrowdStrike/AWS/NVIDIA startup pitch
-- Mid-March: Wiz-Google close
+- Mar 20: RSA registration close
+- Mar 23: RSA Innovation Sandbox (9:30 AM PT) — watch ZeroPath, Clearly AI, Geordie AI, Realm Labs, Token Security
+- Mar 23-26: RSA 2026 (Moscone SF)
 
 ### DEMO-010 Knowledge
 - KnowledgeGraphEngine: NetworkX in-memory. Singleton.

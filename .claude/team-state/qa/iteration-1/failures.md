@@ -1,13 +1,13 @@
-# Iteration 1 Failures — 2026-03-02
-## Newman Results: 468 passed, 7 failed (98.5%)
+# Iteration 1 Failures — 2026-03-03
+## Newman Results: 474 passed, 1 failed (99.7%)
 
 ### Collection Results:
   ALdeci-1-MissionControl: 73 passed, 0 failed
-  ALdeci-2-Discover: 91 passed, 3 failed
+  ALdeci-2-Discover: 93 passed, 1 failed
   ALdeci-3-Validate: 55 passed, 0 failed
-  ALdeci-4-Remediate: 51 passed, 2 failed
+  ALdeci-4-Remediate: 53 passed, 0 failed
   ALdeci-5-Comply: 53 passed, 0 failed
-  ALdeci-6-PersonaWorkflows: 53 passed, 2 failed
+  ALdeci-6-PersonaWorkflows: 55 passed, 0 failed
   ALdeci-7-Scanners-OSS-AutoFix: 92 passed, 0 failed
 
 
@@ -19,5 +19,5 @@
 
 ### Convergence Status:
 - Iteration: 1/1
-- Pass rate: 98.5% (target: 85%)
+- Pass rate: 99.7% (target: 85%)
 - Verdict: WARN

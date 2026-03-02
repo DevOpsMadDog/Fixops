@@ -294,12 +294,14 @@ class _BaseConnector:
                 with self._metrics_lock:
                     self._error_count += 1
                 logger.warning(
-                    f"Request failed: {method} {url} -> {response.status_code} ({elapsed:.2f}s)"
+                    "Request failed: %s %s -> %s (%.2fs)",
+                    method, url, response.status_code, elapsed,
                 )
             else:
                 self._circuit_breaker.record_success()
                 logger.debug(
-                    f"Request succeeded: {method} {url} -> {response.status_code} ({elapsed:.2f}s)"
+                    "Request succeeded: %s %s -> %s (%.2fs)",
+                    method, url, response.status_code, elapsed,
                 )
 
             return response
@@ -308,7 +310,11 @@ class _BaseConnector:
             self._circuit_breaker.record_failure()
             with self._metrics_lock:
                 self._error_count += 1
-            logger.error(f"Request exception: {method} {url} -> {exc}")
+            # Security: Never log str(exc) — may contain creds or tokens
+            logger.error(
+                "Request exception: %s %s (error: %s)",
+                method, url, type(exc).__name__,
+            )
             raise
 
     def health_check(self) -> ConnectorHealth:

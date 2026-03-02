@@ -245,7 +245,7 @@ async def run_campaign(req: RunCampaignRequest):
                 )
             )
         except Exception as e:
-            logger.error(f"Background campaign {campaign_id} failed: {e}")
+            logger.error("Background campaign %s failed: %s", campaign_id, type(e).__name__)
         finally:
             loop.close()
 

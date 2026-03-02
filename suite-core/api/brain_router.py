@@ -492,3 +492,34 @@ async def brain_health() -> Dict[str, Any]:
 async def brain_status() -> Dict[str, Any]:
     """Knowledge Brain status (alias for /health)."""
     return await brain_health()
+
+
+@router.get("/trends")
+async def brain_trends(
+    org_id: Optional[str] = None,
+    app_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """[V3] Get vulnerability trend analysis from scan history.
+
+    Detects severity drift, CWE emergence, vulnerability recurrence,
+    and volume trends across historical scans. Returns security posture
+    score (0-100) with trend direction.
+
+    Query params:
+        org_id: Filter by organization (optional)
+        app_id: Filter by application (optional)
+    """
+    try:
+        from core.ml.trend_analyzer import get_trend_analyzer
+
+        analyzer = get_trend_analyzer()
+        report = analyzer.analyze(org_id=org_id, app_id=app_id)
+        return report.to_dict()
+    except Exception as e:
+        return {
+            "error": str(e),
+            "scan_count": 0,
+            "posture_score": 50.0,
+            "posture_trend": "unavailable",
+            "trends": [],
+        }

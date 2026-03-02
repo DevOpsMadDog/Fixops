@@ -115,6 +115,55 @@ async def self_learning_status() -> Dict[str, Any]:
         }
 
 
+@router.get("/stats")
+async def self_learning_stats() -> Dict[str, Any]:
+    """Get self-learning engine statistics.
+
+    Returns aggregated statistics about all 5 feedback loops,
+    including record counts, accuracy metrics, and weight summaries.
+    """
+    try:
+        from core.self_learning import get_learning_engine
+        engine = get_learning_engine()
+        status = engine.get_status()
+        weights = engine.get_all_weights()
+
+        # Count weights by category
+        weight_categories: Dict[str, int] = {}
+        weight_values: Dict[str, float] = {}
+        for key, val in weights.items():
+            parts = key.split(":")
+            cat = parts[0] if parts else "unknown"
+            weight_categories[cat] = weight_categories.get(cat, 0) + 1
+            weight_values[key] = round(val, 4)
+
+        return {
+            "engine": "self-learning",
+            "enabled": status.get("enabled", True),
+            "feedback_loops": 5,
+            "loop_names": [
+                "decision_outcome",
+                "mpte_result",
+                "false_positive",
+                "remediation_success",
+                "policy_violation",
+            ],
+            "feedback_counts": status.get("feedback_counts", {}),
+            "total_feedback_records": sum(
+                status.get("feedback_counts", {}).values()
+            ),
+            "total_weights": len(weights),
+            "weight_categories": weight_categories,
+            "weights": weight_values,
+            "config": {
+                "min_samples": status.get("min_samples", 10),
+                "decay_factor": status.get("decay_factor", 0.95),
+            },
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/feedback/decision")
 async def record_decision_feedback(req: DecisionFeedbackRequest) -> Dict[str, Any]:
     """Record a decision outcome feedback (Loop 1)."""

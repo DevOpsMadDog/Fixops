@@ -156,3 +156,38 @@
 {"ts":"2026-03-02T15:46:01Z","type":"fix_agent","target":"sales-engineer","cycle":2,"exit_code":0,"output_bytes":622,"reason":"Persona verification failed — agent not performing at world-class level"}
 {"ts":"2026-03-02T16:14:06Z","type":"grade_a_cycle","cycle":2,"grade":"F","score":29,"fix_targets":"persona ui ","health":73,"persona":0,"ui":0}
 {"ts":"2026-03-02T16:20:26Z","type":"grade_a_cycle","cycle":3,"grade":"F","score":29,"fix_targets":"persona ui ","health":73,"persona":0,"ui":0}
+{"ts":"2026-03-02T17:44:47Z","type":"agent_failure","agent":"threat-architect","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T17:45:29Z","type":"agent_failure","agent":"swarm-controller","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T17:45:45Z","type":"agent_failure","agent":"marketing-head","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T17:45:45Z","type":"agent_failure","agent":"technical-writer","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T17:45:46Z","type":"agent_failure","agent":"sales-engineer","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T17:46:09Z","type":"agent_failure","agent":"security-analyst","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T17:46:10Z","type":"agent_failure","agent":"qa-engineer","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T17:46:29Z","type":"agent_failure","agent":"scrum-master","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T17:46:55Z","type":"agent_failure","agent":"devops-engineer","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T17:47:11Z","type":"fix_agent","target":"scrum-master","cycle":1,"exit_code":143,"output_bytes":0,"reason":"- **Status:** ❌ Failed (3 attempts exhausted)"}
+{"ts":"2026-03-02T18:02:21Z","type":"fix_agent","target":"scrum-master","cycle":2,"exit_code":124,"output_bytes":0,"reason":"- **Status:** ❌ Failed (3 attempts exhausted)"}
+{"ts":"2026-03-02T18:17:31Z","type":"fix_agent","target":"scrum-master","cycle":3,"exit_code":124,"output_bytes":0,"reason":"- **Status:** ❌ Failed (3 attempts exhausted)"}
+{"ts":"2026-03-02T18:17:35Z","type":"agent_failure","agent":"technical-writer","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T18:17:36Z","type":"agent_failure","agent":"sales-engineer","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T18:17:36Z","type":"agent_failure","agent":"marketing-head","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T18:18:09Z","type":"agent_failure","agent":"scrum-master","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T18:18:09Z","type":"reconcile_failed","agent":"scrum-master","cycles":3}
+{"ts":"2026-03-02T18:18:12Z","type":"fix_agent","target":"threat-architect","cycle":1,"exit_code":1,"output_bytes":66,"reason":"Persona verification failed — agent not performing at world-class level"}
+{"ts":"2026-03-02T18:18:19Z","type":"agent_failure","agent":"scrum-master","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T18:18:50Z","type":"agent_failure","agent":"threat-architect","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T18:33:23Z","type":"fix_agent","target":"swarm-controller","cycle":1,"exit_code":124,"output_bytes":0,"reason":"- **Status:** ❌ Failed (3 attempts exhausted)"}
+{"ts":"2026-03-02T18:34:28Z","type":"agent_failure","agent":"qa-engineer","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T18:34:28Z","type":"grade_a_cycle","cycle":1,"grade":"F","score":0,"fix_targets":"persona ui health ","health":0,"persona":0,"ui":0}
+{"ts":"2026-03-02T18:34:47Z","type":"fix_agent","target":"threat-architect","cycle":2,"exit_code":1,"output_bytes":66,"reason":"Persona verification failed — agent not performing at world-class level"}
+{"ts":"2026-03-02T18:35:25Z","type":"agent_failure","agent":"threat-architect","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T18:48:33Z","type":"fix_agent","target":"swarm-controller","cycle":2,"exit_code":124,"output_bytes":0,"reason":"- **Status:** ❌ Failed (3 attempts exhausted)"}
+{"ts":"2026-03-02T18:51:04Z","type":"agent_failure","agent":"qa-engineer","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T18:51:04Z","type":"grade_a_cycle","cycle":2,"grade":"F","score":0,"fix_targets":"persona ui health ","health":0,"persona":0,"ui":0}
+{"ts":"2026-03-02T18:51:23Z","type":"fix_agent","target":"threat-architect","cycle":3,"exit_code":1,"output_bytes":66,"reason":"Persona verification failed — agent not performing at world-class level"}
+{"ts":"2026-03-02T18:52:01Z","type":"agent_failure","agent":"threat-architect","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T19:03:44Z","type":"fix_agent","target":"swarm-controller","cycle":3,"exit_code":124,"output_bytes":0,"reason":"- **Status:** ❌ Failed (3 attempts exhausted)"}
+{"ts":"2026-03-02T19:04:23Z","type":"agent_failure","agent":"swarm-controller","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T19:04:23Z","type":"reconcile_failed","agent":"swarm-controller","cycles":3}
+{"ts":"2026-03-02T19:07:41Z","type":"agent_failure","agent":"qa-engineer","reason":"exhausted 3 retries"}
+{"ts":"2026-03-02T19:07:41Z","type":"grade_a_cycle","cycle":3,"grade":"F","score":0,"fix_targets":"persona ui health ","health":0,"persona":0,"ui":0}

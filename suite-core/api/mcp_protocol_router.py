@@ -3,6 +3,11 @@
 Exposes MCP JSON-RPC 2.0 protocol handler, SSE streaming, and tool discovery.
 This is the full MCP protocol engine — complements the existing mcp_router.py
 which handles MCP client management.
+
+FIXED 2026-03-03 (enterprise-architect Run 9):
+- All handlers now use get_mcp_handler() singleton instead of creating new instances
+- Fixed 9 broken attribute accesses (handler.sessions → handler.session_manager, etc.)
+- Added /stats endpoint for consistency with other routers
 """
 
 from __future__ import annotations
@@ -31,6 +36,19 @@ class MCPJsonRpcRequest(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Singleton helper
+# ---------------------------------------------------------------------------
+def _get_handler():
+    """Get the singleton MCP protocol handler.
+
+    Uses get_mcp_handler() to ensure session state, tool registry,
+    and audit logs persist across requests.
+    """
+    from core.mcp_server import get_mcp_handler
+    return get_mcp_handler()
+
+
+# ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
 @router.get("/health")
@@ -43,23 +61,22 @@ async def mcp_protocol_health() -> Dict[str, Any]:
 async def mcp_protocol_status() -> Dict[str, Any]:
     """Get MCP protocol server status."""
     try:
-        from core.mcp_server import MCPProtocolHandler
-        handler = MCPProtocolHandler()
+        handler = _get_handler()
         return {
             "status": "operational",
             "engine": "mcp-protocol",
-            "version": "1.0.0",
-            "protocol_version": "2025-03-26",
-            "server_name": "aldeci-mcp",
+            "version": handler.SERVER_VERSION,
+            "protocol_version": handler.PROTOCOL_VERSION,
+            "server_name": handler.SERVER_NAME,
             "capabilities": {
                 "tools": True,
                 "resources": True,
                 "prompts": True,
             },
-            "active_sessions": len(handler.sessions.sessions),
-            "tool_count": len(handler.tools.tools),
-            "resource_count": len(handler.resources.resources),
-            "prompt_count": len(handler.prompts.prompts),
+            "active_sessions": len(handler.session_manager.active_sessions()),
+            "tool_count": handler.tool_registry.tool_count,
+            "resource_count": len(handler.resource_server.list_resources()),
+            "prompt_count": len(handler.prompt_library.list_prompts()),
         }
     except Exception as e:
         return {
@@ -69,14 +86,33 @@ async def mcp_protocol_status() -> Dict[str, Any]:
         }
 
 
+@router.get("/stats")
+async def mcp_protocol_stats() -> Dict[str, Any]:
+    """Get MCP protocol server statistics."""
+    try:
+        handler = _get_handler()
+        status = handler.get_status()
+        return {
+            "engine": "mcp-protocol",
+            "protocol_version": handler.PROTOCOL_VERSION,
+            "tools_registered": status.get("tools_registered", 0),
+            "tool_categories": status.get("tool_categories", {}),
+            "resources_count": status.get("resources_count", 0),
+            "prompts_count": status.get("prompts_count", 0),
+            "active_sessions": status.get("active_sessions", 0),
+            "audit_entries": status.get("audit_entries", 0),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/jsonrpc")
 async def handle_jsonrpc(req: MCPJsonRpcRequest) -> Dict[str, Any]:
     """Handle a JSON-RPC 2.0 MCP protocol request."""
     try:
-        from core.mcp_server import MCPProtocolHandler, MCPRequest
-        handler = MCPProtocolHandler()
+        from core.mcp_server import MCPRequest
+        handler = _get_handler()
         mcp_req = MCPRequest(
-            jsonrpc=req.jsonrpc,
             method=req.method,
             params=req.params,
             id=req.id,
@@ -100,8 +136,7 @@ async def handle_jsonrpc(req: MCPJsonRpcRequest) -> Dict[str, Any]:
 async def handle_raw_jsonrpc(request: Request) -> Dict[str, Any]:
     """Handle raw JSON-RPC 2.0 (for direct MCP client connections)."""
     try:
-        from core.mcp_server import MCPProtocolHandler
-        handler = MCPProtocolHandler()
+        handler = _get_handler()
         body = await request.body()
         response = handler.handle_raw(body.decode())
         return json.loads(response)
@@ -117,15 +152,14 @@ async def handle_raw_jsonrpc(request: Request) -> Dict[str, Any]:
 async def sse_stream() -> StreamingResponse:
     """Server-Sent Events stream for MCP notifications."""
     try:
-        from core.mcp_server import MCPProtocolHandler
-        handler = MCPProtocolHandler()
+        handler = _get_handler()
 
         async def event_generator():
             # Send initial connection event
-            yield f"event: connected\ndata: {json.dumps({'server': 'aldeci-mcp', 'version': '1.0.0'})}\n\n"
-            # Send tool list
-            tools = [{"name": t.name, "description": t.description} for t in handler.tools.tools.values()]
-            yield f"event: tools\ndata: {json.dumps({'tools': tools})}\n\n"
+            yield f"event: connected\ndata: {json.dumps({'server': handler.SERVER_NAME, 'version': handler.SERVER_VERSION})}\n\n"
+            # Send tool list from the registry
+            tools_list, _ = handler.tool_registry.list_tools(limit=100)
+            yield f"event: tools\ndata: {json.dumps({'tools': tools_list})}\n\n"
 
         return StreamingResponse(
             event_generator(),
@@ -140,18 +174,9 @@ async def sse_stream() -> StreamingResponse:
 async def list_mcp_tools() -> Dict[str, Any]:
     """List all auto-discovered MCP tools."""
     try:
-        from core.mcp_server import MCPProtocolHandler
-        handler = MCPProtocolHandler()
-        tools = [
-            {
-                "name": t.name,
-                "description": t.description,
-                "category": t.category,
-                "input_schema": t.input_schema,
-            }
-            for t in handler.tools.tools.values()
-        ]
-        return {"tools": tools, "total": len(tools)}
+        handler = _get_handler()
+        tools_list, next_cursor = handler.tool_registry.list_tools(limit=1000)
+        return {"tools": tools_list, "total": handler.tool_registry.tool_count}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -160,17 +185,8 @@ async def list_mcp_tools() -> Dict[str, Any]:
 async def list_mcp_resources() -> Dict[str, Any]:
     """List all MCP resources."""
     try:
-        from core.mcp_server import MCPProtocolHandler
-        handler = MCPProtocolHandler()
-        resources = [
-            {
-                "uri": r.uri,
-                "name": r.name,
-                "description": r.description,
-                "mime_type": r.mime_type,
-            }
-            for r in handler.resources.resources.values()
-        ]
+        handler = _get_handler()
+        resources = handler.resource_server.list_resources()
         return {"resources": resources, "total": len(resources)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -180,16 +196,8 @@ async def list_mcp_resources() -> Dict[str, Any]:
 async def list_mcp_prompts() -> Dict[str, Any]:
     """List all MCP prompts."""
     try:
-        from core.mcp_server import MCPProtocolHandler
-        handler = MCPProtocolHandler()
-        prompts = [
-            {
-                "name": p.name,
-                "description": p.description,
-                "arguments": p.arguments,
-            }
-            for p in handler.prompts.prompts.values()
-        ]
+        handler = _get_handler()
+        prompts = handler.prompt_library.list_prompts()
         return {"prompts": prompts, "total": len(prompts)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -199,12 +207,12 @@ async def list_mcp_prompts() -> Dict[str, Any]:
 async def auto_discover_tools(request: Request) -> Dict[str, Any]:
     """Trigger auto-discovery of tools from FastAPI app routes."""
     try:
-        from core.mcp_server import MCPProtocolHandler
-        handler = MCPProtocolHandler()
-        handler.tools.auto_discover_from_app(request.app)
+        handler = _get_handler()
+        count = handler.tool_registry.auto_discover_from_app(request.app)
         return {
             "discovered": True,
-            "tool_count": len(handler.tools.tools),
+            "tool_count": handler.tool_registry.tool_count,
+            "newly_discovered": count,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

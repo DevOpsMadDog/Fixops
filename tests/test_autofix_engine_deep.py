@@ -2032,7 +2032,7 @@ class TestScoreBasedConfidenceClassification:
 
     def _run_generate_fix_with_forced_score(self, score: float):
         """Helper: create a suggestion and manually run the classification logic."""
-        engine = _make_engine()
+        _make_engine()
         suggestion = _make_suggestion(
             confidence_score=score,
             # Start with no ml_confidence in metadata

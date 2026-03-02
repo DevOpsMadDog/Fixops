@@ -9,6 +9,8 @@ import logging
 import os
 import secrets
 import shutil
+import threading
+import time
 import uuid
 from contextlib import suppress
 from datetime import datetime, timedelta, timezone
@@ -575,6 +577,48 @@ logger = logging.getLogger(__name__)
 JWT_ALGORITHM = "HS256"
 JWT_EXP_MINUTES = int(os.getenv("FIXOPS_JWT_EXP_MINUTES", "120"))
 _JWT_SECRET_FILE = Path(os.getenv("FIXOPS_DATA_DIR", ".fixops_data")) / ".jwt_secret"
+_MIN_JWT_SECRET_LENGTH = 32
+_MAX_TOKEN_LENGTH = 4096
+
+# ---------------------------------------------------------------------------
+# Auth brute-force protection — in-memory failed-attempt tracker
+# ---------------------------------------------------------------------------
+_AUTH_FAIL_TRACKER: Dict[str, List[float]] = {}
+_AUTH_FAIL_WINDOW = 300  # 5 minutes
+_AUTH_FAIL_MAX = 20  # max failed attempts per IP in window
+_AUTH_FAIL_LOCK = threading.Lock()
+
+
+def _check_auth_rate_limit(client_ip: str) -> bool:
+    """Check if client IP has exceeded failed auth attempt limit.
+
+    Returns True if request should be rejected (rate-limited).
+    """
+    now = time.monotonic()
+    with _AUTH_FAIL_LOCK:
+        attempts = _AUTH_FAIL_TRACKER.get(client_ip, [])
+        # Clean old attempts outside the window
+        attempts = [t for t in attempts if now - t < _AUTH_FAIL_WINDOW]
+        _AUTH_FAIL_TRACKER[client_ip] = attempts
+        return len(attempts) >= _AUTH_FAIL_MAX
+
+
+def _record_auth_failure(client_ip: str) -> None:
+    """Record a failed auth attempt for brute-force tracking."""
+    now = time.monotonic()
+    with _AUTH_FAIL_LOCK:
+        if client_ip not in _AUTH_FAIL_TRACKER:
+            _AUTH_FAIL_TRACKER[client_ip] = []
+        _AUTH_FAIL_TRACKER[client_ip].append(now)
+        # Prune oldest IP entry to prevent unbounded memory growth (cap at 1000 IPs)
+        if len(_AUTH_FAIL_TRACKER) > 1000:
+            oldest_ip = min(
+                _AUTH_FAIL_TRACKER,
+                key=lambda k: _AUTH_FAIL_TRACKER[k][-1]
+                if _AUTH_FAIL_TRACKER[k]
+                else 0,
+            )
+            del _AUTH_FAIL_TRACKER[oldest_ip]
 
 
 def _load_or_generate_jwt_secret() -> str:
@@ -583,6 +627,8 @@ def _load_or_generate_jwt_secret() -> str:
 
     Priority:
     1. FIXOPS_JWT_SECRET environment variable (required for production)
+       - Must be at least _MIN_JWT_SECRET_LENGTH (32) characters
+       - Weak secrets are rejected with a CRITICAL log and replaced
     2. Generate ephemeral secret for local development (tokens won't survive restarts)
 
     Returns:
@@ -591,16 +637,29 @@ def _load_or_generate_jwt_secret() -> str:
     # Priority 1: Environment variable (required for production)
     env_secret = os.getenv("FIXOPS_JWT_SECRET")
     if env_secret:
-        logger.info("Using JWT signing key from environment variable")
-        return env_secret
+        if len(env_secret) < _MIN_JWT_SECRET_LENGTH:
+            logger.critical(
+                "FIXOPS_JWT_SECRET is too short (%d chars, minimum %d). "
+                "Weak secrets like 'demo-secret' are rejected to prevent "
+                "token forgery. Generating a strong ephemeral secret instead. "
+                "Set a secret with at least %d characters for production.",
+                len(env_secret),
+                _MIN_JWT_SECRET_LENGTH,
+                _MIN_JWT_SECRET_LENGTH,
+            )
+            # Fall through to ephemeral generation below
+        else:
+            logger.info("Using JWT signing key from environment variable")
+            return env_secret
 
     # Priority 2: Generate ephemeral secret for local development
     # Note: We intentionally do NOT persist secrets to disk to avoid clear-text storage
     secret = secrets.token_hex(32)
     logger.warning(
-        "FIXOPS_JWT_SECRET not set — generated ephemeral JWT signing key. "
+        "FIXOPS_JWT_SECRET not set or rejected — generated ephemeral JWT signing key. "
         "Tokens will be invalid after restart. "
-        "For production, set FIXOPS_JWT_SECRET environment variable."
+        "For production, set FIXOPS_JWT_SECRET environment variable (>= %d chars).",
+        _MIN_JWT_SECRET_LENGTH,
     )
     return secret
 
@@ -609,21 +668,41 @@ JWT_SECRET = _load_or_generate_jwt_secret()
 
 
 def generate_access_token(data: Dict[str, Any]) -> str:
-    """Generate a signed JWT access token with an expiry."""
+    """Generate a signed JWT access token with an expiry and issued-at timestamp."""
 
-    exp = datetime.now(timezone.utc) + timedelta(minutes=JWT_EXP_MINUTES)
-    payload = {**data, "exp": exp}
+    now = datetime.now(timezone.utc)
+    exp = now + timedelta(minutes=JWT_EXP_MINUTES)
+    payload = {**data, "exp": exp, "iat": now}
     token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
     return token
 
 
 def decode_access_token(token: str) -> Dict[str, Any]:
-    """Decode and validate a JWT access token."""
+    """Decode and validate a JWT access token.
+
+    Hardening checks:
+    - Max token length (_MAX_TOKEN_LENGTH bytes) to prevent parsing attacks
+    - Required ``iat`` (issued-at) claim
+    - ``nbf`` (not-before) validated automatically by PyJWT when present
+    """
+
+    # Guard: reject oversized tokens before any parsing
+    if len(token.encode("utf-8", errors="replace")) > _MAX_TOKEN_LENGTH:
+        logger.warning("JWT rejected: token exceeds max length (%d bytes)", _MAX_TOKEN_LENGTH)
+        raise HTTPException(status_code=401, detail="Invalid token")
 
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(
+            token,
+            JWT_SECRET,
+            algorithms=[JWT_ALGORITHM],
+            options={"require": ["exp", "iat"]},
+        )
     except jwt.ExpiredSignatureError as exc:  # pragma: no cover - depends on wall clock
         raise HTTPException(status_code=401, detail="Token expired") from exc
+    except jwt.MissingRequiredClaimError as exc:
+        logger.warning("JWT rejected: missing required claim — %s", exc.claim)
+        raise HTTPException(status_code=401, detail="Invalid token") from exc
     except jwt.InvalidTokenError as exc:
         raise HTTPException(status_code=401, detail="Invalid token") from exc
     return payload
@@ -719,6 +798,46 @@ def create_app() -> FastAPI:
         app.add_middleware(LearningMiddleware)
         logger.info("LearningMiddleware enabled — API traffic will be captured for ML")
 
+    # ── Global exception handler ─────────────────────────────────
+    # Catches ALL unhandled exceptions and returns a safe 500 response
+    # that never leaks stack traces, file paths, or internal details.
+    # Compliance: SOC2 CC6.1, PCI-DSS 6.5.5, OWASP A09:2021
+    from fastapi.responses import JSONResponse
+    from starlette.exceptions import HTTPException as StarletteHTTPException
+
+    @app.exception_handler(Exception)
+    async def _global_exception_handler(request, exc):
+        """Catch unhandled exceptions — never leak internal details."""
+        correlation_id = getattr(request.state, "correlation_id", "unknown")
+        logger.error(
+            "unhandled_exception",
+            extra={
+                "error_type": type(exc).__name__,
+                "path": request.url.path,
+                "correlation_id": correlation_id,
+            },
+            exc_info=exc,
+        )
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": "Internal server error",
+                "correlation_id": correlation_id,
+            },
+        )
+
+    @app.exception_handler(StarletteHTTPException)
+    async def _http_exception_handler(request, exc):
+        """Re-raise HTTP exceptions with correlation ID for traceability."""
+        correlation_id = getattr(request.state, "correlation_id", "unknown")
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "detail": exc.detail,
+                "correlation_id": correlation_id,
+            },
+        )
+
     @app.middleware("http")
     async def add_product_header(request, call_next):
         """Add X-Product-Name header to all responses."""
@@ -793,12 +912,27 @@ def create_app() -> FastAPI:
         request: Request,
         api_key: Optional[str] = Depends(api_key_header),
     ) -> None:
+        # Determine client IP for brute-force tracking
+        client_ip = request.client.host if request.client else "unknown"
+
+        # Check auth rate limit before any validation
+        if _check_auth_rate_limit(client_ip):
+            logger.warning(
+                "Auth rate limit exceeded for IP %s — rejecting request", client_ip
+            )
+            raise HTTPException(
+                status_code=429,
+                detail="Too many failed authentication attempts. Try again later.",
+            )
+
         # Also accept token via ?api_key= query parameter (for browser-opened
         # URLs like report view/download where headers cannot be sent).
         if not api_key:
             api_key = request.query_params.get("api_key")
         if auth_strategy == "token":
             if not api_key or api_key not in expected_tokens:
+                _record_auth_failure(client_ip)
+                logger.warning("Failed token auth attempt from IP %s", client_ip)
                 raise HTTPException(
                     status_code=401, detail="Invalid or missing API token"
                 )
@@ -808,13 +942,20 @@ def create_app() -> FastAPI:
             return
         if auth_strategy == "jwt":
             if not api_key:
+                _record_auth_failure(client_ip)
+                logger.warning("Missing Authorization header from IP %s", client_ip)
                 raise HTTPException(
                     status_code=401, detail="Missing Authorization header"
                 )
             token = api_key
             if token.lower().startswith("bearer "):
                 token = token[7:].strip()
-            claims = decode_access_token(token)
+            try:
+                claims = decode_access_token(token)
+            except HTTPException:
+                _record_auth_failure(client_ip)
+                logger.warning("Failed JWT auth attempt from IP %s", client_ip)
+                raise
             # Extract role/scopes from JWT claims
             request.state.user_role = claims.get("role", "viewer")
             request.state.user_scopes = claims.get("scopes", ["read:findings"])

@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures
+import hashlib
 import logging
 import threading
 import time
@@ -82,6 +83,8 @@ class StepResult:
     started_at: Optional[str] = None
     finished_at: Optional[str] = None
     duration_ms: float = 0
+    findings_in: int = 0  # Number of findings entering this step
+    findings_out: int = 0  # Number of findings leaving this step
     output: Dict[str, Any] = field(default_factory=dict)
     error: Optional[str] = None
 
@@ -92,6 +95,8 @@ class StepResult:
             "started_at": self.started_at,
             "finished_at": self.finished_at,
             "duration_ms": round(self.duration_ms, 2),
+            "findings_in": self.findings_in,
+            "findings_out": self.findings_out,
             "output": self.output,
             "error": self.error,
         }
@@ -388,8 +393,10 @@ class BrainPipeline:
             step.duration_ms = (time.monotonic() - t0) * 1000
             step.finished_at = datetime.now(timezone.utc).isoformat()
 
-            # Record per-step metrics
+            # Record per-step metrics (both on StepResult and ctx for observability)
             findings_out = len(ctx.get("findings", []))
+            step.findings_in = findings_in
+            step.findings_out = findings_out
             ctx["metrics"][step.name] = {
                 "duration_ms": round(step.duration_ms, 2),
                 "findings_in": findings_in,
@@ -697,57 +704,104 @@ class BrainPipeline:
     # ------------------------------------------------------------------
     # Step 4: Collapse duplicates into Exposure Cases
     # ------------------------------------------------------------------
+    def _local_dedup_findings(
+        self, findings: List[Dict[str, Any]]
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        """Fast O(n) local deduplication using dict-keyed lookup.
+
+        Groups findings by (title, asset_name, severity) tuple. This is
+        a lightweight fallback when DeduplicationService is unavailable or
+        times out. Avoids O(n^2) pairwise comparison.
+
+        Returns:
+            Dict mapping cluster_key -> list of findings in that cluster.
+        """
+        clusters: Dict[tuple, List[Dict[str, Any]]] = {}
+        for f in findings:
+            key = (
+                f.get("title", f.get("message", f.get("rule_id", "unknown"))),
+                f.get("asset_name", f.get("asset", f.get("component", "unknown"))),
+                str(f.get("severity", "medium")).lower(),
+            )
+            if key not in clusters:
+                clusters[key] = []
+            clusters[key].append(f)
+        return clusters
+
     def _step_deduplicate(
         self, ctx: Dict[str, Any], inp: PipelineInput
     ) -> Dict[str, Any]:
         """Deduplicate findings and create Exposure Cases.
 
         Uses a thread-based timeout to prevent hanging on very large
-        finding sets (50K+ findings can cause O(n²) in dedup service).
+        finding sets (50K+ findings can cause O(n^2) in dedup service).
+        Falls back to fast O(n) local dedup when service is unavailable.
         """
         from pathlib import Path
+
+        batch = None
+        use_local_fallback = False
 
         try:
             from core.services.deduplication import DeduplicationService
 
             dedup = DeduplicationService(db_path=Path("fixops_dedup.db"))
         except Exception:
+            use_local_fallback = True
+            dedup = None
+
+        if not use_local_fallback:
+            run_id = uuid.uuid4().hex[:12]
+
+            # Run dedup with timeout to prevent hanging on large datasets
+            def _do_dedup():
+                return dedup.process_findings_batch(
+                    ctx["findings"], run_id=run_id, org_id=ctx["org_id"], source=inp.source
+                )
+
+            try:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                    future = pool.submit(_do_dedup)
+                    batch = future.result(timeout=self.STEP_TIMEOUT_S)
+            except concurrent.futures.TimeoutError:
+                logger.warning(
+                    "Dedup step timed out after %ds for %d findings, using local fallback",
+                    self.STEP_TIMEOUT_S,
+                    len(ctx["findings"]),
+                )
+                use_local_fallback = True
+            except Exception as e:
+                logger.warning("Dedup step failed (%s), using local fallback", type(e).__name__)
+                use_local_fallback = True
+
+        # Fast O(n) local fallback dedup
+        if use_local_fallback:
+            local_clusters = self._local_dedup_findings(ctx["findings"])
+            total_findings = len(ctx["findings"])
+            unique_count = len(local_clusters)
+            noise_pct = round(
+                (1.0 - unique_count / total_findings) * 100, 2
+            ) if total_findings > 0 else 0.0
+
+            # Generate cluster IDs for local dedup
+            cluster_ids = []
+            for key_tuple in local_clusters:
+                # Stable cluster ID from dedup key
+                key_str = "|".join(str(k) for k in key_tuple)
+                cid = "LC-" + hashlib.sha256(key_str.encode()).hexdigest()[:12]
+                cluster_ids.append(cid)
+            ctx["clusters"] = cluster_ids
+
             return {
-                "clusters": 0,
-                "skipped": True,
-                "reason": "deduplication unavailable",
+                "total_findings": total_findings,
+                "unique_clusters": unique_count,
+                "noise_reduction_pct": noise_pct,
+                "exposure_cases_created": 0,
+                "exposure_cases_updated": 0,
+                "method": "local_fallback",
             }
 
-        run_id = uuid.uuid4().hex[:12]
-
-        # Run dedup with timeout to prevent hanging on large datasets
-        def _do_dedup():
-            return dedup.process_findings_batch(
-                ctx["findings"], run_id=run_id, org_id=ctx["org_id"], source=inp.source
-            )
-
-        try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                future = pool.submit(_do_dedup)
-                batch = future.result(timeout=self.STEP_TIMEOUT_S)
-        except concurrent.futures.TimeoutError:
-            logger.warning(
-                "Dedup step timed out after %ds for %d findings",
-                self.STEP_TIMEOUT_S,
-                len(ctx["findings"]),
-            )
-            return {
-                "clusters": 0,
-                "skipped": True,
-                "reason": f"dedup timed out ({len(ctx['findings'])} findings)",
-            }
-        except Exception as e:
-            logger.warning("Dedup step failed: %s", type(e).__name__)
-            return {
-                "clusters": 0,
-                "skipped": True,
-                "reason": f"dedup failed: {type(e).__name__}",
-            }
+        # Service-based dedup succeeded — process results
         cluster_ids = list(
             set(
                 r.get("cluster_id")
@@ -870,9 +924,12 @@ class BrainPipeline:
     ) -> Dict[str, Any]:
         """Upsert nodes/edges to Knowledge Graph Brain.
 
-        Performance: Uses batched operations when findings > GRAPH_BATCH_SIZE
-        to avoid memory pressure on large datasets. Pre-deduplicates CVE nodes
-        to avoid redundant upserts (O(n) → O(unique_cves)).
+        Performance optimizations for 1000+ findings:
+        1. Pre-computes all node IDs, edge pairs, and CVE set BEFORE any upserts
+        2. Deduplicates CVE nodes upfront via set comprehension (O(n))
+        3. Batches upserts with pre-computed data to minimize per-item overhead
+        4. Records detailed timing metrics for each phase (prep/nodes/edges)
+        5. Per-finding error isolation prevents one bad finding from crashing step
         """
         try:
             from core.knowledge_brain import (
@@ -887,108 +944,196 @@ class BrainPipeline:
         except Exception:
             return {"nodes": 0, "edges": 0, "skipped": True}
 
-        nodes_added, edges_added = 0, 0
-        seen_cves: set = set()  # Deduplicate CVE node upserts
+        t_prep_start = time.monotonic()
 
-        # Upsert asset nodes
+        # ---------------------------------------------------------------
+        # Phase 1: Pre-compute all graph data (pure Python, no I/O)
+        # ---------------------------------------------------------------
+        findings = ctx["findings"]
+        org_id = ctx["org_id"]
+
+        # Pre-compute asset node data
+        asset_nodes: List[Dict[str, Any]] = []
         for asset in ctx["assets"]:
             node_id = asset.get("id", asset.get("name", ""))
-            if not node_id:
-                continue
+            if node_id:
+                asset_nodes.append({"node_id": node_id, "properties": asset})
+
+        # Pre-compute all finding node data, edges, and unique CVEs in one pass
+        finding_nodes: List[Dict[str, Any]] = []
+        finding_asset_edges: List[tuple] = []  # (source_id, target_id)
+        finding_cve_edges: List[tuple] = []  # (source_id, cve_id)
+        # Deduplicate CVE nodes upfront via set comprehension
+        unique_cves: set = {
+            f["cve_id"] for f in findings
+            if f.get("cve_id")
+        }
+
+        for f in findings:
+            fid = f.get("id", f.get("rule_id", uuid.uuid4().hex[:12]))
+            finding_nodes.append({
+                "fid": fid,
+                "title": f.get("title"),
+                "severity": f.get("severity"),
+            })
+
+            # Pre-compute finding->asset edge
+            asset_id = f.get("canonical_asset_id", f.get("asset_name"))
+            if asset_id:
+                finding_asset_edges.append((fid, asset_id))
+
+            # Pre-compute finding->CVE edge
+            cve = f.get("cve_id")
+            if cve:
+                finding_cve_edges.append((fid, cve))
+
+        # Pre-compute exposure case nodes
+        exposure_case_ids = ctx.get("exposure_cases", [])
+
+        t_prep_end = time.monotonic()
+        prep_ms = (t_prep_end - t_prep_start) * 1000
+
+        # ---------------------------------------------------------------
+        # Phase 2: Batch upsert all nodes (asset, finding, CVE, case)
+        # ---------------------------------------------------------------
+        t_upsert_start = time.monotonic()
+        nodes_added = 0
+        edges_added = 0
+        graph_errors = 0
+
+        # Upsert asset nodes
+        for an in asset_nodes:
             brain.upsert_node(
                 GraphNode(
-                    node_id=node_id,
+                    node_id=an["node_id"],
                     node_type=EntityType.ASSET,
-                    org_id=ctx["org_id"],
-                    properties=asset,
+                    org_id=org_id,
+                    properties=an["properties"],
                 )
             )
             nodes_added += 1
 
-        # Upsert finding nodes + edges in batches for scalability
-        # [V3] Error isolation: per-finding error handling prevents one bad
-        # finding from crashing the entire graph step.
-        findings = ctx["findings"]
-        graph_errors = 0
-        for batch_start in range(0, len(findings), self.GRAPH_BATCH_SIZE):
-            batch = findings[batch_start : batch_start + self.GRAPH_BATCH_SIZE]
-            for f in batch:
+        # Upsert finding nodes in batches for memory efficiency
+        for batch_start in range(0, len(finding_nodes), self.GRAPH_BATCH_SIZE):
+            batch = finding_nodes[batch_start: batch_start + self.GRAPH_BATCH_SIZE]
+            for fn in batch:
                 try:
-                    fid = f.get("id", f.get("rule_id", uuid.uuid4().hex[:12]))
                     brain.upsert_node(
                         GraphNode(
-                            node_id=fid,
+                            node_id=fn["fid"],
                             node_type=EntityType.FINDING,
-                            org_id=ctx["org_id"],
+                            org_id=org_id,
                             properties={
-                                "title": f.get("title"),
-                                "severity": f.get("severity"),
+                                "title": fn["title"],
+                                "severity": fn["severity"],
                             },
                         )
                     )
                     nodes_added += 1
-
-                    # Link finding → asset
-                    asset_id = f.get("canonical_asset_id", f.get("asset_name"))
-                    if asset_id:
-                        brain.add_edge(
-                            GraphEdge(
-                                source_id=fid,
-                                target_id=asset_id,
-                                edge_type=EdgeType.AFFECTS,
-                            )
-                        )
-                        edges_added += 1
-
-                    # Link finding → CVE (deduplicated node creation)
-                    cve = f.get("cve_id")
-                    if cve:
-                        if cve not in seen_cves:
-                            brain.upsert_node(
-                                GraphNode(
-                                    node_id=cve,
-                                    node_type=EntityType.CVE,
-                                    org_id=ctx["org_id"],
-                                )
-                            )
-                            seen_cves.add(cve)
-                            nodes_added += 1
-                        brain.add_edge(
-                            GraphEdge(
-                                source_id=fid,
-                                target_id=cve,
-                                edge_type=EdgeType.REFERENCES,
-                            )
-                        )
-                        edges_added += 1
                 except Exception as graph_err:
                     graph_errors += 1
                     if graph_errors <= 5:
                         logger.warning(
                             "Graph upsert error for finding %s: %s",
-                            f.get("id", "unknown"),
+                            fn["fid"],
                             type(graph_err).__name__,
                         )
 
-        # Link exposure cases
-        for case_id in ctx.get("exposure_cases", []):
+        # Upsert unique CVE nodes (deduplicated — each CVE only once)
+        for cve_id in unique_cves:
+            try:
+                brain.upsert_node(
+                    GraphNode(
+                        node_id=cve_id,
+                        node_type=EntityType.CVE,
+                        org_id=org_id,
+                    )
+                )
+                nodes_added += 1
+            except Exception as graph_err:
+                graph_errors += 1
+                if graph_errors <= 5:
+                    logger.warning(
+                        "Graph upsert error for CVE %s: %s",
+                        cve_id,
+                        type(graph_err).__name__,
+                    )
+
+        # Upsert exposure case nodes
+        for case_id in exposure_case_ids:
             brain.upsert_node(
                 GraphNode(
                     node_id=case_id,
                     node_type=EntityType.EXPOSURE_CASE,
-                    org_id=ctx["org_id"],
+                    org_id=org_id,
                 )
             )
             nodes_added += 1
+
+        t_upsert_end = time.monotonic()
+        upsert_ms = (t_upsert_end - t_upsert_start) * 1000
+
+        # ---------------------------------------------------------------
+        # Phase 3: Batch add all edges (pre-computed, no per-item logic)
+        # ---------------------------------------------------------------
+        t_edges_start = time.monotonic()
+
+        # Finding -> Asset edges
+        for src, tgt in finding_asset_edges:
+            try:
+                brain.add_edge(
+                    GraphEdge(
+                        source_id=src,
+                        target_id=tgt,
+                        edge_type=EdgeType.AFFECTS,
+                    )
+                )
+                edges_added += 1
+            except Exception as graph_err:
+                graph_errors += 1
+                if graph_errors <= 5:
+                    logger.warning(
+                        "Graph edge error %s->%s: %s",
+                        src, tgt,
+                        type(graph_err).__name__,
+                    )
+
+        # Finding -> CVE edges
+        for src, cve_id in finding_cve_edges:
+            try:
+                brain.add_edge(
+                    GraphEdge(
+                        source_id=src,
+                        target_id=cve_id,
+                        edge_type=EdgeType.REFERENCES,
+                    )
+                )
+                edges_added += 1
+            except Exception as graph_err:
+                graph_errors += 1
+                if graph_errors <= 5:
+                    logger.warning(
+                        "Graph edge error %s->%s: %s",
+                        src, cve_id,
+                        type(graph_err).__name__,
+                    )
+
+        t_edges_end = time.monotonic()
+        edges_ms = (t_edges_end - t_edges_start) * 1000
 
         stats = brain.stats()
         ctx["graph_stats"] = stats
         result = {
             "nodes_added": nodes_added,
             "edges_added": edges_added,
-            "unique_cves": len(seen_cves),
+            "unique_cves": len(unique_cves),
             "total_nodes": stats.get("total_nodes", 0),
             "total_edges": stats.get("total_edges", 0),
+            "timing": {
+                "prep_ms": round(prep_ms, 2),
+                "upsert_ms": round(upsert_ms, 2),
+                "edges_ms": round(edges_ms, 2),
+            },
         }
         if graph_errors > 0:
             result["graph_errors"] = graph_errors
@@ -1577,11 +1722,14 @@ class BrainPipeline:
     def _emit_event(self, result: PipelineResult) -> None:
         """Emit pipeline completion event to the event bus.
 
-        Also runs anomaly detection on the pipeline findings to detect
-        unusual scan patterns. [V3] Decision Intelligence.
+        Also runs anomaly detection and trend analysis on the pipeline
+        findings to detect unusual patterns. [V3] Decision Intelligence.
         """
         # Run anomaly detection on pipeline findings
         anomaly_result = self._run_anomaly_check(result)
+
+        # Feed results to trend analyzer for posture tracking [V3]
+        self._feed_trend_analyzer(result)
 
         try:
             import asyncio
@@ -1660,6 +1808,53 @@ class BrainPipeline:
         except Exception as e:
             logger.debug("Anomaly detection skipped: %s", type(e).__name__)
             return None
+
+    def _feed_trend_analyzer(self, result: PipelineResult) -> None:
+        """Feed pipeline results to the trend analyzer for posture tracking.
+
+        [V3] Decision Intelligence — Builds historical scan data for
+        trend detection (severity drift, CWE emergence, recurrence).
+        Non-blocking: failures are logged but never crash the pipeline.
+        """
+        try:
+            from core.ml.trend_analyzer import get_trend_analyzer
+
+            # Build scan record from pipeline result
+            findings_for_trend = []
+            for step in result.steps:
+                if step.output and isinstance(step.output, dict):
+                    step_findings = step.output.get("findings", [])
+                    if isinstance(step_findings, list):
+                        for f in step_findings:
+                            if isinstance(f, dict):
+                                findings_for_trend.append({
+                                    "cve_id": f.get("cve_id", ""),
+                                    "severity": f.get("severity", "unknown"),
+                                    "cwe_id": f.get("cwe_id", ""),
+                                    "cvss_score": f.get("cvss_score", 0.0),
+                                    "title": f.get("title", ""),
+                                    "scanner": f.get("scanner", "unknown"),
+                                })
+
+            scan_record = {
+                "scan_id": result.run_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "org_id": result.org_id,
+                "app_id": "",
+                "findings": findings_for_trend,
+                "pipeline_status": result.status.value,
+                "findings_ingested": result.findings_ingested,
+            }
+
+            analyzer = get_trend_analyzer()
+            analyzer.add_scan(scan_record)
+            logger.debug(
+                "Trend analyzer fed scan %s (%d findings)",
+                result.run_id,
+                len(findings_for_trend),
+            )
+        except Exception as e:
+            logger.debug("Trend analysis skipped: %s", type(e).__name__)
 
 
 # ---------------------------------------------------------------------------

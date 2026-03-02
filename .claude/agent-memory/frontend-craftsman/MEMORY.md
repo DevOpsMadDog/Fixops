@@ -34,9 +34,9 @@
 - `reachabilityApi.analyze({ cve_id, repository? })` -- IS an object (NOT 2 separate args!)
 - Scanner status: `/api/v1/{sast|dast|secrets|container|cspm}/status`
 
-## Page Status (as of 2026-03-02 Session 4) -- 99 files, 41.8K LOC, ZERO mock data
+## Page Status (as of 2026-03-03 Session 5) -- 101 files, 42.9K LOC, ZERO mock data
 ### Key Pages by Pillar
-- V3: BrainPipelineDashboard (724), AutoFixDashboard (625), ExposureCaseCenter (1182), Predictions (~340), Policies (~310), RiskScoreGauge (260), BrainPipelineLiveFeed (494), MultiLLMConsensusPanel (590)
+- V3: BrainPipelineDashboard (724), AutoFixDashboard (625), ExposureCaseCenter (1182), Predictions (~340), Policies (~310), RiskScoreGauge (260), BrainPipelineLiveFeed (494), MultiLLMConsensusPanel (590), FAILEngineDashboard (~430), SLADashboard (~340)
 - V5: SandboxVerification (905), MPTEConsole (2070), Reachability (~420), AttackSimulation (1421)
 - V7: ScannerIngestUpload (987), ScannerDashboard (532), MCPToolRegistry (1096)
 - V9: AirGappedIndicator (185, in GlobalStatusBar), DeploymentBadge (in Dashboard)
@@ -54,13 +54,14 @@
 - `KeyboardShortcutsHelp.tsx` (200 LOC) — ? key shows shortcuts overlay
 - `ErrorBoundary.tsx` (381 LOC) — Auto-retry, chunk detection, telemetry, copy stack
 
-## Build Stats (Day 4 Session 4)
-- 99 files, 41,806 LOC
+## Build Stats (Day 4 Session 7)
+- 101 files, 45,332 LOC (+1,855 from session 7)
 - TypeScript: 0 errors
-- Build: 1.49s, 1942 modules
-- Bundle: index 204KB (gzip 62KB) + 4 vendor chunks
+- Build: 1.75s
+- Bundle: index 209KB (gzip 64KB) + 4 vendor chunks
 - 100% API-wired, zero mock data
-- All pages lazy-loaded
+- All pages lazy-loaded, all with proper Skeleton loading states
+- WCAG AA: aria-labels on all interactive elements
 
 ## Completed Sprint Items
 - SPRINT1-002: Attack Path Graph visualization
@@ -72,10 +73,19 @@
 - DEMO-003 Day 3: Copilot rewrite, dark/light toggle, Settings skeleton, IntelligenceHub skeleton
 - DEMO-003 Day 4 S1: LivePipelineIndicator, Dashboard layout, SOC2 skeleton
 - DEMO-003 Day 4 S4: MCPToolRegistry (V7), AttackSimulation rewrite (V5), BrainPipelineLiveFeed (V3), MultiLLM mock→real, ErrorBoundary, KeyboardShortcuts, chord nav
+- DEMO-003 Day 5 S5: MainLayout 5-Space rewrite (KP-003 resolved), FAILEngineDashboard (V3/V5), SLADashboard (V3), mock removal from SecretsDetection + BulkOperations
+- DEMO-003 Day 5 S6: AlgorithmicLab rewrite (V3), Skeleton upgrades (5 pages), toast notifications
+- DEMO-003 Day 4 S7: 6 B-grade pages→A+ (Container, Runtime, SBOM, LiveFeed, EvidenceAnalytics, MultiLLM), accessibility pass
 
-## Remaining Priority Items (Day 5+)
+## Remaining Priority Items
 - Knowledge Graph interactive improvements (V3)
-- Low-traffic page skeleton loading states
+- SOC2EvidenceUI polish
+- Focus ring visible styles on all focusable elements
+
+## AlgorithmicLab API (verified 2026-03-03)
+- Monte Carlo FAIR: `api.post('/api/v1/predictions/risk-trajectory', { cve_ids, simulations: 10000 })`
+- Causal Analysis: `api.post('/api/v1/predictions/attack-chain', { target, finding_ids })`
+- OLD BROKEN PATTERN: `api.ai.labs.monteCarloQuantify` — DO NOT USE (default export method chaining)
 
 ## Theme Toggle Pattern
 - Store: `useUIStore` with `theme` and `setTheme` from `../stores`
@@ -95,3 +105,19 @@
 - mcpApi: `getTools()`, `getResources()`, `getPrompts()`, `invokeTool(name, args)`, `getStatus()`
 - brainPipelineApi: `listRuns()`, `getRun(id)`, `run(data)`, `generateEvidence(data)`
 - pentagiApi: `health()`, `capabilities()`, `threatIntel({cve_id})`, `simulate({target, attack_type})`
+
+## failApi Methods (verified 2026-03-03 — SHORT names, not getXxx)
+- `failApi.score(data)`, `failApi.scoreBatch(data)`, `failApi.getScore(id)`
+- `failApi.listScores(params)`, `failApi.topRisks(limit)`, `failApi.stats()`
+- `failApi.scoreByCve(cve_id)`, `failApi.deleteScore(id)`, `failApi.health()`
+
+## analyticsApi Limitation (verified 2026-03-03)
+- Exported `analyticsApi` ONLY has: `getFindings()`, `getDecisions()`, `getStats()`
+- Dashboard endpoints (getOverview, getMTTR, getTopRisks) are on internal `dashboard` const, NOT exported
+- Use raw `api.get('/api/v1/analytics/dashboard/overview')` etc. for dashboard data
+- `remediationApi.getTasks(orgId = 'default')` — takes string arg, NOT object
+
+## Navigation Structure (verified 2026-03-03 — KP-003 RESOLVED)
+- 5 Workflow Spaces: Mission Control 🎯, Discover 🔍, Validate ⚡, Remediate 🔧, Comply 🛡️
+- Per-space accent colors: indigo, cyan, orange, emerald, violet
+- Logo text: "CTEM+ Platform" (not "Intelligence Hub")

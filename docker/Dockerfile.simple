@@ -1,58 +1,71 @@
-# Simple FixOps VC Demo Dockerfile
+# ============================================
+# ALdeci CTEM+ Platform — Simple Demo Image
+# ============================================
+# Lightweight single-stage build for quick VC demos.
+# Uses suite architecture for compatibility.
+#
+# Build:   docker build -f docker/Dockerfile.simple -t fixops:simple .
+# Run:     docker run -p 8000:8000 fixops:simple
+# ============================================
+
 FROM python:3.11-slim
 
-# Install minimal dependencies
+# Install minimal runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     jq \
     && rm -rf /var/lib/apt/lists/*
 
+# Add non-root user for security (CWE-250)
+RUN groupadd -r aldeci && useradd -r -g aldeci -m -s /bin/bash aldeci
+
 WORKDIR /app
 
-# Copy and install Python dependencies
+# Copy and install Python dependencies (cached layer)
 COPY requirements.txt .
-COPY apps/api/requirements.txt apps_api_requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt -r apps_api_requirements.txt uvicorn
+RUN pip install --no-cache-dir -r requirements.txt uvicorn
 
-# Copy only necessary application files
-COPY apps ./apps
-COPY new_apps ./new_apps
-COPY core ./core
-COPY config ./config
-COPY backend ./backend
-COPY services ./services
-COPY domain ./domain
-COPY fixops ./fixops
-COPY fixops-enterprise ./fixops-enterprise
-COPY simulations ./simulations
-COPY demo_ssdlc_stages ./demo_ssdlc_stages
-COPY demo ./demo
-COPY ssvc ./ssvc
-COPY data ./data
-COPY fixtures ./fixtures
+# Copy suite architecture (the ONLY active code)
+COPY suite-api/ ./suite-api/
+COPY suite-core/ ./suite-core/
+COPY suite-attack/ ./suite-attack/
+COPY suite-feeds/ ./suite-feeds/
+COPY suite-evidence-risk/ ./suite-evidence-risk/
+COPY suite-integrations/ ./suite-integrations/
 
-# Copy documentation for customer reference
-COPY README.md ./
-COPY docs/ ./docs/
+# Copy Python entry point (sitecustomize.py for import resolution)
+COPY sitecustomize.py ./
 
-# Create directories
-RUN mkdir -p demo_decision_inputs demo_decision_outputs data/feeds data/evidence
+# Copy entrypoint script
+COPY scripts/docker-entrypoint.sh ./scripts/docker-entrypoint.sh
+RUN chmod +x /app/scripts/docker-entrypoint.sh
+
+# Create data directories with correct ownership
+RUN mkdir -p /app/.fixops_data /app/data \
+    && chown -R aldeci:aldeci /app
+
+# Switch to non-root user
+USER aldeci
+
+# Labels
+LABEL org.opencontainers.image.title="ALdeci CTEM+ Platform (Simple)"
+LABEL org.opencontainers.image.description="Lightweight demo image for VC presentations"
+LABEL org.opencontainers.image.vendor="ALdeci"
 
 # Environment
 ENV FIXOPS_MODE=demo \
-    FIXOPS_API_TOKEN=demo-token \
+    FIXOPS_DATA_DIR=/app/.fixops_data \
     FIXOPS_DISABLE_TELEMETRY=1 \
-    PYTHONUNBUFFERED=1
+    FIXOPS_DISABLE_RATE_LIMIT=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app/suite-api:/app/suite-core:/app/suite-attack:/app/suite-feeds:/app/suite-evidence-risk:/app/suite-integrations:/app
 
 EXPOSE 8000
 
-# Create demo server script with proper newlines
-RUN printf 'import os\n\
-os.environ.setdefault("FIXOPS_MODE", "demo")\n\
-from apps.api.app import create_app\n\
-app = create_app()\n\
-if __name__ == "__main__":\n\
-    import uvicorn\n\
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="warning")\n' > demo_api_server.py
+# Health check
+HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=5 \
+    CMD curl -sf http://localhost:8000/health || exit 1
 
-CMD ["python", "-m", "core.cli", "demo", "--mode", "demo", "--output", "demo_decision_outputs/decision.json", "--pretty"]
+# Default: run API server
+ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
+CMD ["api-only"]

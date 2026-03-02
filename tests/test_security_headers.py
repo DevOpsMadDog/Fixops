@@ -9,7 +9,6 @@ Compliance mapping:
 import pytest
 from httpx import ASGITransport, AsyncClient
 from fastapi import FastAPI
-from starlette.responses import JSONResponse
 
 import sys
 import os
@@ -122,8 +121,35 @@ async def test_pragma_no_cache(app_with_security_headers):
 
 
 @pytest.mark.asyncio
+async def test_content_security_policy(app_with_security_headers):
+    """Content-Security-Policy must restrict resource loading (XSS prevention)."""
+    async with AsyncClient(
+        transport=ASGITransport(app=app_with_security_headers),
+        base_url="http://test",
+    ) as client:
+        resp = await client.get("/test")
+        csp = resp.headers.get("content-security-policy")
+        assert csp is not None, "Missing Content-Security-Policy header"
+        assert "default-src 'none'" in csp
+        assert "frame-ancestors 'none'" in csp
+
+
+@pytest.mark.asyncio
+async def test_x_xss_protection(app_with_security_headers):
+    """X-XSS-Protection must be set for legacy browser XSS filtering."""
+    async with AsyncClient(
+        transport=ASGITransport(app=app_with_security_headers),
+        base_url="http://test",
+    ) as client:
+        resp = await client.get("/test")
+        xss = resp.headers.get("x-xss-protection")
+        assert xss is not None, "Missing X-XSS-Protection header"
+        assert "1; mode=block" in xss
+
+
+@pytest.mark.asyncio
 async def test_all_security_headers_present(app_with_security_headers):
-    """Comprehensive check: all 6 security headers must be present on every response."""
+    """Comprehensive check: all 9 security headers must be present on every response."""
     expected_headers = [
         "x-content-type-options",
         "x-frame-options",
@@ -131,6 +157,8 @@ async def test_all_security_headers_present(app_with_security_headers):
         "permissions-policy",
         "cache-control",
         "x-permitted-cross-domain-policies",
+        "content-security-policy",
+        "x-xss-protection",
     ]
     async with AsyncClient(
         transport=ASGITransport(app=app_with_security_headers),

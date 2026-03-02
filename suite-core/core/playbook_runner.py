@@ -281,7 +281,7 @@ class PlaybookRunner:
                 path=Path(overlay_path), ensure_directories=False
             )
         except Exception as exc:
-            logger.warning(f"Failed to load overlay: {exc}")
+            logger.warning("Failed to load overlay: %s", type(exc).__name__)
 
     def _get_connectors(self) -> Any:
         """Get or create connector instances."""
@@ -299,7 +299,7 @@ class PlaybookRunner:
                     flag_provider=self._overlay.flag_provider,
                 )
             except Exception as exc:
-                logger.warning(f"Failed to initialize connectors: {exc}")
+                logger.warning("Failed to initialize connectors: %s", type(exc).__name__)
         return self._connectors
 
     def _register_handlers(self) -> None:
@@ -539,7 +539,7 @@ class PlaybookRunner:
         # Check global conditions
         if not self._check_conditions(playbook.conditions, context):
             logger.info(
-                f"Playbook {playbook.metadata.name} conditions not met, skipping"
+                "Playbook %s conditions not met, skipping", playbook.metadata.name
             )
             context.completed_at = datetime.now(timezone.utc)
             return context
@@ -554,7 +554,7 @@ class PlaybookRunner:
                 on_failure = step.on_failure or {}
                 if not on_failure.get("continue", False):
                     logger.error(
-                        f"Step {step.name} failed, stopping playbook execution"
+                        "Step %s failed, stopping playbook execution", step.name
                     )
                     break
 
@@ -597,7 +597,7 @@ class PlaybookRunner:
 
             if max_finding_severity is None:
                 logger.info(
-                    f"No findings found, min_severity condition ({min_severity}) not met"
+                    "No findings found, min_severity condition (%s) not met", min_severity
                 )
                 return False
 
@@ -605,8 +605,8 @@ class PlaybookRunner:
             max_idx = severity_order.index(max_finding_severity)
             if max_idx < min_idx:
                 logger.info(
-                    f"Max finding severity ({max_finding_severity}) below "
-                    f"min_severity threshold ({min_severity})"
+                    "Max finding severity (%s) below min_severity threshold (%s)",
+                    max_finding_severity, min_severity
                 )
                 return False
 
@@ -617,8 +617,8 @@ class PlaybookRunner:
 
             if not any(fw in playbook_frameworks for fw in required_frameworks):
                 logger.info(
-                    f"Playbook frameworks {playbook_frameworks} do not match "
-                    f"required frameworks {required_frameworks}"
+                    "Playbook frameworks %s do not match required frameworks %s",
+                    playbook_frameworks, required_frameworks
                 )
                 return False
 
@@ -679,7 +679,7 @@ class PlaybookRunner:
             if not self._check_step_condition(step.condition, context):
                 result.status = StepStatus.SKIPPED
                 result.completed_at = datetime.now(timezone.utc)
-                logger.info(f"Step {step.name} skipped: condition not met")
+                logger.info("Step %s skipped: condition not met", step.name)
                 return result
 
         # Check dependencies
@@ -717,7 +717,7 @@ class PlaybookRunner:
 
             result.output = output
             result.status = StepStatus.SUCCESS
-            logger.info(f"Step {step.name} completed successfully")
+            logger.info("Step %s completed successfully", step.name)
 
             # Handle on_success
             if step.on_success:
@@ -725,7 +725,7 @@ class PlaybookRunner:
                     context.variables.update(step.on_success["set"])
 
         except Exception as e:
-            logger.exception(f"Step {step.name} failed: {e}")
+            logger.exception("Step %s failed: %s", step.name, type(e).__name__)
             result.status = StepStatus.FAILED
             result.error = str(e)
 
@@ -734,7 +734,7 @@ class PlaybookRunner:
                 retry_count = step.on_failure.get("retry", 0)
                 if retry_count > 0:
                     logger.info(
-                        f"Retrying step {step.name} ({retry_count} retries remaining)"
+                        "Retrying step %s (%s retries remaining)", step.name, retry_count
                     )
                     # Retry logic - decrement and recurse
                     step.on_failure["retry"] = retry_count - 1
@@ -943,7 +943,7 @@ class PlaybookRunner:
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle OPA policy evaluation using real OPA client."""
-        logger.info(f"OPA evaluate: {params.get('policy')}")
+        logger.info("OPA evaluate: %s", params.get('policy'))
         try:
             from core.policy import _OPAClient
 
@@ -956,7 +956,7 @@ class PlaybookRunner:
                     )
                     return result or {"result": "pass", "details": {}}
         except Exception as exc:
-            logger.warning(f"OPA evaluation failed: {exc}")
+            logger.warning("OPA evaluation failed: %s", type(exc).__name__)
         return {"result": "pass", "details": {}, "note": "OPA not configured"}
 
     async def _handle_opa_assert(
@@ -972,14 +972,14 @@ class PlaybookRunner:
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle evidence assertion."""
-        logger.info(f"Evidence assert: {params}")
+        logger.info("Evidence assert: %s", params)
         return {"asserted": True, "evidence_type": params.get("evidence_type")}
 
     async def _handle_evidence_collect(
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle evidence collection using EvidenceHub."""
-        logger.info(f"Evidence collect: {params}")
+        logger.info("Evidence collect: %s", params)
         try:
             from core.evidence import EvidenceHub
 
@@ -995,7 +995,7 @@ class PlaybookRunner:
                     "evidence_types": params.get("evidence_types", []),
                 }
         except Exception as exc:
-            logger.warning(f"Evidence collection failed: {exc}")
+            logger.warning("Evidence collection failed: %s", type(exc).__name__)
         fallback_id = (
             f"ev-fallback-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
         )
@@ -1005,7 +1005,7 @@ class PlaybookRunner:
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle evidence signing."""
-        logger.info(f"Evidence sign: {params}")
+        logger.info("Evidence sign: %s", params)
         return {
             "signed": True,
             "evidence_id": params.get("evidence_id"),
@@ -1017,7 +1017,7 @@ class PlaybookRunner:
     ) -> Dict[str, Any]:
         """Handle compliance control check."""
         logger.info(
-            f"Compliance check: {params.get('framework')} {params.get('control')}"
+            "Compliance check: %s %s", params.get('framework'), params.get('control')
         )
         try:
             from core.compliance import ComplianceEvaluator
@@ -1032,7 +1032,7 @@ class PlaybookRunner:
                     "details": {},
                 }
         except Exception as exc:
-            logger.warning(f"Compliance check failed: {exc}")
+            logger.warning("Compliance check failed: %s", type(exc).__name__)
         return {
             "status": "pass",
             "framework": params.get("framework"),
@@ -1043,14 +1043,14 @@ class PlaybookRunner:
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle compliance finding mapping."""
-        logger.info(f"Compliance map finding: {params}")
+        logger.info("Compliance map finding: %s", params.get("framework"))
         return {"mapped": True, "framework": params.get("framework")}
 
     async def _handle_compliance_report(
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle compliance report generation."""
-        logger.info(f"Compliance report: {params.get('framework')}")
+        logger.info("Compliance report: %s", params.get("framework"))
         report_id = f"rpt-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
         return {
             "report_id": report_id,
@@ -1062,7 +1062,7 @@ class PlaybookRunner:
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle pentest request using MicroPentest."""
-        logger.info(f"Pentest request: {params}")
+        logger.info("Pentest request: target=%s", params.get("target_url", "?"))
         try:
             from core.micro_pentest import MicroPentestConfig
 
@@ -1070,28 +1070,28 @@ class PlaybookRunner:
             # Queue pentest request
             return {"request_id": "pt-001", "status": "queued"}
         except Exception as exc:
-            logger.warning(f"Pentest request failed: {exc}")
+            logger.warning("Pentest request failed: %s", type(exc).__name__)
         return {"request_id": "pt-001", "status": "queued"}
 
     async def _handle_pentest_validate(
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle exploitability validation."""
-        logger.info(f"Pentest validate: {params}")
+        logger.info("Pentest validate: finding=%s", params.get("finding_id", "?"))
         return {"exploitable": False, "confidence": 0.85}
 
     async def _handle_scanner_run(
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle scanner run."""
-        logger.info(f"Scanner run: {params}")
+        logger.info("Scanner run: type=%s", params.get("scanner_type", "?"))
         return {"scan_id": "scan-001", "status": "completed"}
 
     async def _handle_notify_slack(
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle Slack notification using real connector."""
-        logger.info(f"Notify Slack: {params.get('channel')}")
+        logger.info("Notify Slack: channel=%s", params.get("channel"))
         connectors = self._get_connectors()
         if connectors and hasattr(connectors, "slack") and connectors.slack:
             try:
@@ -1103,7 +1103,7 @@ class PlaybookRunner:
                 )
                 return result.to_dict()
             except Exception as exc:
-                logger.warning(f"Slack notification failed: {exc}")
+                logger.warning("Slack notification failed: %s", type(exc).__name__)
         return {
             "sent": True,
             "channel": params.get("channel", ""),
@@ -1114,28 +1114,28 @@ class PlaybookRunner:
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle email notification."""
-        logger.info(f"Notify email: {params}")
+        logger.info("Notify email: to=%s", params.get("to"))
         return {"sent": True, "to": params.get("to")}
 
     async def _handle_notify_pagerduty(
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle PagerDuty notification."""
-        logger.info(f"Notify PagerDuty: {params}")
+        logger.info("Notify PagerDuty: service=%s", params.get("service_id"))
         return {"incident_id": "pd-001"}
 
     async def _handle_jira_create(
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle Jira issue creation using real connector."""
-        logger.info(f"Jira create issue: {params.get('summary')}")
+        logger.info("Jira create issue: %s", params.get("summary"))
         connectors = self._get_connectors()
         if connectors and hasattr(connectors, "jira") and connectors.jira:
             try:
                 result = connectors.jira.create_issue(params)
                 return result.to_dict()
             except Exception as exc:
-                logger.warning(f"Jira create failed: {exc}")
+                logger.warning("Jira create failed: %s", type(exc).__name__)
         return {
             "issue_key": "SEC-001",
             "issue_id": "10001",
@@ -1146,84 +1146,84 @@ class PlaybookRunner:
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle Jira issue update using real connector."""
-        logger.info(f"Jira update issue: {params.get('issue_key')}")
+        logger.info("Jira update issue: %s", params.get("issue_key"))
         connectors = self._get_connectors()
         if connectors and hasattr(connectors, "jira") and connectors.jira:
             try:
                 result = connectors.jira.update_issue(params)
                 return result.to_dict()
             except Exception as exc:
-                logger.warning(f"Jira update failed: {exc}")
+                logger.warning("Jira update failed: %s", type(exc).__name__)
         return {"updated": True, "issue_key": params.get("issue_key")}
 
     async def _handle_jira_comment(
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle Jira comment addition using real connector."""
-        logger.info(f"Jira add comment: {params.get('issue_key')}")
+        logger.info("Jira add comment: %s", params.get("issue_key"))
         connectors = self._get_connectors()
         if connectors and hasattr(connectors, "jira") and connectors.jira:
             try:
                 result = connectors.jira.add_comment(params)
                 return result.to_dict()
             except Exception as exc:
-                logger.warning(f"Jira comment failed: {exc}")
+                logger.warning("Jira comment failed: %s", type(exc).__name__)
         return {"comment_id": "c-001", "issue_key": params.get("issue_key")}
 
     async def _handle_confluence_create(
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle Confluence page creation using real connector."""
-        logger.info(f"Confluence create page: {params.get('title')}")
+        logger.info("Confluence create page: %s", params.get("title"))
         connectors = self._get_connectors()
         if connectors and hasattr(connectors, "confluence") and connectors.confluence:
             try:
                 result = connectors.confluence.create_page(params)
                 return result.to_dict()
             except Exception as exc:
-                logger.warning(f"Confluence create failed: {exc}")
+                logger.warning("Confluence create failed: %s", type(exc).__name__)
         return {"page_id": "pg-001", "title": params.get("title")}
 
     async def _handle_confluence_update(
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle Confluence page update using real connector."""
-        logger.info(f"Confluence update page: {params.get('page_id')}")
+        logger.info("Confluence update page: %s", params.get("page_id"))
         connectors = self._get_connectors()
         if connectors and hasattr(connectors, "confluence") and connectors.confluence:
             try:
                 result = connectors.confluence.update_page(params)
                 return result.to_dict()
             except Exception as exc:
-                logger.warning(f"Confluence update failed: {exc}")
+                logger.warning("Confluence update failed: %s", type(exc).__name__)
         return {"updated": True, "page_id": params.get("page_id")}
 
     async def _handle_workflow_approve(
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle workflow approval."""
-        logger.info(f"Workflow approve: {params}")
+        logger.info("Workflow approve: id=%s", params.get("workflow_id"))
         return {"approved": True, "workflow_id": params.get("workflow_id")}
 
     async def _handle_workflow_reject(
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle workflow rejection."""
-        logger.info(f"Workflow reject: {params}")
+        logger.info("Workflow reject: id=%s", params.get("workflow_id"))
         return {"rejected": True, "workflow_id": params.get("workflow_id")}
 
     async def _handle_workflow_escalate(
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle workflow escalation."""
-        logger.info(f"Workflow escalate: {params}")
+        logger.info("Workflow escalate: id=%s", params.get("workflow_id"))
         return {"escalated": True, "workflow_id": params.get("workflow_id")}
 
     async def _handle_data_filter(
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle data filtering."""
-        logger.info(f"Data filter: {params}")
+        logger.info("Data filter: field=%s", params.get("field"))
         data = params.get("data", [])
         field = params.get("field")
         value = params.get("value")
@@ -1236,14 +1236,14 @@ class PlaybookRunner:
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle data aggregation."""
-        logger.info(f"Data aggregate: {params}")
+        logger.info("Data aggregate: op=%s", params.get("operation"))
         return {"aggregated": True}
 
     async def _handle_data_transform(
         self, params: Dict[str, Any], context: PlaybookExecutionContext
     ) -> Dict[str, Any]:
         """Handle data transformation."""
-        logger.info(f"Data transform: {params}")
+        logger.info("Data transform: type=%s", params.get("transform_type"))
         return {"transformed": True}
 
 

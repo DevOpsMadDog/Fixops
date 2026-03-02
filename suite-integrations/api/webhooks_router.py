@@ -10,6 +10,7 @@ so receiver endpoints use their own authentication mechanisms (webhook signature
 
 import hashlib
 import hmac
+import ipaddress
 import json
 import logging
 import os
@@ -18,13 +19,57 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
 from apps.api.dependencies import get_org_id
 from core.connectors import AutomationConnectors
 from fastapi import APIRouter, Depends, Header, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
+# ---------------------------------------------------------------------------
+# Security: SSRF protection for external_url fields (2026-03-03)
+# ---------------------------------------------------------------------------
+_WEBHOOK_MAX_URL_LEN = 2048
+_WEBHOOK_BLOCKED_NETS = [
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("169.254.0.0/16"),
+    ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("fc00::/7"),
+    ipaddress.ip_network("fe80::/10"),
+]
+_WEBHOOK_BLOCKED_HOSTS = frozenset({
+    "localhost", "metadata.google.internal", "169.254.169.254",
+})
+
+
+def _validate_external_url(url: str) -> str:
+    """Validate an external_url for SSRF. Raises ValueError on blocked URLs."""
+    if not url or not url.strip():
+        return url
+    url = url.strip()
+    if len(url) > _WEBHOOK_MAX_URL_LEN:
+        raise ValueError(f"external_url exceeds {_WEBHOOK_MAX_URL_LEN} chars")
+    parsed = urlparse(url)
+    if parsed.scheme and parsed.scheme.lower() not in ("http", "https"):
+        raise ValueError("external_url must use http or https scheme")
+    hostname = (parsed.hostname or "").lower()
+    if hostname in _WEBHOOK_BLOCKED_HOSTS:
+        raise ValueError("external_url targets a blocked host")
+    try:
+        addr = ipaddress.ip_address(hostname)
+        for net in _WEBHOOK_BLOCKED_NETS:
+            if addr in net:
+                raise ValueError("external_url targets a blocked internal network")
+    except ValueError as ve:
+        if "blocked" in str(ve):
+            raise
+        # Hostname is a DNS name, not an IP — OK
+    return url
 
 # Management endpoints - requires API key authentication
 router = APIRouter(prefix="/api/v1/webhooks", tags=["webhooks"])
@@ -163,6 +208,20 @@ class CreateMappingRequest(BaseModel):
     external_id: str
     external_url: Optional[str] = None
     external_status: Optional[str] = None
+
+    @field_validator("external_url")
+    @classmethod
+    def validate_url(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            return _validate_external_url(v)
+        return v
+
+    @field_validator("cluster_id", "integration_type", "external_id")
+    @classmethod
+    def validate_string_fields(cls, v: str) -> str:
+        if len(v) > 512:
+            raise ValueError("Field exceeds 512 characters")
+        return v.strip()
 
 
 class DriftResolutionRequest(BaseModel):

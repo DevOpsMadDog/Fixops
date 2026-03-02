@@ -606,7 +606,7 @@ class TestStepDeduplicateMocked:
         return svc
 
     def test_dedup_skipped_when_import_fails(self):
-        """Lines 612-617: ImportError leads to skipped=True"""
+        """Lines 612-617: ImportError leads to local_fallback"""
         p = make_pipeline()
         ctx = {"org_id": "org", "findings": [{"id": "f1"}],
                "assets": [], "clusters": [], "exposure_cases": []}
@@ -615,7 +615,8 @@ class TestStepDeduplicateMocked:
         with patch.dict("sys.modules", {"core.services.deduplication": None}):
             result = p._step_deduplicate(ctx, inp)
 
-        assert result.get("skipped") is True
+        assert result.get("method") == "local_fallback"
+        assert result.get("total_findings") == 1
 
     def test_dedup_timeout_returns_skipped(self):
         """Lines 631-641: ThreadPool timeout leads to skipped"""
@@ -643,8 +644,8 @@ class TestStepDeduplicateMocked:
             with patch("concurrent.futures.ThreadPoolExecutor", return_value=mock_pool):
                 result = p._step_deduplicate(ctx, inp)
 
-        assert result.get("skipped") is True
-        assert "timed out" in result.get("reason", "").lower()
+        assert result.get("method") == "local_fallback"
+        assert result.get("total_findings") == 1
 
     def test_dedup_exception_in_batch_returns_skipped(self):
         """Lines 642-648: Exception during dedup returns skipped"""
@@ -662,8 +663,8 @@ class TestStepDeduplicateMocked:
         with patch.dict("sys.modules", {"core.services.deduplication": fake_module}):
             result = p._step_deduplicate(ctx, inp)
 
-        assert result.get("skipped") is True
-        assert "RuntimeError" in result.get("reason", "")
+        assert result.get("method") == "local_fallback"
+        assert result.get("total_findings") == 1
 
     def test_dedup_success_populates_clusters(self):
         """Lines 649-760: successful dedup sets clusters in ctx"""

@@ -5,7 +5,7 @@
 - Evidence router: `suite-evidence-risk/api/evidence_router.py` (1,116 LOC, 10 routes)
 - Tests: `tests/` directory, run with `PYTHONPATH=suite-evidence-risk:suite-core:suite-api`
 - Evidence router is mounted at prefix `/api/v1` in app.py, with internal prefix `/evidence`
-- Brain pipeline: `suite-core/core/brain_pipeline.py` (~1600 LOC, 12 steps + progress + cancellation + batch async)
+- Brain pipeline: `suite-core/core/brain_pipeline.py` (~1828 LOC, 12 steps + progress + cancellation + batch async + graph optimization)
 - E2E test: `scripts/enterprise_e2e_test.py` (uses token from `TOKEN` variable, not env)
 
 ## Key Patterns
@@ -91,6 +91,7 @@ sleep 10 && python scripts/enterprise_e2e_test.py
 - `suite-core/core/dast_engine.py` -- DAST engine (URL length validation + header limits)
 - `suite-core/core/secrets_scanner.py` -- Secrets scanner (PII redaction)
 - `suite-core/core/autofix_engine.py` -- AutoFix engine (7-check safety validation)
+- `tests/test_jwt_hardening.py` -- 31 tests (JWT secret strength, token decode hardening, brute-force tracker, iat validation)
 
 ## Brain Pipeline Notes
 - `inp.org_id` can be empty string but not None (existing tests use `org_id=""`)
@@ -153,3 +154,49 @@ sleep 10 && python scripts/enterprise_e2e_test.py
 36. **Template injection in PoC generation**: `_generate_basic_poc()` embeds user-controlled CVE IDs, titles, URLs into f-string code templates. Must sanitize with `_sanitize_template_str()` which strips shell metacharacters (`"';` backtick, `$()`, parens, newlines) while preserving URL chars.
 37. **f-string logging detection**: Use regex `logger\.\w+\(f[\"']` to find all f-string logging calls. Convert to `%s` format for lazy evaluation.
 38. **Test assertion on injected content**: When testing sanitization, check the sanitized VALUE separately (via `_sanitize_template_str`), not the entire generated code (which contains template shell commands that naturally include semicolons like `grep -q "200"; then`).
+
+## JWT Auth Hardening (2026-03-03)
+39. **JWT secret min length**: `_MIN_JWT_SECRET_LENGTH=32`. Secrets < 32 chars rejected with CRITICAL log, ephemeral secret generated instead.
+40. **Token max length**: `_MAX_TOKEN_LENGTH=4096` bytes. Checked before jwt.decode() to prevent parsing attacks.
+41. **Required JWT claims**: `options={"require": ["exp", "iat"]}` in jwt.decode(). Tokens without `iat` are rejected.
+42. **generate_access_token includes iat**: `"iat": datetime.now(timezone.utc)` added to all generated tokens.
+43. **JWT iat precision**: PyJWT encodes iat as integer seconds — tests must account for sub-second truncation (use `replace(microsecond=0)` for before timestamp).
+44. **Auth brute-force tracker**: `_AUTH_FAIL_TRACKER` dict (IP -> list of monotonic timestamps), `_AUTH_FAIL_WINDOW=300s`, `_AUTH_FAIL_MAX=20`. Thread-safe via `_AUTH_FAIL_LOCK`.
+45. **429 on rate limit**: `_verify_api_key` checks `_check_auth_rate_limit(client_ip)` first, raises 429 if exceeded.
+46. **Memory cap**: Tracker prunes oldest IP when >1000 entries to prevent unbounded growth.
+47. **Imports added**: `threading` and `time` now imported in app.py (were missing before).
+
+## Brain Pipeline Optimization (2026-03-03)
+48. **StepResult has findings_in/findings_out**: Recorded in run loop at line ~398. to_dict() includes both. Default 0 for backward compat.
+49. **Graph step 3-phase approach**: Phase 1 pre-computes all node data/edges/CVE set in pure Python (no I/O). Phase 2 batch upserts nodes. Phase 3 batch adds edges. Each phase timed separately in result["timing"].
+50. **CVE dedup via set comprehension**: `unique_cves = {f["cve_id"] for f in findings if f.get("cve_id")}` — O(n) upfront, then upsert each CVE exactly once.
+51. **_local_dedup_findings fallback**: O(n) dict-keyed by (title, asset_name, severity) tuple. Used when DeduplicationService unavailable or times out. Generates stable "LC-" prefixed cluster IDs via SHA256.
+52. **Graph step error isolation**: Per-node and per-edge try/except, first 5 errors logged. graph_errors count in result.
+53. **Test file**: `tests/test_brain_pipeline_optimization.py` — 26 tests covering new fields, metrics, local dedup, graph optimization, backward compat.
+
+## MPTE Router Hardening (Day 3)
+39. **SSRF in MPTE**: `target_url` fields must validate against RFC1918, localhost, metadata (169.254.x.x), GCP metadata hostname, IPv6 loopback/link-local/unique-local. Use `_validate_target_url()` helper.
+40. **Concurrent scan limiter**: Use `_acquire_scan_slot()`/`_release_scan_slot()` pattern with `threading.Lock()`. Default MAX=10. Returns 429 when at capacity. Always release in `finally` block.
+41. **Pydantic field_validators for MPTE**: priority must be in {low,medium,high,critical}. scan_types must be in known set. interval_minutes ge=5,le=1440. confidence_score ge=0.0,le=1.0.
+42. **f-string logging elimination**: Regex to detect: `logger\.\w+\(f[\"']`. Replace with `%s` lazy format. In secrets_scanner.py, never log command arguments (may contain paths to secret files).
+
+## JWT Hardening (Day 3)
+43. **JWT secret minimum**: `_MIN_JWT_SECRET_LENGTH = 32`. In `_load_or_generate_jwt_secret()`, reject env vars shorter than 32 chars with CRITICAL log, generate ephemeral instead.
+44. **Token max length**: `_MAX_TOKEN_LENGTH = 4096`. Check `len(token.encode("utf-8"))` before `jwt.decode()` to prevent parsing attacks.
+45. **Required claims**: Use `options={"require": ["exp", "iat"]}` in `jwt.decode()`. Generate tokens with `"iat": datetime.now(timezone.utc)`.
+46. **Auth brute-force**: `_AUTH_FAIL_TRACKER` dict[str, list[float]], lock-protected. 20 failures in 300s → 429. Prune at 1000 IPs.
+
+## Micro Pentest Router Hardening (Day 3, Session 2)
+47. **SSRF in micro_pentest_router**: Same pattern as mpte_router but with `_validate_pentest_url()`. Auto-adds https:// before parsing if scheme missing. Applied to all target_urls in run_pentest endpoint.
+48. **CVE ID validation**: Regex `^CVE-\d{4}-\d{4,}$` via Pydantic field_validator. Max 256 chars per CVE ID. List limits: 100 CVEs, 50 URLs, 20 batch tests.
+49. **Concurrent pentest limiter**: `_acquire_pentest_slot()`/`_release_pentest_slot()` with `threading.Lock()`. Default MAX=20 (configurable via MICRO_PENTEST_MAX_CONCURRENT env). Always release in `finally` block.
+50. **Health endpoint info disclosure**: NEVER include internal service URLs (MPTE_URL) in /health responses. Only return connection status (connected/disconnected).
+51. **Webhook SSRF**: webhooks_router.py `external_url` field needs same SSRF validation as scanner URLs. Added `_validate_external_url()` and Pydantic `field_validator` on `CreateMappingRequest`.
+52. **LLM bare except fix pattern**: Replace `except Exception:` in LLM provider loops with `except (TimeoutError, ConnectionError, ValueError, RuntimeError)` and add `logger.debug("LLM provider %s unavailable: %s", _prov, type(exc).__name__)`.
+53. **Playbook runner f-string count**: 36+ f-string logging calls needed fixing. Pattern: `logger.info(f"Action: {params}")` → `logger.info("Action: key=%s", params.get("key"))`. Never log entire params dict (may contain secrets).
+
+## Files I Own (Updated Day 3, Session 2)
+- `tests/test_hardening_2026_03_03.py` — 46 tests (MPTE SSRF, input validation, concurrent limits, f-string audit, bare except audit)
+- `tests/test_hardening_2026_03_03_session2.py` — 52 tests (micro_pentest SSRF, CVE validation, concurrent limiter, webhook SSRF, f-string audit, bare except audit)
+- `tests/test_jwt_hardening.py` — 31 tests (JWT strength, token decode, brute-force, auth tracker)
+- `tests/test_brain_pipeline_optimization.py` — 26 tests (graph optimization, step metrics, dedup)

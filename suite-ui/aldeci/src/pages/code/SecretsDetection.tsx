@@ -88,15 +88,8 @@ export default function SecretsDetection() {
     },
   });
 
-  // Sample secrets (would come from API)
-  const secrets: SecretFinding[] = secretsData?.secrets || secretsData || [
-    { id: 's-1', type: 'AWS Access Key', file: 'config/aws.js', line: 23, value: 'AKIA***************', severity: 'critical', status: 'active', detected: '2 hours ago', repository: 'backend-api' },
-    { id: 's-2', type: 'GitHub Token', file: '.env.production', line: 5, value: 'ghp_***************', severity: 'critical', status: 'active', detected: '1 day ago', repository: 'frontend-app' },
-    { id: 's-3', type: 'Database Password', file: 'docker-compose.yml', line: 45, value: 'postgres:***', severity: 'high', status: 'active', detected: '3 days ago', repository: 'infrastructure' },
-    { id: 's-4', type: 'API Key', file: 'src/services/stripe.ts', line: 12, value: 'sk_live_***********', severity: 'critical', status: 'resolved', detected: '1 week ago', repository: 'payment-service' },
-    { id: 's-5', type: 'Private Key', file: 'deploy/keys/id_rsa', line: 1, value: '-----BEGIN RSA PRIVATE KEY-----', severity: 'critical', status: 'active', detected: '5 hours ago', repository: 'devops-scripts' },
-    { id: 's-6', type: 'Slack Webhook', file: 'scripts/notify.sh', line: 8, value: 'https://hooks.slack.com/***', severity: 'medium', status: 'active', detected: '2 days ago', repository: 'ci-scripts' },
-  ];
+  // Secrets from real API — zero hardcoded data
+  const secrets: SecretFinding[] = (secretsData?.secrets || secretsData?.items || secretsData?.findings || (Array.isArray(secretsData) ? secretsData : [])) as SecretFinding[];
 
   const filteredSecrets = secrets.filter(s => 
     s.type.toLowerCase().includes(filterText.toLowerCase()) ||

@@ -1,70 +1,86 @@
-# Vision Pre-Flight: 2026-03-03
+# Vision Pre-Flight: 2026-03-03 (v38 FINAL)
 
-> **Agent**: vision-agent v37
+> **Agent**: vision-agent v38
 > **Sprint**: Sprint 2 — Enterprise Demo (Day 3 of 5)
 > **Days to Demo**: 3
 
 ## Sprint Status
 - **Items**: 12 total, 11 done (91.7%), 1 in-progress (DEMO-003)
-- **Pillars covered**: V3 (4 items), V5 (1 item), V7 (1 item), V8 (1 item demo-only), V9 (1 item), V10 (3 items), V3-UI (1 item in-progress)
-- **Vision alignment score**: 0.83 (down from 0.85 — UI architecture drift)
-- **Trend**: SLIGHT_DECLINE
+- **Pillars covered**: V3 (5 items), V5 (2 items), V7 (2 items), V8 (1 item demo-only), V9 (1 item), V10 (3 items)
+- **Vision alignment score**: 0.87 (UP from 0.83 — UI architecture drift RESOLVED)
+- **Trend**: IMPROVING
 
-## Today's Focus
+## Major Win: UI Architecture Resolved
 
-### Priority 1: Sidebar Restructure (V3 — Demo-Blocking)
-- **What**: Rewrite MainLayout.tsx NavSection[] from 8 Technical Suites to 5 Workflow Spaces
-- **Why**: CEO Vision Section V mandates 5 spaces: Mission Control, Discover, Validate, Remediate, Comply. Current sidebar shows CODE SUITE, CLOUD SUITE, etc. — this is the #1 demo visual issue.
+The #1 vision drift from v37 is FIXED. `MainLayout.tsx` now implements all 5 Workflow Spaces:
+
+| Space | Items | Status |
+|-------|-------|--------|
+| Mission Control | 9 nav items | LIVE |
+| Discover | 12 nav items | LIVE |
+| Validate | 8 nav items | LIVE |
+| Remediate | 6 nav items | LIVE |
+| Comply | 7 nav items | LIVE |
+
+Plus: AI Copilot (persistent sidebar), MCP Registry (bottom), Settings (bottom).
+
+**File**: `suite-ui/aldeci/src/layouts/MainLayout.tsx` lines 88-186
+**Previous score**: 0.0 | **Current score**: 1.0
+
+## Today's Remaining Focus
+
+### Priority 1: DEMO-003 Mock Data Cleanup (V3 — Last Sprint Item)
+- **What**: Wire 6 remaining pages to real APIs and remove Math.random() from 8 files
+- **Why**: Enterprise demo cannot show randomly generated data
 - **Owner**: frontend-craftsman
-- **Directive**: UX Directive #1 in .claude/team-state/ux-directives.md
-- **File**: suite-ui/aldeci/src/layouts/MainLayout.tsx lines 80-182
+- **Worst offender**: MPTEConsole.tsx (15+ Math.random() instances — fake confidence scores, durations, risk scores)
 
-### Priority 2: DEMO-003 UI Wiring (V3 — Last Sprint Item)
-- **What**: Wire 6 remaining pages to real APIs: AttackLab, Copilot, DataFabric, IntelligenceHub, RemediationCenter, Settings
-- **Why**: "No UI = no revenue" (debate verdict). These are the last mock pages.
-- **Owner**: frontend-craftsman
+### Priority 2: Fix self-learning/stats 404 (V8)
+- **What**: Only remaining broken endpoint out of 768
+- **Owner**: backend-hardener
 
-### Priority 3: Math.random() Cleanup (V5 — Data Integrity)
-- **What**: Remove Math.random() from MPTEConsole.tsx (15+ instances), KnowledgeGraphExplorer.tsx (2), CloudPosture.tsx (2)
-- **Why**: Enterprise demo cannot show randomly generated confidence scores, risk values, and durations. Must use real API data.
-- **Owner**: frontend-craftsman
+### Priority 3: SEC-ADV-001 Key Rotation (V10)
+- **What**: CEO must rotate API keys (open 6 days)
+- **Owner**: CEO
 
 ## Flags
 
-### CRITICAL: UI Architecture Score 0.0
-Sidebar still uses 8 Technical Suite grouping (CODE SUITE, CLOUD SUITE, ATTACK SUITE, PROTECT SUITE, AI ENGINE, EVIDENCE, FEEDS SUITE). The CEO's "Steve Jobs UI Redesign" vision (Section V) requires 5 Workflow Spaces. UX Directive #1 created and assigned but NOT yet executed. **Demo in 3 days.**
+### RESOLVED: UI Architecture Score 0.0 → 1.0
+Sidebar restructured from 8 Technical Suites to 5 Workflow Spaces per CEO Vision Section V. Previous CRITICAL vision drift is now RESOLVED.
 
-### HIGH: SEC-ADV-001 Key Rotation (2 days old)
-OpenAI API key, JWT secret, and API token need rotation. Infrastructure mitigated but keys still exposed. CEO action required.
+### P1: Math.random() in 8 UI Files
+28+ instances across 8 files generate fake display data. MPTEConsole.tsx (15+ instances) is the worst. Must be replaced with real API data before demo.
 
-### MEDIUM: sales-engineer Failed
-3/3 retry attempts exhausted (34s total). DEMO-005 already complete so non-blocking. Agent-doctor should investigate root cause.
+### P0: SEC-ADV-001 Key Rotation (6 days old)
+OpenAI API key, JWT secret, and API token need rotation. CEO action required.
 
-### LOW: technical-writer Stale Status
-Still showing "Running" from 2026-03-02 15:22 (>12h). Likely completed but status file not updated.
+### P2: Zero Dark Mode Classes
+ThemeInitializer toggles html `dark` class but no `dark:` utility classes exist. Post-demo task.
 
 ## Customer Feedback New
 - No new customer feedback items in .claude/team-state/customer-feedback/
 
-## Verified Metrics (2026-03-03)
-| Metric | Value | Delta |
-|--------|-------|-------|
-| Core Pillar LOC (V3+V5+V7) | 10,740 | brain_pipeline +130, autofix +87 |
+## Verified Metrics (2026-03-03 v38)
+| Metric | Value | Delta from v37 |
+|--------|-------|----------------|
+| Core Pillar LOC (V3+V5+V7) | 10,740 | Stable |
 | Tests collected | 13,674 | +453 |
-| Coverage | 19.23% | -0.02pp (gate: 25%) |
+| Coverage | 19.23% | Stable (gate: 25%) |
 | Newman | 475/475 (10th green) | Stable |
-| Moat | 95.60% | +6.65pp |
-| UI LOC | 41,423 | +4,335 |
+| Moat | 95.60% | Stable |
+| UI LOC | 41,806 | +383 |
 | API 200s | 31/32 | self-learning/stats 404 |
+| UI Architecture | 1.0 | +1.0 (WAS 0.0) |
+| Agent Health | 17/17 Grade A | +4 (from 13/17) |
 
 ## Day 3 Critical Path
 ```
-frontend-craftsman → Sidebar Restructure (P0) → DEMO-003 Wire 6 Pages (P0) → Math.random() Cleanup (P1)
-                                                                                ↓
+frontend-craftsman → Wire 6 pages + Math.random() cleanup (DEMO-003 P0)
+                                                        ↓
 backend-hardener → Fix self-learning/stats 404 (P1)
-                                                                                ↓
-qa-engineer → Coverage config push toward 25% gate (P1)
+                                                        ↓
+CEO → Rotate API keys per SEC-ADV-001 (P0)
 ```
 
 ---
-*Produced by vision-agent v37 | Pillar table verified against CEO_VISION.md lines 133-145*
+*Produced by vision-agent v38 | Pillar table verified against CEO_VISION.md lines 133-145 | UI architecture verified against MainLayout.tsx lines 88-186*

@@ -86,15 +86,15 @@ def _auto_refresh_feeds():
             if epss_count == 0:
                 logger.info("Auto-refreshing EPSS feed (empty)")
                 result = service.refresh_epss()
-                logger.info(f"EPSS refresh: {result.records_updated} records")
+                logger.info("EPSS refresh: %d records", result.records_updated)
 
             # Refresh KEV if empty
             if kev_count == 0:
                 logger.info("Auto-refreshing KEV feed (empty)")
                 result = service.refresh_kev()
-                logger.info(f"KEV refresh: {result.records_updated} records")
+                logger.info("KEV refresh: %d records", result.records_updated)
     except Exception as e:
-        logger.warning(f"Auto-refresh failed: {e}")
+        logger.warning("Auto-refresh failed: %s", type(e).__name__)
 
 
 # =============================================================================

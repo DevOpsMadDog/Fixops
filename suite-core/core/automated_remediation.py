@@ -208,7 +208,7 @@ Respond in JSON format with key "suggestions" containing an array of remediation
                 self._create_suggestion(s, finding, "architect") for s in suggestions
             ]
         except Exception as e:
-            logger.error(f"Architect remediation failed: {e}")
+            logger.error("Architect remediation failed: %s", type(e).__name__)
             return []
 
     async def _get_developer_remediation(
@@ -249,7 +249,7 @@ Respond in JSON format with key "suggestions" containing an array of remediation
                 self._create_suggestion(s, finding, "developer") for s in suggestions
             ]
         except Exception as e:
-            logger.error(f"Developer remediation failed: {e}")
+            logger.error("Developer remediation failed: %s", type(e).__name__)
             return []
 
     async def _get_lead_remediation(
@@ -288,7 +288,7 @@ Respond in JSON format with key "suggestions" containing an array of remediation
 
             return [self._create_suggestion(s, finding, "lead") for s in suggestions]
         except Exception as e:
-            logger.error(f"Lead remediation failed: {e}")
+            logger.error("Lead remediation failed: %s", type(e).__name__)
             return []
 
     def _create_suggestion(
@@ -370,7 +370,7 @@ Respond in JSON format with key "suggestions" containing an array of remediation
         self, suggestion: RemediationSuggestion, context: Dict
     ) -> RemediationVerification:
         """Verify that a remediation was effective."""
-        logger.info(f"Verifying remediation: {suggestion.id}")
+        logger.info("Verifying remediation: %s", suggestion.id)
 
         start_time = datetime.now(timezone.utc)
 
@@ -412,7 +412,7 @@ Respond in JSON format with key "suggestions" containing an array of remediation
             return verification
 
         except Exception as e:
-            logger.error(f"Remediation verification failed: {e}")
+            logger.error("Remediation verification failed: %s", type(e).__name__)
             return self._failed_verification(suggestion, str(e))
 
     async def _check_for_regressions(
@@ -445,7 +445,7 @@ If no regressions are likely, return empty array.
             result = json.loads(response)
             regressions = result.get("regressions", [])
         except Exception as e:
-            logger.error(f"Regression check failed: {e}")
+            logger.error("Regression check failed: %s", type(e).__name__)
 
         return regressions
 
@@ -453,7 +453,7 @@ If no regressions are likely, return empty array.
         self, findings: List[Dict], context: Dict
     ) -> Dict:
         """Generate a comprehensive remediation plan for multiple findings."""
-        logger.info(f"Generating remediation plan for {len(findings)} findings")
+        logger.info("Generating remediation plan for %d findings", len(findings))
 
         # Generate suggestions for all findings
         all_suggestions = []
@@ -661,7 +661,7 @@ If no regressions are likely, return empty array.
                         }
                     )
             except Exception as e:
-                logger.warning(f"Failed to parse LLM response: {e}")
+                logger.warning("Failed to parse LLM response: %s", type(e).__name__)
 
         # Fallback response when LLM is unavailable
         logger.info(

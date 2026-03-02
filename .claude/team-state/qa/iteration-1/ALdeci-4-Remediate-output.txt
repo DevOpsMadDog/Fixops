@@ -4,31 +4,31 @@ newman
 
 ❏ 🔧 Remediation Center
 ↳ List Remediation Tasks
-  GET http://localhost:8000/api/v1/remediation/tasks [200 OK, 6.21kB, 24ms]
+  GET http://localhost:8000/api/v1/remediation/tasks [200 OK, 6.21kB, 23ms]
   ✓  List remediation tasks returns 200
   ✓  Capture first taskId
 
 ↳ Create Remediation Task
-  POST http://localhost:8000/api/v1/remediation/tasks [200 OK, 529B, 10ms]
+  POST http://localhost:8000/api/v1/remediation/tasks [200 OK, 529B, 12ms]
   ✓  Create task returns 200/201
   ✓  Capture taskId
 
 ↳ Get Remediation Task
-  GET http://localhost:8000/api/v1/remediation/tasks [200 OK, 6.21kB, 7ms]
-  GET http://localhost:8000/api/v1/remediation/tasks/f140dd29-e57e-4d1e-8479-776c0f169147 [200 OK, 836B, 4ms]
+  GET http://localhost:8000/api/v1/remediation/tasks [200 OK, 6.21kB, 3ms]
+  GET http://localhost:8000/api/v1/remediation/tasks/f140dd29-e57e-4d1e-8479-776c0f169147 [200 OK, 836B, 3ms]
   ✓  Get task returns 200
 
 ↳ Update Task Status
-  GET http://localhost:8000/api/v1/remediation/tasks [200 OK, 6.21kB, 9ms]
-  PUT http://localhost:8000/api/v1/remediation/tasks/f140dd29-e57e-4d1e-8479-776c0f169147/status [400 Bad Request, 425B, 6ms]
+  GET http://localhost:8000/api/v1/remediation/tasks [200 OK, 6.21kB, 4ms]
+  PUT http://localhost:8000/api/v1/remediation/tasks/f140dd29-e57e-4d1e-8479-776c0f169147/status [400 Bad Request, 425B, 4ms]
   ✓  Update task returns 200
 
 ↳ Remediation Metrics
-  GET http://localhost:8000/api/v1/remediation/metrics [200 OK, 508B, 9ms]
+  GET http://localhost:8000/api/v1/remediation/metrics [200 OK, 508B, 8ms]
   ✓  Remediation metrics returns 200
 
 ↳ SLA Status
-  POST http://localhost:8000/api/v1/remediation/sla/check?org_id=org-001&org_id=org-001 [200 OK, 355B, 10ms]
+  POST http://localhost:8000/api/v1/remediation/sla/check?org_id=org-001&org_id=org-001 [200 OK, 355B, 11ms]
   ✓  SLA status returns 200
 
 ↳ Remediation History
@@ -37,163 +37,163 @@ newman
 
 ❏ ⚡ AutoFix Engine
 ↳ Generate AutoFix
-  POST http://localhost:8000/api/v1/autofix/generate [200 OK, 2.13kB, 7.5s]
+  POST http://localhost:8000/api/v1/autofix/generate [200 OK, 2.13kB, 6s]
   ✓  AutoFix generation returns 200
   ✓  Capture fixId
 
 ↳ Get AutoFix Details
-  GET http://localhost:8000/api/v1/autofix/fixes/fix-test-001 [404 Not Found, 348B, 8ms]
+  GET http://localhost:8000/api/v1/autofix/fixes/fix-test-001 [404 Not Found, 348B, 10ms]
   ✓  Get fix returns 200
 
 ↳ Validate Fix
-  POST http://localhost:8000/api/v1/autofix/validate [404 Not Found, 348B, 9ms]
+  POST http://localhost:8000/api/v1/autofix/validate [404 Not Found, 348B, 5ms]
   ✓  Validate fix returns 200
 
 ↳ Apply Fix
-  POST http://localhost:8000/api/v1/autofix/apply [422 Unprocessable Content, 477B, 14ms]
+  POST http://localhost:8000/api/v1/autofix/apply [422 Unprocessable Content, 477B, 10ms]
   ✓  Apply fix returns 200
 
 ↳ Rollback Fix
-  POST http://localhost:8000/api/v1/autofix/rollback [200 OK, 356B, 11ms]
+  POST http://localhost:8000/api/v1/autofix/rollback [200 OK, 356B, 6ms]
   ✓  Rollback returns 200
 
 ↳ AutoFix Metrics
-  GET http://localhost:8000/api/v1/autofix/stats [200 OK, 582B, 11ms]
+  GET http://localhost:8000/api/v1/autofix/stats [200 OK, 603B, 5ms]
   ✓  AutoFix metrics returns 200
 
 ↳ AutoFix Languages
-  GET http://localhost:8000/api/v1/autofix/fix-types [200 OK, 824B, 11ms]
+  GET http://localhost:8000/api/v1/autofix/fix-types [200 OK, 824B, 5ms]
   ✓  Languages returns 200
 
 ❏ 📦 Bulk Operations
 ↳ Bulk Update Findings
-  POST http://localhost:8000/api/v1/bulk/findings/update [422 Unprocessable Content, 686B, 12ms]
+  POST http://localhost:8000/api/v1/bulk/findings/update [422 Unprocessable Content, 686B, 5ms]
   ✓  Bulk update returns 200
 
 ↳ Bulk Risk Accept
-  POST http://localhost:8000/api/v1/bulk/findings/update [422 Unprocessable Content, 686B, 12ms]
+  POST http://localhost:8000/api/v1/bulk/findings/update [422 Unprocessable Content, 686B, 5ms]
   ✓  Bulk risk accept returns 200
 
 ↳ Bulk Assign
-  POST http://localhost:8000/api/v1/bulk/findings/assign [200 OK, 399B, 8ms]
+  POST http://localhost:8000/api/v1/bulk/findings/assign [200 OK, 399B, 6ms]
   ✓  Bulk assign returns 200
 
 ↳ Bulk Create Tickets
-  POST http://localhost:8000/api/v1/bulk/clusters/create-tickets [200 OK, 444B, 14ms]
+  POST http://localhost:8000/api/v1/bulk/clusters/create-tickets [200 OK, 444B, 4ms]
   ✓  Bulk ticket creation returns 200
 
 ↳ Cluster Bulk Actions
-  POST http://localhost:8000/api/v1/bulk/clusters/status [200 OK, 442B, 12ms]
+  POST http://localhost:8000/api/v1/bulk/clusters/status [200 OK, 442B, 4ms]
   ✓  Cluster action returns 200
 
 ↳ Bulk Operations History
-  GET http://localhost:8000/api/v1/bulk/jobs [200 OK, 8.76kB, 8ms]
+  GET http://localhost:8000/api/v1/bulk/jobs [200 OK, 8.75kB, 3ms]
   ✓  Bulk history returns 200
 
 ❏ 💬 Collaboration Hub
 ↳ List Finding Comments
-  GET http://localhost:8000/api/v1/collaboration/comments?finding_id= [200 OK, 365B, 9ms]
+  GET http://localhost:8000/api/v1/collaboration/comments?finding_id= [200 OK, 365B, 4ms]
   ✓  List comments returns 200
 
 ↳ Add Comment
-  POST http://localhost:8000/api/v1/collaboration/comments [200 OK, 497B, 15ms]
+  POST http://localhost:8000/api/v1/collaboration/comments [200 OK, 497B, 5ms]
   ✓  Add comment returns 200/201
   ✓  Capture commentId
 
 ↳ Add Watcher
-  POST http://localhost:8000/api/v1/collaboration/watchers [422 Unprocessable Content, 646B, 9ms]
+  POST http://localhost:8000/api/v1/collaboration/watchers [422 Unprocessable Content, 646B, 3ms]
   ✓  Add watcher returns 200/201
 
 ↳ Activity Feed
-  GET http://localhost:8000/api/v1/collaboration/activities?org_id=org-001 [200 OK, 24.05kB, 13ms]
+  GET http://localhost:8000/api/v1/collaboration/activities?org_id=org-001 [200 OK, 24.05kB, 3ms]
   ✓  Activities returns 200
 
 ↳ List Notifications
-  GET http://localhost:8000/api/v1/collaboration/notifications/pending [200 OK, 3.91kB, 10ms]
+  GET http://localhost:8000/api/v1/collaboration/notifications/pending [200 OK, 3.91kB, 3ms]
   ✓  Notifications returns 200
   ✓  Capture notificationId
 
 ↳ Mark Notification Read
-  POST http://localhost:8000/api/v1/collaboration/notifications/process [200 OK, 2.21kB, 16ms]
+  POST http://localhost:8000/api/v1/collaboration/notifications/process [200 OK, 2.21kB, 5ms]
   ✓  Mark read returns 200
 
 ↳ Team Activity Summary
-  GET http://localhost:8000/api/v1/collaboration/activities?org_id=org-001 [200 OK, 24.05kB, 11ms]
+  GET http://localhost:8000/api/v1/collaboration/activities?org_id=org-001 [200 OK, 24.05kB, 4ms]
   ✓  Team activity returns 200
 
 ❏ ⚙️ Workflow Automation
 ↳ List Workflows
-  GET http://localhost:8000/api/v1/workflows [200 OK, 1.58kB, 13ms]
+  GET http://localhost:8000/api/v1/workflows [200 OK, 1.58kB, 3ms]
   ✓  List workflows returns 200
   ✓  Capture workflowId
 
 ↳ Create Workflow
-  POST http://localhost:8000/api/v1/workflows [409 Conflict, 380B, 12ms]
+  POST http://localhost:8000/api/v1/workflows [409 Conflict, 380B, 3ms]
   ✓  Create workflow returns 200/201
   ✓  Capture workflowId
 
 ↳ Get Workflow
-  GET http://localhost:8000/api/v1/workflows [200 OK, 1.58kB, 9ms]
-  GET http://localhost:8000/api/v1/workflows/619dfce4-fef8-4f85-a603-f8347f99cf16 [200 OK, 530B, 7ms]
+  GET http://localhost:8000/api/v1/workflows [200 OK, 1.58kB, 3ms]
+  GET http://localhost:8000/api/v1/workflows/619dfce4-fef8-4f85-a603-f8347f99cf16 [200 OK, 530B, 3ms]
   ✓  Get workflow returns 200
 
 ↳ Execute Workflow
-  POST http://localhost:8000/api/v1/workflows/619dfce4-fef8-4f85-a603-f8347f99cf16/execute [200 OK, 744B, 14ms]
+  POST http://localhost:8000/api/v1/workflows/619dfce4-fef8-4f85-a603-f8347f99cf16/execute [200 OK, 744B, 5ms]
   ✓  Execute workflow returns 200
 
 ↳ Workflow SLA Status
-  GET http://localhost:8000/api/v1/workflows/619dfce4-fef8-4f85-a603-f8347f99cf16/sla [200 OK, 394B, 8ms]
+  GET http://localhost:8000/api/v1/workflows/619dfce4-fef8-4f85-a603-f8347f99cf16/sla [200 OK, 394B, 5ms]
   ✓  Workflow SLA returns 200
 
 ↳ Workflow Timeline
-  GET http://localhost:8000/api/v1/workflows/619dfce4-fef8-4f85-a603-f8347f99cf16/history [200 OK, 13.23kB, 10ms]
+  GET http://localhost:8000/api/v1/workflows/619dfce4-fef8-4f85-a603-f8347f99cf16/history [200 OK, 13.67kB, 5ms]
   ✓  Timeline returns 200
 
 ❏ 🤖 AI Copilot — Remediation Agent
 ↳ Get Remediation Guidance
-  POST http://localhost:8000/api/v1/copilot/agents/remediation/generate-fix [200 OK, 724B, 6.2s]
+  POST http://localhost:8000/api/v1/copilot/agents/remediation/generate-fix [200 OK, 724B, 5.4s]
   ✓  Remediation guidance returns 200
 
 ↳ Generate Code Fix
-  POST http://localhost:8000/api/v1/copilot/agents/remediation/generate-fix [200 OK, 724B, 7s]
+  POST http://localhost:8000/api/v1/copilot/agents/remediation/generate-fix [200 OK, 724B, 6.4s]
   ✓  Code fix returns 200
 
 ↳ Generate Remediation Plan
-  POST http://localhost:8000/api/v1/copilot/agents/remediation/playbook [200 OK, 846B, 10ms]
+  POST http://localhost:8000/api/v1/copilot/agents/remediation/playbook [200 OK, 846B, 11ms]
   ✓  Remediation plan returns 200
 
 ↳ Remediation Best Practices
-  GET http://localhost:8000/api/v1/copilot/agents/remediation/queue [200 OK, 4.68kB, 14ms]
+  GET http://localhost:8000/api/v1/copilot/agents/remediation/queue [200 OK, 4.7kB, 13ms]
   ✓  Best practices returns 200
 
 ❏ 🎫 Exposure Case Management
 ↳ List Exposure Cases
-  GET http://localhost:8000/api/v1/cases [200 OK, 90.81kB, 12ms]
+  GET http://localhost:8000/api/v1/cases [200 OK, 90.82kB, 15ms]
   ✓  List cases returns 200
   ✓  Capture caseId
 
 ↳ Create Exposure Case
-  POST http://localhost:8000/api/v1/cases [200 OK, 976B, 9ms]
+  POST http://localhost:8000/api/v1/cases [200 OK, 976B, 11ms]
   ✓  Create case returns 200/201
   ✓  Capture caseId
 
 ↳ Get Exposure Case
-  GET http://localhost:8000/api/v1/cases [200 OK, 90.81kB, 15ms]
-  GET http://localhost:8000/api/v1/cases/EC-EE8635BB34B1 [200 OK, 976B, 8ms]
+  GET http://localhost:8000/api/v1/cases [200 OK, 90.82kB, 14ms]
+  GET http://localhost:8000/api/v1/cases/EC-55BF2932C0F1 [200 OK, 976B, 5ms]
   ✓  Get case returns 200
 
 ↳ Update Case Status
-  GET http://localhost:8000/api/v1/cases [200 OK, 90.81kB, 15ms]
-  PATCH http://localhost:8000/api/v1/cases/EC-EE8635BB34B1 [400 Bad Request, 343B, 5ms]
+  GET http://localhost:8000/api/v1/cases [200 OK, 90.82kB, 13ms]
+  PATCH http://localhost:8000/api/v1/cases/EC-55BF2932C0F1 [400 Bad Request, 343B, 6ms]
   ✓  Update case returns 200
 
 ❏ 🔗 Integration Tickets (Jira/GitHub)
 ↳ List Integrations
-  GET http://localhost:8000/api/v1/integrations [200 OK, 34.43kB, 8ms]
+  GET http://localhost:8000/api/v1/integrations [200 OK, 34.43kB, 14ms]
   ✓  List integrations returns 200
 
 ↳ Test Jira Connection
-  POST http://localhost:8000/api/v1/integrations/jira-test-001/test [404 Not Found, 343B, 6ms]
+  POST http://localhost:8000/api/v1/integrations/jira-test-001/test [404 Not Found, 343B, 5ms]
   ✓  Jira test returns 200
 
 ↳ Webhook Health
@@ -213,9 +213,9 @@ newman
 ├─────────────────────────┼────────────────────┼───────────────────┤
 │              assertions │                 53 │                 0 │
 ├─────────────────────────┴────────────────────┴───────────────────┤
-│ total run duration: 26.9s                                        │
+│ total run duration: 23.6s                                        │
 ├──────────────────────────────────────────────────────────────────┤
-│ total data received: 414.44kB (approx)                           │
+│ total data received: 414.93kB (approx)                           │
 ├──────────────────────────────────────────────────────────────────┤
-│ average response time: 436ms [min: 4ms, max: 7.5s, s.d.: 1671ms] │
+│ average response time: 371ms [min: 3ms, max: 6.4s, s.d.: 1432ms] │
 └──────────────────────────────────────────────────────────────────┘

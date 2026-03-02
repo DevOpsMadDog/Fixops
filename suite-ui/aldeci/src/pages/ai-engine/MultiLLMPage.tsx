@@ -15,6 +15,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
+import { Skeleton } from '../../components/ui/skeleton';
 import { llmApi, enhancedApi, algorithmsApi } from '../../lib/api';
 import { toast } from 'sonner';
 import MultiLLMConsensusPanel from '../../components/dashboard/MultiLLMConsensusPanel';
@@ -129,21 +130,38 @@ export default function MultiLLMPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <div className="h-8 w-72 bg-gray-700/30 rounded animate-pulse" />
-            <div className="h-4 w-56 bg-gray-700/20 rounded animate-pulse mt-2" />
+          <div className="space-y-2">
+            <Skeleton className="h-9 w-80" />
+            <Skeleton className="h-4 w-56" />
           </div>
-          <div className="h-9 w-24 bg-gray-700/30 rounded animate-pulse" />
+          <div className="flex gap-2">
+            <Skeleton className="h-9 w-28" />
+            <Skeleton className="h-9 w-36" />
+          </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[1, 2, 3].map(i => (
-            <Card key={i} className="border-gray-700/30 bg-gray-900/40">
-              <CardContent className="p-6"><div className="h-28 bg-gray-700/20 rounded animate-pulse" /></CardContent>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => (
+            <Card key={i} className="border-border/50 bg-card/50">
+              <CardContent className="p-4">
+                <Skeleton className="h-8 w-12 mb-2" />
+                <Skeleton className="h-3 w-24" />
+              </CardContent>
             </Card>
           ))}
         </div>
-        <Card className="border-gray-700/30 bg-gray-900/40">
-          <CardContent className="p-6"><div className="h-64 bg-gray-700/20 rounded animate-pulse" /></CardContent>
+        <Card className="border-border/50 bg-card/30">
+          <CardHeader>
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-3 w-64 mt-1" />
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32 rounded-lg" />)}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50 bg-card/30">
+          <CardContent className="p-6"><Skeleton className="h-20 w-full" /></CardContent>
         </Card>
       </div>
     );
@@ -165,7 +183,7 @@ export default function MultiLLMPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => refetchStatus()} className="gap-2">
+          <Button variant="outline" size="sm" onClick={() => refetchStatus()} className="gap-2" aria-label="Configure and refresh LLM status">
             <Settings2 className="w-4 h-4" />
             Configure
           </Button>
@@ -261,6 +279,11 @@ export default function MultiLLMPage() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => toggleProvider(provider.id)}
+                  role="checkbox"
+                  aria-checked={isSelected}
+                  aria-label={`${provider.name} — ${provider.model} — ${provider.status}`}
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleProvider(provider.id); }}}
                   className={`p-4 rounded-lg border cursor-pointer transition-all ${
                     isSelected
                       ? 'border-primary bg-primary/10'
@@ -325,6 +348,7 @@ export default function MultiLLMPage() {
               max={100}
               step={5}
               className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+              aria-label={`Consensus threshold: ${Math.round(consensusThreshold * 100)}%`}
             />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>50% (Majority)</span>

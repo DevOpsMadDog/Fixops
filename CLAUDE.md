@@ -1,6 +1,6 @@
 # ALdeci (FixOps) — Project Guide
 
-> **Last verified**: 2026-03-03 by context-engineer (v31.0)
+> **Last verified**: 2026-03-03 by context-engineer (v32.0)
 > **Platform**: CTEM+ Decision Intelligence for Application Security
 > **Identity**: docs/CTEM_PLUS_IDENTITY.md | **Vision**: docs/CEO_VISION.md
 > **Sprint**: 2 — Enterprise Demo (2026-03-06) | 12 items, 11/12 done (Day 3)
@@ -30,19 +30,19 @@ docker compose -f docker/docker-compose.yml up
 
 ```
 .
-├── suite-api/          # FastAPI gateway — 20 routers, JWT auth, CORS (22.5K LOC)
-│   └── apps/api/app.py # Entry point — 34 router mounts, 2752 LOC
-├── suite-core/         # Core engines — brain pipeline, scanners, CLI (134.9K LOC)
+├── suite-api/          # FastAPI gateway — 20 routers, JWT auth, CORS (22.6K LOC)
+│   └── apps/api/app.py # Entry point — 34 router mounts, 2853 LOC
+├── suite-core/         # Core engines — brain pipeline, scanners, CLI (137.2K LOC)
 │   ├── core/           # Business logic (engines, scanners, connectors)
 │   └── api/            # 21 core routers
-├── suite-attack/       # Offensive security — MPTE, attack sim, scanner routers (6.3K LOC)
+├── suite-attack/       # Offensive security — MPTE, attack sim, scanner routers (6.5K LOC)
 ├── suite-feeds/        # Threat intel feeds — NVD, KEV, EPSS, OSV (4.4K LOC)
 ├── suite-evidence-risk/# Evidence, risk scoring, compliance (20.3K LOC)
 ├── suite-integrations/ # External integrations — MCP, webhooks, IaC, OSS tools (6.7K LOC)
 ├── suite-ui/
-│   ├── aldeci/         # Legacy React UI (ACTIVE — wiring to real APIs) 99 src TS/TSX files, 41.8K LOC
+│   ├── aldeci/         # Legacy React UI (ACTIVE — wiring to real APIs) 101 src TS/TSX files, 43.0K LOC
 │   └── aldeci-ui-new/  # New UI (MISSING — directory does not exist)
-├── tests/              # 385 test files, 183K LOC, 13,674 tests collected
+├── tests/              # 390 test files, 191K LOC, 13,862 tests collected
 ├── docker/             # Dockerfiles + compose files + Kubernetes Helm chart
 ├── docs/               # Vision docs, debate transcript, identity docs
 ├── scripts/            # Shell scripts for orchestration, demos, CI/CD
@@ -77,7 +77,7 @@ No `pip install -e` needed. Cross-suite imports "just work".
 ### Core Pillars (Active Engineering)
 | Pillar | What | Key Files |
 |--------|------|-----------|
-| **V3 — Decision Intelligence** | Brain pipeline, FAIL scoring, triage, AutoFix | brain_pipeline.py (1,663 LOC), autofix_engine.py (1,515 LOC), fail_engine.py (711 LOC) |
+| **V3 — Decision Intelligence** | Brain pipeline, FAIL scoring, triage, AutoFix | brain_pipeline.py (1,828 LOC), autofix_engine.py (1,534 LOC), fail_engine.py (711 LOC) |
 | **V5 — MPTE Verification** | Prove exploitability via micro-pentests | micro_pentest.py (2054 LOC), mpte_advanced.py (1089 LOC) |
 | **V7 — MCP-Native Platform** | AI agent-consumable security tools | mcp_server.py (978 LOC), mcp_router.py (977 LOC auto-discovery), 768 endpoints |
 
@@ -96,9 +96,9 @@ No `pip install -e` needed. Cross-suite imports "just work".
 
 | File | LOC | Purpose |
 |------|-----|---------|
-| `suite-api/apps/api/app.py` | 2752 | FastAPI entry point, 34 router mounts |
-| `suite-core/core/brain_pipeline.py` | 1,663 | 12-step CTEM decision pipeline |
-| `suite-core/core/autofix_engine.py` | 1,515 | LLM-powered auto-remediation (10 fix types) |
+| `suite-api/apps/api/app.py` | 2853 | FastAPI entry point, 34 router mounts |
+| `suite-core/core/brain_pipeline.py` | 1,828 | 12-step CTEM decision pipeline |
+| `suite-core/core/autofix_engine.py` | 1,534 | LLM-powered auto-remediation (10 fix types) |
 | `suite-core/core/micro_pentest.py` | 2054 | MPTE core engine |
 | `suite-core/core/connectors.py` | 3005 | 7 integration connectors (Jira, Confluence, Slack, ServiceNow, GitLab, AzureDevOps, GitHub) |
 | `suite-core/core/security_connectors.py` | 1335 | 10 security tool connectors (Snyk, SonarQube, Dependabot, AWS SecurityHub, Azure Defender, Wiz, Prisma Cloud, Orca, Lacework, ThreatMapper) |
@@ -150,7 +150,7 @@ python -m pytest tests/ --cov=. --cov-report=term --timeout=10
 python -m pytest tests/test_brain_pipeline.py -v
 ```
 
-- **13,674 tests collected** (0 collection errors, 16.12s collection time)
+- **13,862 tests collected** (0 collection errors, 17.14s collection time)
 - **19.23% coverage** (gate: 25% — currently FAILING, gap 5.77pp. DEMO-006 config fix applied but coverage still below gate.)
 - **pytest-timeout**: 10s per test (prevents hanging)
 

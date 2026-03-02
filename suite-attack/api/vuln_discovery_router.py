@@ -467,7 +467,7 @@ async def report_discovered_vulnerability(
             )
         )
 
-    logger.info(f"Reported discovered vulnerability: {internal_id}")
+    logger.info("Reported discovered vulnerability: %s", internal_id)
 
     return DiscoveredVulnResponse(
         id=vuln_id,
@@ -489,7 +489,7 @@ async def _notify_vendor(vuln_id: str) -> None:
         return
 
     # In production: Send email/API call to vendor
-    logger.info(f"Notifying vendor about vulnerability {vuln['internal_id']}")
+    logger.info("Notifying vendor about vulnerability %s", vuln.get("internal_id", "unknown"))
     vuln["status"] = VulnStatus.REPORTED_VENDOR
     vuln["updated_at"] = _now()
     _discovered_vulns.persist(vuln_id)
@@ -757,7 +757,7 @@ async def retrain_ml_models(
     # Queue training job
     background_tasks.add_task(_run_training, job_id)
 
-    logger.info(f"Queued ML training job {job_id} with {len(models)} models")
+    logger.info("Queued ML training job %s with %d models", job_id, len(models))
 
     return RetrainResponse(
         job_id=job_id,
@@ -901,7 +901,7 @@ async def _run_training(job_id: str) -> None:
             for model in job["models_queued"]
         }
         _retrain_jobs.persist(job_id)
-        logger.warning(f"ML training job {job_id} failed: scikit-learn not available")
+        logger.warning("ML training job %s failed: scikit-learn not available", job_id)
         return
 
     try:
@@ -939,7 +939,7 @@ async def _run_training(job_id: str) -> None:
                     "status": "failed",
                     "message": str(e),
                 }
-                logger.error(f"Training {model_name} failed: {e}")
+                logger.error("Training %s failed: %s", model_name, type(e).__name__)
 
         all_ok = all(r.get("status") == "trained" for r in results.values())
         job["status"] = "completed" if all_ok else "partial"
@@ -961,7 +961,7 @@ async def _run_training(job_id: str) -> None:
             for model in job["models_queued"]
         }
         _retrain_jobs.persist(job_id)
-        logger.error(f"ML training job {job_id} failed: {e}")
+        logger.error("ML training job %s failed: %s", job_id, type(e).__name__)
 
 
 def _train_single_model(

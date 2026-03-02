@@ -207,7 +207,7 @@ fi
 step "Verify SQL injection exploitability"
 api POST "api/v1/mpte/verify" '{
     "finding_id": "MPTE-SQLI-001",
-    "target_url": "http://localhost:8000",
+    "target_url": "https://httpbin.org",
     "vulnerability_type": "sql_injection",
     "evidence": "SQL injection in login endpoint: SELECT * FROM users WHERE username = [user_input] AND password = [user_input]. Parameterized queries not used. Input directly concatenated into SQL string."
 }'

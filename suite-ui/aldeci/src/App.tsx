@@ -103,6 +103,12 @@ const ScannerIngestUpload = lazy(() => import('./pages/discover/ScannerIngestUpl
 // Validate Space — Sandbox Verification (V5 MPTE)
 const SandboxVerification = lazy(() => import('./pages/attack/SandboxVerification'));
 
+// Validate Space — FAIL Engine (V3/V5 Decision Intelligence)
+const FAILEngineDashboard = lazy(() => import('./pages/validate/FAILEngineDashboard'));
+
+// Mission Control — SLA Dashboard
+const SLADashboard = lazy(() => import('./pages/mission-control/SLADashboard'));
+
 // 404 Page
 const NotFound = lazy(() => import('./pages/NotFound'));
 
@@ -297,6 +303,12 @@ function AnimatedRoutes() {
             {/* Validate Space — Sandbox Verification (V5 MPTE) */}
             <Route path="/attack/sandbox" element={<SandboxVerification />} />
             <Route path="/validate/sandbox" element={<SandboxVerification />} />
+
+            {/* Validate Space — FAIL Engine (V3/V5) */}
+            <Route path="/validate/fail-engine" element={<FAILEngineDashboard />} />
+
+            {/* Mission Control — SLA Dashboard */}
+            <Route path="/mission-control/sla" element={<SLADashboard />} />
 
             {/* Legacy routes for backwards compatibility */}
             <Route path="/data-fabric" element={<DataFabric />} />

@@ -2,8 +2,8 @@
 # ============================================
 # ALdeci CTEM+ Platform — Demo Health Check
 # ============================================
-# Version: 2.2.0 (2026-03-02)
-# Checks: 42 endpoints across all CTEM+ pillars
+# Version: 2.3.0 (2026-03-03)
+# Checks: 44 endpoints across all CTEM+ pillars
 # Scanners: All 8 native scanners verified
 #
 # Verifies that the ALdeci stack is running and
@@ -116,7 +116,7 @@ banner() {
     echo -e "${CYAN}"
     echo "  ┌─────────────────────────────────────────────┐"
     echo "  │     ALdeci CTEM+ Platform Health Check       │"
-    echo "  │     Enterprise Demo — 42 Checks, 8 Scanners │"
+    echo "  │     Enterprise Demo — 44 Checks, 8 Scanners │"
     echo "  └─────────────────────────────────────────────┘"
     echo -e "${NC}"
     echo -e "  ${BOLD}API:${NC} ${API_BASE}"
@@ -309,7 +309,9 @@ else
     check "Teams"                  "${API_BASE}/api/v1/teams"              "200" "true"
     check "Feeds Health"           "${API_BASE}/api/v1/feeds/health"       "200" "true"
     check "Self-Learning [V8]"     "${API_BASE}/api/v1/self-learning/status"  "200" "true"
+    check "Self-Learning Stats"    "${API_BASE}/api/v1/self-learning/stats"  "200" "true"
     check "Zero-Gravity [V9]"      "${API_BASE}/api/v1/zero-gravity/status"  "200" "true"
+    check "Brain Trends [V3]"      "${API_BASE}/api/v1/brain/trends"         "200" "true"
 
     # Phase 9: Docker container health (only when running in Docker)
     if [[ "$JSON_MODE" != "true" ]]; then

@@ -1,0 +1,78 @@
+{
+  "document": {
+    "category": "csaf_vex",
+    "title": "SecureTrade Platform VEX \u2014 2026-03-03",
+    "publisher": {
+      "name": "ALdeci Threat Architect",
+      "category": "coordinator"
+    },
+    "tracking": {
+      "id": "VEX-FINSERV-20260303",
+      "status": "final",
+      "version": "1.0.0",
+      "initial_release_date": "2026-03-02T17:32:36.494301+00:00"
+    }
+  },
+  "vulnerabilities": [
+    {
+      "cve": "CVE-2024-34351",
+      "product": "next@14.2.3",
+      "status": "affected",
+      "justification": "Server Actions used in trading dashboard. Host header not sanitized at edge."
+    },
+    {
+      "cve": "CVE-2024-1597",
+      "product": "pgx@5.5.3",
+      "status": "affected",
+      "justification": "PreferQueryMode=SIMPLE used in risk engine for performance. SQL injection confirmed in staging."
+    },
+    {
+      "cve": "CVE-2024-3094",
+      "product": "xz-utils (base image)",
+      "status": "not_affected",
+      "justification": "Alpine-based containers do not include vulnerable xz-utils version. Verified via SBOM."
+    },
+    {
+      "cve": "CVE-2024-22259",
+      "product": "spring-boot@3.2.3",
+      "status": "affected",
+      "justification": "UriComponentsBuilder used in OAuth2 callback handler for trading SSO."
+    },
+    {
+      "cve": "CVE-2024-22234",
+      "product": "spring-security@3.2.3",
+      "status": "under_investigation",
+      "justification": "Authorization bypass potential. Security team assessing if requestMatchers patterns are affected."
+    },
+    {
+      "cve": "CVE-2023-44487",
+      "product": "grpc-netty@1.62.2",
+      "status": "affected",
+      "justification": "gRPC used for Spanner connections. HTTP/2 Rapid Reset could disrupt trading during peak hours."
+    },
+    {
+      "cve": "CVE-2024-21626",
+      "product": "containerd",
+      "status": "not_affected",
+      "justification": "GKE autopilot mode with hardened containerd runtime. AWS EKS uses patched 1.7.14."
+    },
+    {
+      "cve": "CVE-2024-0727",
+      "product": "cryptography@42.0.5",
+      "status": "affected",
+      "justification": "Payment channel TLS uses OpenSSL via cryptography library. PKCS12 used for client certs."
+    },
+    {
+      "cve": "CVE-2023-50164",
+      "product": "legacy-settlement",
+      "status": "not_affected",
+      "justification": "Legacy settlement service fully migrated to Spring Boot. No Apache Struts in codebase."
+    },
+    {
+      "cve": "CVE-2024-29025",
+      "product": "grpc-netty@1.62.2",
+      "status": "affected",
+      "justification": "Netty HTTP header validation bypass affects gRPC gateway. Could enable request smuggling."
+    }
+  ]
+}

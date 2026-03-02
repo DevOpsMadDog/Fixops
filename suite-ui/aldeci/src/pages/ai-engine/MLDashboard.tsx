@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
 import { api } from '../../lib/api';
+import { toast } from 'sonner';
 
 interface MLModel {
   model_id: string;
@@ -76,8 +78,11 @@ const MLDashboard = () => {
   const handleTrain = async (modelId: string) => {
     try {
       await api.post(`/api/v1/ml/models/${modelId}/train`).catch(() => {});
+      toast.success(`Training started for model ${modelId}`);
       await fetchData();
-    } catch (e) { console.error('Train error', e); }
+    } catch (e) {
+      toast.error(`Training failed: ${e instanceof Error ? e.message : 'Unknown error'}`);
+    }
   };
 
   const trainedCount = models.filter(m => m.status === 'trained').length;
@@ -127,7 +132,29 @@ const MLDashboard = () => {
 
         <TabsContent value="models">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {loading ? <div className="col-span-2 text-center py-8 text-muted-foreground">Loading models...</div> :
+            {loading ? (
+              <>
+                {[1, 2, 3, 4].map(i => (
+                  <Card key={i} className="border-border/50 bg-card/30">
+                    <CardContent className="pt-5 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-1.5">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                      </div>
+                      <Skeleton className="h-2 w-full" />
+                      <div className="flex justify-between">
+                        <Skeleton className="h-3 w-24" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
+                      <Skeleton className="h-8 w-full" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </>
+            ) :
               models.map((m, i) => (
                 <motion.div key={m.model_id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
                   <Card className="border-border/50 bg-card/30 hover:bg-card/60 transition-colors">

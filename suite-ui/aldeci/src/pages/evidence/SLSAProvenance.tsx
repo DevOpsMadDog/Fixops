@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
 import { api } from '../../lib/api';
 
@@ -74,7 +75,7 @@ const SLSAProvenance = () => {
         </TabsList>
         <TabsContent value="attestations">
           <Card className="border-border/50"><CardContent className="pt-6">
-            {loading ? <div className="space-y-3 py-4">{[1,2,3].map(i => <div key={i} className="h-20 bg-gray-700/15 rounded-lg animate-pulse" />)}</div> : (
+            {loading ? <div className="space-y-3 py-4">{[1,2,3].map(i => <Skeleton key={i} className="h-20 w-full rounded-lg" />)}</div> : (
             <div className="space-y-3">{attestations.slice(0, 20).map((att: any, i: number) => (
               <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
                 className="p-4 border border-border/30 rounded-lg">

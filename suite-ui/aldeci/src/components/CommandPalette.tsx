@@ -48,6 +48,7 @@ const COMMAND_ITEMS: CommandItem[] = [
   { id: 'brain-pipeline', label: 'Brain Pipeline', description: '12-step CTEM decision intelligence pipeline', path: '/core/brain-pipeline', icon: <Cpu className="w-4 h-4" />, category: 'Mission Control', keywords: ['brain', 'pipeline', 'ctem', 'decision', 'triage'] },
   { id: 'exposure-cases', label: 'Exposure Cases', description: 'Track and manage security exposure cases', path: '/core/exposure-cases', icon: <Target className="w-4 h-4" />, category: 'Mission Control', keywords: ['exposure', 'cases', 'findings', 'triage'] },
   { id: 'knowledge-graph', label: 'Knowledge Graph', description: 'Interactive vulnerability relationship graph', path: '/core/knowledge-graph', icon: <Network className="w-4 h-4" />, category: 'Mission Control', keywords: ['graph', 'knowledge', 'relationships', 'cve'] },
+  { id: 'sla-dashboard', label: 'SLA Dashboard', description: 'Service Level Agreement compliance tracking', path: '/mission-control/sla', icon: <BarChart3 className="w-4 h-4" />, category: 'Mission Control', keywords: ['sla', 'compliance', 'deadline', 'mttr', 'time'] },
 
   // Discover
   { id: 'scanner-dashboard', label: 'Scanner Dashboard', description: '8 native CTEM+ scanners status', path: '/discover/scanners', icon: <Shield className="w-4 h-4" />, category: 'Discover', keywords: ['scanner', 'sast', 'dast', 'secrets', 'scan'] },
@@ -65,6 +66,7 @@ const COMMAND_ITEMS: CommandItem[] = [
   { id: 'attack-paths', label: 'Attack Paths (GNN)', description: 'Graph neural network attack path analysis', path: '/attack/attack-paths', icon: <Network className="w-4 h-4" />, category: 'Validate', keywords: ['attack', 'path', 'gnn', 'graph'] },
   { id: 'reachability', label: 'Reachability Analysis', description: 'Determine if vulnerabilities are reachable', path: '/attack/reachability', icon: <Target className="w-4 h-4" />, category: 'Validate', keywords: ['reachability', 'exploitable', 'reachable'] },
   { id: 'sandbox', label: 'Sandbox Verification', description: 'PoC exploit verification in isolated sandbox', path: '/attack/sandbox', icon: <FlaskConical className="w-4 h-4" />, category: 'Validate', keywords: ['sandbox', 'poc', 'verify', 'docker'] },
+  { id: 'fail-engine', label: 'FAIL Engine', description: 'Fixability, Attainability, Impact, Legitimacy scoring', path: '/validate/fail-engine', icon: <Target className="w-4 h-4" />, category: 'Validate', keywords: ['fail', 'score', 'priority', 'risk', 'ranking'] },
 
   // Remediate
   { id: 'autofix', label: 'AutoFix Center', description: 'AI-generated code fixes with confidence levels', path: '/protect/autofix', icon: <Zap className="w-4 h-4" />, category: 'Remediate', keywords: ['autofix', 'fix', 'patch', 'remediate', 'ai'] },

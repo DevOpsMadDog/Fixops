@@ -1,0 +1,68 @@
+Index,Severity,Confidence,Test ID,File,Line,Issue,Category
+1,MEDIUM,LOW,B608,suite-api/apps/api/detailed_logging.py,189,Possible SQL injection vector through string-based query construction.,SQL Injection
+2,MEDIUM,MEDIUM,B108,suite-api/apps/api/reports_router.py,36,Probable insecure usage of temp file/directory.,Insecure Temp Files
+3,MEDIUM,MEDIUM,B108,suite-core/agents/design_time/code_repo_agent.py,42,Probable insecure usage of temp file/directory.,Insecure Temp Files
+4,MEDIUM,LOW,B608,suite-core/agents/mindsdb_agents.py,971,Possible SQL injection vector through string-based query construction.,SQL Injection
+5,MEDIUM,MEDIUM,B104,suite-core/core/autofix_engine.py,966,Possible binding to all interfaces.,Binding All Interfaces
+6,MEDIUM,HIGH,B310,suite-core/core/cli.py,3664,Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.,URL Scheme Audit
+7,MEDIUM,HIGH,B310,suite-core/core/cli.py,3682,Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.,URL Scheme Audit
+8,MEDIUM,HIGH,B310,suite-core/core/cli.py,3700,Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.,URL Scheme Audit
+9,MEDIUM,HIGH,B310,suite-core/core/cli.py,3718,Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.,URL Scheme Audit
+10,MEDIUM,HIGH,B310,suite-core/core/cli.py,3736,Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.,URL Scheme Audit
+11,MEDIUM,HIGH,B310,suite-core/core/cli.py,3754,Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.,URL Scheme Audit
+12,MEDIUM,HIGH,B310,suite-core/core/cli.py,3772,Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.,URL Scheme Audit
+13,MEDIUM,HIGH,B310,suite-core/core/cli.py,3797,Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.,URL Scheme Audit
+14,MEDIUM,HIGH,B310,suite-core/core/cli.py,3815,Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.,URL Scheme Audit
+15,MEDIUM,LOW,B608,suite-core/core/connectors.py,2353,Possible SQL injection vector through string-based query construction.,SQL Injection
+16,MEDIUM,MEDIUM,B104,suite-core/core/dast_engine.py,247,Possible binding to all interfaces.,Binding All Interfaces
+17,MEDIUM,MEDIUM,B104,suite-core/core/dast_engine.py,281,Possible binding to all interfaces.,Binding All Interfaces
+18,MEDIUM,MEDIUM,B608,suite-core/core/exposure_case.py,289,Possible SQL injection vector through string-based query construction.,SQL Injection
+19,MEDIUM,MEDIUM,B608,suite-core/core/exposure_case.py,292,Possible SQL injection vector through string-based query construction.,SQL Injection
+20,MEDIUM,MEDIUM,B608,suite-core/core/exposure_case.py,466,Possible SQL injection vector through string-based query construction.,SQL Injection
+21,MEDIUM,MEDIUM,B608,suite-core/core/exposure_case.py,470,Possible SQL injection vector through string-based query construction.,SQL Injection
+22,MEDIUM,MEDIUM,B608,suite-core/core/exposure_case.py,476,Possible SQL injection vector through string-based query construction.,SQL Injection
+23,MEDIUM,MEDIUM,B608,suite-core/core/exposure_case.py,482,Possible SQL injection vector through string-based query construction.,SQL Injection
+24,MEDIUM,MEDIUM,B608,suite-core/core/exposure_case.py,487,Possible SQL injection vector through string-based query construction.,SQL Injection
+25,MEDIUM,LOW,B608,suite-core/core/intelligent_security_engine.py,230,Possible SQL injection vector through string-based query construction.,SQL Injection
+26,MEDIUM,LOW,B608,suite-core/core/intelligent_security_engine.py,249,Possible SQL injection vector through string-based query construction.,SQL Injection
+27,MEDIUM,LOW,B608,suite-core/core/intelligent_security_engine.py,259,Possible SQL injection vector through string-based query construction.,SQL Injection
+28,MEDIUM,MEDIUM,B608,suite-core/core/knowledge_brain.py,473,Possible SQL injection vector through string-based query construction.,SQL Injection
+29,MEDIUM,MEDIUM,B608,suite-core/core/knowledge_brain.py,479,Possible SQL injection vector through string-based query construction.,SQL Injection
+30,MEDIUM,MEDIUM,B104,suite-core/core/micro_pentest.py,60,Possible binding to all interfaces.,Binding All Interfaces
+31,MEDIUM,LOW,B608,suite-core/core/ml/risk_scorer.py,1070,Possible SQL injection vector through string-based query construction.,SQL Injection
+32,MEDIUM,MEDIUM,B608,suite-core/core/persistent_store.py,80,Possible SQL injection vector through string-based query construction.,SQL Injection
+33,MEDIUM,MEDIUM,B608,suite-core/core/persistent_store.py,92,Possible SQL injection vector through string-based query construction.,SQL Injection
+34,MEDIUM,MEDIUM,B608,suite-core/core/persistent_store.py,145,Possible SQL injection vector through string-based query construction.,SQL Injection
+35,MEDIUM,MEDIUM,B108,suite-core/core/safe_path_ops.py,40,Probable insecure usage of temp file/directory.,Insecure Temp Files
+36,MEDIUM,MEDIUM,B108,suite-core/core/sandbox_verifier.py,358,Probable insecure usage of temp file/directory.,Insecure Temp Files
+37,MEDIUM,MEDIUM,B108,suite-core/core/sandbox_verifier.py,525,Probable insecure usage of temp file/directory.,Insecure Temp Files
+38,MEDIUM,MEDIUM,B108,suite-core/core/sandbox_verifier.py,525,Probable insecure usage of temp file/directory.,Insecure Temp Files
+39,MEDIUM,HIGH,B103,suite-core/core/sandbox_verifier.py,943,Chmod setting a permissive mask 0o755 on file (script_path).,File Permissions
+40,MEDIUM,MEDIUM,B108,suite-core/core/sandbox_verifier.py,950,Probable insecure usage of temp file/directory.,Insecure Temp Files
+41,MEDIUM,HIGH,B314,suite-core/core/scanner_parsers.py,124,Using xml.etree.ElementTree.fromstring to parse untrusted XML data is known to be vulnerable to XML ,Insecure XML
+42,MEDIUM,MEDIUM,B608,suite-core/core/services/deduplication.py,408,Possible SQL injection vector through string-based query construction.,SQL Injection
+43,MEDIUM,MEDIUM,B608,suite-core/core/services/deduplication.py,903,Possible SQL injection vector through string-based query construction.,SQL Injection
+44,MEDIUM,MEDIUM,B608,suite-core/core/services/deduplication.py,923,Possible SQL injection vector through string-based query construction.,SQL Injection
+45,MEDIUM,MEDIUM,B608,suite-core/core/services/fuzzy_identity.py,564,Possible SQL injection vector through string-based query construction.,SQL Injection
+46,MEDIUM,MEDIUM,B608,suite-core/core/services/fuzzy_identity.py,567,Possible SQL injection vector through string-based query construction.,SQL Injection
+47,MEDIUM,MEDIUM,B608,suite-core/core/services/fuzzy_identity.py,572,Possible SQL injection vector through string-based query construction.,SQL Injection
+48,MEDIUM,MEDIUM,B608,suite-core/core/services/remediation.py,373,Possible SQL injection vector through string-based query construction.,SQL Injection
+49,MEDIUM,MEDIUM,B608,suite-core/core/services/remediation.py,837,Possible SQL injection vector through string-based query construction.,SQL Injection
+50,MEDIUM,HIGH,B310,suite-core/core/single_agent.py,153,Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.,URL Scheme Audit
+51,MEDIUM,HIGH,B310,suite-core/core/single_agent.py,165,Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.,URL Scheme Audit
+52,MEDIUM,HIGH,B310,suite-core/core/single_agent.py,204,Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.,URL Scheme Audit
+53,MEDIUM,HIGH,B310,suite-core/core/single_agent.py,216,Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.,URL Scheme Audit
+54,MEDIUM,HIGH,B310,suite-core/core/single_agent.py,336,Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.,URL Scheme Audit
+55,MEDIUM,HIGH,B310,suite-core/core/single_agent.py,362,Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.,URL Scheme Audit
+56,MEDIUM,MEDIUM,B108,suite-core/telemetry_bridge/aws_lambda/handler.py,140,Probable insecure usage of temp file/directory.,Insecure Temp Files
+57,MEDIUM,MEDIUM,B108,suite-core/telemetry_bridge/azure_function/__init__.py,142,Probable insecure usage of temp file/directory.,Insecure Temp Files
+58,MEDIUM,MEDIUM,B104,suite-core/telemetry_bridge/edge_collector/collector_api/app.py,436,Possible binding to all interfaces.,Binding All Interfaces
+59,MEDIUM,MEDIUM,B108,suite-core/telemetry_bridge/gcp_function/main.py,149,Probable insecure usage of temp file/directory.,Insecure Temp Files
+60,MEDIUM,LOW,B113,suite-core/telemetry_bridge/tests/test_integration.py,49,Call to requests without timeout,Missing Timeout
+61,MEDIUM,MEDIUM,B108,suite-core/telemetry_bridge/tests/test_integration.py,144,Probable insecure usage of temp file/directory.,Insecure Temp Files
+62,MEDIUM,MEDIUM,B108,suite-core/telemetry_bridge/tests/test_integration.py,170,Probable insecure usage of temp file/directory.,Insecure Temp Files
+63,MEDIUM,MEDIUM,B108,suite-core/telemetry_bridge/tests/test_integration.py,197,Probable insecure usage of temp file/directory.,Insecure Temp Files
+64,MEDIUM,MEDIUM,B108,suite-core/telemetry_bridge/tests/test_integration.py,214,Probable insecure usage of temp file/directory.,Insecure Temp Files
+65,MEDIUM,MEDIUM,B104,suite-evidence-risk/risk/runtime/cloud.py,536,Possible binding to all interfaces.,Binding All Interfaces
+66,MEDIUM,MEDIUM,B608,suite-feeds/api/feeds_router.py,993,Possible SQL injection vector through string-based query construction.,SQL Injection
+67,MEDIUM,MEDIUM,B608,suite-feeds/feeds_service.py,2832,Possible SQL injection vector through string-based query construction.,SQL Injection

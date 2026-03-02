@@ -62,10 +62,10 @@ risk = min((cvss/10 * 0.4 + epss * 0.3 + 0.3) * kev_boost * asset_crit, 1.0)
 ### File Organization
 - Engine code: `suite-core/core/` (business logic)
 - Router code: `suite-core/api/` (REST endpoints)
-- App wiring: `suite-api/apps/api/app.py` (34 router mounts, 2742 LOC)
+- App wiring: `suite-api/apps/api/app.py` (34 router mounts, 2853 LOC)
 - Tests: `tests/` (flat directory)
 - Demo scripts: `scripts/`
-- ADRs: `.claude/team-state/architecture/adrs/` (9 ADRs)
+- ADRs: `.claude/team-state/architecture/adrs/` (10 ADRs)
 
 ### Team State Protocol
 - Status: `.claude/team-state/{agent-name}-status.md`
@@ -100,15 +100,15 @@ risk = min((cvss/10 * 0.4 + epss * 0.3 + 0.3) * kev_boost * asset_crit, 1.0)
 - Known weakness: prompt injection in LLM calls (mitigated by safety gate) — TD-024
 - Private method access from router (_validate_fix) — code smell, not security
 
-## Quality Metrics (2026-03-03 Run 8, verified)
-- Bandit (core files): 0 HIGH, 2 MEDIUM (bind-all + xml.etree), 9 LOW
-- Bandit (full suite): 458 issues (0 HIGH, 64 MEDIUM, 394 LOW)
+## Quality Metrics (2026-03-03 Run 9, verified)
+- Bandit (suite-core/core): 0 HIGH, 51 MEDIUM, 124 LOW (89,776 lines)
 - Ruff: 77 warnings (0 actionable, all E402 architectural pattern)
 - Test coverage: 19.23% (gate: 25%, per agent-doctor)
-- Core tests: 288/288 PASS (28.46s)
-- AutoFix tests: 556/556 PASS (58.88s)
-- ADRs: 9/9 validated (1 broken ref FIXED in ADR-009)
-- Tech debt: 26 items (7 done)
+- Core tests: 206/206 PASS (28.61s, Run 9)
+- Self-learning tests: 73/73 PASS (13.00s, Run 9)
+- AutoFix tests: 556/556 PASS (58.88s, Run 8)
+- ADRs: 10/10 validated (0 broken refs, Run 9)
+- Tech debt: 33 items (10 done)
 
 ## Reliability Patterns
 - SQLite connections: MUST use try/finally (history.py + deduplication.py both fixed)
@@ -139,14 +139,21 @@ risk = min((cvss/10 * 0.4 + epss * 0.3 + 0.3) * kev_boost * asset_crit, 1.0)
 - AutoFix _fixes unbounded FIXED (MAX_FIXES_STORED=5000, eviction logic)
 - AutoFix _history unbounded FIXED (MAX_HISTORY_ENTRIES=10000, tail eviction)
 - ADR-009 broken path reference FIXED (suite-integrations→suite-core)
+- MCP protocol router 9 broken attribute accesses FIXED (get_mcp_handler() singleton)
+- Self-learning /stats endpoint ADDED (was 404, last non-200 in burndown)
+- ADR-010: MCP protocol architecture (dual subsystem, singleton, auth bypass risk)
 
-### MCP Auto-Discovery Architecture (ADR-009, V7)
+### MCP Architecture (ADR-009 + ADR-010, V7)
 - Two subsystems: Auto-Discovery Router (/api/v1/mcp/*) + Protocol Engine (/api/v1/mcp-protocol/*)
-- Router: `suite-api/apps/api/mcp_router.py` (977 LOC) — startup-time catalog generation
-- Engine: `suite-core/core/mcp_server.py` (979 LOC) — JSON-RPC 2.0 MCP 2024-11-05
+- Auto-Discovery: `suite-api/apps/api/mcp_router.py` (1,016 LOC) — startup catalog from FastAPI routes
+- Protocol Engine: `suite-core/core/mcp_server.py` (979 LOC) — JSON-RPC 2.0, 5 classes, 10 methods
+- Protocol Router: `suite-core/api/mcp_protocol_router.py` (220 LOC) — REST wrapper for protocol engine
 - 705 tools from 769 routes (self-discovered, not manually maintained)
-- Name deduplication: method suffix + counter for conflicts
-- Honesty note: self-referential discovery (ALdeci's own endpoints, not external)
+- CRITICAL: Protocol router MUST use get_mcp_handler() singleton (9 broken attrs FIXED Run 9)
+- Auth bypass in tools/call: direct handler invocation bypasses Depends() — TD-027, Phase 2
+- TestClient per /execute: expensive, should use ASGI routing — TD-028, Phase 2
+- SSE stream uses blocking time.sleep(30) — TD-031, Phase 2
+- Protocol version: 2025-03-26 (authoritative), mcp_router says 2024-11-05 (needs update) — TD-032
 
 ## Review History
 1. 2026-03-01: Self-learning architecture review
@@ -155,3 +162,4 @@ risk = min((cvss/10 * 0.4 + epss * 0.3 + 0.3) * kev_boost * asset_crit, 1.0)
 4. 2026-03-02: Reliability review (ADR-008, Grade B-)
 5. 2026-03-02: Performance & data flow review (Grade B, updated Run 7)
 6. 2026-03-03: AutoFix engine architecture review (Grade B+)
+7. 2026-03-03: MCP architecture review (Grade B-, 9 attr fixes, auth bypass logged)

@@ -5,11 +5,9 @@ Tests for the Online Learning Pipeline — user feedback → model retraining.
 """
 
 import json
-import os
 import tempfile
-import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
@@ -653,7 +651,7 @@ class TestOnlineLearningPipeline:
 
     def test_ingest_batch(self, pipeline, sample_feedback_decision_correct):
         feedbacks = [sample_feedback_decision_correct] * 5
-        result = pipeline.ingest_batch(feedbacks)
+        pipeline.ingest_batch(feedbacks)
         assert pipeline.stats.total_feedback_ingested == 5
 
     def test_retrain_now_with_empty_buffer(self, pipeline):
@@ -719,9 +717,9 @@ class TestOnlineLearningPipeline:
             "context": {"features": {"cvss_score": 9.8}},
         }
         # First ingest should trigger retrain
-        r1 = p.ingest_feedback(fb)
+        p.ingest_feedback(fb)
         # Second should be rate-limited (no retrain)
-        r2 = p.ingest_feedback(fb)
+        p.ingest_feedback(fb)
         # r2 should be None (buffered, not retrained due to rate limit)
         # Note: r1 may or may not trigger depending on timing
 
@@ -770,7 +768,7 @@ class TestEventBusIntegration:
     async def test_decision_made_handler(self):
         """Test that DECISION_MADE events are ingested."""
         reset_pipeline()
-        from core.event_bus import Event, EventType, get_event_bus
+        from core.event_bus import Event, EventType
         from core.ml.online_learning import _handle_decision_made
 
         event = Event(
@@ -846,7 +844,7 @@ class TestEdgeCases:
             "confidence": 0.9,
             "context": '{"features": {"cvss_score": 9.0}}',
         }
-        result = pipeline.ingest_feedback(fb)
+        pipeline.ingest_feedback(fb)
         # Should handle string context gracefully
         assert pipeline.stats.total_feedback_ingested >= 0
 

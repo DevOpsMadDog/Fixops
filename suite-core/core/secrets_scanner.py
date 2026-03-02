@@ -244,7 +244,7 @@ class SecretsDetector:
         try:
             data = json.loads(output)
         except json.JSONDecodeError as e:
-            logger.warning(f"Failed to parse gitleaks output as JSON: {e}")
+            logger.warning("Failed to parse gitleaks output as JSON: %s", type(e).__name__)
             return findings
 
         if not isinstance(data, list):
@@ -382,7 +382,7 @@ class SecretsDetector:
         if os.path.isfile(CUSTOM_CONFIG_PATH):
             cmd.extend(["--config", CUSTOM_CONFIG_PATH])
 
-        logger.info(f"Running gitleaks: {' '.join(cmd)}")
+        logger.info("Running gitleaks scan on target")
 
         try:
             process = await asyncio.create_subprocess_exec(
@@ -469,7 +469,7 @@ class SecretsDetector:
                 "--no-update",
             ]
 
-        logger.info(f"Running trufflehog: {' '.join(cmd)}")
+        logger.info("Running trufflehog scan on target")
 
         try:
             process = await asyncio.create_subprocess_exec(

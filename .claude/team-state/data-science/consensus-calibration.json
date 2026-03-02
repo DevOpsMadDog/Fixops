@@ -31,7 +31,7 @@
         "tn": 16
       },
       "avg_confidence": 0.7063,
-      "evaluated_at": "2026-03-02T10:52:19.347210+00:00"
+      "evaluated_at": "2026-03-02T16:54:49.069379+00:00"
     },
     "gpt4": {
       "model_name": "gpt4",
@@ -47,7 +47,7 @@
         "tn": 15
       },
       "avg_confidence": 0.7284,
-      "evaluated_at": "2026-03-02T10:52:19.347423+00:00"
+      "evaluated_at": "2026-03-02T16:54:49.069596+00:00"
     },
     "gemini": {
       "model_name": "gemini",
@@ -63,10 +63,10 @@
         "tn": 16
       },
       "avg_confidence": 0.7061,
-      "evaluated_at": "2026-03-02T10:52:19.347498+00:00"
+      "evaluated_at": "2026-03-02T16:54:49.069668+00:00"
     }
   },
   "degraded_models": [],
   "calibration_method": "f1_weighted",
-  "calibrated_at": "2026-03-02T10:52:19.347511+00:00"
+  "calibrated_at": "2026-03-02T16:54:49.069679+00:00"
 }

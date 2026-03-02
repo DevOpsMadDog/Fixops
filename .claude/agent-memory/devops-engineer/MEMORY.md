@@ -8,7 +8,7 @@
 - PYTHONPATH in Docker: `/app/suite-api:/app/suite-core:/app/suite-attack:/app/suite-feeds:/app/suite-evidence-risk:/app/suite-integrations:/app`
 - Entry point: `scripts/docker-entrypoint.sh` → mode `api-only` starts uvicorn with `apps.api.app:app`
 - `sitecustomize.py` at repo root auto-prepends suite paths (works both local and Docker)
-- Container runs as non-root user `aldeci` (USER directive in ALL primary Dockerfiles — main, enterprise, demo, sidecars)
+- Container runs as non-root user `aldeci` (USER directive in ALL 10 Dockerfiles)
 
 ## Build Notes
 - PyTorch is installed for `pgmpy` (Bayesian network) — makes image large (~2GB)
@@ -28,6 +28,7 @@
 - demo-healthcheck.sh JSON mode must pass values via env vars, not shell string interpolation (injection risk)
 - Dockerfile.demo needs precise COPY (suite-* dirs) not `COPY . .` which pulls in everything including .git
 - `docker compose config --quiet` works WITHOUT Docker daemon running — good for validation-only checks
+- Dockerfile.simple was using old COPY paths (apps/, core/, etc.) instead of suite-* — FIXED in Run 6
 
 ## Compose Files Status (2026-03-03)
 - docker-compose.yml: ✅ VALID (6 services, primary demo file)
@@ -62,25 +63,24 @@
 
 ## Key Scripts (6 total)
 - `scripts/demo-start.sh` — customer launcher (--quick, --stop, --reset, --status, --logs, --check)
-- `scripts/demo-healthcheck.sh` — 42 endpoint verifier v2.2.0 (supports --json, --ci, --quick modes)
+- `scripts/demo-healthcheck.sh` — 44 endpoint verifier v2.3.0 (supports --json, --ci, --quick modes)
 - `scripts/air-gapped-test.sh` — air-gapped deployment validator
 - `scripts/docker-entrypoint.sh` — container entry point (api-only, interactive, enterprise, cli, shell)
 - `scripts/compose-validate.sh` — local Docker config validator (40+ checks, --ci, --fix modes)
 - `scripts/local-dev-setup.sh` — zero-config dev onboarding (--python, --docker, --check modes)
 
-## Health Check Modes (demo-healthcheck.sh v2.2.0)
-- Default: 42 checks, colored output, human-friendly (all 8 scanners)
+## Health Check Modes (demo-healthcheck.sh v2.3.0)
+- Default: 44 checks, colored output, human-friendly (all 8 scanners)
 - `--json`: Machine-parseable JSON output for CI (safe env var passing)
 - `--ci`: No colors, strict exit codes
 - `--quick`: 7 core checks only (~5s)
 - Exit code 0 = pass, 1 = failures, 2 = API timeout
 
-## Dockerfile Security
-- Non-root `aldeci` user in ALL primary Dockerfiles (main, enterprise, demo, demo-sidecar, feeds-sidecar, sidecar)
-- Only Dockerfile.risk-graph and Dockerfile.simple still run as root (rarely used, Sprint 3 cleanup)
+## Dockerfile Security (ALL 10 HARDENED as of Run 6)
+- Non-root user in ALL 10 Dockerfiles: `aldeci` (8 files) or `nextjs` (risk-graph, aldeci-ui)
+- HEALTHCHECK in ALL 10 Dockerfiles (Dockerfile.simple and risk-graph fixed in Run 6)
 - `chown -R aldeci:aldeci /app` before USER switch
-- Multi-stage build (builder has build-essential, runtime does not)
-- Health check in Dockerfiles AND compose files
+- Multi-stage build in 4: main, enterprise, interactive, risk-graph
 - .dockerignore excludes .env, .env.*, .git, __pycache__, node_modules, *.db files
 
 ## Port Map
@@ -89,20 +89,22 @@
 - 8443: MPTE (optional, separate compose)
 - 5433: MPTE PostgreSQL (optional)
 
-## CI Pipeline (ci.yml — 7 parallel jobs)
+## CI Pipeline (ci.yml — 8 parallel jobs, as of Run 6)
 1. `lint`: ruff + bandit + compile check
 2. `test`: pytest + coverage (18% baseline)
 3. `scanner-parsers`: V9 air-gapped parser tests
-4. `compose-validate`: 10 compose files + 8 Dockerfiles (HEALTHCHECK+USER) + 6 shell scripts + .dockerignore
+4. `compose-validate`: 8 compose files + 8 Dockerfiles (HEALTHCHECK+USER) + 6 shell scripts + .dockerignore
 5. `api-surface`: 363+ endpoint verification
-6. `docker-smoke`: Buildx build (layer cache) → image size guard (max 2.5GB) → start API → startup time check → 20 CTEM+ endpoint smoke tests (all 8 scanners + OpenAPI)
-7. `ui-build`: npm ci → tsc check → vite build → verify dist output
+6. `docker-smoke`: Buildx build (layer cache) → image size guard (max 2.5GB) → start API → startup time check → 22 CTEM+ endpoint smoke tests (all 8 scanners + brain/trends + self-learning/stats + OpenAPI)
+7. `dep-audit`: pip-audit dependency vulnerability scan + JSON artifact
+8. `ui-build`: npm ci → tsc check → vite build → verify dist output
 
 ## Security Advisory Status (2026-03-03)
 - .env excluded from git (✅) and Docker (✅)
 - .env.example has placeholder secrets only (✅)
 - CI uses `ci-test-token` placeholders (✅)
-- Container runs non-root (✅) — ALL primary Dockerfiles
+- Container runs non-root (✅) — ALL 10 Dockerfiles
 - Compose credentials via env vars (✅) — no hardcoded secrets in any compose file
 - Docker socket mount in MPTE — ACCEPTED risk (intentional for pentest containers)
 - OpenAI key rotation: PENDING (CEO action)
+- pip-audit in CI: ✅ (added Run 6)

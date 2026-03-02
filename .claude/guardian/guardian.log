@@ -597,3 +597,91 @@
 [2026-03-02T16:19:40Z] POST-AGENT: data-scientist (exit: 0, risk: medium)
 [2026-03-02T16:19:49Z] POST-AGENT: data-scientist — ACCEPTED (impact: 8352034, pillars: NONE, violations: 0)
 [2026-03-02T16:19:49Z]   ⚠️  HIGH IMPACT SCORE (8352034) — review recommended
+[2026-03-02T16:26:49Z] Guardian initialized for run swarm-2026-03-03_03-26-49
+[2026-03-02T16:36:48Z] POST-AGENT: agent-doctor (exit: 0, risk: )
+[2026-03-02T16:36:54Z] POST-AGENT: agent-doctor — ACCEPTED (impact: 184442, pillars: NONE, violations: 0)
+[2026-03-02T16:36:54Z]   ⚠️  HIGH IMPACT SCORE (184442) — review recommended
+[2026-03-02T16:37:42Z] POST-AGENT: vision-agent (exit: 0, risk: )
+[2026-03-02T16:37:48Z] POST-AGENT: vision-agent — ACCEPTED (impact: 184451, pillars: NONE, violations: 0)
+[2026-03-02T16:37:48Z]   ⚠️  HIGH IMPACT SCORE (184451) — review recommended
+[2026-03-02T16:37:54Z] POST-AGENT: backend-hardener (exit: 0, risk: medium)
+[2026-03-02T16:38:00Z] POST-AGENT: backend-hardener — ACCEPTED (impact: 184528, pillars: NONE, violations: 0)
+[2026-03-02T16:38:00Z]   ⚠️  HIGH IMPACT SCORE (184528) — review recommended
+[2026-03-02T16:46:06Z] POST-AGENT: frontend-craftsman (exit: 0, risk: medium)
+[2026-03-02T16:46:11Z] POST-AGENT: frontend-craftsman — ACCEPTED (impact: 184697, pillars: NONE, violations: 0)
+[2026-03-02T16:46:11Z]   ⚠️  HIGH IMPACT SCORE (184697) — review recommended
+[2026-03-02T16:47:44Z] POST-AGENT: threat-architect (exit: 0, risk: medium)
+[2026-03-02T16:47:49Z] POST-AGENT: threat-architect — ACCEPTED (impact: 184724, pillars: NONE, violations: 0)
+[2026-03-02T16:47:49Z]   ⚠️  HIGH IMPACT SCORE (184724) — review recommended
+[2026-03-02T16:49:01Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-03-02T16:49:06Z] POST-AGENT: context-engineer — ACCEPTED (impact: 184739, pillars: NONE, violations: 0)
+[2026-03-02T16:49:06Z]   ⚠️  HIGH IMPACT SCORE (184739) — review recommended
+[2026-03-02T17:01:48Z] POST-AGENT: swarm-controller (exit: 0, risk: medium)
+[2026-03-02T17:01:54Z] POST-AGENT: swarm-controller — ACCEPTED (impact: 187154, pillars: NONE, violations: 0)
+[2026-03-02T17:01:54Z]   ⚠️  HIGH IMPACT SCORE (187154) — review recommended
+[2026-03-02T17:02:54Z] POST-AGENT: ai-researcher (exit: 0, risk: medium)
+[2026-03-02T17:03:01Z] POST-AGENT: ai-researcher — ACCEPTED (impact: 187185, pillars: NONE, violations: 0)
+[2026-03-02T17:03:01Z]   ⚠️  HIGH IMPACT SCORE (187185) — review recommended
+[2026-03-02T17:03:28Z] POST-AGENT: enterprise-architect (exit: 0, risk: medium)
+[2026-03-02T17:03:34Z] POST-AGENT: enterprise-architect — ACCEPTED (impact: 187184, pillars: NONE, violations: 0)
+[2026-03-02T17:03:34Z]   ⚠️  HIGH IMPACT SCORE (187184) — review recommended
+[2026-03-02T17:13:49Z] POST-AGENT: data-scientist (exit: 0, risk: medium)
+[2026-03-02T17:13:54Z] POST-AGENT: data-scientist — ACCEPTED (impact: 187318, pillars: NONE, violations: 0)
+[2026-03-02T17:13:54Z]   ⚠️  HIGH IMPACT SCORE (187318) — review recommended
+[2026-03-02T17:17:19Z] POST-AGENT: security-analyst (exit: 0, risk: medium)
+[2026-03-02T17:17:25Z] POST-AGENT: security-analyst — ACCEPTED (impact: 187356, pillars: NONE, violations: 0)
+[2026-03-02T17:17:25Z]   ⚠️  HIGH IMPACT SCORE (187356) — review recommended
+[2026-03-02T17:33:28Z] POST-AGENT: backend-hardener (exit: 0, risk: medium)
+[2026-03-02T17:33:34Z] POST-AGENT: backend-hardener — ACCEPTED (impact: 187840, pillars: NONE, violations: 0)
+[2026-03-02T17:33:34Z]   ⚠️  HIGH IMPACT SCORE (187840) — review recommended
+[2026-03-02T17:33:47Z] POST-AGENT: frontend-craftsman (exit: 0, risk: medium)
+[2026-03-02T17:33:53Z] POST-AGENT: frontend-craftsman — ACCEPTED (impact: 187842, pillars: NONE, violations: 0)
+[2026-03-02T17:33:53Z]   ⚠️  HIGH IMPACT SCORE (187842) — review recommended
+[2026-03-02T17:35:09Z] POST-AGENT: qa-engineer (exit: 0, risk: medium)
+[2026-03-02T17:35:16Z] POST-AGENT: qa-engineer — ACCEPTED (impact: 187861, pillars: NONE, violations: 0)
+[2026-03-02T17:35:16Z]   ⚠️  HIGH IMPACT SCORE (187861) — review recommended
+[2026-03-02T17:42:12Z] POST-AGENT: devops-engineer (exit: 0, risk: medium)
+[2026-03-02T17:42:17Z] POST-AGENT: devops-engineer — ACCEPTED (impact: 187922, pillars: NONE, violations: 0)
+[2026-03-02T17:42:17Z]   ⚠️  HIGH IMPACT SCORE (187922) — review recommended
+[2026-03-02T17:44:47Z] POST-AGENT: threat-architect (exit: 1, risk: medium)
+[2026-03-02T17:44:47Z] POST-AGENT: threat-architect failed (exit 1) — skipping validation
+[2026-03-02T17:45:29Z] POST-AGENT: swarm-controller (exit: 1, risk: medium)
+[2026-03-02T17:45:29Z] POST-AGENT: swarm-controller failed (exit 1) — skipping validation
+[2026-03-02T17:45:45Z] POST-AGENT: marketing-head (exit: 1, risk: medium)
+[2026-03-02T17:45:45Z] POST-AGENT: marketing-head failed (exit 1) — skipping validation
+[2026-03-02T17:45:45Z] POST-AGENT: technical-writer (exit: 1, risk: medium)
+[2026-03-02T17:45:45Z] POST-AGENT: technical-writer failed (exit 1) — skipping validation
+[2026-03-02T17:45:45Z] POST-AGENT: sales-engineer (exit: 1, risk: medium)
+[2026-03-02T17:45:45Z] POST-AGENT: sales-engineer failed (exit 1) — skipping validation
+[2026-03-02T17:46:09Z] POST-AGENT: security-analyst (exit: 1, risk: medium)
+[2026-03-02T17:46:09Z] POST-AGENT: security-analyst failed (exit 1) — skipping validation
+[2026-03-02T17:46:10Z] POST-AGENT: qa-engineer (exit: 1, risk: medium)
+[2026-03-02T17:46:10Z] POST-AGENT: qa-engineer failed (exit 1) — skipping validation
+[2026-03-02T17:46:29Z] POST-AGENT: scrum-master (exit: 1, risk: medium)
+[2026-03-02T17:46:29Z] POST-AGENT: scrum-master failed (exit 1) — skipping validation
+[2026-03-02T17:46:55Z] POST-AGENT: devops-engineer (exit: 1, risk: medium)
+[2026-03-02T17:46:55Z] POST-AGENT: devops-engineer failed (exit 1) — skipping validation
+[2026-03-02T18:17:35Z] POST-AGENT: technical-writer (exit: 1, risk: medium)
+[2026-03-02T18:17:35Z] POST-AGENT: technical-writer failed (exit 1) — skipping validation
+[2026-03-02T18:17:35Z] POST-AGENT: sales-engineer (exit: 1, risk: medium)
+[2026-03-02T18:17:35Z] POST-AGENT: sales-engineer failed (exit 1) — skipping validation
+[2026-03-02T18:17:36Z] POST-AGENT: marketing-head (exit: 1, risk: medium)
+[2026-03-02T18:17:36Z] POST-AGENT: marketing-head failed (exit 1) — skipping validation
+[2026-03-02T18:18:09Z] POST-AGENT: scrum-master (exit: 1, risk: medium)
+[2026-03-02T18:18:09Z] POST-AGENT: scrum-master failed (exit 1) — skipping validation
+[2026-03-02T18:18:19Z] POST-AGENT: scrum-master (exit: 1, risk: medium)
+[2026-03-02T18:18:19Z] POST-AGENT: scrum-master failed (exit 1) — skipping validation
+[2026-03-02T18:18:50Z] POST-AGENT: threat-architect (exit: 1, risk: medium)
+[2026-03-02T18:18:50Z] POST-AGENT: threat-architect failed (exit 1) — skipping validation
+[2026-03-02T18:34:28Z] POST-AGENT: qa-engineer (exit: 1, risk: medium)
+[2026-03-02T18:34:28Z] POST-AGENT: qa-engineer failed (exit 1) — skipping validation
+[2026-03-02T18:35:25Z] POST-AGENT: threat-architect (exit: 1, risk: medium)
+[2026-03-02T18:35:25Z] POST-AGENT: threat-architect failed (exit 1) — skipping validation
+[2026-03-02T18:51:04Z] POST-AGENT: qa-engineer (exit: 1, risk: medium)
+[2026-03-02T18:51:04Z] POST-AGENT: qa-engineer failed (exit 1) — skipping validation
+[2026-03-02T18:52:01Z] POST-AGENT: threat-architect (exit: 1, risk: medium)
+[2026-03-02T18:52:01Z] POST-AGENT: threat-architect failed (exit 1) — skipping validation
+[2026-03-02T19:04:23Z] POST-AGENT: swarm-controller (exit: 1, risk: medium)
+[2026-03-02T19:04:23Z] POST-AGENT: swarm-controller failed (exit 1) — skipping validation
+[2026-03-02T19:07:41Z] POST-AGENT: qa-engineer (exit: 1, risk: medium)
+[2026-03-02T19:07:41Z] POST-AGENT: qa-engineer failed (exit 1) — skipping validation

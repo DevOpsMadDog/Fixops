@@ -1,0 +1,58 @@
+{
+  "task_id": "junior-crypto-cli-test",
+  "worker_id": "junior-test-runner",
+  "status": "completed",
+  "files_modified": [],
+  "files_created": [],
+  "summary": "Successfully ran 187 crypto and CLI tests. All tests passed. No failures or errors.",
+  "test_results": {
+    "total_tests_collected": 187,
+    "total_passed": 187,
+    "total_failed": 0,
+    "total_skipped": 0,
+    "total_errors": 0,
+    "total_duration_seconds": 36.09
+  },
+  "test_files_run": [
+    "tests/test_crypto_signing.py",
+    "tests/test_crypto_unit.py",
+    "tests/test_crypto.py",
+    "tests/test_cli_commands.py",
+    "tests/test_cli.py"
+  ],
+  "slowest_tests": [
+    {
+      "name": "tests/test_cli.py::test_cli_demo_command",
+      "duration_seconds": 8.61
+    },
+    {
+      "name": "tests/test_cli.py::test_cli_run_pipeline",
+      "duration_seconds": 5.89
+    },
+    {
+      "name": "tests/test_crypto_unit.py::TestRSAKeyManager::test_metadata_to_dict",
+      "duration_seconds": 1.28
+    },
+    {
+      "name": "tests/test_crypto_unit.py::TestRSASigner::test_same_data_produces_same_signatures",
+      "duration_seconds": 1.11,
+      "note": "setup time"
+    },
+    {
+      "name": "tests/test_crypto_unit.py::TestRSAKeyManager::test_private_key_property_generates_key",
+      "duration_seconds": 0.97
+    }
+  ],
+  "test_breakdown": {
+    "test_crypto_signing.py": 3,
+    "test_crypto_unit.py": 103,
+    "test_crypto.py": 63,
+    "test_cli_commands.py": 4,
+    "test_cli.py": 14
+  },
+  "issues": [],
+  "needs_senior_review": false,
+  "confidence": 0.99,
+  "duration_turns": 5,
+  "notes": "All 187 tests passed with no failures. Crypto RSA signing, key management, and CLI command tests all operational. Test coverage of crypto module is comprehensive including key generation, persistence, env var handling, signature verification, and exception handling."
+}

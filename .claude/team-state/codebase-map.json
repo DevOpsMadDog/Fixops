@@ -1,37 +1,44 @@
 {
   "_meta": {
-    "version": "31.0",
-    "generated": "2026-03-03T20:00:00Z",
+    "version": "32.0",
+    "generated": "2026-03-03T21:30:00Z",
     "generated_by": "context-engineer",
     "incomplete": false,
     "pillars_served": ["V3", "V5", "V7", "V10"],
     "sprint": "Sprint 2 — ENTERPRISE DEMO (3 DAYS)",
     "demo_date": "2026-03-06",
-    "changes_from_v30": {
-      "headline": "v31.0: SIGNIFICANT GROWTH. 927 files (+13), 416,927 LOC (+14,785). 768 endpoints (+9). 13,674 tests (+453). Coverage stable 19.23%. Brain pipeline +130 LOC, AutoFix +87 LOC, Sandbox +42 LOC. UI grew to 99 src files (+4), 41,806 LOC (+4,633). 11/12 sprint done. Moat: 25th clean.",
-      "file_count_delta": "+13 Python files (914→927). Suite +1 (suite-core). Non-suite +12 (tests, tools, scripts).",
-      "loc_delta": "+14,785 total LOC. Suite +939 (api +261, core +606, attack +34, evidence-risk +38). Non-suite +13,846 (tests, ML modules, scripts).",
-      "endpoint_change": "+9 endpoints (759→768). Router: 687→696 (+9). Non-standard: 47. App.py direct: 25.",
-      "endpoint_details": "New endpoints: mcp_router +1, mcp_protocol_router +1, quantum_crypto_router +1, self_learning_router +1, single_agent_router +1, zero_gravity_router +1, compliance_engine_router +1, evidence_router +2.",
-      "engine_changes": "brain_pipeline 1,533→1,663 (+130). autofix_engine 1,428→1,515 (+87). sandbox_verifier 1,136→1,178 (+42). app.py 2,742→2,752 (+10).",
-      "test_growth": "+16 test files (369→385), +2,162 test LOC, +453 tests collected (13,221→13,674).",
-      "coverage_change": "19.23% (essentially stable from 19.25%). CI gate 25%, FAILING (gap: 5.77pp).",
-      "moat_status": "CLEAN — zero active violations. 25th consecutive clean scan.",
-      "ui_change": "+4 src TS/TSX files (95→99), +4,633 LOC (37,173→41,806). Frontend-craftsman building new components."
+    "changes_from_v31": {
+      "headline": "v32.0: Continued hardening. 935 files (+8), 424,238 LOC (+7,311). 768 endpoints (stable). 13,862 tests (+188). Coverage 19.23% (stable). Brain pipeline +165 LOC (→1,828), AutoFix +19 LOC (→1,534), app.py +101 LOC (→2,853). New: event_subscribers.py (211 LOC), healthcare demo script (1,962 LOC). UI 103 files (+2), 42,982 LOC (+1,176). 11/12 sprint done. Moat: 26th clean.",
+      "file_count_delta": "+8 Python files (927→935). Suite +2 (suite-core). Non-suite +6 (tests, scripts).",
+      "loc_delta": "+7,311 total LOC. Suite +2,569 (api +101, core +2,293, attack +175). Non-suite +4,742 (tests, scripts).",
+      "endpoint_change": "Stable at 768. Router: 696. Non-standard: 47. App.py direct: 25.",
+      "engine_changes": "brain_pipeline 1,663→1,828 (+165). autofix_engine 1,515→1,534 (+19). app.py 2,752→2,853 (+101). event_subscribers.py NEW (211 LOC).",
+      "test_growth": "+5 test files (385→390), +8,444 test LOC (182,668→191,112), +188 tests collected (13,674→13,862).",
+      "coverage_change": "19.23% (stable). CI gate 25%, FAILING (gap: 5.77pp).",
+      "moat_status": "CLEAN — zero active violations. 26th consecutive clean scan.",
+      "ui_change": "+2 src TS/TSX files (99→101 in src, 103 total), +1,176 LOC (41,806→42,982). Frontend-craftsman continuing DEMO-003.",
+      "new_files": [
+        "suite-core/core/event_subscribers.py (211 LOC) — event bus subscriber handlers",
+        "scripts/ctem_healthcare_demo.py (1,962 LOC) — healthcare vertical demo script",
+        "tests/test_jwt_hardening.py (374 LOC)",
+        "tests/test_brain_pipeline_optimization.py (458 LOC)",
+        "tests/test_hardening_2026_03_03.py (626 LOC)",
+        "tests/test_security_headers.py (153 LOC)"
+      ]
     }
   },
   "summary": {
-    "totalPythonFiles": 927,
-    "totalPythonLOC": 416927,
-    "totalTestFiles": 385,
-    "totalTestLOC": 182668,
-    "totalTestsCollected": 13674,
+    "totalPythonFiles": 935,
+    "totalPythonLOC": 424238,
+    "totalTestFiles": 390,
+    "totalTestLOC": 191112,
+    "totalTestsCollected": 13862,
     "testCollectionErrors": 0,
-    "testCollectionTime": "16.12s",
+    "testCollectionTime": "17.14s",
     "testCoveragePct": 19.23,
     "coverageGatePct": 25,
     "coverageGateStatus": "FAILING",
-    "coverageTrend": "19.23% (stable ~19.2% since v26). Tests 13,674 (+453). CI gate 25%, gap 5.77pp.",
+    "coverageTrend": "19.23% (stable ~19.2% since v26). Tests 13,862 (+188). CI gate 25%, gap 5.77pp.",
     "apiEndpointsRouter": 696,
     "apiEndpointsNonStandard": 47,
     "apiEndpointsAppDirect": 25,
@@ -40,43 +47,44 @@
     "nonStandardEndpointFiles": 8,
     "routerMountsInApp": 34,
     "sqliteDatabases": 56,
-    "uiSourceFiles": 99,
-    "uiSourceLOC": 41806,
+    "uiSourceFiles": 101,
+    "uiSourceFilesTotal": 103,
+    "uiSourceLOC": 42982,
     "uiNewExists": false,
     "connectorsTotal": 17,
     "connectorsIntegration": 7,
     "connectorsSecurity": 10,
-    "appPyLOC": 2752
+    "appPyLOC": 2853
   },
   "suites": {
     "suite-api": {
       "files": 42,
-      "loc": 22456,
+      "loc": 22557,
       "description": "FastAPI gateway — 20 routers, JWT auth, CORS, health checks",
       "entryPoint": "apps/api/app.py",
-      "entryPointLOC": 2752,
+      "entryPointLOC": 2853,
       "routers": 20,
       "routerEndpoints": 230,
       "pillar": "V7",
-      "change_v31": "+261 LOC (22,195→22,456). mcp_router +1 endpoint. app.py +10 LOC."
+      "change_v32": "+101 LOC (22,456→22,557). app.py +101 LOC (2,752→2,853)."
     },
     "suite-core": {
-      "files": 313,
-      "loc": 134874,
+      "files": 315,
+      "loc": 137167,
       "description": "Core engines — brain pipeline, scanners, connectors, CLI, vision engines, ML modules",
       "routers": 21,
       "routerEndpoints": 238,
       "pillar": "V3",
-      "change_v31": "+1 file, +606 LOC. brain_pipeline +130, autofix_engine +87, sandbox_verifier +42. 5 routers each +1 endpoint."
+      "change_v32": "+2 files, +2,293 LOC (134,874→137,167). brain_pipeline +165, autofix +19, event_subscribers NEW (211). Active hardening by backend-hardener."
     },
     "suite-attack": {
       "files": 13,
-      "loc": 6334,
+      "loc": 6509,
       "description": "Offensive security — MPTE, attack sim, scanner API routers",
       "routers": 12,
       "routerEndpoints": 106,
       "pillar": "V5",
-      "change_v31": "+34 LOC (6,300→6,334). Routers unchanged."
+      "change_v32": "+175 LOC (6,334→6,509). Router code growth from hardening."
     },
     "suite-feeds": {
       "files": 3,
@@ -85,7 +93,7 @@
       "routers": 1,
       "routerEndpoints": 31,
       "pillar": "V3",
-      "change_v31": "Unchanged."
+      "change_v32": "Unchanged."
     },
     "suite-evidence-risk": {
       "files": 71,
@@ -94,7 +102,7 @@
       "routers": 5,
       "routerEndpoints": 40,
       "pillar": "V10",
-      "change_v31": "+38 LOC (20,275→20,313). compliance_engine_router +1 endpoint, evidence_router +2 endpoints."
+      "change_v32": "Unchanged."
     },
     "suite-integrations": {
       "files": 23,
@@ -103,7 +111,7 @@
       "routers": 5,
       "routerEndpoints": 51,
       "pillar": "V7",
-      "change_v31": "Unchanged."
+      "change_v32": "Unchanged."
     }
   },
   "scanners": {
@@ -112,8 +120,8 @@
       "loc": 1622,
       "router": "suite-attack/api/sast_router.py",
       "endpoints": 5,
-      "description": "Regex-based pattern matching (air-gapped). Grew 465->1,577->1,622 across Sprint 1-2.",
-      "change_v31": "Unchanged."
+      "description": "Regex-based pattern matching (air-gapped). Grew 465→1,577→1,622 across Sprint 1-2.",
+      "change_v32": "Unchanged."
     },
     "dast_engine": {
       "file": "suite-core/core/dast_engine.py",
@@ -121,7 +129,7 @@
       "router": "suite-attack/api/dast_router.py",
       "endpoints": 3,
       "description": "Dynamic application security testing",
-      "change_v31": "Unchanged."
+      "change_v32": "Unchanged."
     },
     "secrets_scanner": {
       "file": "suite-core/core/secrets_scanner.py",
@@ -129,7 +137,7 @@
       "router": "suite-attack/api/secrets_router.py",
       "endpoints": 8,
       "description": "gitleaks/trufflehog wrapper with air-gapped fallback",
-      "change_v31": "Unchanged."
+      "change_v32": "Unchanged."
     },
     "container_scanner": {
       "file": "suite-core/core/container_scanner.py",
@@ -137,7 +145,7 @@
       "router": "suite-attack/api/container_router.py",
       "endpoints": 4,
       "description": "Container image vulnerability scanning",
-      "change_v31": "Unchanged."
+      "change_v32": "Unchanged."
     },
     "cspm_engine": {
       "file": "suite-core/core/cspm_engine.py",
@@ -145,7 +153,7 @@
       "router": "suite-attack/api/cspm_router.py",
       "endpoints": 5,
       "description": "Cloud Security Posture Management analyzer",
-      "change_v31": "Unchanged."
+      "change_v32": "Unchanged."
     },
     "api_fuzzer": {
       "router": "suite-attack/api/api_fuzzer_router.py",
@@ -166,24 +174,24 @@
   "visionEngines": {
     "brain_pipeline": {
       "file": "suite-core/core/brain_pipeline.py",
-      "loc": 1663,
+      "loc": 1828,
       "steps": 12,
       "router": "suite-core/api/brain_router.py",
       "routerEndpoints": 23,
       "pillar": "V3",
       "status": "LIVE",
-      "change_v31": "+130 LOC (1,533->1,663). Active hardening by backend-hardener."
+      "change_v32": "+165 LOC (1,663→1,828). Continued hardening: 3-phase O(n) graph optimization, elapsed_ms fixes."
     },
     "autofix_engine": {
       "file": "suite-core/core/autofix_engine.py",
-      "loc": 1515,
+      "loc": 1534,
       "fixTypes": 10,
       "router": "suite-core/api/autofix_router.py",
       "routerEndpoints": 13,
       "pillar": "V3",
       "status": "LIVE",
       "description": "LLM-powered code generation (10 fix types)",
-      "change_v31": "+87 LOC (1,428->1,515). Active hardening by backend-hardener."
+      "change_v32": "+19 LOC (1,515→1,534). Bug fixes: _fixes unbounded, _history unbounded."
     },
     "fail_engine": {
       "file": "suite-core/core/fail_engine.py",
@@ -192,7 +200,7 @@
       "routerEndpoints": 10,
       "pillar": "V3",
       "status": "LIVE",
-      "change_v31": "Unchanged."
+      "change_v32": "Unchanged."
     },
     "micro_pentest": {
       "file": "suite-core/core/micro_pentest.py",
@@ -202,7 +210,7 @@
       "routerEndpoints": 19,
       "pillar": "V5",
       "status": "LIVE",
-      "change_v31": "Unchanged."
+      "change_v32": "Unchanged."
     },
     "mpte_advanced": {
       "file": "suite-core/core/mpte_advanced.py",
@@ -211,7 +219,7 @@
       "routerEndpoints": 23,
       "pillar": "V5",
       "status": "LIVE",
-      "change_v31": "Unchanged."
+      "change_v32": "Unchanged."
     },
     "exposure_case": {
       "file": "suite-core/core/exposure_case.py",
@@ -220,7 +228,7 @@
       "routerEndpoints": 10,
       "pillar": "V3",
       "status": "LIVE",
-      "change_v31": "Unchanged."
+      "change_v32": "Unchanged."
     },
     "connectors": {
       "file": "suite-core/core/connectors.py",
@@ -230,7 +238,7 @@
       "connectors": ["Jira", "Confluence", "Slack", "ServiceNow", "GitLab", "AzureDevOps", "GitHub"],
       "pillar": "V1",
       "status": "LIVE",
-      "change_v31": "Unchanged."
+      "change_v32": "Unchanged."
     },
     "security_connectors": {
       "file": "suite-core/core/security_connectors.py",
@@ -240,7 +248,7 @@
       "connectors": ["Snyk", "SonarQube", "Dependabot", "AWS SecurityHub", "Azure Defender", "Wiz", "Prisma Cloud", "Orca", "Lacework", "ThreatMapper"],
       "pillar": "V1",
       "status": "LIVE",
-      "change_v31": "Unchanged."
+      "change_v32": "Unchanged."
     },
     "mcp_server": {
       "file": "suite-core/core/mcp_server.py",
@@ -249,7 +257,7 @@
       "routerEndpoints": 9,
       "pillar": "V7",
       "status": "LIVE",
-      "change_v31": "mcp_protocol_router +1 endpoint (8->9)."
+      "change_v32": "Unchanged."
     },
     "mcp_auto_discovery": {
       "file": "suite-api/apps/api/mcp_router.py",
@@ -258,7 +266,7 @@
       "pillar": "V7",
       "status": "LIVE",
       "description": "Auto-discovers all FastAPI routes and exposes as MCP tools",
-      "change_v31": "+1 endpoint (7->8)."
+      "change_v32": "Unchanged."
     },
     "falkordb_client": {
       "file": "suite-core/core/falkordb_client.py",
@@ -267,7 +275,7 @@
       "routerEndpoints": 10,
       "pillar": "V3",
       "status": "LIVE",
-      "change_v31": "Unchanged."
+      "change_v32": "Unchanged."
     },
     "single_agent": {
       "file": "suite-core/core/single_agent.py",
@@ -276,7 +284,7 @@
       "routerEndpoints": 7,
       "pillar": "V4",
       "status": "LIVE",
-      "change_v31": "+1 endpoint (6->7)."
+      "change_v32": "Unchanged."
     },
     "quantum_crypto": {
       "file": "suite-core/core/quantum_crypto.py",
@@ -285,7 +293,7 @@
       "routerEndpoints": 6,
       "pillar": "V6",
       "status": "LIVE",
-      "change_v31": "+1 endpoint (5->6)."
+      "change_v32": "Unchanged."
     },
     "self_learning": {
       "file": "suite-core/core/self_learning.py",
@@ -294,7 +302,7 @@
       "routerEndpoints": 19,
       "pillar": "V8",
       "status": "LIVE",
-      "change_v31": "+1 endpoint (18->19)."
+      "change_v32": "Unchanged."
     },
     "zero_gravity": {
       "file": "suite-core/core/zero_gravity.py",
@@ -303,14 +311,14 @@
       "routerEndpoints": 7,
       "pillar": "V9",
       "status": "LIVE",
-      "change_v31": "+1 endpoint (6->7)."
+      "change_v32": "Unchanged."
     },
     "enhanced_decision": {
       "file": "suite-core/core/enhanced_decision.py",
       "loc": 1279,
       "pillar": "V3",
       "status": "LIVE",
-      "change_v31": "Unchanged."
+      "change_v32": "Unchanged."
     },
     "crypto": {
       "file": "suite-core/core/crypto.py",
@@ -318,7 +326,7 @@
       "pillar": "V10",
       "status": "LIVE",
       "description": "RSA-SHA256 evidence signing",
-      "change_v31": "Unchanged."
+      "change_v32": "Unchanged."
     },
     "scanner_parsers": {
       "file": "suite-core/core/scanner_parsers.py",
@@ -328,7 +336,7 @@
       "pillar": "V7",
       "status": "LIVE",
       "description": "15 third-party scanner normalizers + universal ingest API",
-      "change_v31": "Unchanged."
+      "change_v32": "Unchanged."
     },
     "sandbox_verifier": {
       "file": "suite-core/core/sandbox_verifier.py",
@@ -336,7 +344,15 @@
       "pillar": "V5",
       "status": "LIVE",
       "description": "Docker sandbox PoC verification",
-      "change_v31": "+42 LOC (1,136->1,178)."
+      "change_v32": "Unchanged."
+    },
+    "event_subscribers": {
+      "file": "suite-core/core/event_subscribers.py",
+      "loc": 211,
+      "pillar": "V3",
+      "status": "LIVE",
+      "description": "Event bus subscriber handlers for cross-module communication",
+      "change_v32": "NEW in v32. Wires ML event handlers to EventBus."
     }
   },
   "oss_sca": {
@@ -457,7 +473,7 @@
     }
   },
   "honestyStatus": {
-    "scanNumber": 25,
+    "scanNumber": 26,
     "status": "CLEAN",
     "violations": 0,
     "details": {

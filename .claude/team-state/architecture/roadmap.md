@@ -124,13 +124,13 @@
 
 ---
 
-## Architecture Metrics (Verified 2026-03-03, Run 8)
+## Architecture Metrics (Verified 2026-03-03, Run 9)
 
-| Metric | Value | Change from Run 7 |
+| Metric | Value | Change from Run 8 |
 |--------|-------|--------|
-| Total LOC | ~417K Python + 42K TS | +15K since Run 7 |
+| Total LOC | ~417K Python + 42K TS | Stable |
 | Python suites | 6 | — |
-| API endpoints | 768 | — |
+| API endpoints | 770+ | +2 (/stats endpoints added) |
 | Router files | 64 | — |
 | Native scanners | 8 | — |
 | Inbound parsers | 15 | — |
@@ -138,24 +138,28 @@
 | Security connectors | 10 | — |
 | Total integration points | 32 | — |
 | Brain Pipeline steps | 12 | — |
-| Brain Pipeline LOC | 1,663 | +130 since Sprint 1 |
+| Brain Pipeline LOC | 1,828 | Stable |
 | AutoFix types | 10 | — |
-| AutoFix LOC | 1,534 | +19 (memory bounds) |
+| AutoFix LOC | 1,534 | Stable |
 | Self-Learning loops | 5 | — |
-| Tests collected | 13,674 | +1,109 since Run 7 |
-| Core tests passing | 288/288 | ✅ Verified (28.46s) |
-| AutoFix tests passing | 556/556 | ✅ Verified (58.88s) |
+| Self-Learning LOC | 1,359 | Stable |
+| MCP Server LOC | 979 | Stable |
+| MCP Router LOC | 1,016 | Stable |
+| MCP Protocol Router LOC | 220 | +9 (fixes + /stats) |
+| Tests collected | 13,674+ | Stable |
+| Core tests passing | 206/206 | ✅ Verified Run 9 (28.61s) |
+| Self-learning tests | 73/73 | ✅ Verified Run 9 (13.00s) |
+| AutoFix tests passing | 556/556 | ✅ Verified Run 8 |
 | Test coverage | 19.23% | Per agent-doctor measurement |
 | Docker services | 8 (compose) | — |
-| ADRs written | 9 | Stable (1 ref FIXED) |
-| ADRs validated | 9/9 | 1 broken ref fixed in ADR-009 |
-| Tech debt items | 26 (7 done) | +4 new, +2 FIXED |
-| Bandit total issues | 458 | +2 (0 HIGH) |
+| ADRs written | 10 | +1 (ADR-010 MCP Architecture) |
+| ADRs validated | 10/10 | All file refs valid, 0 broken |
+| Tech debt items | 33 (10 done) | +7 new (MCP review), +3 FIXED |
+| Bandit (core) | 175 (0H, 51M, 124L) | Re-baselined to core-only |
 | Bandit HIGH | 0 | ✅ Stable |
-| Bandit MEDIUM (core) | 2 | ✅ Stable |
 | Ruff warnings | 77 (0 actionable) | ✅ Stable |
-| Bug fixes this run | 3 | _fixes evict, _history evict, ADR path |
-| Reviews completed | 6 total | +1 (AutoFix engine B+) |
+| Bug fixes this run | 3 | MCP attr access (9 fixes), self-learning /stats, MCP protocol /stats |
+| Reviews completed | 7 total | +1 (MCP Architecture B-) |
 
 ---
 

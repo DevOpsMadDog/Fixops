@@ -28,3 +28,4 @@ python-dotenv>=1.0.0,<2.0
 sqlalchemy>=2.0.0,<3.0
 pyotp>=2.9.0,<3.0
 cvss>=3.6,<4.0
+defusedxml>=0.7.1,<1.0
