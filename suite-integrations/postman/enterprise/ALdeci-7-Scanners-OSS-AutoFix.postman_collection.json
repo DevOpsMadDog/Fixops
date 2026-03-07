@@ -223,7 +223,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"target_url\": \"https://httpbin.org/get\",\n  \"scan_type\": \"quick\",\n  \"checks\": [\n    \"xss\",\n    \"sqli\",\n    \"ssrf\",\n    \"open_redirect\"\n  ],\n  \"authenticated\": false,\n  \"max_depth\": 3\n}",
+              "raw": "{\n  \"target_url\": \"https://example.com\",\n  \"scan_type\": \"quick\",\n  \"checks\": [\n    \"xss\",\n    \"sqli\",\n    \"ssrf\",\n    \"open_redirect\"\n  ],\n  \"authenticated\": false,\n  \"max_depth\": 3\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -970,7 +970,7 @@
             "method": "POST",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"target_url\": \"https://httpbin.org\",\n  \"openapi_spec\": {\n    \"openapi\": \"3.0.0\",\n    \"info\": {\n      \"title\": \"test\",\n      \"version\": \"1.0\"\n    },\n    \"paths\": {}\n  },\n  \"crawl_depth\": 2\n}",
+              "raw": "{\n  \"target_url\": \"https://example.com\",\n  \"openapi_spec\": {\n    \"openapi\": \"3.0.0\",\n    \"info\": {\n      \"title\": \"test\",\n      \"version\": \"1.0\"\n    },\n    \"paths\": {}\n  },\n  \"crawl_depth\": 2\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1008,7 +1008,7 @@
             "method": "POST",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"target_url\": \"http://localhost:8000/api/v1/health\",\n  \"method\": \"GET\",\n  \"fuzz_type\": \"basic\"\n}",
+              "raw": "{\n  \"target_url\": \"https://example.com/api/v1/health\",\n  \"method\": \"GET\",\n  \"fuzz_type\": \"basic\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

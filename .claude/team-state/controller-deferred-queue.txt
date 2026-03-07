@@ -1,6 +1,0 @@
-
-devops-engineer|unknown
-scrum-master|unknown
-swarm-controller|unknown
-devops-engineer|unknown
-scrum-master|unknown

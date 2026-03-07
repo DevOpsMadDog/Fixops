@@ -713,7 +713,7 @@
                   "language": "json"
                 }
               },
-              "raw": "{\n  \"finding_id\": \"{{findingId}}\",\n  \"target_url\": \"http://localhost:8000\",\n  \"vulnerability_type\": \"sql_injection\",\n  \"scope\": \"quick\"\n}"
+              "raw": "{\n  \"finding_id\": \"{{findingId}}\",\n  \"target_url\": \"https://example.com\",\n  \"vulnerability_type\": \"sql_injection\",\n  \"scope\": \"quick\"\n}"
             }
           },
           "event": [
@@ -741,7 +741,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"finding_id\": \"CVE-2024-3094\",\n  \"target_url\": \"http://localhost:8080/vulnerable-endpoint\",\n  \"vulnerability_type\": \"injection\",\n  \"evidence\": {\n    \"scanner\": \"sast\",\n    \"severity\": \"critical\",\n    \"description\": \"SQL injection\"\n  }\n}",
+              "raw": "{\n  \"finding_id\": \"CVE-2024-3094\",\n  \"target_url\": \"https://example.com/test\",\n  \"vulnerability_type\": \"injection\",\n  \"evidence\": {\n    \"scanner\": \"sast\",\n    \"severity\": \"critical\",\n    \"description\": \"SQL injection\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -779,7 +779,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cve_ids\": [\n    \"{{cveId}}\"\n  ],\n  \"target_url\": \"http://payment-service:8080\",\n  \"options\": {\n    \"safe_mode\": true\n  },\n  \"vulnerability_type\": \"sql_injection\",\n  \"finding_id\": \"{{findingId}}\",\n  \"org_id\": \"{{orgId}}\",\n  \"target_urls\": [\n    \"http://localhost:8000\"\n  ]\n}",
+              "raw": "{\n  \"cve_ids\": [\n    \"{{cveId}}\"\n  ],\n  \"target_url\": \"https://example.com\",\n  \"options\": {\n    \"safe_mode\": true\n  },\n  \"vulnerability_type\": \"sql_injection\",\n  \"finding_id\": \"{{findingId}}\",\n  \"org_id\": \"{{orgId}}\",\n  \"target_urls\": [\n    \"https://example.com\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -849,7 +849,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"scan_id\": \"{{pentestScanId}}\",\n  \"format\": \"pdf\",\n  \"include_evidence\": true,\n  \"org_id\": \"{{orgId}}\",\n  \"cve_ids\": [\n    \"CVE-2024-3094\"\n  ],\n  \"target_urls\": [\n    \"http://localhost:8000\"\n  ]\n}",
+              "raw": "{\n  \"scan_id\": \"{{pentestScanId}}\",\n  \"format\": \"pdf\",\n  \"include_evidence\": true,\n  \"org_id\": \"{{orgId}}\",\n  \"cve_ids\": [\n    \"CVE-2024-3094\"\n  ],\n  \"target_urls\": [\n    \"https://example.com\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"

@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "dc-002-discover",
-    "name": "🔍 ALdeci — DISCOVER",
-    "description": "## Discover — \"What risks exist?\"\n\nCovers: Finding Explorer, Code Scanning, Secrets, IaC, Cloud, Containers, SBOM, Knowledge Graph, Attack Paths, Threat Feeds\n\n### Personas Served\n- **Marcus Johnson** (AppSec Engineer) — Finding triage, scanner correlation\n- **Emily Zhang** (Threat Intel Analyst) — Threat feeds, CVE enrichment\n- **Brian Lee** (Cloud Security) — CSPM, container scanning, IaC\n- **Lisa Wang** (Security Architect) — Knowledge graph, attack paths\n- **Aisha Patel** (SBOM Analyst) — SBOM, supply chain, license compliance\n\n### Endpoints: 200+ covering findings, brain/KG, dedup, scanners, feeds, inventory, reachability, predictions\n\n### Vision Pillars: V1, V2, V5, V8, V10",
+    "name": "\ud83d\udd0d ALdeci \u2014 DISCOVER",
+    "description": "## Discover \u2014 \"What risks exist?\"\n\nCovers: Finding Explorer, Code Scanning, Secrets, IaC, Cloud, Containers, SBOM, Knowledge Graph, Attack Paths, Threat Feeds\n\n### Personas Served\n- **Marcus Johnson** (AppSec Engineer) \u2014 Finding triage, scanner correlation\n- **Emily Zhang** (Threat Intel Analyst) \u2014 Threat feeds, CVE enrichment\n- **Brian Lee** (Cloud Security) \u2014 CSPM, container scanning, IaC\n- **Lisa Wang** (Security Architect) \u2014 Knowledge graph, attack paths\n- **Aisha Patel** (SBOM Analyst) \u2014 SBOM, supply chain, license compliance\n\n### Endpoints: 200+ covering findings, brain/KG, dedup, scanners, feeds, inventory, reachability, predictions\n\n### Vision Pillars: V1, V2, V5, V8, V10",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -39,8 +39,8 @@
   ],
   "item": [
     {
-      "name": "📋 Finding Explorer",
-      "description": "Core finding CRUD, search, and analytics — the primary discovery surface.",
+      "name": "\ud83d\udccb Finding Explorer",
+      "description": "Core finding CRUD, search, and analytics \u2014 the primary discovery surface.",
       "item": [
         {
           "name": "List Findings",
@@ -229,8 +229,8 @@
       ]
     },
     {
-      "name": "🧩 Deduplication & Correlation",
-      "description": "Finding deduplication, cluster management, cross-stage correlation — noise reduction engine.",
+      "name": "\ud83e\udde9 Deduplication & Correlation",
+      "description": "Finding deduplication, cluster management, cross-stage correlation \u2014 noise reduction engine.",
       "item": [
         {
           "name": "Process Finding for Dedup",
@@ -533,8 +533,8 @@
       ]
     },
     {
-      "name": "🧠 Knowledge Brain Graph",
-      "description": "The Knowledge Graph — entity nodes, edges, paths, risk scoring. Core V1 architecture.",
+      "name": "\ud83e\udde0 Knowledge Brain Graph",
+      "description": "The Knowledge Graph \u2014 entity nodes, edges, paths, risk scoring. Core V1 architecture.",
       "item": [
         {
           "name": "Create Node",
@@ -935,11 +935,11 @@
       ]
     },
     {
-      "name": "🔬 Security Scanners",
-      "description": "SAST, DAST, CSPM, Container, Secrets, IaC, API Fuzzer, Malware — all scanner APIs.",
+      "name": "\ud83d\udd2c Security Scanners",
+      "description": "SAST, DAST, CSPM, Container, Secrets, IaC, API Fuzzer, Malware \u2014 all scanner APIs.",
       "item": [
         {
-          "name": "SAST — Scan Code",
+          "name": "SAST \u2014 Scan Code",
           "request": {
             "method": "POST",
             "header": [],
@@ -976,7 +976,7 @@
           ]
         },
         {
-          "name": "SAST — List Rules",
+          "name": "SAST \u2014 List Rules",
           "request": {
             "method": "GET",
             "header": [],
@@ -1004,7 +1004,7 @@
           ]
         },
         {
-          "name": "SAST — Status",
+          "name": "SAST \u2014 Status",
           "request": {
             "method": "GET",
             "header": [],
@@ -1032,13 +1032,13 @@
           ]
         },
         {
-          "name": "DAST — Scan",
+          "name": "DAST \u2014 Scan",
           "request": {
             "method": "POST",
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"target_url\": \"https://httpbin.org/get\",\n  \"scan_type\": \"quick\"\n}",
+              "raw": "{\n  \"target_url\": \"https://example.com\",\n  \"scan_type\": \"quick\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1069,7 +1069,7 @@
           ]
         },
         {
-          "name": "DAST — Status",
+          "name": "DAST \u2014 Status",
           "request": {
             "method": "GET",
             "header": [],
@@ -1097,7 +1097,7 @@
           ]
         },
         {
-          "name": "CSPM — Scan Terraform",
+          "name": "CSPM \u2014 Scan Terraform",
           "request": {
             "method": "POST",
             "header": [],
@@ -1130,7 +1130,7 @@
           ]
         },
         {
-          "name": "CSPM — Rules",
+          "name": "CSPM \u2014 Rules",
           "request": {
             "method": "GET",
             "header": [],
@@ -1158,7 +1158,7 @@
           ]
         },
         {
-          "name": "Container — Scan Dockerfile",
+          "name": "Container \u2014 Scan Dockerfile",
           "request": {
             "method": "POST",
             "header": [],
@@ -1191,7 +1191,7 @@
           ]
         },
         {
-          "name": "Secrets — List Findings",
+          "name": "Secrets \u2014 List Findings",
           "request": {
             "method": "GET",
             "header": [],
@@ -1218,7 +1218,7 @@
           ]
         },
         {
-          "name": "Secrets — Scan Content",
+          "name": "Secrets \u2014 Scan Content",
           "request": {
             "method": "POST",
             "header": [],
@@ -1256,7 +1256,7 @@
           ]
         },
         {
-          "name": "IaC — Scan Content",
+          "name": "IaC \u2014 Scan Content",
           "request": {
             "method": "POST",
             "header": [],
@@ -1289,13 +1289,13 @@
           ]
         },
         {
-          "name": "API Fuzzer — Discover APIs",
+          "name": "API Fuzzer \u2014 Discover APIs",
           "request": {
             "method": "POST",
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"target_url\": \"http://localhost:8000\",\n  \"openapi_spec\": {\n    \"openapi\": \"3.0.0\",\n    \"info\": {\n      \"title\": \"test\",\n      \"version\": \"1.0\"\n    },\n    \"paths\": {}\n  },\n  \"org_id\": \"{{orgId}}\"\n}",
+              "raw": "{\n  \"target_url\": \"https://example.com\",\n  \"openapi_spec\": {\n    \"openapi\": \"3.0.0\",\n    \"info\": {\n      \"title\": \"test\",\n      \"version\": \"1.0\"\n    },\n    \"paths\": {}\n  },\n  \"org_id\": \"{{orgId}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1326,7 +1326,7 @@
           ]
         },
         {
-          "name": "Malware — Scan Content",
+          "name": "Malware \u2014 Scan Content",
           "request": {
             "method": "POST",
             "header": [],
@@ -1361,8 +1361,8 @@
       ]
     },
     {
-      "name": "📡 Threat Intelligence Feeds",
-      "description": "NVD, EPSS, KEV, ExploitDB, OSV, GitHub Advisories — threat intel enrichment.",
+      "name": "\ud83d\udce1 Threat Intelligence Feeds",
+      "description": "NVD, EPSS, KEV, ExploitDB, OSV, GitHub Advisories \u2014 threat intel enrichment.",
       "item": [
         {
           "name": "EPSS Scores",
@@ -1773,8 +1773,8 @@
       ]
     },
     {
-      "name": "🏢 Asset Inventory",
-      "description": "Application, service, API, and SBOM inventory — the APP_ID foundation (V1).",
+      "name": "\ud83c\udfe2 Asset Inventory",
+      "description": "Application, service, API, and SBOM inventory \u2014 the APP_ID foundation (V1).",
       "item": [
         {
           "name": "List Assets",
@@ -2057,8 +2057,8 @@
       ]
     },
     {
-      "name": "📥 Data Ingestion",
-      "description": "SARIF, SBOM, CVE, VEX, CNAPP, design context ingestion — the scanner input layer.",
+      "name": "\ud83d\udce5 Data Ingestion",
+      "description": "SARIF, SBOM, CVE, VEX, CNAPP, design context ingestion \u2014 the scanner input layer.",
       "item": [
         {
           "name": "Ingest SARIF",
@@ -2276,8 +2276,8 @@
       ]
     },
     {
-      "name": "🔮 Predictions & Algorithms",
-      "description": "Monte Carlo, Bayesian, GNN, Markov, Causal analysis — advanced risk analytics.",
+      "name": "\ud83d\udd2e Predictions & Algorithms",
+      "description": "Monte Carlo, Bayesian, GNN, Markov, Causal analysis \u2014 advanced risk analytics.",
       "item": [
         {
           "name": "Predict Attack Chain",
@@ -2535,8 +2535,8 @@
       ]
     },
     {
-      "name": "🆔 Fuzzy Identity Resolution",
-      "description": "Finding identity resolution — maps scanner naming variants to canonical identities.",
+      "name": "\ud83c\udd94 Fuzzy Identity Resolution",
+      "description": "Finding identity resolution \u2014 maps scanner naming variants to canonical identities.",
       "item": [
         {
           "name": "Register Canonical Identity",
@@ -2638,7 +2638,7 @@
       ]
     },
     {
-      "name": "🔌 Vulnerability Discovery",
+      "name": "\ud83d\udd0c Vulnerability Discovery",
       "description": "Internal vulnerability discovery, ML-driven detection, intelligence contributions.",
       "item": [
         {
@@ -2756,8 +2756,8 @@
       ]
     },
     {
-      "name": "🧮 Brain Pipeline",
-      "description": "The 12-step brain pipeline — end-to-end finding processing (V2, V3).",
+      "name": "\ud83e\uddee Brain Pipeline",
+      "description": "The 12-step brain pipeline \u2014 end-to-end finding processing (V2, V3).",
       "item": [
         {
           "name": "Run Full Pipeline",
