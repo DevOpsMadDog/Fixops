@@ -312,6 +312,7 @@ class TestGraphStepOptimization:
         step = result.steps[4]
         assert step.status in (StepStatus.COMPLETED, StepStatus.FAILED)
 
+    @pytest.mark.timeout(35)
     def test_graph_step_with_large_findings(self, pipeline, findings_1000):
         """Graph step should handle 1000+ findings without hanging."""
         inp = PipelineInput(org_id="graph-large", findings=findings_1000)

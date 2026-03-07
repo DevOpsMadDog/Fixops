@@ -1,0 +1,134 @@
+[
+  {
+    "id": "SP-001",
+    "pattern": "sql_injection",
+    "description": "SQL injection vulnerability via unsanitized user input in query construction",
+    "severity": "critical",
+    "cwe": "CWE-89",
+    "category": "injection",
+    "tags": ["owasp-top10", "injection", "database"],
+    "remediation": "Use parameterized queries or prepared statements instead of string concatenation",
+    "vector": [0.92, 0.85, 0.78, 0.91, 0.88, 0.76, 0.95, 0.83]
+  },
+  {
+    "id": "SP-002",
+    "pattern": "xss_reflected",
+    "description": "Reflected cross-site scripting through unescaped user input in HTML output",
+    "severity": "high",
+    "cwe": "CWE-79",
+    "category": "injection",
+    "tags": ["owasp-top10", "xss", "web"],
+    "remediation": "Encode all user-supplied data before rendering in HTML context",
+    "vector": [0.88, 0.82, 0.71, 0.85, 0.79, 0.90, 0.87, 0.74]
+  },
+  {
+    "id": "SP-003",
+    "pattern": "path_traversal",
+    "description": "Path traversal allowing access to files outside intended directory",
+    "severity": "high",
+    "cwe": "CWE-22",
+    "category": "file_access",
+    "tags": ["owasp-top10", "file-inclusion", "lfi"],
+    "remediation": "Validate and sanitize file paths, use allowlists for permitted directories",
+    "vector": [0.85, 0.78, 0.92, 0.80, 0.73, 0.88, 0.81, 0.77]
+  },
+  {
+    "id": "SP-004",
+    "pattern": "hardcoded_secret",
+    "description": "Hardcoded credentials or API keys embedded in source code",
+    "severity": "high",
+    "cwe": "CWE-798",
+    "category": "secrets",
+    "tags": ["secrets", "credentials", "api-key"],
+    "remediation": "Use environment variables or a secrets manager for sensitive values",
+    "vector": [0.79, 0.91, 0.68, 0.83, 0.86, 0.72, 0.90, 0.85]
+  },
+  {
+    "id": "SP-005",
+    "pattern": "insecure_deserialization",
+    "description": "Unsafe deserialization of untrusted data allowing remote code execution",
+    "severity": "critical",
+    "cwe": "CWE-502",
+    "category": "deserialization",
+    "tags": ["owasp-top10", "rce", "deserialization"],
+    "remediation": "Avoid deserializing untrusted data; use safe serialization formats like JSON",
+    "vector": [0.94, 0.87, 0.81, 0.93, 0.90, 0.78, 0.96, 0.84]
+  },
+  {
+    "id": "SP-006",
+    "pattern": "ssrf",
+    "description": "Server-side request forgery allowing internal network access",
+    "severity": "high",
+    "cwe": "CWE-918",
+    "category": "network",
+    "tags": ["owasp-top10", "ssrf", "network"],
+    "remediation": "Validate and restrict URLs to allowlisted domains; block internal IPs",
+    "vector": [0.86, 0.80, 0.75, 0.89, 0.82, 0.91, 0.84, 0.79]
+  },
+  {
+    "id": "SP-007",
+    "pattern": "broken_authentication",
+    "description": "Weak or missing authentication mechanisms allowing unauthorized access",
+    "severity": "critical",
+    "cwe": "CWE-287",
+    "category": "authentication",
+    "tags": ["owasp-top10", "auth", "session"],
+    "remediation": "Implement multi-factor authentication and proper session management",
+    "vector": [0.91, 0.84, 0.77, 0.90, 0.87, 0.74, 0.93, 0.82]
+  },
+  {
+    "id": "SP-008",
+    "pattern": "command_injection",
+    "description": "OS command injection via unsanitized input passed to system calls",
+    "severity": "critical",
+    "cwe": "CWE-78",
+    "category": "injection",
+    "tags": ["owasp-top10", "rce", "os-command"],
+    "remediation": "Use parameterized APIs instead of shell commands; validate and sanitize all inputs",
+    "vector": [0.93, 0.86, 0.80, 0.92, 0.89, 0.77, 0.95, 0.83]
+  },
+  {
+    "id": "SP-009",
+    "pattern": "insecure_tls",
+    "description": "Weak TLS configuration or disabled certificate validation",
+    "severity": "medium",
+    "cwe": "CWE-295",
+    "category": "cryptography",
+    "tags": ["tls", "ssl", "crypto"],
+    "remediation": "Use TLS 1.2+ with strong cipher suites; always validate certificates",
+    "vector": [0.72, 0.88, 0.65, 0.76, 0.81, 0.69, 0.85, 0.78]
+  },
+  {
+    "id": "SP-010",
+    "pattern": "container_escape",
+    "description": "Container configuration allowing privilege escalation or host access",
+    "severity": "critical",
+    "cwe": "CWE-250",
+    "category": "container",
+    "tags": ["container", "docker", "k8s", "privilege-escalation"],
+    "remediation": "Run containers as non-root; drop capabilities; use read-only filesystems",
+    "vector": [0.90, 0.83, 0.79, 0.91, 0.85, 0.76, 0.94, 0.81]
+  },
+  {
+    "id": "SP-011",
+    "pattern": "idor",
+    "description": "Insecure direct object reference allowing unauthorized resource access",
+    "severity": "high",
+    "cwe": "CWE-639",
+    "category": "authorization",
+    "tags": ["owasp-top10", "access-control", "idor"],
+    "remediation": "Implement proper authorization checks for all object references",
+    "vector": [0.83, 0.79, 0.74, 0.86, 0.80, 0.92, 0.82, 0.77]
+  },
+  {
+    "id": "SP-012",
+    "pattern": "open_redirect",
+    "description": "Unvalidated redirect allowing phishing attacks via trusted domain",
+    "severity": "medium",
+    "cwe": "CWE-601",
+    "category": "web",
+    "tags": ["redirect", "phishing", "web"],
+    "remediation": "Validate redirect targets against an allowlist of trusted domains",
+    "vector": [0.68, 0.75, 0.62, 0.71, 0.77, 0.83, 0.73, 0.69]
+  }
+]
