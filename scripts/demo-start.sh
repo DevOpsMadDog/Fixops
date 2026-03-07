@@ -237,7 +237,7 @@ case "${1:-}" in
         echo "  --reset    Stop, remove volumes and images, rebuild"
         echo "  --status   Show service status and quick health probe"
         echo "  --logs     Tail logs from all services"
-        echo "  --check    Run the full 42-endpoint health check"
+        echo "  --check    Run the full 44-endpoint health check"
         echo "  --help     Show this help message"
         ;;
     *)

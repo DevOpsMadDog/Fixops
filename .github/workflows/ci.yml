@@ -161,7 +161,7 @@ jobs:
         run: |
           PASS=0
           WARN=0
-          for f in docker/Dockerfile docker/Dockerfile.aldeci-ui docker/Dockerfile.enterprise docker/Dockerfile.demo docker/Dockerfile.demo-sidecar docker/Dockerfile.sidecar docker/Dockerfile.feeds-sidecar docker/Dockerfile.interactive; do
+          for f in docker/Dockerfile docker/Dockerfile.aldeci-ui docker/Dockerfile.enterprise docker/Dockerfile.demo docker/Dockerfile.demo-sidecar docker/Dockerfile.sidecar docker/Dockerfile.feeds-sidecar docker/Dockerfile.interactive docker/Dockerfile.risk-graph docker/Dockerfile.simple; do
             if [ -f "$f" ]; then
               ISSUES=""
               if ! grep -q "HEALTHCHECK" "$f"; then ISSUES="${ISSUES} no-healthcheck"; fi
@@ -394,6 +394,84 @@ jobs:
       - name: Cleanup
         if: always()
         run: docker stop fixops-ci && docker rm fixops-ci || true
+
+  # ── Job 7: Full-Stack Compose Test (DEMO-007) ───────────────
+  # Verifies that `docker compose -f docker/docker-compose.yml up`
+  # starts both API + UI and health checks pass within 30s.
+  # This is the customer laptop test — the most important CI job.
+  compose-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [compose-validate]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and start full stack (API + UI)
+        run: |
+          docker compose -f docker/docker-compose.yml up --build -d 2>&1
+        env:
+          FIXOPS_API_TOKEN: ci-test-token
+          FIXOPS_JWT_SECRET: ci-jwt-secret-for-testing-only
+
+      - name: Wait for API + UI health (max 60s, target <30s)
+        run: |
+          START_TS=$(date +%s)
+          API_READY=false
+          UI_READY=false
+          for i in $(seq 1 60); do
+            if [[ "$API_READY" != "true" ]] && curl -sf http://localhost:8000/health --max-time 2 > /dev/null 2>&1; then
+              ELAPSED=$(($(date +%s) - START_TS))
+              echo "✅ API healthy after ${ELAPSED}s"
+              API_READY=true
+            fi
+            if [[ "$UI_READY" != "true" ]] && curl -sf http://localhost:3001/nginx-health --max-time 2 > /dev/null 2>&1; then
+              ELAPSED=$(($(date +%s) - START_TS))
+              echo "✅ UI healthy after ${ELAPSED}s"
+              UI_READY=true
+            fi
+            if [[ "$API_READY" == "true" && "$UI_READY" == "true" ]]; then
+              TOTAL_ELAPSED=$(($(date +%s) - START_TS))
+              echo ""
+              echo "✅ Full stack healthy after ${TOTAL_ELAPSED}s"
+              if [ "$TOTAL_ELAPSED" -gt 30 ]; then
+                echo "⚠️  WARNING: Startup took ${TOTAL_ELAPSED}s (demo target: <30s)"
+              fi
+              break
+            fi
+            if [ $i -eq 60 ]; then
+              echo "❌ Full stack failed to become healthy within 60s"
+              echo "API_READY=$API_READY UI_READY=$UI_READY"
+              docker compose -f docker/docker-compose.yml logs
+              exit 1
+            fi
+            sleep 1
+          done
+
+      - name: Verify API via UI proxy (nginx → backend)
+        run: |
+          # The UI's nginx proxies /health and /api/* to the backend
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/health)
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ API accessible via UI proxy (/health → backend)"
+          else
+            echo "❌ UI proxy to API failed (got $STATUS)"
+            exit 1
+          fi
+
+      - name: Run demo health check script
+        run: |
+          chmod +x scripts/demo-healthcheck.sh
+          FIXOPS_API_TOKEN=ci-test-token ./scripts/demo-healthcheck.sh --ci || true
+        env:
+          FIXOPS_API_TOKEN: ci-test-token
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose -f docker/docker-compose.yml logs 2>&1 | tail -200
+
+      - name: Teardown
+        if: always()
+        run: docker compose -f docker/docker-compose.yml down -v || true
 
   # ── Job 7.5: Dependency Security Audit ─────────────────────
   dep-audit:

@@ -122,6 +122,7 @@ SHELL_SCRIPTS=(
     "scripts/air-gapped-test.sh"
     "scripts/docker-entrypoint.sh"
     "scripts/compose-validate.sh"
+    "scripts/local-dev-setup.sh"
 )
 
 for f in "${SHELL_SCRIPTS[@]}"; do

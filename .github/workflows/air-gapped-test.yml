@@ -23,6 +23,11 @@ on:
       - 'docker/**'
       - 'suite-core/**'
       - 'suite-api/**'
+      - 'suite-attack/**'
+      - 'suite-feeds/**'
+      - 'suite-evidence-risk/**'
+      - 'suite-integrations/**'
+      - 'requirements.txt'
   schedule:
     # Run weekly to catch regressions
     - cron: '0 6 * * 1'

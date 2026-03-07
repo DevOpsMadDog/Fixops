@@ -4651,3 +4651,28 @@
 - **Blockers**: OpenAI key rotation still pending CEO (mitigated via .gitignore)
 - **Next steps**: Sprint 3 — Semgrep OSS integration, pre-commit hooks for secret detection, DinD architecture for MPTE
 - **Pillar(s) served**: V3, V10
+
+### [2026-03-07 22:38] qa-engineer — QA_VALIDATION
+- **What**: Post-demo Day 1 full QA validation. Newman 475/475 green (12th consecutive). 9 Postman collection fixes for SSRF. 8/8 customer simulations pass. 19/19 moat files >80% (96.84% overall). 4230 tests pass. 0 stubs detected.
+- **Files touched**:
+  - MODIFIED: `suite-integrations/postman/enterprise/ALdeci-2-Discover.postman_collection.json` (1 target URL fix)
+  - MODIFIED: `suite-integrations/postman/enterprise/ALdeci-3-Validate.postman_collection.json` (4 target URL fixes)
+  - MODIFIED: `suite-integrations/postman/enterprise/ALdeci-6-PersonaWorkflows.postman_collection.json` (3 target URL fixes)
+  - MODIFIED: `suite-integrations/postman/enterprise/ALdeci-7-Scanners-OSS-AutoFix.postman_collection.json` (1 target URL fix)
+  - CREATED: `.claude/team-state/qa/iteration-12-sprint2-day7/verdict.json`
+  - CREATED: `.claude/team-state/qa/iteration-12-sprint2-day7/col{1-7}-results.json`
+  - UPDATED: `.claude/team-state/quality-gate.json`
+  - UPDATED: `.claude/team-state/qa-engineer-status.md`
+  - UPDATED: `.claude/team-state/qa/stub-report.md`
+  - UPDATED: `.claude/team-state/decisions.log`
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V3 (Decision Intelligence), V5 (MPTE Verification), V7 (MCP-Native), V10 (CTEM Full Loop)
+
+### [2026-03-07 22:47] devops-engineer — INFRASTRUCTURE_HARDENING
+- **What**: Post-demo CI pipeline hardening and infrastructure validation. Added compose-e2e full-stack test (9th CI job), expanded Dockerfile validation to all 10 files, fixed air-gapped CI PR trigger consistency, fixed demo-start.sh endpoint count, added local-dev-setup.sh to compose-validate.sh.
+- **Files touched**: `.github/workflows/ci.yml`, `.github/workflows/air-gapped-test.yml`, `scripts/demo-start.sh`, `scripts/compose-validate.sh`, `.claude/team-state/dev-environment.md`, `.claude/team-state/devops-engineer-status.md`
+- **Outcome**: SUCCESS
+- **Decisions made**: Added compose-e2e CI job to validate full Docker Compose stack (API+UI). Expanded Dockerfile checks to 10/10. Air-gapped CI now watches all suite dirs on PRs.
+- **Blockers**: None
+- **Next steps**: Run full CI pipeline to validate the new compose-e2e job works on GitHub Actions runners.
+- **Pillar(s) served**: V3, V7, V9 (CI validates all 8 scanners, brain pipeline, MCP gateway)
