@@ -402,6 +402,7 @@ class TestThreatIntelligenceOrchestrator:
         assert "kev_listed_vulnerabilities" in stats
         assert "feeds" in stats
 
+    @pytest.mark.timeout(30)
     def test_orchestrator_update_all_feeds(self, temp_cache_dir: Path):
         """Test updating all feeds with orchestrator."""
         orchestrator = ThreatIntelligenceOrchestrator(cache_dir=temp_cache_dir)
