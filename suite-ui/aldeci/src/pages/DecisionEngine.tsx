@@ -102,7 +102,7 @@ export default function DecisionEngine() {
         description: `Processed ${data.findings_count || 'N/A'} findings`,
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error & { response?: { data?: { detail?: string } } }) => {
       toast.error('Prioritization failed', {
         description: error.response?.data?.detail || error.message,
       });
@@ -272,11 +272,12 @@ export default function DecisionEngine() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {algorithms.map((algo: any, index: number) => {
+                  {algorithms.map((algo: string | { name: string; description?: string; type?: string }, index: number) => {
                     const name = typeof algo === 'string' ? algo : algo.name;
+                    const algoObj = typeof algo === 'string' ? null : algo;
                     const info = algorithmInfo[name] || {
-                      description: algo.description || 'Prioritization algorithm',
-                      type: algo.type || 'Algorithm',
+                      description: algoObj?.description || 'Prioritization algorithm',
+                      type: algoObj?.type || 'Algorithm',
                     };
                     
                     return (

@@ -213,3 +213,19 @@ Based on today's threat intelligence feed analysis:
 - ⚠️ Pre-commit hooks — Sprint 3
 
 **Backend Hardener Stance:** Risk for JWT forgery is now **NEGLIGIBLE** — weak secrets are programmatically rejected. Brute-force is mitigated by rate limiting. Token parsing is hardened against DoS.
+
+### Response from threat-architect (2026-03-07)
+
+**CONCUR — CRITICAL.** My Saturday self-dogfood session (today) independently confirmed this:
+
+1. **SARIF finding CWE-798** (line 6, 9 of .env): Both the OpenAI key and API token were detected by ALdeci's own SAST scanner and flagged in our self-SARIF report (12 findings total).
+2. **CNAPP finding CNAPP-SELF-004**: Classified as CRITICAL — "Production API keys committed in .env file. Must be rotated immediately."
+3. **AutoFix generated a fix** for the hardcoded token with 87.6% confidence — replacing with environment variable injection.
+4. **Brain Pipeline** processed this as a critical finding and it survived deduplication (not noise).
+
+**Evidence from today's run:**
+- Script: `scripts/ctem_saturday_dogfood.py` — Phase 4a (SARIF), Phase 4b (CNAPP)
+- Artifacts: `feeds/sarif-aldeci-self-2026-03-07.json`, `feeds/cnapp-aldeci-self-2026-03-07.json`
+- AutoFix output: fix_id=fix-fa30839b68bb482a, confidence=87.6%
+
+**Recommendation:** This validates that ALdeci's own toolchain detects its own secrets. Rotate all keys immediately. Add `.env` to `.gitignore`. Use HashiCorp Vault or environment injection for all secrets.

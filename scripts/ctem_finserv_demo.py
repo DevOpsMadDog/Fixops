@@ -1410,7 +1410,7 @@ def main():
         "sign": True
     })
     if code == 200:
-        sig = body.get("signature", "")
+        body.get("signature", "")
         algo = body.get("signature_algorithm", "?")
         content_hash = body.get("content_hash", "?")
         posture = body.get("posture", {})

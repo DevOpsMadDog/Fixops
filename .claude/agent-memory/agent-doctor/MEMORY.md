@@ -17,28 +17,28 @@ When launching claude CLI as child processes on macOS:
 - State: `.claude/team-state/`
 - Logs: `logs/ai-team/`
 
-### Sprint 2 Pre-Flight (run24→run35, 2026-03-01→03)
-- Enterprise demo in 3 days (2026-03-06). Sprint 2: 11/12 done (91.7%), 1 P0 blocker (DEMO-003 UI wiring).
-- **Run35 (latest)**: 16/17 Grade A, 1 Grade C (sales-engineer rate-limited). 19/19 engines (21,000 LOC). 4/4 MOATs. 56/56 DBs integrity OK. 321 core tests (32.97s). 13,816 total (+142 since run34). GREEN.
-- **Run35**: 7 WAL files (9.5MB) checkpointed via TRUNCATE + cleaned. fixops_brain.db HEALTHY (612 pages, 4 tables) — no corruption since run34 recovery.
-- **Run34 CLEANUP**: QA directory 971MB → 228MB (freed 743MB). Team state 998MB → 255MB.
-- **fixops_brain.db**: Corruption was RECURRING (run28, run31+, run33, run34) but STABLE since run34 recovery. suite-api/data/fixops_brain.db is now EMPTY (2 pages, 0 tables) — NOT a viable backup anymore. Primary at data/fixops_brain.db is the only copy (612 pages).
+### Sprint 2 Post-Demo (run24→run36, 2026-03-01→07)
+- Enterprise demo COMPLETED 2026-03-06. Sprint 2: 11/12 done (91.7%), 1 P0 blocker (DEMO-003 UI wiring).
+- **Run36 (latest, verified 2026-03-07)**: Post-demo health audit. YELLOW (10 agents stale from RC11 quota, NOT infra). 17/17 YAML valid. 19/19 engines (21,240 LOC). 4/4 MOATs. 45/45 DBs integrity OK. 916 core tests (27.51s). 13,949 total. 19.21% coverage.
+- **Run36 WAL**: 6 WAL files found (248MB total, fixops_brain.db was 234MB). All checkpointed to 0. Second-largest WAL event after 2.5GB in run28.
+- **Run36 agents**: 10 failed/crashed (ALL RC11 quota exhaustion from 2026-03-03). All reset to READY. Quota reset Mar 6.
+- **fixops_brain.db**: STABLE since run34. WAL grew to 234MB between runs but checkpointed cleanly.
 - Lock files: jarvis.pid, jarvis.lock, controller-watchdog.pid — ALWAYS check if PIDs alive before cleaning
-- SA-001: .env secrets rotation CRITICAL (7 days open, .gitignore fix applied, key rotation pending)
-- SA-002: Docker hardening PARTIALLY RESOLVED (credentials fixed, socket mount accepted risk)
+- SA-001: .env secrets rotation CRITICAL (11 days open, .gitignore fix applied, key rotation STILL PENDING)
+- SA-002: Docker hardening PARTIALLY RESOLVED (5 days old)
 
-### CTEM+ Engine Inventory (verified 2026-03-03 run34)
+### CTEM+ Engine Inventory (verified 2026-03-07 run36)
 - 6 scanner engines: sast (1622), dast (633), secrets (848), container (445), iac (713), cspm (609) = 4,870 LOC
-- Brain pipeline: `brain_pipeline.py` (1,663 LOC, 12 steps via _step_* methods, has `run()` method) — growing since run15
+- Brain pipeline: `brain_pipeline.py` (1,878 LOC, 12 steps via _step_* methods, has `run()` method) — growing since run15 (+215 since run35)
 - MPTE: mpte_advanced.py (1,089, AdvancedMPTEClient), mpte_db.py (536, MPTEDB), mpte_models.py (141, PenTestConfig/Request/Result), micro_pentest.py (2,054, run_micro_pentest) = 3,820 LOC
-- AutoFix: `autofix_engine.py` (1,515 LOC, AutoFixEngine, 8 public methods)
+- AutoFix: `autofix_engine.py` (1,534 LOC, AutoFixEngine, 8 public methods)
 - FAIL Engine: `fail_engine.py` (711 LOC, FAILEngine, 8 public methods)
-- Connectors: `connectors.py` (3,005 LOC, AutomationConnectors) + `universal_connector.py` (1,637 LOC)
-- MCP: `mcp_server.py` (979 LOC, MCPProtocolHandler NOT MCPServer) + `mcp_router.py` (468 in suite-integrations)
-- 6 vision engines: falkordb_client (835, KnowledgeGraphEngine), single_agent (818, SingleAgentEngine), quantum_crypto (664, HybridQuantumSigner), mcp_server (978, MCPProtocolHandler), self_learning (1359, SelfLearningEngine), zero_gravity (855, ZeroGravityEngine) = 5,509 LOC
+- Connectors: `connectors.py` (3,011 LOC, AutomationConnectors) + `universal_connector.py` (1,637 LOC)
+- MCP: `mcp_server.py` (978 LOC, MCPProtocolHandler NOT MCPServer) + `mcp_router.py` (468 in suite-integrations)
+- 6 vision engines: falkordb_client (835, KnowledgeGraphEngine), single_agent (818, SingleAgentEngine), quantum_crypto (666, HybridQuantumSigner), mcp_server (978, MCPProtocolHandler), self_learning (1359, SelfLearningEngine), zero_gravity (855, ZeroGravityEngine) = 5,511 LOC
 - **Module names (NOT _engine suffix)**: `core.single_agent`, `core.self_learning`, `core.zero_gravity` — NOT `core.single_agent_engine` etc.
 - Crypto: `crypto.py` (582 LOC, RSAKeyManager/RSASigner/RSAVerifier — NOT CryptoEngine)
-- Total 19 engines verified importable: 6 scanner + 6 vision + 7 core = 21,000 LOC (was 18,160 at Sprint 1 end)
+- Total 19 engines verified importable: 6 scanner + 6 vision + 7 core = 21,240 LOC (was 21,000 at run35, 18,160 at Sprint 1 end)
 - CTEM_PLUS_IDENTITY.md says `cspm_analyzer.py` but actual is `cspm_engine.py`
 
 ### Test-Code Drift Pattern (RC7 — resolved run9)
@@ -90,15 +90,16 @@ When launching claude CLI as child processes on macOS:
 - Use `bash -c '...'` wrapper for scripts with `[[ ]]` syntax — zsh parses `[[ ! ]]` differently
 - Or use `[ ]` (POSIX) instead of `[[ ]]` (bash)
 
-### Sprint Artifacts (as of 2026-03-03 run35)
+### Sprint Artifacts (as of 2026-03-07 run37 VERIFIED)
 - Sprint 1 ARCHIVED: 21/23 done (91.3%)
-- Sprint 2 ACTIVE: 11/12 done (91.7%). 1 P0 blocker: DEMO-003 (UI wiring). 3 days to demo.
-- 13,816 tests collected (+142 since run34), 321 core tests passing (32.97s, 6 files)
-- Coverage: 19.23% (gate: 25% — FAILING, not demo blocker)
-- 21,000 LOC across 19 engines (+2,840 from Sprint 1)
-- WAL trend: 2.5GB (run28) → 0KB (run33-34) → 9.5MB (run35, cleaned) — STABLE
-- SA-001: .env secrets rotation CRITICAL (7 days open, .gitignore fix applied, key rotation pending)
-- SA-002: Docker hardening PARTIALLY RESOLVED (1 day old)
+- Sprint 2 ENDED: 11/12 done (91.7%). Enterprise demo was 2026-03-06. DEMO-003 (UI wiring) still in-progress.
+- 13,949 tests collected, 916 core tests passing (27.61s, 9 files)
+- Coverage: 19.28% (gate: 25% — FAILING, gap 5.72pp)
+- 21,240 LOC across 19 engines
+- WAL trend: 2.5GB (run28) → 0KB (run33-34) → 9.5MB (run35) → 248MB (run36) → 0 bytes (run37) — STABILIZED
+- DB count: 56 (was 45 in run36, 11 new in suite-api/data/ subdirs)
+- SA-001: .env secrets rotation CRITICAL (12 days open, .gitignore fix applied, key rotation STILL pending)
+- SA-002: Docker hardening PARTIALLY RESOLVED (6 days old)
 
 ### Core Test Files (verified run v6 — 948 tests, ~68s)
 - test_brain_pipeline.py (159 tests)
@@ -123,12 +124,12 @@ When launching claude CLI as child processes on macOS:
 - mpte_models.py: exports `PenTestConfig`, `PenTestRequest`, `PenTestResult` — NOT `MPTETarget`
 - Always use `import core.module_name` pattern, not `from core.module_name import ClassName`
 
-### Healthy Agents (verified run35 — 2026-03-03)
-- 16/17 Grade A, 1 Grade C (sales-engineer rate-limited). Health: GREEN.
-- Run35: 19/19 engines (21,000 LOC). 4/4 MOATs. 56/56 DBs integrity OK. 321 core tests (32.97s). 13,816 total.
-- Run35: 7 WAL (9.5MB) checkpointed+cleaned. fixops_brain.db HEALTHY (612 pages, no corruption).
-- IMPORTANT: suite-api/data/fixops_brain.db is now EMPTY (2 pages, 0 tables) — no longer usable as backup.
-- Crypto MOAT4: RSASigner.sign(data) returns (bytes, str) tuple = (512-byte signature, SHA256 fingerprint). RSAKeyManager has NO generate_keys method — keys auto-generated on init.
+### Healthy Agents (verified run37 — 2026-03-07)
+- GREEN: 18/19 Grade A, 1 Grade B (sales-engineer). 19/19 YAML valid (including ux-architect, persona-api-validator).
+- Run37: 19/19 engines (21,240 LOC). 4/4 MOATs. 56/56 DBs integrity OK (+11 new). 916 core tests (27.61s). 13,949 total. 19.28% cov.
+- Run37: 2 WAL files (0 bytes each) + 2 SHM cleaned. Zero corruption.
+- Crypto MOAT4: RSASigner(km) — pass RSAKeyManager not km.private_key! Returns (bytes, str) tuple = (512-byte signature, SHA256 fingerprint).
+- RC11 fully recovered. All agents READY. Lock PIDs alive (active swarm). SA-001 CRITICAL (12 days).
 
 ### Coverage Acceleration Strategy (updated run v8)
 - **v6 strategy** (suite-core modules): diminishing returns — tests hit already-covered code
@@ -160,20 +161,19 @@ When launching claude CLI as child processes on macOS:
 - The fallback is NOT detected by `metadata.fallback` in the AIDecision — it flows through normal path
 - To detect fallback: check `confidence == 0.5` and `reasoning` contains "Fallback"
 
-### Coverage Measurement Note (run16, updated run35)
-- Agent-doctor's full `pytest --cov=.` measures 19.23% as of run35 (stable since run34)
-- Previous: 17.99% (v6), 19.15% (run33), 19.23% (run34-35) — plateaued
-- Context-engineer reported 19.25% at v30 — close match (different scope/timing)
-- Always use agent-doctor's `--cov=.` measurement for official coverage metric
+### Coverage Measurement Note (run16, updated run37)
+- Agent-doctor measures 19.28% as of run37 (up from 19.21% in run36)
+- Previous: 17.99% (v6), 19.15% (run33), 19.23% (run34-35), 19.21% (run36), 19.28% (run37) — slight upward trend
+- Always use agent-doctor's measurement for official coverage metric
 - `stat -f '%m'` on macOS: use `date -r FILE` instead — avoids zsh parsing issues
 
-### WAL File Accumulation Pattern (run19, updated run28)
+### WAL File Accumulation Pattern (run19, updated run37)
 - SQLite WAL files grow during pytest runs — each test that creates/writes DB produces WAL
-- Run15: 5 WAL (13.1MB), Run16: 9 WAL (29MB), Run17: 2 WAL (0 bytes), Run18: 0 WAL, Run19: 3 WAL (8.1MB), Run v6: 5 WAL (0 bytes)
-- **Run28: 12 WAL (2.55GB!!!) — fixops_brain.db had 2.5GB WAL causing CORRUPTION (malformed disk image)**
-- **CRITICAL LESSON**: Large WAL files can corrupt the parent DB. fixops_brain.db had to be recreated.
-- Safe to clean: `rm -f` on WAL + SHM files. DB files remain intact IF not already corrupted.
-- Pattern RECURRING: WAL accumulate between runs. Always check and clean. Check DB integrity after cleaning large WALs.
+- Run28: 12 WAL (2.55GB) — fixops_brain.db had 2.5GB WAL causing CORRUPTION
+- Run36: 6 WAL (248MB) — fixops_brain.db-wal 234MB. Checkpointed cleanly.
+- Run37: 2 WAL (0 bytes each) + 2 SHM (32KB each). Cleaned. STABILIZED.
+- Safe to clean: PRAGMA wal_checkpoint(TRUNCATE) then rm -f on WAL + SHM files. ALWAYS check integrity_check first.
+- Pattern: WAL accumulate between runs. Always check and clean.
 
 ### PersistentDict Resource Leak (RC9 — resolved run19)
 - `persistent_store.py` `_conn()` method created NEW `sqlite3.connect()` on every call

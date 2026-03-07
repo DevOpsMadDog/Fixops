@@ -1,50 +1,17 @@
 {
-  "mae": 0.4722,
-  "rmse": 0.6548,
-  "r2": 0.9996,
-  "within_range_pct": 1.0,
-  "precision_by_priority": {
-    "FP": 1.0,
-    "P0": 1.0,
-    "P1": 1.0,
-    "P2": 1.0,
-    "P3": 1.0,
-    "P4": 1.0
-  },
-  "recall_by_priority": {
-    "FP": 1.0,
-    "P0": 1.0,
-    "P1": 1.0,
-    "P2": 1.0,
-    "P3": 1.0,
-    "P4": 1.0
-  },
+  "version": "2.1.0",
+  "date": "2026-03-07",
   "f1_by_priority": {
-    "FP": 1.0,
-    "P0": 1.0,
-    "P1": 1.0,
+    "FP": 0.9473684210526316,
+    "P0": 0.988235294117647,
+    "P1": 0.9696969696969697,
     "P2": 1.0,
-    "P3": 1.0,
-    "P4": 1.0
+    "P3": 0.9473684210526316,
+    "P4": 0.6666666666666666
   },
-  "training_samples": 75,
-  "test_samples": 75,
-  "cv_scores": [
-    0.8885,
-    0.8436,
-    0.9104,
-    0.9211,
-    0.9089
-  ],
-  "feature_importances": {
-    "asset_criticality": 0.5942,
-    "epss_score": 0.3146,
-    "network_exposure": 0.0325,
-    "exploit_maturity": 0.0191,
-    "exploit_available": 0.016,
-    "reachable": 0.0104,
-    "cvss_score": 0.009,
-    "in_kev": 0.0042,
-    "has_chain": 0.0
-  }
+  "within_range_pct": 1.0,
+  "mae": 0.78,
+  "r2": 0.9992,
+  "total_cases": 93,
+  "pass_rate": 96.8
 }

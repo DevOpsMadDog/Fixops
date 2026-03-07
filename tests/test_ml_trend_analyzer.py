@@ -13,8 +13,6 @@ import json
 import os
 import tempfile
 
-import numpy as np
-import pytest
 
 from core.ml.trend_analyzer import (
     ScanHistoryStore,
@@ -68,7 +66,6 @@ def _make_finding(
 def _generate_improving_scans(n: int = 10) -> list:
     """Generate scans where severity is improving over time."""
     scans = []
-    severities = ["critical", "high", "medium", "low", "info"]
     for i in range(n):
         # Fewer critical findings over time
         findings = []

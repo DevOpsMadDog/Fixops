@@ -96,8 +96,8 @@ export default function NerveCenter() {
           </h1>
           <p className="text-muted-foreground mt-1">Unified intelligence command center — all suites connected</p>
         </div>
-        <Button onClick={() => setRemediateModal(!remediateModal)} className="gap-2">
-          <Zap className="w-4 h-4" /> Auto-Remediate
+        <Button onClick={() => setRemediateModal(!remediateModal)} className="gap-2" aria-label="Open auto-remediation panel" aria-expanded={remediateModal}>
+          <Zap className="w-4 h-4" aria-hidden="true" /> Auto-Remediate
         </Button>
       </div>
 
@@ -150,7 +150,7 @@ export default function NerveCenter() {
       {/* Suite Status Grid */}
       {suites.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {suites.map((s: any, i: number) => (
+          {suites.map((s: { suite: string; status: string; endpoints: number; latency_ms: number; active_tasks: number }, i: number) => (
             <motion.div key={s.suite} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
               whileHover={{ scale: 1.02, y: -3 }}>
               <Card className="glass-card backdrop-blur-md bg-gray-900/40 border-gray-700/40 hover:border-primary/30 transition-all">
@@ -232,8 +232,8 @@ export default function NerveCenter() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-5 gap-3">
-            {nodes.map((node: any) => (
-              <div key={node.id} className="p-3 rounded-lg border border-border bg-card/50 hover:border-primary/50 transition-colors cursor-pointer">
+            {nodes.map((node: { id: string; label: string; type: string; suite: string; apis?: string[] }) => (
+              <div key={node.id} className="p-3 rounded-lg border border-border bg-card/50 hover:border-primary/50 transition-colors cursor-pointer" role="button" tabIndex={0} aria-label={`Intelligence node: ${node.label} (${node.suite})`}>
                 <div className="flex items-center gap-2 mb-2">
                   <div className={`w-2 h-2 rounded-full ${node.type === 'brain' ? 'bg-purple-500 animate-pulse' : node.type === 'entry' ? 'bg-blue-500' : node.type === 'processor' ? 'bg-green-500' : node.type === 'verifier' ? 'bg-red-500' : node.type === 'assessor' ? 'bg-yellow-500' : node.type === 'store' ? 'bg-cyan-500' : node.type === 'enricher' ? 'bg-orange-500' : node.type === 'connector' ? 'bg-pink-500' : node.type === 'automator' ? 'bg-indigo-500' : 'bg-slate-500'}`} />
                   <span className="text-xs font-medium truncate">{node.label}</span>
@@ -243,14 +243,14 @@ export default function NerveCenter() {
                   {node.apis?.slice(0, 3).map((a: string) => (
                     <Badge key={a} variant="outline" className="text-[9px] px-1 py-0 h-4">{a}</Badge>
                   ))}
-                  {node.apis?.length > 3 && <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">+{node.apis.length - 3}</Badge>}
+                  {(node.apis?.length ?? 0) > 3 && <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">+{(node.apis?.length ?? 0) - 3}</Badge>}
                 </div>
               </div>
             ))}
           </div>
           {/* Connection lines summary */}
           <div className="mt-4 grid grid-cols-4 gap-2">
-            {edges.slice(0, 8).map((edge: any, i: number) => (
+            {edges.slice(0, 8).map((edge: { from: string; to: string }, i: number) => (
               <div key={i} className="flex items-center gap-1 text-xs text-muted-foreground">
                 <span className="font-mono text-primary">{edge.from}</span>
                 <ArrowRight className="w-3 h-3 text-muted-foreground/50" />
@@ -269,7 +269,7 @@ export default function NerveCenter() {
             <CardTitle className="text-sm flex items-center gap-2"><TrendingUp className="w-4 h-4" /> Live Data Flows</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {links.length > 0 ? links.map((link: any, i: number) => (
+            {links.length > 0 ? links.map((link: { source_suite: string; target_suite: string; data_flow: string; events_per_min: number }, i: number) => (
               <div key={i} className="flex items-center justify-between p-2 rounded border border-border/50 hover:bg-accent/30 transition-colors">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <Badge variant="outline" className="text-[10px] shrink-0">{link.source_suite.replace('suite-', '')}</Badge>
@@ -294,7 +294,7 @@ export default function NerveCenter() {
             <CardTitle className="text-sm flex items-center gap-2"><Zap className="w-4 h-4 text-yellow-400" /> Recent Auto-Remediation</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {actions.length > 0 ? actions.map((action: any) => (
+            {actions.length > 0 ? actions.map((action: { id: string; trigger: string; status: string; action_type: string; target: string; confidence: number }) => (
               <div key={action.id} className="p-2 rounded border border-border/50 space-y-1 hover:bg-accent/20 transition-colors">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium truncate max-w-[70%]">{action.trigger}</span>
@@ -326,7 +326,7 @@ export default function NerveCenter() {
                 <label className="text-sm text-muted-foreground">Action</label>
                 <div className="flex gap-2 mt-1">
                   {['block', 'quarantine', 'patch', 'escalate', 'notify'].map((action) => (
-                    <Button key={action} variant="outline" size="sm" className="text-xs capitalize" onClick={() => {
+                    <Button key={action} variant="outline" size="sm" className="text-xs capitalize" aria-label={`Trigger ${action} remediation action`} onClick={() => {
                       remediateMutation.mutate({ finding_ids: ['demo-finding-1'], action, reason: 'Manual trigger from Nerve Center' });
                     }}>
                       {action}
@@ -337,7 +337,7 @@ export default function NerveCenter() {
               <p className="text-xs text-muted-foreground">This will queue an auto-remediation action through the decision engine with full audit trail.</p>
             </div>
             <div className="flex justify-end mt-6">
-              <Button variant="ghost" onClick={() => setRemediateModal(false)}>Cancel</Button>
+              <Button variant="ghost" onClick={() => setRemediateModal(false)} aria-label="Cancel and close remediation panel">Cancel</Button>
             </div>
           </motion.div>
         </motion.div>

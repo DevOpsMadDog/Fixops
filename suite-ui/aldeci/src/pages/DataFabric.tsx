@@ -58,7 +58,7 @@ export default function DataFabric() {
       queryClient.invalidateQueries({ queryKey: ['sbom'] });
       setSbomFile(null);
     },
-    onError: (error: any) => {
+    onError: (error: Error & { response?: { data?: { detail?: string } } }) => {
       toast.error('Failed to ingest SBOM', {
         description: error.response?.data?.detail || error.message,
       });
@@ -77,7 +77,7 @@ export default function DataFabric() {
       queryClient.invalidateQueries({ queryKey: ['sarif'] });
       setSarifFile(null);
     },
-    onError: (error: any) => {
+    onError: (error: Error & { response?: { data?: { detail?: string } } }) => {
       toast.error('Failed to ingest SARIF', {
         description: error.response?.data?.detail || error.message,
       });
@@ -146,8 +146,8 @@ export default function DataFabric() {
             Unified security data ingestion and normalization
           </p>
         </div>
-        <Button variant="outline" onClick={handleRefreshFeeds} className="gap-2">
-          <RefreshCw className="w-4 h-4" />
+        <Button variant="outline" onClick={handleRefreshFeeds} className="gap-2" aria-label="Refresh all threat feeds">
+          <RefreshCw className="w-4 h-4" aria-hidden="true" />
           Refresh Feeds
         </Button>
       </div>
@@ -196,19 +196,20 @@ export default function DataFabric() {
                 {sbomFile && (
                   <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                     <div className="flex items-center gap-2">
-                      <FileJson className="w-4 h-4" />
+                      <FileJson className="w-4 h-4" aria-hidden="true" />
                       <span className="text-sm">{sbomFile.name}</span>
                     </div>
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       onClick={() => sbomMutation.mutate(sbomFile)}
                       disabled={sbomMutation.isPending}
+                      aria-label={sbomMutation.isPending ? 'Ingesting SBOM file…' : `Ingest SBOM file ${sbomFile.name}`}
                     >
                       {sbomMutation.isPending ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
                         <>
-                          <Play className="w-4 h-4 mr-1" />
+                          <Play className="w-4 h-4 mr-1" aria-hidden="true" />
                           Ingest
                         </>
                       )}
@@ -252,19 +253,20 @@ export default function DataFabric() {
                 {sarifFile && (
                   <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                     <div className="flex items-center gap-2">
-                      <FileCode className="w-4 h-4" />
+                      <FileCode className="w-4 h-4" aria-hidden="true" />
                       <span className="text-sm">{sarifFile.name}</span>
                     </div>
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       onClick={() => sarifMutation.mutate(sarifFile)}
                       disabled={sarifMutation.isPending}
+                      aria-label={sarifMutation.isPending ? 'Ingesting SARIF file…' : `Ingest SARIF file ${sarifFile.name}`}
                     >
                       {sarifMutation.isPending ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
                         <>
-                          <Play className="w-4 h-4 mr-1" />
+                          <Play className="w-4 h-4 mr-1" aria-hidden="true" />
                           Ingest
                         </>
                       )}
@@ -319,6 +321,7 @@ export default function DataFabric() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-64"
+                    aria-label="Search connected data sources"
                   />
                 </div>
               </div>
@@ -391,12 +394,13 @@ export default function DataFabric() {
                         {epssData ? 'Active' : 'Inactive'}
                       </Badge>
                     </div>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full"
                       onClick={() => refetchEpss()}
+                      aria-label="Refresh EPSS feed"
                     >
-                      <RefreshCw className="w-4 h-4 mr-2" />
+                      <RefreshCw className="w-4 h-4 mr-2" aria-hidden="true" />
                       Refresh Feed
                     </Button>
                   </div>
@@ -433,12 +437,13 @@ export default function DataFabric() {
                         {kevData ? 'Active' : 'Inactive'}
                       </Badge>
                     </div>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full"
                       onClick={() => refetchKev()}
+                      aria-label="Refresh CISA KEV feed"
                     >
-                      <RefreshCw className="w-4 h-4 mr-2" />
+                      <RefreshCw className="w-4 h-4 mr-2" aria-hidden="true" />
                       Refresh Feed
                     </Button>
                   </div>

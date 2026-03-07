@@ -33,6 +33,38 @@ interface AttackPath {
   status: 'active' | 'mitigated' | 'investigating';
 }
 
+/** Raw attack path shape returned by the backend API. */
+interface RawAttackPath {
+  id?: string;
+  path?: string[];
+  name?: string;
+  entry_point?: string;
+  target?: string;
+  hops?: number;
+  impact_score?: number;
+  risk_score?: number;
+  probability?: number;
+  status?: 'active' | 'mitigated' | 'investigating';
+}
+
+/** Raw graph node returned by the graph visualization API. */
+interface RawGraphNode {
+  id: string;
+  label?: string;
+  type?: string;
+  risk_score?: number;
+}
+
+/** Raw graph edge returned by the graph visualization API. */
+interface RawGraphEdge {
+  id?: string;
+  source: string;
+  target: string;
+  label?: string;
+  risk_score?: number;
+  type?: string;
+}
+
 export default function AttackPaths() {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [filterText, setFilterText] = useState('');
@@ -93,7 +125,7 @@ export default function AttackPaths() {
 
   // Map GNN attack paths to display format - zero mock data
   const rawPaths = graphData?.attack_paths || graphData?.result?.attack_paths || graphData?.paths || (Array.isArray(graphData) ? graphData : []);
-  const attackPaths: AttackPath[] = rawPaths.map((p: any, i: number) => ({
+  const attackPaths: AttackPath[] = rawPaths.map((p: RawAttackPath, i: number) => ({
     id: p.id || String(i + 1),
     name: (p.path || []).join(' → ') || p.name || `Path ${i + 1}`,
     source: p.entry_point || (p.path || [])[0] || 'Unknown',
@@ -424,12 +456,12 @@ export default function AttackPaths() {
                 });
               });
               // Also merge in API graph data if available
-              (graphVizData?.nodes || []).forEach((n: any) => {
+              (graphVizData?.nodes || []).forEach((n: RawGraphNode) => {
                 if (!nodeSet.has(n.id)) {
                   nodeSet.set(n.id, {
                     id: n.id,
                     label: n.label || n.id,
-                    type: n.type || 'asset',
+                    type: (n.type as GraphNode['type']) || 'asset',
                     risk_score: Math.round((n.risk_score || 0.5) * 100),
                   });
                 }
@@ -451,14 +483,14 @@ export default function AttackPaths() {
                 }
               });
               // Merge in API edges
-              (graphVizData?.edges || []).forEach((e: any, idx: number) => {
+              (graphVizData?.edges || []).forEach((e: RawGraphEdge, idx: number) => {
                 edgeList.push({
                   id: e.id || `api-e-${idx}`,
                   source: e.source,
                   target: e.target,
                   label: e.label,
                   risk_score: e.risk_score,
-                  type: e.type || 'lateral',
+                  type: (e.type as GraphEdge['type']) || 'lateral',
                 });
               });
               return edgeList;

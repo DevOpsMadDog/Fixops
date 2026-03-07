@@ -240,7 +240,7 @@ const MLDashboard = () => {
                     <div>
                       <h4 className="text-sm font-medium text-foreground mb-2">Top Endpoints</h4>
                       <div className="space-y-2">
-                        {(traffic.top_endpoints || []).slice(0, 10).map((ep: any, i: number) => (
+                        {(traffic.top_endpoints || []).slice(0, 10).map((ep: { method?: string; path?: string; endpoint?: string; count?: number }, i: number) => (
                           <div key={i} className="flex items-center gap-3 p-2 border border-border/20 rounded">
                             <Badge variant="outline" className="text-xs">{ep.method || 'GET'}</Badge>
                             <span className="text-sm font-mono text-foreground flex-1 truncate">{ep.path || ep.endpoint}</span>

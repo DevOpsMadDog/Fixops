@@ -1,11 +1,11 @@
 {
-  "total_decisions": 1965,
+  "total_decisions": 5214,
   "recent": [
-    "RESULT: SUCCESS",
-    "[2026-03-01 23:50] agent:agent-doctor DECISION: System status GREEN for enterprise demo",
-    "CONTEXT: All 19 engines importable, all 4 MOATs pass, 16/16 agents completed successfully, sprint 9/12 done. 3 P0 blockers remain but all assignees ha",
-    "ACTION: Set overall health to GREEN. Documented 3 P0 blockers in recommendations. All systems GO for demo preparation.",
-    "RESULT: SUCCESS"
+    "RESULT: SUCCESS \u2014 66/66 (100%) pass rate after fixes",
+    "[2026-03-07 21:52] agent:threat-architect DECISION: Run full regression suite",
+    "CONTEXT: Need to verify existing scripts still work after API changes and new data ingestion",
+    "ACTION: Ran investor demo (23/24), MPTE demo (11/11), core pytest (633/633), Saturday dogfood (66/66)",
+    "RESULT: SUCCESS \u2014 733/734 total steps passed across all tests"
   ],
   "instruction": "APPEND to .claude/team-state/decisions.log (never overwrite)"
 }

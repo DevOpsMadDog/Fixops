@@ -88,7 +88,7 @@ FEATURE_NAMES = [
     "has_chain",
 ]
 
-MODEL_VERSION = "2.1.0"
+MODEL_VERSION = "2.3.0"
 DEFAULT_MODEL_DIR = Path(".claude/team-state/data-science/models")
 DEFAULT_GOLDEN_PATH = Path("data/golden_regression_cases.json")
 

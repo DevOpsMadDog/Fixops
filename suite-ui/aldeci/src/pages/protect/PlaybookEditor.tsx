@@ -14,6 +14,27 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import { nerveCenterApi } from '../../lib/api';
 import { toast } from 'sonner';
 
+interface PlaybookItem {
+  id: string;
+  name: string;
+  kind: string;
+  version: string;
+  steps: number;
+  status: string;
+  frameworks?: string[];
+}
+
+interface ValidationIssue {
+  field: string;
+  message: string;
+}
+
+interface ValidationResult {
+  valid: boolean;
+  errors?: ValidationIssue[];
+  warnings?: ValidationIssue[];
+}
+
 const STEP_TYPES = [
   { value: 'policy_check', label: 'Policy Check', icon: Shield, color: 'text-blue-400' },
   { value: 'evidence_assert', label: 'Evidence Assert', icon: CheckCircle2, color: 'text-green-400' },
@@ -69,7 +90,7 @@ export default function PlaybookEditor() {
   const [activeTab, setActiveTab] = useState('editor');
   const [yamlContent, setYamlContent] = useState(DEFAULT_YAML);
   const [selectedPlaybook, setSelectedPlaybook] = useState<string | null>(null);
-  const [validationResult, setValidationResult] = useState<any>(null);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [showStepBuilder, setShowStepBuilder] = useState(false);
 
   // Fetch playbooks
@@ -85,7 +106,7 @@ export default function PlaybookEditor() {
       const parsed = simpleYamlParse(yamlContent);
       return nerveCenterApi.validatePlaybook(parsed);
     },
-    onSuccess: (data) => {
+    onSuccess: (data: ValidationResult) => {
       setValidationResult(data);
       if (data.valid) {
         toast.success('Playbook is valid!');
@@ -109,8 +130,8 @@ export default function PlaybookEditor() {
   const playbooks = playbooksData?.playbooks || [];
 
   // Simple YAML-to-object parser for validation (extracts top-level keys)
-  function simpleYamlParse(yaml: string): Record<string, any> {
-    const obj: Record<string, any> = {};
+  function simpleYamlParse(yaml: string): Record<string, string | Record<string, string>> {
+    const obj: Record<string, string | Record<string, string>> = {};
     const lines = yaml.split('\n');
     let currentKey = '';
     for (const line of lines) {
@@ -122,8 +143,9 @@ export default function PlaybookEditor() {
         else obj[currentKey] = {};
       } else if (currentKey && line.startsWith('  ')) {
         const subMatch = line.trim().match(/^([a-zA-Z_]+):\s*(.+)/);
-        if (subMatch && typeof obj[currentKey] === 'object') {
-          obj[currentKey][subMatch[1]] = subMatch[2];
+        const currentVal = obj[currentKey];
+        if (subMatch && typeof currentVal === 'object') {
+          currentVal[subMatch[1]] = subMatch[2];
         }
       }
     }
@@ -160,7 +182,7 @@ export default function PlaybookEditor() {
             <CardContent className="space-y-1">
               {isLoading ? (
                 <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin" /></div>
-              ) : playbooks.map((pb: any) => (
+              ) : playbooks.map((pb: PlaybookItem) => (
                 <button key={pb.id} onClick={() => setSelectedPlaybook(pb.id)}
                   className={`w-full text-left p-2 rounded-lg border transition-colors text-sm ${selectedPlaybook === pb.id ? 'border-primary bg-primary/10' : 'border-border/50 hover:bg-accent/30'}`}>
                   <div className="flex items-center justify-between">
@@ -174,7 +196,7 @@ export default function PlaybookEditor() {
                     <span>•</span>
                     <span className={pb.status === 'active' ? 'text-green-400' : 'text-yellow-400'}>{pb.status}</span>
                   </div>
-                  {pb.frameworks?.length > 0 && (
+                  {pb.frameworks && pb.frameworks.length > 0 && (
                     <div className="flex gap-1 mt-1">
                       {pb.frameworks.map((f: string) => (
                         <Badge key={f} variant="outline" className="text-[8px] px-1 py-0 h-3">{f}</Badge>
@@ -357,18 +379,18 @@ export default function PlaybookEditor() {
                     {validationResult.valid ? <CheckCircle2 className="w-5 h-5 text-green-400" /> : <AlertTriangle className="w-5 h-5 text-red-400" />}
                     <span className="font-medium text-sm">{validationResult.valid ? 'Playbook is valid' : 'Validation failed'}</span>
                   </div>
-                  {validationResult.errors?.length > 0 && (
+                  {validationResult.errors && validationResult.errors.length > 0 && (
                     <div className="space-y-1">
-                      {validationResult.errors.map((e: any, i: number) => (
+                      {validationResult.errors.map((e: ValidationIssue, i: number) => (
                         <div key={i} className="text-xs text-red-400 flex items-center gap-1">
                           <AlertTriangle className="w-3 h-3" /> <span className="font-mono">{e.field}</span>: {e.message}
                         </div>
                       ))}
                     </div>
                   )}
-                  {validationResult.warnings?.length > 0 && (
+                  {validationResult.warnings && validationResult.warnings.length > 0 && (
                     <div className="space-y-1 mt-2">
-                      {validationResult.warnings.map((w: any, i: number) => (
+                      {validationResult.warnings.map((w: ValidationIssue, i: number) => (
                         <div key={i} className="text-xs text-yellow-400 flex items-center gap-1">
                           <AlertTriangle className="w-3 h-3" /> <span className="font-mono">{w.field}</span>: {w.message}
                         </div>

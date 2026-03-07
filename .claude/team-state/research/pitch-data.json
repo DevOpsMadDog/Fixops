@@ -1,7 +1,7 @@
 {
-  "last_updated": "2026-03-03T22:00:00Z",
+  "last_updated": "2026-03-07T22:00:00Z",
   "analyst": "ai-researcher",
-  "pulse_version": "2026-03-03-v2-evening",
+  "pulse_version": "2026-03-07-post-demo",
   "market_size": {
     "tam": "$380B — Global cybersecurity market (2026 est.)",
     "sam": "$28.5B — Application Security Testing + DevSecOps + CTEM (2026 est.)",
@@ -19,14 +19,14 @@
     "mcp_security_crisis": "30 CVEs in MCP ecosystem in ~15 months. 36.7% of 7,000+ MCP servers vulnerable to SSRF.",
     "webmcp_chrome": "Browser-native MCP in Chrome early preview (Mar 2026)",
     "ai_adversary_ops_growth": "89% YoY increase (CrowdStrike 2026 Threat Report)",
-    "epss_database_size": "317,858 CVEs scored",
+    "epss_database_size": "318,989 CVEs scored (Mar 6 data, +1,131 since Mar 3)",
     "epss_high_risk_cves": "1,339 CVEs with >90% exploitation probability",
-    "cisa_kev_entries": "1,529 as of v2026.02.26. 2026 pace: 45 entries in Jan-Feb (~270/year)",
+    "cisa_kev_entries": "1,536 as of v2026.03.05. +7 since Mar 3. 2026 pace: ~270/year",
     "vllm_status": "v0.16.0 — mature production ecosystem. Best hardware flexibility (AMD + NVIDIA).",
     "sglang_status": "v0.5.8. 400K+ GPU deployments. De facto standard. 16,200 TPS on H100. RadixAttention: 5x faster for agent workflows.",
     "claude_code_security": "Feb 20, 2026 — 500+ zero-days found, cyber stocks dropped, industry disruption",
-    "anthropic_pentagon_crisis": "Feb 27: Blacklisted as supply chain risk. Feb 28: Anthropic filing legal challenge. Mar 1-2: Claude #1 App Store. Signups all-time records.",
-    "openai_pentagon_deal": "Feb 27, 2026 — OpenAI struck Pentagon deal within hours of Anthropic blacklist",
+    "anthropic_pentagon_crisis": "Feb 27: Blacklisted as supply chain risk. Mar 3: 900+ employees sign open letter. Mar 5: Amodei back at DoD negotiating table. Legal challenge looming.",
+    "openai_pentagon_deal": "Feb 27-28: OpenAI struck Pentagon deal within hours. Mar 3: Altman admits 'looked opportunistic and sloppy.' Added surveillance limits. Cloud-only deployment.",
     "n8n_critical_rce": "CVE-2026-21858 — CVSS 10.0. ~100K servers affected. AI workflow platform RCE. Validates AI toolchain attack surface.",
     "claude_weaponized_mexico": "1,000+ Claude Code prompts + GPT-4.1 used to breach 10 Mexican govt agencies + 1 financial institution (Dec 2025-Mar 2026). AI-powered attacks are REAL.",
     "chinese_labs_anthropic_abuse": "DeepSeek, Moonshot AI, MiniMax: 24,000+ fraudulent accounts, 16M+ interactions on Anthropic platform.",
@@ -48,8 +48,9 @@
     "vega_security_series_b": "$120M Series B, $185M total. Cloud security unicorn trajectory. 5 months after $65M Series A.",
     "ai_attacks_surge": "AI-enhanced attacks +72% YoY. 87% of orgs experienced AI-driven incidents. Claude weaponized in 10-agency breach.",
     "rsa_2026_innovation_sandbox": "Top 10 finalists announced. Competition March 23. Theme: operationalizing AI defense + Identity Fabric.",
-    "nvd_critical_march_2026": "3 critical CVEs (CVSS 9.8): CVE-2026-2999, CVE-2026-3000 (IDExpert RCE), CVE-2026-3422 (U-Office deserialization)",
-    "openai_aardvark": "GPT-5 powered autonomous security agent. 92% detection on benchmarks. 10 CVEs discovered. Private beta. Finds AND fixes. Integrates with Codex for patch generation. DIRECT competitor to V5 MPTE + V3 AutoFix.",
+    "nvd_critical_march_4_7": "15 critical CVEs Mar 4-7. THREE CVSS 10.0: Cisco FMC CVE-2026-20079 (auth bypass), CVE-2026-20131 (Java deser RCE), pac4j-jwt CVE-2026-29000 (JWT auth bypass). Also: SEPPmail 9.8, 2N Access 9.8, WordPress 9.8, Craft CMS 9.1x2.",
+    "nvd_critical_march_1_3": "3 critical CVEs (CVSS 9.8): CVE-2026-2999, CVE-2026-3000 (IDExpert RCE), CVE-2026-3422 (U-Office deserialization)",
+    "openai_codex_security": "LAUNCHED Mar 6 (from Aardvark). GPT-5.2-Codex powered. Project-specific threat models, agentic vuln search, sandbox validation, architectural fixes. 50%+ FP reduction, 90%+ severity over-report reduction. 800 critical + 10,500 high findings in beta. Research preview for Enterprise/Business/Edu. Free first month. DIRECT competitor to V5 + V3.",
     "aws_security_agent": "Multi-agent automated pen testing. Frontier agents for hours/days execution. Feb 25: shared VPC support. AWS-only. DIRECTLY competes with V5 MPTE. Differentiation: MPTE is cloud-agnostic + air-gapped.",
     "rsa_2026_innovation_sandbox_finalists": "10 finalists, $5M each. 6/10 are AI-security. HIGH relevance: ZeroPath (AI scanning), Clearly AI (AI code review), Geordie AI (AI agent governance), Realm Labs (AI decision visibility), Token Security (non-human identity). NO finalist occupies Decision Intelligence layer.",
     "ai_security_agent_benchmark_cecuro": "Cecuro: Domain-specific AI agent detected 92% of DeFi exploits ($96.8M value). Generic GPT-5.1 agent detected only 34% ($7.5M). PROVES domain expertise > raw model power. VALIDATES multi-LLM consensus + CTEM+ pipeline approach.",
@@ -57,7 +58,19 @@
     "ai_security_readiness_gap": "Only 34% of enterprises have AI-specific security controls. <40% test AI models regularly. SAST tools cannot identify LLM-to-tool communication issues. Massive market gap for ALdeci.",
     "defi_offensive_ai": "Frontier agents execute end-to-end exploits on 72% of known vulnerable contracts. Offensive AI advancing in parallel with defensive.",
     "crowdstrike_q4_result_headline": "Nasdaq: 'CrowdStrike Fiscal Q4 Results Top Estimates'. Constellation: 'Strong Q4, outlook light'. Full details pending earnings call transcript.",
-    "wiz_google_close_update": "End of March 2026 close (updated from mid-March). NIS 20B value erased due to shekel strength. Procedural approvals in AU/IL remaining."
+    "wiz_google_close_update": "End of March 2026 close (updated from mid-March). NIS 20B value erased due to shekel strength. Procedural approvals in AU/IL remaining.",
+    "cloud_native_security_market": "$129.23B by 2035 (SNS Insider, Mar 2 2026). Zero-trust driven.",
+    "codex_security_launch": "Mar 6, 2026. Research preview. Enterprise/Business/Edu. Free first month. 50% FP reduction. 800 critical findings in beta.",
+    "claude_firefox_cves": "Mar 6, 2026. Claude Opus 4.6 + Anthropic Red Team. 6,000 C++ files. 112 reports, 22 CVEs, 14 HIGH. Fixed in Firefox 148.",
+    "anthropic_pentagon_renegotiation": "Mar 5, 2026. Amodei back at negotiating table per FT/CNBC. Legal challenge possible. 900+ employees backed Anthropic.",
+    "snyk_credentials_manager": "Mar 6, 2026. Separate storage for sensitive auth data. Table-stakes feature.",
+    "endor_labs_auri": "Mar 3, 2026. Agentic reasoning + deterministic analysis. Full-stack reachability. Closest competitor to Brain Pipeline.",
+    "checkmarx_archipelo_partnership": "Mar 3, 2026. DevSPM. AppSec detection + development context. Webinar Mar 11.",
+    "crowdstrike_day_zero_summit": "Mar 4, 2026. Threat research summit Aug 30-Sep 1, Mandalay Bay. Part of Fal.Con 2026.",
+    "tenable_exposure_2026": "Mar 2, 2026. First global exposure management conference for AI era.",
+    "sglang_vs_vllm_2026": "SGLang+LMDeploy: 16,200 TPS. vLLM: 12,500 TPS. 29% gap. Recommend SGLang for Sprint 3.",
+    "cisco_fmc_critical": "Mar 4, 2026. 48 CVEs in 25 advisories. TWO CVSS 10.0 (CVE-2026-20079, CVE-2026-20131). Unauth, no workarounds.",
+    "pac4j_jwt_bypass": "CVSS 10.0. Forge admin tokens with RSA public key. PoC published. Perfect MPTE demo target."
   },
   "competitors": [
     {
@@ -69,7 +82,7 @@
       "key_features": ["SCA/SAST", "IDE integration", "DeepCode AI auto-fix", "Reachability (JS/Java/Python)", "Snyk Studio", "Package Health Check", "AI Security Fabric (Feb 2026)", "Evo agentic system", "Agent Fix", "Delta Findings"],
       "status": "IPO uncertain. AI Security Fabric launched Feb 3. Evo agentic preview. Forrester TEI: 288% ROI. Microsoft PAT change Mar 15 impacts Azure DevOps.",
       "aldeci_advantage": "Full CTEM lifecycle vs. SCA+SAST only. Multi-LLM consensus vs. single model. 97% noise reduction across ALL scanners. Brain Pipeline = decision layer ABOVE Snyk.",
-      "latest_update": "2026-03-03: AI Security Fabric (Delta Findings + Agent Fix + Evo). 288% ROI Forrester study. IPO dimming. $8.5B valuation, ARR $343M."
+      "latest_update": "2026-03-07: Credentials Manager (Mar 6). Reachability improvements JS/Java/Python (Mar 9). Co-optation strategy — calling Claude Code Security 'great news for the industry.'"
     },
     {
       "name": "Wiz",
@@ -80,7 +93,7 @@
       "key_features": ["Agentless cloud scanning", "DSPM", "CDR", "Wiz Code (Dazz)", "MCP integration"],
       "status": "Google acquisition closing MID-MARCH 2026. 3 minor jurisdictions remaining (AU/ZA/TR). Staff payout $2-2.5B. $3M closing party. CISPE alarmed.",
       "aldeci_advantage": "Scanner-neutral Switzerland vs. Google lock-in. AppSec vs cloud-only. Air-gapped. PEAK Switzerland moment NOW.",
-      "latest_update": "2026-03-02 Pass 5: Mid-March closing. Staff $2-2.5B payout. $3M party. CISPE publicly alarmed."
+      "latest_update": "2026-03-07: EU unconditional clearance Feb 10. Mid-to-end March close. All major regulators cleared."
     },
     {
       "name": "Semgrep",
@@ -91,7 +104,7 @@
       "key_features": ["Multimodal AppSec (SAST+LLM)", "Managed Scans GA", "18K orgs", "75M scans/yr", "740K auto-fixes", "AI Detection", "PHP reachability (11th lang)", "Gartner MQ for AST", "95% agreement", "$100M Series D"],
       "status": "Managed Scans GA. PHP reachability (11th lang). Gartner MQ for AST. RSA 2026 Booth #1743. $100M Series D.",
       "aldeci_advantage": "Multi-LLM 85% consensus vs single-model 95%. Full CTEM lifecycle. MPTE verification. Geopolitical resilience.",
-      "latest_update": "2026-03-02 Pass 5: Managed Scans GA. PHP reachability. Gartner MQ recognition. OWASP Top 10 2025 rules."
+      "latest_update": "2026-03-07: Semgrep Secure 2026 virtual keynote. 18K orgs, 1M devs. 5.3M AI triage decisions, 95% agreement, 740K auto-fixes. RSA Booth #1743."
     },
     {
       "name": "Checkmarx",
@@ -102,7 +115,7 @@
       "key_features": ["SAST/DAST/SCA/IaC", "Checkmarx Assist (Tromzo)", "AWS Kiro IDE", "90% rework reduction claim"],
       "status": "AWS Kiro IDE integration. Sale process stalled ~$1.5B. Threatened by Claude Code Security.",
       "aldeci_advantage": "Enterprise-wide Decision Intelligence vs IDE-only. Air-gapped. Vendor stability.",
-      "latest_update": "2026-03-02 Pass 5: Tromzo acquired Dec 9 2025. Back in M&A mode. $150M ARR. 7th Gartner MQ."
+      "latest_update": "2026-03-07: Archipelo partnership (DevSPM). Joint webinar Mar 11. Partnering > building = struggle signal."
     },
     {
       "name": "Endor Labs",
@@ -110,10 +123,10 @@
       "funding": "$188M",
       "valuation": "Unknown (30x growth)",
       "arr": "Unknown (166% NRR)",
-      "key_features": ["Reachability analysis", "90% noise reduction", "Autonomous Plane", "OpenClaw research", "ArmorCode integration"],
+      "key_features": ["Reachability analysis", "90% noise reduction", "AURI (agentic reasoning + deterministic)", "Autonomous Plane", "OpenClaw research", "ArmorCode integration", "Full-stack reachability (code→deps→container→AI models)"],
       "status": "Rising. Autonomous Plane acquired. RSA 2026 exhibitor.",
       "aldeci_advantage": "97% noise reduction ALL scanners (not just SCA). MPTE verification. Full CTEM lifecycle.",
-      "latest_update": "2026-03-02 Pass 5: Full-stack reachability (code→deps→container). AI agents for PR review. $93M Series B (Apr 2025)."
+      "latest_update": "2026-03-07: AURI launched (Mar 3) — agentic reasoning + deterministic analysis. Full-stack reachability. RSA 2026 exhibitor."
     },
     {
       "name": "CrowdStrike",
@@ -124,7 +137,7 @@
       "key_features": ["Falcon XDR", "FalconID (FIDO2)", "SGNL", "Seraphic", "281+ adversaries", "Startup Accelerator"],
       "status": "Q4 FY2026 earnings TODAY (Mar 3 after close). Expected $1.30B revenue, $4.92B ARR. Fal.Con Gov Mar 18. RSA startup pitch Mar 24.",
       "aldeci_advantage": "AppSec-focused vs endpoint-first. CTEM lifecycle. Developer-centric. Air-gapped AI. CrowdStrike building platform via M&A — different approach.",
-      "latest_update": "2026-03-03 EVENING: Q4 results appear to beat estimates per Nasdaq headline. Constellation notes 'strong Q4, outlook light' — FY27 guidance may disappoint. $1.16B in Jan acquisitions. Full transcript pending."
+      "latest_update": "2026-03-07: Day Zero Threat Research Summit call for papers. Fal.Con 2026 Aug 30-Sep 1 Las Vegas. $1.16B Jan acquisitions. 35 startups in accelerator with AWS+NVIDIA."
     },
     {
       "name": "Orca Security",
@@ -161,7 +174,11 @@
     }
   ],
   "trends": [
-    "BREAKING: OpenAI Aardvark (GPT-5 security agent) + AWS Security Agent (multi-agent pentest) = BIG TECH entering AppSec verification",
+    "BREAKING Mar 7: OpenAI Codex Security LAUNCHED (Mar 6) — GPT-5.2-Codex, agentic vuln hunting + sandbox validation + architectural fixes. 800 critical findings in beta. Direct V3+V5 competitor.",
+    "BREAKING Mar 7: Anthropic + Mozilla — Claude Opus 4.6 found 22 Firefox CVEs (14 HIGH) in 2 weeks scanning 6K C++ files. Validates AI-powered security auditing.",
+    "BREAKING Mar 7: Endor Labs AURI launched — agentic reasoning + deterministic analysis for 'agentic software development.' Closest to Brain Pipeline concept.",
+    "BREAKING Mar 7: Triple CVSS 10.0 week — Cisco FMC (2x unauth RCE) + pac4j-jwt (auth bypass with public key). 15 critical CVEs in 4 days.",
+    "OpenAI Aardvark evolved into Codex Security — GPT-5.2-Codex model. BIG TECH entering AppSec verification at scale.",
     "BREAKING: RSA 2026 Innovation Sandbox — 6/10 finalists are AI-security companies, $5M per finalist",
     "Anthropic suing Pentagon over supply chain risk designation — court battle shapes AI governance",
     "MCP Security Crisis: 30 CVEs in 15 months, 36.7% of servers have SSRF — validates secure MCP implementation",
@@ -197,10 +214,17 @@
     "16-agent autonomous AI company model — unique investor narrative",
     "Claude Code Security integration — 'Claude finds, ALdeci decides' — category creation",
     "Aardvark/AWS response: 'One AI finding bugs is useful. Three AIs voting on what to fix is intelligence.'",
-    "Cloud-agnostic MPTE vs AWS-locked Security Agent: 'AWS tests AWS. ALdeci tests everything.'"
+    "Cloud-agnostic MPTE vs AWS-locked Security Agent: 'AWS tests AWS. ALdeci tests everything.'",
+    "Codex Security response: 'OpenAI scans repos. We orchestrate security postures.' — Single-repo agent vs org-wide CTEM+",
+    "Firefox validation: '22 CVEs proves AI bug-hunting works. We prove they're exploitable.' — Claude finds, ALdeci decides",
+    "Triple 10.0 CVE messaging: 'Your scanner found them. Now what? ALdeci decides.' — Decision > Detection",
+    "Pentagon resilience: 'When the Pentagon blacklists your AI vendor, ALdeci keeps running.' — V9 air-gapped = geopolitical hedge"
   ],
   "upcoming_events": [
-    {"date": "2026-03-03", "event": "CrowdStrike Q4 FY2026 earnings", "impact": "Market direction signal"},
+    {"date": "2026-03-03", "event": "CrowdStrike Q4 FY2026 earnings (PAST)", "impact": "Beat estimates. Strong Q4, outlook light."},
+    {"date": "2026-03-06", "event": "ALdeci Enterprise Demo (COMPLETED)", "impact": "Demo day. Codex Security launched same day."},
+    {"date": "2026-03-06", "event": "OpenAI Codex Security launch", "impact": "Direct competitor launched. Must respond."},
+    {"date": "2026-03-11", "event": "Archipelo + Checkmarx webinar", "impact": "Monitor for competitive intel"},
     {"date": "2026-03-09", "event": "NIST CAISI agentic AI RFI deadline", "impact": "Regulatory milestone"},
     {"date": "2026-03-15", "event": "Microsoft PAT deprecation", "impact": "Impacts Snyk/Azure integrations"},
     {"date": "2026-03-18", "event": "Fal.Con Gov 2026 (DC)", "impact": "Government security market"},

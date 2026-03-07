@@ -190,7 +190,7 @@ export default function CodeScanning() {
         },
       });
     },
-    onSuccess: (data: any, finding: SastFinding) => {
+    onSuccess: (data: { status?: string }, finding: SastFinding) => {
       setSandboxResults((prev) => ({ ...prev, [finding.finding_id]: data }));
       setVerifyingFinding(null);
       const status = data?.status || 'unknown';
@@ -218,7 +218,7 @@ export default function CodeScanning() {
     mutationFn: async (file: File) => {
       return scannerIngestApi.upload(file);
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: { findings_count?: number; scanner_type?: string }) => {
       toast.success(`Ingested ${data?.findings_count || 0} findings from ${data?.scanner_type || 'scanner'}`);
       queryClient.invalidateQueries({ queryKey: ['dedup-stats'] });
     },

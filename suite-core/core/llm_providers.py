@@ -195,9 +195,10 @@ class OpenAIChatProvider(BaseLLMProvider):
             if exc.response is not None:
                 try:
                     error_json = exc.response.json()
-                    error_detail = error_json.get("error", {}).get("message", str(exc))
+                    # Extract structured error message, never raw exception string — may contain API keys
+                    error_detail = error_json.get("error", {}).get("message", f"HTTP {exc.response.status_code}")
                 except Exception:
-                    error_detail = str(exc)
+                    error_detail = f"HTTP {exc.response.status_code}" if exc.response else type(exc).__name__
             metadata = {
                 "mode": "fallback",
                 "provider": self.name,
@@ -248,19 +249,19 @@ class OpenAIChatProvider(BaseLLMProvider):
             logger.warning(
                 "OpenAI provider %s failed, falling back to deterministic: %s",
                 self.name,
-                exc,
+                type(exc).__name__,
             )
             metadata = {
                 "mode": "fallback",
                 "provider": self.name,
-                "error": str(exc),
+                "error": type(exc).__name__,
                 "model": self.model,
-                "error_type": "unknown",
+                "error_type": type(exc).__name__,
             }
             return LLMResponse(
                 recommended_action=default_action,
                 confidence=default_confidence,
-                reasoning=f"{default_reasoning}\n[OpenAI fallback: {exc}]",
+                reasoning=f"{default_reasoning}\n[OpenAI fallback: {type(exc).__name__}]",
                 mitre_techniques=_ensure_list(
                     (mitigation_hints or {}).get("mitre_candidates")
                 ),
@@ -370,18 +371,18 @@ class AnthropicMessagesProvider(BaseLLMProvider):
             logger.warning(
                 "Anthropic provider %s failed, falling back to deterministic: %s",
                 self.name,
-                exc,
+                type(exc).__name__,
             )
             metadata = {
                 "mode": "fallback",
                 "provider": self.name,
-                "error": str(exc),
+                "error": type(exc).__name__,
                 "model": self.model,
             }
             return LLMResponse(
                 recommended_action=default_action,
                 confidence=default_confidence,
-                reasoning=f"{default_reasoning}\n[Anthropic fallback: {exc}]",
+                reasoning=f"{default_reasoning}\n[Anthropic fallback: {type(exc).__name__}]",
                 mitre_techniques=_ensure_list(
                     (mitigation_hints or {}).get("mitre_candidates")
                 ),
@@ -492,18 +493,18 @@ class GeminiProvider(BaseLLMProvider):
             logger.warning(
                 "Gemini provider %s failed, falling back to deterministic: %s",
                 self.name,
-                exc,
+                type(exc).__name__,
             )
             metadata = {
                 "mode": "fallback",
                 "provider": self.name,
-                "error": str(exc),
+                "error": type(exc).__name__,
                 "model": self.model,
             }
             return LLMResponse(
                 recommended_action=default_action,
                 confidence=default_confidence,
-                reasoning=f"{default_reasoning}\n[Gemini fallback: {exc}]",
+                reasoning=f"{default_reasoning}\n[Gemini fallback: {type(exc).__name__}]",
                 mitre_techniques=_ensure_list(
                     (mitigation_hints or {}).get("mitre_candidates")
                 ),

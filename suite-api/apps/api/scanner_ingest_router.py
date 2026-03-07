@@ -236,8 +236,8 @@ async def upload_scanner_output(
             elif hasattr(pipeline_result, "__dict__"):
                 pipeline_result = pipeline_result.__dict__
         except Exception as e:
-            logger.warning(f"Pipeline execution failed: {e}")
-            pipeline_result = {"error": str(e)}
+            logger.warning("Pipeline execution failed: %s", type(e).__name__)
+            pipeline_result = {"error": type(e).__name__}
 
     return {
         "status": "success",
@@ -335,7 +335,8 @@ async def webhook_ingest(
             elif hasattr(pipeline_result, "__dict__"):
                 pipeline_result = pipeline_result.__dict__
         except Exception as e:
-            pipeline_result = {"error": str(e)}
+            logger.warning("Webhook pipeline failed: %s", type(e).__name__)
+            pipeline_result = {"error": type(e).__name__}
 
     return {
         "status": "success",

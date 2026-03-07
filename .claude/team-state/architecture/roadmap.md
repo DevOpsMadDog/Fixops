@@ -1,54 +1,62 @@
 # ALdeci Technical Roadmap
 
-**Last Updated**: 2026-03-03 (Run 8) by enterprise-architect
-**Current Phase**: Phase 1 — Funding Ready
-**Demo Date**: 2026-03-06 (Enterprise Demo) — 3 days remaining
+**Last Updated**: 2026-03-07 (Run 10) by enterprise-architect
+**Current Phase**: Phase 1 — Funding Ready (Post-Demo)
+**Demo Date**: 2026-03-06 (Enterprise Demo) — COMPLETED
+**Sprint**: Sprint 2 — Post-Demo Day 1
 
 ---
 
 ## Phase 1 — Funding Ready (Feb-Mar 2026)
 
-### Sprint 1 (Feb 22-28) — COMPLETED ✅ (91.3%)
+### Sprint 1 (Feb 22-28) — COMPLETED (91.3%)
 - [x] All 10 vision engines built (18,160 LOC)
 - [x] 8 native scanners live
 - [x] 12-step brain pipeline operational
 - [x] MCP auto-discovery (705 tools)
-- [x] AutoFix engine (10 fix types, 1,416 LOC)
+- [x] AutoFix engine (10 fix types, 1,534 LOC)
 - [x] Docker compose deploy
 
-### Sprint 2 (Mar 1-6) — ENTERPRISE DEMO ⏳ (11/12 done = 91.7%)
-- [x] DEMO-001: Fix ALL broken API endpoints (V3) — E2E 58/58, 769 routes, 11 security fixes ✅
-- [x] DEMO-002: Postman collections GREEN (V10) — 475/475 = 100% (8th consecutive green) ✅
-- [x] DEMO-004: CTEM Full Loop Demo (V10+V5) — 36/36 steps, 5/5 phases ✅
-- [x] DEMO-005: 5 Persona Walkthrough Scripts (V3) — 5 personas documented ✅
-- [x] DEMO-006: Fix coverage config (V10) — config fixed ✅
-- [x] DEMO-007: Docker one-command demo (V9) — 34/34 health checks ✅
-- [x] DEMO-008: API Documentation (V10) — 704 endpoints documented ✅
-- [x] DEMO-009: MCP Gateway Demo (V7) — 705 tools discovered ✅
-- [x] DEMO-010: Knowledge Graph Demo (V3) — 73 nodes, 110 edges ✅
-- [x] DEMO-011: Compliance Evidence Export (V10) — RSA-SHA256 signed ✅
-- [x] DEMO-012: Self-Learning Demo (V8) — 5 feedback loops, 73 tests ✅
-- [ ] DEMO-003: Wire legacy UI to real APIs (V3) — IN PROGRESS (frontend-craftsman, ~90%)
+### Sprint 2 (Mar 1-6) — ENTERPRISE DEMO (11/12 done = 91.7%)
+- [x] DEMO-001: Fix ALL broken API endpoints (V3) — E2E 58/58, 769 routes, 11 security fixes
+- [x] DEMO-002: Postman collections GREEN (V10) — 475/475 = 100% (8th consecutive green)
+- [x] DEMO-004: CTEM Full Loop Demo (V10+V5) — 36/36 steps, 5/5 phases
+- [x] DEMO-005: 5 Persona Walkthrough Scripts (V3) — 5 personas documented
+- [x] DEMO-006: Fix coverage config (V10) — config fixed
+- [x] DEMO-007: Docker one-command demo (V9) — 34/34 health checks
+- [x] DEMO-008: API Documentation (V10) — 704 endpoints documented
+- [x] DEMO-009: MCP Gateway Demo (V7) — 705 tools discovered
+- [x] DEMO-010: Knowledge Graph Demo (V3) — 73 nodes, 110 edges
+- [x] DEMO-011: Compliance Evidence Export (V10) — RSA-SHA256 signed
+- [x] DEMO-012: Self-Learning Demo (V8) — 5 feedback loops, 73 tests
+- [ ] DEMO-003: Wire legacy UI to real APIs (V3) — IN PROGRESS (frontend-craftsman)
+
+### Post-Demo Hardening (Mar 7+) — IN PROGRESS
+- [x] FAIL Engine memory fix (TD-034) — MAX_HISTORY_SIZE=5000
+- [x] FAIL /delete auth fix (TD-037) — org_id authorization added
+- [x] FAIL batch error reporting (TD-036) — partial results + error entries
+- [x] Lint fixes: F401 (trend_analyzer.py), F841 (micro_pentest_router.py)
+- [x] ADR-011: FAIL Engine scoring architecture documented
+- [x] Review #8: FAIL Engine + Exposure Case (Grade B+)
 
 ### Phase 1 Quality Gates
 | Gate | Target | Current | Status |
 |------|--------|---------|--------|
-| API endpoints responding | 100% | 100% (769 routes) | ✅ |
+| API endpoints responding | 100% | 100% (771+ routes) | ✅ |
 | Postman assertions passing | 100% | 100% (475/475) | ✅ |
 | UI pages wired to real data | 95% | ~90% | ⚠️ DEMO-003 in progress |
-| Test coverage | 25% (gate) | 19.23% | ❌ Config measures all suites, gap 5.77pp |
-| Docker one-command deploy | Working | ✅ Working (34/34 health) | ✅ |
+| Test coverage | 25% (gate) | 4.65% | ❌ Config now measures ALL suites |
+| Docker one-command deploy | Working | Working (34/34 health) | ✅ |
 | Bandit HIGH issues | 0 | 0 HIGH | ✅ |
-| Bandit MEDIUM issues | <10 core | 2 core (63 full suite) | ✅ Core clean |
-| Ruff actionable warnings | <20 | 0 actionable (77 E402 architectural) | ✅ All actionable fixed |
-| Brain Pipeline tests | PASS | 288/288 pass | ✅ |
-| Scanner Parser tests | PASS | 142/142 pass | ✅ |
+| Bandit MEDIUM (core) | <10 | 51 (core), 0 HIGH | ⚠️ Stable, mostly B608+B110 |
+| Ruff actionable warnings | <20 | 0 actionable (77 E402 architectural) | ✅ |
+| Core tests | PASS | 237/237 pass (23.82s) | ✅ Run 10 verified |
+| FAIL tests | PASS | 138/138 pass (9.87s) | ✅ Run 10 verified |
+| Self-learning tests | PASS | 73/73 pass | ✅ Run 10 verified |
+| AutoFix tests | PASS | 556/556 pass | ✅ Run 8 verified |
+| Memory leaks | Fixed | All _history/_fixes/_runs bounded | ✅ |
 | XML vulnerability | Fixed | defusedxml deployed | ✅ |
-| SQLite connection leaks | Fixed | history.py + deduplication.py patched | ✅ |
-| AutoFixEngine loop perf | Fixed | Hoisted outside loop | ✅ |
-| AutoFix _fixes memory | Fixed | MAX_FIXES_STORED=5000, eviction logic | ✅ |
-| AutoFix _history memory | Fixed | MAX_HISTORY_ENTRIES=10000, eviction | ✅ |
-| ADR-009 broken path ref | Fixed | suite-integrations→suite-core | ✅ |
+| SQLite connection leaks | Fixed | history.py + deduplication.py | ✅ |
 
 ---
 
@@ -75,6 +83,11 @@
 - [ ] Rate limiting per endpoint (basic already in place)
 - [ ] CORS production hardening — TD-016
 
+### Scoring Integration
+- [ ] Integrate FAIL scoring into Brain Pipeline Step 7 — TD-035, ADR-011
+- [ ] FAIL batch error reporting — TD-036 (FIXED Run 10)
+- [ ] ExposureCaseManager singleton path assertion — TD-038
+
 ### Multi-Tenancy
 - [ ] Org isolation (org_id scoping on all queries)
 - [ ] RBAC (role-based access control)
@@ -82,7 +95,7 @@
 
 ### Quality
 - [ ] Fix 101 bare except:pass patterns — TD-004
-- [ ] Test coverage 4.71% → 25% (write tests for 0% modules)
+- [ ] Test coverage → 25% (write tests for 0% modules)
 - [ ] External message queue (Redis Pub/Sub) — TD-011
 - [ ] Split app.py into router groups — TD-007
 
@@ -102,11 +115,13 @@
 - [ ] GNN attack path computation
 - [ ] Active learning (auto-trigger compute_adjustments)
 - [ ] Per-tenant learning weights
+- [ ] Case stats query optimization (materialized views)
 
 ### Compliance
 - [ ] SOC2 Type II audit
 - [ ] FIPS 204 ML-DSA quantum crypto (V6)
 - [ ] Audit log immutability (append-only + tamper detection)
+- [ ] Exposure Case SLA enforcement (automated alerts)
 
 ---
 
@@ -116,6 +131,7 @@
 - [ ] True multi-LLM parallel consensus (V4)
 - [ ] Autonomous CTEM (self-driving scan → triage → fix cycle)
 - [ ] GNN-based attack path prediction
+- [ ] FAIL score trend analysis (time-series scoring per CVE)
 
 ### Platform
 - [ ] Multi-cloud deployment (AWS, Azure, GCP)
@@ -124,42 +140,41 @@
 
 ---
 
-## Architecture Metrics (Verified 2026-03-03, Run 9)
+## Architecture Metrics (Verified 2026-03-07, Run 10)
 
-| Metric | Value | Change from Run 8 |
+| Metric | Value | Change from Run 9 |
 |--------|-------|--------|
-| Total LOC | ~417K Python + 42K TS | Stable |
+| Total LOC | ~428K Python + 45K TS | +11K |
 | Python suites | 6 | — |
-| API endpoints | 770+ | +2 (/stats endpoints added) |
-| Router files | 64 | — |
+| API endpoints | 771+ | +1 |
+| Router files | 64+ | — |
 | Native scanners | 8 | — |
 | Inbound parsers | 15 | — |
 | Outbound connectors | 7 | — |
 | Security connectors | 10 | — |
 | Total integration points | 32 | — |
 | Brain Pipeline steps | 12 | — |
-| Brain Pipeline LOC | 1,828 | Stable |
-| AutoFix types | 10 | — |
+| Brain Pipeline LOC | 1,878 | Stable |
+| FAIL Engine LOC | 718 | +6 (memory fix) |
+| FAIL DB LOC | 256 | — |
+| Exposure Case LOC | 647 | — |
 | AutoFix LOC | 1,534 | Stable |
-| Self-Learning loops | 5 | — |
 | Self-Learning LOC | 1,359 | Stable |
 | MCP Server LOC | 979 | Stable |
-| MCP Router LOC | 1,016 | Stable |
-| MCP Protocol Router LOC | 220 | +9 (fixes + /stats) |
-| Tests collected | 13,674+ | Stable |
-| Core tests passing | 206/206 | ✅ Verified Run 9 (28.61s) |
-| Self-learning tests | 73/73 | ✅ Verified Run 9 (13.00s) |
+| Core tests passing | 237/237 | ✅ Verified Run 10 (23.82s) |
+| FAIL tests passing | 138/138 | ✅ Verified Run 10 (9.87s) |
+| Self-learning tests | 73/73 | ✅ Verified Run 10 |
 | AutoFix tests passing | 556/556 | ✅ Verified Run 8 |
-| Test coverage | 19.23% | Per agent-doctor measurement |
+| Test coverage | 4.65% | Config now measures ALL suites |
 | Docker services | 8 (compose) | — |
-| ADRs written | 10 | +1 (ADR-010 MCP Architecture) |
-| ADRs validated | 10/10 | All file refs valid, 0 broken |
-| Tech debt items | 33 (10 done) | +7 new (MCP review), +3 FIXED |
-| Bandit (core) | 175 (0H, 51M, 124L) | Re-baselined to core-only |
+| ADRs written | 11 | +1 (ADR-011 FAIL Engine scoring) |
+| ADRs validated | 11/11 | All file refs valid |
+| Tech debt items | 38 (11 done) | +5 new (FAIL review), +1 FIXED |
+| Bandit (core) | 175 (0H, 51M, 124L) | Stable |
 | Bandit HIGH | 0 | ✅ Stable |
-| Ruff warnings | 77 (0 actionable) | ✅ Stable |
-| Bug fixes this run | 3 | MCP attr access (9 fixes), self-learning /stats, MCP protocol /stats |
-| Reviews completed | 7 total | +1 (MCP Architecture B-) |
+| Ruff warnings | 77 (0 actionable) | ✅ Fixed F401+F841, now 77 E402 only |
+| Bug fixes this run | 7 | TD-034, TD-036, TD-037, 5×F401, F841 |
+| Reviews completed | 8 total | +1 (FAIL + Exposure Case B+) |
 
 ---
 

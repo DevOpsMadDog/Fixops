@@ -289,6 +289,9 @@ class FAILEngine:
         "likelihood": 0.30,
     }
 
+    # Memory bounds — prevent unbounded growth in long-running processes
+    MAX_HISTORY_SIZE = 5000
+
     def __init__(self, weights: Optional[Dict[str, float]] = None):
         self._base_weights = dict(weights or self.DEFAULT_WEIGHTS)
         self._history: List[FAILResult] = []
@@ -342,6 +345,9 @@ class FAILEngine:
         )
 
         self._history.append(result)
+        # Evict oldest entries when history exceeds bound
+        if len(self._history) > self.MAX_HISTORY_SIZE:
+            self._history = self._history[-self.MAX_HISTORY_SIZE:]
         logger.info(
             "FAIL score computed: %s → %.1f (%s) in %.1fms",
             inp.cve_id or inp.finding_id or "unknown",

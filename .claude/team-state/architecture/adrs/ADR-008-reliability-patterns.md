@@ -29,11 +29,11 @@ finally:
     conn.close()
 ```
 
-**Rationale**: Discovered connection leak in `history.py` where exceptions during INSERT would leave connections open. Fixed 2026-03-02. All new database code must use this pattern.
+**Rationale**: Discovered connection leak in `suite-core/core/services/history.py` where exceptions during INSERT would leave connections open. Fixed 2026-03-02. All new database code must use this pattern.
 
 ### 3. Circuit Breaker Pattern (Phase 2 Requirement)
 For external HTTP dependencies (LLM APIs, MPTE, threat feeds):
-- Reuse `_AsyncCircuitBreaker` from `universal_connector.py`
+- Reuse `_AsyncCircuitBreaker` from `suite-core/connectors/universal_connector.py`
 - OPEN after 3-5 consecutive failures
 - Recovery timeout: 60s (LLM), 30s (MPTE)
 - Thread-safe implementation (add `threading.Lock`)
@@ -78,8 +78,8 @@ Global Pipeline: 300s (PIPELINE_TIMEOUT_S)
 - **Prefer fail-safe over fail-fast**: Pipeline continues after step failure (PARTIAL status)
 
 ## Verification
-- `history.py` connection leak fix verified with 5 method tests: all PASS
-- Core tests: 288/288 PASS after fix
+- `suite-core/core/services/history.py` connection leak fix verified with 5 method tests: all PASS
+- Core tests: 237/237 PASS (Run 10 verified)
 - Brain Pipeline memory bounds verified via `test_large_findings_batch` test
 
 ---

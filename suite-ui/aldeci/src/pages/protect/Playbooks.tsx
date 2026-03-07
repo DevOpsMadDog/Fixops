@@ -119,7 +119,7 @@ export default function Playbooks() {
 
   // Extract playbooks from API response - zero mock data
   const rawData = workflowsData?.items || workflowsData?.workflows || (Array.isArray(workflowsData) ? workflowsData : []);
-  const playbooks: Playbook[] = (Array.isArray(rawData) ? rawData : []).map((w: any) => ({
+  const playbooks: Playbook[] = (Array.isArray(rawData) ? rawData : []).map((w: { id?: string; workflow_id?: string; name?: string; description?: string; trigger?: string; trigger_type?: string; status?: string; enabled?: boolean; last_run?: string; last_executed?: string; run_count?: number; execution_count?: number; actions?: string[]; steps?: { name?: string; type?: string }[] }) => ({
     id: w.id || w.workflow_id || `pb-${Math.random().toString(36).slice(2, 8)}`,
     name: w.name || 'Unnamed Playbook',
     description: w.description || '',
@@ -127,7 +127,7 @@ export default function Playbooks() {
     status: (w.status === 'active' || w.enabled) ? 'active' : w.status === 'draft' ? 'draft' : 'paused',
     lastRun: w.last_run || w.last_executed || undefined,
     runCount: w.run_count || w.execution_count || 0,
-    actions: w.actions || w.steps?.map((s: any) => s.name || s.type) || [],
+    actions: w.actions || w.steps?.map((s) => s.name || s.type || '') || [],
   }));
 
   const stats = {
@@ -241,7 +241,7 @@ export default function Playbooks() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-green-500">
-                  {rulesData?.rules?.filter((r: any) => r.enabled)?.length || 0}
+                  {rulesData?.rules?.filter((r: { enabled?: boolean }) => r.enabled)?.length || 0}
                 </p>
                 <p className="text-sm text-muted-foreground">Enabled</p>
               </div>

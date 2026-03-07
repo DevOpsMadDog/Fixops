@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
+import { toast } from 'sonner';
 
 // ── Loading Skeleton ─────────────────────────────────────────────────────────
 
@@ -90,13 +91,17 @@ const SOC2EvidenceUI = () => {
   const [selectedPack, setSelectedPack] = useState<EvidencePack | null>(null);
   const [activeTab, setActiveTab] = useState('generate');
   const [expandedControl, setExpandedControl] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const fetchPacks = useCallback(async () => {
     try {
       const res = await api.get('/api/v1/brain/evidence/packs').catch(() => ({ data: { packs: [] } }));
       setPacks(res.data?.packs || []);
-    } catch { /* ignore */ }
-    finally { setInitialLoading(false); }
+      setFetchError(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load evidence packs';
+      setFetchError(message);
+    } finally { setInitialLoading(false); }
   }, []);
 
   useEffect(() => { fetchPacks(); }, [fetchPacks]);
@@ -115,8 +120,13 @@ const SOC2EvidenceUI = () => {
         setSelectedPack(res.data);
         setActiveTab('result');
         fetchPacks();
+        toast.success('Evidence pack generated', { description: `Pack ID: ${res.data.pack_id}` });
+      } else {
+        toast.error('Failed to generate evidence pack');
       }
-    } catch { /* ignore */ }
+    } catch {
+      toast.error('Failed to generate evidence pack');
+    }
     setGenerating(false);
   };
 
@@ -129,6 +139,15 @@ const SOC2EvidenceUI = () => {
 
   return (
     <div className="space-y-6 p-6">
+      {/* Fetch Error Banner */}
+      {fetchError && (
+        <div role="alert" className="flex items-center gap-3 rounded-lg border border-red-500/40 bg-red-900/20 px-4 py-3 text-sm text-red-300">
+          <span className="text-red-400 text-base">⚠️</span>
+          <span><strong>Failed to load evidence packs:</strong> {fetchError}</span>
+          <button onClick={() => { setFetchError(null); fetchPacks(); }} className="ml-auto text-red-400 hover:text-red-300 underline text-xs">Retry</button>
+        </div>
+      )}
+
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
@@ -160,14 +179,14 @@ const SOC2EvidenceUI = () => {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Organization ID</label>
-                  <Input value={orgId} onChange={e => setOrgId(e.target.value)} className="bg-gray-800/50 border-gray-600/50" />
+                  <label htmlFor="soc2-org-id" className="text-xs text-muted-foreground mb-1 block">Organization ID</label>
+                  <Input id="soc2-org-id" aria-label="Organization ID" value={orgId} onChange={e => setOrgId(e.target.value)} className="bg-gray-800/50 border-gray-600/50" />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Audit Period (days)</label>
-                  <Input type="number" value={timeframeDays} onChange={e => setTimeframeDays(+e.target.value)} className="bg-gray-800/50 border-gray-600/50" />
+                  <label htmlFor="soc2-timeframe" className="text-xs text-muted-foreground mb-1 block">Audit Period (days)</label>
+                  <Input id="soc2-timeframe" aria-label="Audit period in days" type="number" value={timeframeDays} onChange={e => setTimeframeDays(+e.target.value)} className="bg-gray-800/50 border-gray-600/50" />
                 </div>
-                <Button onClick={generatePack} disabled={generating} size="lg"
+                <Button onClick={generatePack} disabled={generating} size="lg" aria-label="Generate SOC2 evidence pack"
                   className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-semibold shadow-lg shadow-green-500/20">
                   {generating ? <span className="flex items-center gap-2"><span className="animate-spin">⚙️</span> Generating...</span> : '📦 Generate Evidence Pack'}
                 </Button>
@@ -204,6 +223,10 @@ const SOC2EvidenceUI = () => {
                   {packs.map((pack, i) => (
                     <motion.div key={pack.pack_id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
                       onClick={() => viewPack(pack)}
+                      role="button"
+                      aria-label={`View evidence pack ${pack.pack_id}`}
+                      tabIndex={0}
+                      onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && viewPack(pack)}
                       className="flex items-center justify-between p-4 rounded-lg bg-gray-800/30 border border-gray-700/30 hover:border-green-500/30 hover:bg-gray-800/50 cursor-pointer transition-all">
                       <div className="flex items-center gap-3">
                         <Badge variant="outline" className={statusBadge(pack.overall_status)}>{pack.overall_status}</Badge>
@@ -290,6 +313,11 @@ const SOC2EvidenceUI = () => {
                       <motion.div key={ctrl.control_id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}>
                         <div
                           onClick={() => setExpandedControl(expandedControl === ctrl.control_id ? null : ctrl.control_id)}
+                          role="button"
+                          aria-label={`Toggle control ${ctrl.control_id} details`}
+                          aria-expanded={expandedControl === ctrl.control_id}
+                          tabIndex={0}
+                          onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && setExpandedControl(expandedControl === ctrl.control_id ? null : ctrl.control_id)}
                           className="flex items-center justify-between p-4 hover:bg-gray-800/20 cursor-pointer transition-colors"
                         >
                           <div className="flex items-center gap-3">

@@ -210,7 +210,7 @@ export default function LogViewer() {
       blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     } else {
       const keys = data.length > 0 ? Object.keys(data[0]) : [];
-      const csv = [keys.join(','), ...data.map((r: any) => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))].join('\n');
+      const csv = [keys.join(','), ...data.map((r) => keys.map(k => JSON.stringify((r as unknown as Record<string, unknown>)[k] ?? '')).join(','))].join('\n');
       blob = new Blob([csv], { type: 'text/csv' });
     }
     const url = URL.createObjectURL(blob);

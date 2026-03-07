@@ -183,7 +183,7 @@ async def test_log4shell(
                     {
                         "header": header,
                         "payload": payload,
-                        "error": str(e),
+                        "error": type(e).__name__,
                     }
                 )
 
@@ -251,7 +251,7 @@ async def test_proxyshell(
             evidence["tests_run"].append(
                 {
                     "path": path,
-                    "error": str(e),
+                    "error": type(e).__name__,
                 }
             )
 
@@ -322,7 +322,7 @@ async def test_confluence_auth_bypass(
             evidence["tests_run"].append(
                 {
                     "path": path,
-                    "error": str(e),
+                    "error": type(e).__name__,
                 }
             )
 
@@ -394,7 +394,7 @@ async def test_moveit_sqli(
             evidence["tests_run"].append(
                 {
                     "path": path,
-                    "error": str(e),
+                    "error": type(e).__name__,
                 }
             )
 
@@ -471,7 +471,7 @@ async def test_panos_cmd_injection(
             evidence["tests_run"].append(
                 {
                     "path": path,
-                    "error": str(e),
+                    "error": type(e).__name__,
                 }
             )
 
@@ -547,7 +547,7 @@ async def test_bigip_auth_bypass(
             evidence["tests_run"].append(
                 {
                     "path": path,
-                    "error": str(e),
+                    "error": type(e).__name__,
                 }
             )
 
@@ -621,7 +621,7 @@ async def test_proxylogon(
         evidence["tests_run"].append(
             {
                 "path": test_url,
-                "error": str(e),
+                "error": type(e).__name__,
             }
         )
 
@@ -692,7 +692,7 @@ async def test_spring4shell(
                 except Exception:
                     pass
         except Exception as e:
-            evidence["tests_run"].append({"path": path, "error": str(e)})
+            evidence["tests_run"].append({"path": path, "error": type(e).__name__})
     return vulnerable, confidence, evidence
 
 
@@ -741,7 +741,7 @@ async def test_citrix_bleed(
                     "vulnerability_indicator"
                 ] = "Oversized response to large Host header"
         except Exception as e:
-            evidence["tests_run"].append({"path": path, "error": str(e)})
+            evidence["tests_run"].append({"path": path, "error": type(e).__name__})
     return vulnerable, confidence, evidence
 
 
@@ -803,7 +803,7 @@ async def test_heartbleed(
             except Exception:
                 pass
     except Exception as e:
-        evidence["tests_run"].append({"url": target_url, "error": str(e)})
+        evidence["tests_run"].append({"url": target_url, "error": type(e).__name__})
     return vulnerable, confidence, evidence
 
 
@@ -865,7 +865,7 @@ async def test_struts_rce(
                 except Exception:
                     pass
         except Exception as e:
-            evidence["tests_run"].append({"path": path, "error": str(e)})
+            evidence["tests_run"].append({"path": path, "error": type(e).__name__})
     return vulnerable, confidence, evidence
 
 
@@ -919,7 +919,7 @@ async def test_fortinet_sslvpn(
                     "vulnerability_indicator"
                 ] = "SSL-VPN session file accessible via path traversal"
         except Exception as e:
-            evidence["tests_run"].append({"path": path, "error": str(e)})
+            evidence["tests_run"].append({"path": path, "error": type(e).__name__})
     return vulnerable, confidence, evidence
 
 
@@ -956,7 +956,7 @@ async def test_cisco_iosxe(
                     "vulnerability_indicator"
                 ] = "IOS XE web UI implant indicator accessible"
         except Exception as e:
-            evidence["tests_run"].append({"path": path, "error": str(e)})
+            evidence["tests_run"].append({"path": path, "error": type(e).__name__})
     # Check for implant via specific URI
     try:
         resp = await client.post(
@@ -1018,7 +1018,7 @@ async def test_ivanti_connect(
                         "vulnerability_indicator"
                     ] = "Ivanti REST API accessible without auth"
         except Exception as e:
-            evidence["tests_run"].append({"path": path, "error": str(e)})
+            evidence["tests_run"].append({"path": path, "error": type(e).__name__})
     return vulnerable, confidence, evidence
 
 
@@ -1064,7 +1064,7 @@ async def test_goanywhere(
                     "vulnerability_indicator"
                 ] = "License Response Servlet accessible"
         except Exception as e:
-            evidence["tests_run"].append({"path": path, "error": str(e)})
+            evidence["tests_run"].append({"path": path, "error": type(e).__name__})
     return vulnerable, confidence, evidence
 
 
@@ -1107,7 +1107,7 @@ async def test_papercut(
                         "vulnerability_indicator"
                     ] = "Setup/admin page accessible without authentication"
         except Exception as e:
-            evidence["tests_run"].append({"path": path, "error": str(e)})
+            evidence["tests_run"].append({"path": path, "error": type(e).__name__})
     return vulnerable, confidence, evidence
 
 
@@ -1148,7 +1148,7 @@ async def test_connectwise_screenconnect(
                         "vulnerability_indicator"
                     ] = "Setup wizard accessible post-installation"
         except Exception as e:
-            evidence["tests_run"].append({"path": path, "error": str(e)})
+            evidence["tests_run"].append({"path": path, "error": type(e).__name__})
     return vulnerable, confidence, evidence
 
 
@@ -1288,7 +1288,7 @@ class CVEVulnerabilityTester:
                     raw_vuln, raw_conf, evidence = await test_func(client, target_url)
                 except Exception as e:
                     logger.error(f"CVE test failed for {cve_id}: {e}")
-                    raw_vuln, raw_conf, evidence = False, 0.0, {"error": str(e)}
+                    raw_vuln, raw_conf, evidence = False, 0.0, {"error": type(e).__name__}
 
                 # ── Apply verification confidence gate ───────────────────
                 # If the raw test says vulnerable, validate confidence
@@ -1399,7 +1399,7 @@ class CVEVulnerabilityTester:
                             cve_id=cve_id,
                             vulnerable=False,
                             confidence=0.0,
-                            evidence={"error": str(e)},
+                            evidence={"error": type(e).__name__},
                             test_method="failed",
                             target_url=target_url,
                             severity="unknown",

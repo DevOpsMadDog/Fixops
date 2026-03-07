@@ -174,29 +174,27 @@ sleep 10 && python scripts/enterprise_e2e_test.py
 52. **Graph step error isolation**: Per-node and per-edge try/except, first 5 errors logged. graph_errors count in result.
 53. **Test file**: `tests/test_brain_pipeline_optimization.py` — 26 tests covering new fields, metrics, local dedup, graph optimization, backward compat.
 
-## MPTE Router Hardening (Day 3)
-39. **SSRF in MPTE**: `target_url` fields must validate against RFC1918, localhost, metadata (169.254.x.x), GCP metadata hostname, IPv6 loopback/link-local/unique-local. Use `_validate_target_url()` helper.
-40. **Concurrent scan limiter**: Use `_acquire_scan_slot()`/`_release_scan_slot()` pattern with `threading.Lock()`. Default MAX=10. Returns 429 when at capacity. Always release in `finally` block.
-41. **Pydantic field_validators for MPTE**: priority must be in {low,medium,high,critical}. scan_types must be in known set. interval_minutes ge=5,le=1440. confidence_score ge=0.0,le=1.0.
-42. **f-string logging elimination**: Regex to detect: `logger\.\w+\(f[\"']`. Replace with `%s` lazy format. In secrets_scanner.py, never log command arguments (may contain paths to secret files).
+## Day 3 Hardening (see topic files for details)
+- MPTE/pentest SSRF: `_validate_target_url()` / `_validate_pentest_url()` patterns
+- Concurrent limiters: `_acquire_scan_slot()`/`_release_scan_slot()` with `threading.Lock()`
+- JWT: min 32-char secret, 4096-byte token limit, required iat claim, brute-force tracker
+- Webhook SSRF: `_validate_external_url()` on `CreateMappingRequest`
 
-## JWT Hardening (Day 3)
-43. **JWT secret minimum**: `_MIN_JWT_SECRET_LENGTH = 32`. In `_load_or_generate_jwt_secret()`, reject env vars shorter than 32 chars with CRITICAL log, generate ephemeral instead.
-44. **Token max length**: `_MAX_TOKEN_LENGTH = 4096`. Check `len(token.encode("utf-8"))` before `jwt.decode()` to prevent parsing attacks.
-45. **Required claims**: Use `options={"require": ["exp", "iat"]}` in `jwt.decode()`. Generate tokens with `"iat": datetime.now(timezone.utc)`.
-46. **Auth brute-force**: `_AUTH_FAIL_TRACKER` dict[str, list[float]], lock-protected. 20 failures in 300s → 429. Prune at 1000 IPs.
+## Day 7 Hardening (2026-03-07)
+54. **WIQL injection**: Azure DevOps `list_work_items()` interpolates strings into WIQL. Added `_sanitize_wiql_value()` — escapes single quotes, strips control chars, 256-char limit.
+55. **CLI URL scheme validation**: `_validate_api_url()` in cli.py blocks file://, ftp://, custom schemes. Applied to all 9 FIXOPS_API_URL usages.
+56. **Info disclosure (100+ fixes)**: Replaced `str(exc)` with `type(exc).__name__` in error dicts across security_connectors.py (28), connectors.py (34), cve_tester.py (31), llm_providers.py (5), mpte_advanced.py (2), scanner_ingest_router.py (2), middleware.py (1). See `info-disclosure-patterns.md`.
+57. **LLM reasoning field**: Never embed `{exc}` in reasoning strings — API keys can leak. Use `{type(exc).__name__}` instead.
+58. **LLM HTTP error detail**: Use `f"HTTP {exc.response.status_code}"` not `str(exc)` for HTTP errors.
+59. **Bandit clean**: 0 HIGH findings, 64 MEDIUM (false positives in SSRF blocklists). 139K LOC scanned.
+60. **pypdf CVE-2026-28804**: Fixed by upgrading 6.7.4 → 6.7.5.
 
-## Micro Pentest Router Hardening (Day 3, Session 2)
-47. **SSRF in micro_pentest_router**: Same pattern as mpte_router but with `_validate_pentest_url()`. Auto-adds https:// before parsing if scheme missing. Applied to all target_urls in run_pentest endpoint.
-48. **CVE ID validation**: Regex `^CVE-\d{4}-\d{4,}$` via Pydantic field_validator. Max 256 chars per CVE ID. List limits: 100 CVEs, 50 URLs, 20 batch tests.
-49. **Concurrent pentest limiter**: `_acquire_pentest_slot()`/`_release_pentest_slot()` with `threading.Lock()`. Default MAX=20 (configurable via MICRO_PENTEST_MAX_CONCURRENT env). Always release in `finally` block.
-50. **Health endpoint info disclosure**: NEVER include internal service URLs (MPTE_URL) in /health responses. Only return connection status (connected/disconnected).
-51. **Webhook SSRF**: webhooks_router.py `external_url` field needs same SSRF validation as scanner URLs. Added `_validate_external_url()` and Pydantic `field_validator` on `CreateMappingRequest`.
-52. **LLM bare except fix pattern**: Replace `except Exception:` in LLM provider loops with `except (TimeoutError, ConnectionError, ValueError, RuntimeError)` and add `logger.debug("LLM provider %s unavailable: %s", _prov, type(exc).__name__)`.
-53. **Playbook runner f-string count**: 36+ f-string logging calls needed fixing. Pattern: `logger.info(f"Action: {params}")` → `logger.info("Action: key=%s", params.get("key"))`. Never log entire params dict (may contain secrets).
+## Files I Own (Updated 2026-03-07)
+- `tests/test_hardening_2026_03_07.py` — 28 tests (WIQL, CLI URL, info disclosure, bandit, pypdf CVE)
+- `tests/test_hardening_2026_03_03.py` — 46 tests
+- `tests/test_hardening_2026_03_03_session2.py` — 52 tests
+- `tests/test_jwt_hardening.py` — 31 tests
+- `tests/test_brain_pipeline_optimization.py` — 26 tests
 
-## Files I Own (Updated Day 3, Session 2)
-- `tests/test_hardening_2026_03_03.py` — 46 tests (MPTE SSRF, input validation, concurrent limits, f-string audit, bare except audit)
-- `tests/test_hardening_2026_03_03_session2.py` — 52 tests (micro_pentest SSRF, CVE validation, concurrent limiter, webhook SSRF, f-string audit, bare except audit)
-- `tests/test_jwt_hardening.py` — 31 tests (JWT strength, token decode, brute-force, auth tracker)
-- `tests/test_brain_pipeline_optimization.py` — 26 tests (graph optimization, step metrics, dedup)
+## Topic Files
+- `info-disclosure-patterns.md` — str(exc) remediation patterns and file inventory

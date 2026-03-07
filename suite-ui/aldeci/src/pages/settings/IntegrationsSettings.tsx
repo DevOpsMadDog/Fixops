@@ -49,7 +49,7 @@ const IntegrationsSettings = () => {
   });
 
   // Map backend response → array with UI status
-  const integrations: ConfiguredConnector[] = (integrationsData?.items || []).map((item: any) => ({
+  const integrations: ConfiguredConnector[] = (integrationsData?.items || []).map((item: { id: string; integration_type: string; name: string; status: string; last_sync_at?: string; config?: Record<string, unknown> }) => ({
     id: item.id,
     type: item.integration_type,
     name: item.name,
@@ -69,7 +69,7 @@ const IntegrationsSettings = () => {
       setConnectorName('');
       queryClient.invalidateQueries({ queryKey: ['integrations'] });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(`Failed to create connector: ${error.message}`);
     },
   });
@@ -85,7 +85,7 @@ const IntegrationsSettings = () => {
       }
       queryClient.invalidateQueries({ queryKey: ['integrations'] });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(`Test failed: ${error.message}`);
     },
   });
@@ -97,7 +97,7 @@ const IntegrationsSettings = () => {
       toast.success('Connector deleted');
       queryClient.invalidateQueries({ queryKey: ['integrations'] });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(`Delete failed: ${error.message}`);
     },
   });
@@ -109,7 +109,7 @@ const IntegrationsSettings = () => {
       toast.success('Sync started');
       queryClient.invalidateQueries({ queryKey: ['integrations'] });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(`Sync failed: ${error.message}`);
     },
   });

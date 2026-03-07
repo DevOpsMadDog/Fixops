@@ -69,7 +69,7 @@ class SnykConnector(_BaseConnector):
                 },
             )
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def get_issues(self, project_id: str) -> ConnectorOutcome:
         """Fetch vulnerability issues for a Snyk project."""
@@ -85,7 +85,7 @@ class SnykConnector(_BaseConnector):
             issues = data.get("issues", [])
             return ConnectorOutcome("fetched", {"issues": issues, "count": len(issues)})
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def health_check(self) -> ConnectorHealth:
         if not self.configured:
@@ -163,7 +163,7 @@ class SonarQubeConnector(_BaseConnector):
                 {"issues": data.get("issues", []), "total": data.get("total", 0)},
             )
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def get_quality_gate(self, project_key: Optional[str] = None) -> ConnectorOutcome:
         """Get quality gate status for a project."""
@@ -177,7 +177,7 @@ class SonarQubeConnector(_BaseConnector):
             resp.raise_for_status()
             return ConnectorOutcome("fetched", resp.json())
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def health_check(self) -> ConnectorHealth:
         if not self.configured:
@@ -247,7 +247,7 @@ class DependabotConnector(_BaseConnector):
             alerts = resp.json()
             return ConnectorOutcome("fetched", {"alerts": alerts, "count": len(alerts)})
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def dismiss_alert(
         self, alert_number: int, reason: str = "tolerable_risk"
@@ -268,7 +268,7 @@ class DependabotConnector(_BaseConnector):
                 "updated", {"alert_number": alert_number, "state": "dismissed"}
             )
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def health_check(self) -> ConnectorHealth:
         if not self.configured:
@@ -350,7 +350,7 @@ class AWSSecurityHubConnector(_BaseConnector):
                 "fetched", {"findings": findings, "count": len(findings)}
             )
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def batch_update_findings(
         self, finding_ids: List[Dict[str, str]], workflow_status: str = "RESOLVED"
@@ -368,7 +368,7 @@ class AWSSecurityHubConnector(_BaseConnector):
                 "updated", {"count": len(finding_ids), "status": workflow_status}
             )
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def health_check(self) -> ConnectorHealth:
         client = self._get_client()
@@ -464,7 +464,7 @@ class AzureSecurityCenterConnector(_BaseConnector):
                 "fetched", {"assessments": assessments, "count": len(assessments)}
             )
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def get_alerts(self) -> ConnectorOutcome:
         """Fetch security alerts from Defender for Cloud."""
@@ -483,7 +483,7 @@ class AzureSecurityCenterConnector(_BaseConnector):
             alerts = data.get("value", [])
             return ConnectorOutcome("fetched", {"alerts": alerts, "count": len(alerts)})
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def health_check(self) -> ConnectorHealth:
         if not self.configured:
@@ -594,7 +594,7 @@ class WizConnector(_BaseConnector):
             issues = data.get("data", {}).get("issues", {}).get("nodes", [])
             return ConnectorOutcome("fetched", {"issues": issues, "count": len(issues)})
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def get_vulnerabilities(self, limit: int = 100) -> ConnectorOutcome:
         """Fetch vulnerability findings from Wiz."""
@@ -629,7 +629,7 @@ class WizConnector(_BaseConnector):
                 "fetched", {"vulnerabilities": vulns, "count": len(vulns)}
             )
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def get_cloud_resources(self, limit: int = 100) -> ConnectorOutcome:
         """Fetch cloud resources inventory."""
@@ -651,7 +651,7 @@ class WizConnector(_BaseConnector):
                 "fetched", {"resources": resources, "count": len(resources)}
             )
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def health_check(self) -> ConnectorHealth:
         if not self.configured:
@@ -739,7 +739,7 @@ class PrismaCloudConnector(_BaseConnector):
             alerts = resp.json()
             return ConnectorOutcome("fetched", {"alerts": alerts, "count": len(alerts)})
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def get_vulnerabilities(self, limit: int = 100) -> ConnectorOutcome:
         """Fetch vulnerability findings from Prisma Cloud Compute."""
@@ -763,7 +763,7 @@ class PrismaCloudConnector(_BaseConnector):
                 "fetched", {"vulnerabilities": vulns, "count": len(vulns)}
             )
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def get_compliance_findings(self, limit: int = 100) -> ConnectorOutcome:
         """Fetch compliance posture findings."""
@@ -782,7 +782,7 @@ class PrismaCloudConnector(_BaseConnector):
                 "fetched", {"compliance": data, "count": len(data.get("items", []))}
             )
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def health_check(self) -> ConnectorHealth:
         if not self.configured:
@@ -844,7 +844,7 @@ class OrcaSecurityConnector(_BaseConnector):
             alerts = data.get("data", [])
             return ConnectorOutcome("fetched", {"alerts": alerts, "count": len(alerts)})
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def get_vulnerabilities(self, limit: int = 100) -> ConnectorOutcome:
         """Fetch vulnerability findings."""
@@ -862,7 +862,7 @@ class OrcaSecurityConnector(_BaseConnector):
                 "fetched", {"vulnerabilities": vulns, "count": len(vulns)}
             )
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def health_check(self) -> ConnectorHealth:
         if not self.configured:
@@ -956,7 +956,7 @@ class LaceworkConnector(_BaseConnector):
                 ]
             return ConnectorOutcome("fetched", {"alerts": alerts, "count": len(alerts)})
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def get_vulnerabilities(self, limit: int = 100) -> ConnectorOutcome:
         """Fetch vulnerability findings from host/container scans."""
@@ -980,7 +980,7 @@ class LaceworkConnector(_BaseConnector):
                 "fetched", {"vulnerabilities": vulns[:limit], "count": len(vulns)}
             )
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def health_check(self) -> ConnectorHealth:
         if not self.configured:
@@ -1112,7 +1112,7 @@ class ThreatMapperConnector(_BaseConnector):
                 "fetched", {"vulnerabilities": vulns, "count": len(vulns)}
             )
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     # -- secret scans -------------------------------------------------------
 
@@ -1146,7 +1146,7 @@ class ThreatMapperConnector(_BaseConnector):
                 "fetched", {"secrets": secrets, "count": len(secrets)}
             )
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     # -- malware scans ------------------------------------------------------
 
@@ -1180,7 +1180,7 @@ class ThreatMapperConnector(_BaseConnector):
                 "fetched", {"malware": malware, "count": len(malware)}
             )
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     # -- compliance ---------------------------------------------------------
 
@@ -1224,7 +1224,7 @@ class ThreatMapperConnector(_BaseConnector):
                 "fetched", {"compliance_results": results, "count": len(results)}
             )
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     # -- topology / inventory -----------------------------------------------
 
@@ -1244,7 +1244,7 @@ class ThreatMapperConnector(_BaseConnector):
             data = resp.json()
             return ConnectorOutcome("fetched", {"topology": data})
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     # -- trigger scans ------------------------------------------------------
 
@@ -1274,7 +1274,7 @@ class ThreatMapperConnector(_BaseConnector):
                 {"scan_ids": data.get("scan_ids", []), "message": "Scan started"},
             )
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def trigger_secret_scan(
         self, node_ids: List[str], node_type: str = "host"
@@ -1302,7 +1302,7 @@ class ThreatMapperConnector(_BaseConnector):
                 {"scan_ids": data.get("scan_ids", []), "message": "Scan started"},
             )
         except Exception as exc:
-            return ConnectorOutcome("failed", {"error": str(exc)})
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     # -- health check -------------------------------------------------------
 

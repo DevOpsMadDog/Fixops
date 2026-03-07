@@ -685,3 +685,124 @@
 [2026-03-02T19:04:23Z] POST-AGENT: swarm-controller failed (exit 1) — skipping validation
 [2026-03-02T19:07:41Z] POST-AGENT: qa-engineer (exit: 1, risk: medium)
 [2026-03-02T19:07:41Z] POST-AGENT: qa-engineer failed (exit 1) — skipping validation
+[2026-03-02T19:14:40Z] Guardian initialized for run swarm-2026-03-03_06-14-40
+[2026-03-02T19:15:19Z] POST-AGENT: agent-doctor (exit: 1, risk: )
+[2026-03-02T19:15:19Z] POST-AGENT: agent-doctor failed (exit 1) — skipping validation
+[2026-03-02T19:15:21Z] POST-AGENT: vision-agent (exit: 1, risk: )
+[2026-03-02T19:15:21Z] POST-AGENT: vision-agent failed (exit 1) — skipping validation
+[2026-03-02T19:16:03Z] POST-AGENT: context-engineer (exit: 1, risk: medium)
+[2026-03-02T19:16:03Z] POST-AGENT: context-engineer failed (exit 1) — skipping validation
+[2026-03-02T19:32:29Z] POST-AGENT: devops-engineer (exit: 1, risk: medium)
+[2026-03-02T19:32:29Z] POST-AGENT: devops-engineer failed (exit 1) — skipping validation
+[2026-03-02T19:46:43Z] POST-AGENT: technical-writer (exit: 1, risk: medium)
+[2026-03-02T19:46:43Z] POST-AGENT: technical-writer failed (exit 1) — skipping validation
+[2026-03-02T19:46:43Z] POST-AGENT: sales-engineer (exit: 1, risk: medium)
+[2026-03-02T19:46:43Z] POST-AGENT: sales-engineer failed (exit 1) — skipping validation
+[2026-03-02T19:46:43Z] POST-AGENT: marketing-head (exit: 1, risk: medium)
+[2026-03-02T19:46:43Z] POST-AGENT: marketing-head failed (exit 1) — skipping validation
+[2026-03-02T19:47:28Z] POST-AGENT: scrum-master (exit: 1, risk: medium)
+[2026-03-02T19:47:28Z] POST-AGENT: scrum-master failed (exit 1) — skipping validation
+[2026-03-02T19:48:09Z] POST-AGENT: agent-doctor (exit: 1, risk: medium)
+[2026-03-02T19:48:09Z] POST-AGENT: agent-doctor failed (exit 1) — skipping validation
+[2026-03-02T19:48:46Z] POST-AGENT: vision-agent (exit: 1, risk: medium)
+[2026-03-02T19:48:46Z] POST-AGENT: vision-agent failed (exit 1) — skipping validation
+[2026-03-02T20:03:49Z] POST-AGENT: scrum-master (exit: 1, risk: medium)
+[2026-03-02T20:03:49Z] POST-AGENT: scrum-master failed (exit 1) — skipping validation
+[2026-03-02T20:04:30Z] POST-AGENT: vision-agent (exit: 1, risk: medium)
+[2026-03-02T20:04:30Z] POST-AGENT: vision-agent failed (exit 1) — skipping validation
+[2026-03-02T20:20:28Z] POST-AGENT: vision-agent (exit: 1, risk: medium)
+[2026-03-02T20:20:28Z] POST-AGENT: vision-agent failed (exit 1) — skipping validation
+[2026-03-02T20:36:15Z] Guardian initialized for run swarm-2026-03-03_07-36-15
+[2026-03-02T20:36:19Z] POST-AGENT: vision-agent (exit: 1, risk: )
+[2026-03-02T20:36:19Z] POST-AGENT: vision-agent failed (exit 1) — skipping validation
+[2026-03-02T20:36:27Z] POST-AGENT: agent-doctor (exit: 1, risk: )
+[2026-03-02T20:36:27Z] POST-AGENT: agent-doctor failed (exit 1) — skipping validation
+[2026-03-02T20:36:37Z] POST-AGENT: context-engineer (exit: 1, risk: medium)
+[2026-03-02T20:36:37Z] POST-AGENT: context-engineer failed (exit 1) — skipping validation
+[2026-03-02T20:36:45Z] Guardian initialized for run swarm-2026-03-03_07-36-45
+[2026-03-02T20:36:48Z] POST-AGENT: agent-doctor (exit: 1, risk: )
+[2026-03-02T20:36:48Z] POST-AGENT: agent-doctor failed (exit 1) — skipping validation
+[2026-03-02T20:36:49Z] POST-AGENT: vision-agent (exit: 1, risk: )
+[2026-03-02T20:36:49Z] POST-AGENT: vision-agent failed (exit 1) — skipping validation
+[2026-03-02T20:36:57Z] POST-AGENT: context-engineer (exit: 1, risk: medium)
+[2026-03-02T20:36:57Z] POST-AGENT: context-engineer failed (exit 1) — skipping validation
+[2026-03-02T20:40:28Z] Guardian initialized for run swarm-2026-03-03_07-40-28
+[2026-03-02T20:40:31Z] POST-AGENT: agent-doctor (exit: 1, risk: )
+[2026-03-02T20:40:31Z] POST-AGENT: agent-doctor failed (exit 1) — skipping validation
+[2026-03-02T20:40:38Z] POST-AGENT: vision-agent (exit: 1, risk: )
+[2026-03-02T20:40:38Z] POST-AGENT: vision-agent failed (exit 1) — skipping validation
+[2026-03-02T20:40:50Z] POST-AGENT: context-engineer (exit: 1, risk: medium)
+[2026-03-02T20:40:50Z] POST-AGENT: context-engineer failed (exit 1) — skipping validation
+[2026-03-03T02:23:21Z] Guardian initialized for run swarm-2026-03-03_13-23-21
+[2026-03-03T02:23:26Z] POST-AGENT: agent-doctor (exit: 1, risk: )
+[2026-03-03T02:23:26Z] POST-AGENT: agent-doctor failed (exit 1) — skipping validation
+[2026-03-03T02:23:26Z] POST-AGENT: vision-agent (exit: 1, risk: )
+[2026-03-03T02:23:26Z] POST-AGENT: vision-agent failed (exit 1) — skipping validation
+[2026-03-03T02:23:32Z] POST-AGENT: context-engineer (exit: 1, risk: medium)
+[2026-03-03T02:23:32Z] POST-AGENT: context-engineer failed (exit 1) — skipping validation
+[2026-03-03T02:55:46Z] Guardian initialized for run swarm-2026-03-03_13-55-46
+[2026-03-03T02:55:49Z] POST-AGENT: vision-agent (exit: 1, risk: )
+[2026-03-03T02:55:49Z] POST-AGENT: vision-agent failed (exit 1) — skipping validation
+[2026-03-03T02:55:49Z] POST-AGENT: agent-doctor (exit: 1, risk: )
+[2026-03-03T02:55:49Z] POST-AGENT: agent-doctor failed (exit 1) — skipping validation
+[2026-03-03T02:55:57Z] POST-AGENT: context-engineer (exit: 1, risk: medium)
+[2026-03-03T02:55:57Z] POST-AGENT: context-engineer failed (exit 1) — skipping validation
+[2026-03-03T03:28:11Z] Guardian initialized for run swarm-2026-03-03_14-28-11
+[2026-03-03T03:28:14Z] POST-AGENT: agent-doctor (exit: 1, risk: )
+[2026-03-03T03:28:14Z] POST-AGENT: vision-agent (exit: 1, risk: )
+[2026-03-03T03:28:14Z] POST-AGENT: agent-doctor failed (exit 1) — skipping validation
+[2026-03-03T03:28:14Z] POST-AGENT: vision-agent failed (exit 1) — skipping validation
+[2026-03-03T03:28:22Z] POST-AGENT: context-engineer (exit: 1, risk: medium)
+[2026-03-03T03:28:22Z] POST-AGENT: context-engineer failed (exit 1) — skipping validation
+[2026-03-03T04:00:35Z] Guardian initialized for run swarm-2026-03-03_15-00-35
+[2026-03-03T04:00:50Z] POST-AGENT: agent-doctor (exit: 1, risk: )
+[2026-03-03T04:00:50Z] POST-AGENT: agent-doctor failed (exit 1) — skipping validation
+[2026-03-03T04:00:53Z] POST-AGENT: vision-agent (exit: 1, risk: )
+[2026-03-03T04:00:53Z] POST-AGENT: vision-agent failed (exit 1) — skipping validation
+[2026-03-03T04:01:18Z] POST-AGENT: context-engineer (exit: 1, risk: medium)
+[2026-03-03T04:01:18Z] POST-AGENT: context-engineer failed (exit 1) — skipping validation
+[2026-03-03T04:33:32Z] Guardian initialized for run swarm-2026-03-03_15-33-32
+[2026-03-03T04:33:49Z] POST-AGENT: vision-agent (exit: 1, risk: )
+[2026-03-03T04:33:49Z] POST-AGENT: vision-agent failed (exit 1) — skipping validation
+[2026-03-03T04:33:49Z] POST-AGENT: agent-doctor (exit: 1, risk: )
+[2026-03-03T04:33:49Z] POST-AGENT: agent-doctor failed (exit 1) — skipping validation
+[2026-03-03T04:34:12Z] POST-AGENT: context-engineer (exit: 1, risk: medium)
+[2026-03-03T04:34:12Z] POST-AGENT: context-engineer failed (exit 1) — skipping validation
+[2026-03-03T05:06:26Z] Guardian initialized for run swarm-2026-03-03_16-06-26
+[2026-03-03T05:06:43Z] POST-AGENT: agent-doctor (exit: 1, risk: )
+[2026-03-03T05:06:43Z] POST-AGENT: agent-doctor failed (exit 1) — skipping validation
+[2026-03-03T05:06:43Z] POST-AGENT: vision-agent (exit: 1, risk: )
+[2026-03-03T05:06:43Z] POST-AGENT: vision-agent failed (exit 1) — skipping validation
+[2026-03-03T05:07:06Z] POST-AGENT: context-engineer (exit: 1, risk: medium)
+[2026-03-03T05:07:06Z] POST-AGENT: context-engineer failed (exit 1) — skipping validation
+[2026-03-03T05:39:20Z] Guardian initialized for run swarm-2026-03-03_16-39-20
+[2026-03-03T05:39:23Z] POST-AGENT: agent-doctor (exit: 1, risk: )
+[2026-03-03T05:39:23Z] POST-AGENT: agent-doctor failed (exit 1) — skipping validation
+[2026-03-03T05:39:23Z] POST-AGENT: vision-agent (exit: 1, risk: )
+[2026-03-03T05:39:23Z] POST-AGENT: vision-agent failed (exit 1) — skipping validation
+[2026-03-03T05:39:31Z] POST-AGENT: context-engineer (exit: 1, risk: medium)
+[2026-03-03T05:39:31Z] POST-AGENT: context-engineer failed (exit 1) — skipping validation
+[2026-03-07T09:15:53Z] Guardian initialized for run swarm-2026-03-07_20-15-53
+[2026-03-07T09:17:00Z] Guardian initialized for run swarm-2026-03-07_20-17-00
+[2026-03-07T09:30:11Z] Guardian initialized for run swarm-2026-03-07_20-30-11
+[2026-03-07T09:38:22Z] POST-AGENT: vision-agent (exit: 0, risk: )
+[2026-03-07T09:38:27Z] POST-AGENT: vision-agent — ACCEPTED (impact: 217934, pillars: NONE, violations: 0)
+[2026-03-07T09:38:27Z]   ⚠️  HIGH IMPACT SCORE (217934) — review recommended
+[2026-03-07T09:40:18Z] POST-AGENT: agent-doctor (exit: 0, risk: )
+[2026-03-07T09:40:23Z] POST-AGENT: agent-doctor — ACCEPTED (impact: 217941, pillars: NONE, violations: 0)
+[2026-03-07T09:40:23Z]   ⚠️  HIGH IMPACT SCORE (217941) — review recommended
+[2026-03-07T09:52:30Z] POST-AGENT: context-engineer (exit: 0, risk: medium)
+[2026-03-07T09:52:35Z] POST-AGENT: context-engineer — ACCEPTED (impact: 218092, pillars: NONE, violations: 0)
+[2026-03-07T09:52:35Z]   ⚠️  HIGH IMPACT SCORE (218092) — review recommended
+[2026-03-07T10:03:47Z] POST-AGENT: ai-researcher (exit: 0, risk: medium)
+[2026-03-07T10:03:56Z] POST-AGENT: ai-researcher — ACCEPTED (impact: 218881, pillars: NONE, violations: 0)
+[2026-03-07T10:03:56Z]   ⚠️  HIGH IMPACT SCORE (218881) — review recommended
+[2026-03-07T10:57:03Z] POST-AGENT: backend-hardener (exit: 0, risk: medium)
+[2026-03-07T10:57:09Z] POST-AGENT: backend-hardener — ACCEPTED (impact: 219241, pillars: NONE, violations: 0)
+[2026-03-07T10:57:09Z]   ⚠️  HIGH IMPACT SCORE (219241) — review recommended
+[2026-03-07T10:58:28Z] POST-AGENT: frontend-craftsman (exit: 0, risk: medium)
+[2026-03-07T10:58:34Z] POST-AGENT: frontend-craftsman — ACCEPTED (impact: 219263, pillars: NONE, violations: 0)
+[2026-03-07T10:58:34Z]   ⚠️  HIGH IMPACT SCORE (219263) — review recommended
+[2026-03-07T11:00:03Z] POST-AGENT: threat-architect (exit: 0, risk: medium)
+[2026-03-07T11:00:08Z] POST-AGENT: threat-architect — ACCEPTED (impact: 219274, pillars: NONE, violations: 0)
+[2026-03-07T11:00:08Z]   ⚠️  HIGH IMPACT SCORE (219274) — review recommended

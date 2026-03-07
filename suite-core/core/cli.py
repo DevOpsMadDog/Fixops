@@ -43,6 +43,24 @@ from core.paths import (
 )
 
 
+def _validate_api_url(url: str) -> str:
+    """Validate that a CLI API URL uses only http or https scheme.
+
+    Prevents file://, ftp://, or custom scheme abuse via FIXOPS_API_URL env var.
+    Returns the validated URL stripped of trailing slashes.
+    """
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError(
+            f"FIXOPS_API_URL must use http or https scheme, got: {parsed.scheme!r}"
+        )
+    if not parsed.hostname:
+        raise ValueError("FIXOPS_API_URL must include a hostname")
+    return url.rstrip("/")
+
+
 def _apply_env_overrides(pairs: Iterable[str]) -> None:
     for pair in pairs:
         if "=" not in pair:
@@ -3638,7 +3656,7 @@ def _handle_mpte_orchestrator(args: argparse.Namespace) -> int:
 
     # --- enterprise-scan: calls /api/v1/micro-pentest/enterprise/scan ---
     elif cmd == "enterprise-scan":
-        url = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
+        url = _validate_api_url(os.environ.get("FIXOPS_API_URL", "http://localhost:8000"))
         target = args.target
         scan_type = getattr(args, "scan_type", "full")
         compliance = getattr(args, "compliance", None)
@@ -3671,7 +3689,7 @@ def _handle_mpte_orchestrator(args: argparse.Namespace) -> int:
 
     # --- enterprise-scans: list enterprise scans ---
     elif cmd == "enterprise-scans":
-        url = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
+        url = _validate_api_url(os.environ.get("FIXOPS_API_URL", "http://localhost:8000"))
         try:
             import urllib.request
 
@@ -3689,7 +3707,7 @@ def _handle_mpte_orchestrator(args: argparse.Namespace) -> int:
 
     # --- audit-logs: get enterprise audit logs ---
     elif cmd == "audit-logs":
-        url = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
+        url = _validate_api_url(os.environ.get("FIXOPS_API_URL", "http://localhost:8000"))
         try:
             import urllib.request
 
@@ -3707,7 +3725,7 @@ def _handle_mpte_orchestrator(args: argparse.Namespace) -> int:
 
     # --- attack-vectors: list enterprise attack vectors ---
     elif cmd == "attack-vectors":
-        url = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
+        url = _validate_api_url(os.environ.get("FIXOPS_API_URL", "http://localhost:8000"))
         try:
             import urllib.request
 
@@ -3725,7 +3743,7 @@ def _handle_mpte_orchestrator(args: argparse.Namespace) -> int:
 
     # --- threat-categories: list enterprise threat categories ---
     elif cmd == "threat-categories":
-        url = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
+        url = _validate_api_url(os.environ.get("FIXOPS_API_URL", "http://localhost:8000"))
         try:
             import urllib.request
 
@@ -3743,7 +3761,7 @@ def _handle_mpte_orchestrator(args: argparse.Namespace) -> int:
 
     # --- compliance-frameworks: list supported compliance frameworks ---
     elif cmd == "compliance-frameworks":
-        url = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
+        url = _validate_api_url(os.environ.get("FIXOPS_API_URL", "http://localhost:8000"))
         try:
             import urllib.request
 
@@ -3761,7 +3779,7 @@ def _handle_mpte_orchestrator(args: argparse.Namespace) -> int:
 
     # --- scan-modes: list enterprise scan modes ---
     elif cmd == "scan-modes":
-        url = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
+        url = _validate_api_url(os.environ.get("FIXOPS_API_URL", "http://localhost:8000"))
         try:
             import urllib.request
 
@@ -3779,7 +3797,7 @@ def _handle_mpte_orchestrator(args: argparse.Namespace) -> int:
 
     # --- generate-report: trigger report generation ---
     elif cmd == "generate-report":
-        url = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
+        url = _validate_api_url(os.environ.get("FIXOPS_API_URL", "http://localhost:8000"))
         target = args.target
         payload = {
             "target_url": target,
@@ -3804,7 +3822,7 @@ def _handle_mpte_orchestrator(args: argparse.Namespace) -> int:
 
     # --- report-data: get report data ---
     elif cmd == "report-data":
-        url = os.environ.get("FIXOPS_API_URL", "http://localhost:8000")
+        url = _validate_api_url(os.environ.get("FIXOPS_API_URL", "http://localhost:8000"))
         try:
             import urllib.request
 

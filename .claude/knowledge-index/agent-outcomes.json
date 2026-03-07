@@ -2,91 +2,91 @@
   "agent-doctor": {
     "status": "** \u2705 Completed",
     "summary": "- **Runtime:** claude-opus-4-6-fast (CTEM+ Swarm)",
-    "updated": "23:07"
+    "updated": "20:40"
   },
   "ai-researcher": {
     "status": "** \u2705 Completed",
     "summary": "- **Runtime:** claude-opus-4-6-fast (CTEM+ Swarm)",
-    "updated": "20:05"
+    "updated": "21:03"
   },
   "backend-hardener": {
     "status": "** \u2705 Completed",
     "summary": "- **Runtime:** claude-opus-4-6-fast (CTEM+ Swarm)",
-    "updated": "20:40"
+    "updated": "21:57"
   },
   "context-engineer": {
     "status": "** \u2705 Completed",
     "summary": "- **Runtime:** claude-opus-4-6-fast (CTEM+ Swarm)",
-    "updated": "19:50"
+    "updated": "20:52"
   },
   "data-scientist": {
     "status": "** \u2705 Completed",
     "summary": "- **Runtime:** claude-opus-4-6-fast (CTEM+ Swarm)",
-    "updated": "20:02"
+    "updated": "21:47"
   },
   "devops-engineer": {
-    "status": "** \u2705 Completed",
+    "status": "** Ready (reset by agent-doctor run36)",
     "summary": "- **Runtime:** claude-opus-4-6-fast (CTEM+ Swarm)",
-    "updated": "21:58"
+    "updated": "20:23"
   },
   "enterprise-architect": {
-    "status": "** \u2705 Completed",
+    "status": "** \u26a0\ufe0f Killed by watchdog (exceeded phase deadline)",
     "summary": "- **Runtime:** claude-opus-4-6-fast (CTEM+ Swarm)",
-    "updated": "20:04"
+    "updated": "21:42"
   },
-  "fix-vision-agent": {
-    "status": "** FIXED (pending re-run verification)",
-    "summary": "- **Date:** 2026-02-27",
-    "updated": "19:15"
+  "fix-sales-engineer": {
+    "status": "**CANNOT_FIX \u2014 External dependency (API quota)**",
+    "summary": "- **Date:** 2026-03-03",
+    "updated": "02:45"
   },
   "frontend-craftsman": {
     "status": "** \u2705 Completed",
     "summary": "- **Runtime:** claude-opus-4-6-fast (CTEM+ Swarm)",
-    "updated": "20:41"
+    "updated": "21:58"
   },
   "marketing-head": {
-    "status": "** \u2705 Completed",
+    "status": "** Ready (reset by agent-doctor run36)",
     "summary": "- **Runtime:** claude-opus-4-6-fast (CTEM+ Swarm)",
-    "updated": "22:39"
+    "updated": "20:22"
   },
   "qa-engineer": {
-    "status": "** \u2705 Completed",
+    "status": "** Ready (reset by agent-doctor run36)",
     "summary": "- **Runtime:** claude-opus-4-6-fast (CTEM+ Swarm)",
-    "updated": "21:51"
+    "updated": "20:23"
   },
   "sales-engineer": {
-    "status": "** \u2705 Completed",
+    "status": "** Ready (reset by agent-doctor run36)",
     "summary": "- **Runtime:** claude-opus-4-6-fast (CTEM+ Swarm)",
-    "updated": "22:43"
+    "updated": "20:22"
   },
   "scrum-master": {
-    "status": "** \u2705 Completed",
+    "status": "** Ready (reset by agent-doctor run36)",
     "summary": "- **Runtime:** claude-opus-4-6-fast (CTEM+ Swarm)",
-    "updated": "22:53"
+    "updated": "20:22"
   },
   "security-analyst": {
-    "status": "** \u2705 Completed",
+    "status": "** Ready (reset by agent-doctor run36)",
     "summary": "- **Runtime:** claude-opus-4-6-fast (CTEM+ Swarm)",
-    "updated": "21:32"
+    "updated": "20:23"
   },
   "swarm-controller": {
-    "status": "** \u2705 Completed",
+    "status": "** Ready (reset by agent-doctor run36)",
     "summary": "- **Runtime:** claude-opus-4-6-fast (CTEM+ Swarm)",
-    "updated": "20:55"
+    "updated": "20:23"
   },
   "technical-writer": {
-    "status": "** \u2705 Completed",
+    "status": "** Ready (reset by agent-doctor run36)",
     "summary": "- **Runtime:** claude-opus-4-6-fast (CTEM+ Swarm)",
-    "updated": "22:39"
+    "updated": "20:22"
   },
   "threat-architect": {
     "status": "** \u2705 Completed",
     "summary": "- **Runtime:** claude-opus-4-6-fast (CTEM+ Swarm)",
-    "updated": "20:30"
+    "updated": "22:00"
   },
   "vision-agent": {
     "status": "** \u2705 Completed",
     "summary": "- **Runtime:** claude-opus-4-6-fast (CTEM+ Swarm)",
-    "updated": "19:40"
+    "updated": "20:38"
   }
 }

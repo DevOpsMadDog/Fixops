@@ -4,205 +4,208 @@ newman
 
 ❏ 👩‍💼 Sarah Chen — CISO Morning Briefing
 ↳ Step 1 — Platform Health Check
-  GET http://localhost:8000/api/v1/health [200 OK, 412B, 20ms]
+  GET http://localhost:8000/api/v1/health [200 OK, 805B, 19ms]
   ✓  Platform is healthy
   ┌
   │ 'Platform health:', '{"status":"healthy","timestamp":"
-  │ 2026-03-02T16:23:52.339699+00:00Z","service":"fixops-a
+  │ 2026-03-02T19:11:39.449285+00:00Z","service":"fixops-a
   │ pi","version":"0.1.0"}'
   └
   ✓  All subsystems online
 
 ↳ Step 2 — Dashboard Overview
-  GET http://localhost:8000/api/v1/analytics/dashboard/overview [200 OK, 463B, 8ms]
+  GET http://localhost:8000/api/v1/analytics/dashboard/overview [200 OK, 856B, 8ms]
   ✓  Dashboard overview returns 200
   ✓  Has risk metrics
 
 ↳ Step 3 — Top Risks (FAIL Scored)
-  GET http://localhost:8000/api/v1/fail/top-risks [200 OK, 31.01kB, 10ms]
+  GET http://localhost:8000/api/v1/fail/top-risks [200 OK, 31.1kB, 12ms]
   ✓  Top risks returns 200
   ✓  Capture top risk finding
 
 ↳ Step 4 — Decision Engine Metrics
-  GET http://localhost:8000/api/v1/decisions/metrics [200 OK, 806B, 6ms]
+  GET http://localhost:8000/api/v1/decisions/metrics [200 OK, 1.2kB, 7ms]
   ✓  Decision metrics returns 200
 
 ↳ Step 5 — Compliance Framework Status (SOC2)
-  GET http://localhost:8000/api/v1/audit/compliance/frameworks/soc2/status [404 Not Found, 341B, 5ms]
+  GET http://localhost:8000/api/v1/audit/compliance/frameworks/soc2/status [404 Not Found, 790B, 9ms]
   ✓  Compliance status returns 200
 
 ↳ Step 6 — SLA Performance
-  GET http://localhost:8000/api/v1/remediation/metrics [200 OK, 508B, 6ms]
+  GET http://localhost:8000/api/v1/remediation/metrics [200 OK, 901B, 10ms]
   ✓  SLA status returns 200
 
 ↳ Step 7 — Risk Summary
-  GET http://localhost:8000/api/v1/risk/ [404 Not Found, 347B, 6ms]
+  GET http://localhost:8000/api/v1/risk/ [404 Not Found, 796B, 11ms]
   ✓  Risk summary returns 200
 
 ↳ Step 8 — Generate Executive Report
-  POST http://localhost:8000/api/v1/reports/generate [201 Created, 714B, 14ms]
+  POST http://localhost:8000/api/v1/reports/generate [201 Created, 1.11kB, 17ms]
   ✓  Executive report generated
   ✓  Capture reportId
 
 ❏ 🔧 Raj Patel — DevSecOps Triage Flow
 ↳ Step 1 — Health Check
-  GET http://localhost:8000/api/v1/health [200 OK, 412B, 5ms]
+  GET http://localhost:8000/api/v1/health [200 OK, 805B, 7ms]
   ✓  Health returns 200
 
 ↳ Step 2 — Get Recent Findings
-  GET http://localhost:8000/api/v1/analytics/findings?severity=critical&status=new&limit=10 [200 OK, 303B, 5ms]
+  GET http://localhost:8000/api/v1/analytics/findings?severity=critical&status=new&limit=10 [200 OK, 696B, 10ms]
   ✓  Findings returns 200
   ✓  Capture finding for triage
 
 ↳ Step 3 — FAIL Score the Finding
-  POST http://localhost:8000/api/v1/fail/score [200 OK, 1.2kB, 7ms]
+  POST http://localhost:8000/api/v1/fail/score [200 OK, 1.59kB, 14ms]
   ✓  FAIL score returns 200
 
 ↳ Step 4 — Check Dedup Clusters
-  GET http://localhost:8000/api/v1/deduplication/clusters?org_id=org-001 [200 OK, 1.35kB, 7ms]
+  GET http://localhost:8000/api/v1/deduplication/clusters?org_id=org-001 [200 OK, 1.75kB, 10ms]
   ✓  Dedup clusters returns 200
 
 ↳ Step 5 — Policy Violation Check
-  POST http://localhost:8000/api/v1/policies [422 Unprocessable Content, 860B, 5ms]
+  POST http://localhost:8000/api/v1/policies [422 Unprocessable Content, 1.25kB, 7ms]
   ✓  Policy validation returns 200
 
 ↳ Step 6 — Create Remediation Task
-  POST http://localhost:8000/api/v1/remediation/tasks [200 OK, 529B, 6ms]
+  POST http://localhost:8000/api/v1/remediation/tasks [200 OK, 922B, 9ms]
   ✓  Task created returns 200/201
   ✓  Capture taskId
 
 ↳ Step 7 — Bulk Create Jira Ticket
-  POST http://localhost:8000/api/v1/bulk/findings/update [422 Unprocessable Content, 644B, 5ms]
+  POST http://localhost:8000/api/v1/bulk/findings/update [422 Unprocessable Content, 1.04kB, 8ms]
   ✓  Ticket created returns 200
 
 ↳ Step 8 — Trigger Automated Workflow
-  POST http://localhost:8000/api/v1/workflows [409 Conflict, 370B, 6ms]
+  POST http://localhost:8000/api/v1/workflows [409 Conflict, 820B, 6ms]
   ✓  Workflow executed returns 200
 
 ❏ 🎯 Jason Park — MPTE Exploit Verification Flow
 ↳ Step 1 — MPTE Health
-  GET http://localhost:8000/api/v1/mpte/stats [200 OK, 540B, 8ms]
+  GET http://localhost:8000/api/v1/mpte/stats [200 OK, 932B, 11ms]
   ✓  MPTE stats returns 200
 
 ↳ Step 2 — Create MPTE Request
-  POST http://localhost:8000/api/v1/mpte/requests [201 Created, 628B, 9ms]
+  ┌
+  │ 'Generated findingId: finding-mm9k1z6n-ii63x4i9b'
+  └
+  POST http://localhost:8000/api/v1/mpte/requests [201 Created, 1.05kB, 11ms]
   ✓  Create MPTE request returns 200/201
   ✓  Capture mpteRequestId
 
 ↳ Step 3 — Start MPTE Scan
-  POST http://localhost:8000/api/v1/mpte/requests/3d50a25a-b5c0-4fd5-8362-95af7b3a3bca/start [200 OK, 684B, 6ms]
+  POST http://localhost:8000/api/v1/mpte/requests/e4f5689d-c78b-4b16-99c5-89f3f89d4a39/start [200 OK, 1.1kB, 8ms]
   ✓  Start MPTE returns 200
 
 ↳ Step 4 — Verify Exploitability
-  POST http://localhost:8000/api/v1/mpte/verify [422 Unprocessable Content, 501B, 5ms]
+  POST http://localhost:8000/api/v1/mpte/verify [422 Unprocessable Content, 894B, 10ms]
   ✓  Verify exploitability returns 200
 
 ↳ Step 5 — Run Micro Pentest
-  POST http://localhost:8000/api/v1/micro-pentest/run [201 Created, 503B, 11ms]
+  POST http://localhost:8000/api/v1/micro-pentest/run [201 Created, 897B, 16ms]
   ✓  Micro pentest returns 200
   ✓  Capture scanId
 
 ↳ Step 6 — Get MPTE Results
-  GET http://localhost:8000/api/v1/mpte/results [200 OK, 5.09kB, 5ms]
+  GET http://localhost:8000/api/v1/mpte/results [200 OK, 5.48kB, 9ms]
   ✓  MPTE results returns 200
 
 ↳ Step 7 — Generate Pentest Report
-  POST http://localhost:8000/api/v1/micro-pentest/report/generate [503 Service Unavailable, 434B, 5ms]
+  POST http://localhost:8000/api/v1/micro-pentest/report/generate [503 Service Unavailable, 883B, 11ms]
   ✓  Pentest report returns 200
 
 ↳ Step 8 — Create Signed Evidence Bundle
-  POST http://localhost:8000/api/v1/evidence/bundles/generate [200 OK, 1.08kB, 3ms]
+  POST http://localhost:8000/api/v1/evidence/bundles/generate [200 OK, 1.47kB, 11ms]
   ✓  Evidence bundle created returns 200/201
   ✓  Capture bundleId
 
 ❏ 💻 Alex Rivera — Security Engineer Fix Flow
 ↳ Step 1 — Get Assigned Finding
-  GET http://localhost:8000/api/v1/analytics/findings/ [200 OK, 45.59kB, 7ms]
-  ✓  Get finding returns 200
+  GET http://localhost:8000/api/v1/analytics/findings/finding-mm9k1z6n-ii63x4i9b [404 Not Found, 788B, 9ms]
+  ✓  Get finding returns 200 or 404
 
 ↳ Step 2 — AI Vulnerability Analysis
-  POST http://localhost:8000/api/v1/copilot/agents/analyst/analyze [200 OK, 471B, 5ms]
+  POST http://localhost:8000/api/v1/copilot/agents/analyst/analyze [200 OK, 864B, 14ms]
   ✓  AI analysis returns 200
 
 ↳ Step 3 — Generate AutoFix
-  POST http://localhost:8000/api/v1/autofix/generate [200 OK, 2.13kB, 6s]
+  POST http://localhost:8000/api/v1/autofix/generate [200 OK, 2.52kB, 6.2s]
   ✓  AutoFix generated returns 200
   ✓  Capture fixId
 
 ↳ Step 4 — Validate Fix
-  POST http://localhost:8000/api/v1/autofix/validate [404 Not Found, 348B, 5ms]
+  POST http://localhost:8000/api/v1/autofix/validate [404 Not Found, 797B, 4ms]
   ✓  Fix validation returns 200
 
 ↳ Step 5 — Apply Fix (Create PR)
-  POST http://localhost:8000/api/v1/autofix/apply [422 Unprocessable Content, 477B, 4ms]
+  POST http://localhost:8000/api/v1/autofix/apply [422 Unprocessable Content, 870B, 6ms]
   ✓  Fix applied returns 200
 
 ↳ Step 6 — Add Collaboration Comment
-  POST http://localhost:8000/api/v1/collaboration/comments [200 OK, 496B, 9ms]
+  POST http://localhost:8000/api/v1/collaboration/comments [200 OK, 889B, 9ms]
   ✓  Comment added returns 200/201
 
 ↳ Step 7 — Update Remediation Task
-  PUT http://localhost:8000/api/v1/remediation/tasks/task-test-001/status [400 Bad Request, 352B, 4ms]
+  PUT http://localhost:8000/api/v1/remediation/tasks/task-test-001/status [400 Bad Request, 801B, 11ms]
   ✓  Update remediation task returns valid response
 
 ❏ 📋 Maria Santos — Compliance Audit Flow
 ↳ Step 1 — List Compliance Frameworks
-  GET http://localhost:8000/api/v1/audit/compliance/frameworks [200 OK, 347B, 4ms]
+  GET http://localhost:8000/api/v1/audit/compliance/frameworks [200 OK, 740B, 10ms]
   ✓  Frameworks returns 200
   ✓  Capture frameworkId
 
 ↳ Step 2 — Framework Compliance Status
-  GET http://localhost:8000/api/v1/audit/compliance/frameworks/soc2/status [404 Not Found, 341B, 6ms]
+  GET http://localhost:8000/api/v1/audit/compliance/frameworks/soc2/status [404 Not Found, 790B, 11ms]
   ✓  Framework status returns 200
 
 ↳ Step 3 — Gap Analysis
-  GET http://localhost:8000/api/v1/audit/compliance/frameworks/soc2/gaps [404 Not Found, 341B, 8ms]
+  GET http://localhost:8000/api/v1/audit/compliance/frameworks/soc2/gaps [404 Not Found, 790B, 8ms]
   ✓  Gap analysis returns 200
 
 ↳ Step 4 — Generate Audit Evidence
-  POST http://localhost:8000/api/v1/audit/compliance/frameworks/soc2/report [404 Not Found, 341B, 5ms]
+  POST http://localhost:8000/api/v1/audit/compliance/frameworks/soc2/report [404 Not Found, 790B, 8ms]
   ✓  Evidence generated returns 200
 
 ↳ Step 5 — Create Evidence Bundle
-  POST http://localhost:8000/api/v1/evidence/bundles/generate [200 OK, 1.04kB, 6ms]
+  POST http://localhost:8000/api/v1/evidence/bundles/generate [200 OK, 1.43kB, 10ms]
   ✓  Bundle created returns 200/201
   ✓  Capture auditBundleId
 
 ↳ Step 6 — Verify Bundle Signature
-  POST http://localhost:8000/api/v1/evidence/bundles/EVB-2026-B4F6AB/verify [200 OK, 589B, 6ms]
+  POST http://localhost:8000/api/v1/evidence/bundles/EVB-2026-CCF950/verify [200 OK, 982B, 10ms]
   ✓  Verify evidence returns 200
   ✓  Signature verification response
 
 ↳ Step 7 — Generate Compliance Report
-  POST http://localhost:8000/api/v1/reports/generate [201 Created, 690B, 14ms]
+  POST http://localhost:8000/api/v1/reports/generate [201 Created, 1.08kB, 19ms]
   ✓  Compliance report generated returns 200
   ✓  Capture auditReportId
 
 ↳ Step 8 — Export for Auditor
-  GET http://localhost:8000/api/v1/reports?format=pdf [200 OK, 25.62kB, 6ms]
+  GET http://localhost:8000/api/v1/reports?format=pdf [200 OK, 32.38kB, 11ms]
   ✓  Export returns 200
 
 ↳ Step 9 — Verify Audit Chain Integrity
-  GET http://localhost:8000/api/v1/audit/chain/verify [200 OK, 442B, 4ms]
+  GET http://localhost:8000/api/v1/audit/chain/verify [200 OK, 835B, 7ms]
   ✓  Chain verified returns 200
   ✓  Audit chain is intact
 
-┌─────────────────────────┬──────────────────┬──────────────────┐
-│                         │         executed │           failed │
-├─────────────────────────┼──────────────────┼──────────────────┤
-│              iterations │                1 │                0 │
-├─────────────────────────┼──────────────────┼──────────────────┤
-│                requests │               40 │                0 │
-├─────────────────────────┼──────────────────┼──────────────────┤
-│            test-scripts │               40 │                0 │
-├─────────────────────────┼──────────────────┼──────────────────┤
-│      prerequest-scripts │               41 │                0 │
-├─────────────────────────┼──────────────────┼──────────────────┤
-│              assertions │               55 │                0 │
-├─────────────────────────┴──────────────────┴──────────────────┤
-│ total run duration: 11s                                       │
-├───────────────────────────────────────────────────────────────┤
-│ total data received: 117.04kB (approx)                        │
-├───────────────────────────────────────────────────────────────┤
-│ average response time: 158ms [min: 3ms, max: 6s, s.d.: 946ms] │
-└───────────────────────────────────────────────────────────────┘
+┌─────────────────────────┬───────────────────┬───────────────────┐
+│                         │          executed │            failed │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│              iterations │                 1 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│                requests │                40 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│            test-scripts │                40 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│      prerequest-scripts │                42 │                 0 │
+├─────────────────────────┼───────────────────┼───────────────────┤
+│              assertions │                55 │                 0 │
+├─────────────────────────┴───────────────────┴───────────────────┤
+│ total run duration: 11.5s                                       │
+├─────────────────────────────────────────────────────────────────┤
+│ total data received: 78.46kB (approx)                           │
+├─────────────────────────────────────────────────────────────────┤
+│ average response time: 167ms [min: 4ms, max: 6.2s, s.d.: 981ms] │
+└─────────────────────────────────────────────────────────────────┘

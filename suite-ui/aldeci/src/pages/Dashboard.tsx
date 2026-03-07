@@ -437,23 +437,28 @@ export default function Dashboard() {
               </div>
             ) : (capabilitiesData?.algorithms?.length ?? 0) > 0 ? (
               <div className="space-y-3">
-                {capabilitiesData?.algorithms?.map((algo: any, index: number) => (
+                {capabilitiesData?.algorithms?.map((algo: string | { name?: string; description?: string; type?: string }, index: number) => {
+                  const algoName = typeof algo === 'string' ? algo : algo.name || `Algorithm ${index + 1}`;
+                  const algoDesc = typeof algo === 'string' ? undefined : algo.description;
+                  const algoType = typeof algo === 'string' ? 'Algorithm' : algo.type || 'Algorithm';
+                  return (
                   <motion.div
-                    key={algo.name || index}
+                    key={algoName}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
                     className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
                   >
                     <div>
-                      <p className="font-medium">{algo.name || algo}</p>
-                      {algo.description && (
-                        <p className="text-sm text-muted-foreground">{algo.description}</p>
+                      <p className="font-medium">{algoName}</p>
+                      {algoDesc && (
+                        <p className="text-sm text-muted-foreground">{algoDesc}</p>
                       )}
                     </div>
-                    <Badge variant="outline">{algo.type || 'Algorithm'}</Badge>
+                    <Badge variant="outline">{algoType}</Badge>
                   </motion.div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">

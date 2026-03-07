@@ -396,7 +396,7 @@ export default function IntelligenceHub() {
                 </div>
               ) : (epssData?.scores?.length ?? 0) > 0 ? (
                 <div className="space-y-4">
-                  {epssData?.scores?.slice(0, 10).map((score: any, index: number) => (
+                  {epssData?.scores?.slice(0, 10).map((score: { cve?: string; epss?: number; score?: number }, index: number) => (
                     <div key={score.cve || index} className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span>{score.cve || `Score ${index + 1}`}</span>
@@ -443,10 +443,10 @@ export default function IntelligenceHub() {
               ) : kevData?.vulnerabilities?.length > 0 ? (
                 <ScrollArea className="h-[400px] pr-4">
                   <div className="space-y-3">
-                    {kevData.vulnerabilities.map((vuln: any, index: number) => (
+                    {kevData.vulnerabilities.map((vuln: { cve_id?: string; cve?: string; vulnerability_name?: string; name?: string; short_description?: string; description?: string }, index: number) => (
                       <VulnerabilityCard
                         key={vuln.cve_id || index}
-                        cve={vuln.cve_id || vuln.cve}
+                        cve={vuln.cve_id || vuln.cve || ''}
                         title={vuln.vulnerability_name || vuln.name}
                         severity="Critical"
                         inKev={true}

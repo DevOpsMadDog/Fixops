@@ -861,6 +861,46 @@ def run_demo(client, json_output: bool = False) -> DemoResult:
                 "weights": calib_data.get("recommended_weights", {}),
             }
 
+        # Predictive scoring (Year 3 roadmap preview)
+        from core.ml.predictive_scorer import PredictiveScorer
+
+        pred_scorer = PredictiveScorer()
+        pred_scorer.fit_from_cve_history(str(_REPO_ROOT / "data" / "golden_regression_cases.json"))
+
+        predictive_patterns = [
+            {"cwe_id": "CWE-89", "language": "python", "complexity": 30,
+             "function_length": 200, "has_user_input": True,
+             "is_internet_facing": True, "has_auth_check": False,
+             "dependency_age_days": 365, "dependency_vuln_history": 3},
+            {"cwe_id": "CWE-502", "language": "java", "complexity": 15,
+             "function_length": 80, "has_user_input": True,
+             "is_internet_facing": True, "has_auth_check": True,
+             "dependency_age_days": 180, "dependency_vuln_history": 1},
+            {"cwe_id": "CWE-798", "language": "python", "complexity": 5,
+             "function_length": 10, "has_user_input": False,
+             "is_internet_facing": False, "has_auth_check": True},
+        ]
+
+        predictive_results = []
+        for pattern in predictive_patterns:
+            pred = pred_scorer.predict_code_risk(pattern)
+            predictive_results.append({
+                "cwe": pattern["cwe_id"],
+                "language": pattern.get("language", ""),
+                "risk_score": round(pred.risk_score, 2),
+                "exploit_prob": round(pred.exploit_probability, 3),
+                "priority": pred.priority,
+                "time_to_exploit_days": pred.time_to_exploit_days,
+                "similar_cves": len(pred.similar_cves),
+                "category": pred.category,
+            })
+
+        ml_showcase["predictive_scoring"] = {
+            "model": "Year 3 Roadmap Preview — Code Pattern Risk Prediction",
+            "patterns_scored": len(predictive_results),
+            "results": predictive_results,
+        }
+
     except Exception as ml_err:
         logger.warning("ML showcase partial: %s", ml_err)
         ml_showcase["error"] = str(ml_err)
@@ -875,6 +915,7 @@ def run_demo(client, json_output: bool = False) -> DemoResult:
         "findings_scored": ml_showcase.get("risk_scoring", {}).get("findings_scored", 0),
         "anomaly_detected": ml_showcase.get("anomaly_detection", {}).get("is_anomalous", False),
         "ensemble_f1": ml_showcase.get("consensus_calibration", {}).get("ensemble_f1", 0),
+        "predictive_patterns": ml_showcase.get("predictive_scoring", {}).get("patterns_scored", 0),
         "duration_ms": round(step_ms, 2),
     })
 
@@ -905,6 +946,15 @@ def run_demo(client, json_output: bool = False) -> DemoResult:
             print(f"     🤖 Consensus: F1={cc['ensemble_f1']:.4f}")
             for model, weight in cc.get("weights", {}).items():
                 print(f"        {model}: weight={weight:.4f}")
+        if "predictive_scoring" in ml_showcase:
+            ps = ml_showcase["predictive_scoring"]
+            print(f"\n     🔮 Predictive Scoring — {ps['model']}")
+            print(f"     Patterns analyzed: {ps['patterns_scored']}")
+            for pr in ps.get("results", []):
+                icon = "🔴" if pr["priority"] in ("P0",) else "🟠" if pr["priority"] == "P1" else "🟡"
+                print(f"     {icon} {pr['cwe']} ({pr['language']}) → {pr['priority']} "
+                      f"(risk={pr['risk_score']}, exploit_prob={pr['exploit_prob']:.0%}, "
+                      f"tte={pr['time_to_exploit_days']}d, similar_cves={pr['similar_cves']})")
         print(f"     ⏱️  ML processing: {step_ms:.1f}ms")
 
     # ── Step 7: MCP Schema Export ──────────────────────────────────────

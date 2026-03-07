@@ -2,90 +2,6 @@
   "context-engineer": {
     "runs": [
       {
-        "date": "2026-02-28",
-        "duration": 1695,
-        "output_bytes": 2488,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-02-28",
-        "duration": 714,
-        "output_bytes": 1809,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-02-28",
-        "duration": 739,
-        "output_bytes": 1616,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-02-28",
-        "duration": 942,
-        "output_bytes": 2600,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-02-28",
-        "duration": 785,
-        "output_bytes": 1836,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 894,
-        "output_bytes": 2784,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 697,
-        "output_bytes": 2040,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 890,
-        "output_bytes": 2555,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 509,
-        "output_bytes": 1711,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 582,
-        "output_bytes": 1530,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 660,
-        "output_bytes": 2242,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 1383,
-        "output_bytes": 2350,
-        "success": true,
-        "attempts": 1
-      },
-      {
         "date": "2026-03-01",
         "duration": 647,
         "output_bytes": 2433,
@@ -210,12 +126,96 @@
         "output_bytes": 1707,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 23,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 3
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-07",
+        "duration": 720,
+        "output_bytes": 1950,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 719,
-    "success_rate": 93.3,
+    "avg_duration": 394,
+    "success_rate": 56.7,
     "total_runs": 30,
-    "avg_output": 1844
+    "avg_output": 1081
   },
   "data-scientist": {
     "runs": [
@@ -394,12 +394,19 @@
         "output_bytes": 3072,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-07",
+        "duration": 665,
+        "output_bytes": 2439,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 620,
-    "success_rate": 83.3,
-    "total_runs": 12,
-    "avg_output": 2041
+    "avg_duration": 624,
+    "success_rate": 84.6,
+    "total_runs": 13,
+    "avg_output": 2071
   },
   "enterprise-architect": {
     "runs": [
@@ -479,12 +486,19 @@
         "output_bytes": 2089,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-07",
+        "duration": 3007,
+        "output_bytes": 1442,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 689,
-    "success_rate": 81.8,
-    "total_runs": 11,
-    "avg_output": 1829
+    "avg_duration": 882,
+    "success_rate": 83.3,
+    "total_runs": 12,
+    "avg_output": 1797
   },
   "frontend-craftsman": {
     "runs": [
@@ -564,12 +578,19 @@
         "output_bytes": 1243,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-07",
+        "duration": 934,
+        "output_bytes": 1834,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 960,
-    "success_rate": 81.8,
-    "total_runs": 11,
-    "avg_output": 1415
+    "avg_duration": 958,
+    "success_rate": 83.3,
+    "total_runs": 12,
+    "avg_output": 1450
   },
   "backend-hardener": {
     "runs": [
@@ -635,12 +656,19 @@
         "output_bytes": 2417,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-07",
+        "duration": 849,
+        "output_bytes": 1997,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 1182,
-    "success_rate": 88.9,
-    "total_runs": 9,
-    "avg_output": 1829
+    "avg_duration": 1148,
+    "success_rate": 90.0,
+    "total_runs": 10,
+    "avg_output": 1846
   },
   "threat-architect": {
     "runs": [
@@ -713,12 +741,19 @@
         "output_bytes": 66,
         "success": false,
         "attempts": 3
+      },
+      {
+        "date": "2026-03-07",
+        "duration": 1029,
+        "output_bytes": 1924,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 636,
-    "success_rate": 40.0,
-    "total_runs": 10,
-    "avg_output": 788
+    "avg_duration": 672,
+    "success_rate": 45.5,
+    "total_runs": 11,
+    "avg_output": 891
   },
   "swarm-controller": {
     "runs": [
@@ -1130,12 +1165,19 @@
         "output_bytes": 66,
         "success": false,
         "attempts": 3
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 22,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 3
       }
     ],
-    "avg_duration": 353,
-    "success_rate": 50.0,
-    "total_runs": 14,
-    "avg_output": 1101
+    "avg_duration": 331,
+    "success_rate": 46.7,
+    "total_runs": 15,
+    "avg_output": 1032
   },
   "marketing-head": {
     "runs": [
@@ -1236,12 +1278,19 @@
         "output_bytes": 66,
         "success": false,
         "attempts": 3
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 22,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 3
       }
     ],
-    "avg_duration": 330,
-    "success_rate": 57.1,
-    "total_runs": 14,
-    "avg_output": 1198
+    "avg_duration": 310,
+    "success_rate": 53.3,
+    "total_runs": 15,
+    "avg_output": 1123
   },
   "technical-writer": {
     "runs": [
@@ -1342,12 +1391,19 @@
         "output_bytes": 66,
         "success": false,
         "attempts": 3
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 22,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 3
       }
     ],
-    "avg_duration": 383,
-    "success_rate": 57.1,
-    "total_runs": 14,
-    "avg_output": 1122
+    "avg_duration": 359,
+    "success_rate": 53.3,
+    "total_runs": 15,
+    "avg_output": 1051
   },
   "sales-engineer": {
     "runs": [
@@ -1448,120 +1504,22 @@
         "output_bytes": 66,
         "success": false,
         "attempts": 3
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 23,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 3
       }
     ],
-    "avg_duration": 524,
-    "success_rate": 57.1,
-    "total_runs": 14,
-    "avg_output": 1020
+    "avg_duration": 490,
+    "success_rate": 53.3,
+    "total_runs": 15,
+    "avg_output": 956
   },
   "vision-agent": {
     "runs": [
-      {
-        "date": "2026-02-28",
-        "duration": 570,
-        "output_bytes": 2242,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-02-28",
-        "duration": 578,
-        "output_bytes": 2344,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-02-28",
-        "duration": 579,
-        "output_bytes": 1605,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-02-28",
-        "duration": 649,
-        "output_bytes": 2000,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-02-28",
-        "duration": 657,
-        "output_bytes": 2055,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 454,
-        "output_bytes": 1545,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 507,
-        "output_bytes": 1611,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 480,
-        "output_bytes": 1854,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 549,
-        "output_bytes": 1777,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 576,
-        "output_bytes": 1410,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 448,
-        "output_bytes": 1605,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 355,
-        "output_bytes": 1599,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 403,
-        "output_bytes": 1329,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 497,
-        "output_bytes": 1640,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 471,
-        "output_bytes": 1687,
-        "success": true,
-        "attempts": 1
-      },
       {
         "date": "2026-03-01",
         "duration": 641,
@@ -1666,12 +1624,117 @@
         "output_bytes": 3060,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 23,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 3
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 23,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 3
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 22,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 3
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 23,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 3
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-07",
+        "duration": 484,
+        "output_bytes": 1524,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 485,
-    "success_rate": 96.7,
+    "avg_duration": 246,
+    "success_rate": 50.0,
     "total_runs": 30,
-    "avg_output": 1749
+    "avg_output": 953
   },
   "scrum-master": {
     "runs": [
@@ -1793,106 +1856,29 @@
         "output_bytes": 66,
         "success": false,
         "attempts": 3
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 22,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 3
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 23,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 3
       }
     ],
-    "avg_duration": 412,
-    "success_rate": 58.8,
-    "total_runs": 17,
-    "avg_output": 1512
+    "avg_duration": 371,
+    "success_rate": 52.6,
+    "total_runs": 19,
+    "avg_output": 1359
   },
   "agent-doctor": {
     "runs": [
-      {
-        "date": "2026-02-28",
-        "duration": 528,
-        "output_bytes": 1986,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-02-28",
-        "duration": 1032,
-        "output_bytes": 873,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-02-28",
-        "duration": 720,
-        "output_bytes": 2202,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-02-28",
-        "duration": 965,
-        "output_bytes": 873,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-02-28",
-        "duration": 719,
-        "output_bytes": 1671,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 647,
-        "output_bytes": 1928,
-        "success": true,
-        "attempts": 2
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 652,
-        "output_bytes": 1752,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 945,
-        "output_bytes": 2024,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 787,
-        "output_bytes": 873,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 929,
-        "output_bytes": 873,
-        "success": true,
-        "attempts": 2
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 1182,
-        "output_bytes": 2185,
-        "success": true,
-        "attempts": 1
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 897,
-        "output_bytes": 1598,
-        "success": true,
-        "attempts": 2
-      },
-      {
-        "date": "2026-03-01",
-        "duration": 721,
-        "output_bytes": 1922,
-        "success": true,
-        "attempts": 2
-      },
       {
         "date": "2026-03-01",
         "duration": 1368,
@@ -2011,11 +1997,102 @@
         "output_bytes": 1956,
         "success": true,
         "attempts": 1
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 23,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 3
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 23,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 3
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-03",
+        "duration": 0,
+        "output_bytes": 66,
+        "success": false,
+        "attempts": 2
+      },
+      {
+        "date": "2026-03-07",
+        "duration": 599,
+        "output_bytes": 1616,
+        "success": true,
+        "attempts": 1
       }
     ],
-    "avg_duration": 725,
-    "success_rate": 93.3,
+    "avg_duration": 389,
+    "success_rate": 53.3,
     "total_runs": 30,
-    "avg_output": 1606
+    "avg_output": 994
   }
 }

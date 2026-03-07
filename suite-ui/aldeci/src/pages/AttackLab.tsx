@@ -87,7 +87,7 @@ export default function AttackLab() {
         description: data.exploitable ? 'Vulnerability confirmed!' : 'Not exploitable',
       });
     },
-    onError: (error: any, _variables, context) => {
+    onError: (error: Error & { response?: { data?: { detail?: string } } }, _variables, context) => {
       setTestResults((prev) =>
         prev.map((r) =>
           r.id === context?.id
@@ -115,7 +115,7 @@ export default function AttackLab() {
         description: `CVE ${data.cve}: ${data.exploitable ? 'Exploitable' : 'Not exploitable'}`,
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error & { response?: { data?: { detail?: string } } }) => {
       toast.error('Validation failed', {
         description: error.response?.data?.detail || error.message,
       });
@@ -165,8 +165,8 @@ export default function AttackLab() {
             Micro-penetration testing and exploit validation
           </p>
         </div>
-        <Button variant="outline" onClick={() => refetch()} className="gap-2">
-          <RefreshCw className="w-4 h-4" />
+        <Button variant="outline" onClick={() => refetch()} className="gap-2" aria-label="Refresh available tests">
+          <RefreshCw className="w-4 h-4" aria-hidden="true" />
           Refresh
         </Button>
       </div>
@@ -209,19 +209,23 @@ export default function AttackLab() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Target URL/Host</label>
+                  <label htmlFor="attack-target" className="text-sm font-medium">Target URL/Host</label>
                   <Input
+                    id="attack-target"
                     placeholder="https://example.com or 192.168.1.1"
                     value={target}
                     onChange={(e) => setTarget(e.target.value)}
+                    aria-label="Target URL or host for penetration test"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">CVE ID (Optional)</label>
+                  <label htmlFor="attack-cve" className="text-sm font-medium">CVE ID (Optional)</label>
                   <Input
+                    id="attack-cve"
                     placeholder="CVE-2024-XXXX"
                     value={cveId}
                     onChange={(e) => setCveId(e.target.value)}
+                    aria-label="CVE ID to target (optional)"
                   />
                 </div>
               </div>
@@ -231,6 +235,7 @@ export default function AttackLab() {
                   onClick={handleRunTest}
                   disabled={runTestMutation.isPending}
                   className="gap-2"
+                  aria-label={runTestMutation.isPending ? 'Running test…' : 'Run penetration test'}
                 >
                   {runTestMutation.isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -239,7 +244,7 @@ export default function AttackLab() {
                   )}
                   Run Test
                 </Button>
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="gap-2" aria-label="Stop all running tests">
                   <Square className="w-4 h-4" />
                   Stop All
                 </Button>
@@ -260,6 +265,9 @@ export default function AttackLab() {
                     key={test.id}
                     whileHover={{ scale: 1.02 }}
                     className="p-4 rounded-lg border border-border bg-muted/30 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Run ${test.name} test: ${test.description}`}
                     onClick={() => {
                       if (target) {
                         runTestMutation.mutate({ target, cve: test.id });
@@ -267,8 +275,18 @@ export default function AttackLab() {
                         toast.error('Enter a target first');
                       }
                     }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        if (target) {
+                          runTestMutation.mutate({ target, cve: test.id });
+                        } else {
+                          toast.error('Enter a target first');
+                        }
+                      }
+                    }}
                   >
-                    <Zap className="w-6 h-6 mx-auto text-primary mb-2" />
+                    <Zap className="w-6 h-6 mx-auto text-primary mb-2" aria-hidden="true" />
                     <p className="font-medium text-sm">{test.name}</p>
                     <p className="text-xs text-muted-foreground">{test.description}</p>
                   </motion.div>
@@ -292,18 +310,21 @@ export default function AttackLab() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">CVE ID</label>
+                <label htmlFor="validate-cve" className="text-sm font-medium">CVE ID</label>
                 <div className="flex gap-2">
                   <Input
+                    id="validate-cve"
                     placeholder="CVE-2024-3400"
                     value={cveId}
                     onChange={(e) => setCveId(e.target.value)}
                     className="flex-1"
+                    aria-label="CVE identifier to validate"
                   />
                   <Button
                     onClick={() => cveId && validateMutation.mutate(cveId)}
                     disabled={validateMutation.isPending || !cveId}
                     className="gap-2"
+                    aria-label={validateMutation.isPending ? 'Validating CVE…' : 'Validate CVE exploit'}
                   >
                     {validateMutation.isPending ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -324,7 +345,11 @@ export default function AttackLab() {
                       key={cve}
                       variant="outline"
                       className="cursor-pointer hover:bg-primary/10"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Select CVE ${cve} for validation`}
                       onClick={() => setCveId(cve)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setCveId(cve); } }}
                     >
                       {cve}
                     </Badge>

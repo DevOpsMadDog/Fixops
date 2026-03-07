@@ -15,7 +15,8 @@
     "PERMISSION_ERROR": "File locked, directory not writable, auth failure",
     "DEPENDENCY_CONFLICT": "Package version mismatch, pip install failure",
     "GIT_CONFLICT": "Merge conflict, unstaged changes blocking operation",
-    "VISION_DRIFT": "Work contradicts CEO vision or CTEM+ identity"
+    "VISION_DRIFT": "Work contradicts CEO vision or CTEM+ identity",
+    "QUOTA_EXHAUSTED": "Claude API usage limit hit \u2014 all agents fail instantly with 'out of extra usage' (NOT a code bug, NOT retryable)"
   },
   "known_patterns": [
     {
@@ -95,38 +96,85 @@
     },
     {
       "pattern_id": "KP-005",
-      "category": "TIMEOUT",
-      "description": "Recurring TIMEOUT in scrum-master: - **Status:** \u274c Failed (3 attempts exhausted)",
+      "category": "QUOTA_EXHAUSTED",
+      "description": "Agents fail with 66-byte log: 'You're out of extra usage'. Misclassified as TIMEOUT by auto-detector. Root cause is Claude API quota depletion, not agent bug.",
       "affected_agents": [
-        "scrum-master"
+        "scrum-master",
+        "threat-architect",
+        "swarm-controller",
+        "devops-engineer",
+        "marketing-head",
+        "qa-engineer",
+        "sales-engineer",
+        "technical-writer",
+        "security-analyst",
+        "vision-agent",
+        "agent-doctor",
+        "context-engineer"
       ],
-      "frequency": "3 occurrences",
-      "root_cause": "Auto-detected recurring pattern -- needs manual root cause analysis",
-      "recommended_fix": "Investigate the repeated TIMEOUT failures for this agent",
+      "frequency": "13 agents failed across 3 swarm runs on 2026-03-03",
+      "root_cause": "Claude API extra usage quota exhausted. Early-phase agents consumed all quota. Later agents and fix-agents created death spiral by attempting retries on a dry API.",
+      "recommended_fix": "1) Circuit breaker added to detect 'out of extra usage' and halt immediately. 2) Schedule swarm runs within quota window. 3) Prioritize critical agents earlier. 4) Wait for quota reset: Mar 6 3pm AEST.",
       "first_seen": "2026-03-03",
       "last_seen": "2026-03-03",
-      "resolved": false
+      "resolved": true,
+      "resolution_date": "2026-03-03",
+      "resolution": "Added QUOTA_EXHAUSTED circuit breaker to run-ctem-swarm.sh \u2014 detects 'out of extra usage', sets global flag, halts all agent launches and fix-agent spawns instantly."
     },
     {
       "pattern_id": "KP-006",
-      "category": "TIMEOUT",
-      "description": "Recurring TIMEOUT in threat-architect: Persona verification failed \u2014 agent not performing at world-class level",
+      "category": "QUOTA_EXHAUSTED",
+      "description": "Merged into KP-005: threat-architect failure was quota exhaustion, not a persona verification bug.",
       "affected_agents": [
         "threat-architect"
       ],
-      "frequency": "3 occurrences",
-      "root_cause": "Auto-detected recurring pattern -- needs manual root cause analysis",
-      "recommended_fix": "Investigate the repeated TIMEOUT failures for this agent",
+      "frequency": "See KP-005",
+      "root_cause": "Same as KP-005: API quota depleted",
+      "recommended_fix": "See KP-005",
       "first_seen": "2026-03-03",
       "last_seen": "2026-03-03",
-      "resolved": false
+      "resolved": true,
+      "resolution_date": "2026-03-03",
+      "resolution": "Merged into KP-005"
     },
     {
       "pattern_id": "KP-007",
-      "category": "TIMEOUT",
-      "description": "Recurring TIMEOUT in swarm-controller: - **Status:** \u274c Failed (3 attempts exhausted)",
+      "category": "QUOTA_EXHAUSTED",
+      "description": "Merged into KP-005: swarm-controller failure was quota exhaustion.",
       "affected_agents": [
         "swarm-controller"
+      ],
+      "frequency": "See KP-005",
+      "root_cause": "Same as KP-005: API quota depleted",
+      "recommended_fix": "See KP-005",
+      "first_seen": "2026-03-03",
+      "last_seen": "2026-03-03",
+      "resolved": true,
+      "resolution_date": "2026-03-03",
+      "resolution": "Merged into KP-005"
+    },
+    {
+      "pattern_id": "KP-008",
+      "category": "QUOTA_EXHAUSTED",
+      "description": "Merged into KP-005: devops-engineer failure was quota exhaustion.",
+      "affected_agents": [
+        "devops-engineer"
+      ],
+      "frequency": "See KP-005",
+      "root_cause": "Same as KP-005: API quota depleted",
+      "recommended_fix": "See KP-005",
+      "first_seen": "2026-03-03",
+      "last_seen": "2026-03-03",
+      "resolved": true,
+      "resolution_date": "2026-03-03",
+      "resolution": "Merged into KP-005"
+    },
+    {
+      "pattern_id": "KP-009",
+      "category": "TIMEOUT",
+      "description": "Recurring TIMEOUT in context-engineer: - **Status:** \u274c Failed (3 attempts exhausted)",
+      "affected_agents": [
+        "context-engineer"
       ],
       "frequency": "3 occurrences",
       "root_cause": "Auto-detected recurring pattern -- needs manual root cause analysis",
@@ -307,19 +355,176 @@
       "fix_output_bytes": 0,
       "files_modified": [],
       "lessons_learned": "Fix agent failed with exit code 124 and 0 bytes output"
+    },
+    {
+      "id": "FA-0013",
+      "date": "2026-03-03",
+      "run_id": "swarm-2026-03-03_03-26-49",
+      "failed_agent": "devops-engineer",
+      "failure_reason": "- **Status:** \u274c Failed (3 attempts exhausted)",
+      "category": "TIMEOUT",
+      "fix_cycle": 1,
+      "fix_successful": false,
+      "fix_exit_code": 143,
+      "fix_output_bytes": 0,
+      "files_modified": [],
+      "lessons_learned": "Fix agent failed with exit code 143 and 0 bytes output"
+    },
+    {
+      "id": "FA-0014",
+      "date": "2026-03-03",
+      "run_id": "swarm-2026-03-03_03-26-49",
+      "failed_agent": "devops-engineer",
+      "failure_reason": "- **Status:** \u274c Failed (3 attempts exhausted)",
+      "category": "TIMEOUT",
+      "fix_cycle": 2,
+      "fix_successful": false,
+      "fix_exit_code": 143,
+      "fix_output_bytes": 0,
+      "files_modified": [],
+      "lessons_learned": "Fix agent failed with exit code 143 and 0 bytes output"
+    },
+    {
+      "id": "FA-0015",
+      "date": "2026-03-03",
+      "run_id": "swarm-2026-03-03_03-26-49",
+      "failed_agent": "devops-engineer",
+      "failure_reason": "- **Status:** \u274c Failed (3 attempts exhausted)",
+      "category": "TIMEOUT",
+      "fix_cycle": 3,
+      "fix_successful": false,
+      "fix_exit_code": 124,
+      "fix_output_bytes": 0,
+      "files_modified": [],
+      "lessons_learned": "Fix agent failed with exit code 124 and 0 bytes output"
+    },
+    {
+      "id": "FA-0016",
+      "date": "2026-03-03",
+      "run_id": "swarm-2026-03-03_03-26-49",
+      "failed_agent": "scrum-master",
+      "failure_reason": "- **Status:** \u274c Failed (3 attempts exhausted)",
+      "category": "TIMEOUT",
+      "fix_cycle": 1,
+      "fix_successful": false,
+      "fix_exit_code": 143,
+      "fix_output_bytes": 0,
+      "files_modified": [],
+      "lessons_learned": "Fix agent failed with exit code 143 and 0 bytes output",
+      "pattern_id": "KP-005"
+    },
+    {
+      "id": "FA-0017",
+      "date": "2026-03-03",
+      "run_id": "swarm-2026-03-03_03-26-49",
+      "failed_agent": "scrum-master",
+      "failure_reason": "- **Status:** \u274c Failed (3 attempts exhausted)",
+      "category": "TIMEOUT",
+      "fix_cycle": 2,
+      "fix_successful": false,
+      "fix_exit_code": 143,
+      "fix_output_bytes": 0,
+      "files_modified": [],
+      "lessons_learned": "Fix agent failed with exit code 143 and 0 bytes output",
+      "pattern_id": "KP-005"
+    },
+    {
+      "id": "FA-0018",
+      "date": "2026-03-03",
+      "run_id": "swarm-2026-03-03_03-26-49",
+      "failed_agent": "scrum-master",
+      "failure_reason": "- **Status:** \u274c Failed (3 attempts exhausted)",
+      "category": "TIMEOUT",
+      "fix_cycle": 3,
+      "fix_successful": false,
+      "fix_exit_code": 124,
+      "fix_output_bytes": 0,
+      "files_modified": [],
+      "lessons_learned": "Fix agent failed with exit code 124 and 0 bytes output",
+      "pattern_id": "KP-005"
+    },
+    {
+      "id": "FA-0019",
+      "date": "2026-03-03",
+      "run_id": "swarm-2026-03-03_06-14-40",
+      "failed_agent": "context-engineer",
+      "failure_reason": "- **Status:** \u274c Failed (3 attempts exhausted)",
+      "category": "TIMEOUT",
+      "fix_cycle": 1,
+      "fix_successful": false,
+      "fix_exit_code": 124,
+      "fix_output_bytes": 0,
+      "files_modified": [],
+      "lessons_learned": "Fix agent failed with exit code 124 and 0 bytes output"
+    },
+    {
+      "id": "FA-0020",
+      "date": "2026-03-03",
+      "run_id": "swarm-2026-03-03_03-26-49",
+      "failed_agent": "vision-agent",
+      "failure_reason": "Persona verification failed \u2014 agent not performing at world-class level",
+      "category": "TIMEOUT",
+      "fix_cycle": 1,
+      "fix_successful": false,
+      "fix_exit_code": 1,
+      "fix_output_bytes": 66,
+      "files_modified": [],
+      "lessons_learned": "Fix agent failed with exit code 1 and 66 bytes output"
+    },
+    {
+      "id": "FA-0021",
+      "date": "2026-03-03",
+      "run_id": "swarm-2026-03-03_06-14-40",
+      "failed_agent": "context-engineer",
+      "failure_reason": "- **Status:** \u274c Failed (3 attempts exhausted)",
+      "category": "TIMEOUT",
+      "fix_cycle": 2,
+      "fix_successful": false,
+      "fix_exit_code": 124,
+      "fix_output_bytes": 0,
+      "files_modified": [],
+      "lessons_learned": "Fix agent failed with exit code 124 and 0 bytes output"
+    },
+    {
+      "id": "FA-0022",
+      "date": "2026-03-03",
+      "run_id": "swarm-2026-03-03_03-26-49",
+      "failed_agent": "vision-agent",
+      "failure_reason": "Persona verification failed \u2014 agent not performing at world-class level",
+      "category": "TIMEOUT",
+      "fix_cycle": 2,
+      "fix_successful": false,
+      "fix_exit_code": 1,
+      "fix_output_bytes": 66,
+      "files_modified": [],
+      "lessons_learned": "Fix agent failed with exit code 1 and 66 bytes output"
+    },
+    {
+      "id": "FA-0023",
+      "date": "2026-03-03",
+      "run_id": "swarm-2026-03-03_06-14-40",
+      "failed_agent": "context-engineer",
+      "failure_reason": "- **Status:** \u274c Failed (3 attempts exhausted)",
+      "category": "TIMEOUT",
+      "fix_cycle": 3,
+      "fix_successful": false,
+      "fix_exit_code": 124,
+      "fix_output_bytes": 0,
+      "files_modified": [],
+      "lessons_learned": "Fix agent failed with exit code 124 and 0 bytes output"
     }
   ],
   "statistics": {
-    "total_fix_attempts": 12,
+    "total_fix_attempts": 23,
     "successful_fixes": 0,
-    "failed_fixes": 12,
+    "failed_fixes": 23,
     "success_rate": 0.0,
     "most_failing_agents": [
       "scrum-master",
+      "context-engineer",
       "threat-architect",
       "swarm-controller",
-      "agent-doctor",
-      "context-engineer"
+      "devops-engineer"
     ],
     "most_common_category": "TIMEOUT",
     "last_updated": "2026-03-03"

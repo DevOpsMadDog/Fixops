@@ -8,26 +8,10 @@
     "V7",
     "V10"
   ],
-  "progress": "9/12 done (3 remaining, 0 blocked)",
+  "progress": "11/12 done (1 remaining, 0 blocked)",
   "points": 0,
   "total_points": 0,
   "todo_items": [
-    {
-      "id": "DEMO-001",
-      "title": "Fix ALL broken API endpoints \u2014 zero 404s, zero 500s",
-      "priority": "P0",
-      "assignee": "backend-hardener",
-      "pillar": "V3",
-      "status": "todo"
-    },
-    {
-      "id": "DEMO-002",
-      "title": "Postman collections \u2014 ALL 7 GREEN against live API",
-      "priority": "P0",
-      "assignee": "qa-engineer",
-      "pillar": "V10",
-      "status": "in-progress"
-    },
     {
       "id": "DEMO-003",
       "title": "Wire legacy UI to real API data \u2014 zero mock pages",

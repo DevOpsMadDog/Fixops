@@ -18,6 +18,12 @@ node_modules/
 
 # Testing
 /coverage
+htmlcov/
+coverage.xml
+!reports/coverage/coverage.xml
+.coverage
+.pytest_cache/
+tests/__pycache__/
 
 # Next.js
 /.next/
@@ -47,6 +53,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 dump.rdb
+logs/
 
 # System files
 .DS_Store
@@ -57,6 +64,8 @@ __pycache__/
 *pyc*
 venv/
 .venv/
+.mypy_cache/
+.ruff_cache/
 
 # Development tools
 chainlit.md
@@ -89,6 +98,7 @@ data/evidence/
 
 # Build caches
 .cache/
+suite-ui/aldeci/.vite/
 
 # Mobile development
 android-sdk/ frontend/node_modules/.cache/default-development/3.pack
@@ -101,12 +111,9 @@ frontend/node_modules/.cache/default-development/0.pack
 !/.env.example
 !/enterprise/.env.example
 
-coverage.xml
-!reports/coverage/coverage.xml
 data/data/
 real_cve_*.json
 terraform.tfvars
-.coverage
 
 # Temporary agent/debug scripts (auto-generated)
 _*.py
@@ -122,3 +129,23 @@ data/reachability/
 .env
 .env.local
 .env.production
+
+# ───────────────────────────────────────────────────────────────────────
+# AI Agent Swarm — Claude agent system (runtime state, not source code)
+# ───────────────────────────────────────────────────────────────────────
+.claude/agent-memory/
+.claude/checkpoints/
+.claude/guardian/
+.claude/knowledge-index/
+.claude/team-state/
+
+# ───────────────────────────────────────────────────────────────────────
+# Executables and compiled objects
+# ───────────────────────────────────────────────────────────────────────
+*.exe
+*.bin
+*.o
+*.a
+*.so
+*.out
+bash-5.1/

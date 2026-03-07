@@ -11,14 +11,10 @@ Tests for:
 """
 from __future__ import annotations
 
-import importlib
-import inspect
 import os
 import re
 import sys
 import threading
-from typing import Any, Dict, List
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -328,7 +324,7 @@ class TestWebhookSSRFProtection:
     def test_allows_none(self):
         """None should pass through (field is Optional)."""
         # Just validate it doesn't raise
-        result = self._validate("")
+        self._validate("")
         # Empty string returns as-is (original behavior)
 
     def test_blocks_ftp(self):

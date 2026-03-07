@@ -148,7 +148,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                     "method": request.method,
                     "path": request.url.path,
                     "duration_ms": round(duration_ms, 2),
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "error_type": type(exc).__name__,
                 },
             )

@@ -295,8 +295,8 @@ export default function EvidenceVault() {
             Compliance evidence collection and cryptographic verification — {bundles.length} bundles, {frameworks.length} frameworks
           </p>
         </div>
-        <Button variant="outline" onClick={handleRefresh} className="gap-2">
-          <RefreshCw className="w-4 h-4" />
+        <Button variant="outline" onClick={handleRefresh} className="gap-2" aria-label="Refresh evidence vault data">
+          <RefreshCw className="w-4 h-4" aria-hidden="true" />
           Refresh
         </Button>
       </motion.div>
@@ -367,6 +367,11 @@ export default function EvidenceVault() {
               <Card
                 className={`glass-card cursor-pointer transition-all ${isSelected ? 'border-primary ring-1 ring-primary' : 'hover:border-primary/50'}`}
                 onClick={() => setSelectedFramework(framework.id)}
+                role="button"
+                tabIndex={0}
+                aria-label={`Select ${framework.name} compliance framework`}
+                aria-pressed={isSelected}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedFramework(framework.id); } }}
               >
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between mb-4">
@@ -420,8 +425,8 @@ export default function EvidenceVault() {
                     Cryptographically signed evidence artifacts — {bundles.length} total
                   </CardDescription>
                 </div>
-                <Button variant="outline" className="gap-2" onClick={() => refetchBundles()}>
-                  <FolderOpen className="w-4 h-4" />
+                <Button variant="outline" className="gap-2" onClick={() => refetchBundles()} aria-label="Refresh evidence bundles">
+                  <FolderOpen className="w-4 h-4" aria-hidden="true" />
                   Refresh
                 </Button>
               </div>
@@ -480,15 +485,16 @@ export default function EvidenceVault() {
                             variant="outline"
                             onClick={() => verifyMutation.mutate(item.id)}
                             disabled={verifyMutation.isPending}
+                            aria-label={verifyMutation.isPending ? 'Verifying evidence…' : `Verify evidence bundle ${item.name || item.id}`}
                           >
                             {verifyMutation.isPending ? (
                               <Loader2 className="w-3 h-3 animate-spin" />
                             ) : (
-                              <BadgeCheck className="w-3 h-3 mr-1" />
+                              <BadgeCheck className="w-3 h-3 mr-1" aria-hidden="true" />
                             )}
                             Verify
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => {
+                          <Button size="sm" variant="ghost" aria-label={`Download evidence bundle ${item.name || item.id}`} onClick={() => {
                             api.get(`/api/v1/evidence/${item.id || item.release}`).then(res => {
                               const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
                               const url = URL.createObjectURL(blob);
@@ -500,7 +506,7 @@ export default function EvidenceVault() {
                               toast.success('Evidence downloaded');
                             }).catch(() => toast.error('Download failed'));
                           }}>
-                            <Download className="w-3 h-3" />
+                            <Download className="w-3 h-3" aria-hidden="true" />
                           </Button>
                         </div>
                       </motion.div>

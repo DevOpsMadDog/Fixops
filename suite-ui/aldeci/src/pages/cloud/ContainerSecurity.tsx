@@ -268,8 +268,7 @@ function VulnRow({ vuln }: { vuln: ContainerVuln }) {
 const ContainerSecurity = () => {
   const [images, setImages] = useState<ContainerImage[]>([]);
   const [vulns, setVulns] = useState<ContainerVuln[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [scannerStatus, setScannerStatus] = useState<any>(null);
+  const [scannerStatus, setScannerStatus] = useState<{ status?: string; containers?: ContainerImage[] } | null>(null);
   const [scanning, setScanning] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -282,12 +281,10 @@ const ContainerSecurity = () => {
         containerScanApi.getStatus().catch(() => ({ containers: [], status: 'unknown' })),
         api.get('/api/v1/vulns/discovered').catch(() => ({ data: { vulnerabilities: [] } })),
       ]);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const statusData: any = typeof statusRes === 'object' && statusRes !== null ? statusRes : {};
+      const statusData = typeof statusRes === 'object' && statusRes !== null ? statusRes as { status?: string; containers?: ContainerImage[] } : {};
       setScannerStatus(statusData);
       setImages(statusData.containers || []);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const vulnData: any = vulnsRes.data || vulnsRes;
+      const vulnData = (vulnsRes as { data?: { vulnerabilities?: ContainerVuln[]; findings?: ContainerVuln[] } }).data || vulnsRes as { vulnerabilities?: ContainerVuln[]; findings?: ContainerVuln[] };
       setVulns(vulnData.vulnerabilities || vulnData.findings || []);
     } catch (e) {
       console.error('Container fetch error', e);

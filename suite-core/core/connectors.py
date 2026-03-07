@@ -390,7 +390,7 @@ class JiraConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "jira delivery failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -458,7 +458,7 @@ class JiraConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "jira update failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -526,7 +526,7 @@ class JiraConnector(_BaseConnector):
                     "failed",
                     {
                         "reason": "failed to fetch transitions",
-                        "error": str(exc),
+                        "error": type(exc).__name__,
                     },
                 )
 
@@ -552,7 +552,7 @@ class JiraConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "jira transition failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -618,7 +618,7 @@ class JiraConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "jira comment failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -667,7 +667,7 @@ class JiraConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "jira fetch failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -726,7 +726,7 @@ class JiraConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "jira search failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -785,7 +785,7 @@ class JiraConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "jira comments fetch failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -911,7 +911,7 @@ class ConfluenceConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "confluence delivery failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -1005,7 +1005,7 @@ class ConfluenceConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "confluence update failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -1052,7 +1052,7 @@ class ConfluenceConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "confluence fetch failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -1097,7 +1097,7 @@ class ConfluenceConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "confluence search failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -1197,7 +1197,7 @@ class SlackConnector(_BaseConnector):
             response.raise_for_status()
         except RequestException as exc:  # pragma: no cover - network failure surface
             return ConnectorOutcome(
-                "failed", {"reason": "slack delivery failed", "error": str(exc)}
+                "failed", {"reason": "slack delivery failed", "error": type(exc).__name__}
             )
 
         return ConnectorOutcome("sent", {"webhook": webhook})
@@ -1311,7 +1311,7 @@ class ServiceNowConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "servicenow incident creation failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -1387,7 +1387,7 @@ class ServiceNowConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "servicenow incident update failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -1443,7 +1443,7 @@ class ServiceNowConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "servicenow work note failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -1479,7 +1479,7 @@ class ServiceNowConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "servicenow fetch failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -1531,7 +1531,7 @@ class ServiceNowConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "servicenow search failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -1675,7 +1675,7 @@ class GitLabConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "gitlab issue creation failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -1749,7 +1749,7 @@ class GitLabConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "gitlab issue update failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -1803,7 +1803,7 @@ class GitLabConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "gitlab comment failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -1848,7 +1848,7 @@ class GitLabConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "gitlab fetch failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -1902,7 +1902,7 @@ class GitLabConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "gitlab search failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -2084,7 +2084,7 @@ class AzureDevOpsConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "azure devops work item creation failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -2183,7 +2183,7 @@ class AzureDevOpsConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "azure devops work item update failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -2235,7 +2235,7 @@ class AzureDevOpsConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "azure devops comment failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -2277,7 +2277,7 @@ class AzureDevOpsConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "azure devops fetch failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -2318,11 +2318,12 @@ class AzureDevOpsConnector(_BaseConnector):
             )
             response.raise_for_status()
         except RequestException as exc:
+            logger.debug("Azure DevOps search failed: %s", exc)
             return ConnectorOutcome(
                 "failed",
                 {
                     "reason": "azure devops search failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -2344,6 +2345,20 @@ class AzureDevOpsConnector(_BaseConnector):
             },
         )
 
+    @staticmethod
+    def _sanitize_wiql_value(value: str) -> str:
+        """Sanitize a value for safe WIQL interpolation.
+
+        WIQL uses single quotes for string literals. Escape single quotes
+        and strip control characters to prevent WIQL injection.
+        """
+        # Strip control characters (newlines, tabs, etc.)
+        sanitized = "".join(c for c in value if c.isprintable())
+        # Escape single quotes (WIQL string delimiter)
+        sanitized = sanitized.replace("'", "''")
+        # Limit length to prevent abuse
+        return sanitized[:256]
+
     def list_work_items(
         self,
         work_item_type: Optional[str] = None,
@@ -2351,11 +2366,14 @@ class AzureDevOpsConnector(_BaseConnector):
         max_results: int = 50,
     ) -> ConnectorOutcome:
         """List Azure DevOps work items with optional filters (Agent READ operation)."""
-        conditions = [f"[System.TeamProject] = '{self.project}'"]
+        safe_project = self._sanitize_wiql_value(self.project)
+        conditions = [f"[System.TeamProject] = '{safe_project}'"]
         if work_item_type:
-            conditions.append(f"[System.WorkItemType] = '{work_item_type}'")
+            safe_type = self._sanitize_wiql_value(work_item_type)
+            conditions.append(f"[System.WorkItemType] = '{safe_type}'")
         if state:
-            conditions.append(f"[System.State] = '{state}'")
+            safe_state = self._sanitize_wiql_value(state)
+            conditions.append(f"[System.State] = '{safe_state}'")
         wiql = f"SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE {' AND '.join(conditions)} ORDER BY [System.ChangedDate] DESC"
         return self.search_work_items(wiql, max_results=max_results)
 
@@ -2463,7 +2481,7 @@ class GitHubConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "github issue creation failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -2537,7 +2555,7 @@ class GitHubConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "github issue update failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -2593,7 +2611,7 @@ class GitHubConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "github comment failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -2648,7 +2666,7 @@ class GitHubConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "github fetch failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -2707,7 +2725,7 @@ class GitHubConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "github search failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )
@@ -2763,7 +2781,7 @@ class GitHubConnector(_BaseConnector):
                 "failed",
                 {
                     "reason": "github comments fetch failed",
-                    "error": str(exc),
+                    "error": type(exc).__name__,
                     "endpoint": endpoint,
                 },
             )

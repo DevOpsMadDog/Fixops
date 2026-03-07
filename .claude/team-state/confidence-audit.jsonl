@@ -208,3 +208,11 @@
 {"ts":"2026-03-02T17:33:44Z","agent":"frontend-craftsman","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-03_03-26-49"}
 {"ts":"2026-03-02T17:35:07Z","agent":"qa-engineer","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-03_02-25-46"}
 {"ts":"2026-03-02T17:42:09Z","agent":"devops-engineer","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-03_02-25-46"}
+{"ts":"2026-03-07T09:38:20Z","agent":"vision-agent","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-07_20-30-11"}
+{"ts":"2026-03-07T09:40:15Z","agent":"agent-doctor","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-07_20-30-11"}
+{"ts":"2026-03-07T09:52:27Z","agent":"context-engineer","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-07_20-30-11"}
+{"ts":"2026-03-07T10:03:43Z","agent":"ai-researcher","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-07_20-30-11"}
+{"ts":"2026-03-07T10:42:45Z","agent":"enterprise-architect","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-07_20-30-11"}
+{"ts":"2026-03-07T10:57:00Z","agent":"backend-hardener","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-07_20-30-11"}
+{"ts":"2026-03-07T10:58:25Z","agent":"frontend-craftsman","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-07_20-30-11"}
+{"ts":"2026-03-07T11:00:00Z","agent":"threat-architect","confidence":"HIGH","score":100,"severity":0,"verdict":"PASS","escalation":"none","run_id":"swarm-2026-03-07_20-30-11"}

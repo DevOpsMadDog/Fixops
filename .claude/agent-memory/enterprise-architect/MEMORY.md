@@ -59,13 +59,34 @@ risk = min((cvss/10 * 0.4 + epss * 0.3 + 0.3) * kev_boost * asset_crit, 1.0)
 - Cross-suite imports work without pip install -e
 - E402 ruff warnings (77) are caused by this pattern — architectural, not bugs
 
+### FAIL Engine Architecture (Run 10 review, V3)
+- Engine: `suite-core/core/fail_engine.py` (718 LOC)
+- DB: `suite-core/core/fail_db.py` (256 LOC)
+- Router: `suite-api/apps/api/fail_router.py` (297 LOC)
+- 4 dimensions: FACT(0.20) + ASSESS(0.20) + IMPACT(0.30) + LIKELIHOOD(0.30)
+- Dynamic weight adjustment (normalize to 1.0)
+- NOT integrated with Brain Pipeline (TD-035, ADR-011)
+- MAX_HISTORY_SIZE=5000 with eviction (FIXED Run 10)
+- Delete requires org_id auth (FIXED Run 10)
+- Batch returns errors array (FIXED Run 10)
+- FAILDB uses threading.local() for thread-safe connections
+
+### Exposure Case Manager
+- Engine: `suite-core/core/exposure_case.py` (647 LOC)
+- Router: `suite-core/api/exposure_case_router.py` (219 LOC)
+- 7 lifecycle states: OPEN→TRIAGING→FIXING→RESOLVED→CLOSED (+ACCEPTED_RISK, FALSE_POSITIVE)
+- State machine with VALID_TRANSITIONS dict
+- Singleton pattern with thread-safe double-checked locking
+- Knowledge Graph + EventBus integration
+- Singleton path bug: subsequent get_instance(different_path) silently ignored (TD-038)
+
 ### File Organization
 - Engine code: `suite-core/core/` (business logic)
 - Router code: `suite-core/api/` (REST endpoints)
-- App wiring: `suite-api/apps/api/app.py` (34 router mounts, 2853 LOC)
+- App wiring: `suite-api/apps/api/app.py` (34 router mounts, 2893 LOC)
 - Tests: `tests/` (flat directory)
 - Demo scripts: `scripts/`
-- ADRs: `.claude/team-state/architecture/adrs/` (10 ADRs)
+- ADRs: `.claude/team-state/architecture/adrs/` (11 ADRs)
 
 ### Team State Protocol
 - Status: `.claude/team-state/{agent-name}-status.md`
@@ -100,15 +121,16 @@ risk = min((cvss/10 * 0.4 + epss * 0.3 + 0.3) * kev_boost * asset_crit, 1.0)
 - Known weakness: prompt injection in LLM calls (mitigated by safety gate) — TD-024
 - Private method access from router (_validate_fix) — code smell, not security
 
-## Quality Metrics (2026-03-03 Run 9, verified)
-- Bandit (suite-core/core): 0 HIGH, 51 MEDIUM, 124 LOW (89,776 lines)
-- Ruff: 77 warnings (0 actionable, all E402 architectural pattern)
-- Test coverage: 19.23% (gate: 25%, per agent-doctor)
-- Core tests: 206/206 PASS (28.61s, Run 9)
-- Self-learning tests: 73/73 PASS (13.00s, Run 9)
-- AutoFix tests: 556/556 PASS (58.88s, Run 8)
-- ADRs: 10/10 validated (0 broken refs, Run 9)
-- Tech debt: 33 items (10 done)
+## Quality Metrics (2026-03-07 Run 10, final verified)
+- Bandit (suite-core/core): 0 HIGH, 51 MEDIUM, 124 LOW (90,388 lines)
+- Ruff: 77 warnings (0 actionable, all E402 architectural pattern) — 5 F401 + 1 F841 FIXED
+- Test coverage: 4.65% (gate: 25% — config now measures ALL suites)
+- Core + FAIL tests: 253/253 PASS (31.43s, Run 10 final)
+- Self-learning tests: 73/73 PASS (Run 10)
+- AutoFix tests: 556/556 PASS (Run 8)
+- ADRs: 11/11 validated (0 broken refs, Run 10)
+- Tech debt: 38 items (11 done)
+- Bug fixes Run 10: 7 total (TD-034, TD-036, TD-037, 5×F401, F841)
 
 ## Reliability Patterns
 - SQLite connections: MUST use try/finally (history.py + deduplication.py both fixed)
@@ -142,6 +164,11 @@ risk = min((cvss/10 * 0.4 + epss * 0.3 + 0.3) * kev_boost * asset_crit, 1.0)
 - MCP protocol router 9 broken attribute accesses FIXED (get_mcp_handler() singleton)
 - Self-learning /stats endpoint ADDED (was 404, last non-200 in burndown)
 - ADR-010: MCP protocol architecture (dual subsystem, singleton, auth bypass risk)
+- ADR-011: FAIL Engine scoring (dual scoring, keep separate Phase 1, integrate Phase 2)
+- FAIL _history unbounded FIXED (MAX_HISTORY_SIZE=5000, eviction logic)
+- FAIL /delete auth FIXED (org_id + ownership verification)
+- FAIL batch error reporting FIXED (returns errors array)
+- ADR-008 path refs FIXED (history.py→services/history.py, universal_connector paths)
 
 ### MCP Architecture (ADR-009 + ADR-010, V7)
 - Two subsystems: Auto-Discovery Router (/api/v1/mcp/*) + Protocol Engine (/api/v1/mcp-protocol/*)
@@ -163,3 +190,4 @@ risk = min((cvss/10 * 0.4 + epss * 0.3 + 0.3) * kev_boost * asset_crit, 1.0)
 5. 2026-03-02: Performance & data flow review (Grade B, updated Run 7)
 6. 2026-03-03: AutoFix engine architecture review (Grade B+)
 7. 2026-03-03: MCP architecture review (Grade B-, 9 attr fixes, auth bypass logged)
+8. 2026-03-07: FAIL Engine + Exposure Case review (Grade B+, 2131 LOC, 138 tests)

@@ -76,7 +76,7 @@ const SLSAProvenance = () => {
         <TabsContent value="attestations">
           <Card className="border-border/50"><CardContent className="pt-6">
             {loading ? <div className="space-y-3 py-4">{[1,2,3].map(i => <Skeleton key={i} className="h-20 w-full rounded-lg" />)}</div> : (
-            <div className="space-y-3">{attestations.slice(0, 20).map((att: any, i: number) => (
+            <div className="space-y-3">{attestations.slice(0, 20).map((att: { subject?: string; artifact?: string; predicate_type?: string; builder_id?: string; slsa_level?: number; verified?: boolean }, i: number) => (
               <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
                 className="p-4 border border-border/30 rounded-lg">
                 <div className="flex justify-between items-start">
@@ -95,7 +95,7 @@ const SLSAProvenance = () => {
         </TabsContent>
         <TabsContent value="bundles">
           <Card className="border-border/50"><CardContent className="pt-6">
-            <div className="space-y-3">{bundles.slice(0, 20).map((b: any, i: number) => (
+            <div className="space-y-3">{bundles.slice(0, 20).map((b: { name?: string; bundle_id?: string; item_count?: number; size?: string; created_at?: string; worm_locked?: boolean; storage_backend?: string }, i: number) => (
               <div key={i} className="p-4 border border-border/30 rounded-lg flex justify-between items-center">
                 <div>
                   <div className="font-semibold text-foreground">{b.name || b.bundle_id || `bundle-${i}`}</div>
@@ -118,7 +118,7 @@ const SLSAProvenance = () => {
                 { level: 2, name: 'Hosted Build Platform', desc: 'Build runs on hosted platform with signed provenance' },
                 { level: 3, name: 'Hardened Builds', desc: 'Source and build platform integrity verified' },
               ].map(sl => {
-                const count = attestations.filter((a: any) => (a.slsa_level || 0) >= sl.level).length;
+                const count = attestations.filter((a: { slsa_level?: number }) => (a.slsa_level || 0) >= sl.level).length;
                 return (
                   <div key={sl.level} className="flex items-center gap-4 p-3 border border-border/30 rounded-lg">
                     <Badge className={`w-24 justify-center ${levelColor(sl.level)}`}>SLSA L{sl.level}</Badge>

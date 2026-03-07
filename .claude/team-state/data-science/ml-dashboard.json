@@ -1,204 +1,93 @@
 {
-  "generated_at": "2026-03-02T17:09:09.719043+00:00",
-  "date": "2026-03-03",
+  "generated": "2026-03-07T21:45:27.369389",
+  "version": "4.0.0",
+  "pillar": "V3 \u2014 Decision Intelligence",
   "ml_modules": {
-    "risk_scorer": {
-      "loc": 1211,
-      "tests": 42,
-      "purpose": "GBT risk scoring + SHAP explanations (Step 7)"
-    },
-    "anomaly_detector": {
-      "loc": 709,
-      "tests": 21,
-      "purpose": "Isolation Forest + scan drift detection"
-    },
-    "consensus_calibrator": {
-      "loc": 560,
-      "tests": 24,
-      "purpose": "Multi-LLM weight calibration (Step 9)"
-    },
-    "threat_enricher": {
-      "loc": 602,
-      "tests": 29,
-      "purpose": "Real EPSS/KEV/CVSS enrichment (Step 6)"
-    },
-    "autofix_confidence": {
-      "loc": 734,
-      "tests": 38,
-      "purpose": "AutoFix quality prediction"
-    },
-    "daily_intel": {
-      "loc": 423,
-      "tests": 0,
-      "purpose": "Daily threat intelligence collector"
-    },
-    "parser_quality": {
-      "loc": 693,
-      "tests": 16,
-      "purpose": "Scanner parser data quality validator"
-    },
-    "eventbus_integration": {
-      "loc": 294,
-      "tests": 30,
-      "purpose": "EventBus wiring for ML alerts"
-    },
-    "online_learning": {
-      "loc": 1174,
-      "tests": 47,
-      "purpose": "User feedback \u2192 model retraining pipeline"
-    },
-    "attack_path_gnn": {
-      "loc": 922,
-      "tests": 38,
-      "purpose": "Graph Neural Network for attack-path analysis"
-    },
-    "trend_analyzer": {
-      "loc": 703,
-      "tests": 33,
-      "purpose": "Vulnerability trend detection + posture scoring (NEW 2026-03-03)"
-    },
-    "shap_explanations": {
-      "tests": 36,
-      "purpose": "SHAP explanation tests"
-    },
-    "drift_detection": {
-      "tests": 21,
-      "purpose": "Drift detection tests"
-    }
-  },
-  "model_status": {
-    "risk_scorer": {
-      "version": "2.2.0",
-      "status": "VALIDATED",
-      "golden_regression_accuracy": 1.0,
-      "golden_regression_count": 85,
-      "golden_regression_pass": true,
-      "mae": 0.4993,
-      "r2": 0.9996,
-      "cv_scores": [
-        0.911,
-        0.945,
-        0.924,
-        0.907,
-        0.847
-      ],
-      "f1_by_priority": {
-        "FP": 1.0,
-        "P0": 1.0,
-        "P1": 1.0,
-        "P2": 1.0,
-        "P3": 1.0,
-        "P4": 1.0
-      },
-      "priority_distribution": {
-        "P0": 41,
-        "P1": 15,
-        "P2": 10,
-        "P3": 8,
-        "P4": 2,
-        "FP": 9
-      },
-      "last_validated": "2026-03-03"
-    },
-    "anomaly_detector": {
-      "status": "FITTED",
-      "baseline_scans": 30,
-      "contamination": 0.05
-    },
-    "consensus_calibrator": {
-      "ensemble_f1": 0.9081,
-      "recommended_weights": {
-        "claude": 0.3294,
-        "gpt4": 0.3301,
-        "gemini": 0.3405
-      },
-      "degraded_models": [],
-      "calibrated_at": "2026-03-03"
-    },
-    "online_learning": {
-      "status": "READY",
-      "min_feedback_for_retrain": 10,
-      "max_buffer_size": 500,
-      "rate_limit_seconds": 600,
-      "golden_pass_threshold": 0.95,
-      "event_handlers": [
-        "DECISION_MADE",
-        "REMEDIATION_COMPLETED"
-      ],
-      "wired_to_eventbus": true
-    },
-    "attack_path_gnn": {
-      "status": "READY",
-      "architecture": "2-layer GAT (12\u219232\u00d74\u219216)",
-      "wired_to_brain_pipeline_step5": true,
-      "air_gapped": true
-    },
-    "trend_analyzer": {
-      "status": "READY",
-      "detectors": [
-        "severity_drift",
-        "cwe_emergence",
-        "recurrence",
-        "volume"
-      ],
-      "wired_to_brain_pipeline_emit_event": true,
-      "api_endpoint": "/api/v1/brain/trends",
-      "posture_scoring": true
-    }
-  },
-  "feature_importance": {
-    "asset_criticality": 0.7848,
-    "epss_score": 0.1407,
-    "network_exposure": 0.0335,
-    "exploit_maturity": 0.0155,
-    "in_kev": 0.0085,
-    "exploit_available": 0.0065,
-    "cvss_score": 0.0058,
-    "reachable": 0.0043,
-    "has_chain": 0.0005
-  },
-  "daily_intel_summary": {
-    "date": "2026-03-03",
-    "epss_high_count": 100,
-    "epss_weaponized_count": 100,
-    "nvd_critical_count": 5,
-    "nvd_high_count": 36,
-    "kev_total": 1529,
-    "data_sources": {
-      "epss": "live",
-      "nvd": "live",
-      "kev": "live"
-    }
-  },
-  "total_ml_loc": 8058,
-  "total_ml_tests": 375,
-  "total_ml_plus_integration_tests": 547,
-  "new_today": {
-    "modules_added": [
-      "trend_analyzer (703 LOC, 33 tests)"
-    ],
-    "dataset_changes": [
-      "golden_regression_cases v3.0.0\u2192v3.1.0 (+10 cases, 75\u219285)"
-    ],
-    "model_changes": [
-      "risk_scorer v2.1.0\u2192v2.2.0 (retrained on 85 cases, 100% accuracy)"
-    ],
-    "integrations": [
-      "Trend analyzer wired to brain pipeline _emit_event()",
-      "/api/v1/brain/trends endpoint added",
-      "Golden dataset expanded with 10 real CVEs (2024-2025)"
+    "total": 13,
+    "total_loc": 8791,
+    "modules": [
+      "__init__.py",
+      "anomaly_detector.py",
+      "attack_path_gnn.py",
+      "autofix_confidence.py",
+      "consensus_calibrator.py",
+      "daily_intel.py",
+      "eventbus_integration.py",
+      "online_learning.py",
+      "parser_quality.py",
+      "predictive_scorer.py",
+      "risk_scorer.py",
+      "threat_enricher.py",
+      "trend_analyzer.py"
     ]
   },
-  "year1_roadmap_progress": {
-    "gradient_boosted_risk_scoring": "DONE (v2.2.0)",
-    "consensus_weight_calibration": "DONE (F1=0.9081)",
-    "shap_explanations": "DONE (interventional SHAP)",
-    "scan_drift_detection": "DONE (Isolation Forest)",
-    "parser_quality_validation": "DONE (wired to Step 2)",
-    "eventbus_ml_alerts": "DONE (4 event types)",
-    "autofix_confidence_model": "DONE (v1.0.0, 83.7%)",
-    "online_learning_pipeline": "DONE (feedback\u2192retrain\u2192deploy)",
-    "gnn_attack_path_foundation": "DONE (GAT with attention)",
-    "trend_analysis": "DONE (4 detectors + posture score)"
+  "tests": {
+    "total_tests": 457,
+    "test_files": 13,
+    "all_passing": true,
+    "last_run": "2026-03-07"
+  },
+  "risk_model": {
+    "version": "2.1.0",
+    "mae": 0.78,
+    "r2": 0.9992,
+    "pass_rate": 96.8,
+    "training_cases": 93,
+    "golden_dataset_version": "3.2.1",
+    "feature_importance_top3": [
+      [
+        "asset_criticality",
+        0.6826714801585636
+      ],
+      [
+        "exploit_maturity",
+        0.10565356384475856
+      ],
+      [
+        "network_exposure",
+        0.07720488348663875
+      ]
+    ]
+  },
+  "consensus": {
+    "ensemble_f1": 0.8467,
+    "recommended_weights": {
+      "claude": 0.3298,
+      "gpt4": 0.3356,
+      "gemini": 0.3346
+    }
+  },
+  "threat_intel": {
+    "all_feeds_healthy": true,
+    "epss_high_count": 0,
+    "nvd_critical_7d": 73,
+    "nvd_stack_relevant": 3,
+    "kev_new_30d": 31,
+    "kev_due_7d": 7,
+    "golden_drift_count": 2,
+    "stack_alerts": 4
+  },
+  "mcp_gateway": {
+    "demo_status": "PASSING",
+    "tools_discovered": 759,
+    "pipeline_steps": "9/12",
+    "ml_showcase": true,
+    "predictive_scoring": true
+  },
+  "year_roadmap_progress": {
+    "year_1_complete": true,
+    "year_1_items": [
+      "GBT risk scoring + SHAP \u2705",
+      "Consensus weight calibration \u2705",
+      "Anomaly detection (Isolation Forest) \u2705",
+      "Parser quality validation \u2705",
+      "EventBus ML wiring \u2705",
+      "Online learning pipeline \u2705",
+      "GNN attack-path analysis \u2705",
+      "Vulnerability trend analysis \u2705",
+      "AutoFix confidence model \u2705"
+    ],
+    "year_2_progress": "Planned \u2014 GNN already implemented ahead of schedule",
+    "year_3_preview": "Predictive vulnerability scoring module LIVE"
   }
 }

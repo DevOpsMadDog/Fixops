@@ -121,6 +121,8 @@ GLOBAL_FAIL_THRESHOLD=10     # STOP entire swarm if >=10 agents fail total (59% 
 CIRCUIT_BREAKER_SELF_HEAL_ATTEMPTS=0  # Counter: how many times self-heal has been tried this run
 CIRCUIT_BREAKER_MAX_SELF_HEALS=3      # Max self-heal attempts before permanent halt
 CASCADE_STOP=true            # true = respect dependency graph (don't run phase N if N-1 failed)
+QUOTA_EXHAUSTED=false        # Set true when Claude API quota is depleted — halts ALL agent launches instantly
+QUOTA_EXHAUSTED_MSG=""       # Stores the reset message (e.g. "resets Mar 6, 3pm")
 PARALLEL=true
 DRY_RUN=false
 SINGLE_AGENT=""
@@ -2130,6 +2132,12 @@ controller_spawn_fix_agent() {
   local fix_cycle="${4:-1}"
 
   if ! $ENABLE_CONTROLLER; then return 1; fi
+
+  # ── QUOTA EXHAUSTION GUARD — don't waste quota on fix agents ──
+  if $QUOTA_EXHAUSTED; then
+    error "CONTROLLER: Skipping fix-agent for ${failed_agent} — QUOTA EXHAUSTED (${QUOTA_EXHAUSTED_MSG})"
+    return 1
+  fi
 
   mkdir -p "$FIX_AGENTS_DIR"
   local fix_log="$FIX_AGENTS_DIR/${DATE_TODAY}_fix-${failed_agent}_cycle${fix_cycle}.log"
@@ -4496,6 +4504,13 @@ EOF
   local last_failure_reason=""
 
   while [[ $attempt -lt $MAX_RETRIES ]]; do
+    # ── QUOTA EXHAUSTION GUARD — skip immediately if API is dry ──
+    if $QUOTA_EXHAUSTED; then
+      error "  QUOTA EXHAUSTED — skipping ${agent_name} (${QUOTA_EXHAUSTED_MSG})"
+      last_failure_reason="API quota exhausted: ${QUOTA_EXHAUSTED_MSG}"
+      break
+    fi
+
     attempt=$((attempt + 1))
     local start_time=$(date +%s)
 
@@ -4591,6 +4606,21 @@ EOF
           warn "  SELF-HEAL: Rate limited — using longer backoff..."
           backoff=$((backoff * 3))  # Triple the backoff
           last_failure_reason="Rate limited (extended backoff to ${backoff}s)"
+        fi
+
+        # FATAL: Claude API quota exhausted — NO retry possible, halt ALL agents
+        if echo "$log_tail" | grep -qi 'out of.*usage.*resets\|out of extra usage' 2>/dev/null; then
+          QUOTA_EXHAUSTED=true
+          QUOTA_EXHAUSTED_MSG=$(echo "$log_tail" | grep -oi 'resets.*' | head -1 | tr -d '\n')
+          error "╔══════════════════════════════════════════════════════════════╗"
+          error "║  💀 QUOTA EXHAUSTED — Claude API is out of usage            ║"
+          error "║  ${QUOTA_EXHAUSTED_MSG:-Unknown reset time}  ║"
+          error "║  ALL agent launches halted. No retries. No fix-agents.      ║"
+          error "╚══════════════════════════════════════════════════════════════╝"
+          last_failure_reason="QUOTA_EXHAUSTED: ${QUOTA_EXHAUSTED_MSG}"
+          # Record in failure ledger
+          broadcast_failure_alert "${agent_name}" "QUOTA_EXHAUSTED" "API quota depleted — ${QUOTA_EXHAUSTED_MSG}. Entire swarm halted." 2>/dev/null || true
+          break  # Exit retry loop immediately
         fi
       fi
 

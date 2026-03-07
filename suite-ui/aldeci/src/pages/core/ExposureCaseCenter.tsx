@@ -767,8 +767,9 @@ const ExposureCaseCenter = () => {
         const res = await api.get(`/api/v1/cases/${caseId}`).catch(() => null);
         if (res?.data) setSelectedCase(res.data);
       }
-    } catch (err: any) {
-      const msg = err?.response?.data?.detail || err?.message || 'Unknown error';
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { detail?: string } }; message?: string };
+      const msg = axiosErr?.response?.data?.detail || axiosErr?.message || 'Unknown error';
       toast.error(`Transition failed: ${msg}`);
     }
   };
@@ -780,8 +781,9 @@ const ExposureCaseCenter = () => {
       setShowCreate(false);
       setNewCase({ title: '', description: '', priority: 'medium', org_id: '', root_cve: '', root_cwe: '' });
       fetchData();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Failed to create case');
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      toast.error(axiosErr?.response?.data?.detail || 'Failed to create case');
     }
   };
 

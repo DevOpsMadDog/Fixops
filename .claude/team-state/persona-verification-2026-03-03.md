@@ -6,17 +6,17 @@
 ## Summary
 
 - **Total Agents:** 18
-- **Verified (B+ grade):** 7 (38%)
+- **Verified (B+ grade):** 4 (22%)
 - **Failed:** 1
-- **Stubs/Fakes Detected:** 9
+- **Stubs/Fakes Detected:** 12
 
 ## Per-Agent Scores
 
 | Agent | Persona Title | Grade | Score | Details |
 |-------|--------------|-------|-------|---------|
-| vision-agent | Chief Vision Officer | B | 82% | ✅ Persona file OK (16208B). ✅ Status OK. ⚠️ Output light (3060B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
-| agent-doctor | System Reliability Engineer | B | 77% | ✅ Persona file OK (14967B). ✅ Status OK. ⚠️ Output light (1956B). ⚠️ Partial match 50%. ✅ Completed. ✅ No stubs.  |
-| context-engineer | Codebase Intelligence Architect | A | 92% | ✅ Persona file OK (10903B). ✅ Status OK. ⚠️ Output light (1707B). ✅ Persona match 100%. ✅ Completed. ✅ No stubs.  |
+| vision-agent | Chief Vision Officer | D | 35% | ✅ Persona file OK (16208B). ✅ Status OK. ❌ Output empty/fake (66B). ❌ Low match 0%. ❌ Not complete. ✅ No stubs.  |
+| agent-doctor | System Reliability Engineer | D | 35% | ✅ Persona file OK (14967B). ✅ Status OK. ❌ Output empty/fake (66B). ❌ Low match 0%. ❌ Not complete. ✅ No stubs.  |
+| context-engineer | Codebase Intelligence Architect | D | 35% | ✅ Persona file OK (10903B). ✅ Status OK. ❌ Output empty/fake (66B). ❌ Low match 0%. ❌ Not complete. ✅ No stubs.  |
 | ai-researcher | AI/ML Research Scientist | C | 67% | ✅ Persona file OK (11737B). ✅ Status OK. ⚠️ Output light (3072B). ❌ Low match 16%. ✅ Completed. ✅ No stubs.  |
 | data-scientist | Data Analytics Lead | B | 82% | ✅ Persona file OK (10693B). ✅ Status OK. ⚠️ Output light (2061B). ⚠️ Partial match 66%. ✅ Completed. ✅ No stubs.  |
 | enterprise-architect | Enterprise Solutions Architect | B | 74% | ✅ Persona file OK (13202B). ✅ Status OK. ⚠️ Output light (2089B). ⚠️ Partial match 40%. ✅ Completed. ✅ No stubs.  |
@@ -91,4 +91,4 @@ pytest tests/ --cov=. --cov-fail-under=60
 curl -s -H "X-API-Key: ${VITE_API_KEY}" http://localhost:8000/api/v1/health | python3 -m json.tool
 ```
 
-*Generated at 2026-03-03 05:51:20 by JARVIS Controller*
+*Generated at 2026-03-03 07:19:46 by JARVIS Controller*

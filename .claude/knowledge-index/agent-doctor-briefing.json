@@ -1,7 +1,7 @@
 {
   "agent": "agent-doctor",
-  "generated": "2026-03-01T19:30:59.567285",
-  "your_last_status": "# agent-doctor Status\n- **Status:** \ud83d\udfe2 Ready\n- **Runtime:** claude-opus-4-6-fast (Enterprise Demo Sprint)\n- **Mode:** Enterprise Demo (5-Day Sprint)\n- **Date:** 2026-03-01\n- **Duration:** \u2014\n- **Attempts:** 0/3\n- **Run ID:** enterprise-demo-sprint\n- **Reset by:** CEO directive \u2014 enterprise demo in 5 d",
+  "generated": "2026-03-07T20:30:16.065281",
+  "your_last_status": "# agent-doctor Status\n- **Status:** \u2705 Completed\n- **Runtime:** claude-opus-4-6-fast (CTEM+ Swarm)\n- **Mode:** Post-Demo Health Audit (run36)\n- **Date:** 2026-03-07\n- **Duration:** ~300s\n- **Attempts:** 1/1\n- **Run ID:** agent-doctor-post-demo-run36\n- **Log:** logs/ai-team/2026-03-07_agent-doctor_swa",
   "role_files": [
     {
       "file": ".claude/team-state/health-dashboard.json",

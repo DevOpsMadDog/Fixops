@@ -31,3 +31,15 @@
 [2026-03-02T10:22:49Z] CRASH #4 — exit code: 1 — will retry
 [2026-03-02T15:23:43Z] CRASH #5 — exit code: 1 — will retry
 [2026-03-02T16:24:46Z] CRASH #5 — exit code: 1 — will retry
+[2026-03-02T19:12:38Z] CRASH #6 — exit code: 1 — will retry
+[2026-03-02T20:34:13Z] CRASH #6 — exit code: 143 — will retry
+[2026-03-02T20:34:42Z] CRASH #7 — exit code: 143 — will retry
+[2026-03-02T20:38:26Z] CRASH #8 — exit code: 1 — will retry
+[2026-03-03T02:21:19Z] CRASH #9 — exit code: 1 — will retry
+[2026-03-03T02:53:44Z] CRASH #10 — exit code: 1 — will retry
+[2026-03-03T03:26:09Z] CRASH #11 — exit code: 1 — will retry
+[2026-03-03T03:58:33Z] CRASH #12 — exit code: 1 — will retry
+[2026-03-03T04:31:30Z] CRASH #13 — exit code: 1 — will retry
+[2026-03-03T05:04:24Z] CRASH #14 — exit code: 1 — will retry
+[2026-03-03T05:37:18Z] CRASH #15 — exit code: 1 — will retry
+[2026-03-03T06:09:43Z] CRASH #16 — exit code: 1 — will retry

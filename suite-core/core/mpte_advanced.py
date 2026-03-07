@@ -489,7 +489,7 @@ Respond in JSON format with keys: action, confidence, reasoning, execution_plan 
                     "success_criteria": ["Manual verification required"],
                     "metadata": {
                         "fallback": True,
-                        "error": str(last_error),
+                        "error": type(last_error).__name__ if last_error else "unknown",
                         "retries_attempted": self.config.max_retries,
                     },
                 }
@@ -695,8 +695,8 @@ class ExploitValidationFramework:
             return exploitability, result
 
         except Exception as e:
-            logger.error(f"Exploitability validation failed: {e}")
-            return ExploitabilityLevel.INCONCLUSIVE, {"error": str(e)}
+            logger.error("Exploitability validation failed: %s", type(e).__name__)
+            return ExploitabilityLevel.INCONCLUSIVE, {"error": type(e).__name__}
 
     def _create_test_request(
         self, vulnerability: Dict, context: Dict

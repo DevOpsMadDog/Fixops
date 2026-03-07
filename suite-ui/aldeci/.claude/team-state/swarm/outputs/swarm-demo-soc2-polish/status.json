@@ -1,0 +1,14 @@
+{
+  "task_id": "swarm-demo-soc2-polish",
+  "worker_id": "junior-01",
+  "status": "completed",
+  "files_modified": [
+    "suite-ui/aldeci/src/pages/evidence/SOC2EvidenceUI.tsx"
+  ],
+  "files_created": [],
+  "summary": "Polished SOC2EvidenceUI.tsx for demo readiness: added sonner toast notifications for generate success/failure, added aria-labels and roles to all interactive elements, added htmlFor+id to label/input pairs, and added a fetchError state with a dismissable error banner when fetchPacks fails.",
+  "issues": [],
+  "needs_senior_review": false,
+  "confidence": 0.98,
+  "duration_turns": 6
+}

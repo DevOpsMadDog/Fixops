@@ -243,7 +243,7 @@ export default function CEODashboard() {
   const slaCompliance = remMetrics?.sla_compliance_pct ?? remMetrics?.sla_compliance ?? 0;
   const overdueCount = remMetrics?.overdue_count ?? remMetrics?.overdue ?? 0;
 
-  const riskTrend = riskVelocity?.daily_counts?.map((d: any) => d.count ?? d.value ?? 0) ?? [];
+  const riskTrend = riskVelocity?.daily_counts?.map((d: { count?: number; value?: number }) => d.count ?? d.value ?? 0) ?? [];
 
   // Executive Summary — key takeaway for CEO
   const summaryMessage = useMemo(() => {
@@ -462,7 +462,7 @@ export default function CEODashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(topRisks?.risks || topRisks || []).slice(0, 10).map((r: any, i: number) => (
+                  {(topRisks?.risks || topRisks || []).slice(0, 10).map((r: { id?: string; title?: string; name?: string; severity?: string; cve_id?: string; cve_ids?: string[]; app_id?: string; application?: string; age_days?: number }, i: number) => (
                     <motion.tr key={r.id || i} className="border-b border-gray-800/30"
                       initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
                       <td className="py-2 pr-4 max-w-[300px] truncate">{r.title || r.name || r.id}</td>

@@ -77,9 +77,51 @@
   @apply animate-pulse bg-muted rounded;
 }
 
-/* Focus ring */
+/* Focus ring — utility class */
 .focus-ring {
   @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background;
+}
+
+/* ═══ Global focus-visible styles ═══════════════════════════════════════════
+   Makes keyboard focus visible on ALL interactive elements.
+   Uses :focus-visible so mouse clicks don't show the ring. */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible,
+[role="tab"]:focus-visible,
+[role="menuitem"]:focus-visible,
+[role="checkbox"]:focus-visible,
+[role="radio"]:focus-visible,
+[role="switch"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+
+/* Remove inner focus outline so we don't double-ring */
+button:focus-visible:not(:focus-visible),
+input:focus,
+textarea:focus {
+  outline: none;
+}
+
+/* Ensure inputs use ring instead of outline for consistency with shadcn */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 0px;
+}
+
+/* Skip-to-content link for screen readers */
+.skip-link {
+  @apply sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100]
+    focus:bg-primary focus:text-primary-foreground focus:px-4 focus:py-2 focus:rounded-md
+    focus:shadow-lg focus:text-sm focus:font-medium;
 }
 
 /* Custom animations */

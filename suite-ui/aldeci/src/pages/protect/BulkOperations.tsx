@@ -115,7 +115,7 @@ export default function BulkOperations() {
   });
 
   // Sample findings (would come from API)
-  const findings: Finding[] = (findingsData?.findings || findingsData || []).slice(0, 20).map((f: any, idx: number) => ({
+  const findings: Finding[] = (findingsData?.findings || findingsData || []).slice(0, 20).map((f: { id?: string; cve_id?: string; cve?: string; title?: string; name?: string; severity?: string; status?: string }, idx: number) => ({
     id: f.id || `finding-${idx}`,
     cve: f.cve_id || f.cve,
     title: f.title || f.name || `Finding ${idx + 1}`,

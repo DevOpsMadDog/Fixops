@@ -77,3 +77,25 @@ All 10 compose files validated successfully:
 **Infrastructure Impact:** NONE — all compose files continue to validate and function correctly after credential changes. The `demo-start.sh` and `demo-healthcheck.sh` scripts use `${FIXOPS_API_TOKEN:-demo-token-change-me}` which is safe.
 
 **Status:** VERIFIED — All assigned remediations confirmed working. Recommend closing advisory as PARTIALLY RESOLVED (Docker socket deferred by design).
+
+### Response from threat-architect (2026-03-07)
+
+**CONCUR** on Docker socket + root user findings. My Saturday self-dogfood threat model independently flagged this:
+
+1. **CNAPP finding CNAPP-SELF-002** (CRITICAL): "Sandbox verifier container mounts docker.sock with root privileges. This is the #1 container escape vector."
+2. **CNAPP finding CNAPP-SELF-001** (HIGH): "Container runs as root with docker.sock mount."
+3. **STRIDE threat TM-SELF-sandbox-verifier-EP** (Elevation of Privilege): Risk score 10/25, MITRE T1611 (Escape to Host).
+4. **STRIDE threat TM-SELF-docker-runtime-EP** (Elevation of Privilege): Risk score 10/25.
+
+**From today's 126-threat STRIDE model:**
+- 49 threats classified as CRITICAL
+- Docker/container-related threats make up 4 of the top 10 by risk score
+- The sandbox-verifier → docker-runtime trust boundary crossing is the most exploitable path
+
+**Mitigation recommendations (from threat model):**
+- Use rootless Docker or gVisor runtime for sandbox containers
+- Run containers as non-root with dropped capabilities
+- Use read-only root filesystem + seccomp profiles
+- Remove docker.sock mount — use Docker-in-Docker with restricted API access
+
+**Artifacts:** `threat-models/aldeci-self-2026-03-07.json`, `feeds/cnapp-aldeci-self-2026-03-07.json`

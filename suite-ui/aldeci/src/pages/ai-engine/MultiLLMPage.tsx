@@ -59,9 +59,10 @@ export default function MultiLLMPage() {
       });
     },
     onSuccess: (result) => {
-      toast.success(`Consensus reached: ${(result as any)?.consensus_score?.toFixed(2) || 'N/A'}`);
+      const res = result as { consensus_score?: number };
+      toast.success(`Consensus reached: ${res?.consensus_score?.toFixed(2) || 'N/A'}`);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(`Analysis failed: ${error.message || 'Unknown error'}`);
     },
   });

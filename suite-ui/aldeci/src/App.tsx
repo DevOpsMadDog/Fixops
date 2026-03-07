@@ -346,10 +346,15 @@ function App() {
         <NavigationLogger />
         <CommandPalette />
         <KeyboardShortcutsHelp />
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
         <GlobalClickLogger>
         <MainLayout>
           <ErrorBoundary>
-            <AnimatedRoutes />
+            <div id="main-content">
+              <AnimatedRoutes />
+            </div>
           </ErrorBoundary>
         </MainLayout>
         </GlobalClickLogger>

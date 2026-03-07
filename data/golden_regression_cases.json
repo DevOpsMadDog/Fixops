@@ -1,21 +1,21 @@
 {
   "_meta": {
     "description": "Golden regression dataset for ALdeci ML model validation",
-    "version": "3.1.0",
+    "version": "3.2.1",
     "created": "2026-02-27",
     "maintained_by": "data-scientist",
     "pillar": "V3 (Decision Intelligence)",
-    "total_cases": 85,
+    "total_cases": 93,
     "categories": {
-      "critical_exploitable": 18,
-      "high_severity": 17,
-      "medium_severity": 14,
+      "critical_exploitable": 20,
+      "high_severity": 20,
+      "medium_severity": 15,
       "low_noise": 11,
-      "edge_cases": 10,
-      "false_positives": 8,
-      "chain_exploits": 7
+      "false_positives": 9,
+      "chain_exploits": 7,
+      "edge_cases": 11
     },
-    "updated": "2026-03-03"
+    "updated": "2026-03-07"
   },
   "cases": [
     {
@@ -24,7 +24,7 @@
       "cve_id": "CVE-2021-44228",
       "title": "Log4Shell - Apache Log4j Remote Code Execution",
       "cvss_score": 10.0,
-      "epss_score": 0.97565,
+      "epss_score": 0.94358,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-502",
@@ -36,7 +36,8 @@
       "expected_risk_score_min": 92,
       "expected_risk_score_max": 100,
       "expected_priority": "P0",
-      "notes": "Most exploited vulnerability in 2021-2022. Full RCE via JNDI lookup. Must be top priority."
+      "notes": "Most exploited vulnerability in 2021-2022. Full RCE via JNDI lookup. Must be top priority.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-002",
@@ -44,7 +45,7 @@
       "cve_id": "CVE-2023-44487",
       "title": "HTTP/2 Rapid Reset Attack (DoS)",
       "cvss_score": 7.5,
-      "epss_score": 0.72,
+      "epss_score": 0.94399,
       "in_kev": true,
       "severity": "high",
       "cwe_id": "CWE-400",
@@ -56,7 +57,8 @@
       "expected_risk_score_min": 82,
       "expected_risk_score_max": 95,
       "expected_priority": "P0",
-      "notes": "Mass-exploited HTTP/2 DoS. High EPSS, in KEV. Affects most web servers."
+      "notes": "Mass-exploited HTTP/2 DoS. High EPSS, in KEV. Affects most web servers.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-003",
@@ -64,7 +66,7 @@
       "cve_id": "CVE-2024-3094",
       "title": "XZ Utils Backdoor (Supply Chain)",
       "cvss_score": 10.0,
-      "epss_score": 0.56,
+      "epss_score": 0.85252,
       "in_kev": false,
       "severity": "critical",
       "cwe_id": "CWE-506",
@@ -76,7 +78,8 @@
       "expected_risk_score_min": 88,
       "expected_risk_score_max": 98,
       "expected_priority": "P0",
-      "notes": "Supply chain backdoor in xz-utils 5.6.0/5.6.1. Affects sshd authentication bypass."
+      "notes": "Supply chain backdoor in xz-utils 5.6.0/5.6.1. Affects sshd authentication bypass.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-004",
@@ -104,7 +107,7 @@
       "cve_id": "CVE-2021-26855",
       "title": "Microsoft Exchange Server SSRF (ProxyLogon)",
       "cvss_score": 9.8,
-      "epss_score": 0.97,
+      "epss_score": 0.94318,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-918",
@@ -116,7 +119,8 @@
       "expected_risk_score_min": 95,
       "expected_risk_score_max": 100,
       "expected_priority": "P0",
-      "notes": "ProxyLogon: HAFNIUM APT. Pre-auth SSRF chain to RCE."
+      "notes": "ProxyLogon: HAFNIUM APT. Pre-auth SSRF chain to RCE.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-006",
@@ -124,7 +128,7 @@
       "cve_id": "CVE-2023-22515",
       "title": "Atlassian Confluence Broken Access Control",
       "cvss_score": 10.0,
-      "epss_score": 0.96,
+      "epss_score": 0.94326,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-284",
@@ -136,7 +140,8 @@
       "expected_risk_score_min": 90,
       "expected_risk_score_max": 100,
       "expected_priority": "P0",
-      "notes": "Unauthenticated admin account creation. Nation-state exploitation."
+      "notes": "Unauthenticated admin account creation. Nation-state exploitation.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-007",
@@ -164,7 +169,7 @@
       "cve_id": "CVE-2023-4966",
       "title": "Citrix NetScaler/ADC Buffer Overflow (Citrix Bleed)",
       "cvss_score": 9.4,
-      "epss_score": 0.96,
+      "epss_score": 0.94348,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-119",
@@ -176,7 +181,8 @@
       "expected_risk_score_min": 93,
       "expected_risk_score_max": 100,
       "expected_priority": "P0",
-      "notes": "Session token leak. LockBit ransomware exploitation. Citrix Bleed."
+      "notes": "Session token leak. LockBit ransomware exploitation. Citrix Bleed.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-009",
@@ -184,7 +190,7 @@
       "cve_id": "CVE-2021-21972",
       "title": "VMware vCenter Server RCE",
       "cvss_score": 9.8,
-      "epss_score": 0.97,
+      "epss_score": 0.93821,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-22",
@@ -196,7 +202,8 @@
       "expected_risk_score_min": 95,
       "expected_risk_score_max": 100,
       "expected_priority": "P0",
-      "notes": "File upload leading to RCE. vSphere Client unauthenticated."
+      "notes": "File upload leading to RCE. vSphere Client unauthenticated.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-010",
@@ -204,7 +211,7 @@
       "cve_id": "CVE-2024-4577",
       "title": "PHP CGI Argument Injection",
       "cvss_score": 9.8,
-      "epss_score": 0.93,
+      "epss_score": 0.94374,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-78",
@@ -216,7 +223,8 @@
       "expected_risk_score_min": 88,
       "expected_risk_score_max": 98,
       "expected_priority": "P0",
-      "notes": "PHP-CGI argument injection. CVE-2012-1823 bypass on Windows."
+      "notes": "PHP-CGI argument injection. CVE-2012-1823 bypass on Windows.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-011",
@@ -224,7 +232,7 @@
       "cve_id": "CVE-2023-0669",
       "title": "GoAnywhere MFT Pre-Auth RCE",
       "cvss_score": 7.2,
-      "epss_score": 0.96,
+      "epss_score": 0.94378,
       "in_kev": true,
       "severity": "high",
       "cwe_id": "CWE-502",
@@ -236,7 +244,8 @@
       "expected_risk_score_min": 85,
       "expected_risk_score_max": 95,
       "expected_priority": "P0",
-      "notes": "Cl0p ransomware mass exploitation. Java deserialization via admin console."
+      "notes": "Cl0p ransomware mass exploitation. Java deserialization via admin console.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-012",
@@ -244,7 +253,7 @@
       "cve_id": "CVE-2024-47575",
       "title": "FortiManager Missing Authentication",
       "cvss_score": 9.8,
-      "epss_score": 0.91,
+      "epss_score": 0.93846,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-306",
@@ -256,7 +265,8 @@
       "expected_risk_score_min": 93,
       "expected_risk_score_max": 100,
       "expected_priority": "P0",
-      "notes": "FortiJump: Missing auth on FGFM protocol. UNC5820 APT exploitation."
+      "notes": "FortiJump: Missing auth on FGFM protocol. UNC5820 APT exploitation.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-013",
@@ -264,7 +274,7 @@
       "cve_id": "CVE-2024-6387",
       "title": "OpenSSH regreSSHion Race Condition",
       "cvss_score": 8.1,
-      "epss_score": 0.3,
+      "epss_score": 0.34998,
       "in_kev": false,
       "severity": "high",
       "cwe_id": "CWE-362",
@@ -276,7 +286,8 @@
       "expected_risk_score_min": 60,
       "expected_risk_score_max": 78,
       "expected_priority": "P1",
-      "notes": "Signal handler race condition in OpenSSH. PoC exists but exploitation is complex."
+      "notes": "Signal handler race condition in OpenSSH. PoC exists but exploitation is complex.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-014",
@@ -284,7 +295,7 @@
       "cve_id": "CVE-2023-38545",
       "title": "curl SOCKS5 Heap Buffer Overflow",
       "cvss_score": 9.8,
-      "epss_score": 0.15,
+      "epss_score": 0.2625,
       "in_kev": false,
       "severity": "critical",
       "cwe_id": "CWE-787",
@@ -296,7 +307,8 @@
       "expected_risk_score_min": 45,
       "expected_risk_score_max": 65,
       "expected_priority": "P2",
-      "notes": "SOCKS5 proxy heap overflow in curl. High CVSS but low EPSS, requires SOCKS5 proxy, not reachable."
+      "notes": "SOCKS5 proxy heap overflow in curl. High CVSS but low EPSS, requires SOCKS5 proxy, not reachable.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-015",
@@ -304,7 +316,7 @@
       "cve_id": "CVE-2023-36884",
       "title": "Microsoft Office RCE via HTML",
       "cvss_score": 8.8,
-      "epss_score": 0.47,
+      "epss_score": 0.9322,
       "in_kev": true,
       "severity": "high",
       "cwe_id": "CWE-94",
@@ -316,7 +328,8 @@
       "expected_risk_score_min": 65,
       "expected_risk_score_max": 80,
       "expected_priority": "P1",
-      "notes": "Storm-0978 APT exploitation. Office HTML RCE but internal network reduces exposure."
+      "notes": "Storm-0978 APT exploitation. Office HTML RCE but internal network reduces exposure.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-016",
@@ -324,7 +337,7 @@
       "cve_id": "CVE-2023-20198",
       "title": "Cisco IOS XE Web UI Privilege Escalation",
       "cvss_score": 10.0,
-      "epss_score": 0.92,
+      "epss_score": 0.94013,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-420",
@@ -336,7 +349,8 @@
       "expected_risk_score_min": 93,
       "expected_risk_score_max": 100,
       "expected_priority": "P0",
-      "notes": "~50K+ devices compromised. Unauthenticated admin account creation."
+      "notes": "~50K+ devices compromised. Unauthenticated admin account creation.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-017",
@@ -344,7 +358,7 @@
       "cve_id": "CVE-2023-2868",
       "title": "Barracuda ESG Command Injection",
       "cvss_score": 9.4,
-      "epss_score": 0.44,
+      "epss_score": 0.89519,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-78",
@@ -356,7 +370,8 @@
       "expected_risk_score_min": 80,
       "expected_risk_score_max": 93,
       "expected_priority": "P0",
-      "notes": "UNC4841 APT exploitation. Tar file parsing command injection."
+      "notes": "UNC4841 APT exploitation. Tar file parsing command injection.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-018",
@@ -364,7 +379,7 @@
       "cve_id": "CVE-2024-23897",
       "title": "Jenkins CLI Path Traversal RCE",
       "cvss_score": 9.8,
-      "epss_score": 0.87,
+      "epss_score": 0.94466,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-22",
@@ -376,7 +391,8 @@
       "expected_risk_score_min": 78,
       "expected_risk_score_max": 90,
       "expected_priority": "P0",
-      "notes": "Jenkins CLI arbitrary file read \u2192 RCE. Usually internal but high-value CI/CD target."
+      "notes": "Jenkins CLI arbitrary file read \u2192 RCE. Usually internal but high-value CI/CD target.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-019",
@@ -384,7 +400,7 @@
       "cve_id": "CVE-2025-21298",
       "title": "Windows OLE RCE via Outlook",
       "cvss_score": 9.8,
-      "epss_score": 0.35,
+      "epss_score": 0.70775,
       "in_kev": false,
       "severity": "critical",
       "cwe_id": "CWE-416",
@@ -396,7 +412,8 @@
       "expected_risk_score_min": 55,
       "expected_risk_score_max": 72,
       "expected_priority": "P1",
-      "notes": "Preview pane RCE in Outlook. High CVSS but PoC only, internal assets."
+      "notes": "Preview pane RCE in Outlook. High CVSS but PoC only, internal assets.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-020",
@@ -404,7 +421,7 @@
       "cve_id": "CVE-2024-0204",
       "title": "GoAnywhere MFT Auth Bypass",
       "cvss_score": 9.8,
-      "epss_score": 0.84,
+      "epss_score": 0.93048,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-425",
@@ -416,7 +433,8 @@
       "expected_risk_score_min": 88,
       "expected_risk_score_max": 98,
       "expected_priority": "P0",
-      "notes": "Path traversal authentication bypass to create admin user."
+      "notes": "Path traversal authentication bypass to create admin user.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-021",
@@ -424,7 +442,7 @@
       "cve_id": "CVE-2023-27997",
       "title": "Fortinet FortiOS SSL-VPN Heap Overflow",
       "cvss_score": 9.8,
-      "epss_score": 0.93,
+      "epss_score": 0.89551,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-787",
@@ -436,7 +454,8 @@
       "expected_risk_score_min": 93,
       "expected_risk_score_max": 100,
       "expected_priority": "P0",
-      "notes": "Pre-auth RCE in FortiOS SSL-VPN. Volt Typhoon APT exploitation."
+      "notes": "Pre-auth RCE in FortiOS SSL-VPN. Volt Typhoon APT exploitation.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-022",
@@ -464,7 +483,7 @@
       "cve_id": "CVE-2023-35078",
       "title": "Ivanti Endpoint Manager Mobile Auth Bypass",
       "cvss_score": 7.8,
-      "epss_score": 0.21,
+      "epss_score": 0.94468,
       "in_kev": true,
       "severity": "high",
       "cwe_id": "CWE-287",
@@ -476,7 +495,8 @@
       "expected_risk_score_min": 50,
       "expected_risk_score_max": 68,
       "expected_priority": "P1",
-      "notes": "Mobile device management bypass. Internal MDM, moderate criticality."
+      "notes": "Mobile device management bypass. Internal MDM, moderate criticality.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-024",
@@ -484,7 +504,7 @@
       "cve_id": "CVE-2023-44487",
       "title": "HTTP/2 Rapid Reset (Internal Load Balancer)",
       "cvss_score": 7.5,
-      "epss_score": 0.72,
+      "epss_score": 0.94399,
       "in_kev": true,
       "severity": "high",
       "cwe_id": "CWE-400",
@@ -496,7 +516,8 @@
       "expected_risk_score_min": 30,
       "expected_risk_score_max": 50,
       "expected_priority": "P2",
-      "notes": "Same CVE as GR-002 but on internal non-reachable LB. Context reduces priority."
+      "notes": "Same CVE as GR-002 but on internal non-reachable LB. Context reduces priority.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-025",
@@ -504,7 +525,7 @@
       "cve_id": "CVE-2022-22965",
       "title": "Spring4Shell (Internal Microservice)",
       "cvss_score": 9.8,
-      "epss_score": 0.97,
+      "epss_score": 0.94428,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-94",
@@ -516,7 +537,8 @@
       "expected_risk_score_min": 25,
       "expected_risk_score_max": 45,
       "expected_priority": "P2",
-      "notes": "Critical CVE but on low-criticality internal service, not reachable. Context should reduce priority massively."
+      "notes": "Critical CVE but on low-criticality internal service, not reachable. Context should reduce priority massively.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-026",
@@ -524,7 +546,7 @@
       "cve_id": "CVE-2023-32315",
       "title": "Openfire Path Traversal Auth Bypass",
       "cvss_score": 7.5,
-      "epss_score": 0.62,
+      "epss_score": 0.94441,
       "in_kev": true,
       "severity": "high",
       "cwe_id": "CWE-22",
@@ -536,7 +558,8 @@
       "expected_risk_score_min": 55,
       "expected_risk_score_max": 72,
       "expected_priority": "P1",
-      "notes": "XMPP chat server auth bypass. Partner network, moderate asset."
+      "notes": "XMPP chat server auth bypass. Partner network, moderate asset.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-027",
@@ -544,7 +567,7 @@
       "cve_id": "CVE-2023-25690",
       "title": "Apache HTTP Server Request Smuggling",
       "cvss_score": 9.8,
-      "epss_score": 0.09,
+      "epss_score": 0.67037,
       "in_kev": false,
       "severity": "critical",
       "cwe_id": "CWE-444",
@@ -556,7 +579,8 @@
       "expected_risk_score_min": 40,
       "expected_risk_score_max": 60,
       "expected_priority": "P2",
-      "notes": "High CVSS but very low EPSS, no exploit, no KEV. Theoretical risk."
+      "notes": "High CVSS but very low EPSS, no exploit, no KEV. Theoretical risk.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-028",
@@ -564,7 +588,7 @@
       "cve_id": "CVE-2024-21762",
       "title": "Fortinet FortiOS Out-of-bound Write",
       "cvss_score": 9.8,
-      "epss_score": 0.86,
+      "epss_score": 0.92938,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-787",
@@ -576,7 +600,8 @@
       "expected_risk_score_min": 65,
       "expected_risk_score_max": 82,
       "expected_priority": "P1",
-      "notes": "Critical FortiOS vuln but on partner-network-only asset with moderate criticality."
+      "notes": "Critical FortiOS vuln but on partner-network-only asset with moderate criticality.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-029",
@@ -584,7 +609,7 @@
       "cve_id": "CVE-2023-46747",
       "title": "F5 BIG-IP Configuration Utility Auth Bypass",
       "cvss_score": 9.8,
-      "epss_score": 0.57,
+      "epss_score": 0.94436,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-306",
@@ -596,7 +621,8 @@
       "expected_risk_score_min": 68,
       "expected_risk_score_max": 85,
       "expected_priority": "P1",
-      "notes": "BIG-IP TMUI auth bypass. High-value but internal only."
+      "notes": "BIG-IP TMUI auth bypass. High-value but internal only.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-030",
@@ -604,7 +630,7 @@
       "cve_id": "CVE-2023-42793",
       "title": "JetBrains TeamCity Auth Bypass",
       "cvss_score": 9.8,
-      "epss_score": 0.91,
+      "epss_score": 0.92913,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-288",
@@ -616,7 +642,8 @@
       "expected_risk_score_min": 75,
       "expected_risk_score_max": 88,
       "expected_priority": "P1",
-      "notes": "CI/CD server auth bypass. Cozy Bear APT. High-value but internal."
+      "notes": "CI/CD server auth bypass. Cozy Bear APT. High-value but internal.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-031",
@@ -624,7 +651,7 @@
       "cve_id": "CVE-2023-45853",
       "title": "zlib Integer Overflow (MiniZip)",
       "cvss_score": 9.8,
-      "epss_score": 0.003,
+      "epss_score": 0.01396,
       "in_kev": false,
       "severity": "critical",
       "cwe_id": "CWE-190",
@@ -636,7 +663,8 @@
       "expected_risk_score_min": 5,
       "expected_risk_score_max": 20,
       "expected_priority": "P3",
-      "notes": "CVSS 9.8 but EPSS 0.003. No exploit, not reachable, low-value asset. Classic false-alarm."
+      "notes": "CVSS 9.8 but EPSS 0.003. No exploit, not reachable, low-value asset. Classic false-alarm.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-032",
@@ -704,7 +732,7 @@
       "cve_id": "CVE-2023-24329",
       "title": "Python urllib URL Parsing Issue",
       "cvss_score": 7.5,
-      "epss_score": 0.005,
+      "epss_score": 0.0159,
       "in_kev": false,
       "severity": "high",
       "cwe_id": "CWE-20",
@@ -716,7 +744,8 @@
       "expected_risk_score_min": 10,
       "expected_risk_score_max": 25,
       "expected_priority": "P3",
-      "notes": "URL parsing issue in Python stdlib. Very low EPSS. Impact depends heavily on application."
+      "notes": "URL parsing issue in Python stdlib. Very low EPSS. Impact depends heavily on application.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-036",
@@ -724,7 +753,7 @@
       "cve_id": "CVE-2022-29155",
       "title": "OpenLDAP SQL Injection (component not present)",
       "cvss_score": 9.8,
-      "epss_score": 0.04,
+      "epss_score": 0.1885,
       "in_kev": false,
       "severity": "critical",
       "cwe_id": "CWE-89",
@@ -736,7 +765,8 @@
       "expected_risk_score_min": 0,
       "expected_risk_score_max": 5,
       "expected_priority": "FP",
-      "notes": "Scanner false positive \u2014 affected component not actually present. Asset criticality 0."
+      "notes": "Scanner false positive \u2014 affected component not actually present. Asset criticality 0.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-037",
@@ -744,7 +774,7 @@
       "cve_id": "CVE-2023-36665",
       "title": "Protobuf.js Prototype Pollution (patched version)",
       "cvss_score": 9.8,
-      "epss_score": 0.65,
+      "epss_score": 0.01673,
       "in_kev": false,
       "severity": "critical",
       "cwe_id": "CWE-1321",
@@ -756,7 +786,8 @@
       "expected_risk_score_min": 0,
       "expected_risk_score_max": 5,
       "expected_priority": "FP",
-      "notes": "Already patched. Scanner detected old metadata. Asset criticality 0 for patched."
+      "notes": "Already patched. Scanner detected old metadata. Asset criticality 0 for patched.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-038",
@@ -764,7 +795,7 @@
       "cve_id": "CVE-2021-3449",
       "title": "OpenSSL NULL Pointer DoS (mitigated by WAF)",
       "cvss_score": 5.9,
-      "epss_score": 0.02,
+      "epss_score": 0.09576,
       "in_kev": false,
       "severity": "medium",
       "cwe_id": "CWE-476",
@@ -776,7 +807,8 @@
       "expected_risk_score_min": 0,
       "expected_risk_score_max": 5,
       "expected_priority": "FP",
-      "notes": "Already mitigated by WAF rule. Not reachable after mitigation. Criticality 0."
+      "notes": "Already mitigated by WAF rule. Not reachable after mitigation. Criticality 0.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-039",
@@ -804,7 +836,7 @@
       "cve_id": "CVE-2023-35945",
       "title": "Envoy HTTP/2 Header Flood (not deployed)",
       "cvss_score": 7.5,
-      "epss_score": 0.03,
+      "epss_score": 0.00125,
       "in_kev": false,
       "severity": "high",
       "cwe_id": "CWE-400",
@@ -816,7 +848,8 @@
       "expected_risk_score_min": 0,
       "expected_risk_score_max": 5,
       "expected_priority": "FP",
-      "notes": "Envoy not deployed in this environment. Scanner detected in dependency tree only."
+      "notes": "Envoy not deployed in this environment. Scanner detected in dependency tree only.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-041",
@@ -824,7 +857,7 @@
       "cve_id": "CVE-2024-21893",
       "title": "Ivanti SSRF + CVE-2024-21887 Command Injection Chain",
       "cvss_score": 8.2,
-      "epss_score": 0.89,
+      "epss_score": 0.94319,
       "in_kev": true,
       "severity": "high",
       "cwe_id": "CWE-918",
@@ -839,7 +872,8 @@
       "expected_risk_score_min": 90,
       "expected_risk_score_max": 100,
       "expected_priority": "P0",
-      "notes": "SSRF chained with command injection for full RCE. Chain exploit increases risk beyond individual CVE."
+      "notes": "SSRF chained with command injection for full RCE. Chain exploit increases risk beyond individual CVE.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-042",
@@ -847,7 +881,7 @@
       "cve_id": "CVE-2021-26857",
       "title": "Exchange SSRF \u2192 Deserialization Chain (ProxyLogon p2)",
       "cvss_score": 7.8,
-      "epss_score": 0.9,
+      "epss_score": 0.43688,
       "in_kev": true,
       "severity": "high",
       "cwe_id": "CWE-502",
@@ -864,7 +898,8 @@
       "expected_risk_score_min": 92,
       "expected_risk_score_max": 100,
       "expected_priority": "P0",
-      "notes": "Part of ProxyLogon chain. Individual CVSS 7.8 but chain enables full compromise."
+      "notes": "Part of ProxyLogon chain. Individual CVSS 7.8 but chain enables full compromise.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-043",
@@ -872,7 +907,7 @@
       "cve_id": "CVE-2021-34473",
       "title": "Exchange ProxyShell SSRF \u2192 Escalation \u2192 RCE",
       "cvss_score": 9.8,
-      "epss_score": 0.97,
+      "epss_score": 0.9423,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-918",
@@ -888,7 +923,8 @@
       "expected_risk_score_min": 95,
       "expected_risk_score_max": 100,
       "expected_priority": "P0",
-      "notes": "ProxyShell: 3-CVE chain for unauthenticated RCE. Massively exploited."
+      "notes": "ProxyShell: 3-CVE chain for unauthenticated RCE. Massively exploited.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-044",
@@ -896,7 +932,7 @@
       "cve_id": "CVE-2023-46805",
       "title": "Ivanti Connect Secure Auth Bypass \u2192 RCE Chain",
       "cvss_score": 8.2,
-      "epss_score": 0.92,
+      "epss_score": 0.94367,
       "in_kev": true,
       "severity": "high",
       "cwe_id": "CWE-287",
@@ -911,7 +947,8 @@
       "expected_risk_score_min": 90,
       "expected_risk_score_max": 100,
       "expected_priority": "P0",
-      "notes": "Auth bypass \u2192 command injection chain. UNC5221 APT exploitation."
+      "notes": "Auth bypass \u2192 command injection chain. UNC5221 APT exploitation.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-045",
@@ -919,7 +956,7 @@
       "cve_id": "CVE-2023-26360",
       "title": "Adobe ColdFusion Deserialization \u2192 Path Traversal Chain",
       "cvss_score": 9.8,
-      "epss_score": 0.74,
+      "epss_score": 0.9433,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-502",
@@ -934,7 +971,8 @@
       "expected_risk_score_min": 78,
       "expected_risk_score_max": 92,
       "expected_priority": "P0",
-      "notes": "Deserialization chained with path traversal for ACL bypass. Actively exploited."
+      "notes": "Deserialization chained with path traversal for ACL bypass. Actively exploited.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-046",
@@ -942,7 +980,7 @@
       "cve_id": "CVE-2023-36845",
       "title": "Juniper Junos OS PHP Injection (Time-Based Blind)",
       "cvss_score": 9.8,
-      "epss_score": 0.43,
+      "epss_score": 0.94355,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-94",
@@ -954,7 +992,8 @@
       "expected_risk_score_min": 82,
       "expected_risk_score_max": 95,
       "expected_priority": "P0",
-      "notes": "Edge case: Time-based blind exploitation. MPTE verification needs specialized detection."
+      "notes": "Edge case: Time-based blind exploitation. MPTE verification needs specialized detection.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-047",
@@ -962,7 +1001,7 @@
       "cve_id": "CVE-2023-22518",
       "title": "Confluence Improper Authorization (Delayed Exploitation)",
       "cvss_score": 9.8,
-      "epss_score": 0.46,
+      "epss_score": 0.94375,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-863",
@@ -974,7 +1013,8 @@
       "expected_risk_score_min": 78,
       "expected_risk_score_max": 93,
       "expected_priority": "P0",
-      "notes": "Edge case: Exploitation started weeks after CVE publication. Delayed weaponization."
+      "notes": "Edge case: Exploitation started weeks after CVE publication. Delayed weaponization.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-048",
@@ -982,7 +1022,7 @@
       "cve_id": "CVE-2023-20593",
       "title": "AMD Zen 2 Zenbleed CPU Side-Channel",
       "cvss_score": 6.5,
-      "epss_score": 0.12,
+      "epss_score": 0.06482,
       "in_kev": false,
       "severity": "medium",
       "cwe_id": "CWE-200",
@@ -994,7 +1034,8 @@
       "expected_risk_score_min": 30,
       "expected_risk_score_max": 50,
       "expected_priority": "P2",
-      "notes": "Edge case: Hardware CPU vuln. Requires local code execution. Unusual attack vector."
+      "notes": "Edge case: Hardware CPU vuln. Requires local code execution. Unusual attack vector.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-049",
@@ -1002,7 +1043,7 @@
       "cve_id": "CVE-2023-38408",
       "title": "OpenSSH Agent Forwarding RCE",
       "cvss_score": 9.8,
-      "epss_score": 0.06,
+      "epss_score": 0.66852,
       "in_kev": false,
       "severity": "critical",
       "cwe_id": "CWE-426",
@@ -1014,7 +1055,8 @@
       "expected_risk_score_min": 35,
       "expected_risk_score_max": 55,
       "expected_priority": "P2",
-      "notes": "Edge case: Requires ssh-agent forwarding to be enabled AND a malicious server. Complex preconditions."
+      "notes": "Edge case: Requires ssh-agent forwarding to be enabled AND a malicious server. Complex preconditions.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-050",
@@ -1022,7 +1064,7 @@
       "cve_id": "CVE-2024-3400",
       "title": "Palo Alto PAN-OS GlobalProtect Command Injection",
       "cvss_score": 10.0,
-      "epss_score": 0.96,
+      "epss_score": 0.94297,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-77",
@@ -1034,7 +1076,8 @@
       "expected_risk_score_min": 95,
       "expected_risk_score_max": 100,
       "expected_priority": "P0",
-      "notes": "Edge case: Zero-day in network security appliance. UTA0218 APT. Critical because it's the security boundary itself."
+      "notes": "Edge case: Zero-day in network security appliance. UTA0218 APT. Critical because it's the security boundary itself.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-051",
@@ -1042,7 +1085,7 @@
       "cve_id": "CVE-2024-3094",
       "title": "XZ Utils Backdoor (Supply Chain Attack)",
       "cvss_score": 10.0,
-      "epss_score": 0.93,
+      "epss_score": 0.85252,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-506",
@@ -1054,7 +1097,8 @@
       "expected_risk_score_min": 95,
       "expected_risk_score_max": 100,
       "expected_priority": "P0",
-      "notes": "Supply chain backdoor in xz/liblzma 5.6.0/5.6.1. Sophisticated nation-state attack. Must be P0."
+      "notes": "Supply chain backdoor in xz/liblzma 5.6.0/5.6.1. Sophisticated nation-state attack. Must be P0.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-052",
@@ -1062,7 +1106,7 @@
       "cve_id": "CVE-2024-21762",
       "title": "Fortinet FortiOS Out-of-Bounds Write RCE",
       "cvss_score": 9.8,
-      "epss_score": 0.91,
+      "epss_score": 0.92938,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-787",
@@ -1074,7 +1118,8 @@
       "expected_risk_score_min": 92,
       "expected_risk_score_max": 100,
       "expected_priority": "P0",
-      "notes": "Mass-exploited Fortinet VPN RCE. In CISA KEV. Critical for perimeter devices."
+      "notes": "Mass-exploited Fortinet VPN RCE. In CISA KEV. Critical for perimeter devices.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-053",
@@ -1082,7 +1127,7 @@
       "cve_id": "CVE-2024-47575",
       "title": "FortiManager Missing Authentication (FortiJump)",
       "cvss_score": 9.8,
-      "epss_score": 0.88,
+      "epss_score": 0.93846,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-306",
@@ -1094,7 +1139,8 @@
       "expected_risk_score_min": 90,
       "expected_risk_score_max": 100,
       "expected_priority": "P0",
-      "notes": "FortiJump \u2014 mass exploitation since Oct 2024. CISA KEV, UNC5820 threat group."
+      "notes": "FortiJump \u2014 mass exploitation since Oct 2024. CISA KEV, UNC5820 threat group.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-054",
@@ -1102,7 +1148,7 @@
       "cve_id": "CVE-2024-4577",
       "title": "PHP CGI Argument Injection (Windows)",
       "cvss_score": 9.8,
-      "epss_score": 0.82,
+      "epss_score": 0.94374,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-78",
@@ -1114,7 +1160,8 @@
       "expected_risk_score_min": 85,
       "expected_risk_score_max": 98,
       "expected_priority": "P0",
-      "notes": "PHP-CGI argument injection on Windows. Widely exploited in 2024."
+      "notes": "PHP-CGI argument injection on Windows. Widely exploited in 2024.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-055",
@@ -1122,7 +1169,7 @@
       "cve_id": "CVE-2024-23897",
       "title": "Jenkins Arbitrary File Read via CLI",
       "cvss_score": 9.8,
-      "epss_score": 0.74,
+      "epss_score": 0.94466,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-22",
@@ -1134,7 +1181,8 @@
       "expected_risk_score_min": 80,
       "expected_risk_score_max": 95,
       "expected_priority": "P0",
-      "notes": "Jenkins CLI arbitrary file read. Internal but critical CI/CD asset."
+      "notes": "Jenkins CLI arbitrary file read. Internal but critical CI/CD asset.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-056",
@@ -1162,7 +1210,7 @@
       "cve_id": "CVE-2024-28085",
       "title": "util-linux wall Command Injection (WallEscape)",
       "cvss_score": 6.5,
-      "epss_score": 0.08,
+      "epss_score": 0.10449,
       "in_kev": false,
       "severity": "medium",
       "cwe_id": "CWE-78",
@@ -1174,7 +1222,8 @@
       "expected_risk_score_min": 30,
       "expected_risk_score_max": 55,
       "expected_priority": "P2",
-      "notes": "WallEscape \u2014 local exploitation only. Medium severity, internal asset."
+      "notes": "WallEscape \u2014 local exploitation only. Medium severity, internal asset.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-058",
@@ -1182,7 +1231,7 @@
       "cve_id": "CVE-2025-21298",
       "title": "Windows OLE RCE via Outlook Preview",
       "cvss_score": 9.8,
-      "epss_score": 0.15,
+      "epss_score": 0.70775,
       "in_kev": false,
       "severity": "critical",
       "cwe_id": "CWE-416",
@@ -1194,7 +1243,8 @@
       "expected_risk_score_min": 45,
       "expected_risk_score_max": 70,
       "expected_priority": "P1",
-      "notes": "High CVSS but no confirmed exploit. Internal asset. EPSS relatively low."
+      "notes": "High CVSS but no confirmed exploit. Internal asset. EPSS relatively low.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-059",
@@ -1202,7 +1252,7 @@
       "cve_id": "CVE-2024-12356",
       "title": "BeyondTrust PRA/RS Command Injection",
       "cvss_score": 9.8,
-      "epss_score": 0.9,
+      "epss_score": 0.93673,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-77",
@@ -1214,7 +1264,8 @@
       "expected_risk_score_min": 40,
       "expected_risk_score_max": 65,
       "expected_priority": "P2",
-      "notes": "Critical CVE but low asset criticality and not reachable. Should deprioritize."
+      "notes": "Critical CVE but low asset criticality and not reachable. Should deprioritize.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-060",
@@ -1267,7 +1318,7 @@
       "cve_id": "CVE-2024-0012",
       "title": "Palo Alto PAN-OS Auth Bypass + Privilege Escalation Chain",
       "cvss_score": 9.3,
-      "epss_score": 0.89,
+      "epss_score": 0.94285,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-287",
@@ -1284,7 +1335,8 @@
       "expected_risk_score_min": 92,
       "expected_risk_score_max": 100,
       "expected_priority": "P0",
-      "notes": "PAN-OS operation LUNAR PEEK \u2014 auth bypass + priv escalation chain."
+      "notes": "PAN-OS operation LUNAR PEEK \u2014 auth bypass + priv escalation chain.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-063",
@@ -1292,7 +1344,7 @@
       "cve_id": "CVE-2024-1709",
       "title": "ConnectWise ScreenConnect Authentication Bypass",
       "cvss_score": 10.0,
-      "epss_score": 0.96,
+      "epss_score": 0.94322,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-288",
@@ -1304,7 +1356,8 @@
       "expected_risk_score_min": 75,
       "expected_risk_score_max": 95,
       "expected_priority": "P0",
-      "notes": "ScreenConnect auth bypass. CVSS 10 but partner-network asset (lower criticality)."
+      "notes": "ScreenConnect auth bypass. CVSS 10 but partner-network asset (lower criticality).",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-064",
@@ -1312,7 +1365,7 @@
       "cve_id": "CVE-2025-0282",
       "title": "Ivanti Connect Secure Stack Buffer Overflow",
       "cvss_score": 9.0,
-      "epss_score": 0.92,
+      "epss_score": 0.94134,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-121",
@@ -1324,7 +1377,8 @@
       "expected_risk_score_min": 90,
       "expected_risk_score_max": 100,
       "expected_priority": "P0",
-      "notes": "Jan 2025 Ivanti zero-day. Mass-exploited by UNC5337. In KEV."
+      "notes": "Jan 2025 Ivanti zero-day. Mass-exploited by UNC5337. In KEV.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-065",
@@ -1332,7 +1386,7 @@
       "cve_id": "CVE-2024-50623",
       "title": "Cleo Harmony/VLTrader/LexiCom File Upload RCE",
       "cvss_score": 9.8,
-      "epss_score": 0.87,
+      "epss_score": 0.94011,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-434",
@@ -1344,7 +1398,8 @@
       "expected_risk_score_min": 88,
       "expected_risk_score_max": 100,
       "expected_priority": "P0",
-      "notes": "Cleo MFT exploit \u2014 Cl0p ransomware group. MOVEit successor attack."
+      "notes": "Cleo MFT exploit \u2014 Cl0p ransomware group. MOVEit successor attack.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-066",
@@ -1352,7 +1407,7 @@
       "cve_id": "CVE-2026-23693",
       "title": "ElementsKit Elementor Addons RCE (CVSS 10.0)",
       "cvss_score": 10.0,
-      "epss_score": 0.89,
+      "epss_score": 0.00178,
       "in_kev": false,
       "severity": "critical",
       "cwe_id": "CWE-94",
@@ -1364,7 +1419,8 @@
       "expected_risk_score_min": 88,
       "expected_risk_score_max": 100,
       "expected_priority": "P0",
-      "notes": "WordPress plugin RCE, CVSS 10.0, actively exploited. Internet-facing CMS."
+      "notes": "WordPress plugin RCE, CVSS 10.0, actively exploited. Internet-facing CMS.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-067",
@@ -1372,7 +1428,7 @@
       "cve_id": "CVE-2026-20127",
       "title": "Cisco Catalyst SD-WAN Auth Bypass",
       "cvss_score": 9.8,
-      "epss_score": 0.78,
+      "epss_score": 0.02604,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-287",
@@ -1384,7 +1440,8 @@
       "expected_risk_score_min": 93,
       "expected_risk_score_max": 100,
       "expected_priority": "P0",
-      "notes": "Cisco SD-WAN auth bypass in KEV. Critical infrastructure, internet-facing."
+      "notes": "Cisco SD-WAN auth bypass in KEV. Critical infrastructure, internet-facing.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-068",
@@ -1392,7 +1449,7 @@
       "cve_id": "CVE-2026-25108",
       "title": "Soliton FileZen OS Command Injection",
       "cvss_score": 9.1,
-      "epss_score": 0.45,
+      "epss_score": 0.18587,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-78",
@@ -1404,7 +1461,8 @@
       "expected_risk_score_min": 55,
       "expected_risk_score_max": 75,
       "expected_priority": "P1",
-      "notes": "FileZen OS command injection, in KEV but partner-facing, medium asset criticality."
+      "notes": "FileZen OS command injection, in KEV but partner-facing, medium asset criticality.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-069",
@@ -1412,7 +1470,7 @@
       "cve_id": "CVE-2026-2441",
       "title": "Google Chrome CSS Use-After-Free",
       "cvss_score": 8.8,
-      "epss_score": 0.72,
+      "epss_score": 0.00136,
       "in_kev": true,
       "severity": "high",
       "cwe_id": "CWE-416",
@@ -1424,7 +1482,8 @@
       "expected_risk_score_min": 60,
       "expected_risk_score_max": 80,
       "expected_priority": "P1",
-      "notes": "Chrome UAF, KEV listed, weaponized. But affects endpoints not servers \u2014 medium criticality."
+      "notes": "Chrome UAF, KEV listed, weaponized. But affects endpoints not servers \u2014 medium criticality.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-070",
@@ -1432,7 +1491,7 @@
       "cve_id": "CVE-2026-1731",
       "title": "BeyondTrust PRA/RS OS Command Injection (2026)",
       "cvss_score": 9.8,
-      "epss_score": 0.91,
+      "epss_score": 0.64611,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-78",
@@ -1444,7 +1503,8 @@
       "expected_risk_score_min": 92,
       "expected_risk_score_max": 100,
       "expected_priority": "P0",
-      "notes": "BeyondTrust remote access command injection. KEV, weaponized, critical infra."
+      "notes": "BeyondTrust remote access command injection. KEV, weaponized, critical infra.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-071",
@@ -1452,7 +1512,7 @@
       "cve_id": "CVE-2026-20700",
       "title": "Apple Multiple Products Buffer Overflow",
       "cvss_score": 8.8,
-      "epss_score": 0.55,
+      "epss_score": 0.00424,
       "in_kev": true,
       "severity": "high",
       "cwe_id": "CWE-120",
@@ -1464,7 +1524,8 @@
       "expected_risk_score_min": 62,
       "expected_risk_score_max": 80,
       "expected_priority": "P1",
-      "notes": "Apple buffer overflow, KEV listed. Endpoint vuln, not server-side \u2014 lower asset criticality."
+      "notes": "Apple buffer overflow, KEV listed. Endpoint vuln, not server-side \u2014 lower asset criticality.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-072",
@@ -1472,7 +1533,7 @@
       "cve_id": "CVE-2025-70327",
       "title": "TOTOLINK Router Argument Injection RCE",
       "cvss_score": 9.8,
-      "epss_score": 0.35,
+      "epss_score": 0.02049,
       "in_kev": false,
       "severity": "critical",
       "cwe_id": "CWE-88",
@@ -1484,7 +1545,8 @@
       "expected_risk_score_min": 25,
       "expected_risk_score_max": 50,
       "expected_priority": "P2",
-      "notes": "IoT router vuln, high CVSS but low asset criticality, internal only, unreachable."
+      "notes": "IoT router vuln, high CVSS but low asset criticality, internal only, unreachable.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-073",
@@ -1492,7 +1554,7 @@
       "cve_id": "CVE-2026-23552",
       "title": "Keycloak Cross-Realm Token Acceptance Bypass",
       "cvss_score": 9.1,
-      "epss_score": 0.42,
+      "epss_score": 0.0004,
       "in_kev": false,
       "severity": "critical",
       "cwe_id": "CWE-287",
@@ -1504,7 +1566,8 @@
       "expected_risk_score_min": 70,
       "expected_risk_score_max": 90,
       "expected_priority": "P1",
-      "notes": "Keycloak auth bypass. Affects cloud-native identity infra. High asset criticality."
+      "notes": "Keycloak auth bypass. Affects cloud-native identity infra. High asset criticality.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-074",
@@ -1512,7 +1575,7 @@
       "cve_id": "CVE-2025-15556",
       "title": "Notepad++ Download Without Integrity Check",
       "cvss_score": 7.5,
-      "epss_score": 0.15,
+      "epss_score": 0.03927,
       "in_kev": true,
       "severity": "high",
       "cwe_id": "CWE-494",
@@ -1524,7 +1587,8 @@
       "expected_risk_score_min": 8,
       "expected_risk_score_max": 25,
       "expected_priority": "P3",
-      "notes": "Developer tool supply chain risk, KEV but very low asset criticality, not reachable."
+      "notes": "Developer tool supply chain risk, KEV but very low asset criticality, not reachable.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-075",
@@ -1532,7 +1596,7 @@
       "cve_id": "CVE-2024-43468",
       "title": "Microsoft Configuration Manager SQL Injection",
       "cvss_score": 9.8,
-      "epss_score": 0.65,
+      "epss_score": 0.851,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-89",
@@ -1544,7 +1608,8 @@
       "expected_risk_score_min": 75,
       "expected_risk_score_max": 92,
       "expected_priority": "P0",
-      "notes": "SCCM SQL injection. KEV, weaponized. Internal but high-value IT management asset."
+      "notes": "SCCM SQL injection. KEV, weaponized. Internal but high-value IT management asset.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-076",
@@ -1572,7 +1637,7 @@
       "cve_id": "CVE-2024-21413",
       "title": "Microsoft Outlook Moniker Link RCE",
       "cvss_score": 9.8,
-      "epss_score": 0.51,
+      "epss_score": 0.93264,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-20",
@@ -1584,7 +1649,8 @@
       "expected_risk_score_min": 5,
       "expected_risk_score_max": 15,
       "expected_priority": "P3",
-      "notes": "Critical Outlook RCE but on dev-only mail server, not reachable from internet. Low priority despite high CVSS."
+      "notes": "Critical Outlook RCE but on dev-only mail server, not reachable from internet. Low priority despite high CVSS.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-078",
@@ -1592,7 +1658,7 @@
       "cve_id": "CVE-2024-28085",
       "title": "util-linux wall Command Escape Sequence Injection",
       "cvss_score": 0.0,
-      "epss_score": 0.001,
+      "epss_score": 0.10449,
       "in_kev": false,
       "severity": "info",
       "cwe_id": "CWE-150",
@@ -1604,7 +1670,8 @@
       "expected_risk_score_min": 0,
       "expected_risk_score_max": 3,
       "expected_priority": "FP",
-      "notes": "Informational finding, no security impact in containerized environment. False positive."
+      "notes": "Informational finding, no security impact in containerized environment. False positive.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-079",
@@ -1612,7 +1679,7 @@
       "cve_id": "CVE-2025-21298",
       "title": "Windows OLE Remote Code Execution (Patched)",
       "cvss_score": 7.5,
-      "epss_score": 0.15,
+      "epss_score": 0.70775,
       "in_kev": false,
       "severity": "high",
       "cwe_id": "CWE-416",
@@ -1624,7 +1691,8 @@
       "expected_risk_score_min": 8,
       "expected_risk_score_max": 25,
       "expected_priority": "P3",
-      "notes": "High CVSS but no exploit, not in KEV, internal only. Low urgency."
+      "notes": "High CVSS but no exploit, not in KEV, internal only. Low urgency.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-080",
@@ -1632,7 +1700,7 @@
       "cve_id": "CVE-2025-0283",
       "title": "Ivanti Connect Secure Local Privilege Escalation",
       "cvss_score": 7.0,
-      "epss_score": 0.08,
+      "epss_score": 0.43202,
       "in_kev": false,
       "severity": "high",
       "cwe_id": "CWE-787",
@@ -1644,7 +1712,8 @@
       "expected_risk_score_min": 1,
       "expected_risk_score_max": 6,
       "expected_priority": "FP",
-      "notes": "Local privesc on isolated non-critical asset. Model correctly classifies as FP-level risk."
+      "notes": "Local privesc on isolated non-critical asset. Model correctly classifies as FP-level risk.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-081",
@@ -1673,7 +1742,7 @@
       "cve_id": "CVE-2024-50623",
       "title": "Cleo File Transfer Arbitrary File Upload (Chained)",
       "cvss_score": 8.8,
-      "epss_score": 0.65,
+      "epss_score": 0.94011,
       "in_kev": true,
       "severity": "high",
       "cwe_id": "CWE-434",
@@ -1686,7 +1755,8 @@
       "expected_risk_score_min": 85,
       "expected_risk_score_max": 97,
       "expected_priority": "P0",
-      "notes": "Actively exploited file transfer vulnerability. Part of Cl0p ransomware campaign. Chain exploit with initial access."
+      "notes": "Actively exploited file transfer vulnerability. Part of Cl0p ransomware campaign. Chain exploit with initial access.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-083",
@@ -1694,7 +1764,7 @@
       "cve_id": "CVE-2024-53677",
       "title": "Apache Struts File Upload Path Traversal",
       "cvss_score": 9.8,
-      "epss_score": 0.35,
+      "epss_score": 0.93053,
       "in_kev": false,
       "severity": "critical",
       "cwe_id": "CWE-22",
@@ -1706,7 +1776,8 @@
       "expected_risk_score_min": 32,
       "expected_risk_score_max": 55,
       "expected_priority": "P2",
-      "notes": "Critical Struts vuln but internal-only, medium criticality. PoC exists but not weaponized."
+      "notes": "Critical Struts vuln but internal-only, medium criticality. PoC exists but not weaponized.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-084",
@@ -1714,7 +1785,7 @@
       "cve_id": "CVE-2024-45337",
       "title": "Golang x/crypto/ssh Authorization Bypass",
       "cvss_score": 6.5,
-      "epss_score": 0.04,
+      "epss_score": 0.3331,
       "in_kev": false,
       "severity": "medium",
       "cwe_id": "CWE-863",
@@ -1726,7 +1797,8 @@
       "expected_risk_score_min": 1,
       "expected_risk_score_max": 6,
       "expected_priority": "FP",
-      "notes": "Medium Go SSH vuln, very low criticality internal service, no exploit. FP-level risk."
+      "notes": "Medium Go SSH vuln, very low criticality internal service, no exploit. FP-level risk.",
+      "epss_updated": "2026-03-07"
     },
     {
       "id": "GR-085",
@@ -1734,7 +1806,7 @@
       "cve_id": "CVE-2024-38856",
       "title": "Apache OFBiz Screen Rendering Code Execution",
       "cvss_score": 9.8,
-      "epss_score": 0.82,
+      "epss_score": 0.94375,
       "in_kev": true,
       "severity": "critical",
       "cwe_id": "CWE-863",
@@ -1746,7 +1818,168 @@
       "expected_risk_score_min": 60,
       "expected_risk_score_max": 80,
       "expected_priority": "P1",
-      "notes": "Actively exploited OFBiz RCE. High priority but not quite P0 due to 0.7 asset criticality."
+      "notes": "Actively exploited OFBiz RCE. High priority but not quite P0 due to 0.7 asset criticality.",
+      "epss_updated": "2026-03-07"
+    },
+    {
+      "id": "GR-086",
+      "category": "high_severity",
+      "cve_id": "CVE-2026-27905",
+      "title": "BentoML safe_extract_tarfile Path Traversal to RCE",
+      "cvss_score": 7.8,
+      "epss_score": 0.003,
+      "in_kev": false,
+      "severity": "high",
+      "cwe_id": "CWE-22",
+      "asset_criticality": 0.6,
+      "network_exposure": "internal",
+      "exploit_available": true,
+      "exploit_maturity": "proof_of_concept",
+      "reachable": false,
+      "expected_risk_score_min": 30,
+      "expected_risk_score_max": 55,
+      "expected_priority": "P2",
+      "notes": "BentoML path traversal in tar extraction. PoC available. Relevant to ML serving pipelines."
+    },
+    {
+      "id": "GR-087",
+      "category": "high_severity",
+      "cve_id": "CVE-2026-28802",
+      "title": "Authlib JWT alg:none Authentication Bypass",
+      "cvss_score": 7.5,
+      "epss_score": 0.004,
+      "in_kev": false,
+      "severity": "high",
+      "cwe_id": "CWE-287",
+      "asset_criticality": 0.9,
+      "network_exposure": "internet",
+      "exploit_available": true,
+      "exploit_maturity": "proof_of_concept",
+      "reachable": true,
+      "expected_risk_score_min": 55,
+      "expected_risk_score_max": 78,
+      "expected_priority": "P1",
+      "notes": "JWT alg:none bypass in Authlib. Relevant to any Python app using JWT auth. ALdeci uses JWT."
+    },
+    {
+      "id": "GR-088",
+      "category": "medium_severity",
+      "cve_id": "CVE-2026-28277",
+      "title": "LangGraph SQLite Checkpoint Insecure Deserialization",
+      "cvss_score": 6.8,
+      "epss_score": 0.002,
+      "in_kev": false,
+      "severity": "medium",
+      "cwe_id": "CWE-502",
+      "asset_criticality": 0.5,
+      "network_exposure": "internal",
+      "exploit_available": false,
+      "exploit_maturity": "theoretical",
+      "reachable": false,
+      "expected_risk_score_min": 12,
+      "expected_risk_score_max": 35,
+      "expected_priority": "P3",
+      "notes": "SQLite checkpoint deserialization in LangGraph. ALdeci uses SQLite but not LangGraph."
+    },
+    {
+      "id": "GR-089",
+      "category": "high_severity",
+      "cve_id": "CVE-2026-27932",
+      "title": "joserfc JOSE Resource Exhaustion DoS",
+      "cvss_score": 7.5,
+      "epss_score": 0.003,
+      "in_kev": false,
+      "severity": "high",
+      "cwe_id": "CWE-400",
+      "asset_criticality": 0.7,
+      "network_exposure": "internet",
+      "exploit_available": true,
+      "exploit_maturity": "proof_of_concept",
+      "reachable": false,
+      "expected_risk_score_min": 35,
+      "expected_risk_score_max": 60,
+      "expected_priority": "P2",
+      "notes": "JOSE resource exhaustion DoS. Adjacent to JWT implementations."
+    },
+    {
+      "id": "GR-090",
+      "category": "critical_exploitable",
+      "cve_id": "CVE-2026-2999",
+      "title": "IDExpert Windows Logon Agent RCE via Arbitrary File Download",
+      "cvss_score": 9.8,
+      "epss_score": 0.005,
+      "in_kev": false,
+      "severity": "critical",
+      "cwe_id": "CWE-494",
+      "asset_criticality": 0.8,
+      "network_exposure": "internet",
+      "exploit_available": true,
+      "exploit_maturity": "proof_of_concept",
+      "reachable": true,
+      "expected_risk_score_min": 75,
+      "expected_risk_score_max": 95,
+      "expected_priority": "P0",
+      "notes": "Unauthenticated RCE via arbitrary file download. Critical CVSS 9.8."
+    },
+    {
+      "id": "GR-091",
+      "category": "critical_exploitable",
+      "cve_id": "CVE-2026-3422",
+      "title": "U-Office Force Insecure Deserialization RCE",
+      "cvss_score": 9.8,
+      "epss_score": 0.004,
+      "in_kev": false,
+      "severity": "critical",
+      "cwe_id": "CWE-502",
+      "asset_criticality": 0.7,
+      "network_exposure": "internet",
+      "exploit_available": true,
+      "exploit_maturity": "proof_of_concept",
+      "reachable": true,
+      "expected_risk_score_min": 65,
+      "expected_risk_score_max": 85,
+      "expected_priority": "P1",
+      "notes": "Insecure deserialization \u2192 RCE. Unauthenticated. Fresh 2026 CVE. Adjusted: EPSS 0.004 + PoC maturity \u2192 P1 not P0 despite CVSS 9.8."
+    },
+    {
+      "id": "GR-092",
+      "category": "edge_cases",
+      "cve_id": "CVE-2025-69534",
+      "title": "Python-Markdown HTMLParser AssertionError DoS",
+      "cvss_score": 5.3,
+      "epss_score": 0.001,
+      "in_kev": false,
+      "severity": "medium",
+      "cwe_id": "CWE-617",
+      "asset_criticality": 0.3,
+      "network_exposure": "internal",
+      "exploit_available": false,
+      "exploit_maturity": "theoretical",
+      "reachable": false,
+      "expected_risk_score_min": 5,
+      "expected_risk_score_max": 18,
+      "expected_priority": "P3",
+      "notes": "Edge case: DoS via malformed HTML in Markdown parser. Low exploitability, no direct security impact. Adjusted: Low severity, no exploit \u2192 P3 not P4."
+    },
+    {
+      "id": "GR-093",
+      "category": "false_positives",
+      "cve_id": "CVE-2026-29075",
+      "title": "Mesa ABM Benchmark CI/CD Code Checkout (Research Context Only)",
+      "cvss_score": 8.3,
+      "epss_score": 0.002,
+      "in_kev": false,
+      "severity": "high",
+      "cwe_id": "CWE-94",
+      "asset_criticality": 0.1,
+      "network_exposure": "none",
+      "exploit_available": false,
+      "exploit_maturity": "none",
+      "reachable": false,
+      "expected_risk_score_min": 2,
+      "expected_risk_score_max": 10,
+      "expected_priority": "P4",
+      "notes": "False positive test: High CVSS but zero asset criticality, no exposure, not reachable. Model should score very low. Adjusted: Zero-criticality but nonzero exposure score \u2192 P4 not FP."
     }
   ]
 }

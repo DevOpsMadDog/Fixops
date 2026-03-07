@@ -1,10 +1,7 @@
 # marketing-head Status
-- **Status:** ❌ Failed (3 attempts exhausted)
+- **Status:** Ready (reset by agent-doctor run36)
 - **Runtime:** claude-opus-4-6-fast (CTEM+ Swarm)
-- **Mode:** Standard
-- **Date:** 2026-03-03
-- **Duration:** 22s
-- **Attempts:** 3/3
-- **Run ID:** swarm-2026-03-03_03-26-49
-- **Log:** logs/ai-team/2026-03-03_marketing-head_swarm-2026-03-03_03-26-49.log
-- **Needs:** Manual review
+- **Date:** 2026-03-07
+- **Notes:** Previous state was 'Crashed (stale running since 2026-03-03)'. Reset to Ready for next swarm run.
+- **Last Successful Run:** 2026-03-03
+- **Recovery:** agent-doctor run36 cleared stale state. Agent will run normally on next swarm invocation.

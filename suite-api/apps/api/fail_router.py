@@ -99,11 +99,21 @@ class FAILScoreResponse(BaseModel):
     computation_ms: float
 
 
+class FAILBatchError(BaseModel):
+    """Error entry for a failed batch item."""
+
+    index: int
+    error: str
+    cve_id: Optional[str] = None
+    finding_id: Optional[str] = None
+
+
 class FAILBatchResponse(BaseModel):
     """Batch scoring response."""
 
     total: int
     results: List[FAILScoreResponse]
+    errors: List[FAILBatchError] = []
     stats: Dict[str, Any]
 
 
@@ -195,7 +205,8 @@ async def score_batch(
 ):
     """Score multiple findings in one request (max 500)."""
     results = []
-    for finding_req in req.findings:
+    errors = []
+    for idx, finding_req in enumerate(req.findings):
         try:
             inp = _request_to_input(finding_req)
             result = _engine.score(inp)
@@ -203,12 +214,18 @@ async def score_batch(
             _db.save_score(result_dict, org_id=org_id, input_dict=finding_req.model_dump())
             results.append(FAILScoreResponse(**result_dict))
         except Exception as e:
-            logger.warning("FAIL batch item failed: %s", e)
-            continue
+            logger.warning("FAIL batch item %d failed: %s", idx, e)
+            errors.append(FAILBatchError(
+                index=idx,
+                error=f"{type(e).__name__}: scoring failed",
+                cve_id=finding_req.cve_id,
+                finding_id=finding_req.finding_id,
+            ))
 
     return FAILBatchResponse(
         total=len(results),
         results=results,
+        errors=errors,
         stats=_engine.stats(),
     )
 
@@ -271,8 +288,17 @@ async def scores_by_cve(cve_id: str):
 
 
 @router.delete("/score/{score_id}", summary="Delete a FAIL score")
-async def delete_score(score_id: str):
-    """Delete a stored FAIL score."""
+async def delete_score(
+    score_id: str,
+    org_id: str = Depends(get_org_id),
+):
+    """Delete a stored FAIL score (requires org_id authorization)."""
+    # Verify score exists and belongs to this org
+    existing = _db.get_score(score_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail=f"FAIL score {score_id} not found")
+    if existing.get("org_id") and existing["org_id"] != org_id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this score")
     deleted = _db.delete_score(score_id)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"FAIL score {score_id} not found")

@@ -54,14 +54,15 @@
 - `KeyboardShortcutsHelp.tsx` (200 LOC) — ? key shows shortcuts overlay
 - `ErrorBoundary.tsx` (381 LOC) — Auto-retry, chunk detection, telemetry, copy stack
 
-## Build Stats (Day 4 Session 7)
-- 101 files, 45,332 LOC (+1,855 from session 7)
+## Build Stats (Day 5 Session 8 — 2026-03-07)
+- 101 files, 45,532 LOC
 - TypeScript: 0 errors
-- Build: 1.75s
-- Bundle: index 209KB (gzip 64KB) + 4 vendor chunks
-- 100% API-wired, zero mock data
+- Build: 1.91s
+- Bundle: index 209.68KB (gzip 64.13KB) + 4 vendor chunks
+- 100% API-wired, zero mock data, ZERO `any` types in pages
 - All pages lazy-loaded, all with proper Skeleton loading states
-- WCAG AA: aria-labels on all interactive elements
+- WCAG AA: 106 aria-labels across 20 files, global :focus-visible styles, skip-to-content link
+- Accessibility: Global focus-visible outlines on all interactive elements (button, a, input, textarea, select, [role=*], [tabindex])
 
 ## Completed Sprint Items
 - SPRINT1-002: Attack Path Graph visualization
@@ -79,8 +80,13 @@
 
 ## Remaining Priority Items
 - Knowledge Graph interactive improvements (V3)
-- SOC2EvidenceUI polish
-- Focus ring visible styles on all focusable elements
+
+## Completed Polish Items (2026-03-07)
+- ✅ SOC2EvidenceUI — toast notifications, error state, aria-labels, htmlFor
+- ✅ Global focus-visible styles in index.css (all interactive elements)
+- ✅ Skip-to-content link in App.tsx
+- ✅ Settings page — keyboard nav, aria-labels, toast feedback
+- ✅ All `any` types eliminated from ~20 page files
 
 ## AlgorithmicLab API (verified 2026-03-03)
 - Monte Carlo FAIR: `api.post('/api/v1/predictions/risk-trajectory', { cve_ids, simulations: 10000 })`

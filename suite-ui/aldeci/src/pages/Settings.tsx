@@ -117,6 +117,10 @@ export default function Settings() {
         <Card
           className="cursor-pointer hover:border-primary/50 transition-colors"
           onClick={() => navigate('/settings/webhooks')}
+          role="button"
+          tabIndex={0}
+          aria-label="Navigate to Webhooks settings"
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/settings/webhooks')}
         >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -135,6 +139,10 @@ export default function Settings() {
         <Card
           className="cursor-pointer hover:border-primary/50 transition-colors"
           onClick={() => navigate('/settings/marketplace')}
+          role="button"
+          tabIndex={0}
+          aria-label="Navigate to Marketplace settings"
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/settings/marketplace')}
         >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -153,6 +161,10 @@ export default function Settings() {
         <Card
           className="cursor-pointer hover:border-primary/50 transition-colors"
           onClick={() => navigate('/settings/users')}
+          role="button"
+          tabIndex={0}
+          aria-label="Navigate to Users settings"
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/settings/users')}
         >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -171,6 +183,10 @@ export default function Settings() {
         <Card
           className="cursor-pointer hover:border-primary/50 transition-colors"
           onClick={() => navigate('/settings/mcp-registry')}
+          role="button"
+          tabIndex={0}
+          aria-label="Navigate to MCP Tool Registry"
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/settings/mcp-registry')}
         >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -313,30 +329,34 @@ export default function Settings() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">API Endpoint</label>
+                <label htmlFor="api-endpoint" className="text-sm font-medium">API Endpoint</label>
                 <Input
+                  id="api-endpoint"
                   value={apiUrl}
                   onChange={(e) => setApiUrl(e.target.value)}
                   placeholder="http://localhost:8000"
+                  aria-label="API endpoint URL"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">API Key</label>
+                <label htmlFor="api-key" className="text-sm font-medium">API Key</label>
                 <Input
+                  id="api-key"
                   type="password"
                   value={newApiKey}
                   onChange={(e) => setNewApiKey(e.target.value)}
                   placeholder="Enter your API key"
+                  aria-label="API authentication key"
                 />
               </div>
 
               <div className="flex gap-2">
-                <Button onClick={handleSaveApiKey} className="gap-2">
+                <Button onClick={handleSaveApiKey} className="gap-2" aria-label="Save API configuration">
                   <Save className="w-4 h-4" />
                   Save
                 </Button>
-                <Button variant="outline" onClick={handleTestConnection} className="gap-2">
+                <Button variant="outline" onClick={handleTestConnection} className="gap-2" aria-label="Test API connection">
                   <RefreshCw className="w-4 h-4" />
                   Test Connection
                 </Button>
@@ -560,8 +580,11 @@ export default function Settings() {
                     setTheme('dark');
                     document.documentElement.classList.add('dark');
                     document.documentElement.classList.remove('light');
+                    toast.success('Dark theme activated');
                   }}
                   className="flex-1 h-24 flex-col gap-2"
+                  aria-label="Switch to dark theme"
+                  aria-pressed={theme === 'dark'}
                 >
                   <Moon className="w-6 h-6" />
                   <span>Dark</span>
@@ -572,8 +595,11 @@ export default function Settings() {
                     setTheme('light');
                     document.documentElement.classList.add('light');
                     document.documentElement.classList.remove('dark');
+                    toast.success('Light theme activated');
                   }}
                   className="flex-1 h-24 flex-col gap-2"
+                  aria-label="Switch to light theme"
+                  aria-pressed={theme === 'light'}
                 >
                   <Sun className="w-6 h-6" />
                   <span>Light</span>
@@ -602,6 +628,8 @@ export default function Settings() {
                     key={accent.name}
                     className={`w-10 h-10 rounded-full ${accent.color} ring-2 ring-offset-2 ring-offset-background ring-transparent hover:ring-white transition-all`}
                     title={accent.name}
+                    aria-label={`Set accent color to ${accent.name}`}
+                    onClick={() => toast.success(`Accent color set to ${accent.name}`)}
                   />
                 ))}
               </div>

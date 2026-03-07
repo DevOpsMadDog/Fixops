@@ -1,8 +1,8 @@
 {
   "status": "running",
-  "pid": 41501,
-  "timestamp": "2026-03-02T19:07:23Z",
-  "uptime_seconds": 124585,
+  "pid": 8036,
+  "timestamp": "2026-03-07T11:04:28Z",
+  "uptime_seconds": 5657,
   "restart_count": 0,
   "max_restarts": 15,
   "current_run_start": "not-started",

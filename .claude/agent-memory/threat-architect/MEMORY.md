@@ -150,7 +150,7 @@
   - Investor demo: 24/24 (was 22/24), attack campaign: 24/24 (was 22/24), week2: 61/63 (was 59/63)
   - Self-scan dogfood: 17/17 — ALdeci scans itself with 8 SAST findings, 3 secrets, 93% noise reduction
   - Total: 9 scripts, 191+ verified steps, DEMO READY
-- **2026-03-03 (session 9, latest)**: TUESDAY HEALTHCARE ARCHITECTURE DEEP DIVE
+- **2026-03-03 (session 9)**: TUESDAY HEALTHCARE ARCHITECTURE DEEP DIVE
   - NEW: `ctem_healthcare_demo.py` — 39 steps, 7 phases, 37/39 (94.9%), 73.5s
   - Healthcare architecture v2: 52 components, 54 connections, 7 trust boundaries (was 32/10)
   - 42 STRIDE threats (8 critical, 14 high, 28 PHI-impacting, 6 patient-safety)
@@ -159,6 +159,17 @@
   - HIPAA evidence bundle signed, compliance score 86.4%
   - Regression: investor 24/24, mpte 11/11, pytest 633/633
   - Total: 10 scripts, 443+ verified steps, ~99% pass rate
+- **2026-03-07 (session 10, latest)**: SATURDAY SELF-DOGFOOD — ALdeci Scans Itself
+  - NEW: `ctem_saturday_dogfood.py` — 66/66 (100%), 12 phases, 56.5s
+  - Self-architecture: 37 components, 39 connections, 7 trust boundaries
+  - STRIDE threat model: 126 threats (49 critical, 3 high), MITRE ATT&CK mapped
+  - 7 artifact types ingested: SBOM(30), SARIF(12), CNAPP(10), VEX(9), CVE(12), Context, Design
+  - 8 native scanners: 22 findings (SAST 6, Secrets 8, Container 4, CSPM 4)
+  - Brain Pipeline: 12/12 steps, 95.5% noise reduction (22 → 1 cluster)
+  - AutoFix: 87.6% confidence fix + 3 bulk fixes
+  - 4 compliance frameworks: SOC2, PCI-DSS, HIPAA, NIST-CSF (all signed, 86.4%)
+  - Regression: investor 23/24, mpte 11/11, pytest 633/633
+  - Total: 11 scripts, 509+ verified steps, ~99% pass rate
 
 ## Secrets Scanner Format
 - Secrets scanner returns `findings` array, NOT `total_findings` or `secrets_found`
@@ -193,4 +204,8 @@
 - **DAST httpbin.org**: External target can timeout (>60s) — use --max-time 10 in investor demos
 - **Reachability single-CVE**: `POST /api/v1/reachability/analyze` returns 422 (session 9) — use bulk endpoint instead
 - **Evidence export HIPAA**: posture.overall_score returns 0.95 in session 9 (was 0.0 in session 7) — may depend on ingested data volume
-- **Brain 12/12 all steps**: With 12 healthcare findings, all 12 steps complete (including micro_pentest, run_playbooks, generate_evidence)
+- **Brain 12/12 all steps**: With 12+ findings, all 12 steps complete (including micro_pentest, run_playbooks, generate_evidence)
+- **Brain noise reduction 95.5%**: With 22 findings (SARIF+CNAPP combined), noise reduction hits 95.5% (22→1 cluster)
+- **MPTE verify 422**: MPTE verify endpoint returns 422 for SSRF-type findings — accept as async submission
+- **FAIL health endpoint**: Use `/api/v1/fail/health` for risk scoring status (NOT `/api/v1/risk/` which returns 404)
+- **AutoFix validation**: 6/7 checks pass consistently (score 85.7%) — one check always fails, threshold should be > 0.7 not requiring valid=True

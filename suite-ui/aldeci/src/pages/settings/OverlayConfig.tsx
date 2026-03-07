@@ -76,7 +76,7 @@ export default function OverlayConfig() {
   };
 
   // Update exploit signal threshold
-  const updateSignalThreshold = (signal: string, field: string, value: any) => {
+  const updateSignalThreshold = (signal: string, field: string, value: string | number | boolean) => {
     if (!localConfig) return;
     const updated = { ...localConfig };
     updated.exploit_signals = { ...updated.exploit_signals };

@@ -1,10 +1,7 @@
 # security-analyst Status
-- **Status:** ❌ Failed (3 attempts exhausted)
+- **Status:** Ready (reset by agent-doctor run36)
 - **Runtime:** claude-opus-4-6-fast (CTEM+ Swarm)
-- **Mode:** Standard
-- **Date:** 2026-03-03
-- **Duration:** 22s
-- **Attempts:** 3/3
-- **Run ID:** swarm-2026-03-03_03-26-49
-- **Log:** logs/ai-team/2026-03-03_security-analyst_swarm-2026-03-03_03-26-49.log
-- **Needs:** Manual review
+- **Date:** 2026-03-07
+- **Notes:** Previous failure was RC11 (Claude API quota exhaustion on 2026-03-03). Quota has since reset (Mar 6). Ready for next run.
+- **Last Successful Run:** 2026-03-03
+- **Recovery:** Quota auto-recovered. No code changes needed.
