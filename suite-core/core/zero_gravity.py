@@ -853,3 +853,1249 @@ __all__ = [
     "ZeroGravityEngine",
     "get_zero_gravity_engine",
 ]
+
+
+# ---------------------------------------------------------------------------
+# ONLINE LEARNING STORE — River-based incremental ML with drift detection
+# ---------------------------------------------------------------------------
+
+import collections
+import math
+import pickle as _pickle
+import struct
+
+
+class ADWIN:
+    """ADWIN (ADaptive WINdowing) drift detection algorithm.
+
+    Detects concept drift in data streams by maintaining an adaptive
+    window whose size shrinks when distributional change is detected.
+
+    Reference: Bifet & Gavalda, 2007. ADWIN: A data-adaptive algorithm
+    for detecting change and keeping the data current.
+    """
+
+    def __init__(self, delta: float = 0.002) -> None:
+        """Initialise ADWIN.
+
+        Args:
+            delta: Confidence parameter. Lower values = fewer false alarms
+                   but slower detection. Typical: 0.002.
+        """
+        self.delta = delta
+        self._window: collections.deque = collections.deque()
+        self._total: float = 0.0
+        self._count: int = 0
+        self.drift_detected: bool = False
+
+    def add_element(self, value: float) -> None:
+        """Add a new data element and check for drift.
+
+        Args:
+            value: New observation value.
+        """
+        self._window.append(value)
+        self._total += value
+        self._count += 1
+        self.drift_detected = False
+        self._detect_change()
+
+    def _detect_change(self) -> None:
+        """Check if the current window contains a distribution change."""
+        if len(self._window) < 2:
+            return
+
+        window_list = list(self._window)
+        n = len(window_list)
+        total = sum(window_list)
+
+        # Test all split points
+        left_sum = 0.0
+        for i in range(1, n):
+            left_sum += window_list[i - 1]
+            right_sum = total - left_sum
+            n0, n1 = i, n - i
+            mean0 = left_sum / n0
+            mean1 = right_sum / n1
+
+            # ADWIN cut criterion
+            m_inv = (1.0 / n0) + (1.0 / n1)
+            dd = math.log(2.0 * math.log(n) / self.delta)
+            eps_cut = math.sqrt(m_inv * dd / 2.0)
+
+            if abs(mean0 - mean1) >= eps_cut:
+                # Drift detected: drop the older (left) part
+                for _ in range(i):
+                    removed = self._window.popleft()
+                    self._total -= removed
+                    self._count -= 1
+                self.drift_detected = True
+                return
+
+    @property
+    def mean(self) -> float:
+        """Current window mean."""
+        return self._total / self._count if self._count > 0 else 0.0
+
+    @property
+    def window_size(self) -> int:
+        """Current adaptive window size."""
+        return len(self._window)
+
+
+class DDM:
+    """DDM (Drift Detection Method) concept drift detector.
+
+    Monitors model error rate and triggers drift warning/alarm when
+    error rate increases significantly above the minimum observed rate.
+
+    Reference: Gama et al., 2004. Learning with drift detection.
+    """
+
+    WARNING_LEVEL = 2.0
+    ALARM_LEVEL = 3.0
+
+    def __init__(self) -> None:
+        self._n: int = 0
+        self._p: float = 1.0           # Current error rate
+        self._s: float = 0.0           # Current std deviation
+        self._p_min: float = float("inf")
+        self._s_min: float = float("inf")
+        self.drift_detected: bool = False
+        self.warning_detected: bool = False
+
+    def add_element(self, prediction_error: float) -> None:
+        """Update with new prediction outcome.
+
+        Args:
+            prediction_error: 1.0 if prediction was wrong, 0.0 if correct.
+        """
+        self._n += 1
+        self.drift_detected = False
+        self.warning_detected = False
+
+        # Running mean error rate
+        self._p = self._p + (prediction_error - self._p) / self._n
+        self._s = math.sqrt(self._p * (1.0 - self._p) / self._n)
+
+        if self._p + self._s <= self._p_min + self._s_min:
+            self._p_min = self._p
+            self._s_min = self._s
+
+        if self._n < 30:
+            return  # Need minimum samples
+
+        threshold = self._p_min + self._s_min
+        current = self._p + self._s
+
+        if current > threshold * self.ALARM_LEVEL:
+            self.drift_detected = True
+        elif current > threshold * self.WARNING_LEVEL:
+            self.warning_detected = True
+
+
+class NaiveBayesOnline:
+    """Incremental Naive Bayes classifier for online learning.
+
+    Implements a simple Gaussian Naive Bayes that supports incremental
+    updates (learn_one). Serves as the online model within OnlineLearningStore
+    when the River library is not available (air-gapped environments).
+    """
+
+    def __init__(self) -> None:
+        self._class_counts: Dict[str, int] = {}
+        self._feature_stats: Dict[str, Dict[str, Dict[str, float]]] = {}
+        # feature_stats[class][feature] = {mean, var, count}
+        self._total_samples: int = 0
+
+    def learn_one(self, x: Dict[str, float], y: Any) -> None:
+        """Incrementally update the model with one sample.
+
+        Args:
+            x: Feature dict {feature_name: value}.
+            y: Class label.
+        """
+        label = str(y)
+        self._class_counts[label] = self._class_counts.get(label, 0) + 1
+        self._total_samples += 1
+
+        if label not in self._feature_stats:
+            self._feature_stats[label] = {}
+
+        for feat, val in x.items():
+            if feat not in self._feature_stats[label]:
+                self._feature_stats[label][feat] = {
+                    "mean": float(val),
+                    "var": 0.0,
+                    "count": 0,
+                }
+            stats = self._feature_stats[label][feat]
+            n = stats["count"] + 1
+            mean_old = stats["mean"]
+            mean_new = mean_old + (float(val) - mean_old) / n
+            # Welford's online variance
+            stats["var"] = (
+                stats["var"] * (n - 1) / n + (float(val) - mean_old) * (float(val) - mean_new) / n
+                if n > 1 else 0.0
+            )
+            stats["mean"] = mean_new
+            stats["count"] = n
+
+    def predict_one(self, x: Dict[str, float]) -> Optional[str]:
+        """Predict the class label for a feature dict.
+
+        Args:
+            x: Feature dict.
+
+        Returns:
+            Predicted class label, or None if not enough data.
+        """
+        if not self._class_counts:
+            return None
+
+        best_label = None
+        best_log_prob = float("-inf")
+
+        for label, count in self._class_counts.items():
+            log_prob = math.log(count / self._total_samples + 1e-9)
+            for feat, val in x.items():
+                if feat in self._feature_stats.get(label, {}):
+                    stats = self._feature_stats[label][feat]
+                    mean = stats["mean"]
+                    var = max(stats["var"], 1e-9)
+                    # Log likelihood: log(Gaussian PDF)
+                    log_prob += (
+                        -0.5 * math.log(2 * math.pi * var)
+                        - (float(val) - mean) ** 2 / (2 * var)
+                    )
+            if log_prob > best_log_prob:
+                best_log_prob = log_prob
+                best_label = label
+
+        return best_label
+
+    def predict_proba(self, x: Dict[str, float]) -> Dict[str, float]:
+        """Predict class probabilities.
+
+        Args:
+            x: Feature dict.
+
+        Returns:
+            Dict of {class_label: probability}.
+        """
+        if not self._class_counts:
+            return {}
+
+        log_probs: Dict[str, float] = {}
+        for label, count in self._class_counts.items():
+            log_prob = math.log(count / self._total_samples + 1e-9)
+            for feat, val in x.items():
+                if feat in self._feature_stats.get(label, {}):
+                    stats = self._feature_stats[label][feat]
+                    mean = stats["mean"]
+                    var = max(stats["var"], 1e-9)
+                    log_prob += (
+                        -0.5 * math.log(2 * math.pi * var)
+                        - (float(val) - mean) ** 2 / (2 * var)
+                    )
+            log_probs[label] = log_prob
+
+        # Convert log-probs to probabilities via softmax
+        max_lp = max(log_probs.values())
+        exp_probs = {k: math.exp(v - max_lp) for k, v in log_probs.items()}
+        total = sum(exp_probs.values())
+        return {k: v / total for k, v in exp_probs.items()}
+
+    @property
+    def n_samples(self) -> int:
+        return self._total_samples
+
+    @property
+    def classes_(self) -> List[str]:
+        return sorted(self._class_counts.keys())
+
+
+class OnlineLearningStore:
+    """River-based online learning store with concept drift detection.
+
+    Manages incremental ML models that preserve learned knowledge as
+    data ages, rather than retraining from scratch. Incorporates ADWIN
+    and DDM drift detectors to signal when model behaviour has shifted.
+
+    Features:
+    - Incremental model updates (learn_one API compatible with River)
+    - Per-model state serialization and loading
+    - ADWIN drift detection per feature
+    - DDM drift detection on prediction errors
+    - Fallback to built-in NaiveBayesOnline if River unavailable
+
+    Usage::
+
+        store = OnlineLearningStore()
+        store.update_model("risk_classifier", features, label)
+        pred = store.predict("risk_classifier", features)
+        drift = store.check_drift("risk_classifier")
+        store.save_model("risk_classifier", path)
+    """
+
+    def __init__(self, base_path: Optional[str] = None) -> None:
+        """Initialise the online learning store.
+
+        Args:
+            base_path: Directory for model persistence (default: .fixops_data/models).
+        """
+        self._base_path = Path(
+            base_path or os.environ.get("FIXOPS_DATA_DIR", ".fixops_data")
+        ) / "models"
+        self._base_path.mkdir(parents=True, exist_ok=True)
+
+        # model_id → NaiveBayesOnline (or River model)
+        self._models: Dict[str, Any] = {}
+
+        # Drift detectors per model
+        self._adwin: Dict[str, Dict[str, ADWIN]] = {}   # model_id → {feature: ADWIN}
+        self._ddm: Dict[str, DDM] = {}
+
+        # Training sample counters
+        self._sample_counts: Dict[str, int] = {}
+
+        # Drift event log
+        self._drift_events: List[Dict[str, Any]] = []
+
+    def update_model(
+        self,
+        model_id: str,
+        features: Dict[str, float],
+        label: Any,
+        prediction_error: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        """Incrementally update a model with one new sample.
+
+        Args:
+            model_id: Identifier for the target model.
+            features: Feature dict {feature_name: numeric_value}.
+            label: True label for supervised learning.
+            prediction_error: 1.0 if last prediction was wrong, 0.0 if correct.
+                              Used to update DDM drift detector.
+
+        Returns:
+            Dict with model_id, samples_seen, drift_status.
+        """
+        # Initialise model on first use
+        if model_id not in self._models:
+            self._models[model_id] = self._create_model(model_id)
+            self._adwin[model_id] = {}
+            self._ddm[model_id] = DDM()
+            self._sample_counts[model_id] = 0
+
+        model = self._models[model_id]
+        model.learn_one(features, label)
+        self._sample_counts[model_id] += 1
+
+        # Update ADWIN drift detectors per feature
+        drift_features: List[str] = []
+        for feat, val in features.items():
+            if feat not in self._adwin[model_id]:
+                self._adwin[model_id][feat] = ADWIN()
+            adwin = self._adwin[model_id][feat]
+            adwin.add_element(float(val))
+            if adwin.drift_detected:
+                drift_features.append(feat)
+
+        # Update DDM on prediction error
+        ddm = self._ddm[model_id]
+        if prediction_error is not None:
+            ddm.add_element(float(prediction_error))
+
+        drift_status = "none"
+        if drift_features:
+            drift_status = "feature_drift"
+            self._log_drift_event(model_id, "adwin_feature_drift", drift_features)
+        elif ddm.drift_detected:
+            drift_status = "error_rate_drift"
+            self._log_drift_event(model_id, "ddm_drift", [])
+        elif ddm.warning_detected:
+            drift_status = "warning"
+
+        return {
+            "model_id": model_id,
+            "samples_seen": self._sample_counts[model_id],
+            "drift_status": drift_status,
+            "drifted_features": drift_features,
+        }
+
+    def predict(
+        self,
+        model_id: str,
+        features: Dict[str, float],
+        return_proba: bool = False,
+    ) -> Any:
+        """Make a prediction using the online model.
+
+        Args:
+            model_id: Model identifier.
+            features: Feature dict for prediction.
+            return_proba: If True, return probability dict instead of label.
+
+        Returns:
+            Predicted label, or probability dict if return_proba=True.
+            Returns None if model hasn't been trained yet.
+        """
+        if model_id not in self._models:
+            return None
+
+        model = self._models[model_id]
+        if return_proba and hasattr(model, "predict_proba"):
+            return model.predict_proba(features)
+        return model.predict_one(features)
+
+    def check_drift(self, model_id: str) -> Dict[str, Any]:
+        """Check current drift status for a model.
+
+        Args:
+            model_id: Model identifier.
+
+        Returns:
+            Dict with drift_detected, ddm_warning, drifted_features, recent_events.
+        """
+        if model_id not in self._models:
+            return {"model_id": model_id, "error": "Model not found"}
+
+        drifted_features = [
+            feat for feat, adwin in self._adwin.get(model_id, {}).items()
+            if adwin.drift_detected
+        ]
+        ddm = self._ddm.get(model_id, DDM())
+        recent_events = [
+            e for e in self._drift_events
+            if e.get("model_id") == model_id
+        ][-10:]
+
+        return {
+            "model_id": model_id,
+            "samples_seen": self._sample_counts.get(model_id, 0),
+            "drift_detected": bool(drifted_features or ddm.drift_detected),
+            "ddm_warning": ddm.warning_detected,
+            "ddm_drift": ddm.drift_detected,
+            "drifted_features": drifted_features,
+            "feature_window_sizes": {
+                feat: adwin.window_size
+                for feat, adwin in self._adwin.get(model_id, {}).items()
+            },
+            "recent_drift_events": recent_events,
+        }
+
+    def save_model(self, model_id: str, path: Optional[str] = None) -> str:
+        """Serialize and save model state to disk.
+
+        Args:
+            model_id: Model identifier.
+            path: Optional override save path.
+
+        Returns:
+            Path to saved model file.
+        """
+        if model_id not in self._models:
+            raise KeyError(f"Model '{model_id}' not found")
+
+        save_path = Path(path) if path else self._base_path / f"{model_id}.pkl"
+        state = {
+            "model": self._models[model_id],
+            "sample_count": self._sample_counts.get(model_id, 0),
+            "saved_at": datetime.now(timezone.utc).isoformat(),
+            "model_id": model_id,
+        }
+        with open(save_path, "wb") as f:
+            _pickle.dump(state, f, protocol=4)
+        logger.info("OnlineLearningStore: saved model '%s' to %s", model_id, save_path)
+        return str(save_path)
+
+    def load_model(self, model_id: str, path: Optional[str] = None) -> None:
+        """Load a previously saved model from disk.
+
+        Args:
+            model_id: Model identifier.
+            path: Optional override load path.
+        """
+        load_path = Path(path) if path else self._base_path / f"{model_id}.pkl"
+        if not load_path.exists():
+            raise FileNotFoundError(f"Model file not found: {load_path}")
+
+        with open(load_path, "rb") as f:
+            state = _pickle.load(f)
+
+        self._models[model_id] = state["model"]
+        self._sample_counts[model_id] = state.get("sample_count", 0)
+        # Re-initialise drift detectors (fresh after load)
+        self._adwin[model_id] = {}
+        self._ddm[model_id] = DDM()
+        logger.info("OnlineLearningStore: loaded model '%s' from %s", model_id, load_path)
+
+    def list_models(self) -> List[Dict[str, Any]]:
+        """List all active models with metadata."""
+        return [
+            {
+                "model_id": mid,
+                "samples_seen": self._sample_counts.get(mid, 0),
+                "model_type": type(self._models[mid]).__name__,
+                "features_tracked": len(self._adwin.get(mid, {})),
+            }
+            for mid in self._models
+        ]
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    def _create_model(self, model_id: str) -> NaiveBayesOnline:
+        """Create a new online model instance."""
+        # Try to use River if available, else fall back to built-in
+        try:
+            from river import naive_bayes  # type: ignore
+            logger.debug(
+                "OnlineLearningStore: using River GaussianNB for '%s'", model_id
+            )
+            return naive_bayes.GaussianNB()
+        except ImportError:
+            logger.debug(
+                "OnlineLearningStore: River not available, using built-in NaiveBayesOnline"
+            )
+            return NaiveBayesOnline()
+
+    def _log_drift_event(
+        self, model_id: str, event_type: str, features: List[str]
+    ) -> None:
+        """Record a drift detection event."""
+        self._drift_events.append({
+            "model_id": model_id,
+            "event_type": event_type,
+            "features": features,
+            "detected_at": datetime.now(timezone.utc).isoformat(),
+        })
+        # Cap event log
+        if len(self._drift_events) > 1000:
+            self._drift_events = self._drift_events[-1000:]
+        logger.info(
+            "OnlineLearningStore: drift event '%s' for model '%s' (features=%s)",
+            event_type, model_id, features
+        )
+
+
+# ---------------------------------------------------------------------------
+# PRIORITIZED EXPERIENCE BUFFER — 10,000-sample replay buffer
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class BufferSample:
+    """A single sample in the prioritized experience buffer."""
+
+    sample_id: str
+    features: Dict[str, Any]
+    label: Any
+    priority: float               # Higher = sampled more often
+    timestamp: str
+    is_human_feedback: bool = False
+    surprise_score: float = 0.0   # Model prediction error
+    recency_score: float = 0.0    # How recent (0-1, 1=newest)
+    diversity_score: float = 0.0  # How different from other samples
+
+
+class PrioritizedBuffer:
+    """Prioritized experience replay buffer for online learning.
+
+    Maintains up to 10,000 samples with priority-weighted sampling.
+    Priority score = surprise + human_signal + recency + diversity.
+
+    Key properties:
+    - Human feedback samples are NEVER evicted (highest priority floor)
+    - Low-priority samples are evicted first when buffer is full
+    - Weighted sampling: high-priority samples are selected more often
+    - Diversity score penalizes duplicate/similar samples
+
+    Usage::
+
+        buf = PrioritizedBuffer(capacity=10000)
+        buf.add({"feature_a": 1.2, "label": "high"}, priority=0.8)
+        batch = buf.sample(n=32)
+        stats = buf.get_stats()
+    """
+
+    HUMAN_FEEDBACK_PRIORITY_FLOOR = 9.5   # Never evict human feedback
+    MAX_CAPACITY = 10_000
+
+    def __init__(
+        self,
+        capacity: int = 10_000,
+        alpha: float = 0.6,          # Priority exponent (0=uniform, 1=full priority)
+        beta: float = 0.4,           # Importance sampling correction
+    ) -> None:
+        """Initialise prioritized buffer.
+
+        Args:
+            capacity: Maximum buffer size (capped at 10,000).
+            alpha: Priority exponent for weighted sampling.
+            beta: Importance sampling correction factor.
+        """
+        self._capacity = min(capacity, self.MAX_CAPACITY)
+        self._alpha = alpha
+        self._beta = beta
+        self._buffer: List[BufferSample] = []
+        self._total_added: int = 0
+
+    def add(
+        self,
+        sample: Dict[str, Any],
+        priority: float = 1.0,
+        is_human_feedback: bool = False,
+        surprise_score: float = 0.0,
+        label: Any = None,
+    ) -> str:
+        """Add a sample to the buffer.
+
+        Args:
+            sample: Feature dict (may include 'label' key).
+            priority: Initial priority score (0-10).
+            is_human_feedback: If True, sample will never be evicted.
+            surprise_score: Model prediction error for this sample.
+            label: Class label (or extracted from sample['label']).
+
+        Returns:
+            sample_id of the added sample.
+        """
+        sample_id = f"buf-{self._total_added:06d}-{id(sample) % 9999:04d}"
+        self._total_added += 1
+
+        if is_human_feedback:
+            priority = max(priority, self.HUMAN_FEEDBACK_PRIORITY_FLOOR)
+
+        # Compute recency score (newest = 1.0)
+        recency = 1.0  # New samples are maximally recent
+
+        # Compute diversity score (basic: inversely proportional to buffer size)
+        diversity = max(0.1, 1.0 - len(self._buffer) / self._capacity)
+
+        # Composite priority
+        composite = (
+            0.4 * min(10.0, priority)
+            + 0.3 * min(10.0, surprise_score * 10.0)
+            + 0.2 * recency * 10.0
+            + 0.1 * diversity * 10.0
+        )
+        if is_human_feedback:
+            composite = max(composite, self.HUMAN_FEEDBACK_PRIORITY_FLOOR)
+
+        extracted_label = label if label is not None else sample.get("label")
+
+        buf_sample = BufferSample(
+            sample_id=sample_id,
+            features={k: v for k, v in sample.items() if k != "label"},
+            label=extracted_label,
+            priority=round(composite, 4),
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            is_human_feedback=is_human_feedback,
+            surprise_score=surprise_score,
+            recency_score=recency,
+            diversity_score=diversity,
+        )
+
+        self._buffer.append(buf_sample)
+
+        # Evict if over capacity
+        if len(self._buffer) > self._capacity:
+            self._evict_lowest_priority()
+
+        # Recompute recency scores for all (amortized every 100 adds)
+        if self._total_added % 100 == 0:
+            self._recompute_recency()
+
+        return sample_id
+
+    def sample(
+        self,
+        n: int,
+        return_weights: bool = False,
+    ) -> List[Dict[str, Any]]:
+        """Sample n items using priority-weighted sampling.
+
+        Args:
+            n: Number of samples to draw.
+            return_weights: If True, include importance weights in output.
+
+        Returns:
+            List of sample dicts with features, label, priority, sample_id.
+        """
+        if not self._buffer:
+            return []
+
+        n = min(n, len(self._buffer))
+
+        # Compute sampling probabilities (priority^alpha)
+        priorities = [s.priority ** self._alpha for s in self._buffer]
+        total = sum(priorities)
+        probs = [p / total for p in priorities]
+
+        # Weighted sampling without replacement
+        indices: List[int] = []
+        used: set = set()
+        attempts = 0
+        while len(indices) < n and attempts < n * 10:
+            idx = self._weighted_choice(probs)
+            if idx not in used:
+                indices.append(idx)
+                used.add(idx)
+            attempts += 1
+
+        results = []
+        max_weight = max(
+            (1.0 / (len(self._buffer) * probs[i])) ** self._beta
+            for i in indices
+            if probs[i] > 0
+        )
+
+        for idx in indices:
+            s = self._buffer[idx]
+            item: Dict[str, Any] = {
+                "sample_id": s.sample_id,
+                "features": s.features,
+                "label": s.label,
+                "priority": s.priority,
+                "is_human_feedback": s.is_human_feedback,
+                "timestamp": s.timestamp,
+            }
+            if return_weights:
+                w = (1.0 / (len(self._buffer) * probs[idx])) ** self._beta
+                item["importance_weight"] = w / max_weight
+            results.append(item)
+
+        return results
+
+    def update_priorities(self, updates: List[Dict[str, Any]]) -> None:
+        """Update priorities for samples (e.g., after model update).
+
+        Args:
+            updates: List of dicts with sample_id and new_priority.
+        """
+        id_to_idx = {s.sample_id: i for i, s in enumerate(self._buffer)}
+        for update in updates:
+            sid = update.get("sample_id", "")
+            new_prio = float(update.get("new_priority", 1.0))
+            if sid in id_to_idx:
+                idx = id_to_idx[sid]
+                s = self._buffer[idx]
+                if s.is_human_feedback:
+                    new_prio = max(new_prio, self.HUMAN_FEEDBACK_PRIORITY_FLOOR)
+                self._buffer[idx].priority = round(new_prio, 4)
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Return buffer statistics."""
+        if not self._buffer:
+            return {
+                "size": 0,
+                "capacity": self._capacity,
+                "human_feedback_count": 0,
+            }
+
+        priorities = [s.priority for s in self._buffer]
+        human_count = sum(1 for s in self._buffer if s.is_human_feedback)
+
+        return {
+            "size": len(self._buffer),
+            "capacity": self._capacity,
+            "utilization_pct": round(len(self._buffer) / self._capacity * 100, 1),
+            "total_added": self._total_added,
+            "human_feedback_count": human_count,
+            "human_feedback_pct": round(human_count / len(self._buffer) * 100, 1),
+            "priority_stats": {
+                "mean": round(sum(priorities) / len(priorities), 3),
+                "min": round(min(priorities), 3),
+                "max": round(max(priorities), 3),
+            },
+            "alpha": self._alpha,
+            "beta": self._beta,
+        }
+
+    def get_highest_priority(self, n: int = 10) -> List[Dict[str, Any]]:
+        """Return the n highest-priority samples."""
+        sorted_buf = sorted(self._buffer, key=lambda s: s.priority, reverse=True)
+        return [
+            {
+                "sample_id": s.sample_id,
+                "priority": s.priority,
+                "is_human_feedback": s.is_human_feedback,
+                "timestamp": s.timestamp,
+            }
+            for s in sorted_buf[:n]
+        ]
+
+    def clear(self, keep_human_feedback: bool = True) -> int:
+        """Clear the buffer, optionally preserving human feedback.
+
+        Args:
+            keep_human_feedback: If True, preserve human feedback samples.
+
+        Returns:
+            Number of samples removed.
+        """
+        original_size = len(self._buffer)
+        if keep_human_feedback:
+            self._buffer = [s for s in self._buffer if s.is_human_feedback]
+        else:
+            self._buffer = []
+        return original_size - len(self._buffer)
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    def _evict_lowest_priority(self) -> None:
+        """Remove the lowest-priority non-human-feedback sample."""
+        # Find lowest priority sample that is not human feedback
+        non_hf = [
+            (i, s) for i, s in enumerate(self._buffer)
+            if not s.is_human_feedback
+        ]
+        if not non_hf:
+            # All are human feedback; evict true lowest
+            min_idx = min(range(len(self._buffer)), key=lambda i: self._buffer[i].priority)
+            self._buffer.pop(min_idx)
+        else:
+            min_idx = min(non_hf, key=lambda t: t[1].priority)[0]
+            self._buffer.pop(min_idx)
+
+    def _recompute_recency(self) -> None:
+        """Recompute recency scores based on timestamp order."""
+        n = len(self._buffer)
+        if n == 0:
+            return
+        try:
+            sorted_indices = sorted(
+                range(n),
+                key=lambda i: self._buffer[i].timestamp,
+            )
+            for rank, idx in enumerate(sorted_indices):
+                recency = rank / max(1, n - 1)
+                self._buffer[idx].recency_score = recency
+        except Exception:
+            pass  # Timestamps may be malformed; skip
+
+    @staticmethod
+    def _weighted_choice(probs: List[float]) -> int:
+        """Return an index sampled according to probs."""
+        r = hash(str(probs)) % 10_000 / 10_000.0  # Deterministic fallback
+        try:
+            import random as _random
+            r = _random.random()
+        except Exception:
+            pass
+        cumulative = 0.0
+        for i, p in enumerate(probs):
+            cumulative += p
+            if r <= cumulative:
+                return i
+        return len(probs) - 1
+
+
+# ---------------------------------------------------------------------------
+# STORAGE FORECASTER — Predictive capacity planning with tier analysis
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class StorageForecast:
+    """A single storage forecast result."""
+
+    horizon_days: int
+    current_bytes: int
+    projected_bytes: int
+    daily_growth_bytes: float
+    compression_ratio: float
+    effective_bytes: int              # After compression
+    approaching_capacity: bool
+    capacity_threshold_bytes: int
+    days_until_threshold: Optional[int]
+    tier_breakdown: Dict[str, int]    # tier_name → projected bytes
+    recommendations: List[str]
+    generated_at: str
+
+
+class StorageForecaster:
+    """Predictive storage capacity forecasting for Zero-Gravity tiers.
+
+    Combines observed data ingestion rates, compression ratios, and
+    tier migration policies to forecast storage needs at 30, 60, and
+    90-day horizons. Generates actionable recommendations when
+    approaching configured capacity thresholds.
+
+    Usage::
+
+        forecaster = StorageForecaster()
+        forecast = forecaster.forecast(horizon_days=90)
+        alert = forecaster.check_capacity_alert()
+        recs = forecaster.get_optimization_recommendations()
+    """
+
+    DEFAULT_CAPACITY_THRESHOLD_GB = 50.0   # Alert at 50 GB
+    COMPRESSION_RATIOS: Dict[str, float] = {
+        "hot": 1.0,      # No compression
+        "warm": 2.5,     # zstd typically achieves 2-4x on JSON/log data
+        "cold": 4.0,     # Higher compression (bz2/xz)
+        "archive": 6.0,  # Maximum compression (sealed bundles)
+    }
+
+    def __init__(
+        self,
+        capacity_threshold_gb: float = DEFAULT_CAPACITY_THRESHOLD_GB,
+        zg_engine: Optional[Any] = None,  # ZeroGravityEngine reference
+    ) -> None:
+        """Initialise the storage forecaster.
+
+        Args:
+            capacity_threshold_gb: Alert threshold in GB.
+            zg_engine: Optional ZeroGravityEngine for live tier stats.
+        """
+        self._threshold_bytes = int(capacity_threshold_gb * 1024 ** 3)
+        self._zg_engine = zg_engine
+
+        # Ingestion history for linear regression: list of (day_offset, bytes)
+        self._ingestion_history: List[Tuple[int, int]] = []
+        self._history_start: Optional[datetime] = None
+
+    def record_ingestion(self, bytes_added: int) -> None:
+        """Record a data ingestion event for forecasting accuracy.
+
+        Args:
+            bytes_added: Number of bytes added this period.
+        """
+        now = datetime.now(timezone.utc)
+        if self._history_start is None:
+            self._history_start = now
+        day_offset = (now - self._history_start).days
+        self._ingestion_history.append((day_offset, bytes_added))
+
+        # Keep last 90 data points
+        if len(self._ingestion_history) > 90:
+            self._ingestion_history = self._ingestion_history[-90:]
+
+    def forecast(
+        self,
+        horizon_days: int = 90,
+        current_tier_bytes: Optional[Dict[str, int]] = None,
+    ) -> StorageForecast:
+        """Generate a storage forecast for the given horizon.
+
+        Args:
+            horizon_days: Number of days to forecast (30, 60, or 90).
+            current_tier_bytes: Dict of tier_name → current bytes.
+                                If None, uses internal estimates.
+
+        Returns:
+            StorageForecast with projections and recommendations.
+        """
+        tier_bytes = current_tier_bytes or self._get_current_tier_bytes()
+        current_total = sum(tier_bytes.values())
+
+        # Estimate daily growth rate
+        daily_rate = self._estimate_daily_growth_rate(current_total)
+
+        # Project raw bytes
+        projected_raw = int(current_total + daily_rate * horizon_days)
+
+        # Apply per-tier compression to effective projection
+        projected_tier: Dict[str, int] = {}
+        for tier, tier_current_bytes in tier_bytes.items():
+            cr = self.COMPRESSION_RATIOS.get(tier, 1.0)
+            # Proportional growth per tier
+            tier_growth = daily_rate * horizon_days * (
+                tier_current_bytes / max(current_total, 1)
+            )
+            projected_tier[tier] = int(
+                (tier_current_bytes + tier_growth) / cr
+            )
+
+        effective_bytes = sum(projected_tier.values())
+        approaching = effective_bytes >= self._threshold_bytes * 0.8
+
+        # Days until threshold
+        days_until = self._estimate_days_to_threshold(
+            current_total, daily_rate, effective_bytes
+        )
+
+        # Average compression across tiers
+        avg_cr = (
+            effective_bytes / max(projected_raw, 1)
+            if projected_raw > 0 else 1.0
+        )
+
+        recommendations = self._build_recommendations(
+            horizon_days, effective_bytes, approaching, days_until, tier_bytes
+        )
+
+        return StorageForecast(
+            horizon_days=horizon_days,
+            current_bytes=current_total,
+            projected_bytes=projected_raw,
+            daily_growth_bytes=daily_rate,
+            compression_ratio=round(avg_cr, 2),
+            effective_bytes=effective_bytes,
+            approaching_capacity=approaching,
+            capacity_threshold_bytes=self._threshold_bytes,
+            days_until_threshold=days_until,
+            tier_breakdown=projected_tier,
+            recommendations=recommendations,
+            generated_at=datetime.now(timezone.utc).isoformat(),
+        )
+
+    def forecast_multi_horizon(self) -> Dict[str, Any]:
+        """Generate forecasts for 30, 60, and 90-day horizons.
+
+        Returns:
+            Dict with forecasts for each horizon.
+        """
+        tier_bytes = self._get_current_tier_bytes()
+        results: Dict[str, Any] = {}
+        for days in [30, 60, 90]:
+            fc = self.forecast(horizon_days=days, current_tier_bytes=tier_bytes)
+            results[f"{days}_day"] = {
+                "horizon_days": fc.horizon_days,
+                "projected_effective_bytes": fc.effective_bytes,
+                "projected_effective_mb": round(fc.effective_bytes / (1024 * 1024), 1),
+                "approaching_capacity": fc.approaching_capacity,
+                "days_until_threshold": fc.days_until_threshold,
+                "compression_ratio": fc.compression_ratio,
+                "recommendations": fc.recommendations[:2],
+            }
+        return {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "current_bytes": sum(tier_bytes.values()),
+            "threshold_gb": self._threshold_bytes / (1024 ** 3),
+            "forecasts": results,
+        }
+
+    def check_capacity_alert(
+        self, current_tier_bytes: Optional[Dict[str, int]] = None
+    ) -> Dict[str, Any]:
+        """Check if storage is approaching the capacity threshold.
+
+        Returns:
+            Dict with alert_level (none/warning/critical), pct_used, message.
+        """
+        tier_bytes = current_tier_bytes or self._get_current_tier_bytes()
+        current = sum(tier_bytes.values())
+        pct = current / self._threshold_bytes * 100.0 if self._threshold_bytes > 0 else 0.0
+
+        if pct >= 90.0:
+            level = "critical"
+            msg = f"Storage at {pct:.1f}% of threshold — immediate action required"
+        elif pct >= 75.0:
+            level = "warning"
+            msg = f"Storage at {pct:.1f}% of threshold — plan capacity expansion"
+        elif pct >= 60.0:
+            level = "notice"
+            msg = f"Storage at {pct:.1f}% of threshold — monitor growth rate"
+        else:
+            level = "none"
+            msg = f"Storage at {pct:.1f}% of threshold — nominal"
+
+        return {
+            "alert_level": level,
+            "current_bytes": current,
+            "current_mb": round(current / (1024 * 1024), 1),
+            "threshold_bytes": self._threshold_bytes,
+            "threshold_gb": round(self._threshold_bytes / (1024 ** 3), 1),
+            "pct_used": round(pct, 1),
+            "message": msg,
+            "tier_breakdown_mb": {
+                tier: round(b / (1024 * 1024), 2)
+                for tier, b in tier_bytes.items()
+            },
+        }
+
+    def get_optimization_recommendations(
+        self,
+        current_tier_bytes: Optional[Dict[str, int]] = None,
+    ) -> List[str]:
+        """Return storage optimization recommendations based on current state.
+
+        Returns:
+            List of actionable recommendation strings.
+        """
+        tier_bytes = current_tier_bytes or self._get_current_tier_bytes()
+        recs: List[str] = []
+
+        hot_bytes = tier_bytes.get("hot", 0)
+        warm_bytes = tier_bytes.get("warm", 0)
+        total = sum(tier_bytes.values())
+
+        if total == 0:
+            return ["No data present — storage system is healthy"]
+
+        hot_pct = hot_bytes / total * 100.0
+
+        if hot_pct > 60:
+            recs.append(
+                f"HOT tier holds {hot_pct:.0f}% of data — review migration policy; "
+                "consider lowering FIXOPS_ZG_HOT_DAYS to trigger earlier warm migration"
+            )
+
+        if warm_bytes > hot_bytes * 3:
+            recs.append(
+                "WARM tier significantly larger than HOT — increase compression "
+                "ratio or trigger cold migration for data >60 days old"
+            )
+
+        forecast_90 = self.forecast(horizon_days=90, current_tier_bytes=tier_bytes)
+        if forecast_90.approaching_capacity:
+            recs.append(
+                f"Projected to reach 80% capacity within {forecast_90.days_until_threshold or 90} days — "
+                "increase FIXOPS_ZG_MAX_HOT_MB or provision additional storage"
+            )
+
+        daily_gb = forecast_90.daily_growth_bytes / (1024 ** 3)
+        if daily_gb < 0.001:
+            recs.append(
+                f"Very low ingestion rate ({daily_gb*1000:.2f} MB/day) — "
+                "verify data pipeline is functioning correctly"
+            )
+        elif daily_gb > 1.0:
+            recs.append(
+                f"High ingestion rate ({daily_gb:.2f} GB/day) — "
+                "enable aggressive deduplication (set FIXOPS_ZG_DEDUP=aggressive)"
+            )
+
+        if not recs:
+            recs.append("Storage profile is optimal — no action required")
+
+        return recs
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    def _estimate_daily_growth_rate(self, current_total: int) -> float:
+        """Estimate daily bytes growth rate from ingestion history."""
+        if len(self._ingestion_history) >= 2:
+            # Linear regression on ingestion history
+            n = len(self._ingestion_history)
+            x_vals = [h[0] for h in self._ingestion_history]
+            y_vals = [h[1] for h in self._ingestion_history]
+            x_mean = sum(x_vals) / n
+            y_mean = sum(y_vals) / n
+            num = sum((x - x_mean) * (y - y_mean) for x, y in zip(x_vals, y_vals))
+            den = sum((x - x_mean) ** 2 for x in x_vals)
+            return num / den if den != 0 else y_mean
+        # Fallback: 0.5% of current size per day
+        return max(1024.0, current_total * 0.005)
+
+    def _estimate_days_to_threshold(
+        self,
+        current: int,
+        daily_rate: float,
+        effective_bytes: int,
+    ) -> Optional[int]:
+        """Estimate days until reaching 80% of capacity threshold."""
+        target = self._threshold_bytes * 0.8
+        if effective_bytes >= target:
+            return 0
+        if daily_rate <= 0:
+            return None
+        return int((target - effective_bytes) / max(1.0, daily_rate))
+
+    def _get_current_tier_bytes(self) -> Dict[str, int]:
+        """Get current tier sizes from ZG engine or return defaults."""
+        if self._zg_engine is not None:
+            try:
+                stats = self._zg_engine.get_storage_stats()
+                return {
+                    tier: info.get("bytes", 0)
+                    for tier, info in stats.get("tiers", {}).items()
+                }
+            except Exception:
+                pass
+        return {"hot": 0, "warm": 0, "cold": 0, "archive": 0}
+
+    def _build_recommendations(
+        self,
+        horizon_days: int,
+        effective_bytes: int,
+        approaching: bool,
+        days_until: Optional[int],
+        tier_bytes: Dict[str, int],
+    ) -> List[str]:
+        """Build forecast-specific recommendations."""
+        recs: List[str] = []
+        eff_mb = effective_bytes / (1024 * 1024)
+
+        if approaching:
+            recs.append(
+                f"Capacity alert: {horizon_days}-day projection ({eff_mb:.0f} MB) "
+                f"approaches {self._threshold_bytes // (1024**3):.0f} GB threshold"
+            )
+            if days_until is not None and days_until < 30:
+                recs.append(
+                    f"Urgent: threshold reached in ~{days_until} days — "
+                    "provision additional storage immediately"
+                )
+
+        hot = tier_bytes.get("hot", 0)
+        if hot > 10 * 1024 * 1024:  # >10 MB hot tier
+            recs.append(
+                "Consider enabling incremental summarization to reduce hot-tier footprint"
+            )
+
+        if eff_mb < 100:
+            recs.append(
+                f"Storage usage is low ({eff_mb:.1f} MB) — system well within capacity"
+            )
+
+        if not recs:
+            recs.append(f"Storage on track: {eff_mb:.1f} MB projected at {horizon_days} days")
+        return recs
+
+
+# ---------------------------------------------------------------------------
+# Module-level singleton updates
+# ---------------------------------------------------------------------------
+
+_online_learning_store: Optional[OnlineLearningStore] = None
+_prioritized_buffer: Optional[PrioritizedBuffer] = None
+_storage_forecaster: Optional[StorageForecaster] = None
+
+
+def get_online_learning_store() -> OnlineLearningStore:
+    """Return the module-level OnlineLearningStore singleton."""
+    global _online_learning_store
+    if _online_learning_store is None:
+        _online_learning_store = OnlineLearningStore()
+    return _online_learning_store
+
+
+def get_prioritized_buffer() -> PrioritizedBuffer:
+    """Return the module-level PrioritizedBuffer singleton."""
+    global _prioritized_buffer
+    if _prioritized_buffer is None:
+        _prioritized_buffer = PrioritizedBuffer()
+    return _prioritized_buffer
+
+
+def get_storage_forecaster() -> StorageForecaster:
+    """Return the module-level StorageForecaster singleton."""
+    global _storage_forecaster
+    if _storage_forecaster is None:
+        _storage_forecaster = StorageForecaster()
+    return _storage_forecaster
+
+
+__all__ += [
+    "ADWIN",
+    "DDM",
+    "NaiveBayesOnline",
+    "OnlineLearningStore",
+    "BufferSample",
+    "PrioritizedBuffer",
+    "StorageForecast",
+    "StorageForecaster",
+    "get_online_learning_store",
+    "get_prioritized_buffer",
+    "get_storage_forecaster",
+]

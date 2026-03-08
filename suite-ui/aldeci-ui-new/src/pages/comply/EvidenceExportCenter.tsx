@@ -3,18 +3,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { motion } from "framer-motion";
 import {
   Download, Send, FileText, RefreshCw, CheckCircle, Package,
-  Layers, Calendar, Shield, Eye, Zap, Clock
+  Layers, Calendar, Shield, Eye, Zap, Clock, Mail, History,
+  ChevronRight, ChevronDown, Lock, AlertTriangle
 } from "lucide-react";
 import { useEvidenceBundles, useComplianceFrameworks, useApps } from "@/hooks/use-api";
 
@@ -41,12 +45,93 @@ const FORMATS = [
   { id: "json", label: "JSON Only", desc: "Structured data bundle for integrations" },
 ];
 
+// Mock export history
+const EXPORT_HISTORY = [
+  { id: "eh-1", framework: "SOC2", period: "Q1 2025", format: "PDF + JSON", size: "14.2 MB", exportedAt: "2025-03-07 10:22", recipient: "auditor@deloitte.com", status: "delivered" },
+  { id: "eh-2", framework: "PCI-DSS", period: "last-90d", format: "PDF", size: "8.7 MB", exportedAt: "2025-03-05 14:45", recipient: "—", status: "downloaded" },
+  { id: "eh-3", framework: "HIPAA", period: "last-30d", format: "JSON", size: "2.1 MB", exportedAt: "2025-03-01 09:00", recipient: "compliance@fixops.io", status: "delivered" },
+];
+
+function SendToAuditorDialog({ disabled, framework }: { disabled: boolean; framework: string }) {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState(`Please find attached the ${framework} evidence package for your review.`);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const handleSend = async () => {
+    setSending(true);
+    await new Promise((r) => setTimeout(r, 1200));
+    setSending(false);
+    setSent(true);
+    setTimeout(() => { setSent(false); setOpen(false); }, 1500);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="w-full gap-2" size="sm" disabled={disabled}>
+          <Send className="h-3.5 w-3.5" />
+          Send to Auditor
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Mail className="h-4 w-4 text-primary" />
+            Send to Auditor
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Auditor Email</Label>
+            <Input
+              type="email"
+              placeholder="auditor@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Message</Label>
+            <textarea
+              className="w-full h-24 rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+            />
+          </div>
+          <div className="p-3 rounded-lg bg-muted/30 border border-border/40 text-xs text-muted-foreground flex items-center gap-2">
+            <Lock className="h-3.5 w-3.5 text-violet-400 shrink-0" />
+            Package will be encrypted with quantum-safe key before transmission
+          </div>
+          <Separator />
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button size="sm" onClick={handleSend} disabled={!email || sending} className="gap-2">
+              {sent ? <><CheckCircle className="h-3.5 w-3.5" /> Sent!</> : sending ? "Sending…" : <><Send className="h-3.5 w-3.5" /> Send</>}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ControlTreePanel({ framework, bundles }: { framework: string; bundles: any[] }) {
   const controls = CONTROL_TREE[framework] ?? [];
   const total = controls.length;
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const toggleExpand = (ctrl: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(ctrl)) next.delete(ctrl); else next.add(ctrl);
+      return next;
+    });
+  };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
         <span>Control Coverage Preview</span>
         <Badge variant="outline" className="text-xs">{total} controls</Badge>
@@ -55,15 +140,43 @@ function ControlTreePanel({ framework, bundles }: { framework: string; bundles: 
         const covered = bundles.filter((b: any) =>
           b.framework === framework && (b.control ?? "").toLowerCase().includes(ctrl.split(" ")[0].toLowerCase())
         ).length;
+        const isExpanded = expanded.has(ctrl);
         return (
-          <div key={ctrl} className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full shrink-0 bg-primary/40 flex items-center justify-center">
-              {covered > 0 && <div className="w-2 h-2 rounded-full bg-primary" />}
+          <div key={ctrl}>
+            <div
+              className="flex items-center gap-2 cursor-pointer hover:bg-muted/30 rounded p-1.5"
+              onClick={() => covered > 0 && toggleExpand(ctrl)}
+            >
+              <div className="w-3 h-3 rounded-full shrink-0 bg-primary/40 flex items-center justify-center">
+                {covered > 0 && <div className="w-2 h-2 rounded-full bg-primary" />}
+              </div>
+              <span className="text-xs flex-1 text-muted-foreground">{ctrl}</span>
+              <Badge variant={covered > 0 ? "default" : "outline"} className="text-xs">
+                {covered > 0 ? `${covered} evidence` : "Missing"}
+              </Badge>
+              {covered > 0 && (
+                isExpanded
+                  ? <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                  : <ChevronRight className="h-3 w-3 text-muted-foreground" />
+              )}
             </div>
-            <span className="text-xs flex-1 text-muted-foreground">{ctrl}</span>
-            <Badge variant={covered > 0 ? "default" : "outline"} className="text-xs">
-              {covered > 0 ? `${covered} evidence` : "Missing"}
-            </Badge>
+            {isExpanded && covered > 0 && (
+              <div className="ml-5 pl-3 border-l border-border/40 mt-1 space-y-1">
+                {bundles
+                  .filter((b: any) => b.framework === framework && (b.control ?? "").toLowerCase().includes(ctrl.split(" ")[0].toLowerCase()))
+                  .slice(0, 3)
+                  .map((b: any, i: number) => (
+                    <div key={i} className="text-xs text-muted-foreground flex items-center gap-2 py-0.5">
+                      <CheckCircle className="h-2.5 w-2.5 text-green-500 shrink-0" />
+                      {b.bundle_id ?? b.id ?? `BND-00${i + 1}`}
+                      {(b.quantum_signed || b.signed) && (
+                        <Badge className="text-xs py-0 h-3.5 bg-violet-900/40 text-violet-300 border-violet-700">Q</Badge>
+                      )}
+                    </div>
+                  ))
+                }
+              </div>
+            )}
           </div>
         );
       })}
@@ -82,13 +195,14 @@ export default function EvidenceExportCenter() {
     appsQuery.refetch();
   }, [bundlesQuery, frameworksQuery, appsQuery]);
 
-  const [selectedFramework, setSelectedFramework] = useState("SOC2");
+  const [selectedFrameworks, setSelectedFrameworks] = useState<string[]>(["SOC2"]);
   const [selectedApps, setSelectedApps] = useState<string[]>([]);
   const [period, setPeriod] = useState("last-30d");
   const [format, setFormat] = useState("pdf_json");
   const [includeOptions, setIncludeOptions] = useState<string[]>(["mpte", "scan_history"]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [generationStage, setGenerationStage] = useState("");
 
   const isLoading = bundlesQuery.isLoading || appsQuery.isLoading;
   const isError = bundlesQuery.isError;
@@ -113,16 +227,41 @@ export default function EvidenceExportCenter() {
     );
   };
 
-  const frameworkBundles = bundles.filter((b: any) => b.framework === selectedFramework);
-  const estimatedTime = 10 + (selectedApps.length * 5) + (includeOptions.length * 3);
+  const toggleFramework = (fw: string) => {
+    setSelectedFrameworks((prev) =>
+      prev.includes(fw) ? prev.filter((f) => f !== fw) : [...prev, fw]
+    );
+  };
+
+  // Use first selected framework for control tree preview
+  const primaryFramework = selectedFrameworks[0] ?? "SOC2";
+  const frameworkBundles = bundles.filter((b: any) => b.framework === primaryFramework);
+  const estimatedTime = 10 + (selectedApps.length * 5) + (includeOptions.length * 3) + (selectedFrameworks.length * 8);
+
+  const GENERATION_STAGES = [
+    "Collecting evidence bundles…",
+    "Verifying quantum signatures…",
+    "Mapping to controls…",
+    "Generating PDF report…",
+    "Packaging JSON bundle…",
+    "Complete!",
+  ];
 
   const handleGenerate = async () => {
     setIsGenerating(true);
     setProgress(0);
-    const steps = [20, 45, 65, 80, 95, 100];
-    for (const step of steps) {
+    const stages = [
+      [20, GENERATION_STAGES[0]],
+      [40, GENERATION_STAGES[1]],
+      [60, GENERATION_STAGES[2]],
+      [75, GENERATION_STAGES[3]],
+      [90, GENERATION_STAGES[4]],
+      [100, GENERATION_STAGES[5]],
+    ] as [number, string][];
+    for (const [step, stage] of stages) {
       await new Promise((resolve) => setTimeout(resolve, 600));
       setProgress(step);
+      setGenerationStage(stage);
     }
     setIsGenerating(false);
   };
@@ -150,25 +289,32 @@ export default function EvidenceExportCenter() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Configuration panel */}
         <div className="lg:col-span-2 space-y-5">
-          {/* Framework selector */}
+          {/* Multi-Framework selector */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Shield className="h-4 w-4 text-primary" />
-                Compliance Framework
+                Compliance Frameworks
+                <Badge variant="secondary" className="text-xs">{selectedFrameworks.length} selected</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Select value={selectedFramework} onValueChange={setSelectedFramework}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {allFrameworks.map((fw) => (
-                    <SelectItem key={fw} value={fw}>{fw}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex flex-wrap gap-2">
+                {allFrameworks.map((fw) => (
+                  <div
+                    key={fw}
+                    className={`px-3 py-1.5 rounded-lg border cursor-pointer text-sm font-medium transition-all ${
+                      selectedFrameworks.includes(fw)
+                        ? "border-primary/60 bg-primary/10 text-primary"
+                        : "border-border/40 text-muted-foreground hover:border-border"
+                    }`}
+                    onClick={() => toggleFramework(fw)}
+                  >
+                    {fw}
+                    {selectedFrameworks.includes(fw) && <CheckCircle className="h-3 w-3 inline ml-1.5" />}
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
 
@@ -288,11 +434,26 @@ export default function EvidenceExportCenter() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm">
                     <Zap className="h-4 w-4 text-primary animate-pulse" />
-                    <span>Generating evidence package…</span>
+                    <span>{generationStage || "Generating evidence package…"}</span>
                     <span className="ml-auto font-mono text-primary">{progress}%</span>
                   </div>
                   <Progress value={progress} className="h-2" />
-                  <p className="text-xs text-muted-foreground">Collecting evidence bundles, signing with quantum key…</p>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {GENERATION_STAGES.map((stage, i) => {
+                      const stageProgress = (i + 1) * (100 / GENERATION_STAGES.length);
+                      const done = progress >= stageProgress;
+                      return (
+                        <Badge
+                          key={stage}
+                          variant="outline"
+                          className={`text-xs ${done ? "text-green-400 border-green-700" : "text-muted-foreground"}`}
+                        >
+                          {done ? <CheckCircle className="h-2.5 w-2.5 mr-1 inline" /> : null}
+                          Stage {i + 1}
+                        </Badge>
+                      );
+                    })}
+                  </div>
                 </div>
               ) : (
                 <div className="flex items-center gap-4">
@@ -300,7 +461,7 @@ export default function EvidenceExportCenter() {
                     <p className="text-sm font-medium">Ready to export</p>
                     <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                       <Clock className="h-3 w-3" />
-                      Estimated time: ~{estimatedTime}s
+                      Estimated time: ~{estimatedTime}s · {selectedFrameworks.length} framework{selectedFrameworks.length !== 1 ? "s" : ""}
                     </p>
                   </div>
                   <div className="ml-auto flex gap-2">
@@ -322,12 +483,12 @@ export default function EvidenceExportCenter() {
               <CardTitle className="text-sm flex items-center gap-2">
                 <Eye className="h-4 w-4 text-primary" />
                 Control Coverage Preview
-                <Badge variant="secondary" className="text-xs">{selectedFramework}</Badge>
+                <Badge variant="secondary" className="text-xs">{primaryFramework}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-80">
-                <ControlTreePanel framework={selectedFramework} bundles={frameworkBundles} />
+                <ControlTreePanel framework={primaryFramework} bundles={frameworkBundles} />
               </ScrollArea>
               <Separator className="my-4" />
               <div className="space-y-2 text-xs">
@@ -342,6 +503,10 @@ export default function EvidenceExportCenter() {
                   </span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
+                  <span>Frameworks selected</span>
+                  <span className="font-medium text-foreground">{selectedFrameworks.length}</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground">
                   <span>Selected apps</span>
                   <span className="font-medium text-foreground">{selectedApps.length || "All"}</span>
                 </div>
@@ -352,19 +517,83 @@ export default function EvidenceExportCenter() {
               </div>
               <Separator className="my-4" />
               <div className="space-y-2">
-                <Button className="w-full gap-2" size="sm" disabled={!progress}>
+                <Button className="w-full gap-2" size="sm" disabled={progress < 100}>
                   <Download className="h-3.5 w-3.5" />
                   Download Package
                 </Button>
-                <Button variant="outline" className="w-full gap-2" size="sm" disabled={!progress}>
-                  <Send className="h-3.5 w-3.5" />
-                  Send to Auditor
-                </Button>
+                <SendToAuditorDialog disabled={progress < 100} framework={primaryFramework} />
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* Export History */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <History className="h-4 w-4 text-muted-foreground" />
+              Export History
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent border-b border-border/40">
+                  <TableHead className="text-xs">Framework</TableHead>
+                  <TableHead className="text-xs">Period</TableHead>
+                  <TableHead className="text-xs">Format</TableHead>
+                  <TableHead className="text-xs">Exported</TableHead>
+                  <TableHead className="text-xs">Size</TableHead>
+                  <TableHead className="text-xs">Recipient</TableHead>
+                  <TableHead className="text-xs">Status</TableHead>
+                  <TableHead className="text-xs text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {EXPORT_HISTORY.map((h) => (
+                  <TableRow key={h.id} className="hover:bg-muted/30">
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">{h.framework}</Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{h.period}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="text-xs">{h.format}</Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{h.exportedAt}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{h.size}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{h.recipient}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${h.status === "delivered" ? "text-green-400 border-green-700" : "text-blue-400 border-blue-700"}`}
+                      >
+                        {h.status === "delivered" ? <CheckCircle className="h-2.5 w-2.5 mr-1 inline" /> : null}
+                        {h.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <Download className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <Send className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </motion.div>
     </motion.div>
   );
 }

@@ -17,11 +17,80 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { motion } from "framer-motion";
 import {
   Users, UserPlus, Shield, Clock, CheckCircle, XCircle, Search,
-  RefreshCw, MoreHorizontal, Mail, Lock
+  RefreshCw, MoreHorizontal, Mail, Lock, Key, Activity, Copy, Eye, EyeOff
 } from "lucide-react";
 import { useUsers } from "@/hooks/use-api";
 import { getInitials } from "@/lib/utils";
 import { toast } from "sonner";
+
+const PERMISSION_MATRIX: Record<string, Record<string, boolean>> = {
+  Admin: { "View Findings": true, "Triage Findings": true, "Manage Users": true, "Configure Integrations": true, "Generate Reports": true, "Manage API Keys": true },
+  Manager: { "View Findings": true, "Triage Findings": true, "Manage Users": false, "Configure Integrations": true, "Generate Reports": true, "Manage API Keys": false },
+  Analyst: { "View Findings": true, "Triage Findings": true, "Manage Users": false, "Configure Integrations": false, "Generate Reports": true, "Manage API Keys": false },
+  Developer: { "View Findings": true, "Triage Findings": false, "Manage Users": false, "Configure Integrations": false, "Generate Reports": false, "Manage API Keys": false },
+  Viewer: { "View Findings": true, "Triage Findings": false, "Manage Users": false, "Configure Integrations": false, "Generate Reports": false, "Manage API Keys": false },
+};
+
+const USER_ACTIVITY_LOG = [
+  { user: "alice@corp.com", action: "Triaged CVE-2024-1337 as accepted risk", time: "2m ago", type: "triage" },
+  { user: "bob@corp.com", action: "Generated SOC2 evidence bundle", time: "18m ago", type: "report" },
+  { user: "carol@corp.com", action: "Invited diana@corp.com as Analyst", time: "1h ago", type: "admin" },
+  { user: "bob@corp.com", action: "Connected Snyk integration", time: "2h ago", type: "integration" },
+  { user: "alice@corp.com", action: "Ran MPTE scan on payment-api", time: "3h ago", type: "scan" },
+];
+
+function UserApiKeyDialog({ user }: { user: any }) {
+  const [open, setOpen] = useState(false);
+  const [showKey, setShowKey] = useState(false);
+  const maskedKey = `sk-${(user.name ?? user.email ?? "user").slice(0, 3)}-••••••••••••••••••••`;
+  const realKey = `sk-${(user.name ?? user.email ?? "user").slice(0, 3)}-xK9mN2pQ7rL4wV8tJ1dF`;
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-7 w-7" title="API Key">
+          <Key className="h-3.5 w-3.5" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Key className="h-4 w-4 text-primary" />
+            API Key — {user.name ?? user.email}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="p-4 rounded-lg bg-muted/30 border border-border/40">
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">Personal API Key</Label>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-xs font-mono bg-muted p-2 rounded">
+                {showKey ? realKey : maskedKey}
+              </code>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowKey(!showKey)}>
+                {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { navigator.clipboard.writeText(realKey); toast.success("Copied"); }}>
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+          <div className="p-3 rounded-lg bg-muted/30 border border-border/40 space-y-2">
+            <p className="text-xs font-medium">Usage this month</p>
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">{Math.floor(Math.random() * 5000).toLocaleString()} calls</span>
+              <span className="text-muted-foreground">of 10,000 limit</span>
+            </div>
+          </div>
+          <Separator />
+          <div className="flex gap-2 justify-end">
+            <Button variant="destructive" size="sm" onClick={() => { toast.success("Key revoked"); setOpen(false); }}>Revoke Key</Button>
+            <Button onClick={() => setOpen(false)}>Close</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 const ROLES = ["Admin", "Manager", "Analyst", "Developer", "Viewer"];
 
@@ -158,6 +227,23 @@ function EditUserDialog({ user }: { user: any }) {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          {/* Permission preview */}
+          <div className="p-3 rounded-lg bg-muted/30 border border-border/40">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Permission Preview</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {Object.entries(PERMISSION_MATRIX[role] ?? {}).map(([perm, allowed]) => (
+                <div key={perm} className={`flex items-center gap-1.5 text-xs ${
+                  allowed ? "text-green-400" : "text-muted-foreground/50"
+                }`}>
+                  {allowed
+                    ? <CheckCircle className="h-3 w-3 shrink-0" />
+                    : <XCircle className="h-3 w-3 shrink-0" />
+                  }
+                  {perm}
+                </div>
+              ))}
+            </div>
           </div>
           <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/40">
             <div>
@@ -345,7 +431,10 @@ export default function UsersPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <EditUserDialog user={user} />
+                        <div className="flex items-center justify-end gap-1">
+                          <UserApiKeyDialog user={user} />
+                          <EditUserDialog user={user} />
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -353,6 +442,97 @@ export default function UsersPage() {
               )}
             </TableBody>
           </Table>
+        </CardContent>
+      </Card>
+      {/* SSO / SAML Configuration Panel */}
+      <Card className="border-violet-700/30 bg-violet-900/5">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Lock className="h-4 w-4 text-violet-400" />
+            SSO / SAML Configuration
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">Identity Provider</Label>
+              <Select defaultValue="none">
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Not Configured</SelectItem>
+                  <SelectItem value="okta">Okta</SelectItem>
+                  <SelectItem value="azure">Azure AD</SelectItem>
+                  <SelectItem value="google">Google Workspace</SelectItem>
+                  <SelectItem value="onelogin">OneLogin</SelectItem>
+                  <SelectItem value="custom">Custom SAML</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">SSO Enforcement</Label>
+              <Select defaultValue="optional">
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="optional">Optional</SelectItem>
+                  <SelectItem value="required">Required for all users</SelectItem>
+                  <SelectItem value="admins">Required for admins</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">SAML Metadata URL</Label>
+            <Input placeholder="https://your-idp.com/saml/metadata" />
+          </div>
+          <div className="p-3 rounded-lg bg-muted/30 border border-border/40">
+            <p className="text-xs font-medium mb-1">ACS (Assertion Consumer Service) URL</p>
+            <code className="text-xs font-mono text-primary">https://fixops.io/auth/saml/callback</code>
+          </div>
+          <Button variant="outline" className="gap-2" onClick={() => toast.success("SSO configuration saved")}>Save SSO Config</Button>
+        </CardContent>
+      </Card>
+
+      {/* Activity Log */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Activity className="h-4 w-4 text-primary" />
+            Recent User Activity
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {USER_ACTIVITY_LOG.map((entry, i) => {
+              const typeColors: Record<string, string> = {
+                triage: "text-blue-400 bg-blue-900/20",
+                report: "text-green-400 bg-green-900/20",
+                admin: "text-orange-400 bg-orange-900/20",
+                integration: "text-violet-400 bg-violet-900/20",
+                scan: "text-yellow-400 bg-yellow-900/20",
+              };
+              return (
+                <div key={i} className="flex items-start gap-3">
+                  <Avatar className="h-7 w-7 shrink-0">
+                    <AvatarFallback className="text-xs">{getInitials(entry.user)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs">
+                      <span className="font-medium">{entry.user}</span>{" "}
+                      <span className="text-muted-foreground">{entry.action}</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{entry.time}</p>
+                  </div>
+                  <Badge className={`text-xs shrink-0 ${typeColors[entry.type] ?? ""}`}>
+                    {entry.type}
+                  </Badge>
+                </div>
+              );
+            })}
+          </div>
         </CardContent>
       </Card>
     </motion.div>

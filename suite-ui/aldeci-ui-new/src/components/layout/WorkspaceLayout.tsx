@@ -28,6 +28,8 @@ import {
   Share2,
   Route,
   Rss,
+  GitMerge,
+  Database,
   Crosshair,
   Swords,
   Flame,
@@ -95,6 +97,8 @@ const navGroups: NavGroup[] = [
       { label: "Knowledge Graph", to: "/discover/graph", icon: Share2 },
       { label: "Attack Paths", to: "/discover/attack-paths", icon: Route },
       { label: "Threat Feeds", to: "/discover/threats", icon: Rss },
+      { label: "Correlation Engine", to: "/discover/correlation", icon: GitMerge },
+      { label: "Data Fabric", to: "/discover/data-fabric", icon: Database },
     ],
   },
   {

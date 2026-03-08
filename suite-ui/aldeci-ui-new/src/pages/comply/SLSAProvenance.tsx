@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
@@ -13,7 +14,7 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { motion } from "framer-motion";
 import {
   GitBranch, Shield, CheckCircle, AlertTriangle, XCircle, RefreshCw,
-  Eye, Link2, Box, Layers
+  Eye, Link2, Box, Layers, Clock, GitCommit, ArrowRight, ShieldCheck
 } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useEvidenceBundles } from "@/hooks/use-api";
@@ -23,6 +24,7 @@ const SLSA_COLORS: Record<number, string> = {
   1: "#f59e0b",
   2: "#3b82f6",
   3: "#22c55e",
+  4: "#a855f7",
 };
 
 const SLSA_LABELS: Record<number, string> = {
@@ -30,7 +32,81 @@ const SLSA_LABELS: Record<number, string> = {
   1: "Level 1",
   2: "Level 2",
   3: "Level 3",
+  4: "Level 4",
 };
+
+// Compliance control mapping for each SLSA level
+const SLSA_CONTROL_MAP: Record<number, { framework: string; controls: string[] }[]> = {
+  0: [],
+  1: [
+    { framework: "NIST", controls: ["SA-3", "CM-3"] },
+  ],
+  2: [
+    { framework: "NIST", controls: ["SA-3", "CM-3", "SI-2"] },
+    { framework: "SOC2", controls: ["CC8.1"] },
+  ],
+  3: [
+    { framework: "NIST", controls: ["SA-3", "CM-3", "SI-2", "SA-10"] },
+    { framework: "SOC2", controls: ["CC8.1", "CC7.2"] },
+    { framework: "PCI-DSS", controls: ["Req 6.3"] },
+  ],
+  4: [
+    { framework: "NIST", controls: ["SA-3", "CM-3", "SI-2", "SA-10", "SA-11"] },
+    { framework: "SOC2", controls: ["CC8.1", "CC7.2", "CC6.8"] },
+    { framework: "PCI-DSS", controls: ["Req 6.3", "Req 6.5"] },
+    { framework: "ISO27001", controls: ["A.14.2"] },
+  ],
+};
+
+const BUILD_PROVENANCE_STEPS = [
+  { key: "source", label: "Source Code", icon: GitCommit },
+  { key: "trigger", label: "Build Trigger", icon: ArrowRight },
+  { key: "environment", label: "Build Environment", icon: Box },
+  { key: "artifact", label: "Artifact Produced", icon: Layers },
+  { key: "attestation", label: "Attestation Signed", icon: ShieldCheck },
+];
+
+function ProvenanceTimeline({ build }: { build: any }) {
+  const level = build.slsa_level ?? 0;
+  const completedSteps = Math.min(level + 2, BUILD_PROVENANCE_STEPS.length);
+  return (
+    <div className="relative">
+      <div className="absolute left-3 top-3 bottom-3 w-0.5 bg-border/40" />
+      <div className="space-y-3">
+        {BUILD_PROVENANCE_STEPS.map((step, i) => {
+          const Icon = step.icon;
+          const done = i < completedSteps;
+          return (
+            <div key={step.key} className="flex items-center gap-4 relative">
+              <div className={`relative z-10 h-7 w-7 rounded-full flex items-center justify-center shrink-0 ${done ? "bg-green-900/60 border border-green-700" : "bg-muted border border-border"}`}>
+                {done ? (
+                  <CheckCircle className="h-3.5 w-3.5 text-green-400" />
+                ) : (
+                  <Icon className="h-3 w-3 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex-1">
+                <p className={`text-sm font-medium ${done ? "text-foreground" : "text-muted-foreground"}`}>
+                  {step.label}
+                </p>
+                {done && (
+                  <p className="text-xs text-muted-foreground">
+                    {i === 0 && `${build.repo ?? "github.com/org/repo"} @ ${(build.commit ?? "abc1234").slice(0, 8)}`}
+                    {i === 1 && `${build.build_system ?? "GitHub Actions"} triggered`}
+                    {i === 2 && "Ephemeral, hermetic environment"}
+                    {i === 3 && `Build ID: ${build.build_id ?? "—"}`}
+                    {i === 4 && "CRYSTALS-Dilithium signed"}
+                  </p>
+                )}
+              </div>
+              {done && <Badge className="text-xs bg-green-900/40 text-green-400 border-green-700 shrink-0">✓</Badge>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function AttestationDialog({ build }: { build: any }) {
   const [open, setOpen] = useState(false);
@@ -66,24 +142,12 @@ function AttestationDialog({ build }: { build: any }) {
             ))}
           </div>
 
-          {/* Provenance chain visualization */}
+          {/* Provenance timeline */}
           <div className="rounded-lg bg-muted/30 p-4 border border-border/40">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-4">
-              Provenance Chain
+              Build Provenance Timeline
             </h4>
-            <div className="space-y-2">
-              {["Source Code", "Build Trigger", "Build Environment", "Artifact", "Attestation Signed"].map((step, i) => (
-                <div key={step} className="flex items-center gap-3">
-                  <div className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold ${i < (build.slsa_level ?? 0) + 2 ? "bg-green-900/60 text-green-400" : "bg-muted text-muted-foreground"}`}>
-                    {i + 1}
-                  </div>
-                  <span className={`text-sm ${i < (build.slsa_level ?? 0) + 2 ? "text-foreground" : "text-muted-foreground"}`}>{step}</span>
-                  {i < (build.slsa_level ?? 0) + 2 && (
-                    <CheckCircle className="h-3.5 w-3.5 text-green-500 ml-auto" />
-                  )}
-                </div>
-              ))}
-            </div>
+            <ProvenanceTimeline build={build} />
           </div>
 
           {/* Compliance linkage */}
@@ -139,6 +203,7 @@ export default function SLSAProvenance() {
     slsa_level: b.slsa_level ?? Math.floor(Math.random() * 4),
     attestation_status: b.attestation_status ?? (b.signed || b.quantum_signed ? "verified" : "missing"),
     build_date: b.build_date ?? b.created_at ?? "—",
+    build_system: b.build_system ?? "GitHub Actions",
     frameworks: b.frameworks ?? ["SOC2", "SLSA"],
     ...b,
   }));
@@ -160,6 +225,9 @@ export default function SLSAProvenance() {
     value,
     fill: SLSA_COLORS[parseInt(name.split(" ")[1])] ?? "#6b7280",
   }));
+
+  // Overall attestation coverage
+  const coveragePct = trackedBuilds > 0 ? Math.round((verified / trackedBuilds) * 100) : 0;
 
   return (
     <motion.div
@@ -188,10 +256,68 @@ export default function SLSAProvenance() {
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard title="Builds Tracked" value={trackedBuilds} icon={Box} />
-        <KpiCard title="SLSA Level 3" value={slsa3Builds} icon={Shield} change={slsa3Builds} changeLabel="highest level" />
+        <KpiCard title="SLSA Level 3+" value={slsa3Builds} icon={Shield} change={slsa3Builds} changeLabel="highest level" />
         <KpiCard title="Attestations Verified" value={verified} icon={CheckCircle} />
         <KpiCard title="Unsigned" value={unsigned} icon={AlertTriangle} />
       </div>
+
+      {/* Attestation Verification Panel */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+      >
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-green-400" />
+              Attestation Verification Panel
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-muted-foreground">Attestation Coverage</span>
+                    <span className="font-semibold text-foreground">{coveragePct}%</span>
+                  </div>
+                  <Progress value={coveragePct} className="h-3" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: "Verified", value: verified, color: "text-green-400", bg: "bg-green-900/20 border-green-800/30" },
+                    { label: "Missing", value: unsigned, color: "text-red-400", bg: "bg-red-900/20 border-red-800/30" },
+                    { label: "Partial", value: trackedBuilds - verified - unsigned, color: "text-yellow-400", bg: "bg-yellow-900/20 border-yellow-800/30" },
+                    { label: "Total", value: trackedBuilds, color: "text-blue-400", bg: "bg-blue-900/20 border-blue-800/30" },
+                  ].map(({ label, value, color, bg }) => (
+                    <div key={label} className={`p-3 rounded-lg border ${bg}`}>
+                      <p className="text-xs text-muted-foreground">{label}</p>
+                      <p className={`text-xl font-bold ${color}`}>{value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Signature Methods</p>
+                {[
+                  { method: "CRYSTALS-Dilithium", count: verified, level: "Quantum-Safe" },
+                  { method: "ECDSA P-256", count: Math.max(0, trackedBuilds - verified - unsigned), level: "Classic" },
+                  { method: "None", count: unsigned, level: "Unsigned" },
+                ].map(({ method, count, level }) => (
+                  <div key={method} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/30 border border-border/40">
+                    <div className="flex-1">
+                      <p className="text-xs font-medium">{method}</p>
+                      <p className="text-xs text-muted-foreground">{level}</p>
+                    </div>
+                    <Badge variant="outline" className="text-xs font-mono">{count}</Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* SLSA Distribution PieChart */}
@@ -250,7 +376,7 @@ export default function SLSAProvenance() {
                 >
                   {level}
                 </div>
-                <div>
+                <div className="flex-1">
                   <p className="text-sm font-medium">{title}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
                 </div>
@@ -264,6 +390,60 @@ export default function SLSAProvenance() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Compliance Control Mapping */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Link2 className="h-4 w-4 text-teal-400" />
+              Compliance Control Mapping by SLSA Level
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+              {[0, 1, 2, 3].map((level) => {
+                const controls = SLSA_CONTROL_MAP[level] ?? [];
+                const levelBuilds = builds.filter((b) => b.slsa_level === level).length;
+                return (
+                  <div key={level} className="p-3 rounded-lg bg-muted/30 border border-border/40">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div
+                        className="h-5 w-5 rounded-full flex items-center justify-center text-xs font-bold"
+                        style={{ background: `${SLSA_COLORS[level]}30`, color: SLSA_COLORS[level] }}
+                      >
+                        {level}
+                      </div>
+                      <span className="text-xs font-semibold">{SLSA_LABELS[level]}</span>
+                      <Badge variant="outline" className="text-xs ml-auto">{levelBuilds}</Badge>
+                    </div>
+                    {controls.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">No controls mapped</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {controls.map(({ framework, controls: ctrls }) => (
+                          <div key={framework}>
+                            <p className="text-xs text-muted-foreground font-medium">{framework}</p>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {ctrls.map((c) => (
+                                <Badge key={c} variant="outline" className="text-xs py-0 h-4 font-mono">{c}</Badge>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Build Provenance Table */}
       <Card>

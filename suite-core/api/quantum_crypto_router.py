@@ -136,7 +136,7 @@ async def get_key_info() -> Dict[str, Any]:
             "mldsa_security_level": signer.mldsa.security_level,
             "mldsa_algorithm": signer.mldsa.algorithm_name,
             "mldsa_public_key_size": len(signer.mldsa.keypair.public_key) if signer.mldsa.keypair else 0,
-            "rsa_available": signer.rsa_signer is not None,
+            "rsa_available": signer._rsa_signer is not None,
             "hybrid_mode": True,
         }
     except Exception as e:

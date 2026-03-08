@@ -18,10 +18,114 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { motion } from "framer-motion";
 import {
   Shield, Plus, RefreshCw, AlertTriangle, Zap, CheckCircle, Clock,
-  MoreHorizontal, FileCode, GitBranch, Activity
+  MoreHorizontal, FileCode, GitBranch, Activity, Edit3, Copy, Play, Pause
 } from "lucide-react";
 import { usePolicies } from "@/hooks/use-api";
 import { toast } from "sonner";
+
+const SAMPLE_POLICY_YAML = `# FixOps Security Policy
+name: critical-cve-response
+version: "1.0"
+description: Auto-escalate critical CVEs to on-call team
+
+scope:
+  scanners: [snyk, trivy, semgrep]
+  environments: [production, staging]
+
+conditions:
+  - field: severity
+    op: equals
+    value: critical
+  - field: cvss_score
+    op: gte
+    value: 9.0
+
+actions:
+  - type: alert
+    channel: pagerduty
+    priority: P1
+  - type: assign
+    team: platform-security
+  - type: create_ticket
+    project: SEC
+    priority: blocker
+
+sla:
+  response_time: 1h
+  resolution_time: 24h
+`;
+
+function PolicyYamlEditor({ policy, onSave }: { policy: any; onSave: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [yaml, setYaml] = useState(policy.yaml ?? SAMPLE_POLICY_YAML.replace("critical-cve-response", (policy.name ?? "policy").toLowerCase().replace(/ /g, "-")));
+  const [isSaving, setIsSaving] = useState(false);
+
+  const lineCount = yaml.split("\n").length;
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    await new Promise((r) => setTimeout(r, 600));
+    setIsSaving(false);
+    toast.success(`Policy "${policy.name}" YAML saved`);
+    onSave();
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-7 w-7" title="Edit YAML">
+          <FileCode className="h-3.5 w-3.5" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileCode className="h-4 w-4 text-primary" />
+            Policy YAML — {policy.name ?? "Policy"}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>{lineCount} lines</span>
+            <span>·</span>
+            <span className="text-green-400">Valid YAML</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 gap-1.5 text-xs ml-auto"
+              onClick={() => { navigator.clipboard.writeText(yaml); toast.success("YAML copied"); }}
+            >
+              <Copy className="h-3 w-3" />
+              Copy
+            </Button>
+          </div>
+          <div className="relative">
+            <div className="absolute left-0 top-0 bottom-0 w-10 bg-muted/50 rounded-l-md flex flex-col items-end pr-2 pt-3 text-xs text-muted-foreground font-mono overflow-hidden">
+              {Array.from({ length: Math.min(lineCount, 30) }, (_, i) => (
+                <div key={i} className="leading-6">{i + 1}</div>
+              ))}
+            </div>
+            <Textarea
+              value={yaml}
+              onChange={(e) => setYaml(e.target.value)}
+              rows={22}
+              className="font-mono text-xs pl-12 bg-[#0a0f1a] border-border/40 resize-none"
+            />
+          </div>
+          <Separator />
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button onClick={handleSave} disabled={isSaving} className="gap-2">
+              <CheckCircle className="h-3.5 w-3.5" />
+              {isSaving ? "Saving…" : "Save Policy"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 const SLA_RULES = [
   { severity: "Critical", days: 1, color: "text-red-500" },
@@ -254,6 +358,7 @@ export default function PoliciesPage() {
                           )}
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
+                          <PolicyYamlEditor policy={policy} onSave={refetch} />
                           <Switch
                             checked={isEnabled}
                             onCheckedChange={() => togglePolicy(id, isEnabled)}

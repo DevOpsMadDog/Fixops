@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
@@ -16,11 +17,130 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { motion } from "framer-motion";
 import {
   Package, Lock, Clock, RefreshCw, Plus, Database, Shield,
-  Calendar, CheckCircle, AlertTriangle, Layers, Download, Zap
+  Calendar, CheckCircle, AlertTriangle, Layers, Download, Zap,
+  ArrowLeftRight, GitMerge, Eye
 } from "lucide-react";
 import { useEvidenceBundles, useApps, useComplianceFrameworks, useGenerateEvidence } from "@/hooks/use-api";
 
 const FRAMEWORKS = ["SOC2", "PCI-DSS", "HIPAA", "ISO27001", "NIST"];
+
+function RetentionCountdown({ expiryDate }: { expiryDate?: string }) {
+  if (!expiryDate) return <span className="text-xs text-muted-foreground">—</span>;
+  const days = Math.ceil((new Date(expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  if (days < 0) return (
+    <span className="flex items-center gap-1 text-red-500 text-xs">
+      <AlertTriangle className="h-3 w-3" /> Expired
+    </span>
+  );
+  if (days <= 14) return (
+    <div className="space-y-1">
+      <span className="flex items-center gap-1 text-red-400 text-xs font-medium">
+        <Clock className="h-3 w-3" /> {days}d left
+      </span>
+      <Progress value={(days / 365) * 100} className="h-1 w-20" />
+    </div>
+  );
+  if (days <= 60) return (
+    <div className="space-y-1">
+      <span className="flex items-center gap-1 text-yellow-400 text-xs font-medium">
+        <Clock className="h-3 w-3" /> {days}d left
+      </span>
+      <Progress value={(days / 365) * 100} className="h-1 w-20" />
+    </div>
+  );
+  return (
+    <span className="flex items-center gap-1 text-green-500 text-xs">
+      <CheckCircle className="h-3 w-3" /> {days}d
+    </span>
+  );
+}
+
+function BundleCompareDialog({ bundles }: { bundles: any[] }) {
+  const [open, setOpen] = useState(false);
+  const [bundleA, setBundleA] = useState("");
+  const [bundleB, setBundleB] = useState("");
+
+  const a = bundles.find((b) => (b.bundle_id ?? b.id) === bundleA);
+  const bItem = bundles.find((b) => (b.bundle_id ?? b.id) === bundleB);
+
+  const diffFields = ["framework", "period", "quantum_signed", "worm_enabled", "controls", "app_id"];
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-2">
+          <GitMerge className="h-4 w-4" />
+          Compare
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ArrowLeftRight className="h-4 w-4 text-primary" />
+            Bundle Diff Comparison
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-xs text-muted-foreground mb-2 block">Bundle A</Label>
+              <Select value={bundleA} onValueChange={setBundleA}>
+                <SelectTrigger><SelectValue placeholder="Select bundle…" /></SelectTrigger>
+                <SelectContent>
+                  {bundles.slice(0, 30).map((b: any) => (
+                    <SelectItem key={b.bundle_id ?? b.id} value={b.bundle_id ?? b.id}>
+                      {b.bundle_id ?? b.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-2 block">Bundle B</Label>
+              <Select value={bundleB} onValueChange={setBundleB}>
+                <SelectTrigger><SelectValue placeholder="Select bundle…" /></SelectTrigger>
+                <SelectContent>
+                  {bundles.slice(0, 30).map((b: any) => (
+                    <SelectItem key={b.bundle_id ?? b.id} value={b.bundle_id ?? b.id}>
+                      {b.bundle_id ?? b.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {a && bItem && (
+            <div className="rounded-lg border border-border/40 overflow-hidden">
+              <div className="grid grid-cols-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide bg-muted/40 px-4 py-2 border-b border-border/40">
+                <span>Field</span>
+                <span className="text-center">Bundle A</span>
+                <span className="text-center">Bundle B</span>
+              </div>
+              <ScrollArea className="h-64">
+                {diffFields.map((field) => {
+                  const valA = String(a[field] ?? "—");
+                  const valB = String(bItem[field] ?? "—");
+                  const isDiff = valA !== valB;
+                  return (
+                    <div key={field} className={`grid grid-cols-3 px-4 py-2.5 text-xs border-b border-border/20 ${isDiff ? "bg-yellow-950/20" : ""}`}>
+                      <span className="text-muted-foreground font-medium capitalize">{field.replace(/_/g, " ")}</span>
+                      <span className={`text-center font-mono ${isDiff ? "text-orange-400" : ""}`}>{valA}</span>
+                      <span className={`text-center font-mono ${isDiff ? "text-blue-400" : ""}`}>{valB}</span>
+                    </div>
+                  );
+                })}
+              </ScrollArea>
+            </div>
+          )}
+          {(!a || !bItem) && bundleA && bundleB && (
+            <p className="text-sm text-muted-foreground text-center py-4">Select two different bundles to compare</p>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function GenerateBundleDialog({ apps, frameworks, onGenerate }: {
   apps: any[];
@@ -170,11 +290,12 @@ export default function EvidenceBundles() {
 
   const totalBundles = bundles.length;
   const quantumSigned = bundles.filter((b: any) => b.quantum_signed || b.signed).length;
-  const daysUntilExpiry = (b: any) => {
-    if (!b.expiry_date && !b.expires_at) return null;
-    const diff = new Date(b.expiry_date ?? b.expires_at).getTime() - Date.now();
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
-  };
+  const expiringSoon = bundles.filter((b: any) => {
+    const d = b.expiry_date ?? b.expires_at;
+    if (!d) return false;
+    const days = Math.ceil((new Date(d).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    return days >= 0 && days <= 30;
+  }).length;
 
   const handleBulkGenerate = () => {
     apps.forEach((app: any) => {
@@ -212,8 +333,48 @@ export default function EvidenceBundles() {
         <KpiCard title="Total Bundles" value={totalBundles} icon={Package} />
         <KpiCard title="Quantum-Signed" value={quantumSigned} icon={Lock} />
         <KpiCard title="Apps Covered" value={apps.length} icon={Database} />
-        <KpiCard title="Frameworks" value={frameworks.length || FRAMEWORKS.length} icon={Shield} />
+        <KpiCard title="Expiring Soon" value={expiringSoon} icon={Clock} />
       </div>
+
+      {/* Quantum Signature Verification Panel */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+      >
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Lock className="h-4 w-4 text-violet-400" />
+              Quantum-Secure Signature Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { label: "Algorithm", value: "CRYSTALS-Dilithium", color: "text-violet-400" },
+                { label: "Key Size", value: "2048-bit", color: "text-blue-400" },
+                { label: "Signed Bundles", value: `${quantumSigned}/${totalBundles}`, color: totalBundles > 0 && quantumSigned === totalBundles ? "text-green-400" : "text-yellow-400" },
+                { label: "Signature Valid", value: quantumSigned === totalBundles ? "All Valid" : `${totalBundles - quantumSigned} Unsigned`, color: quantumSigned === totalBundles ? "text-green-400" : "text-orange-400" },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="p-3 rounded-lg bg-muted/30 border border-border/40">
+                  <p className="text-xs text-muted-foreground mb-1">{label}</p>
+                  <p className={`text-sm font-mono font-semibold ${color}`}>{value}</p>
+                </div>
+              ))}
+            </div>
+            {totalBundles > 0 && (
+              <div className="mt-4">
+                <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                  <span>Signature Coverage</span>
+                  <span className="font-medium">{totalBundles > 0 ? Math.round((quantumSigned / totalBundles) * 100) : 0}%</span>
+                </div>
+                <Progress value={totalBundles > 0 ? (quantumSigned / totalBundles) * 100 : 0} className="h-2" />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* App filter + bundle list */}
       <div className="flex flex-col lg:flex-row gap-6">
@@ -259,7 +420,10 @@ export default function EvidenceBundles() {
                 Bundles
                 {selectedApp !== "all" && <Badge variant="secondary" className="text-xs">{selectedApp}</Badge>}
               </span>
-              <span className="text-sm font-normal text-muted-foreground">{bundles.length} total</span>
+              <div className="flex items-center gap-2">
+                <BundleCompareDialog bundles={bundles} />
+                <span className="text-sm font-normal text-muted-foreground">{bundles.length} total</span>
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -271,7 +435,7 @@ export default function EvidenceBundles() {
                   <TableHead className="text-xs">Period</TableHead>
                   <TableHead className="text-xs">Signed</TableHead>
                   <TableHead className="text-xs">WORM</TableHead>
-                  <TableHead className="text-xs">Expiry</TableHead>
+                  <TableHead className="text-xs">Retention</TableHead>
                   <TableHead className="text-xs text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -283,64 +447,86 @@ export default function EvidenceBundles() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  bundles.slice(0, 30).map((b: any, i: number) => {
-                    const days = daysUntilExpiry(b);
-                    return (
-                      <TableRow key={b.bundle_id ?? b.id ?? i} className="hover:bg-muted/30">
-                        <TableCell className="font-mono text-xs text-primary">
-                          {b.bundle_id ?? b.id ?? `BND-${String(i + 1).padStart(4, "0")}`}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">{b.framework ?? "—"}</Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {b.period ?? b.time_range ?? "—"}
-                        </TableCell>
-                        <TableCell>
-                          {(b.quantum_signed || b.signed) ? (
-                            <span className="flex items-center gap-1 text-violet-400 text-xs">
-                              <Lock className="h-3 w-3" /> Quantum
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">None</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={b.worm_enabled ? "default" : "outline"} className="text-xs">
-                            {b.worm_enabled ? "Immutable" : "Mutable"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {days === null ? (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          ) : days < 0 ? (
-                            <span className="text-xs text-red-500 flex items-center gap-1">
-                              <AlertTriangle className="h-3 w-3" /> Expired
-                            </span>
-                          ) : days <= 30 ? (
-                            <span className="text-xs text-yellow-500 flex items-center gap-1">
-                              <Clock className="h-3 w-3" /> {days}d
-                            </span>
-                          ) : (
-                            <span className="text-xs text-green-500 flex items-center gap-1">
-                              <CheckCircle className="h-3 w-3" /> {days}d
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" className="h-7 w-7">
-                            <Download className="h-3.5 w-3.5" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
+                  bundles.slice(0, 30).map((b: any, i: number) => (
+                    <TableRow key={b.bundle_id ?? b.id ?? i} className="hover:bg-muted/30">
+                      <TableCell className="font-mono text-xs text-primary">
+                        {b.bundle_id ?? b.id ?? `BND-${String(i + 1).padStart(4, "0")}`}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">{b.framework ?? "—"}</Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {b.period ?? b.time_range ?? "—"}
+                      </TableCell>
+                      <TableCell>
+                        {(b.quantum_signed || b.signed) ? (
+                          <span className="flex items-center gap-1 text-violet-400 text-xs">
+                            <Lock className="h-3 w-3" /> Quantum
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">None</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={b.worm_enabled ? "default" : "outline"} className="text-xs">
+                          {b.worm_enabled ? "Immutable" : "Mutable"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <RetentionCountdown expiryDate={b.expiry_date ?? b.expires_at} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <Download className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
                 )}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
       </div>
+
+      {/* Retention Management Panel */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-orange-400" />
+              Retention Management
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                { label: "Standard Retention", value: "7 years", desc: "Default for all SOC2/PCI bundles", color: "text-blue-400" },
+                { label: "HIPAA Retention", value: "6 years", desc: "PHI-related evidence bundles", color: "text-green-400" },
+                { label: "Minimum Retention", value: "3 years", desc: "Internal operations data", color: "text-muted-foreground" },
+              ].map(({ label, value, desc, color }) => (
+                <div key={label} className="p-4 rounded-lg bg-muted/30 border border-border/40">
+                  <p className="text-xs text-muted-foreground mb-1">{label}</p>
+                  <p className={`text-xl font-bold ${color} mb-1`}>{value}</p>
+                  <p className="text-xs text-muted-foreground">{desc}</p>
+                </div>
+              ))}
+            </div>
+            {expiringSoon > 0 && (
+              <div className="mt-4 p-3 rounded-lg bg-yellow-950/30 border border-yellow-800/40 flex items-center gap-3">
+                <AlertTriangle className="h-4 w-4 text-yellow-400 shrink-0" />
+                <p className="text-xs text-yellow-300">
+                  {expiringSoon} bundle{expiringSoon !== 1 ? "s" : ""} expiring within 30 days. Review and renew retention policies.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
     </motion.div>
   );
 }

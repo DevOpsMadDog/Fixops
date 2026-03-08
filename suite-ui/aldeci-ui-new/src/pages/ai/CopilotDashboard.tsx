@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,16 +6,23 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageHeader } from "@/components/shared/page-header";
+import { KpiCard } from "@/components/shared/kpi-card";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bot, Send, RefreshCw, Sparkles, Shield, FileText, Search,
   Zap, Brain, Activity, CheckCircle, Clock, MessageSquare,
-  AlertTriangle, ChevronRight, Database
+  AlertTriangle, ChevronRight, Database, Settings, History,
+  Bookmark, Copy, ThumbsUp, ThumbsDown, RotateCcw, Trash2,
+  Mic, Paperclip, Globe, Lock, Cpu
 } from "lucide-react";
-import { useCopilotAgents, useCopilotChat } from "@/hooks/use-api";
+import { useCopilotAgents, useCopilotChat, useSystemHealth } from "@/hooks/use-api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -27,17 +34,36 @@ const AGENT_ICONS: Record<string, React.ElementType> = {
 };
 
 const QUICK_ACTIONS = [
-  { id: "triage", label: "Triage Findings", icon: Shield, prompt: "Triage all open critical and high findings and prioritize them by exploitability." },
-  { id: "mpte", label: "Run MPTE", icon: Zap, prompt: "Run MPTE scan on all registered applications and report findings." },
-  { id: "evidence", label: "Generate Evidence", icon: FileText, prompt: "Generate evidence bundles for SOC2 compliance across all active apps." },
-  { id: "cve", label: "Explain CVE", icon: Search, prompt: "Explain the latest critical CVEs and their impact on our registered apps." },
+  { id: "triage", label: "Triage Findings", icon: Shield, prompt: "Triage all open critical and high findings and prioritize them by exploitability.", category: "analysis" },
+  { id: "mpte", label: "Run MPTE", icon: Zap, prompt: "Run MPTE scan on all registered applications and report findings.", category: "validation" },
+  { id: "evidence", label: "Generate Evidence", icon: FileText, prompt: "Generate evidence bundles for SOC2 compliance across all active apps.", category: "compliance" },
+  { id: "cve", label: "Explain CVE", icon: Search, prompt: "Explain the latest critical CVEs and their impact on our registered apps.", category: "analysis" },
+  { id: "overnight", label: "Overnight Summary", icon: Clock, prompt: "Summarize all security events from the last 12 hours, including new findings, MPTE verdicts, and SLA breaches.", category: "analysis" },
+  { id: "blast", label: "Blast Radius", icon: Globe, prompt: "Calculate the blast radius for all critical findings in the payment-service component.", category: "analysis" },
+  { id: "compliance", label: "Compliance Gaps", icon: CheckCircle, prompt: "Identify all compliance gaps across SOC2, PCI-DSS, and HIPAA frameworks for all registered apps.", category: "compliance" },
+  { id: "autofix", label: "AutoFix Preview", icon: Sparkles, prompt: "Preview all available AutoFix patches for open critical and high findings.", category: "remediation" },
 ];
+
+const MODEL_OPTIONS = [
+  { id: "multi-llm", label: "Multi-LLM Consensus", desc: "GPT-4o + Claude + Gemini", icon: Brain },
+  { id: "single-agent", label: "Self-Hosted Agent", desc: "Llama 3.1 70B (Air-Gapped)", icon: Lock },
+  { id: "fast", label: "Fast Mode", desc: "GPT-4o-mini (Low Latency)", icon: Zap },
+];
+
+type ConversationSession = {
+  id: string;
+  title: string;
+  messageCount: number;
+  lastActive: Date;
+};
 
 type Message = {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  feedback?: "positive" | "negative";
+  bookmarked?: boolean;
 };
 
 function AgentCard({ agent }: { agent: any }) {
@@ -331,6 +357,106 @@ export default function CopilotDashboard() {
                   <p className="flex items-center gap-1.5"><Activity className="h-3 w-3" /> Connected to: API, Evidence, MPTE</p>
                   <p className="flex items-center gap-1.5"><Clock className="h-3 w-3" /> Session started: {new Date().toLocaleTimeString()}</p>
                   <p className="flex items-center gap-1.5"><MessageSquare className="h-3 w-3" /> {messages.length} messages in session</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Separator />
+
+          {/* AI Model Selection */}
+          <div>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
+              <Cpu className="h-3.5 w-3.5" />
+              AI Model
+            </h3>
+            <div className="space-y-2">
+              {MODEL_OPTIONS.map((model) => {
+                const MIcon = model.icon;
+                const isActive = model.id === "multi-llm";
+                return (
+                  <Card key={model.id} className={cn("cursor-pointer transition-all", isActive && "ring-1 ring-primary/50 bg-primary/5")}>
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-2">
+                        <MIcon className={cn("h-3.5 w-3.5", isActive ? "text-primary" : "text-muted-foreground")} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium">{model.label}</p>
+                          <p className="text-xs text-muted-foreground truncate">{model.desc}</p>
+                        </div>
+                        {isActive && <div className="h-2 w-2 rounded-full bg-green-500" />}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Conversation History */}
+          <div>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
+              <History className="h-3.5 w-3.5" />
+              Past Sessions
+            </h3>
+            <div className="space-y-2">
+              {([
+                { id: "s1", title: "Log4Shell triage", messageCount: 12, lastActive: new Date(Date.now() - 86400000) },
+                { id: "s2", title: "SOC2 evidence review", messageCount: 8, lastActive: new Date(Date.now() - 172800000) },
+                { id: "s3", title: "MPTE scan analysis", messageCount: 15, lastActive: new Date(Date.now() - 259200000) },
+              ] as ConversationSession[]).map((session) => (
+                <Card key={session.id} className="cursor-pointer hover:bg-muted/20 transition-colors">
+                  <CardContent className="p-3">
+                    <p className="text-xs font-medium truncate">{session.title}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-muted-foreground">{session.messageCount} msgs</span>
+                      <span className="text-xs text-muted-foreground">·</span>
+                      <span className="text-xs text-muted-foreground">{session.lastActive.toLocaleDateString()}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Copilot Settings */}
+          <div>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
+              <Settings className="h-3.5 w-3.5" />
+              Settings
+            </h3>
+            <Card>
+              <CardContent className="p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium">Context-Aware Mode</p>
+                    <p className="text-xs text-muted-foreground">Use current page data in responses</p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium">Auto-Suggestions</p>
+                    <p className="text-xs text-muted-foreground">Proactive security recommendations</p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium">Overnight Analysis</p>
+                    <p className="text-xs text-muted-foreground">Triage findings while you sleep</p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium">Quantum-Signed Responses</p>
+                    <p className="text-xs text-muted-foreground">Sign AI decisions with ML-DSA</p>
+                  </div>
+                  <Switch />
                 </div>
               </CardContent>
             </Card>

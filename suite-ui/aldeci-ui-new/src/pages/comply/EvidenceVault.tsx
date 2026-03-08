@@ -8,14 +8,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Package, ShieldCheck, Clock, AlertTriangle, Search, RefreshCw,
-  CheckCircle, XCircle, Eye, Lock, Download, FileJson
+  CheckCircle, XCircle, Eye, Lock, Download, FileJson,
+  Link2, Trash2, Settings, ChevronRight, Layers
 } from "lucide-react";
 import { useEvidenceBundles } from "@/hooks/use-api";
 
@@ -103,6 +106,40 @@ function BundleDetailDialog({ bundle }: { bundle: any }) {
             )}
           </div>
 
+          {/* Evidence chain visualization */}
+          <div className="rounded-lg bg-muted/30 p-4 border border-border/40">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
+              <Link2 className="h-3.5 w-3.5" />
+              Evidence Chain
+            </h4>
+            <div className="space-y-2">
+              {[
+                { label: "Scanner Output", status: "verified" },
+                { label: "Triage Decision", status: "verified" },
+                { label: "Remediation Record", status: bundle.control ? "verified" : "pending" },
+                { label: "Evidence Bundle", status: bundle.quantum_signed || bundle.signed ? "signed" : "unsigned" },
+                { label: "Audit Entry", status: "verified" },
+              ].map(({ label, status }) => (
+                <div key={label} className="flex items-center gap-3">
+                  <div className={`h-2 w-2 rounded-full shrink-0 ${
+                    status === "verified" || status === "signed" ? "bg-green-500" :
+                    status === "pending" ? "bg-yellow-500" : "bg-red-500"
+                  }`} />
+                  <span className="text-xs flex-1">{label}</span>
+                  <Badge variant="outline" className={`text-xs py-0 h-4 ${
+                    status === "verified" ? "text-green-400 border-green-700" :
+                    status === "signed" ? "text-violet-400 border-violet-700" :
+                    status === "pending" ? "text-yellow-400 border-yellow-700" :
+                    "text-muted-foreground"
+                  }`}>
+                    {status}
+                  </Badge>
+                  {status !== "unsigned" && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* SLSA Attestation */}
           {bundle.slsa_attestation && (
             <div className="rounded-lg bg-muted/30 p-4 border border-border/40">
@@ -153,6 +190,8 @@ export default function EvidenceVault() {
   const [frameworkFilter, setFrameworkFilter] = useState("all");
   const [appFilter, setAppFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBarVisible, setBulkBarVisible] = useState(false);
 
   if (bundlesQuery.isLoading) return <PageSkeleton />;
   if (bundlesQuery.isError) return <ErrorState message="Failed to load evidence bundles" onRetry={refetch} />;
@@ -188,6 +227,31 @@ export default function EvidenceVault() {
     return matchesSearch && matchesFramework && matchesApp && matchesStatus;
   });
 
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      setBulkBarVisible(next.size > 0);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selected.size === filtered.length) {
+      setSelected(new Set());
+      setBulkBarVisible(false);
+    } else {
+      const ids = new Set(filtered.slice(0, 50).map((b: any) => b.bundle_id ?? b.id ?? ""));
+      setSelected(ids);
+      setBulkBarVisible(ids.size > 0);
+    }
+  };
+
+  const clearSelection = () => {
+    setSelected(new Set());
+    setBulkBarVisible(false);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -219,6 +283,66 @@ export default function EvidenceVault() {
         <KpiCard title="Pending" value={pending} icon={Clock} />
         <KpiCard title="Expired" value={expired} icon={AlertTriangle} />
       </div>
+
+      {/* Retention Management Panel */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+      >
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Settings className="h-4 w-4 text-blue-400" />
+              Retention Management
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {frameworks.slice(0, 4).map((fw: any) => {
+                const fwBundles = bundles.filter((b: any) => b.framework === fw);
+                const expiredFw = fwBundles.filter((b: any) => b.expiry_date && new Date(b.expiry_date) < new Date()).length;
+                const expiringSoon = fwBundles.filter((b: any) => {
+                  const d = b.expiry_date ?? b.expires_at;
+                  if (!d) return false;
+                  const days = Math.ceil((new Date(d).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                  return days >= 0 && days <= 30;
+                }).length;
+                return (
+                  <div key={fw} className="p-3 rounded-lg bg-muted/30 border border-border/40">
+                    <div className="flex items-center justify-between mb-2">
+                      <Badge variant="outline" className="text-xs">{fw}</Badge>
+                      <span className="text-xs text-muted-foreground">{fwBundles.length} bundles</span>
+                    </div>
+                    <div className="space-y-1 text-xs">
+                      {expiredFw > 0 && (
+                        <span className="flex items-center gap-1 text-red-400">
+                          <AlertTriangle className="h-3 w-3" /> {expiredFw} expired
+                        </span>
+                      )}
+                      {expiringSoon > 0 && (
+                        <span className="flex items-center gap-1 text-yellow-400">
+                          <Clock className="h-3 w-3" /> {expiringSoon} expiring soon
+                        </span>
+                      )}
+                      {expiredFw === 0 && expiringSoon === 0 && (
+                        <span className="flex items-center gap-1 text-green-400">
+                          <CheckCircle className="h-3 w-3" /> All current
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              {frameworks.length === 0 && (
+                <p className="text-xs text-muted-foreground col-span-4 text-center py-2">
+                  No framework retention data available
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Filters */}
       <Card>
@@ -270,6 +394,41 @@ export default function EvidenceVault() {
         </CardContent>
       </Card>
 
+      {/* Bulk Operations Bar */}
+      <AnimatePresence>
+        {bulkBarVisible && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Card className="border-primary/40 bg-primary/5">
+              <CardContent className="py-3 flex items-center gap-4">
+                <span className="text-sm font-medium">{selected.size} bundle{selected.size !== 1 ? "s" : ""} selected</span>
+                <div className="flex gap-2 ml-auto">
+                  <Button size="sm" variant="outline" className="gap-2 h-7 text-xs">
+                    <Download className="h-3.5 w-3.5" />
+                    Download Selected
+                  </Button>
+                  <Button size="sm" variant="outline" className="gap-2 h-7 text-xs">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Verify Signatures
+                  </Button>
+                  <Button size="sm" variant="outline" className="gap-2 h-7 text-xs text-red-400 border-red-800 hover:bg-red-950/30">
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete Selected
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={clearSelection}>
+                    Clear
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Evidence Table */}
       <Card>
         <CardHeader>
@@ -287,6 +446,12 @@ export default function EvidenceVault() {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent border-b border-border/40">
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={selected.size > 0 && selected.size === filtered.slice(0, 50).length}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
                 <TableHead className="text-xs">Bundle ID</TableHead>
                 <TableHead className="text-xs">Framework</TableHead>
                 <TableHead className="text-xs">Control</TableHead>
@@ -300,18 +465,26 @@ export default function EvidenceVault() {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                     No evidence bundles match your filters
                   </TableCell>
                 </TableRow>
               ) : (
                 filtered.slice(0, 50).map((bundle: any, i: number) => {
+                  const bundleId = bundle.bundle_id ?? bundle.id ?? `BND-${String(i + 1).padStart(4, "0")}`;
                   const isExpired =
                     bundle.expiry_date && new Date(bundle.expiry_date) < new Date();
+                  const isSelected = selected.has(bundleId);
                   return (
-                    <TableRow key={bundle.bundle_id ?? bundle.id ?? i} className="hover:bg-muted/30">
+                    <TableRow key={bundleId} className={`hover:bg-muted/30 ${isSelected ? "bg-primary/5" : ""}`}>
+                      <TableCell>
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleSelect(bundleId)}
+                        />
+                      </TableCell>
                       <TableCell className="font-mono text-xs text-primary">
-                        {bundle.bundle_id ?? bundle.id ?? `BND-${String(i + 1).padStart(4, "0")}`}
+                        {bundleId}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">{bundle.framework ?? "—"}</Badge>

@@ -950,11 +950,21 @@ def create_app() -> FastAPI:
 
     # API authentication setup
     auth_strategy = overlay.auth.get("strategy", "").lower()
+    # Enterprise enforcement: if FIXOPS_API_TOKEN is set in env but overlay
+    # doesn't declare a strategy, auto-promote to token-based auth.
+    _env_api_token = os.getenv("FIXOPS_API_TOKEN", "").strip()
+    if not auth_strategy and _env_api_token:
+        auth_strategy = "token"
+        logger.info("Auto-promoted auth strategy to 'token' (FIXOPS_API_TOKEN set)")
     header_name = overlay.auth.get(
         "header", "X-API-Key" if auth_strategy != "jwt" else "Authorization"
     )
     api_key_header = APIKeyHeader(name=header_name, auto_error=False)
-    expected_tokens = overlay.auth_tokens if auth_strategy == "token" else tuple()
+    # Build expected tokens list from overlay config + env var
+    expected_tokens = list(overlay.auth_tokens) if auth_strategy == "token" else []
+    if auth_strategy == "token" and _env_api_token and _env_api_token not in expected_tokens:
+        expected_tokens.append(_env_api_token)
+    expected_tokens = tuple(expected_tokens)
 
     # Default scopes for token-based auth (service accounts get admin)
     _ALL_SCOPES = [

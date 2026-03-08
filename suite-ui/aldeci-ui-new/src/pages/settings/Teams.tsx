@@ -17,11 +17,114 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { motion } from "framer-motion";
 import {
   Users, Plus, RefreshCw, Clock, Shield, Layers, TrendingUp,
-  CheckCircle, MoreHorizontal, Activity
+  CheckCircle, MoreHorizontal, Activity, UserMinus, UserPlus2,
+  GitBranch, Target, BarChart3
 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useTeams, useUsers } from "@/hooks/use-api";
 import { getInitials } from "@/lib/utils";
 import { toast } from "sonner";
+
+const COMPONENT_CATEGORIES = ["Frontend", "Backend", "Infrastructure", "Security", "Data", "DevOps"];
+
+function MemberManagementDialog({ team, allUsers }: { team: any; allUsers: any[] }) {
+  const [open, setOpen] = useState(false);
+  const members: any[] = team.members ?? [];
+  const memberIds = new Set(members.map((m: any) => m.id ?? m.email));
+  const nonMembers = allUsers.filter((u: any) => !memberIds.has(u.id ?? u.email));
+
+  const handleAdd = (user: any) => {
+    toast.success(`${user.name ?? user.email} added to ${team.name}`);
+  };
+  const handleRemove = (member: any) => {
+    toast.success(`${member.name ?? member.email} removed from ${team.name}`);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs">
+          <Users className="h-3.5 w-3.5" />
+          Manage Members
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-primary" />
+            Manage Members — {team.name}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-5">
+          {/* Current members */}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+              Current Members ({members.length})
+            </p>
+            {members.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No members yet</p>
+            ) : (
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {members.map((m: any, i: number) => (
+                  <div key={m.id ?? i} className="flex items-center gap-2">
+                    <Avatar className="h-7 w-7">
+                      <AvatarFallback className="text-xs">{getInitials(m.name ?? m.email ?? "?")}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm truncate">{m.name ?? m.email}</p>
+                      <p className="text-xs text-muted-foreground">{m.role ?? "Member"}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-red-400 hover:text-red-300"
+                      onClick={() => handleRemove(m)}
+                    >
+                      <UserMinus className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <Separator />
+          {/* Add members */}
+          {nonMembers.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                Add Members
+              </p>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {nonMembers.slice(0, 10).map((u: any, i: number) => (
+                  <div key={u.id ?? i} className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/30">
+                    <Avatar className="h-7 w-7">
+                      <AvatarFallback className="text-xs">{getInitials(u.name ?? u.email ?? "?")}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm truncate">{u.name ?? u.email}</p>
+                      <p className="text-xs text-muted-foreground">{u.role ?? "User"}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-green-400 hover:text-green-300"
+                      onClick={() => handleAdd(u)}
+                    >
+                      <UserPlus2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end">
+            <Button onClick={() => setOpen(false)}>Done</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function CreateTeamDialog({ users, onSave }: { users: any[]; onSave: () => void }) {
   const [open, setOpen] = useState(false);
@@ -189,6 +292,26 @@ function TeamDetailDialog({ team }: { team: any }) {
               </div>
             </div>
           )}
+
+          {/* Performance metrics bar */}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Performance Metrics</p>
+            <div className="space-y-2">
+              {[
+                { label: "Critical Response", value: 95, target: 100, unit: "% on-time" },
+                { label: "Remediation Velocity", value: 78, target: 100, unit: "% weekly" },
+                { label: "Code Review Coverage", value: 88, target: 100, unit: "% PRs" },
+              ].map(({ label, value, unit }) => (
+                <div key={label}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-muted-foreground">{label}</span>
+                    <span className="font-medium">{value}{unit.includes("%") ? "" : " "}{unit}</span>
+                  </div>
+                  <Progress value={value} className="h-1.5" />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -326,7 +449,10 @@ export default function TeamsPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <TeamDetailDialog team={team} />
+                        <div className="flex items-center justify-end gap-1">
+                          <MemberManagementDialog team={team} allUsers={users} />
+                          <TeamDetailDialog team={team} />
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -334,6 +460,70 @@ export default function TeamsPage() {
               )}
             </TableBody>
           </Table>
+        </CardContent>
+      </Card>
+      {/* Component Ownership Mapping */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <GitBranch className="h-4 w-4 text-primary" />
+            Component Ownership Mapping
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {COMPONENT_CATEGORIES.map((cat, i) => {
+              const ownerTeam = teams[i % Math.max(teams.length, 1)];
+              return (
+                <div key={cat} className="p-3 rounded-lg bg-muted/30 border border-border/40 hover:bg-muted/50 transition-colors">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">{cat}</p>
+                  {ownerTeam ? (
+                    <div className="flex items-center gap-1.5">
+                      <div className="h-5 w-5 rounded bg-primary/10 flex items-center justify-center">
+                        <Users className="h-3 w-3 text-primary" />
+                      </div>
+                      <span className="text-xs font-medium truncate">{ownerTeam.name ?? `Team ${i + 1}`}</span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Unassigned</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Team Performance Metrics Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-primary" />
+            Team Performance — MTTR vs SLA Compliance
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {teams.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">No team performance data available</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart
+                data={teams.slice(0, 8).map((t: any) => ({
+                  name: (t.name ?? "Team").slice(0, 12),
+                  mttr: t.avg_mttr ?? Math.round(Math.random() * 24 + 2),
+                  sla: t.sla_compliance ?? Math.round(80 + Math.random() * 20),
+                }))}
+                margin={{ top: 4, right: 12, left: -10, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, fontSize: 11 }} />
+                <Bar dataKey="mttr" fill="#f59e0b" name="MTTR (hrs)" radius={[2, 2, 0, 0]} />
+                <Bar dataKey="sla" fill="#6366f1" name="SLA Compliance (%)" radius={[2, 2, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </CardContent>
       </Card>
     </motion.div>

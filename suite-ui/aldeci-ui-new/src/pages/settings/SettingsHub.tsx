@@ -14,7 +14,8 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { motion } from "framer-motion";
 import {
   Settings, Bell, Shield, Key, Monitor, Save, RefreshCw, Copy,
-  Eye, EyeOff, AlertTriangle, CheckCircle, RotateCcw, Slack
+  Eye, EyeOff, AlertTriangle, CheckCircle, RotateCcw, Slack,
+  Plus, Trash2, Server, Clock, GitCommit, Zap, Users, Activity
 } from "lucide-react";
 import { useSystemHealth } from "@/hooks/use-api";
 import { toast } from "sonner";
@@ -55,6 +56,11 @@ export default function SettingsHub() {
   const [showKey, setShowKey] = useState(false);
   const [apiKey] = useState("sk-aldeci-••••••••••••••••••••••••••••••••");
   const [keyUsage] = useState({ calls: 12847, limit: 50000, period: "month" });
+  const [additionalKeys, setAdditionalKeys] = useState([
+    { id: "key-1", name: "CI/CD Pipeline", created: "2025-11-12", lastUsed: "2h ago", calls: 4821 },
+    { id: "key-2", name: "Slack Bot", created: "2025-12-01", lastUsed: "5m ago", calls: 1204 },
+  ]);
+  const [newKeyName, setNewKeyName] = useState("");
 
   // Display
   const [theme, setTheme] = useState("dark");
@@ -80,6 +86,25 @@ export default function SettingsHub() {
 
   const handleRotateKey = () => {
     toast.success("API key rotation initiated. You will receive a confirmation email.");
+  };
+
+  const handleGenerateKey = () => {
+    if (!newKeyName) return;
+    const id = `key-${Date.now()}`;
+    setAdditionalKeys((prev) => [...prev, {
+      id,
+      name: newKeyName,
+      created: new Date().toISOString().split("T")[0],
+      lastUsed: "Never",
+      calls: 0,
+    }]);
+    setNewKeyName("");
+    toast.success(`API key "${newKeyName}" generated`);
+  };
+
+  const handleRevokeKey = (id: string, name: string) => {
+    setAdditionalKeys((prev) => prev.filter((k) => k.id !== id));
+    toast.success(`API key "${name}" revoked`);
   };
 
   return (
@@ -290,6 +315,42 @@ export default function SettingsHub() {
                   <RotateCcw className="h-3.5 w-3.5" />
                   Rotate API Key
                 </Button>
+
+                {/* Additional API Keys */}
+                <Separator />
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Additional API Keys</p>
+                  <div className="space-y-2 mb-3">
+                    {additionalKeys.map((key) => (
+                      <div key={key.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-border/40">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">{key.name}</p>
+                          <p className="text-xs text-muted-foreground">Created {key.created} · Last used: {key.lastUsed} · {key.calls.toLocaleString()} calls</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-red-400 hover:text-red-300 shrink-0"
+                          onClick={() => handleRevokeKey(key.id, key.name)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Key name (e.g. Terraform runner)"
+                      value={newKeyName}
+                      onChange={(e) => setNewKeyName(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button variant="outline" className="gap-2 shrink-0" onClick={handleGenerateKey} disabled={!newKeyName}>
+                      <Plus className="h-3.5 w-3.5" />
+                      Generate
+                    </Button>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -341,6 +402,72 @@ export default function SettingsHub() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Environment Info Card */}
+      <Card className="bg-muted/20 border-border/40">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Server className="h-4 w-4 text-primary" />
+            Environment Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[
+              { label: "Version", value: "v2.14.1", icon: GitCommit },
+              { label: "Environment", value: "Production", icon: Server },
+              { label: "Uptime", value: "14d 7h 23m", icon: Clock },
+              { label: "Region", value: "us-east-1", icon: Activity },
+            ].map(({ label, value, icon: Icon }) => (
+              <div key={label} className="flex items-center gap-3 p-3 rounded-lg bg-background/50 border border-border/30">
+                <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div>
+                  <p className="text-xs text-muted-foreground">{label}</p>
+                  <p className="text-sm font-medium font-mono">{value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quick Actions Grid */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Zap className="h-4 w-4 text-primary" />
+            Quick Actions
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: "Force Re-sync", desc: "Sync all integrations", icon: RefreshCw, action: () => toast.success("Sync initiated") },
+              { label: "Export Config", desc: "Download org config", icon: Key, action: () => toast.success("Config exported") },
+              { label: "Clear Cache", desc: "Flush Redis cache", icon: Trash2, action: () => toast.success("Cache cleared") },
+              { label: "Audit Export", desc: "Export audit log CSV", icon: Activity, action: () => toast.success("Audit log exporting") },
+              { label: "Rotate All Keys", desc: "Rotate all API keys", icon: RotateCcw, action: () => toast.success("Key rotation queued") },
+              { label: "User Sync", desc: "Sync SSO users", icon: Users, action: () => toast.success("SSO sync triggered") },
+              { label: "Health Check", desc: "Run system diagnostics", icon: CheckCircle, action: () => toast.success("Health check running") },
+              { label: "Send Test Alert", desc: "Test notification config", icon: Bell, action: () => toast.success("Test alert sent") },
+            ].map(({ label, desc, icon: Icon, action }) => (
+              <button
+                key={label}
+                onClick={action}
+                className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border border-border/40 hover:bg-muted/50 hover:border-primary/30 transition-all text-left group"
+              >
+                <div className="h-7 w-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                  <Icon className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium">{label}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </motion.div>
   );
 }

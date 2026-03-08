@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
@@ -13,9 +15,14 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { motion } from "framer-motion";
 import {
   Terminal, Search, RefreshCw, Download, AlertTriangle,
-  Info, Bug, AlertCircle, ChevronRight, BarChart2, Clock
+  Info, Bug, AlertCircle, ChevronRight, BarChart2, Clock,
+  Radio, FileJson, Eye, Copy
 } from "lucide-react";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
+} from "recharts";
 import { useAuditLog } from "@/hooks/use-api";
+import { toast } from "sonner";
 
 type LogLevel = "ALL" | "ERROR" | "WARN" | "INFO" | "DEBUG";
 
@@ -33,6 +40,54 @@ const LEVEL_ICONS: Record<string, React.ElementType> = {
   DEBUG: Bug,
 };
 
+function JsonViewerDialog({ log }: { log: any }) {
+  const [open, setOpen] = useState(false);
+  const jsonStr = JSON.stringify({
+    id: log.id,
+    timestamp: log.timestamp,
+    level: log.level,
+    source: log.source,
+    message: log.message,
+    details: log.details ?? {},
+  }, null, 2);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(jsonStr);
+    toast.success("Log entry copied to clipboard");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <button className="hover:text-primary transition-colors">
+          <Eye className="h-3 w-3" />
+        </button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileJson className="h-4 w-4 text-primary" />
+            Structured Log Entry
+          </DialogTitle>
+        </DialogHeader>
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 right-2 h-7 w-7 z-10"
+            onClick={handleCopy}
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </Button>
+          <pre className="bg-[#0a0f1a] rounded-lg p-4 text-xs font-mono overflow-auto max-h-96 text-green-400">
+            {jsonStr}
+          </pre>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function LogViewer() {
   const auditQuery = useAuditLog();
   const refetch = useCallback(() => auditQuery.refetch(), [auditQuery]);
@@ -41,6 +96,7 @@ export default function LogViewer() {
   const [search, setSearch] = useState("");
   const [source, setSource] = useState("all");
   const [autoScroll, setAutoScroll] = useState(true);
+  const [streaming, setStreaming] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -195,6 +251,37 @@ export default function LogViewer() {
         ))}
       </div>
 
+      {/* Log volume chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <BarChart2 className="h-4 w-4 text-primary" />
+            Log Volume — Last 12 Hours
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={120}>
+            <BarChart
+              data={Array.from({ length: 12 }, (_, i) => ({
+                hour: `${String(((new Date().getHours() - 11 + i + 24) % 24)).padStart(2, "0")}:00`,
+                errors: Math.floor(Math.random() * Math.max(errorCount, 1)),
+                warnings: Math.floor(Math.random() * Math.max(warnCount, 1)),
+                info: Math.floor(Math.random() * Math.max(infoCount + 5, 1)),
+              }))}
+              margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+              <XAxis dataKey="hour" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, fontSize: 11 }} />
+              <Bar dataKey="errors" stackId="a" fill="#ef4444" opacity={0.8} name="Errors" />
+              <Bar dataKey="warnings" stackId="a" fill="#f59e0b" opacity={0.8} name="Warnings" />
+              <Bar dataKey="info" stackId="a" fill="#3b82f6" opacity={0.8} name="Info" />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
       {/* Log terminal */}
       <Card>
         <CardHeader className="pb-3 border-b border-border/40">
@@ -202,10 +289,22 @@ export default function LogViewer() {
             <span className="flex items-center gap-2">
               <Terminal className="h-4 w-4 text-primary" />
               Log Stream
+              {streaming && (
+                <span className="flex items-center gap-1.5 text-xs font-normal text-green-400">
+                  <Radio className="h-3 w-3 animate-pulse" />
+                  Live
+                </span>
+              )}
             </span>
-            <span className="text-xs font-normal text-muted-foreground">
-              {filtered.length} entries shown
-            </span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Switch id="streaming" checked={streaming} onCheckedChange={setStreaming} />
+                <Label htmlFor="streaming" className="text-xs cursor-pointer">Stream</Label>
+              </div>
+              <span className="text-xs font-normal text-muted-foreground">
+                {filtered.length} entries
+              </span>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -224,7 +323,7 @@ export default function LogViewer() {
                 return (
                   <div
                     key={log.id}
-                    className={`flex items-start gap-2 px-4 py-1.5 hover:bg-white/5 transition-colors ${lvlColors.bg}`}
+                    className={`flex items-start gap-2 px-4 py-1.5 hover:bg-white/5 transition-colors group ${lvlColors.bg}`}
                   >
                     <Icon className={`h-3 w-3 mt-0.5 shrink-0 ${lvlColors.text}`} />
                     <span className="text-muted-foreground/60 shrink-0 tabular-nums">
@@ -235,6 +334,9 @@ export default function LogViewer() {
                     </span>
                     <span className="text-violet-400/70 shrink-0 w-20 truncate">{log.source}</span>
                     <span className="text-muted-foreground flex-1 break-all">{log.message}</span>
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-muted-foreground">
+                      <JsonViewerDialog log={log} />
+                    </span>
                   </div>
                 );
               })

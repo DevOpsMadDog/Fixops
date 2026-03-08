@@ -852,3 +852,1192 @@ def get_compliance_engine() -> ComplianceEngine:
     if _default_engine is None:
         _default_engine = ComplianceEngine()
     return _default_engine
+
+
+# ---------------------------------------------------------------------------
+# COMPLIANCE AUTO-MAPPER
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class ControlMapping:
+    """A single finding-to-control mapping result."""
+
+    framework: str
+    control_id: str
+    control_title: str
+    relevance_score: float        # 0.0-1.0 confidence of mapping
+    mapping_reason: str
+    evidence_required: List[str]
+    automated: bool = True
+
+
+@dataclass
+class FrameworkCoverage:
+    """Coverage report for a single compliance framework."""
+
+    framework: str
+    total_controls: int
+    covered_controls: int
+    coverage_pct: float
+    uncovered_controls: List[str]
+    partial_controls: List[str]
+    as_of: str
+
+
+class ComplianceAutoMapper:
+    """Automatically map security findings to compliance controls.
+
+    Supports mapping across 7 major frameworks:
+    - SOC 2 Type II (47 trust service criteria)
+    - PCI-DSS v4.0 (12 requirements, 264 sub-requirements)
+    - ISO 27001:2022 (93 controls across 4 themes)
+    - HIPAA (45 safeguards)
+    - NIST 800-53 Rev 5 (20 control families)
+    - CMMC v2 (14 domains)
+    - FedRAMP (325 controls, NIST 800-53 subset)
+
+    Mapping is keyword-driven from CWE IDs, finding categories, and
+    vulnerability types. Each mapping includes a relevance score so
+    downstream evidence generation can be prioritised.
+
+    Usage::
+
+        mapper = ComplianceAutoMapper()
+        mappings = mapper.map_finding_to_controls(finding_dict)
+        coverage = mapper.get_coverage_report("SOC2")
+        gaps = mapper.identify_gaps("PCI_DSS_4.0")
+    """
+
+    # CWE → frameworks → controls mapping table
+    # Format: {cwe_id: {framework: [control_ids]}}
+    _CWE_CONTROL_MAP: Dict[str, Dict[str, List[str]]] = {
+        "CWE-89":   {  # SQLi
+            "SOC2": ["CC6.1", "CC6.6", "CC7.1"],
+            "PCI_DSS_4.0": ["6.2", "6.3", "6.4"],
+            "ISO_27001_2022": ["A.8.28", "A.8.29", "A.8.25"],
+            "NIST_800_53_R5": ["SI-10", "SA-11", "SA-15"],
+            "CMMC_V2": ["SI.L1-3.14.1", "SA.L2-3.12.3"],
+            "HIPAA": ["§164.312(a)(1)", "§164.312(c)(1)"],
+            "FedRAMP": ["SI-10", "SA-11"],
+        },
+        "CWE-79":   {  # XSS
+            "SOC2": ["CC6.1", "CC6.6"],
+            "PCI_DSS_4.0": ["6.2", "6.4"],
+            "ISO_27001_2022": ["A.8.28", "A.8.29"],
+            "NIST_800_53_R5": ["SI-10", "SC-18"],
+            "CMMC_V2": ["SI.L1-3.14.1"],
+            "HIPAA": ["§164.312(a)(1)"],
+            "FedRAMP": ["SI-10", "SC-18"],
+        },
+        "CWE-22":   {  # Path Traversal
+            "SOC2": ["CC6.1", "CC6.3"],
+            "PCI_DSS_4.0": ["6.2", "7.2"],
+            "ISO_27001_2022": ["A.8.28", "A.8.3"],
+            "NIST_800_53_R5": ["AC-3", "SI-10"],
+            "CMMC_V2": ["AC.L1-3.1.1", "SI.L1-3.14.1"],
+            "HIPAA": ["§164.312(a)(1)", "§164.312(c)(1)"],
+            "FedRAMP": ["AC-3", "SI-10"],
+        },
+        "CWE-78":   {  # Command Injection
+            "SOC2": ["CC6.1", "CC6.6", "CC7.1"],
+            "PCI_DSS_4.0": ["6.2", "6.3"],
+            "ISO_27001_2022": ["A.8.28", "A.8.29"],
+            "NIST_800_53_R5": ["SI-10", "CM-7"],
+            "CMMC_V2": ["SI.L1-3.14.1", "CM.L2-3.4.6"],
+            "HIPAA": ["§164.312(a)(1)"],
+            "FedRAMP": ["SI-10", "CM-7"],
+        },
+        "CWE-798":  {  # Hardcoded Credentials
+            "SOC2": ["CC6.1", "CC6.2"],
+            "PCI_DSS_4.0": ["8.2", "8.3", "8.6"],
+            "ISO_27001_2022": ["A.8.13", "A.5.17", "A.8.5"],
+            "NIST_800_53_R5": ["IA-5", "SA-15"],
+            "CMMC_V2": ["IA.L1-3.5.1", "IA.L2-3.5.3"],
+            "HIPAA": ["§164.312(d)"],
+            "FedRAMP": ["IA-5", "IA-6"],
+        },
+        "CWE-327":  {  # Weak Crypto
+            "SOC2": ["CC6.1", "CC6.7"],
+            "PCI_DSS_4.0": ["4.2", "6.2"],
+            "ISO_27001_2022": ["A.8.24", "A.8.28"],
+            "NIST_800_53_R5": ["SC-13", "SC-28"],
+            "CMMC_V2": ["SC.L2-3.13.10", "SC.L2-3.13.8"],
+            "HIPAA": ["§164.312(a)(2)(iv)", "§164.312(e)(2)(ii)"],
+            "FedRAMP": ["SC-13", "SC-28"],
+        },
+        "CWE-502":  {  # Insecure Deserialization
+            "SOC2": ["CC6.1", "CC6.6"],
+            "PCI_DSS_4.0": ["6.2", "6.3"],
+            "ISO_27001_2022": ["A.8.28", "A.8.29"],
+            "NIST_800_53_R5": ["SI-10", "SA-11"],
+            "CMMC_V2": ["SI.L1-3.14.1"],
+            "HIPAA": ["§164.312(a)(1)"],
+            "FedRAMP": ["SI-10"],
+        },
+        "CWE-918":  {  # SSRF
+            "SOC2": ["CC6.1", "CC6.6", "CC7.1"],
+            "PCI_DSS_4.0": ["6.2", "6.3", "1.3"],
+            "ISO_27001_2022": ["A.8.28", "A.8.20"],
+            "NIST_800_53_R5": ["SC-7", "SI-10"],
+            "CMMC_V2": ["SC.L2-3.13.5", "SI.L1-3.14.1"],
+            "HIPAA": ["§164.312(a)(1)"],
+            "FedRAMP": ["SC-7", "SI-10"],
+        },
+        "CWE-611":  {  # XXE
+            "SOC2": ["CC6.1", "CC6.6"],
+            "PCI_DSS_4.0": ["6.2", "6.3"],
+            "ISO_27001_2022": ["A.8.28"],
+            "NIST_800_53_R5": ["SI-10"],
+            "CMMC_V2": ["SI.L1-3.14.1"],
+            "HIPAA": ["§164.312(a)(1)"],
+            "FedRAMP": ["SI-10"],
+        },
+        "CWE-284":  {  # Broken Access Control
+            "SOC2": ["CC6.2", "CC6.3"],
+            "PCI_DSS_4.0": ["7.1", "7.2", "7.3"],
+            "ISO_27001_2022": ["A.8.3", "A.5.15", "A.8.4"],
+            "NIST_800_53_R5": ["AC-2", "AC-3", "AC-6"],
+            "CMMC_V2": ["AC.L1-3.1.1", "AC.L1-3.1.2"],
+            "HIPAA": ["§164.312(a)(1)", "§164.312(a)(2)(i)"],
+            "FedRAMP": ["AC-2", "AC-3"],
+        },
+        "CWE-269":  {  # Privilege Escalation
+            "SOC2": ["CC6.3"],
+            "PCI_DSS_4.0": ["7.2", "7.3"],
+            "ISO_27001_2022": ["A.8.2", "A.5.15"],
+            "NIST_800_53_R5": ["AC-6", "CM-7"],
+            "CMMC_V2": ["AC.L1-3.1.1", "AC.L2-3.1.6"],
+            "HIPAA": ["§164.312(a)(2)(i)"],
+            "FedRAMP": ["AC-6"],
+        },
+        "CWE-362":  {  # Race Condition
+            "SOC2": ["CC7.1"],
+            "PCI_DSS_4.0": ["6.2"],
+            "ISO_27001_2022": ["A.8.28"],
+            "NIST_800_53_R5": ["SI-16", "SA-11"],
+            "CMMC_V2": ["SI.L1-3.14.1"],
+            "HIPAA": ["§164.312(c)(1)"],
+            "FedRAMP": ["SA-11"],
+        },
+        "CWE-506":  {  # Supply Chain / Embedded Malicious Code
+            "SOC2": ["CC6.1", "CC9.2"],
+            "PCI_DSS_4.0": ["6.3", "12.8"],
+            "ISO_27001_2022": ["A.8.30", "A.5.19", "A.5.20"],
+            "NIST_800_53_R5": ["SA-12", "SA-15", "SR-3"],
+            "CMMC_V2": ["SR.L2-3.17.2", "SR.L2-3.17.3"],
+            "HIPAA": ["§164.308(a)(1)"],
+            "FedRAMP": ["SA-12", "SR-3"],
+        },
+        "CWE-639":  {  # IDOR
+            "SOC2": ["CC6.2", "CC6.3"],
+            "PCI_DSS_4.0": ["7.1", "7.2"],
+            "ISO_27001_2022": ["A.8.3", "A.5.15"],
+            "NIST_800_53_R5": ["AC-3", "AC-4"],
+            "CMMC_V2": ["AC.L1-3.1.1"],
+            "HIPAA": ["§164.312(a)(1)"],
+            "FedRAMP": ["AC-3"],
+        },
+        "CWE-120":  {  # Buffer Overflow
+            "SOC2": ["CC7.1"],
+            "PCI_DSS_4.0": ["6.2"],
+            "ISO_27001_2022": ["A.8.28", "A.8.8"],
+            "NIST_800_53_R5": ["SI-16", "SA-11"],
+            "CMMC_V2": ["SI.L1-3.14.1"],
+            "HIPAA": ["§164.312(c)(1)"],
+            "FedRAMP": ["SA-11", "SI-16"],
+        },
+    }
+
+    # Framework control catalogs (title mappings for key controls)
+    _CONTROL_TITLES: Dict[str, Dict[str, str]] = {
+        "SOC2": {
+            "CC6.1": "Logical and Physical Access Controls — Access Provisioning",
+            "CC6.2": "Logical and Physical Access Controls — Passwords and Authentication",
+            "CC6.3": "Logical and Physical Access Controls — Removal of Access",
+            "CC6.6": "Logical and Physical Access Controls — Boundary Protection",
+            "CC6.7": "Logical and Physical Access Controls — Transmission Controls",
+            "CC7.1": "System Operations — Change Management",
+            "CC9.2": "Risk Mitigation — Vendor and Business Partner Management",
+        },
+        "PCI_DSS_4.0": {
+            "1.3": "Network Access Controls",
+            "4.2": "Protection of Cardholder Data in Transit",
+            "6.2": "Secure Development Practices",
+            "6.3": "Vulnerability Management",
+            "6.4": "Web-Facing Application Security",
+            "7.1": "Access Control Policy",
+            "7.2": "Access Control System",
+            "7.3": "All Access Reviewed",
+            "8.2": "User Identification and Authentication",
+            "8.3": "Strong Authentication for Non-Consumer Users",
+            "8.6": "Management of Service Provider Accounts",
+            "12.8": "Third-Party Service Providers",
+        },
+        "ISO_27001_2022": {
+            "A.5.15": "Access control",
+            "A.5.17": "Authentication information",
+            "A.5.19": "Information security in supplier relationships",
+            "A.5.20": "Addressing information security within supplier agreements",
+            "A.8.2": "Privileged access rights",
+            "A.8.3": "Information access restriction",
+            "A.8.4": "Access to source code",
+            "A.8.5": "Secure authentication",
+            "A.8.8": "Management of technical vulnerabilities",
+            "A.8.13": "Information backup",
+            "A.8.20": "Networks security",
+            "A.8.24": "Use of cryptography",
+            "A.8.25": "Secure development life cycle",
+            "A.8.28": "Secure coding",
+            "A.8.29": "Security testing in development and acceptance",
+            "A.8.30": "Outsourced development",
+        },
+        "NIST_800_53_R5": {
+            "AC-2": "Account Management",
+            "AC-3": "Access Enforcement",
+            "AC-4": "Information Flow Enforcement",
+            "AC-6": "Least Privilege",
+            "CM-7": "Least Functionality",
+            "IA-5": "Authenticator Management",
+            "IA-6": "Authentication Feedback",
+            "SA-11": "Developer Testing and Evaluation",
+            "SA-12": "Supply Chain Protection",
+            "SA-15": "Development Process, Standards, and Tools",
+            "SC-7": "Boundary Protection",
+            "SC-13": "Cryptographic Protection",
+            "SC-18": "Mobile Code",
+            "SC-28": "Protection of Information at Rest",
+            "SI-10": "Information Input Validation",
+            "SI-16": "Memory Protection",
+            "SR-3": "Supply Chain Controls and Processes",
+        },
+        "CMMC_V2": {
+            "AC.L1-3.1.1": "Authorized Access Control",
+            "AC.L1-3.1.2": "Transaction & Function Control",
+            "AC.L2-3.1.6": "Non-Privileged Account Use",
+            "CM.L2-3.4.6": "Least Functionality",
+            "IA.L1-3.5.1": "Identification",
+            "IA.L2-3.5.3": "Multi-factor Authentication",
+            "SA.L2-3.12.3": "Security Control Testing",
+            "SC.L2-3.13.5": "Public-Access System Separation",
+            "SC.L2-3.13.8": "Data in Transit",
+            "SC.L2-3.13.10": "Key Management",
+            "SI.L1-3.14.1": "Flaw Remediation",
+            "SR.L2-3.17.2": "Supply Chain Risk Assessment",
+            "SR.L2-3.17.3": "Supplier Agreements",
+        },
+        "HIPAA": {
+            "§164.308(a)(1)": "Risk Analysis and Management",
+            "§164.312(a)(1)": "Access Control",
+            "§164.312(a)(2)(i)": "Unique User Identification",
+            "§164.312(a)(2)(iv)": "Encryption and Decryption",
+            "§164.312(c)(1)": "Integrity Controls",
+            "§164.312(d)": "Person or Entity Authentication",
+            "§164.312(e)(2)(ii)": "Encryption of Data in Transit",
+        },
+        "FedRAMP": {
+            "AC-2": "Account Management",
+            "AC-3": "Access Enforcement",
+            "AC-6": "Least Privilege",
+            "IA-5": "Authenticator Management",
+            "IA-6": "Authentication Feedback",
+            "SA-11": "Developer Security Testing",
+            "SA-12": "Supply Chain Protection",
+            "SC-7": "Boundary Protection",
+            "SC-13": "Cryptographic Protection",
+            "SC-28": "Protection of Information at Rest",
+            "SI-10": "Information Input Validation",
+            "SI-16": "Memory Protection",
+            "SR-3": "Supply Chain Controls",
+        },
+    }
+
+    def __init__(self) -> None:
+        # Build reverse index: framework → set of all control_ids
+        self._all_controls: Dict[str, set] = {}
+        for _, fw_map in self._CWE_CONTROL_MAP.items():
+            for fw, controls in fw_map.items():
+                if fw not in self._all_controls:
+                    self._all_controls[fw] = set()
+                self._all_controls[fw].update(controls)
+
+    def map_finding_to_controls(
+        self, finding: Dict[str, Any]
+    ) -> List[ControlMapping]:
+        """Map a finding to compliance controls across all frameworks.
+
+        Args:
+            finding: Dict with at least one of:
+                - cwe_id (str): CWE identifier (e.g. "CWE-89")
+                - category (str): Finding category
+                - title (str): Finding title
+                - severity (str): Severity level
+
+        Returns:
+            Sorted list of ControlMapping objects (highest relevance first).
+        """
+        mappings: List[ControlMapping] = []
+        seen: set = set()  # Avoid duplicates
+
+        cwe_id = finding.get("cwe_id", "")
+        title = (finding.get("title", "") + " " + finding.get("category", "")).lower()
+
+        # Direct CWE match
+        if cwe_id in self._CWE_CONTROL_MAP:
+            for framework, control_ids in self._CWE_CONTROL_MAP[cwe_id].items():
+                fw_titles = self._CONTROL_TITLES.get(framework, {})
+                for ctrl_id in control_ids:
+                    key = f"{framework}:{ctrl_id}"
+                    if key not in seen:
+                        seen.add(key)
+                        mappings.append(ControlMapping(
+                            framework=framework,
+                            control_id=ctrl_id,
+                            control_title=fw_titles.get(ctrl_id, ctrl_id),
+                            relevance_score=0.95,
+                            mapping_reason=f"Direct CWE match: {cwe_id}",
+                            evidence_required=self._get_evidence_requirements(
+                                framework, ctrl_id
+                            ),
+                        ))
+
+        # Keyword-based matching for findings without CWE
+        if not cwe_id or len(mappings) < 3:
+            keyword_map = {
+                "sql": "CWE-89",
+                "injection": "CWE-78",
+                "command": "CWE-78",
+                "path traversal": "CWE-22",
+                "directory": "CWE-22",
+                "ssrf": "CWE-918",
+                "deserializ": "CWE-502",
+                "xxe": "CWE-611",
+                "access control": "CWE-284",
+                "privilege": "CWE-269",
+                "crypto": "CWE-327",
+                "encrypt": "CWE-327",
+                "credential": "CWE-798",
+                "secret": "CWE-798",
+                "supply chain": "CWE-506",
+                "buffer": "CWE-120",
+                "idor": "CWE-639",
+                "xss": "CWE-79",
+            }
+            for keyword, fallback_cwe in keyword_map.items():
+                if keyword in title and fallback_cwe != cwe_id:
+                    for fw, ctrl_ids in self._CWE_CONTROL_MAP.get(fallback_cwe, {}).items():
+                        fw_titles = self._CONTROL_TITLES.get(fw, {})
+                        for ctrl_id in ctrl_ids:
+                            key = f"{fw}:{ctrl_id}"
+                            if key not in seen:
+                                seen.add(key)
+                                mappings.append(ControlMapping(
+                                    framework=fw,
+                                    control_id=ctrl_id,
+                                    control_title=fw_titles.get(ctrl_id, ctrl_id),
+                                    relevance_score=0.75,
+                                    mapping_reason=f"Keyword match: '{keyword}' → {fallback_cwe}",
+                                    evidence_required=self._get_evidence_requirements(fw, ctrl_id),
+                                ))
+                    break
+
+        mappings.sort(key=lambda m: m.relevance_score, reverse=True)
+        return mappings
+
+    def get_coverage_report(
+        self, framework: str, covered_control_ids: Optional[List[str]] = None
+    ) -> FrameworkCoverage:
+        """Compute coverage percentage for a framework.
+
+        Args:
+            framework: Framework identifier string.
+            covered_control_ids: List of control IDs with evidence. If None,
+                uses all controls seen in mappings.
+
+        Returns:
+            FrameworkCoverage with percentage and gap details.
+        """
+        all_controls = self._all_controls.get(framework, set())
+        covered = set(covered_control_ids or [])
+        covered_in_fw = covered.intersection(all_controls)
+        uncovered = sorted(all_controls - covered_in_fw)
+        partial = []  # Could be populated with richer evidence tracking
+
+        coverage_pct = (
+            len(covered_in_fw) / len(all_controls) * 100.0
+            if all_controls else 0.0
+        )
+
+        return FrameworkCoverage(
+            framework=framework,
+            total_controls=len(all_controls),
+            covered_controls=len(covered_in_fw),
+            coverage_pct=round(coverage_pct, 1),
+            uncovered_controls=uncovered,
+            partial_controls=partial,
+            as_of=datetime.now(timezone.utc).isoformat(),
+        )
+
+    def identify_gaps(
+        self,
+        framework: str,
+        evidence_map: Optional[Dict[str, List[str]]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Identify controls with missing or insufficient evidence.
+
+        Args:
+            framework: Framework identifier.
+            evidence_map: Dict of control_id → [evidence_bundle_ids]. If None,
+                assumes no evidence for any control.
+
+        Returns:
+            Sorted list of gap dicts with priority and remediation suggestions.
+        """
+        all_controls = self._all_controls.get(framework, set())
+        ev_map = evidence_map or {}
+        fw_titles = self._CONTROL_TITLES.get(framework, {})
+        gaps: List[Dict[str, Any]] = []
+
+        for ctrl_id in sorted(all_controls):
+            ev_count = len(ev_map.get(ctrl_id, []))
+            if ev_count == 0:
+                priority = "critical"
+                status = "no_evidence"
+            elif ev_count == 1:
+                priority = "high"
+                status = "insufficient_evidence"
+            else:
+                continue  # Adequately covered
+
+            gaps.append({
+                "framework": framework,
+                "control_id": ctrl_id,
+                "control_title": fw_titles.get(ctrl_id, ctrl_id),
+                "status": status,
+                "priority": priority,
+                "evidence_count": ev_count,
+                "remediation": self._get_gap_remediation(framework, ctrl_id, status),
+                "estimated_days_to_close": 5 if ev_count == 0 else 2,
+            })
+
+        gaps.sort(key=lambda g: (0 if g["priority"] == "critical" else 1, g["control_id"]))
+        return gaps
+
+    def get_all_framework_names(self) -> List[str]:
+        """Return list of all supported framework names."""
+        return sorted(self._all_controls.keys())
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _get_evidence_requirements(framework: str, control_id: str) -> List[str]:
+        """Return standard evidence types required for a control."""
+        base = ["scan_result", "policy_check"]
+        if framework in ("SOC2", "ISO_27001_2022"):
+            base.append("access_review")
+        if framework in ("PCI_DSS_4.0", "FedRAMP"):
+            base.append("penetration_test")
+        if "SA" in control_id or "8.28" in control_id or "8.29" in control_id:
+            base.append("code_review")
+        return base
+
+    @staticmethod
+    def _get_gap_remediation(framework: str, control_id: str, status: str) -> str:
+        """Build a remediation suggestion for a coverage gap."""
+        if status == "no_evidence":
+            return (
+                f"Run a scan targeting {control_id} and generate evidence bundle. "
+                f"At minimum 2 evidence items required for {framework} compliance."
+            )
+        return (
+            f"Supplement existing evidence for {control_id} with a second "
+            f"independent source (e.g., penetration test or access review)."
+        )
+
+
+# ---------------------------------------------------------------------------
+# AUTO EVIDENCE GENERATOR
+# ---------------------------------------------------------------------------
+
+
+class AutoEvidenceGenerator:
+    """Generate compliance evidence bundles from real scan data.
+
+    Creates structured, audit-ready evidence bundles for specific framework
+    controls using actual FixOps scan results. Each bundle includes:
+    - Control reference and framework
+    - Evidence timestamp and expiry
+    - Relevant scan findings
+    - Compliance statement
+    - Audit-ready metadata
+
+    Usage::
+
+        gen = AutoEvidenceGenerator()
+        bundle = gen.generate_soc2_evidence("auth-service", "CC6.1")
+        bundles = gen.bulk_generate("payment-api", "PCI_DSS_4.0")
+    """
+
+    # Evidence validity periods (days) per framework
+    _VALIDITY_DAYS: Dict[str, int] = {
+        "SOC2": 365,
+        "PCI_DSS_4.0": 365,
+        "ISO_27001_2022": 365,
+        "HIPAA": 365,
+        "NIST_800_53_R5": 365,
+        "CMMC_V2": 365,
+        "FedRAMP": 365,
+    }
+
+    def __init__(
+        self,
+        auto_mapper: Optional[ComplianceAutoMapper] = None,
+    ) -> None:
+        self._mapper = auto_mapper or ComplianceAutoMapper()
+
+    def generate_soc2_evidence(
+        self,
+        app_id: str,
+        control_id: str,
+        scan_findings: Optional[List[Dict[str, Any]]] = None,
+        auditor_notes: str = "",
+    ) -> Dict[str, Any]:
+        """Generate a SOC 2 evidence bundle for a specific trust service criterion.
+
+        Args:
+            app_id: Application or service identifier.
+            control_id: SOC 2 criterion ID (e.g. "CC6.1").
+            scan_findings: List of relevant findings from scan results.
+            auditor_notes: Optional notes from auditor or security team.
+
+        Returns:
+            Structured evidence bundle dict ready for SOC 2 audit submission.
+        """
+        return self._generate_bundle(
+            framework="SOC2",
+            app_id=app_id,
+            control_id=control_id,
+            scan_findings=scan_findings or [],
+            auditor_notes=auditor_notes,
+        )
+
+    def generate_pci_evidence(
+        self,
+        app_id: str,
+        requirement: str,
+        scan_findings: Optional[List[Dict[str, Any]]] = None,
+        auditor_notes: str = "",
+    ) -> Dict[str, Any]:
+        """Generate a PCI-DSS v4.0 evidence bundle.
+
+        Args:
+            app_id: Application or service identifier.
+            requirement: PCI DSS requirement ID (e.g. "6.2").
+            scan_findings: Relevant scan findings.
+            auditor_notes: Optional auditor notes.
+
+        Returns:
+            Structured evidence bundle dict for PCI-DSS submission.
+        """
+        return self._generate_bundle(
+            framework="PCI_DSS_4.0",
+            app_id=app_id,
+            control_id=requirement,
+            scan_findings=scan_findings or [],
+            auditor_notes=auditor_notes,
+        )
+
+    def generate_hipaa_evidence(
+        self,
+        app_id: str,
+        safeguard_id: str,
+        scan_findings: Optional[List[Dict[str, Any]]] = None,
+        auditor_notes: str = "",
+    ) -> Dict[str, Any]:
+        """Generate a HIPAA evidence bundle for a specific safeguard.
+
+        Args:
+            app_id: Application identifier.
+            safeguard_id: HIPAA safeguard (e.g. "§164.312(a)(1)").
+            scan_findings: Relevant scan findings.
+            auditor_notes: Optional auditor notes.
+
+        Returns:
+            Structured evidence bundle dict.
+        """
+        return self._generate_bundle(
+            framework="HIPAA",
+            app_id=app_id,
+            control_id=safeguard_id,
+            scan_findings=scan_findings or [],
+            auditor_notes=auditor_notes,
+        )
+
+    def generate_cmmc_evidence(
+        self,
+        app_id: str,
+        practice_id: str,
+        scan_findings: Optional[List[Dict[str, Any]]] = None,
+        auditor_notes: str = "",
+    ) -> Dict[str, Any]:
+        """Generate a CMMC v2 evidence bundle.
+
+        Args:
+            app_id: Application identifier.
+            practice_id: CMMC practice ID (e.g. "SI.L1-3.14.1").
+            scan_findings: Relevant findings.
+            auditor_notes: Optional notes.
+
+        Returns:
+            Structured evidence bundle dict for CMMC assessment.
+        """
+        return self._generate_bundle(
+            framework="CMMC_V2",
+            app_id=app_id,
+            control_id=practice_id,
+            scan_findings=scan_findings or [],
+            auditor_notes=auditor_notes,
+        )
+
+    def bulk_generate(
+        self,
+        app_id: str,
+        framework: str,
+        scan_findings: Optional[List[Dict[str, Any]]] = None,
+        max_controls: int = 50,
+    ) -> Dict[str, Any]:
+        """Generate evidence bundles for all controls in a framework.
+
+        Args:
+            app_id: Application identifier.
+            framework: Framework name (e.g. "SOC2").
+            scan_findings: All available scan findings for the application.
+            max_controls: Cap on number of controls to generate (avoids runaway).
+
+        Returns:
+            Dict with framework, total_generated, bundles list.
+        """
+        all_controls = list(
+            self._mapper._all_controls.get(framework, set())
+        )[:max_controls]
+
+        bundles: List[Dict[str, Any]] = []
+        findings = scan_findings or []
+
+        for ctrl_id in sorted(all_controls):
+            # Filter findings relevant to this control
+            relevant = [
+                f for f in findings
+                if any(
+                    m.control_id == ctrl_id
+                    for m in self._mapper.map_finding_to_controls(f)
+                    if m.framework == framework
+                )
+            ]
+            bundle = self._generate_bundle(
+                framework=framework,
+                app_id=app_id,
+                control_id=ctrl_id,
+                scan_findings=relevant,
+                auditor_notes="",
+            )
+            bundles.append(bundle)
+
+        return {
+            "framework": framework,
+            "app_id": app_id,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "total_generated": len(bundles),
+            "controls_covered": sorted(all_controls),
+            "bundles": bundles,
+        }
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    def _generate_bundle(
+        self,
+        framework: str,
+        app_id: str,
+        control_id: str,
+        scan_findings: List[Dict[str, Any]],
+        auditor_notes: str,
+    ) -> Dict[str, Any]:
+        """Core evidence bundle generator."""
+        now = datetime.now(timezone.utc)
+        validity_days = self._VALIDITY_DAYS.get(framework, 365)
+        expires_at = (now + timedelta(days=validity_days)).isoformat()
+
+        fw_titles = ComplianceAutoMapper._CONTROL_TITLES.get(framework, {})
+        control_title = fw_titles.get(control_id, control_id)
+
+        # Compute compliance status from findings
+        critical_findings = [
+            f for f in scan_findings
+            if f.get("severity", "").lower() in ("critical", "high")
+        ]
+        status = "satisfied" if not critical_findings else "partially_satisfied"
+
+        # Build evidence hash for integrity
+        bundle_content = json.dumps({
+            "app_id": app_id,
+            "control_id": control_id,
+            "framework": framework,
+            "findings_count": len(scan_findings),
+            "generated_at": now.isoformat(),
+        }, sort_keys=True)
+        evidence_hash = hashlib.sha256(bundle_content.encode()).hexdigest()
+
+        return {
+            "evidence_id": str(uuid.uuid4()),
+            "framework": framework,
+            "control_id": control_id,
+            "control_title": control_title,
+            "app_id": app_id,
+            "generated_at": now.isoformat(),
+            "expires_at": expires_at,
+            "validity_days": validity_days,
+            "status": status,
+            "finding_count": len(scan_findings),
+            "critical_finding_count": len(critical_findings),
+            "findings_summary": [
+                {
+                    "id": f.get("id", ""),
+                    "title": f.get("title", ""),
+                    "severity": f.get("severity", ""),
+                    "cwe_id": f.get("cwe_id", ""),
+                }
+                for f in scan_findings[:10]  # Cap at 10 for bundle size
+            ],
+            "compliance_statement": self._build_compliance_statement(
+                framework, control_id, control_title, app_id, status, scan_findings
+            ),
+            "auditor_notes": auditor_notes,
+            "evidence_hash": evidence_hash,
+            "evidence_type": "automated_scan",
+            "generated_by": "FixOps AutoEvidenceGenerator",
+            "schema_version": "1.0",
+        }
+
+    @staticmethod
+    def _build_compliance_statement(
+        framework: str,
+        control_id: str,
+        control_title: str,
+        app_id: str,
+        status: str,
+        findings: List[Dict[str, Any]],
+    ) -> str:
+        """Build a human-readable compliance statement for auditors."""
+        finding_str = (
+            f"No findings relevant to this control."
+            if not findings
+            else f"{len(findings)} finding(s) reviewed; "
+            f"{sum(1 for f in findings if f.get('severity','').lower() in ('critical','high'))} "
+            f"are high/critical severity."
+        )
+        return (
+            f"FixOps automated scan of application '{app_id}' was conducted on "
+            f"{datetime.now(timezone.utc).date().isoformat()}. "
+            f"Evidence collected for {framework} control {control_id} "
+            f"({control_title}). {finding_str} "
+            f"Control status assessed as '{status}' based on automated evidence analysis."
+        )
+
+
+# ---------------------------------------------------------------------------
+# COMPLIANCE GAP ANALYZER
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class ComplianceGap:
+    """A single compliance gap with remediation detail."""
+
+    framework: str
+    control_id: str
+    control_title: str
+    gap_type: str                     # missing_evidence / insufficient_evidence / expired_evidence
+    priority: str                     # critical / high / medium / low
+    current_evidence_count: int
+    required_evidence_count: int
+    remediation_steps: List[str]
+    estimated_days_to_close: int
+    last_evidence_date: Optional[str] = None
+    days_since_evidence: Optional[int] = None
+
+
+@dataclass
+class GapTrend:
+    """Gap reduction trend over time."""
+
+    framework: str
+    measurement_date: str
+    total_gaps: int
+    critical_gaps: int
+    high_gaps: int
+    coverage_pct: float
+
+
+class ComplianceGapAnalyzer:
+    """Compliance gap analysis with trend tracking and remediation planning.
+
+    Identifies and prioritizes compliance control gaps across frameworks,
+    providing remediation timeline estimates and tracking improvement
+    over successive assessments.
+
+    Usage::
+
+        analyzer = ComplianceGapAnalyzer()
+        gaps = analyzer.analyze_gaps("SOC2", evidence_map)
+        timeline = analyzer.estimate_closure_timeline(gaps)
+        analyzer.record_trend("SOC2", gaps)
+        trend = analyzer.get_trend("SOC2")
+    """
+
+    # Minimum evidence items required per control tier
+    _MIN_EVIDENCE = {
+        "SOC2": 2,
+        "PCI_DSS_4.0": 3,
+        "ISO_27001_2022": 2,
+        "HIPAA": 2,
+        "NIST_800_53_R5": 2,
+        "CMMC_V2": 3,
+        "FedRAMP": 4,
+    }
+
+    # Evidence expiry periods (days)
+    _EVIDENCE_EXPIRY_DAYS = {
+        "SOC2": 365,
+        "PCI_DSS_4.0": 365,
+        "ISO_27001_2022": 365,
+        "HIPAA": 365,
+        "NIST_800_53_R5": 365,
+        "CMMC_V2": 365,
+        "FedRAMP": 365,
+    }
+
+    def __init__(
+        self,
+        mapper: Optional[ComplianceAutoMapper] = None,
+    ) -> None:
+        self._mapper = mapper or ComplianceAutoMapper()
+        self._trend_history: Dict[str, List[GapTrend]] = {}
+
+    def analyze_gaps(
+        self,
+        framework: str,
+        evidence_map: Optional[Dict[str, List[Dict[str, Any]]]] = None,
+    ) -> List[ComplianceGap]:
+        """Identify compliance gaps for a framework.
+
+        Args:
+            framework: Framework identifier.
+            evidence_map: Dict of control_id → list of evidence bundle dicts.
+                Each bundle should have: evidence_id, generated_at, status.
+
+        Returns:
+            Priority-sorted list of ComplianceGap objects.
+        """
+        all_controls = self._mapper._all_controls.get(framework, set())
+        fw_titles = ComplianceAutoMapper._CONTROL_TITLES.get(framework, {})
+        ev_map = evidence_map or {}
+        min_ev = self._MIN_EVIDENCE.get(framework, 2)
+        expiry_days = self._EVIDENCE_EXPIRY_DAYS.get(framework, 365)
+        gaps: List[ComplianceGap] = []
+
+        for ctrl_id in sorted(all_controls):
+            bundles = ev_map.get(ctrl_id, [])
+            now = datetime.now(timezone.utc)
+
+            # Filter out expired evidence
+            valid_bundles = []
+            for b in bundles:
+                gen_at_str = b.get("generated_at", "")
+                try:
+                    gen_at = datetime.fromisoformat(gen_at_str)
+                    if gen_at.tzinfo is None:
+                        gen_at = gen_at.replace(tzinfo=timezone.utc)
+                    if (now - gen_at).days <= expiry_days:
+                        valid_bundles.append(b)
+                except (ValueError, TypeError):
+                    valid_bundles.append(b)  # Include if can't parse date
+
+            ev_count = len(valid_bundles)
+            last_ev_date = None
+            days_since = None
+
+            if valid_bundles:
+                try:
+                    dates = [
+                        datetime.fromisoformat(b.get("generated_at", ""))
+                        for b in valid_bundles
+                        if b.get("generated_at")
+                    ]
+                    if dates:
+                        latest = max(dates)
+                        if latest.tzinfo is None:
+                            latest = latest.replace(tzinfo=timezone.utc)
+                        last_ev_date = latest.isoformat()
+                        days_since = (now - latest).days
+                except (ValueError, TypeError):
+                    pass
+
+            if ev_count == 0:
+                gap_type = "missing_evidence"
+                priority = "critical"
+                est_days = 7
+                steps = self._missing_evidence_steps(framework, ctrl_id)
+            elif ev_count < min_ev:
+                gap_type = "insufficient_evidence"
+                priority = "high"
+                est_days = 3
+                steps = [
+                    f"Generate {min_ev - ev_count} additional evidence bundle(s) for {ctrl_id}",
+                    "Run targeted scan against this control area",
+                    "Consider independent audit validation",
+                ]
+            else:
+                # Check for stale evidence (>75% of expiry window)
+                if days_since and days_since > int(expiry_days * 0.75):
+                    gap_type = "stale_evidence"
+                    priority = "medium"
+                    est_days = 5
+                    steps = [
+                        f"Evidence for {ctrl_id} is {days_since} days old",
+                        "Re-run scan to refresh evidence",
+                        f"Target refresh before day {expiry_days} of evidence age",
+                    ]
+                else:
+                    continue  # No gap
+
+            gaps.append(ComplianceGap(
+                framework=framework,
+                control_id=ctrl_id,
+                control_title=fw_titles.get(ctrl_id, ctrl_id),
+                gap_type=gap_type,
+                priority=priority,
+                current_evidence_count=ev_count,
+                required_evidence_count=min_ev,
+                remediation_steps=steps,
+                estimated_days_to_close=est_days,
+                last_evidence_date=last_ev_date,
+                days_since_evidence=days_since,
+            ))
+
+        priority_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+        gaps.sort(key=lambda g: (priority_order.get(g.priority, 4), g.control_id))
+        return gaps
+
+    def estimate_closure_timeline(
+        self,
+        gaps: List[ComplianceGap],
+        team_capacity_days_per_week: float = 5.0,
+    ) -> Dict[str, Any]:
+        """Estimate how long it will take to close all identified gaps.
+
+        Args:
+            gaps: Output from analyze_gaps().
+            team_capacity_days_per_week: Effective team capacity for remediation.
+
+        Returns:
+            Dict with estimated_days, target_date, gap_summary, critical_path.
+        """
+        if not gaps:
+            return {
+                "estimated_days": 0,
+                "target_date": datetime.now(timezone.utc).date().isoformat(),
+                "gap_count": 0,
+                "message": "No gaps identified — framework is fully covered",
+            }
+
+        total_effort_days = sum(g.estimated_days_to_close for g in gaps)
+        # Parallelise: assume team can work on 2 gaps simultaneously
+        effective_days = total_effort_days / min(2.0, team_capacity_days_per_week)
+        # Add overhead for review/approval cycles (20%)
+        effective_days = int(effective_days * 1.2)
+
+        target_date = (
+            datetime.now(timezone.utc) + timedelta(days=effective_days)
+        ).date().isoformat()
+
+        critical_gaps = [g for g in gaps if g.priority == "critical"]
+        high_gaps = [g for g in gaps if g.priority == "high"]
+
+        critical_path = []
+        if critical_gaps:
+            critical_path = [
+                {
+                    "control_id": g.control_id,
+                    "framework": g.framework,
+                    "gap_type": g.gap_type,
+                    "days_to_close": g.estimated_days_to_close,
+                }
+                for g in critical_gaps[:5]
+            ]
+
+        return {
+            "estimated_days": effective_days,
+            "target_date": target_date,
+            "gap_count": len(gaps),
+            "critical_gaps": len(critical_gaps),
+            "high_gaps": len(high_gaps),
+            "total_effort_days": total_effort_days,
+            "team_capacity_days_per_week": team_capacity_days_per_week,
+            "critical_path": critical_path,
+        }
+
+    def record_trend(
+        self,
+        framework: str,
+        gaps: List[ComplianceGap],
+        evidence_map: Optional[Dict[str, List[Dict[str, Any]]]] = None,
+    ) -> GapTrend:
+        """Record a gap snapshot for trend tracking.
+
+        Args:
+            framework: Framework identifier.
+            gaps: Current gap list from analyze_gaps().
+            evidence_map: Optional evidence map for coverage calculation.
+
+        Returns:
+            GapTrend snapshot.
+        """
+        all_controls = len(self._mapper._all_controls.get(framework, set()))
+        coverage_pct = (
+            (all_controls - len(gaps)) / all_controls * 100.0
+            if all_controls > 0 else 0.0
+        )
+
+        trend = GapTrend(
+            framework=framework,
+            measurement_date=datetime.now(timezone.utc).isoformat(),
+            total_gaps=len(gaps),
+            critical_gaps=sum(1 for g in gaps if g.priority == "critical"),
+            high_gaps=sum(1 for g in gaps if g.priority == "high"),
+            coverage_pct=round(coverage_pct, 1),
+        )
+
+        if framework not in self._trend_history:
+            self._trend_history[framework] = []
+        self._trend_history[framework].append(trend)
+        return trend
+
+    def get_trend(
+        self,
+        framework: str,
+        lookback_days: int = 90,
+    ) -> Dict[str, Any]:
+        """Return gap trend analysis for a framework.
+
+        Args:
+            framework: Framework identifier.
+            lookback_days: Number of days of history to include.
+
+        Returns:
+            Dict with trend direction, measurements, and delta.
+        """
+        history = self._trend_history.get(framework, [])
+        if not history:
+            return {
+                "framework": framework,
+                "trend": "no_data",
+                "measurements": 0,
+            }
+
+        now = datetime.now(timezone.utc)
+        cutoff = (now - timedelta(days=lookback_days)).isoformat()
+        recent = [t for t in history if t.measurement_date >= cutoff]
+
+        if len(recent) < 2:
+            latest = history[-1]
+            return {
+                "framework": framework,
+                "trend": "insufficient_data",
+                "measurements": len(recent),
+                "latest_total_gaps": latest.total_gaps,
+                "latest_coverage_pct": latest.coverage_pct,
+            }
+
+        first = recent[0]
+        last = recent[-1]
+        delta_gaps = last.total_gaps - first.total_gaps
+        direction = (
+            "improving" if delta_gaps < 0
+            else "declining" if delta_gaps > 0
+            else "stable"
+        )
+
+        return {
+            "framework": framework,
+            "trend": direction,
+            "measurements": len(recent),
+            "lookback_days": lookback_days,
+            "gap_delta": delta_gaps,
+            "start_gaps": first.total_gaps,
+            "current_gaps": last.total_gaps,
+            "start_coverage_pct": first.coverage_pct,
+            "current_coverage_pct": last.coverage_pct,
+            "coverage_improvement_pct": round(
+                last.coverage_pct - first.coverage_pct, 1
+            ),
+            "history": [
+                {
+                    "date": t.measurement_date[:10],
+                    "total_gaps": t.total_gaps,
+                    "critical_gaps": t.critical_gaps,
+                    "coverage_pct": t.coverage_pct,
+                }
+                for t in recent
+            ],
+        }
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _missing_evidence_steps(framework: str, control_id: str) -> List[str]:
+        """Build remediation steps for a control with no evidence."""
+        return [
+            f"Run automated scan targeting {control_id} ({framework})",
+            f"Generate evidence bundle using AutoEvidenceGenerator.generate_{framework.lower().split('_')[0]}_evidence()",
+            "Validate evidence quality with auditor review",
+            "Store evidence in WORM storage with 7-year retention",
+        ]
+
+
+# ---------------------------------------------------------------------------
+# Module-level singleton helpers
+# ---------------------------------------------------------------------------
+
+_auto_mapper_instance: Optional[ComplianceAutoMapper] = None
+_evidence_generator_instance: Optional[AutoEvidenceGenerator] = None
+_gap_analyzer_instance: Optional[ComplianceGapAnalyzer] = None
+
+
+def get_auto_mapper() -> ComplianceAutoMapper:
+    """Return the module-level ComplianceAutoMapper singleton."""
+    global _auto_mapper_instance
+    if _auto_mapper_instance is None:
+        _auto_mapper_instance = ComplianceAutoMapper()
+    return _auto_mapper_instance
+
+
+def get_evidence_generator() -> AutoEvidenceGenerator:
+    """Return the module-level AutoEvidenceGenerator singleton."""
+    global _evidence_generator_instance
+    if _evidence_generator_instance is None:
+        _evidence_generator_instance = AutoEvidenceGenerator()
+    return _evidence_generator_instance
+
+
+def get_gap_analyzer() -> ComplianceGapAnalyzer:
+    """Return the module-level ComplianceGapAnalyzer singleton."""
+    global _gap_analyzer_instance
+    if _gap_analyzer_instance is None:
+        _gap_analyzer_instance = ComplianceGapAnalyzer()
+    return _gap_analyzer_instance

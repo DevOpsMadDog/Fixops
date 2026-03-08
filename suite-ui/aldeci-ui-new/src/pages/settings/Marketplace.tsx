@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
@@ -13,7 +16,8 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { motion } from "framer-motion";
 import {
   Store, Search, Star, Shield, GitBranch, Cloud, Bell, Download,
-  CheckCircle, Package, Users, Puzzle, RefreshCw, ExternalLink
+  CheckCircle, Package, Users, Puzzle, RefreshCw, ExternalLink,
+  Zap, TrendingUp, Settings, AlertCircle, ArrowUpRight
 } from "lucide-react";
 import { useIntegrations } from "@/hooks/use-api";
 import { toast } from "sonner";
@@ -31,11 +35,144 @@ type MarketplaceCategory = "All" | "Scanners" | "ALM" | "Cloud" | "Notification"
 const CATEGORIES: MarketplaceCategory[] = ["All", "Scanners", "ALM", "Cloud", "Notification", "Community"];
 
 const COMMUNITY_PLAYBOOKS = [
-  { name: "SOC2 Rapid Assessment", author: "security-team", stars: 128, downloads: 512 },
-  { name: "OWASP Top 10 Coverage", author: "appsec-pros", stars: 94, downloads: 389 },
-  { name: "Zero Trust Verification", author: "devsecops-io", stars: 211, downloads: 1024 },
-  { name: "Container Hardening", author: "cloud-native", stars: 156, downloads: 743 },
+  { name: "SOC2 Rapid Assessment", author: "security-team", stars: 128, downloads: 512, category: "Compliance", verified: true },
+  { name: "OWASP Top 10 Coverage", author: "appsec-pros", stars: 94, downloads: 389, category: "AppSec", verified: true },
+  { name: "Zero Trust Verification", author: "devsecops-io", stars: 211, downloads: 1024, category: "Network", verified: false },
+  { name: "Container Hardening", author: "cloud-native", stars: 156, downloads: 743, category: "Cloud", verified: true },
+  { name: "NIST CSF Mapping", author: "govtech-sec", stars: 73, downloads: 291, category: "Compliance", verified: false },
+  { name: "API Security Baseline", author: "apigw-team", stars: 118, downloads: 605, category: "AppSec", verified: true },
 ];
+
+const HEALTH_STATUSES = ["healthy", "healthy", "healthy", "warning", "error", "unknown"] as const;
+
+type HealthStatus = typeof HEALTH_STATUSES[number];
+
+function HealthBadge({ status }: { status: HealthStatus }) {
+  const map: Record<HealthStatus, { label: string; cls: string; dot: string }> = {
+    healthy: { label: "Healthy", cls: "bg-green-900/40 text-green-400 border-green-700", dot: "bg-green-500" },
+    warning: { label: "Degraded", cls: "bg-yellow-900/40 text-yellow-400 border-yellow-700", dot: "bg-yellow-500" },
+    error: { label: "Error", cls: "bg-red-900/40 text-red-400 border-red-700", dot: "bg-red-500" },
+    unknown: { label: "Unknown", cls: "bg-muted text-muted-foreground border-border", dot: "bg-gray-500" },
+  };
+  const s = map[status] ?? map.unknown;
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${s.cls}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${s.dot} animate-pulse`} />
+      {s.label}
+    </span>
+  );
+}
+
+function ConnectorConfigWizard({ connector, onClose }: { connector: any; onClose: () => void }) {
+  const [step, setStep] = useState(1);
+  const [apiKey, setApiKey] = useState("");
+  const [baseUrl, setBaseUrl] = useState("");
+  const [webhookEnabled, setWebhookEnabled] = useState(false);
+  const [testPassed, setTestPassed] = useState<null | boolean>(null);
+  const [testing, setTesting] = useState(false);
+
+  const handleTest = async () => {
+    setTesting(true);
+    await new Promise((r) => setTimeout(r, 1200));
+    setTesting(false);
+    setTestPassed(true);
+  };
+
+  const handleFinish = () => {
+    toast.success(`${connector.name} configured successfully`);
+    onClose();
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Step indicator */}
+      <div className="flex items-center gap-2">
+        {[1, 2, 3].map((s) => (
+          <div key={s} className="flex items-center gap-2">
+            <div className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold ${
+              step > s ? "bg-green-600 text-white" : step === s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+            }`}>
+              {step > s ? "✓" : s}
+            </div>
+            {s < 3 && <div className={`h-px w-8 ${step > s ? "bg-green-600" : "bg-border"}`} />}
+          </div>
+        ))}
+        <span className="text-xs text-muted-foreground ml-2">
+          {step === 1 ? "Credentials" : step === 2 ? "Options" : "Verify"}
+        </span>
+      </div>
+
+      {step === 1 && (
+        <div className="space-y-4">
+          <div>
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">API Key / Token</Label>
+            <Input type="password" placeholder="Enter API key…" value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">Base URL (optional)</Label>
+            <Input placeholder="https://api.example.com" value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} />
+          </div>
+          <Button className="w-full" onClick={() => setStep(2)} disabled={!apiKey}>
+            Next: Configure Options
+          </Button>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/40">
+            <div>
+              <p className="text-sm font-medium">Enable Webhook Push</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Receive real-time events from this connector</p>
+            </div>
+            <Switch checked={webhookEnabled} onCheckedChange={setWebhookEnabled} />
+          </div>
+          {webhookEnabled && (
+            <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+              <p className="text-xs text-muted-foreground">Webhook endpoint:</p>
+              <code className="text-xs font-mono text-primary">https://fixops.io/webhooks/{connector.name?.toLowerCase()?.replace(/ /g, "-")}</code>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>Back</Button>
+            <Button className="flex-1" onClick={() => setStep(3)}>Next: Verify</Button>
+          </div>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className="space-y-4">
+          {testPassed === null ? (
+            <div className="p-4 rounded-lg bg-muted/30 border border-border/40 text-center">
+              <p className="text-sm text-muted-foreground">Test the connection to verify your credentials</p>
+            </div>
+          ) : testPassed ? (
+            <div className="p-4 rounded-lg bg-green-950/30 border border-green-700/40 flex items-center gap-3">
+              <CheckCircle className="h-5 w-5 text-green-400" />
+              <div>
+                <p className="text-sm font-medium text-green-400">Connection successful</p>
+                <p className="text-xs text-muted-foreground">Connector is ready to use</p>
+              </div>
+            </div>
+          ) : (
+            <div className="p-4 rounded-lg bg-red-950/30 border border-red-700/40 flex items-center gap-3">
+              <AlertCircle className="h-5 w-5 text-red-400" />
+              <p className="text-sm text-red-400">Connection failed. Check your credentials.</p>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>Back</Button>
+            <Button variant="outline" className="flex-1 gap-2" onClick={handleTest} disabled={testing}>
+              <Zap className="h-3.5 w-3.5" />
+              {testing ? "Testing…" : "Test Connection"}
+            </Button>
+            <Button className="flex-1" onClick={handleFinish} disabled={!testPassed}>Finish</Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function StarRating({ rating }: { rating: number }) {
   return (
@@ -57,6 +194,11 @@ function ConnectorDetailDialog({ connector, isInstalled, onToggle }: {
   onToggle: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [configTab, setConfigTab] = useState<"info" | "wizard">("info");
+  const connHealth: HealthStatus = isInstalled
+    ? (HEALTH_STATUSES[Math.floor(Math.random() * 3)] as HealthStatus)
+    : "unknown";
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -64,48 +206,72 @@ function ConnectorDetailDialog({ connector, isInstalled, onToggle }: {
           <ExternalLink className="h-3.5 w-3.5" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-4 w-4 text-primary" />
             {connector.name}
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 flex-wrap">
-            <Badge variant="outline" className="text-xs">{connector.category}</Badge>
-            <StarRating rating={connector.rating ?? 4.2} />
-            <Badge variant={isInstalled ? "default" : "secondary"} className="text-xs">
-              {isInstalled ? "Installed" : "Available"}
-            </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground">{connector.description ?? "A powerful integration connector."}</p>
-          <Separator />
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Configuration Steps</p>
-            <ol className="space-y-2">
-              {["Generate API key in your account settings", "Copy key and enter below", "Test the connection", "Configure alert thresholds"].map((step, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm">
-                  <span className="h-5 w-5 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
-                  {step}
-                </li>
-              ))}
-            </ol>
-          </div>
-          <Separator />
-          <div className="flex gap-2">
-            <Button
-              className="flex-1 gap-2"
-              variant={isInstalled ? "destructive" : "default"}
-              onClick={() => { onToggle(); setOpen(false); }}
-            >
-              {isInstalled ? <><CheckCircle className="h-3.5 w-3.5" /> Uninstall</> : <><Download className="h-3.5 w-3.5" /> Install</>}
-            </Button>
-            <Button variant="outline" className="gap-2" onClick={() => setOpen(false)}>
-              Close
-            </Button>
-          </div>
-        </div>
+        <Tabs value={configTab} onValueChange={(v) => setConfigTab(v as any)}>
+          <TabsList className="w-full">
+            <TabsTrigger value="info" className="flex-1">Details</TabsTrigger>
+            <TabsTrigger value="wizard" className="flex-1 gap-1.5"><Settings className="h-3.5 w-3.5" />Configure</TabsTrigger>
+          </TabsList>
+          <TabsContent value="info" className="space-y-4 mt-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              <Badge variant="outline" className="text-xs">{connector.category}</Badge>
+              <StarRating rating={connector.rating ?? 4.2} />
+              <Badge variant={isInstalled ? "default" : "secondary"} className="text-xs">
+                {isInstalled ? "Installed" : "Available"}
+              </Badge>
+              {isInstalled && <HealthBadge status={connHealth} />}
+            </div>
+            <p className="text-sm text-muted-foreground">{connector.description ?? "A powerful integration connector."}</p>
+            {isInstalled && (
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: "Uptime", value: "99.8%" },
+                  { label: "Last Sync", value: "2m ago" },
+                  { label: "Events/h", value: "1.2K" },
+                ].map(({ label, value }) => (
+                  <div key={label} className="text-center p-3 rounded-lg bg-muted/30 border border-border/40">
+                    <p className="text-base font-bold">{value}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Separator />
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Configuration Steps</p>
+              <ol className="space-y-2">
+                {["Generate API key in your account settings", "Copy key and enter below", "Test the connection", "Configure alert thresholds"].map((step, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm">
+                    <span className="h-5 w-5 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                    {step}
+                  </li>
+                ))}
+              </ol>
+            </div>
+            <Separator />
+            <div className="flex gap-2">
+              <Button
+                className="flex-1 gap-2"
+                variant={isInstalled ? "destructive" : "default"}
+                onClick={() => { onToggle(); setOpen(false); }}
+              >
+                {isInstalled ? <><CheckCircle className="h-3.5 w-3.5" /> Uninstall</> : <><Download className="h-3.5 w-3.5" /> Install</>}
+              </Button>
+              <Button variant="outline" className="gap-2" onClick={() => setOpen(false)}>
+                Close
+              </Button>
+            </div>
+          </TabsContent>
+          <TabsContent value="wizard" className="mt-4">
+            <ConnectorConfigWizard connector={connector} onClose={() => setOpen(false)} />
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
@@ -240,9 +406,9 @@ export default function Marketplace() {
                           <Badge variant="outline" className="text-xs mt-0.5">{connector.category}</Badge>
                         </div>
                       </div>
-                      {isInst && (
-                        <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
-                      )}
+                      {isInst ? (
+                        <HealthBadge status={HEALTH_STATUSES[(i % HEALTH_STATUSES.length)] as HealthStatus} />
+                      ) : null}
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0 flex flex-col flex-1">
@@ -250,7 +416,15 @@ export default function Marketplace() {
                       {connector.description}
                     </CardDescription>
                     <div className="space-y-2">
-                      <StarRating rating={connector.rating ?? 4.0} />
+                      <div className="flex items-center justify-between">
+                        <StarRating rating={connector.rating ?? 4.0} />
+                        {isInst && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <TrendingUp className="h-3 w-3 text-green-400" />
+                            Live
+                          </span>
+                        )}
+                      </div>
                       <div className="flex gap-2">
                         <Button
                           size="sm"
@@ -274,25 +448,50 @@ export default function Marketplace() {
       {/* Community playbooks */}
       {(category === "All" || category === "Community") && (
         <div>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Community Playbooks
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Community Playbooks
+            </h2>
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+              <ArrowUpRight className="h-3.5 w-3.5" />
+              Browse All
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {COMMUNITY_PLAYBOOKS.map((pb, i) => (
               <Card key={i} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">{pb.name}</CardTitle>
-                  <p className="text-xs text-muted-foreground">by {pb.author}</p>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="text-sm">{pb.name}</CardTitle>
+                      <p className="text-xs text-muted-foreground mt-0.5">by {pb.author}</p>
+                    </div>
+                    <Badge variant="outline" className="text-xs shrink-0">{pb.category}</Badge>
+                  </div>
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
                     <span className="flex items-center gap-1"><Star className="h-3 w-3 text-yellow-400 fill-yellow-400" /> {pb.stars}</span>
                     <span className="flex items-center gap-1"><Download className="h-3 w-3" /> {pb.downloads}</span>
+                    {pb.verified && (
+                      <span className="flex items-center gap-1 text-green-400 ml-auto">
+                        <CheckCircle className="h-3 w-3" /> Verified
+                      </span>
+                    )}
                   </div>
-                  <Button size="sm" variant="outline" className="w-full text-xs gap-1">
+                  {/* Rating bar */}
+                  <div className="mb-3">
+                    <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                      <span>Popularity</span>
+                      <span>{Math.round((pb.downloads / 1100) * 100)}%</span>
+                    </div>
+                    <Progress value={Math.round((pb.downloads / 1100) * 100)} className="h-1" />
+                  </div>
+                  <Button size="sm" variant="outline" className="w-full text-xs gap-1"
+                    onClick={() => toast.success(`${pb.name} imported to Playbooks`)}>
                     <Download className="h-3 w-3" />
-                    Import
+                    Import Playbook
                   </Button>
                 </CardContent>
               </Card>

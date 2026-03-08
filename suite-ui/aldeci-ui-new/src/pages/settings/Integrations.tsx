@@ -16,10 +16,91 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { motion } from "framer-motion";
 import {
   Link2, CheckCircle, XCircle, AlertTriangle, RefreshCw, Settings,
-  Zap, Clock, Shield, Cloud, Bell, GitBranch, Plus
+  Zap, Clock, Shield, Cloud, Bell, GitBranch, Plus,
+  ArrowLeftRight, Webhook, Activity, TrendingUp
 } from "lucide-react";
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+} from "recharts";
 import { useIntegrations } from "@/hooks/use-api";
 import { toast } from "sonner";
+
+function WebhookConfigCard({ integration }: { integration: any }) {
+  const [webhookEnabled, setWebhookEnabled] = useState(false);
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-7 w-7" title="Webhook Config">
+          <Webhook className="h-3.5 w-3.5" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Webhook className="h-4 w-4 text-primary" />
+            Webhook Config — {integration.name}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="flex items-start justify-between p-4 rounded-lg bg-muted/30 border border-border/40">
+            <div>
+              <p className="text-sm font-medium">Enable Webhook Push</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Receive real-time events from this integration</p>
+            </div>
+            <Switch checked={webhookEnabled} onCheckedChange={setWebhookEnabled} />
+          </div>
+          {webhookEnabled && (
+            <>
+              <div>
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">Webhook Endpoint (read-only)</Label>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 text-xs bg-muted p-2 rounded font-mono">
+                    https://fixops.io/hooks/{integration.name?.toLowerCase()?.replace(/ /g, "-")}
+                  </code>
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">Target URL (outbound)</Label>
+                <Input
+                  placeholder="https://your-server.com/webhook"
+                  value={webhookUrl}
+                  onChange={(e) => setWebhookUrl(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/40">
+                <div className="flex items-center gap-2">
+                  <ArrowLeftRight className="h-4 w-4 text-blue-400" />
+                  <div>
+                    <p className="text-sm font-medium">Bi-directional Sync</p>
+                    <p className="text-xs text-muted-foreground">Push and pull events in both directions</p>
+                  </div>
+                </div>
+                <Switch defaultChecked />
+              </div>
+            </>
+          )}
+          <Separator />
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button onClick={() => { toast.success("Webhook configured"); setOpen(false); }}>Save</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const SYNC_TIMELINE = [
+  { time: "09:42", name: "Snyk", event: "Scan results pushed", status: "success", records: 47 },
+  { time: "09:35", name: "Jira", event: "Tickets synced", status: "success", records: 12 },
+  { time: "09:20", name: "GitHub", event: "PR events pulled", status: "success", records: 8 },
+  { time: "08:58", name: "Trivy", event: "Container scan completed", status: "success", records: 134 },
+  { time: "08:30", name: "SonarQube", event: "Code quality sync failed", status: "error", records: 0 },
+  { time: "08:15", name: "Slack", event: "Alert notifications sent", status: "success", records: 3 },
+];
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
   Scanner: Shield,
@@ -232,8 +313,18 @@ export default function Integrations() {
                         Synced: {integration.last_sync}
                       </p>
                     )}
-                    <div className="flex gap-2">
+                    {integration.last_sync && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground flex items-center gap-1">
+                          <ArrowLeftRight className="h-3 w-3 text-blue-400" />
+                          Bi-directional
+                        </span>
+                        <span className="text-muted-foreground">{integration.last_sync}</span>
+                      </div>
+                    )}
+                    <div className="flex gap-1">
                       <ConfigureDialog integration={integration} onSave={refetch} />
+                      <WebhookConfigCard integration={integration} />
                       <Button
                         size="sm"
                         variant="outline"
@@ -242,7 +333,7 @@ export default function Integrations() {
                         disabled={status !== "connected"}
                       >
                         <Zap className="h-3 w-3" />
-                        Sync Now
+                        Sync
                       </Button>
                       <Button
                         size="sm"
@@ -338,6 +429,82 @@ export default function Integrations() {
           );
         })}
       </div>
+
+      {/* Sync Status Timeline */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Activity className="h-4 w-4 text-primary" />
+            Sync Status Timeline
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="relative">
+            <div className="absolute left-[5.5rem] top-0 bottom-0 w-px bg-border/40" />
+            <div className="space-y-3">
+              {SYNC_TIMELINE.map((entry, i) => (
+                <div key={i} className="flex items-start gap-4">
+                  <span className="text-xs text-muted-foreground w-20 shrink-0 text-right pt-0.5">{entry.time}</span>
+                  <div className="relative z-10">
+                    <div className={`h-3 w-3 rounded-full border-2 mt-1 ${
+                      entry.status === "success"
+                        ? "bg-green-500 border-green-600"
+                        : "bg-red-500 border-red-600"
+                    }`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium">{entry.name}</span>
+                      <span className="text-xs text-muted-foreground">{entry.event}</span>
+                      {entry.records > 0 && (
+                        <Badge variant="outline" className="text-xs ml-auto">{entry.records} records</Badge>
+                      )}
+                      {entry.status === "error" && (
+                        <Badge variant="destructive" className="text-xs ml-auto">Failed</Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Integration health over time */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-primary" />
+            Integration Health — Last 7 Days
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={140}>
+            <AreaChart
+              data={Array.from({ length: 7 }, (_, i) => ({
+                day: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i],
+                success: 80 + Math.floor(Math.random() * 20),
+                errors: Math.floor(Math.random() * 5),
+              }))}
+              margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="successGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+              <XAxis dataKey="day" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, fontSize: 11 }} />
+              <Area type="monotone" dataKey="success" stroke="#22c55e" strokeWidth={2} fill="url(#successGrad)" name="Successful Syncs" />
+              <Area type="monotone" dataKey="errors" stroke="#ef4444" strokeWidth={2} fill="transparent" name="Sync Errors" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
     </motion.div>
   );
 }

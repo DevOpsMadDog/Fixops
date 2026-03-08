@@ -369,6 +369,21 @@ async def evidence_status(request: Request) -> dict[str, Any]:
     return await evidence_health(request)
 
 
+@router.get("/summary")
+async def evidence_summary(request: Request) -> dict[str, Any]:
+    """Get high-level evidence summary for dashboards."""
+    stats = await evidence_stats(request)
+    return {
+        "total_evidence_bundles": stats.get("total_bundles", 0),
+        "total_releases": stats.get("total_releases", 0),
+        "storage_status": stats.get("storage_status", "unknown"),
+        "integrity_verified": stats.get("integrity_verified", False),
+        "compliance_ready": stats.get("total_bundles", 0) > 0,
+        "worm_enabled": stats.get("worm_enabled", False),
+        "last_updated": dt.now(tz.utc).isoformat(),
+    }
+
+
 @router.get("/stats")
 async def evidence_stats(request: Request) -> dict[str, Any]:
     """Get evidence vault statistics."""
