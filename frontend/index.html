@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+   ______                            __
+  / ____/___  ____ ___  ____  __  __/ /____  _____
+ / /   / __ \/ __ `__ \/ __ \/ / / / __/ _ \/ ___/
+/ /___/ /_/ / / / / / / /_/ / /_/ / /_/  __/ /
+\____/\____/_/ /_/ /_/ .___/\__,_/\__/\___/_/
+                    /_/
+        Created with Perplexity Computer
+        https://www.perplexity.ai/computer
+-->
+
+<!-- Perplexity Computer Attribution — SEO Meta Tags -->
+<meta name="generator" content="Perplexity Computer">
+<meta name="author" content="Perplexity Computer">
+<meta property="og:see_also" content="https://www.perplexity.ai/computer">
+<link rel="author" href="https://www.perplexity.ai/computer">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FixOps — Enterprise Security Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-primary:#0a1628;--bg-secondary:#0f1d32;--bg-card:#131f38;--bg-card-hover:#182746;
+  --border:#1e3054;--border-light:#2a3f66;
+  --text-primary:#e8ecf4;--text-secondary:#8899b4;--text-muted:#5a6d8a;
+  --accent:#20808d;--accent-light:#2ba0af;--accent-bg:rgba(32,128,141,.1);
+  --warn:#ffc553;--warn-bg:rgba(255,197,83,.1);
+  --crit:#e53e3e;--crit-bg:rgba(229,62,62,.1);
+  --pass:#38a169;--pass-bg:rgba(56,161,105,.1);
+  --high:#ed8936;--high-bg:rgba(237,137,54,.1);
+  --medium:#ecc94b;--medium-bg:rgba(236,201,75,.1);
+  --low:#4299e1;--low-bg:rgba(66,153,225,.1);
+  --info:#a0aec0;
+  --sidebar-w:220px;--header-h:52px;
+  --radius:6px;--radius-lg:10px;
+}
+html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;background:var(--bg-primary);color:var(--text-primary)}
+.mono{font-family:'JetBrains Mono',monospace}
+.tabnum{font-variant-numeric:tabular-nums lining-nums}
+
+/* Layout */
+.app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;grid-template-rows:var(--header-h) 1fr;height:100dvh}
+.sidebar{grid-row:1/-1;background:var(--bg-secondary);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;overscroll-behavior:contain;z-index:20}
+.header{grid-column:2;background:var(--bg-secondary);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:10}
+.main{grid-column:2;overflow-y:auto;overscroll-behavior:contain;padding:20px;background:var(--bg-primary)}
+
+/* Sidebar */
+.sidebar-logo{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sidebar-logo svg{width:28px;height:28px;flex-shrink:0}
+.sidebar-logo span{font-weight:700;font-size:15px;letter-spacing:-.3px}
+.sidebar-logo small{font-size:10px;color:var(--text-muted);display:block;letter-spacing:.5px;text-transform:uppercase;margin-top:1px}
+.nav-section{padding:12px 0}
+.nav-section-label{padding:4px 16px 6px;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:600}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 16px;cursor:pointer;font-size:13px;color:var(--text-secondary);transition:all .15s;border-left:2px solid transparent}
+.nav-item:hover{color:var(--text-primary);background:rgba(255,255,255,.03)}
+.nav-item.active{color:var(--accent-light);background:var(--accent-bg);border-left-color:var(--accent)}
+.nav-item svg{width:16px;height:16px;opacity:.7;flex-shrink:0}
+.nav-item.active svg{opacity:1}
+.sidebar-footer{margin-top:auto;padding:12px 16px;border-top:1px solid var(--border);font-size:10px;color:var(--text-muted)}
+.sidebar-footer a{color:var(--text-muted);text-decoration:none}
+.sidebar-footer a:hover{color:var(--accent)}
+
+/* Header */
+.header-left{display:flex;align-items:center;gap:14px}
+.header-title{font-size:14px;font-weight:600}
+.conn-status{display:flex;align-items:center;gap:6px;font-size:11px;padding:4px 10px;border-radius:20px;font-weight:500}
+.conn-status.ok{color:var(--pass);background:var(--pass-bg)}
+.conn-status.err{color:var(--crit);background:var(--crit-bg)}
+.conn-status .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.header-right{display:flex;align-items:center;gap:12px}
+.refresh-info{font-size:11px;color:var(--text-muted)}
+
+/* Shared Components */
+.space{display:none}.space.active{display:block}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;transition:border-color .15s}
+.card:hover{border-color:var(--border-light)}
+.card-title{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-bottom:10px;font-weight:600}
+.card-title-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.kpi-val{font-size:28px;font-weight:700;letter-spacing:-.5px}
+.kpi-label{font-size:11px;color:var(--text-muted);margin-top:2px}
+.kpi-delta{font-size:11px;font-weight:600;margin-top:4px}
+.section-title{font-size:16px;font-weight:600;margin-bottom:14px}
+.mb-16{margin-bottom:16px}
+.mb-20{margin-bottom:20px}
+.mt-20{margin-top:20px}
+
+/* Severity badges */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.badge-critical{color:var(--crit);background:var(--crit-bg)}
+.badge-high{color:var(--high);background:var(--high-bg)}
+.badge-medium{color:var(--medium);background:var(--medium-bg)}
+.badge-low{color:var(--low);background:var(--low-bg)}
+.badge-info{color:var(--info);background:rgba(160,174,192,.1)}
+.badge-pass{color:var(--pass);background:var(--pass-bg)}
+.badge-warn{color:var(--warn);background:var(--warn-bg)}
+.badge-status{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
+.badge-open{color:var(--warn);background:var(--warn-bg)}
+.badge-assigned{color:var(--accent-light);background:var(--accent-bg)}
+
+/* Tables */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead{position:sticky;top:0;z-index:1}
+th{text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted);font-weight:600;background:var(--bg-card);border-bottom:1px solid var(--border)}
+td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--text-secondary);vertical-align:top}
+tr:hover td{background:rgba(255,255,255,.02)}
+td.mono{font-family:'JetBrains Mono',monospace;font-size:11px}
+
+/* Loading skeleton */
+.skel{background:linear-gradient(90deg,var(--bg-card) 25%,var(--bg-card-hover) 50%,var(--bg-card) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:4px;height:16px;margin-bottom:8px}
+.skel-lg{height:120px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* Error state */
+.error-box{background:var(--crit-bg);border:1px solid rgba(229,62,62,.3);border-radius:var(--radius);padding:12px 14px;color:var(--crit);font-size:12px;display:flex;align-items:center;gap:8px}
+.error-box button{background:var(--crit);color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;font-weight:500;margin-left:auto;flex-shrink:0}
+
+/* Gauge */
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;gap:6px}
+.gauge-svg{width:100px;height:60px}
+.gauge-label{font-size:11px;color:var(--text-muted);text-align:center}
+.gauge-val{font-size:18px;font-weight:700}
+
+/* Copilot */
+.copilot-btn{position:fixed;bottom:20px;right:20px;width:48px;height:48px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(32,128,141,.4);z-index:100;transition:transform .15s}
+.copilot-btn:hover{transform:scale(1.08)}
+.copilot-btn svg{width:22px;height:22px;color:#fff}
+.copilot-panel{position:fixed;right:0;top:0;bottom:0;width:380px;background:var(--bg-secondary);border-left:1px solid var(--border);z-index:200;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s ease}
+.copilot-panel.open{transform:translateX(0)}
+.copilot-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)}
+.copilot-header h3{font-size:14px;font-weight:600}
+.copilot-close{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;padding:4px}
+.copilot-msgs{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.copilot-msg{padding:10px 12px;border-radius:var(--radius);font-size:12px;line-height:1.5;max-width:92%}
+.copilot-msg.user{background:var(--accent-bg);color:var(--accent-light);align-self:flex-end}
+.copilot-msg.bot{background:var(--bg-card);color:var(--text-secondary);align-self:flex-start}
+.copilot-suggestions{padding:8px 16px;display:flex;flex-wrap:wrap;gap:6px}
+.copilot-sug{font-size:11px;padding:4px 10px;border:1px solid var(--border);border-radius:20px;color:var(--text-secondary);cursor:pointer;background:none;transition:all .15s}
+.copilot-sug:hover{border-color:var(--accent);color:var(--accent-light)}
+.copilot-input{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--border)}
+.copilot-input input{flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;color:var(--text-primary);font-size:12px;font-family:inherit}
+.copilot-input input:focus{outline:none;border-color:var(--accent)}
+.copilot-input button{background:var(--accent);color:#fff;border:none;padding:8px 14px;border-radius:var(--radius);cursor:pointer;font-size:12px;font-weight:500}
+
+/* Filter bar */
+.filter-bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.filter-bar select,.filter-bar input{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:6px 10px;color:var(--text-primary);font-size:11px;font-family:inherit}
+.filter-bar select:focus,.filter-bar input:focus{outline:none;border-color:var(--accent)}
+
+/* MITRE Heatmap */
+.mitre-grid{display:flex;gap:2px;flex-wrap:wrap}
+.mitre-phase{margin-bottom:12px}
+.mitre-phase-label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-bottom:6px;font-weight:600}
+.mitre-cells{display:flex;gap:3px;flex-wrap:wrap}
+.mitre-cell{width:100%;padding:6px 8px;border-radius:4px;font-size:10px;display:flex;justify-content:space-between;align-items:center;cursor:default;transition:opacity .15s}
+.mitre-cell:hover{opacity:.85}
+.mitre-cell .tech-name{color:var(--text-primary);font-weight:500}
+.mitre-cell .tech-id{color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-size:9px}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--border-light)}
+
+/* Pulse indicator */
+.pulse-ring{display:inline-flex;align-items:center;gap:6px}
+.pulse-dot{width:8px;height:8px;border-radius:50%;position:relative}
+.pulse-dot::after{content:'';position:absolute;inset:-3px;border-radius:50%;border:2px solid currentColor;animation:pulse-anim 2s infinite;opacity:0}
+@keyframes pulse-anim{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.8);opacity:0}}
+
+/* Responsive */
+@media(max-width:1400px){.grid-4{grid-template-columns:repeat(2,1fr)}.grid-3{grid-template-columns:1fr 1fr}}
+@media(max-width:1280px){:root{--sidebar-w:180px}}
+
+/* Weight bars */
+.weight-bar{display:flex;align-items:center;gap:8px}
+.weight-bar-track{flex:1;height:6px;background:var(--bg-primary);border-radius:3px;overflow:hidden}
+.weight-bar-fill{height:100%;border-radius:3px;transition:width .3s}
+.weight-bar-val{font-size:11px;color:var(--text-secondary);width:36px;text-align:right}
+
+/* Feed card */
+.feed-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.feed-item:last-child{border-bottom:none}
+.feed-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.feed-dot.ok{background:var(--pass)}
+.feed-dot.degraded{background:var(--warn)}
+.feed-dot.error{background:var(--crit)}
+.feed-info{flex:1;min-width:0}
+.feed-name{font-size:12px;font-weight:500;color:var(--text-primary)}
+.feed-meta{font-size:10px;color:var(--text-muted);margin-top:2px}
+.feed-count{font-size:12px;font-weight:600;color:var(--text-secondary)}
+
+/* CVE list */
+.cve-item{padding:10px 0;border-bottom:1px solid var(--border)}
+.cve-item:last-child{border-bottom:none}
+.cve-header{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.cve-id{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--accent-light)}
+.cve-desc{font-size:11px;color:var(--text-secondary);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cve-meta{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap}
+.cve-tag{font-size:9px;padding:1px 6px;border-radius:3px;background:var(--bg-primary);color:var(--text-muted);border:1px solid var(--border)}
+.kev-tag{background:var(--crit-bg);color:var(--crit);border-color:rgba(229,62,62,.3)}
+
+/* Empty state */
+.empty-state{text-align:center;padding:30px 20px;color:var(--text-muted);font-size:12px}
+.empty-state svg{width:32px;height:32px;opacity:.3;margin-bottom:8px}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect x="2" y="2" width="28" height="28" rx="6" stroke="var(--accent)" stroke-width="2.5"/><path d="M10 16h12M16 10v12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="16" r="3" fill="var(--accent)" opacity=".3"/></svg>
+      <div><span>FixOps</span><small>Enterprise</small></div>
+    </div>
+    <nav class="nav-section">
+      <div class="nav-section-label">Operations</div>
+      <div class="nav-item active" data-space="command" onclick="switchSpace('command')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="2"/><path d="M1 5h14"/><circle cx="3.5" cy="3" r=".7" fill="currentColor"/><circle cx="5.5" cy="3" r=".7" fill="currentColor"/></svg>
+        Command Center
+      </div>
+      <div class="nav-item" data-space="findings" onclick="switchSpace('findings')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2h12v12H2z"/><path d="M5 6h6M5 8h4M5 10h5"/></svg>
+        Findings &amp; Triage
+      </div>
+      <div class="nav-item" data-space="compliance" onclick="switchSpace('compliance')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1L2 4v4c0 3.5 2.5 6.5 6 7.5 3.5-1 6-4 6-7.5V4L8 1z"/><path d="M6 8l2 2 3-3"/></svg>
+        Compliance &amp; Risk
+      </div>
+      <div class="nav-item" data-space="attack" onclick="switchSpace('attack')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="3"/><circle cx="8" cy="8" r=".8" fill="currentColor"/></svg>
+        Attack Surface
+      </div>
+      <div class="nav-item" data-space="remediation" onclick="switchSpace('remediation')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10l4 4 8-8"/></svg>
+        Remediation
+      </div>
+      <div class="nav-item" data-space="intelligence" onclick="switchSpace('intelligence')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="6" r="4"/><path d="M5 13c0-1.7 1.3-3 3-3s3 1.3 3 3"/><path d="M11 4l2-2M12 6h2"/></svg>
+        Intelligence
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Created with Perplexity Computer</a>
+    </div>
+  </aside>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <span class="header-title" id="headerTitle">Command Center</span>
+      <div class="conn-status" id="connStatus"><span class="dot"></span><span>Checking...</span></div>
+    </div>
+    <div class="header-right">
+      <span class="refresh-info" id="refreshInfo">Auto-refresh: 30s</span>
+      <div class="pulse-ring" id="nervePulse" title="Nerve Center Pulse">
+        <span class="pulse-dot" style="color:var(--pass);background:var(--pass)"></span>
+        <span style="font-size:11px;color:var(--text-muted)" class="mono" id="pulseScore">--</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main" id="mainContent">
+    <!-- COMMAND CENTER -->
+    <div class="space active" id="space-command">
+      <div class="grid-4 mb-20" id="kpiRow">
+        <div class="card"><div class="card-title">Total Findings</div><div class="kpi-val tabnum" id="kpiTotal">--</div></div>
+        <div class="card"><div class="card-title">Critical</div><div class="kpi-val tabnum" style="color:var(--crit)" id="kpiCrit">--</div></div>
+        <div class="card"><div class="card-title">Open</div><div class="kpi-val tabnum" style="color:var(--warn)" id="kpiOpen">--</div></div>
+        <div class="card"><div class="card-title">Projected MTTR</div><div class="kpi-val tabnum" id="kpiMttr">--</div><div class="kpi-label" id="kpiMttrLabel"></div></div>
+      </div>
+      <div class="grid-2 mb-20">
+        <div class="card"><div class="card-title">Risk Trend (30d)</div><div style="height:200px"><canvas id="trendChart"></canvas></div></div>
+        <div class="card"><div class="card-title">Compliance Posture</div><div class="grid-3" id="complianceGauges" style="gap:8px"></div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><div class="card-title">Top 5 Risks</div><div class="tbl-wrap" id="topRisksTable"></div></div>
+        <div class="card"><div class="card-title">Recent Activity</div><div id="recentActivity"></div></div>
+      </div>
+    </div>
+
+    <!-- FINDINGS & TRIAGE -->
+    <div class="space" id="space-findings">
+      <div class="grid-3 mb-16">
+        <div class="card"><div class="card-title">Total Findings</div><div class="kpi-val tabnum" id="findTotal">--</div></div>
+        <div class="card"><div class="card-title">Noise Reduction</div><div class="kpi-val tabnum" id="findNoise">--</div></div>
+        <div class="card"><div class="card-title">False Positives</div><div class="kpi-val tabnum" id="findFP">--</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title-row"><span class="card-title" style="margin:0">Findings</span></div>
+        <div class="filter-bar">
+          <select id="filterSeverity"><option value="">All Severity</option><option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
+          <select id="filterStatus"><option value="">All Status</option><option value="open">Open</option><option value="resolved">Resolved</option></select>
+          <select id="filterSource"><option value="">All Sources</option></select>
+        </div>
+        <div class="tbl-wrap" id="findingsTable"></div>
+      </div>
+    </div>
+
+    <!-- COMPLIANCE & RISK -->
+    <div class="space" id="space-compliance">
+      <div class="section-title mb-16">Compliance Frameworks</div>
+      <div class="grid-4 mb-20" id="frameworkCards"></div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">FAIL Risk Score Calculator</div>
+          <div id="failCalc" style="font-size:12px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+              <div><label style="font-size:10px;color:var(--text-muted);display:block;margin-bottom:4px">CVE ID</label><input id="failCve" placeholder="CVE-2024-9999" style="width:100%;background:var(--bg-primary);border:1px solid var(--border);border-radius:4px;padding:6px 8px;color:var(--text-primary);font-size:11px;font-family:inherit"></div>
+              <div><label style="font-size:10px;color:var(--text-muted);display:block;margin-bottom:4px">CVSS Score</label><input id="failCvss" type="number" step="0.1" value="9.8" style="width:100%;background:var(--bg-primary);border:1px solid var(--border);border-radius:4px;padding:6px 8px;color:var(--text-primary);font-size:11px;font-family:inherit"></div>
+              <div><label style="font-size:10px;color:var(--text-muted);display:block;margin-bottom:4px">EPSS Score</label><input id="failEpss" type="number" step="0.01" value="0.92" style="width:100%;background:var(--bg-primary);border:1px solid var(--border);border-radius:4px;padding:6px 8px;color:var(--text-primary);font-size:11px;font-family:inherit"></div>
+              <div><label style="font-size:10px;color:var(--text-muted);display:block;margin-bottom:4px">KEV Listed</label><select id="failKev" style="width:100%;background:var(--bg-primary);border:1px solid var(--border);border-radius:4px;padding:6px 8px;color:var(--text-primary);font-size:11px"><option value="true">Yes</option><option value="false">No</option></select></div>
+            </div>
+            <button onclick="calcFail()" style="background:var(--accent);color:#fff;border:none;padding:6px 16px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:500">Calculate FAIL Score</button>
+            <div id="failResult" style="margin-top:12px"></div>
+          </div>
+        </div>
+        <div class="card"><div class="card-title">Top FAIL Risks</div><div class="tbl-wrap" id="failTopRisks"></div></div>
+      </div>
+    </div>
+
+    <!-- ATTACK SURFACE -->
+    <div class="space" id="space-attack">
+      <div class="section-title mb-16">MITRE ATT&CK Coverage</div>
+      <div class="card mb-20"><div class="card-title">Technique Heatmap by Tactic Phase</div><div id="mitreHeatmap"></div></div>
+      <div class="grid-2">
+        <div class="card"><div class="card-title">Attack Campaigns</div><div id="campaignsList"></div></div>
+        <div class="card"><div class="card-title">MPTE Verification Queue</div><div id="mpteStats"></div></div>
+      </div>
+    </div>
+
+    <!-- REMEDIATION & AUTOFIX -->
+    <div class="space" id="space-remediation">
+      <div class="grid-4 mb-16">
+        <div class="card"><div class="card-title">AutoFix Generated</div><div class="kpi-val tabnum" id="afGenerated">--</div></div>
+        <div class="card"><div class="card-title">Avg Confidence</div><div class="kpi-val tabnum" id="afConfidence">--</div></div>
+        <div class="card"><div class="card-title">SLA Compliance</div><div class="kpi-val tabnum" style="color:var(--pass)" id="remSla">--</div></div>
+        <div class="card"><div class="card-title">Overdue Tasks</div><div class="kpi-val tabnum" id="remOverdue">--</div></div>
+      </div>
+      <div class="card mb-20">
+        <div class="card-title">Remediation Tasks</div>
+        <div class="tbl-wrap" id="remTasksTable"></div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><div class="card-title">AutoFix Confidence Breakdown</div><div style="height:200px"><canvas id="afChart"></canvas></div></div>
+        <div class="card"><div class="card-title">Self-Learning Weights</div><div id="slWeights"></div></div>
+      </div>
+    </div>
+
+    <!-- INTELLIGENCE & INTEGRATIONS -->
+    <div class="space" id="space-intelligence">
+      <div class="grid-3 mb-16">
+        <div class="card"><div class="card-title">Knowledge Graph</div><div class="kpi-val tabnum" id="brainNodes">--</div><div class="kpi-label">Nodes</div><div style="margin-top:6px;font-size:12px;color:var(--text-secondary)" id="brainEdges"></div></div>
+        <div class="card"><div class="card-title">Threat Feeds</div><div class="kpi-val tabnum" style="color:var(--pass)" id="feedsHealthy">--</div><div class="kpi-label">Feeds Healthy</div></div>
+        <div class="card"><div class="card-title">CVE Coverage</div><div class="kpi-val tabnum" id="cveCoverage">--</div><div class="kpi-label">Unique CVEs Tracked</div></div>
+      </div>
+      <div class="grid-2 mb-20">
+        <div class="card"><div class="card-title">Vulnerability Feeds Status</div><div id="feedsList"></div></div>
+        <div class="card"><div class="card-title">NVD Recent CVEs</div><div id="nvdList" style="max-height:400px;overflow-y:auto"></div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><div class="card-title">Top EPSS Scores</div><div class="tbl-wrap" id="epssTable" style="max-height:350px;overflow-y:auto"></div></div>
+        <div class="card"><div class="card-title">Connected Scanners</div><div id="scannerList"></div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Copilot FAB -->
+<button class="copilot-btn" onclick="toggleCopilot()" aria-label="Open AI Copilot">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a7 7 0 0 1 7 7v1h1a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-1a7 7 0 0 1-14 0H4a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h1V9a7 7 0 0 1 7-7z"/><circle cx="9" cy="13" r="1" fill="currentColor"/><circle cx="15" cy="13" r="1" fill="currentColor"/><path d="M10 17h4"/></svg>
+</button>
+
+<!-- Copilot Panel -->
+<div class="copilot-panel" id="copilotPanel">
+  <div class="copilot-header">
+    <h3>AI Copilot</h3>
+    <button class="copilot-close" onclick="toggleCopilot()">&times;</button>
+  </div>
+  <div class="copilot-msgs" id="copilotMsgs"></div>
+  <div class="copilot-suggestions" id="copilotSuggestions"></div>
+  <div class="copilot-input">
+    <input id="copilotInput" placeholder="Ask about your security posture..." onkeydown="if(event.key==='Enter')sendCopilot()">
+    <button onclick="sendCopilot()">Send</button>
+  </div>
+</div>
+
+<script>
+/* ===== API Config ===== */
+const API_BASE='http://localhost:8000';
+const API_KEY='fixops_sk_WIjum9WxuQv8s6vzJeU2gYKximI5WSdMDtshH1U_p0U';
+const headers={'X-API-Key':API_KEY,'Content-Type':'application/json'};
+let refreshTimer=null;
+let chartInstances={};
+
+/* ===== API Helper ===== */
+async function api(path,opts={}){
+  try{
+    const r=await fetch(API_BASE+path,{headers,...opts});
+    if(!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+    return await r.json();
+  }catch(e){
+    console.error('API error:',path,e);
+    throw e;
+  }
+}
+
+function showError(el,msg,retryFn){
+  el.innerHTML=`<div class="error-box"><span>${isConnected?msg:'API unavailable — '+msg}</span><button onclick="${retryFn}">Retry</button></div>`;
+}
+function showSkel(el,count=3){
+  el.innerHTML=Array(count).fill('<div class="skel"></div>').join('');
+}
+function showSkelLg(el){
+  el.innerHTML='<div class="skel skel-lg"></div>';
+}
+
+function severityBadge(s){
+  const m={critical:'badge-critical',high:'badge-high',medium:'badge-medium',low:'badge-low',info:'badge-info'};
+  return `<span class="badge ${m[s]||'badge-info'}">${s||'unknown'}</span>`;
+}
+function statusBadge(s){
+  const m={open:'badge-open',assigned:'badge-assigned',resolved:'badge-pass','at_risk':'badge-critical',healthy:'badge-pass',degraded:'badge-warn'};
+  return `<span class="badge ${m[s]||'badge-info'}">${s||'unknown'}</span>`;
+}
+function timeAgo(d){
+  if(!d)return'--';
+  const diff=Date.now()-new Date(d).getTime();
+  const m=Math.floor(diff/60000);
+  if(m<1)return'just now';if(m<60)return m+'m ago';
+  const h=Math.floor(m/60);if(h<24)return h+'h ago';
+  return Math.floor(h/24)+'d ago';
+}
+function fmtNum(n){if(n==null)return'--';return n.toLocaleString()}
+
+/* ===== Connection Status ===== */
+let isConnected=false;
+async function checkConnection(){
+  const el=document.getElementById('connStatus');
+  const pulse=document.getElementById('nervePulse');
+  try{
+    await api('/health');
+    isConnected=true;
+    el.className='conn-status ok';
+    el.innerHTML='<span class="dot"></span><span>Connected</span>';
+    pulse.style.opacity='1';
+  }catch{
+    isConnected=false;
+    el.className='conn-status err';
+    el.innerHTML='<span class="dot"></span><span>Disconnected</span>';
+    pulse.style.opacity='.3';
+    document.getElementById('pulseScore').textContent='--';
+    const dot=pulse.querySelector('.pulse-dot');
+    if(dot){dot.style.color='var(--text-muted)';dot.style.background='var(--text-muted)';}
+  }
+}
+
+/* ===== Space Navigation ===== */
+function switchSpace(name){
+  document.querySelectorAll('.space').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('space-'+name).classList.add('active');
+  document.querySelector(`[data-space="${name}"]`).classList.add('active');
+  const titles={command:'Command Center',findings:'Findings & Triage',compliance:'Compliance & Risk',attack:'Attack Surface & MPTE',remediation:'Remediation & AutoFix',intelligence:'Intelligence & Integrations'};
+  document.getElementById('headerTitle').textContent=titles[name]||name;
+  loadSpace(name);
+}
+
+const loadedSpaces=new Set();
+function loadSpace(name){
+  if(name==='command')loadCommand();
+  else if(name==='findings')loadFindings();
+  else if(name==='compliance')loadCompliance();
+  else if(name==='attack')loadAttack();
+  else if(name==='remediation')loadRemediation();
+  else if(name==='intelligence')loadIntelligence();
+}
+
+/* ===== COMMAND CENTER ===== */
+async function loadCommand(){
+  loadOverview();loadTrends();loadTopRisks();loadComplianceGauges();loadPulse();loadActivity();
+}
+async function loadOverview(){
+  try{
+    const [ov,mt]=await Promise.all([api('/api/v1/analytics/dashboard/overview'),api('/api/v1/analytics/mttr')]);
+    document.getElementById('kpiTotal').textContent=fmtNum(ov.total_findings);
+    document.getElementById('kpiCrit').textContent=fmtNum(ov.critical_findings);
+    document.getElementById('kpiOpen').textContent=fmtNum(ov.open_findings);
+    const mttr=mt.mttr_days!=null?mt.mttr_days+'d':mt.projected_mttr_days!=null?mt.projected_mttr_days+'d':'N/A';
+    document.getElementById('kpiMttr').textContent=mttr;
+    document.getElementById('kpiMttrLabel').textContent=mt.source==='projected_from_sla'?'Projected':'Actual';
+  }catch(e){
+    ['kpiTotal','kpiCrit','kpiOpen','kpiMttr'].forEach(id=>{
+      document.getElementById(id).innerHTML='<span style="color:var(--text-muted)">—</span>';
+    });
+  }
+}
+async function loadTrends(){
+  try{
+    const d=await api('/api/v1/analytics/dashboard/trends');
+    const canvas=document.getElementById('trendChart');
+    if(chartInstances.trend)chartInstances.trend.destroy();
+    const labels=d.series.map(s=>s.period);
+    chartInstances.trend=new Chart(canvas,{type:'bar',data:{
+      labels,datasets:[
+        {label:'Critical',data:d.series.map(s=>s.critical),backgroundColor:'rgba(229,62,62,.7)',borderRadius:3},
+        {label:'High',data:d.series.map(s=>s.high),backgroundColor:'rgba(237,137,54,.7)',borderRadius:3},
+        {label:'Medium',data:d.series.map(s=>s.medium),backgroundColor:'rgba(236,201,75,.7)',borderRadius:3},
+        {label:'Low',data:d.series.map(s=>s.low),backgroundColor:'rgba(66,153,225,.7)',borderRadius:3}
+      ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#8899b4',boxWidth:12,font:{size:10}}}},scales:{x:{stacked:true,ticks:{color:'#5a6d8a',font:{size:10}},grid:{color:'rgba(30,48,84,.3)'}},y:{stacked:true,ticks:{color:'#5a6d8a',font:{size:10}},grid:{color:'rgba(30,48,84,.3)'}}}}});
+  }catch(e){
+    const wrap=document.getElementById('trendChart').parentElement;
+    wrap.innerHTML='<canvas id="trendChart" style="display:none"></canvas><div class="empty-state" style="height:200px;display:flex;align-items:center;justify-content:center;flex-direction:column"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:32px;height:32px;opacity:.3;margin-bottom:8px"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>Awaiting API connection</div>';
+  }
+}
+async function loadTopRisks(){
+  const el=document.getElementById('topRisksTable');
+  try{
+    const d=await api('/api/v1/analytics/dashboard/top-risks');
+    const risks=(d.risks||[]).slice(0,5);
+    if(!risks.length){el.innerHTML='<div class="empty-state">No risks found</div>';return}
+    el.innerHTML=`<table><thead><tr><th>Title</th><th>Severity</th><th>CVSS</th><th>Source</th></tr></thead><tbody>${risks.map(r=>`<tr><td style="color:var(--text-primary);font-weight:500;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.title}</td><td>${severityBadge(r.severity)}</td><td class="mono tabnum">${r.cvss_score||'--'}</td><td style="font-size:10px">${r.source||'--'}</td></tr>`).join('')}</tbody></table>`;
+  }catch(e){el.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:24px;height:24px;opacity:.3;margin-bottom:6px"><path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Connect to API to view risks</div>'}
+}
+async function loadComplianceGauges(){
+  const el=document.getElementById('complianceGauges');
+  try{
+    const [soc2,pci,hipaa]=await Promise.all([
+      api('/api/v1/compliance-engine/soc2/status'),
+      api('/api/v1/compliance-engine/pci-dss/status'),
+      api('/api/v1/compliance-engine/hipaa/status')
+    ]);
+    el.innerHTML=[
+      gaugeHTML('SOC2',soc2.overall_score,soc2.status),
+      gaugeHTML('PCI-DSS',pci.overall_score,pci.status),
+      gaugeHTML('HIPAA',hipaa.overall_score,hipaa.status)
+    ].join('');
+  }catch(e){
+    el.innerHTML=['SOC2','PCI-DSS','HIPAA'].map(n=>`<div class="gauge-wrap"><svg class="gauge-svg" viewBox="0 0 100 60"><path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="var(--border)" stroke-width="7" stroke-linecap="round"/><text x="50" y="46" text-anchor="middle" fill="var(--text-muted)" font-size="14" font-family="JetBrains Mono,monospace">—</text></svg><div class="gauge-label">${n}</div></div>`).join('');
+  }
+}
+function gaugeHTML(name,score,status){
+  const pct=Math.min(score||0,100);
+  const color=pct>=70?'var(--pass)':pct>=40?'var(--warn)':'var(--crit)';
+  const r=40,cx=50,cy=50,startAngle=Math.PI,endAngle=startAngle+(pct/100)*Math.PI;
+  const x1=cx+r*Math.cos(startAngle),y1=cy+r*Math.sin(startAngle);
+  const x2=cx+r*Math.cos(endAngle),y2=cy+r*Math.sin(endAngle);
+  const large=pct>50?1:0;
+  return `<div class="gauge-wrap">
+    <svg class="gauge-svg" viewBox="0 0 100 60">
+      <path d="M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}" fill="none" stroke="var(--border)" stroke-width="7" stroke-linecap="round"/>
+      ${pct>0?`<path d="M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}" fill="none" stroke="${color}" stroke-width="7" stroke-linecap="round"/>`:''}
+      <text x="${cx}" y="${cy-4}" text-anchor="middle" fill="${color}" font-size="16" font-weight="700" font-family="JetBrains Mono,monospace">${Math.round(pct)}%</text>
+    </svg>
+    <div class="gauge-label">${name}<br>${statusBadge(status)}</div>
+  </div>`;
+}
+async function loadPulse(){
+  try{
+    const d=await api('/api/v1/nerve-center/pulse');
+    const el=document.getElementById('nervePulse');
+    const dot=el.querySelector('.pulse-dot');
+    const sc=el.querySelector('#pulseScore');
+    const color=d.level==='info'?'var(--pass)':d.level==='warn'?'var(--warn)':'var(--crit)';
+    dot.style.color=color;dot.style.background=color;
+    sc.textContent=d.score?.toFixed(1)||'--';
+  }catch(e){console.error(e)}
+}
+async function loadActivity(){
+  const el=document.getElementById('recentActivity');
+  try{
+    const d=await api('/api/v1/nerve-center/state');
+    const actions=d.recent_actions||[];
+    if(!actions.length){el.innerHTML='<div class="empty-state">No recent activity</div>';return}
+    el.innerHTML=actions.map(a=>`<div class="feed-item">
+      <div class="feed-dot ${a.status==='completed'?'ok':'degraded'}"></div>
+      <div class="feed-info"><div class="feed-name">${a.trigger}</div><div class="feed-meta">${a.action_type} → ${a.target} · ${timeAgo(a.timestamp)}</div></div>
+      <span class="badge badge-${a.severity==='medium'?'medium':'info'}">${a.severity}</span>
+    </div>`).join('');
+  }catch(e){el.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:24px;height:24px;opacity:.3;margin-bottom:6px"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Connect to API to view activity</div>'}
+}
+
+/* ===== FINDINGS & TRIAGE ===== */
+let allFindings=[];
+async function loadFindings(){
+  const el=document.getElementById('findingsTable');
+  showSkel(el,5);
+  try{
+    const [findings,noise]=await Promise.all([api('/api/v1/analytics/findings'),api('/api/v1/analytics/noise-reduction')]);
+    allFindings=Array.isArray(findings)?findings:(findings.findings||findings.items||[]);
+    document.getElementById('findTotal').textContent=fmtNum(noise.total_findings);
+    document.getElementById('findNoise').textContent=(noise.noise_reduction_percentage||0).toFixed(1)+'%';
+    document.getElementById('findFP').textContent=fmtNum(noise.false_positives);
+    const sources=[...new Set(allFindings.map(f=>f.source).filter(Boolean))];
+    const srcSel=document.getElementById('filterSource');
+    srcSel.innerHTML='<option value="">All Sources</option>'+sources.map(s=>`<option value="${s}">${s}</option>`).join('');
+    renderFindings(allFindings);
+  }catch(e){showError(el,'Failed to load findings','loadFindings()')}
+}
+function renderFindings(list){
+  const el=document.getElementById('findingsTable');
+  const sev=document.getElementById('filterSeverity').value;
+  const stat=document.getElementById('filterStatus').value;
+  const src=document.getElementById('filterSource').value;
+  let filtered=list;
+  if(sev)filtered=filtered.filter(f=>f.severity===sev);
+  if(stat)filtered=filtered.filter(f=>f.status===stat);
+  if(src)filtered=filtered.filter(f=>f.source===src);
+  if(!filtered.length){el.innerHTML='<div class="empty-state">No findings match filters</div>';return}
+  el.innerHTML=`<table><thead><tr><th>Title</th><th>Severity</th><th>Status</th><th>Source</th><th>CVSS</th><th>File</th></tr></thead><tbody>${filtered.slice(0,50).map(f=>{
+    const meta=f.metadata||{};
+    return `<tr><td style="color:var(--text-primary);font-weight:500;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${f.title}">${f.title}</td><td>${severityBadge(f.severity)}</td><td>${statusBadge(f.status)}</td><td style="font-size:10px">${f.source||'--'}</td><td class="mono tabnum">${f.cvss_score||'--'}</td><td class="mono" style="font-size:10px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${meta.file_path||''}">${meta.file_path||'--'}</td></tr>`;
+  }).join('')}</tbody></table>`;
+}
+document.getElementById('filterSeverity').onchange=()=>renderFindings(allFindings);
+document.getElementById('filterStatus').onchange=()=>renderFindings(allFindings);
+document.getElementById('filterSource').onchange=()=>renderFindings(allFindings);
+
+/* ===== COMPLIANCE & RISK ===== */
+async function loadCompliance(){
+  loadFrameworks();loadFailTopRisks();
+}
+async function loadFrameworks(){
+  const el=document.getElementById('frameworkCards');
+  try{
+    const d=await api('/api/v1/compliance-engine/frameworks');
+    const fws=d.frameworks||[];
+    const statusMap={};
+    try{
+      const [s1,s2,s3]=await Promise.all([
+        api('/api/v1/compliance-engine/soc2/status').catch(()=>null),
+        api('/api/v1/compliance-engine/pci-dss/status').catch(()=>null),
+        api('/api/v1/compliance-engine/hipaa/status').catch(()=>null)
+      ]);
+      if(s1)statusMap['SOC2']=s1;if(s2)statusMap['PCI_DSS_4.0']=s2;if(s3)statusMap['HIPAA']=s3;
+    }catch(e2){}
+    el.innerHTML=fws.map(f=>{
+      const st=statusMap[f.framework];
+      const score=st?st.overall_score:null;
+      const status=st?st.status:'not_assessed';
+      return `<div class="card"><div class="card-title">${f.framework.replace(/_/g,' ')}</div>
+        <div class="kpi-val tabnum" style="font-size:22px;color:${score!=null&&score>=70?'var(--pass)':score!=null&&score>=40?'var(--warn)':'var(--crit)'}">${score!=null?Math.round(score)+'%':'--'}</div>
+        <div style="margin-top:8px;font-size:11px;color:var(--text-muted)">${f.total_controls} controls · ${f.automated_controls} automated</div>
+        <div style="margin-top:4px">${statusBadge(status)}</div></div>`;
+    }).join('');
+  }catch(e){showError(el,'Failed to load frameworks','loadFrameworks()')}
+}
+async function calcFail(){
+  const el=document.getElementById('failResult');
+  el.innerHTML='<div class="skel" style="width:200px"></div>';
+  try{
+    const body={cve_id:document.getElementById('failCve').value||'CVE-2024-9999',cvss_score:parseFloat(document.getElementById('failCvss').value)||9.8,epss_score:parseFloat(document.getElementById('failEpss').value)||0.92,is_kev:document.getElementById('failKev').value==='true'};
+    const d=await api('/api/v1/fail/score',{method:'POST',body:JSON.stringify(body)});
+    const color=d.grade==='CRITICAL'?'var(--crit)':d.grade==='HIGH'?'var(--high)':d.grade==='MEDIUM'?'var(--warn)':'var(--pass)';
+    el.innerHTML=`<div style="display:flex;align-items:center;gap:12px;margin-top:8px">
+      <div style="font-size:32px;font-weight:700;color:${color}" class="mono tabnum">${d.fail_score?.toFixed(1)}</div>
+      <div><span class="badge" style="color:${color};background:${color}22">${d.grade}</span><div style="font-size:10px;color:var(--text-muted);margin-top:4px">${d.recommended_action?.replace(/_/g,' ')||'--'}</div></div>
+    </div>`;
+  }catch(e){el.innerHTML=`<div class="error-box">Failed to calculate score</div>`}
+}
+async function loadFailTopRisks(){
+  const el=document.getElementById('failTopRisks');
+  try{
+    const d=await api('/api/v1/fail/top-risks');
+    const risks=(d.risks||[]).slice(0,10);
+    if(!risks.length){el.innerHTML='<div class="empty-state">No FAIL scores</div>';return}
+    el.innerHTML=`<table><thead><tr><th>Finding</th><th>Score</th><th>Grade</th><th>Action</th></tr></thead><tbody>${risks.map(r=>`<tr>
+      <td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.input?.title||r.finding_id||r.cve_id||'--'}</td>
+      <td class="mono tabnum" style="font-weight:600">${r.fail_score?.toFixed(1)}</td>
+      <td>${severityBadge(r.grade?.toLowerCase())}</td>
+      <td style="font-size:10px;color:var(--text-muted)">${(r.recommended_action||'').replace(/_/g,' ')}</td>
+    </tr>`).join('')}</tbody></table>`;
+  }catch(e){showError(el,'Failed to load FAIL risks','loadFailTopRisks()')}
+}
+
+/* ===== ATTACK SURFACE ===== */
+async function loadAttack(){
+  loadMitre();loadCampaigns();loadMpte();
+}
+async function loadMitre(){
+  const el=document.getElementById('mitreHeatmap');
+  try{
+    const d=await api('/api/v1/attack-sim/mitre/techniques');
+    const techs=d.techniques||{};
+    const phases={};
+    Object.entries(techs).forEach(([id,t])=>{
+      const p=t.phase||'unknown';
+      if(!phases[p])phases[p]=[];
+      phases[p].push({id,...t});
+    });
+    const phaseOrder=['reconnaissance','initial_access','execution','persistence','privilege_escalation','lateral_movement','command_and_control','exfiltration'];
+    el.innerHTML=phaseOrder.filter(p=>phases[p]).map(p=>{
+      const items=phases[p];
+      return `<div class="mitre-phase"><div class="mitre-phase-label">${p.replace(/_/g,' ')}</div>
+        <div class="mitre-cells">${items.map(t=>{
+          const sev=t.severity||0;
+          const bg=sev>=0.8?'rgba(229,62,62,.2)':sev>=0.6?'rgba(237,137,54,.2)':sev>=0.4?'rgba(236,201,75,.15)':'rgba(66,153,225,.1)';
+          const border=sev>=0.8?'rgba(229,62,62,.4)':sev>=0.6?'rgba(237,137,54,.4)':sev>=0.4?'rgba(236,201,75,.3)':'rgba(66,153,225,.2)';
+          return `<div class="mitre-cell" style="background:${bg};border:1px solid ${border}"><span class="tech-name">${t.name}</span><span class="tech-id">${t.id} · ${(sev*10).toFixed(0)}</span></div>`;
+        }).join('')}</div></div>`;
+    }).join('');
+  }catch(e){showError(el,'Failed to load MITRE data','loadMitre()')}
+}
+async function loadCampaigns(){
+  const el=document.getElementById('campaignsList');
+  try{
+    const d=await api('/api/v1/attack-sim/campaigns');
+    const campaigns=Array.isArray(d)?d:(d.campaigns||[]);
+    if(!campaigns.length){el.innerHTML='<div class="empty-state">No active campaigns</div>';return}
+    el.innerHTML=campaigns.map(c=>`<div class="feed-item"><div class="feed-info"><div class="feed-name">${c.name||c.id}</div><div class="feed-meta">${c.status||'--'}</div></div></div>`).join('');
+  }catch(e){showError(el,'Failed to load campaigns','loadCampaigns()')}
+}
+async function loadMpte(){
+  const el=document.getElementById('mpteStats');
+  try{
+    const d=await api('/api/v1/mpte/stats');
+    el.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><div class="card-title">Total Requests</div><div class="kpi-val tabnum" style="font-size:22px">${fmtNum(d.total_requests)}</div></div>
+      <div><div class="card-title">Total Results</div><div class="kpi-val tabnum" style="font-size:22px">${fmtNum(d.total_results)}</div></div>
+    </div>
+    ${Object.keys(d.by_status||{}).length?`<div style="margin-top:12px;font-size:11px;color:var(--text-muted)">By Status: ${Object.entries(d.by_status).map(([k,v])=>`${k}: ${v}`).join(', ')}</div>`:'<div class="empty-state" style="padding:12px 0">No verification results yet</div>'}`;
+  }catch(e){showError(el,'Failed to load MPTE','loadMpte()')}
+}
+
+/* ===== REMEDIATION ===== */
+async function loadRemediation(){
+  loadRemTasks();loadAutofix();loadSLWeights();
+}
+async function loadRemTasks(){
+  const el=document.getElementById('remTasksTable');
+  showSkel(el,4);
+  try{
+    const [tasks,metrics,afStats]=await Promise.all([
+      api('/api/v1/remediation/tasks'),
+      api('/api/v1/remediation/metrics'),
+      api('/api/v1/autofix/stats')
+    ]);
+    const list=tasks.tasks||[];
+    document.getElementById('remSla').textContent=(metrics.sla_compliance_percent||0).toFixed(0)+'%';
+    document.getElementById('remOverdue').textContent=fmtNum(metrics.overdue_count);
+    document.getElementById('afGenerated').textContent=fmtNum(afStats.stats?.total_generated);
+    document.getElementById('afConfidence').textContent=(afStats.stats?.avg_confidence_score*100||0).toFixed(0)+'%';
+    if(!list.length){el.innerHTML='<div class="empty-state">No remediation tasks</div>';return}
+    el.innerHTML=`<table><thead><tr><th>Task</th><th>Severity</th><th>Status</th><th>Assignee</th><th>SLA</th><th>Due</th></tr></thead><tbody>${list.map(t=>{
+      const overdue=t.is_overdue;
+      return `<tr style="${overdue?'background:rgba(229,62,62,.05)':''}"><td style="color:var(--text-primary);font-weight:500;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.title}">${t.title}</td><td>${severityBadge(t.severity)}</td><td>${statusBadge(t.status)}</td><td style="font-size:10px">${t.assignee||'--'}</td><td class="mono tabnum">${t.sla_hours}h</td><td style="font-size:10px;${overdue?'color:var(--crit);font-weight:600':''}">${overdue?'OVERDUE':timeAgo(t.due_at)}</td></tr>`;
+    }).join('')}</tbody></table>`;
+  }catch(e){showError(el,'Failed to load tasks','loadRemTasks()')}
+}
+async function loadAutofix(){
+  try{
+    const [stats,conf]=await Promise.all([api('/api/v1/autofix/stats'),api('/api/v1/autofix/confidence-levels')]);
+    const ctx=document.getElementById('afChart');
+    if(chartInstances.af)chartInstances.af.destroy();
+    const byConf=stats.stats?.by_confidence||{};
+    chartInstances.af=new Chart(ctx,{type:'doughnut',data:{
+      labels:['High','Medium','Low'],
+      datasets:[{data:[byConf.high||0,byConf.medium||0,byConf.low||0],backgroundColor:['rgba(56,161,105,.7)','rgba(255,197,83,.7)','rgba(229,62,62,.7)'],borderWidth:0}]
+    },options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'bottom',labels:{color:'#8899b4',boxWidth:12,font:{size:10}}}}}});
+  }catch(e){console.error(e)}
+}
+async function loadSLWeights(){
+  const el=document.getElementById('slWeights');
+  try{
+    const d=await api('/api/v1/self-learning/weights');
+    const weights=d.weights||{};
+    el.innerHTML=Object.entries(weights).map(([key,w])=>{
+      const val=w.value||w;
+      const pct=(typeof val==='number'?val:0)*100;
+      const color=pct>=80?'var(--pass)':pct>=50?'var(--warn)':'var(--crit)';
+      return `<div class="weight-bar" style="margin-bottom:6px">
+        <span style="font-size:10px;color:var(--text-muted);width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0" title="${key}">${key}</span>
+        <div class="weight-bar-track"><div class="weight-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+        <span class="weight-bar-val mono tabnum">${(typeof val==='number'?val:0).toFixed(2)}</span>
+      </div>`;
+    }).join('');
+  }catch(e){showError(el,'Failed to load weights','loadSLWeights()')}
+}
+
+/* ===== INTELLIGENCE ===== */
+async function loadIntelligence(){
+  loadBrain();loadFeeds();loadNvd();loadEpss();loadScanners();
+}
+async function loadBrain(){
+  try{
+    const d=await api('/api/v1/brain/stats');
+    document.getElementById('brainNodes').textContent=fmtNum(d.total_nodes);
+    document.getElementById('brainEdges').textContent=`${fmtNum(d.total_edges)} edges · density ${(d.density||0).toFixed(4)}`;
+  }catch(e){console.error(e)}
+}
+async function loadFeeds(){
+  const el=document.getElementById('feedsList');
+  try{
+    const d=await api('/api/v1/feeds/status');
+    const feeds=d.feeds||[];
+    document.getElementById('feedsHealthy').textContent=fmtNum(d.healthy);
+    document.getElementById('cveCoverage').textContent=fmtNum(d.feed_coverage?.total_unique_cves);
+    el.innerHTML=feeds.map(f=>`<div class="feed-item">
+      <div class="feed-dot ${f.status==='operational'?'ok':f.status==='degraded'?'degraded':'error'}"></div>
+      <div class="feed-info"><div class="feed-name">${f.name}</div><div class="feed-meta">${f.provider} · ${f.data_format} · Sync every ${f.sync_interval_hours}h · Last: ${timeAgo(f.last_sync)}</div></div>
+      <span class="feed-count mono tabnum">${fmtNum(f.record_count)}</span>
+    </div>`).join('');
+  }catch(e){showError(el,'Failed to load feeds','loadFeeds()')}
+}
+async function loadNvd(){
+  const el=document.getElementById('nvdList');
+  try{
+    const d=await api('/api/v1/feeds/nvd/recent');
+    const advisories=d.advisories||[];
+    if(!advisories.length){el.innerHTML='<div class="empty-state">No recent CVEs</div>';return}
+    el.innerHTML=advisories.map(a=>`<div class="cve-item">
+      <div class="cve-header"><span class="cve-id">${a.cve_id}</span>${severityBadge(a.cvss_v31?.severity?.toLowerCase()||'info')}<span class="mono tabnum" style="font-size:11px;color:var(--text-secondary)">${a.cvss_v31?.base_score||'--'}</span>${a.kev?'<span class="cve-tag kev-tag">KEV</span>':''}</div>
+      <div class="cve-desc">${a.description}</div>
+      <div class="cve-meta"><span class="cve-tag">${a.vendor||'--'}</span><span class="cve-tag">EPSS: ${a.epss_score?.toFixed(2)||'--'}</span>${(a.tags||[]).map(t=>`<span class="cve-tag">${t}</span>`).join('')}</div>
+    </div>`).join('');
+  }catch(e){showError(el,'Failed to load NVD','loadNvd()')}
+}
+async function loadEpss(){
+  const el=document.getElementById('epssTable');
+  try{
+    const d=await api('/api/v1/feeds/epss/scores');
+    const scores=(d.scores||[]).slice(0,15);
+    if(!scores.length){el.innerHTML='<div class="empty-state">No EPSS data</div>';return}
+    el.innerHTML=`<table><thead><tr><th>CVE</th><th>EPSS</th><th>%ile</th><th>Severity</th><th>KEV</th></tr></thead><tbody>${scores.map(s=>`<tr>
+      <td class="mono" style="font-size:10px;color:var(--accent-light)">${s.cve}</td>
+      <td class="mono tabnum" style="font-weight:600">${s.epss?.toFixed(4)}</td>
+      <td class="mono tabnum">${s.percentile?.toFixed(1)}</td>
+      <td>${severityBadge(s.severity?.toLowerCase())}</td>
+      <td>${s.kev?'<span class="cve-tag kev-tag">KEV</span>':'--'}</td>
+    </tr>`).join('')}</tbody></table>`;
+  }catch(e){showError(el,'Failed to load EPSS','loadEpss()')}
+}
+async function loadScanners(){
+  const el=document.getElementById('scannerList');
+  try{
+    const d=await api('/api/v1/scanner-ingest/supported');
+    const scanners=Array.isArray(d)?d:(d.scanners||d.supported||Object.keys(d)||[]);
+    if(!scanners.length){el.innerHTML='<div class="empty-state">No scanners configured</div>';return}
+    const items=typeof scanners[0]==='string'?scanners.map(s=>({name:s})):scanners;
+    el.innerHTML=items.map(s=>`<div class="feed-item">
+      <div class="feed-dot ok"></div>
+      <div class="feed-info"><div class="feed-name">${s.name||s.scanner_id||s}</div><div class="feed-meta">${s.format||s.type||'Scanner'}</div></div>
+    </div>`).join('');
+  }catch(e){showError(el,'Failed to load scanners','loadScanners()')}
+}
+
+/* ===== COPILOT ===== */
+let copilotOpen=false;
+function toggleCopilot(){
+  copilotOpen=!copilotOpen;
+  document.getElementById('copilotPanel').classList.toggle('open',copilotOpen);
+  if(copilotOpen&&document.getElementById('copilotMsgs').children.length===0)loadSuggestions();
+}
+async function loadSuggestions(){
+  try{
+    const d=await api('/api/v1/copilot/suggestions');
+    const sug=d.suggestions||d||[];
+    const el=document.getElementById('copilotSuggestions');
+    const items=Array.isArray(sug)?sug:[];
+    el.innerHTML=items.map(s=>`<button class="copilot-sug" onclick="askCopilot('${(s.text||s.question||s).replace(/'/g,"&#39;")}')">${s.text||s.question||s}</button>`).join('');
+  }catch(e){console.error(e)}
+}
+function askCopilot(text){document.getElementById('copilotInput').value=text;sendCopilot()}
+async function sendCopilot(){
+  const input=document.getElementById('copilotInput');
+  const q=input.value.trim();if(!q)return;
+  input.value='';
+  const msgs=document.getElementById('copilotMsgs');
+  msgs.innerHTML+=`<div class="copilot-msg user">${q}</div>`;
+  msgs.innerHTML+=`<div class="copilot-msg bot" id="copilotLoading"><div class="skel" style="width:200px;height:12px"></div></div>`;
+  msgs.scrollTop=msgs.scrollHeight;
+  try{
+    const d=await api('/api/v1/copilot/ask',{method:'POST',body:JSON.stringify({question:q})});
+    const loading=document.getElementById('copilotLoading');
+    if(loading)loading.remove();
+    const answer=d.answer||d.response||d.message||JSON.stringify(d);
+    msgs.innerHTML+=`<div class="copilot-msg bot">${answer}</div>`;
+  }catch(e){
+    const loading=document.getElementById('copilotLoading');
+    if(loading)loading.remove();
+    msgs.innerHTML+=`<div class="copilot-msg bot" style="color:var(--crit)">Failed to get response. Please try again.</div>`;
+  }
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+/* ===== Init & Auto-refresh ===== */
+let refreshCountdown=30;
+async function init(){
+  checkConnection();
+  loadCommand();
+  refreshTimer=setInterval(()=>{
+    refreshCountdown=30;
+    checkConnection();
+    const activeSpace=document.querySelector('.space.active')?.id?.replace('space-','');
+    if(activeSpace)loadSpace(activeSpace);
+  },30000);
+  setInterval(()=>{
+    refreshCountdown=Math.max(0,refreshCountdown-1);
+    document.getElementById('refreshInfo').textContent=`Next refresh: ${refreshCountdown}s`;
+  },1000);
+}
+init();
+</script>
+</body>
+</html>
