@@ -1,93 +1,489 @@
-import { useCallback } from "react";
-import { motion } from "framer-motion";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Activity, AlertTriangle, Zap, Shield, GitBranch, FileText,
+  Circle, RefreshCw, Filter, Clock, Wifi, WifiOff, ChevronDown,
+  Eye, Bell, CheckCircle2, XCircle, Radio, Search, BarChart3,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { PageHeader } from "@/components/shared/page-header";
+import { KpiCard } from "@/components/shared/kpi-card";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { Activity, Radio, Server, Clock, RefreshCw, Wifi, Zap } from "lucide-react";
-import { useNervePulse, useNerveState, useIntelligenceMap } from "@/hooks/use-api";
+import {
+  useNervePulse,
+  useNerveState,
+} from "@/hooks/use-api";
+import { cn } from "@/lib/utils";
+
+type EventType = "all" | "finding" | "decision" | "mpte" | "deployment" | "policy" | "fix";
+type SeverityFilter = "all" | "critical" | "high" | "medium" | "low";
+
+const EVENT_TYPE_CONFIG: Record<string, {
+  label: string;
+  icon: React.ElementType;
+  className: string;
+  dotColor: string;
+}> = {
+  finding: {
+    label: "Finding",
+    icon: AlertTriangle,
+    className: "border-red-500/30 text-red-400 bg-red-500/10",
+    dotColor: "#ef4444",
+  },
+  decision: {
+    label: "Decision",
+    icon: FileText,
+    className: "border-purple-500/30 text-purple-400 bg-purple-500/10",
+    dotColor: "#a855f7",
+  },
+  mpte: {
+    label: "MPTE",
+    icon: Zap,
+    className: "border-cyan-500/30 text-cyan-400 bg-cyan-500/10",
+    dotColor: "#06b6d4",
+  },
+  deployment: {
+    label: "Deployment",
+    icon: GitBranch,
+    className: "border-blue-500/30 text-blue-400 bg-blue-500/10",
+    dotColor: "#3b82f6",
+  },
+  policy: {
+    label: "Policy",
+    icon: Shield,
+    className: "border-gray-500/30 text-gray-400 bg-gray-500/10",
+    dotColor: "#6b7280",
+  },
+  fix: {
+    label: "Fix",
+    icon: CheckCircle2,
+    className: "border-green-500/30 text-green-400 bg-green-500/10",
+    dotColor: "#22c55e",
+  },
+  alert: {
+    label: "Alert",
+    icon: Bell,
+    className: "border-yellow-500/30 text-yellow-400 bg-yellow-500/10",
+    dotColor: "#eab308",
+  },
+};
+
+const SEVERITY_COLORS: Record<string, string> = {
+  critical: "#ef4444",
+  high: "#f97316",
+  medium: "#eab308",
+  low: "#22c55e",
+  info: "#3b82f6",
+};
+
+function EventTypeBadge({ type }: { type: string }) {
+  const cfg = EVENT_TYPE_CONFIG[type?.toLowerCase()] ?? {
+    label: type || "Event",
+    icon: Activity,
+    className: "border-border text-muted-foreground bg-muted/10",
+    dotColor: "#6b7280",
+  };
+  const Icon = cfg.icon;
+  return (
+    <Badge className={cn("text-[10px] border px-1.5 py-0 h-4 font-medium flex items-center gap-1", cfg.className)}>
+      <Icon className="h-2.5 w-2.5" />
+      {cfg.label}
+    </Badge>
+  );
+}
+
+function SeverityDot({ severity }: { severity: string }) {
+  const color = SEVERITY_COLORS[severity?.toLowerCase()] ?? "#6b7280";
+  return (
+    <span
+      className="h-2 w-2 rounded-full inline-block shrink-0 mt-1"
+      style={{ backgroundColor: color }}
+    />
+  );
+}
+
+function ConnectionStatus({ connected, lastUpdate }: { connected: boolean; lastUpdate: Date }) {
+  return (
+    <div className={cn(
+      "flex items-center gap-1.5 text-xs px-2 py-1 rounded-full border",
+      connected
+        ? "border-green-500/30 bg-green-500/10 text-green-400"
+        : "border-red-500/30 bg-red-500/10 text-red-400"
+    )}>
+      {connected
+        ? <Wifi className="h-3 w-3 animate-pulse" />
+        : <WifiOff className="h-3 w-3" />
+      }
+      <span className="hidden sm:block">{connected ? "Live" : "Disconnected"}</span>
+      <Separator orientation="vertical" className="h-3 mx-0.5" />
+      <span className="text-[10px] opacity-70">{lastUpdate.toLocaleTimeString()}</span>
+    </div>
+  );
+}
+
+interface FeedEvent {
+  id?: string;
+  type: string;
+  severity?: string;
+  message?: string;
+  description?: string;
+  component?: string;
+  timestamp?: string;
+  created_at?: string;
+  [key: string]: unknown;
+}
 
 export default function LiveFeed() {
+  const [eventType, setEventType] = useState<EventType>("all");
+  const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [autoScroll, setAutoScroll] = useState(true);
+  const [paused, setPaused] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   const pulse = useNervePulse();
   const state = useNerveState();
-  const intel = useIntelligenceMap();
-  const refetch = useCallback(() => { pulse.refetch(); state.refetch(); intel.refetch(); }, [pulse, state, intel]);
 
-  if (pulse.isLoading || state.isLoading) return <PageSkeleton />;
-  if (pulse.isError) return <ErrorState onRetry={refetch} />;
+  const isLoading = pulse.isLoading;
+  const isError = pulse.isError;
+  const refetch = useCallback(() => {
+    pulse.refetch();
+    state.refetch();
+    setLastUpdate(new Date());
+  }, [pulse, state]);
 
-  const p = pulse.data ?? {};
-  const suites = state.data?.suites ?? [];
-  const nodes = intel.data?.nodes ?? [];
-  const edges = intel.data?.edges ?? [];
+  // Auto-refresh every 30 seconds when not paused
+  useEffect(() => {
+    if (paused) return;
+    const interval = setInterval(refetch, 30_000);
+    return () => clearInterval(interval);
+  }, [paused, refetch]);
 
-  const pulseLevel = String(p.level ?? "info");
-  const pulseColor = pulseLevel === "critical" ? "text-red-400" : pulseLevel === "warning" ? "text-yellow-400" : "text-green-400";
+  // Auto-scroll to bottom when new events arrive
+  useEffect(() => {
+    if (autoScroll && scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [pulse.data, autoScroll]);
+
+  if (isLoading) return <PageSkeleton />;
+  if (isError) return <ErrorState message="Failed to connect to live feed" onRetry={refetch} />;
+
+  const pulseData = pulse.data ?? {};
+  const stateData = state.data ?? {};
+
+  const allEvents: FeedEvent[] = pulseData.events ?? pulseData.recent_events ?? stateData.events ?? [];
+
+  // Event type counts
+  const findingCount = allEvents.filter((e) => e.type === "finding").length;
+  const decisionCount = allEvents.filter((e) => e.type === "decision").length;
+  const mpteCount = allEvents.filter((e) => e.type === "mpte").length;
+  const deployCount = allEvents.filter((e) => e.type === "deployment").length;
+  const totalCount = allEvents.length;
+  const criticalCount = allEvents.filter((e) => e.severity === "critical").length;
+
+  // Apply filters
+  const filteredEvents = allEvents.filter((ev) => {
+    const typeMatch = eventType === "all" || ev.type?.toLowerCase() === eventType;
+    const sevMatch = severityFilter === "all" || ev.severity?.toLowerCase() === severityFilter;
+    const searchMatch = !searchQuery || (
+      String(ev.message ?? ev.description ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      String(ev.component ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      String(ev.type ?? "").toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    return typeMatch && sevMatch && searchMatch;
+  });
+
+  // Reverse for newest-first display
+  const displayEvents = [...filteredEvents].reverse();
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.04 } },
+  };
+  const itemVariants = {
+    hidden: { opacity: 0, y: 8 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.25 } },
+  };
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <PageHeader title="Live Feed" description="Real-time system events and intelligence flow" badge="STREAMING"
-        actions={<Button variant="outline" size="sm" onClick={refetch}><RefreshCw className="mr-2 h-4 w-4" />Refresh</Button>} />
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-col gap-6 p-6"
+    >
+      {/* Header */}
+      <PageHeader
+        title="Live Feed"
+        description="Real-time event stream: findings, decisions, MPTE verifications, and deployments"
+        badge="LIVE"
+        actions={
+          <div className="flex items-center gap-2">
+            <ConnectionStatus connected={!pulse.isError} lastUpdate={lastUpdate} />
+            <div className="flex items-center gap-1.5">
+              <Radio className={cn("h-3.5 w-3.5", !paused ? "text-green-400 animate-pulse" : "text-muted-foreground")} />
+              <span className="text-xs text-muted-foreground hidden sm:block">Auto-refresh</span>
+              <Switch checked={!paused} onCheckedChange={(v) => setPaused(!v)} />
+            </div>
+            <Button variant="outline" size="sm" onClick={refetch} disabled={paused}>
+              <RefreshCw className={cn("h-4 w-4", pulse.isFetching && "animate-spin")} />
+            </Button>
+          </div>
+        }
+      />
 
-      {/* Pulse Banner */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-        className={`flex items-center gap-4 rounded-xl border p-4 ${pulseLevel === "critical" ? "border-red-500/50 bg-red-500/10" : "border-border/50 bg-card"}`}>
-        <div className={`relative`}>
-          <Radio className={`h-6 w-6 ${pulseColor}`} />
-          <span className={`absolute -top-1 -right-1 h-3 w-3 rounded-full ${pulseLevel === "critical" ? "bg-red-500" : "bg-green-500"} animate-pulse`} />
-        </div>
-        <div className="flex-1">
-          <p className="font-semibold">Threat Pulse: {Number(p.score ?? 0).toFixed(1)} / 10</p>
-          <p className="text-sm text-muted-foreground">Level: <span className={`font-medium capitalize ${pulseColor}`}>{pulseLevel}</span> · {p.active_incidents ?? 0} active incidents · {p.pending_decisions ?? 0} pending decisions</p>
-        </div>
-        <Badge variant={pulseLevel === "critical" ? "destructive" : "default"} className="capitalize">{pulseLevel}</Badge>
+      {/* KPI Row */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"
+      >
+        <motion.div variants={itemVariants}>
+          <KpiCard title="Total Events" value={totalCount} icon={Activity} trend="flat" />
+        </motion.div>
+        <motion.div variants={itemVariants}>
+          <KpiCard
+            title="Findings"
+            value={findingCount}
+            icon={AlertTriangle}
+            trend={findingCount > 5 ? "up" : "flat"}
+            className={cn(findingCount > 0 && "border-red-500/20")}
+          />
+        </motion.div>
+        <motion.div variants={itemVariants}>
+          <KpiCard title="Decisions" value={decisionCount} icon={FileText} trend="flat" />
+        </motion.div>
+        <motion.div variants={itemVariants}>
+          <KpiCard title="MPTE Events" value={mpteCount} icon={Zap} trend="flat" />
+        </motion.div>
+        <motion.div variants={itemVariants}>
+          <KpiCard title="Deployments" value={deployCount} icon={GitBranch} trend="flat" />
+        </motion.div>
+        <motion.div variants={itemVariants}>
+          <KpiCard
+            title="Critical Events"
+            value={criticalCount}
+            icon={XCircle}
+            trend={criticalCount > 0 ? "up" : "down"}
+            className={cn(criticalCount > 0 && "border-red-500/30 bg-red-500/5")}
+          />
+        </motion.div>
       </motion.div>
 
-      {/* Suite Status Grid */}
-      <Card>
-        <CardHeader><CardTitle className="text-sm font-medium">Suite Health ({suites.length})</CardTitle></CardHeader>
-        <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {suites.map((s: Record<string, unknown>, i: number) => (
-              <motion.div key={String(s.suite)} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                className="flex items-center gap-3 rounded-lg border border-border/50 p-3 hover:bg-muted/30 transition-colors">
-                <Server className="h-5 w-5 text-muted-foreground shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{String(s.suite)}</p>
-                  <p className="text-xs text-muted-foreground">{Number(s.latency_ms ?? 0).toFixed(0)}ms · {s.active_tasks ?? 0} tasks</p>
-                </div>
-                <div className={`h-2.5 w-2.5 rounded-full ${s.status === "healthy" ? "bg-green-500" : "bg-red-500"}`} />
-              </motion.div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Filter Bar */}
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.18 }}
+        className="flex flex-wrap items-center gap-2"
+      >
+        <div className="relative flex-1 min-w-[200px] max-w-[320px]">
+          <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search events..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8 h-8 text-xs"
+          />
+        </div>
+        <Select value={eventType} onValueChange={(v) => setEventType(v as EventType)}>
+          <SelectTrigger className="h-8 w-[130px] text-xs">
+            <Filter className="h-3.5 w-3.5 mr-1.5" />
+            <SelectValue placeholder="Event Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="finding">Findings</SelectItem>
+            <SelectItem value="decision">Decisions</SelectItem>
+            <SelectItem value="mpte">MPTE</SelectItem>
+            <SelectItem value="deployment">Deployments</SelectItem>
+            <SelectItem value="policy">Policy</SelectItem>
+            <SelectItem value="fix">Fixes</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={severityFilter} onValueChange={(v) => setSeverityFilter(v as SeverityFilter)}>
+          <SelectTrigger className="h-8 w-[120px] text-xs">
+            <SelectValue placeholder="Severity" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Severity</SelectItem>
+            <SelectItem value="critical">Critical</SelectItem>
+            <SelectItem value="high">High</SelectItem>
+            <SelectItem value="medium">Medium</SelectItem>
+            <SelectItem value="low">Low</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="flex items-center gap-1.5 ml-auto text-xs text-muted-foreground">
+          <span>Auto-scroll</span>
+          <Switch
+            checked={autoScroll}
+            onCheckedChange={setAutoScroll}
+            className="scale-75"
+          />
+        </div>
+        <Badge variant="outline" className="text-[10px]">
+          {filteredEvents.length} / {totalCount} events
+        </Badge>
+      </motion.div>
 
-      {/* Intelligence Map */}
-      <Card>
-        <CardHeader><CardTitle className="text-sm font-medium">Intelligence Pipeline ({nodes.length} nodes)</CardTitle></CardHeader>
-        <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {nodes.map((n: Record<string, unknown>) => (
-              <div key={String(n.id)} className="rounded-lg border border-border/50 p-3 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-primary" />
-                  <span className="font-medium text-sm">{String(n.label)}</span>
-                </div>
-                <p className="text-xs text-muted-foreground">{String(n.suite)} · {String(n.type)}</p>
-                <div className="flex flex-wrap gap-1">
-                  {(Array.isArray(n.apis) ? n.apis : []).map((api: string) => (
-                    <Badge key={api} variant="outline" className="text-[10px]">{api}</Badge>
-                  ))}
-                </div>
+      {/* Event Stream */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.22 }}
+      >
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-blue-400" />
+                Event Stream
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                {paused && (
+                  <Badge variant="outline" className="text-[10px] border-yellow-500/30 text-yellow-400">
+                    Paused
+                  </Badge>
+                )}
+                <span className="text-[10px] text-muted-foreground">newest first</span>
               </div>
-            ))}
-          </div>
-          {nodes.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Intelligence map initializing...</p>}
-        </CardContent>
-      </Card>
-    </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <ScrollArea className="h-[480px]" ref={scrollRef as React.RefObject<HTMLDivElement>}>
+              <div className="px-6 pb-4">
+                <AnimatePresence initial={false}>
+                  {displayEvents.length > 0 ? displayEvents.map((ev, i) => {
+                    const cfg = EVENT_TYPE_CONFIG[ev.type?.toLowerCase() ?? ""] ?? {
+                      dotColor: "#6b7280",
+                      icon: Activity,
+                    };
+                    const time = ev.timestamp ?? ev.created_at;
+                    const sevColor = SEVERITY_COLORS[ev.severity?.toLowerCase() ?? ""] ?? undefined;
+
+                    return (
+                      <motion.div
+                        key={`${ev.id ?? i}-${ev.timestamp ?? i}`}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 8 }}
+                        transition={{ duration: 0.2 }}
+                        className="flex items-start gap-3 py-3 border-b border-border/40 last:border-0 group hover:bg-muted/20 -mx-2 px-2 rounded-lg transition-colors"
+                      >
+                        {/* Timeline dot */}
+                        <div className="flex flex-col items-center mt-1 shrink-0">
+                          <span
+                            className="h-2.5 w-2.5 rounded-full ring-2 ring-background"
+                            style={{ backgroundColor: sevColor ?? cfg.dotColor }}
+                          />
+                          {i < displayEvents.length - 1 && (
+                            <span className="w-px h-6 bg-border/40 mt-1" />
+                          )}
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <EventTypeBadge type={ev.type ?? ""} />
+                            {ev.severity && (
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "text-[9px] h-4 px-1 capitalize border",
+                                  ev.severity === "critical" && "border-red-500/30 text-red-400",
+                                  ev.severity === "high" && "border-orange-500/30 text-orange-400",
+                                  ev.severity === "medium" && "border-yellow-500/30 text-yellow-400",
+                                  ev.severity === "low" && "border-green-500/30 text-green-400",
+                                )}
+                              >
+                                {ev.severity}
+                              </Badge>
+                            )}
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-1 ml-auto">
+                              <Clock className="h-3 w-3" />
+                              {time ? new Date(String(time)).toLocaleTimeString() : "—"}
+                            </span>
+                          </div>
+                          <p className="text-sm text-foreground/90 leading-snug">
+                            {String(ev.message ?? ev.description ?? "No description")}
+                          </p>
+                          {ev.component && (
+                            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                              <Eye className="h-3 w-3 shrink-0" />
+                              <span className="truncate">{String(ev.component)}</span>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  }) : (
+                    <div className="flex flex-col items-center justify-center h-[300px] gap-3 text-muted-foreground">
+                      <Activity className="h-10 w-10 opacity-20" />
+                      <p className="text-sm">
+                        {allEvents.length === 0
+                          ? "No events yet — waiting for activity"
+                          : "No events match the current filters"
+                        }
+                      </p>
+                      {allEvents.length > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setEventType("all");
+                            setSeverityFilter("all");
+                            setSearchQuery("");
+                          }}
+                        >
+                          Clear filters
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Status bar */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.35 }}
+        className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/20 px-4 py-2 text-[11px] text-muted-foreground"
+      >
+        <div className="flex items-center gap-4">
+          <span className="flex items-center gap-1.5">
+            <span className={cn(
+              "h-2 w-2 rounded-full",
+              !paused ? "bg-green-400 animate-pulse" : "bg-yellow-400"
+            )} />
+            {paused ? "Feed paused" : "Auto-refreshing every 30s"}
+          </span>
+          <Separator orientation="vertical" className="h-3" />
+          <span>{filteredEvents.length} events shown</span>
+          {searchQuery && (
+            <>
+              <Separator orientation="vertical" className="h-3" />
+              <span>Filter: &ldquo;{searchQuery}&rdquo;</span>
+            </>
+          )}
+        </div>
+        <span>SSE · Updated {lastUpdate.toLocaleTimeString()}</span>
+      </motion.div>
+    </motion.div>
   );
 }

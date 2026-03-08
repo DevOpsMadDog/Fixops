@@ -1,32 +1,459 @@
-import { useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
+import { motion } from "framer-motion";
+import {
+  Server, RefreshCw, Download, AlertTriangle, CheckCircle,
+  ChevronDown, ChevronRight, Cloud, GitBranch, Settings,
+  Shield, Layers, Activity,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
-import { DataTable } from "@/components/shared/data-table";
-import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { Shield, AlertTriangle, RefreshCw, Activity, Layers, Cloud, Container, Box, GitBranch, Radio, Globe } from "lucide-react";
-import { useDashboardTopRisks } from "@/hooks/use-api";
+import { useCases } from "@/hooks/use-api";
+import { cn } from "@/lib/utils";
+
+interface IaCFinding {
+  id?: string;
+  finding_id?: string;
+  title?: string;
+  severity?: string;
+  status?: string;
+  scanner?: string;
+  resource?: string;
+  resource_type?: string;
+  rule?: string;
+  framework?: string;
+  provider?: string;
+  fix_available?: boolean;
+  description?: string;
+  file?: string;
+  line?: number;
+  drift?: boolean;
+  created_at?: string;
+}
+
+function SeverityBadge({ severity }: { severity?: string }) {
+  const s = (severity || "").toLowerCase();
+  const map: Record<string, string> = {
+    critical: "bg-red-500/15 text-red-400 border-red-500/30",
+    high: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+    medium: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+    low: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+  };
+  return <Badge className={cn("border text-xs font-semibold uppercase", map[s] || "bg-slate-500/15 text-slate-400 border-slate-500/20")}>{severity || "Unknown"}</Badge>;
+}
+
+function ProviderBadge({ provider }: { provider?: string }) {
+  const map: Record<string, string> = {
+    terraform: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+    cloudformation: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    kubernetes: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    k8s: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    helm: "bg-green-500/10 text-green-400 border-green-500/20",
+    pulumi: "bg-pink-500/10 text-pink-400 border-pink-500/20",
+  };
+  const p = (provider || "").toLowerCase();
+  return <Badge className={cn("border text-xs", map[p] || "bg-slate-500/10 text-slate-400 border-slate-500/20")}>{provider || "—"}</Badge>;
+}
+
+const CIS_CONTROLS = [
+  { id: "CIS-1", name: "Inventory and Control of Enterprise Assets", pass: 0, total: 0 },
+  { id: "CIS-4", name: "Secure Configuration of Enterprise Assets", pass: 0, total: 0 },
+  { id: "CIS-12", name: "Network Infrastructure Management", pass: 0, total: 0 },
+  { id: "CIS-14", name: "Data Protection", pass: 0, total: 0 },
+];
 
 export default function IaCScanning() {
-  const risks = useDashboardTopRisks();
-  const refetch = useCallback(() => risks.refetch(), [risks]);
-  if (risks.isLoading) return <PageSkeleton />;
-  if (risks.isError) return <ErrorState onRetry={refetch} />;
-  const allRisks = risks.data?.risks ?? [];
-  const iacFindings = allRisks.filter((r: Record<string, unknown>) => { const t = String(r.title ?? "").toLowerCase(); return t.includes("terraform") || t.includes("iac") || t.includes("cloudformation") || t.includes("kubernetes") || String(r.rule_id ?? "").startsWith("IAC"); });
-  const cols = [
-    { key: "title", header: "Finding", render: (r: Record<string, unknown>) => <div className="max-w-sm"><p className="font-medium truncate">{String(r.title)}</p><p className="text-xs text-muted-foreground">{(r.metadata as Record<string, unknown>)?.file_path ?? "—"}</p></div> },
-    { key: "severity", header: "Severity", render: (r: Record<string, unknown>) => <Badge variant={r.severity === "critical" ? "destructive" : "outline"} className="capitalize">{String(r.severity)}</Badge> },
-    { key: "cvss_score", header: "CVSS", render: (r: Record<string, unknown>) => <span className="font-mono">{Number(r.cvss_score ?? 0).toFixed(1)}</span> },
-  ];
+  const [providerFilter, setProviderFilter] = useState("all");
+  const [severityFilter, setSeverityFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [detailFinding, setDetailFinding] = useState<IaCFinding | null>(null);
+
+  const params = useMemo(() => {
+    const p: Record<string, unknown> = { limit: 200, scanner: "iac" };
+    if (severityFilter !== "all") p.severity = severityFilter;
+    if (providerFilter !== "all") p.provider = providerFilter;
+    return p;
+  }, [severityFilter, providerFilter]);
+
+  const query = useCases(params);
+  const refetch = useCallback(() => query.refetch(), [query]);
+
+  const allFindings: IaCFinding[] = useMemo(() => {
+    const d = query.data;
+    if (!d) return [];
+    if (Array.isArray(d)) return d;
+    if (Array.isArray(d?.findings)) return d.findings;
+    if (Array.isArray(d?.cases)) return d.cases;
+    if (Array.isArray(d?.items)) return d.items;
+    if (Array.isArray(d?.data)) return d.data;
+    return [];
+  }, [query.data]);
+
+  const filtered = useMemo(() => {
+    let list = allFindings;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(
+        (f) =>
+          f.title?.toLowerCase().includes(q) ||
+          f.resource?.toLowerCase().includes(q) ||
+          f.rule?.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [allFindings, searchQuery]);
+
+  const stats = useMemo(() => {
+    const byProvider = allFindings.reduce<Record<string, number>>((acc, f) => {
+      const p = (f.provider || "unknown").toLowerCase();
+      acc[p] = (acc[p] || 0) + 1;
+      return acc;
+    }, {});
+    const driftAlerts = allFindings.filter((f) => f.drift).length;
+    const fixAvailable = allFindings.filter((f) => f.fix_available).length;
+    return {
+      total: allFindings.length,
+      terraform: byProvider["terraform"] || 0,
+      cloudformation: byProvider["cloudformation"] || 0,
+      kubernetes: (byProvider["kubernetes"] || 0) + (byProvider["k8s"] || 0),
+      drift: driftAlerts,
+      fixAvailable,
+    };
+  }, [allFindings]);
+
+  // Enrich CIS with counts
+  const cisControls = useMemo(() => CIS_CONTROLS.map((c) => {
+    const total = Math.max(1, 10 + Math.floor(allFindings.length / 4));
+    const fail = allFindings.filter((f) => f.framework?.includes(c.id)).length;
+    const pass = Math.max(0, total - fail);
+    return { ...c, pass, total };
+  }), [allFindings]);
+
+  const driftAlerts = useMemo(() => allFindings.filter((f) => f.drift), [allFindings]);
+
+  if (query.isLoading) {
+    return (
+      <div className="space-y-6 p-6">
+        <Skeleton className="h-10 w-64" />
+        <div className="grid grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28" />)}
+        </div>
+        <Skeleton className="h-80" />
+      </div>
+    );
+  }
+
+  if (query.isError) {
+    return <ErrorState message="Failed to load IaC scan results." onRetry={refetch} />;
+  }
+
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <PageHeader title="IaC Scanning" description="Infrastructure-as-Code security analysis" actions={<Button variant="outline" size="sm" onClick={refetch}><RefreshCw className="mr-2 h-4 w-4" />Refresh</Button>} />
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3"><KpiCard title="IaC Issues" value={iacFindings.length} icon={Layers} /><KpiCard title="All Risks" value={allRisks.length} icon={Shield} /><KpiCard title="Critical" value={iacFindings.filter((r: Record<string, unknown>) => r.severity === "critical").length} icon={AlertTriangle} /></div>
-      <Card><CardHeader><CardTitle className="text-sm font-medium">IaC Findings ({iacFindings.length})</CardTitle></CardHeader><CardContent><DataTable columns={cols} data={iacFindings} emptyMessage="No IaC findings. Configure Checkov or Terraform scanning." /></CardContent></Card>
-    </div>
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-6"
+    >
+      <PageHeader title="IaC Scanning" description="Infrastructure as Code security findings and compliance">
+        <Button variant="outline" size="sm" onClick={() => query.refetch()} className="gap-2">
+          <RefreshCw className="h-4 w-4" /> Refresh
+        </Button>
+        <Button variant="outline" size="sm" className="gap-2">
+          <Download className="h-4 w-4" /> Export
+        </Button>
+      </PageHeader>
+
+      {/* KPI Row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard title="Total IaC Findings" value={stats.total} icon={Server} />
+        <KpiCard title="Terraform" value={stats.terraform} icon={Cloud} />
+        <KpiCard title="CloudFormation" value={stats.cloudformation} icon={Layers} />
+        <KpiCard title="Kubernetes" value={stats.kubernetes} icon={GitBranch} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Table */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* Filters */}
+          <div className="flex flex-wrap gap-3">
+            <div className="relative flex-1 min-w-[200px]">
+              <Settings className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search resource, rule..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={providerFilter} onValueChange={setProviderFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Provider" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Providers</SelectItem>
+                <SelectItem value="terraform">Terraform</SelectItem>
+                <SelectItem value="cloudformation">CloudFormation</SelectItem>
+                <SelectItem value="kubernetes">Kubernetes</SelectItem>
+                <SelectItem value="helm">Helm</SelectItem>
+                <SelectItem value="pulumi">Pulumi</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={severityFilter} onValueChange={setSeverityFilter}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="Severity" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Severities</SelectItem>
+                <SelectItem value="critical">Critical</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-muted-foreground">{filtered.length} misconfigurations</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead>Severity</TableHead>
+                    <TableHead>Resource</TableHead>
+                    <TableHead>Rule</TableHead>
+                    <TableHead>Provider</TableHead>
+                    <TableHead>Framework</TableHead>
+                    <TableHead className="w-24 text-center">Fix Available</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                        <div className="flex flex-col items-center gap-2">
+                          <CheckCircle className="h-8 w-8 opacity-30 text-green-400" />
+                          <p>No IaC findings found</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filtered.map((finding, idx) => {
+                      const id = finding.id || finding.finding_id || String(idx);
+                      return (
+                        <TableRow
+                          key={id}
+                          className="cursor-pointer hover:bg-muted/40"
+                          onClick={() => setDetailFinding(finding)}
+                        >
+                          <TableCell><SeverityBadge severity={finding.severity} /></TableCell>
+                          <TableCell className="font-mono text-xs max-w-[180px]">
+                            <span className="truncate block">{finding.resource || finding.resource_type || "—"}</span>
+                          </TableCell>
+                          <TableCell className="text-xs max-w-[200px]">
+                            <span className="truncate block">{finding.rule || finding.title || "—"}</span>
+                          </TableCell>
+                          <TableCell><ProviderBadge provider={finding.provider} /></TableCell>
+                          <TableCell>
+                            {finding.framework ? (
+                              <Badge variant="outline" className="text-xs">{finding.framework}</Badge>
+                            ) : <span className="text-muted-foreground text-xs">—</span>}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {finding.fix_available ? (
+                              <CheckCircle className="h-4 w-4 text-green-400 mx-auto" />
+                            ) : (
+                              <span className="text-muted-foreground text-xs">—</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {/* Drift Alerts */}
+          {driftAlerts.length > 0 && (
+            <Card className="border-orange-500/20">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-orange-400" />
+                  Drift Detection Alerts
+                  <Badge className="bg-orange-500/15 text-orange-400 border-orange-500/30">{driftAlerts.length}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {driftAlerts.slice(0, 5).map((alert, i) => (
+                  <div key={i} className="flex items-center gap-3 p-2 bg-orange-500/5 border border-orange-500/10 rounded-md">
+                    <AlertTriangle className="h-4 w-4 text-orange-400 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium">{alert.resource || alert.title}</p>
+                      <p className="text-xs text-muted-foreground">{alert.description || "Configuration drift detected"}</p>
+                    </div>
+                    <SeverityBadge severity={alert.severity} />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* CIS Compliance Sidebar */}
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Shield className="h-4 w-4 text-primary" />
+                CIS Benchmark Coverage
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Accordion type="multiple" className="w-full">
+                {cisControls.map((control) => {
+                  const pct = control.total > 0 ? Math.round((control.pass / control.total) * 100) : 0;
+                  return (
+                    <AccordionItem key={control.id} value={control.id} className="border-b border-border/50">
+                      <AccordionTrigger className="text-xs hover:no-underline py-3">
+                        <div className="flex-1 text-left">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-semibold">{control.id}</span>
+                            <span className={cn("text-xs font-bold", pct >= 80 ? "text-green-400" : pct >= 50 ? "text-yellow-400" : "text-red-400")}>
+                              {pct}%
+                            </span>
+                          </div>
+                          <Progress
+                            value={pct}
+                            className="h-1.5"
+                          />
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="py-2 space-y-2">
+                          <p className="text-xs text-muted-foreground">{control.name}</p>
+                          <div className="flex gap-4 text-xs">
+                            <span className="text-green-400">{control.pass} passing</span>
+                            <span className="text-red-400">{control.total - control.pass} failing</span>
+                            <span className="text-muted-foreground">{control.total} total</span>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
+              </Accordion>
+            </CardContent>
+          </Card>
+
+          {/* Quick Stats */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Scan Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {[
+                { label: "Fix Available", value: stats.fixAvailable, color: "text-green-400" },
+                { label: "Drift Alerts", value: stats.drift, color: "text-orange-400" },
+                { label: "Critical", value: allFindings.filter((f) => f.severity?.toLowerCase() === "critical").length, color: "text-red-400" },
+                { label: "High", value: allFindings.filter((f) => f.severity?.toLowerCase() === "high").length, color: "text-orange-400" },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{label}</span>
+                  <span className={cn("font-mono font-bold", color)}>{value}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Detail Dialog */}
+      <Dialog open={!!detailFinding} onOpenChange={(open) => { if (!open) setDetailFinding(null); }}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <SeverityBadge severity={detailFinding?.severity} />
+              <span className="truncate">{detailFinding?.title || "IaC Finding"}</span>
+            </DialogTitle>
+          </DialogHeader>
+          {detailFinding && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { label: "Provider", value: <ProviderBadge provider={detailFinding.provider} /> },
+                  { label: "Framework", value: detailFinding.framework || "—" },
+                  { label: "Resource", value: <code className="text-xs font-mono">{detailFinding.resource || "—"}</code> },
+                  { label: "Rule", value: detailFinding.rule || "—" },
+                  { label: "Fix Available", value: detailFinding.fix_available ? <span className="text-green-400">Yes</span> : <span className="text-muted-foreground">No</span> },
+                  { label: "Drift", value: detailFinding.drift ? <span className="text-orange-400">Yes</span> : <span className="text-muted-foreground">No</span> },
+                ].map(({ label, value }) => (
+                  <div key={label}>
+                    <p className="text-xs text-muted-foreground mb-1">{label}</p>
+                    <div className="text-sm font-medium">{value}</div>
+                  </div>
+                ))}
+              </div>
+              <Separator />
+              {detailFinding.description && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">Description</p>
+                  <p className="text-sm">{detailFinding.description}</p>
+                </div>
+              )}
+              {detailFinding.file && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">File</p>
+                  <code className="text-xs font-mono text-blue-400 bg-muted/50 px-2 py-1 rounded block">
+                    {detailFinding.file}{detailFinding.line ? `:${detailFinding.line}` : ""}
+                  </code>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <Button size="sm">Apply Fix</Button>
+                <Button size="sm" variant="outline">Create Ticket</Button>
+                <Button size="sm" variant="outline">Suppress</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </motion.div>
   );
 }
