@@ -372,7 +372,11 @@ td.mono{font-family:'JetBrains Mono',monospace;font-size:11px}
       </div>
       <div class="grid-2">
         <div class="card"><div class="card-title">Top EPSS Scores</div><div class="tbl-wrap" id="epssTable" style="max-height:350px;overflow-y:auto"></div></div>
-        <div class="card"><div class="card-title">Connected Scanners</div><div id="scannerList"></div></div>
+        <div class="card"><div class="card-title">Connected Scanners (19)</div><div id="scannerList" style="max-height:350px;overflow-y:auto"></div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><div class="card-title">SBOM Components</div><div id="sbomComponents"></div></div>
+        <div class="card"><div class="card-title">License Compliance</div><div id="licenseCompliance"></div></div>
       </div>
     </div>
   </main>
@@ -791,7 +795,7 @@ async function loadSLWeights(){
 
 /* ===== INTELLIGENCE ===== */
 async function loadIntelligence(){
-  loadBrain();loadFeeds();loadNvd();loadEpss();loadScanners();
+  loadBrain();loadFeeds();loadNvd();loadEpss();loadScanners();loadSbom();loadLicenseCompliance();
 }
 async function loadBrain(){
   try{
@@ -846,14 +850,48 @@ async function loadScanners(){
   const el=document.getElementById('scannerList');
   try{
     const d=await api('/api/v1/scanner-ingest/supported');
-    const scanners=Array.isArray(d)?d:(d.scanners||d.supported||Object.keys(d)||[]);
-    if(!scanners.length){el.innerHTML='<div class="empty-state">No scanners configured</div>';return}
-    const items=typeof scanners[0]==='string'?scanners.map(s=>({name:s})):scanners;
-    el.innerHTML=items.map(s=>`<div class="feed-item">
-      <div class="feed-dot ok"></div>
-      <div class="feed-info"><div class="feed-name">${s.name||s.scanner_id||s}</div><div class="feed-meta">${s.format||s.type||'Scanner'}</div></div>
+    const allScanners=d.scanners?.total_new||[];
+    const cats={sast:d.scanners?.sast||[],dast:d.scanners?.dast||[],sca:d.scanners?.sca||[],infra:d.scanners?.infrastructure||[],cloud:d.scanners?.cloud||[]};
+    if(!allScanners.length){el.innerHTML='<div class="empty-state">No scanners</div>';return}
+    const catOf=s=>{for(const[c,list]of Object.entries(cats))if(list.includes(s))return c;return 'other'};
+    const catColors={sast:'var(--crit)',dast:'var(--high)',sca:'var(--med)',infra:'var(--low)',cloud:'#20808D',other:'#888'};
+    el.innerHTML=allScanners.map(s=>`<div class="feed-item">
+      <div class="feed-dot ok" style="background:${catColors[catOf(s)]||'#888'}"></div>
+      <div class="feed-info"><div class="feed-name">${s}</div><div class="feed-meta">${catOf(s).toUpperCase()}</div></div>
     </div>`).join('');
   }catch(e){showError(el,'Failed to load scanners','loadScanners()')}
+}
+async function loadSbom(){
+  const el=document.getElementById('sbomComponents');
+  if(!el)return;
+  try{
+    const d=await api('/api/v1/inventory/sbom/components');
+    const total=d.total||0;
+    const ecosystems=d.ecosystems||[];
+    const licSummary=d.license_summary||{};
+    if(total===0){el.innerHTML='<div class="empty-state">No SBOM data ingested yet.<br><small>POST /api/v1/inventory/sbom/ingest to add components</small></div>';return}
+    el.innerHTML=`<div class="stat-row"><div class="stat-item"><div class="stat-value">${total}</div><div class="stat-label">Components</div></div>
+      <div class="stat-item"><div class="stat-value">${ecosystems.length}</div><div class="stat-label">Ecosystems</div></div>
+      <div class="stat-item"><div class="stat-value">${licSummary.total_unique_licenses||0}</div><div class="stat-label">Licenses</div></div></div>
+    <div style="margin-top:8px;font-size:12px;color:var(--text-muted)">${ecosystems.join(', ')}</div>`;
+  }catch(e){showError(el,'Failed','loadSbom()')}
+}
+async function loadLicenseCompliance(){
+  const el=document.getElementById('licenseCompliance');
+  if(!el)return;
+  try{
+    const d=await api('/api/v1/inventory/sbom/licenses');
+    const score=d.compliance_score||0;
+    const dfars=d.dfars_compliant;
+    const violations=d.policy_violations||[];
+    const dist=d.license_distribution||{};
+    const scoreColor=score>=80?'var(--ok)':score>=50?'var(--med)':'var(--crit)';
+    el.innerHTML=`<div class="stat-row">
+      <div class="stat-item"><div class="stat-value" style="color:${scoreColor}">${score}%</div><div class="stat-label">Compliance</div></div>
+      <div class="stat-item"><div class="stat-value" style="color:${dfars?'var(--ok)':'var(--crit)'}">${dfars?'YES':'NO'}</div><div class="stat-label">DFARS</div></div>
+      <div class="stat-item"><div class="stat-value" style="color:${violations.length?'var(--crit)':'var(--ok)'}">${violations.length}</div><div class="stat-label">Violations</div></div></div>
+    ${violations.length?`<div style="margin-top:8px">${violations.slice(0,3).map(v=>`<div class="feed-item"><div class="feed-dot" style="background:var(--crit)"></div><div class="feed-info"><div class="feed-name">${v.package} (${v.license})</div><div class="feed-meta">${v.category} — ${v.risk} risk</div></div></div>`).join('')}</div>`:''}`;
+  }catch(e){showError(el,'Failed','loadLicenseCompliance()')}
 }
 
 /* ===== COPILOT ===== */

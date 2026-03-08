@@ -1,0 +1,89 @@
+{
+  "policy_summary": {
+    "actions": [
+      {
+        "context": {
+          "counts": {
+            "critical": 4,
+            "high": 7,
+            "medium": 2
+          },
+          "highest": "critical",
+          "metadata": {
+            "file": "api/views/admin.py",
+            "location": "api/views/admin.py:142",
+            "message": "Detected dangerous system call using user input. An attacker could execute arbitrary commands.",
+            "rule_id": "python.lang.security.audit.dangerous-system-call.dangerous-system-call",
+            "type": "sast"
+          },
+          "sources": {
+            "cve": {
+              "critical": 4,
+              "high": 1
+            },
+            "sarif": {
+              "high": 6,
+              "medium": 2
+            }
+          },
+          "trigger": {
+            "cve_id": "CVE-2021-44228",
+            "exploited": false,
+            "severity": "CRITICAL",
+            "source": "cve"
+          }
+        },
+        "description": "FixOps detected a guardrail failure and created this ticket automatically.",
+        "id": "jira-guardrail-fail",
+        "issue_type": "Task",
+        "priority": "High",
+        "project_key": "SEC",
+        "summary": "Guardrail failure detected",
+        "type": "jira_issue"
+      }
+    ],
+    "execution": {
+      "delivery_results": [
+        {
+          "reason": "jira connector not fully configured",
+          "status": "skipped"
+        }
+      ],
+      "dispatched_count": 1,
+      "failed_count": 0,
+      "results": [
+        {
+          "delivery": {
+            "reason": "jira connector not fully configured",
+            "status": "skipped"
+          },
+          "id": "jira-guardrail-fail",
+          "path": "/home/user/workspace/Fixops/data/automation/20260308T052253-jira-guardrail-fail.json",
+          "status": "dispatched"
+        }
+      ],
+      "status": "completed"
+    },
+    "skipped": [
+      {
+        "id": "confluence-guardrail-warn",
+        "reason": "trigger 'guardrail:warn' not met"
+      }
+    ],
+    "status": "ready"
+  },
+  "run_id": "3cc661c70ade48de9f58746960f63772",
+  "summary": {
+    "connector_usage": {
+      "unknown": 1
+    },
+    "delivery_status": {
+      "skipped": 1
+    },
+    "dispatched_count": 1,
+    "execution_status": "completed",
+    "failed_count": 0,
+    "planned_actions": 1
+  },
+  "timestamp": 1772947373
+}
