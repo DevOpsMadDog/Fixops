@@ -1274,6 +1274,490 @@ class DependabotScannerNormalizer(_Base):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# 20. Qualys Parser (VM XML/JSON)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class QualysScannerNormalizer(_Base):
+    """Normalizer for Qualys VM XML and JSON reports."""
+
+    def can_handle(self, content: bytes, content_type=None) -> float:
+        text = content[:5000].decode("utf-8", errors="ignore")
+        # Qualys XML: contains <IP>, <QID>, <RESULT> elements
+        if "<QID>" in text or "<QIDS>" in text:
+            return 0.95
+        if "<IP>" in text and "<RESULT>" in text and "<VULN" in text:
+            return 0.90
+        # Qualys JSON: contains "qid" field
+        if '"qid"' in text and ('"vuln_list"' in text or '"vulns"' in text or '"detections"' in text):
+            return 0.92
+        if '"qid"' in text and '"severity"' in text and '"ip"' in text:
+            return 0.80
+        return 0.0
+
+    def normalize(self, content: bytes, content_type=None) -> list:
+        findings = []
+        parsed = _parse_json_safe(content)
+        if parsed:
+            findings = self._parse_json(parsed)
+        else:
+            root = _parse_xml_safe(content)
+            if root is not None:
+                findings = self._parse_xml(root)
+        return findings
+
+    def _parse_json(self, data) -> list:
+        findings = []
+        # Handle top-level list or nested structures
+        hosts = data if isinstance(data, list) else data.get("host_list", data.get("hosts", [data]))
+        if isinstance(hosts, dict):
+            hosts = [hosts]
+        for host in hosts:
+            ip = host.get("ip", host.get("address", ""))
+            detections = (
+                host.get("detections", host.get("vuln_list", host.get("vulns", [])))
+            )
+            if isinstance(detections, dict):
+                detections = detections.get("detection", detections.get("vuln", []))
+            if not isinstance(detections, list):
+                detections = [detections] if detections else []
+            for det in detections:
+                qid = str(det.get("qid", ""))
+                sev_num = det.get("severity", det.get("severity_level", 2))
+                cves = _extract_cves(str(det.get("cve_list", det.get("cves", ""))))
+                findings.append(_make_finding(
+                    title=det.get("title", det.get("vuln_title", f"Qualys QID-{qid}")),
+                    description=det.get("results", det.get("result", det.get("diagnosis", ""))),
+                    severity=_severity_from_number(sev_num),
+                    source_tool="qualys",
+                    source_format_str="qualys",
+                    rule_id=qid,
+                    cve_id=cves[0] if cves else None,
+                    asset_name=ip,
+                    recommendation=det.get("solution", det.get("remediation", "")),
+                    tags=cves[1:] if len(cves) > 1 else [],
+                ))
+        return findings
+
+    def _parse_xml(self, root: ET.Element) -> list:
+        findings = []
+        # Qualys VM scan XML: HOST_LIST_VM_DETECTION_OUTPUT or similar
+        for host in root.findall(".//HOST") or [root]:
+            ip = host.findtext("IP", host.findtext("ip", ""))
+            for det in host.findall(".//DETECTION") or host.findall(".//VULN"):
+                qid = det.findtext("QID", det.findtext("qid", ""))
+                sev_num = det.findtext("SEVERITY", det.findtext("severity", "2"))
+                results_text = det.findtext("RESULTS", det.findtext("RESULT", ""))
+                cves = _extract_cves(det.findtext("CVE_LIST", det.findtext("CVE", "")))
+                title = det.findtext("TITLE", f"Qualys QID-{qid}")
+                findings.append(_make_finding(
+                    title=title,
+                    description=results_text,
+                    severity=_severity_from_number(sev_num),
+                    source_tool="qualys",
+                    source_format_str="qualys",
+                    rule_id=qid,
+                    cve_id=cves[0] if cves else None,
+                    asset_name=ip,
+                    recommendation=det.findtext("SOLUTION", ""),
+                    tags=cves[1:] if len(cves) > 1 else [],
+                ))
+        return findings
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 21. Tenable Parser (Tenable.io/Nessus JSON export)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TenableScannerNormalizer(_Base):
+    """Normalizer for Tenable.io and Nessus JSON exports."""
+
+    def can_handle(self, content: bytes, content_type=None) -> float:
+        text = content[:5000].decode("utf-8", errors="ignore")
+        # Tenable JSON: "vulnerabilities" list with "plugin_id" and "severity_index"
+        if '"plugin_id"' in text and '"severity_index"' in text:
+            return 0.95
+        if '"vulnerabilities"' in text and '"plugin_id"' in text:
+            return 0.88
+        if '"tenable"' in text.lower() and '"vulnerabilities"' in text:
+            return 0.80
+        return 0.0
+
+    def normalize(self, content: bytes, content_type=None) -> list:
+        findings = []
+        parsed = _parse_json_safe(content)
+        if not parsed:
+            return findings
+
+        # Handle top-level list or wrapped object
+        scans = parsed if isinstance(parsed, list) else [parsed]
+        for scan in scans:
+            asset_name = scan.get("target", scan.get("host", ""))
+            if isinstance(asset_name, dict):
+                asset_name = asset_name.get("name", "")
+            for vuln in scan.get("vulnerabilities", []):
+                plugin_id = str(vuln.get("plugin_id", vuln.get("pluginId", "")))
+                sev_idx = vuln.get("severity_index", vuln.get("severity", 2))
+                plugin_name = vuln.get("plugin_name", vuln.get("pluginName", f"Tenable Plugin {plugin_id}"))
+                cves = _extract_cves(str(vuln.get("cve", vuln.get("cves", ""))))
+                cvss_raw = vuln.get("cvss3_base_score", vuln.get("cvss_base_score", 0))
+                try:
+                    cvss_val = float(cvss_raw) if cvss_raw else None
+                except (ValueError, TypeError):
+                    cvss_val = None
+                findings.append(_make_finding(
+                    title=plugin_name,
+                    description=vuln.get("synopsis", vuln.get("description", "")),
+                    severity=_severity_from_number(sev_idx),
+                    source_tool="tenable",
+                    source_format_str="tenable",
+                    rule_id=plugin_id,
+                    cve_id=cves[0] if cves else None,
+                    cvss_score=cvss_val,
+                    asset_name=asset_name,
+                    recommendation=vuln.get("solution", ""),
+                    code_snippet=vuln.get("plugin_output", "")[:500] if vuln.get("plugin_output") else None,
+                    tags=cves[1:] if len(cves) > 1 else [],
+                ))
+        return findings
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 22. Rapid7 InsightVM Parser (XML/JSON)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class Rapid7ScannerNormalizer(_Base):
+    """Normalizer for Rapid7 InsightVM XML and JSON reports."""
+
+    def can_handle(self, content: bytes, content_type=None) -> float:
+        text = content[:5000].decode("utf-8", errors="ignore")
+        # Rapid7 XML: <test> elements with vulnerability-id attribute
+        if "<test" in text and "vulnerability-id" in text:
+            return 0.92
+        if "nexpose" in text.lower() or "insightvm" in text.lower():
+            return 0.88
+        # Rapid7 JSON: "test" / "tests" with "vulnerability-id"
+        if '"vulnerability-id"' in text and ('"test"' in text or '"tests"' in text):
+            return 0.90
+        if '"rapid7"' in text.lower() and '"vulnerabilities"' in text:
+            return 0.75
+        return 0.0
+
+    def normalize(self, content: bytes, content_type=None) -> list:
+        findings = []
+        parsed = _parse_json_safe(content)
+        if parsed:
+            findings = self._parse_json(parsed)
+        else:
+            root = _parse_xml_safe(content)
+            if root is not None:
+                findings = self._parse_xml(root)
+        return findings
+
+    def _parse_json(self, data) -> list:
+        findings = []
+        nodes = data if isinstance(data, list) else data.get("nodes", data.get("hosts", [data]))
+        if isinstance(nodes, dict):
+            nodes = [nodes]
+        for node in nodes:
+            asset_name = node.get("address", node.get("ip", ""))
+            tests = node.get("tests", node.get("vulnerabilities", []))
+            if isinstance(tests, dict):
+                tests = tests.get("test", [])
+            if not isinstance(tests, list):
+                tests = [tests] if tests else []
+            for test in tests:
+                vuln_id = test.get("vulnerability-id", test.get("vulnerabilityId", test.get("id", "")))
+                sev = test.get("severity", test.get("cvss_score", "medium"))
+                cves = _extract_cves(str(test.get("references", "")))
+                cwes = _extract_cwes(str(test.get("tags", "")))
+                findings.append(_make_finding(
+                    title=test.get("title", test.get("name", f"Rapid7 {vuln_id}")),
+                    description=test.get("description", test.get("details", "")),
+                    severity=self._map_severity(sev) if isinstance(sev, (int, float)) else str(sev).lower(),
+                    source_tool="rapid7",
+                    source_format_str="rapid7",
+                    rule_id=str(vuln_id),
+                    cve_id=cves[0] if cves else None,
+                    cwe_id=cwes[0] if cwes else None,
+                    asset_name=asset_name,
+                    recommendation=test.get("solution", test.get("remediation", "")),
+                    tags=cves[1:] if len(cves) > 1 else [],
+                ))
+        return findings
+
+    def _parse_xml(self, root: ET.Element) -> list:
+        findings = []
+        for node in root.findall(".//node") or [root]:
+            asset_name = node.get("address", node.get("name", ""))
+            for test in node.findall(".//test"):
+                vuln_id = test.get("vulnerability-id", test.get("id", ""))
+                status = test.get("status", "vulnerable")
+                if status not in ("vulnerable", "exception-vulnerable-exploited",
+                                   "exception-vulnerable-version", "vulnerable-exploited",
+                                   "vulnerable-version"):
+                    continue
+                cves = _extract_cves(test.findtext("references", ""))
+                sev = test.get("severity", "2")
+                findings.append(_make_finding(
+                    title=f"Rapid7 {vuln_id}",
+                    description=test.findtext("description", ""),
+                    severity=_severity_from_number(sev),
+                    source_tool="rapid7",
+                    source_format_str="rapid7",
+                    rule_id=vuln_id,
+                    cve_id=cves[0] if cves else None,
+                    asset_name=asset_name,
+                    recommendation=test.findtext("solution", ""),
+                    tags=cves[1:] if len(cves) > 1 else [],
+                ))
+        return findings
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 23. Acunetix Parser (JSON export)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class AcunetixScannerNormalizer(_Base):
+    """Normalizer for Acunetix JSON exports."""
+
+    def can_handle(self, content: bytes, content_type=None) -> float:
+        text = content[:5000].decode("utf-8", errors="ignore")
+        # Acunetix JSON: "vulnerabilities" with "severity" and "affects_url"
+        if '"affects_url"' in text and '"vulnerabilities"' in text:
+            return 0.95
+        if '"affects_url"' in text and '"severity"' in text:
+            return 0.90
+        if '"acunetix"' in text.lower() and '"vulnerabilities"' in text:
+            return 0.82
+        if '"vuln_id"' in text and '"affects_url"' in text:
+            return 0.85
+        return 0.0
+
+    def normalize(self, content: bytes, content_type=None) -> list:
+        findings = []
+        parsed = _parse_json_safe(content)
+        if not parsed:
+            return findings
+
+        # Acunetix exports can have vulnerabilities at top-level or nested
+        vulns = parsed if isinstance(parsed, list) else parsed.get("vulnerabilities", [])
+        if isinstance(vulns, dict):
+            vulns = vulns.get("items", [vulns])
+
+        for vuln in vulns:
+            affects_url = vuln.get("affects_url", vuln.get("url", ""))
+            sev = vuln.get("severity", vuln.get("severity_text", "medium"))
+            sev_map = {"high": "high", "medium": "medium", "low": "low", "info": "info", "informational": "info"}
+            if isinstance(sev, str):
+                sev = sev_map.get(sev.lower(), sev.lower())
+            cves = _extract_cves(str(vuln.get("cvelist", vuln.get("cve", vuln.get("references", "")))))
+            cwes = _extract_cwes(str(vuln.get("cwe", vuln.get("tags", ""))))
+            vuln_id = str(vuln.get("vuln_id", vuln.get("type", "")))
+            findings.append(_make_finding(
+                title=vuln.get("vt_name", vuln.get("name", f"Acunetix {vuln_id}")),
+                description=vuln.get("description", vuln.get("details", "")),
+                severity=sev,
+                source_tool="acunetix",
+                source_format_str="acunetix",
+                rule_id=vuln_id,
+                cve_id=cves[0] if cves else None,
+                cwe_id=cwes[0] if cwes else None,
+                file_path=affects_url,
+                recommendation=vuln.get("recommendation", vuln.get("fix", "")),
+                code_snippet=vuln.get("request", "")[:500] if vuln.get("request") else None,
+                tags=cves[1:] if len(cves) > 1 else [],
+            ))
+        return findings
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 24. AWS Inspector v2 Parser (JSON)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class AWSInspectorNormalizer(_Base):
+    """Normalizer for AWS Inspector v2 JSON findings."""
+
+    def can_handle(self, content: bytes, content_type=None) -> float:
+        text = content[:5000].decode("utf-8", errors="ignore")
+        # AWS Inspector v2 JSON: "findings" with "awsAccountId" and "inspectorScore"
+        if '"awsAccountId"' in text and '"inspectorScore"' in text:
+            return 0.97
+        if '"findings"' in text and '"awsAccountId"' in text:
+            return 0.90
+        if '"inspectorScore"' in text and '"packageVulnerabilityDetails"' in text:
+            return 0.95
+        if '"awsInspector"' in text.lower() and '"findings"' in text:
+            return 0.80
+        return 0.0
+
+    def normalize(self, content: bytes, content_type=None) -> list:
+        findings = []
+        parsed = _parse_json_safe(content)
+        if not parsed:
+            return findings
+
+        raw_findings = parsed if isinstance(parsed, list) else parsed.get("findings", [])
+        for finding in raw_findings:
+            account_id = finding.get("awsAccountId", "")
+            region = finding.get("region", "")
+            score = finding.get("inspectorScore", finding.get("severity", {}))
+            if isinstance(score, dict):
+                score = score.get("score", 0)
+            try:
+                score_float = float(score)
+            except (ValueError, TypeError):
+                score_float = 0.0
+            sev = finding.get("severity", "MEDIUM")
+            if isinstance(sev, str):
+                sev_map = {
+                    "critical": "critical", "high": "high",
+                    "medium": "medium", "low": "low", "informational": "info",
+                }
+                sev = sev_map.get(sev.lower(), "medium")
+            else:
+                sev = self._map_severity(score_float)
+
+            # Package vulnerability details
+            pkg_details = finding.get("packageVulnerabilityDetails", {})
+            vuln_id = pkg_details.get("vulnerabilityId", finding.get("findingArn", ""))
+            cves = _extract_cves(vuln_id) or _extract_cves(
+                str(pkg_details.get("referenceUrls", ""))
+            )
+            if not cves and vuln_id.startswith("CVE-"):
+                cves = [vuln_id]
+
+            # Network reachability / resource details
+            resources = finding.get("resources", [{}])
+            resource_id = resources[0].get("id", "") if resources else ""
+            resource_type = resources[0].get("type", "") if resources else ""
+
+            # Fixed versions
+            vuln_pkgs = pkg_details.get("vulnerablePackages", [])
+            fix_available = None
+            pkg_name = ""
+            pkg_version = ""
+            if vuln_pkgs:
+                first_pkg = vuln_pkgs[0]
+                pkg_name = first_pkg.get("name", "")
+                pkg_version = first_pkg.get("version", "")
+                fixed = first_pkg.get("fixedInVersion", "")
+                if fixed:
+                    fix_available = f"Upgrade {pkg_name} to {fixed}"
+
+            findings.append(_make_finding(
+                title=finding.get("title", f"AWS Inspector: {vuln_id}"),
+                description=finding.get("description", ""),
+                severity=sev,
+                source_tool="aws_inspector",
+                source_format_str="aws_inspector",
+                rule_id=str(vuln_id),
+                cve_id=cves[0] if cves else None,
+                cvss_score=score_float if score_float > 0 else None,
+                cloud_account=account_id,
+                cloud_provider="aws",
+                cloud_region=region,
+                cloud_resource_id=resource_id,
+                package_name=pkg_name,
+                package_version=pkg_version,
+                recommendation=fix_available or finding.get("remediation", {}).get("recommendation", {}).get("text", ""),
+                tags=[resource_type] if resource_type else [],
+            ))
+        return findings
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 25. GitLab SAST Parser (JSON)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class GitLabSASTNormalizer(_Base):
+    """Normalizer for GitLab SAST JSON report format."""
+
+    def can_handle(self, content: bytes, content_type=None) -> float:
+        text = content[:5000].decode("utf-8", errors="ignore")
+        # GitLab SAST JSON: "vulnerabilities" with "scanner", "location", "identifiers"
+        if '"identifiers"' in text and '"location"' in text and '"vulnerabilities"' in text:
+            return 0.90
+        if '"scanner"' in text and '"identifiers"' in text and '"vulnerabilities"' in text:
+            return 0.88
+        if '"gitlab"' in text.lower() and '"vulnerabilities"' in text and '"location"' in text:
+            return 0.85
+        # GitLab report schema version marker
+        if '"version"' in text and '"vulnerabilities"' in text and '"scan"' in text and '"scanner"' in text:
+            return 0.82
+        return 0.0
+
+    def normalize(self, content: bytes, content_type=None) -> list:
+        findings = []
+        parsed = _parse_json_safe(content)
+        if not parsed:
+            return findings
+
+        vulns = parsed.get("vulnerabilities", [])
+        if not vulns and isinstance(parsed, list):
+            vulns = parsed
+
+        for vuln in vulns:
+            location = vuln.get("location", {})
+            file_path = location.get("file", location.get("path", ""))
+            line_start = location.get("start_line", location.get("line", None))
+            if isinstance(line_start, str):
+                try:
+                    line_start = int(line_start)
+                except ValueError:
+                    line_start = None
+
+            # Identifiers: extract CVE/CWE from the identifiers list
+            identifiers = vuln.get("identifiers", [])
+            cves = []
+            cwes = []
+            rule_id = ""
+            for ident in identifiers:
+                itype = ident.get("type", "").lower()
+                iname = ident.get("name", ident.get("value", ""))
+                if itype == "cve" or iname.startswith("CVE-"):
+                    cves.append(iname)
+                elif itype == "cwe" or iname.startswith("CWE-"):
+                    cwes.append(iname)
+                if not rule_id:
+                    rule_id = ident.get("value", iname)
+
+            # Fall back to text extraction if identifiers list is empty
+            if not cves:
+                cves = _extract_cves(str(vuln.get("description", "") + str(identifiers)))
+            if not cwes:
+                cwes = _extract_cwes(str(vuln.get("description", "") + str(identifiers)))
+
+            scanner_info = vuln.get("scanner", {})
+            scanner_name = scanner_info.get("name", scanner_info.get("id", "gitlab-sast")) if isinstance(scanner_info, dict) else str(scanner_info)
+
+            sev = vuln.get("severity", "Medium")
+            sev_map = {
+                "critical": "critical", "high": "high",
+                "medium": "medium", "low": "low",
+                "unknown": "info", "info": "info",
+            }
+            if isinstance(sev, str):
+                sev = sev_map.get(sev.lower(), "medium")
+
+            findings.append(_make_finding(
+                title=vuln.get("name", vuln.get("message", f"GitLab SAST Finding")),
+                description=vuln.get("description", vuln.get("message", "")),
+                severity=sev,
+                source_tool="gitlab_sast",
+                source_format_str="gitlab_sast",
+                rule_id=rule_id or vuln.get("id", ""),
+                cve_id=cves[0] if cves else None,
+                cwe_id=cwes[0] if cwes else None,
+                file_path=file_path,
+                line_number=line_start,
+                recommendation=vuln.get("solution", vuln.get("remediations", [{}])[0].get("fixes", [""])[0] if vuln.get("remediations") else ""),
+                code_snippet=location.get("snippet", "")[:500] if location.get("snippet") else None,
+                tags=[scanner_name] if scanner_name else [],
+            ))
+        return findings
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # Registry — Central catalog of all scanner parsers
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -1298,6 +1782,13 @@ SCANNER_NORMALIZERS = {
     "grype": GrypeScannerNormalizer,
     "semgrep": SemgrepScannerNormalizer,
     "dependabot": DependabotScannerNormalizer,
+    # Enterprise scanner ecosystem
+    "qualys": QualysScannerNormalizer,
+    "tenable": TenableScannerNormalizer,
+    "rapid7": Rapid7ScannerNormalizer,
+    "acunetix": AcunetixScannerNormalizer,
+    "aws_inspector": AWSInspectorNormalizer,
+    "gitlab_sast": GitLabSASTNormalizer,
 }
 
 
@@ -1441,11 +1932,11 @@ def parse_scanner_output(
 def get_supported_scanners() -> Dict[str, List[str]]:
     """Return supported scanners grouped by category."""
     return {
-        "sast": ["checkmarx", "sonarqube", "bandit", "fortify", "veracode"],
-        "dast": ["zap", "burp", "nikto", "nuclei"],
-        "sca": ["snyk"],
-        "infrastructure": ["nessus", "openvas", "nmap"],
-        "cloud": ["prowler", "checkov"],
+        "sast": ["checkmarx", "sonarqube", "bandit", "fortify", "veracode", "semgrep", "gitlab_sast"],
+        "dast": ["zap", "burp", "nikto", "nuclei", "acunetix"],
+        "sca": ["snyk", "dependabot", "grype", "trivy"],
+        "infrastructure": ["nessus", "openvas", "nmap", "qualys", "tenable", "rapid7"],
+        "cloud": ["prowler", "checkov", "aws_inspector"],
         "universal": ["sarif", "cyclonedx", "spdx"],  # via existing normalizers
         "total_new": list(SCANNER_NORMALIZERS.keys()),
         "note": "SARIF, CycloneDX, SPDX, Trivy, Grype, Semgrep, Dependabot already in base ingestion module",

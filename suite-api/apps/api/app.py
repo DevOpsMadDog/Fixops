@@ -221,6 +221,36 @@ try:
 except ImportError as e:
     _logger.warning("AutoFix router not available: %s", e)
 
+autofix_verify_router: Optional[APIRouter] = None
+try:
+    from api.autofix_verify_router import router as autofix_verify_router
+
+    _logger.info("Loaded AutoFix Verification router from suite-core")
+except ImportError as e:
+    _logger.warning("AutoFix Verification router not available: %s", e)
+
+# ---------------------------------------------------------------------------
+# MITRE ATT&CK Application-Layer Mapping (suite-core/api/)
+# ---------------------------------------------------------------------------
+mitre_mapper_router: Optional[APIRouter] = None
+try:
+    from api.mitre_mapper_router import router as mitre_mapper_router
+
+    _logger.info("Loaded MITRE ATT&CK Mapper router from suite-core")
+except ImportError as e:
+    _logger.warning("MITRE ATT&CK Mapper router not available: %s", e)
+
+# ---------------------------------------------------------------------------
+# Air-Gapped / Offline Mode (suite-core/api/)
+# ---------------------------------------------------------------------------
+airgap_router: Optional[APIRouter] = None
+try:
+    from api.airgap_router import router as airgap_router
+
+    _logger.info("Loaded Air-Gap Operations router from suite-core")
+except ImportError as e:
+    _logger.warning("Air-Gap Operations router not available: %s", e)
+
 fuzzy_identity_router: Optional[APIRouter] = None
 try:
     from api.fuzzy_identity_router import router as fuzzy_identity_router
@@ -1273,6 +1303,9 @@ def create_app() -> FastAPI:
         (deduplication_router, "Deduplication", None),
         (ml_router, "ML/MindsDB", None),
         (autofix_router, "AutoFix", None),
+        (autofix_verify_router, "AutoFix Verification", None),
+        (mitre_mapper_router, "MITRE ATT&CK Mapper", None),
+        (airgap_router, "Air-Gap Operations", None),
         (fuzzy_identity_router, "Fuzzy Identity", None),
         (exposure_case_router, "Exposure Case", None),
         (pipeline_router, "Pipeline", None),
