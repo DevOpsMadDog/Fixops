@@ -6,9 +6,9 @@ import { toast } from 'sonner'
 // ═══════════════════════════════════════════════════════════════════════════
 
 // @ts-ignore - Vite env types
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000'
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || ''
 // @ts-ignore - Vite env types
-const API_KEY = (import.meta as any).env?.VITE_API_KEY || 'aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh'
+const API_KEY = (import.meta as any).env?.VITE_API_KEY || ''
 
 // Module-level mutable API key (updated via Settings page)
 let _activeApiKey = API_KEY

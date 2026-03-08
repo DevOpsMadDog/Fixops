@@ -41,6 +41,22 @@ from apps.api.bulk_router import router as bulk_router
 from apps.api.collaboration_router import router as collaboration_router
 from apps.api.fail_router import router as fail_router
 
+# APP_ID Configuration router (app registration, classification, lifecycle)
+app_config_router: Optional[APIRouter] = None
+try:
+    from apps.api.app_config_router import router as app_config_router
+    logging.getLogger(__name__).info("Loaded APP_ID Configuration router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("APP_ID Configuration router not available: %s", e)
+
+# Material Change Detection router (drift, SLA impact, blast radius)
+material_change_router: Optional[APIRouter] = None
+try:
+    from apps.api.material_change_router import router as material_change_router
+    logging.getLogger(__name__).info("Loaded Material Change Detection router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Material Change Detection router not available: %s", e)
+
 # Universal Connectors router (Jira + GitHub + Slack fan-out)
 connectors_router: Optional[APIRouter] = None
 try:
@@ -228,6 +244,17 @@ try:
     _logger.info("Loaded AutoFix Verification router from suite-core")
 except ImportError as e:
     _logger.warning("AutoFix Verification router not available: %s", e)
+
+# ---------------------------------------------------------------------------
+# MPTE Post-Fix Verification (suite-core/api/)
+# ---------------------------------------------------------------------------
+postfix_verify_router: Optional[APIRouter] = None
+try:
+    from api.postfix_verify_router import router as postfix_verify_router
+
+    _logger.info("Loaded MPTE Post-Fix Verification router from suite-core")
+except ImportError as e:
+    _logger.warning("MPTE Post-Fix Verification router not available: %s", e)
 
 # ---------------------------------------------------------------------------
 # MITRE ATT&CK Application-Layer Mapping (suite-core/api/)
@@ -1202,8 +1229,24 @@ def create_app() -> FastAPI:
 
     app.include_router(analytics_router, dependencies=[Depends(_verify_api_key)])
 
-    # FAIL Engine — evidence-based risk scoring (Pillar V2)
+    # FAIL Engine — expanded fault injection, drill grading, neglect zones (Pillar V2)
     app.include_router(fail_router, dependencies=[Depends(_verify_api_key)])
+
+    # APP_ID Configuration — app registry, classification, lifecycle
+    if app_config_router:
+        app.include_router(
+            app_config_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+        _logger.info("Mounted APP_ID Configuration router")
+
+    # Material Change Detection — drift detection, SLA impact, blast radius
+    if material_change_router:
+        app.include_router(
+            material_change_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+        _logger.info("Mounted Material Change Detection router")
 
     # Universal Connectors — Jira + GitHub + Slack fan-out (Pillar V1)
     if connectors_router:
@@ -1304,6 +1347,7 @@ def create_app() -> FastAPI:
         (ml_router, "ML/MindsDB", None),
         (autofix_router, "AutoFix", None),
         (autofix_verify_router, "AutoFix Verification", None),
+        (postfix_verify_router, "MPTE Post-Fix Verification", None),
         (mitre_mapper_router, "MITRE ATT&CK Mapper", None),
         (airgap_router, "Air-Gap Operations", None),
         (fuzzy_identity_router, "Fuzzy Identity", None),
@@ -2928,6 +2972,35 @@ def create_app() -> FastAPI:
                 sys.exit(1)
         else:
             _logger.info("All %d critical route prefixes verified OK", len(critical))
+
+    # -----------------------------------------------------------------------
+    # Serve React frontend — prefer aldeci-ui-new, fall back to aldeci
+    # -----------------------------------------------------------------------
+    _repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    _ui_dist_new = os.path.join(_repo_root, "suite-ui", "aldeci-ui-new", "dist")
+    _ui_dist_legacy = os.path.join(_repo_root, "suite-ui", "aldeci", "dist")
+    _ui_dist = _ui_dist_new if os.path.isdir(_ui_dist_new) else _ui_dist_legacy
+    if os.path.isdir(_ui_dist):
+        from starlette.staticfiles import StaticFiles
+        from starlette.responses import FileResponse
+
+        # Serve /assets/* (JS/CSS bundles)
+        _assets_dir = os.path.join(_ui_dist, "assets")
+        if os.path.isdir(_assets_dir):
+            app.mount("/assets", StaticFiles(directory=_assets_dir), name="ui-assets")
+
+        # SPA fallback: any non-API, non-asset path → index.html
+        @app.get("/{full_path:path}", include_in_schema=False)
+        async def _spa_fallback(full_path: str):
+            # If the exact file exists in dist, serve it (e.g., vite.svg, favicon)
+            candidate = os.path.join(_ui_dist, full_path)
+            if full_path and os.path.isfile(candidate):
+                return FileResponse(candidate)
+            return FileResponse(os.path.join(_ui_dist, "index.html"))
+
+        _logger.info("Mounted React SPA from %s", _ui_dist)
+    else:
+        _logger.warning("React UI dist not found at %s — SPA not served", _ui_dist)
 
     return app
 

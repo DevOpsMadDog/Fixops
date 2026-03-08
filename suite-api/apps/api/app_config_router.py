@@ -1,0 +1,1 @@
+../../../suite-core/api/app_config_router.py

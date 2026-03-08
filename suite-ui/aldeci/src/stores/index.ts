@@ -56,7 +56,7 @@ export const useAuthStore = create<AuthStore>()(
   persist(
     (set) => ({
       user: null,
-      apiKey: import.meta.env.VITE_API_KEY || 'aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh',
+      apiKey: import.meta.env.VITE_API_KEY || '',
       isAuthenticated: true,
       setUser: (user) => set({ user, isAuthenticated: !!user }),
       setApiKey: (key) => {
@@ -74,7 +74,7 @@ export const useAuthStore = create<AuthStore>()(
       migrate: (persistedState: any, version: number) => {
         if (version < 2) {
           // v0/v1 → v2: reset apiKey to env value (clear stale test-token-123)
-          const envKey = import.meta.env.VITE_API_KEY || 'aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh'
+          const envKey = import.meta.env.VITE_API_KEY || ''
           return { ...persistedState, apiKey: envKey, isAuthenticated: true }
         }
         return persistedState as AuthStore

@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════
+   ALdeci Design System — Apple HIG-inspired, Dark Mode First
+   Enterprise Continuous Threat Exposure Management
+   ═══════════════════════════════════════════════════════════ */
+
+@theme {
+  /* ── Color Tokens (Dark Mode First) ── */
+  --color-background: oklch(0.13 0.01 250);
+  --color-foreground: oklch(0.95 0.005 250);
+  --color-card: oklch(0.17 0.01 250);
+  --color-card-foreground: oklch(0.93 0.005 250);
+  --color-popover: oklch(0.19 0.012 250);
+  --color-popover-foreground: oklch(0.93 0.005 250);
+  --color-primary: oklch(0.65 0.15 195);
+  --color-primary-foreground: oklch(0.15 0.02 195);
+  --color-secondary: oklch(0.22 0.015 250);
+  --color-secondary-foreground: oklch(0.85 0.005 250);
+  --color-muted: oklch(0.20 0.01 250);
+  --color-muted-foreground: oklch(0.60 0.01 250);
+  --color-accent: oklch(0.25 0.02 250);
+  --color-accent-foreground: oklch(0.90 0.005 250);
+  --color-destructive: oklch(0.55 0.2 25);
+  --color-destructive-foreground: oklch(0.95 0.005 25);
+  --color-border: oklch(0.25 0.01 250);
+  --color-input: oklch(0.22 0.01 250);
+  --color-ring: oklch(0.65 0.15 195);
+  --color-sidebar: oklch(0.11 0.01 250);
+  --color-sidebar-foreground: oklch(0.75 0.005 250);
+  --color-sidebar-accent: oklch(0.18 0.02 250);
+  --color-sidebar-border: oklch(0.20 0.01 250);
+
+  /* ── Semantic Status Colors ── */
+  --color-success: oklch(0.65 0.18 155);
+  --color-warning: oklch(0.75 0.15 80);
+  --color-danger: oklch(0.55 0.2 25);
+  --color-info: oklch(0.65 0.12 240);
+
+  /* ── Severity Colors ── */
+  --color-critical: oklch(0.50 0.22 25);
+  --color-high: oklch(0.60 0.18 40);
+  --color-medium: oklch(0.72 0.14 80);
+  --color-low: oklch(0.65 0.12 195);
+  --color-none: oklch(0.50 0.01 250);
+
+  /* ── Typography ── */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", ui-monospace, monospace;
+
+  /* ── Spacing (8pt grid) ── */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 64px;
+
+  /* ── Border Radius ── */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* ── Shadows (depth via subtle shadows, not borders) ── */
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.15);
+  --shadow-md: 0 2px 8px oklch(0 0 0 / 0.2), 0 1px 3px oklch(0 0 0 / 0.1);
+  --shadow-lg: 0 4px 16px oklch(0 0 0 / 0.25), 0 2px 6px oklch(0 0 0 / 0.12);
+  --shadow-xl: 0 8px 32px oklch(0 0 0 / 0.3), 0 4px 12px oklch(0 0 0 / 0.15);
+
+  /* ── Animation ── */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+}
+
+/* ── Base Styles ── */
+* {
+  border-color: var(--color-border);
+}
+
+body {
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01", "ss03";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(0.35 0.01 250);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.45 0.01 250);
+}
+
+/* ── Light Mode Override ── */
+.light {
+  --color-background: oklch(0.98 0.002 250);
+  --color-foreground: oklch(0.15 0.01 250);
+  --color-card: oklch(1.0 0 0);
+  --color-card-foreground: oklch(0.15 0.01 250);
+  --color-popover: oklch(1.0 0 0);
+  --color-popover-foreground: oklch(0.15 0.01 250);
+  --color-primary: oklch(0.55 0.15 195);
+  --color-primary-foreground: oklch(0.98 0.002 195);
+  --color-secondary: oklch(0.95 0.005 250);
+  --color-secondary-foreground: oklch(0.25 0.01 250);
+  --color-muted: oklch(0.95 0.003 250);
+  --color-muted-foreground: oklch(0.45 0.01 250);
+  --color-accent: oklch(0.93 0.005 250);
+  --color-accent-foreground: oklch(0.20 0.01 250);
+  --color-border: oklch(0.88 0.005 250);
+  --color-input: oklch(0.92 0.003 250);
+  --color-ring: oklch(0.55 0.15 195);
+  --color-sidebar: oklch(0.97 0.002 250);
+  --color-sidebar-foreground: oklch(0.35 0.01 250);
+  --color-sidebar-accent: oklch(0.94 0.008 195);
+  --color-sidebar-border: oklch(0.90 0.005 250);
+}
+
+/* ── Focus Ring ── */
+*:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}

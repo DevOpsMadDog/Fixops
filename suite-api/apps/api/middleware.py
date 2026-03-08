@@ -55,11 +55,25 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Prevent Flash/PDF cross-domain data loading
         response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
 
-        # Content-Security-Policy: restrict resource loading for any HTML responses
-        # API-focused: default-src 'none' blocks all resource loading
-        response.headers["Content-Security-Policy"] = (
-            "default-src 'none'; frame-ancestors 'none'"
-        )
+        # Content-Security-Policy: differentiate API vs SPA responses
+        _path = request.url.path
+        _is_api = _path.startswith("/api/") or _path == "/health" or _path.startswith("/openapi")
+        if _is_api:
+            # API endpoints: strict lockdown — no resource loading
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'none'; frame-ancestors 'none'"
+            )
+        else:
+            # SPA pages: allow own assets, no inline scripts for XSS safety
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; "
+                "script-src 'self'; "
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+                "font-src 'self' https://fonts.gstatic.com; "
+                "img-src 'self' data: blob:; "
+                "connect-src 'self'; "
+                "frame-ancestors 'none'"
+            )
 
         # X-XSS-Protection: legacy header, still respected by some browsers
         response.headers["X-XSS-Protection"] = "1; mode=block"
@@ -77,7 +91,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Cross-Origin isolation headers (defense-grade)
         response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
         response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
-        response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+        if _is_api:
+            response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
 
         return response
 
