@@ -1,0 +1,75 @@
+{
+  "slsaVersion": "1.0",
+  "builder": {
+    "id": "https://github.com/ALdeci/Fixops/actions/workflows/build.yml@refs/heads/main",
+    "version": {
+      "runner": "ubuntu-22.04"
+    },
+    "builderDependencies": []
+  },
+  "buildType": "https://slsa.dev/container-based-build/v0.1",
+  "source": {
+    "uri": "git+https://github.com/ALdeci/evidence-service@refs/tags/v1.6.0",
+    "digest": {
+      "sha1": "4d6f8a0c2e4f6a8b0d2e4f6a8c0e2f4a"
+    }
+  },
+  "metadata": {
+    "buildStartedOn": "2026-02-20T10:00:00Z",
+    "buildFinishedOn": "2026-02-20T10:07:31Z",
+    "reproducible": true,
+    "buildInvocationId": "gh-actions-run-15001-job-65233",
+    "completeness": {
+      "parameters": true,
+      "environment": true,
+      "materials": true
+    },
+    "slsaLevel": 3,
+    "environment": {
+      "deployEnv": "production",
+      "isolatedBuild": true,
+      "ephemeralEnv": true
+    },
+    "configSource": {
+      "uri": "git+https://github.com/ALdeci/evidence-service@refs/tags/v1.6.0",
+      "digest": {
+        "sha1": "4d6f8a0c2e4f6a8b0d2e4f6a8c0e2f4a"
+      },
+      "entryPoint": ".github/workflows/build.yml"
+    }
+  },
+  "subject": [
+    {
+      "name": "evidence-service",
+      "digest": {
+        "sha256": "2b6d0f4a8c2e6b0f4a8c2e6b0f4a8c2e6b0f4a8c2e6b0f4a8c2e6b0f4a8c2e6b"
+      }
+    }
+  ],
+  "materials": [
+    {
+      "uri": "git+https://github.com/ALdeci/evidence-service@refs/tags/v1.6.0",
+      "digest": {
+        "sha1": "4d6f8a0c2e4f6a8b0d2e4f6a8c0e2f4a"
+      }
+    },
+    {
+      "uri": "pkg:pypi/boto3@1.34.14",
+      "digest": {
+        "sha256": "ddef56cd78ef12de56cd78ef12de56cd78ef12de56cd78ef12de56cd78ef12de56"
+      }
+    },
+    {
+      "uri": "pkg:pypi/pydantic@2.5.3",
+      "digest": {
+        "sha256": "eef012ab34cd56ef012ab34cd56ef012ab34cd56ef012ab34cd56ef012ab34cd56"
+      }
+    },
+    {
+      "uri": "ghcr.io/aldeci/base-python:3.11-slim",
+      "digest": {
+        "sha256": "aabb12cd34ef56aabb12cd34ef56aabb12cd34ef56aabb12cd34ef56aabb12cd34"
+      }
+    }
+  ]
+}

@@ -317,7 +317,8 @@ class VerifyVulnerabilityModel(BaseModel):
     finding_id: str = Field(..., min_length=1, max_length=256)
     target_url: str = Field(..., min_length=1, max_length=_MAX_URL_LEN)
     vulnerability_type: str = Field(..., min_length=1, max_length=256)
-    evidence: str = Field(..., min_length=1, max_length=_MAX_EVIDENCE_LEN)
+    evidence: str = Field(default="", max_length=_MAX_EVIDENCE_LEN)
+    cve_id: Optional[str] = Field(default=None, max_length=256)
 
 
 class ContinuousMonitoringModel(BaseModel):

@@ -1153,3 +1153,704 @@ async def copilot_health() -> Dict[str, Any]:
             [a for a in _actions.values() if a.get("status") == ActionStatus.PENDING]
         ),
     }
+
+
+# =============================================================================
+# /ask  — Stateless Security Q&A Endpoint  (Rachel Kim / Junior Developer UX)
+# =============================================================================
+# Answers natural-language security questions using a built-in knowledge base
+# of common CWE vulnerability types.  No external LLM required.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Request / Response models
+# ---------------------------------------------------------------------------
+
+
+class AskContext(BaseModel):
+    """Optional context supplied alongside the free-text question."""
+
+    finding_id: Optional[str] = Field(None, description="Associated finding ID")
+    language: Optional[str] = Field(None, description="Programming language (e.g. 'python')")
+    cwe_id: Optional[str] = Field(
+        None, description="CWE identifier hint, e.g. 'CWE-89'"
+    )
+
+
+class AskRequest(BaseModel):
+    """Stateless security question for the copilot /ask endpoint."""
+
+    question: str = Field(
+        ...,
+        min_length=1,
+        max_length=2000,
+        description="Natural-language security question",
+        examples=["What is SQL injection and how do I fix it in Python?"],
+    )
+    context: Optional[AskContext] = Field(
+        None,
+        description="Optional structured context to improve answer relevance",
+    )
+
+
+class AskReference(BaseModel):
+    """A single external reference returned with an /ask answer."""
+
+    title: str
+    url: str
+
+
+class AskResponse(BaseModel):
+    """Response from the /ask endpoint."""
+
+    answer: str = Field(..., description="Plain-English explanation of the vulnerability")
+    references: List[AskReference] = Field(
+        default_factory=list,
+        description="Authoritative external references",
+    )
+    suggested_fix: str = Field(
+        ..., description="Concrete remediation guidance or code snippet"
+    )
+    severity_context: str = Field(
+        ..., description="Typical severity level: critical / high / medium / low"
+    )
+    related_findings: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Related findings from the current session (if context provided)",
+    )
+    matched_cwe: Optional[str] = Field(
+        None, description="CWE identifier that best matched the question"
+    )
+    source: str = Field(
+        default="builtin_knowledge_base",
+        description="Origin of the answer (builtin_knowledge_base | llm_enhanced)",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Built-in security knowledge base
+# ---------------------------------------------------------------------------
+# Each entry covers one CWE and contains:
+#   keywords   – terms used for fuzzy question matching
+#   answer     – concise explanation for a junior developer
+#   fix        – concrete remediation snippet / guidance
+#   severity   – typical severity string
+#   references – authoritative links
+# ---------------------------------------------------------------------------
+
+_CWE_KNOWLEDGE: Dict[str, Dict[str, Any]] = {
+    "CWE-89": {
+        "name": "SQL Injection",
+        "keywords": [
+            "sql injection", "sqli", "sql inject", "database injection",
+            "query injection", "cwe-89", "cwe 89",
+        ],
+        "answer": (
+            "SQL Injection (CWE-89) occurs when user-supplied input is concatenated "
+            "directly into a SQL query string without sanitisation. An attacker can "
+            "craft malicious input such as `' OR '1'='1` to bypass authentication, "
+            "dump sensitive data, modify records, or in some databases execute OS "
+            "commands. It consistently ranks in the OWASP Top 10 and is trivially "
+            "exploitable with tools like sqlmap."
+        ),
+        "fix": (
+            "Always use **parameterised queries / prepared statements** — never "
+            "string-format user input into SQL.\n\n"
+            "Python (sqlite3 / psycopg2):\n"
+            "```python\n"
+            "# VULNERABLE\n"
+            "cursor.execute(f\"SELECT * FROM users WHERE id = {user_id}\")\n\n"
+            "# SAFE — parameterised query\n"
+            "cursor.execute(\"SELECT * FROM users WHERE id = %s\", (user_id,))\n"
+            "```\n\n"
+            "Python (SQLAlchemy ORM):\n"
+            "```python\n"
+            "user = session.query(User).filter(User.id == user_id).first()\n"
+            "```\n\n"
+            "Additional controls: apply least-privilege DB accounts; enable a WAF "
+            "rule for SQLi patterns; validate and allowlist input where possible."
+        ),
+        "severity": "critical",
+        "references": [
+            {
+                "title": "CWE-89: Improper Neutralisation of Special Elements in SQL Commands",
+                "url": "https://cwe.mitre.org/data/definitions/89.html",
+            },
+            {
+                "title": "OWASP SQL Injection Prevention Cheat Sheet",
+                "url": "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html",
+            },
+            {
+                "title": "OWASP Top 10 A03:2021 – Injection",
+                "url": "https://owasp.org/Top10/A03_2021-Injection/",
+            },
+        ],
+    },
+    "CWE-79": {
+        "name": "Cross-Site Scripting (XSS)",
+        "keywords": [
+            "xss", "cross-site scripting", "cross site scripting",
+            "script injection", "html injection", "reflected xss",
+            "stored xss", "dom xss", "cwe-79", "cwe 79",
+        ],
+        "answer": (
+            "Cross-Site Scripting (CWE-79) allows attackers to inject malicious "
+            "JavaScript into pages viewed by other users. In reflected XSS the "
+            "payload comes from the URL; in stored XSS it is persisted (e.g. in a "
+            "comment field); in DOM-based XSS the payload is processed entirely "
+            "client-side. Successful exploitation can steal session cookies, perform "
+            "actions as the victim, or redirect users to phishing sites."
+        ),
+        "fix": (
+            "1. **HTML-encode all user output** — use your framework's built-in "
+            "templating (Jinja2 auto-escaping, React JSX, Angular interpolation) "
+            "rather than raw HTML concatenation.\n\n"
+            "Python (Jinja2):\n"
+            "```python\n"
+            "# Auto-escaped (safe by default)\n"
+            "return render_template('page.html', user_input=user_input)\n\n"
+            "# Only use |safe when absolutely certain the value is trusted HTML\n"
+            "```\n\n"
+            "2. Set a strict **Content-Security-Policy** header.\n"
+            "3. Use the `HttpOnly` and `Secure` flags on session cookies.\n"
+            "4. Validate and sanitise HTML if rich text is genuinely required "
+            "(e.g. use bleach/DOMPurify)."
+        ),
+        "severity": "high",
+        "references": [
+            {
+                "title": "CWE-79: Improper Neutralisation of Input During Web Page Generation",
+                "url": "https://cwe.mitre.org/data/definitions/79.html",
+            },
+            {
+                "title": "OWASP XSS Prevention Cheat Sheet",
+                "url": "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html",
+            },
+            {
+                "title": "OWASP Top 10 A03:2021 – Injection",
+                "url": "https://owasp.org/Top10/A03_2021-Injection/",
+            },
+        ],
+    },
+    "CWE-78": {
+        "name": "OS Command Injection",
+        "keywords": [
+            "command injection", "os command", "shell injection",
+            "os.system", "subprocess", "exec injection", "rce",
+            "remote code execution", "cwe-78", "cwe 78",
+        ],
+        "answer": (
+            "OS Command Injection (CWE-78) occurs when user-controlled data is passed "
+            "to a system shell (e.g. via `os.system`, `subprocess.call` with "
+            "`shell=True`, or backtick execution). An attacker can append shell "
+            "metacharacters such as `;`, `&&`, `|`, or `$()` to execute arbitrary "
+            "operating-system commands with the privileges of the web process — often "
+            "leading to full server compromise."
+        ),
+        "fix": (
+            "**Never pass user input to a shell.** Use `subprocess` with a list "
+            "argument and `shell=False`:\n\n"
+            "```python\n"
+            "import subprocess, shlex\n\n"
+            "# VULNERABLE\n"
+            "os.system(f\"ping {hostname}\")\n\n"
+            "# SAFE — list form, shell=False (default)\n"
+            "result = subprocess.run(\n"
+            "    [\"ping\", \"-c\", \"1\", hostname],\n"
+            "    capture_output=True, timeout=10\n"
+            ")\n"
+            "```\n\n"
+            "If a shell is absolutely required, use `shlex.quote()` to escape "
+            "arguments. Apply strict allowlist validation on any value that becomes "
+            "part of a command."
+        ),
+        "severity": "critical",
+        "references": [
+            {
+                "title": "CWE-78: Improper Neutralisation of Special Elements in OS Commands",
+                "url": "https://cwe.mitre.org/data/definitions/78.html",
+            },
+            {
+                "title": "OWASP OS Command Injection Defense Cheat Sheet",
+                "url": "https://cheatsheetseries.owasp.org/cheatsheets/OS_Command_Injection_Defense_Cheat_Sheet.html",
+            },
+            {
+                "title": "Python subprocess documentation",
+                "url": "https://docs.python.org/3/library/subprocess.html",
+            },
+        ],
+    },
+    "CWE-22": {
+        "name": "Path Traversal",
+        "keywords": [
+            "path traversal", "directory traversal", "dot dot slash",
+            "../", "..\\", "file inclusion", "local file inclusion",
+            "lfi", "cwe-22", "cwe 22",
+        ],
+        "answer": (
+            "Path Traversal (CWE-22) allows attackers to access files and directories "
+            "outside an intended base directory by supplying sequences such as `../` "
+            "or `..\\` in filenames or paths. This can expose source code, "
+            "configuration files containing secrets, `/etc/passwd`, private keys, or "
+            "allow overwriting critical files."
+        ),
+        "fix": (
+            "Resolve and validate the **canonical path** before opening any file "
+            "derived from user input:\n\n"
+            "```python\n"
+            "import os, pathlib\n\n"
+            "BASE_DIR = pathlib.Path('/var/app/uploads').resolve()\n\n"
+            "def safe_open(user_filename: str):\n"
+            "    # Resolve strips all '..' components\n"
+            "    target = (BASE_DIR / user_filename).resolve()\n"
+            "    # Ensure the target is still inside BASE_DIR\n"
+            "    if not target.is_relative_to(BASE_DIR):\n"
+            "        raise PermissionError('Path traversal detected')\n"
+            "    return open(target, 'rb')\n"
+            "```\n\n"
+            "Additional controls: run the process under a chroot/container; "
+            "store files by an opaque UUID rather than user-supplied names."
+        ),
+        "severity": "high",
+        "references": [
+            {
+                "title": "CWE-22: Improper Limitation of a Pathname to a Restricted Directory",
+                "url": "https://cwe.mitre.org/data/definitions/22.html",
+            },
+            {
+                "title": "OWASP Path Traversal",
+                "url": "https://owasp.org/www-community/attacks/Path_Traversal",
+            },
+            {
+                "title": "OWASP File Upload Cheat Sheet",
+                "url": "https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html",
+            },
+        ],
+    },
+    "CWE-798": {
+        "name": "Hardcoded Credentials",
+        "keywords": [
+            "hardcoded credentials", "hardcoded password", "hardcoded secret",
+            "hardcoded api key", "hardcoded token", "credentials in code",
+            "secret in source", "cwe-798", "cwe 798",
+        ],
+        "answer": (
+            "Hardcoded Credentials (CWE-798) refers to embedding passwords, API keys, "
+            "tokens, or cryptographic keys directly in source code or configuration "
+            "files committed to version control. Even private repositories get leaked "
+            "or change ownership. Automated secret-scanning tools (truffleHog, "
+            "GitLeaks, GitHub Advanced Security) continuously scan public repos and "
+            "will find secrets within minutes of a push."
+        ),
+        "fix": (
+            "**Never commit secrets.** Use environment variables or a secrets manager:\n\n"
+            "```python\n"
+            "# VULNERABLE\n"
+            "DB_PASSWORD = 'Sup3rS3cr3t!'\n\n"
+            "# SAFE — read from environment\n"
+            "import os\n"
+            "DB_PASSWORD = os.environ['DB_PASSWORD']  # raise if missing\n"
+            "DB_PASSWORD = os.getenv('DB_PASSWORD')   # returns None if missing\n"
+            "```\n\n"
+            "For production secrets use a dedicated secrets manager:\n"
+            "- AWS Secrets Manager / Parameter Store\n"
+            "- HashiCorp Vault\n"
+            "- Azure Key Vault / GCP Secret Manager\n\n"
+            "Rotate any secret that has already been committed and treat it as "
+            "compromised. Add a pre-commit hook (`detect-secrets`) and a CI scan "
+            "(GitLeaks) to prevent future occurrences."
+        ),
+        "severity": "critical",
+        "references": [
+            {
+                "title": "CWE-798: Use of Hard-coded Credentials",
+                "url": "https://cwe.mitre.org/data/definitions/798.html",
+            },
+            {
+                "title": "OWASP Secrets Management Cheat Sheet",
+                "url": "https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html",
+            },
+            {
+                "title": "GitLeaks – secret scanning tool",
+                "url": "https://github.com/gitleaks/gitleaks",
+            },
+        ],
+    },
+    "CWE-502": {
+        "name": "Insecure Deserialization",
+        "keywords": [
+            "deserialization", "deserialisation", "pickle", "unsafe deserialization",
+            "object injection", "java deserialization", "yaml load",
+            "cwe-502", "cwe 502",
+        ],
+        "answer": (
+            "Insecure Deserialization (CWE-502) occurs when untrusted data is "
+            "deserialised into objects without validation. In Python, `pickle.loads()` "
+            "on attacker-controlled bytes can execute arbitrary code during "
+            "deserialisation. Similarly, `yaml.load()` (without `Loader=SafeLoader`), "
+            "`marshal`, and Java's `ObjectInputStream` are commonly exploited vectors "
+            "that can lead to remote code execution or privilege escalation."
+        ),
+        "fix": (
+            "Avoid deserialising data from untrusted sources. Where deserialisation "
+            "is necessary, use safe alternatives:\n\n"
+            "```python\n"
+            "# VULNERABLE — pickle from untrusted source\n"
+            "import pickle\n"
+            "obj = pickle.loads(user_bytes)  # arbitrary code execution risk\n\n"
+            "# VULNERABLE — yaml.load without Loader\n"
+            "import yaml\n"
+            "data = yaml.load(user_yaml)     # CVE-2017-18342\n\n"
+            "# SAFE alternatives\n"
+            "import json\n"
+            "data = json.loads(user_json)    # JSON is data-only, not executable\n\n"
+            "import yaml\n"
+            "data = yaml.safe_load(user_yaml)  # SafeLoader disables !! constructors\n"
+            "```\n\n"
+            "If pickle is required internally, sign the payload with HMAC before "
+            "storing/transmitting it, and verify the signature before loading."
+        ),
+        "severity": "critical",
+        "references": [
+            {
+                "title": "CWE-502: Deserialization of Untrusted Data",
+                "url": "https://cwe.mitre.org/data/definitions/502.html",
+            },
+            {
+                "title": "OWASP Deserialization Cheat Sheet",
+                "url": "https://cheatsheetseries.owasp.org/cheatsheets/Deserialization_Cheat_Sheet.html",
+            },
+            {
+                "title": "OWASP Top 10 A08:2021 – Software and Data Integrity Failures",
+                "url": "https://owasp.org/Top10/A08_2021-Software_and_Data_Integrity_Failures/",
+            },
+        ],
+    },
+    "CWE-918": {
+        "name": "Server-Side Request Forgery (SSRF)",
+        "keywords": [
+            "ssrf", "server-side request forgery", "server side request forgery",
+            "internal request", "metadata endpoint", "aws metadata",
+            "internal network", "cwe-918", "cwe 918",
+        ],
+        "answer": (
+            "Server-Side Request Forgery (CWE-918) occurs when an application fetches "
+            "a remote resource at a URL supplied by the user without validation. "
+            "Attackers can redirect the server to internal addresses (169.254.169.254 "
+            "for cloud metadata, 10.x.x.x, 172.16.x.x), access internal services not "
+            "exposed to the internet, or pivot through the server's network. In AWS "
+            "environments SSRF against the IMDSv1 metadata endpoint can yield "
+            "credentials for the instance IAM role."
+        ),
+        "fix": (
+            "Validate and restrict any URL the application fetches on behalf of a user:\n\n"
+            "```python\n"
+            "from urllib.parse import urlparse\n"
+            "import ipaddress, socket\n\n"
+            "ALLOWED_SCHEMES = {'https'}\n"
+            "BLOCKED_HOSTS = {'169.254.169.254', 'metadata.google.internal'}\n\n"
+            "def safe_fetch(url: str) -> bytes:\n"
+            "    parsed = urlparse(url)\n"
+            "    if parsed.scheme not in ALLOWED_SCHEMES:\n"
+            "        raise ValueError('Scheme not allowed')\n"
+            "    hostname = parsed.hostname or ''\n"
+            "    if hostname in BLOCKED_HOSTS:\n"
+            "        raise ValueError('Blocked host')\n"
+            "    # Resolve and reject private / loopback ranges\n"
+            "    ip = ipaddress.ip_address(socket.gethostbyname(hostname))\n"
+            "    if ip.is_private or ip.is_loopback or ip.is_link_local:\n"
+            "        raise ValueError('Private IP not allowed')\n"
+            "    # Proceed with HTTP client\n"
+            "    import requests\n"
+            "    return requests.get(url, timeout=5).content\n"
+            "```\n\n"
+            "Prefer an allowlist of specific external domains over a blocklist. "
+            "Enable IMDSv2 (token-based) on AWS EC2 instances to mitigate metadata theft."
+        ),
+        "severity": "high",
+        "references": [
+            {
+                "title": "CWE-918: Server-Side Request Forgery",
+                "url": "https://cwe.mitre.org/data/definitions/918.html",
+            },
+            {
+                "title": "OWASP SSRF Prevention Cheat Sheet",
+                "url": "https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html",
+            },
+            {
+                "title": "OWASP Top 10 A10:2021 – Server-Side Request Forgery",
+                "url": "https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_%28SSRF%29/",
+            },
+        ],
+    },
+    "CWE-611": {
+        "name": "XML External Entity (XXE) Injection",
+        "keywords": [
+            "xxe", "xml external entity", "xml injection", "xml parsing",
+            "dtd", "external entity", "lxml", "defusedxml",
+            "cwe-611", "cwe 611",
+        ],
+        "answer": (
+            "XXE (CWE-611) is an attack against applications that parse XML. When an "
+            "XML parser processes Document Type Definitions (DTDs) it can be directed "
+            "to include external entities — arbitrary URIs that the parser fetches "
+            "and inlines into the document. This enables reading local files "
+            "(`file:///etc/passwd`), port-scanning internal services (via HTTP "
+            "entity URIs), or denial-of-service via recursive entity expansion "
+            "('Billion Laughs' attack)."
+        ),
+        "fix": (
+            "Disable DTD processing and external entity resolution in your XML parser:\n\n"
+            "Python (`lxml`):\n"
+            "```python\n"
+            "from lxml import etree\n\n"
+            "# VULNERABLE (default lxml allows external entities via network)\n"
+            "tree = etree.parse(user_xml_file)\n\n"
+            "# SAFE — disable DTDs completely\n"
+            "parser = etree.XMLParser(\n"
+            "    resolve_entities=False,\n"
+            "    no_network=True,\n"
+            "    load_dtd=False,\n"
+            ")\n"
+            "tree = etree.parse(user_xml_file, parser)\n"
+            "```\n\n"
+            "Better: use the **defusedxml** library which is hardened against all "
+            "known XML attack vectors:\n"
+            "```python\n"
+            "import defusedxml.ElementTree as ET\n"
+            "tree = ET.parse(user_xml_file)  # safe by default\n"
+            "```\n\n"
+            "If XML is not strictly required, consider JSON or other data formats."
+        ),
+        "severity": "high",
+        "references": [
+            {
+                "title": "CWE-611: Improper Restriction of XML External Entity Reference",
+                "url": "https://cwe.mitre.org/data/definitions/611.html",
+            },
+            {
+                "title": "OWASP XML External Entity (XXE) Prevention Cheat Sheet",
+                "url": "https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html",
+            },
+            {
+                "title": "defusedxml – Python library",
+                "url": "https://pypi.org/project/defusedxml/",
+            },
+        ],
+    },
+}
+
+# Generic fallback for unrecognised questions
+_GENERIC_ENTRY: Dict[str, Any] = {
+    "name": "General Security Guidance",
+    "answer": (
+        "Your question touches on application security. The most common web "
+        "application vulnerability classes are described in the OWASP Top 10 and "
+        "the CWE/SANS Top 25. Core defensive principles are: validate all input, "
+        "encode all output, use parameterised queries, apply least privilege, keep "
+        "dependencies updated, and store secrets in a vault — never in source code. "
+        "For a tailored answer, provide a CWE identifier in the `context.cwe_id` field."
+    ),
+    "fix": (
+        "Review the OWASP Application Security Verification Standard (ASVS) for "
+        "your application tier, and integrate SAST tooling (Bandit for Python, "
+        "Semgrep, SonarQube) into your CI pipeline to catch issues early."
+    ),
+    "severity": "medium",
+    "references": [
+        {
+            "title": "OWASP Top 10",
+            "url": "https://owasp.org/www-project-top-ten/",
+        },
+        {
+            "title": "CWE/SANS Top 25 Most Dangerous Software Weaknesses",
+            "url": "https://cwe.mitre.org/top25/",
+        },
+        {
+            "title": "OWASP ASVS",
+            "url": "https://owasp.org/www-project-application-security-verification-standard/",
+        },
+    ],
+}
+
+
+# ---------------------------------------------------------------------------
+# Helper: match question to a CWE entry
+# ---------------------------------------------------------------------------
+
+
+def _match_cwe(question: str, hint_cwe: Optional[str]) -> tuple[str, Dict[str, Any]]:
+    """Return (cwe_id, entry) best matching the question.
+
+    Priority:
+    1. Explicit CWE hint from request context  (e.g. 'CWE-89')
+    2. Keyword scan of the question text
+    3. Generic fallback
+    """
+    q_lower = question.lower()
+
+    # 1. Explicit hint
+    if hint_cwe:
+        cwe_upper = hint_cwe.strip().upper()
+        # Normalise 'CWE89' → 'CWE-89'
+        if cwe_upper.startswith("CWE") and "-" not in cwe_upper:
+            cwe_upper = "CWE-" + cwe_upper[3:]
+        if cwe_upper in _CWE_KNOWLEDGE:
+            return cwe_upper, _CWE_KNOWLEDGE[cwe_upper]
+
+    # 2. Keyword scan
+    best_cwe: Optional[str] = None
+    best_hits = 0
+    for cwe_id, entry in _CWE_KNOWLEDGE.items():
+        hits = sum(1 for kw in entry["keywords"] if kw in q_lower)
+        if hits > best_hits:
+            best_hits = hits
+            best_cwe = cwe_id
+
+    if best_cwe and best_hits > 0:
+        return best_cwe, _CWE_KNOWLEDGE[best_cwe]
+
+    # 3. Generic fallback
+    return "GENERAL", _GENERIC_ENTRY
+
+
+def _language_adapt_fix(fix: str, language: Optional[str]) -> str:
+    """Append a language-specific note when the default fix is for another language."""
+    if not language:
+        return fix
+    lang = language.lower()
+    notes: Dict[str, str] = {
+        "javascript": (
+            "\n\n> **JavaScript / Node.js note:** Use parameterised query libraries "
+            "(e.g. `pg` prepared statements, `knex.raw` with bindings, or an ORM "
+            "like Sequelize/Prisma) and template literals from trusted sources only."
+        ),
+        "java": (
+            "\n\n> **Java note:** Use `PreparedStatement` with `?` placeholders, "
+            "or JPA/Hibernate named parameters (`@Query(\"... WHERE id = :id\")`)."
+        ),
+        "go": (
+            "\n\n> **Go note:** Use `db.QueryContext` with `?` or `$N` placeholders; "
+            "never `fmt.Sprintf` into query strings."
+        ),
+        "ruby": (
+            "\n\n> **Ruby note:** Use ActiveRecord's parameterised finders "
+            "(`User.where('id = ?', params[:id])`) instead of string interpolation."
+        ),
+        "php": (
+            "\n\n> **PHP note:** Use PDO with prepared statements "
+            "(`$stmt = $pdo->prepare('SELECT * FROM users WHERE id = ?')`) "
+            "instead of `mysqli_query` with string concatenation."
+        ),
+    }
+    return fix + notes.get(lang, f"\n\n> **{language.capitalize()} note:** Apply the same principle using your language's parameterised query / safe API equivalent.")
+
+
+# ---------------------------------------------------------------------------
+# /ask endpoint
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/ask",
+    response_model=AskResponse,
+    summary="Ask a security question (Rachel Kim / Junior Developer)",
+    description=(
+        "Stateless natural-language security Q&A backed by a built-in CWE "
+        "knowledge base. No external LLM required. Covers CWE-89, CWE-79, "
+        "CWE-78, CWE-22, CWE-798, CWE-502, CWE-918, CWE-611 and more."
+    ),
+    tags=["copilot"],
+)
+async def ask_security_question(request: AskRequest) -> AskResponse:
+    """Answer a natural-language security question using built-in knowledge.
+
+    Designed for the **Junior Developer** persona (Rachel Kim) who needs
+    quick, actionable answers without navigating long documentation.
+
+    The endpoint:
+    - Matches the question to the most relevant CWE entry via keyword analysis
+      or an explicit CWE hint in `context.cwe_id`
+    - Returns a plain-English explanation, concrete fix with code examples,
+      severity rating, and authoritative references
+    - Works offline — no OpenAI/Anthropic API key required
+    - Optionally enriches the response via LLM if providers are available
+    """
+    ctx = request.context or AskContext()
+    hint_cwe = ctx.cwe_id
+
+    # Match question to CWE knowledge
+    matched_cwe_id, entry = _match_cwe(request.question, hint_cwe)
+
+    # Adapt fix for the requested language
+    fix = _language_adapt_fix(entry["fix"], ctx.language)
+
+    # Build references list
+    refs = [AskReference(**r) for r in entry["references"]]
+
+    # Optionally enhance via LLM (if available and configured)
+    answer_text = entry["answer"]
+    source = "builtin_knowledge_base"
+
+    if _HAS_LLM:
+        try:
+            manager = LLMProviderManager()
+            llm_prompt = (
+                f"You are FixOps Security Copilot helping a junior developer.\n"
+                f"The developer asked: {request.question}\n\n"
+                f"CWE category: {matched_cwe_id} — {entry['name']}\n"
+                f"Base answer: {answer_text}\n\n"
+                "Please provide an enhanced, clear explanation in 2–3 paragraphs. "
+                "Keep it practical and jargon-free for a junior developer."
+            )
+            for provider_name in ("openai", "anthropic"):
+                llm_resp = manager.analyse(
+                    provider_name,
+                    prompt=llm_prompt,
+                    context={"cwe_id": matched_cwe_id, "language": ctx.language},
+                    default_action="review",
+                    default_confidence=0.8,
+                    default_reasoning=answer_text,
+                )
+                if llm_resp.metadata.get("mode") == "remote" and llm_resp.reasoning:
+                    answer_text = llm_resp.reasoning
+                    source = f"llm_enhanced_{provider_name}"
+                    break
+        except Exception as llm_exc:
+            logger.debug("LLM enhancement for /ask failed (non-fatal): %s", llm_exc)
+
+    # Log to Knowledge Brain if available
+    if _HAS_BRAIN:
+        try:
+            bus = get_event_bus()
+            await bus.emit(
+                Event(
+                    event_type=EventType.COPILOT_QUERY,
+                    source="copilot_router.ask",
+                    data={
+                        "question": request.question[:300],
+                        "matched_cwe": matched_cwe_id,
+                        "finding_id": ctx.finding_id,
+                        "language": ctx.language,
+                    },
+                )
+            )
+        except Exception:
+            pass
+
+    logger.info(
+        "Copilot /ask: matched_cwe=%s source=%s language=%s",
+        matched_cwe_id,
+        source,
+        ctx.language,
+    )
+
+    return AskResponse(
+        answer=answer_text,
+        references=refs,
+        suggested_fix=fix,
+        severity_context=entry["severity"],
+        related_findings=[],
+        matched_cwe=matched_cwe_id if matched_cwe_id != "GENERAL" else None,
+        source=source,
+    )

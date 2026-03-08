@@ -19,8 +19,8 @@ services:
     ports:
       - "${FIXOPS_PORT:-8000}:8000"
     environment:
-      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-demo-token-change-me}
-      - FIXOPS_JWT_SECRET=${FIXOPS_JWT_SECRET:-demo-jwt-secret-change-me}
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:?FIXOPS_API_TOKEN must be set}
+      - FIXOPS_JWT_SECRET=${FIXOPS_JWT_SECRET:?FIXOPS_JWT_SECRET must be set}
       - FIXOPS_DISABLE_TELEMETRY=1
       - FIXOPS_MODE=enterprise
       - FIXOPS_DISABLE_RATE_LIMIT=1
@@ -74,7 +74,7 @@ services:
         condition: service_healthy
     environment:
       - FIXOPS_BASE_URL=http://fixops:8000
-      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-demo-token-change-me}
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:?FIXOPS_API_TOKEN must be set}
     command: ["python", "feed_sidecar.py", "continuous", "--interval", "3600"]
     restart: on-failure
     profiles:
@@ -91,7 +91,7 @@ services:
         condition: service_healthy
     environment:
       - FIXOPS_BASE_URL=http://fixops:8000
-      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-demo-token-change-me}
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:?FIXOPS_API_TOKEN must be set}
     profiles:
       - demo
 
@@ -106,7 +106,7 @@ services:
         condition: service_healthy
     environment:
       - FIXOPS_BASE_URL=http://fixops:8000
-      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-demo-token-change-me}
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:?FIXOPS_API_TOKEN must be set}
     command: ["pytest", "-v", "-s", "tests/sidecar/"]
     profiles:
       - test
@@ -122,7 +122,7 @@ services:
         condition: service_healthy
     environment:
       - FIXOPS_BASE_URL=http://fixops:8000
-      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-demo-token-change-me}
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:?FIXOPS_API_TOKEN must be set}
     command: ["python", "scripts/micropentest_sidecar.py", "run"]
     profiles:
       - pentest

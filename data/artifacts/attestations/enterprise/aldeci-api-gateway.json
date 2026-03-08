@@ -1,0 +1,75 @@
+{
+  "slsaVersion": "1.0",
+  "builder": {
+    "id": "https://github.com/ALdeci/Fixops/actions/workflows/build.yml@refs/heads/main",
+    "version": {
+      "runner": "ubuntu-22.04"
+    },
+    "builderDependencies": []
+  },
+  "buildType": "https://slsa.dev/container-based-build/v0.1",
+  "source": {
+    "uri": "git+https://github.com/ALdeci/api-gateway@refs/tags/v2.14.0",
+    "digest": {
+      "sha1": "f9e3a1c7b4d2e8f0a3c5b7d9e1f2a4c6"
+    }
+  },
+  "metadata": {
+    "buildStartedOn": "2026-03-06T01:00:00Z",
+    "buildFinishedOn": "2026-03-06T01:12:43Z",
+    "reproducible": true,
+    "buildInvocationId": "gh-actions-run-15621-job-72891",
+    "completeness": {
+      "parameters": true,
+      "environment": true,
+      "materials": true
+    },
+    "slsaLevel": 3,
+    "environment": {
+      "deployEnv": "production",
+      "isolatedBuild": true,
+      "ephemeralEnv": true
+    },
+    "configSource": {
+      "uri": "git+https://github.com/ALdeci/api-gateway@refs/tags/v2.14.0",
+      "digest": {
+        "sha1": "f9e3a1c7b4d2e8f0a3c5b7d9e1f2a4c6"
+      },
+      "entryPoint": ".github/workflows/build.yml"
+    }
+  },
+  "subject": [
+    {
+      "name": "aldeci-api-gateway",
+      "digest": {
+        "sha256": "3e7f1a9b2c4d8e6f0a3b5c7d9e1f2a4b6c8d0e2f4a6b8c0d2e4f6a8b0c2d4e6f"
+      }
+    }
+  ],
+  "materials": [
+    {
+      "uri": "git+https://github.com/ALdeci/api-gateway@refs/tags/v2.14.0",
+      "digest": {
+        "sha1": "f9e3a1c7b4d2e8f0a3c5b7d9e1f2a4c6"
+      }
+    },
+    {
+      "uri": "pkg:npm/lodash@4.17.21",
+      "digest": {
+        "sha256": "12ef34ab56cd12ef34ab56cd12ef34ab56cd12ef34ab56cd12ef34ab56cd12ef"
+      }
+    },
+    {
+      "uri": "pkg:npm/express@4.18.2",
+      "digest": {
+        "sha256": "22ab34cd56ef78ab34cd56ef78ab34cd56ef78ab34cd56ef78ab34cd56ef78ab34"
+      }
+    },
+    {
+      "uri": "ghcr.io/aldeci/base-node:18.20-alpine",
+      "digest": {
+        "sha256": "44cd56ef78ab12cd56ef78ab12cd56ef78ab12cd56ef78ab12cd56ef78ab12cd56"
+      }
+    }
+  ]
+}

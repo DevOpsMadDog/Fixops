@@ -1,0 +1,75 @@
+{
+  "slsaVersion": "1.0",
+  "builder": {
+    "id": "https://ci.aldeci.io/pipelines/secure-build/v2@slsa-l3",
+    "version": {
+      "runner": "aldeci-hermetic-runner-v2"
+    },
+    "builderDependencies": []
+  },
+  "buildType": "https://aldeci.io/build-types/secure-pipeline/v1",
+  "source": {
+    "uri": "git+https://github.com/ALdeci/quantum-signer@refs/tags/v0.4.1",
+    "digest": {
+      "sha1": "9e1f3b5d7a9e1f3b5d7a9e1f3b5d7a9e"
+    }
+  },
+  "metadata": {
+    "buildStartedOn": "2026-02-15T12:00:00Z",
+    "buildFinishedOn": "2026-02-15T12:14:58Z",
+    "reproducible": true,
+    "buildInvocationId": "aldeci-ci-pipeline-run-4101-job-secure-build",
+    "completeness": {
+      "parameters": true,
+      "environment": true,
+      "materials": true
+    },
+    "slsaLevel": 4,
+    "environment": {
+      "deployEnv": "production",
+      "isolatedBuild": true,
+      "ephemeralEnv": true
+    },
+    "configSource": {
+      "uri": "git+https://github.com/ALdeci/quantum-signer@refs/tags/v0.4.1",
+      "digest": {
+        "sha1": "9e1f3b5d7a9e1f3b5d7a9e1f3b5d7a9e"
+      },
+      "entryPoint": ".github/workflows/build.yml"
+    }
+  },
+  "subject": [
+    {
+      "name": "quantum-signer",
+      "digest": {
+        "sha256": "c7e1a5b9d3f7e1a5b9d3f7e1a5b9d3f7e1a5b9d3f7e1a5b9d3f7e1a5b9d3f7e1"
+      }
+    }
+  ],
+  "materials": [
+    {
+      "uri": "git+https://github.com/ALdeci/quantum-signer@refs/tags/v0.4.1",
+      "digest": {
+        "sha1": "9e1f3b5d7a9e1f3b5d7a9e1f3b5d7a9e"
+      }
+    },
+    {
+      "uri": "pkg:cargo/openssl@0.10.62",
+      "digest": {
+        "sha256": "3456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123"
+      }
+    },
+    {
+      "uri": "pkg:cargo/rustls@0.23.0",
+      "digest": {
+        "sha256": "ff12ab34cd56ef12ab34cd56ef12ab34cd56ef12ab34cd56ef12ab34cd56ef12ab"
+      }
+    },
+    {
+      "uri": "ghcr.io/aldeci/base-rust:1.75-slim",
+      "digest": {
+        "sha256": "1122cd34ef56ab1122cd34ef56ab1122cd34ef56ab1122cd34ef56ab1122cd34ef"
+      }
+    }
+  ]
+}

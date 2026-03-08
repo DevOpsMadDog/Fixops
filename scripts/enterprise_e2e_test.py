@@ -480,7 +480,7 @@ def test_13_integration_connectors():
     test_integration = {
         "name": "E2E Test Integration",
         "integration_type": "snyk",
-        "config": {"api_token": "test-token", "org_id": "test-org"},
+        "config": {"api_token": "your-enterprise-api-key-here", "org_id": "test-org"},
     }
     code, data = post("api/v1/integrations", test_integration)
     integration_id = None

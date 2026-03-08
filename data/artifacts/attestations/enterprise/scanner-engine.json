@@ -1,0 +1,75 @@
+{
+  "slsaVersion": "1.0",
+  "builder": {
+    "id": "https://github.com/ALdeci/Fixops/actions/workflows/build.yml@refs/heads/main",
+    "version": {
+      "runner": "ubuntu-22.04"
+    },
+    "builderDependencies": []
+  },
+  "buildType": "https://slsa.dev/container-based-build/v0.1",
+  "source": {
+    "uri": "git+https://github.com/ALdeci/scanner-engine@refs/tags/v3.7.2",
+    "digest": {
+      "sha1": "3a7c1f9e5b2d8a4c6e0f2b4d8a1c3e5f"
+    }
+  },
+  "metadata": {
+    "buildStartedOn": "2026-03-01T04:00:00Z",
+    "buildFinishedOn": "2026-03-01T04:18:12Z",
+    "reproducible": true,
+    "buildInvocationId": "gh-actions-run-15344-job-68741",
+    "completeness": {
+      "parameters": true,
+      "environment": true,
+      "materials": true
+    },
+    "slsaLevel": 3,
+    "environment": {
+      "deployEnv": "production",
+      "isolatedBuild": true,
+      "ephemeralEnv": true
+    },
+    "configSource": {
+      "uri": "git+https://github.com/ALdeci/scanner-engine@refs/tags/v3.7.2",
+      "digest": {
+        "sha1": "3a7c1f9e5b2d8a4c6e0f2b4d8a1c3e5f"
+      },
+      "entryPoint": ".github/workflows/build.yml"
+    }
+  },
+  "subject": [
+    {
+      "name": "scanner-engine",
+      "digest": {
+        "sha256": "b4c2d6e8f0a1b3c5d7e9f1a3b5c7d9e0f2a4b6c8d0e2f4a6b8c0d2e4f6a8b0c2"
+      }
+    }
+  ],
+  "materials": [
+    {
+      "uri": "git+https://github.com/ALdeci/scanner-engine@refs/tags/v3.7.2",
+      "digest": {
+        "sha1": "3a7c1f9e5b2d8a4c6e0f2b4d8a1c3e5f"
+      }
+    },
+    {
+      "uri": "pkg:golang/github.com/aldeci/scanner-core@v1.4.0",
+      "digest": {
+        "sha256": "ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12"
+      }
+    },
+    {
+      "uri": "pkg:pypi/semgrep@1.56.0",
+      "digest": {
+        "sha256": "55ef78ab12cd34ef78ab12cd34ef78ab12cd34ef78ab12cd34ef78ab12cd34ef78"
+      }
+    },
+    {
+      "uri": "ghcr.io/aldeci/base-go:1.21-alpine",
+      "digest": {
+        "sha256": "66ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12"
+      }
+    }
+  ]
+}

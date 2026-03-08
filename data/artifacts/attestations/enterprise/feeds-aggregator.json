@@ -1,0 +1,75 @@
+{
+  "slsaVersion": "1.0",
+  "builder": {
+    "id": "https://github.com/ALdeci/Fixops/actions/workflows/build.yml@refs/heads/main",
+    "version": {
+      "runner": "ubuntu-22.04"
+    },
+    "builderDependencies": []
+  },
+  "buildType": "https://slsa.dev/container-based-build/v0.1",
+  "source": {
+    "uri": "git+https://github.com/ALdeci/feeds-aggregator@refs/tags/v4.2.0",
+    "digest": {
+      "sha1": "1f3b5d7e9a1f3b5d7e9a1f3b5d7e9a1f"
+    }
+  },
+  "metadata": {
+    "buildStartedOn": "2026-02-10T14:00:00Z",
+    "buildFinishedOn": "2026-02-10T14:11:22Z",
+    "reproducible": true,
+    "buildInvocationId": "gh-actions-run-14872-job-61002",
+    "completeness": {
+      "parameters": true,
+      "environment": true,
+      "materials": true
+    },
+    "slsaLevel": 3,
+    "environment": {
+      "deployEnv": "production",
+      "isolatedBuild": true,
+      "ephemeralEnv": true
+    },
+    "configSource": {
+      "uri": "git+https://github.com/ALdeci/feeds-aggregator@refs/tags/v4.2.0",
+      "digest": {
+        "sha1": "1f3b5d7e9a1f3b5d7e9a1f3b5d7e9a1f"
+      },
+      "entryPoint": ".github/workflows/build.yml"
+    }
+  },
+  "subject": [
+    {
+      "name": "feeds-aggregator",
+      "digest": {
+        "sha256": "d8f2b4a6c0e8f2b4a6c0e8f2b4a6c0e8f2b4a6c0e8f2b4a6c0e8f2b4a6c0e8f2"
+      }
+    }
+  ],
+  "materials": [
+    {
+      "uri": "git+https://github.com/ALdeci/feeds-aggregator@refs/tags/v4.2.0",
+      "digest": {
+        "sha1": "1f3b5d7e9a1f3b5d7e9a1f3b5d7e9a1f"
+      }
+    },
+    {
+      "uri": "pkg:golang/github.com/aldeci/feeds-core@v4.2.0",
+      "digest": {
+        "sha256": "ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12"
+      }
+    },
+    {
+      "uri": "pkg:golang/github.com/gorilla/mux@v1.8.1",
+      "digest": {
+        "sha256": "2233ef56ab78cd2233ef56ab78cd2233ef56ab78cd2233ef56ab78cd2233ef56ab"
+      }
+    },
+    {
+      "uri": "ghcr.io/aldeci/base-go:1.21-alpine",
+      "digest": {
+        "sha256": "66ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12"
+      }
+    }
+  ]
+}

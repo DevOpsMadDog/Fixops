@@ -149,3 +149,4 @@ data/reachability/
 *.so
 *.out
 bash-5.1/
+persona_test_results.json

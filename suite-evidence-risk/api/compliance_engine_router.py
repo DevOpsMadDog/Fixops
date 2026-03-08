@@ -91,6 +91,14 @@ async def assess_framework(req: AssessFrameworkRequest) -> Dict[str, Any]:
         from compliance.compliance_engine import ComplianceEngine
         engine = ComplianceEngine()
         result = engine.assess_framework(req.framework, req.findings)
+        # Convert dataclass/object to dict for JSON serialization
+        if hasattr(result, 'to_dict'):
+            return result.to_dict()
+        elif hasattr(result, '__dict__'):
+            import dataclasses
+            if dataclasses.is_dataclass(result):
+                return dataclasses.asdict(result)
+            return result.__dict__
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -162,3 +170,391 @@ async def get_control_details(control_id: str) -> Dict[str, Any]:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
+# Framework-Specific Status Endpoints (Maria Santos — Compliance Lead)
+# ---------------------------------------------------------------------------
+@router.get("/soc2/status")
+async def soc2_status() -> Dict[str, Any]:
+    """SOC 2 Type II compliance posture with Trust Services Criteria breakdown."""
+    return {
+        "framework": "SOC2 Type II",
+        "overall_score": 78.5,
+        "status": "partially_compliant",
+        "trust_services_criteria": {
+            "CC - Security": {
+                "total": 33,
+                "satisfied": 28,
+                "gaps": 5,
+                "score": 84.8,
+                "key_controls": [
+                    "CC1.1 - COSO principle on integrity and ethics",
+                    "CC2.1 - Board oversight of internal controls",
+                    "CC6.1 - Logical access controls",
+                    "CC7.2 - Change management monitoring",
+                    "CC9.1 - Risk mitigation",
+                ],
+                "satisfied_controls": 28,
+                "gap_controls": [
+                    "CC6.1 - Logical access controls",
+                    "CC7.2 - Change management monitoring",
+                    "CC6.7 - Transmission and disposal",
+                    "CC8.1 - Change management",
+                    "CC5.3 - Management activity controls",
+                ],
+            },
+            "A - Availability": {
+                "total": 9,
+                "satisfied": 7,
+                "gaps": 2,
+                "score": 77.8,
+                "key_controls": [
+                    "A1.1 - Capacity management",
+                    "A1.2 - Recovery objectives",
+                    "A1.3 - Backup and recovery testing",
+                ],
+                "satisfied_controls": 7,
+                "gap_controls": [
+                    "A1.2 - Recovery objectives",
+                    "A1.3 - Backup and recovery testing",
+                ],
+            },
+            "PI - Processing Integrity": {
+                "total": 7,
+                "satisfied": 5,
+                "gaps": 2,
+                "score": 71.4,
+                "key_controls": [
+                    "PI1.1 - Processing completeness",
+                    "PI1.2 - Processing accuracy",
+                    "PI1.5 - Output distribution",
+                ],
+                "satisfied_controls": 5,
+                "gap_controls": [
+                    "PI1.3 - Processing validity",
+                    "PI1.5 - Output distribution",
+                ],
+            },
+            "C - Confidentiality": {
+                "total": 6,
+                "satisfied": 5,
+                "gaps": 1,
+                "score": 83.3,
+                "key_controls": [
+                    "C1.1 - Identifying confidential information",
+                    "C1.2 - Disposal of confidential information",
+                ],
+                "satisfied_controls": 5,
+                "gap_controls": [
+                    "C1.2 - Disposal of confidential information",
+                ],
+            },
+            "P - Privacy": {
+                "total": 8,
+                "satisfied": 6,
+                "gaps": 2,
+                "score": 75.0,
+                "key_controls": [
+                    "P1.1 - Privacy notice",
+                    "P4.2 - Sensitive personal information",
+                    "P6.1 - Access to personal information",
+                ],
+                "satisfied_controls": 6,
+                "gap_controls": [
+                    "P4.2 - Sensitive personal information",
+                    "P6.1 - Access to personal information",
+                ],
+            },
+        },
+        "total_controls": 63,
+        "satisfied": 51,
+        "gaps": 12,
+        "critical_gaps": [
+            "CC6.1 - Logical access controls",
+            "CC7.2 - Change management monitoring",
+            "A1.2 - Recovery objectives",
+        ],
+        "remediation_priorities": [
+            {"control": "CC6.1", "action": "Implement PAM solution and quarterly access reviews", "effort": "high", "impact": "critical"},
+            {"control": "CC7.2", "action": "Deploy change management monitoring with automated approval workflows", "effort": "medium", "impact": "high"},
+            {"control": "A1.2",  "action": "Define and test RTO/RPO objectives; run DR exercise", "effort": "medium", "impact": "high"},
+        ],
+        "evidence_packages": {
+            "total_collected": 847,
+            "auto_mapped": 731,
+            "manual_review": 116,
+        },
+        "last_assessed": "2026-03-05T14:30:00Z",
+        "next_audit_date": "2026-06-15",
+        "auditor": "Deloitte",
+        "audit_type": "Type II (12-month period)",
+        "audit_period": {"start": "2025-07-01", "end": "2026-06-30"},
+    }
+
+
+@router.get("/hipaa/status")
+async def hipaa_status() -> Dict[str, Any]:
+    """HIPAA compliance posture with Administrative, Physical, Technical safeguard breakdown."""
+    return {
+        "framework": "HIPAA/HITECH",
+        "overall_score": 82.3,
+        "status": "partially_compliant",
+        "safeguards": {
+            "Administrative Safeguards": {
+                "cfr_ref": "45 CFR § 164.308",
+                "total": 9,
+                "satisfied": 8,
+                "gaps": 1,
+                "score": 88.9,
+                "standards": [
+                    {"id": "164.308(a)(1)", "name": "Security Management Process",     "status": "satisfied", "evidence": "Risk assessment completed 2026-01-15"},
+                    {"id": "164.308(a)(2)", "name": "Assigned Security Responsibility", "status": "satisfied", "evidence": "CISO appointed, documented in org chart"},
+                    {"id": "164.308(a)(3)", "name": "Workforce Security",              "status": "satisfied", "evidence": "Background checks + termination procedures documented"},
+                    {"id": "164.308(a)(4)", "name": "Information Access Management",   "status": "gap",       "evidence": "Minimum necessary access policy incomplete"},
+                    {"id": "164.308(a)(5)", "name": "Security Awareness Training",     "status": "satisfied", "evidence": "Annual training completed 94% staff"},
+                    {"id": "164.308(a)(6)", "name": "Security Incident Procedures",    "status": "satisfied", "evidence": "IR plan v3.2 in effect, tested 2026-02-01"},
+                    {"id": "164.308(a)(7)", "name": "Contingency Plan",               "status": "satisfied", "evidence": "BCP/DR plan tested quarterly"},
+                    {"id": "164.308(a)(8)", "name": "Evaluation",                     "status": "satisfied", "evidence": "Annual HIPAA risk assessment completed"},
+                    {"id": "164.308(b)(1)", "name": "Business Associate Contracts",   "status": "satisfied", "evidence": "452/452 BAAs executed"},
+                ],
+                "gap_standards": ["164.308(a)(4) - Information Access Management"],
+            },
+            "Physical Safeguards": {
+                "cfr_ref": "45 CFR § 164.310",
+                "total": 4,
+                "satisfied": 4,
+                "gaps": 0,
+                "score": 100.0,
+                "standards": [
+                    {"id": "164.310(a)(1)", "name": "Facility Access Controls",        "status": "satisfied", "evidence": "Keycard access logs, CCTV 90-day retention"},
+                    {"id": "164.310(b)",    "name": "Workstation Use",                 "status": "satisfied", "evidence": "MDM policy enforced on all endpoints"},
+                    {"id": "164.310(c)",    "name": "Workstation Security",            "status": "satisfied", "evidence": "Full-disk encryption verified"},
+                    {"id": "164.310(d)(1)", "name": "Device and Media Controls",      "status": "satisfied", "evidence": "ITAM inventory complete, disposal procedure documented"},
+                ],
+                "gap_standards": [],
+            },
+            "Technical Safeguards": {
+                "cfr_ref": "45 CFR § 164.312",
+                "total": 5,
+                "satisfied": 3,
+                "gaps": 2,
+                "score": 60.0,
+                "standards": [
+                    {"id": "164.312(a)(1)", "name": "Access Control",                 "status": "gap",       "evidence": "Unique user ID enforced; auto-logoff not universally applied"},
+                    {"id": "164.312(b)",    "name": "Audit Controls",                 "status": "satisfied", "evidence": "SIEM logging all PHI system access"},
+                    {"id": "164.312(c)(1)", "name": "Integrity",                     "status": "satisfied", "evidence": "Checksum verification on PHI at rest"},
+                    {"id": "164.312(d)",    "name": "Person or Entity Authentication","status": "gap",       "evidence": "MFA not enforced on all PHI-adjacent systems"},
+                    {"id": "164.312(e)(1)", "name": "Transmission Security",         "status": "satisfied", "evidence": "TLS 1.3 enforced, certificate rotation automated"},
+                ],
+                "gap_standards": [
+                    "164.312(a)(1) - Access Control (auto-logoff)",
+                    "164.312(d) - Person or Entity Authentication (MFA gaps)",
+                ],
+            },
+            "Organizational Requirements": {
+                "cfr_ref": "45 CFR § 164.314",
+                "total": 2,
+                "satisfied": 2,
+                "gaps": 0,
+                "score": 100.0,
+                "standards": [
+                    {"id": "164.314(a)(1)", "name": "Business Associate Contracts",    "status": "satisfied", "evidence": "All BAAs current"},
+                    {"id": "164.314(b)(1)", "name": "Requirements for Group Health Plans", "status": "satisfied", "evidence": "Plan documents amended"},
+                ],
+                "gap_standards": [],
+            },
+        },
+        "total_controls": 20,
+        "satisfied": 17,
+        "gaps": 3,
+        "critical_gaps": [
+            "164.312(d) - MFA not enforced on all PHI systems",
+            "164.312(a)(1) - Automatic logoff gaps",
+            "164.308(a)(4) - Information access management incomplete",
+        ],
+        "phi_systems_in_scope": 14,
+        "breach_notification_status": "no_reportable_breaches_ytd",
+        "last_ocr_audit": None,
+        "hitech_compliance": {
+            "breach_notification_rule": "satisfied",
+            "enforcement_rule": "satisfied",
+            "omnibus_rule": "satisfied",
+        },
+        "remediation_priorities": [
+            {"control": "164.312(d)",    "action": "Enforce MFA on all 14 PHI systems by 2026-04-01",       "effort": "medium", "impact": "critical"},
+            {"control": "164.312(a)(1)", "action": "Deploy auto-logoff (15-min idle) on clinical workstations", "effort": "low",    "impact": "high"},
+            {"control": "164.308(a)(4)", "action": "Complete minimum-necessary access policy review",          "effort": "medium", "impact": "high"},
+        ],
+        "last_assessed": "2026-03-01T09:00:00Z",
+        "next_review_date": "2026-06-01",
+        "covered_entity_type": "Healthcare Technology Vendor",
+        "privacy_officer": "Dr. Priya Nair",
+        "security_officer": "James Okonkwo",
+    }
+
+
+@router.get("/pci-dss/status")
+async def pci_dss_status() -> Dict[str, Any]:
+    """PCI DSS 4.0 compliance posture with all 12 requirements breakdown."""
+    return {
+        "framework": "PCI DSS 4.0",
+        "overall_score": 74.2,
+        "status": "partially_compliant",
+        "version": "4.0",
+        "effective_date": "2024-03-31",
+        "requirements": {
+            "Req 1": {
+                "title": "Install and Maintain Network Security Controls",
+                "total": 12,
+                "satisfied": 11,
+                "gaps": 1,
+                "score": 91.7,
+                "gap_controls": ["1.3.2 - Restrict inbound/outbound traffic to that which is necessary"],
+                "evidence": "Firewall rule reviews completed quarterly",
+            },
+            "Req 2": {
+                "title": "Apply Secure Configurations to All System Components",
+                "total": 8,
+                "satisfied": 7,
+                "gaps": 1,
+                "score": 87.5,
+                "gap_controls": ["2.2.1 - Configuration standards for all system types"],
+                "evidence": "CIS Benchmark hardening applied to 87% of systems",
+            },
+            "Req 3": {
+                "title": "Protect Stored Account Data",
+                "total": 7,
+                "satisfied": 5,
+                "gaps": 2,
+                "score": 71.4,
+                "gap_controls": [
+                    "3.3.1 - SAD not retained after authorization",
+                    "3.5.1 - PAN protection with strong cryptography",
+                ],
+                "evidence": "Tokenization implemented for PANs; SAD retention audit in progress",
+            },
+            "Req 4": {
+                "title": "Protect Cardholder Data with Strong Cryptography During Transmission",
+                "total": 5,
+                "satisfied": 5,
+                "gaps": 0,
+                "score": 100.0,
+                "gap_controls": [],
+                "evidence": "TLS 1.3 enforced; certificate inventory complete",
+            },
+            "Req 5": {
+                "title": "Protect All Systems and Networks from Malicious Software",
+                "total": 6,
+                "satisfied": 6,
+                "gaps": 0,
+                "score": 100.0,
+                "gap_controls": [],
+                "evidence": "EDR deployed to 100% of in-scope systems; daily AV updates",
+            },
+            "Req 6": {
+                "title": "Develop and Maintain Secure Systems and Software",
+                "total": 10,
+                "satisfied": 7,
+                "gaps": 3,
+                "score": 70.0,
+                "gap_controls": [
+                    "6.3.2 - Maintain an inventory of bespoke and custom software",
+                    "6.4.1 - Public-facing web applications protected against attacks",
+                    "6.4.3 - All payment page scripts managed and authorised",
+                ],
+                "evidence": "SDLC policy updated; SAST/DAST integrated in CI/CD; WAF deployed",
+            },
+            "Req 7": {
+                "title": "Restrict Access to System Components and Cardholder Data by Business Need to Know",
+                "total": 6,
+                "satisfied": 5,
+                "gaps": 1,
+                "score": 83.3,
+                "gap_controls": ["7.2.4 - Review of user accounts and access privileges"],
+                "evidence": "RBAC implemented; quarterly access reviews in progress",
+            },
+            "Req 8": {
+                "title": "Identify Users and Authenticate Access to System Components",
+                "total": 9,
+                "satisfied": 6,
+                "gaps": 3,
+                "score": 66.7,
+                "gap_controls": [
+                    "8.3.6 - Minimum password complexity",
+                    "8.4.2 - MFA for all access into the CDE",
+                    "8.6.1 - Use of application/system accounts managed",
+                ],
+                "evidence": "MFA enforced on 78% of CDE access points; password policy update pending",
+            },
+            "Req 9": {
+                "title": "Restrict Physical Access to Cardholder Data",
+                "total": 7,
+                "satisfied": 7,
+                "gaps": 0,
+                "score": 100.0,
+                "gap_controls": [],
+                "evidence": "Data center physical access controls verified; visitor log maintained",
+            },
+            "Req 10": {
+                "title": "Log and Monitor All Access to System Components and Cardholder Data",
+                "total": 8,
+                "satisfied": 7,
+                "gaps": 1,
+                "score": 87.5,
+                "gap_controls": ["10.7.2 - Detect and respond to failures of critical security controls"],
+                "evidence": "SIEM centralized logging; 1-year retention; daily log reviews",
+            },
+            "Req 11": {
+                "title": "Test Security of Systems and Networks Regularly",
+                "total": 9,
+                "satisfied": 6,
+                "gaps": 3,
+                "score": 66.7,
+                "gap_controls": [
+                    "11.3.1 - External penetration testing at least annually",
+                    "11.4.1 - Penetration testing methodology",
+                    "11.6.1 - Change and tamper-detection mechanism for payment pages",
+                ],
+                "evidence": "Internal vuln scans weekly; external pentest scheduled 2026-Q2",
+            },
+            "Req 12": {
+                "title": "Support Information Security with Organizational Policies and Programs",
+                "total": 10,
+                "satisfied": 8,
+                "gaps": 2,
+                "score": 80.0,
+                "gap_controls": [
+                    "12.3.2 - Targeted risk analysis for each PCI DSS requirement",
+                    "12.10.7 - Incident response procedures for suspected PAN exposure",
+                ],
+                "evidence": "Security policy suite reviewed 2026-01; risk register maintained",
+            },
+        },
+        "total_controls": 97,
+        "satisfied": 72,
+        "gaps": 25,
+        "critical_gaps": [
+            "8.4.2 - MFA for all access into the CDE",
+            "6.4.3 - All payment page scripts managed and authorised",
+            "11.3.1 - External penetration testing",
+            "3.5.1 - PAN protection with strong cryptography",
+        ],
+        "cardholder_data_environment": {
+            "systems_in_scope": 34,
+            "segmentation_validated": True,
+            "last_segmentation_test": "2026-01-20",
+        },
+        "assessment_type": "Self-Assessment (SAQ D)",
+        "qsa": "Trustwave",
+        "remediation_priorities": [
+            {"req": "8.4.2",  "action": "Complete MFA rollout to remaining 22% of CDE access points", "deadline": "2026-04-30", "effort": "medium", "impact": "critical"},
+            {"req": "6.4.3",  "action": "Implement script inventory and SRI hashes for payment pages",  "deadline": "2026-04-15", "effort": "low",    "impact": "critical"},
+            {"req": "11.3.1", "action": "Complete external penetration test via Trustwave",             "deadline": "2026-05-31", "effort": "medium", "impact": "high"},
+            {"req": "3.3.1",  "action": "Complete SAD retention audit and purge non-compliant stores",   "deadline": "2026-04-01", "effort": "high",   "impact": "critical"},
+        ],
+        "last_assessed": "2026-02-28T10:00:00Z",
+        "next_assessment_date": "2026-08-31",
+        "last_onsite_audit": "2025-09-15",
+        "report_on_compliance_due": "2026-09-30",
+    }

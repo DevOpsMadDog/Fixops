@@ -1,0 +1,81 @@
+{
+  "slsaVersion": "1.0",
+  "builder": {
+    "id": "https://ci.aldeci.io/pipelines/secure-build/v2@slsa-l3",
+    "version": {
+      "runner": "aldeci-hermetic-runner-v2"
+    },
+    "builderDependencies": []
+  },
+  "buildType": "https://aldeci.io/build-types/secure-pipeline/v1",
+  "source": {
+    "uri": "git+https://github.com/ALdeci/brain-pipeline@refs/tags/v1.9.4",
+    "digest": {
+      "sha1": "b2d4f6a8c0e2f4a6b8d0e2f4a6b8c0d2"
+    }
+  },
+  "metadata": {
+    "buildStartedOn": "2026-02-28T06:00:00Z",
+    "buildFinishedOn": "2026-02-28T06:22:07Z",
+    "reproducible": true,
+    "buildInvocationId": "aldeci-ci-pipeline-run-4421-job-secure-build",
+    "completeness": {
+      "parameters": true,
+      "environment": true,
+      "materials": true
+    },
+    "slsaLevel": 4,
+    "environment": {
+      "deployEnv": "production",
+      "isolatedBuild": true,
+      "ephemeralEnv": true
+    },
+    "configSource": {
+      "uri": "git+https://github.com/ALdeci/brain-pipeline@refs/tags/v1.9.4",
+      "digest": {
+        "sha1": "b2d4f6a8c0e2f4a6b8d0e2f4a6b8c0d2"
+      },
+      "entryPoint": ".github/workflows/build.yml"
+    }
+  },
+  "subject": [
+    {
+      "name": "brain-pipeline",
+      "digest": {
+        "sha256": "9f3a7b1c5d9e3a7b1c5d9e3a7b1c5d9e3a7b1c5d9e3a7b1c5d9e3a7b1c5d9e3a"
+      }
+    }
+  ],
+  "materials": [
+    {
+      "uri": "git+https://github.com/ALdeci/brain-pipeline@refs/tags/v1.9.4",
+      "digest": {
+        "sha1": "b2d4f6a8c0e2f4a6b8d0e2f4a6b8c0d2"
+      }
+    },
+    {
+      "uri": "pkg:pypi/torch@2.1.2",
+      "digest": {
+        "sha256": "77cd34ef56ab78cd34ef56ab78cd34ef56ab78cd34ef56ab78cd34ef56ab78cd34"
+      }
+    },
+    {
+      "uri": "pkg:pypi/transformers@4.37.2",
+      "digest": {
+        "sha256": "88ef56ab78cd12ef56ab78cd12ef56ab78cd12ef56ab78cd12ef56ab78cd12ef56"
+      }
+    },
+    {
+      "uri": "pkg:pypi/fastapi@0.109.0",
+      "digest": {
+        "sha256": "99ab78cd12ef34ab78cd12ef34ab78cd12ef34ab78cd12ef34ab78cd12ef34ab78"
+      }
+    },
+    {
+      "uri": "ghcr.io/aldeci/base-python:3.11-slim",
+      "digest": {
+        "sha256": "aabb12cd34ef56aabb12cd34ef56aabb12cd34ef56aabb12cd34ef56aabb12cd34"
+      }
+    }
+  ]
+}

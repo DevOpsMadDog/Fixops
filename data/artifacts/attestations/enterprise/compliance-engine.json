@@ -1,0 +1,75 @@
+{
+  "slsaVersion": "1.0",
+  "builder": {
+    "id": "https://ci.aldeci.io/pipelines/secure-build/v2@slsa-l3",
+    "version": {
+      "runner": "aldeci-hermetic-runner-v2"
+    },
+    "builderDependencies": []
+  },
+  "buildType": "https://aldeci.io/build-types/secure-pipeline/v1",
+  "source": {
+    "uri": "git+https://github.com/ALdeci/compliance-engine@refs/tags/v2.3.1",
+    "digest": {
+      "sha1": "7c9e1f3a5b7d9e1f3a5b7d9e1f3a5b7d"
+    }
+  },
+  "metadata": {
+    "buildStartedOn": "2026-02-24T08:00:00Z",
+    "buildFinishedOn": "2026-02-24T08:09:54Z",
+    "reproducible": true,
+    "buildInvocationId": "aldeci-ci-pipeline-run-4289-job-secure-build",
+    "completeness": {
+      "parameters": true,
+      "environment": true,
+      "materials": true
+    },
+    "slsaLevel": 4,
+    "environment": {
+      "deployEnv": "production",
+      "isolatedBuild": true,
+      "ephemeralEnv": true
+    },
+    "configSource": {
+      "uri": "git+https://github.com/ALdeci/compliance-engine@refs/tags/v2.3.1",
+      "digest": {
+        "sha1": "7c9e1f3a5b7d9e1f3a5b7d9e1f3a5b7d"
+      },
+      "entryPoint": ".github/workflows/build.yml"
+    }
+  },
+  "subject": [
+    {
+      "name": "compliance-engine",
+      "digest": {
+        "sha256": "1a5c9e3b7f2d6a0e4c8b2f6a0e4c8b2f6a0e4c8b2f6a0e4c8b2f6a0e4c8b2f6a"
+      }
+    }
+  ],
+  "materials": [
+    {
+      "uri": "git+https://github.com/ALdeci/compliance-engine@refs/tags/v2.3.1",
+      "digest": {
+        "sha1": "7c9e1f3a5b7d9e1f3a5b7d9e1f3a5b7d"
+      }
+    },
+    {
+      "uri": "pkg:maven/io.aldeci/compliance-core@2.3.1",
+      "digest": {
+        "sha256": "cd56ef12ab34cd56ef12ab34cd56ef12ab34cd56ef12ab34cd56ef12ab34cd56"
+      }
+    },
+    {
+      "uri": "pkg:maven/org.springframework.boot/spring-boot-starter@3.2.0",
+      "digest": {
+        "sha256": "bbcd12ef34ab56cd12ef34ab56cd12ef34ab56cd12ef34ab56cd12ef34ab56cd12"
+      }
+    },
+    {
+      "uri": "ghcr.io/aldeci/base-jre:21-slim",
+      "digest": {
+        "sha256": "ccde34ab56cd78de34ab56cd78de34ab56cd78de34ab56cd78de34ab56cd78de34"
+      }
+    }
+  ]
+}

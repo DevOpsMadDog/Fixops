@@ -7,7 +7,33 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Mapping, Optional
 
-from apps.api.normalizers import CVERecordSummary, NormalizedCVEFeed
+try:
+    from apps.api.normalizers import CVERecordSummary, NormalizedCVEFeed
+except ImportError:
+    try:
+        from api.normalizers import CVERecordSummary, NormalizedCVEFeed
+    except ImportError:
+        # Fallback: define minimal compatible types
+        from dataclasses import dataclass
+        from typing import Optional, List
+
+        @dataclass
+        class CVERecordSummary:
+            cve_id: str = ""
+            description: str = ""
+            severity: str = ""
+            cvss_score: float = 0.0
+            published: str = ""
+
+        @dataclass
+        class NormalizedCVEFeed:
+            records: List[CVERecordSummary] = None
+            source: str = ""
+            updated_at: str = ""
+
+            def __post_init__(self):
+                if self.records is None:
+                    self.records = []
 
 logger = logging.getLogger(__name__)
 

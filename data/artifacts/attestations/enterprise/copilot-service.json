@@ -1,0 +1,81 @@
+{
+  "slsaVersion": "1.0",
+  "builder": {
+    "id": "https://github.com/ALdeci/Fixops/actions/workflows/build.yml@refs/heads/main",
+    "version": {
+      "runner": "ubuntu-22.04"
+    },
+    "builderDependencies": []
+  },
+  "buildType": "https://slsa.dev/container-based-build/v0.1",
+  "source": {
+    "uri": "git+https://github.com/ALdeci/copilot-service@refs/tags/v1.3.7",
+    "digest": {
+      "sha1": "5b7d9e1f3a5b7d9e1f3a5b7d9e1f3a5b"
+    }
+  },
+  "metadata": {
+    "buildStartedOn": "2026-02-03T09:00:00Z",
+    "buildFinishedOn": "2026-02-03T09:16:05Z",
+    "reproducible": true,
+    "buildInvocationId": "gh-actions-run-14588-job-58901",
+    "completeness": {
+      "parameters": true,
+      "environment": true,
+      "materials": true
+    },
+    "slsaLevel": 3,
+    "environment": {
+      "deployEnv": "production",
+      "isolatedBuild": true,
+      "ephemeralEnv": true
+    },
+    "configSource": {
+      "uri": "git+https://github.com/ALdeci/copilot-service@refs/tags/v1.3.7",
+      "digest": {
+        "sha1": "5b7d9e1f3a5b7d9e1f3a5b7d9e1f3a5b"
+      },
+      "entryPoint": ".github/workflows/build.yml"
+    }
+  },
+  "subject": [
+    {
+      "name": "copilot-service",
+      "digest": {
+        "sha256": "f0b4d8a2e6f0b4d8a2e6f0b4d8a2e6f0b4d8a2e6f0b4d8a2e6f0b4d8a2e6f0b4"
+      }
+    }
+  ],
+  "materials": [
+    {
+      "uri": "git+https://github.com/ALdeci/copilot-service@refs/tags/v1.3.7",
+      "digest": {
+        "sha1": "5b7d9e1f3a5b7d9e1f3a5b7d9e1f3a5b"
+      }
+    },
+    {
+      "uri": "pkg:npm/openai@4.24.7",
+      "digest": {
+        "sha256": "4455cd12ef34ab4455cd12ef34ab4455cd12ef34ab4455cd12ef34ab4455cd12ef"
+      }
+    },
+    {
+      "uri": "pkg:npm/lodash@4.17.21",
+      "digest": {
+        "sha256": "12ef34ab56cd12ef34ab56cd12ef34ab56cd12ef34ab56cd12ef34ab56cd12ef"
+      }
+    },
+    {
+      "uri": "pkg:npm/express@4.18.2",
+      "digest": {
+        "sha256": "22ab34cd56ef78ab34cd56ef78ab34cd56ef78ab34cd56ef78ab34cd56ef78ab34"
+      }
+    },
+    {
+      "uri": "ghcr.io/aldeci/base-node:18.20-alpine",
+      "digest": {
+        "sha256": "44cd56ef78ab12cd56ef78ab12cd56ef78ab12cd56ef78ab12cd56ef78ab12cd56"
+      }
+    }
+  ]
+}

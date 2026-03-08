@@ -106,6 +106,8 @@ class MLDSAEngine:
             raise MLDSAError(f"Invalid security level: {security_level}. Use 2, 3, or 5.")
         self.security_level = security_level
         self._sizes = self._KEY_SIZES[security_level]
+        self.algorithm_name = self._sizes["name"]
+        self.keypair = None  # Set after keygen
         self._backend = self._detect_backend()
 
     def _detect_backend(self) -> str:
@@ -129,11 +131,17 @@ class MLDSAEngine:
     def keygen(self, key_id: Optional[str] = None) -> MLDSAKeyPair:
         """Generate ML-DSA key pair."""
         if self._backend == "dilithium-py":
-            return self._keygen_dilithium(key_id)
+            kp = self._keygen_dilithium(key_id)
         elif self._backend == "liboqs":
-            return self._keygen_oqs(key_id)
+            kp = self._keygen_oqs(key_id)
         else:
-            return self._keygen_simplified(key_id)
+            kp = self._keygen_simplified(key_id)
+        self.keypair = kp
+        return kp
+
+    def generate_keypair(self, key_id: Optional[str] = None) -> MLDSAKeyPair:
+        """Alias for keygen() — used by quantum_crypto_router."""
+        return self.keygen(key_id)
 
     def _keygen_simplified(self, key_id: Optional[str] = None) -> MLDSAKeyPair:
         """Simplified key generation using CSPRNG."""
@@ -464,6 +472,16 @@ class HybridQuantumSigner:
             f"{'ML-DSA-' + str(security_level * 22) if self.quantum_enabled else 'DISABLED'} "
             f"(backend: {self._mldsa._backend if self._mldsa else 'N/A'})"
         )
+
+    @property
+    def mldsa(self):
+        """Public accessor for ML-DSA engine."""
+        return self._mldsa
+
+    @property
+    def mldsa_keypair(self):
+        """Public accessor for ML-DSA keypair."""
+        return self._mldsa_keypair
 
     def _load_or_generate_quantum_keys(self) -> None:
         """Load existing ML-DSA keys or generate new ones."""

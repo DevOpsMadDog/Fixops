@@ -114,7 +114,7 @@ docker exec -it <container> /app/scripts/fixops-interactive.sh
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `FIXOPS_API_URL` | `http://localhost:8000` | API server URL |
-| `FIXOPS_API_TOKEN` | `demo-token-12345` | API authentication token |
+| `FIXOPS_API_TOKEN` | `your-enterprise-api-key-here` | API authentication token |
 | `FIXOPS_MODE` | `demo` | Operating mode (demo/enterprise) |
 | `START_API_SERVER` | `true` | Whether to start API server |
 

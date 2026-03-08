@@ -1,0 +1,81 @@
+{
+  "slsaVersion": "1.0",
+  "builder": {
+    "id": "https://ci.aldeci.io/pipelines/secure-build/v2@slsa-l3",
+    "version": {
+      "runner": "aldeci-hermetic-runner-v2"
+    },
+    "builderDependencies": []
+  },
+  "buildType": "https://aldeci.io/build-types/secure-pipeline/v1",
+  "source": {
+    "uri": "git+https://github.com/ALdeci/nerve-center@refs/tags/v5.1.0",
+    "digest": {
+      "sha1": "8a0c2e4f6b8a0c2e4f6b8a0c2e4f6b8a"
+    }
+  },
+  "metadata": {
+    "buildStartedOn": "2026-01-30T11:00:00Z",
+    "buildFinishedOn": "2026-01-30T11:25:38Z",
+    "reproducible": true,
+    "buildInvocationId": "aldeci-ci-pipeline-run-3872-job-secure-build",
+    "completeness": {
+      "parameters": true,
+      "environment": true,
+      "materials": true
+    },
+    "slsaLevel": 4,
+    "environment": {
+      "deployEnv": "production",
+      "isolatedBuild": true,
+      "ephemeralEnv": true
+    },
+    "configSource": {
+      "uri": "git+https://github.com/ALdeci/nerve-center@refs/tags/v5.1.0",
+      "digest": {
+        "sha1": "8a0c2e4f6b8a0c2e4f6b8a0c2e4f6b8a"
+      },
+      "entryPoint": ".github/workflows/build.yml"
+    }
+  },
+  "subject": [
+    {
+      "name": "nerve-center",
+      "digest": {
+        "sha256": "a1c5e9b3f7a1c5e9b3f7a1c5e9b3f7a1c5e9b3f7a1c5e9b3f7a1c5e9b3f7a1c5"
+      }
+    }
+  ],
+  "materials": [
+    {
+      "uri": "git+https://github.com/ALdeci/nerve-center@refs/tags/v5.1.0",
+      "digest": {
+        "sha1": "8a0c2e4f6b8a0c2e4f6b8a0c2e4f6b8a"
+      }
+    },
+    {
+      "uri": "pkg:golang/github.com/aldeci/nerve-core@v5.1.0",
+      "digest": {
+        "sha256": "ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12"
+      }
+    },
+    {
+      "uri": "pkg:golang/google.golang.org/grpc@v1.60.1",
+      "digest": {
+        "sha256": "5566ef34ab56cd5566ef34ab56cd5566ef34ab56cd5566ef34ab56cd5566ef34ab"
+      }
+    },
+    {
+      "uri": "pkg:golang/github.com/prometheus/client_golang@v1.18.0",
+      "digest": {
+        "sha256": "6677ab56cd78ef6677ab56cd78ef6677ab56cd78ef6677ab56cd78ef6677ab56cd"
+      }
+    },
+    {
+      "uri": "ghcr.io/aldeci/base-go:1.21-alpine",
+      "digest": {
+        "sha256": "66ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12cd34ef56ab12"
+      }
+    }
+  ]
+}

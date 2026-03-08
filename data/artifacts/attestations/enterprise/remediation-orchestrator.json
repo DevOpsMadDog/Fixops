@@ -1,0 +1,75 @@
+{
+  "slsaVersion": "1.0",
+  "builder": {
+    "id": "https://ci.aldeci.io/pipelines/secure-build/v2@slsa-l3",
+    "version": {
+      "runner": "aldeci-hermetic-runner-v2"
+    },
+    "builderDependencies": []
+  },
+  "buildType": "https://aldeci.io/build-types/secure-pipeline/v1",
+  "source": {
+    "uri": "git+https://github.com/ALdeci/remediation-orchestrator@refs/tags/v2.8.3",
+    "digest": {
+      "sha1": "c0e2f4a6b8c0e2f4a6b8c0e2f4a6b8c0"
+    }
+  },
+  "metadata": {
+    "buildStartedOn": "2026-02-06T16:00:00Z",
+    "buildFinishedOn": "2026-02-06T16:08:49Z",
+    "reproducible": true,
+    "buildInvocationId": "aldeci-ci-pipeline-run-3987-job-secure-build",
+    "completeness": {
+      "parameters": true,
+      "environment": true,
+      "materials": true
+    },
+    "slsaLevel": 3,
+    "environment": {
+      "deployEnv": "production",
+      "isolatedBuild": true,
+      "ephemeralEnv": true
+    },
+    "configSource": {
+      "uri": "git+https://github.com/ALdeci/remediation-orchestrator@refs/tags/v2.8.3",
+      "digest": {
+        "sha1": "c0e2f4a6b8c0e2f4a6b8c0e2f4a6b8c0"
+      },
+      "entryPoint": ".github/workflows/build.yml"
+    }
+  },
+  "subject": [
+    {
+      "name": "remediation-orchestrator",
+      "digest": {
+        "sha256": "e9a3c5d7b1e9a3c5d7b1e9a3c5d7b1e9a3c5d7b1e9a3c5d7b1e9a3c5d7b1e9a3"
+      }
+    }
+  ],
+  "materials": [
+    {
+      "uri": "git+https://github.com/ALdeci/remediation-orchestrator@refs/tags/v2.8.3",
+      "digest": {
+        "sha1": "c0e2f4a6b8c0e2f4a6b8c0e2f4a6b8c0"
+      }
+    },
+    {
+      "uri": "pkg:pypi/celery@5.3.6",
+      "digest": {
+        "sha256": "3344ab78cd12ef3344ab78cd12ef3344ab78cd12ef3344ab78cd12ef3344ab78cd"
+      }
+    },
+    {
+      "uri": "pkg:pypi/redis@5.0.1",
+      "digest": {
+        "sha256": "ef90ab12cd34ef90ab12cd34ef90ab12cd34ef90ab12cd34ef90ab12cd34ef90"
+      }
+    },
+    {
+      "uri": "ghcr.io/aldeci/base-python:3.11-slim",
+      "digest": {
+        "sha256": "aabb12cd34ef56aabb12cd34ef56aabb12cd34ef56aabb12cd34ef56aabb12cd34"
+      }
+    }
+  ]
+}

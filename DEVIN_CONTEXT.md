@@ -362,7 +362,7 @@ Step 12: SOC2 Evidence Pack      → Generate compliance evidence bundles
 cd /path/to/Fixops
 export PYTHONPATH=".:suite-api:suite-core:suite-attack:suite-feeds:suite-evidence-risk:suite-integrations"
 export FIXOPS_MODE=demo              # or "enterprise"
-export FIXOPS_API_TOKEN=demo-token-12345
+export FIXOPS_API_TOKEN=your-enterprise-api-key-here
 uvicorn apps.api.app:app --host 0.0.0.0 --port 8000 --reload
 ```
 
@@ -381,7 +381,7 @@ The Vite config proxies `/api/*`, `/health`, `/evidence`, `/graph`, `/inputs` �
 ```bash
 # Terminal 1 — Backend
 PYTHONPATH=".:suite-api:suite-core:suite-attack:suite-feeds:suite-evidence-risk:suite-integrations" \
-FIXOPS_MODE=demo FIXOPS_API_TOKEN=demo-token-12345 \
+FIXOPS_MODE=demo FIXOPS_API_TOKEN=your-enterprise-api-key-here \
 uvicorn apps.api.app:app --host 0.0.0.0 --port 8000
 
 # Terminal 2 — Frontend
@@ -397,7 +397,7 @@ Open http://localhost:3001 in browser.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `FIXOPS_MODE` | `enterprise` | Operating mode: `demo` or `enterprise` |
-| `FIXOPS_API_TOKEN` | `demo-token-12345` | API authentication token (for `strategy: token`) |
+| `FIXOPS_API_TOKEN` | `your-enterprise-api-key-here` | API authentication token (for `strategy: token`) |
 | `FIXOPS_JWT_SECRET` | auto-generated | JWT signing secret (**required in enterprise mode**) |
 | `FIXOPS_JWT_EXP_MINUTES` | `120` | JWT token expiry in minutes |
 | `FIXOPS_DATA_DIR` | `.fixops_data` | Base directory for persistent data files |

@@ -98,7 +98,7 @@ That's it. Everything else has safe defaults for **demo mode**.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `FIXOPS_MODE` | `demo` | `demo` or `enterprise`. Controls auth strictness, feature flags |
-| `FIXOPS_API_TOKEN` | `demo-token-12345` | API key for `X-API-Key` header auth |
+| `FIXOPS_API_TOKEN` | `your-enterprise-api-key-here` | API key for `X-API-Key` header auth |
 | `FIXOPS_JWT_SECRET` | auto-generated | JWT signing secret. Required in enterprise mode |
 | `FIXOPS_JWT_EXP_MINUTES` | `120` | JWT token expiry |
 | `FIXOPS_VERSION` | `0.1.0` | Reported version string |
@@ -288,7 +288,7 @@ if my_new_router is not None:
     app.include_router(my_new_router)
 ```
 
-5. **Test**: `curl http://localhost:8000/api/my-feature/items -H "X-API-Key: demo-token-12345"`
+5. **Test**: `curl http://localhost:8000/api/my-feature/items -H "X-API-Key: your-enterprise-api-key-here"`
 
 ### Add a new threat intel feed
 
@@ -441,13 +441,13 @@ logger.info("event_name", key="value", count=42)
 curl http://localhost:8000/health
 
 # Test an endpoint with auth
-curl -H "X-API-Key: demo-token-12345" http://localhost:8000/api/findings
+curl -H "X-API-Key: your-enterprise-api-key-here" http://localhost:8000/api/findings
 
 # Swagger UI (interactive testing)
 open http://localhost:8000/docs
 
 # Verbose mode — see all request/response headers
-curl -v -H "X-API-Key: demo-token-12345" http://localhost:8000/api/dashboard/summary
+curl -v -H "X-API-Key: your-enterprise-api-key-here" http://localhost:8000/api/dashboard/summary
 ```
 
 ### Database inspection

@@ -420,3 +420,181 @@ def get_global_metrics() -> Dict[str, Any]:
     """Get global remediation metrics (CLI-compatible endpoint)."""
     service = get_remediation_service()
     return service.get_metrics("default", None)
+
+
+# ---------------------------------------------------------------------------
+# Sprint-aware security backlog
+# ---------------------------------------------------------------------------
+
+# Estimated effort hours by severity (aligned with SLA urgency)
+_EFFORT_HOURS: Dict[str, int] = {
+    "critical": 4,
+    "high": 8,
+    "medium": 16,
+    "low": 24,
+}
+
+# Active (non-terminal) statuses eligible for sprint planning
+_BACKLOG_STATUSES = {"open", "assigned", "in_progress", "verification"}
+
+
+def _compute_sla_status(task: Dict[str, Any]) -> str:
+    """Derive SLA status for a backlog item.
+
+    Returns one of: 'overdue', 'at_risk' (< 20% SLA time remaining), 'on_track'.
+    """
+    from datetime import datetime, timezone
+
+    if task.get("is_overdue"):
+        return "overdue"
+
+    due_at_raw = task.get("due_at")
+    sla_hours = task.get("sla_hours") or 168
+    if not due_at_raw:
+        return "on_track"
+
+    due_at = datetime.fromisoformat(due_at_raw)
+    if due_at.tzinfo is None:
+        due_at = due_at.replace(tzinfo=timezone.utc)
+
+    now = datetime.now(timezone.utc)
+    remaining_hours = (due_at - now).total_seconds() / 3600
+    threshold_hours = sla_hours * 0.20  # at-risk when < 20% SLA time remains
+
+    if remaining_hours <= threshold_hours:
+        return "at_risk"
+    return "on_track"
+
+
+def _to_backlog_item(task: Dict[str, Any]) -> Dict[str, Any]:
+    """Convert a raw task row into a sprint-backlog item."""
+    severity = (task.get("severity") or "medium").lower()
+    status = (task.get("status") or "open").lower()
+    sla_status = _compute_sla_status(task)
+
+    # sprint_eligible: active, not overdue, and ready for assignment
+    sprint_eligible = (
+        status in {"open", "assigned", "in_progress"}
+        and sla_status != "overdue"
+    )
+
+    # Normalise the SLA deadline field name for the API response
+    sla_deadline = task.get("due_at")
+
+    # Extract finding_id from metadata if present
+    metadata = task.get("metadata")
+    if isinstance(metadata, str):
+        import json as _json
+        try:
+            metadata = _json.loads(metadata)
+        except Exception:
+            metadata = {}
+    finding_id = (metadata or {}).get("finding_id") or task.get("task_id")
+
+    return {
+        "task_id": task.get("task_id"),
+        "title": task.get("title"),
+        "severity": severity,
+        "status": status,
+        "sprint_eligible": sprint_eligible,
+        "estimated_effort_hours": _EFFORT_HOURS.get(severity, 16),
+        "assignee": task.get("assignee"),
+        "finding_id": finding_id,
+        "sla_deadline": sla_deadline,
+        "sla_status": sla_status,
+        "created_at": task.get("created_at"),
+    }
+
+
+@router.get("/backlog")
+def get_remediation_backlog(
+    org_id: str = Depends(get_org_id),
+    severity: Optional[str] = Query(default=None, description="Filter by severity: critical|high|medium|low"),
+    sprint: Optional[str] = Query(default=None, description="'current' returns only sprint-eligible tasks"),
+    assignee: Optional[str] = Query(default=None, description="Filter by assignee; 'unassigned' returns tasks with no assignee"),
+    limit: int = Query(default=50, le=500),
+) -> Dict[str, Any]:
+    """Return the sprint-aware security remediation backlog.
+
+    Query parameters:
+    - **severity**: Filter by severity level (critical, high, medium, low)
+    - **sprint**: Pass ``current`` to return only sprint-eligible (open/active, non-overdue) tasks
+    - **assignee**: Filter by assignee username; use ``unassigned`` to return tasks with no assignee
+    - **limit**: Maximum number of items to return (default 50, max 500)
+    """
+    service = get_remediation_service()
+
+    # Resolve assignee filter
+    assignee_filter: Optional[str] = None
+    unassigned_only = False
+    if assignee is not None:
+        if assignee.lower() == "unassigned":
+            unassigned_only = True
+        else:
+            assignee_filter = assignee
+
+    # Fetch all active (non-terminal) tasks for this org, honouring severity
+    # and assignee filters where the service supports them natively.
+    raw_tasks = service.get_tasks(
+        org_id=org_id,
+        severity=severity,
+        assignee=assignee_filter,
+        limit=limit * 4,  # over-fetch to allow for post-filter trimming
+        offset=0,
+    )
+
+    # Build backlog items
+    backlog = []
+    for task in raw_tasks:
+        status = (task.get("status") or "").lower()
+        # Exclude terminal statuses from the backlog
+        if status not in _BACKLOG_STATUSES:
+            continue
+
+        item = _to_backlog_item(task)
+
+        # Apply unassigned filter post-fetch
+        if unassigned_only and item["assignee"] is not None:
+            continue
+
+        # Apply sprint=current filter: keep only sprint-eligible items
+        if sprint and sprint.lower() == "current" and not item["sprint_eligible"]:
+            continue
+
+        backlog.append(item)
+
+        if len(backlog) >= limit:
+            break
+
+    # Aggregate statistics
+    by_severity: Dict[str, int] = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+    by_status: Dict[str, int] = {"open": 0, "in_progress": 0, "resolved": 0}
+    sprint_ready = 0
+    overdue = 0
+
+    for item in backlog:
+        sev = item["severity"]
+        if sev in by_severity:
+            by_severity[sev] += 1
+
+        st = item["status"]
+        if st == "open" or st == "assigned":
+            by_status["open"] += 1
+        elif st == "in_progress" or st == "verification":
+            by_status["in_progress"] += 1
+        elif st == "resolved":
+            by_status["resolved"] += 1
+
+        if item["sprint_eligible"]:
+            sprint_ready += 1
+        if item["sla_status"] == "overdue":
+            overdue += 1
+
+    return {
+        "backlog": backlog,
+        "total": len(backlog),
+        "by_severity": by_severity,
+        "by_status": by_status,
+        "sprint_ready": sprint_ready,
+        "overdue": overdue,
+    }

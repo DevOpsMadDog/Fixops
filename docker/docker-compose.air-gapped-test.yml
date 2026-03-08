@@ -35,8 +35,8 @@ services:
     ports:
       - "${FIXOPS_PORT:-8000}:8000"
     environment:
-      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-airgap-test-token}
-      - FIXOPS_JWT_SECRET=${FIXOPS_JWT_SECRET:-airgap-jwt-secret}
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:?FIXOPS_API_TOKEN must be set}
+      - FIXOPS_JWT_SECRET=${FIXOPS_JWT_SECRET:?FIXOPS_JWT_SECRET must be set}
       - FIXOPS_MODE=enterprise
       - FIXOPS_DISABLE_TELEMETRY=1
       - FIXOPS_DISABLE_RATE_LIMIT=1
@@ -76,7 +76,7 @@ services:
       aldeci-airgapped:
         condition: service_healthy
     environment:
-      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:-airgap-test-token}
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:?FIXOPS_API_TOKEN must be set}
       - FIXOPS_BASE_URL=http://aldeci-airgapped:8000
     entrypoint: ["bash", "-c"]
     command:

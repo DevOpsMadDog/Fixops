@@ -90,7 +90,7 @@ class Control:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "control_id": self.control_id,
-            "framework": self.framework.value,
+            "framework": self.framework.value if hasattr(self.framework, 'value') else str(self.framework),
             "title": self.title,
             "description": self.description,
             "category": self.category,
@@ -121,7 +121,7 @@ class ControlAssessment:
         return {
             "assessment_id": self.assessment_id,
             "control_id": self.control_id,
-            "framework": self.framework.value,
+            "framework": self.framework.value if hasattr(self.framework, 'value') else str(self.framework),
             "status": self.status.value,
             "evidence_count": self.evidence_count,
             "findings_count": self.findings_count,
@@ -151,7 +151,7 @@ class CompliancePosture:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "framework": self.framework.value,
+            "framework": self.framework.value if hasattr(self.framework, 'value') else str(self.framework),
             "total_controls": self.total_controls,
             "satisfied": self.satisfied,
             "partially_satisfied": self.partially_satisfied,

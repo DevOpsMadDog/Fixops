@@ -31,8 +31,8 @@ python -m uvicorn apps.api.app:create_app --factory --port 8000
 ### Step 2: Authenticate
 
 ```bash
-# Set your API key (use demo token for testing)
-export FIXOPS_API_TOKEN="demo-token-12345"
+# Set your API key
+export FIXOPS_API_TOKEN="your-enterprise-api-key-here"
 
 # Verify the server is running
 curl -s http://localhost:8000/health | python3 -m json.tool

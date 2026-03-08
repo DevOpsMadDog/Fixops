@@ -312,12 +312,21 @@ def run_step_by_step(base_url: str, token: str, quick: bool = False):
 
 
 def main():
+    import os
     parser = argparse.ArgumentParser(description="ALdeci Self-Learning Feedback Loop Demo")
     parser.add_argument("--base-url", default="http://localhost:8000", help="API base URL")
-    parser.add_argument("--token", default="test-api-key", help="API key for auth")
+    parser.add_argument("--token", default=None, help="API key for auth (overrides FIXOPS_API_TOKEN env var)")
     parser.add_argument("--full-loop", action="store_true", help="Use all-in-one endpoint")
     parser.add_argument("--quick", action="store_true", help="Quick mode (fewer records)")
     args = parser.parse_args()
+
+    # Resolve token: CLI flag > env var > error
+    if args.token is None:
+        args.token = os.environ.get("FIXOPS_API_TOKEN", "")
+    if not args.token:
+        print("ERROR: FIXOPS_API_TOKEN environment variable must be set (or pass --token).")
+        print("  export FIXOPS_API_TOKEN=your-enterprise-api-key-here")
+        sys.exit(1)
 
     banner()
     info(f"Target: {args.base_url}")

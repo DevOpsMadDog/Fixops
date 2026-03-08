@@ -99,7 +99,7 @@ npm run dev  # → http://localhost:3001
 ```
 
 ### Environment Variables
-- `FIXOPS_API_TOKEN` — API key for authenticated endpoints (default: `demo-token-12345`)
+- `FIXOPS_API_TOKEN` — API key for authenticated endpoints (set to your enterprise API key; no default)
 - `FIXOPS_MODE` — `enterprise` or `demo`
 - `FIXOPS_DISABLE_TELEMETRY` — set to `1` to disable
 - `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_AI_API_KEY` — for LLM providers
