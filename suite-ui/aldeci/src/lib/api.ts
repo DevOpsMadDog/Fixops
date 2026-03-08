@@ -1338,6 +1338,84 @@ export const cnappConnectorsApi = {
 // ---------------------------------------------------------------------------
 // FAIL Engine API — Evidence-based risk scoring
 // ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
+// Self-Learning Engine API (V8 — 5 Feedback Loops)
+// ═══════════════════════════════════════════════════════════════════════════
+export const selfLearningApi = {
+  // Status & health
+  status: () =>
+    api.get('/api/v1/self-learning/status').then(r => r.data),
+  health: () =>
+    api.get('/api/v1/self-learning/health').then(r => r.data),
+  stats: () =>
+    api.get('/api/v1/self-learning/stats').then(r => r.data),
+
+  // Feedback submission (5 loops)
+  feedbackDecision: (data: {
+    decision_id: string; finding_id: string;
+    predicted_action: string; actual_outcome: string;
+    confidence?: number; context?: Record<string, unknown>;
+  }) => api.post('/api/v1/self-learning/feedback/decision', data).then(r => r.data),
+
+  feedbackMpte: (data: {
+    finding_id: string; predicted_exploitable: boolean;
+    actual_exploitable: boolean; mpte_confidence?: number;
+    context?: Record<string, unknown>;
+  }) => api.post('/api/v1/self-learning/feedback/mpte', data).then(r => r.data),
+
+  feedbackFalsePositive: (data: {
+    finding_id: string; scanner: string; rule_id: string;
+    is_false_positive: boolean; context?: Record<string, unknown>;
+  }) => api.post('/api/v1/self-learning/feedback/false-positive', data).then(r => r.data),
+
+  feedbackRemediation: (data: {
+    finding_id: string; fix_type: string; fix_applied: string;
+    resolved: boolean; time_to_fix_hours?: number;
+    context?: Record<string, unknown>;
+  }) => api.post('/api/v1/self-learning/feedback/remediation', data).then(r => r.data),
+
+  feedbackPolicy: (data: {
+    policy_id: string; rule_id: string;
+    violated: boolean; was_justified: boolean;
+    context?: Record<string, unknown>;
+  }) => api.post('/api/v1/self-learning/feedback/policy', data).then(r => r.data),
+
+  // Analysis
+  analyze: (days = 90) =>
+    api.get('/api/v1/self-learning/analyze', { params: { days } }).then(r => r.data),
+  analyzeLoop: (loop: string, days = 90) =>
+    api.get(`/api/v1/self-learning/analyze/${loop}`, { params: { days } }).then(r => r.data),
+  insights: () =>
+    api.get('/api/v1/self-learning/insights').then(r => r.data),
+  suppressedRules: () =>
+    api.get('/api/v1/self-learning/suppressed-rules').then(r => r.data),
+
+  // Scoring
+  scoreWithLearning: (data: {
+    cvss_score?: number; epss_score?: number; in_kev?: boolean;
+    asset_criticality?: number; scanner?: string;
+    rule_id?: string; fix_type?: string;
+  }) => api.post('/api/v1/self-learning/score-with-learning', data).then(r => r.data),
+
+  // Learning
+  computeAdjustments: () =>
+    api.post('/api/v1/self-learning/compute-adjustments').then(r => r.data),
+  getWeights: () =>
+    api.get('/api/v1/self-learning/weights').then(r => r.data),
+  setWeight: (key: string, value: number) =>
+    api.put(`/api/v1/self-learning/weights/${key}`, { value }).then(r => r.data),
+  metricsTrends: (days = 30) =>
+    api.get('/api/v1/self-learning/metrics/trends', { params: { days } }).then(r => r.data),
+
+  // Demo
+  seedDemo: () =>
+    api.post('/api/v1/self-learning/demo/seed').then(r => r.data),
+  resetDemo: () =>
+    api.post('/api/v1/self-learning/demo/reset').then(r => r.data),
+  fullLoop: () =>
+    api.get('/api/v1/self-learning/demo/full-loop').then(r => r.data),
+}
+
 export const failApi = {
   score: (data: Record<string, unknown>) =>
     api.post('/api/v1/fail/score', data).then(r => r.data),

@@ -222,13 +222,16 @@ class MCPGatewayClient:
         return self._post("/api/v1/mcp-protocol/jsonrpc", msg.to_dict())
 
     def run_brain_pipeline(self, org_id: str, findings: List[Dict[str, Any]],
-                           assets: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+                           assets: Optional[List[Dict[str, Any]]] = None,
+                           generate_evidence: bool = False) -> Dict[str, Any]:
         """Execute the Brain Pipeline via MCP tool execution."""
         return self.execute_tool("run_pipeline", {
             "org_id": org_id,
             "findings": findings,
             "assets": assets or [],
             "source": "mcp-agent",
+            "generate_evidence": generate_evidence,
+            "evidence_framework": "SOC2",
         })
 
 
@@ -336,13 +339,16 @@ class MCPGatewayInProcessClient:
         return resp.json()
 
     def run_brain_pipeline(self, org_id: str, findings: List[Dict[str, Any]],
-                           assets: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+                           assets: Optional[List[Dict[str, Any]]] = None,
+                           generate_evidence: bool = False) -> Dict[str, Any]:
         """Execute Brain Pipeline via MCP."""
         return self.execute_tool("run_pipeline", {
             "org_id": org_id,
             "findings": findings,
             "assets": assets or [],
             "source": "mcp-agent",
+            "generate_evidence": generate_evidence,
+            "evidence_framework": "SOC2",
         })
 
 
@@ -703,6 +709,7 @@ def run_demo(client, json_output: bool = False) -> DemoResult:
         org_id="acme-corp",
         findings=[f for f in DEMO_FINDINGS],
         assets=DEMO_ASSETS,
+        generate_evidence=True,
     )
 
     step_ms = (time.monotonic() - step_start) * 1000
@@ -989,6 +996,14 @@ def run_demo(client, json_output: bool = False) -> DemoResult:
 
     # ── Finalize ──────────────────────────────────────────────────────
     demo.total_duration_ms = (time.monotonic() - demo_start) * 1000
+
+    # Check if evidence was generated (Step 12 of pipeline)
+    if isinstance(pipeline_data, dict):
+        steps = pipeline_data.get("steps", [])
+        for s in steps:
+            if s.get("name") == "generate_evidence" and s.get("status") == "completed":
+                demo.evidence_generated = True
+
     demo.success = (
         demo.total_tools_discovered > 0
         and demo.scan_executed

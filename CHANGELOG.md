@@ -76,12 +76,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Connectors API expanded** — 8 endpoints documented (was 4) with register, test, types, and ticket creation [V1]
 - **Suite-level breakdown corrected** — suite-api (238), suite-core (253), suite-attack (106), suite-feeds (31), suite-evidence-risk (56), suite-integrations (59), sandbox (8), logs (5), @app (25) [V7]
 
+### Added — Post-Demo (2026-03-07)
+- **API Reference v5.0** — Post-demo endpoint audit: 784 verified endpoints (was 781). 3 new endpoints: Brain `/trends`, MCP Protocol `/stats`, Self-Learning `/stats`. Suite-core 253→256. Validation section corrected. 41+ curl examples [V3][V5][V7][V10]
+- **Brain Pipeline trends endpoint** — `GET /api/v1/brain/trends` for finding and risk trend analysis over time [V3]
+- **MCP Protocol statistics** — `GET /api/v1/mcp-protocol/stats` for protocol usage statistics [V7]
+- **Self-Learning statistics** — `GET /api/v1/self-learning/stats` for feedback loop usage and learning metrics [V8]
+
 ### Changed
-- **README hero section** — Updated to CTEM+ Decision Intelligence Platform positioning with 8 native scanners, 25+ parsers, 781 endpoints [V3]
-- **API endpoint count** — Updated from 780 to 781 endpoints via full grep audit. Corrected suite-level breakdown [V7]
+- **README hero section** — Updated to CTEM+ Decision Intelligence Platform positioning with 8 native scanners, 25+ parsers, 784 endpoints [V3]
+- **API endpoint count** — Updated from 781 to 784 endpoints via full grep audit. Suite-core 253→256. Corrected suite-level breakdown [V7]
 - **Scanner parser count** — Updated from 10 to 25 normalizers (ZAP, Burp, Nessus, Qualys, Checkmarx, Fortify, Veracode, Snyk, SonarQube, Semgrep, Trivy, Grype, Dependabot, Bandit, ESLint, Anchore, Aqua, Prisma Cloud, AWS Inspector, Nuclei, GitLeaks, TruffleHog, Hadolint, Tfsec, Checkov) [V7]
-- **Architecture doc** — Updated LOC counts, added security hardening details, verified 781 routes [V3]
-- **All docs** — Updated endpoint count references from 780→781 across INVESTOR_BRIEF.md, USER_GUIDE.md, ARCHITECTURE.md [V7]
+- **Architecture doc** — Updated LOC counts, added security hardening details, verified 784 routes [V3]
+- **All docs** — Updated endpoint count references from 781→784 across README.md, API_REFERENCE.md [V7]
+- **Validation router documentation** — Corrected section 8.12 to match actual endpoints (/input, /batch, /supported-formats) instead of stale endpoints (sarif, sbom, cve, vex) [V7]
 
 ### Fixed
 - **SQL injection in scan parameters** — Input validation added on all API endpoints [V10]
@@ -91,7 +98,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Brain Pipeline thread safety** — Added proper locking for concurrent requests [V3]
 
 ### Security
-- **Input validation** — All 781 endpoints use Pydantic v2 validation
+- **Input validation** — All 784 endpoints use Pydantic v2 validation
 - **XXE prevention** — XML external entity parsing disabled on scanner ingest [V10]
 - **SSRF protection** — URL validation on DAST/MPTE/micro-pentest target parameters [V5]
 - **Shell injection prevention** — Command escaping on all subprocess calls [V10]

@@ -1202,36 +1202,11 @@ hallucination_layer1_vision_alignment() {
   local vision_guard=""
   vision_guard+="
 
-━━━ HALLUCINATION PREVENTION LAYER 1: VISION ALIGNMENT ━━━━━━━━━━━━━━━━━
-
-CRITICAL VISION CONSTRAINTS — VIOLATION = AUTOMATIC REJECTION:
-
-1. CORE PILLARS (MUST BUILD): V3 (Decision Intelligence), V5 (MPTE Verification), V7 (MCP-Native AI Platform)
-   - Every artifact you produce MUST advance at least one of V3, V5, or V7
-   - Tag every section of your output with the pillar it serves: [V3], [V5], or [V7]
-
-2. DESIGN CONSTRAINTS (MUST RESPECT, DO NOT BUILD NEW): V1 (APP_ID-Centric), V2 (10-Phase Lifecycle), V9 (Air-Gapped), V10 (CTEM Full Loop with Crypto)
-   - Follow these as architectural constraints, but do NOT build new features for them this sprint
-
-3. DEFERRED PILLARS (DO NOT BUILD): V4 (Multi-LLM Consensus), V6 (Quantum-Secure Evidence), V8 (Self-Learning)
-   - You may PLAN or DOCUMENT these, but DO NOT write production code for V4, V6, or V8
-   - If you find yourself implementing quantum crypto, multi-LLM voting, or feedback loops — STOP
-
-4. ZERO-HALLUCINATION MANDATE:
-   - Never fabricate test results, metrics, or coverage numbers
-   - Never claim a file exists unless you verified it with ls/cat/find
-   - Never output placeholder code (return {}, TODO, NotImplementedError, pass # stub)
-   - Every API endpoint MUST return real computed data — not hardcoded JSON
-   - Every function body MUST have real logic — not pass or raise NotImplementedError
-
-5. EVIDENCE REQUIREMENT:
-   - For every claim you make, cite the file path and line number
-   - For every metric you report, show the command that generated it
-   - For every test result, include the actual pytest/jest output
-
-YOUR OUTPUT WILL BE MACHINE-VALIDATED AGAINST THESE RULES. VIOLATIONS = REJECTION + RETRY.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+GUARDRAILS:
+- CORE PILLARS to build: V3 (Decision Intelligence), V5 (MPTE), V7 (MCP)
+- DO NOT BUILD: V4 (Multi-LLM), V6 (Quantum), V8 (Self-Learning) — these are deferred
+- ZERO FAKES: No hardcoded JSON, no pass/TODO/NotImplementedError, no fabricated metrics
+- EVIDENCE: Cite file paths for claims, show pytest output for test results
 "
 
   echo "${original_prompt}${vision_guard}"
@@ -4218,20 +4193,12 @@ Ship 3 UI screens: Triage Dashboard, MPTE Verification View, Evidence Export."$'
   fi
 
   # ━━━ 8. ACTIVE DEBATES (agents must respond — only if they exist) ━━━━━
-  if $needs_debates; then
-  local debate_count=0
-  local debate_content=""
-  for debate_file in "$DEBATE_DIR"/active/*.md; do
-    [[ -f "$debate_file" ]] || continue
-    debate_count=$((debate_count + 1))
-    debate_content+="### $(basename "$debate_file"):"$'\n'
-    debate_content+="$(head -20 "$debate_file")"$'\n\n'
-  done
-  if [[ $debate_count -gt 0 ]]; then
-    scp+="## ACTIVE DEBATES (${debate_count} — respond if you're a reviewer):"$'\n'
-    scp+="$debate_content"
-  fi
-  fi  # end needs_debates
+  # ━━━ 8. ACTIVE DEBATES (DISABLED — agents should code, not debate) ━━━
+  # Debates are read-only context. Agents no longer respond during build runs.
+  # To re-enable: uncomment the block below.
+  #if $needs_debates; then
+  #  ...
+  #fi
 
   # ━━━ 9. ITERATION CONTEXT (failure recovery) ━━━━━━━━━━━━━━━━━━━━━━━━━━
   if $needs_iteration_ctx && [[ $CURRENT_ITERATION -gt 1 ]]; then
@@ -4250,18 +4217,16 @@ Ship 3 UI screens: Triage Dashboard, MPTE Verification View, Evidence Export."$'
     scp+="## ITERATION 1 — Build real features, no stubs."$'\n\n'
   fi
 
-  # ━━━ 10. COORDINATION POINTER (not content — 300 bytes vs 9KB) ━━━━━━━━
-  scp+="## COORDINATION: Read .claude/team-state/coordination-notes.md ONLY if you need inter-agent data-flow contracts."$'\n\n'
+  # ━━━ 10. COORDINATION POINTER (only if they need inter-agent data) ━━━━
+  scp+="## COORDINATION: .claude/team-state/coordination-notes.md has inter-agent data contracts — read ONLY if you need another agent's output."$'\n\n'
 
   # ━━━ 11. RULES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   scp+="## RULES
-- After your run: UPDATE your -status.md, APPEND to decisions.log, UPDATE metrics.json.
-- Full files available in .claude/team-state/ — read them IF NEEDED, not preloaded.
-- Knowledge index: .claude/knowledge-index/ (SQLite DB + JSON digests).
-- CTEM+ identity: docs/CTEM_PLUS_IDENTITY.md (read if needed).
-- CEO Vision: docs/CEO_VISION.md (read if needed).
+- 90% of your turns = writing code, running tests, fixing bugs. 10% = reading context.
+- After your run: UPDATE your -status.md (files changed + LOC), APPEND to decisions.log.
+- NO stubs, NO hardcoded data, NO fake responses.
 - Imports: sitecustomize.py auto-prepends all suite paths.
-- UI work: suite-ui/aldeci-ui-new/ ONLY (aldeci/ is FROZEN)."$'\n\n'
+- If you read more than 5 files before writing code, you're doing it wrong."$'\n\n'
 
   echo "$scp"
 }
@@ -4433,53 +4398,42 @@ run_agent() {
     prompt=$(build_war_room_prompt "$agent_name")
     prompt+=$'\n\n'"$scp_context"
   else
-    prompt="CTEM+ SWARM MODE — JARVIS Autonomous Engine — Claude Opus 4.6 fast
-ITERATION ${CURRENT_ITERATION} of ${ITERATIONS} — $([ $CURRENT_ITERATION -gt 1 ] && echo 'FIX failures from previous iteration FIRST' || echo 'First pass — build real code, no stubs')
-AUTONOMY: FULL — You have bypassPermissions. NEVER ask for human approval. DECIDE and ACT.
-BUDGET: UNLIMITED — cost does not matter. Quality is the only metric.
-MAX TURNS: ${MAX_TURNS} — USE THEM ALL if needed. Go deep. Be thorough. Be superhuman.
+    prompt="CTEM+ SWARM — Claude Opus 4.6 fast — ITERATION ${CURRENT_ITERATION}/${ITERATIONS}
+$([ $CURRENT_ITERATION -gt 1 ] && echo 'FIX failures from previous iteration FIRST — read .claude/team-state/qa/iteration-*/failures.md' || echo 'First pass — build real code, no stubs')
+AUTONOMY: FULL — bypassPermissions enabled. NEVER ask for human approval.
+MAX TURNS: ${MAX_TURNS} — You have $(( timeout / 60 )) minutes. Date: ${DATE_TODAY}.
 
 ${scp_context}
 
-Execute your daily mission for ${DATE_TODAY}. You have $(( timeout / 60 )) minutes and ${MAX_TURNS} turns.
-USE EVERY TURN to maximize value. Do not stop early. Do not leave work undone.
+══════════════════════════════════════════════════════════════
+  YOUR TIME BUDGET: 90% CODING, 10% CONTEXT
+══════════════════════════════════════════════════════════════
 
-SUPERHUMAN PERFORMANCE STANDARD:
-- You are the BEST agent in the world at your role
-- Every line of code you write must be production-grade
-- Every decision you make must be justified and logged
-- Leave the codebase MEASURABLY better than you found it
-- If you finish your primary mission early, tackle secondary objectives from your agent .md
+PHASE 1 — CONTEXT (spend ≤10% of your turns here, then STOP reading and START coding):
+1. Read .claude/agents/${agent_name}.md — your identity and today's mission
+2. Skim sprint-board.json to know what's in-progress vs done
+3. Check .claude/team-state/coordination-notes*.md ONLY IF your mission needs input from another agent
+4. That's it. Do NOT read CEO_VISION, VISION_TO_ACCOMPLISH, or debate transcripts. The SCP context above has everything you need.
 
-MANDATORY — FOLLOW IN ORDER:
-1. Read your agent definition: .claude/agents/${agent_name}.md — this is YOUR identity and mission
-2. Read docs/CEO_VISION.md and docs/VISION_TO_ACCOMPLISH.MD
-3. Read the debate verdict: docs/VISION_DEBATE_TRANSCRIPT.md (Moderator Verdict section)
-4. Focus on CORE PILLARS: V3 (Decision Intelligence), V5 (MPTE), V7 (MCP)
+PHASE 2 — BUILD (spend ≥90% of your turns here — THIS IS YOUR JOB):
+5. Execute your mission from your agent .md — write code, fix bugs, create tests, harden APIs
+6. NO STUBS — every endpoint must return real computed data, not hardcoded values
+7. RUN TESTS after every change — python -m pytest tests/ -x --timeout=10 -q
+8. If tests fail, fix them before moving on — leave no broken code
+9. If you finish your primary mission early, tackle secondary objectives from your agent .md
+10. Focus on CORE PILLARS: V3 (Decision Intelligence), V5 (MPTE), V7 (MCP)
 
-STATE AWARENESS — .claude/team-state/ IS YOUR SHARED BRAIN:
-5. The SCP context above already contains your state, but you can READ MORE from .claude/team-state/ at any time
-6. Read .claude/team-state/coordination-notes.md to understand what other agents READ from you and what you READ from them
-7. Check sibling agent statuses in .claude/team-state/*-status.md — coordinate, don't duplicate
-8. Check .claude/team-state/debates/active/*.md — if you're a reviewer, RESPOND with your stance
-9. Read .claude/team-state/decisions.log — see what autonomous decisions other agents made
+PHASE 3 — LOG (spend ≤2 turns at the END — not during work):
+11. Write your status to .claude/team-state/${agent_name}-status.md — what you CHANGED (file paths + line counts), not what you read
+12. APPEND to .claude/team-state/decisions.log: [YYYY-MM-DD HH:MM] agent:${agent_name} DECISION: what / ACTION: what_you_did / RESULT: outcome
 
-OUTPUTS — EVERY RUN MUST PRODUCE:
-10. Produce ALL required artifacts per your agent definition and the coordination-notes.md data-flow
-11. Write your status to .claude/team-state/${agent_name}-status.md (with ✅/❌ and details)
-12. APPEND decisions to .claude/team-state/decisions.log (format: [YYYY-MM-DD HH:MM] agent:${agent_name} decision:WHAT action:WHAT_YOU_DID)
-13. UPDATE .claude/team-state/metrics.json if your work changes any metric (coverage, LOC, etc.)
-14. Append log entry to context_log.md
-15. Tag every output with the pillar it serves (V3/V5/V7 preferred)
-
-AUTONOMY RULES:
-16. If you detect issues, USE YOUR SELF-HEALING PROTOCOL (defined in your .md)
-17. If you need to decide, USE YOUR DECISION FRAMEWORK (defined in your .md)
-18. NO STUBS — every endpoint must return real computed data, not hardcoded values
-19. If iteration >1, read .claude/team-state/qa/iteration-*/failures.md and FIX those first
-20. NEVER ask for human input. Decide. Act. Log. Move on.
-21. RUN TESTS after making changes — verify your work compiles and tests pass
-22. If you break something, FIX IT before moving on — leave no messes"
+KEY RULES:
+- Measure output by FILES CHANGED, not documents read
+- Do NOT write metrics.json, context_log.md, or pillar tags — that's overhead, not work
+- Do NOT participate in debates during build runs — code now, discuss later
+- If you detect issues in other agents' code, FIX them directly instead of reporting
+- Imports: sitecustomize.py auto-prepends all suite paths
+- UI work: suite-ui/aldeci/ is the active UI directory"
   fi
 
   # ━━━ LAYER 1: Pre-Execution Vision Alignment — inject hallucination guardrails ━━━
@@ -4664,6 +4618,51 @@ EOF
     printf '%s' "$prompt" > "$prompt_file"
     log "[DEBUG] Launching subshell for $agent_name (attempt $attempt, timeout=${timeout}s, turns=${MAX_TURNS})..."
     log "[DEBUG] run_cmd='$run_cmd' prompt_file='$prompt_file' log_file='$log_file'"
+
+    # ── Per-Agent Claude CLI Skill Config ──────────────────────────────────
+    # Restrict tools by role: builders get full access, non-builders are limited
+    local agent_tools="" agent_effort="high"
+    case "$agent_name" in
+      backend-hardener|frontend-craftsman|threat-architect|devops-engineer)
+        # Builders: all tools, high effort
+        agent_tools="Read,Write,Edit,Bash,Grep,Glob"
+        agent_effort="high"
+        ;;
+      qa-engineer|security-analyst)
+        # Validators: all tools (need Bash for tests), high effort
+        agent_tools="Read,Write,Edit,Bash,Grep,Glob"
+        agent_effort="high"
+        ;;
+      context-engineer|scrum-master|agent-doctor)
+        # Coordinators: read + write status only, no code editing
+        agent_tools="Read,Write,Bash,Grep,Glob"
+        agent_effort="medium"
+        ;;
+      vision-agent|marketing-head|technical-writer|sales-engineer)
+        # Non-coders: read-only + write docs, no Bash execution
+        agent_tools="Read,Write,Grep,Glob"
+        agent_effort="medium"
+        ;;
+      ai-researcher|data-scientist|enterprise-architect)
+        # Researchers: read + analyze, can write proposals but limited Bash
+        agent_tools="Read,Write,Edit,Bash,Grep,Glob"
+        agent_effort="high"
+        ;;
+      *)
+        # Default: full access
+        agent_tools="Read,Write,Edit,Bash,Grep,Glob"
+        agent_effort="high"
+        ;;
+    esac
+
+    # Build extra CLI flags
+    local extra_flags=""
+    [[ -n "$agent_tools" ]] && extra_flags+=" --tools $agent_tools"
+    [[ -n "$agent_effort" ]] && extra_flags+=" --effort $agent_effort"
+
+    # System-level coding directive (separate from agent identity prompt)
+    local coding_directive="You are running in SWARM BUILD MODE. Your output is measured by FILES CHANGED and TESTS PASSING, not by documents read or status reports written. Spend 90% of your turns writing code and running tests. Spend at most 10% reading context. After coding, update your status file and decisions log. Do not read CEO_VISION.md, VISION_TO_ACCOMPLISH.MD, or debate transcripts — the SCP context in your prompt already has what you need."
+
     (
       unset CLAUDECODE CLAUDE_CODE_ENTRYPOINT  # Allow nested invocation
       # Apply per-agent memory ceiling (ulimit -v) inside the subshell
@@ -4680,6 +4679,8 @@ EOF
              --print --output-format text --verbose \
              --dangerously-skip-permissions \
              --max-turns "$MAX_TURNS" \
+             --append-system-prompt "$coding_directive" \
+             $extra_flags \
       > "$log_file" 2>&1
     )
     local exit_code=$?

@@ -106,6 +106,7 @@ const workflowSpaces: NavSection[] = [
       { id: 'predictions', label: 'Risk Predictions', icon: TrendingUp, path: '/ai-engine/predictions', pillar: 'V3' },
       { id: 'multi-llm', label: 'AI Consensus', icon: Cpu, path: '/ai-engine/multi-llm', badge: 'AI', pillar: 'V3' },
       { id: 'policy-engine', label: 'Policy Engine', icon: Scale, path: '/ai-engine/policy-engine', pillar: 'V3' },
+      { id: 'self-learning', label: 'Self-Learning Demo', icon: Zap, path: '/ai-engine/self-learning', badge: 'V8', pillar: 'V8' },
     ],
   },
   // ═══ SPACE 2: DISCOVER ═══

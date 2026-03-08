@@ -541,6 +541,396 @@ class GeminiProvider(BaseLLMProvider):
         return None
 
 
+class VLLMSelfHostedProvider(BaseLLMProvider):
+    """Adapter for self-hosted vLLM inference servers (OpenAI-compatible API).
+
+    Enables air-gapped operation of the Brain Pipeline and AutoFix engine
+    without any external API keys. Uses the OpenAI-compatible endpoint that
+    vLLM exposes (``/v1/chat/completions``).
+
+    Recommended models for security analysis:
+    - deepseek-ai/deepseek-coder-33b-instruct (code fixes)
+    - codellama/CodeLlama-34b-Instruct-hf (code analysis)
+    - meta-llama/Llama-3.1-70B-Instruct (general reasoning)
+
+    Environment variables:
+    - FIXOPS_VLLM_URL: vLLM endpoint (default: http://localhost:8001/v1)
+    - FIXOPS_VLLM_MODEL: Model name served by vLLM
+    - FIXOPS_VLLM_API_KEY: Optional API key for vLLM (some deployments require one)
+    """
+
+    def __init__(
+        self,
+        name: str,
+        *,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        api_key_envs: Sequence[str] | None = None,
+        timeout: float = 120.0,
+        focus: Sequence[str] | None = None,
+        style: str = "consensus",
+        max_tokens: int = 1024,
+        temperature: float = 0.0,
+    ) -> None:
+        super().__init__(name, style=style, focus=focus)
+        self.base_url = (
+            base_url
+            or os.getenv("FIXOPS_VLLM_URL", "http://localhost:8001/v1")
+        ).rstrip("/")
+        self.model = model or os.getenv(
+            "FIXOPS_VLLM_MODEL", "deepseek-ai/deepseek-coder-33b-instruct"
+        )
+        self.api_key_envs = list(
+            api_key_envs or ("FIXOPS_VLLM_API_KEY",)
+        )
+        self.timeout = timeout
+        self.max_tokens = max_tokens
+        self.temperature = temperature
+        self.api_key = self._resolve_api_key()
+        self._session = requests.Session()
+
+    def analyse(
+        self,
+        *,
+        prompt: str,
+        context: Mapping[str, Any],
+        default_action: str,
+        default_confidence: float,
+        default_reasoning: str,
+        mitigation_hints: Mapping[str, Any] | None = None,
+    ) -> LLMResponse:
+        """Send analysis request to self-hosted vLLM server.
+
+        vLLM exposes an OpenAI-compatible ``/v1/chat/completions`` endpoint,
+        so the payload format mirrors OpenAI exactly.
+        """
+        payload = {
+            "model": self.model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a security decision assistant running in air-gapped mode. "
+                        "Return JSON with keys: recommended_action, confidence, reasoning, "
+                        "mitre_techniques, compliance_concerns, attack_vectors."
+                    ),
+                },
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+        }
+        headers: Dict[str, str] = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
+        start = time.perf_counter()
+        try:
+            url = f"{self.base_url}/chat/completions"
+            response = self._session.post(
+                url, json=payload, headers=headers, timeout=self.timeout,
+            )
+            response.raise_for_status()
+            response_json = response.json()
+
+            if "choices" not in response_json or not response_json["choices"]:
+                raise ValueError("vLLM response missing choices")
+
+            content = response_json["choices"][0].get("message", {}).get("content", "")
+            if not content:
+                raise ValueError("vLLM response missing message content")
+
+            # Try to parse as JSON — vLLM models may return raw text
+            try:
+                parsed = json.loads(content)
+            except json.JSONDecodeError:
+                # Extract JSON from markdown code blocks or mixed text
+                json_match = _extract_json_from_text(content)
+                if json_match:
+                    parsed = json.loads(json_match)
+                else:
+                    # Model returned plain text — wrap into structured response
+                    parsed = {
+                        "recommended_action": default_action,
+                        "confidence": default_confidence,
+                        "reasoning": content[:2000],
+                    }
+        except requests.ConnectionError:
+            # vLLM server not running — this is expected in non-air-gapped setups
+            logger.info(
+                "vLLM provider %s: server not reachable at %s — using deterministic fallback",
+                self.name, self.base_url,
+            )
+            return super().analyse(
+                prompt=prompt,
+                context=context,
+                default_action=default_action,
+                default_confidence=default_confidence,
+                default_reasoning=default_reasoning,
+                mitigation_hints=mitigation_hints,
+            )
+        except requests.Timeout:
+            logger.warning("vLLM provider %s timed out after %.0fs", self.name, self.timeout)
+            metadata = {
+                "mode": "fallback",
+                "provider": self.name,
+                "error": f"Timeout after {self.timeout}s",
+                "model": self.model,
+                "error_type": "timeout",
+                "backend": "vllm",
+            }
+            return LLMResponse(
+                recommended_action=default_action,
+                confidence=default_confidence,
+                reasoning=f"{default_reasoning}\n[vLLM timeout]",
+                mitre_techniques=_ensure_list(
+                    (mitigation_hints or {}).get("mitre_candidates")
+                ),
+                compliance_concerns=_ensure_list(
+                    (mitigation_hints or {}).get("compliance")
+                ),
+                attack_vectors=_ensure_list(
+                    (mitigation_hints or {}).get("attack_vectors")
+                ),
+                metadata=metadata,
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "vLLM provider %s failed, falling back to deterministic: %s",
+                self.name, type(exc).__name__,
+            )
+            metadata = {
+                "mode": "fallback",
+                "provider": self.name,
+                "error": type(exc).__name__,
+                "model": self.model,
+                "error_type": type(exc).__name__,
+                "backend": "vllm",
+            }
+            return LLMResponse(
+                recommended_action=default_action,
+                confidence=default_confidence,
+                reasoning=f"{default_reasoning}\n[vLLM fallback: {type(exc).__name__}]",
+                mitre_techniques=_ensure_list(
+                    (mitigation_hints or {}).get("mitre_candidates")
+                ),
+                compliance_concerns=_ensure_list(
+                    (mitigation_hints or {}).get("compliance")
+                ),
+                attack_vectors=_ensure_list(
+                    (mitigation_hints or {}).get("attack_vectors")
+                ),
+                metadata=metadata,
+            )
+
+        duration = (time.perf_counter() - start) * 1000
+        return _response_from_payload(
+            parsed,
+            default_action=default_action,
+            default_confidence=default_confidence,
+            default_reasoning=default_reasoning,
+            mitigation_hints=mitigation_hints,
+            metadata={
+                "mode": "self-hosted",
+                "provider": self.name,
+                "model": self.model,
+                "duration_ms": round(duration, 2),
+                "backend": "vllm",
+                "air_gapped": True,
+            },
+        )
+
+    def is_available(self) -> bool:
+        """Check if the vLLM server is reachable."""
+        try:
+            url = f"{self.base_url}/models"
+            resp = self._session.get(url, timeout=5)
+            return resp.status_code == 200
+        except Exception:
+            return False
+
+    def model_info(self) -> Dict[str, Any]:
+        """Return metadata about the configured vLLM backend."""
+        return {
+            "backend": "vllm",
+            "url": self.base_url,
+            "model": self.model,
+            "cost": "$0/month (self-hosted)",
+            "air_gapped": True,
+            "available": self.is_available(),
+        }
+
+    def _resolve_api_key(self) -> Optional[str]:
+        for env_name in self.api_key_envs:
+            value = os.getenv(env_name)
+            if value:
+                token = value.strip()
+                if token:
+                    return token
+        return None
+
+
+class OllamaSelfHostedProvider(BaseLLMProvider):
+    """Adapter for self-hosted Ollama inference (air-gapped fallback).
+
+    Ollama provides a simpler deployment model than vLLM and supports
+    GGUF models. Used as fallback when vLLM is not available.
+
+    Environment variables:
+    - FIXOPS_OLLAMA_URL: Ollama endpoint (default: http://localhost:11434)
+    - FIXOPS_OLLAMA_MODEL: Model name (default: codellama:13b)
+    """
+
+    def __init__(
+        self,
+        name: str,
+        *,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        timeout: float = 120.0,
+        focus: Sequence[str] | None = None,
+        style: str = "consensus",
+    ) -> None:
+        super().__init__(name, style=style, focus=focus)
+        self.base_url = (
+            base_url
+            or os.getenv("FIXOPS_OLLAMA_URL", "http://localhost:11434")
+        ).rstrip("/")
+        self.model = model or os.getenv("FIXOPS_OLLAMA_MODEL", "codellama:13b")
+        self.timeout = timeout
+        self._session = requests.Session()
+
+    def analyse(
+        self,
+        *,
+        prompt: str,
+        context: Mapping[str, Any],
+        default_action: str,
+        default_confidence: float,
+        default_reasoning: str,
+        mitigation_hints: Mapping[str, Any] | None = None,
+    ) -> LLMResponse:
+        """Send analysis request to Ollama server."""
+        payload = {
+            "model": self.model,
+            "prompt": (
+                "You are a security decision assistant. Return JSON with keys: "
+                "recommended_action, confidence, reasoning, mitre_techniques, "
+                "compliance_concerns, attack_vectors.\n\n" + prompt
+            ),
+            "stream": False,
+            "options": {"temperature": 0},
+        }
+        start = time.perf_counter()
+        try:
+            url = f"{self.base_url}/api/generate"
+            response = self._session.post(
+                url, json=payload, timeout=self.timeout,
+            )
+            response.raise_for_status()
+            content = response.json().get("response", "")
+            if not content:
+                raise ValueError("Ollama response empty")
+
+            try:
+                parsed = json.loads(content)
+            except json.JSONDecodeError:
+                json_match = _extract_json_from_text(content)
+                if json_match:
+                    parsed = json.loads(json_match)
+                else:
+                    parsed = {
+                        "recommended_action": default_action,
+                        "confidence": default_confidence,
+                        "reasoning": content[:2000],
+                    }
+        except requests.ConnectionError:
+            logger.info(
+                "Ollama provider %s: server not reachable at %s — using deterministic fallback",
+                self.name, self.base_url,
+            )
+            return super().analyse(
+                prompt=prompt,
+                context=context,
+                default_action=default_action,
+                default_confidence=default_confidence,
+                default_reasoning=default_reasoning,
+                mitigation_hints=mitigation_hints,
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "Ollama provider %s failed: %s", self.name, type(exc).__name__,
+            )
+            return super().analyse(
+                prompt=prompt,
+                context=context,
+                default_action=default_action,
+                default_confidence=default_confidence,
+                default_reasoning=default_reasoning,
+                mitigation_hints=mitigation_hints,
+            )
+
+        duration = (time.perf_counter() - start) * 1000
+        return _response_from_payload(
+            parsed,
+            default_action=default_action,
+            default_confidence=default_confidence,
+            default_reasoning=default_reasoning,
+            mitigation_hints=mitigation_hints,
+            metadata={
+                "mode": "self-hosted",
+                "provider": self.name,
+                "model": self.model,
+                "duration_ms": round(duration, 2),
+                "backend": "ollama",
+                "air_gapped": True,
+            },
+        )
+
+    def is_available(self) -> bool:
+        """Check if Ollama server is reachable."""
+        try:
+            resp = self._session.get(f"{self.base_url}/api/tags", timeout=5)
+            return resp.status_code == 200
+        except Exception:
+            return False
+
+    def model_info(self) -> Dict[str, Any]:
+        return {
+            "backend": "ollama",
+            "url": self.base_url,
+            "model": self.model,
+            "cost": "$0/month (self-hosted)",
+            "air_gapped": True,
+        }
+
+
+def _extract_json_from_text(text: str) -> Optional[str]:
+    """Extract JSON object from text that may contain markdown code blocks or mixed content."""
+    import re
+
+    # Try markdown code blocks first: ```json ... ``` or ``` ... ```
+    code_block = re.search(r"```(?:json)?\s*\n?(.*?)\n?```", text, re.DOTALL)
+    if code_block:
+        candidate = code_block.group(1).strip()
+        if candidate.startswith("{"):
+            return candidate
+
+    # Try to find a raw JSON object in the text
+    brace_start = text.find("{")
+    if brace_start >= 0:
+        depth = 0
+        for i in range(brace_start, len(text)):
+            if text[i] == "{":
+                depth += 1
+            elif text[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    return text[brace_start : i + 1]
+
+    return None
+
+
 class SentinelCyberProvider(BaseLLMProvider):
     """Specialised fallback provider for domain-specific tuning."""
 
@@ -630,12 +1020,18 @@ class LLMProviderManager:
     """Manager class for LLM providers."""
 
     def __init__(self) -> None:
-        """Initialize the LLM provider manager with default providers."""
+        """Initialize the LLM provider manager with default providers.
+
+        Includes self-hosted providers (vLLM, Ollama) for air-gapped
+        deployments alongside cloud providers (OpenAI, Anthropic, Gemini).
+        """
         self.providers: Dict[str, BaseLLMProvider] = {
             "openai": OpenAIChatProvider("openai"),
             "anthropic": AnthropicMessagesProvider("anthropic"),
             "gemini": GeminiProvider("gemini"),
             "sentinel": SentinelCyberProvider("sentinel"),
+            "vllm": VLLMSelfHostedProvider("vllm"),
+            "ollama": OllamaSelfHostedProvider("ollama"),
         }
 
     def get_provider(self, name: str) -> BaseLLMProvider:
@@ -674,6 +1070,8 @@ __all__ = [
     "GeminiProvider",
     "LLMProviderManager",
     "LLMResponse",
+    "OllamaSelfHostedProvider",
     "OpenAIChatProvider",
     "SentinelCyberProvider",
+    "VLLMSelfHostedProvider",
 ]

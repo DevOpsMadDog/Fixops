@@ -347,6 +347,14 @@ try:
 except ImportError as e:
     _logger.warning("Knowledge Graph router not available: %s", e)
 
+vllm_router: Optional[APIRouter] = None
+try:
+    from api.vllm_router import router as vllm_router
+
+    _logger.info("Loaded vLLM Self-Hosted LLM router from suite-core (V9)")
+except ImportError as e:
+    _logger.warning("vLLM router not available: %s", e)
+
 mcp_protocol_router: Optional[APIRouter] = None
 try:
     from api.mcp_protocol_router import router as mcp_protocol_router
@@ -1281,6 +1289,7 @@ def create_app() -> FastAPI:
         (zero_gravity_router, "Zero-Gravity Data", None),
         (single_agent_router, "AI Agent", None),
         (knowledge_graph_router, "Knowledge Graph", None),
+        (vllm_router, "Self-Hosted LLM (Air-Gapped)", None),
         (mcp_protocol_router, "MCP Protocol", None),
         (self_learning_router, "Self-Learning", None),
     ]

@@ -106,6 +106,9 @@ const SandboxVerification = lazy(() => import('./pages/attack/SandboxVerificatio
 // Validate Space — FAIL Engine (V3/V5 Decision Intelligence)
 const FAILEngineDashboard = lazy(() => import('./pages/validate/FAILEngineDashboard'));
 
+// Self-Learning Demo (V8 — DEMO-012)
+const SelfLearningDemo = lazy(() => import('./pages/ai-engine/SelfLearningDemo'));
+
 // Mission Control — SLA Dashboard
 const SLADashboard = lazy(() => import('./pages/mission-control/SLADashboard'));
 
@@ -306,6 +309,10 @@ function AnimatedRoutes() {
 
             {/* Validate Space — FAIL Engine (V3/V5) */}
             <Route path="/validate/fail-engine" element={<FAILEngineDashboard />} />
+
+            {/* Self-Learning Demo (V8 — DEMO-012) */}
+            <Route path="/ai-engine/self-learning" element={<SelfLearningDemo />} />
+            <Route path="/demo/self-learning" element={<SelfLearningDemo />} />
 
             {/* Mission Control — SLA Dashboard */}
             <Route path="/mission-control/sla" element={<SLADashboard />} />

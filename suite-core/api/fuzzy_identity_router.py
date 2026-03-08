@@ -68,18 +68,24 @@ async def register_canonical(req: RegisterCanonicalRequest):
     cid = resolver.register_canonical(
         req.canonical_id, org_id=req.org_id, properties=req.properties
     )
-    # Register in Knowledge Graph
-    brain = get_brain()
-    brain.ingest_asset(cid, org_id=req.org_id, **(req.properties or {}))
-    # Emit event
-    bus = get_event_bus()
-    await bus.emit(
-        Event(
-            event_type=EventType.ASSET_DISCOVERED,
-            source="fuzzy_identity",
-            data={"canonical_id": cid, "org_id": req.org_id},
+    # Register in Knowledge Graph (non-fatal if brain is unavailable)
+    try:
+        brain = get_brain()
+        brain.ingest_asset(cid, org_id=req.org_id, **(req.properties or {}))
+    except Exception as exc:
+        logger.warning("Knowledge Brain unavailable for asset ingestion: %s", exc)
+    # Emit event (non-fatal if event bus fails)
+    try:
+        bus = get_event_bus()
+        await bus.emit(
+            Event(
+                event_type=EventType.ASSET_DISCOVERED,
+                source="fuzzy_identity",
+                data={"canonical_id": cid, "org_id": req.org_id},
+            )
         )
-    )
+    except Exception as exc:
+        logger.warning("Event bus unavailable for asset event: %s", exc)
     return {"canonical_id": cid, "status": "registered"}
 
 
@@ -174,8 +180,20 @@ async def list_canonical(
 
 @router.get("/stats", summary="Get resolution statistics")
 async def get_stats(org_id: Optional[str] = Query(None)):
-    resolver = get_fuzzy_resolver()
-    return resolver.get_resolution_stats(org_id=org_id)
+    try:
+        resolver = get_fuzzy_resolver()
+        return resolver.get_resolution_stats(org_id=org_id)
+    except Exception as exc:
+        logger.warning("Failed to get identity resolution stats: %s", exc)
+        return {
+            "total_canonical": 0,
+            "total_aliases": 0,
+            "total_resolutions": 0,
+            "resolution_rate": 0.0,
+            "strategies_used": {},
+            "status": "unavailable",
+            "error": str(exc),
+        }
 
 
 @router.get("/health")

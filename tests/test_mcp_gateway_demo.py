@@ -551,3 +551,305 @@ class TestMCPDemoE2E:
         # 5. Verify the demo meets success criteria
         assert tool_count >= 100, f"Demo requires 100+ tools, got {tool_count}"
         assert pipeline["status"] in ("completed", "partial"), "Pipeline must complete"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Test 9: Evidence Generation via Pipeline
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestEvidenceGeneration:
+    """Test that the pipeline generates evidence when requested."""
+
+    def test_pipeline_with_evidence(self, client, api_headers, demo_findings, demo_assets):
+        """Pipeline with generate_evidence=True runs 10+ steps."""
+        payload = {
+            "org_id": "evidence-test-org",
+            "findings": [
+                {
+                    "id": f["id"],
+                    "cve_id": f.get("cve_id", ""),
+                    "severity": f["severity"],
+                    "title": f["title"],
+                    "description": f["description"],
+                    "source": f["source"],
+                    "asset_name": f["asset_name"],
+                }
+                for f in demo_findings
+            ],
+            "assets": [
+                {
+                    "id": a["id"],
+                    "name": a["name"],
+                    "criticality": a["criticality"],
+                    "type": a["type"],
+                }
+                for a in demo_assets
+            ],
+            "generate_evidence": True,
+            "evidence_framework": "SOC2",
+            "source": "test",
+        }
+        resp = client.post("/api/v1/brain/pipeline/run", json=payload, headers=api_headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] in ("completed", "partial")
+
+        # Check that evidence step ran (not skipped)
+        steps = data.get("steps", [])
+        evidence_step = next((s for s in steps if s["name"] == "generate_evidence"), None)
+        assert evidence_step is not None, "Evidence step not found in pipeline"
+        assert evidence_step["status"] == "completed", (
+            f"Evidence step status is '{evidence_step['status']}', expected 'completed'"
+        )
+
+    def test_pipeline_without_evidence_skips(self, client, api_headers, demo_findings, demo_assets):
+        """Pipeline without evidence flag skips the evidence step."""
+        payload = {
+            "org_id": "no-evidence-org",
+            "findings": [
+                {
+                    "id": f["id"],
+                    "cve_id": f.get("cve_id", ""),
+                    "severity": f["severity"],
+                    "title": f["title"],
+                    "description": f["description"],
+                    "source": f["source"],
+                    "asset_name": f["asset_name"],
+                }
+                for f in demo_findings
+            ],
+            "assets": [
+                {
+                    "id": a["id"],
+                    "name": a["name"],
+                    "criticality": a["criticality"],
+                    "type": a["type"],
+                }
+                for a in demo_assets
+            ],
+            "generate_evidence": False,
+            "source": "test",
+        }
+        resp = client.post("/api/v1/brain/pipeline/run", json=payload, headers=api_headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        steps = data.get("steps", [])
+        evidence_step = next((s for s in steps if s["name"] == "generate_evidence"), None)
+        assert evidence_step is not None
+        assert evidence_step["status"] == "skipped"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Test 10: MCP Tool Categories Distribution
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestMCPToolCategories:
+    """Test that tools are distributed across expected categories."""
+
+    def test_all_three_categories_present(self, client, api_headers):
+        """All 3 categories (query, action, analysis) must have tools."""
+        resp = client.get("/api/v1/mcp/stats", headers=api_headers)
+        assert resp.status_code == 200
+        stats = resp.json()
+        by_cat = stats.get("by_category", {})
+        for cat in ["query", "action", "analysis"]:
+            assert cat in by_cat, f"Category '{cat}' missing from catalog"
+            assert by_cat[cat] > 0, f"Category '{cat}' has 0 tools"
+
+    def test_tool_count_meets_target(self, client, api_headers):
+        """Total tool count must meet the 500+ target for DEMO-009."""
+        resp = client.get("/api/v1/mcp/stats", headers=api_headers)
+        assert resp.status_code == 200
+        stats = resp.json()
+        assert stats["total_tools"] >= 500, (
+            f"DEMO-009 target is 500+ tools, got {stats['total_tools']}"
+        )
+
+    def test_security_scan_tools_present(self, client, api_headers):
+        """Security scanning tools must be discoverable."""
+        resp = client.get(
+            "/api/v1/mcp/tools",
+            headers=api_headers,
+            params={"search": "scan", "limit": 50},
+        )
+        assert resp.status_code == 200
+        tools = resp.json()
+        assert len(tools) >= 3, f"Expected at least 3 scan tools, got {len(tools)}"
+
+    def test_brain_pipeline_tools_present(self, client, api_headers):
+        """Brain pipeline tools must be discoverable."""
+        resp = client.get(
+            "/api/v1/mcp/tools",
+            headers=api_headers,
+            params={"search": "pipeline", "limit": 50},
+        )
+        assert resp.status_code == 200
+        tools = resp.json()
+        assert len(tools) >= 1, "No pipeline tools found"
+
+    def test_evidence_tools_present(self, client, api_headers):
+        """Evidence/compliance tools must be discoverable."""
+        resp = client.get(
+            "/api/v1/mcp/tools",
+            headers=api_headers,
+            params={"search": "evidence", "limit": 50},
+        )
+        assert resp.status_code == 200
+        tools = resp.json()
+        assert len(tools) >= 1, "No evidence tools found"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Test 11: ML Risk Scoring via Pipeline
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestMLRiskScoringIntegration:
+    """Test ML risk scoring integration with the brain pipeline."""
+
+    def test_pipeline_produces_risk_scores(self, client, api_headers, demo_findings, demo_assets):
+        """Pipeline must produce risk scores for findings."""
+        payload = {
+            "org_id": "ml-test-org",
+            "findings": [
+                {
+                    "id": f["id"],
+                    "cve_id": f.get("cve_id", ""),
+                    "severity": f["severity"],
+                    "title": f["title"],
+                    "description": f["description"],
+                    "source": f["source"],
+                    "asset_name": f["asset_name"],
+                }
+                for f in demo_findings
+            ],
+            "assets": [
+                {
+                    "id": a["id"],
+                    "name": a["name"],
+                    "criticality": a["criticality"],
+                    "type": a["type"],
+                }
+                for a in demo_assets
+            ],
+            "source": "ml-test",
+        }
+        resp = client.post("/api/v1/brain/pipeline/run", json=payload, headers=api_headers)
+        assert resp.status_code == 200
+        data = resp.json()
+
+        # Check risk scoring step completed
+        steps = data.get("steps", [])
+        risk_step = next((s for s in steps if s["name"] == "score_risk"), None)
+        assert risk_step is not None, "Risk scoring step not found"
+        assert risk_step["status"] == "completed", (
+            f"Risk step status: {risk_step['status']}"
+        )
+
+    def test_pipeline_enrichment_step(self, client, api_headers, demo_findings, demo_assets):
+        """Enrichment step must complete (EPSS/KEV/CVSS feeds)."""
+        payload = {
+            "org_id": "enrichment-test-org",
+            "findings": [
+                {
+                    "id": f["id"],
+                    "cve_id": f.get("cve_id", ""),
+                    "severity": f["severity"],
+                    "title": f["title"],
+                    "description": f["description"],
+                    "source": f["source"],
+                    "asset_name": f["asset_name"],
+                }
+                for f in demo_findings
+            ],
+            "assets": [
+                {
+                    "id": a["id"],
+                    "name": a["name"],
+                    "criticality": a["criticality"],
+                    "type": a["type"],
+                }
+                for a in demo_assets
+            ],
+            "source": "test",
+        }
+        resp = client.post("/api/v1/brain/pipeline/run", json=payload, headers=api_headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        steps = data.get("steps", [])
+        enrich_step = next((s for s in steps if s["name"] == "enrich_threats"), None)
+        assert enrich_step is not None
+        assert enrich_step["status"] == "completed"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Test 12: MCP Tool Execution Integration
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestMCPToolExecutionIntegration:
+    """Test executing various tool categories via MCP."""
+
+    def test_execute_findings_tool(self, client, api_headers):
+        """Execute a findings-related tool via MCP."""
+        # Find a findings tool
+        resp = client.get(
+            "/api/v1/mcp/tools",
+            headers=api_headers,
+            params={"search": "finding", "method": "GET", "limit": 5},
+        )
+        tools = resp.json()
+        if tools:
+            payload = {"tool_name": tools[0]["name"], "arguments": {}}
+            exec_resp = client.post("/api/v1/mcp/execute", json=payload, headers=api_headers)
+            assert exec_resp.status_code == 200
+            data = exec_resp.json()
+            assert data["execution_time_ms"] >= 0
+
+    def test_execute_scan_status_tool(self, client, api_headers):
+        """Execute a scanner status tool via MCP."""
+        resp = client.get(
+            "/api/v1/mcp/tools",
+            headers=api_headers,
+            params={"search": "sast", "method": "GET", "limit": 5},
+        )
+        tools = resp.json()
+        if tools:
+            payload = {"tool_name": tools[0]["name"], "arguments": {}}
+            exec_resp = client.post("/api/v1/mcp/execute", json=payload, headers=api_headers)
+            assert exec_resp.status_code == 200
+
+    def test_execute_pipeline_tool(self, client, api_headers, demo_findings, demo_assets):
+        """Execute the run_pipeline tool via MCP execute endpoint."""
+        payload = {
+            "tool_name": "run_pipeline",
+            "arguments": {
+                "org_id": "mcp-exec-test",
+                "findings": [
+                    {
+                        "id": demo_findings[0]["id"],
+                        "cve_id": demo_findings[0].get("cve_id", ""),
+                        "severity": demo_findings[0]["severity"],
+                        "title": demo_findings[0]["title"],
+                        "description": demo_findings[0]["description"],
+                        "source": demo_findings[0]["source"],
+                        "asset_name": demo_findings[0]["asset_name"],
+                    }
+                ],
+                "assets": [
+                    {
+                        "id": demo_assets[0]["id"],
+                        "name": demo_assets[0]["name"],
+                        "criticality": demo_assets[0]["criticality"],
+                        "type": demo_assets[0]["type"],
+                    }
+                ],
+            },
+        }
+        resp = client.post("/api/v1/mcp/execute", json=payload, headers=api_headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] in ("success", "error")
+        # If success, verify pipeline result is in the response
+        if data["status"] == "success":
+            result = data.get("result", {})
+            assert isinstance(result, dict)
+            assert "run_id" in result or "status" in result

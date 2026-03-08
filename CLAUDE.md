@@ -1,9 +1,9 @@
 # ALdeci (FixOps) — Project Guide
 
-> **Last verified**: 2026-03-07 by context-engineer (v33.0)
+> **Last verified**: 2026-03-08 by context-engineer (v34.0)
 > **Platform**: CTEM+ Decision Intelligence for Application Security
 > **Identity**: docs/CTEM_PLUS_IDENTITY.md | **Vision**: docs/CEO_VISION.md
-> **Sprint**: 2 — Enterprise Demo (2026-03-06) | 11/12 done (Post-Demo Day 1)
+> **Sprint**: 2 — Enterprise Demo (2026-03-06) | 11/12 done (Post-Demo Day 2)
 
 ---
 
@@ -32,7 +32,7 @@ docker compose -f docker/docker-compose.yml up
 .
 ├── suite-api/          # FastAPI gateway — 20 routers, JWT auth, CORS (22.6K LOC)
 │   └── apps/api/app.py # Entry point — 34 router mounts, 2893 LOC
-├── suite-core/         # Core engines — brain pipeline, scanners, CLI (138.0K LOC)
+├── suite-core/         # Core engines — brain pipeline, scanners, CLI (140.1K LOC)
 │   ├── core/           # Business logic (engines, scanners, connectors)
 │   └── api/            # 21 core routers
 ├── suite-attack/       # Offensive security — MPTE, attack sim, scanner routers (6.7K LOC)
@@ -40,9 +40,9 @@ docker compose -f docker/docker-compose.yml up
 ├── suite-evidence-risk/# Evidence, risk scoring, compliance (20.3K LOC)
 ├── suite-integrations/ # External integrations — MCP, webhooks, IaC, OSS tools (6.8K LOC)
 ├── suite-ui/
-│   ├── aldeci/         # Legacy React UI (ACTIVE — wiring to real APIs) 101 src TS/TSX files, 45.3K LOC
+│   ├── aldeci/         # Legacy React UI (ACTIVE — wiring to real APIs) 101 src TS/TSX files, 45.5K LOC
 │   └── aldeci-ui-new/  # New UI (MISSING — directory does not exist)
-├── tests/              # 392 test files, 192K LOC, 13,949 tests collected
+├── tests/              # 386 test files, 194K LOC, 14,133 tests collected
 ├── docker/             # Dockerfiles + compose files + Kubernetes Helm chart
 ├── docs/               # Vision docs, debate transcript, identity docs
 ├── scripts/            # Shell scripts for orchestration, demos, CI/CD
@@ -77,7 +77,7 @@ No `pip install -e` needed. Cross-suite imports "just work".
 ### Core Pillars (Active Engineering)
 | Pillar | What | Key Files |
 |--------|------|-----------|
-| **V3 — Decision Intelligence** | Brain pipeline, FAIL scoring, triage, AutoFix | brain_pipeline.py (1,878 LOC), autofix_engine.py (1,534 LOC), fail_engine.py (711 LOC) |
+| **V3 — Decision Intelligence** | Brain pipeline, FAIL scoring, triage, AutoFix | brain_pipeline.py (1,878 LOC), autofix_engine.py (1,534 LOC), fail_engine.py (717 LOC) |
 | **V5 — MPTE Verification** | Prove exploitability via micro-pentests | micro_pentest.py (2,054 LOC), mpte_advanced.py (1,089 LOC) |
 | **V7 — MCP-Native Platform** | AI agent-consumable security tools | mcp_server.py (978 LOC), mcp_router.py (977 LOC auto-discovery), 771 endpoints |
 
@@ -100,9 +100,9 @@ No `pip install -e` needed. Cross-suite imports "just work".
 | `suite-core/core/brain_pipeline.py` | 1,878 | 12-step CTEM decision pipeline |
 | `suite-core/core/autofix_engine.py` | 1,534 | LLM-powered auto-remediation (10 fix types) |
 | `suite-core/core/micro_pentest.py` | 2,054 | MPTE core engine |
-| `suite-core/core/connectors.py` | 3,011 | 7 integration connectors (Jira, Confluence, Slack, ServiceNow, GitLab, AzureDevOps, GitHub) |
-| `suite-core/core/security_connectors.py` | 1335 | 10 security tool connectors (Snyk, SonarQube, Dependabot, AWS SecurityHub, Azure Defender, Wiz, Prisma Cloud, Orca, Lacework, ThreatMapper) |
-| `suite-core/core/cli.py` | 5911 | CLI with 22 commands |
+| `suite-core/core/connectors.py` | 3,029 | 7 integration connectors (Jira, Confluence, Slack, ServiceNow, GitLab, AzureDevOps, GitHub) |
+| `suite-core/core/security_connectors.py` | 1,335 | 10 security tool connectors (Snyk, SonarQube, Dependabot, AWS SecurityHub, Azure Defender, Wiz, Prisma Cloud, Orca, Lacework, ThreatMapper) |
+| `suite-core/core/cli.py` | 5,929 | CLI with 22 commands |
 | `suite-core/core/crypto.py` | 582 | RSA-SHA256 evidence signing |
 | `suite-integrations/api/mcp_router.py` | 468 | MCP gateway for AI agents |
 
@@ -150,8 +150,8 @@ python -m pytest tests/ --cov=. --cov-report=term --timeout=10
 python -m pytest tests/test_brain_pipeline.py -v
 ```
 
-- **13,949 tests collected** (0 collection errors, 19.27s collection time)
-- **19.21% coverage** (gate: 25% — currently FAILING, gap 5.79pp. DEMO-006 config fix applied but coverage still below gate.)
+- **14,133 tests collected** (0 collection errors, 15.46s collection time)
+- **19.19% coverage** (gate: 25% — currently FAILING, gap 5.81pp. DEMO-006 config fix applied but coverage still below gate.)
 - **pytest-timeout**: 10s per test (prevents hanging)
 
 ---
@@ -198,12 +198,12 @@ python -m pytest tests/test_brain_pipeline.py -v
 ## Known Issues
 
 1. **New UI is missing** — `suite-ui/aldeci-ui-new/` directory does not exist on disk
-2. **Test coverage at 19.21%** — Below 25% gate, CI failing (DEMO-006 config fix applied but still below gate)
+2. **Test coverage at 19.19%** — Below 25% gate, CI failing (DEMO-006 config fix applied but still below gate)
 3. **Non-standard endpoint files at non-obvious paths** — decisions.py (suite-core/api/), nerve_center.py (suite-core/api/), business_context*.py (suite-evidence-risk/api/) are conditionally mounted
 4. **Single-process monolith** — No horizontal scaling (OK for demo/POC)
 5. **No external message queue** — EventBus is in-process only
 6. **Brain pipeline runs synchronously** — O(n) at graph step (optimized from O(n^2)), LLM calls block
-7. **No git commits since 2026-03-03** — 4 days of uncommitted working directory changes
+7. **No git commits since 2026-03-03** — 5 days of uncommitted working directory changes
 
 ---
 

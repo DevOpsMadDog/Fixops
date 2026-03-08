@@ -22,7 +22,7 @@
 &nbsp;
 [![License](https://img.shields.io/badge/license-proprietary-red)](LICENSE)
 &nbsp;
-[![Endpoints](https://img.shields.io/badge/API_endpoints-781-blue)]()
+[![Endpoints](https://img.shields.io/badge/API_endpoints-784-blue)]()
 &nbsp;
 [![Scanners](https://img.shields.io/badge/native_scanners-8-green)]()
 &nbsp;
@@ -34,7 +34,7 @@
 
 <br/>
 
-*ALdeci is a **CTEM+ (Continuous Threat Exposure Management Plus)** platform with **781 API endpoints** that ingests your security chaos — SBOM, SARIF, CVE, CNAPP — normalizes it through 25+ scanner parsers, correlates via an AI Knowledge Graph, verifies exploitability with a 19-phase pentest engine, auto-fixes with 10 remediation types, and generates cryptographically signed evidence bundles. 8 built-in native scanners work fully air-gapped. All endpoints hardened with input validation, injection prevention, and SSRF guards.*
+*ALdeci is a **CTEM+ (Continuous Threat Exposure Management Plus)** platform with **784 API endpoints** that ingests your security chaos — SBOM, SARIF, CVE, CNAPP — normalizes it through 25+ scanner parsers, correlates via an AI Knowledge Graph, verifies exploitability with a 19-phase pentest engine, auto-fixes with 10 remediation types, and generates cryptographically signed evidence bundles. 8 built-in native scanners work fully air-gapped. All endpoints hardened with input validation, injection prevention, and SSRF guards.*
 
 <br/>
 
@@ -150,7 +150,7 @@ ALdeci is a **CTEM+ Decision Intelligence Platform** for application security. I
 
 <div align="center">
 
-| 781 | 22 | 75+ | 6 | 5 | 19 | 50+ | 13+ |
+| 784 | 22 | 75+ | 6 | 5 | 19 | 50+ | 13+ |
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | API Endpoints | CLI Commands | Features | Suites | Compliance Frameworks | Pentest Phases | Threat Feed Sources | Connectors |
 
@@ -596,7 +596,7 @@ cp .env.example .env
 
 ## 📡 API & CLI
 
-**781 REST endpoints** across 73 router files in 6 suites. **22 CLI commands** for scripting and automation.
+**784 REST endpoints** across 73 router files in 6 suites. **22 CLI commands** for scripting and automation.
 
 All authenticated endpoints require the `X-API-Key` header:
 
@@ -960,7 +960,7 @@ Test dependencies in [requirements-test.txt](requirements-test.txt): pytest, pyt
 
 | Phase | Timeline | Features | Status |
 |---|---|---|---|
-| **v1 — Foundation** | Done | 781 API endpoints, 12-stage pipeline, multi-LLM consensus, MPTE, evidence bundles, 13 integrations, 75+ features | ✅ Shipped |
+| **v1 — Foundation** | Done | 784 API endpoints, 12-stage pipeline, multi-LLM consensus, MPTE, evidence bundles, 13 integrations, 75+ features | ✅ Shipped |
 | **v2 — Developer Experience** | Next | VS Code extension, GitHub App (PR comments), `aldeci fix CVE-XXXX` one-liner, JetBrains plugin | 🔄 Building |
 | **v3 — Cloud Attack Paths** | Planned | AWS/GCP/Azure resource ingestion, visual attack path graph, blast radius calculation, code-to-cloud-to-internet chain | 📋 Planned |
 | **v4 — AST AutoFix** | Planned | AST-based code transforms (not regex), test generation for fixes, fix confidence scoring, 4 language support | 📋 Planned |
@@ -974,7 +974,7 @@ Test dependencies in [requirements-test.txt](requirements-test.txt): pytest, pyt
 
 | Resource | Description |
 |----------|-------------|
-| [API Reference (781 endpoints)](docs/API_REFERENCE.md) | Complete endpoint documentation with curl examples, grouped by CTEM lifecycle |
+| [API Reference (784 endpoints)](docs/API_REFERENCE.md) | Complete endpoint documentation with curl examples, grouped by CTEM lifecycle |
 | [User Guide](docs/USER_GUIDE.md) | 5-minute quickstart, scanner walkthroughs, troubleshooting |
 | [Architecture](docs/ARCHITECTURE.md) | System overview with Mermaid diagrams, 6-suite architecture, data flow |
 | [CTEM+ Identity](docs/CTEM_PLUS_IDENTITY.md) | Canonical platform identity — 8 scanners, 12-step pipeline, competitor matrix |

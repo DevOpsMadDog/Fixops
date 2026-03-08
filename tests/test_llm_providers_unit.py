@@ -211,7 +211,7 @@ class TestOpenAIChatProvider:
                 default_reasoning="Network test",
             )
             assert result.metadata["mode"] == "fallback"
-            assert result.metadata["error_type"] == "unknown"
+            assert result.metadata["error_type"] == "ConnectionError"
 
 
 class TestAnthropicMessagesProvider:

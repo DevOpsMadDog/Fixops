@@ -1,8 +1,8 @@
 # ALdeci Customer Onboarding Guide
 
-> **Version**: 5.0 | **Platform**: CTEM+ Decision Intelligence for Application Security
-> **Updated**: 2026-03-03 15:48 UTC | **Duration**: 2-4 hours from install to first actionable report
-> **API Validation**: 34/36 GET + 7/7 POST verified live | 1,203 findings | 1,717 KG nodes | 93% AutoFix confidence
+> **Version**: 6.0 | **Platform**: CTEM+ Decision Intelligence for Application Security
+> **Updated**: 2026-03-07 12:16 UTC | **Duration**: 2-4 hours from install to first actionable report
+> **API Validation**: 34 GET + 7 POST verified live | 1,291 findings | 2,695 KG nodes | 87.2% avg AutoFix confidence
 
 ---
 
