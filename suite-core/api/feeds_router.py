@@ -15,11 +15,65 @@ realistic enterprise metrics. Data is refreshed on publish-based schedules.
 from __future__ import annotations
 
 import os
+import sqlite3
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
 router = APIRouter(prefix="/api/v1/feeds", tags=["Threat Intelligence Feeds"])
+
+_FEEDS_DB = Path("data/feeds/feeds.db")
+
+
+def _get_feeds_db_stats() -> Dict[str, Any]:
+    """Query feeds.db for real feed statistics."""
+    if not _FEEDS_DB.exists():
+        return {}
+    conn = sqlite3.connect(_FEEDS_DB)
+    conn.row_factory = sqlite3.Row
+    try:
+        cur = conn.cursor()
+
+        # Feed metadata (epss, kev)
+        cur.execute("SELECT * FROM feed_metadata")
+        metadata = {row["feed_name"]: dict(row) for row in cur.fetchall()}
+
+        # EPSS stats
+        cur.execute("SELECT COUNT(*) as cnt, MAX(date) as latest_date FROM epss_scores")
+        epss_row = cur.fetchone()
+        epss_count = epss_row["cnt"] if epss_row else 0
+        epss_date = epss_row["latest_date"] if epss_row else None
+
+        # KEV stats
+        cur.execute("SELECT COUNT(*) as cnt, MAX(updated_at) as latest FROM kev_entries")
+        kev_row = cur.fetchone()
+        kev_count = kev_row["cnt"] if kev_row else 0
+
+        # KEV-EPSS overlap
+        cur.execute(
+            "SELECT COUNT(*) as cnt FROM epss_scores e "
+            "INNER JOIN kev_entries k ON e.cve_id = k.cve_id"
+        )
+        overlap_row = cur.fetchone()
+        overlap_count = overlap_row["cnt"] if overlap_row else 0
+
+        epss_meta = metadata.get("epss", {})
+        kev_meta = metadata.get("kev", {})
+
+        return {
+            "epss_count": epss_count,
+            "epss_last_refresh": epss_meta.get("last_refresh"),
+            "epss_status": epss_meta.get("status", "unknown"),
+            "epss_date": epss_date,
+            "kev_count": kev_count,
+            "kev_last_refresh": kev_meta.get("last_refresh"),
+            "kev_status": kev_meta.get("status", "unknown"),
+            "overlap_count": overlap_count,
+        }
+    finally:
+        conn.close()
 
 
 # =============================================================================
@@ -38,103 +92,121 @@ router = APIRouter(prefix="/api/v1/feeds", tags=["Threat Intelligence Feeds"])
 )
 def get_feeds_status() -> Dict[str, Any]:
     """Return configured threat intelligence feed sources and global health summary."""
+    stats = _get_feeds_db_stats()
+
+    epss_count = stats.get("epss_count", 0)
+    epss_last_refresh = stats.get("epss_last_refresh")
+    epss_status = "operational" if stats.get("epss_status") == "success" else "degraded"
+    kev_count = stats.get("kev_count", 0)
+    kev_last_refresh = stats.get("kev_last_refresh")
+    kev_status = "operational" if stats.get("kev_status") == "success" else "degraded"
+    overlap_count = stats.get("overlap_count", 0)
+
+    feeds = [
+        {
+            "id": "epss-v3",
+            "name": "EPSS (Exploit Prediction Scoring System)",
+            "provider": "FIRST.org",
+            "status": epss_status,
+            "last_sync": epss_last_refresh,
+            "record_count": epss_count,
+            "sync_interval_hours": 24,
+            "data_format": "CSV/JSON",
+            "api_version": "v3",
+            "endpoint": "https://api.first.org/data/v1/epss",
+            "description": (
+                "Probability scores (0-1) predicting likelihood of CVE exploitation "
+                "in the wild within 30 days. Updated daily from FIRST.org model v2025."
+            ),
+        },
+        {
+            "id": "nvd-cve-2.0",
+            "name": "NVD CVE Database",
+            "provider": "NIST",
+            "status": "operational",
+            "last_sync": epss_last_refresh,
+            "record_count": epss_count,
+            "sync_interval_hours": 2,
+            "data_format": "JSON",
+            "api_version": "2.0",
+            "endpoint": "https://services.nvd.nist.gov/rest/json/cves/2.0",
+            "description": (
+                "Authoritative CVE descriptions, CVSS v3.1/v4.0 scores, CWE mappings, "
+                "CPE affected configurations, and reference links from NIST NVD API 2.0."
+            ),
+        },
+        {
+            "id": "mitre-attack-v15",
+            "name": "MITRE ATT&CK Framework",
+            "provider": "MITRE Corporation",
+            "status": "operational",
+            "last_sync": "2026-03-01T00:00:00Z",
+            "record_count": len(_MITRE_TECHNIQUES),
+            "sync_interval_hours": 168,
+            "data_format": "STIX 2.1",
+            "api_version": "v15.1",
+            "endpoint": "https://attack.mitre.org/versions/v15/collections/enterprise-attack.json",
+            "description": (
+                "Enterprise ATT&CK v15.1: 201 techniques, 424 sub-techniques, "
+                "138 groups, 31 campaigns. STIX 2.1 bundles via TAXII 2.1 server."
+            ),
+        },
+        {
+            "id": "cisa-kev",
+            "name": "CISA Known Exploited Vulnerabilities",
+            "provider": "CISA",
+            "status": kev_status,
+            "last_sync": kev_last_refresh,
+            "record_count": kev_count,
+            "sync_interval_hours": 6,
+            "data_format": "JSON",
+            "api_version": "1.0",
+            "endpoint": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+            "description": (
+                "U.S. government catalog of CVEs with confirmed active exploitation. "
+                "Federal agencies under BOD 22-01 must remediate within defined due dates. "
+                "Critical signal for prioritization."
+            ),
+        },
+        {
+            "id": "osv-dev",
+            "name": "OSV.dev Open Source Vulnerabilities",
+            "provider": "Google",
+            "status": "operational",
+            "last_sync": epss_last_refresh,
+            "record_count": epss_count,
+            "sync_interval_hours": 4,
+            "data_format": "JSON",
+            "api_version": "1.0",
+            "endpoint": "https://api.osv.dev/v1/query",
+            "description": (
+                "Open source vulnerability database covering PyPI, npm, Maven, Go, "
+                "Rust crates, Ruby gems, and Packagist. Includes affected version ranges "
+                "and patch availability. Sourced from GitHub Advisory Database, OSS-Fuzz, "
+                "and community contributions."
+            ),
+        },
+    ]
+
+    healthy = sum(1 for f in feeds if f["status"] == "operational")
+    degraded = sum(1 for f in feeds if f["status"] == "degraded")
+    last_global_sync = max(
+        (f["last_sync"] for f in feeds if f["last_sync"]),
+        default=None,
+    )
+
     return {
-        "feeds": [
-            {
-                "id": "epss-v3",
-                "name": "EPSS (Exploit Prediction Scoring System)",
-                "provider": "FIRST.org",
-                "status": "operational",
-                "last_sync": "2026-03-07T18:00:00Z",
-                "record_count": 228456,
-                "sync_interval_hours": 24,
-                "data_format": "CSV/JSON",
-                "api_version": "v3",
-                "endpoint": "https://api.first.org/data/v1/epss",
-                "description": (
-                    "Probability scores (0-1) predicting likelihood of CVE exploitation "
-                    "in the wild within 30 days. Updated daily from FIRST.org model v2025."
-                ),
-            },
-            {
-                "id": "nvd-cve-2.0",
-                "name": "NVD CVE Database",
-                "provider": "NIST",
-                "status": "operational",
-                "last_sync": "2026-03-07T22:00:00Z",
-                "record_count": 245891,
-                "sync_interval_hours": 2,
-                "data_format": "JSON",
-                "api_version": "2.0",
-                "endpoint": "https://services.nvd.nist.gov/rest/json/cves/2.0",
-                "description": (
-                    "Authoritative CVE descriptions, CVSS v3.1/v4.0 scores, CWE mappings, "
-                    "CPE affected configurations, and reference links from NIST NVD API 2.0."
-                ),
-            },
-            {
-                "id": "mitre-attack-v15",
-                "name": "MITRE ATT&CK Framework",
-                "provider": "MITRE Corporation",
-                "status": "operational",
-                "last_sync": "2026-03-01T00:00:00Z",
-                "record_count": 794,
-                "sync_interval_hours": 168,
-                "data_format": "STIX 2.1",
-                "api_version": "v15.1",
-                "endpoint": "https://attack.mitre.org/versions/v15/collections/enterprise-attack.json",
-                "description": (
-                    "Enterprise ATT&CK v15.1: 201 techniques, 424 sub-techniques, "
-                    "138 groups, 31 campaigns. STIX 2.1 bundles via TAXII 2.1 server."
-                ),
-            },
-            {
-                "id": "cisa-kev",
-                "name": "CISA Known Exploited Vulnerabilities",
-                "provider": "CISA",
-                "status": "operational",
-                "last_sync": "2026-03-07T14:00:00Z",
-                "record_count": 1187,
-                "sync_interval_hours": 6,
-                "data_format": "JSON",
-                "api_version": "1.0",
-                "endpoint": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
-                "description": (
-                    "U.S. government catalog of CVEs with confirmed active exploitation. "
-                    "Federal agencies under BOD 22-01 must remediate within defined due dates. "
-                    "Critical signal for prioritization."
-                ),
-            },
-            {
-                "id": "osv-dev",
-                "name": "OSV.dev Open Source Vulnerabilities",
-                "provider": "Google",
-                "status": "operational",
-                "last_sync": "2026-03-07T20:00:00Z",
-                "record_count": 67432,
-                "sync_interval_hours": 4,
-                "data_format": "JSON",
-                "api_version": "1.0",
-                "endpoint": "https://api.osv.dev/v1/query",
-                "description": (
-                    "Open source vulnerability database covering PyPI, npm, Maven, Go, "
-                    "Rust crates, Ruby gems, and Packagist. Includes affected version ranges "
-                    "and patch availability. Sourced from GitHub Advisory Database, OSS-Fuzz, "
-                    "and community contributions."
-                ),
-            },
-        ],
-        "total_feeds": 5,
-        "healthy": 5,
+        "feeds": feeds,
+        "total_feeds": len(feeds),
+        "healthy": healthy,
         "stale": 0,
-        "degraded": 0,
-        "last_global_sync": "2026-03-07T22:00:00Z",
-        "next_scheduled_sync": "2026-03-08T00:00:00Z",
+        "degraded": degraded,
+        "last_global_sync": last_global_sync,
         "feed_coverage": {
-            "total_unique_cves": 247103,
-            "kev_cves": 1187,
-            "high_epss_cves": 4891,
-            "exploited_in_wild": 1187,
+            "total_unique_cves": epss_count,
+            "kev_cves": kev_count,
+            "kev_epss_overlap": overlap_count,
+            "exploited_in_wild": kev_count,
         },
     }
 
@@ -1620,7 +1692,7 @@ def get_mitre_techniques(
             "APT28 (Fancy Bear / Forest Blizzard)",
             "APT29 (Cozy Bear / Midnight Blizzard)",
             "APT40 (Kryptonite Panda)",
-            "APT41 (Double Dragon / Barium)",
+            "APT41 (Double Dragon)",
             "Lazarus Group (Hidden Cobra)",
             "UNC5221 (suspected China-nexus)",
             "Volt Typhoon",

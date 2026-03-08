@@ -436,13 +436,65 @@ def split_cluster(cluster_id: str, request: SplitClusterRequest) -> Dict[str, An
     }
 
 
+def _get_analytics_findings_count() -> Dict[str, Any]:
+    """Get counts from analytics DB to show available findings for dedup."""
+    try:
+        import sqlite3
+        from pathlib import Path
+
+        db_path = Path("data/analytics.db")
+        if not db_path.exists():
+            return {}
+        conn = sqlite3.connect(str(db_path))
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT COUNT(*) FROM findings WHERE source != 'test'"
+            )
+            total = cursor.fetchone()[0]
+            cursor.execute(
+                "SELECT COUNT(*) FROM findings WHERE source != 'test' AND status = 'open'"
+            )
+            open_count = cursor.fetchone()[0]
+            return {"total_findings": total, "open_findings": open_count}
+        finally:
+            conn.close()
+    except Exception:
+        return {}
+
+
 @router.get("/health")
 async def deduplication_health():
     """Deduplication engine health check."""
-    return {"status": "healthy", "engine": "deduplication", "version": "1.0.0"}
+    service = get_dedup_service()
+    stats = service.get_dedup_stats("default")
+    findings_ctx = _get_analytics_findings_count()
+    return {
+        "status": "healthy",
+        "engine": "deduplication",
+        "version": "1.0.0",
+        "clusters": stats.get("total_clusters", 0),
+        "events": stats.get("total_events", 0),
+        "findings_available": findings_ctx.get("total_findings", 0),
+    }
 
 
 @router.get("/status")
 async def deduplication_status():
-    """Deduplication engine status (alias for /health)."""
-    return await deduplication_health()
+    """Deduplication engine status with real cluster and findings data."""
+    service = get_dedup_service()
+    stats = service.get_dedup_stats("default")
+    findings_ctx = _get_analytics_findings_count()
+    return {
+        "status": "healthy",
+        "engine": "deduplication",
+        "version": "1.0.0",
+        "clusters": stats.get("total_clusters", 0),
+        "events": stats.get("total_events", 0),
+        "noise_reduction_percent": stats.get("noise_reduction_percent", 0),
+        "status_breakdown": stats.get("status_breakdown", {}),
+        "severity_breakdown": stats.get("severity_breakdown", {}),
+        "findings_in_system": findings_ctx.get("total_findings", 0),
+        "open_findings": findings_ctx.get("open_findings", 0),
+        "db_path": str(_DATA_DIR / "clusters.db"),
+    }

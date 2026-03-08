@@ -668,8 +668,33 @@ class ComplianceEngine:
                 results.append(posture)
         return results
 
-    def get_compliance_gaps(self, framework: Framework, app_id: str = "") -> List[Dict[str, Any]]:
-        """Get all controls that are not satisfied for a framework."""
+    def get_compliance_gaps(self, framework, app_id: str = "") -> List[Dict[str, Any]]:
+        """Get all controls that are not satisfied for a framework.
+
+        Args:
+            framework: Framework enum, Framework string value, or None (returns all frameworks).
+            app_id: Optional application scope.
+        """
+        # Resolve string or None to Framework enum
+        if framework is None:
+            # Return gaps across all enabled frameworks
+            all_gaps: List[Dict[str, Any]] = []
+            for fw in self._enabled:
+                try:
+                    fw_gaps = self.get_compliance_gaps(fw, app_id)
+                    for g in fw_gaps:
+                        g.setdefault("framework", fw.value)
+                    all_gaps.extend(fw_gaps)
+                except Exception:
+                    pass
+            return all_gaps
+        if isinstance(framework, str):
+            fw_map = {f.value.lower(): f for f in Framework}
+            fw_key = framework.lower().replace("-", "_").replace(" ", "_")
+            resolved = fw_map.get(fw_key) or fw_map.get(framework.lower())
+            if resolved is None:
+                raise ValueError(f"Unknown framework string: {framework!r}")
+            framework = resolved
         assessments = self.db.get_assessments(framework.value, app_id)
         gaps = []
         controls = self._framework_controls.get(framework, {})

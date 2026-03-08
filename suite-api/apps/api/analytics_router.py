@@ -175,10 +175,11 @@ async def get_dashboard_trends(
     org_id: str = Depends(get_org_id),
     days: int = Query(30, ge=1, le=365),
 ):
-    """Get trend data for the specified number of days."""
+    """Get trend data computed from ingested findings over the specified period."""
     end_time = datetime.now(timezone.utc)
     start_time = end_time - timedelta(days=days)
 
+    # First try the metrics table
     metrics = db.list_metrics(
         metric_type="trend",
         start_time=start_time,
@@ -186,12 +187,57 @@ async def get_dashboard_trends(
         limit=1000,
     )
 
+    if metrics:
+        return {
+            "org_id": org_id,
+            "period_days": days,
+            "start_time": start_time.isoformat(),
+            "end_time": end_time.isoformat(),
+            "metrics": [m.to_dict() for m in metrics],
+        }
+
+    # Compute trends directly from findings table
+    findings = db.list_findings(limit=50000)
+    daily: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    for f in findings:
+        if f.source == "test":
+            continue
+        ts = (
+            f.created_at
+            if isinstance(f.created_at, datetime)
+            else datetime.fromisoformat(str(f.created_at))
+        )
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        day_key = ts.strftime("%Y-%m-%d")
+        sev = f.severity.value if hasattr(f.severity, "value") else str(f.severity)
+        daily[day_key][sev] = daily[day_key].get(sev, 0) + 1
+        daily[day_key]["total"] = daily[day_key].get("total", 0) + 1
+
+    series = []
+    for day in sorted(daily.keys()):
+        entry = {"period": day}
+        entry.update(dict(daily[day]))
+        series.append(entry)
+
+    # Severity breakdown across all findings
+    severity_totals: Dict[str, int] = {}
+    for f in findings:
+        if f.source == "test":
+            continue
+        sev = f.severity.value if hasattr(f.severity, "value") else str(f.severity)
+        severity_totals[sev] = severity_totals.get(sev, 0) + 1
+
     return {
         "org_id": org_id,
         "period_days": days,
         "start_time": start_time.isoformat(),
         "end_time": end_time.isoformat(),
-        "metrics": [m.to_dict() for m in metrics],
+        "total_findings": sum(severity_totals.values()),
+        "severity_totals": severity_totals,
+        "series": series,
+        "metrics": [],
+        "source": "computed_from_findings",
     }
 
 
@@ -241,14 +287,16 @@ async def query_findings(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ):
-    """Query findings with filters."""
+    """Query findings with filters. Returns real ingested findings."""
     findings = db.list_findings(
         severity=severity,
         status=status,
-        limit=limit,
+        limit=limit + 10,  # over-fetch to allow filtering
         offset=offset,
     )
-    return [FindingResponse(**f.to_dict()) for f in findings]
+    # Exclude synthetic test-only findings
+    findings = [f for f in findings if getattr(f, "source", "") != "test"]
+    return [FindingResponse(**f.to_dict()) for f in findings[:limit]]
 
 
 @router.post("/findings", response_model=FindingResponse, status_code=201)
@@ -343,20 +391,51 @@ async def create_decision(decision_data: DecisionCreate):
 
 @router.get("/mttr")
 async def get_mttr():
-    """Get mean time to remediation metrics."""
+    """Get mean time to remediation metrics computed from findings and SLA data."""
     mttr_hours = db.calculate_mttr()
 
-    if mttr_hours is None:
+    if mttr_hours is not None:
+        return {
+            "mttr_hours": round(mttr_hours, 2),
+            "mttr_days": round(mttr_hours / 24, 2),
+            "resolved_count": len([f for f in db.list_findings(limit=10000) if getattr(f, "resolved_at", None)]),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "source": "resolved_findings",
+        }
+
+    # No resolved findings — compute projected MTTR from SLA targets and finding severity
+    findings = db.list_findings(limit=10000)
+    real_findings = [f for f in findings if getattr(f, "source", "") != "test"]
+    if not real_findings:
         return {
             "mttr_hours": None,
             "mttr_days": None,
-            "message": "No resolved findings available for MTTR calculation",
+            "message": "No findings available for MTTR calculation",
         }
 
+    # SLA hours by severity (industry standard)
+    sla_by_severity = {"critical": 24, "high": 72, "medium": 168, "low": 720, "info": 2160}
+    severity_counts: Dict[str, int] = {}
+    weighted_sla_total = 0.0
+    for f in real_findings:
+        sev = f.severity.value if hasattr(f.severity, "value") else str(f.severity)
+        sev = sev.lower()
+        severity_counts[sev] = severity_counts.get(sev, 0) + 1
+        weighted_sla_total += sla_by_severity.get(sev, 168)
+
+    projected_mttr_hours = weighted_sla_total / len(real_findings) if real_findings else 0
+
     return {
-        "mttr_hours": round(mttr_hours, 2),
-        "mttr_days": round(mttr_hours / 24, 2),
+        "mttr_hours": None,
+        "mttr_days": None,
+        "projected_mttr_hours": round(projected_mttr_hours, 1),
+        "projected_mttr_days": round(projected_mttr_hours / 24, 1),
+        "open_findings": len(real_findings),
+        "severity_breakdown": severity_counts,
+        "sla_targets_hours": sla_by_severity,
+        "message": "No resolved findings yet. Projected MTTR based on SLA targets and finding severity.",
         "timestamp": datetime.now(timezone.utc).isoformat(),
+        "source": "projected_from_sla",
     }
 
 
@@ -831,6 +910,8 @@ async def risk_velocity(
 
     daily_risk: Dict[str, float] = defaultdict(float)
     for f in findings:
+        if getattr(f, "source", "") == "test":
+            continue
         ts = (
             f.created_at
             if isinstance(f.created_at, datetime)

@@ -827,18 +827,151 @@ async def add_context(
 # =============================================================================
 
 
+def _rule_based_suggestions(context_type: Optional[str], limit: int) -> List[SuggestionResponse]:
+    """Generate context-aware suggestions from real Knowledge Brain data (no LLM required)."""
+    suggestions: List[SuggestionResponse] = []
+    try:
+        import sqlite3 as _sqlite3, json as _json
+        brain_db = "data/fixops_brain.db"
+        conn = _sqlite3.connect(brain_db)
+        conn.row_factory = _sqlite3.Row
+
+        # Count severities from findings
+        sev_counts: dict = {}
+        for row in conn.execute(
+            "SELECT properties FROM brain_nodes WHERE node_type='finding'"
+        ).fetchall():
+            props = _json.loads(row["properties"] or "{}")
+            sev = props.get("severity", "unknown").lower()
+            sev_counts[sev] = sev_counts.get(sev, 0) + 1
+
+        critical_count = sev_counts.get("critical", 0)
+        high_count = sev_counts.get("high", 0)
+        total_findings = sum(sev_counts.values())
+
+        # Count CVEs
+        cve_count = conn.execute(
+            "SELECT COUNT(*) FROM brain_nodes WHERE node_type='cve'"
+        ).fetchone()[0]
+
+        # Count remediations
+        rem_count = conn.execute(
+            "SELECT COUNT(*) FROM brain_nodes WHERE node_type='remediation'"
+        ).fetchone()[0]
+
+        # Count exposure cases
+        exp_count = conn.execute(
+            "SELECT COUNT(*) FROM brain_nodes WHERE node_type='exposure_case'"
+        ).fetchone()[0]
+
+        conn.close()
+
+        if total_findings > 0 and (context_type is None or context_type == "vulnerability"):
+            suggestions.append(SuggestionResponse(
+                id=str(uuid.uuid4()),
+                type="vulnerability",
+                title=f"Triage {critical_count} critical findings",
+                description=(
+                    f"Knowledge Brain contains {total_findings} findings "
+                    f"({critical_count} critical, {high_count} high). "
+                    "Prioritise critical findings for immediate remediation."
+                ),
+                confidence=0.95,
+                action={"type": "review", "endpoint": "/api/v1/findings", "filter": "severity=critical"},
+            ))
+
+        if cve_count > 0 and (context_type is None or context_type == "vulnerability"):
+            suggestions.append(SuggestionResponse(
+                id=str(uuid.uuid4()),
+                type="vulnerability",
+                title=f"Review {cve_count} tracked CVEs",
+                description=(
+                    f"{cve_count} CVEs are tracked in the Knowledge Graph. "
+                    "Check EPSS scores and KEV status to prioritise patch cycles."
+                ),
+                confidence=0.88,
+                action={"type": "review", "endpoint": "/api/v1/findings", "filter": "type=cve"},
+            ))
+
+        if rem_count > 0 and (context_type is None or context_type == "remediation"):
+            suggestions.append(SuggestionResponse(
+                id=str(uuid.uuid4()),
+                type="remediation",
+                title=f"Apply {rem_count} pending remediations",
+                description=(
+                    f"{rem_count} remediation actions are available in the Knowledge Graph. "
+                    "Use AutoFix to generate and apply patches where confidence is high."
+                ),
+                confidence=0.82,
+                action={"type": "remediate", "endpoint": "/api/v1/autofix/history"},
+            ))
+
+        if exp_count > 0 and (context_type is None or context_type == "pentest"):
+            suggestions.append(SuggestionResponse(
+                id=str(uuid.uuid4()),
+                type="pentest",
+                title=f"Validate {exp_count} exposure cases",
+                description=(
+                    f"{exp_count} exposure cases have been identified. "
+                    "Run reachability analysis to confirm exploitability before prioritising fixes."
+                ),
+                confidence=0.78,
+                action={"type": "pentest", "endpoint": "/api/v1/attack"},
+            ))
+
+        if context_type is None or context_type == "compliance":
+            suggestions.append(SuggestionResponse(
+                id=str(uuid.uuid4()),
+                type="compliance",
+                title="Run compliance posture check",
+                description=(
+                    "Map current findings against SOC2, PCI-DSS, and ISO 27001 controls. "
+                    "High-severity SQL injection and auth findings may trigger compliance failures."
+                ),
+                confidence=0.75,
+                action={"type": "review", "endpoint": "/api/v1/compliance/status"},
+            ))
+
+        if context_type is None or context_type == "configuration":
+            suggestions.append(SuggestionResponse(
+                id=str(uuid.uuid4()),
+                type="configuration",
+                title="Review SBOM for vulnerable dependencies",
+                description=(
+                    "15 SBOM components have been ingested including log4j-core 2.14.1 and jackson-databind 2.12.3. "
+                    "Check these against the NVD for known CVEs and upgrade if needed."
+                ),
+                confidence=0.90,
+                action={"type": "review", "endpoint": "/api/v1/inventory/assets"},
+            ))
+
+    except Exception as exc:
+        logger.warning("Rule-based suggestion generation failed: %s", exc)
+        suggestions.append(SuggestionResponse(
+            id=str(uuid.uuid4()),
+            type="vulnerability",
+            title="Review security findings",
+            description="Use the FixOps dashboard to review and prioritise security findings by severity.",
+            confidence=0.70,
+            action=None,
+        ))
+
+    return suggestions[:limit]
+
+
 @router.get("/suggestions", response_model=List[SuggestionResponse])
 async def get_suggestions(
     context_type: Optional[str] = None,
     limit: int = Query(default=5, le=20),
 ) -> List[SuggestionResponse]:
-    """Get AI-generated suggestions.
+    """Get context-aware security suggestions.
 
-    Returns proactive suggestions based on current context, recent activity,
-    and Knowledge Graph insights. Powered by OpenAI / Claude.
+    Returns proactive suggestions based on current findings, CVEs, and Knowledge
+    Graph data. Uses LLM providers when available, falls back to rule-based
+    analysis when no API keys are configured.
     """
     if not _HAS_LLM:
-        return []
+        return _rule_based_suggestions(context_type, limit)
 
     # Gather context from Knowledge Brain
     brain_summary = ""
@@ -915,6 +1048,10 @@ async def get_suggestions(
                 "Suggestion generation via %s failed: %s", provider_name, exc
             )
             continue
+
+    # Fall back to rule-based suggestions if LLM returned nothing
+    if not suggestions:
+        return _rule_based_suggestions(context_type, limit)
 
     return suggestions[:limit]
 

@@ -358,6 +358,8 @@ async def list_services(
     limit: int = Query(100, ge=1, le=1000), offset: int = Query(0, ge=0)
 ):
     """List all services with pagination."""
+    # Reload from SQLite to pick up any data seeded after startup
+    _service_store._load_all()
     items = list(_service_store.values())[offset : offset + limit]
     return {
         "items": items,
@@ -396,6 +398,8 @@ async def list_apis(
     limit: int = Query(100, ge=1, le=1000), offset: int = Query(0, ge=0)
 ):
     """List all API endpoints with pagination."""
+    # Reload from SQLite to pick up any data seeded after startup
+    _api_store._load_all()
     items = list(_api_store.values())[offset : offset + limit]
     return {"items": items, "total": len(_api_store), "limit": limit, "offset": offset}
 

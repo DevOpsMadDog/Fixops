@@ -510,12 +510,58 @@ async def brain_trends(
         app_id: Filter by application (optional)
     """
     try:
+        import json as _json
+        import datetime as _dt
         from core.ml.trend_analyzer import get_trend_analyzer
 
         analyzer = get_trend_analyzer()
+
+        # Populate the analyzer from brain node data if it has no scan history.
+        # Group finding nodes by org_id and created_at date to form synthetic scans.
+        if analyzer._history.scan_count == 0:
+            brain = get_brain()
+            with brain._conn_lock:
+                rows = brain._conn.execute(
+                    "SELECT node_id, org_id, properties, created_at "
+                    "FROM brain_nodes WHERE node_type = 'finding'"
+                ).fetchall()
+
+            # Group findings by (org_id, date) to build synthetic scan records
+            from collections import defaultdict
+            buckets: dict = defaultdict(list)
+            for row in rows:
+                nid, o_id, props_str, created = row
+                props = _json.loads(props_str) if props_str else {}
+                date_key = (created or "")[:10]  # YYYY-MM-DD
+                bucket_key = (o_id or "default", date_key)
+                buckets[bucket_key].append({
+                    "cve_id": props.get("cve_id") or props.get("cve"),
+                    "severity": props.get("severity", "medium"),
+                    "cwe_id": props.get("cwe_id") or props.get("cwe"),
+                    "cvss_score": float(props.get("cvss_score") or props.get("cvss") or 5.0),
+                    "title": props.get("title", ""),
+                })
+
+            # Build scan records and feed them to the analyzer
+            for (scan_org, scan_date), findings in sorted(buckets.items()):
+                scan_id = f"brain-synthetic-{scan_org}-{scan_date}"
+                ts = f"{scan_date}T00:00:00+00:00" if scan_date else _dt.datetime.now(_dt.timezone.utc).isoformat()
+                analyzer.add_scan({
+                    "scan_id": scan_id,
+                    "timestamp": ts,
+                    "org_id": scan_org,
+                    "app_id": "",
+                    "findings": [f for f in findings if f is not None],
+                })
+            logger.info(
+                "brain_trends: synthesized %d scans from %d brain finding nodes",
+                len(buckets), len(rows),
+            )
+
         report = analyzer.analyze(org_id=org_id, app_id=app_id)
         return report.to_dict()
     except Exception as e:
+        logger.error("brain_trends error: %s", e, exc_info=True)
         return {
             "error": str(e),
             "scan_count": 0,

@@ -128,14 +128,28 @@ async def self_learning_stats() -> Dict[str, Any]:
         status = engine.get_status()
         weights = engine.get_all_weights()
 
+        # Auto-compute weights if none exist yet and we have enough feedback data
+        if not weights:
+            total_feedback = sum(status.get("feedback_counts", {}).values())
+            if total_feedback >= engine.config.min_samples:
+                engine.compute_adjustments()
+                weights = engine.get_all_weights()
+
         # Count weights by category
+        # get_all_weights() returns {key: {"value": float, "updated_at": str, "update_count": int}}
+        # or plain floats depending on version — handle both.
         weight_categories: Dict[str, int] = {}
         weight_values: Dict[str, float] = {}
         for key, val in weights.items():
             parts = key.split(":")
             cat = parts[0] if parts else "unknown"
             weight_categories[cat] = weight_categories.get(cat, 0) + 1
-            weight_values[key] = round(val, 4)
+            # Extract numeric value whether val is a dict or float
+            if isinstance(val, dict):
+                numeric = val.get("value", 1.0)
+            else:
+                numeric = float(val)
+            weight_values[key] = round(numeric, 4)
 
         return {
             "engine": "self-learning",
@@ -400,17 +414,48 @@ async def get_weights() -> Dict[str, Any]:
     Shows every weight that the self-learning engine has computed.
     Weights modify risk scoring — values < 1.0 reduce risk scores,
     values > 1.0 increase them.
+
+    If no weights exist yet, triggers compute_adjustments() automatically
+    using the existing feedback data.
     """
     try:
+        import datetime as _dt
         from core.self_learning import get_learning_engine
         engine = get_learning_engine()
         weights = engine.get_all_weights()
+
+        # Auto-compute weights from existing feedback if none exist yet
+        computed_now = False
+        if not weights:
+            status = engine.get_status()
+            total_feedback = sum(status.get("feedback_counts", {}).values())
+            if total_feedback >= engine.config.min_samples:
+                logger.info(
+                    "self_learning /weights: no weights found but %d feedback records exist — "
+                    "running compute_adjustments()",
+                    total_feedback,
+                )
+                engine.compute_adjustments()
+                weights = engine.get_all_weights()
+                computed_now = True
+
+        # Normalize weight values: get_all_weights() may return dicts or floats
+        normalized: Dict[str, Any] = {}
+        for k, v in weights.items():
+            if isinstance(v, dict):
+                normalized[k] = {
+                    "value": round(v.get("value", 1.0), 4),
+                    "updated_at": v.get("updated_at", ""),
+                    "update_count": v.get("update_count", 0),
+                }
+            else:
+                normalized[k] = round(float(v), 4)
+
         return {
-            "weights": weights,
-            "count": len(weights),
-            "retrieved_at": __import__("datetime").datetime.now(
-                __import__("datetime").timezone.utc
-            ).isoformat(),
+            "weights": normalized,
+            "count": len(normalized),
+            "computed_on_demand": computed_now,
+            "retrieved_at": _dt.datetime.now(_dt.timezone.utc).isoformat(),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
