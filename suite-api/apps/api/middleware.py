@@ -64,6 +64,21 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # X-XSS-Protection: legacy header, still respected by some browsers
         response.headers["X-XSS-Protection"] = "1; mode=block"
 
+        # HSTS: enforce HTTPS for 1 year (FedRAMP/NIST 800-53 SC-8)
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains; preload"
+        )
+
+        # Hide server identity to prevent reconnaissance (NIST 800-53 SC-7)
+        if "server" in response.headers:
+            del response.headers["server"]
+        response.headers["Server"] = "FixOps"
+
+        # Cross-Origin isolation headers (defense-grade)
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+        response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+        response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+
         return response
 
 

@@ -48,6 +48,7 @@ try:
     from apps.api.ingestion import (
         BaseNormalizer,
         FindingSeverity,
+        FindingType,
         NormalizerConfig,
         SourceFormat,
         UnifiedFinding,
@@ -1065,6 +1066,214 @@ class CheckovNormalizer(_Base):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# 16. Trivy Parser (Container / OS / Library vulnerabilities)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TrivyScannerNormalizer(_Base):
+    """Normalizer for Trivy scanner JSON output."""
+
+    def can_handle(self, content: bytes, content_type=None) -> float:
+        try:
+            d = json.loads(content)
+            if "Results" in d or "results" in d:
+                if "ArtifactName" in d or "ArtifactType" in d or "SchemaVersion" in d:
+                    return 0.95
+                return 0.6
+        except Exception:
+            pass
+        return 0.0
+
+    def normalize(self, content: bytes, content_type=None) -> list:
+        data = json.loads(content)
+        findings = []
+        results = data.get("Results") or data.get("results", [])
+        artifact = data.get("ArtifactName") or data.get("artifactName", "")
+
+        for result in results:
+            target = result.get("Target") or result.get("target", "")
+            rtype = result.get("Type") or result.get("type", "")
+
+            for vuln in (result.get("Vulnerabilities") or result.get("vulnerabilities") or []):
+                vid = vuln.get("VulnerabilityID") or vuln.get("vulnerabilityID", "")
+                pkg = vuln.get("PkgName") or vuln.get("pkgName", "")
+                ver = vuln.get("InstalledVersion") or vuln.get("installedVersion", "")
+                fix = vuln.get("FixedVersion") or vuln.get("fixedVersion", "")
+                sev = vuln.get("Severity") or vuln.get("severity", "UNKNOWN")
+                title = vuln.get("Title") or vuln.get("title", vid)
+                desc = vuln.get("Description") or vuln.get("description", "")
+
+                f = _make_finding(
+                    source_format_str="trivy",
+                    source_tool="trivy",
+                    source_id=vid,
+                    severity=self._map_severity(sev),
+                    title=f"{vid}: {title[:200]}" if title else vid,
+                    description=desc,
+                    recommendation=f"Upgrade {pkg} to {fix}" if fix else None,
+                    cve_id=vid if vid.startswith("CVE-") else None,
+                    package_name=pkg,
+                    package_version=ver,
+                    package_ecosystem=rtype,
+                    file_path=target,
+                )
+                if hasattr(f, "compute_fingerprint"):
+                    f.compute_fingerprint()
+                findings.append(f)
+
+            for mc in (result.get("Misconfigurations") or result.get("misconfigurations") or []):
+                mcid = mc.get("ID") or mc.get("id", "")
+                f = _make_finding(
+                    source_format_str="trivy",
+                    source_tool="trivy",
+                    source_id=mcid,
+                    severity=self._map_severity(mc.get("Severity") or mc.get("severity", "UNKNOWN")),
+                    title=mc.get("Title") or mc.get("title", mcid),
+                    description=mc.get("Description") or mc.get("description", ""),
+                    recommendation=mc.get("Resolution") or mc.get("resolution", ""),
+                    rule_id=mcid,
+                    file_path=target,
+                )
+                if hasattr(f, "compute_fingerprint"):
+                    f.compute_fingerprint()
+                findings.append(f)
+
+        return findings
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 17. Grype Parser (Container vulnerability scanner)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class GrypeScannerNormalizer(_Base):
+    """Normalizer for Grype scanner JSON output."""
+
+    def can_handle(self, content: bytes, content_type=None) -> float:
+        try:
+            d = json.loads(content)
+            if "matches" in d:
+                return 0.9
+        except Exception:
+            pass
+        return 0.0
+
+    def normalize(self, content: bytes, content_type=None) -> list:
+        data = json.loads(content)
+        findings = []
+
+        for match in data.get("matches", []):
+            vuln = match.get("vulnerability", {})
+            art = match.get("artifact", {})
+            vid = vuln.get("id", "")
+            sev = vuln.get("severity", "Unknown")
+            desc = vuln.get("description", "")
+            fix_versions = vuln.get("fix", {}).get("versions", [])
+            pkg = art.get("name", "")
+            ver = art.get("version", "")
+            ptype = art.get("type", "")
+
+            f = _make_finding(
+                source_format_str="grype",
+                source_tool="grype",
+                source_id=vid,
+                severity=self._map_severity(sev),
+                title=f"{vid}: {desc[:200]}" if desc else vid,
+                description=desc,
+                recommendation=f"Upgrade {pkg} to {', '.join(fix_versions)}" if fix_versions else None,
+                cve_id=vid if vid.startswith("CVE-") else None,
+                package_name=pkg,
+                package_version=ver,
+                package_ecosystem=ptype,
+            )
+            if hasattr(f, "compute_fingerprint"):
+                f.compute_fingerprint()
+            findings.append(f)
+
+        return findings
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 18. Semgrep Parser (SARIF-based but also direct JSON)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class SemgrepScannerNormalizer(_Base):
+    """Normalizer for Semgrep JSON output (native format, not SARIF)."""
+
+    def can_handle(self, content: bytes, content_type=None) -> float:
+        try:
+            d = json.loads(content)
+            if "results" in d and isinstance(d["results"], list):
+                if any("check_id" in r for r in d["results"][:3]):
+                    return 0.95
+            return 0.0
+        except Exception:
+            return 0.0
+
+    def normalize(self, content: bytes, content_type=None) -> list:
+        data = json.loads(content)
+        findings = []
+        for r in data.get("results", []):
+            sev = r.get("extra", {}).get("severity", "WARNING")
+            f = _make_finding(
+                source_format_str="semgrep",
+                source_tool="semgrep",
+                source_id=r.get("check_id", ""),
+                severity=self._map_severity(sev),
+                title=r.get("check_id", "Semgrep finding"),
+                description=r.get("extra", {}).get("message", ""),
+                file_path=r.get("path", ""),
+                line_number=r.get("start", {}).get("line"),
+                rule_id=r.get("check_id"),
+            )
+            if hasattr(f, "compute_fingerprint"):
+                f.compute_fingerprint()
+            findings.append(f)
+        return findings
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 19. Dependabot Parser (GitHub format)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class DependabotScannerNormalizer(_Base):
+    """Normalizer for GitHub Dependabot alerts JSON."""
+
+    def can_handle(self, content: bytes, content_type=None) -> float:
+        try:
+            d = json.loads(content)
+            if isinstance(d, list) and len(d) > 0:
+                if "security_advisory" in d[0] or "dependency" in d[0]:
+                    return 0.9
+            return 0.0
+        except Exception:
+            return 0.0
+
+    def normalize(self, content: bytes, content_type=None) -> list:
+        data = json.loads(content)
+        findings = []
+        alerts = data if isinstance(data, list) else data.get("alerts", [])
+        for alert in alerts:
+            adv = alert.get("security_advisory", {})
+            dep = alert.get("dependency", {})
+            pkg = dep.get("package", {}).get("name", "")
+            sev = adv.get("severity", "medium")
+            f = _make_finding(
+                source_format_str="dependabot",
+                source_tool="dependabot",
+                source_id=adv.get("ghsa_id", adv.get("cve_id", "")),
+                severity=self._map_severity(sev),
+                title=adv.get("summary", "Dependabot alert"),
+                description=adv.get("description", ""),
+                cve_id=adv.get("cve_id"),
+                package_name=pkg,
+                package_version=dep.get("package", {}).get("version", ""),
+            )
+            if hasattr(f, "compute_fingerprint"):
+                f.compute_fingerprint()
+            findings.append(f)
+        return findings
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # Registry — Central catalog of all scanner parsers
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -1084,6 +1293,11 @@ SCANNER_NORMALIZERS = {
     "snyk": SnykNormalizer,
     "prowler": ProwlerNormalizer,
     "checkov": CheckovNormalizer,
+    # New parsers for enterprise scanner ecosystem
+    "trivy": TrivyScannerNormalizer,
+    "grype": GrypeScannerNormalizer,
+    "semgrep": SemgrepScannerNormalizer,
+    "dependabot": DependabotScannerNormalizer,
 }
 
 

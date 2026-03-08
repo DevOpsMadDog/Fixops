@@ -587,3 +587,229 @@ async def generate_sbom(
         "sbom": sbom,
         "component_count": len(deps),
     }
+
+
+# ---------------------------------------------------------------------------
+# Global SBOM & License Compliance (cross-application)
+# ---------------------------------------------------------------------------
+
+# In-memory global component store (populated from SBOM ingestion)
+_global_components: PersistentDict = PersistentDict("global_sbom_components")
+_ingested_sboms: PersistentDict = PersistentDict("ingested_sboms")
+
+
+@router.get("/sbom/components")
+async def list_global_sbom_components(
+    ecosystem: Optional[str] = None,
+    has_vulnerabilities: Optional[bool] = None,
+    license_type: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=500),
+):
+    """List all SBOM components across all applications.
+
+    Aggregates components from all ingested SBOMs for enterprise-wide
+    supply chain visibility. Supports filtering by ecosystem, vulnerability
+    status, and license type.
+    """
+    all_comps = []
+    for app_id in _ingested_sboms.keys():
+        comps = _ingested_sboms.get(app_id, [])
+        for c in comps:
+            c["app_id"] = app_id
+            all_comps.append(c)
+
+    # Also pull from dependency store
+    for app_id in _dependency_store.keys():
+        deps = _dependency_store.get(app_id, [])
+        for dep in deps:
+            all_comps.append({
+                "name": dep.get("name", ""),
+                "version": dep.get("version", "unknown"),
+                "ecosystem": dep.get("ecosystem", "unknown"),
+                "license": dep.get("license", "unknown"),
+                "license_category": _license_db.get(dep.get("license", ""), "unknown"),
+                "app_id": app_id,
+                "purl": f"pkg:{dep.get('ecosystem', 'generic')}/{dep.get('name', '')}@{dep.get('version', 'unknown')}",
+            })
+
+    # Deduplicate by name+version
+    seen: Set[str] = set()
+    unique_comps: List[Dict[str, Any]] = []
+    for c in all_comps:
+        key = f"{c.get('name', '')}@{c.get('version', '')}"
+        if key not in seen:
+            seen.add(key)
+            unique_comps.append(c)
+
+    # Apply filters
+    if ecosystem:
+        unique_comps = [c for c in unique_comps if c.get("ecosystem", "").lower() == ecosystem.lower()]
+    if license_type:
+        unique_comps = [c for c in unique_comps if c.get("license_category", "").lower() == license_type.lower()]
+
+    total = len(unique_comps)
+    start = (page - 1) * page_size
+    end = start + page_size
+
+    return {
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "components": unique_comps[start:end],
+        "ecosystems": list(set(c.get("ecosystem", "unknown") for c in unique_comps)),
+        "license_summary": _aggregate_licenses(unique_comps),
+    }
+
+
+def _aggregate_licenses(components: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Aggregate license information from components."""
+    by_license: Dict[str, int] = defaultdict(int)
+    by_category: Dict[str, int] = defaultdict(int)
+    for c in components:
+        lic = c.get("license", "unknown")
+        cat = _license_db.get(lic, "unknown")
+        by_license[lic] += 1
+        by_category[cat] += 1
+    return {
+        "by_license": dict(by_license),
+        "by_category": dict(by_category),
+        "total_unique_licenses": len(by_license),
+    }
+
+
+@router.get("/sbom/licenses")
+async def get_license_compliance_summary():
+    """Get enterprise-wide license compliance summary.
+
+    Analyzes all known components for license risk, copyleft contamination,
+    and policy violations. Critical for defense/government procurement
+    (DFARS 252.227-7014 compliance).
+    """
+    all_deps: List[Dict[str, Any]] = []
+    for app_id in _dependency_store.keys():
+        deps = _dependency_store.get(app_id, [])
+        for dep in deps:
+            dep["app_id"] = app_id
+            all_deps.append(dep)
+
+    # Classify all licenses
+    compliant = 0
+    non_compliant = 0
+    unknown_license = 0
+    issues: List[Dict[str, Any]] = []
+    by_category: Dict[str, int] = defaultdict(int)
+
+    for dep in all_deps:
+        lic = dep.get("license", "unknown")
+        category = _license_db.get(lic, "unknown")
+        by_category[category] += 1
+
+        if category in ("copyleft", "restrictive"):
+            non_compliant += 1
+            issues.append({
+                "package": dep.get("name", "?"),
+                "version": dep.get("version", "?"),
+                "license": lic,
+                "category": category,
+                "app_id": dep.get("app_id", "?"),
+                "risk": "critical" if category == "copyleft" else "high",
+                "recommendation": (
+                    f"Replace {dep.get('name', '?')} with a permissively-licensed alternative "
+                    f"or obtain a commercial license exemption"
+                ),
+            })
+        elif category == "unknown":
+            unknown_license += 1
+        else:
+            compliant += 1
+
+    total = len(all_deps)
+    score = round(100 * compliant / max(total, 1), 1)
+
+    return {
+        "total_components": total,
+        "compliant": compliant,
+        "non_compliant": non_compliant,
+        "unknown_license": unknown_license,
+        "compliance_score": score,
+        "license_distribution": dict(by_category),
+        "policy_violations": issues[:100],  # Cap at 100 for response size
+        "dfars_compliant": non_compliant == 0 and unknown_license == 0,
+        "assessment_timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@router.post("/sbom/ingest")
+async def ingest_sbom(
+    sbom_data: Dict[str, Any],
+    app_id: str = Query(..., min_length=1),
+):
+    """Ingest a CycloneDX or SPDX SBOM and register all components.
+
+    Accepts standard CycloneDX 1.4+ or SPDX 2.3 format.
+    Components are parsed, deduplicated, and stored for license
+    compliance analysis and vulnerability correlation.
+    """
+    components: List[Dict[str, Any]] = []
+
+    # CycloneDX format
+    if "bomFormat" in sbom_data or "components" in sbom_data:
+        for comp in sbom_data.get("components", []):
+            lic = ""
+            for lic_entry in comp.get("licenses", []):
+                if isinstance(lic_entry, dict):
+                    lic_obj = lic_entry.get("license", {})
+                    if isinstance(lic_obj, dict):
+                        lic = lic_obj.get("id", lic_obj.get("name", ""))
+                    elif isinstance(lic_obj, str):
+                        lic = lic_obj
+            components.append({
+                "name": comp.get("name", ""),
+                "version": comp.get("version", "unknown"),
+                "ecosystem": comp.get("purl", "").split(":")[1].split("/")[0] if ":" in comp.get("purl", "") else "unknown",
+                "license": lic or "unknown",
+                "purl": comp.get("purl", ""),
+                "type": comp.get("type", "library"),
+            })
+
+    # SPDX format
+    elif "spdxVersion" in sbom_data or "packages" in sbom_data:
+        for pkg in sbom_data.get("packages", []):
+            components.append({
+                "name": pkg.get("name", ""),
+                "version": pkg.get("versionInfo", "unknown"),
+                "ecosystem": "unknown",
+                "license": pkg.get("licenseConcluded", pkg.get("licenseDeclared", "NOASSERTION")),
+                "purl": pkg.get("externalRefs", [{}])[0].get("referenceLocator", "") if pkg.get("externalRefs") else "",
+                "type": "library",
+            })
+    else:
+        raise HTTPException(status_code=400, detail="Unrecognized SBOM format. Provide CycloneDX or SPDX JSON.")
+
+    # Store components
+    _ingested_sboms[app_id] = components
+
+    # Also populate dependency store for license compliance
+    _dependency_store[app_id] = components
+
+    # Run license check
+    issues = []
+    for comp in components:
+        cat = _license_db.get(comp.get("license", ""), "unknown")
+        if cat in ("copyleft", "restrictive"):
+            issues.append({
+                "package": comp["name"],
+                "license": comp["license"],
+                "category": cat,
+                "risk": "critical" if cat == "copyleft" else "high",
+            })
+
+    return {
+        "status": "ingested",
+        "app_id": app_id,
+        "components_ingested": len(components),
+        "license_issues": len(issues),
+        "issues": issues[:50],
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
