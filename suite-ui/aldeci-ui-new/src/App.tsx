@@ -1,6 +1,9 @@
 import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { WorkspaceLayout } from "@/components/layout/WorkspaceLayout";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import NotFound from "@/pages/NotFound";
 
 // ── Lazy-loaded pages ──
 
@@ -64,98 +67,94 @@ const LogViewer = lazy(() => import("@/pages/settings/LogViewer"));
 // Onboarding
 const OnboardingWizard = lazy(() => import("@/pages/onboarding/OnboardingWizard"));
 
-// Loading fallback
-function PageLoader() {
-  return (
-    <div className="flex h-64 items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        <p className="text-sm text-muted-foreground">Loading...</p>
-      </div>
-    </div>
-  );
-}
+// AI Copilot
+const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
 
 export default function App() {
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        {/* Onboarding */}
-        <Route path="/onboarding" element={<OnboardingWizard />} />
+    <ErrorBoundary>
+      <Suspense fallback={<PageSkeleton />}>
+        <Routes>
+          {/* Onboarding */}
+          <Route path="/onboarding" element={<OnboardingWizard />} />
 
-        {/* Main workspace */}
-        <Route element={<WorkspaceLayout />}>
-          {/* Space 1: Mission Control */}
-          <Route path="/" element={<CommandDashboard />} />
-          <Route path="/mission-control" element={<CommandDashboard />} />
-          <Route path="/mission-control/executive" element={<ExecutiveView />} />
-          <Route path="/mission-control/sla" element={<SLADashboard />} />
-          <Route path="/mission-control/live-feed" element={<LiveFeed />} />
-          <Route path="/mission-control/risk" element={<RiskOverview />} />
+          {/* Main workspace */}
+          <Route element={<WorkspaceLayout />}>
+            {/* Space 1: Mission Control */}
+            <Route path="/" element={<CommandDashboard />} />
+            <Route path="/mission-control" element={<CommandDashboard />} />
+            <Route path="/mission-control/executive" element={<ExecutiveView />} />
+            <Route path="/mission-control/sla" element={<SLADashboard />} />
+            <Route path="/mission-control/live-feed" element={<LiveFeed />} />
+            <Route path="/mission-control/risk" element={<RiskOverview />} />
 
-          {/* Space 2: Discover */}
-          <Route path="/discover" element={<FindingExplorer />} />
-          <Route path="/discover/code" element={<CodeScanning />} />
-          <Route path="/discover/secrets" element={<SecretsDetection />} />
-          <Route path="/discover/iac" element={<IaCScanning />} />
-          <Route path="/discover/cloud" element={<CloudPosture />} />
-          <Route path="/discover/containers" element={<ContainerSecurity />} />
-          <Route path="/discover/sbom" element={<SBOMInventory />} />
-          <Route path="/discover/graph" element={<KnowledgeGraph />} />
-          <Route path="/discover/attack-paths" element={<AttackPaths />} />
-          <Route path="/discover/threats" element={<ThreatFeeds />} />
+            {/* Space 2: Discover */}
+            <Route path="/discover" element={<FindingExplorer />} />
+            <Route path="/discover/code" element={<CodeScanning />} />
+            <Route path="/discover/secrets" element={<SecretsDetection />} />
+            <Route path="/discover/iac" element={<IaCScanning />} />
+            <Route path="/discover/cloud" element={<CloudPosture />} />
+            <Route path="/discover/containers" element={<ContainerSecurity />} />
+            <Route path="/discover/sbom" element={<SBOMInventory />} />
+            <Route path="/discover/graph" element={<KnowledgeGraph />} />
+            <Route path="/discover/attack-paths" element={<AttackPaths />} />
+            <Route path="/discover/threats" element={<ThreatFeeds />} />
 
-          {/* Space 3: Validate */}
-          <Route path="/validate" element={<MPTEConsole />} />
-          <Route path="/validate/mpte" element={<MPTEConsole />} />
-          <Route path="/validate/simulation" element={<AttackSimulation />} />
-          <Route path="/validate/fail" element={<FAILEngine />} />
-          <Route path="/validate/playbooks" element={<Playbooks />} />
-          <Route path="/validate/playbooks/editor" element={<PlaybookEditor />} />
-          <Route path="/validate/reachability" element={<Reachability />} />
+            {/* Space 3: Validate */}
+            <Route path="/validate" element={<MPTEConsole />} />
+            <Route path="/validate/mpte" element={<MPTEConsole />} />
+            <Route path="/validate/simulation" element={<AttackSimulation />} />
+            <Route path="/validate/fail" element={<FAILEngine />} />
+            <Route path="/validate/playbooks" element={<Playbooks />} />
+            <Route path="/validate/playbooks/editor" element={<PlaybookEditor />} />
+            <Route path="/validate/reachability" element={<Reachability />} />
 
-          {/* Space 4: Remediate */}
-          <Route path="/remediate" element={<RemediationCenter />} />
-          <Route path="/remediate/autofix" element={<AutoFix />} />
-          <Route path="/remediate/bulk" element={<BulkOperations />} />
-          <Route path="/remediate/collaborate" element={<Collaboration />} />
-          <Route path="/remediate/workflows" element={<Workflows />} />
-          <Route path="/remediate/cases" element={<ExposureCases />} />
-          <Route path="/remediate/tickets" element={<TicketIntegration />} />
+            {/* Space 4: Remediate */}
+            <Route path="/remediate" element={<RemediationCenter />} />
+            <Route path="/remediate/autofix" element={<AutoFix />} />
+            <Route path="/remediate/bulk" element={<BulkOperations />} />
+            <Route path="/remediate/collaborate" element={<Collaboration />} />
+            <Route path="/remediate/workflows" element={<Workflows />} />
+            <Route path="/remediate/cases" element={<ExposureCases />} />
+            <Route path="/remediate/tickets" element={<TicketIntegration />} />
 
-          {/* Space 5: Comply */}
-          <Route path="/comply" element={<ComplianceDashboard />} />
-          <Route path="/comply/evidence" element={<EvidenceVault />} />
-          <Route path="/comply/bundles" element={<EvidenceBundles />} />
-          <Route path="/comply/soc2" element={<SOC2Evidence />} />
-          <Route path="/comply/slsa" element={<SLSAProvenance />} />
-          <Route path="/comply/audit" element={<AuditTrail />} />
-          <Route path="/comply/reports" element={<Reports />} />
-          <Route path="/comply/analytics" element={<Analytics />} />
-          <Route path="/comply/export" element={<EvidenceExportCenter />} />
+            {/* Space 5: Comply */}
+            <Route path="/comply" element={<ComplianceDashboard />} />
+            <Route path="/comply/evidence" element={<EvidenceVault />} />
+            <Route path="/comply/bundles" element={<EvidenceBundles />} />
+            <Route path="/comply/soc2" element={<SOC2Evidence />} />
+            <Route path="/comply/slsa" element={<SLSAProvenance />} />
+            <Route path="/comply/audit" element={<AuditTrail />} />
+            <Route path="/comply/reports" element={<Reports />} />
+            <Route path="/comply/analytics" element={<Analytics />} />
+            <Route path="/comply/export" element={<EvidenceExportCenter />} />
 
-          {/* Settings */}
-          <Route path="/settings" element={<SettingsHub />} />
-          <Route path="/settings/integrations" element={<Integrations />} />
-          <Route path="/settings/users" element={<UsersPage />} />
-          <Route path="/settings/teams" element={<Teams />} />
-          <Route path="/settings/marketplace" element={<Marketplace />} />
-          <Route path="/settings/policies" element={<Policies />} />
-          <Route path="/settings/health" element={<SystemHealth />} />
-          <Route path="/settings/logs" element={<LogViewer />} />
+            {/* Settings */}
+            <Route path="/settings" element={<SettingsHub />} />
+            <Route path="/settings/integrations" element={<Integrations />} />
+            <Route path="/settings/users" element={<UsersPage />} />
+            <Route path="/settings/teams" element={<Teams />} />
+            <Route path="/settings/marketplace" element={<Marketplace />} />
+            <Route path="/settings/policies" element={<Policies />} />
+            <Route path="/settings/health" element={<SystemHealth />} />
+            <Route path="/settings/logs" element={<LogViewer />} />
 
-          {/* Legacy redirects */}
-          <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
-          <Route path="/code/*" element={<Navigate to="/discover" replace />} />
-          <Route path="/cloud/*" element={<Navigate to="/discover/cloud" replace />} />
-          <Route path="/attack/*" element={<Navigate to="/validate" replace />} />
-          <Route path="/protect/*" element={<Navigate to="/remediate" replace />} />
-          <Route path="/evidence/*" element={<Navigate to="/comply" replace />} />
+            {/* AI Copilot */}
+            <Route path="/ai" element={<CopilotDashboard />} />
 
-          {/* 404 */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      </Routes>
-    </Suspense>
+            {/* Legacy redirects */}
+            <Route path="/core/dashboard" element={<Navigate to="/" replace />} />
+            <Route path="/code/*" element={<Navigate to="/discover" replace />} />
+            <Route path="/cloud/*" element={<Navigate to="/discover/cloud" replace />} />
+            <Route path="/attack/*" element={<Navigate to="/validate" replace />} />
+            <Route path="/protect/*" element={<Navigate to="/remediate" replace />} />
+            <Route path="/evidence/*" element={<Navigate to="/comply" replace />} />
+
+            {/* 404 — show proper Not Found page instead of silent redirect */}
+            <Route path="*" element={<NotFound />} />
+          </Route>
+        </Routes>
+      </Suspense>
+    </ErrorBoundary>
   );
 }

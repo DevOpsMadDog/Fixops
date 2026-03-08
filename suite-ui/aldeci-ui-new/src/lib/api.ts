@@ -28,16 +28,19 @@ export const healthApi = {
 };
 
 export const dashboardApi = {
-  summary: () => api.get("/api/v1/analytics/dashboard"),
-  posture: () => api.get("/api/v1/analytics/posture-score"),
-  trends: (params?: Record<string, string>) => api.get("/api/v1/analytics/trends", { params }),
+  summary: () => api.get("/api/v1/analytics/dashboard/overview"),
+  posture: () => api.get("/api/v1/analytics/dashboard/top-risks"),
+  trends: (params?: Record<string, string>) => api.get("/api/v1/analytics/dashboard/trends", { params }),
+  compliance: () => api.get("/api/v1/analytics/dashboard/compliance-status"),
 };
 
 export const nerveCenterApi = {
-  metrics: () => api.get("/api/v1/nerve-center/metrics"),
-  alerts: () => api.get("/api/v1/nerve-center/alerts"),
-  queue: () => api.get("/api/v1/nerve-center/priority-queue"),
-  activity: (params?: Record<string, string>) => api.get("/api/v1/nerve-center/activity", { params }),
+  pulse: () => api.get("/api/v1/nerve-center/pulse"),
+  state: () => api.get("/api/v1/nerve-center/state"),
+  overlay: () => api.get("/api/v1/nerve-center/overlay"),
+  intelligenceMap: () => api.get("/api/v1/nerve-center/intelligence-map"),
+  playbooks: () => api.get("/api/v1/nerve-center/playbooks"),
+  autoRemediate: (data: unknown) => api.post("/api/v1/nerve-center/auto-remediate", data),
 };
 
 export const findingsApi = {
@@ -89,11 +92,23 @@ export const changesApi = {
 };
 
 export const mpteApi = {
-  launch: (data: unknown) => api.post("/api/v1/mpte/launch", data),
-  status: (id: string) => api.get(`/api/v1/mpte/status/${id}`),
-  results: (id: string) => api.get(`/api/v1/mpte/results/${id}`),
-  list: (params?: Record<string, string>) => api.get("/api/v1/mpte/sessions", { params }),
-  verdicts: (params?: Record<string, string>) => api.get("/api/v1/mpte/verdicts", { params }),
+  verify: (data: unknown) => api.post("/api/v1/mpte/verify", data),
+  status: () => api.get("/api/v1/mpte/status"),
+  stats: () => api.get("/api/v1/mpte/stats"),
+  results: (params?: Record<string, string>) => api.get("/api/v1/mpte/results", { params }),
+  requests: (params?: Record<string, string>) => api.get("/api/v1/mpte/requests", { params }),
+  getRequest: (id: string) => api.get(`/api/v1/mpte/requests/${id}`),
+  startRequest: (id: string) => api.post(`/api/v1/mpte/requests/${id}/start`),
+  cancelRequest: (id: string) => api.post(`/api/v1/mpte/requests/${id}/cancel`),
+  verifications: (params?: Record<string, string>) => api.get("/api/v1/mpte/verifications", { params }),
+  getVerification: (id: string) => api.get(`/api/v1/mpte/verifications/${id}`),
+  configs: () => api.get("/api/v1/mpte/configs"),
+  monitoring: () => api.get("/api/v1/mpte/monitoring"),
+  health: () => api.get("/api/v1/mpte/health"),
+  comprehensiveScan: (data: unknown) => api.post("/api/v1/mpte/scan/comprehensive", data),
+  orchestratorRun: (data: unknown) => api.post("/api/v1/mpte-orchestrator/run", data),
+  orchestratorSimulate: (data: unknown) => api.post("/api/v1/mpte-orchestrator/simulate", data),
+  orchestratorStatus: (id: string) => api.get(`/api/v1/mpte-orchestrator/status/${id}`),
 };
 
 export const remediationApi = {
@@ -106,18 +121,29 @@ export const remediationApi = {
 };
 
 export const evidenceApi = {
-  list: (params?: Record<string, unknown>) => api.get("/api/v1/evidence", { params }),
-  get: (id: string) => api.get(`/api/v1/evidence/${id}`),
+  bundles: (params?: Record<string, unknown>) => api.get("/api/v1/evidence/bundles", { params }),
+  get: (id: string) => api.get(`/api/v1/evidence/bundles/${id}`),
   generate: (data: unknown) => api.post("/api/v1/evidence/generate", data),
-  verify: (id: string) => api.get(`/api/v1/evidence/${id}/verify`),
+  verify: (id: string) => api.get(`/api/v1/evidence/bundles/${id}/verify`),
   export: (data: unknown) => api.post("/api/v1/evidence/export", data),
+  complianceStatus: () => api.get("/api/v1/evidence/compliance-status"),
 };
 
 export const complianceApi = {
-  status: (params?: Record<string, string>) => api.get("/api/v1/compliance/status", { params }),
-  frameworks: () => api.get("/api/v1/compliance/frameworks"),
-  controls: (framework: string) => api.get(`/api/v1/compliance/frameworks/${framework}/controls`),
-  gaps: (framework: string) => api.get(`/api/v1/compliance/frameworks/${framework}/gaps`),
+  status: () => api.get("/api/v1/compliance-engine/status"),
+  frameworks: () => api.get("/api/v1/compliance-engine/frameworks"),
+  gaps: () => api.get("/api/v1/compliance-engine/gaps"),
+  assess: (data: unknown) => api.post("/api/v1/compliance-engine/assess", data),
+  assessAll: () => api.post("/api/v1/compliance-engine/assess-all"),
+  auditBundle: (data: unknown) => api.post("/api/v1/compliance-engine/audit-bundle", data),
+  mapFindings: (data: unknown) => api.post("/api/v1/compliance-engine/map-findings", data),
+  control: (id: string) => api.get(`/api/v1/compliance-engine/control/${id}`),
+  soc2Status: () => api.get("/api/v1/compliance-engine/soc2/status"),
+  pciStatus: () => api.get("/api/v1/compliance-engine/pci-dss/status"),
+  hipaaStatus: () => api.get("/api/v1/compliance-engine/hipaa/status"),
+  health: () => api.get("/api/v1/compliance-engine/health"),
+  auditControls: () => api.get("/api/v1/audit/compliance/controls"),
+  auditFrameworks: () => api.get("/api/v1/audit/compliance/frameworks"),
 };
 
 export const copilotApi = {
