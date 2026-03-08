@@ -64,6 +64,19 @@ const DEFAULT_WEIGHTS: Record<string, number> = {
   mistral: 20,
 };
 
+// Deterministic confidence values per known provider (replaces Math.random())
+const PROVIDER_BASE_CONFIDENCE: Record<string, number> = {
+  openai: 85,
+  anthropic: 88,
+  google: 82,
+  sentinel: 78,
+  'sentinel-cyber': 78,
+  local: 72,
+  ollama: 75,
+  azure: 84,
+  mistral: 80,
+};
+
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 function deriveRecommendation(provider: Record<string, unknown>): 'ALLOW' | 'BLOCK' | 'REVIEW' {
@@ -82,10 +95,10 @@ function deriveConfidence(provider: Record<string, unknown>): number {
   if (typeof provider.confidence === 'number') return provider.confidence;
   const latency = (provider.latency_ms as number) || (provider.latency as number) || 500;
   const healthy = provider.status === 'ready' || provider.status === 'healthy';
-  // Lower latency + healthy = higher confidence
+  // Lower latency + healthy = higher confidence (deterministic)
   const base = healthy ? 75 : 40;
   const latencyBonus = Math.max(0, 15 - Math.floor(latency / 100));
-  return Math.min(95, base + latencyBonus + Math.floor(Math.random() * 5));
+  return Math.min(95, base + latencyBonus + 3);
 }
 
 function deriveReasoning(provider: Record<string, unknown>, rec: string): string {
@@ -204,7 +217,7 @@ export default function MultiLLMConsensusPanel({
           name: key,
           displayName: PROVIDER_DISPLAY_NAMES[key] || key,
           recommendation: rec as 'ALLOW' | 'BLOCK' | 'REVIEW',
-          confidence: configured ? 75 + Math.floor(Math.random() * 15) : 30,
+          confidence: configured ? (PROVIDER_BASE_CONFIDENCE[key] || 82) : 30,
           weight: DEFAULT_WEIGHTS[key] || 20,
           status: configured ? 'ready' : 'pending',
           reasoning: deriveReasoning({ name: PROVIDER_DISPLAY_NAMES[key] || key }, rec),

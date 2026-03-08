@@ -6,11 +6,10 @@ Enterprise-grade verification that no fix introduces new vulnerabilities.
 
 from __future__ import annotations
 
-from dataclasses import asdict
 from typing import Any, Dict, Optional
 
-from core.autofix_verifier import AutoFixVerifier, verify_fix, get_verifier_stats
-from fastapi import APIRouter, HTTPException
+from core.autofix_verifier import AutoFixVerifier
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/autofix/verify", tags=["autofix-verification"])

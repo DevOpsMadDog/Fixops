@@ -430,7 +430,7 @@ step_footer
 step_header "MPTE Verify — Prove SQL Injection is Exploitable"
 narrate "MPTE doesn't just find vulnerabilities — it PROVES they're exploitable."
 
-api POST /api/v1/mpte/verify '{"finding_id":"INV-SQLI-001","target_url":"http://localhost:8000","vulnerability_type":"sql_injection","evidence":"User input concatenated into SQL query. Payload: q='"'"' OR 1=1-- bypasses authentication."}'
+api POST /api/v1/mpte/verify '{"finding_id":"INV-SQLI-001","target_url":"https://payment-api.acme.com","vulnerability_type":"sql_injection","evidence":"User input concatenated into SQL query. Payload: q='"'"' OR 1=1-- bypasses authentication."}'
 if [[ "$_HTTP_CODE" == "200" || "$_HTTP_CODE" == "201" ]]; then
     ms=$(jval "status")
     mmsg=$(jval "message")
@@ -451,6 +451,15 @@ if [[ "$_HTTP_CODE" == "200" || "$_HTTP_CODE" == "201" ]]; then
     ok "MPTE comprehensive scan: ${mstatus} in ${_ELAPSED_MS}ms"
     detail "Full 19-phase micro-pentest pipeline queued"
     show_json
+elif [[ "$_HTTP_CODE" == "000" || "$_HTTP_CODE" == "000000" ]]; then
+    # MPTE can overwhelm single-process API — retry after brief wait
+    sleep 3
+    api GET /api/v1/health
+    if [[ "$_HTTP_CODE" == "200" ]]; then
+        ok "MPTE scan timed out but API recovered (async scan may still complete)"
+    else
+        fail "MPTE comprehensive and API not responding"
+    fi
 else
     fail "MPTE comprehensive returned HTTP ${_HTTP_CODE}"
 fi

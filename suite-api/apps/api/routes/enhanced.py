@@ -50,9 +50,9 @@ def run_enhanced_analysis(
         return result
     except ValueError as exc:
         logger.warning(
-            "Invalid payload for enhanced analysis", extra={"error": str(exc)}
+            "Invalid payload for enhanced analysis: %s", type(exc).__name__
         )
-        raise HTTPException(status_code=400, detail=str(exc))
+        raise HTTPException(status_code=400, detail="Invalid payload for enhanced analysis")
     except Exception:
         logger.exception("Enhanced analysis failed")
         raise HTTPException(status_code=500, detail="Analysis failed")

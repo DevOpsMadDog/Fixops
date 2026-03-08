@@ -30,7 +30,7 @@ def persona_test(persona_id, persona_name, role, tests):
                 persona_pass += 1
             else:
                 pass  # count at end
-        except Exception as e:
+        except Exception:
             pass  # count at end
     
     pct = (persona_pass / persona_total * 100) if persona_total > 0 else 0
@@ -306,7 +306,7 @@ print(f"  Personas Failed: {failed}/{total}")
 # Show any failing personas
 failing = [r for r in results if r["status"] == "FAIL"]
 if failing:
-    print(f"\n  Failing Personas:")
+    print("\n  Failing Personas:")
     for f in failing:
         print(f"    - P{f['id']:02d} {f['name']} ({f['role']}): {f['tests_passed']}/{f['tests_total']}")
 
@@ -321,4 +321,5 @@ else:
 with open("/home/user/workspace/persona_validation_results.json", "w") as f:
     json.dump({"passed": passed, "failed": failed, "total": total, "percentage": pct, "personas": results}, f, indent=2)
 
-sys.exit(0 if pct >= 90 else 1)
+if __name__ == "__main__":
+    sys.exit(0 if pct >= 90 else 1)

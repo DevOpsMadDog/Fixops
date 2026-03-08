@@ -1300,7 +1300,7 @@ resource "aws_rds_instance" "aldeci_db" {
     # 5e. API Fuzzer — Fuzz ALdeci's own OpenAPI spec
     print(C.info("5e. API Fuzzer on ALdeci endpoints..."))
     code, data, ms = api_call("POST", "api/v1/api-fuzzer/fuzz", {
-        "base_url": "http://localhost:8000",
+        "base_url": "https://api.aldeci.example.com",
         "openapi_spec": {
             "openapi": "3.0.0",
             "info": {"title": "ALdeci API", "version": "2.0.0"},
@@ -1694,7 +1694,7 @@ def verify_dashboard():
 
     # Health checks for all scanner subsystems
     subsystems = [
-        ("Brain", "api/v1/brain/stats"),
+        ("Brain", "api/v1/brain/health"),
         ("MPTE", "api/v1/mpte/stats"),
         ("AutoFix", "api/v1/autofix/health"),
         ("SAST", "api/v1/sast/status"),

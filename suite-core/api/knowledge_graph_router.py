@@ -78,7 +78,7 @@ async def knowledge_graph_status() -> Dict[str, Any]:
         return {
             "status": "degraded",
             "engine": "knowledge-graph",
-            "error": str(e),
+            "error": type(e).__name__,
         }
 
 

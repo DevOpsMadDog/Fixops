@@ -57,7 +57,7 @@ async def zero_gravity_status() -> Dict[str, Any]:
         return {
             "status": "degraded",
             "engine": "zero-gravity",
-            "error": str(e),
+            "error": type(e).__name__,
         }
 
 

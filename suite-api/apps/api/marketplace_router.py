@@ -535,7 +535,7 @@ async def contribute_content(
         return {"item_id": item_id, "status": "submitted"}
     except ValueError as exc:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid contribution request"
         ) from exc
 
 
@@ -560,7 +560,7 @@ async def update_item(
         return updated
     except ValueError as exc:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+            status_code=status.HTTP_404_NOT_FOUND, detail="Item not found"
         ) from exc
 
 
@@ -585,7 +585,7 @@ async def rate_item(
         return result
     except ValueError as exc:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid rating"
         ) from exc
 
 
@@ -612,7 +612,7 @@ async def purchase_item(
         return result
     except ValueError as exc:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+            status_code=status.HTTP_404_NOT_FOUND, detail="Item not found"
         ) from exc
 
 
@@ -633,7 +633,7 @@ async def download_content(token: str) -> Dict[str, Any]:
         return result
     except ValueError as exc:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)
+            status_code=status.HTTP_403_FORBIDDEN, detail="Invalid or expired download token"
         ) from exc
 
 

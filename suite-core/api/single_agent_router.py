@@ -60,7 +60,7 @@ async def ai_agent_status() -> Dict[str, Any]:
         return {
             "status": "degraded",
             "engine": "single-agent",
-            "error": str(e),
+            "error": type(e).__name__,
         }
 
 

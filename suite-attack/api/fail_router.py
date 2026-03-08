@@ -32,10 +32,6 @@ from typing import Any, Dict, List, Optional
 
 from attack.fail_engine import (
     DrillEngine,
-    DrillScore,
-    DrillStatus,
-    Severity,
-    TriageClassification,
     get_drill_engine,
 )
 from fastapi import APIRouter, HTTPException, Query

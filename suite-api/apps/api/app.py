@@ -1184,29 +1184,31 @@ def create_app() -> FastAPI:
         q: str = Query("", description="Search query")
     ) -> Dict[str, Any]:
         """Global search across findings, CVEs, assets, and more."""
-        from core.analytics import AnalyticsStore
-        from pathlib import Path
-
-        db = AnalyticsStore(base_directory=Path("data/analytics"))
         results: list[Dict[str, Any]] = []
         if q:
-            # Search findings
-            findings = db.list_findings(limit=500)
-            for f in findings:
-                fd = f.to_dict()
-                searchable = " ".join(str(v) for v in fd.values() if v).lower()
-                if q.lower() in searchable:
-                    results.append(
-                        {
-                            "type": "finding",
-                            "id": fd.get("id"),
-                            "title": fd.get("title", ""),
-                            "severity": fd.get("severity", ""),
-                            "match": "finding",
-                        }
-                    )
-                    if len(results) >= 50:
-                        break
+            try:
+                from core.finding_store import FindingStore
+                from pathlib import Path
+
+                store = FindingStore(Path("data/findings"))
+                findings = store.list(limit=500)
+                for f in findings:
+                    fd = f if isinstance(f, dict) else (f.to_dict() if hasattr(f, "to_dict") else {"id": str(f)})
+                    searchable = " ".join(str(v) for v in fd.values() if v).lower()
+                    if q.lower() in searchable:
+                        results.append(
+                            {
+                                "type": "finding",
+                                "id": fd.get("id"),
+                                "title": fd.get("title", ""),
+                                "severity": fd.get("severity", ""),
+                                "match": "finding",
+                            }
+                        )
+                        if len(results) >= 50:
+                            break
+            except Exception:
+                pass  # Search is best-effort; return empty results on store errors
         return {"query": q, "results": results, "total": len(results)}
 
     app.include_router(enhanced_router, dependencies=[Depends(_verify_api_key)])
@@ -2201,7 +2203,8 @@ def create_app() -> FastAPI:
         except KeyError:
             raise HTTPException(status_code=404, detail="Upload session not found")
         except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
+            logger.warning("upload.append_chunk.invalid: %s", type(exc).__name__)
+            raise HTTPException(status_code=400, detail="Invalid chunk data")
         return {"status": "chunk_received", "session": session.to_dict()}
 
     @app.post(
@@ -2218,7 +2221,8 @@ def create_app() -> FastAPI:
         except KeyError:
             raise HTTPException(status_code=404, detail="Upload session not found")
         except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
+            logger.warning("upload.complete.invalid: %s", type(exc).__name__)
+            raise HTTPException(status_code=400, detail="Invalid upload state")
         path = session.path
         if path is None:
             raise HTTPException(status_code=500, detail="Upload payload missing")
@@ -2882,7 +2886,8 @@ def create_app() -> FastAPI:
         try:
             return store.load_dashboard(limit=limit)
         except ValueError as exc:  # pragma: no cover - defensive guard
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+            logger.warning("analytics.dashboard.invalid: %s", type(exc).__name__)
+            raise HTTPException(status_code=400, detail="Invalid analytics request") from exc
 
     @app.get("/analytics/runs/{run_id}", dependencies=[Depends(_verify_api_key)])
     async def analytics_run(run_id: str) -> Dict[str, Any]:
@@ -2895,7 +2900,8 @@ def create_app() -> FastAPI:
         try:
             data = store.load_run(run_id)
         except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+            logger.warning("analytics.run.invalid: %s", type(exc).__name__)
+            raise HTTPException(status_code=400, detail="Invalid run ID") from exc
         has_content = bool(
             data.get("forecasts")
             or data.get("exploit_snapshots")
@@ -2922,7 +2928,8 @@ def create_app() -> FastAPI:
         try:
             entry = recorder.record(payload)
         except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+            logger.warning("feedback.invalid: %s", type(exc).__name__)
+            raise HTTPException(status_code=400, detail="Invalid feedback payload") from exc
         return entry
 
     # ------------------------------------------------------------------

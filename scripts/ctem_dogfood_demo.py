@@ -1003,7 +1003,7 @@ def phase_ctem_full_loop(demo: DogfoodResult) -> bool:
     ok = code == 200
     if ok:
         artifacts_ingested += 1
-    lines = len([l for l in ECOMMERCE_DESIGN_CSV.strip().split("\n") if l]) - 1
+    lines = len([ln for ln in ECOMMERCE_DESIGN_CSV.strip().split("\n") if ln]) - 1
     detail = f"components={lines}, ingested={'yes' if ok else 'no'}"
     demo.step(step, total_steps, "Ingest architecture design (CSV)", "POST /inputs/design", code, data, ms, ok, detail)
 

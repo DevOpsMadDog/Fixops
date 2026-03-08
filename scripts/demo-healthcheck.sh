@@ -2,8 +2,8 @@
 # ============================================
 # ALdeci CTEM+ Platform — Demo Health Check
 # ============================================
-# Version: 2.3.0 (2026-03-03)
-# Checks: 44 endpoints across all CTEM+ pillars
+# Version: 3.0.0 (2026-03-08)
+# Checks: 44+ endpoints across all CTEM+ pillars
 # Scanners: All 8 native scanners verified
 #
 # Verifies that the ALdeci stack is running and
@@ -12,10 +12,11 @@
 # Usage:
 #   ./scripts/demo-healthcheck.sh              # Default: localhost
 #   ./scripts/demo-healthcheck.sh 192.168.1.5  # Custom host
-#   TIMEOUT=60 ./scripts/demo-healthcheck.sh   # Custom timeout
 #   ./scripts/demo-healthcheck.sh --json       # Machine-parseable JSON output
 #   ./scripts/demo-healthcheck.sh --ci         # CI mode: no colors, strict exit
 #   ./scripts/demo-healthcheck.sh --quick      # Quick mode: core endpoints only
+#   ./scripts/demo-healthcheck.sh --verbose    # Show response bodies on failure
+#   TIMEOUT=60 ./scripts/demo-healthcheck.sh   # Custom timeout
 #
 # Exit codes:
 #   0 = All checks passed (or passed with warnings)
@@ -24,26 +25,35 @@
 # ============================================
 set -euo pipefail
 
+VERSION="3.0.0"
+
 # ─── Parse flags ─────────────────────────────────────────────
 JSON_MODE=false
 CI_MODE=false
 QUICK_MODE=false
+VERBOSE=false
 POSITIONAL_ARGS=()
 
 for arg in "$@"; do
     case "$arg" in
-        --json)  JSON_MODE=true; CI_MODE=true ;;
-        --ci)    CI_MODE=true ;;
-        --quick) QUICK_MODE=true ;;
+        --json)    JSON_MODE=true; CI_MODE=true ;;
+        --ci)      CI_MODE=true ;;
+        --quick)   QUICK_MODE=true ;;
+        --verbose) VERBOSE=true ;;
+        --version) echo "demo-healthcheck.sh v${VERSION}"; exit 0 ;;
         --help|-h)
-            echo "Usage: $0 [HOST] [--json] [--ci] [--quick]"
+            echo "ALdeci CTEM+ Demo Health Check v${VERSION}"
+            echo ""
+            echo "Usage: $0 [HOST] [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  HOST    Target host (default: localhost)"
-            echo "  --json  Output results as JSON (for CI parsing)"
-            echo "  --ci    CI mode: no colors, strict exit codes"
-            echo "  --quick Quick mode: check core endpoints only (7 checks)"
-            echo "  --help  Show this help message"
+            echo "  HOST       Target host (default: localhost)"
+            echo "  --json     Output results as JSON (for CI parsing)"
+            echo "  --ci       CI mode: no colors, strict exit codes"
+            echo "  --quick    Quick mode: check core endpoints only (7 checks)"
+            echo "  --verbose  Show response bodies on failure"
+            echo "  --version  Show version"
+            echo "  --help     Show this help message"
             echo ""
             echo "Environment variables:"
             echo "  FIXOPS_PORT         API port (default: 8000)"
@@ -116,7 +126,7 @@ banner() {
     echo -e "${CYAN}"
     echo "  ┌─────────────────────────────────────────────┐"
     echo "  │     ALdeci CTEM+ Platform Health Check       │"
-    echo "  │     Enterprise Demo — 44 Checks, 8 Scanners │"
+    echo "  │     v${VERSION} — 44+ Checks, 8 Scanners        │"
     echo "  └─────────────────────────────────────────────┘"
     echo -e "${NC}"
     echo -e "  ${BOLD}API:${NC} ${API_BASE}"
@@ -156,11 +166,23 @@ check() {
         FAIL=$((FAIL + 1))
         FAILURES="${FAILURES}\n  - ${name}: unreachable at ${url}"
         json_add_result "$name" "$url" "$status" "$expected_status" "fail"
+        # Verbose mode: show curl error
+        if [[ "$VERBOSE" == "true" && "$JSON_MODE" != "true" ]]; then
+            local err
+            err=$(curl -s --max-time 5 "$url" 2>&1) || true
+            echo -e "    ${YELLOW}Detail: ${err:-no response}${NC}"
+        fi
     else
         [[ "$JSON_MODE" != "true" ]] && echo -e "  ${YELLOW}⚠️${NC}  ${name} ${YELLOW}(${status}, expected ${expected_status})${NC}"
         WARN=$((WARN + 1))
         FAILURES="${FAILURES}\n  - ${name}: got ${status}, expected ${expected_status}"
         json_add_result "$name" "$url" "$status" "$expected_status" "warn"
+        # Verbose mode: show response body on unexpected status
+        if [[ "$VERBOSE" == "true" && "$JSON_MODE" != "true" ]]; then
+            local body
+            body=$(curl -s --max-time 5 -H "X-API-Key: ${API_TOKEN}" "$url" 2>/dev/null | head -c 500) || true
+            echo -e "    ${YELLOW}Body: ${body:-empty}${NC}"
+        fi
     fi
 }
 
@@ -211,6 +233,11 @@ wait_for_api() {
     while [[ $elapsed -lt $TIMEOUT ]]; do
         if curl -sf "${API_BASE}/health" --max-time 2 > /dev/null 2>&1; then
             [[ "$JSON_MODE" != "true" ]] && echo -e "  ${GREEN}✅${NC} API server ready after ${elapsed}s"
+            # Track startup time for DEMO-007
+            STARTUP_TIME=$elapsed
+            if [[ $elapsed -gt 30 ]]; then
+                [[ "$JSON_MODE" != "true" ]] && echo -e "  ${YELLOW}⚠️${NC}  Startup took ${elapsed}s (demo target: <30s)"
+            fi
             return 0
         fi
         sleep 1
@@ -221,18 +248,20 @@ wait_for_api() {
         fi
     done
     [[ "$JSON_MODE" != "true" ]] && echo -e "  ${RED}❌${NC} API server not ready after ${TIMEOUT}s"
+    STARTUP_TIME=$TIMEOUT
     return 1
 }
 
 # ─── Main ───────────────────────────────────────────────────
 
+STARTUP_TIME=0
 banner
 
 # Phase 1: Wait for API readiness
 if ! wait_for_api; then
     if [[ "$JSON_MODE" == "true" ]]; then
         END_TIME=$(date +%s)
-        echo "{\"status\":\"timeout\",\"message\":\"API server not ready after ${TIMEOUT}s\",\"duration_sec\":$((END_TIME - START_TIME)),\"checks\":[]}"
+        echo "{\"status\":\"timeout\",\"version\":\"${VERSION}\",\"message\":\"API server not ready after ${TIMEOUT}s\",\"duration_sec\":$((END_TIME - START_TIME)),\"startup_sec\":${STARTUP_TIME},\"checks\":[]}"
     else
         echo ""
         echo -e "${RED}${BOLD}FAILED:${NC} API server did not start within ${TIMEOUT}s"
@@ -313,7 +342,12 @@ else
     check "Zero-Gravity [V9]"      "${API_BASE}/api/v1/zero-gravity/status"  "200" "true"
     check "Brain Trends [V3]"      "${API_BASE}/api/v1/brain/trends"         "200" "true"
 
-    # Phase 9: Docker container health (only when running in Docker)
+    # Phase 9: OpenAPI specification
+    section "API Documentation"
+    check "OpenAPI Spec"           "${API_BASE}/openapi.json"              "200"
+    check "Swagger UI"             "${API_BASE}/docs"                      "200"
+
+    # Phase 10: Docker container health (only when running in Docker)
     if [[ "$JSON_MODE" != "true" ]]; then
         section "Docker Container Status"
     fi
@@ -365,18 +399,22 @@ if [[ "$JSON_MODE" == "true" ]]; then
     fi
     HC_VERDICT="$VERDICT" HC_PASS="$PASS" HC_FAIL="$FAIL" HC_WARN="$WARN" \
     HC_TOTAL="$TOTAL" HC_DURATION="$DURATION" HC_API="$API_BASE" HC_UI="$UI_BASE" \
+    HC_VERSION="$VERSION" HC_STARTUP="$STARTUP_TIME" \
     python3 -c "
 import json, sys, os
 results = json.load(sys.stdin)
 output = {
     'status': os.environ['HC_VERDICT'],
+    'version': os.environ['HC_VERSION'],
     'passed': int(os.environ['HC_PASS']),
     'failed': int(os.environ['HC_FAIL']),
     'warnings': int(os.environ['HC_WARN']),
     'total': int(os.environ['HC_TOTAL']),
     'duration_sec': int(os.environ['HC_DURATION']),
+    'startup_sec': int(os.environ['HC_STARTUP']),
     'api_base': os.environ['HC_API'],
     'ui_base': os.environ['HC_UI'],
+    'demo_ready': os.environ['HC_VERDICT'] == 'pass' and int(os.environ['HC_STARTUP']) <= 30,
     'checks': results
 }
 print(json.dumps(output, indent=2))
@@ -386,6 +424,7 @@ else
     echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "  ${BOLD}Results:${NC} ${GREEN}${PASS} passed${NC}, ${RED}${FAIL} failed${NC}, ${YELLOW}${WARN} warnings${NC} / ${TOTAL} total"
     echo -e "  ${BOLD}Duration:${NC} ${DURATION}s"
+    echo -e "  ${BOLD}Startup:${NC} ${STARTUP_TIME}s"
 
     if [[ $FAIL -eq 0 && $WARN -eq 0 ]]; then
         echo -e "  ${GREEN}${BOLD}✅ ALL CHECKS PASSED — Demo ready!${NC}"
@@ -401,6 +440,13 @@ else
         echo "    docker compose -f docker/docker-compose.yml logs fixops"
         echo "    docker compose -f docker/docker-compose.yml logs aldeci-ui"
     fi
+
+    # DEMO-007 startup time gate
+    if [[ $STARTUP_TIME -gt 30 ]]; then
+        echo ""
+        echo -e "  ${YELLOW}⚠️  DEMO-007 WARNING: Startup time ${STARTUP_TIME}s exceeds 30s target${NC}"
+    fi
+
     echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 fi
 

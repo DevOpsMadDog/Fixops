@@ -1,17 +1,100 @@
-node_modules
+# ============================================
+# ALdeci Docker Build Context Exclusions
+# ============================================
+# Keep the build context small for fast builds.
+# Only include code that the container needs.
+# ============================================
+
+# Version control (saves ~200MB+)
 .git
-__pycache__
-*.pyc
-.env
-.venv
-venv
-*.egg-info
+.gitignore
+.gitmodules
+
+# Python caches
+**/__pycache__
+**/*.pyc
+**/*.pyo
 .pytest_cache
 .mypy_cache
-suite-ui/aldeci-ui-new/node_modules
-suite-ui/aldeci/node_modules
-suite-ui/aldeci/
-docs/
+.ruff_cache
+.coverage
+htmlcov/
+.tox/
+
+# Virtual environments
+.venv
+venv
+env
+
+# Node modules (each Dockerfile copies what it needs)
+**/node_modules
+.next
+**/dist
+**/.turbo
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*.sublime-*
+
+# OS files
+.DS_Store
+Thumbs.db
+*.bak
+*.tmp
+
+# Build artifacts
+*.egg-info
+build/
+*.whl
+
+# Environment files (NEVER ship secrets)
+.env
+.env.*
+!.env.example
+
+# CI/CD agent state (not needed in containers)
+.claude/
+.github/
+
+# Logs (mounted as volumes instead)
+logs/
+*.log
+
+# Test fixtures not needed in production image
+bash-5.1/
+simulations/
 tests/
+archive/
+archive_not_needed/
+tools/
+docs/
+
+# Documentation not needed in runtime image
 *.md
-!DEPLOYMENT.md
+!requirements*.txt
+LICENSE
+
+# Database files (data is volume-mounted)
+**/*.db
+**/*.db-wal
+**/*.db-shm
+.fixops_data/
+data/
+
+# Large artifacts not needed in containers
+artefacts/
+out/
+reports/
+*.tar
+*.gz
+*.zip
+
+# Jupyter notebooks
+**/*.ipynb
+
+# Coverage / profiling
+*.prof
+.benchmarks/

@@ -10,7 +10,6 @@ Tests all security controls required for defense/government deployment:
 - Error handling (no information leakage)
 """
 
-import json
 import requests
 import sys
 
@@ -96,7 +95,7 @@ for payload in xss_payloads:
         "severity": "medium",
         "description": payload,
     })
-    check(f"XSS in title accepted (stored safely)", r.status_code in (200, 201, 422))
+    check("XSS in title accepted (stored safely)", r.status_code in (200, 201, 422))
 
 # Command injection
 r = requests.post(f"{API}/sast/scan/code", headers=HEADERS, json={
@@ -146,7 +145,7 @@ r = requests.get(f"{API}/scanner-ingest/supported", headers=HEADERS)
 check("Scanner supported endpoint works", r.status_code == 200)
 data = r.json()
 total_parsers = len(data.get("scanners", {}).get("total_new", []))
-check(f"19 scanner parsers registered", total_parsers == 19, f"got {total_parsers}")
+check("19 scanner parsers registered", total_parsers == 19, f"got {total_parsers}")
 
 r = requests.get(f"{API}/scanner-ingest/health", headers=HEADERS)
 check("Scanner health endpoint works", r.status_code == 200)
@@ -184,4 +183,5 @@ else:
     print(f"     {failed} checks need attention")
 print("=" * 70)
 
-sys.exit(0 if failed == 0 else 1)
+if __name__ == "__main__":
+    sys.exit(0 if failed == 0 else 1)

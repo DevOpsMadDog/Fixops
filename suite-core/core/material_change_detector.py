@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import ast
 import hashlib
-import json
 import logging
 import math
 import re
@@ -34,9 +33,9 @@ import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from enum import Enum, auto
+from enum import Enum
 from pathlib import Path
-from typing import Any, DefaultDict, Deque, Dict, Iterator, List, Optional, Set, Tuple
+from typing import Any, DefaultDict, Deque, Dict, List, Optional, Set, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -723,7 +722,6 @@ _SENSITIVITY_SCORES: Dict[str, float] = {
     "config": 0.85,
     "settings": 0.85,
     "env": 0.88,
-    "secret": 1.0,
     "vault": 0.95,
     "deploy": 0.80,
     "dockerfile": 0.85,
@@ -847,7 +845,6 @@ class DiffParser:
         is_new_file = False
         is_deleted = False
         is_rename = False
-        rename_from = ""
         rename_to = ""
         old_path = ""
         new_path = ""
@@ -883,7 +880,6 @@ class DiffParser:
                 is_new_file = False
                 is_deleted = False
                 is_rename = False
-                rename_from = ""
                 rename_to = ""
                 old_path = m.group(1)
                 new_path = m.group(2)
@@ -903,7 +899,7 @@ class DiffParser:
             m = self._RENAME_FROM.match(stripped)
             if m:
                 is_rename = True
-                rename_from = m.group(1)
+                m.group(1)
                 file_raw_lines.append(line)
                 continue
 
@@ -1288,7 +1284,7 @@ class SemanticClassifier:
         is_test_file = bool(self._TEST_PATH_PATTERNS.search(file_path))
 
         # Check for CRITICAL-severity matches
-        has_critical = any(
+        any(
             m.pattern_id.endswith("-001") or "CRITICAL" in m.description.upper()
             for m in pattern_matches
         )
@@ -1662,7 +1658,7 @@ class MaterialChangeDetector:
                 "permission_decorator": SeverityLevel.HIGH,
                 "dangerous_import": SeverityLevel.HIGH,
             }
-            sev = sev_map.get(ft, SeverityLevel.MEDIUM)
+            sev_map.get(ft, SeverityLevel.MEDIUM)
             pm = PatternMatch(
                 pattern_id=f"AST-{ft.upper()[:10]}",
                 category=cat,
@@ -1800,7 +1796,7 @@ class MaterialChangeDetector:
             f"{num_patterns} security-relevant pattern(s) detected"
         )
 
-        desc_parts = [m.description for m in matches[:5]]
+        [m.description for m in matches[:5]]
         explanation_lines = [
             f"File: {file_diff.path} ({file_diff.language})",
             f"Change size: +{file_diff.total_added} / -{file_diff.total_removed} lines",

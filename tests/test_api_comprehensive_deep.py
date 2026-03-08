@@ -135,7 +135,7 @@ class TestAuthEnforcement:
             "/api/v1/analytics/findings",
             "/api/v1/analytics/mttr",
             "/api/v1/reports",
-            "/api/v1/fail/scores",
+            "/api/v1/fail/drills",
             "/api/v1/remediation/tasks",
             "/api/v1/status",
         ],
@@ -477,7 +477,8 @@ class TestReportsEndpoints:
         resp = client.get("/api/v1/reports/templates/list", headers=headers)
         assert resp.status_code == 200
         body = resp.json()
-        assert "templates" in body
+        assert "items" in body
+        assert "total" in body
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -680,78 +681,57 @@ class TestIngestionEndpoints:
 class TestFAILEngineEndpoints:
     """Cover /api/v1/fail/* — scoring, batch, stats, top-risks."""
 
-    def test_fail_score_single(self, client, headers):
-        """POST /api/v1/fail/score computes a FAIL score."""
+    def test_fail_inject_drill(self, client, headers):
+        """POST /api/v1/fail/inject creates a drill."""
         payload = {
-            "cve_id": "CVE-2024-3094",
-            "title": "xz backdoor",
-            "cvss_score": 10.0,
-            "epss_score": 0.97,
-            "is_kev": True,
-            "has_exploit": True,
-            "exploit_maturity": "weaponized",
-            "is_reachable": True,
-            "is_internet_facing": True,
-            "affected_assets": 50,
+            "scenario": "log4shell",
+            "target_component": "auth-service",
+            "org_id": "org-test",
         }
-        resp = client.post("/api/v1/fail/score", headers=headers, json=payload)
-        assert resp.status_code == 200, resp.text
+        resp = client.post("/api/v1/fail/inject", headers=headers, json=payload)
+        assert resp.status_code in (200, 201), resp.text
         body = resp.json()
-        assert "fail_score" in body
-        assert "grade" in body
-        assert "recommended_action" in body
-        assert body["fail_score"] > 0
+        assert "drill_id" in body or "id" in body or "status" in body
 
-    def test_fail_score_minimal(self, client, headers):
-        """POST /api/v1/fail/score with only defaults still works."""
-        payload = {"title": "Generic vuln"}
-        resp = client.post("/api/v1/fail/score", headers=headers, json=payload)
+    def test_fail_scenarios_list(self, client, headers):
+        """GET /api/v1/fail/scenarios returns available scenarios."""
+        resp = client.get("/api/v1/fail/scenarios", headers=headers)
         assert resp.status_code == 200
         body = resp.json()
-        assert "fail_score" in body
+        assert isinstance(body, (list, dict))
 
-    def test_fail_score_batch(self, client, headers):
-        """POST /api/v1/fail/score/batch scores multiple findings."""
-        payload = {
-            "findings": [
-                {"cve_id": "CVE-2024-0001", "cvss_score": 9.8, "title": "Vuln A"},
-                {"cve_id": "CVE-2024-0002", "cvss_score": 5.0, "title": "Vuln B"},
-                {"cve_id": "CVE-2024-0003", "cvss_score": 2.0, "title": "Vuln C"},
-            ]
-        }
-        resp = client.post("/api/v1/fail/score/batch", headers=headers, json=payload)
+    def test_fail_comparison(self, client, headers):
+        """GET /api/v1/fail/comparison returns industry benchmark."""
+        resp = client.get("/api/v1/fail/comparison", headers=headers, params={"org_id": "org-test"})
         assert resp.status_code == 200
         body = resp.json()
-        assert "total" in body
-        assert body["total"] >= 1
-        assert "results" in body
+        assert isinstance(body, dict)
 
-    def test_fail_scores_list(self, client, headers):
-        """GET /api/v1/fail/scores returns paginated scores."""
-        resp = client.get("/api/v1/fail/scores", headers=headers)
+    def test_fail_drills_list(self, client, headers):
+        """GET /api/v1/fail/drills returns drill list."""
+        resp = client.get("/api/v1/fail/drills", headers=headers, params={"org_id": "org-test"})
         assert resp.status_code == 200
         body = resp.json()
-        assert "total" in body
-        assert "results" in body
+        assert isinstance(body, (list, dict))
 
-    def test_fail_score_get_not_found(self, client, headers):
-        """GET /api/v1/fail/score/nonexistent returns 404."""
-        resp = client.get("/api/v1/fail/score/nonexistent-id-9999", headers=headers)
+    def test_fail_drill_not_found(self, client, headers):
+        """GET /api/v1/fail/drills/nonexistent returns 404."""
+        resp = client.get("/api/v1/fail/drills/nonexistent-id-9999", headers=headers)
         assert resp.status_code == 404
 
-    def test_fail_top_risks(self, client, headers):
-        """GET /api/v1/fail/top-risks returns top FAIL-scored risks."""
-        resp = client.get("/api/v1/fail/top-risks", headers=headers)
+    def test_fail_neglect_zones(self, client, headers):
+        """GET /api/v1/fail/neglect-zones returns neglect zones."""
+        resp = client.get("/api/v1/fail/neglect-zones", headers=headers, params={"org_id": "org-test"})
         assert resp.status_code == 200
         body = resp.json()
-        assert "results" in body or "total" in body or isinstance(body, list)
+        assert isinstance(body, (list, dict))
 
-    def test_fail_stats(self, client, headers):
-        """GET /api/v1/fail/stats returns aggregate statistics."""
-        resp = client.get("/api/v1/fail/stats", headers=headers)
+    def test_fail_readiness_score(self, client, headers):
+        """GET /api/v1/fail/readiness-score returns readiness."""
+        resp = client.get("/api/v1/fail/readiness-score", headers=headers, params={"org_id": "org-test"})
         assert resp.status_code == 200
         body = resp.json()
-        assert "total" in body
+        assert isinstance(body, dict)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1024,9 +1004,9 @@ class TestSmokeAllGETEndpoints:
             "/api/v1/reports/stats",
             "/api/v1/reports/schedules/list",
             "/api/v1/reports/templates/list",
-            "/api/v1/fail/scores",
-            "/api/v1/fail/stats",
-            "/api/v1/fail/top-risks",
+            "/api/v1/fail/drills",
+            "/api/v1/fail/neglect-zones",
+            "/api/v1/fail/readiness-score",
             "/api/v1/remediation/tasks",
             "/api/v1/brain/pipeline/runs",
             "/api/v1/brain/evidence/packs",

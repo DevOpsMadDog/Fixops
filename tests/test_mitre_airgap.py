@@ -4,7 +4,6 @@ FixOps MITRE ATT&CK + Air-Gap Feature Tests
 Tests the new application-layer MITRE mapping and air-gapped deployment features.
 """
 
-import json
 import os
 import sys
 import requests
@@ -276,4 +275,5 @@ status = "🟢 ALL TESTS PASSED" if failed == 0 else "🔴 SOME TESTS FAILED"
 print(f"\n  {status}")
 print()
 
-sys.exit(0 if failed == 0 else 1)
+if __name__ == "__main__":
+    sys.exit(0 if failed == 0 else 1)

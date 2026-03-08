@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import re
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -2099,10 +2099,9 @@ class MITREMapper:
         for ta_id, ta_info in self._tactics.items():
             mapped_techs = tactic_techniques.get(ta_id, [])
             if mapped_techs:
-                unique_techs = list(dict.fromkeys(t[0] for t in mapped_techs))
+                list(dict.fromkeys(t[0] for t in mapped_techs))
                 highest_conf = max(t[1] for t in mapped_techs)
             else:
-                unique_techs = []
                 highest_conf = 0.0
 
             coverage.append(KillChainCoverage(

@@ -44,6 +44,35 @@ const severityColors: Record<string, string> = {
   low: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
 };
 
+// Pre-defined finding titles — cycled through deterministically
+const FINDING_TITLES = [
+  'SQL Injection in auth handler',
+  'Exposed AWS credential in config',
+  'XSS via unsanitized input',
+  'Outdated dependency: lodash@4.17.20',
+  'Missing CSRF token validation',
+  'Insecure TLS configuration',
+  'Hardcoded API key in source',
+  'Path traversal in file upload',
+  'Missing rate limiting on /api/login',
+  'Weak password hashing: MD5',
+  'SSRF via URL parameter',
+  'Container running as root',
+  'Terraform S3 bucket public access',
+  'Missing Content-Security-Policy header',
+  'JWT secret key in environment variable',
+];
+
+// Pre-defined severity sequence (realistic distribution: ~5% critical, 15% high, 40% medium, 40% low)
+const SEVERITY_SEQUENCE: LiveFinding['severity'][] = [
+  'medium', 'low', 'high', 'low', 'medium', 'medium', 'low', 'medium',
+  'high', 'low', 'critical', 'medium', 'low', 'medium', 'low', 'high',
+  'medium', 'low', 'low', 'medium',
+];
+
+// Deterministic processing count increments per step
+const PROCESSING_INCREMENTS = [2, 1, 3, 1, 2, 2, 1, 3, 1, 2, 2, 1];
+
 // ── Main Component ─────────────────────────────────────────────────────────
 
 export default function LivePipelineIndicator() {
@@ -76,43 +105,22 @@ export default function LivePipelineIndicator() {
 
     // Progress through pipeline steps
     const stepInterval = setInterval(() => {
-      setActiveStep(prev => (prev + 1) % PIPELINE_STEPS.length);
-      setProcessingCount(prev => prev + Math.floor(Math.random() * 3) + 1);
+      setActiveStep(prev => {
+        const nextStep = (prev + 1) % PIPELINE_STEPS.length;
+        setProcessingCount(p => p + PROCESSING_INCREMENTS[nextStep]);
+        return nextStep;
+      });
     }, 3000);
 
-    // Stream live finding items
+    // Stream live finding items — deterministic cycle through titles and severities
     const findingInterval = setInterval(() => {
-      const severities: LiveFinding['severity'][] = ['critical', 'high', 'medium', 'low'];
-      const weights = [0.05, 0.15, 0.40, 0.40]; // Realistic distribution
-      const rand = Math.random();
-      let cumWeight = 0;
-      let severity: LiveFinding['severity'] = 'low';
-      for (let i = 0; i < weights.length; i++) {
-        cumWeight += weights[i];
-        if (rand < cumWeight) { severity = severities[i]; break; }
-      }
-
-      const titles = [
-        'SQL Injection in auth handler',
-        'Exposed AWS credential in config',
-        'XSS via unsanitized input',
-        'Outdated dependency: lodash@4.17.20',
-        'Missing CSRF token validation',
-        'Insecure TLS configuration',
-        'Hardcoded API key in source',
-        'Path traversal in file upload',
-        'Missing rate limiting on /api/login',
-        'Weak password hashing: MD5',
-        'SSRF via URL parameter',
-        'Container running as root',
-        'Terraform S3 bucket public access',
-        'Missing Content-Security-Policy header',
-        'JWT secret key in environment variable',
-      ];
+      const idx = ++findingIdRef.current;
+      const severity = SEVERITY_SEQUENCE[idx % SEVERITY_SEQUENCE.length];
+      const title = FINDING_TITLES[idx % FINDING_TITLES.length];
 
       const newFinding: LiveFinding = {
-        id: `f-${++findingIdRef.current}`,
-        title: titles[Math.floor(Math.random() * titles.length)],
+        id: `f-${idx}`,
+        title,
         severity,
         step: PIPELINE_STEPS[activeStep].id,
         timestamp: Date.now(),

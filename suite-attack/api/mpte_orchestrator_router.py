@@ -46,7 +46,7 @@ def _get_feeds():
             logger.info("mpte_orchestrator.feeds_service.loaded")
         except Exception as exc:
             logger.warning(
-                "mpte_orchestrator.feeds_service.unavailable", error=str(exc)
+                "mpte_orchestrator.feeds_service.unavailable: %s", type(exc).__name__
             )
     return _feeds_service
 
@@ -62,7 +62,7 @@ def _get_attack_engine():
             logger.info("mpte_orchestrator.attack_engine.loaded")
         except Exception as exc:
             logger.warning(
-                "mpte_orchestrator.attack_engine.unavailable", error=str(exc)
+                "mpte_orchestrator.attack_engine.unavailable: %s", type(exc).__name__
             )
     return _attack_engine
 
@@ -78,7 +78,7 @@ def _get_autofix_engine():
             logger.info("mpte_orchestrator.autofix_engine.loaded")
         except Exception as exc:
             logger.warning(
-                "mpte_orchestrator.autofix_engine.unavailable", error=str(exc)
+                "mpte_orchestrator.autofix_engine.unavailable: %s", type(exc).__name__
             )
     return _autofix_engine
 
@@ -136,6 +136,12 @@ async def health():
             "autofix": "available" if autofix_ok else "unavailable",
         },
     }
+
+
+@router.get("/status")
+async def mpte_orchestrator_status():
+    """Status alias for MPTE orchestrator."""
+    return await health()
 
 
 @router.get("/capabilities")
@@ -485,7 +491,7 @@ async def simulate_attack(body: SimulateRequest):
     except HTTPException:
         raise
     except Exception as exc:
-        logger.error("mpte_orchestrator.simulate.error", error=str(exc), exc_info=True)
+        logger.error("mpte_orchestrator.simulate.error: %s", type(exc).__name__, exc_info=True)
         raise HTTPException(500, detail=f"Simulation failed: {type(exc).__name__}")
 
 
@@ -546,8 +552,8 @@ async def remediation(body: RemediationRequest):
                 ],
             }
         except Exception as exc:
-            logger.warning("mpte_orchestrator.autofix.error", error=str(exc))
-            fix_result = {"status": "autofix_unavailable", "error": str(exc)}
+            logger.warning("mpte_orchestrator.autofix.error: %s", type(exc).__name__)
+            fix_result = {"status": "autofix_unavailable", "error": type(exc).__name__}
 
     # Build smart remediation steps from real data
     steps = []
@@ -632,7 +638,7 @@ async def run_pentest(body: PentestRunRequest):
     except HTTPException:
         raise
     except Exception as exc:
-        logger.error("mpte_orchestrator.run.error", error=str(exc), exc_info=True)
+        logger.error("mpte_orchestrator.run.error: %s", type(exc).__name__, exc_info=True)
         raise HTTPException(500, detail=f"Pentest run failed: {type(exc).__name__}")
 
 

@@ -833,7 +833,7 @@ class TestSSETransport:
     def test_create_sse_event_multiline(self):
         result = create_sse_event("line1\nline2")
         lines = result.split("\n")
-        data_lines = [l for l in lines if l.startswith("data:")]
+        data_lines = [ln for ln in lines if ln.startswith("data:")]
         assert len(data_lines) == 2
 
 

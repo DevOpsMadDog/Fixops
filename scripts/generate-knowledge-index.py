@@ -276,7 +276,7 @@ def digest_agent_outcomes(conn):
         status = status_match.group(1).strip()[:60] if status_match else "unknown"
 
         # Extract key results (first non-empty, non-header line after Status)
-        lines = [l.strip() for l in text.split("\n") if l.strip() and not l.startswith("#")]
+        lines = [ln.strip() for ln in text.split("\n") if ln.strip() and not ln.startswith("#")]
         key_result = ""
         for line in lines:
             if "Status:" not in line and len(line) > 10:

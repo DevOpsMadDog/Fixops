@@ -6,8 +6,10 @@ to LocalOverlayProvider when LD is offline or returns default values.
 """
 
 import json
+import pytest
 
 
+@pytest.mark.timeout(30)
 class TestCombinedProviderFallback:
     """Test CombinedProvider fallback behavior with real CLI execution."""
 

@@ -1178,3 +1178,9 @@ async def vuln_discovery_health() -> Dict[str, str]:
         "version": "1.0.0",
         "vulns_tracked": str(len(_discovered_vulns)),
     }
+
+
+@router.get("/status")
+async def vuln_discovery_status() -> Dict[str, str]:
+    """Status alias for vulnerability discovery service."""
+    return await vuln_discovery_health()

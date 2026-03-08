@@ -192,7 +192,7 @@ async def get_stats(org_id: Optional[str] = Query(None)):
             "resolution_rate": 0.0,
             "strategies_used": {},
             "status": "unavailable",
-            "error": str(exc),
+            "error": type(exc).__name__,
         }
 
 

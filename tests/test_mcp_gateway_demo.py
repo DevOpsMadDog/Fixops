@@ -8,8 +8,13 @@ Validates:
 4. Brain pipeline processes findings through 12 steps
 5. MCP schema export is spec-compliant
 6. End-to-end demo flow succeeds
+7. Evidence generation via pipeline
+8. Tool category distribution (query/action/analysis)
+9. ML risk scoring integration with pipeline
+10. MCP tool execution for findings, scans, and pipeline
 
 These tests use Starlette TestClient (no running server needed).
+34 tests across 12 test classes.
 """
 
 from __future__ import annotations

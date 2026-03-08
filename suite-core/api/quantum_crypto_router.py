@@ -80,7 +80,7 @@ async def quantum_crypto_status() -> Dict[str, Any]:
         return {
             "status": "degraded",
             "engine": "quantum-crypto",
-            "error": str(e),
+            "error": type(e).__name__,
         }
 
 
@@ -122,7 +122,7 @@ async def verify_signature(req: VerifyRequest) -> Dict[str, Any]:
     except Exception as e:
         return {
             "valid": False,
-            "error": str(e),
+            "error": type(e).__name__,
         }
 
 

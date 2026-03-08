@@ -27,7 +27,7 @@ import sys
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -400,7 +400,7 @@ def seed_controls(conn: sqlite3.Connection, fw_db_id: str, fw_name: str,
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    print(f"\nFixOps Compliance Framework Seeder")
+    print("\nFixOps Compliance Framework Seeder")
     print(f"Database : {DB_PATH}")
     print(f"Timestamp: {NOW}")
     print("-" * 60)
@@ -430,7 +430,7 @@ def main() -> None:
     conn.close()
 
     print("\n" + "=" * 60)
-    print(f"Seeding complete.")
+    print("Seeding complete.")
     print(f"  Frameworks processed : {total_frameworks}")
     print(f"  Controls inserted    : {total_controls}")
     print()

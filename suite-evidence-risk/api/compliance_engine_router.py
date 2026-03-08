@@ -57,7 +57,7 @@ async def compliance_engine_status() -> Dict[str, Any]:
         return {
             "status": "degraded",
             "engine": "compliance-engine",
-            "error": str(e),
+            "error": type(e).__name__,
         }
 
 
@@ -391,7 +391,7 @@ async def _soc2_stub_placeholder() -> Dict[str, Any]:
 async def hipaa_status() -> Dict[str, Any]:
     """HIPAA/HITECH compliance posture from real compliance engine assessment."""
     try:
-        from compliance.compliance_engine import ComplianceEngine, Framework
+        from compliance.compliance_engine import ComplianceEngine
         engine = ComplianceEngine()
         # Check if HIPAA is in enabled frameworks; fall back to NIST_800_53 which maps well
         hipaa_fw = None
@@ -543,7 +543,7 @@ async def hipaa_status_legacy() -> Dict[str, Any]:
 async def pci_dss_status() -> Dict[str, Any]:
     """PCI DSS 4.0 compliance posture from real compliance engine assessment."""
     try:
-        from compliance.compliance_engine import ComplianceEngine, Framework
+        from compliance.compliance_engine import ComplianceEngine
         engine = ComplianceEngine()
         # Find PCI_DSS framework
         pci_fw = None

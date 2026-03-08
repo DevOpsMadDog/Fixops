@@ -14,14 +14,13 @@ import json
 import os
 import requests
 import sys
-import time
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 API = "http://localhost:8000"
 _api_key = os.environ.get("FIXOPS_API_TOKEN")
 if not _api_key:
-    import sys; sys.exit("ERROR: FIXOPS_API_TOKEN not set. Export it before running tests.")
+    import sys
+    sys.exit("ERROR: FIXOPS_API_TOKEN not set. Export it before running tests.")
 KEY = {"X-API-Key": _api_key}
 CT = {"Content-Type": "application/json"}
 HEADERS = {**KEY, **CT}
@@ -68,11 +67,11 @@ def grade(persona, role, space, workflow, endpoint, r, check_fn=None):
         results.append(TestResult(persona, role, space, workflow, "FAIL", "Method not allowed (405)", endpoint, 405))
         return
     if r.status_code == 422:
-        results.append(TestResult(persona, role, space, workflow, "PARTIAL", f"Schema validation error — endpoint exists but input format wrong", endpoint, 422))
+        results.append(TestResult(persona, role, space, workflow, "PARTIAL", "Schema validation error — endpoint exists but input format wrong", endpoint, 422))
         return
     try:
         d = r.json()
-    except:
+    except Exception:
         results.append(TestResult(persona, role, space, workflow, "PARTIAL", "Response not JSON", endpoint, r.status_code))
         return
     
@@ -218,7 +217,7 @@ def test_raj_devsecops():
     # 2. Priority queue of findings
     r = get("/api/v1/cases")
     def check(d):
-        cases = d.get("cases", [])
+        d.get("cases", [])
         total = d.get("total", 0)
         return ("PASS" if total > 0 else "PARTIAL"), f"{total} exposure cases"
     grade("Raj Mehta", "DevSecOps Lead", "Discover", "View priority queue of exposure cases", "/api/v1/cases", r, check)
@@ -248,7 +247,7 @@ def login(request):
         findings = d.get("findings", [])
         total = d.get("total_findings", len(findings))
         if total >= 2:  # Should find SQLi + command injection at minimum
-            sevs = [f.get("severity", "?") for f in findings]
+            [f.get("severity", "?") for f in findings]
             rules = [f.get("rule_id", "?") for f in findings]
             return "PASS", f"Found {total} vulns: {rules}"
         return "PARTIAL" if total > 0 else "FAIL", f"Only found {total} vulns in obviously vulnerable code"
@@ -344,7 +343,7 @@ def test_jason_red_team():
             return "FAIL", "No attack simulation scenarios endpoint"
         if isinstance(d, list):
             return "PASS", f"Attack scenarios: {len(d)} available"
-        scenarios = d.get("scenarios", []) if isinstance(d, dict) else []
+        d.get("scenarios", []) if isinstance(d, dict) else []
         return "PASS", f"Attack scenarios: {json.dumps(d)[:150]}"
     grade("Jason Wu", "Red Team Lead", "Validate", "List attack simulation scenarios", "/api/v1/attack-sim/scenarios", r, check)
     
@@ -519,7 +518,7 @@ def test_laura_auditor():
             total = d.get("total", len(d.get("items", [])))
             if total > 0:
                 return "PASS", f"Audit trail: {total} entries"
-            return "PARTIAL", f"Audit trail: 0 entries (endpoint works, needs events)"
+            return "PARTIAL", "Audit trail: 0 entries (endpoint works, needs events)"
         if isinstance(d, dict) and d.get("detail", "").startswith("Not Found"):
             return "FAIL", "No audit logs endpoint"
         logs = d.get("logs", d.get("entries", d.get("events", [])))
@@ -548,12 +547,12 @@ def test_laura_auditor():
         if isinstance(d, list):
             if len(d) > 0:
                 return "PASS", f"Provenance: {len(d)} attestations"
-            return "PARTIAL", f"Provenance store accessible (0 attestations — awaiting data)"
+            return "PARTIAL", "Provenance store accessible (0 attestations — awaiting data)"
         atts = d.get("attestations", d.get("items", []))
         if isinstance(atts, list):
             if len(atts) > 0:
                 return "PASS", f"Provenance: {len(atts)} attestations"
-            return "PARTIAL", f"Provenance store accessible (0 attestations — awaiting data)"
+            return "PARTIAL", "Provenance store accessible (0 attestations — awaiting data)"
         return "PARTIAL", f"Provenance: {json.dumps(d)[:150]}"
     grade("Laura Chen", "External Auditor", "Comply", "View SLSA provenance attestations", "/api/v1/provenance/", r, check)
 
@@ -854,7 +853,7 @@ if __name__ == "__main__":
     print(f"{'=' * 70}")
     
     # Per-space summary
-    print(f"\n  PER-SPACE BREAKDOWN:")
+    print("\n  PER-SPACE BREAKDOWN:")
     for space, tests in sorted(spaces.items()):
         sp = sum(1 for t in tests if t.status == "PASS")
         spar = sum(1 for t in tests if t.status == "PARTIAL")
@@ -877,4 +876,4 @@ if __name__ == "__main__":
             "workflow": r.workflow, "status": r.status, "detail": r.detail,
             "endpoint": r.endpoint, "http_code": r.http_code
         } for r in results], fh, indent=2)
-    print(f"\n  Results saved to persona_test_results.json")
+    print("\n  Results saved to persona_test_results.json")

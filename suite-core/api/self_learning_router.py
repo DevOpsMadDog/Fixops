@@ -111,7 +111,7 @@ async def self_learning_status() -> Dict[str, Any]:
         return {
             "status": "degraded",
             "engine": "self-learning",
-            "error": str(e),
+            "error": type(e).__name__,
         }
 
 
@@ -648,4 +648,156 @@ async def demo_full_loop() -> Dict[str, Any]:
         }
     except Exception as e:
         logger.exception("Demo full loop failed")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class LiveFeedbackRequest(BaseModel):
+    """Submit a single feedback item for any loop and immediately see the scoring effect."""
+    loop: str = Field(..., description="Loop name: decision, mpte, fp, remediation, policy")
+    # Decision fields
+    decision_id: str = Field("", description="Decision ID (for decision loop)")
+    finding_id: str = Field("", description="Finding ID")
+    predicted_action: str = Field("FIX", description="What AI decided")
+    actual_outcome: str = Field("FIX", description="What actually happened")
+    # MPTE fields
+    predicted_exploitable: bool = Field(True, description="Was it predicted exploitable?")
+    actual_exploitable: bool = Field(True, description="Was it actually exploitable?")
+    mpte_confidence: float = Field(0.8, ge=0, le=1)
+    # FP fields
+    scanner: str = Field("semgrep", description="Scanner name")
+    rule_id: str = Field("CWE-89", description="Rule ID")
+    is_false_positive: bool = Field(False, description="Is this a false positive?")
+    # Remediation fields
+    fix_type: str = Field("CODE_PATCH", description="Fix type")
+    fix_applied: str = Field("Applied fix", description="Fix description")
+    resolved: bool = Field(True, description="Did the fix resolve the issue?")
+    time_to_fix_hours: float = Field(2.0, ge=0)
+    # Policy fields
+    policy_id: str = Field("POL-001", description="Policy ID")
+    violated: bool = Field(True, description="Was the policy violated?")
+    was_justified: bool = Field(False, description="Was the violation justified?")
+    # Scoring finding (used to show before/after effect)
+    cvss_score: float = Field(7.5, ge=0, le=10)
+    epss_score: float = Field(0.35, ge=0, le=1)
+    in_kev: bool = Field(False)
+    asset_criticality: float = Field(0.7, ge=0, le=1)
+
+
+@router.post("/demo/live-feedback")
+async def demo_live_feedback(req: LiveFeedbackRequest) -> Dict[str, Any]:
+    """Submit one feedback record, run learning, and show scoring effect.
+
+    This is the interactive demo endpoint: submit a single feedback item,
+    immediately compute adjustments, and show how the risk score changed.
+
+    Each call adds to the learning history — call multiple times to see
+    the cumulative learning effect.
+
+    Steps per call:
+    1. Score the finding BEFORE this feedback (current state)
+    2. Record the feedback for the specified loop
+    3. Re-compute weight adjustments
+    4. Score the finding AFTER learning
+    5. Return before/after comparison
+    """
+    try:
+        from core.self_learning import get_learning_engine
+        engine = get_learning_engine()
+
+        # Step 1: Score BEFORE
+        finding = {
+            "cvss_score": req.cvss_score,
+            "epss_score": req.epss_score,
+            "in_kev": req.in_kev,
+            "asset_criticality": req.asset_criticality,
+            "scanner": req.scanner,
+            "rule_id": req.rule_id,
+            "fix_type": req.fix_type,
+        }
+        before = engine.score_with_learning(finding)
+
+        # Step 2: Record feedback
+        feedback_id = ""
+        loop_name = req.loop.lower().strip()
+        if loop_name == "decision":
+            fid = req.finding_id or f"VULN-LIVE-{__import__('secrets').token_hex(4)}"
+            did = req.decision_id or f"DEC-LIVE-{__import__('secrets').token_hex(4)}"
+            feedback_id = engine.decision_loop.record(
+                decision_id=did, finding_id=fid,
+                predicted_action=req.predicted_action,
+                actual_outcome=req.actual_outcome,
+                confidence=0.8,
+                context={"scanner": req.scanner, "live_demo": True},
+            )
+        elif loop_name == "mpte":
+            fid = req.finding_id or f"MPTE-LIVE-{__import__('secrets').token_hex(4)}"
+            feedback_id = engine.mpte_loop.record(
+                finding_id=fid,
+                predicted_exploitable=req.predicted_exploitable,
+                actual_exploitable=req.actual_exploitable,
+                mpte_confidence=req.mpte_confidence,
+                context={"scanner": req.scanner, "live_demo": True},
+            )
+        elif loop_name == "fp":
+            fid = req.finding_id or f"FP-LIVE-{__import__('secrets').token_hex(4)}"
+            feedback_id = engine.fp_loop.record(
+                finding_id=fid, scanner=req.scanner,
+                rule_id=req.rule_id, is_false_positive=req.is_false_positive,
+                context={"live_demo": True},
+            )
+        elif loop_name == "remediation":
+            fid = req.finding_id or f"REM-LIVE-{__import__('secrets').token_hex(4)}"
+            feedback_id = engine.remediation_loop.record(
+                finding_id=fid, fix_type=req.fix_type,
+                fix_applied=req.fix_applied, resolved=req.resolved,
+                time_to_fix_hours=req.time_to_fix_hours,
+                context={"live_demo": True},
+            )
+        elif loop_name == "policy":
+            feedback_id = engine.policy_loop.record(
+                policy_id=req.policy_id, rule_id=req.rule_id,
+                violated=req.violated, was_justified=req.was_justified,
+                context={"live_demo": True},
+            )
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown loop: {loop_name}. Valid: decision, mpte, fp, remediation, policy",
+            )
+
+        # Step 3: Re-compute adjustments
+        adjustments = engine.compute_adjustments()
+
+        # Step 4: Score AFTER
+        after = engine.score_with_learning(finding)
+
+        # Step 5: Return comparison
+        return {
+            "feedback_recorded": True,
+            "feedback_id": feedback_id,
+            "loop": loop_name,
+            "before": {
+                "score": before["adjusted_score"],
+                "adjustments_applied": before["adjustments_applied"],
+                "learning_active": before["learning_active"],
+            },
+            "after": {
+                "score": after["adjusted_score"],
+                "adjustments_applied": after["adjustments_applied"],
+                "learning_active": after["learning_active"],
+                "adjustments_detail": after["adjustments"],
+            },
+            "delta": round(after["adjusted_score"] - before["adjusted_score"], 4),
+            "delta_percent": round(
+                ((after["adjusted_score"] - before["adjusted_score"]) / before["adjusted_score"] * 100)
+                if before["adjusted_score"] > 0 else 0, 1
+            ),
+            "weight_adjustments_computed": len(adjustments),
+            "total_feedback": engine.get_status().get("total_feedback", 0),
+            "finding_used": finding,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Live feedback demo failed")
         raise HTTPException(status_code=500, detail=str(e))

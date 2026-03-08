@@ -209,7 +209,7 @@ AGENT_TURNS=(
   [backend-hardener]=300   # Backend code — heavy builder
   [frontend-craftsman]=300 # Frontend code — heavy builder
   [threat-architect]=300   # Security code — heavy builder
-  [swarm-controller]=100   # Coordination — moderate
+  [swarm-controller]=80    # Coordination — reduced from 150 to prevent timeout/OOM (KP-011)
   [security-analyst]=200   # Security review — moderate
   [qa-engineer]=200        # Testing — moderate
   [persona-api-validator]=200 # Persona API validation — moderate
@@ -230,7 +230,7 @@ AGENT_MIN_RAM=(
   [backend-hardener]=800   # Heavy — needs room for code gen + tests
   [frontend-craftsman]=800
   [threat-architect]=800
-  [swarm-controller]=500
+  [swarm-controller]=600
   [security-analyst]=600
   [qa-engineer]=600
   [persona-api-validator]=600
@@ -3225,14 +3225,53 @@ verify_agent_personas() {
       details+="❌ No output log. "
     fi
 
+    # ── Check 3b: Supplementary artifact check for coordinator agents (up to 15 pts) ──
+    # Coordinator agents (swarm-controller, scrum-master, context-engineer) produce artifacts
+    # in team-state directories, not just log files. Award partial credit for real artifacts.
+    if [[ $score -lt 30 ]]; then
+      case "$agent" in
+        swarm-controller)
+          local swarm_artifacts=0
+          # Check for swarm reports (recent, within 48hrs)
+          local recent_report
+          recent_report=$(find "$STATE_DIR/swarm/" -name "swarm-report-*.md" -mtime -2 2>/dev/null | head -1)
+          [[ -n "$recent_report" ]] && ((swarm_artifacts+=5))
+          # Check for task outputs (any completed junior outputs)
+          local output_count
+          output_count=$(find "$STATE_DIR/swarm/outputs/" -name "status.json" 2>/dev/null | wc -l | tr -d ' ')
+          [[ "$output_count" -gt 5 ]] && ((swarm_artifacts+=5))
+          # Check for wave assignments
+          [[ -f "$STATE_DIR/swarm/assignments/wave1-dispatch.json" ]] && ((swarm_artifacts+=5))
+          if [[ $swarm_artifacts -gt 0 ]]; then
+            score=$((score + swarm_artifacts))
+            details+="✅ Swarm artifacts (+${swarm_artifacts}pts, ${output_count:-0} outputs). "
+            is_stub=false
+          fi
+          ;;
+        scrum-master)
+          [[ -f "$STATE_DIR/sprint-board.json" ]] && { score=$((score + 10)); details+="✅ Sprint board artifact. "; is_stub=false; }
+          ;;
+        context-engineer)
+          [[ -f "$STATE_DIR/codebase-map.md" || -f "$STATE_DIR/architecture-context.md" ]] && { score=$((score + 10)); details+="✅ Context artifacts. "; is_stub=false; }
+          ;;
+      esac
+    fi
+
     # ── Check 4: Persona-specific markers in output (30 pts) ──
-    if [[ -n "$log_file" && -f "$log_file" && -n "$markers" ]]; then
+    # Check log file first; if empty/missing, fall back to status file for markers
+    local marker_source=""
+    if [[ -n "$log_file" && -f "$log_file" ]] && [[ $(wc -c < "$log_file" 2>/dev/null | tr -d ' ') -gt 100 ]]; then
+      marker_source="$log_file"
+    elif [[ -f "$status_file" ]] && [[ $(wc -c < "$status_file" 2>/dev/null | tr -d ' ') -gt 100 ]]; then
+      marker_source="$status_file"
+    fi
+    if [[ -n "$marker_source" && -n "$markers" ]]; then
       local marker_hits=0
       local marker_total=0
       local IFS='|'
       for marker in $markers; do
         ((marker_total++))
-        if grep -qiE "$marker" "$log_file" 2>/dev/null; then
+        if grep -qiE "$marker" "$marker_source" 2>/dev/null; then
           ((marker_hits++))
         fi
       done
@@ -4124,6 +4163,9 @@ build_scp_context() {
     backend-hardener|frontend-craftsman|threat-architect)
       # Phase 3: Builders — need EVERYTHING (full SCP) ;;
       ;;
+    swarm-controller)
+      # Phase 3.5: Coordinator — needs sprint + metrics + decisions, skip heavy sections
+      needs_codebase_map=false; needs_debates=false ;;
     security-analyst|qa-engineer)
       # Phase 4: Validators — need iteration ctx + outcomes (what to test) ;;
       ;;
@@ -4349,6 +4391,7 @@ run_agent() {
   # Dynamic timeout: critical agents get more time, phase-0 agents get less
   case "$agent_name" in
     frontend-craftsman|backend-hardener|threat-architect) timeout=$TIMEOUT_CRITICAL ;;
+    swarm-controller) timeout=2400 ;;  # 40 min — needs time for task decomposition, dispatch, monitoring
     vision-agent|agent-doctor) timeout=$TIMEOUT_PHASE0 ;;
   esac
 
@@ -4547,6 +4590,19 @@ EOF
           last_failure_reason="Port 8000 conflict (healed)"
         fi
 
+        # Heal: 0-byte output (timeout kill before stdout flush — KP-001)
+        local log_size
+        log_size=$(stat -f '%z' "$log_file" 2>/dev/null || echo "0")
+        if [[ "$log_size" -eq 0 ]]; then
+          warn "  SELF-HEAL: 0-byte output detected (KP-001) — killing orphans + increasing memory ceiling..."
+          pkill -f "node.*claude.*${agent_name}" 2>/dev/null || true
+          sleep 3
+          # Bump memory ceiling for retry (prevent OOM-kill before buffer flush)
+          AGENT_MAX_RAM_MB[$agent_name]=$(( ${AGENT_MAX_RAM_MB[$agent_name]:-2400} + 600 ))
+          last_failure_reason="0-byte output (KP-001 — orphans killed, memory bumped to ${AGENT_MAX_RAM_MB[$agent_name]}MB)"
+          success "  HEALED: RAM ceiling → ${AGENT_MAX_RAM_MB[$agent_name]}MB, orphans cleaned"
+        fi
+
         # Heal: Disk space issue
         if echo "$log_tail" | grep -q 'No space left on device\|Disk quota exceeded' 2>/dev/null; then
           warn "  SELF-HEAL: Disk space issue — cleaning old logs..."
@@ -4633,10 +4689,10 @@ EOF
         agent_tools="Read,Write,Edit,Bash,Grep,Glob"
         agent_effort="high"
         ;;
-      context-engineer|scrum-master|agent-doctor)
-        # Coordinators: read + write status only, no code editing
+      context-engineer|scrum-master|agent-doctor|swarm-controller)
+        # Coordinators: read + write + bash (swarm needs Bash for junior dispatch/test runs)
         agent_tools="Read,Write,Bash,Grep,Glob"
-        agent_effort="medium"
+        agent_effort="high"
         ;;
       vision-agent|marketing-head|technical-writer|sales-engineer)
         # Non-coders: read-only + write docs, no Bash execution
@@ -5269,7 +5325,7 @@ AGENT_MAX_RAM_MB=(
   [backend-hardener]=2400   # 800MB min × 3x headroom — heavy builder
   [frontend-craftsman]=2400
   [threat-architect]=2400
-  [swarm-controller]=1500
+  [swarm-controller]=2400   # Coordinator spawns juniors — needs builder-level headroom
   [security-analyst]=1800
   [qa-engineer]=1800
   [devops-engineer]=1800

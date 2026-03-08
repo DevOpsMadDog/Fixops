@@ -915,7 +915,20 @@ const ExposureCaseCenter = () => {
         {/* ════════ KANBAN TAB ════════ */}
         <TabsContent value="kanban" className="mt-4">
           {loading ? (
-            <div className="text-center py-16 text-muted-foreground animate-pulse">Loading cases...</div>
+            <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-3">
+              {Array.from({ length: 7 }).map((_, i) => (
+                <div key={i} className="space-y-3">
+                  <div className="h-6 w-24 bg-gray-700/30 rounded animate-pulse" />
+                  {Array.from({ length: 2 }).map((_, j) => (
+                    <div key={j} className="border border-border/30 rounded-lg p-3 space-y-2">
+                      <div className="h-4 w-full bg-gray-700/20 rounded animate-pulse" />
+                      <div className="h-3 w-2/3 bg-gray-700/15 rounded animate-pulse" />
+                      <div className="h-3 w-1/2 bg-gray-700/10 rounded animate-pulse" />
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
           ) : cases.length === 0 ? (
             <div className="text-center py-20 text-muted-foreground">
               <div className="text-5xl mb-4">🛡️</div>

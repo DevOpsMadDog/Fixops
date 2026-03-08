@@ -1414,6 +1414,19 @@ export const selfLearningApi = {
     api.post('/api/v1/self-learning/demo/reset').then(r => r.data),
   fullLoop: () =>
     api.get('/api/v1/self-learning/demo/full-loop').then(r => r.data),
+  liveFeedback: (data: {
+    loop: string;
+    decision_id?: string; finding_id?: string;
+    predicted_action?: string; actual_outcome?: string;
+    predicted_exploitable?: boolean; actual_exploitable?: boolean;
+    mpte_confidence?: number;
+    scanner?: string; rule_id?: string; is_false_positive?: boolean;
+    fix_type?: string; fix_applied?: string; resolved?: boolean;
+    time_to_fix_hours?: number;
+    policy_id?: string; violated?: boolean; was_justified?: boolean;
+    cvss_score?: number; epss_score?: number; in_kev?: boolean;
+    asset_criticality?: number;
+  }) => api.post('/api/v1/self-learning/demo/live-feedback', data).then(r => r.data),
 }
 
 export const failApi = {

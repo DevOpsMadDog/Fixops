@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import jwt
 from apps.api import app as app_module
@@ -36,11 +36,12 @@ def test_cors_includes_vite_dev_server(monkeypatch):
 
 
 def test_generate_access_token_expiry(monkeypatch):
-    monkeypatch.setattr(app_module, "JWT_SECRET", "test-secret")
+    _test_jwt_secret = "test-secret-that-is-long-enough-for-hmac-sha256-validation"
+    monkeypatch.setattr(app_module, "JWT_SECRET", _test_jwt_secret)
     monkeypatch.setattr(app_module, "JWT_EXP_MINUTES", 1)
     token = app_module.generate_access_token({"sub": "tester"})
-    payload = jwt.decode(token, "test-secret", algorithms=[app_module.JWT_ALGORITHM])
+    payload = jwt.decode(token, _test_jwt_secret, algorithms=[app_module.JWT_ALGORITHM])
     assert payload["sub"] == "tester"
-    exp = datetime.fromtimestamp(payload["exp"])
-    delta = exp - datetime.utcnow()
+    exp = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
+    delta = exp - datetime.now(timezone.utc)
     assert timedelta(seconds=0) < delta <= timedelta(minutes=1, seconds=5)

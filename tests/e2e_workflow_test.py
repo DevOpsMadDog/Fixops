@@ -4,9 +4,7 @@ FixOps Enterprise E2E Workflow Test
 Tests the complete vulnerability management lifecycle:
   Ingest → Dedupe → Triage → Remediate → Verify → Comply
 """
-import json
 import sys
-import time
 import requests
 
 API = "http://localhost:8000"
@@ -130,7 +128,7 @@ test("Brain Stats (nodes/edges)", t_brain_stats)
 def t_brain_nodes():
     r = requests.get(f"{API}/api/v1/brain/nodes", headers=H)
     d = r.json()
-    nodes = d.get("nodes", d) if isinstance(d, dict) else d
+    d.get("nodes", d) if isinstance(d, dict) else d
     return r.status_code == 200
 test("Brain Nodes Query", t_brain_nodes)
 
@@ -408,7 +406,7 @@ section("PHASE 13: INVENTORY")
 
 def t_inventory_assets():
     r = requests.get(f"{API}/api/v1/inventory/assets", headers=H)
-    d = r.json()
+    r.json()
     return r.status_code == 200
 test("List Inventory Assets", t_inventory_assets)
 
@@ -584,7 +582,7 @@ test("List Connectors", t_connectors_list)
 
 def t_connectors_types():
     r = requests.get(f"{API}/api/v1/connectors/types", headers=H)
-    d = r.json()
+    r.json()
     return r.status_code == 200
 test("Connector Types", t_connectors_types)
 
@@ -632,4 +630,5 @@ elif pct >= 75:
 else:
     print(f"\n  🔴 NOT READY — {pct:.1f}% pass rate")
 
-sys.exit(0 if pct >= 85 else 1)
+if __name__ == "__main__":
+    sys.exit(0 if pct >= 85 else 1)

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
@@ -13,9 +13,7 @@ import {
   ChevronDown,
   Shield,
   Bot,
-  Bell,
   Search,
-  User,
   Loader2,
   Code,
   Key,
@@ -50,6 +48,8 @@ import {
   Database,
   Link2,
   Clock,
+  Menu,
+  X,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -58,6 +58,9 @@ import { useUIStore } from '../stores';
 import { searchApi } from '../lib/api';
 import AICopilot from '../components/AICopilot';
 import GlobalStatusBar from '../components/GlobalStatusBar';
+import NotificationCenter from '../components/NotificationCenter';
+import UserMenu from '../components/UserMenu';
+import Breadcrumbs from '../components/Breadcrumbs';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -213,9 +216,15 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(['mission-control', 'discover', 'validate', 'remediate', 'comply'])
   );
+
+  // Close mobile menu on navigation
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
 
   // Determine which space contains the current path
   const getActiveSpace = (): string | null => {
@@ -272,27 +281,56 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
+      {/* Mobile overlay backdrop */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* ═══ SIDEBAR — 5 WORKFLOW SPACES ═══ */}
       <motion.aside
         initial={false}
         animate={{ width: sidebarCollapsed ? 72 : 280 }}
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="flex flex-col border-r border-border bg-card/50 backdrop-blur-xl"
+        className={`flex flex-col border-r border-border bg-card/50 backdrop-blur-xl ${
+          mobileMenuOpen ? 'fixed inset-y-0 left-0 z-50' : 'hidden lg:flex'
+        }`}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 p-4 border-b border-border">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20 border border-indigo-500/20">
-            <Shield className="w-6 h-6 text-indigo-400" />
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20 border border-indigo-500/20">
+              <Shield className="w-6 h-6 text-indigo-400" />
+            </div>
+            {(!sidebarCollapsed || mobileMenuOpen) && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <h1 className="font-bold text-lg tracking-tight">ALdeci</h1>
+                <p className="text-[10px] text-muted-foreground font-medium tracking-wide uppercase">CTEM+ Platform</p>
+              </motion.div>
+            )}
           </div>
-          {!sidebarCollapsed && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+          {/* Mobile close button */}
+          {mobileMenuOpen && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 lg:hidden"
+              onClick={() => setMobileMenuOpen(false)}
+              aria-label="Close navigation menu"
             >
-              <h1 className="font-bold text-lg tracking-tight">ALdeci</h1>
-              <p className="text-[10px] text-muted-foreground font-medium tracking-wide uppercase">CTEM+ Platform</p>
-            </motion.div>
+              <X className="w-4 h-4" />
+            </Button>
           )}
         </div>
 
@@ -459,8 +497,18 @@ export default function MainLayout({ children }: MainLayoutProps) {
         <GlobalStatusBar />
 
         {/* Top Bar */}
-        <header className="flex items-center justify-between px-6 py-2.5 border-b border-border bg-card/30 backdrop-blur-xl">
-          <div className="flex items-center gap-4 flex-1 max-w-xl">
+        <header className="flex items-center justify-between px-4 md:px-6 py-2.5 border-b border-border bg-card/30 backdrop-blur-xl">
+          <div className="flex items-center gap-2 md:gap-4 flex-1 max-w-xl">
+            {/* Mobile menu toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 lg:hidden flex-shrink-0"
+              onClick={() => setMobileMenuOpen(prev => !prev)}
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </Button>
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
               <Input
@@ -539,22 +587,16 @@ export default function MainLayout({ children }: MainLayoutProps) {
             </Button>
 
             {/* Notifications */}
-            <Button variant="ghost" size="icon" className="relative h-9 w-9" aria-label="Notifications">
-              <Bell className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
-                3
-              </span>
-            </Button>
+            <NotificationCenter />
 
             {/* User Menu */}
-            <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="User menu">
-              <User className="w-5 h-5" />
-            </Button>
+            <UserMenu />
           </div>
         </header>
 
         {/* Page Content */}
         <main role="main" aria-label="Page content" className="flex-1 overflow-y-auto p-6">
+          <Breadcrumbs />
           {children}
         </main>
       </div>

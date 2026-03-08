@@ -59,6 +59,13 @@ async def list_patterns() -> Dict[str, Any]:
     }
 
 
+@router.get("/health")
+async def llm_monitor_health() -> Dict[str, Any]:
+    """Health check for LLM monitor engine."""
+    return {"status": "healthy", "engine": "llm_monitor", "version": "1.0.0"}
+
+
 @router.get("/status")
 async def llm_monitor_status() -> Dict[str, Any]:
-    return {"engine": "llm_monitor", "status": "ready", "version": "1.0.0"}
+    """Status check for LLM monitor engine."""
+    return {"status": "healthy", "engine": "llm_monitor", "version": "1.0.0"}

@@ -1,0 +1,35 @@
+{
+  "demo": "DEMO-004",
+  "timestamp": "2026-03-08T02:06:59.920428Z",
+  "passed": 28,
+  "failed": 0,
+  "total": 28,
+  "elapsed_seconds": 53,
+  "phases": {
+    "discover": {
+      "findings": 24,
+      "scanners": 5,
+      "artifacts_ingested": 4
+    },
+    "validate": {
+      "brain_pipeline": true,
+      "mpte": true,
+      "threat_intel": true,
+      "attack_sim": true
+    },
+    "remediate": {
+      "autofix": true,
+      "bulk_fix": true,
+      "confidence": "0.8900067878377892"
+    },
+    "comply": {
+      "frameworks": [
+        "SOC2",
+        "PCI-DSS",
+        "HIPAA"
+      ],
+      "signed": true,
+      "evidence_hash": "sha256:7583be45767a7d49ef07266c5d7ceb46a2141eda7bc945088b15bdca585cc33b"
+    }
+  }
+}

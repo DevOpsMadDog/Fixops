@@ -16,11 +16,9 @@ from __future__ import annotations
 
 import logging
 import os
-import tempfile
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field, validator
 
@@ -867,7 +865,7 @@ async def lookup_cve(
         db = OfflineVulnDBManager()
         result = db.lookup_cve(cve_id)
         if result is None:
-            engine = _get_engine()
+            _get_engine()
             if not db.is_available():
                 raise HTTPException(
                     status_code=503,
@@ -877,7 +875,7 @@ async def lookup_cve(
                 status_code=404,
                 detail=f"CVE {cve_id} not found in local database",
             )
-        engine = _get_engine()
+        _get_engine()
         return _with_banner({
             "status": "ok",
             "cve_id": cve_id,
@@ -910,7 +908,7 @@ async def get_vuln_db_info(_: str = Depends(_require_api_key)) -> Dict[str, Any]
         from core.airgap_config import OfflineVulnDBManager
         db = OfflineVulnDBManager()
         info = db.load_db_info()
-        engine = _get_engine()
+        _get_engine()
         if info is None:
             return _with_banner({
                 "status": "ok",
@@ -952,7 +950,7 @@ async def get_threat_intel_info(_: str = Depends(_require_api_key)) -> Dict[str,
         from core.airgap_config import ThreatIntelManager
         tm = ThreatIntelManager()
         manifest = tm.get_manifest()
-        engine = _get_engine()
+        _get_engine()
         if manifest is None:
             return _with_banner({
                 "status": "ok",
@@ -983,7 +981,7 @@ async def list_applied_updates(_: str = Depends(_require_api_key)) -> Dict[str, 
         from core.airgap_config import OfflineUpdateManager
         mgr = OfflineUpdateManager()
         packages = mgr.list_applied_packages()
-        engine = _get_engine()
+        _get_engine()
         return _with_banner({
             "status": "ok",
             "count": len(packages),

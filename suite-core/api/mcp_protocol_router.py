@@ -82,7 +82,7 @@ async def mcp_protocol_status() -> Dict[str, Any]:
         return {
             "status": "degraded",
             "engine": "mcp-protocol",
-            "error": str(e),
+            "error": type(e).__name__,
         }
 
 

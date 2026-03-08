@@ -368,12 +368,12 @@ class TestBanditClean:
         )
         # bandit returns 0 when no issues found at the given severity
         if result.stdout:
-            lines = [l for l in result.stdout.strip().split("\n")
-                     if l.strip() and "No issues" not in l and "Run started" not in l
-                     and "Code scanned" not in l and "Total lines" not in l
-                     and "Run metrics" not in l and "Total issues" not in l
-                     and "Total potential" not in l and "Files skipped" not in l]
-            high_findings = [l for l in lines if "High" in l and "Severity" in l]
+            lines = [ln for ln in result.stdout.strip().split("\n")
+                     if ln.strip() and "No issues" not in ln and "Run started" not in ln
+                     and "Code scanned" not in ln and "Total lines" not in ln
+                     and "Run metrics" not in ln and "Total issues" not in ln
+                     and "Total potential" not in ln and "Files skipped" not in ln]
+            high_findings = [ln for ln in lines if "High" in ln and "Severity" in ln]
             assert len(high_findings) == 0, (
                 "Found HIGH severity bandit findings:\n" +
                 "\n".join(high_findings[:5])

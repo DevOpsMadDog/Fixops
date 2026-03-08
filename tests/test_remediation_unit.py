@@ -392,7 +392,7 @@ class TestCWE78Fix:
         source = 'subprocess.run(cmd, shell=True)'
         fix = CWEFixRegistry.generate_fix("CWE-78", finding, source)
         # Check non-comment lines only
-        code_lines = [l for l in fix.fix_code.splitlines() if not l.strip().startswith("#")]
+        code_lines = [ln for ln in fix.fix_code.splitlines() if not ln.strip().startswith("#")]
         code_only = "\n".join(code_lines)
         assert "shell=True" not in code_only
         assert "shell=False" in code_only

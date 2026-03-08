@@ -13,7 +13,8 @@ from pathlib import Path
 import requests
 
 BASE_URL = "http://localhost:8000"
-import os as _os, sys as _sys
+import os as _os
+import sys as _sys
 API_KEY = _os.environ.get("FIXOPS_API_TOKEN")
 if not API_KEY:
     _sys.exit("ERROR: FIXOPS_API_TOKEN environment variable required.")

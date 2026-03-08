@@ -13,13 +13,12 @@ from __future__ import annotations
 
 import json
 import sys
-import time
 import urllib.request
 import urllib.error
 from typing import Any, Dict
 
 BASE_URL = "http://localhost:8000"
-import os, sys
+import os
 API_KEY = os.environ.get("FIXOPS_API_TOKEN")
 if not API_KEY:
     sys.exit("ERROR: FIXOPS_API_TOKEN environment variable required. Set it before running.")
@@ -235,7 +234,7 @@ def seed_all():
     # Summary
     total_sent = sum(v["sent"] for v in results.values())
     total_ok   = sum(v["ok"]   for v in results.values())
-    total_err  = sum(v["error"] for v in results.values())
+    sum(v["error"] for v in results.values())
 
     print("\n" + "=" * 60)
     print("SEED SUMMARY")

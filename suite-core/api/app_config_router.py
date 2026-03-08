@@ -10,25 +10,15 @@ back through the App → Component → Feature hierarchy.
 from __future__ import annotations
 
 import logging
-import os
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import yaml
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 
 from core.app_config import (
     AppConfig,
     AppConfigManager,
-    ClassificationLevel,
-    ComponentConfig,
-    Criticality,
-    DataClassification,
-    PolicyConfig,
-    ScannerConfig,
-    SLAConfig,
     get_default_manager,
 )
 

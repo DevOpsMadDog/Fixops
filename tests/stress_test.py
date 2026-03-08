@@ -3,7 +3,6 @@
 
 import asyncio
 import aiohttp
-import json
 import time
 import sys
 from collections import defaultdict
@@ -40,7 +39,7 @@ ENDPOINTS = [
     ("GET", "/self-learning/metrics", None),
     ("GET", "/self-learning/model/status", None),
     ("POST", "/brain/ingest/finding", {
-        "title": f"Stress Test Finding",
+        "title": "Stress Test Finding",
         "severity": "medium",
         "source_tool": "stress-test",
         "description": "Concurrent stress test finding"
@@ -164,7 +163,7 @@ async def run_stress_test():
         print(f"  Avg latency: {avg_latency:.1f}ms")
         
         # Phase 4: Scanner ingestion under load
-        print(f"\n[Phase 4] Scanner ingestion burst — 20 concurrent uploads...")
+        print("\n[Phase 4] Scanner ingestion burst — 20 concurrent uploads...")
         trivy_data = open("/tmp/trivy_scan.json", "rb").read()
         
         async def upload_scan(i):

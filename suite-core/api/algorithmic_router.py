@@ -518,6 +518,12 @@ async def propagate_risk_through_graph(request: AttackSurfaceRequest) -> Dict[st
 # ============================================================================
 
 
+@router.get("/health")
+async def get_algorithm_health() -> Dict[str, Any]:
+    """Health check for algorithmic engines."""
+    return {"status": "healthy", "engine": "algorithmic", "version": "1.0.0"}
+
+
 @router.get("/status")
 async def get_algorithm_status() -> Dict[str, Any]:
     """Get status of all algorithmic engines."""

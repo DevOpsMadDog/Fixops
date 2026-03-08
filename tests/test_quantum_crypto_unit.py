@@ -26,16 +26,19 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "suite-core"))
 
-from core.quantum_crypto import (
-    MLDSAError,
-    MLDSAKeyPair,
-    MLDSAEngine,
-    QuantumKeyStore,
-    HybridSignature,
-    HybridQuantumSigner,
-    get_quantum_signer,
-)
-from core.crypto import RSAKeyManager
+try:
+    from core.quantum_crypto import (
+        MLDSAError,
+        MLDSAKeyPair,
+        MLDSAEngine,
+        QuantumKeyStore,
+        HybridSignature,
+        HybridQuantumSigner,
+        get_quantum_signer,
+    )
+    from core.crypto import RSAKeyManager
+except (ImportError, ModuleNotFoundError):
+    pytest.skip("quantum_crypto requires dilithium_py", allow_module_level=True)
 
 
 # ---------------------------------------------------------------------------

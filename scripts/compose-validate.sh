@@ -123,6 +123,7 @@ SHELL_SCRIPTS=(
     "scripts/docker-entrypoint.sh"
     "scripts/compose-validate.sh"
     "scripts/local-dev-setup.sh"
+    "scripts/preflight-check.sh"
 )
 
 for f in "${SHELL_SCRIPTS[@]}"; do
@@ -197,6 +198,20 @@ if [ -f "$NGINX_CONF" ]; then
         pass "WebSocket upgrade configured"
     else
         warn "Missing WebSocket upgrade — real-time features may not work"
+    fi
+    # Check for OWASP security headers
+    for header in "X-Frame-Options" "X-Content-Type-Options" "X-XSS-Protection" "Strict-Transport-Security"; do
+        if grep -q "$header" "$NGINX_CONF"; then
+            pass "Security header: ${header}"
+        else
+            warn "Missing security header: ${header}"
+        fi
+    done
+    # Check for rate limiting
+    if grep -q "limit_req_zone" "$NGINX_CONF"; then
+        pass "API rate limiting configured"
+    else
+        warn "No API rate limiting — consider adding limit_req_zone"
     fi
 else
     fail "nginx-aldeci.conf missing!"

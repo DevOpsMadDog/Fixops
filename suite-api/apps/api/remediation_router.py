@@ -1,5 +1,6 @@
 """Remediation Lifecycle Management API endpoints."""
 
+import logging
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -11,6 +12,8 @@ from core.services.remediation import (
 )
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
+
+_logger = logging.getLogger(__name__)
 
 # Knowledge Brain + Event Bus integration (graceful degradation)
 try:
@@ -181,7 +184,8 @@ async def update_task_status(
             reason=request.reason,
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        _logger.warning("remediation.update_status.invalid: %s", type(e).__name__)
+        raise HTTPException(status_code=400, detail="Invalid status transition")
 
     # Emit remediation completed event if status is terminal
     if _HAS_BRAIN:
@@ -219,7 +223,8 @@ def assign_task(task_id: str, request: AssignTaskRequest) -> Dict[str, Any]:
             changed_by=request.changed_by,
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        _logger.warning("remediation.assign_task.invalid: %s", type(e).__name__)
+        raise HTTPException(status_code=400, detail="Invalid assignment request")
 
 
 @router.post("/tasks/{task_id}/verification")
@@ -236,7 +241,8 @@ def submit_verification(
             submitted_by=request.submitted_by,
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        _logger.warning("remediation.submit_verification.invalid: %s", type(e).__name__)
+        raise HTTPException(status_code=400, detail="Invalid verification submission")
 
 
 @router.put("/tasks/{task_id}/ticket")
@@ -397,7 +403,8 @@ def transition_task_status(
             reason=request.reason,
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        _logger.warning("remediation.transition.invalid: %s", type(e).__name__)
+        raise HTTPException(status_code=400, detail="Invalid status transition")
 
 
 @router.post("/tasks/{task_id}/verify")
@@ -412,7 +419,8 @@ def verify_task(task_id: str, request: SubmitVerificationRequest) -> Dict[str, A
             submitted_by=request.submitted_by,
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        _logger.warning("remediation.verify.invalid: %s", type(e).__name__)
+        raise HTTPException(status_code=400, detail="Invalid verification submission")
 
 
 @router.get("/metrics")

@@ -45,17 +45,15 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import hmac
 import json
 import logging
 import os
 import secrets
-import struct
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, Final, List, Optional, Tuple, Union
+from typing import Any, Dict, Final, List, Optional, Tuple
 
 # ---------------------------------------------------------------------------
 # Third-party imports — all available in the project virtual environment
@@ -68,8 +66,11 @@ from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPubl
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
-# FIPS 204 ML-DSA via dilithium_py
-from dilithium_py.ml_dsa import ML_DSA_44, ML_DSA_65, ML_DSA_87
+# FIPS 204 ML-DSA via dilithium_py (optional — quantum crypto feature)
+try:
+    from dilithium_py.ml_dsa import ML_DSA_44, ML_DSA_65, ML_DSA_87
+except ImportError:
+    ML_DSA_44 = ML_DSA_65 = ML_DSA_87 = None  # type: ignore[assignment,misc]
 
 # ---------------------------------------------------------------------------
 # Logger (uses stdlib; the project bundles a structlog compatibility shim)
@@ -1726,7 +1727,7 @@ class HybridVerifier:
         Raises:
             CryptoError: If the bundle is missing required fields or is malformed.
         """
-        version = bundle.get("version", 1)
+        bundle.get("version", 1)
         sig_block = bundle.get("signature")
 
         if sig_block is None:
@@ -2002,7 +2003,7 @@ class EvidenceEncryptor:
         try:
             ciphertext = base64.b64decode(envelope["ciphertext_b64"])
             nonce = base64.b64decode(envelope["nonce_b64"])
-            salt = base64.b64decode(envelope["salt_b64"])
+            base64.b64decode(envelope["salt_b64"])
             wrapped_key = base64.b64decode(envelope["wrapped_key_b64"])
 
             # Unwrap the data key with the RSA private key

@@ -831,7 +831,8 @@ def _rule_based_suggestions(context_type: Optional[str], limit: int) -> List[Sug
     """Generate context-aware suggestions from real Knowledge Brain data (no LLM required)."""
     suggestions: List[SuggestionResponse] = []
     try:
-        import sqlite3 as _sqlite3, json as _json
+        import sqlite3 as _sqlite3
+        import json as _json
         brain_db = "data/fixops_brain.db"
         conn = _sqlite3.connect(brain_db)
         conn.row_factory = _sqlite3.Row
@@ -1991,3 +1992,9 @@ async def ask_security_question(request: AskRequest) -> AskResponse:
         matched_cwe=matched_cwe_id if matched_cwe_id != "GENERAL" else None,
         source=source,
     )
+
+
+@router.get("/status")
+async def copilot_status() -> Dict[str, Any]:
+    """Status alias for copilot service."""
+    return await copilot_health()

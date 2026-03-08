@@ -20,13 +20,11 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
   Brain,
-  RefreshCw,
   Play,
   Zap,
   Target,
   ShieldAlert,
   TrendingUp,
-  TrendingDown,
   CheckCircle2,
   XCircle,
   ArrowRight,
@@ -51,14 +49,6 @@ import { selfLearningApi } from '../../lib/api';
 // ═══════════════════════════════════════════════════════════════════════════
 // Types
 // ═══════════════════════════════════════════════════════════════════════════
-
-interface DemoStep {
-  id: number;
-  title: string;
-  description: string;
-  status: 'pending' | 'running' | 'done' | 'error';
-  result?: Record<string, unknown>;
-}
 
 interface ScoreResult {
   baseline_score: number;
@@ -200,7 +190,7 @@ export default function SelfLearningDemo() {
   const [baselineScore, setBaselineScore] = useState<ScoreResult | null>(null);
   const [adjustedScore, setAdjustedScore] = useState<ScoreResult | null>(null);
   const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
-  const [seedResult, setSeedResult] = useState<Record<string, unknown> | null>(null);
+  const [, setSeedResult] = useState<Record<string, unknown> | null>(null);
   const [analysisResult, setAnalysisResult] = useState<Record<string, unknown> | null>(null);
   const [insightsList, setInsightsList] = useState<Insight[]>([]);
   const [demoComplete, setDemoComplete] = useState(false);
@@ -353,7 +343,7 @@ export default function SelfLearningDemo() {
           throw new Error(`Unknown loop: ${loop}`);
       }
     },
-    onSuccess: (data, loop) => {
+    onSuccess: (_data, loop) => {
       toast.success(`Feedback recorded for ${loop} loop`);
       queryClient.invalidateQueries({ queryKey: ['self-learning-status'] });
     },

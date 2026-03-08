@@ -18,7 +18,7 @@ import logging
 import time
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -75,6 +75,12 @@ def _get_provider_manager():
 # Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/health")
+async def vllm_health() -> Dict[str, Any]:
+    """Health check for self-hosted LLM engine."""
+    return {"status": "healthy", "engine": "vllm", "version": "1.0.0"}
+
+
 @router.get("/status")
 async def vllm_status() -> Dict[str, Any]:
     """Get status of all self-hosted LLM backends.
@@ -108,7 +114,7 @@ async def vllm_status() -> Dict[str, Any]:
     except Exception as e:
         return {
             "status": "error",
-            "error": str(e),
+            "error": type(e).__name__,
             "air_gapped_ready": False,
         }
 

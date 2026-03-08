@@ -972,8 +972,8 @@ async def get_cve_deep_analysis(cve_id: str) -> VulnAnalysisResponse:
                 }
                 recommendation = "No EPSS data available - check CVE validity"
         except Exception as e:
-            logger.warning(f"CVE analysis failed for {cve_id}: {e}")
-            threat_intel = {"error": str(e)}
+            logger.warning("CVE analysis failed for %s: %s", cve_id, type(e).__name__)
+            threat_intel = {"error": type(e).__name__}
 
     return VulnAnalysisResponse(
         cve_id=cve_id,
@@ -1019,8 +1019,8 @@ async def _call_mpte_api(
                     "error": f"MPTE returned {response.status_code}",
                 }
     except Exception as e:
-        logger.warning(f"MPTE API call failed: {e}")
-        return {"success": False, "error": str(e)}
+        logger.warning("MPTE API call failed: %s", type(e).__name__)
+        return {"success": False, "error": type(e).__name__}
 
 
 @router.post("/pentest/validate", response_model=AgentTaskResponse)

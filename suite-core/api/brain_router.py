@@ -563,7 +563,7 @@ async def brain_trends(
     except Exception as e:
         logger.error("brain_trends error: %s", e, exc_info=True)
         return {
-            "error": str(e),
+            "error": type(e).__name__,
             "scan_count": 0,
             "posture_score": 50.0,
             "posture_trend": "unavailable",

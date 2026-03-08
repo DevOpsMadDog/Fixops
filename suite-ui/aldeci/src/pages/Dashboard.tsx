@@ -35,6 +35,8 @@ import MultiLLMConsensusPanel from '../components/dashboard/MultiLLMConsensusPan
 import RiskScoreGauge from '../components/dashboard/RiskScoreGauge';
 import LivePipelineIndicator from '../components/dashboard/LivePipelineIndicator';
 import BrainPipelineLiveFeed from '../components/dashboard/BrainPipelineLiveFeed';
+import RecentActivityTimeline from '../components/dashboard/RecentActivityTimeline';
+import SecurityPostureCard from '../components/dashboard/SecurityPostureCard';
 
 // Stagger animation variants
 const containerVariants = {
@@ -525,12 +527,14 @@ export default function Dashboard() {
         </Card>
       </motion.div>
 
-      {/* Brain Pipeline Live Feed [V3] */}
+      {/* Brain Pipeline Live Feed + Security Posture [V3] */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}
-        className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <BrainPipelineLiveFeed compact showStepIndicators />
-        <MultiLLMConsensusPanel compact />
+        <SecurityPostureCard />
+        <RecentActivityTimeline compact limit={6} />
       </motion.div>
+
       {/* Quick Actions */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
         <Card className="glass-card backdrop-blur-md bg-gray-900/40 border-gray-700/40">

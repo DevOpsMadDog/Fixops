@@ -48,7 +48,7 @@ try:
     from apps.api.ingestion import (
         BaseNormalizer,
         FindingSeverity,
-        FindingType,
+        FindingType,  # noqa: F401
         NormalizerConfig,
         SourceFormat,
         UnifiedFinding,
@@ -1087,7 +1087,7 @@ class TrivyScannerNormalizer(_Base):
         data = json.loads(content)
         findings = []
         results = data.get("Results") or data.get("results", [])
-        artifact = data.get("ArtifactName") or data.get("artifactName", "")
+        data.get("ArtifactName") or data.get("artifactName", "")
 
         for result in results:
             target = result.get("Target") or result.get("target", "")
@@ -1740,7 +1740,7 @@ class GitLabSASTNormalizer(_Base):
                 sev = sev_map.get(sev.lower(), "medium")
 
             findings.append(_make_finding(
-                title=vuln.get("name", vuln.get("message", f"GitLab SAST Finding")),
+                title=vuln.get("name", vuln.get("message", "GitLab SAST Finding")),
                 description=vuln.get("description", vuln.get("message", "")),
                 severity=sev,
                 source_tool="gitlab_sast",

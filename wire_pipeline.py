@@ -21,9 +21,8 @@ from __future__ import annotations
 import json
 import sys
 import time
-import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 # ── Ensure correct module paths ──────────────────────────────────────────────
 import os
@@ -612,7 +611,7 @@ def stage_6_verify_dashboard() -> Dict[str, Any]:
         print(f"  ERROR: HTTP {status} — {overview}")
         return {}
 
-    print(f"  Dashboard overview:")
+    print("  Dashboard overview:")
     for key, val in overview.items():
         print(f"    {key}: {val}")
 
@@ -681,7 +680,7 @@ def run_pipeline() -> Dict[str, Any]:
     scored_findings = stage_4_fail_scoring(findings)
     task_ids = stage_5_remediation_tasks(scored_findings)
     dashboard_after = stage_6_verify_dashboard()
-    extended_stats = stage_7_analytics_stats()
+    stage_7_analytics_stats()
 
     elapsed = time.time() - start_time
 

@@ -1,0 +1,100 @@
+[
+  {
+    "id": "851cf591-274c-4529-85b4-291a11be30ad",
+    "name": "PCI DSS Payment Gateway Policy Pack",
+    "description": "Prebuilt OPA/Rego policies for gating PCI workloads",
+    "content_type": "policy_template",
+    "compliance_frameworks": [
+      "pci_dss"
+    ],
+    "ssdlc_stages": [
+      "build",
+      "deploy"
+    ],
+    "pricing_model": "free",
+    "price": 0.0,
+    "tags": [
+      "pci",
+      "payments",
+      "rego"
+    ],
+    "metadata": {
+      "version": "1.0.0"
+    },
+    "rating": 4.8,
+    "downloads": 312,
+    "version": "1.0.0",
+    "created_at": "2026-03-08T11:37:22.802094+00:00",
+    "updated_at": "2026-03-08T11:37:22.802100+00:00",
+    "rating_count": 87,
+    "qa_status": "passed",
+    "qa_summary": "All automated checks passed",
+    "qa_checks": {}
+  },
+  {
+    "id": "9a517ece-3ca0-456d-a0ad-a1919c32ae74",
+    "name": "NIST SSDF Test Set (SAST Baseline)",
+    "description": "Curated test set to validate SAST configuration against NIST SSDF controls",
+    "content_type": "compliance_testset",
+    "compliance_frameworks": [
+      "nist_ssdf",
+      "soc2"
+    ],
+    "ssdlc_stages": [
+      "code",
+      "build"
+    ],
+    "pricing_model": "free",
+    "price": 0.0,
+    "tags": [
+      "sast",
+      "baseline"
+    ],
+    "metadata": {
+      "coverage": "core"
+    },
+    "rating": 4.5,
+    "downloads": 198,
+    "version": "1.0.0",
+    "created_at": "2026-03-08T11:37:22.802109+00:00",
+    "updated_at": "2026-03-08T11:37:22.802110+00:00",
+    "rating_count": 54,
+    "qa_status": "passed",
+    "qa_summary": "Static analysis harness validated",
+    "qa_checks": {}
+  },
+  {
+    "id": "95a2bc9f-50a5-46fc-a0b0-ac394b57b19a",
+    "name": "ATT&CK Ransomware Attack Scenario",
+    "description": "Scenario files and checks mapping to common ransomware TTPs",
+    "content_type": "attack_scenario",
+    "compliance_frameworks": [
+      "mitre_attack"
+    ],
+    "ssdlc_stages": [
+      "test",
+      "operate"
+    ],
+    "pricing_model": "one_time",
+    "price": 99.0,
+    "tags": [
+      "ransomware",
+      "ttp"
+    ],
+    "metadata": {
+      "techniques": [
+        "T1486",
+        "T1059"
+      ]
+    },
+    "rating": 4.4,
+    "downloads": 77,
+    "version": "1.0.0",
+    "created_at": "2026-03-08T11:37:22.802117+00:00",
+    "updated_at": "2026-03-08T11:37:22.802118+00:00",
+    "rating_count": 23,
+    "qa_status": "warning",
+    "qa_summary": "Scenario requires manual validation of TTP coverage",
+    "qa_checks": {}
+  }
+]

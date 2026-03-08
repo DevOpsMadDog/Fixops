@@ -272,7 +272,7 @@ async def _run_step(step: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, 
                 "duration_ms": int((completed - started).total_seconds() * 1000),
             }
         except Exception as exc:
-            last_error = str(exc)
+            last_error = type(exc).__name__
             attempt += 1
             if attempt <= max_retries:
                 await asyncio.sleep(

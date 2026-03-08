@@ -129,6 +129,12 @@ def _get_store():
 # ---------------------------------------------------------------------------
 
 
+@router.get("/health")
+async def get_ml_health():
+    """Health check for ML/MindsDB engine."""
+    return {"status": "healthy", "engine": "mindsdb", "version": "1.0.0"}
+
+
 @router.get("/status", response_model=AllModelsStatusResponse)
 async def get_ml_status():
     """Get status of all ML models and overall store statistics."""

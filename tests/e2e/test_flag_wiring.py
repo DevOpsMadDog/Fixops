@@ -7,6 +7,7 @@ Tests with real CLI/API calls to ensure flags actually control behavior.
 
 import json
 
+import pytest
 import requests
 
 from tests.harness import ServerManager
@@ -367,6 +368,7 @@ class TestFlagWiring:
             assert "verdict" in data
             assert "modules" in data
 
+    @pytest.mark.timeout(45)
     def test_flags_persist_across_multiple_runs(
         self, cli_runner, test_fixtures, fixture_manager, flag_config_manager
     ):

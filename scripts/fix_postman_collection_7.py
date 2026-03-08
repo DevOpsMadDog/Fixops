@@ -326,7 +326,7 @@ def main():
     if changes_made:
         for line in changes_made:
             print(line)
-        print(f"\nTotal items modified: {sum(1 for l in changes_made if l.startswith('['))}")
+        print(f"\nTotal items modified: {sum(1 for ln in changes_made if ln.startswith('['))}")
     else:
         print("(none)")
 

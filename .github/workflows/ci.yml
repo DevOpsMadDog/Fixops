@@ -182,7 +182,7 @@ jobs:
         run: |
           PASS=0
           FAIL=0
-          for f in scripts/demo-healthcheck.sh scripts/demo-start.sh scripts/air-gapped-test.sh scripts/docker-entrypoint.sh scripts/compose-validate.sh scripts/local-dev-setup.sh; do
+          for f in scripts/demo-healthcheck.sh scripts/demo-start.sh scripts/air-gapped-test.sh scripts/docker-entrypoint.sh scripts/compose-validate.sh scripts/local-dev-setup.sh scripts/preflight-check.sh; do
             if [ -f "$f" ]; then
               if bash -n "$f" 2>/dev/null; then
                 echo "✅ $f (valid bash)"
@@ -458,12 +458,39 @@ jobs:
             exit 1
           fi
 
-      - name: Run demo health check script
+      - name: Verify nginx security headers
+        run: |
+          HEADERS=$(curl -sI http://localhost:3001/ 2>/dev/null)
+          PASS=0; FAIL=0
+          for h in "X-Frame-Options" "X-Content-Type-Options" "X-XSS-Protection" "Strict-Transport-Security"; do
+            if echo "$HEADERS" | grep -qi "$h"; then
+              echo "✅ $h present"
+              PASS=$((PASS + 1))
+            else
+              echo "⚠️  $h missing"
+              FAIL=$((FAIL + 1))
+            fi
+          done
+          echo "Security headers: $PASS present, $FAIL missing"
+
+      - name: Run demo health check (DEMO-007 gate)
         run: |
           chmod +x scripts/demo-healthcheck.sh
-          FIXOPS_API_TOKEN=ci-test-token ./scripts/demo-healthcheck.sh --ci || true
+          # Run JSON mode for artifact + CI mode for strict exit code
+          FIXOPS_API_TOKEN=ci-test-token ./scripts/demo-healthcheck.sh --json > healthcheck-results.json 2>/dev/null || true
+          # Run CI mode for human-readable output + strict pass/fail
+          FIXOPS_API_TOKEN=ci-test-token ./scripts/demo-healthcheck.sh --ci
         env:
           FIXOPS_API_TOKEN: ci-test-token
+
+      - name: Upload health check results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: healthcheck-results
+          path: healthcheck-results.json
+          retention-days: 7
+          if-no-files-found: ignore
 
       - name: Dump logs on failure
         if: failure()

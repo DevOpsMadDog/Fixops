@@ -25,7 +25,6 @@ import ast
 import hashlib
 import logging
 import re
-import textwrap
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -963,7 +962,7 @@ class PostFixVerifier:
         passed = [c for c in checks if c.status == CheckStatus.PASSED]
         failed = [c for c in checks if c.status == CheckStatus.FAILED]
         warnings = [c for c in checks if c.status == CheckStatus.WARNING]
-        skipped = [c for c in checks if c.status in (CheckStatus.SKIPPED, CheckStatus.INCONCLUSIVE)]
+        [c for c in checks if c.status in (CheckStatus.SKIPPED, CheckStatus.INCONCLUSIVE)]
 
         checks_total = len(checks)
         checks_passed = len(passed)

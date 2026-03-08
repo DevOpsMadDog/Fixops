@@ -22,14 +22,14 @@ def test_import_audit_router():
 
 def test_import_feeds_router():
     """Test that feeds_router can be imported."""
-    from apps.api import feeds_router
+    from api import feeds_router
 
     assert feeds_router.router is not None
 
 
 def test_import_integrations_router():
     """Test that integrations_router can be imported."""
-    from apps.api import integrations_router
+    from api import integrations_router
 
     assert integrations_router.router is not None
 
@@ -43,7 +43,7 @@ def test_import_inventory_router():
 
 def test_import_mpte_router():
     """Test that mpte_router can be imported."""
-    from apps.api import mpte_router
+    from api import mpte_router
 
     assert mpte_router.router is not None
 
@@ -78,7 +78,7 @@ def test_import_users_router():
 
 def test_import_webhooks_router():
     """Test that webhooks_router can be imported."""
-    from apps.api import webhooks_router
+    from api import webhooks_router
 
     assert webhooks_router.router is not None
 

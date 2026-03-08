@@ -547,8 +547,14 @@ const AutoFixDashboard = () => {
                     </motion.div>
                   ))}
                   {fixTypes.length === 0 && (
-                    <div className="col-span-2 text-center py-8 text-muted-foreground">
-                      <p>Loading fix types...</p>
+                    <div className="col-span-2 grid grid-cols-2 gap-3">
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="border border-border/30 rounded-lg p-4 space-y-2">
+                          <div className="h-5 w-32 bg-gray-700/20 rounded animate-pulse" />
+                          <div className="h-8 w-16 bg-gray-700/25 rounded animate-pulse" />
+                          <div className="h-2 w-full bg-gray-700/15 rounded-full animate-pulse" />
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

@@ -411,3 +411,9 @@ async def attack_sim_health():
             "event_bus_notifications",
         ],
     }
+
+
+@router.get("/status")
+async def attack_sim_status():
+    """Status alias for attack simulation engine."""
+    return await attack_sim_health()

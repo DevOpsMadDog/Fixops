@@ -181,7 +181,7 @@ class ComponentConfig(BaseModel):
         if v is not None and v.strip():
             v = v.strip()
             if not (v.startswith("https://") or v.startswith("http://") or v.startswith("git@")):
-                raise ValueError(f"repo_url must begin with https://, http://, or git@")
+                raise ValueError("repo_url must begin with https://, http://, or git@")
         return v
 
 
@@ -659,6 +659,8 @@ class AppConfigManager:
             else:
                 current_dict[key] = value
         updated = AppConfig.model_validate(current_dict)
+        # Soft-delete first so register_app doesn't raise on duplicate
+        self.delete_app(app_id)
         return self.register_app(updated)
 
     def delete_app(self, app_id: str) -> bool:

@@ -44,6 +44,13 @@ async def trace_vulnerability(req: TraceRequest) -> Dict[str, Any]:
     return result.to_dict()
 
 
+@router.get("/health")
+async def tracer_health() -> Dict[str, Any]:
+    """Health check for code-to-cloud tracer."""
+    return {"status": "healthy", "engine": "code_to_cloud_tracer", "version": "1.0.0"}
+
+
 @router.get("/status")
 async def tracer_status() -> Dict[str, Any]:
-    return {"engine": "code_to_cloud_tracer", "status": "ready", "version": "1.0.0"}
+    """Status check for code-to-cloud tracer."""
+    return {"status": "healthy", "engine": "code_to_cloud_tracer", "version": "1.0.0"}

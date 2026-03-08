@@ -818,7 +818,7 @@ async def execute_mcp_tool(
             path=tool.path,
             status="error",
             status_code=500,
-            error=str(exc),
+            error=f"Execution failed: {type(exc).__name__}",
             execution_time_ms=_elapsed_ms(start),
         )
 

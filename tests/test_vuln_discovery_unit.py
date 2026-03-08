@@ -164,7 +164,7 @@ class TestHelpers:
     def test_calculate_cvss_valid_vector(self):
         """Test with a valid CVSS vector if cvss library is available."""
         try:
-            from cvss import CVSS3
+            from cvss import CVSS3  # noqa: F401
             result = _calculate_cvss("CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H")
             assert result is not None
             assert 0.0 <= result <= 10.0

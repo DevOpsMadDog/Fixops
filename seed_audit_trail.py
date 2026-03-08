@@ -5,7 +5,6 @@ Seeds 30+ realistic events spanning the last 30 days.
 """
 from __future__ import annotations
 
-import json
 import sys
 import time
 from datetime import datetime, timedelta, timezone
@@ -13,7 +12,8 @@ from datetime import datetime, timedelta, timezone
 import requests
 
 BASE_URL = "http://localhost:8000"
-import os as _os, sys as _sys
+import os as _os
+import sys as _sys
 API_KEY = _os.environ.get("FIXOPS_API_TOKEN")
 if not API_KEY:
     _sys.exit("ERROR: FIXOPS_API_TOKEN environment variable required.")
