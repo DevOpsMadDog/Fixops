@@ -247,7 +247,7 @@ export default function Reachability() {
           title="Internet-Reachable"
           value={internetReachable}
           icon={<Globe className="h-4 w-4" />}
-          trend={internetReachable > 0 ? "up" : "neutral"}
+          trend="flat"
           trendLabel="exposed assets"
         />
         <KpiCard

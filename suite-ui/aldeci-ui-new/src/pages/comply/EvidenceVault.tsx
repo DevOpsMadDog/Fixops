@@ -268,9 +268,20 @@ export default function EvidenceVault() {
           <RefreshCw className="h-4 w-4" />
           Refresh
         </Button>
-        <Button size="sm" className="gap-2">
+        <Button size="sm" className="gap-2" onClick={async () => {
+          try {
+            const resp = await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/brain/evidence/generate', {
+              method: 'POST',
+              headers: { 'X-API-Key': import.meta.env.VITE_API_KEY || '', 'Content-Type': 'application/json' },
+              body: JSON.stringify({ org_id: 'default', framework: 'NIST-800-53', scope: 'all', sign: true })
+            });
+            const data = await resp.json();
+            alert(`Evidence bundle generated: ${data?.pack_id || data?.bundle_id || 'Success'}`);
+            refetch();
+          } catch (e) { alert(`Failed: ${e}`); }
+        }}>
           <Download className="h-4 w-4" />
-          Export All
+          Generate & Export
         </Button>
           </div>
         }

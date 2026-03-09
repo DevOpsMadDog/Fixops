@@ -69,8 +69,13 @@ const LogViewer = lazy(() => import("@/pages/settings/LogViewer"));
 // Onboarding
 const OnboardingWizard = lazy(() => import("@/pages/onboarding/OnboardingWizard"));
 
-// AI Copilot
+// AI Copilot & AI Engine
 const CopilotDashboard = lazy(() => import("@/pages/ai/CopilotDashboard"));
+const BrainPipeline = lazy(() => import("@/pages/ai/BrainPipeline"));
+const MultiLLM = lazy(() => import("@/pages/ai/MultiLLM"));
+const AlgorithmicLab = lazy(() => import("@/pages/ai/AlgorithmicLab"));
+const MLDashboard = lazy(() => import("@/pages/ai/MLDashboard"));
+const Predictions = lazy(() => import("@/pages/ai/Predictions"));
 
 export default function App() {
   return (
@@ -143,8 +148,13 @@ export default function App() {
             <Route path="/settings/health" element={<SystemHealth />} />
             <Route path="/settings/logs" element={<LogViewer />} />
 
-            {/* AI Copilot */}
+            {/* AI Copilot & AI Engine */}
             <Route path="/ai" element={<CopilotDashboard />} />
+            <Route path="/ai/brain" element={<BrainPipeline />} />
+            <Route path="/ai/consensus" element={<MultiLLM />} />
+            <Route path="/ai/algorithms" element={<AlgorithmicLab />} />
+            <Route path="/ai/ml" element={<MLDashboard />} />
+            <Route path="/ai/predictions" element={<Predictions />} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />

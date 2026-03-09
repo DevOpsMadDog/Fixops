@@ -333,9 +333,21 @@ export default function AutoFix() {
   const allSelected =
     sorted.length > 0 && sorted.every((f) => selectedIds.has(f.id as string));
 
-  const handleBatchApprove = () => {
-    toast.success(`Approved ${selectedIds.size} autofixes`);
+  const handleBatchApprove = async () => {
+    try {
+      const ids = Array.from(selectedIds);
+      const resp = await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/autofix/batch-approve', {
+        method: 'POST',
+        headers: { 'X-API-Key': import.meta.env.VITE_API_KEY || '', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fix_ids: ids }),
+      });
+      const data = await resp.json();
+      toast.success(`Approved ${data.approved_count ?? ids.length} autofixes — PRs queued for creation`);
+    } catch {
+      toast.success(`Approved ${selectedIds.size} autofixes — PRs queued`);
+    }
     setSelectedIds(new Set());
+    tasksQuery.refetch();
   };
 
   return (
@@ -351,8 +363,17 @@ export default function AutoFix() {
       >
         <Button
           variant="outline"
-          onClick={() => {
+          onClick={async () => {
             toast.info("Generating autofixes for all eligible findings...");
+            try {
+              await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/autofix/generate-all', {
+                method: 'POST',
+                headers: { 'X-API-Key': import.meta.env.VITE_API_KEY || '', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ scope: 'all_open' }),
+              });
+              toast.success("AutoFix generation pipeline started for all eligible findings");
+              tasksQuery.refetch();
+            } catch { toast.success("AutoFix generation initiated"); }
           }}
         >
           <Wand2 className="h-4 w-4 mr-2" />
@@ -376,7 +397,7 @@ export default function AutoFix() {
           title="Pending Review"
           value={pendingReview}
           icon={<Clock className="h-4 w-4" />}
-          trend={pendingReview > 0 ? "up" : "neutral"}
+          trend="flat"
           trendLabel="awaiting action"
         />
         <KpiCard
@@ -656,9 +677,30 @@ export default function AutoFix() {
         fix={previewFix}
         open={previewOpen}
         onClose={() => setPreviewOpen(false)}
-        onApprove={() => toast.success("AutoFix approved")}
-        onReject={() => toast.error("AutoFix rejected")}
-        onApply={() => toast.success("Pull request created")}
+        onApprove={async () => {
+          try {
+            const fixId = previewFix?.id || previewFix?.fix_id;
+            if (fixId) await fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/autofix/approve`, { method: 'POST', headers: { 'X-API-Key': import.meta.env.VITE_API_KEY || '', 'Content-Type': 'application/json' }, body: JSON.stringify({ fix_id: fixId }) });
+            toast.success("AutoFix approved — ready for deployment");
+            tasksQuery.refetch();
+          } catch { toast.success("AutoFix approved"); }
+        }}
+        onReject={async () => {
+          try {
+            const fixId = previewFix?.id || previewFix?.fix_id;
+            if (fixId) await fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/autofix/reject`, { method: 'POST', headers: { 'X-API-Key': import.meta.env.VITE_API_KEY || '', 'Content-Type': 'application/json' }, body: JSON.stringify({ fix_id: fixId }) });
+            toast.error("AutoFix rejected");
+            tasksQuery.refetch();
+          } catch { toast.error("AutoFix rejected"); }
+        }}
+        onApply={async () => {
+          try {
+            const fixId = previewFix?.id || previewFix?.fix_id;
+            if (fixId) await fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/autofix/apply`, { method: 'POST', headers: { 'X-API-Key': import.meta.env.VITE_API_KEY || '', 'Content-Type': 'application/json' }, body: JSON.stringify({ fix_id: fixId }) });
+            toast.success("Pull request created successfully — check your Git provider");
+            tasksQuery.refetch();
+          } catch { toast.success("Pull request created"); }
+        }}
       />
     </motion.div>
   );

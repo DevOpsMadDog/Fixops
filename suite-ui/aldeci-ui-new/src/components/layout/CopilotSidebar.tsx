@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Bot, Send, X, Sparkles, Shield, Crosshair, FileText, Brain } from "lucide-react";
+import { Bot, Send, X, Sparkles, Shield, Crosshair, FileText, Brain, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,9 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  suggestions?: string[];
+  sources?: string[];
+  confidence?: number;
 }
 
 const quickActions = [
@@ -49,22 +52,39 @@ export function CopilotSidebar({ onClose }: CopilotSidebarProps) {
     setIsLoading(true);
 
     try {
-      const res = await copilotApi.chat({ message: content, context: {} });
+      const res = await copilotApi.chat({ message: content, session_id: "enterprise-session", context: {} });
+      const d = res.data;
       const assistantMsg: Message = {
         role: "assistant",
-        content: res.data?.response ?? res.data?.message ?? "I'll look into that for you.",
+        content: d?.response ?? d?.answer ?? d?.message ?? "I'll look into that for you.",
         timestamp: new Date(),
+        suggestions: d?.suggestions ?? [],
+        sources: d?.sources ?? [],
+        confidence: d?.confidence,
       };
       setMessages((prev) => [...prev, assistantMsg]);
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
+      // Fallback to copilot/ask endpoint
+      try {
+        const askRes = await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/copilot/ask', {
+          method: 'POST',
+          headers: { 'X-API-Key': import.meta.env.VITE_API_KEY || '', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: content }),
+        });
+        const askData = await askRes.json();
+        setMessages((prev) => [...prev, {
+          role: "assistant",
+          content: askData?.answer ?? "I'm analyzing your security posture. Let me check the data.",
+          timestamp: new Date(),
+          sources: askData?.references?.map((r: { title: string }) => r.title) ?? [],
+        }]);
+      } catch {
+        setMessages((prev) => [...prev, {
           role: "assistant",
           content: "I'm analyzing your request. This may take a moment as I query the security data.",
           timestamp: new Date(),
-        },
-      ]);
+        }]);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -104,6 +124,17 @@ export function CopilotSidebar({ onClose }: CopilotSidebarProps) {
               )}
             >
               <p className="whitespace-pre-wrap">{msg.content}</p>
+              {msg.confidence && (
+                <p className="text-[10px] mt-1 opacity-60">Confidence: {Math.round(msg.confidence * 100)}%</p>
+              )}
+              {msg.suggestions && msg.suggestions.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {msg.suggestions.map((s, si) => (
+                    <button key={si} onClick={() => sendMessage(s)}
+                      className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors">{s}</button>
+                  ))}
+                </div>
+              )}
             </motion.div>
           ))}
         </AnimatePresence>

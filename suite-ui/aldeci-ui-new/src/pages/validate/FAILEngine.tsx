@@ -331,7 +331,7 @@ export default function FAILEngine() {
           title="Neglect Zones"
           value={neglectZones.length}
           icon={<AlertTriangle className="h-4 w-4" />}
-          trend={neglectZones.length > 0 ? "up" : "neutral"}
+          trend="flat"
           trendLabel={neglectZones.length > 0 ? "attention needed" : "all clear"}
         />
       </div>

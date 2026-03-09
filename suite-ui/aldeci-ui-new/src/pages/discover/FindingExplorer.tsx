@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, Filter, Download, CheckSquare, AlertTriangle,
   Shield, Bug, RefreshCw, ChevronUp, ChevronDown, ChevronsUpDown,
-  MoreHorizontal, Eye, UserCheck, Archive, X, ExternalLink,
+  MoreHorizontal, Eye, UserCheck, Archive, X, ExternalLink, Upload, Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
+import { bulkApi, analyticsApi } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -144,6 +146,7 @@ export default function FindingExplorer() {
   const [sortDir, setSortDir] = useState<SortDirection>(null);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [detailFinding, setDetailFinding] = useState<Finding | null>(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const PAGE_SIZE = 20;
 
@@ -263,14 +266,56 @@ export default function FindingExplorer() {
       transition={{ duration: 0.3 }}
       className="space-y-6"
     >
-      <PageHeader title="Finding Explorer" description="Unified browser for all security findings across your environments">
-        <Button variant="outline" size="sm" onClick={() => query.refetch()} className="gap-2">
-          <RefreshCw className="h-4 w-4" /> Refresh
-        </Button>
-        <Button variant="outline" size="sm" className="gap-2">
-          <Download className="h-4 w-4" /> Export
-        </Button>
-      </PageHeader>
+      <PageHeader
+        title="Finding Explorer"
+        description="Unified browser for all security findings across your environments"
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = '.sarif,.json,.xml,.csv';
+              input.onchange = async (e) => {
+                const file = (e.target as HTMLInputElement).files?.[0];
+                if (!file) return;
+                const form = new FormData();
+                form.append('file', file);
+                form.append('scanner_type', 'auto');
+                try {
+                  const resp = await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/scanner-ingest/upload', {
+                    method: 'POST',
+                    headers: { 'X-API-Key': import.meta.env.VITE_API_KEY || '' },
+                    body: form,
+                  });
+                  const data = await resp.json();
+                  alert(`Ingested ${data.findings_count || 0} findings from ${file.name}`);
+                  query.refetch();
+                } catch (err) {
+                  alert(`Upload failed: ${err}`);
+                }
+              };
+              input.click();
+            }} className="gap-2">
+              <Upload className="h-4 w-4" /> Upload SARIF/SBOM
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => query.refetch()} className="gap-2">
+              <RefreshCw className="h-4 w-4" /> Refresh
+            </Button>
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => {
+              const csv = ["ID,Title,Severity,Status,CVE,Scanner,Created", ...allFindings.map(f =>
+                `"${f.finding_id || f.id}","${f.title}","${f.severity}","${f.status}","${f.cve || ""}","${f.scanner || ""}","${f.created_at || ""}"`
+              )].join("\n");
+              const blob = new Blob([csv], { type: "text/csv" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a"); a.href = url; a.download = `all-findings-${Date.now()}.csv`; a.click();
+              URL.revokeObjectURL(url);
+              toast.success(`Exported ${allFindings.length} findings`);
+            }}>
+              <Download className="h-4 w-4" /> Export
+            </Button>
+          </div>
+        }
+      />
 
       {/* KPI Row */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -361,16 +406,61 @@ export default function FindingExplorer() {
             <CheckSquare className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium">{selectedRows.size} selected</span>
             <Separator orientation="vertical" className="h-4" />
-            <Button size="sm" variant="outline" className="gap-1">
-              <UserCheck className="h-3 w-3" /> Triage
+            <Button size="sm" variant="outline" className="gap-1" disabled={bulkLoading}
+              onClick={async () => {
+                setBulkLoading(true);
+                try {
+                  const ids = Array.from(selectedRows);
+                  await bulkApi.triage(ids, "triage", "triaged");
+                  toast.success(`${ids.length} findings triaged`);
+                  setSelectedRows(new Set());
+                  query.refetch();
+                } catch (e) { toast.error(`Triage failed: ${e}`); }
+                finally { setBulkLoading(false); }
+              }}>
+              {bulkLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserCheck className="h-3 w-3" />} Triage
             </Button>
-            <Button size="sm" variant="outline" className="gap-1">
+            <Button size="sm" variant="outline" className="gap-1" disabled={bulkLoading}
+              onClick={async () => {
+                setBulkLoading(true);
+                try {
+                  const ids = Array.from(selectedRows);
+                  await bulkApi.assignFindings(ids, "security-team");
+                  toast.success(`${ids.length} findings assigned to security-team`);
+                  setSelectedRows(new Set());
+                  query.refetch();
+                } catch (e) { toast.error(`Assign failed: ${e}`); }
+                finally { setBulkLoading(false); }
+              }}>
               <UserCheck className="h-3 w-3" /> Assign
             </Button>
-            <Button size="sm" variant="outline" className="gap-1">
+            <Button size="sm" variant="outline" className="gap-1"
+              onClick={() => {
+                const ids = Array.from(selectedRows);
+                const selected = allFindings.filter(f => ids.includes(f.id || f.finding_id || ""));
+                const csv = ["ID,Title,Severity,Status,CVE,Scanner,Created", ...selected.map(f =>
+                  `"${f.finding_id || f.id}","${f.title}","${f.severity}","${f.status}","${f.cve || ""}","${f.scanner || ""}","${f.created_at || ""}"`
+                )].join("\n");
+                const blob = new Blob([csv], { type: "text/csv" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a"); a.href = url; a.download = `findings-export-${Date.now()}.csv`; a.click();
+                URL.revokeObjectURL(url);
+                toast.success(`Exported ${selected.length} findings`);
+              }}>
               <Download className="h-3 w-3" /> Export Selected
             </Button>
-            <Button size="sm" variant="ghost" className="gap-1">
+            <Button size="sm" variant="ghost" className="gap-1" disabled={bulkLoading}
+              onClick={async () => {
+                setBulkLoading(true);
+                try {
+                  const ids = Array.from(selectedRows);
+                  await bulkApi.updateFindings(ids, { status: "archived" });
+                  toast.success(`${ids.length} findings archived`);
+                  setSelectedRows(new Set());
+                  query.refetch();
+                } catch (e) { toast.error(`Archive failed: ${e}`); }
+                finally { setBulkLoading(false); }
+              }}>
               <Archive className="h-3 w-3" /> Archive
             </Button>
             <Button
@@ -506,14 +596,28 @@ export default function FindingExplorer() {
                                     <DropdownMenuItem onClick={() => setDetailFinding(finding)}>
                                       <Eye className="h-3.5 w-3.5 mr-2" /> View Details
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem>
+                                    <DropdownMenuItem onClick={async () => {
+                                      try {
+                                        await bulkApi.triage([finding.id || finding.finding_id || ""], "triage", "triaged");
+                                        toast.success("Finding triaged");
+                                        query.refetch();
+                                      } catch (e) { toast.error(`Triage failed: ${e}`); }
+                                    }}>
                                       <UserCheck className="h-3.5 w-3.5 mr-2" /> Triage
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => {
+                                      window.open(`/validate/mpte?finding=${finding.cve || finding.finding_id || ""}`, "_blank");
+                                    }}>
                                       <ExternalLink className="h-3.5 w-3.5 mr-2" /> Open in Scanner
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem>
+                                    <DropdownMenuItem onClick={async () => {
+                                      try {
+                                        await bulkApi.updateFindings([finding.id || finding.finding_id || ""], { status: "archived" });
+                                        toast.success("Finding archived");
+                                        query.refetch();
+                                      } catch (e) { toast.error(`Archive failed: ${e}`); }
+                                    }}>
                                       <Archive className="h-3.5 w-3.5 mr-2" /> Archive
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
@@ -618,9 +722,25 @@ export default function FindingExplorer() {
                 </div>
               )}
               <div className="flex gap-2 pt-2">
-                <Button size="sm" className="gap-1"><UserCheck className="h-3 w-3" /> Triage</Button>
-                <Button size="sm" variant="outline" className="gap-1"><ExternalLink className="h-3 w-3" /> Open Scanner</Button>
-                <Button size="sm" variant="outline" className="gap-1"><Archive className="h-3 w-3" /> Archive</Button>
+                <Button size="sm" className="gap-1" onClick={async () => {
+                  try {
+                    await bulkApi.triage([detailFinding.id || detailFinding.finding_id || ""], "triage", "triaged");
+                    toast.success("Finding triaged successfully");
+                    setDetailFinding(null);
+                    query.refetch();
+                  } catch (e) { toast.error(`Triage failed: ${e}`); }
+                }}><UserCheck className="h-3 w-3" /> Triage</Button>
+                <Button size="sm" variant="outline" className="gap-1" onClick={() => {
+                  window.open(`/validate/mpte?finding=${detailFinding.cve || detailFinding.finding_id || ""}`, "_blank");
+                }}><ExternalLink className="h-3 w-3" /> Open Scanner</Button>
+                <Button size="sm" variant="outline" className="gap-1" onClick={async () => {
+                  try {
+                    await bulkApi.updateFindings([detailFinding.id || detailFinding.finding_id || ""], { status: "archived" });
+                    toast.success("Finding archived");
+                    setDetailFinding(null);
+                    query.refetch();
+                  } catch (e) { toast.error(`Archive failed: ${e}`); }
+                }}><Archive className="h-3 w-3" /> Archive</Button>
               </div>
             </div>
           )}

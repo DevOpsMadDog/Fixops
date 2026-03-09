@@ -363,7 +363,7 @@ export default function ExposureCases() {
           title="Open"
           value={openCases}
           icon={<AlertTriangle className="h-4 w-4" />}
-          trend={openCases > 0 ? "up" : "neutral"}
+          trend="flat"
         />
         <KpiCard
           title="Resolved"

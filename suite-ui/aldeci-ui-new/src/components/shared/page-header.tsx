@@ -6,10 +6,12 @@ interface PageHeaderProps {
   description?: string;
   badge?: string;
   actions?: React.ReactNode;
+  children?: React.ReactNode;
   className?: string;
 }
 
-export function PageHeader({ title, description, badge, actions, className }: PageHeaderProps) {
+export function PageHeader({ title, description, badge, actions, children, className }: PageHeaderProps) {
+  const actionContent = actions || children;
   return (
     <div className={cn("flex items-start justify-between gap-4", className)}>
       <div className="space-y-1">
@@ -21,7 +23,7 @@ export function PageHeader({ title, description, badge, actions, className }: Pa
           <p className="text-sm text-muted-foreground max-w-2xl">{description}</p>
         )}
       </div>
-      {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
+      {actionContent && <div className="flex items-center gap-2 shrink-0">{actionContent}</div>}
     </div>
   );
 }

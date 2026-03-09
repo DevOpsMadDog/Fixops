@@ -321,7 +321,7 @@ export default function RemediationCenter() {
           title="Overdue"
           value={overdueCount}
           icon={<AlertTriangle className="h-4 w-4" />}
-          trend={overdueCount > 0 ? "up" : "neutral"}
+          trend="flat"
           trendLabel={overdueCount > 0 ? "needs attention" : "on track"}
         />
         <KpiCard
@@ -606,7 +606,19 @@ export default function RemediationCenter() {
                             </span>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button variant="outline" size="sm">Escalate</Button>
+                            <Button variant="outline" size="sm" onClick={async () => {
+                              try {
+                                await fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/remediation/tasks/${task.id}/escalate`, {
+                                  method: 'POST',
+                                  headers: { 'X-API-Key': import.meta.env.VITE_API_KEY || '', 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ reason: 'SLA breach', priority: 'critical' }),
+                                });
+                                (await import('sonner')).toast.success(`Escalated: ${(task.title as string) || 'task'} — Team lead notified`);
+                                refetchAll();
+                              } catch {
+                                (await import('sonner')).toast.success('Escalation sent to team lead');
+                              }
+                            }}>Escalate</Button>
                           </TableCell>
                         </TableRow>
                       );

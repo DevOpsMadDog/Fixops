@@ -1,15 +1,18 @@
+import { type ReactNode, isValidElement } from "react";
 import { cn, formatNumber } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { type LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
 
-interface KpiCardProps {
+export interface KpiCardProps {
   title: string;
   value: string | number;
   change?: number;
   changeLabel?: string;
-  icon?: LucideIcon;
+  description?: string;
+  icon?: LucideIcon | ReactNode;
   trend?: "up" | "down" | "flat";
+  trendLabel?: string;
   className?: string;
 }
 
@@ -18,8 +21,10 @@ export function KpiCard({
   value,
   change,
   changeLabel,
+  description,
   icon: Icon,
   trend,
+  trendLabel,
   className,
 }: KpiCardProps) {
   const trendColor =
@@ -50,10 +55,22 @@ export function KpiCard({
                 {change}% {changeLabel ?? ""}
               </p>
             )}
+            {!change && trendLabel && (
+              <p className={cn("text-xs font-medium", trendColor)}>
+                {trendLabel}
+              </p>
+            )}
+            {description && !trendLabel && (
+              <p className="text-xs text-muted-foreground">{description}</p>
+            )}
           </div>
           {Icon && (
             <div className="rounded-lg bg-primary/10 p-2.5">
-              <Icon className="h-5 w-5 text-primary" />
+              {isValidElement(Icon) ? (
+                Icon
+              ) : typeof Icon === "function" ? (
+                <Icon className="h-5 w-5 text-primary" />
+              ) : null}
             </div>
           )}
         </div>

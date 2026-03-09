@@ -53,6 +53,11 @@ import {
   Moon,
   PanelRightOpen,
   PanelRightClose,
+  Brain,
+  Cpu,
+  FlaskConical,
+  TrendingUp,
+  Scale,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -136,6 +141,18 @@ const navGroups: NavGroup[] = [
       { label: "Audit Trail", to: "/comply/audit", icon: ScrollText },
       { label: "Reports", to: "/comply/reports", icon: FileText },
       { label: "Analytics", to: "/comply/analytics", icon: BarChart3 },
+    ],
+  },
+  {
+    label: "AI Engine",
+    icon: Brain,
+    items: [
+      { label: "Copilot", to: "/ai", icon: Bot },
+      { label: "Brain Pipeline", to: "/ai/brain", icon: Workflow },
+      { label: "Multi-LLM Consensus", to: "/ai/consensus", icon: Scale },
+      { label: "Algorithmic Lab", to: "/ai/algorithms", icon: FlaskConical },
+      { label: "ML Dashboard", to: "/ai/ml", icon: Cpu },
+      { label: "Predictions", to: "/ai/predictions", icon: TrendingUp },
     ],
   },
 ];

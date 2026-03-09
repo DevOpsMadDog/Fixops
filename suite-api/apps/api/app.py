@@ -2984,6 +2984,17 @@ def create_app() -> FastAPI:
             _logger.info("All %d critical route prefixes verified OK", len(critical))
 
     # -----------------------------------------------------------------------
+    # Gap Router — bridges missing API endpoints for the frontend
+    # -----------------------------------------------------------------------
+    try:
+        from apps.api.gap_router import ALL_GAP_ROUTERS
+        for _gap_r in ALL_GAP_ROUTERS:
+            app.include_router(_gap_r, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted %d gap routers for frontend coverage", len(ALL_GAP_ROUTERS))
+    except Exception as _gap_err:
+        _logger.warning("Failed to mount gap routers: %s", _gap_err)
+
+    # -----------------------------------------------------------------------
     # Serve React frontend — prefer aldeci-ui-new, fall back to aldeci
     # -----------------------------------------------------------------------
     _repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -3000,8 +3011,16 @@ def create_app() -> FastAPI:
             app.mount("/assets", StaticFiles(directory=_assets_dir), name="ui-assets")
 
         # SPA fallback: any non-API, non-asset path → index.html
+        from starlette.responses import JSONResponse as _SpaJsonResp
+
         @app.get("/{full_path:path}", include_in_schema=False)
         async def _spa_fallback(full_path: str):
+            # NEVER serve index.html for API paths — return 404 JSON
+            if full_path.startswith("api/"):
+                return _SpaJsonResp(
+                    {"detail": "Not Found", "path": f"/{full_path}"},
+                    status_code=404,
+                )
             # If the exact file exists in dist, serve it (e.g., vite.svg, favicon)
             candidate = os.path.join(_ui_dist, full_path)
             if full_path and os.path.isfile(candidate):

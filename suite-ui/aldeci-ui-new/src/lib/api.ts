@@ -58,7 +58,7 @@ export const scannerApi = {
 export const appsApi = {
   list: (params?: Record<string, unknown>) => api.get("/api/v1/apps/", { params }),
   get: (id: string) => api.get(`/api/v1/apps/${id}`),
-  create: (data: unknown) => api.post("/api/v1/apps/", data),
+  create: (data: unknown) => api.post("/api/v1/apps", data),
   update: (id: string, data: unknown) => api.put(`/api/v1/apps/${id}`, data),
   delete: (id: string) => api.delete(`/api/v1/apps/${id}`),
   health: () => api.get("/api/v1/apps/health"),
@@ -161,42 +161,43 @@ export const integrationsApi = {
 };
 
 export const reportsApi = {
-  list: () => api.get("/api/v1/reports/"),
+  list: () => api.get("/api/v1/reports"),
   generate: (data: unknown) => api.post("/api/v1/reports/generate", data),
   get: (id: string) => api.get(`/api/v1/reports/${id}`),
 };
 
 export const teamsApi = {
-  list: () => api.get("/api/v1/teams/"),
+  list: () => api.get("/api/v1/teams"),
   get: (id: string) => api.get(`/api/v1/teams/${id}`),
-  create: (data: unknown) => api.post("/api/v1/teams/", data),
+  create: (data: unknown) => api.post("/api/v1/teams", data),
   update: (id: string, data: unknown) => api.put(`/api/v1/teams/${id}`, data),
 };
 
 export const usersApi = {
-  list: () => api.get("/api/v1/users/"),
+  list: () => api.get("/api/v1/users"),
   get: (id: string) => api.get(`/api/v1/users/${id}`),
-  create: (data: unknown) => api.post("/api/v1/users/", data),
+  create: (data: unknown) => api.post("/api/v1/users", data),
   update: (id: string, data: unknown) => api.put(`/api/v1/users/${id}`, data),
 };
 
 export const workflowsApi = {
-  list: () => api.get("/api/v1/workflows/rules"),
-  create: (data: unknown) => api.post("/api/v1/workflows/rules", data),
-  update: (id: string, data: unknown) => api.put(`/api/v1/workflows/rules/${id}`, data),
-  delete: (id: string) => api.delete(`/api/v1/workflows/rules/${id}`),
-  trigger: (id: string) => api.post(`/api/v1/workflows/rules/${id}/trigger`),
+  list: () => api.get("/api/v1/workflows"),
+  rules: () => api.get("/api/v1/workflows/rules"),
+  create: (data: unknown) => api.post("/api/v1/workflows", data),
+  update: (id: string, data: unknown) => api.put(`/api/v1/workflows/${id}`, data),
+  delete: (id: string) => api.delete(`/api/v1/workflows/${id}`),
+  trigger: (id: string) => api.post(`/api/v1/workflows/${id}/execute`),
 };
 
 export const auditApi = {
-  list: (params?: Record<string, unknown>) => api.get("/api/v1/audit/", { params }),
+  list: (params?: Record<string, unknown>) => api.get("/api/v1/audit", { params }),
   verify: () => api.post("/api/v1/audit/verify-chain"),
 };
 
 export const policiesApi = {
-  list: () => api.get("/api/v1/policies/"),
+  list: () => api.get("/api/v1/policies"),
   get: (id: string) => api.get(`/api/v1/policies/${id}`),
-  create: (data: unknown) => api.post("/api/v1/policies/", data),
+  create: (data: unknown) => api.post("/api/v1/policies", data),
   update: (id: string, data: unknown) => api.put(`/api/v1/policies/${id}`, data),
 };
 
@@ -213,20 +214,20 @@ export const knowledgeGraphApi = {
 };
 
 export const threatFeedsApi = {
-  list: (params?: Record<string, string>) => api.get("/api/v1/feeds/", { params }),
+  list: (params?: Record<string, string>) => api.get("/api/v1/feeds", { params }),
   trending: () => api.get("/api/v1/feeds/trending"),
 };
 
 export const predictionsApi = {
-  list: () => api.get("/api/v1/predictions/"),
+  list: () => api.get("/api/v1/predictions"),
   details: (id: string) => api.get(`/api/v1/predictions/${id}`),
 };
 
 export const playbooks = {
-  list: () => api.get("/api/v1/playbooks/"),
+  list: () => api.get("/api/v1/playbooks"),
   get: (id: string) => api.get(`/api/v1/playbooks/${id}`),
   run: (id: string) => api.post(`/api/v1/playbooks/${id}/run`),
-  create: (data: unknown) => api.post("/api/v1/playbooks/", data),
+  create: (data: unknown) => api.post("/api/v1/playbooks", data),
   update: (id: string, data: unknown) => api.put(`/api/v1/playbooks/${id}`, data),
 };
 
@@ -239,3 +240,38 @@ export const sseApi = {
 };
 
 export default api;
+
+// ── Bulk Operations ──
+export const bulkApi = {
+  triage: (ids: string[], action: string, status?: string) =>
+    api.post("/api/v1/bulk/triage", { finding_ids: ids, action, status }),
+  updateFindings: (ids: string[], updates: Record<string, unknown>) =>
+    api.post("/api/v1/bulk/findings/update", { ids, updates }),
+  assignFindings: (ids: string[], assignee: string) =>
+    api.post("/api/v1/bulk/findings/assign", { ids, assignee }),
+  deleteFindings: (ids: string[]) =>
+    api.post("/api/v1/bulk/findings/delete", { ids }),
+};
+
+// ── Analytics / Findings detail ──
+export const analyticsApi = {
+  findings: (params?: Record<string, unknown>) => api.get("/api/v1/analytics/findings", { params }),
+  getFinding: (id: string) => api.get(`/api/v1/analytics/findings/${id}`),
+  triageFunnel: () => api.get("/api/v1/analytics/triage-funnel"),
+};
+
+// ── AutoFix ──
+export const autofixApi = {
+  generate: (findingId: string) => api.post("/api/v1/autofix/generate", { finding_id: findingId }),
+  suggestions: (findingId: string) => api.get(`/api/v1/autofix/suggestions/${findingId}`),
+  apply: (fixId: string) => api.post(`/api/v1/autofix/apply`, { fix_id: fixId }),
+  preview: (fixId: string) => api.get(`/api/v1/autofix/preview/${fixId}`),
+};
+
+// ── Brain / Pipeline ──
+export const brainApi = {
+  pipelineRun: (data?: unknown) => api.post("/api/v1/brain/pipeline/run", data || {}),
+  pipelineStatus: () => api.get("/api/v1/brain/pipeline/status"),
+  ingestFinding: (data: unknown) => api.post("/api/v1/brain/ingest/finding", data),
+  evidenceGenerate: (data: unknown) => api.post("/api/v1/brain/evidence/generate", data),
+};

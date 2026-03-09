@@ -12,7 +12,7 @@ import logging
 import os
 import threading
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Dict, List, Optional
 from urllib.parse import urlparse
 
 import httpx
@@ -177,23 +177,31 @@ def get_mpte_service() -> Optional[AdvancedMPTEService]:
 @router.get("/health")
 async def mpte_health():
     """MPTE verification engine health check."""
-    service = get_mpte_service()
     configs = db.list_configs(limit=10)
     results = db.list_results(limit=1)
+    scan_count = len(_get_all_scan_results())
     return {
-        "status": "healthy" if service else "degraded",
-        "engine": "mpte",
-        "mpte_url": MPTE_URL,
+        "status": "healthy",
+        "engine": "builtin",
+        "mode": "self-contained",
+        "description": "Built-in security scanner — no external service required",
         "configs_count": len(configs),
-        "results_count": len(results),
-        "service_initialized": service is not None,
-        "version": "1.0.0",
+        "results_count": len(results) + scan_count,
+        "scans_completed": scan_count,
+        "service_initialized": True,
+        "capabilities": [
+            "security_headers", "ssl_tls", "cors", "cookies",
+            "server_disclosure", "technology_fingerprint",
+            "http_methods", "common_paths", "port_scan",
+            "cache_analysis", "redirect_analysis",
+        ],
+        "version": "2.0.0",
     }
 
 
 @router.get("/status")
 async def mpte_status():
-    """MPTE verification engine status (alias for /health)."""
+    """MPTE verification engine status."""
     return await mpte_health()
 
 
@@ -345,18 +353,15 @@ class ComprehensiveScanModel(BaseModel):
 
     target: str = Field(..., min_length=1, max_length=_MAX_URL_LEN)
     scan_types: Optional[List[str]] = None
+    scan_type: Optional[str] = Field(default="comprehensive", max_length=64)
+    depth: Optional[str] = Field(default="standard", max_length=32)
 
     @field_validator("scan_types")
     @classmethod
     def validate_scan_types(cls, v: Optional[List[str]]) -> Optional[List[str]]:
         if v is not None:
-            allowed = {"xss", "sqli", "csrf", "ssrf", "rce", "lfi", "rfi",
-                       "idor", "xxe", "ssti", "deserialization", "auth_bypass"}
             if len(v) > 20:
                 raise ValueError("scan_types cannot exceed 20 items")
-            for st in v:
-                if st.lower() not in allowed:
-                    raise ValueError(f"Unknown scan type: {st}")
         return v
 
 
@@ -652,17 +657,95 @@ def list_pen_test_results(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ):
-    """List pen test results."""
+    """List pen test results including real scan results."""
     exploitability_enum = (
         ExploitabilityLevel(exploitability) if exploitability else None
     )
-    results = db.list_results(
+    db_results = db.list_results(
         finding_id=finding_id,
         exploitability=exploitability_enum,
         limit=limit,
         offset=offset,
     )
-    return {"items": [r.to_dict() for r in results], "total": len(results)}
+
+    # Merge real scan results into the response
+    scan_results = _get_all_scan_results()
+    scan_items = []
+    for sr in scan_results:
+        # Transform scan result into the format the frontend expects
+        for finding in sr.get("findings", []):
+            scan_items.append({
+                "id": finding.get("id", ""),
+                "request_id": sr.get("scan_id", ""),
+                "finding_id": finding.get("id", ""),
+                "finding": finding.get("title", ""),
+                "target": sr.get("target", ""),
+                "verdict": "vulnerable" if finding.get("severity") in ("critical", "high") else "partial" if finding.get("severity") == "medium" else "not_vulnerable",
+                "confidence": round(finding.get("confidence", 0) * 100, 1),
+                "severity": finding.get("severity", "info"),
+                "category": finding.get("category", ""),
+                "cwe_id": finding.get("cwe_id", ""),
+                "cvss_score": finding.get("cvss_score", 0),
+                "evidence": finding.get("evidence", ""),
+                "remediation": finding.get("remediation", ""),
+                "owasp_category": finding.get("owasp_category", ""),
+                "duration": sr.get("duration", "0s"),
+                "phases_completed": sr.get("phases_completed", 0),
+                "discovered_at": finding.get("discovered_at", ""),
+                "scan_id": sr.get("scan_id", ""),
+                "details": finding,
+            })
+
+    # Build request lookup for target_url resolution
+    request_map: Dict[str, dict] = {}
+    try:
+        for req in db.list_requests(limit=500):
+            rd = req.to_dict() if hasattr(req, "to_dict") else req
+            request_map[str(rd.get("id", ""))] = rd
+    except Exception:
+        pass
+
+    # Normalize DB results to include fields the frontend expects
+    db_items = []
+    for r in db_results:
+        d = r.to_dict()
+        # Resolve target from: 1) metadata.target, 2) linked request's target_url, 3) fallback
+        meta = d.get("metadata", {}) or {}
+        raw_target = meta.get("target", "")
+        if not raw_target:
+            req_data = request_map.get(str(d.get("request_id", "")), {})
+            raw_target = req_data.get("target_url", "") or ""
+        total_findings = meta.get("total_findings", 0)
+
+        if "finding" not in d:
+            scan_target = raw_target or d.get("finding_id", "Unknown")
+            if total_findings:
+                d["finding"] = f"Comprehensive Scan: {total_findings} findings ({scan_target})"
+            else:
+                fid = d.get("finding_id", "Unknown Finding")
+                d["finding"] = f"Security Scan ({scan_target})" if fid.startswith("scan-") else fid
+        if "target" not in d:
+            d["target"] = raw_target or d.get("finding_id", "").split("-")[0] if d.get("finding_id") else ""
+        if "verdict" not in d:
+            exp = d.get("exploitability", "inconclusive")
+            d["verdict"] = "vulnerable" if exp in ("confirmed", "likely_exploitable") else "partial" if exp == "inconclusive" else "not_vulnerable"
+        if "confidence" not in d:
+            d["confidence"] = round((d.get("confidence_score", 0) or 0) * 100, 1)
+        if "phases_completed" not in d:
+            d["phases_completed"] = len(d.get("steps_taken", []))
+        if "duration" not in d:
+            secs = d.get("execution_time_seconds", 0) or 0
+            d["duration"] = f"{secs:.1f}s"
+        db_items.append(d)
+
+    # Show detailed per-finding scan results first, then DB summary results.
+    # De-duplicate: if a scan_id appears in scan_items (expanded per-finding), skip the DB summary.
+    scan_ids_in_scan_items = {si.get("scan_id") for si in scan_items if si.get("scan_id")}
+    deduped_db = [d for d in db_items if not any(
+        sid in str(d.get("finding_id", "")) for sid in scan_ids_in_scan_items
+    )]
+    all_items = scan_items + deduped_db
+    return {"items": all_items[offset:offset + limit], "total": len(all_items), "data": all_items[offset:offset + limit]}
 
 
 @router.post("/results", status_code=201)
@@ -887,98 +970,185 @@ async def setup_continuous_monitoring(data: ContinuousMonitoringModel):
         raise HTTPException(status_code=500, detail="Failed to setup monitoring")
 
 
+# ── In-memory scan result store (real scan results, not mock) ──────────
+_scan_results: Dict[str, dict] = {}  # scan_id -> result dict
+_scan_results_lock = threading.Lock()
+
+
+def _store_scan_result(result: dict) -> None:
+    """Store a real scan result."""
+    with _scan_results_lock:
+        _scan_results[result["scan_id"]] = result
+
+
+def _get_all_scan_results() -> list:
+    """Get all stored scan results."""
+    with _scan_results_lock:
+        return list(_scan_results.values())
+
+
 @router.post("/scan/comprehensive", status_code=201)
 async def run_comprehensive_scan(data: ComprehensiveScanModel):
     """
-    Run comprehensive multi-vector security scan.
+    Run comprehensive multi-vector security scan using BUILT-IN scanner.
 
-    Performs multiple types of security tests in parallel.
+    This performs REAL HTTP-based security checks against the target:
+    - Security header analysis
+    - SSL/TLS certificate validation
+    - CORS misconfiguration detection
+    - Cookie security analysis
+    - Server information disclosure
+    - Technology fingerprinting
+    - HTTP method enumeration
+    - Port scanning
+    - Common path discovery
     """
-    try:
-        service = get_mpte_service()
-        if not service:
-            raise HTTPException(
-                status_code=503,
-                detail="MPTE service not configured. Please create a configuration first.",
-            )
+    # SSRF check on target
+    _validate_target_url(data.target, "target")
 
-        from integrations.mpte_client import MPTETestType
-
-        # Map common shorthand scan type names to valid MPTETestType values
-        _SCAN_TYPE_ALIASES = {
-            "xss": "web_application",
-            "sqli": "web_application",
-            "sql_injection": "web_application",
-            "csrf": "web_application",
-            "ssrf": "web_application",
-            "rce": "web_application",
-            "lfi": "web_application",
-            "rfi": "web_application",
-            "web": "web_application",
-            "api": "api_security",
-            "network": "network_scan",
-            "code": "code_analysis",
-            "sast": "code_analysis",
-            "infra": "infrastructure",
-            "cloud": "cloud_security",
-            "container": "container_security",
-            "docker": "container_security",
-            "iot": "iot_device",
-            "mobile": "mobile_app",
-            "social": "social_engineering",
-        }
-
-        scan_types = None
-        if data.scan_types:
-            resolved = set()
-            for st in data.scan_types:
-                mapped = _SCAN_TYPE_ALIASES.get(st.lower(), st.lower())
-                try:
-                    resolved.add(MPTETestType(mapped))
-                except ValueError:
-                    logger.warning("Unknown scan type, skipping")
-            scan_types = list(resolved) if resolved else None
-
-        requests = await service.run_comprehensive_scan(
-            target=data.target,
-            scan_types=scan_types,
+    # Concurrent scan limit
+    if not _acquire_scan_slot():
+        raise HTTPException(
+            status_code=429,
+            detail="Too many concurrent scans. Try again later.",
         )
+
+    try:
+        from integrations.builtin_scanner import get_builtin_scanner
+
+        scanner = get_builtin_scanner()
+        scan_type = data.scan_type or "comprehensive"
+        depth = data.depth or "standard"
+
+        result = await scanner.scan(
+            target=data.target,
+            scan_type=scan_type,
+            depth=depth,
+        )
+        result_dict = result.to_dict()
+
+        # Store the result for later retrieval via /results and /stats
+        _store_scan_result(result_dict)
+
+        # Also create PenTestRequest + PenTestResult in the DB for backward compat
+        try:
+            from core.mpte_models import PenTestRequest, PenTestStatus, PenTestPriority, PenTestResult, ExploitabilityLevel
+            import uuid as _uuid
+
+            request = PenTestRequest(
+                id="",
+                finding_id=f"scan-{result.scan_id}",
+                target_url=data.target,
+                vulnerability_type="comprehensive_scan",
+                test_case=f"Comprehensive {scan_type} scan ({depth})",
+                priority=PenTestPriority.HIGH,
+                status=PenTestStatus.COMPLETED,
+                started_at=datetime.fromisoformat(result.started_at.replace("Z", "+00:00")) if result.started_at else datetime.now(timezone.utc),
+                completed_at=datetime.fromisoformat(result.completed_at.replace("Z", "+00:00")) if result.completed_at else datetime.now(timezone.utc),
+            )
+            request = db.create_request(request)
+
+            # Determine exploitability from findings
+            sev = result_dict.get("severity_breakdown", {})
+            has_critical = sev.get("critical", 0) > 0
+            has_high = sev.get("high", 0) > 0
+
+            if has_critical:
+                expl = ExploitabilityLevel.CONFIRMED_EXPLOITABLE
+            elif has_high:
+                expl = ExploitabilityLevel.LIKELY_EXPLOITABLE
+            else:
+                expl = ExploitabilityLevel.INCONCLUSIVE
+
+            pen_result = PenTestResult(
+                id="",
+                request_id=request.id,
+                finding_id=f"scan-{result.scan_id}",
+                exploitability=expl,
+                exploit_successful=has_critical,
+                evidence=f"Scan completed: {result_dict.get('total_findings', 0)} findings across {result.phases_completed} phases",
+                steps_taken=[f"Phase {i+1} completed" for i in range(result.phases_completed)],
+                confidence_score=result_dict.get("confidence", 0) / 100.0,
+                execution_time_seconds=result.duration_seconds,
+                metadata={
+                    "target": data.target,
+                    "total_findings": result_dict.get("total_findings", 0),
+                    "verdict": result_dict.get("verdict", ""),
+                    "severity_breakdown": result_dict.get("severity_breakdown", {}),
+                    "scan_id": result.scan_id,
+                },
+            )
+            db.create_result(pen_result)
+        except Exception as db_err:
+            logger.warning("Failed to store scan in DB: %s", type(db_err).__name__)
+
+        # Auto-create Exposure Cases from scan findings
+        try:
+            from core.exposure_case import ExposureCase, CasePriority, get_case_manager
+
+            case_mgr = get_case_manager()
+            # Group findings by category to create meaningful exposure cases
+            cats: Dict[str, list] = {}
+            for finding in result.findings:
+                cat = finding.category
+                cats.setdefault(cat, []).append(finding)
+
+            for cat, findings in cats.items():
+                # Use highest severity in the group
+                sev_order = {"critical": 4, "high": 3, "medium": 2, "low": 1, "info": 0}
+                top = max(findings, key=lambda f: sev_order.get(f.severity.value, 0))
+                pri_map = {"critical": "critical", "high": "high", "medium": "medium", "low": "low", "info": "info"}
+                priority = CasePriority(pri_map.get(top.severity.value, "medium"))
+
+                case = ExposureCase(
+                    case_id="",
+                    title=f"{cat.replace('_', ' ').title()}: {top.title}",
+                    description=f"Scan of {data.target} found {len(findings)} {cat} finding(s). {top.description}",
+                    priority=priority,
+                    org_id="enterprise",
+                    root_cwe=top.cwe_id or None,
+                    affected_assets=[data.target],
+                    finding_count=len(findings),
+                    risk_score=top.cvss_score,
+                    tags=["scan", cat, data.target, result.scan_id],
+                    metadata={
+                        "scan_id": result.scan_id,
+                        "target": data.target,
+                        "category": cat,
+                        "owasp": top.owasp_category,
+                        "evidence": top.evidence[:500],
+                        "remediation": top.remediation,
+                    },
+                )
+                case_mgr.create_case(case)
+            logger.info("Created %d exposure cases from scan %s", len(cats), result.scan_id)
+        except Exception as case_err:
+            import traceback
+            logger.error("Failed to create exposure cases: %s — %s", type(case_err).__name__, str(case_err)[:300])
+            logger.error("Traceback: %s", traceback.format_exc()[:500])
+
         return {
-            "status": "scan_started",
-            "requests": [r.to_dict() for r in requests],
+            "status": "scan_completed",
+            "scan_id": result.scan_id,
+            "target": data.target,
+            "verdict": result_dict.get("verdict", "unknown"),
+            "total_findings": result_dict.get("total_findings", 0),
+            "duration": result_dict.get("duration", "0s"),
+            "confidence": result_dict.get("confidence", 0),
+            "severity_breakdown": result_dict.get("severity_breakdown", {}),
+            "phases_completed": result.phases_completed,
+            "result": result_dict,
+            "requests": [result_dict],  # backward compat with frontend
         }
     except HTTPException:
         raise
-    except (
-        httpx.ConnectError,
-        httpx.TimeoutException,
-        ConnectionError,
-        OSError,
-        TimeoutError,
-    ) as e:
-        logger.warning("MPTE service unavailable: %s", type(e).__name__)
-        raise HTTPException(
-            status_code=503,
-            detail="MPTE service unavailable. External pen testing service is not reachable.",
-        )
     except Exception as e:
-        # Check if it's a connection-related error
-        error_str = str(e).lower()
-        if (
-            "connect" in error_str
-            or "timeout" in error_str
-            or "refused" in error_str
-            or "name or service not known" in error_str
-        ):
-            logger.warning("MPTE service unavailable: %s", type(e).__name__)
-            raise HTTPException(
-                status_code=503,
-                detail="MPTE service unavailable. External pen testing service is not reachable.",
-            )
-        logger.error("Failed to start comprehensive scan: %s", type(e).__name__)
+        logger.error("Failed to run scan: %s", type(e).__name__)
         raise HTTPException(
-            status_code=500, detail="Failed to start comprehensive scan"
+            status_code=500, detail=f"Scan failed: {type(e).__name__}"
         )
+    finally:
+        _release_scan_slot()
 
 
 _FINDING_ID_PATTERN = __import__("re").compile(r"^[a-zA-Z0-9_\-.:]+$")
@@ -1248,13 +1418,34 @@ def _generate_phases(exploitability: str, seed: int = 0) -> list:
 
 @router.get("/stats")
 def get_pen_test_stats():
-    """Get statistics about pen tests."""
+    """Get statistics about pen tests including real scan results."""
     all_requests = db.list_requests(limit=10000)
     all_results = db.list_results(limit=10000)
+    scan_results = _get_all_scan_results()
+
+    # Count from real scan results
+    total_scans = len(scan_results)
+    verified_vulnerable = sum(1 for r in scan_results if r.get("verdict") == "vulnerable")
+    not_vulnerable = sum(1 for r in scan_results if r.get("verdict") == "not_vulnerable")
+    partial = sum(1 for r in scan_results if r.get("verdict") == "partial")
+    unverified = sum(1 for r in scan_results if r.get("verdict") not in ("vulnerable", "not_vulnerable", "partial"))
+
+    # Calculate average confidence
+    confidences = [r.get("confidence", 0) for r in scan_results if r.get("confidence")]
+    avg_confidence = round(sum(confidences) / len(confidences), 1) if confidences else 0
+
+    # Total findings across all scans
+    total_findings = sum(r.get("total_findings", 0) for r in scan_results)
 
     stats = {
+        "total_scans": total_scans + len(all_requests),
         "total_requests": len(all_requests),
         "total_results": len(all_results),
+        "total_findings": total_findings,
+        "verified_vulnerable": verified_vulnerable,
+        "not_vulnerable": not_vulnerable,
+        "unverified": unverified + partial,
+        "avg_confidence": avg_confidence,
         "by_status": {},
         "by_exploitability": {},
         "by_priority": {},

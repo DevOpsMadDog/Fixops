@@ -63,6 +63,18 @@ import {
   useRunMpteScan,
 } from "@/hooks/use-api";
 
+/** Safely extract an array from API responses that might be { items: [...] }, { data: [...] }, or just [...] */
+function toArray(d: unknown): Record<string, unknown>[] {
+  if (Array.isArray(d)) return d;
+  if (d && typeof d === 'object') {
+    const obj = d as Record<string, unknown>;
+    if (Array.isArray(obj.items)) return obj.items;
+    if (Array.isArray(obj.data)) return obj.data;
+    if (Array.isArray(obj.verifications)) return obj.verifications;
+  }
+  return [];
+}
+
 const VERDICT_CONFIG = {
   vulnerable: { label: "Vulnerable", variant: "destructive" as const, color: "#ef4444" },
   not_vulnerable: { label: "Not Vulnerable", variant: "secondary" as const, color: "#22c55e" },
@@ -288,7 +300,7 @@ export default function MPTEConsole() {
   if (isError) return <ErrorState message="Failed to load MPTE console data" onRetry={refetchAll} />;
 
   const stats = statsQuery.data?.data ?? statsQuery.data ?? {};
-  const results: Record<string, unknown>[] = resultsQuery.data?.data ?? resultsQuery.data ?? [];
+  const results: Record<string, unknown>[] = toArray(resultsQuery.data?.data ?? resultsQuery.data);
   const status = statusQuery.data?.data ?? statusQuery.data ?? {};
 
   const totalScans = (stats.total_scans as number) ?? (results as unknown[]).length ?? 0;
@@ -345,38 +357,36 @@ export default function MPTEConsole() {
       <PageHeader
         title="MPTE Console"
         description="Micro-Pentest Engine — automated vulnerability validation across 19 phases"
-      >
-        <NewScanDialog onScan={(p) => runScan.mutate(p)} />
-      </PageHeader>
+        actions={<NewScanDialog onScan={(p) => runScan.mutate(p)} />}
+      />
 
       {/* KPI Row */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard
           title="Total Scans"
           value={totalScans}
-          icon={<Target className="h-4 w-4" />}
+          icon={Target}
         />
         <KpiCard
           title="Verified Vulnerable"
           value={verified}
-          icon={<ShieldAlert className="h-4 w-4" />}
-          trend={verified > 0 ? "up" : "neutral"}
-          trendLabel="critical"
+          icon={ShieldAlert}
+          trend={verified > 0 ? "up" : "flat"}
         />
         <KpiCard
           title="Not Vulnerable"
           value={notVulnerable}
-          icon={<CheckCircle className="h-4 w-4" />}
+          icon={CheckCircle}
         />
         <KpiCard
           title="Unverified"
           value={unverified}
-          icon={<Clock className="h-4 w-4" />}
+          icon={Clock}
         />
         <KpiCard
           title="Avg Confidence"
           value={`${avgConfidence}%`}
-          icon={<Zap className="h-4 w-4" />}
+          icon={Zap}
         />
       </div>
 
@@ -602,24 +612,24 @@ export default function MPTEConsole() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {((requestsQuery.data?.data ?? requestsQuery.data ?? []) as Record<string, unknown>[]).length === 0 ? (
+                  {toArray(requestsQuery.data?.data ?? requestsQuery.data).length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                         No scan requests
                       </TableCell>
                     </TableRow>
                   ) : (
-                    ((requestsQuery.data?.data ?? requestsQuery.data ?? []) as Record<string, unknown>[]).map(
+                    toArray(requestsQuery.data?.data ?? requestsQuery.data).map(
                       (req, i) => (
                         <TableRow key={(req.id as string) ?? i}>
                           <TableCell className="font-mono text-xs">
                             {(req.id as string) ?? `REQ-${i + 1}`}
                           </TableCell>
                           <TableCell className="font-mono text-xs text-muted-foreground">
-                            {(req.target as string) ?? "—"}
+                            {(req.target_url as string) ?? (req.target as string) ?? "—"}
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline">{(req.type as string) ?? "—"}</Badge>
+                            <Badge variant="outline">{(req.vulnerability_type as string) ?? (req.type as string) ?? "—"}</Badge>
                           </TableCell>
                           <TableCell>
                             <Badge
