@@ -1,0 +1,89 @@
+# ─────────────────────────────────────────────────────────────
+# ALdeci FixOps CTEM+ Enterprise — Production Docker Compose
+# ─────────────────────────────────────────────────────────────
+# Usage:
+#   cp .env.example .env   # Configure secrets
+#   docker compose up -d   # Start all services
+#   docker compose logs -f # Watch logs
+#
+# Access: https://localhost:3000
+
+version: "3.9"
+
+services:
+  # ── Main Application ──────────────────────────────────────
+  fixops:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fixops-enterprise
+    restart: unless-stopped
+    ports:
+      - "${FIXOPS_PORT:-3000}:3000"
+    env_file:
+      - .env
+    environment:
+      - FIXOPS_MODE=enterprise
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN}
+      - FIXOPS_JWT_SECRET=${FIXOPS_JWT_SECRET}
+      - API_WORKERS=${API_WORKERS:-4}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      - fixops-data:/app/data
+      - fixops-logs:/app/logs
+    networks:
+      - fixops-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ── Knowledge Graph Worker (background) ───────────────────
+  graph-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fixops-graph-worker
+    restart: unless-stopped
+    entrypoint: >
+      python3 scripts/graph_worker.py
+    env_file:
+      - .env
+    environment:
+      - FIXOPS_MODE=enterprise
+      - FIXOPS_GRAPH_INTERVAL=${GRAPH_INTERVAL:-300}
+    volumes:
+      - fixops-data:/app/data
+    networks:
+      - fixops-net
+    depends_on:
+      fixops:
+        condition: service_healthy
+
+  # ── Redis (session/cache — optional) ──────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: fixops-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - fixops-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  fixops-data:
+  fixops-logs:
+  redis-data:
+
+networks:
+  fixops-net:
+    driver: bridge
