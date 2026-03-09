@@ -11,7 +11,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, model_validator
 
 logger = logging.getLogger(__name__)
 
@@ -49,14 +49,65 @@ class GenerateFixRequest(BaseModel):
         None, description="Repo metadata (language, framework, etc.)"
     )
 
-    @validator("finding", pre=True, always=True)
-    def build_finding(cls, v, values):
-        """Build finding dict from individual fields if not provided."""
-        if v:
-            return v
-        # Build from individual fields
-        fid = values.get("finding_id") or f"FIND-{id(values) % 10000:04d}"
-        return {
+    @model_validator(mode="before")
+    @classmethod
+    def build_finding(cls, values):
+        """Build finding dict from individual fields or look up from analytics DB."""
+        if not isinstance(values, dict):
+            return values
+        if values.get("finding"):
+            return values
+
+        # Try to look up finding from analytics.db using finding_id
+        fid = values.get("finding_id")
+        if fid:
+            try:
+                import sqlite3
+                from pathlib import Path
+                import os
+                # Try known locations for analytics.db
+                db_path = None
+                for candidate in [
+                    Path("/home/user/workspace/Fixops/data/analytics.db"),
+                    Path(__file__).parents[3] / "data" / "analytics.db",
+                    Path(__file__).resolve().parents[2] / "data" / "analytics.db",
+                ]:
+                    if candidate.exists():
+                        db_path = candidate
+                        break
+                if db_path:
+                    conn = sqlite3.connect(str(db_path))
+                    conn.row_factory = sqlite3.Row
+                    try:
+                        row = conn.execute(
+                            "SELECT * FROM findings WHERE id = ? LIMIT 1", (fid,)
+                        ).fetchone()
+                        if row:
+                            row_dict = dict(row)
+                            values["finding"] = {
+                                "id": fid,
+                                "title": row_dict.get("title", f"Vulnerability {fid}"),
+                                "description": row_dict.get("description", ""),
+                                "severity": row_dict.get("severity", "high"),
+                                "cve_ids": [row_dict["cve_id"]] if row_dict.get("cve_id") else [],
+                                "cwe_id": row_dict.get("cwe_id", ""),
+                                "file_path": row_dict.get("file_path", ""),
+                                "line_number": row_dict.get("line_number"),
+                                "source": row_dict.get("source", ""),
+                                "category": row_dict.get("category", ""),
+                                "language": values.get("language"),
+                                "fix_type": values.get("fix_type"),
+                            }
+                            logger.info("Looked up finding %s: %s", fid, row_dict.get("title"))
+                            return values
+                    finally:
+                        conn.close()
+            except Exception as e:
+                logger.warning("Failed to look up finding %s: %s", fid, e)
+
+        # Fallback: build from individual fields
+        fid = fid or f"FIND-{id(values) % 10000:04d}"
+        values["finding"] = {
             "id": fid,
             "title": values.get("title") or f"Vulnerability {fid}",
             "severity": values.get("severity") or "high",
@@ -64,6 +115,7 @@ class GenerateFixRequest(BaseModel):
             "language": values.get("language"),
             "fix_type": values.get("fix_type"),
         }
+        return values
 
 
 class ApplyFixRequest(BaseModel):

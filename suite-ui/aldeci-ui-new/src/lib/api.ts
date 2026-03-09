@@ -44,7 +44,38 @@ export const nerveCenterApi = {
 };
 
 export const findingsApi = {
-  list: (params?: Record<string, unknown>) => api.get("/api/v1/cases", { params }),
+  list: async (params?: Record<string, unknown>) => {
+    // Fetch real findings from analytics DB
+    const analyticsRes = await api.get("/api/v1/analytics/findings", { params });
+    const findings = Array.isArray(analyticsRes.data) ? analyticsRes.data : (analyticsRes.data?.items ?? analyticsRes.data?.findings ?? []);
+    // Also fetch cases for supplementary data
+    let cases: unknown[] = [];
+    try {
+      const casesRes = await api.get("/api/v1/cases", { params: { limit: 200 } });
+      cases = casesRes.data?.cases ?? casesRes.data?.items ?? [];
+    } catch { /* cases endpoint may not exist */ }
+    // Merge: use analytics findings as primary, enrich with case data
+    interface FindingLike {
+      id?: string;
+      finding_id?: string;
+      title?: string;
+      severity?: string;
+      status?: string;
+      cve_id?: string;
+      cve?: string;
+      source?: string;
+      scanner?: string;
+      created_at?: string;
+      [key: string]: unknown;
+    }
+    const normalized = (findings as FindingLike[]).map((f: FindingLike) => ({
+      ...f,
+      finding_id: f.id,
+      cve: f.cve_id ?? f.cve ?? null,
+      scanner: f.source ?? f.scanner ?? null,
+    }));
+    return { data: { cases: normalized, total: normalized.length, items: normalized } };
+  },
   get: (id: string) => api.get(`/api/v1/cases/${id}`),
   triage: (id: string, action: string) => api.post(`/api/v1/cases/${id}/triage`, { action }),
   bulkTriage: (ids: string[], action: string) => api.post("/api/v1/bulk/triage", { finding_ids: ids, action }),

@@ -1758,6 +1758,259 @@ class GitLabSASTNormalizer(_Base):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# Universal Format Parsers: SARIF, CycloneDX, SPDX
+# ═══════════════════════════════════════════════════════════════════════════
+
+class SARIFUniversalNormalizer(_Base):
+    """Parse SARIF 2.1+ format — the universal static analysis interchange format."""
+
+    def can_handle(self, content: bytes, content_type: Optional[str] = None) -> float:
+        text = content[:5000].decode("utf-8", errors="ignore")
+        if '"$schema"' in text and 'sarif' in text.lower():
+            return 0.98
+        if '"version"' in text and '"runs"' in text and '"results"' in text:
+            return 0.90
+        if '"runs"' in text and '"tool"' in text:
+            return 0.80
+        return 0.0
+
+    def normalize(self, content: bytes, content_type: Optional[str] = None) -> list:
+        data = _parse_json_safe(content)
+        if not data or not isinstance(data, dict):
+            return []
+
+        findings = []
+        for run in data.get("runs", []):
+            tool_name = ""
+            tool_info = run.get("tool", {})
+            driver = tool_info.get("driver", {})
+            tool_name = driver.get("name", "unknown")
+
+            # Build rule lookup for enrichment
+            rules_by_id = {}
+            for rule in driver.get("rules", []):
+                rid = rule.get("id", "")
+                if rid:
+                    rules_by_id[rid] = rule
+
+            for result in run.get("results", []):
+                rule_id = result.get("ruleId", "")
+                rule_index = result.get("ruleIndex")
+                rule_info = rules_by_id.get(rule_id, {})
+
+                # If rule_index is set and we have rules array, use it
+                if not rule_info and rule_index is not None:
+                    rules_list = driver.get("rules", [])
+                    if 0 <= rule_index < len(rules_list):
+                        rule_info = rules_list[rule_index]
+
+                # Title: message > rule.shortDescription > rule.name > ruleId
+                msg = result.get("message", {})
+                title = msg.get("text", "")
+                if not title:
+                    title = rule_info.get("shortDescription", {}).get("text", "")
+                if not title:
+                    title = rule_info.get("name", rule_id or "SARIF Finding")
+
+                # Description from rule fullDescription
+                description = rule_info.get("fullDescription", {}).get("text", "")
+                if not description:
+                    description = rule_info.get("shortDescription", {}).get("text", title)
+
+                # Severity mapping from level
+                level = result.get("level", "warning")
+                severity_map = {
+                    "error": "high",
+                    "warning": "medium",
+                    "note": "low",
+                    "none": "info",
+                }
+                severity = severity_map.get(level, "medium")
+
+                # Check rule properties for security-severity (CVSS-like)
+                props = rule_info.get("properties", {})
+                sec_sev = props.get("security-severity", "")
+                if sec_sev:
+                    try:
+                        cvss = float(sec_sev)
+                        if cvss >= 9.0:
+                            severity = "critical"
+                        elif cvss >= 7.0:
+                            severity = "high"
+                        elif cvss >= 4.0:
+                            severity = "medium"
+                        elif cvss > 0:
+                            severity = "low"
+                    except (ValueError, TypeError):
+                        pass
+
+                # Location
+                file_path = ""
+                line_number = None
+                code_snippet = None
+                locations = result.get("locations", [])
+                if locations:
+                    loc = locations[0]
+                    phys = loc.get("physicalLocation", {})
+                    art = phys.get("artifactLocation", {})
+                    file_path = art.get("uri", art.get("uriBaseId", ""))
+                    region = phys.get("region", {})
+                    line_number = region.get("startLine")
+                    snippet = region.get("snippet", {})
+                    if snippet:
+                        code_snippet = snippet.get("text", "")[:500]
+
+                # CWE extraction
+                cwe_id = None
+                tags = props.get("tags", [])
+                for tag in tags:
+                    if isinstance(tag, str) and tag.startswith("CWE-"):
+                        cwe_id = tag
+                        break
+                # Also check taxa references
+                for taxa in rule_info.get("relationships", []):
+                    target = taxa.get("target", {})
+                    tid = target.get("id", "")
+                    if tid.startswith("CWE-") or tid.isdigit():
+                        cwe_id = f"CWE-{tid}" if tid.isdigit() else tid
+                        break
+
+                # Recommendation from fixes or help
+                recommendation = ""
+                fixes = result.get("fixes", [])
+                if fixes:
+                    recommendation = fixes[0].get("description", {}).get("text", "")
+                if not recommendation:
+                    recommendation = rule_info.get("help", {}).get("text", "")
+
+                findings.append(_make_finding(
+                    title=title[:500],
+                    description=description[:2000],
+                    severity=severity,
+                    source_tool=tool_name.lower(),
+                    source_format_str="sarif",
+                    rule_id=rule_id,
+                    cwe_id=cwe_id,
+                    file_path=file_path,
+                    line_number=line_number,
+                    code_snippet=code_snippet,
+                    recommendation=recommendation[:1000],
+                    tags=[tool_name, "sarif"] if tool_name else ["sarif"],
+                ))
+
+        return findings
+
+
+class CycloneDXUniversalNormalizer(_Base):
+    """Parse CycloneDX SBOM format (JSON)."""
+
+    def can_handle(self, content: bytes, content_type: Optional[str] = None) -> float:
+        text = content[:5000].decode("utf-8", errors="ignore")
+        if '"bomFormat"' in text and 'CycloneDX' in text:
+            return 0.95
+        if 'cyclonedx' in text.lower() and '"components"' in text:
+            return 0.85
+        return 0.0
+
+    def normalize(self, content: bytes, content_type: Optional[str] = None) -> list:
+        data = _parse_json_safe(content)
+        if not data or not isinstance(data, dict):
+            return []
+
+        findings = []
+        # Extract from vulnerabilities section
+        for vuln in data.get("vulnerabilities", []):
+            vuln_id = vuln.get("id", "")
+            title = vuln.get("description", vuln_id) or vuln_id
+            description = vuln.get("detail", vuln.get("description", ""))
+
+            # Severity from ratings
+            severity = "medium"
+            for rating in vuln.get("ratings", []):
+                sev = rating.get("severity", "").lower()
+                if sev in ("critical", "high", "medium", "low", "info"):
+                    severity = sev
+                    break
+                score = rating.get("score")
+                if score is not None:
+                    try:
+                        s = float(score)
+                        severity = "critical" if s >= 9 else "high" if s >= 7 else "medium" if s >= 4 else "low"
+                    except (ValueError, TypeError):
+                        pass
+                    break
+
+            # Affected components
+            affects = vuln.get("affects", [])
+            component_ref = affects[0].get("ref", "") if affects else ""
+
+            cves = _extract_cves(vuln_id + " " + str(vuln.get("source", {}).get("name", "")))
+            cwes = [f"CWE-{c}" for c in vuln.get("cwes", [])]
+
+            recommendation = ""
+            for adv in vuln.get("advisories", []):
+                recommendation = adv.get("title", adv.get("url", ""))
+                break
+
+            findings.append(_make_finding(
+                title=title[:500],
+                description=description[:2000],
+                severity=severity,
+                source_tool="cyclonedx",
+                source_format_str="cyclonedx",
+                rule_id=vuln_id,
+                cwe_id=cwes[0] if cwes else None,
+                file_path=component_ref,
+                recommendation=recommendation[:1000],
+                tags=["sbom", "cyclonedx"],
+            ))
+
+        # Also extract components with known vulnerabilities
+        for comp in data.get("components", []):
+            if comp.get("type") == "library" and comp.get("purl"):
+                # Only add as finding if there's evidence of vulnerability
+                pass  # Component inventory, not findings
+
+        return findings
+
+
+class SPDXUniversalNormalizer(_Base):
+    """Parse SPDX SBOM format (JSON)."""
+
+    def can_handle(self, content: bytes, content_type: Optional[str] = None) -> float:
+        text = content[:5000].decode("utf-8", errors="ignore")
+        if '"spdxVersion"' in text or '"SPDX-' in text:
+            return 0.90
+        if 'SPDXRef' in text and '"packages"' in text:
+            return 0.85
+        return 0.0
+
+    def normalize(self, content: bytes, content_type: Optional[str] = None) -> list:
+        data = _parse_json_safe(content)
+        if not data or not isinstance(data, dict):
+            return []
+
+        findings = []
+        # SPDX doesn't natively carry vulnerability data, but some enriched SPDX docs do
+        for pkg in data.get("packages", []):
+            # Check for known vulnerability annotations
+            ext_refs = pkg.get("externalRefs", [])
+            for ref in ext_refs:
+                if ref.get("referenceCategory") == "SECURITY" or "vulnerability" in str(ref.get("referenceType", "")).lower():
+                    findings.append(_make_finding(
+                        title=f"Vulnerability in {pkg.get('name', 'unknown')}",
+                        description=f"Package: {pkg.get('name')} version {pkg.get('versionInfo', 'unknown')}",
+                        severity="medium",
+                        source_tool="spdx",
+                        source_format_str="spdx",
+                        rule_id=ref.get("referenceLocator", ""),
+                        file_path=pkg.get("name", ""),
+                        tags=["sbom", "spdx"],
+                    ))
+        return findings
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # Registry — Central catalog of all scanner parsers
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -1789,6 +2042,10 @@ SCANNER_NORMALIZERS = {
     "acunetix": AcunetixScannerNormalizer,
     "aws_inspector": AWSInspectorNormalizer,
     "gitlab_sast": GitLabSASTNormalizer,
+    # Universal format parsers
+    "sarif": SARIFUniversalNormalizer,
+    "cyclonedx": CycloneDXUniversalNormalizer,
+    "spdx": SPDXUniversalNormalizer,
 }
 
 
