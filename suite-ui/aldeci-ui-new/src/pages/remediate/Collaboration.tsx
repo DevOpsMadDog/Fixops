@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { toArray } from "@/lib/api-utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -370,10 +371,8 @@ export default function Collaboration() {
   if (isLoading) return <PageSkeleton />;
   if (isError) return <ErrorState message="Failed to load collaboration data" onRetry={refetchAll} />;
 
-  const findings: Record<string, unknown>[] =
-    tasksQuery.data?.data ?? tasksQuery.data ?? [];
-  const users: Record<string, unknown>[] =
-    usersQuery.data?.data ?? usersQuery.data ?? [];
+  const findings: Record<string, unknown>[] = toArray(tasksQuery.data);
+  const users: Record<string, unknown>[] = toArray(usersQuery.data);
 
   const selectedRoom = rooms.find((r) => r.id === selectedRoomId) ?? null;
 

@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -272,7 +273,7 @@ export default function UsersPage() {
   if (usersQuery.isLoading) return <PageSkeleton />;
   if (usersQuery.isError) return <ErrorState message="Failed to load users" onRetry={refetch} />;
 
-  const users: any[] = usersQuery.data?.data ?? usersQuery.data ?? [];
+  const users: any[] = toArray(usersQuery.data);
 
   const totalUsers = users.length;
   const activeUsers = users.filter((u: any) => u.status === "active" || u.active !== false).length;

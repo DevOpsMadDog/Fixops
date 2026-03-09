@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -108,7 +109,7 @@ export default function LogViewer() {
   if (auditQuery.isLoading) return <PageSkeleton />;
   if (auditQuery.isError) return <ErrorState message="Failed to load logs" onRetry={refetch} />;
 
-  const rawLogs: any[] = auditQuery.data?.data ?? auditQuery.data ?? [];
+  const rawLogs: any[] = toArray(auditQuery.data);
 
   // Map audit logs to log viewer format
   const logs = rawLogs.map((l: any, i: number) => ({

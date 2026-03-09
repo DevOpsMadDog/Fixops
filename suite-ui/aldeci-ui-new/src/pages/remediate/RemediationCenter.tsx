@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { toArray } from "@/lib/api-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -241,10 +242,8 @@ export default function RemediationCenter() {
   if (isError)
     return <ErrorState message="Failed to load remediation tasks" onRetry={refetchAll} />;
 
-  const tasks: Record<string, unknown>[] =
-    tasksQuery.data?.data ?? tasksQuery.data ?? [];
-  const users: Record<string, unknown>[] =
-    usersQuery.data?.data ?? usersQuery.data ?? [];
+  const tasks: Record<string, unknown>[] = toArray(tasksQuery.data);
+  const users: Record<string, unknown>[] = toArray(usersQuery.data);
 
   const openCount = tasks.filter((t) => (t.status as string) === "open").length;
   const inProgressCount = tasks.filter((t) => (t.status as string) === "in_progress").length;

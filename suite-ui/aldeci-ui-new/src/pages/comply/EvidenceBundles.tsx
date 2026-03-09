@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -284,9 +285,12 @@ export default function EvidenceBundles() {
   if (isLoading) return <PageSkeleton />;
   if (isError) return <ErrorState message="Failed to load evidence bundles" onRetry={refetchAll} />;
 
-  const bundles: any[] = bundlesQuery.data?.data ?? bundlesQuery.data ?? [];
-  const apps: any[] = appsQuery.data?.data ?? appsQuery.data ?? [];
-  const frameworks: string[] = (frameworksQuery.data?.data ?? []).map((f: any) => f.name ?? f);
+  const bundles: any[] = toArray(bundlesQuery.data);
+  const apps: any[] = toArray(appsQuery.data);
+  const frameworks: string[] = toArray(frameworksQuery.data).map((f: any) => {
+    if (typeof f === "string") return f;
+    return f.name ?? f.framework ?? String(f.id ?? "");
+  }).filter(Boolean);
 
   const totalBundles = bundles.length;
   const quantumSigned = bundles.filter((b: any) => b.quantum_signed || b.signed).length;

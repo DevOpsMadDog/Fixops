@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -245,7 +246,7 @@ export default function BulkOperations() {
     return <ErrorState message="Failed to load findings" onRetry={refetch} />;
 
   const allFindings: Record<string, unknown>[] =
-    findingsQuery.data?.data ?? findingsQuery.data ?? [];
+    toArray(findingsQuery.data);
 
   const filtered = allFindings.filter((f) => {
     const matchSearch =

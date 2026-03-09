@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -195,7 +196,7 @@ export default function AuditTrail() {
   if (auditQuery.isLoading) return <PageSkeleton />;
   if (auditQuery.isError) return <ErrorState message="Failed to load audit logs" onRetry={refetch} />;
 
-  const logs: any[] = auditQuery.data?.data ?? auditQuery.data ?? [];
+  const logs: any[] = toArray(auditQuery.data);
 
   const totalEvents = logs.length;
   const today = new Date().toDateString();

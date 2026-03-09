@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useCallback, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -279,7 +280,7 @@ export default function PlaybookEditor() {
   useEffect(() => {
     if (editId && playbooksQuery.data) {
       const existing: Record<string, unknown>[] =
-        playbooksQuery.data?.data ?? playbooksQuery.data ?? [];
+        toArray(playbooksQuery.data);
       const pb = existing.find((p) => (p.id as string) === editId);
       if (pb) {
         setName((pb.name as string) ?? "");

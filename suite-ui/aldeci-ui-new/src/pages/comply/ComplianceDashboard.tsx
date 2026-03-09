@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -123,8 +124,8 @@ export default function ComplianceDashboard() {
   if (isError) return <ErrorState message="Failed to load compliance data" onRetry={refetchAll} />;
 
   const status = statusQuery.data?.data ?? {};
-  const frameworks: any[] = frameworksQuery.data?.data ?? [];
-  const gaps: any[] = gapsQuery.data?.data ?? [];
+  const frameworks: any[] = toArray(frameworksQuery.data);
+  const gaps: any[] = toArray(gapsQuery.data);
 
   const frameworksActive = frameworks.filter((f: any) => f.status !== "disabled").length || frameworks.length;
   const overallScore = status.overall_score ?? Math.round(frameworks.reduce((acc: number, f: any) => acc + (f.score ?? 0), 0) / Math.max(frameworks.length, 1));
@@ -144,7 +145,13 @@ export default function ComplianceDashboard() {
     ? gaps
     : gaps.filter((g: any) => (g.framework ?? "").toLowerCase() === activeFramework.toLowerCase());
 
-  const displayFrameworks = frameworks.length > 0 ? frameworks : [
+  const normalizedFrameworks = frameworks.map((f: any) => ({
+    name: f.name ?? f.framework ?? "Unknown",
+    score: f.score ?? Math.round((f.automated_controls ?? 0) / Math.max(f.total_controls ?? 1, 1) * 100),
+    controls: f.controls ?? f.total_controls ?? 0,
+    status: f.status ?? (f.enabled ? "compliant" : "disabled"),
+  }));
+  const displayFrameworks = normalizedFrameworks.length > 0 ? normalizedFrameworks : [
     { name: "SOC2", score: 87, controls: 114, status: "compliant" },
     { name: "PCI-DSS", score: 74, controls: 225, status: "partial" },
     { name: "HIPAA", score: 91, controls: 78, status: "compliant" },

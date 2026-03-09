@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -99,7 +100,7 @@ export default function SOC2Evidence() {
 
   const soc2Data: any = soc2Query.data?.data ?? {};
   const controls: any[] = soc2Data.controls ?? soc2Data ?? [];
-  const bundles: any[] = bundlesQuery.data?.data ?? [];
+  const bundles: any[] = toArray(bundlesQuery.data);
 
   // Group controls by category
   const byCategory: Record<string, any[]> = {};

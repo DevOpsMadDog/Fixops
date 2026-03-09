@@ -35,6 +35,13 @@ export function toArray<T = Record<string, unknown>>(d: unknown): T[] {
     if (Array.isArray(obj.items)) return obj.items;
     if (Array.isArray(obj.data)) return obj.data;
     if (Array.isArray(obj.results)) return obj.results;
+    if (Array.isArray(obj.tasks)) return obj.tasks;
+    if (Array.isArray(obj.users)) return obj.users;
+    if (Array.isArray(obj.teams)) return obj.teams;
+    if (Array.isArray(obj.policies)) return obj.policies;
+    if (Array.isArray(obj.integrations)) return obj.integrations;
+    if (Array.isArray(obj.logs)) return obj.logs;
+    if (Array.isArray(obj.reports)) return obj.reports;
     if (Array.isArray(obj.verifications)) return obj.verifications;
     if (Array.isArray(obj.bundles)) return obj.bundles;
     if (Array.isArray(obj.findings)) return obj.findings;

@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -257,12 +258,12 @@ export default function FAILEngine() {
   if (isError) return <ErrorState message="Failed to load FAIL Engine data" onRetry={refetchAll} />;
 
   const drills: Record<string, unknown>[] =
-    drillsQuery.data?.data ?? drillsQuery.data ?? [];
+    toArray(drillsQuery.data);
   const readiness = readinessQuery.data?.data ?? readinessQuery.data ?? {};
   const history: Record<string, unknown>[] =
-    historyQuery.data?.data ?? historyQuery.data ?? [];
+    toArray(historyQuery.data);
   const scenarios: Record<string, unknown>[] =
-    scenariosQuery.data?.data ?? scenariosQuery.data ?? [];
+    toArray(scenariosQuery.data);
 
   const activeDrills = drills.filter(
     (d) => (d.status as string) !== "Fixed"

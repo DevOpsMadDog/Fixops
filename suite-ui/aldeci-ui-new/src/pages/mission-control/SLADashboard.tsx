@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
@@ -148,7 +149,7 @@ export default function SLADashboard() {
   if (isError) return <ErrorState message="Failed to load SLA data" onRetry={refetch} />;
 
   const ov = overview.data ?? {};
-  const taskList: Record<string, unknown>[] = tasks.data?.items ?? tasks.data?.tasks ?? tasks.data ?? [];
+  const taskList: Record<string, unknown>[] = toArray(tasks.data);
 
   // SLA metrics from overview
   const overallSla = Number(ov.sla_compliance_pct ?? ov.sla_compliance ?? 85);

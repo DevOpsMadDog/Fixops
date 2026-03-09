@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -179,7 +180,7 @@ export default function Reachability() {
     return <ErrorState message="Failed to load reachability data" onRetry={refetchAll} />;
 
   const findings: Record<string, unknown>[] =
-    findingsQuery.data?.data ?? findingsQuery.data ?? [];
+    toArray(findingsQuery.data);
   const graphData = graphQuery.data?.data ?? graphQuery.data ?? {};
   const attackPaths: Record<string, unknown>[] =
     (graphData.paths as Record<string, unknown>[]) ?? [];

@@ -89,11 +89,12 @@ export default function KnowledgeGraph() {
 
   const stats: GraphStats = useMemo(() => {
     if (!graphData) return {};
+    const s = graphData.stats ?? {};
     return {
-      node_count: graphData.node_count || graphData.nodes || 0,
-      edge_count: graphData.edge_count || graphData.edges || 0,
-      component_count: graphData.component_count || graphData.components || 0,
-      attack_path_count: graphData.attack_path_count || graphData.attack_paths || 0,
+      node_count: s.total_nodes ?? graphData.node_count ?? (Array.isArray(graphData.nodes) ? graphData.nodes.length : graphData.nodes) ?? 0,
+      edge_count: s.total_edges ?? graphData.edge_count ?? (Array.isArray(graphData.edges) ? graphData.edges.length : graphData.edges) ?? 0,
+      component_count: s.components ?? graphData.component_count ?? graphData.components ?? 0,
+      attack_path_count: s.attack_paths ?? graphData.attack_path_count ?? graphData.attack_paths ?? 0,
     };
   }, [graphData]);
 

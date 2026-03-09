@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -323,7 +324,7 @@ export default function Playbooks() {
     return <ErrorState message="Failed to load playbooks" onRetry={refetch} />;
 
   const allPlaybooks: Record<string, unknown>[] =
-    playbooksQuery.data?.data ?? playbooksQuery.data ?? [];
+    toArray(playbooksQuery.data);
 
   const totalPlaybooks = allPlaybooks.length;
   const activePlaybooks = allPlaybooks.filter((p) => (p.status as string) === "active").length;

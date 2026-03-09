@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
@@ -304,7 +305,7 @@ export default function CorrelationEngine() {
 
   // KPI derived values ─────────────────────────────────────────────────────
   const cases = useMemo(() => {
-    const raw = casesQuery.data?.data ?? casesQuery.data ?? [];
+    const raw = toArray(casesQuery.data);
     return Array.isArray(raw) ? raw : [];
   }, [casesQuery.data]);
 

@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { toArray } from "@/lib/api-utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -275,8 +276,7 @@ export default function AutoFix() {
   if (tasksQuery.isError)
     return <ErrorState message="Failed to load autofix data" onRetry={refetch} />;
 
-  const allTasks: Record<string, unknown>[] =
-    tasksQuery.data?.data ?? tasksQuery.data ?? [];
+  const allTasks: Record<string, unknown>[] = toArray(tasksQuery.data);
 
   // Derive autofixes from tasks that have autofix data
   const autofixes = allTasks

@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -196,7 +197,7 @@ export default function EvidenceVault() {
   if (bundlesQuery.isLoading) return <PageSkeleton />;
   if (bundlesQuery.isError) return <ErrorState message="Failed to load evidence bundles" onRetry={refetch} />;
 
-  const bundles: any[] = bundlesQuery.data?.data ?? bundlesQuery.data ?? [];
+  const bundles: any[] = toArray(bundlesQuery.data);
 
   const totalBundles = bundles.length;
   const quantumSigned = bundles.filter((b: any) => b.quantum_signed || b.signed).length;

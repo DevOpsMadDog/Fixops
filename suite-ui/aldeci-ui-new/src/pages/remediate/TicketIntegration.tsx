@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -316,7 +317,7 @@ export default function TicketIntegration() {
     return <ErrorState message="Failed to load integrations" onRetry={refetch} />;
 
   const apiIntegrations: Record<string, unknown>[] =
-    integrationsQuery.data?.data ?? integrationsQuery.data ?? [];
+    toArray(integrationsQuery.data);
 
   // Map API data to Integration shape, fill in defaults
   const integrations: Integration[] = apiIntegrations.map((int) => ({

@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -288,7 +289,7 @@ export default function Marketplace() {
   if (integrationsQuery.isLoading) return <PageSkeleton />;
   if (integrationsQuery.isError) return <ErrorState message="Failed to load marketplace" onRetry={refetch} />;
 
-  const integrations: any[] = integrationsQuery.data?.data ?? integrationsQuery.data ?? [];
+  const integrations: any[] = toArray(integrationsQuery.data);
 
   // Enrich with category, rating, description
   const connectors = integrations.map((i: any) => ({

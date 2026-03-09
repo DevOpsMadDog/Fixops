@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
@@ -423,7 +424,7 @@ export default function DataFabric() {
   }, []);
 
   const correlationMatches = useMemo(() => {
-    const raw = casesQuery.data?.data ?? casesQuery.data ?? [];
+    const raw = toArray(casesQuery.data);
     const arr = Array.isArray(raw) ? raw : [];
     return arr.length;
   }, [casesQuery.data]);

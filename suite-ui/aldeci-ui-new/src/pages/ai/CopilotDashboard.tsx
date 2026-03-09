@@ -148,12 +148,18 @@ export default function CopilotDashboard() {
   if (agentsQuery.isLoading) return <PageSkeleton />;
   if (agentsQuery.isError) return <ErrorState message="Failed to load AI Copilot" onRetry={refetch} />;
 
-  const agents: any[] = agentsQuery.data?.data ?? agentsQuery.data ?? [
+  const DEFAULT_AGENTS = [
     { id: "triage", name: "Triage Agent", type: "triage", status: "idle", last_action: "Processed 12 findings" },
     { id: "fix", name: "Fix Agent", type: "fix", status: "idle", last_action: "Generated 3 patches" },
     { id: "evidence", name: "Evidence Agent", type: "evidence", status: "idle", last_action: "Signed 8 bundles" },
     { id: "compliance", name: "Compliance Agent", type: "compliance", status: "idle", last_action: "Ran SOC2 assessment" },
   ];
+  const rawAgents = agentsQuery.data;
+  const agents: any[] = Array.isArray(rawAgents) ? rawAgents
+    : Array.isArray((rawAgents as any)?.agents) ? (rawAgents as any).agents
+    : Array.isArray((rawAgents as any)?.data) ? (rawAgents as any).data
+    : Array.isArray((rawAgents as any)?.items) ? (rawAgents as any).items
+    : DEFAULT_AGENTS;
 
   const sendMessage = async (content: string) => {
     if (!content.trim()) return;

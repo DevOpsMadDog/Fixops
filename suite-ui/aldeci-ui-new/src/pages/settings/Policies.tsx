@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -271,7 +272,7 @@ export default function PoliciesPage() {
   if (policiesQuery.isLoading) return <PageSkeleton />;
   if (policiesQuery.isError) return <ErrorState message="Failed to load policies" onRetry={refetch} />;
 
-  const policies: any[] = policiesQuery.data?.data ?? policiesQuery.data ?? [];
+  const policies: any[] = toArray(policiesQuery.data);
 
   const activePolicies = policies.filter((p: any) => {
     const id = p.id ?? p.name;

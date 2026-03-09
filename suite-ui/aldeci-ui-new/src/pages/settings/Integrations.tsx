@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
@@ -209,7 +211,7 @@ export default function Integrations() {
   if (integrationsQuery.isLoading) return <PageSkeleton />;
   if (integrationsQuery.isError) return <ErrorState message="Failed to load integrations" onRetry={refetch} />;
 
-  const integrations: any[] = integrationsQuery.data?.data ?? integrationsQuery.data ?? [];
+  const integrations: any[] = toArray(integrationsQuery.data);
 
   const connected = integrations.filter((i: any) => i.status === "connected").length;
   const available = integrations.filter((i: any) => i.status !== "connected").length;

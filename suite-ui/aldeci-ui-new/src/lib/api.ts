@@ -209,8 +209,10 @@ export const systemApi = {
 
 export const knowledgeGraphApi = {
   query: (data: unknown) => api.post("/api/v1/graph/query", data),
+  nlQuery: (data: unknown) => api.post("/api/v1/graph/query", data),
   visualize: (params?: Record<string, string>) => api.get("/api/v1/graph/visualize", { params }),
-  paths: (data: unknown) => api.post("/api/v1/graph/attack-paths", data),
+  paths: (data?: unknown) => data ? api.post("/api/v1/graph/attack-paths", data) : api.get("/api/v1/graph/attack-paths"),
+  attackPaths: () => api.get("/api/v1/graph/attack-paths"),
 };
 
 export const threatFeedsApi = {

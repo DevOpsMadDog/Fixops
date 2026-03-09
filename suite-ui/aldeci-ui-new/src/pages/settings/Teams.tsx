@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -329,8 +330,8 @@ export default function TeamsPage() {
   if (teamsQuery.isLoading) return <PageSkeleton />;
   if (teamsQuery.isError) return <ErrorState message="Failed to load teams" onRetry={refetchAll} />;
 
-  const teams: any[] = teamsQuery.data?.data ?? teamsQuery.data ?? [];
-  const users: any[] = usersQuery.data?.data ?? usersQuery.data ?? [];
+  const teams: any[] = toArray(teamsQuery.data);
+  const users: any[] = toArray(usersQuery.data);
 
   const totalTeams = teams.length;
   const totalMembers = teams.reduce((acc: number, t: any) => acc + (t.members_count ?? (t.members ?? []).length ?? 0), 0);

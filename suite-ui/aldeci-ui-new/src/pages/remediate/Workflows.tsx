@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -415,7 +416,7 @@ export default function Workflows() {
   if (rulesQuery.isError) return <ErrorState message="Failed to load workflow rules" onRetry={refetch} />;
 
   const apiRules: Record<string, unknown>[] =
-    rulesQuery.data?.data ?? rulesQuery.data ?? [];
+    toArray(rulesQuery.data);
 
   const allRules = [...apiRules, ...localRules];
 

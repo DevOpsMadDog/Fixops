@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -288,7 +289,7 @@ export default function AttackSimulation() {
     return <ErrorState message="Failed to load simulation data" onRetry={refetch} />;
 
   const simulations: Record<string, unknown>[] =
-    resultsQuery.data?.data ?? resultsQuery.data ?? [];
+    toArray(resultsQuery.data);
 
   const active = simulations.filter(
     (s) => (s.status as string) === "running" || (s.status as string) === "queued"

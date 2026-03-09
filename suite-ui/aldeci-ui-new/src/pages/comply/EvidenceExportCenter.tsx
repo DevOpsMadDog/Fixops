@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -210,9 +211,12 @@ export default function EvidenceExportCenter() {
   if (isLoading) return <PageSkeleton />;
   if (isError) return <ErrorState message="Failed to load export data" onRetry={refetchAll} />;
 
-  const bundles: any[] = bundlesQuery.data?.data ?? bundlesQuery.data ?? [];
-  const apps: any[] = appsQuery.data?.data ?? appsQuery.data ?? [];
-  const frameworks: string[] = (frameworksQuery.data?.data ?? []).map((f: any) => f.name ?? f).filter(Boolean);
+  const bundles: any[] = toArray(bundlesQuery.data);
+  const apps: any[] = toArray(appsQuery.data);
+  const frameworks: string[] = toArray(frameworksQuery.data).map((f: any) => {
+    if (typeof f === "string") return f;
+    return f.name ?? f.framework ?? String(f.id ?? "");
+  }).filter(Boolean);
   const allFrameworks = frameworks.length > 0 ? frameworks : FRAMEWORKS;
 
   const toggleApp = (appId: string) => {

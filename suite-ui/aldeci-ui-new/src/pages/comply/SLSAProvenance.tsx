@@ -1,3 +1,4 @@
+import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -191,7 +192,7 @@ export default function SLSAProvenance() {
   if (bundlesQuery.isLoading) return <PageSkeleton />;
   if (bundlesQuery.isError) return <ErrorState message="Failed to load provenance data" onRetry={refetch} />;
 
-  const bundles: any[] = bundlesQuery.data?.data ?? bundlesQuery.data ?? [];
+  const bundles: any[] = toArray(bundlesQuery.data);
 
   // Map bundles to build provenance entries
   const builds = bundles.map((b: any, i: number) => ({
