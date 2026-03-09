@@ -104,7 +104,7 @@ export default function MultiLLM() {
         <KpiCard title="Active Providers" value={activeProviders} icon={Cpu} trend="up" trendLabel={`${displayProviders.length} configured`} />
         <KpiCard title="Total Decisions" value={totalDecisions.toLocaleString()} icon={Scale} trend="up" trendLabel="All time" />
         <KpiCard title="Consensus Rate" value={`${consensusRate.toFixed(1)}%`} icon={CheckCircle} trend={consensusRate > 85 ? "up" : "down"} trendLabel="Agreement" />
-        <KpiCard title="Avg Latency" value={`${Math.round(displayProviders.reduce((s, p) => s + p.latency_ms, 0) / Math.max(displayProviders.length, 1))}ms`} icon={Clock} trend="flat" trendLabel="Response time" />
+        <KpiCard title="Avg Latency" value={`${Math.round(displayProviders.reduce((s, p) => s + (p.latency_ms || 0), 0) / Math.max(displayProviders.length, 1)) || 0}ms`} icon={Clock} trend="flat" trendLabel="Response time" />
       </div>
 
       {/* Provider Cards */}
@@ -128,7 +128,7 @@ export default function MultiLLM() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs"><span className="text-muted-foreground">Accuracy</span><span className="font-medium">{provider.accuracy}%</span></div>
                   <Progress value={provider.accuracy} className="h-1" />
-                  <div className="flex justify-between text-xs"><span className="text-muted-foreground">Latency</span><span className="font-medium">{provider.latency_ms}ms</span></div>
+                  <div className="flex justify-between text-xs"><span className="text-muted-foreground">Latency</span><span className="font-medium">{provider.latency_ms || 0}ms</span></div>
                   <div className="flex justify-between text-xs"><span className="text-muted-foreground">Cost/1K</span><span className="font-medium">${provider.cost_per_1k}</span></div>
                   <div className="flex justify-between text-xs"><span className="text-muted-foreground">Decisions</span><span className="font-medium">{(provider.total_decisions ?? 0).toLocaleString()}</span></div>
                 </div>
