@@ -50,15 +50,19 @@ import { cn } from "@/lib/utils";
 interface AttackPath {
   id?: string;
   path_id?: string;
+  name?: string;
   source?: string;
   target?: string;
   hops?: number;
   hop_count?: number;
   blast_radius?: number;
+  likelihood?: number;
+  impact?: string;
   severity?: string;
   mpte_verified?: boolean;
   verified?: boolean;
   steps?: AttackStep[];
+  mitigations?: string[];
   description?: string;
   technique?: string;
   mitre_id?: string;
@@ -120,12 +124,29 @@ export default function AttackPaths() {
   const allPaths: AttackPath[] = useMemo(() => {
     const d = attackPathsQuery.data;
     if (!d) return [];
-    if (Array.isArray(d)) return d;
-    if (Array.isArray(d?.attack_paths)) return d.attack_paths;
-    if (Array.isArray(d?.paths)) return d.paths;
-    if (Array.isArray(d?.items)) return d.items;
-    if (Array.isArray(d?.data)) return d.data;
-    return [];
+    let raw: Record<string, unknown>[] = [];
+    if (Array.isArray(d)) raw = d;
+    else if (Array.isArray(d?.attack_paths)) raw = d.attack_paths;
+    else if (Array.isArray(d?.paths)) raw = d.paths;
+    else if (Array.isArray(d?.items)) raw = d.items;
+    else if (Array.isArray(d?.data)) raw = d.data;
+    // Normalize: derive source/target from steps[0].node and steps[-1].node if missing
+    return raw.map((p: Record<string, unknown>) => {
+      const steps = (p.steps || []) as AttackStep[];
+      const source = (p.source as string) || steps[0]?.node || (p.name as string)?.split('→')[0]?.replace('→','').trim() || undefined;
+      const target = (p.target as string) || steps[steps.length - 1]?.node || (p.name as string)?.split('→').pop()?.trim() || undefined;
+      const hops = (p.hops as number) || (p.hop_count as number) || steps.length || 0;
+      const likelihood = p.likelihood as number | undefined;
+      return {
+        ...p,
+        source,
+        target,
+        hops,
+        hop_count: hops,
+        blast_radius: (p.blast_radius as number) ?? (likelihood != null ? likelihood * 10 : undefined),
+        name: p.name as string | undefined,
+      } as AttackPath;
+    });
   }, [attackPathsQuery.data]);
 
   const filtered = useMemo(() => {
@@ -138,6 +159,7 @@ export default function AttackPaths() {
       list = list.filter((p) =>
         p.source?.toLowerCase().includes(q) ||
         p.target?.toLowerCase().includes(q) ||
+        p.name?.toLowerCase().includes(q) ||
         p.technique?.toLowerCase().includes(q)
       );
     }

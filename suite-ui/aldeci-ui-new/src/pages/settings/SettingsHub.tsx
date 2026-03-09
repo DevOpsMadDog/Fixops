@@ -160,16 +160,16 @@ export default function SettingsHub() {
                 <Separator />
                 <div>
                   <p className="text-sm font-medium mb-3">Default SLA Deadlines (days)</p>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                     {[
-                      { label: "Critical", value: slaCritical, set: setSlaCritical, color: "text-red-500" },
-                      { label: "High", value: slaHigh, set: setSlaHigh, color: "text-orange-500" },
-                      { label: "Medium", value: slaMedium, set: setSlaMedium, color: "text-yellow-500" },
-                      { label: "Low", value: slaLow, set: setSlaLow, color: "text-blue-400" },
+                      { label: "Critical", value: slaCritical, set: setSlaCritical, color: "#ef4444" },
+                      { label: "High", value: slaHigh, set: setSlaHigh, color: "#f97316" },
+                      { label: "Medium", value: slaMedium, set: setSlaMedium, color: "#eab308" },
+                      { label: "Low", value: slaLow, set: setSlaLow, color: "#60a5fa" },
                     ].map(({ label, value, set, color }) => (
-                      <div key={label}>
-                        <Label className={`text-xs font-semibold mb-1.5 block ${color}`}>{label}</Label>
-                        <div className="flex items-center gap-2">
+                      <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color }}>{label}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <Input type="number" value={value} onChange={(e) => set(e.target.value)} className="w-20 text-center" min="1" />
                           <span className="text-xs text-muted-foreground">days</span>
                         </div>

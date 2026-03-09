@@ -58,17 +58,28 @@ import {
 import { useRemediationTasks, useUsers, useTeams } from "@/hooks/use-api";
 import { cn } from "@/lib/utils";
 
-type TaskStatus = "open" | "in_progress" | "fix_applied" | "verified" | "closed";
+type TaskStatus = "assigned" | "open" | "in_progress" | "fix_applied" | "verified" | "closed";
 
-const STATUS_FLOW: TaskStatus[] = ["open", "in_progress", "fix_applied", "verified", "closed"];
+const STATUS_FLOW: TaskStatus[] = ["assigned", "open", "in_progress", "fix_applied", "verified", "closed"];
 
 const STATUS_CONFIG: Record<TaskStatus, { label: string; color: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+  assigned: { label: "Assigned", color: "#f59e0b", variant: "outline" },
   open: { label: "Open", color: "#6b7280", variant: "outline" },
   in_progress: { label: "In Progress", color: "#3b82f6", variant: "default" },
   fix_applied: { label: "Fix Applied", color: "#8b5cf6", variant: "secondary" },
   verified: { label: "Verified", color: "#22c55e", variant: "secondary" },
   closed: { label: "Closed", color: "#374151", variant: "outline" },
 };
+
+/** Normalize API fields to what the UI expects */
+function normalizeTask(raw: Record<string, unknown>): Record<string, unknown> {
+  return {
+    ...raw,
+    id: raw.id ?? raw.task_id,
+    sla_deadline: raw.sla_deadline ?? raw.due_at,
+    finding_id: raw.finding_id ?? (typeof raw.metadata === 'string' ? (() => { try { return JSON.parse(raw.metadata as string).finding_id; } catch { return undefined; } })() : undefined),
+  };
+}
 
 const SEVERITY_CONFIG = {
   critical: { color: "#ef4444", label: "Critical" },
@@ -242,19 +253,22 @@ export default function RemediationCenter() {
   if (isError)
     return <ErrorState message="Failed to load remediation tasks" onRetry={refetchAll} />;
 
-  const tasks: Record<string, unknown>[] = toArray(tasksQuery.data);
+  const rawTasks: Record<string, unknown>[] = toArray(tasksQuery.data);
+  const tasks: Record<string, unknown>[] = rawTasks.map(normalizeTask);
   const users: Record<string, unknown>[] = toArray(usersQuery.data);
 
+  const assignedCount = tasks.filter((t) => (t.status as string) === "assigned").length;
   const openCount = tasks.filter((t) => (t.status as string) === "open").length;
   const inProgressCount = tasks.filter((t) => (t.status as string) === "in_progress").length;
   const completedToday = tasks.filter(
     (t) =>
-      (t.status as string) === "closed" &&
-      new Date((t.updated_at as string) ?? "").toDateString() === new Date().toDateString()
+      ((t.status as string) === "closed" || (t.status as string) === "verified") &&
+      new Date((t.updated_at as string) ?? (t.resolved_at as string) ?? "").toDateString() === new Date().toDateString()
   ).length;
   const overdueCount = tasks.filter((t) => {
     const dl = new Date((t.sla_deadline as string) ?? "");
-    return !isNaN(dl.getTime()) && dl < new Date() && (t.status as string) !== "closed";
+    const isOverdue = (t.sla_breached as number) === 1 || (t.is_overdue === true);
+    return (isOverdue || (!isNaN(dl.getTime()) && dl < new Date())) && (t.status as string) !== "closed" && (t.status as string) !== "verified";
   }).length;
   const avgFixTime = (tasksQuery.data as Record<string, unknown>)?.avg_fix_time as string ?? "—";
 
@@ -300,9 +314,16 @@ export default function RemediationCenter() {
       </PageHeader>
 
       {/* KPI Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
         <KpiCard
-          title="Open Tasks"
+          title="Assigned"
+          value={assignedCount}
+          icon={<Users className="h-4 w-4" />}
+          trend={assignedCount > 0 ? "flat" : undefined}
+          trendLabel={assignedCount > 0 ? "awaiting triage" : undefined}
+        />
+        <KpiCard
+          title="Open"
           value={openCount}
           icon={<Wrench className="h-4 w-4" />}
         />

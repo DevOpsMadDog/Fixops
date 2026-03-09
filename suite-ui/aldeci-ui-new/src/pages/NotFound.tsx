@@ -6,21 +6,20 @@ export default function NotFound() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6 text-center">
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6rem 2rem', textAlign: 'center', width: '100%' }}>
       {/* Large 404 */}
-      <p className="select-none font-mono text-[8rem] font-bold leading-none text-border sm:text-[10rem]">
+      <p style={{ fontFamily: 'monospace', fontSize: '8rem', fontWeight: 'bold', lineHeight: 1, color: 'var(--border)', userSelect: 'none' }}>
         404
       </p>
 
       {/* Heading */}
-      <h1 className="mt-4 text-2xl font-semibold text-foreground">
+      <h1 style={{ marginTop: '1rem', fontSize: '1.5rem', fontWeight: 600, color: 'var(--foreground)' }}>
         Page not found
       </h1>
 
       {/* Sub-copy */}
-      <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-        The resource you requested does not exist or you do not have permission
-        to access it. Verify the URL or return to the command dashboard.
+      <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: 'var(--muted-foreground)', maxWidth: '28rem', lineHeight: 1.6 }}>
+        The resource you requested does not exist or you do not have permission to access it. Verify the URL or return to the command dashboard.
       </p>
 
       {/* CTA */}
