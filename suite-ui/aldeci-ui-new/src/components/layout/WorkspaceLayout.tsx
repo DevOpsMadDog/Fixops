@@ -150,6 +150,7 @@ const navGroups: NavGroup[] = [
       { label: "Bulk Operations", to: "/remediate/bulk", icon: Layers },
       { label: "Collaboration", to: "/remediate/collaborate", icon: Users },
       { label: "Workflows", to: "/remediate/workflows", icon: Workflow },
+      { label: "Exposure Cases", to: "/remediate/cases", icon: AlertTriangle },
       { label: "Ticket Integration", to: "/remediate/tickets", icon: Ticket },
     ],
   },

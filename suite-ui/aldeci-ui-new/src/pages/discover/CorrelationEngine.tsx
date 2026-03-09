@@ -46,7 +46,7 @@ import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { useCases, useDashboardTrends } from "@/hooks/use-api";
+import { useFindings, useDashboardTrends } from "@/hooks/use-api";
 import {
   ResponsiveContainer,
   PieChart,
@@ -297,7 +297,7 @@ export default function CorrelationEngine() {
     mode: "merge" | "split";
   }>({ open: false, group: null, mode: "merge" });
 
-  const casesQuery = useCases({ limit: 50 });
+  const casesQuery = useFindings({ limit: 50 });
   const trendsQuery = useDashboardTrends();
 
   const isLoading = casesQuery.isLoading || trendsQuery.isLoading;

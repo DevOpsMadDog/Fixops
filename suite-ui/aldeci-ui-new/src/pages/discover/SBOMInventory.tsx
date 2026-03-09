@@ -30,7 +30,9 @@ import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { useCases, useApps } from "@/hooks/use-api";
+import { useApps } from "@/hooks/use-api";
+import { sbomApi } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import {
   PieChart,
@@ -136,13 +138,15 @@ export default function SBOMInventory() {
   const [licenseFilter, setLicenseFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const params = useMemo(() => {
-    const p: Record<string, unknown> = { limit: 300 };
-    if (ecosystemFilter !== "all") p.ecosystem = ecosystemFilter;
-    return p;
-  }, [ecosystemFilter]);
-
-  const query = useCases(params);
+  const query = useQuery({
+    queryKey: ["sbom", "components", ecosystemFilter],
+    queryFn: async () => {
+      const params: Record<string, unknown> = { limit: 300 };
+      if (ecosystemFilter !== "all") params.ecosystem = ecosystemFilter;
+      const { data } = await sbomApi.components(params);
+      return data;
+    },
+  });
   const appsQuery = useApps();
   const refetch = useCallback(() => { query.refetch(); appsQuery.refetch(); }, [query, appsQuery]);
 
@@ -150,11 +154,10 @@ export default function SBOMInventory() {
     const d = query.data;
     if (!d) return [];
     if (Array.isArray(d)) return d;
-    if (Array.isArray(d?.packages)) return d.packages;
-    if (Array.isArray(d?.findings)) return d.findings;
-    if (Array.isArray(d?.cases)) return d.cases;
-    if (Array.isArray(d?.items)) return d.items;
-    if (Array.isArray(d?.data)) return d.data;
+    const obj = d as Record<string, unknown>;
+    if (Array.isArray(obj?.components)) return obj.components as SbomPackage[];
+    if (Array.isArray(obj?.packages)) return obj.packages as SbomPackage[];
+    if (Array.isArray(obj?.items)) return obj.items as SbomPackage[];
     return [];
   }, [query.data]);
 

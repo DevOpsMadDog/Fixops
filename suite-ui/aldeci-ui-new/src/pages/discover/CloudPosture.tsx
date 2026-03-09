@@ -29,7 +29,7 @@ import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { useCases, useDashboardCompliance } from "@/hooks/use-api";
+import { useFindings, useDashboardCompliance } from "@/hooks/use-api";
 import { cn } from "@/lib/utils";
 import {
   BarChart,
@@ -121,7 +121,7 @@ export default function CloudPosture() {
     return p;
   }, [cloudTab, severityFilter]);
 
-  const query = useCases(params);
+  const query = useFindings(params);
   const complianceQuery = useDashboardCompliance();
   const refetch = useCallback(() => { query.refetch(); complianceQuery.refetch(); }, [query, complianceQuery]);
 

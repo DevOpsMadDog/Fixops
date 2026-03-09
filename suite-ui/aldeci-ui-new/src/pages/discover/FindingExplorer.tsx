@@ -47,7 +47,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { useCases } from "@/hooks/use-api";
+import { useFindings } from "@/hooks/use-api";
 import { cn, severityColor, statusColor } from "@/lib/utils";
 
 type SortDirection = "asc" | "desc" | null;
@@ -158,7 +158,7 @@ export default function FindingExplorer() {
     return p;
   }, [severityFilter, statusFilter, scannerFilter]);
 
-  const query = useCases(params);
+  const query = useFindings(params);
   const refetch = useCallback(() => query.refetch(), [query]);
 
   const allFindings: Finding[] = useMemo(() => {

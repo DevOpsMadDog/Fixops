@@ -145,9 +145,10 @@ function CaseDetailDialog({
   const [decision, setDecision] = useState("");
   if (!caseItem) return null;
 
-  const linkedFindings = (caseItem.linked_findings as Record<string, unknown>[]) ?? [];
-  const decisionHistory = (caseItem.decision_history as Record<string, unknown>[]) ?? [];
-  const evidence = (caseItem.evidence as Record<string, unknown>[]) ?? [];
+  const linkedFindings = Array.isArray(caseItem.linked_findings) ? caseItem.linked_findings as Record<string, unknown>[] : [];
+  const decisionHistory = Array.isArray(caseItem.decision_history) ? caseItem.decision_history as Record<string, unknown>[] : [];
+  const evidence = Array.isArray(caseItem.evidence) ? caseItem.evidence as Record<string, unknown>[] : [];
+  const tags = Array.isArray(caseItem.tags) ? caseItem.tags as string[] : [];
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -162,28 +163,50 @@ function CaseDetailDialog({
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <p className="text-xs text-muted-foreground">Title</p>
-              <p className="font-medium">{(caseItem.title as string) ?? "—"}</p>
+              <p className="font-medium">{String(caseItem.title ?? "—")}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Severity</p>
-              <SeverityBadge severity={(caseItem.severity as string) ?? "info"} />
+              <p className="text-xs text-muted-foreground">Priority</p>
+              <SeverityBadge severity={String(caseItem.priority ?? caseItem.severity ?? "info")} />
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Status</p>
-              <LifecycleBadge state={(caseItem.status as string) ?? "Open"} />
+              <LifecycleBadge state={String(caseItem.status ?? "open")} />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Assignee</p>
-              <p>{(caseItem.assignee as string) ?? "Unassigned"}</p>
+              <p className="text-xs text-muted-foreground">Assigned To</p>
+              <p>{String(caseItem.assigned_to ?? caseItem.assigned_team ?? "Unassigned")}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Findings Count</p>
-              <p className="font-semibold">{(caseItem.findings_count as number) ?? linkedFindings.length}</p>
+              <p className="font-semibold">{Number(caseItem.finding_count ?? linkedFindings.length)}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Decision</p>
-              <p>{(caseItem.decision as string) ?? "—"}</p>
+              <p className="text-xs text-muted-foreground">Risk Score</p>
+              <p className="font-semibold">{caseItem.risk_score != null ? Number(caseItem.risk_score).toFixed(1) : "—"}</p>
             </div>
+            {caseItem.root_cve && (
+              <div>
+                <p className="text-xs text-muted-foreground">Root CVE</p>
+                <p className="font-mono text-xs">{String(caseItem.root_cve)}</p>
+              </div>
+            )}
+            {tags.length > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground">Tags</p>
+                <div className="flex gap-1 flex-wrap">
+                  {tags.map((t, i) => (
+                    <Badge key={i} variant="outline" className="text-[10px]">{t}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {caseItem.sla_breached && (
+              <div>
+                <p className="text-xs text-muted-foreground">SLA</p>
+                <Badge variant="destructive" className="text-[10px]">BREACHED</Badge>
+              </div>
+            )}
           </div>
 
           <div>
@@ -300,16 +323,17 @@ export default function ExposureCases() {
     toArray(casesQuery.data);
 
   const totalCases = allCases.length;
-  const openCases = allCases.filter((c) => (c.status as string) === "Open" || !(c.status as string)).length;
-  const resolvedCases = allCases.filter((c) => (c.status as string) === "Resolved").length;
+  const openCases = allCases.filter((c) => {
+    const s = String(c.status ?? "").toLowerCase();
+    return s === "open" || !s;
+  }).length;
+  const resolvedCases = allCases.filter((c) => String(c.status ?? "").toLowerCase() === "resolved").length;
   const avgFindingsPerCase =
     allCases.length > 0
       ? (
           allCases.reduce(
             (acc, c) =>
-              acc +
-              ((c.findings_count as number) ??
-                ((c.linked_findings as unknown[])?.length ?? 0)),
+              acc + (Number(c.finding_count ?? c.findings_count ?? 0)),
             0
           ) / allCases.length
         ).toFixed(1)
@@ -318,10 +342,11 @@ export default function ExposureCases() {
   const filtered = allCases.filter((c) => {
     const matchSearch =
       !search ||
-      (c.title as string)?.toLowerCase().includes(search.toLowerCase()) ||
-      (c.case_id as string)?.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === "all" || c.status === statusFilter;
-    const matchSev = severityFilter === "all" || c.severity === severityFilter;
+      String(c.title ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      String(c.case_id ?? "").toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === "all" || String(c.status ?? "").toLowerCase() === statusFilter.toLowerCase();
+    const sev = String(c.priority ?? c.severity ?? "").toLowerCase();
+    const matchSev = severityFilter === "all" || sev === severityFilter.toLowerCase();
     return matchSearch && matchStatus && matchSev;
   });
 
@@ -329,10 +354,10 @@ export default function ExposureCases() {
     triageCase.mutate({ id, action });
   };
 
-  // Build lifecycle chart data
+  // Build lifecycle chart data — match case-insensitively since API uses lowercase
   const lifecycleData = LIFECYCLE_STATES.map((state) => ({
     state,
-    count: allCases.filter((c) => (c.status as string) === state).length,
+    count: allCases.filter((c) => (c.status as string)?.toLowerCase() === state.toLowerCase()).length,
     color: STATE_COLORS[state],
   }));
 
@@ -492,41 +517,44 @@ export default function ExposureCases() {
                     }}
                   >
                     <TableCell className="font-mono text-xs text-muted-foreground">
-                      {(caseItem.case_id as string) ??
-                        `CASE-${String((caseItem.id as string) ?? i).slice(-6).toUpperCase()}`}
+                      {String(caseItem.case_id ?? `CASE-${String(caseItem.id ?? i).slice(-6).toUpperCase()}`)}
                     </TableCell>
                     <TableCell className="font-medium max-w-[200px]">
-                      <p className="truncate">{(caseItem.title as string) ?? "—"}</p>
+                      <p className="truncate">{String(caseItem.title ?? "—")}</p>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
                         <Link className="h-3 w-3 text-muted-foreground" />
                         <span className="text-sm font-semibold">
-                          {(caseItem.findings_count as number) ??
-                            ((caseItem.linked_findings as unknown[])?.length ?? 0)}
+                          {Number(caseItem.finding_count ?? caseItem.findings_count ?? 0)}
                         </span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <SeverityBadge severity={(caseItem.severity as string) ?? "info"} />
+                      <SeverityBadge severity={String(caseItem.priority ?? caseItem.severity ?? "info")} />
                     </TableCell>
                     <TableCell>
-                      <LifecycleBadge state={(caseItem.status as string) ?? "Open"} />
+                      <LifecycleBadge state={String(caseItem.status ?? "open")} />
                     </TableCell>
                     <TableCell>
-                      {caseItem.decision ? (
+                      {caseItem.remediation_plan ? (
                         <Badge variant="outline" className="text-xs">
-                          {caseItem.decision as string}
+                          {String(caseItem.remediation_plan)}
                         </Badge>
                       ) : (
                         <span className="text-xs text-muted-foreground">Pending</span>
                       )}
                     </TableCell>
                     <TableCell className="text-xs">
-                      {caseItem.assignee ? (
+                      {caseItem.assigned_to ? (
                         <div className="flex items-center gap-1.5">
                           <User className="h-3 w-3 text-muted-foreground" />
-                          {caseItem.assignee as string}
+                          {String(caseItem.assigned_to)}
+                        </div>
+                      ) : caseItem.assigned_team ? (
+                        <div className="flex items-center gap-1.5">
+                          <User className="h-3 w-3 text-muted-foreground" />
+                          {String(caseItem.assigned_team)}
                         </div>
                       ) : (
                         <span className="text-muted-foreground">—</span>

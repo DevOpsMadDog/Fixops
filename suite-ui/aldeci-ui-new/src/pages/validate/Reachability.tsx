@@ -52,7 +52,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { useCases, useKnowledgeGraph } from "@/hooks/use-api";
+import { useFindings, useKnowledgeGraph } from "@/hooks/use-api";
 
 const EXPOSURE_COLORS = {
   Internet: "#ef4444",
@@ -158,7 +158,7 @@ function NetworkPathDialog({
 }
 
 export default function Reachability() {
-  const findingsQuery = useCases({ type: "reachability" });
+  const findingsQuery = useFindings({ type: "reachability" });
   const graphQuery = useKnowledgeGraph({ type: "reachability" });
 
   const [search, setSearch] = useState("");

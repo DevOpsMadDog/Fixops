@@ -34,7 +34,7 @@ import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { useCases } from "@/hooks/use-api";
+import { useFindings } from "@/hooks/use-api";
 import { cn } from "@/lib/utils";
 import {
   AreaChart,
@@ -127,7 +127,7 @@ export default function ContainerSecurity() {
     return p;
   }, [statusFilter]);
 
-  const query = useCases(params);
+  const query = useFindings(params);
   const refetch = useCallback(() => query.refetch(), [query]);
 
   const allFindings: ContainerFinding[] = useMemo(() => {

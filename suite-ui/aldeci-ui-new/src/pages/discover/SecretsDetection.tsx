@@ -45,7 +45,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { useCases } from "@/hooks/use-api";
+import { secretsApi } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 
 interface SecretFinding {
@@ -137,23 +138,23 @@ export default function SecretsDetection() {
   const [detailSecret, setDetailSecret] = useState<SecretFinding | null>(null);
   const [revealedValues, setRevealedValues] = useState<Set<string>>(new Set());
 
-  const params = useMemo(() => {
-    const p: Record<string, unknown> = { limit: 200, type: "secret" };
-    if (statusFilter !== "all") p.status = statusFilter;
-    return p;
-  }, [statusFilter]);
-
-  const query = useCases(params);
+  const query = useQuery({
+    queryKey: ["secrets", statusFilter],
+    queryFn: async () => {
+      const params: Record<string, unknown> = { limit: 200 };
+      if (statusFilter !== "all") params.status = statusFilter;
+      const { data } = await secretsApi.list(params);
+      return data;
+    },
+  });
   const refetch = useCallback(() => query.refetch(), [query]);
 
   const allSecrets: SecretFinding[] = useMemo(() => {
     const d = query.data;
     if (!d) return [];
     if (Array.isArray(d)) return d;
-    if (Array.isArray(d?.findings)) return d.findings;
-    if (Array.isArray(d?.cases)) return d.cases;
-    if (Array.isArray(d?.items)) return d.items;
-    if (Array.isArray(d?.data)) return d.data;
+    if (Array.isArray((d as Record<string,unknown>)?.items)) return (d as Record<string,unknown>).items as SecretFinding[];
+    if (Array.isArray((d as Record<string,unknown>)?.secrets)) return (d as Record<string,unknown>).secrets as SecretFinding[];
     return [];
   }, [query.data]);
 

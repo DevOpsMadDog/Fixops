@@ -268,7 +268,7 @@ export default function FAILEngine() {
   const activeDrills = drills.filter(
     (d) => (d.status as string) !== "Fixed"
   ).length;
-  const readinessScore = (readiness.score as number) ?? (readiness.readiness_score as number) ?? 0;
+  const readinessScore = (readiness.overall_score as number) ?? (readiness.score as number) ?? (readiness.readiness_score as number) ?? 0;
   const avgDetectionTime = (readiness.avg_detection_time as string) ?? (readiness.detection_time as string) ?? "—";
   const neglectZones: Record<string, unknown>[] =
     (readiness.neglect_zones as Record<string, unknown>[]) ?? [];
@@ -355,14 +355,19 @@ export default function FAILEngine() {
             </Card>
           ) : (
             drills.map((drill, i) => (
-              <Card key={(drill.id as string) ?? i}>
+              <Card key={(drill.drill_id as string) ?? (drill.id as string) ?? i}>
                 <CardContent className="pt-4">
                   <div className="flex items-start justify-between gap-4 mb-3">
                     <div>
-                      <p className="font-medium">{(drill.name as string) ?? `Drill ${i + 1}`}</p>
+                      <p className="font-medium">{(drill.scenario_name as string) ?? (drill.name as string) ?? `Drill ${i + 1}`}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Target: {(drill.target as string) ?? "—"}
+                        Target: {(drill.target_component as string) ?? (drill.target as string) ?? "—"}
                       </p>
+                      {drill.severity && (
+                        <Badge variant="outline" className="mt-1 text-[10px]" style={{ borderColor: (drill.severity as string) === 'critical' ? '#ef444466' : '#f59e0b66', color: (drill.severity as string) === 'critical' ? '#ef4444' : '#f59e0b' }}>
+                          {(drill.severity as string).toUpperCase()}
+                        </Badge>
+                      )}
                     </div>
                     <DrillStatusBadge status={(drill.status as string) ?? "Injected"} />
                   </div>
@@ -370,18 +375,18 @@ export default function FAILEngine() {
                   <div className="flex items-center gap-6 mt-3 text-xs text-muted-foreground">
                     <span>
                       <Clock className="h-3 w-3 inline mr-1" />
-                      Started: {(drill.started_at as string) ?? "—"}
+                      Started: {(drill.injected_at as string) ?? (drill.started_at as string) ?? "—"}
                     </span>
-                    {drill.detection_time && (
+                    {(drill.detection_time_ms || drill.detection_time) && (
                       <span>
                         <Zap className="h-3 w-3 inline mr-1" />
-                        Detection: {drill.detection_time as string}
+                        Detection: {(drill.detection_time_ms as string) ?? (drill.detection_time as string)}
                       </span>
                     )}
-                    {drill.scenario && (
+                    {(drill.scenario_id || drill.scenario) && (
                       <span>
                         <Flame className="h-3 w-3 inline mr-1" />
-                        Scenario: {drill.scenario as string}
+                        Scenario: {(drill.scenario_id as string) ?? (drill.scenario as string)}
                       </span>
                     )}
                   </div>

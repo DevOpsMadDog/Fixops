@@ -23,6 +23,7 @@ import {
   threatFeedsApi,
   playbooks as playbooksApi,
   scannerApi,
+  casesApi,
 } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -118,14 +119,28 @@ export function useIntelligenceMap() {
 }
 
 // ═══════════════════════════════════════════
-// Findings / Cases hooks
+// Findings hooks (analytics/findings)
+// ═══════════════════════════════════════════
+
+export function useFindings(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: ["findings", params],
+    queryFn: async () => {
+      const { data } = await findingsApi.list(params);
+      return data;
+    },
+  });
+}
+
+// ═══════════════════════════════════════════
+// Exposure Cases hooks (real cases endpoint)
 // ═══════════════════════════════════════════
 
 export function useCases(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: ["cases", params],
     queryFn: async () => {
-      const { data } = await findingsApi.list(params);
+      const { data } = await casesApi.list(params);
       return data;
     },
   });
@@ -135,7 +150,7 @@ export function useCase(id: string) {
   return useQuery({
     queryKey: ["cases", id],
     queryFn: async () => {
-      const { data } = await findingsApi.get(id);
+      const { data } = await casesApi.get(id);
       return data;
     },
     enabled: !!id,
@@ -146,14 +161,14 @@ export function useTriageCase() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, action }: { id: string; action: string }) => {
-      const { data } = await findingsApi.triage(id, action);
+      const { data } = await casesApi.transition(id, action);
       return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["cases"] });
-      toast.success("Case triaged successfully");
+      toast.success("Case updated successfully");
     },
-    onError: () => toast.error("Failed to triage case"),
+    onError: () => toast.error("Failed to update case"),
   });
 }
 

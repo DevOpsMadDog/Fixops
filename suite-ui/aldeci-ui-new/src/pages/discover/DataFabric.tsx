@@ -44,7 +44,7 @@ import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { useCases, useDashboardOverview, useIntegrations } from "@/hooks/use-api";
+import { useFindings, useDashboardOverview, useIntegrations } from "@/hooks/use-api";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -404,7 +404,7 @@ export default function DataFabric() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const casesQuery = useCases({ limit: 10 });
+  const casesQuery = useFindings({ limit: 10 });
   const overviewQuery = useDashboardOverview();
   const integrationsQuery = useIntegrations();
 

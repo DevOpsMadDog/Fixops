@@ -45,7 +45,7 @@ import {
   Play,
   X,
 } from "lucide-react";
-import { useCases } from "@/hooks/use-api";
+import { useFindings } from "@/hooks/use-api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -221,7 +221,7 @@ function ConfirmDialog({
 }
 
 export default function BulkOperations() {
-  const findingsQuery = useCases();
+  const findingsQuery = useFindings();
 
   const [selectedOp, setSelectedOp] = useState<OperationType | null>(null);
   const [search, setSearch] = useState("");

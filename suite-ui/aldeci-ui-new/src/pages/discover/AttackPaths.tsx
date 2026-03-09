@@ -42,7 +42,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { useCases } from "@/hooks/use-api";
+import { useFindings } from "@/hooks/use-api";
 import { useQuery } from "@tanstack/react-query";
 import { knowledgeGraphApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -118,7 +118,7 @@ export default function AttackPaths() {
   });
 
   // Also get related findings
-  const findingsQuery = useCases({ limit: 50, type: "attack" });
+  const findingsQuery = useFindings({ limit: 50, type: "attack" });
   const refetch = useCallback(() => { attackPathsQuery.refetch(); findingsQuery.refetch(); }, [attackPathsQuery, findingsQuery]);
 
   const allPaths: AttackPath[] = useMemo(() => {

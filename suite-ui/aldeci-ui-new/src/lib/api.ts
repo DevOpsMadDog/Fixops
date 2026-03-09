@@ -272,6 +272,62 @@ export const sseApi = {
   },
 };
 
+// ── Specialized Discovery APIs ──
+export const secretsApi = {
+  list: (params?: Record<string, unknown>) => api.get("/api/v1/secrets", { params }),
+  get: (id: string) => api.get(`/api/v1/secrets/${id}`),
+  resolve: (id: string) => api.post(`/api/v1/secrets/${id}/resolve`),
+  scan: (data: unknown) => api.post("/api/v1/secrets/scan/content", data),
+};
+
+export const sbomApi = {
+  components: (params?: Record<string, unknown>) => api.get("/api/v1/inventory/sbom/components", { params }),
+  licenses: () => api.get("/api/v1/inventory/sbom/licenses"),
+  ingest: (data: unknown) => api.post("/api/v1/inventory/sbom/ingest", data),
+};
+
+export const cspmApi = {
+  status: () => api.get("/api/v1/cspm/status"),
+  rules: () => api.get("/api/v1/cspm/rules"),
+  scanTerraform: (data: unknown) => api.post("/api/v1/cspm/scan/terraform", data),
+  scanCloudformation: (data: unknown) => api.post("/api/v1/cspm/scan/cloudformation", data),
+};
+
+export const containerApi = {
+  status: () => api.get("/api/v1/container/status"),
+  scanImage: (data: unknown) => api.post("/api/v1/container/scan/image", data),
+  scanDockerfile: (data: unknown) => api.post("/api/v1/container/scan/dockerfile", data),
+};
+
+export const sastApi = {
+  status: () => api.get("/api/v1/sast/status"),
+  rules: () => api.get("/api/v1/sast/rules"),
+  scanCode: (data: unknown) => api.post("/api/v1/sast/scan/code", data),
+  scanFiles: (data: unknown) => api.post("/api/v1/sast/scan/files", data),
+};
+
+export const attackSimApi = {
+  campaigns: () => api.get("/api/v1/attack-sim/campaigns"),
+  scenarios: () => api.get("/api/v1/attack-sim/scenarios"),
+  mitreHeatmap: () => api.get("/api/v1/attack-sim/mitre/heatmap"),
+  mitreTechniques: () => api.get("/api/v1/attack-sim/mitre/techniques"),
+  runCampaign: (data: unknown) => api.post("/api/v1/attack-sim/campaigns/run", data),
+};
+
+export const deduplicationApi = {
+  clusters: (params?: Record<string, unknown>) => api.get("/api/v1/deduplication/clusters", { params: { ...params, org_id: (params?.org_id as string) || "default" } }),
+  stats: () => api.get("/api/v1/deduplication/stats"),
+  graph: () => api.get("/api/v1/deduplication/graph"),
+};
+
+export const casesApi = {
+  list: (params?: Record<string, unknown>) => api.get("/api/v1/cases", { params }),
+  get: (id: string) => api.get(`/api/v1/cases/${id}`),
+  stats: () => api.get("/api/v1/cases/stats/summary"),
+  transition: (caseId: string, action: string) => api.post(`/api/v1/cases/${caseId}/transition`, { action }),
+  update: (caseId: string, data: Record<string, unknown>) => api.patch(`/api/v1/cases/${caseId}`, data),
+};
+
 export default api;
 
 // ── Bulk Operations ──

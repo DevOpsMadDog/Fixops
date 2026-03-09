@@ -35,7 +35,7 @@ import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { useCases, useScannerParsers } from "@/hooks/use-api";
+import { useFindings, useScannerParsers } from "@/hooks/use-api";
 import { cn } from "@/lib/utils";
 import {
   BarChart,
@@ -127,7 +127,7 @@ export default function CodeScanning() {
     return p;
   }, [scannerFilter, severityFilter]);
 
-  const query = useCases(params);
+  const query = useFindings(params);
   const scannersQuery = useScannerParsers();
   const refetch = useCallback(() => query.refetch(), [query]);
 

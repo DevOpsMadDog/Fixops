@@ -42,7 +42,7 @@ import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { useCases } from "@/hooks/use-api";
+import { useFindings } from "@/hooks/use-api";
 import { cn } from "@/lib/utils";
 
 interface IaCFinding {
@@ -109,7 +109,7 @@ export default function IaCScanning() {
     return p;
   }, [severityFilter, providerFilter]);
 
-  const query = useCases(params);
+  const query = useFindings(params);
   const refetch = useCallback(() => query.refetch(), [query]);
 
   const allFindings: IaCFinding[] = useMemo(() => {
