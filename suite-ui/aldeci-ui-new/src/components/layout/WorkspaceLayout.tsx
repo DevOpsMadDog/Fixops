@@ -1,5 +1,29 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { ErrorState } from "@/components/shared/ErrorState";
+
+// Route-level error boundary that resets on navigation
+class RouteErrorBoundary extends React.Component<
+  { children: React.ReactNode; locationKey: string },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode; locationKey: string }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) { return { hasError: true, error }; }
+  componentDidUpdate(prevProps: { locationKey: string }) {
+    if (prevProps.locationKey !== this.props.locationKey && this.state.hasError) {
+      this.setState({ hasError: false, error: null });
+    }
+  }
+  render() {
+    if (this.state.hasError) {
+      return <ErrorState message={`Page error: ${this.state.error?.message || 'Unknown error'}`} onRetry={() => this.setState({ hasError: false, error: null })} />;
+    }
+    return this.props.children;
+  }
+}
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores";
 import { motion, AnimatePresence } from "framer-motion";
@@ -346,7 +370,9 @@ export function WorkspaceLayout() {
 
           {/* Page Content */}
           <div className="p-6">
-            <Outlet />
+            <RouteErrorBoundary locationKey={location.pathname}>
+              <Outlet />
+            </RouteErrorBoundary>
           </div>
         </div>
       </main>

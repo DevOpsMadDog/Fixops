@@ -130,7 +130,7 @@ export default function MultiLLM() {
                   <Progress value={provider.accuracy} className="h-1" />
                   <div className="flex justify-between text-xs"><span className="text-muted-foreground">Latency</span><span className="font-medium">{provider.latency_ms}ms</span></div>
                   <div className="flex justify-between text-xs"><span className="text-muted-foreground">Cost/1K</span><span className="font-medium">${provider.cost_per_1k}</span></div>
-                  <div className="flex justify-between text-xs"><span className="text-muted-foreground">Decisions</span><span className="font-medium">{provider.total_decisions.toLocaleString()}</span></div>
+                  <div className="flex justify-between text-xs"><span className="text-muted-foreground">Decisions</span><span className="font-medium">{(provider.total_decisions ?? 0).toLocaleString()}</span></div>
                 </div>
               </CardContent>
             </Card>
@@ -208,7 +208,7 @@ export default function MultiLLM() {
                         <td className="py-2 px-3 text-right">{p.accuracy}%</td>
                         <td className="py-2 px-3 text-right">{p.latency_ms}ms</td>
                         <td className="py-2 px-3 text-right">${p.cost_per_1k}</td>
-                        <td className="py-2 px-3 text-right">{p.total_decisions.toLocaleString()}</td>
+                        <td className="py-2 px-3 text-right">{(p.total_decisions ?? 0).toLocaleString()}</td>
                         <td className="py-2 px-3 text-right"><Badge variant={p.status === "active" ? "default" : "outline"} className="text-[10px]">{p.status}</Badge></td>
                       </tr>
                     ))}

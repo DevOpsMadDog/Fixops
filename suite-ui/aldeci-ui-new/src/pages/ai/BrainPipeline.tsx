@@ -208,23 +208,31 @@ export default function BrainPipeline() {
             <Card>
               <CardHeader><CardTitle className="text-sm">Entity Types</CardTitle></CardHeader>
               <CardContent>
-                {Object.entries(stats?.entity_types ?? stats?.node_types ?? { "App": 12, "Finding": 847, "CVE": 234, "Component": 89, "Evidence": 156, "Decision": 423 }).map(([type, count]) => (
-                  <div key={type} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
-                    <span className="text-sm">{type}</span>
-                    <Badge variant="outline">{String(count)}</Badge>
-                  </div>
-                ))}
+                {(() => {
+                  const raw = stats?.entity_types ?? stats?.node_types ?? { "App": 12, "Finding": 847, "CVE": 234, "Component": 89, "Evidence": 156, "Decision": 423 };
+                  const items = Array.isArray(raw) ? raw.map((r: Record<string, unknown>) => [String(r.label || r.type || r.id || ''), Number(r.count || r.size || 0)]) : Object.entries(raw);
+                  return (items as [string, unknown][]).map(([type, count]) => (
+                    <div key={type} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
+                      <span className="text-sm">{type}</span>
+                      <Badge variant="outline">{typeof count === 'object' ? JSON.stringify(count) : String(count)}</Badge>
+                    </div>
+                  ));
+                })()}
               </CardContent>
             </Card>
             <Card>
               <CardHeader><CardTitle className="text-sm">Relationship Types</CardTitle></CardHeader>
               <CardContent>
-                {Object.entries(stats?.edge_types ?? stats?.relationship_types ?? { "HAS_FINDING": 847, "AFFECTS": 1234, "REMEDIATES": 312, "EVIDENCES": 156, "CORRELATES": 567, "ENRICHED_BY": 234 }).map(([type, count]) => (
-                  <div key={type} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
-                    <span className="text-sm font-mono text-xs">{type}</span>
-                    <Badge variant="outline">{String(count)}</Badge>
-                  </div>
-                ))}
+                {(() => {
+                  const raw = stats?.edge_types ?? stats?.relationship_types ?? { "HAS_FINDING": 847, "AFFECTS": 1234, "REMEDIATES": 312, "EVIDENCES": 156, "CORRELATES": 567, "ENRICHED_BY": 234 };
+                  const items = Array.isArray(raw) ? raw.map((r: Record<string, unknown>) => [String(r.label || r.type || r.id || ''), Number(r.count || r.size || 0)]) : Object.entries(raw);
+                  return (items as [string, unknown][]).map(([type, count]) => (
+                    <div key={type} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
+                      <span className="text-sm font-mono text-xs">{type}</span>
+                      <Badge variant="outline">{typeof count === 'object' ? JSON.stringify(count) : String(count)}</Badge>
+                    </div>
+                  ));
+                })()}
               </CardContent>
             </Card>
           </div>
