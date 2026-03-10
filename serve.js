@@ -2,10 +2,16 @@ const express = require('express');
 const http = require('http');
 const path = require('path');
 
+const url = require('url');
+
 const app = express();
-const PORT = 3000;
-const API_HOST = 'localhost';
-const API_PORT = 8000;
+const PORT = process.env.PORT || 3000;
+
+// Parse API backend URL from env (supports docker-compose service names)
+const backendUrl = process.env.API_BACKEND_URL || 'http://localhost:8000';
+const parsed = new url.URL(backendUrl);
+const API_HOST = parsed.hostname;
+const API_PORT = parseInt(parsed.port, 10) || 8000;
 
 const distPath = path.join(__dirname, 'suite-ui/aldeci-ui-new/dist');
 
