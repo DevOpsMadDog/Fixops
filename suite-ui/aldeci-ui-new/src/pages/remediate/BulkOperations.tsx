@@ -46,6 +46,7 @@ import {
   X,
 } from "lucide-react";
 import { useFindings } from "@/hooks/use-api";
+import { bulkApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -273,23 +274,63 @@ export default function BulkOperations() {
     return {};
   };
 
-  const handleExecute = () => {
+  const handleExecute = async () => {
     setIsRunning(true);
-    setProgress(0);
-    const interval = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 100) {
-          clearInterval(interval);
-          setIsRunning(false);
-          setConfirmOpen(false);
-          setResults({ success: selectedIds.size, failed: 0 });
-          setSelectedIds(new Set());
-          toast.success(`${selectedOp} applied to ${selectedIds.size} findings`);
-          return 100;
+    setProgress(10);
+    const ids = Array.from(selectedIds);
+    try {
+      if (selectedOp === "triage") {
+        setProgress(30);
+        await bulkApi.triage(ids, triageAction);
+      } else if (selectedOp === "assign") {
+        setProgress(30);
+        await bulkApi.assignFindings(ids, assignee);
+      } else if (selectedOp === "status_change") {
+        setProgress(30);
+        await bulkApi.updateFindings(ids, { status: newStatus });
+      } else if (selectedOp === "export") {
+        setProgress(30);
+        // Client-side export — no API needed
+        const selectedFindings = allFindings.filter((f) => ids.includes((f.id as string) ?? ""));
+        let content: string;
+        let mimeType: string;
+        let ext: string;
+        if (exportFormat === "json") {
+          content = JSON.stringify(selectedFindings, null, 2);
+          mimeType = "application/json";
+          ext = "json";
+        } else {
+          // CSV
+          const headers = ["id", "title", "severity", "status", "asset", "assignee", "created_at"];
+          const rows = selectedFindings.map((f) =>
+            headers.map((h) => String((f as any)[h] ?? "").replace(/,/g, ";")).join(",")
+          );
+          content = [headers.join(","), ...rows].join("\n");
+          mimeType = "text/csv";
+          ext = "csv";
         }
-        return p + Math.random() * 15;
-      });
-    }, 200);
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `findings-export-${ids.length}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+      setProgress(100);
+      setResults({ success: ids.length, failed: 0 });
+      setSelectedIds(new Set());
+      toast.success(`${selectedOp} applied to ${ids.length} findings`);
+      refetch();
+    } catch (err: any) {
+      setResults({ success: 0, failed: ids.length });
+      toast.error(`Bulk operation failed: ${err?.response?.data?.detail ?? err.message}`);
+    } finally {
+      setIsRunning(false);
+      setConfirmOpen(false);
+    }
   };
 
   const uniqueStatuses = [...new Set(allFindings.map((f) => (f.status as string)).filter(Boolean))];

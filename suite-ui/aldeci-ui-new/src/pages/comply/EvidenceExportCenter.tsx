@@ -22,6 +22,8 @@ import {
   ChevronRight, ChevronDown, Lock, AlertTriangle
 } from "lucide-react";
 import { useEvidenceBundles, useComplianceFrameworks, useApps } from "@/hooks/use-api";
+import { evidenceApi } from "@/lib/api";
+import { toast } from "sonner";
 
 const FRAMEWORKS = ["SOC2", "PCI-DSS", "HIPAA", "ISO27001", "NIST"];
 
@@ -46,12 +48,19 @@ const FORMATS = [
   { id: "json", label: "JSON Only", desc: "Structured data bundle for integrations" },
 ];
 
-// Mock export history
-const EXPORT_HISTORY = [
-  { id: "eh-1", framework: "SOC2", period: "Q1 2025", format: "PDF + JSON", size: "14.2 MB", exportedAt: "2025-03-07 10:22", recipient: "auditor@deloitte.com", status: "delivered" },
-  { id: "eh-2", framework: "PCI-DSS", period: "last-90d", format: "PDF", size: "8.7 MB", exportedAt: "2025-03-05 14:45", recipient: "—", status: "downloaded" },
-  { id: "eh-3", framework: "HIPAA", period: "last-30d", format: "JSON", size: "2.1 MB", exportedAt: "2025-03-01 09:00", recipient: "compliance@fixops.io", status: "delivered" },
-];
+// Helper to download any object as a JSON blob
+function downloadBlob(data: any, filename: string) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast.success(`Downloaded ${filename}`);
+}
 
 function SendToAuditorDialog({ disabled, framework }: { disabled: boolean; framework: string }) {
   const [open, setOpen] = useState(false);
@@ -62,10 +71,21 @@ function SendToAuditorDialog({ disabled, framework }: { disabled: boolean; frame
 
   const handleSend = async () => {
     setSending(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    setSending(false);
-    setSent(true);
-    setTimeout(() => { setSent(false); setOpen(false); }, 1500);
+    try {
+      await evidenceApi.export({
+        frameworks: [framework],
+        send_to: email,
+        message,
+        format: "pdf_json",
+      });
+      setSent(true);
+      toast.success(`Evidence sent to ${email}`);
+      setTimeout(() => { setSent(false); setOpen(false); }, 1200);
+    } catch (err: any) {
+      toast.error(`Failed to send: ${err?.response?.data?.detail ?? err.message}`);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -204,6 +224,7 @@ export default function EvidenceExportCenter() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [generationStage, setGenerationStage] = useState("");
+  const [lastExport, setLastExport] = useState<any>(null);
 
   const isLoading = bundlesQuery.isLoading || appsQuery.isLoading;
   const isError = bundlesQuery.isError;
@@ -254,20 +275,31 @@ export default function EvidenceExportCenter() {
   const handleGenerate = async () => {
     setIsGenerating(true);
     setProgress(0);
-    const stages = [
-      [20, GENERATION_STAGES[0]],
-      [40, GENERATION_STAGES[1]],
-      [60, GENERATION_STAGES[2]],
-      [75, GENERATION_STAGES[3]],
-      [90, GENERATION_STAGES[4]],
-      [100, GENERATION_STAGES[5]],
-    ] as [number, string][];
-    for (const [step, stage] of stages) {
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      setProgress(step);
-      setGenerationStage(stage);
+    setGenerationStage(GENERATION_STAGES[0]);
+    try {
+      setProgress(15);
+      setGenerationStage(GENERATION_STAGES[0]);
+      const res = await evidenceApi.export({
+        frameworks: selectedFrameworks,
+        apps: selectedApps.length > 0 ? selectedApps : undefined,
+        period,
+        format,
+        include: includeOptions,
+      });
+      setProgress(60);
+      setGenerationStage(GENERATION_STAGES[2]);
+      const exportData = res.data?.data ?? res.data;
+      setLastExport(exportData);
+      setProgress(100);
+      setGenerationStage(GENERATION_STAGES[5]);
+      toast.success("Evidence package generated successfully");
+    } catch (err: any) {
+      toast.error(`Export failed: ${err?.response?.data?.detail ?? err.message}`);
+      setProgress(0);
+      setGenerationStage("");
+    } finally {
+      setIsGenerating(false);
     }
-    setIsGenerating(false);
   };
 
   return (
@@ -521,7 +553,16 @@ export default function EvidenceExportCenter() {
               </div>
               <Separator className="my-4" />
               <div className="space-y-2">
-                <Button className="w-full gap-2" size="sm" disabled={progress < 100}>
+                <Button className="w-full gap-2" size="sm" disabled={progress < 100}
+                  onClick={() => {
+                    if (lastExport) {
+                      downloadBlob(lastExport, `evidence-${primaryFramework}-${period}.json`);
+                    } else {
+                      // Download bundles data as fallback
+                      downloadBlob(frameworkBundles, `evidence-${primaryFramework}-bundles.json`);
+                    }
+                  }}
+                >
                   <Download className="h-3.5 w-3.5" />
                   Download Package
                 </Button>
@@ -542,57 +583,53 @@ export default function EvidenceExportCenter() {
           <CardHeader>
             <CardTitle className="text-sm flex items-center gap-2">
               <History className="h-4 w-4 text-muted-foreground" />
-              Export History
+              Evidence Bundles
+              <Badge variant="secondary" className="text-xs ml-auto">{bundles.length} total</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-b border-border/40">
+                  <TableHead className="text-xs">Bundle ID</TableHead>
                   <TableHead className="text-xs">Framework</TableHead>
-                  <TableHead className="text-xs">Period</TableHead>
-                  <TableHead className="text-xs">Format</TableHead>
-                  <TableHead className="text-xs">Exported</TableHead>
-                  <TableHead className="text-xs">Size</TableHead>
-                  <TableHead className="text-xs">Recipient</TableHead>
-                  <TableHead className="text-xs">Status</TableHead>
-                  <TableHead className="text-xs text-right">Actions</TableHead>
+                  <TableHead className="text-xs">Control</TableHead>
+                  <TableHead className="text-xs">Created</TableHead>
+                  <TableHead className="text-xs">Signed</TableHead>
+                  <TableHead className="text-xs text-right">Download</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {EXPORT_HISTORY.map((h) => (
-                  <TableRow key={h.id} className="hover:bg-muted/30">
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">{h.framework}</Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{h.period}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="text-xs">{h.format}</Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{h.exportedAt}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{h.size}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{h.recipient}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={`text-xs ${h.status === "delivered" ? "text-green-400 border-green-700" : "text-blue-400 border-blue-700"}`}
-                      >
-                        {h.status === "delivered" ? <CheckCircle className="h-2.5 w-2.5 mr-1 inline" /> : null}
-                        {h.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7">
-                          <Download className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7">
-                          <Send className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+                {bundles.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      No evidence bundles yet. Generate evidence from the Compliance dashboard.
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  bundles.slice(0, 20).map((b: any, i: number) => (
+                    <TableRow key={b.id ?? b.bundle_id ?? i} className="hover:bg-muted/30">
+                      <TableCell className="text-xs font-mono">{b.bundle_id ?? b.id ?? `BND-${i + 1}`}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">{b.framework ?? "—"}</Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{b.control ?? "—"}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{b.created_at ?? b.timestamp ?? "—"}</TableCell>
+                      <TableCell>
+                        {(b.quantum_signed || b.signed) ? (
+                          <Badge className="text-xs bg-violet-900/40 text-violet-300 border-violet-700">Signed</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs text-muted-foreground">Unsigned</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => downloadBlob(b, `evidence-${b.bundle_id ?? b.id ?? i}.json`)}>
+                          <Download className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>

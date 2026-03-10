@@ -1,11 +1,93 @@
 import axios from "axios";
 
+type AuthStrategy = "token" | "jwt";
+
+const AUTH_TOKEN_STORAGE_KEY = "aldeci.authToken";
+const AUTH_STRATEGY_STORAGE_KEY = "aldeci.authStrategy";
+const ORG_ID_STORAGE_KEY = "aldeci.orgId";
+
+function canUseBrowserStorage() {
+  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+}
+
+function getStoredValue(key: string): string {
+  if (!canUseBrowserStorage()) return "";
+  return window.localStorage.getItem(key)?.trim() ?? "";
+}
+
+function setStoredValue(key: string, value: string | null) {
+  if (!canUseBrowserStorage()) return;
+  if (!value?.trim()) {
+    window.localStorage.removeItem(key);
+    return;
+  }
+  window.localStorage.setItem(key, value.trim());
+}
+
+export function getStoredAuthStrategy(): AuthStrategy {
+  const strategy = (getStoredValue(AUTH_STRATEGY_STORAGE_KEY) || import.meta.env.VITE_AUTH_STRATEGY || "token").toLowerCase();
+  return strategy === "jwt" ? "jwt" : "token";
+}
+
+export function setStoredAuthStrategy(strategy: AuthStrategy) {
+  setStoredValue(AUTH_STRATEGY_STORAGE_KEY, strategy);
+}
+
+export function getStoredAuthToken() {
+  return getStoredValue(AUTH_TOKEN_STORAGE_KEY);
+}
+
+export function setStoredAuthToken(token: string | null) {
+  setStoredValue(AUTH_TOKEN_STORAGE_KEY, token);
+}
+
+export function getStoredOrgId() {
+  return getStoredValue(ORG_ID_STORAGE_KEY) || import.meta.env.VITE_ORG_ID || "default";
+}
+
+export function setStoredOrgId(orgId: string | null) {
+  setStoredValue(ORG_ID_STORAGE_KEY, orgId);
+}
+
+export function buildApiUrl(path: string, params?: Record<string, string>) {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const base = import.meta.env.VITE_API_URL?.trim() || window.location.origin;
+  const url = new URL(normalizedPath, base);
+  Object.entries(params ?? {}).forEach(([key, value]) => {
+    if (value) url.searchParams.set(key, value);
+  });
+  return url.toString();
+}
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "",
   headers: {
-    "X-API-Key": import.meta.env.VITE_API_KEY || "",
     "Content-Type": "application/json",
   },
+});
+
+api.interceptors.request.use((config) => {
+  const strategy = getStoredAuthStrategy();
+  const token = getStoredAuthToken() || import.meta.env.VITE_API_KEY || "";
+  const orgId = getStoredOrgId();
+
+  config.headers = config.headers ?? {};
+  delete config.headers.Authorization;
+  delete config.headers["X-API-Key"];
+
+  if (token) {
+    if (strategy === "jwt") {
+      config.headers.Authorization = token.toLowerCase().startsWith("bearer ") ? token : `Bearer ${token}`;
+    } else {
+      config.headers["X-API-Key"] = token;
+    }
+  }
+
+  if (orgId) {
+    config.headers["X-Org-ID"] = orgId;
+  }
+
+  return config;
 });
 
 // ── Request interceptor for token refresh ──
@@ -25,6 +107,16 @@ api.interceptors.response.use(
 
 export const healthApi = {
   check: () => api.get("/health"),
+};
+
+export const streamApi = {
+  eventsUrl: (types?: string) => {
+    const token = getStoredAuthToken() || import.meta.env.VITE_API_KEY || "";
+    const params: Record<string, string> = {};
+    if (token) params.api_key = token;
+    if (types) params.types = types;
+    return buildApiUrl("/api/v1/stream/events", params);
+  },
 };
 
 export const dashboardApi = {
@@ -71,10 +163,10 @@ export const findingsApi = {
     const normalized = (findings as FindingLike[]).map((f: FindingLike) => ({
       ...f,
       finding_id: f.id,
-      cve: f.cve_id ?? f.cve ?? null,
-      scanner: f.source ?? f.scanner ?? null,
+      cve: f.cve_id ?? f.cve ?? undefined,
+      scanner: f.source ?? f.scanner ?? undefined,
     }));
-    return { data: { cases: normalized, total: normalized.length, items: normalized } };
+    return { data: { cases: normalized, total: normalized.length, items: normalized, findings: normalized, data: normalized } };
   },
   get: (id: string) => api.get(`/api/v1/cases/${id}`),
   triage: (id: string, action: string) => api.post(`/api/v1/cases/${id}/triage`, { action }),
@@ -205,6 +297,7 @@ export const teamsApi = {
 };
 
 export const usersApi = {
+  login: (data: { email: string; password: string }) => api.post("/api/v1/users/login", data),
   list: () => api.get("/api/v1/users"),
   get: (id: string) => api.get(`/api/v1/users/${id}`),
   create: (data: unknown) => api.post("/api/v1/users", data),

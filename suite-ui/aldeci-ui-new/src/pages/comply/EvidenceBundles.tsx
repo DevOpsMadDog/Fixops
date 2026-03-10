@@ -22,6 +22,7 @@ import {
   ArrowLeftRight, GitMerge, Eye
 } from "lucide-react";
 import { useEvidenceBundles, useApps, useComplianceFrameworks, useGenerateEvidence } from "@/hooks/use-api";
+import { toast } from "sonner";
 
 const FRAMEWORKS = ["SOC2", "PCI-DSS", "HIPAA", "ISO27001", "NIST"];
 
@@ -480,7 +481,19 @@ export default function EvidenceBundles() {
                         <RetentionCountdown expiryDate={b.expiry_date ?? b.expires_at} />
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
+                          const content = JSON.stringify(b, null, 2);
+                          const blob = new Blob([content], { type: "application/json" });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = `evidence-${b.bundle_id ?? b.id ?? i}.json`;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(url);
+                          toast.success(`Downloaded bundle ${b.bundle_id ?? b.id}`);
+                        }}>
                           <Download className="h-3.5 w-3.5" />
                         </Button>
                       </TableCell>

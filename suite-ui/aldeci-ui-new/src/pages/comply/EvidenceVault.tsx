@@ -22,6 +22,23 @@ import {
   Link2, Trash2, Settings, ChevronRight, Layers
 } from "lucide-react";
 import { useEvidenceBundles } from "@/hooks/use-api";
+import { evidenceApi } from "@/lib/api";
+import { toast } from "sonner";
+
+// Helper to download any object as JSON blob
+function downloadBundleBlob(bundle: any) {
+  const content = JSON.stringify(bundle, null, 2);
+  const blob = new Blob([content], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `evidence-${bundle.bundle_id ?? bundle.id ?? "bundle"}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast.success(`Downloaded ${a.download}`);
+}
 
 function QuantumBadge({ verified }: { verified: boolean }) {
   return verified ? (
@@ -168,11 +185,18 @@ function BundleDetailDialog({ bundle }: { bundle: any }) {
           </div>
 
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="gap-2">
+            <Button size="sm" variant="outline" className="gap-2" onClick={async () => {
+              try {
+                await evidenceApi.verify(bundle.bundle_id ?? bundle.id);
+                toast.success(`Signature verified for ${bundle.bundle_id ?? bundle.id}`);
+              } catch (err: any) {
+                toast.error(`Verification failed: ${err?.response?.data?.detail ?? err.message}`);
+              }
+            }}>
               <ShieldCheck className="h-3.5 w-3.5" />
               Verify Signature
             </Button>
-            <Button size="sm" variant="outline" className="gap-2">
+            <Button size="sm" variant="outline" className="gap-2" onClick={() => downloadBundleBlob(bundle)}>
               <Download className="h-3.5 w-3.5" />
               Download Bundle
             </Button>
@@ -419,7 +443,20 @@ export default function EvidenceVault() {
               <CardContent className="py-3 flex items-center gap-4">
                 <span className="text-sm font-medium">{selected.size} bundle{selected.size !== 1 ? "s" : ""} selected</span>
                 <div className="flex gap-2 ml-auto">
-                  <Button size="sm" variant="outline" className="gap-2 h-7 text-xs">
+                  <Button size="sm" variant="outline" className="gap-2 h-7 text-xs" onClick={() => {
+                    const selectedBundles = filtered.filter((b: any) => selected.has(b.bundle_id ?? b.id ?? ""));
+                    const content = JSON.stringify(selectedBundles, null, 2);
+                    const blob = new Blob([content], { type: "application/json" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `evidence-selected-${selected.size}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    toast.success(`Downloaded ${selected.size} bundles`);
+                  }}>
                     <Download className="h-3.5 w-3.5" />
                     Download Selected
                   </Button>
@@ -516,7 +553,7 @@ export default function EvidenceVault() {
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           <BundleDetailDialog bundle={bundle} />
-                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => downloadBundleBlob(bundle)}>
                             <Download className="h-3.5 w-3.5" />
                           </Button>
                         </div>

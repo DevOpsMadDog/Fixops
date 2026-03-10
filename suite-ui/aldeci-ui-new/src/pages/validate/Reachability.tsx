@@ -140,8 +140,8 @@ function NetworkPathDialog({
                     </div>
                     <div className="flex items-center gap-4 mt-2 text-[10px] text-muted-foreground">
                       <span>Hops: {(path.hops as number) ?? "—"}</span>
-                      {path.risk && <span>Risk: {path.risk as string}</span>}
-                      {path.protocol && <span>Protocol: {path.protocol as string}</span>}
+                      {!!path.risk && <span>Risk: {String(path.risk)}</span>}
+                      {!!path.protocol && <span>Protocol: {String(path.protocol)}</span>}
                     </div>
                   </div>
                 ))}

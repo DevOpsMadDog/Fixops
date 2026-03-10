@@ -90,10 +90,10 @@ function PlaybookCard({
             <CardTitle className="text-sm font-semibold truncate">
               {(playbook.name as string) ?? "Unnamed Playbook"}
             </CardTitle>
-            {playbook.category && (
+            {!!playbook.category && (
               <Badge variant="outline" className="text-[10px] mt-1">
                 <Tag className="h-2.5 w-2.5 mr-1" />
-                {playbook.category as string}
+                {String(playbook.category)}
               </Badge>
             )}
           </div>
@@ -109,16 +109,16 @@ function PlaybookCard({
             <List className="h-3 w-3" />
             {(playbook.steps_count as number) ?? (Array.isArray(playbook.steps) ? (playbook.steps as unknown[]).length : 0)} steps
           </span>
-          {playbook.trigger && (
+          {!!playbook.trigger && (
             <span className="flex items-center gap-1">
               <AlertCircle className="h-3 w-3" />
-              {playbook.trigger as string}
+              {String(playbook.trigger)}
             </span>
           )}
-          {playbook.last_run && (
+          {!!playbook.last_run && (
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              {playbook.last_run as string}
+              {String(playbook.last_run)}
             </span>
           )}
         </div>
@@ -180,10 +180,10 @@ function RunConfirmDialog({
           </div>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span>{(playbook.steps_count as number) ?? 0} steps</span>
-            {playbook.avg_execution_time && (
+            {!!playbook.avg_execution_time && (
               <span>
                 <Clock className="h-3 w-3 inline mr-1" />
-                ~{playbook.avg_execution_time as string}
+                ~{String(playbook.avg_execution_time)}
               </span>
             )}
           </div>
@@ -243,8 +243,8 @@ function PlaybookDetailDialog({
               <p>{(playbook.avg_execution_time as string) ?? "—"}</p>
             </div>
           </div>
-          {playbook.description && (
-            <p className="text-sm text-muted-foreground">{playbook.description as string}</p>
+          {!!playbook.description && (
+            <p className="text-sm text-muted-foreground">{String(playbook.description)}</p>
           )}
           {steps.length > 0 && (
             <div>
@@ -255,12 +255,12 @@ function PlaybookDetailDialog({
                     <span className="text-xs text-muted-foreground shrink-0 w-5">{i + 1}.</span>
                     <div>
                       <p className="text-xs font-medium">{(step.name as string) ?? `Step ${i + 1}`}</p>
-                      {step.action && (
-                        <p className="text-[10px] text-muted-foreground">{step.action as string}</p>
+                      {!!step.action && (
+                        <p className="text-[10px] text-muted-foreground">{String(step.action)}</p>
                       )}
                     </div>
-                    {step.type && (
-                      <Badge variant="outline" className="ml-auto text-[10px]">{step.type as string}</Badge>
+                    {!!step.type && (
+                      <Badge variant="outline" className="ml-auto text-[10px]">{String(step.type)}</Badge>
                     )}
                   </div>
                 ))}

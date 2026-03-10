@@ -504,9 +504,9 @@ export default function RemediationCenter() {
                           </TableCell>
                           <TableCell className="font-medium max-w-[240px]">
                             <p className="truncate">{(task.title as string) ?? "Untitled"}</p>
-                            {task.finding_id && (
+                            {!!task.finding_id && (
                               <p className="text-[10px] text-muted-foreground font-mono">
-                                {task.finding_id as string}
+                                {String(task.finding_id)}
                               </p>
                             )}
                           </TableCell>
@@ -683,8 +683,8 @@ export default function RemediationCenter() {
                           <p className="font-medium truncate">{(task.title as string) ?? "—"}</p>
                           <div className="flex items-center gap-2 mt-1">
                             <SeverityBadge severity={(task.severity as string) ?? "info"} />
-                            {task.assignee && (
-                              <span className="text-muted-foreground">{task.assignee as string}</span>
+                            {!!task.assignee && (
+                              <span className="text-muted-foreground">{String(task.assignee)}</span>
                             )}
                           </div>
                         </div>

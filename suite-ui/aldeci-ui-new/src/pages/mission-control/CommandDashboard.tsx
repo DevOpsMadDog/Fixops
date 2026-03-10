@@ -523,7 +523,7 @@ export default function CommandDashboard() {
                             >
                               {String(t.severity ?? "med")}
                             </Badge>
-                            {t.mpte_verified && (
+                            {!!t.mpte_verified && (
                               <Badge className="text-[9px] h-4 px-1 bg-cyan-500/10 text-cyan-400 border-cyan-500/30">
                                 MPTE ✓
                               </Badge>
@@ -589,7 +589,7 @@ export default function CommandDashboard() {
                                 </span>
                               </div>
                               <p className="text-xs text-foreground/80 truncate">{String(ev.message ?? ev.description ?? "")}</p>
-                              {ev.component && (
+                              {!!ev.component && (
                                 <p className="text-[10px] text-muted-foreground truncate">{String(ev.component)}</p>
                               )}
                             </div>

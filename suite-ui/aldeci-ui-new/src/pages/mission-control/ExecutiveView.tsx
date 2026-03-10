@@ -27,7 +27,9 @@ import {
   useComplianceStatus,
   useEvidenceBundles,
 } from "@/hooks/use-api";
+import { reportsApi } from "@/lib/api";
 import { cn, formatCurrency } from "@/lib/utils";
+import { toast } from "sonner";
 
 const CHART_TOOLTIP_STYLE = {
   background: "hsl(var(--card))",
@@ -210,7 +212,24 @@ export default function ExecutiveView() {
                 <SelectItem value="2025">2025</SelectItem>
               </SelectContent>
             </Select>
-            <Button size="sm" className="gap-1.5">
+            <Button size="sm" className="gap-1.5" onClick={async () => {
+              try {
+                const res = await reportsApi.generate({ report_type: "executive", format: "pdf", quarter: selectedQuarter });
+                const data = res.data?.data ?? res.data;
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `executive-report-${selectedQuarter}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                toast.success("Executive report exported");
+              } catch (err: any) {
+                toast.error(`Export failed: ${err?.response?.data?.detail ?? err.message}`);
+              }
+            }}>
               <Download className="h-3.5 w-3.5" />
               Export PDF
             </Button>
@@ -505,7 +524,7 @@ export default function ExecutiveView() {
                       <TableRow key={i} className="hover:bg-muted/30">
                         <TableCell className="text-xs py-2">
                           <p className="font-medium truncate max-w-[160px]">{String(d.title ?? d.name ?? `Decision ${i + 1}`)}</p>
-                          {d.created_at && (
+                          {!!d.created_at && (
                             <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
                               <Clock className="h-3 w-3" />
                               {new Date(String(d.created_at)).toLocaleDateString()}

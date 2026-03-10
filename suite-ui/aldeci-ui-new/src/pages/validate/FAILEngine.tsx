@@ -128,8 +128,8 @@ function NeglectZoneCard({ zone }: { zone: Record<string, unknown> }) {
         <p className="text-xs text-muted-foreground">
           Last drill: {days} days ago
         </p>
-        {zone.owner && (
-          <p className="text-xs text-muted-foreground">Owner: {zone.owner as string}</p>
+        {!!zone.owner && (
+          <p className="text-xs text-muted-foreground">Owner: {String(zone.owner)}</p>
         )}
       </div>
       <Badge
@@ -363,9 +363,9 @@ export default function FAILEngine() {
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Target: {(drill.target_component as string) ?? (drill.target as string) ?? "—"}
                       </p>
-                      {drill.severity && (
-                        <Badge variant="outline" className="mt-1 text-[10px]" style={{ borderColor: (drill.severity as string) === 'critical' ? '#ef444466' : '#f59e0b66', color: (drill.severity as string) === 'critical' ? '#ef4444' : '#f59e0b' }}>
-                          {(drill.severity as string).toUpperCase()}
+                      {!!drill.severity && (
+                        <Badge variant="outline" className="mt-1 text-[10px]" style={{ borderColor: String(drill.severity) === 'critical' ? '#ef444466' : '#f59e0b66', color: String(drill.severity) === 'critical' ? '#ef4444' : '#f59e0b' }}>
+                          {String(drill.severity).toUpperCase()}
                         </Badge>
                       )}
                     </div>
@@ -377,16 +377,16 @@ export default function FAILEngine() {
                       <Clock className="h-3 w-3 inline mr-1" />
                       Started: {(drill.injected_at as string) ?? (drill.started_at as string) ?? "—"}
                     </span>
-                    {(drill.detection_time_ms || drill.detection_time) && (
+                    {!!(drill.detection_time_ms || drill.detection_time) && (
                       <span>
                         <Zap className="h-3 w-3 inline mr-1" />
-                        Detection: {(drill.detection_time_ms as string) ?? (drill.detection_time as string)}
+                        Detection: {String(drill.detection_time_ms ?? drill.detection_time)}
                       </span>
                     )}
-                    {(drill.scenario_id || drill.scenario) && (
+                    {!!(drill.scenario_id || drill.scenario) && (
                       <span>
                         <Flame className="h-3 w-3 inline mr-1" />
-                        Scenario: {(drill.scenario_id as string) ?? (drill.scenario as string)}
+                        Scenario: {String(drill.scenario_id ?? drill.scenario)}
                       </span>
                     )}
                   </div>

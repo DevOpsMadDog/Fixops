@@ -176,7 +176,7 @@ function ScanDetailDialog({
               ))}
             </div>
           </div>
-          {scan.details && (
+          {!!scan.details && (
             <div>
               <p className="text-xs text-muted-foreground mb-1">Raw Details</p>
               <pre className="text-xs bg-muted p-3 rounded-md overflow-x-auto">

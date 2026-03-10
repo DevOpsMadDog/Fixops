@@ -526,9 +526,17 @@ const attackSuite = {
     // Fixed: requires cve_ids (array) and target_urls (array)
     run: (data: { cve_ids: string[], target_urls: string[], context?: unknown }) => api.post('/api/v1/micro-pentest/run', data).then(r => r.data),
     getStatus: (flowId: string) => api.get(`/api/v1/micro-pentest/status/${flowId}`).then(r => r.data),
-    // Enterprise scan endpoint
-    runEnterprise: (data: { target_urls: string[], attack_vectors?: string[], compliance_frameworks?: string[] }) =>
-      api.post('/api/v1/micro-pentest/enterprise/scan', data).then(r => r.data),
+    // Enterprise 8-phase scan endpoint (most advanced)
+    runEnterprise: (data: {
+      name: string,
+      attack_surface: { name: string, target_url: string, target_type?: string, endpoints?: string[], authentication_required?: boolean, headers?: Record<string, string> },
+      threat_model: { name: string, description?: string, attack_vectors?: string[], compliance_frameworks?: string[], priority?: number },
+      scan_mode?: string, timeout_seconds?: number, stop_on_critical?: boolean, include_proof_of_concept?: boolean,
+    }) => api.post('/api/v1/micro-pentest/enterprise/scan', data, { timeout: 120000 }).then(r => r.data),
+    // List enterprise scans
+    listEnterpriseScans: () => api.get('/api/v1/micro-pentest/enterprise/scans').then(r => r.data),
+    // Get enterprise scan result
+    getEnterpriseScan: (scanId: string) => api.get(`/api/v1/micro-pentest/enterprise/scan/${scanId}`).then(r => r.data),
     // Report generation + download
     generateReport: (data: { cve_ids: string[], target_urls: string[], context?: unknown }) =>
       api.post('/api/v1/micro-pentest/report/generate', data).then(r => r.data),
@@ -993,6 +1001,11 @@ export const microPentestApi = {
   run: attackSuite.microPentest.run,
   getStatus: attackSuite.microPentest.getStatus,
   getHealth: () => api.get('/api/v1/micro-pentest/health').then(r => r.data),
+  // Enterprise 8-phase engine
+  runEnterprise: attackSuite.microPentest.runEnterprise,
+  listEnterpriseScans: attackSuite.microPentest.listEnterpriseScans,
+  getEnterpriseScan: attackSuite.microPentest.getEnterpriseScan,
+  // Report generation + download
   generateReport: attackSuite.microPentest.generateReport,
   getReportData: attackSuite.microPentest.getReportData,
   downloadReportUrl: attackSuite.microPentest.downloadReportUrl,

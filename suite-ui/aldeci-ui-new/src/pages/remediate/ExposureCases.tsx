@@ -185,7 +185,7 @@ function CaseDetailDialog({
               <p className="text-xs text-muted-foreground">Risk Score</p>
               <p className="font-semibold">{caseItem.risk_score != null ? Number(caseItem.risk_score).toFixed(1) : "—"}</p>
             </div>
-            {caseItem.root_cve && (
+            {!!caseItem.root_cve && (
               <div>
                 <p className="text-xs text-muted-foreground">Root CVE</p>
                 <p className="font-mono text-xs">{String(caseItem.root_cve)}</p>
@@ -201,7 +201,7 @@ function CaseDetailDialog({
                 </div>
               </div>
             )}
-            {caseItem.sla_breached && (
+            {!!caseItem.sla_breached && (
               <div>
                 <p className="text-xs text-muted-foreground">SLA</p>
                 <Badge variant="destructive" className="text-[10px]">BREACHED</Badge>
@@ -225,8 +225,8 @@ function CaseDetailDialog({
                   <div key={i} className="flex items-center gap-2 p-2 bg-muted/30 rounded text-xs">
                     <SeverityBadge severity={(f.severity as string) ?? "info"} />
                     <span className="flex-1 truncate">{(f.title as string) ?? `Finding ${i + 1}`}</span>
-                    {f.cvss_score && (
-                      <span className="text-muted-foreground">CVSS {f.cvss_score as number}</span>
+                    {!!f.cvss_score && (
+                      <span className="text-muted-foreground">CVSS {Number(f.cvss_score)}</span>
                     )}
                   </div>
                 ))}
@@ -259,7 +259,7 @@ function CaseDetailDialog({
                     <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                     <span className="text-muted-foreground">{(d.timestamp as string) ?? "—"}</span>
                     <span className="font-medium">{(d.decision as string) ?? "—"}</span>
-                    {d.by && <span className="text-muted-foreground">by {d.by as string}</span>}
+                    {!!d.by && <span className="text-muted-foreground">by {String(d.by)}</span>}
                   </div>
                 ))}
               </div>

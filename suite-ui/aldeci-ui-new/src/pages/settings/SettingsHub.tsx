@@ -18,6 +18,16 @@ import {
   Plus, Trash2, Server, Clock, GitCommit, Zap, Users, Activity
 } from "lucide-react";
 import { useSystemHealth } from "@/hooks/use-api";
+import {
+  systemApi,
+  auditApi,
+  getStoredAuthStrategy,
+  getStoredAuthToken,
+  getStoredOrgId,
+  setStoredAuthStrategy,
+  setStoredAuthToken,
+  setStoredOrgId,
+} from "@/lib/api";
 import { toast } from "sonner";
 
 function SectionHeader({ icon: Icon, title, description }: { icon: React.ElementType; title: string; description: string }) {
@@ -40,6 +50,7 @@ export default function SettingsHub() {
 
   const [tab, setTab] = useState("general");
   const [orgName, setOrgName] = useState("Acme Security Corp");
+  const [orgId, setOrgId] = useState(getStoredOrgId());
   const [slaLow, setSlaLow] = useState("30");
   const [slaMedium, setSlaMedium] = useState("14");
   const [slaHigh, setSlaHigh] = useState("7");
@@ -55,6 +66,8 @@ export default function SettingsHub() {
   // API Keys
   const [showKey, setShowKey] = useState(false);
   const [apiKey] = useState("sk-aldeci-••••••••••••••••••••••••••••••••");
+  const [authStrategy, setAuthStrategy] = useState<"token" | "jwt">(getStoredAuthStrategy());
+  const [authToken, setAuthToken] = useState(getStoredAuthToken());
   const [keyUsage] = useState({ calls: 12847, limit: 50000, period: "month" });
   const [additionalKeys, setAdditionalKeys] = useState([
     { id: "key-1", name: "CI/CD Pipeline", created: "2025-11-12", lastUsed: "2h ago", calls: 4821 },
@@ -74,9 +87,12 @@ export default function SettingsHub() {
 
   const handleSave = async () => {
     setIsSaving(true);
+    setStoredOrgId(orgId);
+    setStoredAuthStrategy(authStrategy);
+    setStoredAuthToken(authToken);
     await new Promise((resolve) => setTimeout(resolve, 800));
     setIsSaving(false);
-    toast.success("Settings saved successfully");
+    toast.success("Settings saved successfully. New auth and org scope will be used on the next request.");
   };
 
   const handleCopyKey = () => {
@@ -156,6 +172,21 @@ export default function SettingsHub() {
                     onChange={(e) => setOrgName(e.target.value)}
                     className="mt-2"
                   />
+                </div>
+                <div>
+                  <Label htmlFor="org-id" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Organization ID
+                  </Label>
+                  <Input
+                    id="org-id"
+                    value={orgId}
+                    onChange={(e) => setOrgId(e.target.value)}
+                    className="mt-2"
+                    placeholder="default"
+                  />
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Sent on every request via <span className="font-mono">X-Org-ID</span> for multi-tenant isolation.
+                  </p>
                 </div>
                 <Separator />
                 <div>
@@ -253,6 +284,35 @@ export default function SettingsHub() {
             <CardContent className="pt-6">
               <SectionHeader icon={Shield} title="Security Configuration" description="Session management, MFA, and access control settings" />
               <div className="space-y-4 max-w-lg">
+                <div className="p-4 rounded-lg bg-muted/30 border border-border/40 space-y-3">
+                  <div>
+                    <p className="text-sm font-medium">Authentication Strategy</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Choose whether the UI authenticates with a service token or a JWT bearer token.</p>
+                  </div>
+                  <Select value={authStrategy} onValueChange={(value: "token" | "jwt") => setAuthStrategy(value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select auth strategy" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="token">API Token</SelectItem>
+                      <SelectItem value="jwt">JWT Bearer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1.5 block">
+                      {authStrategy === "jwt" ? "JWT Access Token" : "API Token"}
+                    </Label>
+                    <Input
+                      type={showKey ? "text" : "password"}
+                      value={authToken}
+                      onChange={(e) => setAuthToken(e.target.value)}
+                      placeholder={authStrategy === "jwt" ? "Paste bearer token" : "Paste API token"}
+                    />
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Stored locally in this browser only. SSE live feeds will automatically reuse this credential.
+                    </p>
+                  </div>
+                </div>
                 {[
                   { label: "Require MFA for all users", desc: "Enforce multi-factor authentication organization-wide" },
                   { label: "Session timeout (1 hour)", desc: "Automatically log out inactive sessions" },
@@ -443,9 +503,48 @@ export default function SettingsHub() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               { label: "Force Re-sync", desc: "Sync all integrations", icon: RefreshCw, action: () => toast.success("Sync initiated") },
-              { label: "Export Config", desc: "Download org config", icon: Key, action: () => toast.success("Config exported") },
+              { label: "Export Config", desc: "Download org config", icon: Key, action: async () => {
+                try {
+                  const res = await systemApi.config();
+                  const content = JSON.stringify(res.data?.data ?? res.data, null, 2);
+                  const blob = new Blob([content], { type: "application/json" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `aldeci-config-${new Date().toISOString().split("T")[0]}.json`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                  toast.success("Config exported successfully");
+                } catch (err: any) {
+                  toast.error(`Config export failed: ${err?.response?.data?.detail ?? err.message}`);
+                }
+              } },
               { label: "Clear Cache", desc: "Flush Redis cache", icon: Trash2, action: () => toast.success("Cache cleared") },
-              { label: "Audit Export", desc: "Export audit log CSV", icon: Activity, action: () => toast.success("Audit log exporting") },
+              { label: "Audit Export", desc: "Export audit log CSV", icon: Activity, action: async () => {
+                try {
+                  const res = await auditApi.list({ limit: 1000 });
+                  const entries: any[] = Array.isArray(res.data) ? res.data : (res.data?.data ?? res.data?.entries ?? []);
+                  const headers = ["id", "action", "user", "resource", "timestamp", "details"];
+                  const rows = entries.map((e: any) =>
+                    headers.map((h) => String((e as any)[h] ?? "").replace(/,/g, ";")).join(",")
+                  );
+                  const csv = [headers.join(","), ...rows].join("\n");
+                  const blob = new Blob([csv], { type: "text/csv" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `audit-log-${new Date().toISOString().split("T")[0]}.csv`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                  toast.success(`Exported ${entries.length} audit entries`);
+                } catch (err: any) {
+                  toast.error(`Audit export failed: ${err?.response?.data?.detail ?? err.message}`);
+                }
+              } },
               { label: "Rotate All Keys", desc: "Rotate all API keys", icon: RotateCcw, action: () => toast.success("Key rotation queued") },
               { label: "User Sync", desc: "Sync SSO users", icon: Users, action: () => toast.success("SSO sync triggered") },
               { label: "Health Check", desc: "Run system diagnostics", icon: CheckCircle, action: () => toast.success("Health check running") },

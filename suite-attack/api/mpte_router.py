@@ -545,8 +545,14 @@ async def _run_mpte_verification_background(
         if target_url and "://" not in target_url:
             target_url = f"https://{target_url}"
 
+        # Build CVE list — only include valid CVE IDs, not generic strings
+        # like "general". Empty list is fine: the scanner runs a full vuln scan.
+        cve_ids = []
+        if data.vulnerability_type and data.vulnerability_type.upper().startswith("CVE-"):
+            cve_ids = [data.vulnerability_type]
+
         local_result = await run_micro_pentest(
-            cve_ids=[data.vulnerability_type or "general"],
+            cve_ids=cve_ids,
             target_urls=[target_url] if target_url else [],
             context={"source": "mpte_fallback", "test_case": data.test_case},
         )

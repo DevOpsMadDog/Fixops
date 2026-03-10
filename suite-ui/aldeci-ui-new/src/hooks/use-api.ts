@@ -24,6 +24,7 @@ import {
   playbooks as playbooksApi,
   scannerApi,
   casesApi,
+  getStoredOrgId,
 } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -186,7 +187,7 @@ export function useFailScenarios() {
   });
 }
 
-export function useFailDrills(orgId = "default") {
+export function useFailDrills(orgId = getStoredOrgId()) {
   return useQuery({
     queryKey: ["fail", "drills", orgId],
     queryFn: async () => {
@@ -196,7 +197,7 @@ export function useFailDrills(orgId = "default") {
   });
 }
 
-export function useFailReadiness(orgId = "default") {
+export function useFailReadiness(orgId = getStoredOrgId()) {
   return useQuery({
     queryKey: ["fail", "readiness", orgId],
     queryFn: async () => {
@@ -206,7 +207,7 @@ export function useFailReadiness(orgId = "default") {
   });
 }
 
-export function useFailHistory(orgId = "default") {
+export function useFailHistory(orgId = getStoredOrgId()) {
   return useQuery({
     queryKey: ["fail", "history", orgId],
     queryFn: async () => {

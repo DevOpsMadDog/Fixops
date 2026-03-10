@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useComplianceSoc2, useEvidenceBundles, useAssessCompliance } from "@/hooks/use-api";
+import { toast } from "sonner";
 
 const SOC2_CATEGORIES = [
   {
@@ -141,7 +142,30 @@ export default function SOC2Evidence() {
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
-          <Button size="sm" className="gap-2">
+          <Button size="sm" className="gap-2" onClick={() => {
+            const exportData = {
+              framework: "SOC2",
+              controls: Array.isArray(controls) ? controls : [],
+              bundles,
+              summary: {
+                totalControls,
+                passedControls,
+                gapCount,
+                bundleCount,
+                exportDate: new Date().toISOString(),
+              },
+            };
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `soc2-evidence-report-${new Date().toISOString().split("T")[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            toast.success("SOC2 report exported");
+          }}>
             <FileText className="h-4 w-4" />
             Export Report
           </Button>

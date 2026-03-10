@@ -188,23 +188,164 @@ def _generate_report_file(report: Report) -> Path:
         file_path.write_text(html, encoding="utf-8")
 
     elif report.format == ReportFormat.PDF:
-        # Generate a plain-text summary file with .pdf extension.
-        # Full PDF rendering (reportlab/weasyprint) can be added when those
-        # libraries are available; for now we produce a readable text report.
-        lines = [
-            f"FixOps Report: {report.name}",
-            f"Type: {report.report_type.value}",
-            f"Generated: {datetime.now(timezone.utc).isoformat()}Z",
-            f"Total findings: {len(findings_dicts)}",
-            "=" * 60,
-            "",
-        ]
-        for fd in findings_dicts:
-            lines.append(
-                f"[{fd.get('severity', '?').upper()}] {fd.get('title', '')} "
-                f"(CVE: {fd.get('cve_id', 'N/A')}, CVSS: {fd.get('cvss_score', 'N/A')})"
+        # Real PDF generation using reportlab
+        try:
+            from reportlab.lib import colors
+            from reportlab.lib.pagesizes import A4
+            from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+            from reportlab.lib.units import inch, mm
+            from reportlab.platypus import (
+                Paragraph,
+                SimpleDocTemplate,
+                Spacer,
+                Table,
+                TableStyle,
             )
-        file_path.write_text("\n".join(lines), encoding="utf-8")
+
+            pdf_buf = io.BytesIO()
+            doc = SimpleDocTemplate(
+                pdf_buf,
+                pagesize=A4,
+                leftMargin=20 * mm,
+                rightMargin=20 * mm,
+                topMargin=25 * mm,
+                bottomMargin=20 * mm,
+            )
+            styles = getSampleStyleSheet()
+
+            title_style = ParagraphStyle(
+                "ReportTitle",
+                parent=styles["Title"],
+                fontSize=22,
+                spaceAfter=12,
+                textColor=colors.HexColor("#1a1a2e"),
+            )
+            subtitle_style = ParagraphStyle(
+                "ReportSubtitle",
+                parent=styles["Normal"],
+                fontSize=10,
+                textColor=colors.grey,
+                spaceAfter=20,
+            )
+            section_style = ParagraphStyle(
+                "SectionHeader",
+                parent=styles["Heading2"],
+                fontSize=14,
+                spaceAfter=8,
+                spaceBefore=16,
+                textColor=colors.HexColor("#16213e"),
+            )
+
+            sev_colors = {
+                "critical": colors.HexColor("#dc3545"),
+                "high": colors.HexColor("#fd7e14"),
+                "medium": colors.HexColor("#ffc107"),
+                "low": colors.HexColor("#28a745"),
+                "info": colors.HexColor("#17a2b8"),
+            }
+
+            elements = []
+
+            # Title block
+            elements.append(Paragraph(f"ALdeci — {report.name}", title_style))
+            elements.append(
+                Paragraph(
+                    f"Type: {report.report_type.value} &nbsp;|&nbsp; "
+                    f"Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} &nbsp;|&nbsp; "
+                    f"Findings: {len(findings_dicts)}",
+                    subtitle_style,
+                )
+            )
+            elements.append(Spacer(1, 6))
+
+            # Executive summary
+            if summary:
+                elements.append(Paragraph("Executive Summary", section_style))
+                total = summary.get("total_findings", len(findings_dicts))
+                crit = summary.get("critical", 0)
+                high = summary.get("high", 0)
+                summary_text = (
+                    f"Total findings: <b>{total}</b> &nbsp;|&nbsp; "
+                    f"Critical: <font color='#dc3545'><b>{crit}</b></font> &nbsp;|&nbsp; "
+                    f"High: <font color='#fd7e14'><b>{high}</b></font>"
+                )
+                elements.append(Paragraph(summary_text, styles["Normal"]))
+                elements.append(Spacer(1, 10))
+
+            # Findings table
+            if findings_dicts:
+                elements.append(Paragraph("Findings Detail", section_style))
+                table_data = [["#", "Severity", "Title", "CVE", "CVSS", "Status"]]
+                for idx, fd in enumerate(findings_dicts[:200], 1):  # cap at 200 for performance
+                    sev_val = str(fd.get("severity", "info")).upper()
+                    table_data.append([
+                        str(idx),
+                        sev_val,
+                        str(fd.get("title", ""))[:60],
+                        str(fd.get("cve_id", "N/A")),
+                        str(fd.get("cvss_score", "")),
+                        str(fd.get("status", "")),
+                    ])
+
+                col_widths = [30, 60, 200, 90, 40, 60]
+                t = Table(table_data, colWidths=col_widths, repeatRows=1)
+
+                # Style: alternating rows, header, severity color coding
+                style_cmds = [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a1a2e")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTSIZE", (0, 0), (-1, 0), 8),
+                    ("FONTSIZE", (0, 1), (-1, -1), 7),
+                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#dddddd")),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("TOPPADDING", (0, 0), (-1, -1), 3),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                ]
+                # Alternating row colors
+                for row_idx in range(1, len(table_data)):
+                    bg = colors.HexColor("#f8f9fa") if row_idx % 2 == 0 else colors.white
+                    style_cmds.append(("BACKGROUND", (0, row_idx), (-1, row_idx), bg))
+                    # Color the severity cell
+                    sev_lower = str(table_data[row_idx][1]).lower()
+                    sev_color = sev_colors.get(sev_lower, colors.black)
+                    style_cmds.append(("TEXTCOLOR", (1, row_idx), (1, row_idx), sev_color))
+
+                t.setStyle(TableStyle(style_cmds))
+                elements.append(t)
+
+            # Footer
+            elements.append(Spacer(1, 20))
+            footer_style = ParagraphStyle(
+                "Footer", parent=styles["Normal"], fontSize=8, textColor=colors.grey
+            )
+            elements.append(
+                Paragraph(
+                    f"Report ID: {report.id} &nbsp;|&nbsp; "
+                    f"ALdeci CTEM+ Platform &nbsp;|&nbsp; Confidential",
+                    footer_style,
+                )
+            )
+
+            doc.build(elements)
+            file_path.write_bytes(pdf_buf.getvalue())
+
+        except ImportError:
+            # Fallback: generate a plain-text file if reportlab is not installed
+            lines = [
+                f"FixOps Report: {report.name}",
+                f"Type: {report.report_type.value}",
+                f"Generated: {datetime.now(timezone.utc).isoformat()}Z",
+                f"Total findings: {len(findings_dicts)}",
+                "=" * 60,
+                "",
+            ]
+            for fd in findings_dicts:
+                lines.append(
+                    f"[{fd.get('severity', '?').upper()}] {fd.get('title', '')} "
+                    f"(CVE: {fd.get('cve_id', 'N/A')}, CVSS: {fd.get('cvss_score', 'N/A')})"
+                )
+            file_path.write_text("\n".join(lines), encoding="utf-8")
 
     else:
         raise ValueError(f"Unsupported report format: {report.format.value}")

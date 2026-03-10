@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
+// Switch removed — no longer used
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
@@ -22,6 +22,8 @@ import {
   Send, Bell, Mail, History
 } from "lucide-react";
 import { useReports } from "@/hooks/use-api";
+import { reportsApi } from "@/lib/api";
+import { toast } from "sonner";
 
 const REPORT_TEMPLATES = [
   {
@@ -69,18 +71,22 @@ const REPORT_TEMPLATES = [
 const FRAMEWORKS = ["SOC2", "PCI-DSS", "HIPAA", "ISO27001", "NIST"];
 const FORMATS = ["PDF", "CSV", "JSON", "HTML"];
 
-const SCHEDULED_REPORTS = [
-  { id: "sr-1", name: "Weekly Executive Summary", template: "executive", frequency: "Weekly", nextRun: "Mon 08:00", recipients: 3, format: "PDF", enabled: true },
-  { id: "sr-2", name: "Monthly Compliance Report", template: "compliance", frequency: "Monthly", nextRun: "1st 00:00", recipients: 5, format: "PDF", enabled: true },
-  { id: "sr-3", name: "Daily Technical Brief", template: "technical", frequency: "Daily", nextRun: "08:00", recipients: 2, format: "JSON", enabled: false },
-];
-
-const DOWNLOAD_HISTORY = [
-  { id: "dh-1", name: "Q1 Executive Summary", format: "PDF", downloadedAt: "2025-03-08 14:22", size: "2.4 MB", user: "admin@fixops.io" },
-  { id: "dh-2", name: "SOC2 Compliance Report", format: "PDF", downloadedAt: "2025-03-07 09:11", size: "5.1 MB", user: "auditor@deloitte.com" },
-  { id: "dh-3", name: "Trend Analysis Jan–Mar", format: "CSV", downloadedAt: "2025-03-06 16:45", size: "312 KB", user: "analyst@fixops.io" },
-  { id: "dh-4", name: "Board Briefing Q1", format: "PDF", downloadedAt: "2025-03-05 11:30", size: "1.8 MB", user: "cso@fixops.io" },
-];
+// Download a report as a blob file
+function downloadReportBlob(report: any) {
+  const content = JSON.stringify(report, null, 2);
+  const blob = new Blob([content], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const name = report.name ?? report.title ?? "report";
+  const fmt = (report.format ?? report.output_format ?? "json").toLowerCase();
+  a.href = url;
+  a.download = `${name.replace(/[^a-zA-Z0-9-_]/g, "_")}.${fmt === "pdf" ? "json" : fmt}`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast.success(`Downloaded ${a.download}`);
+}
 
 function GenerateReportDialog({ onGenerate }: { onGenerate: () => void }) {
   const [open, setOpen] = useState(false);
@@ -101,11 +107,24 @@ function GenerateReportDialog({ onGenerate }: { onGenerate: () => void }) {
 
   const handleGenerate = async () => {
     setIsGenerating(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsGenerating(false);
-    onGenerate();
-    setOpen(false);
-    setStep(1);
+    try {
+      await reportsApi.generate({
+        report_type: templateId,
+        format: format.toLowerCase(),
+        frameworks: selectedFrameworks,
+        date_from: dateFrom || undefined,
+        date_to: dateTo || undefined,
+        send_to: sendTo || undefined,
+      });
+      toast.success(`${selectedTemplate?.name ?? "Report"} generated successfully`);
+      onGenerate();
+    } catch (err: any) {
+      toast.error(`Failed to generate report: ${err?.response?.data?.detail ?? err.message}`);
+    } finally {
+      setIsGenerating(false);
+      setOpen(false);
+      setStep(1);
+    }
   };
 
   const selectedTemplate = REPORT_TEMPLATES.find((t) => t.id === templateId);
@@ -262,9 +281,6 @@ function GenerateReportDialog({ onGenerate }: { onGenerate: () => void }) {
 export default function Reports() {
   const reportsQuery = useReports();
   const refetch = useCallback(() => reportsQuery.refetch(), [reportsQuery]);
-  const [scheduledEnabled, setScheduledEnabled] = useState<Record<string, boolean>>(
-    Object.fromEntries(SCHEDULED_REPORTS.map((r) => [r.id, r.enabled]))
-  );
 
   if (reportsQuery.isLoading) return <PageSkeleton />;
   if (reportsQuery.isError) return <ErrorState message="Failed to load reports" onRetry={refetch} />;
@@ -341,7 +357,7 @@ export default function Reports() {
         </div>
       </div>
 
-      {/* Scheduled Reports Section */}
+      {/* Recent Reports */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -350,69 +366,9 @@ export default function Reports() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <Bell className="h-4 w-4 text-blue-400" />
-              Scheduled Reports
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent border-b border-border/40">
-                  <TableHead className="text-xs">Report Name</TableHead>
-                  <TableHead className="text-xs">Template</TableHead>
-                  <TableHead className="text-xs">Frequency</TableHead>
-                  <TableHead className="text-xs">Next Run</TableHead>
-                  <TableHead className="text-xs">Recipients</TableHead>
-                  <TableHead className="text-xs">Format</TableHead>
-                  <TableHead className="text-xs text-right">Enabled</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {SCHEDULED_REPORTS.map((sr) => (
-                  <TableRow key={sr.id} className="hover:bg-muted/30">
-                    <TableCell className="text-sm font-medium">{sr.name}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="text-xs capitalize">{sr.template}</Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {sr.frequency}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">{sr.nextRun}</TableCell>
-                    <TableCell className="text-xs">
-                      <span className="flex items-center gap-1 text-muted-foreground">
-                        <Mail className="h-3 w-3" />
-                        {sr.recipients}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">{sr.format}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Switch
-                        checked={scheduledEnabled[sr.id] ?? sr.enabled}
-                        onCheckedChange={(v) => setScheduledEnabled((p) => ({ ...p, [sr.id]: v }))}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* Download History */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-      >
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
               <History className="h-4 w-4 text-muted-foreground" />
-              Download History
+              Recent Reports
+              <Badge variant="secondary" className="text-xs ml-auto">{reports.length} total</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -420,25 +376,31 @@ export default function Reports() {
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-b border-border/40">
                   <TableHead className="text-xs">Report Name</TableHead>
+                  <TableHead className="text-xs">Type</TableHead>
                   <TableHead className="text-xs">Format</TableHead>
-                  <TableHead className="text-xs">Downloaded By</TableHead>
-                  <TableHead className="text-xs">Date</TableHead>
-                  <TableHead className="text-xs">Size</TableHead>
-                  <TableHead className="text-xs text-right">Re-Download</TableHead>
+                  <TableHead className="text-xs">Generated</TableHead>
+                  <TableHead className="text-xs text-right">Download</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {DOWNLOAD_HISTORY.map((h) => (
-                  <TableRow key={h.id} className="hover:bg-muted/30">
-                    <TableCell className="text-sm font-medium">{h.name}</TableCell>
+                {reports.slice(0, 10).map((report: any, i: number) => (
+                  <TableRow key={report.id ?? i} className="hover:bg-muted/30">
+                    <TableCell className="text-sm font-medium">{report.name ?? report.title ?? `Report ${i + 1}`}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="text-xs uppercase">{h.format}</Badge>
+                      <Badge variant="secondary" className="text-xs capitalize">
+                        {report.type ?? report.report_type ?? "compliance"}
+                      </Badge>
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{h.user}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{h.downloadedAt}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{h.size}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs uppercase">
+                        {report.format ?? report.output_format ?? "PDF"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {report.created_at ?? report.date ?? "—"}
+                    </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => downloadReportBlob(report)}>
                         <Download className="h-3.5 w-3.5" />
                       </Button>
                     </TableCell>
@@ -502,10 +464,10 @@ export default function Reports() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => downloadReportBlob(report)}>
                           <Download className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { navigator.clipboard.writeText(JSON.stringify(report, null, 2)); toast.success('Report data copied to clipboard'); }}>
                           <Send className="h-3.5 w-3.5" />
                         </Button>
                       </div>

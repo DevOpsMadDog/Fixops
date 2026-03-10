@@ -492,7 +492,7 @@ export default function PlaybookEditor() {
                   ))}
                   <div className="flex justify-center mt-3">
                     <Button
-                      variant="dashed"
+                      variant="outline"
                       size="sm"
                       className="border-dashed"
                       onClick={() => addStep("action")}

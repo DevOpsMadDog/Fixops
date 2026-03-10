@@ -599,10 +599,10 @@ export default function AttackSimulation() {
                   activePhase={(selectedSim.kill_chain_phase as number) ?? -1}
                 />
               </div>
-              {selectedSim.notes && (
+              {!!selectedSim.notes && (
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Notes</p>
-                  <p className="text-sm">{selectedSim.notes as string}</p>
+                  <p className="text-sm">{String(selectedSim.notes)}</p>
                 </div>
               )}
             </div>

@@ -21,6 +21,7 @@ import {
   useNervePulse,
   useNerveState,
 } from "@/hooks/use-api";
+import { streamApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type EventType = "all" | "finding" | "decision" | "mpte" | "deployment" | "policy" | "fix";
@@ -148,7 +149,10 @@ export default function LiveFeed() {
   const [autoScroll, setAutoScroll] = useState(true);
   const [paused, setPaused] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [streamConnected, setStreamConnected] = useState(false);
+  const [streamEvents, setStreamEvents] = useState<FeedEvent[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   const pulse = useNervePulse();
   const state = useNerveState();
@@ -168,6 +172,49 @@ export default function LiveFeed() {
     return () => clearInterval(interval);
   }, [paused, refetch]);
 
+  useEffect(() => {
+    if (paused) {
+      eventSourceRef.current?.close();
+      eventSourceRef.current = null;
+      setStreamConnected(false);
+      return;
+    }
+
+    const types = eventType === "all" ? undefined : eventType;
+    const source = new EventSource(streamApi.eventsUrl(types));
+    eventSourceRef.current = source;
+
+    source.addEventListener("event", (event) => {
+      try {
+        const parsed = JSON.parse(event.data) as FeedEvent;
+        setStreamEvents((prev) => {
+          const next = [...prev, parsed];
+          return next.slice(-250);
+        });
+        setStreamConnected(true);
+        setLastUpdate(new Date());
+      } catch {
+        // Ignore malformed events and preserve polling fallback.
+      }
+    });
+
+    source.addEventListener("heartbeat", () => {
+      setStreamConnected(true);
+      setLastUpdate(new Date());
+    });
+
+    source.onerror = () => {
+      setStreamConnected(false);
+    };
+
+    return () => {
+      source.close();
+      if (eventSourceRef.current === source) {
+        eventSourceRef.current = null;
+      }
+    };
+  }, [eventType, paused]);
+
   // Auto-scroll to bottom when new events arrive
   useEffect(() => {
     if (autoScroll && scrollRef.current) {
@@ -181,7 +228,17 @@ export default function LiveFeed() {
   const pulseData = pulse.data ?? {};
   const stateData = state.data ?? {};
 
-  const allEvents: FeedEvent[] = pulseData.events ?? pulseData.recent_events ?? stateData.events ?? [];
+  const baselineEvents: FeedEvent[] = pulseData.events ?? pulseData.recent_events ?? stateData.events ?? [];
+  const mergedEvents = [...baselineEvents, ...streamEvents];
+  const dedupedEvents = Array.from(
+    new Map(
+      mergedEvents.map((event, index) => [
+        String(event.id ?? `${event.type}-${event.timestamp ?? event.created_at ?? ""}-${event.message ?? event.description ?? ""}-${index}`),
+        event,
+      ])
+    ).values()
+  );
+  const allEvents: FeedEvent[] = dedupedEvents;
 
   // Event type counts
   const findingCount = allEvents.filter((e) => e.type === "finding").length;
@@ -229,7 +286,7 @@ export default function LiveFeed() {
         badge="LIVE"
         actions={
           <div className="flex items-center gap-2">
-            <ConnectionStatus connected={!pulse.isError} lastUpdate={lastUpdate} />
+            <ConnectionStatus connected={streamConnected || !pulse.isError} lastUpdate={lastUpdate} />
             <div className="flex items-center gap-1.5">
               <Radio className={cn("h-3.5 w-3.5", !paused ? "text-green-400 animate-pulse" : "text-muted-foreground")} />
               <span className="text-xs text-muted-foreground hidden sm:block">Auto-refresh</span>
@@ -482,7 +539,7 @@ export default function LiveFeed() {
             </>
           )}
         </div>
-        <span>SSE · Updated {lastUpdate.toLocaleTimeString()}</span>
+        <span>{streamConnected ? "SSE" : "Polling fallback"} · Updated {lastUpdate.toLocaleTimeString()}</span>
       </motion.div>
     </motion.div>
   );

@@ -1550,17 +1550,36 @@ function NewVerificationForm({ onCreated }: { onCreated: () => void }) {
   const [priority, setPriority] = useState<Priority>('high');
   const [isEnterprise, setIsEnterprise] = useState(false);
   const [additionalTargets, setAdditionalTargets] = useState('');
+  const [reportReady, setReportReady] = useState(false);
+  const [scanRunning, setScanRunning] = useState(false);
 
   const createMutation = useMutation({
     mutationFn: async () => {
       if (isEnterprise) {
-        // Enterprise multi-target scan
-        const targets = [targetUrl, ...additionalTargets.split('\n').map(t => t.trim()).filter(Boolean)];
-        const cveIds = cveId ? cveId.split(',').map(c => c.trim()).filter(Boolean) : [];
-        return microPentestApi.run({
-          cve_ids: cveIds,
-          target_urls: targets,
-          context: { scope, priority },
+        // Enterprise 8-phase scan with LLM intelligence
+        setScanRunning(true);
+        setReportReady(false);
+        const url = targetUrl.includes('://') ? targetUrl : `https://${targetUrl}`;
+        return microPentestApi.runEnterprise({
+          name: `Enterprise Scan — ${new URL(url).hostname}`,
+          attack_surface: {
+            name: `${new URL(url).hostname} Surface`,
+            target_url: url,
+            target_type: 'web',
+            endpoints: ['/', '/login', '/api'],
+            authentication_required: false,
+          },
+          threat_model: {
+            name: `${new URL(url).hostname} Threat Model`,
+            description: `Full enterprise scan of ${new URL(url).hostname}`,
+            attack_vectors: ['web_application', 'injection', 'authentication'],
+            compliance_frameworks: ['soc2', 'pci_dss', 'gdpr'],
+            priority: priority === 'critical' ? 10 : priority === 'high' ? 8 : priority === 'medium' ? 5 : 3,
+          },
+          scan_mode: 'active',
+          timeout_seconds: 300,
+          stop_on_critical: false,
+          include_proof_of_concept: true,
         });
       }
       const payload = {
@@ -1576,15 +1595,39 @@ function NewVerificationForm({ onCreated }: { onCreated: () => void }) {
       return response.data;
     },
     onSuccess: (data: Record<string, unknown>) => {
-      toast.success(`Verification request created: ${String(data?.id ?? data?.flow_id ?? 'OK').slice(0, 8)}`);
+      setScanRunning(false);
+      if (isEnterprise) {
+        const findings = (data?.findings as unknown[])?.length ?? 0;
+        const scanId = String(data?.scan_id ?? 'OK').slice(0, 8);
+        toast.success(`Enterprise scan completed: ${scanId}… — ${findings} findings`);
+      } else {
+        toast.success(`Verification request created: ${String(data?.id ?? data?.flow_id ?? 'OK').slice(0, 8)}`);
+      }
       setTargetUrl('');
       setCveId('');
       setAdditionalTargets('');
       onCreated();
     },
     onError: (error: { response?: { data?: { detail?: string } }; message?: string }) => {
+      setScanRunning(false);
       const msg = error?.response?.data?.detail || error?.message || 'Unknown error';
       toast.error(`Failed to create verification: ${msg}`);
+    },
+  });
+
+  const reportMutation = useMutation({
+    mutationFn: async () => {
+      const url = targetUrl.includes('://') ? targetUrl : `https://${targetUrl}`;
+      const targets = [url, ...additionalTargets.split('\n').map(t => t.trim()).filter(Boolean).map(u => u.includes('://') ? u : `https://${u}`)];
+      const cveIds = cveId ? cveId.split(',').map(c => c.trim()).filter(Boolean) : [];
+      return microPentestApi.generateReport({ cve_ids: cveIds, target_urls: targets, context: { scope, priority } });
+    },
+    onSuccess: () => {
+      setReportReady(true);
+      toast.success('Report generated — click View/Download to access');
+    },
+    onError: (error: { response?: { data?: { detail?: string } }; message?: string }) => {
+      toast.error(`Report failed: ${error?.response?.data?.detail || error?.message || 'Unknown error'}`);
     },
   });
 
@@ -1613,7 +1656,7 @@ function NewVerificationForm({ onCreated }: { onCreated: () => void }) {
             <div>
               <CardTitle className="text-base">New Verification</CardTitle>
               <CardDescription className="text-xs">
-                {isEnterprise ? 'Enterprise multi-target scan with micro-pentest engine' : 'Launch a 19-phase MPTE exploitability verification'}
+                {isEnterprise ? '8-phase enterprise scan: LLM recon → MITRE ATT&CK → vuln scan → PoC → compliance → report' : 'Launch a 19-phase MPTE exploitability verification'}
               </CardDescription>
             </div>
           </div>
@@ -1719,19 +1762,58 @@ function NewVerificationForm({ onCreated }: { onCreated: () => void }) {
           </div>
         </div>
 
-        <Button
-          onClick={() => createMutation.mutate()}
-          disabled={!targetUrl.trim() || createMutation.isPending}
-          className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold"
-        >
-          {createMutation.isPending ? (
-            <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Launching Verification...</>
-          ) : (
-            <><Play className="w-4 h-4 mr-2" />
-              {isEnterprise ? 'Launch Enterprise Scan' : `Launch ${scope.charAt(0).toUpperCase() + scope.slice(1)} Verification (${scope === 'quick' ? '6' : scope === 'standard' ? '12' : '19'} Phases)`}
-            </>
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          <Button
+            onClick={() => createMutation.mutate()}
+            disabled={!targetUrl.trim() || createMutation.isPending || scanRunning}
+            className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold"
+          >
+            {createMutation.isPending || scanRunning ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{isEnterprise ? 'Running 8-Phase Scan…' : 'Launching Verification…'}</>
+            ) : (
+              <><Play className="w-4 h-4 mr-2" />
+                {isEnterprise ? 'Launch Enterprise Scan (8 Phases)' : `Launch ${scope.charAt(0).toUpperCase() + scope.slice(1)} Verification (${scope === 'quick' ? '6' : scope === 'standard' ? '12' : '19'} Phases)`}
+              </>
+            )}
+          </Button>
+          {isEnterprise && (
+            <Button
+              onClick={() => reportMutation.mutate()}
+              disabled={!targetUrl.trim() || reportMutation.isPending || scanRunning}
+              variant="outline"
+              className="border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
+            >
+              {reportMutation.isPending ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating…</>
+              ) : (
+                <><FileText className="w-4 h-4 mr-2" />Run + Report</>
+              )}
+            </Button>
           )}
-        </Button>
+        </div>
+
+        {/* Report Download/View Buttons */}
+        {reportReady && (
+          <div className="flex gap-2 pt-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/10"
+              onClick={() => window.open(microPentestApi.viewReportUrl, '_blank')}
+            >
+              <Eye className="w-3.5 h-3.5 mr-1.5" />View Report
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-violet-500/40 text-violet-400 hover:bg-violet-500/10"
+              onClick={() => window.open(microPentestApi.downloadReportUrl, '_blank')}
+            >
+              <Download className="w-3.5 h-3.5 mr-1.5" />Download HTML
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

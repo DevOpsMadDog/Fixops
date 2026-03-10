@@ -201,8 +201,8 @@ function FixPreviewDialog({
                     >
                       {(result.passed as boolean) ? "PASS" : "FAIL"}
                     </span>
-                    {result.duration && (
-                      <span className="text-muted-foreground">{result.duration as string}</span>
+                    {!!result.duration && (
+                      <span className="text-muted-foreground">{String(result.duration)}</span>
                     )}
                   </div>
                 ))}
@@ -211,7 +211,7 @@ function FixPreviewDialog({
           )}
 
           {/* PR Link */}
-          {fix.pr_link && (
+          {!!fix.pr_link && (
             <div className="flex items-center gap-2 text-sm">
               <GitPullRequest className="h-4 w-4 text-muted-foreground" />
               <a
@@ -311,8 +311,8 @@ export default function AutoFix() {
   });
 
   const sorted = [...filtered].sort((a, b) => {
-    const av = a[sortField] as string;
-    const bv = b[sortField] as string;
+    const av = (a as Record<string, unknown>)[sortField] as string;
+    const bv = (b as Record<string, unknown>)[sortField] as string;
     return sortDir === "asc"
       ? String(av).localeCompare(String(bv))
       : String(bv).localeCompare(String(av));
