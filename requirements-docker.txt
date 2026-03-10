@@ -1,0 +1,28 @@
+# ALdeci FixOps CTEM+ — Docker Production Dependencies
+# Excludes: pgmpy (pulls PyTorch/CUDA ~3GB), opentelemetry
+# pgmpy predictions use built-in fallback when not installed
+fastapi>=0.115,<0.128
+uvicorn>=0.30.0,<1.0
+pydantic>=2.6,<3.0
+email-validator>=2.0.0,<3.0
+python-multipart>=0.0.9,<1.0
+requests>=2.32,<3.0
+httpx>=0.27.0,<1.0
+PyJWT>=2.8,<3.0
+cryptography>=46.0.5,<47.0.0
+cffi>=2.0.0
+structlog>=25.4.0,<26.0.0
+PyYAML>=6.0.1,<7.0
+networkx>=3.5,<4.0
+apscheduler>=3.10,<4.0
+scikit-learn>=1.3.0,<2.0
+bcrypt>=4.0.0
+passlib[bcrypt]>=1.7.4,<2.0
+tenacity>=8.2.0,<9.0
+ssvc>=1.2.0,<2.0
+sarif-om>=1.0.4,<2.0
+python-dotenv>=1.0.0,<2.0
+sqlalchemy>=2.0.0,<3.0
+pyotp>=2.9.0,<3.0
+cvss>=3.6,<4.0
+defusedxml>=0.7.1,<1.0
