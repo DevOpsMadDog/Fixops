@@ -10,9 +10,9 @@
 
 FROM python:3.11-slim
 
-# System deps: curl (healthcheck) + Node.js 20
+# System deps: curl (healthcheck) + Node.js 20 + build tools for native modules
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl gnupg && \
+    apt-get install -y --no-install-recommends curl gnupg build-essential python3-dev && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y --no-install-recommends nodejs && \
     rm -rf /var/lib/apt/lists/*
@@ -30,9 +30,9 @@ COPY suite-attack/ suite-attack/
 COPY suite-evidence-risk/ suite-evidence-risk/
 COPY suite-integrations/ suite-integrations/
 
-# Copy Node production server + install deps
-COPY package.json package-lock.json serve.js ./
-RUN npm ci --omit=dev
+# Copy Node production server + API bridge + install deps
+COPY package.json serve.js api-bridge.js ./
+RUN npm install --omit=dev
 
 # Copy pre-built frontend
 COPY suite-ui/aldeci-ui-new/dist/ suite-ui/aldeci-ui-new/dist/
@@ -47,6 +47,7 @@ RUN chmod +x /docker-entrypoint.sh
 # Environment
 ENV PYTHONPATH=/app/suite-api:/app/suite-api/apps:/app:/app/suite-core:/app/suite-attack:/app/suite-evidence-risk:/app/suite-integrations
 ENV FIXOPS_MODE=enterprise
+ENV FIXOPS_DATA_DIR=/app/data
 ENV NODE_ENV=production
 ENV API_BACKEND_URL=http://localhost:8000
 

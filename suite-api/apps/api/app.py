@@ -612,7 +612,12 @@ from core.paths import ensure_secure_directory, verify_allowlisted_path
 from core.storage import ArtefactArchive
 from telemetry import configure as configure_telemetry
 
-if importlib.util.find_spec("opentelemetry.instrumentation.fastapi"):
+try:
+    _has_otel_fastapi = importlib.util.find_spec("opentelemetry.instrumentation.fastapi") is not None
+except (ModuleNotFoundError, ValueError):
+    _has_otel_fastapi = False
+
+if _has_otel_fastapi:
     from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 else:  # pragma: no cover - fallback when instrumentation is unavailable
     from telemetry.fastapi_noop import FastAPIInstrumentor  # type: ignore[assignment]
