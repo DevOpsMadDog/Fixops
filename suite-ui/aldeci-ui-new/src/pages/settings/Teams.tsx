@@ -35,10 +35,12 @@ function MemberManagementDialog({ team, allUsers }: { team: any; allUsers: any[]
   const nonMembers = allUsers.filter((u: any) => !memberIds.has(u.id ?? u.email));
 
   const handleAdd = (user: any) => {
-    toast.success(`${user.name ?? user.email} added to ${team.name}`);
+    // TODO: Wire to real team membership API
+    toast.info(`Add ${user.name ?? user.email} to ${team.name} — not yet wired to API`);
   };
   const handleRemove = (member: any) => {
-    toast.success(`${member.name ?? member.email} removed from ${team.name}`);
+    // TODO: Wire to real team membership API
+    toast.info(`Remove ${member.name ?? member.email} from ${team.name} — not yet wired to API`);
   };
 
   return (
@@ -140,10 +142,8 @@ function CreateTeamDialog({ users, onSave }: { users: any[]; onSave: () => void 
 
   const handleSave = async () => {
     if (!name) return;
-    setIsSaving(true);
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    setIsSaving(false);
-    toast.success(`Team "${name}" created`);
+    // TODO: Wire to real team creation API
+    toast.info(`Team "${name}" created locally — persist API pending`);
     onSave();
     setOpen(false);
     setName("");

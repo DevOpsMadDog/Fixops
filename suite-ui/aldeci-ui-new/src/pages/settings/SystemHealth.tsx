@@ -159,6 +159,7 @@ export default function SystemHealth() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* SAMPLE DATA — TODO: Replace with real service dependency discovery from /api/v1/health */}
           <div className="flex items-center justify-center gap-4 flex-wrap py-2">
             {[
               { name: "API Gateway", deps: ["AI Brain", "DB"], status: "healthy" },
@@ -233,10 +234,10 @@ export default function SystemHealth() {
             </CardHeader>
             <CardContent className="space-y-3">
               {[
-                { label: "Size", value: dbStats.size ?? "2.4 GB" },
-                { label: "WAL Mode", value: dbStats.wal_mode ?? "enabled" },
-                { label: "Connections", value: dbStats.connections ?? 12 },
-                { label: "Cache Hit Rate", value: dbStats.cache_hit ?? "97.3%" },
+                { label: "Size", value: dbStats.size ?? "—" },
+                { label: "WAL Mode", value: dbStats.wal_mode ?? "—" },
+                { label: "Connections", value: dbStats.connections ?? "—" },
+                { label: "Cache Hit Rate", value: dbStats.cache_hit ?? "—" },
               ].map(({ label, value }) => (
                 <div key={label} className="flex justify-between text-xs">
                   <span className="text-muted-foreground">{label}</span>
@@ -269,9 +270,9 @@ export default function SystemHealth() {
             </CardHeader>
             <CardContent className="space-y-2">
               {[
-                { label: "Today", value: llmTokens.today ?? "45.2K" },
-                { label: "This month", value: llmTokens.month ?? "1.2M" },
-                { label: "Model", value: llmTokens.model ?? "gpt-4o" },
+                { label: "Today", value: llmTokens.today ?? "—" },
+                { label: "This month", value: llmTokens.month ?? "—" },
+                { label: "Model", value: llmTokens.model ?? "—" },
               ].map(({ label, value }) => (
                 <div key={label} className="flex justify-between text-xs">
                   <span className="text-muted-foreground">{label}</span>

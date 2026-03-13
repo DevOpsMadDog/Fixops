@@ -64,10 +64,8 @@ function PolicyYamlEditor({ policy, onSave }: { policy: any; onSave: () => void 
   const lineCount = yaml.split("\n").length;
 
   const handleSave = async () => {
-    setIsSaving(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setIsSaving(false);
-    toast.success(`Policy "${policy.name}" YAML saved`);
+    // TODO: Wire to real policy YAML save API
+    toast.info(`Policy "${policy.name}" YAML saved locally — persist API pending`);
     onSave();
     setOpen(false);
   };
@@ -152,10 +150,8 @@ function CreatePolicyDialog({ onSave }: { onSave: () => void }) {
 
   const handleSave = async () => {
     if (!name) return;
-    setIsSaving(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setIsSaving(false);
-    toast.success(`Policy "${name}" created`);
+    // TODO: Wire to real policy creation API
+    toast.info(`Policy "${name}" created locally — persist API pending`);
     onSave();
     setOpen(false);
   };

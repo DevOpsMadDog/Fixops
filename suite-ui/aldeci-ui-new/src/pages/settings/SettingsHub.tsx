@@ -101,7 +101,7 @@ export default function SettingsHub() {
   };
 
   const handleRotateKey = () => {
-    toast.success("API key rotation initiated. You will receive a confirmation email.");
+    toast.info("API key rotation not yet wired — rotation API pending");
   };
 
   const handleGenerateKey = () => {
@@ -115,12 +115,12 @@ export default function SettingsHub() {
       calls: 0,
     }]);
     setNewKeyName("");
-    toast.success(`API key "${newKeyName}" generated`);
+    toast.info(`API key "${newKeyName}" created locally — persist API pending`);
   };
 
   const handleRevokeKey = (id: string, name: string) => {
     setAdditionalKeys((prev) => prev.filter((k) => k.id !== id));
-    toast.success(`API key "${name}" revoked`);
+    toast.info(`API key "${name}" revoked locally — persist API pending`);
   };
 
   return (
@@ -502,7 +502,7 @@ export default function SettingsHub() {
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "Force Re-sync", desc: "Sync all integrations", icon: RefreshCw, action: () => toast.success("Sync initiated") },
+              { label: "Force Re-sync", desc: "Sync all integrations", icon: RefreshCw, action: () => toast.info("Re-sync not yet wired") },
               { label: "Export Config", desc: "Download org config", icon: Key, action: async () => {
                 try {
                   const res = await systemApi.config();
@@ -521,7 +521,7 @@ export default function SettingsHub() {
                   toast.error(`Config export failed: ${err?.response?.data?.detail ?? err.message}`);
                 }
               } },
-              { label: "Clear Cache", desc: "Flush Redis cache", icon: Trash2, action: () => toast.success("Cache cleared") },
+              { label: "Clear Cache", desc: "Flush Redis cache", icon: Trash2, action: () => toast.info("Cache clear not yet wired") },
               { label: "Audit Export", desc: "Export audit log CSV", icon: Activity, action: async () => {
                 try {
                   const res = await auditApi.list({ limit: 1000 });
@@ -545,10 +545,10 @@ export default function SettingsHub() {
                   toast.error(`Audit export failed: ${err?.response?.data?.detail ?? err.message}`);
                 }
               } },
-              { label: "Rotate All Keys", desc: "Rotate all API keys", icon: RotateCcw, action: () => toast.success("Key rotation queued") },
-              { label: "User Sync", desc: "Sync SSO users", icon: Users, action: () => toast.success("SSO sync triggered") },
-              { label: "Health Check", desc: "Run system diagnostics", icon: CheckCircle, action: () => toast.success("Health check running") },
-              { label: "Send Test Alert", desc: "Test notification config", icon: Bell, action: () => toast.success("Test alert sent") },
+              { label: "Rotate All Keys", desc: "Rotate all API keys", icon: RotateCcw, action: () => toast.info("Key rotation not yet wired") },
+              { label: "User Sync", desc: "Sync SSO users", icon: Users, action: () => toast.info("SSO sync not yet wired") },
+              { label: "Health Check", desc: "Run system diagnostics", icon: CheckCircle, action: () => toast.info("Health check not yet wired") },
+              { label: "Send Test Alert", desc: "Test notification config", icon: Bell, action: () => toast.info("Test alert not yet wired") },
             ].map(({ label, desc, icon: Icon, action }) => (
               <button
                 key={label}

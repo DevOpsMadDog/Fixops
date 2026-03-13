@@ -170,7 +170,7 @@ export default function MLDashboard() {
                             try {
                               await apiClient(`/api/v1/ml/analytics/threats/${t.indicator_id}/acknowledge`, { method: "POST" });
                               toast.success("Acknowledged");
-                            } catch { toast.info("Noted"); }
+                            } catch { toast.error("Acknowledge failed"); }
                           }}>Ack</Button>
                         </div>
                       </div>
@@ -187,8 +187,8 @@ export default function MLDashboard() {
             <Card>
               <CardHeader><CardTitle className="text-sm">Feedback Loops</CardTitle></CardHeader>
               <CardContent>
+                {/* SAMPLE DATA — TODO: Wire to real feedback loop metrics from /api/v1/ml/feedback */}
                 {[
-                  { loop: "Decision Accuracy", desc: "Human overrides vs AI decisions", metric: "4.2% override rate" },
                   { loop: "False Positive Rate", desc: "Reported FPs adjust severity scoring", metric: "2.1% FP rate" },
                   { loop: "MPTE Verification", desc: "Pentest results refine exploitability models", metric: "89% verified" },
                   { loop: "Remediation Time", desc: "Fix success feeds back to priority scoring", metric: "3.4h avg MTTR" },
@@ -208,6 +208,7 @@ export default function MLDashboard() {
               <CardHeader><CardTitle className="text-sm">Learning Weights</CardTitle></CardHeader>
               <CardContent>
                 {Object.entries(learningStats?.weights ?? {
+                  // SAMPLE DATA — TODO: Wire to real model weights from /api/v1/ml/weights
                   "epss_score": 0.28, "cvss_score": 0.15, "kev_status": 0.22,
                   "reachability": 0.18, "data_classification": 0.12, "blast_radius": 0.05
                 }).map(([key, val]) => (
@@ -228,6 +229,7 @@ export default function MLDashboard() {
           <Card>
             <CardContent className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* SAMPLE DATA — TODO: Wire to real model performance metrics from /api/v1/ml/models/metrics */}
                 {[
                   { model: "Triage Classifier", precision: 94.2, recall: 91.8, f1: 93.0, auc: 97.1 },
                   { model: "Severity Predictor", precision: 89.7, recall: 93.4, f1: 91.5, auc: 95.8 },

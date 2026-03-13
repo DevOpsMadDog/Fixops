@@ -108,7 +108,7 @@ export default function Predictions() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard title="Predictions" value={predictions.length} icon={TrendingUp} trend="flat" trendLabel="Active forecasts" />
         <KpiCard title="High Risk" value={highRisk || predictions.filter(p => p.risk_score > 0.7).length} icon={AlertTriangle} trend="down" trendLabel="Needs attention" />
-        <KpiCard title="Avg Confidence" value={`${(avgConfidence > 0 ? avgConfidence * 100 : 89.6).toFixed(1)}%`} icon={Target} trend="up" trendLabel="Model certainty" />
+        <KpiCard title="Avg Confidence" value={`${(avgConfidence > 0 ? avgConfidence * 100 : 0).toFixed(1)}%`} icon={Target} trend="up" trendLabel="Model certainty" />
         <KpiCard title="Engine Status" value={healthStatus === "operational" ? "Healthy" : healthStatus} icon={Activity} trend="up" trendLabel="Prediction engine" />
       </div>
 
@@ -188,6 +188,7 @@ export default function Predictions() {
                   <p className="text-sm font-medium">Markov chain states</p>
                   <p className="text-xs mt-1">Security posture modeled as state transitions</p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 max-w-2xl mx-auto">
+                    {/* SAMPLE DATA — TODO: Fetch real Markov state probabilities from /api/v1/predictions/markov */}
                     {[
                       { state: "Secure", prob: 0.42, color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" },
                       { state: "Vulnerable", prob: 0.31, color: "bg-yellow-500/10 text-yellow-400 border-yellow-500/30" },
@@ -227,6 +228,7 @@ export default function Predictions() {
                 <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto max-h-60">{JSON.stringify(bayesianResults, null, 2)}</pre>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* SAMPLE DATA — TODO: Wire to real Bayesian posterior outputs from /api/v1/predictions/risk-trajectory */}
                   {[
                     { prior: "CVE Exploitability", desc: "P(exploit | CVE published) based on EPSS + KEV + age", posterior: "Updated daily with new exploit evidence", value: "34.2%" },
                     { prior: "Breach Impact", desc: "P(data breach | exploitable finding) based on data classification", posterior: "Adjusted by blast radius and network exposure", value: "12.8%" },

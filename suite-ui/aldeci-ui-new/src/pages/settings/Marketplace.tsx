@@ -35,6 +35,7 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
 type MarketplaceCategory = "All" | "Scanners" | "ALM" | "Cloud" | "Notification" | "Community";
 const CATEGORIES: MarketplaceCategory[] = ["All", "Scanners", "ALM", "Cloud", "Notification", "Community"];
 
+// SAMPLE DATA — TODO: Replace with real community marketplace API
 const COMMUNITY_PLAYBOOKS = [
   { name: "SOC2 Rapid Assessment", author: "security-team", stars: 128, downloads: 512, category: "Compliance", verified: true },
   { name: "OWASP Top 10 Coverage", author: "appsec-pros", stars: 94, downloads: 389, category: "AppSec", verified: true },
@@ -73,14 +74,13 @@ function ConnectorConfigWizard({ connector, onClose }: { connector: any; onClose
   const [testing, setTesting] = useState(false);
 
   const handleTest = async () => {
-    setTesting(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    setTesting(false);
-    setTestPassed(true);
+    // TODO: Wire to real connector test API
+    toast.info("Connection test not yet wired to API");
   };
 
   const handleFinish = () => {
-    toast.success(`${connector.name} configured successfully`);
+    // TODO: Wire to real connector config save API
+    toast.info(`${connector.name} configuration saved locally — persist API pending`);
     onClose();
   };
 
@@ -488,7 +488,7 @@ export default function Marketplace() {
                     <Progress value={Math.round((pb.downloads / 1100) * 100)} className="h-1" />
                   </div>
                   <Button size="sm" variant="outline" className="w-full text-xs gap-1"
-                    onClick={() => toast.success(`${pb.name} imported to Playbooks`)}>
+                    onClick={() => toast.info(`${pb.name} import not yet wired to API`)}>
                     <Download className="h-3 w-3" />
                     Import Playbook
                   </Button>

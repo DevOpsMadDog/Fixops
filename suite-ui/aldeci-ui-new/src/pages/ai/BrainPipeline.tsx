@@ -212,7 +212,8 @@ export default function BrainPipeline() {
               <CardHeader><CardTitle className="text-sm">Entity Types</CardTitle></CardHeader>
               <CardContent>
                 {(() => {
-                  const raw = stats?.entity_types ?? stats?.node_types ?? { "App": 12, "Finding": 847, "CVE": 234, "Component": 89, "Evidence": 156, "Decision": 423 };
+                  // SAMPLE DATA — TODO: Wire to real entity types from /api/v1/brain/graph/stats
+                  const raw = stats?.entity_types ?? stats?.node_types ?? { "App": 0, "Finding": 0, "CVE": 0, "Component": 0, "Evidence": 0, "Decision": 0 };
                   const items = Array.isArray(raw) ? raw.map((r: Record<string, unknown>) => [String(r.label || r.type || r.id || ''), Number(r.count || r.size || 0)]) : Object.entries(raw);
                   return (items as [string, unknown][]).map(([type, count]) => (
                     <div key={type} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
@@ -227,7 +228,8 @@ export default function BrainPipeline() {
               <CardHeader><CardTitle className="text-sm">Relationship Types</CardTitle></CardHeader>
               <CardContent>
                 {(() => {
-                  const raw = stats?.edge_types ?? stats?.relationship_types ?? { "HAS_FINDING": 847, "AFFECTS": 1234, "REMEDIATES": 312, "EVIDENCES": 156, "CORRELATES": 567, "ENRICHED_BY": 234 };
+                  // SAMPLE DATA — TODO: Wire to real relationship types from /api/v1/brain/graph/stats
+                  const raw = stats?.edge_types ?? stats?.relationship_types ?? { "HAS_FINDING": 0, "AFFECTS": 0, "REMEDIATES": 0, "EVIDENCES": 0, "CORRELATES": 0, "ENRICHED_BY": 0 };
                   const items = Array.isArray(raw) ? raw.map((r: Record<string, unknown>) => [String(r.label || r.type || r.id || ''), Number(r.count || r.size || 0)]) : Object.entries(raw);
                   return (items as [string, unknown][]).map(([type, count]) => (
                     <div key={type} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">

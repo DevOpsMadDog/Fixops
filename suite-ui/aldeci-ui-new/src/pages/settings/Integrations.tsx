@@ -87,7 +87,7 @@ function WebhookConfigCard({ integration }: { integration: any }) {
           <Separator />
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={() => { toast.success("Webhook configured"); setOpen(false); }}>Save</Button>
+            <Button onClick={() => { toast.info("Webhook saved locally — persist API pending"); setOpen(false); }}>Save</Button>
           </div>
         </div>
       </DialogContent>
@@ -95,6 +95,7 @@ function WebhookConfigCard({ integration }: { integration: any }) {
   );
 }
 
+// SAMPLE DATA — TODO: Replace with real sync event log from API
 const SYNC_TIMELINE = [
   { time: "09:42", name: "Snyk", event: "Scan results pushed", status: "success", records: 47 },
   { time: "09:35", name: "Jira", event: "Tickets synced", status: "success", records: 12 },
@@ -129,13 +130,14 @@ function ConfigureDialog({ integration, onSave }: { integration: any; onSave: ()
   const handleTest = async () => {
     setIsTesting(true);
     setTestResult(null);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // TODO: Wire to real connection-test API
+    toast.info("Connection test not yet wired to API");
     setIsTesting(false);
-    setTestResult("success");
   };
 
   const handleSave = () => {
-    toast.success(`${integration.name} configuration saved`);
+    // TODO: Wire to real integration config save API
+    toast.info(`${integration.name} configuration saved locally — persist API pending`);
     onSave();
     setOpen(false);
   };
@@ -227,7 +229,8 @@ export default function Integrations() {
     : integrations.filter((i: any) => (i.category ?? i.type ?? "Scanner") === categoryFilter);
 
   const handleSync = (integration: any) => {
-    toast.success(`Sync initiated for ${integration.name}`);
+    // TODO: Wire to real sync API
+    toast.info(`Sync for ${integration.name} not yet wired to API`);
   };
 
   return (

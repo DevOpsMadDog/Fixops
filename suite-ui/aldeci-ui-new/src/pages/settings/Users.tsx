@@ -32,6 +32,7 @@ const PERMISSION_MATRIX: Record<string, Record<string, boolean>> = {
   Viewer: { "View Findings": true, "Triage Findings": false, "Manage Users": false, "Configure Integrations": false, "Generate Reports": false, "Manage API Keys": false },
 };
 
+// SAMPLE DATA — TODO: Replace with real audit log from /api/v1/audit endpoint
 const USER_ACTIVITY_LOG = [
   { user: "alice@corp.com", action: "Triaged CVE-2024-1337 as accepted risk", time: "2m ago", type: "triage" },
   { user: "bob@corp.com", action: "Generated SOC2 evidence bundle", time: "18m ago", type: "report" },
@@ -84,7 +85,7 @@ function UserApiKeyDialog({ user }: { user: any }) {
           </div>
           <Separator />
           <div className="flex gap-2 justify-end">
-            <Button variant="destructive" size="sm" onClick={() => { toast.success("Key revoked"); setOpen(false); }}>Revoke Key</Button>
+            <Button variant="destructive" size="sm" onClick={() => { toast.info("Key revoked locally — revoke API pending"); setOpen(false); }}>Revoke Key</Button>
             <Button onClick={() => setOpen(false)}>Close</Button>
           </div>
         </div>
@@ -111,11 +112,8 @@ function InviteUserDialog({ onInvite }: { onInvite: () => void }) {
 
   const handleInvite = async () => {
     if (!email) return;
-    setIsSending(true);
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    setIsSending(false);
-    toast.success(`Invitation sent to ${email}`);
-    onInvite();
+    // TODO: Wire to real user invite API
+    toast.info(`Invite for ${email} not yet wired to API`);
     setOpen(false);
     setEmail("");
   };

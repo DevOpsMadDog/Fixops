@@ -148,11 +148,12 @@ export default function CopilotDashboard() {
   if (agentsQuery.isLoading) return <PageSkeleton />;
   if (agentsQuery.isError) return <ErrorState message="Failed to load AI Copilot" onRetry={refetch} />;
 
+  // SAMPLE DATA fallback — TODO: Ensure /api/v1/agents endpoint returns real agent list
   const DEFAULT_AGENTS = [
-    { id: "triage", name: "Triage Agent", type: "triage", status: "idle", last_action: "Processed 12 findings" },
-    { id: "fix", name: "Fix Agent", type: "fix", status: "idle", last_action: "Generated 3 patches" },
-    { id: "evidence", name: "Evidence Agent", type: "evidence", status: "idle", last_action: "Signed 8 bundles" },
-    { id: "compliance", name: "Compliance Agent", type: "compliance", status: "idle", last_action: "Ran SOC2 assessment" },
+    { id: "triage", name: "Triage Agent", type: "triage", status: "idle", last_action: "—" },
+    { id: "fix", name: "Fix Agent", type: "fix", status: "idle", last_action: "—" },
+    { id: "evidence", name: "Evidence Agent", type: "evidence", status: "idle", last_action: "—" },
+    { id: "compliance", name: "Compliance Agent", type: "compliance", status: "idle", last_action: "—" },
   ];
   const rawAgents = agentsQuery.data;
   const agents: any[] = Array.isArray(rawAgents) ? rawAgents

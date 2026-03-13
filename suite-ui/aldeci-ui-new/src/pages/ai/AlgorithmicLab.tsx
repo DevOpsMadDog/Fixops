@@ -125,7 +125,7 @@ export default function AlgorithmicLab() {
                           try {
                             await apiClient(`/api/v1/ml/models/${algo.id}/train`, { method: "POST" });
                             toast.success(`Retraining ${algo.name}`);
-                          } catch { toast.info("Training queued"); }
+                          } catch { toast.error("Retrain failed"); }
                         }}>Retrain</Button>
                         <Button variant="outline" size="sm" className="flex-1 text-xs h-7">Evaluate</Button>
                       </div>
@@ -141,6 +141,7 @@ export default function AlgorithmicLab() {
           <Card>
             <CardContent className="p-6">
               <div className="space-y-3">
+              {/* SAMPLE DATA — TODO: Replace with real experiment results from /api/v1/ml/experiments */}
                 {[
                   { name: "GNN vs MLP for attack path scoring", status: "completed", winner: "GNN (+4.2% AUC)", date: "2024-12-10" },
                   { name: "Monte Carlo iterations: 1K vs 10K", status: "completed", winner: "10K (diminishing at 5K)", date: "2024-12-08" },
