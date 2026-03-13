@@ -4,6 +4,11 @@ import { WorkspaceLayout } from "@/components/layout/WorkspaceLayout";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import NotFound from "@/pages/NotFound";
+import { RequireAuth, RequireRole } from "@/lib/auth";
+
+// Auth
+const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
+const AccessDenied = lazy(() => import("@/pages/auth/AccessDenied"));
 
 // ── Lazy-loaded pages ──
 
@@ -82,11 +87,12 @@ export default function App() {
     <ErrorBoundary>
       <Suspense fallback={<PageSkeleton />}>
         <Routes>
-          {/* Onboarding */}
+          {/* Public routes */}
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/onboarding" element={<OnboardingWizard />} />
 
-          {/* Main workspace */}
-          <Route element={<WorkspaceLayout />}>
+          {/* Protected workspace */}
+          <Route element={<RequireAuth><WorkspaceLayout /></RequireAuth>}>
             {/* Space 1: Mission Control */}
             <Route path="/" element={<CommandDashboard />} />
             <Route path="/mission-control" element={<CommandDashboard />} />
@@ -121,7 +127,7 @@ export default function App() {
             {/* Space 4: Remediate */}
             <Route path="/remediate" element={<RemediationCenter />} />
             <Route path="/remediate/autofix" element={<AutoFix />} />
-            <Route path="/remediate/bulk" element={<BulkOperations />} />
+            <Route path="/remediate/bulk" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><BulkOperations /></RequireRole>} />
             <Route path="/remediate/collaborate" element={<Collaboration />} />
             <Route path="/remediate/workflows" element={<Workflows />} />
             <Route path="/remediate/cases" element={<ExposureCases />} />
@@ -141,10 +147,10 @@ export default function App() {
             {/* Settings */}
             <Route path="/settings" element={<SettingsHub />} />
             <Route path="/settings/integrations" element={<Integrations />} />
-            <Route path="/settings/users" element={<UsersPage />} />
-            <Route path="/settings/teams" element={<Teams />} />
+            <Route path="/settings/users" element={<RequireRole roles={["admin"]} fallback={<AccessDenied />}><UsersPage /></RequireRole>} />
+            <Route path="/settings/teams" element={<RequireRole roles={["admin"]} fallback={<AccessDenied />}><Teams /></RequireRole>} />
             <Route path="/settings/marketplace" element={<Marketplace />} />
-            <Route path="/settings/policies" element={<Policies />} />
+            <Route path="/settings/policies" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><Policies /></RequireRole>} />
             <Route path="/settings/health" element={<SystemHealth />} />
             <Route path="/settings/logs" element={<LogViewer />} />
 

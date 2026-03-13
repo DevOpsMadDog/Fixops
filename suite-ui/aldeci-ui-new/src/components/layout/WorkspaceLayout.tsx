@@ -86,6 +86,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CopilotSidebar } from "./CopilotSidebar";
+import { useAuth } from "@/lib/auth";
 
 interface NavItem {
   label: string;
@@ -181,6 +182,45 @@ const navGroups: NavGroup[] = [
     ],
   },
 ];
+
+// ── User identity badge for sidebar ──
+import { LogOut, UserCircle } from "lucide-react";
+
+function UserBadge({ collapsed }: { collapsed: boolean }) {
+  const { user, isAuthenticated, logout } = useAuth();
+  if (!isAuthenticated || !user) return null;
+
+  const initials = `${(user.first_name?.[0] ?? "").toUpperCase()}${(user.last_name?.[0] ?? "").toUpperCase()}` || "U";
+
+  if (collapsed) {
+    return (
+      <button
+        onClick={logout}
+        className="flex w-full items-center justify-center rounded-lg px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
+        title={`${user.email} — Sign out`}
+      >
+        <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
+          {initials}
+        </div>
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm">
+      <div className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
+        {initials}
+      </div>
+      <div className="flex-1 truncate">
+        <div className="truncate text-xs font-medium text-foreground">{user.first_name} {user.last_name}</div>
+        <div className="truncate text-[10px] text-muted-foreground">{user.role}</div>
+      </div>
+      <button onClick={logout} className="text-muted-foreground hover:text-foreground" title="Sign out">
+        <LogOut className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
 
 export function WorkspaceLayout() {
   const { preferences, toggleSidebar, toggleCopilot, toggleTheme } = useAppStore();
@@ -296,6 +336,8 @@ export function WorkspaceLayout() {
 
         {/* Bottom Actions */}
         <div className="border-t border-sidebar-border p-2 space-y-1">
+          {/* User identity */}
+          <UserBadge collapsed={collapsed} />
           <NavLink
             to="/settings"
             className={({ isActive }) =>
