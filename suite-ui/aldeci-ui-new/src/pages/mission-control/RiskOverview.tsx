@@ -203,22 +203,22 @@ export default function RiskOverview() {
   const impactAreas: { label: string; value: number; description: string }[] = [
     {
       label: "Data Exposure",
-      value: Number(ov.data_exposure_risk ?? impactScore * 0.3),
+      value: Number(ov.data_exposure_risk ?? 0),
       description: "Risk of sensitive data compromise",
     },
     {
       label: "Service Availability",
-      value: Number(ov.availability_risk ?? impactScore * 0.25),
+      value: Number(ov.availability_risk ?? 0),
       description: "Risk to uptime and service continuity",
     },
     {
       label: "Compliance Exposure",
-      value: Number(ov.compliance_risk ?? impactScore * 0.25),
+      value: Number(ov.compliance_risk ?? 0),
       description: "Regulatory and audit risk",
     },
     {
       label: "Reputation Impact",
-      value: Number(ov.reputation_risk ?? impactScore * 0.2),
+      value: Number(ov.reputation_risk ?? 0),
       description: "Potential reputational damage",
     },
   ];

@@ -137,7 +137,7 @@ export default function ExecutiveView() {
   const toolsConsolidated = Number(ov.tools_consolidated ?? ov.tools_replaced ?? 0);
   const totalFindings = Number(ov.total_findings ?? 0);
   const resolvedThisQuarter = Number(ov.resolved_quarter ?? ov.resolved_findings ?? 0);
-  const postureScore = Number(ov.posture_score ?? ov.security_score ?? 72);
+  const postureScore = Number(ov.posture_score ?? ov.security_score ?? 0);
   const postureChange = Number(ov.posture_change ?? trendData.posture_change ?? 0);
 
   // Key decisions
@@ -226,12 +226,13 @@ export default function ExecutiveView() {
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 toast.success("Executive report exported");
-              } catch (err: any) {
-                toast.error(`Export failed: ${err?.response?.data?.detail ?? err.message}`);
+              } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : "Unknown error";
+                toast.error(`Export failed: ${msg}`);
               }
             }}>
               <Download className="h-3.5 w-3.5" />
-              Export PDF
+              Export Report
             </Button>
           </div>
         }

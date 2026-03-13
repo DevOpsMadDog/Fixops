@@ -331,15 +331,13 @@ export default function PlaybookEditor() {
       toast.error("Playbook name is required");
       return;
     }
-    toast.success(editId ? "Playbook updated" : "Playbook created");
-    navigate("/validate/playbooks");
+    // TODO: Wire to POST /api/v1/playbooks (create) or PUT /api/v1/playbooks/:id (update)
+    toast.info(editId ? "Save not yet wired — playbook update API pending" : "Save not yet wired — playbook create API pending");
   };
 
   const handleTest = () => {
-    setTestRunning(true);
-    setTimeout(() => {
-      setTestRunning(false);
-    }, 2500);
+    // TODO: Wire to POST /api/v1/playbooks/:id/test when API is available
+    toast.info("Test run not yet wired — playbook test API pending");
   };
 
   const yaml = generateYaml(name, description, steps);

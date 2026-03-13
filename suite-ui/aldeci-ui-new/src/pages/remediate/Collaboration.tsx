@@ -246,7 +246,7 @@ function CreateRoomDialog({
       attachments: [],
     });
     setOpen(false);
-    toast.success(`War room "${name}" created`);
+    toast.info(`War room "${name}" created locally — persist API pending`);
   };
 
   return (

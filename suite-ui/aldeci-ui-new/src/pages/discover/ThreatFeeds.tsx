@@ -99,14 +99,14 @@ function SeverityBadge({ severity }: { severity?: string }) {
   return <Badge className={cn("border text-xs font-semibold uppercase", map[s] || "bg-slate-500/15 text-slate-400 border-slate-500/20")}>{severity || "Unknown"}</Badge>;
 }
 
-const MITRE_DATA = [
-  { name: "Initial Access", value: 12, fill: "#ef4444" },
-  { name: "Execution", value: 8, fill: "#f97316" },
-  { name: "Persistence", value: 15, fill: "#eab308" },
-  { name: "Privilege Escalation", value: 6, fill: "#8b5cf6" },
-  { name: "Defense Evasion", value: 10, fill: "#06b6d4" },
-  { name: "Other", value: 20, fill: "#6b7280" },
-];
+const MITRE_FILLS: Record<string, string> = {
+  "Initial Access": "#ef4444",
+  "Execution": "#f97316",
+  "Persistence": "#eab308",
+  "Privilege Escalation": "#8b5cf6",
+  "Defense Evasion": "#06b6d4",
+  "Other": "#6b7280",
+};
 
 export default function ThreatFeeds() {
   const [statusFilter, setStatusFilter] = useState("all");
@@ -171,6 +171,26 @@ export default function ThreatFeeds() {
     Array.from(new Set(allFeeds.map((f) => f.type || f.feed_type).filter(Boolean))),
     [allFeeds]
   );
+
+  // Derive MITRE ATT&CK data from trending CVEs instead of hardcoded constants
+  const mitreData = useMemo(() => {
+    if (trendingCves.length === 0) return [];
+    const counts: Record<string, number> = {};
+    trendingCves.forEach((c) => {
+      const tactic = (c as Record<string, unknown>).mitre_tactic as string | undefined;
+      const key = tactic || "Other";
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    // If no MITRE tactic data, show a single "Uncategorized" entry
+    if (Object.keys(counts).length === 0 || (Object.keys(counts).length === 1 && counts["Other"])) {
+      return [{ name: "Uncategorized", value: trendingCves.length, fill: "#6b7280" }];
+    }
+    return Object.entries(counts).map(([name, value]) => ({
+      name,
+      value,
+      fill: MITRE_FILLS[name] || MITRE_FILLS["Other"],
+    }));
+  }, [trendingCves]);
 
   function getFeedEnabled(feed: ThreatFeed): boolean {
     const id = feed.id || feed.name || "";
@@ -429,10 +449,12 @@ export default function ThreatFeeds() {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {mitreData.length > 0 ? (
+              <>
               <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
                   <Pie
-                    data={MITRE_DATA}
+                    data={mitreData}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
@@ -441,7 +463,7 @@ export default function ThreatFeeds() {
                     outerRadius={80}
                     paddingAngle={2}
                   >
-                    {MITRE_DATA.map((entry, i) => (
+                    {mitreData.map((entry, i) => (
                       <Cell key={i} fill={entry.fill} />
                     ))}
                   </Pie>
@@ -451,7 +473,7 @@ export default function ThreatFeeds() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="space-y-1 mt-2">
-                {MITRE_DATA.map((item) => (
+                {mitreData.map((item) => (
                   <div key={item.name} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1.5">
                       <div className="w-2 h-2 rounded-full" style={{ background: item.fill }} />
@@ -461,6 +483,14 @@ export default function ThreatFeeds() {
                   </div>
                 ))}
               </div>
+              </>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground text-xs">
+                  <Shield className="h-8 w-8 mb-2 opacity-30" />
+                  <p>No MITRE ATT&CK data available</p>
+                  <p className="text-[10px] mt-1">Requires trending CVE data with tactic mappings</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

@@ -180,16 +180,12 @@ export default function ContainerSecurity() {
     };
   }, [allFindings]);
 
-  // Generate trend data from findings timestamps
+  // Trend data from API (not fabricated - show actual current snapshot only)
   const trendData = useMemo(() => {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-    return months.map((m, i) => ({
-      month: m,
-      critical: Math.max(0, Math.floor(allFindings.filter((f) =>
-        f.severity?.toLowerCase() === "critical").length * (1 - i * 0.1))),
-      high: Math.max(0, Math.floor(allFindings.filter((f) =>
-        f.severity?.toLowerCase() === "high").length * (1 - i * 0.08))),
-    }));
+    const criticalCount = allFindings.filter((f) => f.severity?.toLowerCase() === "critical").length;
+    const highCount = allFindings.filter((f) => f.severity?.toLowerCase() === "high").length;
+    if (criticalCount === 0 && highCount === 0) return [];
+    return [{ month: "Current", critical: criticalCount, high: highCount }];
   }, [allFindings]);
 
   if (query.isLoading) {

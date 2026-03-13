@@ -320,8 +320,8 @@ export default function TicketIntegration() {
     toArray(integrationsQuery.data);
 
   // Map API data to Integration shape, fill in defaults
-  const integrations: Integration[] = apiIntegrations.map((int) => ({
-    id: (int.id as string) ?? `integration-${i}`,
+  const integrations: Integration[] = apiIntegrations.map((int, idx) => ({
+    id: (int.id as string) ?? `integration-${idx}`,
     name: (int.name as string) ?? (int.type as string) ?? "Unknown",
     type: (int.type as string) as Integration["type"],
     status: ((int.status as string) ?? "disconnected") as Integration["status"],
@@ -352,26 +352,13 @@ export default function TicketIntegration() {
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   const handleSync = (id: string) => {
-    setLocalOverrides((prev) => ({
-      ...prev,
-      [id]: { ...prev[id], status: "syncing" },
-    }));
-    setTimeout(() => {
-      setLocalOverrides((prev) => ({
-        ...prev,
-        [id]: { ...prev[id], status: "connected", last_sync: new Date().toLocaleTimeString() },
-      }));
-      toast.success("Sync completed");
-    }, 2000);
+    // TODO: Wire to POST /api/v1/integrations/:id/sync when backend supports it
+    toast.info("Sync not yet wired — integration sync API pending");
   };
 
   const handleTest = (id: string) => {
-    const int = integrations.find((i) => i.id === id);
-    if (int?.status === "connected") {
-      toast.success(`Connection to ${int.name} verified`);
-    } else {
-      toast.error("Connection failed — check configuration");
-    }
+    // TODO: Wire to POST /api/v1/integrations/:id/test when backend supports it
+    toast.info("Connection test not yet wired — integration test API pending");
   };
 
   const handleToggleBidirectional = (id: string, val: boolean) => {
@@ -379,7 +366,7 @@ export default function TicketIntegration() {
       ...prev,
       [id]: { ...prev[id], bidirectional: val },
     }));
-    toast.success(`Bi-directional sync ${val ? "enabled" : "disabled"}`);
+    toast.info(`Bi-directional sync ${val ? "enabled" : "disabled"} — save not yet wired`);
   };
 
   const handleSaveConfig = (id: string, config: Record<string, string>) => {
@@ -387,7 +374,7 @@ export default function TicketIntegration() {
       ...prev,
       [id]: { ...prev[id], url: config.url, project: config.project, status: "connected" },
     }));
-    toast.success("Configuration saved");
+    toast.info("Configuration saved locally — persist API pending");
   };
 
   return (

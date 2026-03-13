@@ -639,7 +639,7 @@ export default function RemediationCenter() {
                                 (await import('sonner')).toast.success(`Escalated: ${(task.title as string) || 'task'} — Team lead notified`);
                                 refetchAll();
                               } catch {
-                                (await import('sonner')).toast.success('Escalation sent to team lead');
+                                (await import('sonner')).toast.error('Failed to escalate — try again');
                               }
                             }}>Escalate</Button>
                           </TableCell>

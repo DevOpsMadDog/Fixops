@@ -1,6 +1,7 @@
 import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -358,6 +359,8 @@ export default function Playbooks() {
   };
 
   const handleConfirmRun = () => {
+    // TODO: Wire to POST /api/v1/playbooks/:id/run when API is available
+    toast.info("Playbook run not yet wired — execute API pending");
     setRunDialogOpen(false);
   };
 

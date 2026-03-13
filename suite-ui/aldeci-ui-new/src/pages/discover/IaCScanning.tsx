@@ -155,12 +155,11 @@ export default function IaCScanning() {
     };
   }, [allFindings]);
 
-  // Enrich CIS with counts
+  // Enrich CIS with real counts from findings
   const cisControls = useMemo(() => CIS_CONTROLS.map((c) => {
-    const total = Math.max(1, 10 + Math.floor(allFindings.length / 4));
     const fail = allFindings.filter((f) => f.framework?.includes(c.id)).length;
-    const pass = Math.max(0, total - fail);
-    return { ...c, pass, total };
+    const pass = 0; // Real pass count requires CSPM API
+    return { ...c, pass, total: fail, fail };
   }), [allFindings]);
 
   const driftAlerts = useMemo(() => allFindings.filter((f) => f.drift), [allFindings]);

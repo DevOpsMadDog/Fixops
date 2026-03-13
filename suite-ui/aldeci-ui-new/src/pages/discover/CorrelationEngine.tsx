@@ -86,7 +86,8 @@ const heatColor = (val: number) => {
   return "bg-muted text-muted-foreground";
 };
 
-// ── Dedup effectiveness trend data (12 weeks) ─────────────────────────────
+// ── Dedup effectiveness trend data (12 weeks) — SAMPLE DATA ───────────────
+// TODO: Replace with real data from /api/v1/deduplication/trends when available
 const DEDUP_TREND = Array.from({ length: 12 }, (_, i) => ({
   week: `W${i + 1}`,
   total: [980, 1050, 890, 1120, 950, 1080, 920, 1000, 1060, 870, 1030, 960][i],
@@ -94,14 +95,14 @@ const DEDUP_TREND = Array.from({ length: 12 }, (_, i) => ({
   unique: [250, 280, 220, 310, 260, 290, 230, 270, 300, 210, 280, 240][i],
 }));
 
-// ── Noise analysis pie data ────────────────────────────────────────────────
+// ── Noise analysis pie data — SAMPLE DATA ──────────────────────────────────
 const NOISE_PIE = [
   { name: "True Positives", value: 62, color: "#ef4444" },
   { name: "False Positives", value: 21, color: "#94a3b8" },
   { name: "Unverified", value: 17, color: "#f59e0b" },
 ];
 
-// ── Cross-scanner correlation matrix (percentage overlap) ─────────────────
+// ── Cross-scanner correlation matrix (percentage overlap) — SAMPLE DATA ───
 const MATRIX_DATA: Record<Scanner, Record<Scanner, number>> = {
   Snyk: { Snyk: 100, Trivy: 73, Semgrep: 41, SonarQube: 38 },
   Trivy: { Snyk: 73, Trivy: 100, Semgrep: 29, SonarQube: 22 },
@@ -109,7 +110,7 @@ const MATRIX_DATA: Record<Scanner, Record<Scanner, number>> = {
   SonarQube: { Snyk: 38, Trivy: 22, Semgrep: 67, SonarQube: 100 },
 };
 
-// ── Static grouped vulnerability clusters ─────────────────────────────────
+// ── Static grouped vulnerability clusters — SAMPLE DATA ──────────────────
 const VULN_GROUPS = [
   {
     id: "vg-001",
@@ -430,6 +431,14 @@ export default function CorrelationEngine() {
         />
       </div>
 
+      {/* ── Sample Data Notice ── */}
+      <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+        <AlertTriangle className="h-4 w-4 text-blue-400 shrink-0" />
+        <p className="text-xs text-blue-300">
+          Charts below show <span className="font-semibold">sample data</span> for illustration. Connect scanners via Integrations to see real cross-correlation metrics.
+        </p>
+      </div>
+
       {/* ── Row 2: Matrix + Noise Pie ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Cross-scanner correlation matrix */}
@@ -438,6 +447,7 @@ export default function CorrelationEngine() {
             <CardTitle className="text-sm flex items-center gap-2">
               <BarChart2 className="h-4 w-4 text-primary" />
               Cross-Scanner Correlation Matrix
+              <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-500/30">Sample</Badge>
             </CardTitle>
             <CardDescription className="text-xs">
               Percentage overlap between scanner outputs. Higher values = more finding overlap.
@@ -505,6 +515,7 @@ export default function CorrelationEngine() {
             <CardTitle className="text-sm flex items-center gap-2">
               <Filter className="h-4 w-4 text-primary" />
               Noise Analysis
+              <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-500/30">Sample</Badge>
             </CardTitle>
             <CardDescription className="text-xs">
               Finding classification after correlation pass
@@ -561,6 +572,7 @@ export default function CorrelationEngine() {
           <CardTitle className="text-sm flex items-center gap-2">
             <TrendingDown className="h-4 w-4 text-primary" />
             Deduplication Effectiveness — 12-Week Trend
+            <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-500/30">Sample</Badge>
           </CardTitle>
           <CardDescription className="text-xs">
             Total ingested vs. deduplicated vs. unique findings over time
@@ -590,6 +602,7 @@ export default function CorrelationEngine() {
               <CardTitle className="text-sm flex items-center gap-2">
                 <GitMerge className="h-4 w-4 text-primary" />
                 Same-Vulnerability Groupings
+                <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-500/30">Sample</Badge>
               </CardTitle>
               <CardDescription className="text-xs mt-0.5">
                 Cross-scanner finding clusters — {filteredGroups.length} groups shown

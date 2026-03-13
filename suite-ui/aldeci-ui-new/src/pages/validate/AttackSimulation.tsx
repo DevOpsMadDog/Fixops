@@ -507,7 +507,7 @@ export default function AttackSimulation() {
                           </Badge>
                         </div>
                         <KillChainDiagram
-                          activePhase={(sim.kill_chain_phase as number) ?? 2}
+                          activePhase={(sim.kill_chain_phase as number) ?? -1}
                         />
                         <p className="text-xs text-muted-foreground">
                           Target: {(sim.target as string) ?? "—"}

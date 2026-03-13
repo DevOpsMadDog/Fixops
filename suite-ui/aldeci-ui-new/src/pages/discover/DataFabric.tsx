@@ -189,7 +189,8 @@ const DATA_SOURCES: DataSource[] = [
   },
 ];
 
-// ── Finding correlation timeline (24h, hourly) ─────────────────────────────
+// ── Finding correlation timeline (24h, hourly) ─ SAMPLE DATA ─────────────────
+// TODO: Replace with real ingestion metrics when available
 const CORRELATION_TIMELINE = Array.from({ length: 24 }, (_, i) => ({
   hour: `${String(i).padStart(2, "0")}:00`,
   ingested: [2400, 1800, 1500, 1200, 1100, 1300, 1600, 2200, 3100, 3500, 3800, 4000, 3900, 3700, 3400, 3200, 3000, 2800, 2600, 2400, 2200, 2000, 1800, 2100][i],
@@ -197,7 +198,7 @@ const CORRELATION_TIMELINE = Array.from({ length: 24 }, (_, i) => ({
   deduplicated: [700, 500, 400, 350, 300, 400, 500, 700, 1000, 1100, 1200, 1250, 1200, 1150, 1050, 950, 900, 850, 800, 700, 650, 600, 500, 600][i],
 }));
 
-// ── Source comparison radar data ───────────────────────────────────────────
+// ── Source comparison radar data ─ SAMPLE DATA ───────────────────────────────
 const SOURCE_RADAR = [
   { metric: "Coverage", Snyk: 88, Trivy: 79, Semgrep: 91, SonarQube: 74 },
   { metric: "Accuracy", Snyk: 94, Trivy: 82, Semgrep: 87, SonarQube: 90 },
@@ -544,6 +545,14 @@ export default function DataFabric() {
         />
       </div>
 
+      {/* ── Sample Data Notice ── */}
+      <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+        <AlertTriangle className="h-4 w-4 text-blue-400 shrink-0" />
+        <p className="text-xs text-blue-300">
+          Data sources and metrics below show <span className="font-semibold">sample data</span> for illustration. Configure real integrations to see live ingestion status.
+        </p>
+      </div>
+
       {/* ── Row 2: Timeline + Radar ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Finding correlation timeline */}
@@ -552,6 +561,7 @@ export default function DataFabric() {
             <CardTitle className="text-sm flex items-center gap-2">
               <Activity className="h-4 w-4 text-primary" />
               Finding Correlation Timeline — 24h
+              <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-500/30">Sample</Badge>
             </CardTitle>
             <CardDescription className="text-xs">
               Ingested vs correlated vs deduplicated events per hour
@@ -620,6 +630,7 @@ export default function DataFabric() {
             <CardTitle className="text-sm flex items-center gap-2">
               <BarChart2 className="h-4 w-4 text-primary" />
               Source Comparison
+              <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-500/30">Sample</Badge>
             </CardTitle>
             <CardDescription className="text-xs">
               Multi-dimensional quality assessment
@@ -647,6 +658,7 @@ export default function DataFabric() {
           <CardTitle className="text-sm flex items-center gap-2">
             <Zap className="h-4 w-4 text-primary" />
             Data Quality Metrics by Source
+            <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-500/30">Sample</Badge>
           </CardTitle>
           <CardDescription className="text-xs">
             Quality score (0–100) and ingestion latency (ms) per active data source
@@ -679,6 +691,7 @@ export default function DataFabric() {
                   <CardTitle className="text-sm flex items-center gap-2">
                     <Database className="h-4 w-4 text-primary" />
                     Data Source Status
+                    <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-500/30">Sample</Badge>
                   </CardTitle>
                   <CardDescription className="text-xs mt-0.5">
                     {filteredSources.length} of {DATA_SOURCES.length} sources shown
@@ -821,6 +834,7 @@ export default function DataFabric() {
             <CardTitle className="text-sm flex items-center gap-2">
               <GitBranch className="h-4 w-4 text-primary" />
               Unified Data Model
+              <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-500/30">Sample</Badge>
             </CardTitle>
             <CardDescription className="text-xs">
               Canonical schema — field sources and types

@@ -152,10 +152,10 @@ export default function SLADashboard() {
   const taskList: Record<string, unknown>[] = toArray(tasks.data);
 
   // SLA metrics from overview
-  const overallSla = Number(ov.sla_compliance_pct ?? ov.sla_compliance ?? 85);
-  const criticalSla = Number(ov.critical_sla_pct ?? ov.sla_critical ?? 78);
-  const highSla = Number(ov.high_sla_pct ?? ov.sla_high ?? 88);
-  const mediumSla = Number(ov.medium_sla_pct ?? ov.sla_medium ?? 94);
+  const overallSla = Number(ov.sla_compliance_pct ?? ov.sla_compliance ?? 0);
+  const criticalSla = Number(ov.critical_sla_pct ?? ov.sla_critical ?? 0);
+  const highSla = Number(ov.high_sla_pct ?? ov.sla_high ?? 0);
+  const mediumSla = Number(ov.medium_sla_pct ?? ov.sla_medium ?? 0);
 
   // Aging analysis
   const overdueCount = taskList.filter((t) => t.sla_status === "breached" || t.overdue === true).length;

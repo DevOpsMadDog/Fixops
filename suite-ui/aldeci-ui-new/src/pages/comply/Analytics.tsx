@@ -43,6 +43,7 @@ function heatColor(value: number) {
   return "#ef4444";
 }
 
+// SAMPLE DATA — Replace with real scanner cost/ROI metrics when available
 const SCANNER_ROI_DATA = [
   { name: "Snyk", roi: 4.2, cost: 1200, findings: 87, confirmed: 72 },
   { name: "Semgrep", roi: 3.8, cost: 800, findings: 63, confirmed: 51 },
@@ -51,6 +52,7 @@ const SCANNER_ROI_DATA = [
   { name: "SonarQube", roi: 3.1, cost: 2100, findings: 119, confirmed: 88 },
 ];
 
+// SAMPLE DATA — Replace with real utilization metrics when available
 const HEATMAP_DATA = [
   { scanner: "Snyk", mon: 78, tue: 92, wed: 85, thu: 71, fri: 66, sat: 12, sun: 8 },
   { scanner: "Semgrep", mon: 65, tue: 70, wed: 88, thu: 91, fri: 74, sat: 20, sun: 5 },
@@ -149,10 +151,10 @@ export default function Analytics() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="MTTR Trend" value={typeof currentMttr === "number" ? `${currentMttr}h` : currentMttr} icon={Clock} change={-8} changeLabel="vs prior period" />
-        <KpiCard title="Noise Reduction" value={typeof noiseReduction === "number" ? `${noiseReduction}%` : noiseReduction} icon={TrendingDown} change={12} changeLabel="improvement" />
-        <KpiCard title="SLA Compliance" value={typeof slaCompliance === "number" ? `${slaCompliance}%` : slaCompliance} icon={Shield} change={3} changeLabel="vs last month" />
-        <KpiCard title="Scanner ROI" value={typeof scannerRoi === "number" ? `${scannerRoi}x` : scannerRoi} icon={BarChart2} change={5} changeLabel="findings/dollar" />
+        <KpiCard title="MTTR Trend" value={typeof currentMttr === "number" ? `${currentMttr}h` : currentMttr} icon={Clock} />
+        <KpiCard title="Noise Reduction" value={typeof noiseReduction === "number" ? `${noiseReduction}%` : noiseReduction} icon={TrendingDown} />
+        <KpiCard title="SLA Compliance" value={typeof slaCompliance === "number" ? `${slaCompliance}%` : slaCompliance} icon={Shield} />
+        <KpiCard title="Scanner ROI" value={typeof scannerRoi === "number" ? `${scannerRoi}x` : scannerRoi} icon={BarChart2} />
       </div>
 
       {/* MTTR Trend & Noise Reduction */}
@@ -270,6 +272,7 @@ export default function Analytics() {
             <CardTitle className="text-base flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-green-400" />
               Scanner ROI Comparison
+              <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-500/30">Sample</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -364,6 +367,7 @@ export default function Analytics() {
             <CardTitle className="text-base flex items-center gap-2">
               <Cpu className="h-4 w-4 text-orange-400" />
               Tool Utilization Heatmap (% active scan time)
+              <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-500/30">Sample</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>

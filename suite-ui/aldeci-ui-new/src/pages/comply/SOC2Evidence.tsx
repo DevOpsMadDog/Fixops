@@ -325,12 +325,7 @@ export default function SOC2Evidence() {
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart
               data={[
-                { month: "Oct", completeness: 58 },
-                { month: "Nov", completeness: 65 },
-                { month: "Dec", completeness: 72 },
-                { month: "Jan", completeness: 78 },
-                { month: "Feb", completeness: 83 },
-                { month: "Mar", completeness: Math.round(activeControls.length > 0 ? (activeControls.filter((c) => c.evidence_status === "collected" || c.status === "passed").length / activeControls.length) * 100 : 87) },
+                { month: "Current", completeness: Math.round(activeControls.length > 0 ? (activeControls.filter((c) => c.evidence_status === "collected" || c.status === "passed").length / activeControls.length) * 100 : 0) },
               ]}
               margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
             >

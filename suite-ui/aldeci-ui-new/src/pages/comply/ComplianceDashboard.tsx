@@ -132,14 +132,7 @@ export default function ComplianceDashboard() {
   const controlsPassed = status.controls_passed ?? gaps.filter((g: any) => g.status === "passed").length;
   const gapsFound = status.gaps_found ?? gaps.filter((g: any) => g.status !== "passed").length;
 
-  const trendData = status.trend ?? [
-    { month: "Oct", score: 62 },
-    { month: "Nov", score: 67 },
-    { month: "Dec", score: 71 },
-    { month: "Jan", score: 75 },
-    { month: "Feb", score: 79 },
-    { month: "Mar", score: overallScore },
-  ];
+  const trendData = status.trend ?? (overallScore > 0 ? [{ month: "Current", score: overallScore }] : []);
 
   const filteredGaps = activeFramework === "all"
     ? gaps
@@ -151,22 +144,12 @@ export default function ComplianceDashboard() {
     controls: f.controls ?? f.total_controls ?? 0,
     status: f.status ?? (f.enabled ? "compliant" : "disabled"),
   }));
-  const displayFrameworks = normalizedFrameworks.length > 0 ? normalizedFrameworks : [
-    { name: "SOC2", score: 87, controls: 114, status: "compliant" },
-    { name: "PCI-DSS", score: 74, controls: 225, status: "partial" },
-    { name: "HIPAA", score: 91, controls: 78, status: "compliant" },
-    { name: "ISO27001", score: 68, controls: 143, status: "partial" },
-    { name: "NIST", score: 82, controls: 108, status: "compliant" },
-  ];
+  const displayFrameworks = normalizedFrameworks.length > 0 ? normalizedFrameworks : [];
 
-  // Trend sparklines data per framework (last 6 months)
-  const frameworkTrends: Record<string, number[]> = {
-    SOC2: [72, 75, 78, 82, 85, 87],
-    "PCI-DSS": [62, 65, 68, 70, 72, 74],
-    HIPAA: [82, 84, 86, 88, 90, 91],
-    ISO27001: [55, 58, 61, 64, 66, 68],
-    NIST: [70, 72, 75, 78, 80, 82],
-  };
+  // Trend sparklines per framework — derive from score if available, empty otherwise
+  const frameworkTrends: Record<string, number[]> = Object.fromEntries(
+    displayFrameworks.map((f) => [f.name, [f.score]])
+  );
 
   // Priority-ranked gaps for gap analysis
   const priorityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
@@ -243,25 +226,21 @@ export default function ComplianceDashboard() {
           title="Frameworks Active"
           value={frameworksActive}
           icon={Layers}
-          change={0} changeLabel="configured"
         />
         <KpiCard
           title="Overall Score"
           value={`${overallScore}%`}
           icon={TrendingUp}
-          change={4} changeLabel="vs last month"
         />
         <KpiCard
           title="Controls Passed"
           value={controlsPassed}
           icon={CheckCircle}
-          change={12} changeLabel="this week"
         />
         <KpiCard
           title="Gaps Found"
           value={gapsFound}
           icon={AlertTriangle}
-          change={-3} changeLabel="resolved"
         />
       </div>
 

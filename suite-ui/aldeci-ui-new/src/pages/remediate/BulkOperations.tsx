@@ -433,8 +433,6 @@ export default function BulkOperations() {
                           <SelectContent>
                             <SelectItem value="csv">CSV</SelectItem>
                             <SelectItem value="json">JSON</SelectItem>
-                            <SelectItem value="pdf">PDF Report</SelectItem>
-                            <SelectItem value="xlsx">Excel (XLSX)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

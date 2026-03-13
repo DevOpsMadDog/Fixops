@@ -188,13 +188,13 @@ export default function Reachability() {
     (graphData.trend as Record<string, unknown>[]) ?? [];
 
   // Derive reachable assets from findings
-  const assets = findings.map((f) => ({
+  const assets = findings.map((f, idx) => ({
     asset: (f.asset as string) ?? (f.title as string) ?? "—",
     type: (f.asset_type as string) ?? (f.type as string) ?? "Host",
-    exposure: (f.exposure as string) ?? (f.severity as string) === "critical" ? "Internet" : "Internal",
+    exposure: (f.exposure as string) ?? ((f.severity as string) === "critical" ? "Internet" : "Internal"),
     path_length: (f.path_length as number) ?? 1,
     risk_score: (f.risk_score as number) ?? (f.cvss_score as number) ?? 0,
-    id: (f.id as string) ?? `finding-${i}`,
+    id: (f.id as string) ?? `finding-${idx}`,
   }));
 
   const internetReachable = assets.filter((a) => a.exposure === "Internet").length;

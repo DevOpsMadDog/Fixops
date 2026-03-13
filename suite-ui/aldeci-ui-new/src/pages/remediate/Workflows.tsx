@@ -286,7 +286,7 @@ function CreateRuleDialog({
     setTrigger("");
     setCondition("");
     setActions(["create_task"]);
-    toast.success("Workflow rule created");
+    toast.info("Workflow rule created locally — persist API pending");
   };
 
   return (
@@ -451,7 +451,7 @@ export default function Workflows() {
     setLocalRules((prev) =>
       prev.map((r) => (r.id === id ? { ...r, enabled } : r))
     );
-    toast.success(`Rule ${enabled ? "enabled" : "disabled"}`);
+    toast.info(`Rule ${enabled ? "enabled" : "disabled"} locally — persist API pending`);
   };
 
   const handleDuplicate = (rule: Record<string, unknown>) => {
@@ -463,12 +463,12 @@ export default function Workflows() {
       last_triggered: "Never",
     };
     setLocalRules((prev) => [...prev, newRule]);
-    toast.success("Rule duplicated");
+    toast.info("Rule duplicated locally — persist API pending");
   };
 
   const handleDelete = (id: string) => {
     setLocalRules((prev) => prev.filter((r) => r.id !== id));
-    toast.success("Rule deleted");
+    toast.info("Rule deleted locally — persist API pending");
   };
 
   const handleCreateRule = (rule: Record<string, unknown>) => {
@@ -609,7 +609,7 @@ export default function Workflows() {
                           last_triggered: "Never",
                           created_at: new Date().toISOString(),
                         });
-                        toast.success(`Rule created from template: ${template.name}`);
+                        toast.info(`Rule created from template: ${template.name} — local only`);
                       }}
                     >
                       <Plus className="h-3.5 w-3.5 mr-2" />

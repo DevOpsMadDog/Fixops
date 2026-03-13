@@ -281,8 +281,8 @@ export default function AutoFix() {
   // Derive autofixes from tasks that have autofix data
   const autofixes = allTasks
     .filter((t) => t.autofix || t.fix_type || t.code_after)
-    .map((t) => ({
-      id: (t.id as string) ?? `autofix-${i}`,
+    .map((t, idx) => ({
+      id: (t.id as string) ?? `autofix-${idx}`,
       finding: (t.title as string) ?? "—",
       fix_type: (t.fix_type as string) ?? "AI",
       language: (t.language as string) ?? "Python",
@@ -344,7 +344,7 @@ export default function AutoFix() {
       const data = await resp.json();
       toast.success(`Approved ${data.approved_count ?? ids.length} autofixes — PRs queued for creation`);
     } catch {
-      toast.success(`Approved ${selectedIds.size} autofixes — PRs queued`);
+      toast.error(`Failed to approve autofixes`);
     }
     setSelectedIds(new Set());
     tasksQuery.refetch();
@@ -373,7 +373,7 @@ export default function AutoFix() {
               });
               toast.success("AutoFix generation pipeline started for all eligible findings");
               tasksQuery.refetch();
-            } catch { toast.success("AutoFix generation initiated"); }
+            } catch { toast.error("Failed to start AutoFix generation"); }
           }}
         >
           <Wand2 className="h-4 w-4 mr-2" />
@@ -685,7 +685,7 @@ export default function AutoFix() {
             if (fixId) await fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/autofix/approve`, { method: 'POST', headers: { 'X-API-Key': import.meta.env.VITE_API_KEY || '', 'Content-Type': 'application/json' }, body: JSON.stringify({ fix_id: fixId }) });
             toast.success("AutoFix approved — ready for deployment");
             tasksQuery.refetch();
-          } catch { toast.success("AutoFix approved"); }
+          } catch { toast.error("Failed to approve AutoFix"); }
         }}
         onReject={async () => {
           try {
@@ -701,7 +701,7 @@ export default function AutoFix() {
             if (fixId) await fetch((import.meta.env.VITE_API_URL || '') + `/api/v1/autofix/apply`, { method: 'POST', headers: { 'X-API-Key': import.meta.env.VITE_API_KEY || '', 'Content-Type': 'application/json' }, body: JSON.stringify({ fix_id: fixId }) });
             toast.success("Pull request created successfully — check your Git provider");
             tasksQuery.refetch();
-          } catch { toast.success("Pull request created"); }
+          } catch { toast.error("Failed to create pull request"); }
         }}
       />
     </motion.div>

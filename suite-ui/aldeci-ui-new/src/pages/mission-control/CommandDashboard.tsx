@@ -6,8 +6,8 @@ import {
 } from "recharts";
 import {
   Shield, AlertTriangle, Activity, Clock, CheckCircle2,
-  RefreshCw, Filter, TrendingUp, TrendingDown, Minus,
-  Zap, Radio, BrainCircuit, ChevronDown, AlertCircle,
+  RefreshCw, Filter,
+  Zap, Radio, BrainCircuit, AlertCircle,
   BarChart3, Target, Timer, Wrench, Bell, Eye,
   XCircle, Circle,
 } from "lucide-react";
@@ -169,7 +169,7 @@ export default function CommandDashboard() {
   const trendData = trends.data ?? {};
   const compData = compliance.data ?? {};
 
-  const postureScore = Number(ov.posture_score ?? ov.security_score ?? 72);
+  const postureScore = Number(ov.posture_score ?? ov.security_score ?? 0);
   const activeThreats = Number(ov.active_threats ?? ov.critical_findings ?? 0);
   const mttr = Number(ov.mttr_hours ?? ov.avg_resolution_hours ?? 0);
   const slaCompliance = Number(ov.sla_compliance_pct ?? compData.compliance_score ?? 0);
