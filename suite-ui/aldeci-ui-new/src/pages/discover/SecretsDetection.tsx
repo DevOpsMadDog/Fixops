@@ -336,6 +336,7 @@ export default function SecretsDetection() {
           )}
         </CardHeader>
         <CardContent className="p-0">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
@@ -430,6 +431,7 @@ export default function SecretsDetection() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 

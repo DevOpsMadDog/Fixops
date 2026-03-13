@@ -201,7 +201,7 @@ export default function SLSAProvenance() {
     repo: b.repo ?? b.source ?? "github.com/org/repo",
     branch: b.branch ?? "main",
     commit: b.commit ?? b.sha ?? "abc1234def56",
-    slsa_level: b.slsa_level ?? Math.floor(Math.random() * 4),
+    slsa_level: b.slsa_level ?? 0,
     attestation_status: b.attestation_status ?? (b.signed || b.quantum_signed ? "verified" : "missing"),
     build_date: b.build_date ?? b.created_at ?? "—",
     build_system: b.build_system ?? "GitHub Actions",
@@ -455,6 +455,7 @@ export default function SLSAProvenance() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent border-b border-border/40">
@@ -521,6 +522,7 @@ export default function SLSAProvenance() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </motion.div>

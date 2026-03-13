@@ -265,9 +265,9 @@ export default function LogViewer() {
             <BarChart
               data={Array.from({ length: 12 }, (_, i) => ({
                 hour: `${String(((new Date().getHours() - 11 + i + 24) % 24)).padStart(2, "0")}:00`,
-                errors: Math.floor(Math.random() * Math.max(errorCount, 1)),
-                warnings: Math.floor(Math.random() * Math.max(warnCount, 1)),
-                info: Math.floor(Math.random() * Math.max(infoCount + 5, 1)),
+                errors: [3, 5, 2, 7, 4, 6, 3, 8, 5, 2, 4, 6][i] % Math.max(errorCount, 1),
+                warnings: [4, 2, 6, 3, 5, 7, 2, 4, 8, 3, 5, 6][i] % Math.max(warnCount, 1),
+                info: [12, 8, 15, 10, 14, 9, 11, 16, 7, 13, 10, 12][i] % Math.max(infoCount + 5, 1),
               }))}
               margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
             >

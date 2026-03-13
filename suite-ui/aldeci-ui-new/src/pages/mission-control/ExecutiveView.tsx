@@ -182,7 +182,7 @@ export default function ExecutiveView() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="flex flex-col gap-6 p-6"
+      className="flex flex-col gap-6"
     >
       {/* Header */}
       <PageHeader
@@ -511,6 +511,7 @@ export default function ExecutiveView() {
             </CardHeader>
             <CardContent className="p-0">
               {decisions.length > 0 ? (
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
@@ -545,6 +546,7 @@ export default function ExecutiveView() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               ) : (
                 <div className="flex h-[160px] items-center justify-center px-6">
                   <div className="text-center space-y-2">

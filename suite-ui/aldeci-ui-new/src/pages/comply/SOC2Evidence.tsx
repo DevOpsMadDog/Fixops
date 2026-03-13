@@ -232,6 +232,7 @@ export default function SOC2Evidence() {
           <CategoryProgressBar controls={activeControls} />
         </CardHeader>
         <CardContent className="p-0">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent border-b border-border/40">
@@ -308,6 +309,7 @@ export default function SOC2Evidence() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -391,6 +393,7 @@ export default function SOC2Evidence() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-b border-border/40">
@@ -423,6 +426,7 @@ export default function SOC2Evidence() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       )}

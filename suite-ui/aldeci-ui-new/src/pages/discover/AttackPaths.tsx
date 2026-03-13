@@ -266,6 +266,7 @@ export default function AttackPaths() {
               <CardTitle className="text-sm text-muted-foreground">{filtered.length} attack paths</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
@@ -353,6 +354,7 @@ export default function AttackPaths() {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </div>

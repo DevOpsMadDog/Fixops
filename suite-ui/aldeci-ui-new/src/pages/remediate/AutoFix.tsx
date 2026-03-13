@@ -282,7 +282,7 @@ export default function AutoFix() {
   const autofixes = allTasks
     .filter((t) => t.autofix || t.fix_type || t.code_after)
     .map((t) => ({
-      id: (t.id as string) ?? String(Math.random()),
+      id: (t.id as string) ?? `autofix-${i}`,
       finding: (t.title as string) ?? "—",
       fix_type: (t.fix_type as string) ?? "AI",
       language: (t.language as string) ?? "Python",
@@ -486,6 +486,7 @@ export default function AutoFix() {
 
           <Card>
             <CardContent className="p-0">
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -606,6 +607,7 @@ export default function AutoFix() {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

@@ -248,7 +248,7 @@ export default function RiskOverview() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="flex flex-col gap-6 p-6"
+        className="flex flex-col gap-6"
       >
         {/* Header */}
         <PageHeader
@@ -456,6 +456,7 @@ export default function RiskOverview() {
             <CardContent className="p-0">
               {sortedAppRows.length > 0 ? (
                 <ScrollArea className="h-[320px]">
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="hover:bg-transparent sticky top-0 bg-card z-10">
@@ -535,6 +536,7 @@ export default function RiskOverview() {
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                 </ScrollArea>
               ) : (
                 <div className="flex h-[180px] flex-col items-center justify-center gap-3 text-muted-foreground">

@@ -381,6 +381,7 @@ export default function TeamsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent border-b border-border/40">
@@ -461,6 +462,7 @@ export default function TeamsPage() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
       {/* Component Ownership Mapping */}
@@ -511,8 +513,8 @@ export default function TeamsPage() {
               <BarChart
                 data={teams.slice(0, 8).map((t: any) => ({
                   name: (t.name ?? "Team").slice(0, 12),
-                  mttr: t.avg_mttr ?? Math.round(Math.random() * 24 + 2),
-                  sla: t.sla_compliance ?? Math.round(80 + Math.random() * 20),
+                  mttr: t.avg_mttr ?? 0,
+                  sla: t.sla_compliance ?? 0,
                 }))}
                 margin={{ top: 4, right: 12, left: -10, bottom: 0 }}
               >

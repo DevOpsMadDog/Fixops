@@ -548,6 +548,7 @@ export default function BulkOperations() {
 
           <Card>
             <CardContent className="p-0">
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -630,6 +631,7 @@ export default function BulkOperations() {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </div>

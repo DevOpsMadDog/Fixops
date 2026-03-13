@@ -196,9 +196,7 @@ function ConnectorDetailDialog({ connector, isInstalled, onToggle }: {
 }) {
   const [open, setOpen] = useState(false);
   const [configTab, setConfigTab] = useState<"info" | "wizard">("info");
-  const connHealth: HealthStatus = isInstalled
-    ? (HEALTH_STATUSES[Math.floor(Math.random() * 3)] as HealthStatus)
-    : "unknown";
+  const connHealth: HealthStatus = isInstalled ? "healthy" : "unknown";
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -295,7 +293,7 @@ export default function Marketplace() {
   const connectors = integrations.map((i: any) => ({
     ...i,
     category: i.category ?? i.type ?? "Scanners",
-    rating: i.rating ?? (3.5 + Math.random() * 1.5),
+    rating: i.rating ?? 0,
     description: i.description ?? `Connect ${i.name ?? "this tool"} to ALdeci for automated security scanning and evidence collection.`,
     installed: i.status === "connected" || installed.has(i.id ?? i.name),
   }));

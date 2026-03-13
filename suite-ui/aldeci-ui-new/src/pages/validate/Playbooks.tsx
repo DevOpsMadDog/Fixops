@@ -270,6 +270,7 @@ function PlaybookDetailDialog({
           {execHistory.length > 0 && (
             <div>
               <p className="text-xs text-muted-foreground mb-2 font-medium">Execution History</p>
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -294,6 +295,7 @@ function PlaybookDetailDialog({
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </div>
           )}
         </div>
@@ -469,6 +471,7 @@ export default function Playbooks() {
       ) : (
         <Card>
           <CardContent className="p-0">
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -533,6 +536,7 @@ export default function Playbooks() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       )}

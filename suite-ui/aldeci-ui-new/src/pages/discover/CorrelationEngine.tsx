@@ -89,9 +89,9 @@ const heatColor = (val: number) => {
 // ── Dedup effectiveness trend data (12 weeks) ─────────────────────────────
 const DEDUP_TREND = Array.from({ length: 12 }, (_, i) => ({
   week: `W${i + 1}`,
-  total: 800 + Math.round(Math.random() * 400),
-  deduplicated: 500 + Math.round(Math.random() * 300),
-  unique: 200 + Math.round(Math.random() * 120),
+  total: [980, 1050, 890, 1120, 950, 1080, 920, 1000, 1060, 870, 1030, 960][i],
+  deduplicated: [620, 710, 580, 740, 650, 700, 590, 680, 720, 560, 690, 630][i],
+  unique: [250, 280, 220, 310, 260, 290, 230, 270, 300, 210, 280, 240][i],
 }));
 
 // ── Noise analysis pie data ────────────────────────────────────────────────

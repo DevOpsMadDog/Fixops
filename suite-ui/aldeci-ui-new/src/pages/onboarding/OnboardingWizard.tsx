@@ -281,11 +281,11 @@ function StepRunScan({ selectedScanners, appId, onScanStart }: {
 // Step 4: Review Results
 function StepReviewResults({ selectedScanners }: { selectedScanners: Set<string> }) {
   const findingCounts = {
-    critical: Math.floor(Math.random() * 5),
-    high: Math.floor(Math.random() * 15) + 5,
-    medium: Math.floor(Math.random() * 30) + 10,
-    low: Math.floor(Math.random() * 50) + 20,
-    info: Math.floor(Math.random() * 100) + 30,
+    critical: 2,
+    high: 8,
+    medium: 15,
+    low: 25,
+    info: 40,
   };
   const total = Object.values(findingCounts).reduce((a, b) => a + b, 0);
 
@@ -315,7 +315,7 @@ function StepReviewResults({ selectedScanners }: { selectedScanners: Set<string>
           <div className="space-y-2">
             {SCANNERS.filter((s) => selectedScanners.has(s.id)).map((s) => {
               const Icon = s.icon;
-              const count = Math.floor(Math.random() * 20) + 1;
+              const count = 5;
               return (
                 <div key={s.id} className="flex items-center gap-2 text-sm">
                   <Icon className={`h-3.5 w-3.5 ${s.color}`} />

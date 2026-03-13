@@ -306,6 +306,7 @@ export default function CodeScanning() {
               <CardTitle className="text-sm text-muted-foreground">{filtered.length} findings</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
@@ -426,6 +427,7 @@ export default function CodeScanning() {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -500,6 +502,7 @@ export default function CodeScanning() {
               <CardTitle className="text-sm">Scanner Breakdown</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
@@ -536,6 +539,7 @@ export default function CodeScanning() {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

@@ -437,6 +437,7 @@ export default function MPTEConsole() {
               <CardTitle className="text-sm font-medium">Scan Results</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -528,6 +529,7 @@ export default function MPTEConsole() {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -601,6 +603,7 @@ export default function MPTEConsole() {
               <CardTitle className="text-sm font-medium">Scan Requests</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -653,6 +656,7 @@ export default function MPTEConsole() {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

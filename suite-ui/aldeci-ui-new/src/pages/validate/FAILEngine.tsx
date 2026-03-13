@@ -504,6 +504,7 @@ export default function FAILEngine() {
           </Card>
           <Card>
             <CardContent className="p-0">
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -561,6 +562,7 @@ export default function FAILEngine() {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

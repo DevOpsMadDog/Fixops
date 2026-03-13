@@ -321,7 +321,7 @@ export default function TicketIntegration() {
 
   // Map API data to Integration shape, fill in defaults
   const integrations: Integration[] = apiIntegrations.map((int) => ({
-    id: (int.id as string) ?? String(Math.random()),
+    id: (int.id as string) ?? `integration-${i}`,
     name: (int.name as string) ?? (int.type as string) ?? "Unknown",
     type: (int.type as string) as Integration["type"],
     status: ((int.status as string) ?? "disconnected") as Integration["status"],
@@ -484,6 +484,7 @@ export default function TicketIntegration() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -537,6 +538,7 @@ export default function TicketIntegration() {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

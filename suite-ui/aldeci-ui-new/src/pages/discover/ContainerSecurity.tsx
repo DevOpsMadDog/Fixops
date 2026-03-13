@@ -185,9 +185,9 @@ export default function ContainerSecurity() {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
     return months.map((m, i) => ({
       month: m,
-      critical: Math.max(0, Math.floor(Math.random() * 10 + allFindings.filter((f) =>
+      critical: Math.max(0, Math.floor(allFindings.filter((f) =>
         f.severity?.toLowerCase() === "critical").length * (1 - i * 0.1))),
-      high: Math.max(0, Math.floor(Math.random() * 20 + allFindings.filter((f) =>
+      high: Math.max(0, Math.floor(allFindings.filter((f) =>
         f.severity?.toLowerCase() === "high").length * (1 - i * 0.08))),
     }));
   }, [allFindings]);
@@ -336,6 +336,7 @@ export default function ContainerSecurity() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
@@ -402,6 +403,7 @@ export default function ContainerSecurity() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 

@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-03-10T12:48:18.443185+00:00",
+  "results": {
+    "snyk_ingest": true,
+    "sarif_detect": true,
+    "trivy_ingest": true,
+    "brain_pipeline": true,
+    "total_ingested": 5358,
+    "scanners_tested": 9,
+    "brain_at_scale": true,
+    "brain_time": 3.9,
+    "evidence_gen": true,
+    "autofix": true,
+    "mpte": false
+  },
+  "tier2_score": "4/4",
+  "tier3_score": "3/4",
+  "grade": "A+"
+}

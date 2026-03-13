@@ -492,6 +492,7 @@ export default function EvidenceVault() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent border-b border-border/40">
@@ -564,6 +565,7 @@ export default function EvidenceVault() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </motion.div>

@@ -402,6 +402,7 @@ export default function ComplianceDashboard() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent border-b border-border/40">
@@ -471,6 +472,7 @@ export default function ComplianceDashboard() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 

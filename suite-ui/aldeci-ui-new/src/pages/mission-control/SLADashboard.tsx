@@ -234,7 +234,7 @@ export default function SLADashboard() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="flex flex-col gap-6 p-6"
+      className="flex flex-col gap-6"
     >
       {/* Header */}
       <PageHeader
@@ -438,6 +438,7 @@ export default function SLADashboard() {
           </CardHeader>
           <CardContent className="p-0">
             {sortedTeamRows.length > 0 ? (
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
@@ -487,6 +488,7 @@ export default function SLADashboard() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             ) : (
               <div className="flex h-[120px] items-center justify-center text-sm text-muted-foreground">
                 No teams match the selected filter
@@ -526,6 +528,7 @@ export default function SLADashboard() {
           <CardContent className="p-0">
             {escalationQueue.length > 0 ? (
               <ScrollArea className="h-[280px]">
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
@@ -596,6 +599,7 @@ export default function SLADashboard() {
                     })}
                   </TableBody>
                 </Table>
+                </div>
               </ScrollArea>
             ) : (
               <div className="flex h-[120px] items-center justify-center gap-3 text-sm text-green-400">

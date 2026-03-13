@@ -453,6 +453,7 @@ export default function RemediationCenter() {
           {/* Tasks Table */}
           <Card>
             <CardContent className="p-0">
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -571,6 +572,7 @@ export default function RemediationCenter() {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -584,6 +586,7 @@ export default function RemediationCenter() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -652,6 +655,7 @@ export default function RemediationCenter() {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

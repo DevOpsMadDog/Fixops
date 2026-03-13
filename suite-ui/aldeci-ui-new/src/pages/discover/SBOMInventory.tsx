@@ -342,6 +342,7 @@ export default function SBOMInventory() {
               <CardTitle className="text-sm text-muted-foreground">{filteredPackages.length} packages</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
@@ -398,6 +399,7 @@ export default function SBOMInventory() {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -409,6 +411,7 @@ export default function SBOMInventory() {
               <CardTitle className="text-sm text-muted-foreground">{assets.length} assets</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
@@ -450,6 +453,7 @@ export default function SBOMInventory() {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

@@ -338,6 +338,7 @@ export default function CloudPosture() {
                 <CardTitle className="text-sm text-muted-foreground">{filtered.length} resources</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
@@ -400,6 +401,7 @@ export default function CloudPosture() {
                     )}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

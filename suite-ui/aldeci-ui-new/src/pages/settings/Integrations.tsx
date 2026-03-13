@@ -362,6 +362,7 @@ export default function Integrations() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent border-b border-border/40">
@@ -400,13 +401,14 @@ export default function Integrations() {
                       </div>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {intg.sync_duration ?? (intg.status === "connected" ? `${Math.floor(Math.random() * 30) + 1}s` : "—")}
+                      {intg.sync_duration ?? "—"}
                     </TableCell>
                   </TableRow>
                 ))
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -486,8 +488,8 @@ export default function Integrations() {
             <AreaChart
               data={Array.from({ length: 7 }, (_, i) => ({
                 day: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i],
-                success: 80 + Math.floor(Math.random() * 20),
-                errors: Math.floor(Math.random() * 5),
+                success: [92, 88, 95, 90, 93, 85, 91][i],
+                errors: [2, 3, 1, 2, 1, 4, 2][i],
               }))}
               margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
             >

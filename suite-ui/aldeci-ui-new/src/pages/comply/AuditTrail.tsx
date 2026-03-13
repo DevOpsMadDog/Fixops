@@ -129,13 +129,13 @@ function AuditDetailDrawer({ log }: { log: any }) {
               <div className="flex justify-between">
                 <span className="text-muted-foreground text-xs">Entry Hash</span>
                 <code className="text-xs font-mono text-violet-400 truncate ml-4 max-w-72">
-                  {log.hash ?? `sha256:${Math.random().toString(36).slice(2, 34)}`}
+                  {log.hash ?? "—"}
                 </code>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground text-xs">Previous Hash</span>
                 <code className="text-xs font-mono text-blue-400 truncate ml-4 max-w-72">
-                  {log.prev_hash ?? `sha256:${Math.random().toString(36).slice(2, 34)}`}
+                  {log.prev_hash ?? "—"}
                 </code>
               </div>
               <div className="flex justify-between items-center">
@@ -487,6 +487,7 @@ export default function AuditTrail() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent border-b border-border/40">
@@ -571,6 +572,7 @@ export default function AuditTrail() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </motion.div>

@@ -242,8 +242,9 @@ export function WorkspaceLayout() {
       {/* ── Left Sidebar ── */}
       <aside
         className={cn(
-          "flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300",
-          collapsed ? "w-16" : "w-60"
+          "flex flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-300",
+          collapsed ? "w-16" : "w-60",
+          "max-md:w-16"
         )}
       >
         {/* Logo */}
@@ -380,7 +381,7 @@ export function WorkspaceLayout() {
       </aside>
 
       {/* ── Main Content ── */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 min-w-0 overflow-y-auto">
         <div className="h-full">
           {/* Top Bar */}
           <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-background/80 backdrop-blur-md px-6">
@@ -412,7 +413,7 @@ export function WorkspaceLayout() {
           </header>
 
           {/* Page Content */}
-          <div className="p-6">
+          <div className="p-6 max-w-[1600px] mx-auto w-full">
             <RouteErrorBoundary locationKey={location.pathname}>
               <Outlet />
             </RouteErrorBoundary>

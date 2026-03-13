@@ -192,9 +192,9 @@ export default function Reachability() {
     asset: (f.asset as string) ?? (f.title as string) ?? "—",
     type: (f.asset_type as string) ?? (f.type as string) ?? "Host",
     exposure: (f.exposure as string) ?? (f.severity as string) === "critical" ? "Internet" : "Internal",
-    path_length: (f.path_length as number) ?? Math.floor(Math.random() * 5) + 1,
+    path_length: (f.path_length as number) ?? 1,
     risk_score: (f.risk_score as number) ?? (f.cvss_score as number) ?? 0,
-    id: (f.id as string) ?? String(Math.random()),
+    id: (f.id as string) ?? `finding-${i}`,
   }));
 
   const internetReachable = assets.filter((a) => a.exposure === "Internet").length;
@@ -366,6 +366,7 @@ export default function Reachability() {
           <CardTitle className="text-sm font-medium">Reachable Assets</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -442,6 +443,7 @@ export default function Reachability() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 

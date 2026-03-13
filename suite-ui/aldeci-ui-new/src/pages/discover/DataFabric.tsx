@@ -192,9 +192,9 @@ const DATA_SOURCES: DataSource[] = [
 // ── Finding correlation timeline (24h, hourly) ─────────────────────────────
 const CORRELATION_TIMELINE = Array.from({ length: 24 }, (_, i) => ({
   hour: `${String(i).padStart(2, "0")}:00`,
-  ingested: 1200 + Math.round(Math.random() * 3000),
-  correlated: 800 + Math.round(Math.random() * 2000),
-  deduplicated: 400 + Math.round(Math.random() * 900),
+  ingested: [2400, 1800, 1500, 1200, 1100, 1300, 1600, 2200, 3100, 3500, 3800, 4000, 3900, 3700, 3400, 3200, 3000, 2800, 2600, 2400, 2200, 2000, 1800, 2100][i],
+  correlated: [1600, 1200, 1000, 800, 750, 900, 1100, 1500, 2100, 2400, 2600, 2700, 2650, 2500, 2300, 2100, 2000, 1900, 1800, 1600, 1500, 1400, 1200, 1400][i],
+  deduplicated: [700, 500, 400, 350, 300, 400, 500, 700, 1000, 1100, 1200, 1250, 1200, 1150, 1050, 950, 900, 850, 800, 700, 650, 600, 500, 600][i],
 }));
 
 // ── Source comparison radar data ───────────────────────────────────────────

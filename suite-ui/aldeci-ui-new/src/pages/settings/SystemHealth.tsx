@@ -63,7 +63,7 @@ export default function SystemHealth() {
     name: s.name,
     status: "healthy",
     uptime: 99.9,
-    latency: Math.round(20 + Math.random() * 80),
+    latency: 50,
   }));
 
   const latencyHistory: any[] = metrics.latency_history ?? metrics.api_latency ?? [];
@@ -203,9 +203,9 @@ export default function SystemHealth() {
               <LineChart
                 data={latencyHistory.length > 0 ? latencyHistory : Array.from({ length: 12 }, (_, i) => ({
                   time: `${i * 2}:00`,
-                  p50: 40 + Math.random() * 30,
-                  p95: 90 + Math.random() * 60,
-                  p99: 150 + Math.random() * 80,
+                  p50: [45, 52, 38, 61, 55, 48, 42, 58, 50, 44, 47, 53][i],
+                  p95: [95, 110, 92, 130, 105, 98, 115, 120, 100, 108, 95, 112][i],
+                  p99: [155, 180, 160, 210, 175, 165, 190, 200, 170, 185, 158, 195][i],
                 }))}
                 margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
               >
@@ -293,9 +293,10 @@ export default function SystemHealth() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {SERVICES.map((svc) => {
-              const errRate = parseFloat((Math.random() * 2).toFixed(2));
-              const isUp = Math.random() > 0.6;
+            {SERVICES.map((svc, idx) => {
+              const errRates = [0.42, 1.15, 0.28, 0.73, 0.91];
+              const errRate = errRates[idx % errRates.length];
+              const isUp = idx % 3 === 1;
               return (
                 <div key={svc.key} className="p-3 rounded-lg bg-muted/30 border border-border/40">
                   <div className="flex items-center justify-between mb-2">
@@ -307,7 +308,16 @@ export default function SystemHealth() {
                   </div>
                   <ResponsiveContainer width="100%" height={40}>
                     <AreaChart
-                      data={Array.from({ length: 8 }, () => ({ v: Math.random() * errRate * 2 }))}
+                      data={[
+                        { v: errRate * 0.8 },
+                        { v: errRate * 1.2 },
+                        { v: errRate * 0.5 },
+                        { v: errRate * 1.5 },
+                        { v: errRate * 0.9 },
+                        { v: errRate * 1.1 },
+                        { v: errRate * 0.7 },
+                        { v: errRate * 1.3 },
+                      ]}
                       margin={{ top: 2, right: 0, left: 0, bottom: 0 }}
                     >
                       <Area
@@ -336,6 +346,7 @@ export default function SystemHealth() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-b border-border/40">
@@ -363,6 +374,7 @@ export default function SystemHealth() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       )}

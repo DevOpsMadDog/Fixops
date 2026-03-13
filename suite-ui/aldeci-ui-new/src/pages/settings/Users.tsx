@@ -78,7 +78,7 @@ function UserApiKeyDialog({ user }: { user: any }) {
           <div className="p-3 rounded-lg bg-muted/30 border border-border/40 space-y-2">
             <p className="text-xs font-medium">Usage this month</p>
             <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">{Math.floor(Math.random() * 5000).toLocaleString()} calls</span>
+              <span className="text-muted-foreground">— calls</span>
               <span className="text-muted-foreground">of 10,000 limit</span>
             </div>
           </div>
@@ -373,6 +373,7 @@ export default function UsersPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent border-b border-border/40">
@@ -443,6 +444,7 @@ export default function UsersPage() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
       {/* SSO / SAML Configuration Panel */}
