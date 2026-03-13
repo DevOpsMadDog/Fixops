@@ -26,6 +26,7 @@ from pydantic import BaseModel, EmailStr, Field
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/users", tags=["users"])
+public_router = APIRouter(prefix="/api/v1/users", tags=["users-public"])
 db = UserDB()
 
 
@@ -178,7 +179,7 @@ def _clear_failed_attempts(email: str) -> None:
     _login_attempts.pop(email, None)
 
 
-@router.post("/login", response_model=LoginResponse)
+@public_router.post("/login", response_model=LoginResponse)
 async def login(credentials: LoginRequest, request: Request):
     """Authenticate user and return JWT token.
 

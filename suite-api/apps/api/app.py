@@ -74,6 +74,7 @@ from apps.api.admin_router import router as admin_router
 from apps.api.system_router import router as system_router
 from apps.api.teams_router import router as teams_router
 from apps.api.users_router import router as users_router
+from apps.api.users_router import public_router as users_public_router
 from apps.api.workflows_router import router as workflows_router
 from fastapi import (
     APIRouter,
@@ -1218,6 +1219,9 @@ def create_app() -> FastAPI:
 
     app.include_router(inventory_router, dependencies=[Depends(_verify_api_key)])
 
+    # Login endpoint — public (no auth required)
+    app.include_router(users_public_router)
+    # User management — admin only
     app.include_router(
         users_router,
         dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))],
