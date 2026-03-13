@@ -207,7 +207,7 @@ export default function CodeScanning() {
     return (
       <div className="space-y-6 p-6">
         <Skeleton className="h-10 w-64" />
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28" />)}
         </div>
         <Skeleton className="h-80" />
@@ -556,7 +556,7 @@ export default function CodeScanning() {
           </DialogHeader>
           {detailFinding && (
             <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {[
                   { label: "Scanner", value: <ScannerBadge scanner={detailFinding.scanner} /> },
                   { label: "Language", value: detailFinding.language || "—" },

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,8 @@ export default function MLDashboard() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  if (loading) return <PageSkeleton />;
 
   const anomalyCount = anomalies.length || Number(analyticsStats?.total_anomalies ?? 0);
   const threatCount = threats.length || Number(analyticsStats?.total_threats ?? 0);

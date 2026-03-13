@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,18 +52,12 @@ export default function AlgorithmicLab() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const ALGO_CARDS = [
-    { name: "Monte Carlo Simulation", type: "Risk Quantification", icon: Atom, desc: "Probabilistic risk scoring with 10K+ iterations per CVE", accuracy: 94.8, status: "active" },
-    { name: "Graph Neural Network", type: "Attack Surface", icon: Network, desc: "GNN-based critical node detection & risk propagation", accuracy: 92.1, status: "active" },
-    { name: "Causal Inference", type: "Root Cause Analysis", icon: GitBranch, desc: "Counterfactual analysis & treatment effect estimation", accuracy: 89.4, status: "active" },
-    { name: "Bayesian Risk Model", type: "Predictions", icon: Brain, desc: "Prior + evidence updates for dynamic risk assessment", accuracy: 91.7, status: "active" },
-    { name: "Markov Chain", type: "State Transitions", icon: Activity, desc: "Attack state modeling & transition probability estimation", accuracy: 88.3, status: "active" },
-    { name: "Ensemble Classifier", type: "Triage", icon: Layers, desc: "XGBoost + Random Forest ensemble for finding triage", accuracy: 93.6, status: "active" },
-  ];
+  if (loading) return <PageSkeleton />;
 
-  const displayAlgos = algorithms.length > 0 ? algorithms : ALGO_CARDS.map((a, i) => ({ id: `algo-${i}`, ...a, last_trained: "2024-12-15", features: 47 + i * 5 }));
-  const activeCount = displayAlgos.filter(a => a.status === "active").length;
-  const avgAccuracy = displayAlgos.reduce((s, a) => s + (a.accuracy || 0), 0) / Math.max(displayAlgos.length, 1);
+  const ALGO_ICONS: Record<number, React.ElementType> = { 0: Atom, 1: Network, 2: GitBranch, 3: Brain, 4: Activity, 5: Layers };
+
+  const activeCount = algorithms.filter(a => a.status === "active").length;
+  const avgAccuracy = algorithms.reduce((s, a) => s + (a.accuracy || 0), 0) / Math.max(algorithms.length, 1);
 
   return (
     <div className="space-y-6 p-6">
@@ -100,8 +95,8 @@ export default function AlgorithmicLab() {
 
         <TabsContent value="models">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {displayAlgos.map((algo, idx) => {
-              const Icon = ALGO_CARDS[idx]?.icon || Brain;
+            {algorithms.map((algo, idx) => {
+              const Icon = ALGO_ICONS[idx] || Brain;
               return (
                 <motion.div key={algo.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}>
                   <Card className="h-full hover:border-primary/40 transition-all">
@@ -116,7 +111,7 @@ export default function AlgorithmicLab() {
                         </div>
                         <Badge variant={algo.status === "active" ? "default" : "outline"} className="text-[10px]">{algo.status}</Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground mb-3">{(algo as any).description || (algo as any).desc || ALGO_CARDS[idx]?.desc || ""}</p>
+                      <p className="text-xs text-muted-foreground mb-3">{(algo as any).description || (algo as any).desc || ""}</p>
                       <div className="space-y-2">
                         <div className="flex justify-between text-xs"><span className="text-muted-foreground">Accuracy</span><span className="font-medium">{algo.accuracy}%</span></div>
                         <Progress value={algo.accuracy} className="h-1.5" />

@@ -301,9 +301,9 @@ export default function EvidenceVault() {
               body: JSON.stringify({ org_id: 'default', framework: 'NIST-800-53', scope: 'all', sign: true })
             });
             const data = await resp.json();
-            alert(`Evidence bundle generated: ${data?.pack_id || data?.bundle_id || 'Success'}`);
+            toast.success(`Evidence bundle generated: ${data?.pack_id || data?.bundle_id || 'Success'}`);
             refetch();
-          } catch (e) { alert(`Failed: ${e}`); }
+          } catch (e) { toast.error(`Failed: ${e}`); }
         }}>
           <Download className="h-4 w-4" />
           Generate & Export

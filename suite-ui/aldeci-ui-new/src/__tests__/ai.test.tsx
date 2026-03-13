@@ -2,7 +2,7 @@
  * AI screens — smoke tests.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { renderPage, mockQueryResult, mockMutationResult } from "./test-utils";
 
 const mocks: Record<string, any> = {
@@ -58,7 +58,7 @@ describe("BrainPipeline", () => {
   it("renders heading", async () => {
     const P = (await import("@/pages/ai/BrainPipeline")).default;
     renderPage(<P />);
-    expect(screen.getByText("Brain Pipeline")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("Brain Pipeline")).toBeInTheDocument());
   });
 });
 
@@ -66,7 +66,7 @@ describe("MultiLLM", () => {
   it("renders heading", async () => {
     const P = (await import("@/pages/ai/MultiLLM")).default;
     renderPage(<P />);
-    expect(screen.getByRole("heading", { name: /Multi-LLM/i })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("heading", { name: /Multi-LLM/i })).toBeInTheDocument());
   });
 });
 
@@ -74,7 +74,7 @@ describe("AlgorithmicLab", () => {
   it("renders heading", async () => {
     const P = (await import("@/pages/ai/AlgorithmicLab")).default;
     renderPage(<P />);
-    expect(screen.getByText("Algorithmic Lab")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("Algorithmic Lab")).toBeInTheDocument());
   });
 });
 
@@ -82,7 +82,7 @@ describe("MLDashboard", () => {
   it("renders heading", async () => {
     const P = (await import("@/pages/ai/MLDashboard")).default;
     renderPage(<P />);
-    expect(screen.getByText("ML Dashboard")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("ML Dashboard")).toBeInTheDocument());
   });
 });
 
@@ -90,6 +90,6 @@ describe("Predictions", () => {
   it("renders heading", async () => {
     const P = (await import("@/pages/ai/Predictions")).default;
     renderPage(<P />);
-    expect(screen.getByRole("heading", { name: /Predictions/i })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("heading", { name: /Predictions/i })).toBeInTheDocument());
   });
 });

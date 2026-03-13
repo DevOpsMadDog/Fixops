@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,8 @@ export default function Predictions() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  if (loading) return <PageSkeleton />;
+
   const runRiskTrajectory = async () => {
     try {
       const res = await apiClient("/api/v1/predictions/risk-trajectory", {
@@ -80,15 +83,7 @@ export default function Predictions() {
   const avgConfidence = predictions.reduce((s, p) => s + (p.confidence || 0), 0) / Math.max(predictions.length, 1);
   const healthStatus = String(predHealth?.status ?? "operational");
 
-  // Fallback predictions for display
-  const displayPredictions = predictions.length > 0 ? predictions : [
-    { type: "risk_trajectory", target: "web-app-prod", risk_score: 0.82, trend: "increasing", confidence: 0.91, horizon: "30 days", details: "Critical CVE exposure increasing due to unpatched Log4j in 3 components" },
-    { type: "breach_probability", target: "api-gateway", risk_score: 0.67, trend: "stable", confidence: 0.87, horizon: "60 days", details: "Moderate risk from exposed API endpoints with insufficient auth" },
-    { type: "mttr_forecast", target: "payment-service", risk_score: 0.45, trend: "decreasing", confidence: 0.93, horizon: "30 days", details: "MTTR improving from 72h to 48h with autofix adoption" },
-    { type: "attack_chain", target: "data-warehouse", risk_score: 0.91, trend: "increasing", confidence: 0.88, horizon: "14 days", details: "3-hop attack path: public API → service mesh → data warehouse (no mTLS)" },
-    { type: "compliance_drift", target: "SOC2-CC6.1", risk_score: 0.38, trend: "stable", confidence: 0.95, horizon: "90 days", details: "Evidence freshness declining for 4 controls — auto-refresh recommended" },
-    { type: "resource_risk", target: "k8s-prod-cluster", risk_score: 0.73, trend: "increasing", confidence: 0.84, horizon: "30 days", details: "12 containers running as root with host network access" },
-  ];
+
 
   return (
     <div className="space-y-6 p-6">
@@ -111,8 +106,8 @@ export default function Predictions() {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Predictions" value={displayPredictions.length} icon={TrendingUp} trend="flat" trendLabel="Active forecasts" />
-        <KpiCard title="High Risk" value={highRisk || displayPredictions.filter(p => p.risk_score > 0.7).length} icon={AlertTriangle} trend="down" trendLabel="Needs attention" />
+        <KpiCard title="Predictions" value={predictions.length} icon={TrendingUp} trend="flat" trendLabel="Active forecasts" />
+        <KpiCard title="High Risk" value={highRisk || predictions.filter(p => p.risk_score > 0.7).length} icon={AlertTriangle} trend="down" trendLabel="Needs attention" />
         <KpiCard title="Avg Confidence" value={`${(avgConfidence > 0 ? avgConfidence * 100 : 89.6).toFixed(1)}%`} icon={Target} trend="up" trendLabel="Model certainty" />
         <KpiCard title="Engine Status" value={healthStatus === "operational" ? "Healthy" : healthStatus} icon={Activity} trend="up" trendLabel="Prediction engine" />
       </div>
@@ -149,7 +144,7 @@ export default function Predictions() {
             <CardContent className="p-0">
               <ScrollArea className="h-[450px]">
                 <div className="divide-y divide-border/50">
-                  {displayPredictions.map((pred, i) => {
+                  {predictions.map((pred, i) => {
                     const TrendIcon = pred.trend === "increasing" ? ArrowUp : pred.trend === "decreasing" ? ArrowDown : Minus;
                     const trendColor = pred.trend === "increasing" ? "text-red-400" : pred.trend === "decreasing" ? "text-emerald-400" : "text-yellow-400";
                     const riskColor = pred.risk_score > 0.8 ? "bg-red-500" : pred.risk_score > 0.6 ? "bg-orange-500" : pred.risk_score > 0.4 ? "bg-yellow-500" : "bg-emerald-500";

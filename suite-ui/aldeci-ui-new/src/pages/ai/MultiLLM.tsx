@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -68,17 +69,11 @@ export default function MultiLLM() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Fallback providers if API returns empty
-  const displayProviders = providers.length > 0 ? providers : [
-    { id: "gpt4", name: "GPT-4o", model: "gpt-4o-2024-08-06", status: "active", latency_ms: 1240, cost_per_1k: 0.015, accuracy: 94.2, total_decisions: 1847 },
-    { id: "claude", name: "Claude 3.5 Sonnet", model: "claude-3-5-sonnet-20241022", status: "active", latency_ms: 980, cost_per_1k: 0.012, accuracy: 95.1, total_decisions: 1623 },
-    { id: "llama", name: "Llama 3.1 70B", model: "meta-llama/llama-3.1-70b", status: "active", latency_ms: 620, cost_per_1k: 0.0008, accuracy: 89.7, total_decisions: 1847 },
-    { id: "mixtral", name: "Mixtral 8x22B", model: "mistralai/mixtral-8x22b", status: "standby", latency_ms: 540, cost_per_1k: 0.0006, accuracy: 87.3, total_decisions: 423 },
-  ];
+  if (loading) return <PageSkeleton />;
 
   const totalDecisions = decisions.length || Number(agentStatus?.total_decisions ?? 0);
   const consensusRate = decisions.filter(d => d.consensus_reached !== false).length / Math.max(decisions.length, 1) * 100;
-  const activeProviders = displayProviders.filter(p => p.status === "active").length;
+  const activeProviders = providers.filter(p => p.status === "active").length;
 
   return (
     <div className="space-y-6 p-6">
@@ -101,15 +96,15 @@ export default function MultiLLM() {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Active Providers" value={activeProviders} icon={Cpu} trend="up" trendLabel={`${displayProviders.length} configured`} />
+        <KpiCard title="Active Providers" value={activeProviders} icon={Cpu} trend="up" trendLabel={`${providers.length} configured`} />
         <KpiCard title="Total Decisions" value={totalDecisions.toLocaleString()} icon={Scale} trend="up" trendLabel="All time" />
         <KpiCard title="Consensus Rate" value={`${consensusRate.toFixed(1)}%`} icon={CheckCircle} trend={consensusRate > 85 ? "up" : "down"} trendLabel="Agreement" />
-        <KpiCard title="Avg Latency" value={`${Math.round(displayProviders.reduce((s, p) => s + (p.latency_ms || 0), 0) / Math.max(displayProviders.length, 1)) || 0}ms`} icon={Clock} trend="flat" trendLabel="Response time" />
+        <KpiCard title="Avg Latency" value={`${Math.round(providers.reduce((s, p) => s + (p.latency_ms || 0), 0) / Math.max(providers.length, 1)) || 0}ms`} icon={Clock} trend="flat" trendLabel="Response time" />
       </div>
 
       {/* Provider Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {displayProviders.map((provider, idx) => (
+        {providers.map((provider, idx) => (
           <motion.div key={provider.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}>
             <Card className={cn("transition-all", provider.status === "active" ? "border-emerald-500/30" : "border-border/50 opacity-70")}>
               <CardContent className="p-4">
@@ -202,7 +197,7 @@ export default function MultiLLM() {
                     </tr>
                   </thead>
                   <tbody>
-                    {displayProviders.map(p => (
+                    {providers.map(p => (
                       <tr key={p.id} className="border-b border-border/30 hover:bg-accent/20">
                         <td className="py-2 px-3 font-medium">{p.name}</td>
                         <td className="py-2 px-3 text-right">{p.accuracy}%</td>

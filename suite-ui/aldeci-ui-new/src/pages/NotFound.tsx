@@ -6,19 +6,19 @@ export default function NotFound() {
   const navigate = useNavigate();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6rem 2rem', textAlign: 'center', width: '100%' }}>
+    <div className="flex flex-col items-center justify-center py-24 px-8 text-center w-full">
       {/* Large 404 */}
-      <p style={{ fontFamily: 'monospace', fontSize: '8rem', fontWeight: 'bold', lineHeight: 1, color: 'var(--border)', userSelect: 'none' }}>
+      <p className="font-mono text-7xl sm:text-8xl font-bold leading-none text-border select-none">
         404
       </p>
 
       {/* Heading */}
-      <h1 style={{ marginTop: '1rem', fontSize: '1.5rem', fontWeight: 600, color: 'var(--foreground)' }}>
+      <h1 className="mt-4 text-xl sm:text-2xl font-semibold text-foreground">
         Page not found
       </h1>
 
       {/* Sub-copy */}
-      <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: 'var(--muted-foreground)', maxWidth: '28rem', lineHeight: 1.6 }}>
+      <p className="mt-2 text-sm text-muted-foreground max-w-md leading-relaxed">
         The resource you requested does not exist or you do not have permission to access it. Verify the URL or return to the command dashboard.
       </p>
 

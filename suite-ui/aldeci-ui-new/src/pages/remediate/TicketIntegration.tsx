@@ -408,7 +408,7 @@ export default function TicketIntegration() {
       </PageHeader>
 
       {/* Stats bar */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-4 flex items-center gap-3">
             <CheckCircle className="h-5 w-5 text-green-500" />

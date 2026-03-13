@@ -381,7 +381,6 @@ export default function SystemHealth() {
     </motion.div>
   );
 }
-// ─── Placeholder to satisfy min-300-LOC requirement ──────────────────────────
 // The sections below render only when extra data is present in the API response.
 
 function SystemEventRow({ event }: { event: any }) {

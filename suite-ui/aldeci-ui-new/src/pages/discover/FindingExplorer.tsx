@@ -288,10 +288,10 @@ export default function FindingExplorer() {
                     body: form,
                   });
                   const data = await resp.json();
-                  alert(`Ingested ${data.findings_count || 0} findings from ${file.name}`);
+                  toast.success(`Ingested ${data.findings_count || 0} findings from ${file.name}`);
                   query.refetch();
                 } catch (err) {
-                  alert(`Upload failed: ${err}`);
+                  toast.error(`Upload failed: ${err}`);
                 }
               };
               input.click();

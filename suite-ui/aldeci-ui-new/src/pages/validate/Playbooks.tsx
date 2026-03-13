@@ -372,7 +372,7 @@ export default function Playbooks() {
         title="Playbooks"
         description="Security automation playbook library — incident response, compliance, and remediation"
       >
-        <Button variant="outline" onClick={() => navigate("/validate/playbook-editor")}>
+        <Button variant="outline" onClick={() => navigate("/validate/playbooks/editor")}>
           <Plus className="h-4 w-4 mr-2" />
           Create Playbook
         </Button>
