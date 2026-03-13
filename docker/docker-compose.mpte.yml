@@ -7,6 +7,10 @@
 #   docker compose -f docker-compose.yml -f docker-compose.mpte.yml up -d
 #
 # Or use the Makefile: make up-mpte
+#
+# Security: Uses Docker-in-Docker (DinD) sidecar instead of mounting the host
+# Docker socket. MPTE connects to the DinD daemon via TCP (tcp://mpte-dind:2376)
+# with TLS mutual auth, isolating pentest containers from the host daemon.
 
 volumes:
   mpte-data:
@@ -17,6 +21,12 @@ volumes:
     driver: local
   scraper-ssl:
     driver: local
+  mpte-dind-certs-ca:
+    driver: local
+  mpte-dind-certs-client:
+    driver: local
+  mpte-dind-data:
+    driver: local
 
 networks:
   mpte-network:
@@ -24,6 +34,38 @@ networks:
     name: mpte-network
 
 services:
+  # Docker-in-Docker sidecar for MPTE sandboxed execution
+  # Provides an isolated Docker daemon — MPTE containers cannot escape to host
+  mpte-dind:
+    image: docker:27-dind
+    restart: unless-stopped
+    container_name: mpte-dind
+    hostname: mpte-dind
+    privileged: true
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs
+      # Limit DinD resources for safety
+      - DOCKER_DRIVER=${MPTE_DIND_STORAGE_DRIVER:-overlay2}
+    volumes:
+      - mpte-dind-certs-ca:/certs/ca
+      - mpte-dind-certs-client:/certs/client
+      - mpte-dind-data:/var/lib/docker
+    networks:
+      - mpte-network
+    # Restrict DinD network access — only MPTE network
+    expose:
+      - 2376/tcp
+    healthcheck:
+      test: ["CMD", "docker", "info"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      options:
+        max-size: 50m
+        max-file: "3"
+
   # MPTE - Autonomous AI Penetration Testing Agent
   # Default: upstream image. Set MPTE_IMAGE to use your fork with VXControl Cloud SDK removed.
   mpte:
@@ -36,10 +78,11 @@ services:
     depends_on:
       mpte-db:
         condition: service_started
+      mpte-dind:
+        condition: service_healthy
     environment:
       # Core settings
       - DEBUG=${MPTE_DEBUG:-false}
-      - DOCKER_GID=998
       - SERVER_PORT=8443
       - SERVER_HOST=0.0.0.0
       - SERVER_USE_SSL=${MPTE_USE_SSL:-true}
@@ -59,8 +102,10 @@ services:
       # Scraper configuration
       - SCRAPER_PRIVATE_URL=https://${LOCAL_SCRAPER_USERNAME:-scraper}:${LOCAL_SCRAPER_PASSWORD:-scraper}@mpte-scraper:443
       
-      # Docker configuration for sandboxed execution
-      - DOCKER_HOST=${DOCKER_HOST:-unix:///var/run/docker.sock}
+      # Docker-in-Docker: connect to isolated DinD daemon via TLS
+      - DOCKER_HOST=tcp://mpte-dind:2376
+      - DOCKER_TLS_VERIFY=1
+      - DOCKER_CERT_PATH=/certs/client
       - DOCKER_INSIDE=${DOCKER_INSIDE:-true}
       - DOCKER_NET_ADMIN=${DOCKER_NET_ADMIN:-false}
       
@@ -79,8 +124,8 @@ services:
     volumes:
       - mpte-data:/opt/mpte/data
       - mpte-ssl:/opt/mpte/ssl
-      - ${MPTE_DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock
-    user: root:root
+      # Mount TLS client certs from DinD sidecar (read-only)
+      - mpte-dind-certs-client:/certs/client:ro
     networks:
       - mpte-network
       - default

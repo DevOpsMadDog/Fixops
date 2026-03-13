@@ -315,7 +315,14 @@ export const workflowsApi = {
 
 export const auditApi = {
   list: (params?: Record<string, unknown>) => api.get("/api/v1/audit", { params }),
+  logs: (params?: Record<string, unknown>) => api.get("/api/v1/audit/logs", { params }),
+  getLog: (id: string) => api.get(`/api/v1/audit/logs/${id}`),
+  exportLogs: (params?: Record<string, unknown>) => api.get("/api/v1/audit/logs/export", { params }),
+  decisionTrail: (params?: Record<string, unknown>) => api.get("/api/v1/audit/decision-trail", { params }),
+  userActivity: (params?: Record<string, unknown>) => api.get("/api/v1/audit/user-activity", { params }),
+  policyChanges: () => api.get("/api/v1/audit/policy-changes"),
   verify: () => api.post("/api/v1/audit/verify-chain"),
+  complianceFrameworks: () => api.get("/api/v1/audit/compliance/frameworks"),
 };
 
 export const policiesApi = {
@@ -456,4 +463,30 @@ export const brainApi = {
   pipelineStatus: () => api.get("/api/v1/brain/pipeline/status"),
   ingestFinding: (data: unknown) => api.post("/api/v1/brain/ingest/finding", data),
   evidenceGenerate: (data: unknown) => api.post("/api/v1/brain/evidence/generate", data),
+};
+
+// ── Marketplace ──
+export const marketplaceApi = {
+  browse: (params?: Record<string, unknown>) => api.get("/api/v1/marketplace/browse", { params }),
+  stats: () => api.get("/api/v1/marketplace/stats"),
+  recommendations: () => api.get("/api/v1/marketplace/recommendations"),
+  getItem: (itemId: string) => api.get(`/api/v1/marketplace/items/${itemId}`),
+  rateItem: (itemId: string, rating: number) => api.post(`/api/v1/marketplace/items/${itemId}/rate`, { rating }),
+  purchase: (itemId: string) => api.post(`/api/v1/marketplace/purchase/${itemId}`),
+  contribute: (data: unknown) => api.post("/api/v1/marketplace/contribute", data),
+  contributors: () => api.get("/api/v1/marketplace/contributors"),
+};
+
+// ── MCP (Model Context Protocol) ──
+export const mcpApi = {
+  status: () => api.get("/api/v1/mcp-protocol/status"),
+  stats: () => api.get("/api/v1/mcp-protocol/stats"),
+  tools: () => api.get("/api/v1/mcp-protocol/tools"),
+  resources: () => api.get("/api/v1/mcp-protocol/resources"),
+  prompts: () => api.get("/api/v1/mcp-protocol/prompts"),
+  callTool: (toolName: string, args: Record<string, unknown>) =>
+    api.post("/api/v1/mcp/tools/call", { tool_name: toolName, arguments: args }),
+  registerClient: (clientName: string, capabilities?: Record<string, unknown>) =>
+    api.post("/api/v1/mcp/clients/register", { client_name: clientName, capabilities }),
+  discover: () => api.post("/api/v1/mcp-protocol/discover"),
 };

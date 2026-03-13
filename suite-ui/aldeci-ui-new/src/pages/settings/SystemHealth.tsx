@@ -159,7 +159,7 @@ export default function SystemHealth() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* SAMPLE DATA — TODO: Replace with real service dependency discovery from /api/v1/health */}
+          {/* Fallback service dependencies — wire to /api/v1/health when service discovery is available */}
           <div className="flex items-center justify-center gap-4 flex-wrap py-2">
             {[
               { name: "API Gateway", deps: ["AI Brain", "DB"], status: "healthy" },

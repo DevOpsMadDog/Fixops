@@ -1,0 +1,61 @@
+# Gitleaks configuration for ALdeci/FixOps
+# SP3-007: Pre-commit secret detection
+
+title = "ALdeci Secret Detection Rules"
+
+[allowlist]
+  description = "Known safe patterns"
+  paths = [
+    '''archive/''',
+    '''archive_not_needed/''',
+    '''\.claude/''',
+    '''data/.*\.db$''',
+    '''\.secrets\.baseline$''',
+    '''node_modules/''',
+    '''\.venv/''',
+    '''package-lock\.json$''',
+  ]
+  regexes = [
+    # Test/example tokens that are clearly non-production
+    '''test[-_]?(key|token|secret|api)''',
+    # JWT structure comments in docs
+    '''eyJ[A-Za-z0-9_-]{10,}\.eyJ.*\.(example|test|demo)''',
+  ]
+
+# Override built-in rules with custom severity
+[[rules]]
+  id = "fixops-api-key"
+  description = "FixOps API Key"
+  regex = '''(?i)FIXOPS_API_TOKEN\s*=\s*['"]?([a-zA-Z0-9_\-]{20,})['"]?'''
+  tags = ["key", "fixops"]
+
+  [rules.allowlist]
+    paths = [
+      '''.env.example''',
+      '''docs/''',
+      '''CLAUDE\.md''',
+    ]
+
+[[rules]]
+  id = "openai-api-key"
+  description = "OpenAI API Key"
+  regex = '''sk-[a-zA-Z0-9]{20,}'''
+  tags = ["key", "openai"]
+
+[[rules]]
+  id = "anthropic-api-key"
+  description = "Anthropic API Key"
+  regex = '''sk-ant-[a-zA-Z0-9\-]{20,}'''
+  tags = ["key", "anthropic"]
+
+[[rules]]
+  id = "github-pat"
+  description = "GitHub Personal Access Token"
+  regex = '''ghp_[a-zA-Z0-9]{36}'''
+  tags = ["key", "github"]
+
+  [rules.allowlist]
+    paths = [
+      '''\.claude/''',
+      '''docs/''',
+    ]

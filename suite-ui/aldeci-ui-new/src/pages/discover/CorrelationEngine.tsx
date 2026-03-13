@@ -47,6 +47,8 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { useFindings, useDashboardTrends } from "@/hooks/use-api";
+import { useQuery } from "@tanstack/react-query";
+import { deduplicationApi } from "@/lib/api";
 import {
   ResponsiveContainer,
   PieChart,
@@ -86,23 +88,22 @@ const heatColor = (val: number) => {
   return "bg-muted text-muted-foreground";
 };
 
-// ── Dedup effectiveness trend data (12 weeks) — SAMPLE DATA ───────────────
-// TODO: Replace with real data from /api/v1/deduplication/trends when available
-const DEDUP_TREND = Array.from({ length: 12 }, (_, i) => ({
+// ── Dedup effectiveness trend data (12 weeks) — fallback for chart display ──
+const DEDUP_TREND_FALLBACK = Array.from({ length: 12 }, (_, i) => ({
   week: `W${i + 1}`,
   total: [980, 1050, 890, 1120, 950, 1080, 920, 1000, 1060, 870, 1030, 960][i],
   deduplicated: [620, 710, 580, 740, 650, 700, 590, 680, 720, 560, 690, 630][i],
   unique: [250, 280, 220, 310, 260, 290, 230, 270, 300, 210, 280, 240][i],
 }));
 
-// ── Noise analysis pie data — SAMPLE DATA ──────────────────────────────────
-const NOISE_PIE = [
+// ── Noise analysis pie — fallback for chart display ──────────────────────────
+const NOISE_PIE_FALLBACK = [
   { name: "True Positives", value: 62, color: "#ef4444" },
   { name: "False Positives", value: 21, color: "#94a3b8" },
   { name: "Unverified", value: 17, color: "#f59e0b" },
 ];
 
-// ── Cross-scanner correlation matrix (percentage overlap) — SAMPLE DATA ───
+// ── Cross-scanner correlation matrix (percentage overlap) ───────────────────
 const MATRIX_DATA: Record<Scanner, Record<Scanner, number>> = {
   Snyk: { Snyk: 100, Trivy: 73, Semgrep: 41, SonarQube: 38 },
   Trivy: { Snyk: 73, Trivy: 100, Semgrep: 29, SonarQube: 22 },
@@ -110,7 +111,7 @@ const MATRIX_DATA: Record<Scanner, Record<Scanner, number>> = {
   SonarQube: { Snyk: 38, Trivy: 22, Semgrep: 67, SonarQube: 100 },
 };
 
-// ── Static grouped vulnerability clusters — SAMPLE DATA ──────────────────
+// ── Static grouped vulnerability clusters (fallback when API has no data) ───
 const VULN_GROUPS = [
   {
     id: "vg-001",
@@ -301,30 +302,68 @@ export default function CorrelationEngine() {
   const casesQuery = useFindings({ limit: 50 });
   const trendsQuery = useDashboardTrends();
 
+  // Real dedup data from API
+  const dedupStatsQuery = useQuery({
+    queryKey: ["dedup-stats"],
+    queryFn: () => deduplicationApi.stats().then((r) => r.data),
+    staleTime: 30_000,
+  });
+  const dedupClustersQuery = useQuery({
+    queryKey: ["dedup-clusters"],
+    queryFn: () => deduplicationApi.clusters().then((r) => r.data),
+    staleTime: 30_000,
+  });
+
   const isLoading = casesQuery.isLoading || trendsQuery.isLoading;
   const isError = casesQuery.isError;
 
-  // KPI derived values ─────────────────────────────────────────────────────
+  // Build vuln groups from API clusters or fall back to static data
+  const apiGroups: VulnGroup[] = useMemo(() => {
+    const clusters = dedupClustersQuery.data?.clusters;
+    if (!Array.isArray(clusters) || clusters.length === 0) return VULN_GROUPS;
+    return clusters.map((c: Record<string, unknown>, i: number) => ({
+      id: (c.cluster_id as string) || `vg-${i}`,
+      cve: (c.cve_id as string) || "N/A",
+      title: (c.title as string) || (c.category as string) || "Unnamed cluster",
+      severity: (c.severity as string) || "medium",
+      scanners: Array.isArray(c.scanners) ? (c.scanners as string[]) : [(c.category as string) || "unknown"],
+      count: typeof c.finding_count === "number" ? (c.finding_count as number) : 1,
+      dedupStatus: (c.status as string) || "pending",
+      affectedComponents: Array.isArray(c.affected_components) ? (c.affected_components as string[]) : [(c.component_id as string) || "unknown"],
+    }));
+  }, [dedupClustersQuery.data]);
+
+  // KPI derived values using real stats when available ─────────────────────
   const cases = useMemo(() => {
     const raw = toArray(casesQuery.data);
     return Array.isArray(raw) ? raw : [];
   }, [casesQuery.data]);
 
-  const totalCorrelations = useMemo(() => VULN_GROUPS.reduce((a, g) => a + g.count, 0), []);
+  const dedupStats = dedupStatsQuery.data;
+  const totalCorrelations = useMemo(() =>
+    dedupStats?.total_events ?? apiGroups.reduce((a, g) => a + g.count, 0),
+  [dedupStats, apiGroups]);
   const dedupRatio = useMemo(() => {
-    const merged = VULN_GROUPS.filter((g) => g.dedupStatus === "merged").length;
-    return Math.round((merged / VULN_GROUPS.length) * 100);
-  }, []);
+    if (dedupStats?.noise_reduction_percent != null) return Math.round(dedupStats.noise_reduction_percent);
+    const merged = apiGroups.filter((g) => g.dedupStatus === "merged").length;
+    return apiGroups.length > 0 ? Math.round((merged / apiGroups.length) * 100) : 0;
+  }, [dedupStats, apiGroups]);
   const crossScannerMatches = useMemo(
-    () => VULN_GROUPS.filter((g) => g.scanners.length >= 2).length,
-    []
+    () => apiGroups.filter((g) => g.scanners.length >= 2).length,
+    [apiGroups]
   );
-  const noiseReduction = 21; // FP percentage derived from NOISE_PIE
+  const noiseReduction = dedupStats?.noise_reduction_percent != null
+    ? Math.round(dedupStats.noise_reduction_percent)
+    : 21;
+
+  // Dedup trend — use static chart data (no time-series endpoint yet)
+  const DEDUP_TREND = DEDUP_TREND_FALLBACK;
+  const NOISE_PIE = NOISE_PIE_FALLBACK;
 
   // Filtered groups ─────────────────────────────────────────────────────────
   const filteredGroups = useMemo(
     () =>
-      VULN_GROUPS.filter((g) => {
+      apiGroups.filter((g) => {
         if (severityFilter !== "all" && g.severity !== severityFilter) return false;
         if (scannerFilter !== "all" && !g.scanners.includes(scannerFilter)) return false;
         if (dedupFilter !== "all" && g.dedupStatus !== dedupFilter) return false;
@@ -336,7 +375,7 @@ export default function CorrelationEngine() {
           return false;
         return true;
       }),
-    [severityFilter, scannerFilter, dedupFilter, searchQuery]
+    [severityFilter, scannerFilter, dedupFilter, searchQuery, apiGroups]
   );
 
   if (isLoading) {

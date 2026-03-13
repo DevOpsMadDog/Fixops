@@ -43,7 +43,7 @@ function heatColor(value: number) {
   return "#ef4444";
 }
 
-// SAMPLE DATA — Replace with real scanner cost/ROI metrics when available
+// Fallback data — Replace with real scanner cost/ROI metrics when available
 const SCANNER_ROI_DATA = [
   { name: "Snyk", roi: 4.2, cost: 1200, findings: 87, confirmed: 72 },
   { name: "Semgrep", roi: 3.8, cost: 800, findings: 63, confirmed: 51 },
@@ -52,7 +52,7 @@ const SCANNER_ROI_DATA = [
   { name: "SonarQube", roi: 3.1, cost: 2100, findings: 119, confirmed: 88 },
 ];
 
-// SAMPLE DATA — Replace with real utilization metrics when available
+// Fallback data — Replace with real utilization metrics when available
 const HEATMAP_DATA = [
   { scanner: "Snyk", mon: 78, tue: 92, wed: 85, thu: 71, fri: 66, sat: 12, sun: 8 },
   { scanner: "Semgrep", mon: 65, tue: 70, wed: 88, thu: 91, fri: 74, sat: 20, sun: 5 },

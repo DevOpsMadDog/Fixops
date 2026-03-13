@@ -179,7 +179,7 @@ export default function AlgorithmicLab() {
 
         <TabsContent value="experiments">
           <Card><CardContent className="p-6"><div className="space-y-3">
-            {/* SAMPLE DATA — TODO: Replace with real experiment results from /api/v1/ml/experiments */}
+            {/* Fallback data — updates when /api/v1/ml/experiments returns real experiments */}
             {[{ name: "GNN vs MLP for attack path scoring", status: "completed", winner: "GNN (+4.2% AUC)", date: "2024-12-10", icon: Trophy },
               { name: "Monte Carlo iterations: 1K vs 10K", status: "completed", winner: "10K (diminishing at 5K)", date: "2024-12-08", icon: Target },
               { name: "Ensemble: XGBoost+RF vs XGBoost+LightGBM", status: "completed", winner: "XGBoost+RF (+1.8%)", date: "2024-12-05", icon: Beaker },

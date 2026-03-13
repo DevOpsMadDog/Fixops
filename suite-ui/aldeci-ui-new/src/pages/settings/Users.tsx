@@ -21,6 +21,8 @@ import {
   RefreshCw, MoreHorizontal, Mail, Lock, Key, Activity, Copy, Eye, EyeOff
 } from "lucide-react";
 import { useUsers } from "@/hooks/use-api";
+import { useQuery } from "@tanstack/react-query";
+import { auditApi } from "@/lib/api";
 import { getInitials } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -32,8 +34,8 @@ const PERMISSION_MATRIX: Record<string, Record<string, boolean>> = {
   Viewer: { "View Findings": true, "Triage Findings": false, "Manage Users": false, "Configure Integrations": false, "Generate Reports": false, "Manage API Keys": false },
 };
 
-// SAMPLE DATA — TODO: Replace with real audit log from /api/v1/audit endpoint
-const USER_ACTIVITY_LOG = [
+// Activity log fallback — overridden by real audit API data
+const USER_ACTIVITY_LOG_FALLBACK = [
   { user: "alice@corp.com", action: "Triaged CVE-2024-1337 as accepted risk", time: "2m ago", type: "triage" },
   { user: "bob@corp.com", action: "Generated SOC2 evidence bundle", time: "18m ago", type: "report" },
   { user: "carol@corp.com", action: "Invited diana@corp.com as Analyst", time: "1h ago", type: "admin" },
@@ -267,6 +269,25 @@ export default function UsersPage() {
   const refetch = useCallback(() => usersQuery.refetch(), [usersQuery]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+
+  // Real audit log from API
+  const auditLogsQuery = useQuery({
+    queryKey: ["audit-user-activity"],
+    queryFn: () => auditApi.userActivity({ limit: 10 }).then((r) => r.data),
+    staleTime: 30_000,
+  });
+
+  // Build activity log from API or fallback
+  const USER_ACTIVITY_LOG = (() => {
+    const items = auditLogsQuery.data?.items ?? auditLogsQuery.data;
+    if (!Array.isArray(items) || items.length === 0) return USER_ACTIVITY_LOG_FALLBACK;
+    return items.slice(0, 5).map((e: Record<string, unknown>) => ({
+      user: (e.user as string) ?? (e.actor as string) ?? "system",
+      action: (e.action as string) ?? (e.description as string) ?? (e.event as string) ?? "Activity",
+      time: (e.time_ago as string) ?? (e.timestamp as string) ?? "recently",
+      type: (e.type as string) ?? (e.category as string) ?? "other",
+    }));
+  })();
 
   if (usersQuery.isLoading) return <PageSkeleton />;
   if (usersQuery.isError) return <ErrorState message="Failed to load users" onRetry={refetch} />;

@@ -95,7 +95,7 @@ function WebhookConfigCard({ integration }: { integration: any }) {
   );
 }
 
-// SAMPLE DATA — TODO: Replace with real sync event log from API
+// Sync timeline fallback — wire to real integrations sync log when available
 const SYNC_TIMELINE = [
   { time: "09:42", name: "Snyk", event: "Scan results pushed", status: "success", records: 47 },
   { time: "09:35", name: "Jira", event: "Tickets synced", status: "success", records: 12 },

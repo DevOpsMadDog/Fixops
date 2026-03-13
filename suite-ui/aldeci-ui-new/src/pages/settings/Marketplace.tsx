@@ -1,5 +1,5 @@
 import { toArray } from "@/lib/api-utils";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,8 @@ import {
   Zap, TrendingUp, Settings, AlertCircle, ArrowUpRight
 } from "lucide-react";
 import { useIntegrations } from "@/hooks/use-api";
+import { useQuery } from "@tanstack/react-query";
+import { marketplaceApi } from "@/lib/api";
 import { toast } from "sonner";
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
@@ -35,8 +37,8 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
 type MarketplaceCategory = "All" | "Scanners" | "ALM" | "Cloud" | "Notification" | "Community";
 const CATEGORIES: MarketplaceCategory[] = ["All", "Scanners", "ALM", "Cloud", "Notification", "Community"];
 
-// SAMPLE DATA — TODO: Replace with real community marketplace API
-const COMMUNITY_PLAYBOOKS = [
+// Playbooks fallback — overridden by real API data when available
+const COMMUNITY_PLAYBOOKS_FALLBACK = [
   { name: "SOC2 Rapid Assessment", author: "security-team", stars: 128, downloads: 512, category: "Compliance", verified: true },
   { name: "OWASP Top 10 Coverage", author: "appsec-pros", stars: 94, downloads: 389, category: "AppSec", verified: true },
   { name: "Zero Trust Verification", author: "devsecops-io", stars: 211, downloads: 1024, category: "Network", verified: false },
@@ -280,6 +282,34 @@ export default function Marketplace() {
   const integrationsQuery = useIntegrations();
   const refetch = useCallback(() => integrationsQuery.refetch(), [integrationsQuery]);
 
+  // Real marketplace data from API
+  const marketplaceBrowseQuery = useQuery({
+    queryKey: ["marketplace-browse"],
+    queryFn: () => marketplaceApi.browse().then((r) => r.data),
+    staleTime: 60_000,
+  });
+  const marketplaceStatsQuery = useQuery({
+    queryKey: ["marketplace-stats"],
+    queryFn: () => marketplaceApi.stats().then((r) => r.data),
+    staleTime: 60_000,
+  });
+
+  // Build community playbooks from API or fallback
+  const COMMUNITY_PLAYBOOKS = useMemo(() => {
+    const items = marketplaceBrowseQuery.data?.items;
+    if (!Array.isArray(items) || items.length === 0) return COMMUNITY_PLAYBOOKS_FALLBACK;
+    return items.map((item: Record<string, unknown>) => ({
+      name: (item.name as string) || "Unnamed",
+      author: (item.author as string) || (item.contributor as string) || "community",
+      stars: typeof item.rating_count === "number" ? (item.rating_count as number) : Math.round(((item.average_rating as number) || 4) * 30),
+      downloads: typeof item.downloads === "number" ? (item.downloads as number) : 0,
+      category: (item.category as string) || (item.content_type as string) || "General",
+      verified: item.verified === true || ((item.average_rating as number) || 0) >= 4,
+    }));
+  }, [marketplaceBrowseQuery.data]);
+
+  const marketplaceStats = marketplaceStatsQuery.data;
+
   const [category, setCategory] = useState<MarketplaceCategory>("All");
   const [search, setSearch] = useState("");
   const [installed, setInstalled] = useState<Set<string>>(new Set());
@@ -347,7 +377,7 @@ export default function Marketplace() {
         <KpiCard title="Total Connectors" value={connectors.length} icon={Puzzle} />
         <KpiCard title="Installed" value={installedCount} icon={CheckCircle} />
         <KpiCard title="Available" value={availableCount} icon={Store} />
-        <KpiCard title="Community Playbooks" value={COMMUNITY_PLAYBOOKS.length} icon={Package} />
+        <KpiCard title="Community Playbooks" value={marketplaceStats?.total_items ?? COMMUNITY_PLAYBOOKS.length} icon={Package} />
       </div>
 
       {/* Search */}

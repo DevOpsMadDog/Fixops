@@ -19,3 +19,31 @@ repos:
     hooks:
       - id: end-of-file-fixer
         exclude: ^(archive|archive_not_needed)/
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: check-merge-conflict
+      - id: check-yaml
+        args: ['--allow-multiple-documents']
+      - id: detect-private-key
+  # Secret detection — SP3-007
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: >-
+          (?x)^(
+            .*\.lock$|
+            .*package-lock\.json$|
+            .*\.min\.js$|
+            archive/.*|
+            archive_not_needed/.*|
+            data/.*\.db$|
+            \.claude/.*
+          )$
+  # Gitleaks for comprehensive secret scanning
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+        exclude: ^(archive|archive_not_needed|\.claude)/

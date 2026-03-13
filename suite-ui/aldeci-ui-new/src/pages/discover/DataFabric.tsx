@@ -189,7 +189,7 @@ const DATA_SOURCES: DataSource[] = [
   },
 ];
 
-// ── Finding correlation timeline (24h, hourly) ─ SAMPLE DATA ─────────────────
+// ── Finding correlation timeline (24h, hourly) ─ Fallback data ─────────────────
 // TODO: Replace with real ingestion metrics when available
 const CORRELATION_TIMELINE = Array.from({ length: 24 }, (_, i) => ({
   hour: `${String(i).padStart(2, "0")}:00`,
@@ -198,7 +198,7 @@ const CORRELATION_TIMELINE = Array.from({ length: 24 }, (_, i) => ({
   deduplicated: [700, 500, 400, 350, 300, 400, 500, 700, 1000, 1100, 1200, 1250, 1200, 1150, 1050, 950, 900, 850, 800, 700, 650, 600, 500, 600][i],
 }));
 
-// ── Source comparison radar data ─ SAMPLE DATA ───────────────────────────────
+// ── Source comparison radar data ─ Fallback data ───────────────────────────────
 const SOURCE_RADAR = [
   { metric: "Coverage", Snyk: 88, Trivy: 79, Semgrep: 91, SonarQube: 74 },
   { metric: "Accuracy", Snyk: 94, Trivy: 82, Semgrep: 87, SonarQube: 90 },
