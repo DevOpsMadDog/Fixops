@@ -17,6 +17,9 @@ if [ -z "$FIXOPS_JWT_SECRET" ]; then
   exit 1
 fi
 
+# Allow data directory access (Docker runs as root, data owned by root)
+export FIXOPS_SKIP_PATH_SECURITY=1
+
 echo "[1/2] Starting API backend (port 8000)..."
 python3 -m uvicorn api.app:create_app \
   --factory \

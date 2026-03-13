@@ -29,8 +29,10 @@ env
 # Node modules (each Dockerfile copies what it needs)
 **/node_modules
 .next
-**/dist
 **/.turbo
+# Exclude all dist except the production frontend build
+**/dist
+!suite-ui/aldeci-ui-new/dist
 
 # IDE
 .vscode
@@ -77,12 +79,11 @@ docs/
 !requirements*.txt
 LICENSE
 
-# Database files (data is volume-mounted)
-**/*.db
-**/*.db-wal
-**/*.db-shm
+# Database files for local dev (but keep data/ for Docker seeding)
 .fixops_data/
-data/
+# Include data/ and *.db for enterprise seeded image
+!data/
+!data/**
 
 # Large artifacts not needed in containers
 artefacts/
