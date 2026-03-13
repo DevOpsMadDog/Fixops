@@ -60,6 +60,31 @@ _login_attempts: PersistentDict = PersistentDict("login_attempts")
 MAX_LOGIN_ATTEMPTS = 5
 LOGIN_LOCKOUT_SECONDS = 300  # 5 minutes
 
+# Role → JWT scopes mapping (must align with _require_scope in app.py)
+_ROLE_SCOPES: Dict[str, List[str]] = {
+    "admin": [
+        "admin:all",
+        "read:findings", "write:findings",
+        "read:sbom", "write:sbom",
+        "read:users", "write:users",
+        "read:policies", "write:policies",
+    ],
+    "security_analyst": [
+        "read:findings", "write:findings",
+        "read:sbom",
+        "read:users",
+        "read:policies", "write:policies",
+    ],
+    "developer": [
+        "read:findings",
+        "read:sbom",
+    ],
+    "viewer": [
+        "read:findings",
+        "read:sbom",
+    ],
+}
+
 
 class LoginRequest(BaseModel):
     """Login request."""
@@ -188,11 +213,15 @@ async def login(credentials: LoginRequest, request: Request):
     jwt_secret = _get_jwt_secret()
     token_id = secrets.token_urlsafe(16)
 
+    # Map role → scopes so the middleware can enforce granular access
+    role_scopes = _ROLE_SCOPES.get(user.role.value, ["read:findings"])
+
     token = jwt.encode(
         {
             "user_id": user.id,
             "email": user.email,
             "role": user.role.value,
+            "scopes": role_scopes,
             "jti": token_id,  # JWT ID for token revocation
             "iat": datetime.now(timezone.utc),
             "exp": datetime.now(timezone.utc)

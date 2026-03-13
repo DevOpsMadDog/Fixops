@@ -18,14 +18,25 @@ interface AppState {
   completeOnboarding: () => void;
 }
 
-// Storage adapter — in-memory only (safe for all environments)
-const _mem = new Map<string, string>();
+// Storage adapter — localStorage with in-memory fallback
+const STORAGE_KEY = "aldeci-prefs";
+
 function safePersist(key: string, state: unknown) {
-  _mem.set(key, JSON.stringify(state));
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      window.localStorage.setItem(key, JSON.stringify(state));
+      return;
+    }
+  } catch { /* quota or security error — fall through */ }
 }
+
 function safeHydrate<T>(key: string, fallback: T): T {
-  const raw = _mem.get(key);
-  if (raw) { try { return JSON.parse(raw) as T; } catch { /* */ } }
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      const raw = window.localStorage.getItem(key);
+      if (raw) return JSON.parse(raw) as T;
+    }
+  } catch { /* */ }
   return fallback;
 }
 
