@@ -71,13 +71,26 @@ export function renderPage(ui: ReactElement, opts?: RenderOptions & { routerProp
   });
 }
 
+/** Shape returned by all mock query helpers. */
+interface MockQueryBase<T = unknown> {
+  data: T;
+  isLoading: boolean;
+  isError: boolean;
+  error: Error | null;
+  isFetching: boolean;
+  isSuccess: boolean;
+  refetch: ReturnType<typeof vi.fn>;
+  status: "success" | "pending" | "error";
+  fetchStatus: "idle" | "fetching";
+}
+
 /**
  * Create a mock for a single use-api hook that returns the desired data.
  *
  * Call this at module level (or inside beforeEach) via vi.mock:
  *   vi.mocked(useXYZ).mockReturnValue(mockQueryResult({ ... }));
  */
-export function mockQueryResult<T>(data: T, overrides?: Partial<ReturnType<typeof useQueryDefaults>>) {
+export function mockQueryResult<T>(data: T, overrides?: Partial<MockQueryBase<T>>): MockQueryBase<T> {
   return {
     data,
     isLoading: false,
@@ -93,7 +106,7 @@ export function mockQueryResult<T>(data: T, overrides?: Partial<ReturnType<typeo
 }
 
 /** A loading-state mock. */
-export function mockQueryLoading() {
+export function mockQueryLoading(): MockQueryBase<undefined> {
   return {
     data: undefined,
     isLoading: true,
@@ -108,7 +121,7 @@ export function mockQueryLoading() {
 }
 
 /** An error-state mock. */
-export function mockQueryError(message = "Network error") {
+export function mockQueryError(message = "Network error"): MockQueryBase<undefined> {
   return {
     data: undefined,
     isLoading: false,
@@ -120,10 +133,6 @@ export function mockQueryError(message = "Network error") {
     status: "error" as const,
     fetchStatus: "idle" as const,
   };
-}
-
-function useQueryDefaults() {
-  return mockQueryResult(null);
 }
 
 /** Mutation mock. */
