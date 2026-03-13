@@ -1010,17 +1010,31 @@ def create_app() -> FastAPI:
         # URLs like report view/download where headers cannot be sent).
         if not api_key:
             api_key = request.query_params.get("api_key")
+
+        # Try to extract Authorization header for JWT (frontend sends this after login)
+        auth_header = request.headers.get("Authorization", "")
+
         if auth_strategy == "token":
-            if not api_key or api_key not in expected_tokens:
-                _record_auth_failure(client_ip)
-                logger.warning("Failed token auth attempt from IP %s", client_ip)
-                raise HTTPException(
-                    status_code=401, detail="Invalid or missing API token"
-                )
-            # Token auth = service account → admin scopes
-            request.state.user_role = "admin"
-            request.state.user_scopes = _ALL_SCOPES
-            return
+            # First check X-API-Key token
+            if api_key and api_key in expected_tokens:
+                request.state.user_role = "admin"
+                request.state.user_scopes = _ALL_SCOPES
+                return
+            # Also accept JWT Bearer tokens (dual auth: API key + JWT login)
+            if auth_header.lower().startswith("bearer "):
+                jwt_token = auth_header[7:].strip()
+                try:
+                    claims = decode_access_token(jwt_token)
+                    request.state.user_role = claims.get("role", "viewer")
+                    request.state.user_scopes = claims.get("scopes", ["read:findings"])
+                    return
+                except HTTPException:
+                    pass  # Fall through to failure
+            _record_auth_failure(client_ip)
+            logger.warning("Failed token auth attempt from IP %s", client_ip)
+            raise HTTPException(
+                status_code=401, detail="Invalid or missing API token"
+            )
         if auth_strategy == "jwt":
             if not api_key:
                 _record_auth_failure(client_ip)
