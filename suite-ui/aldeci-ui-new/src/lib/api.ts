@@ -459,10 +459,27 @@ export const autofixApi = {
 
 // ── Brain / Pipeline ──
 export const brainApi = {
+  status: () => api.get("/api/v1/brain/status"),
+  stats: () => api.get("/api/v1/brain/stats"),
   pipelineRun: (data?: unknown) => api.post("/api/v1/brain/pipeline/run", data || {}),
   pipelineStatus: () => api.get("/api/v1/brain/pipeline/status"),
   ingestFinding: (data: unknown) => api.post("/api/v1/brain/ingest/finding", data),
   evidenceGenerate: (data: unknown) => api.post("/api/v1/brain/evidence/generate", data),
+};
+
+// ── LLM Providers ──
+export const llmApi = {
+  providers: () => api.get("/api/v1/llm/providers"),
+  status: () => api.get("/api/v1/llm/status"),
+  consensus: (data: unknown) => api.post("/api/v1/llm/consensus", data),
+};
+
+// ── ML / MindsDB ──
+export const mlApi = {
+  models: () => api.get("/api/v1/ml/models"),
+  status: () => api.get("/api/v1/ml/status"),
+  train: (modelId: string, data?: unknown) => api.post(`/api/v1/ml/models/${modelId}/train`, data || {}),
+  predict: (modelId: string, data: unknown) => api.post(`/api/v1/ml/models/${modelId}/predict`, data),
 };
 
 // ── Marketplace ──

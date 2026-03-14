@@ -24,6 +24,7 @@ import {
   playbooks as playbooksApi,
   scannerApi,
   casesApi,
+  llmApi,
   getStoredOrgId,
 } from "@/lib/api";
 import { toast } from "sonner";
@@ -508,6 +509,17 @@ export function useSystemMetrics() {
       return data;
     },
     refetchInterval: 30_000,
+  });
+}
+
+export function useLlmStatus() {
+  return useQuery({
+    queryKey: ["llm", "status"],
+    queryFn: async () => {
+      const { data } = await llmApi.status();
+      return data;
+    },
+    refetchInterval: 60_000,
   });
 }
 

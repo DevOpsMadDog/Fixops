@@ -4392,6 +4392,7 @@ run_agent() {
   case "$agent_name" in
     frontend-craftsman|backend-hardener|threat-architect) timeout=$TIMEOUT_CRITICAL ;;
     swarm-controller) timeout=2400 ;;  # 40 min — needs time for task decomposition, dispatch, monitoring
+    technical-writer|marketing-head|sales-engineer) timeout=2100 ;;  # 35 min — docs agents need headroom (SP3-009)
     vision-agent|agent-doctor) timeout=$TIMEOUT_PHASE0 ;;
   esac
 
@@ -5330,7 +5331,7 @@ AGENT_MAX_RAM_MB=(
   [qa-engineer]=1800
   [devops-engineer]=1800
   [marketing-head]=1200
-  [technical-writer]=1200
+  [technical-writer]=1500    # Increased from 1200 — docs gen needs headroom (SP3-009)
   [sales-engineer]=1200
   [scrum-master]=1500
 )
