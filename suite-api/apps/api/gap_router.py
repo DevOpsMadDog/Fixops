@@ -314,25 +314,84 @@ def _query_remediation_db():
 
 @copilot_gap.post("/chat")
 async def copilot_chat(req: ChatRequest):
-    """Process a copilot chat message using real platform data."""
+    """Process a copilot chat message using real LLM + platform data."""
     session_id = req.session_id or f"sess-{uuid.uuid4().hex[:8]}"
-    msg_lower = req.message.lower()
 
     # Query real data from the platform databases
     findings_data = _query_findings_db()
     remediation_data = _query_remediation_db()
 
+    # Build context summary for LLM
+    fd = findings_data or {}
+    rd = remediation_data or {}
+    context_summary = (
+        f"Platform status: {fd.get('total', 0)} findings, {rd.get('total', 0)} remediation tasks.\n"
+        f"Severity: {fd.get('by_severity', {})}.\n"
+        f"Status: {fd.get('by_status', {})}.\n"
+        f"Sources: {fd.get('by_source', {})}.\n"
+        f"Exploitable: {fd.get('exploitable_count', 0)}.\n"
+        f"Remediation status: {rd.get('by_status', {})}.\n"
+    )
+    if fd.get("critical"):
+        crit_summary = "; ".join(
+            f"{c.get('title', '')[:60]} (CVSS {c.get('cvss_score', 'N/A')})"
+            for c in fd["critical"][:5]
+        )
+        context_summary += f"Top critical: {crit_summary}\n"
+
+    # ── Try real LLM first ──
+    llm_response = None
+    llm_provider_used = None
+    try:
+        from core.llm_providers import LLMProviderManager
+        mgr = LLMProviderManager()
+        prompt = (
+            f"You are ALdeci Security Copilot ({req.agent_id}). "
+            f"Answer the user's question using the platform data below. "
+            f"Be concise, data-driven, and actionable.\n\n"
+            f"Platform data:\n{context_summary}\n"
+            f"User question: {req.message}"
+        )
+        for provider_name in ("openai", "anthropic", "gemini"):
+            try:
+                resp = mgr.analyse(
+                    provider_name,
+                    prompt=prompt,
+                    context={"agent_id": req.agent_id, "session_id": session_id},
+                    default_action="review",
+                    default_confidence=0.9,
+                    default_reasoning="",
+                )
+                if resp.metadata.get("mode") == "remote" and resp.reasoning:
+                    llm_response = resp.reasoning
+                    llm_provider_used = provider_name
+                    break
+            except Exception:
+                continue
+    except Exception as e:
+        logger.debug("LLM providers unavailable for copilot: %s", e)
+
+    if llm_response:
+        # LLM gave a real response — use it
+        return {
+            "session_id": session_id,
+            "message_id": f"msg-{uuid.uuid4().hex[:8]}",
+            "agent_id": req.agent_id,
+            "response": llm_response,
+            "suggestions": ["Show critical findings", "Check compliance status", "View remediation tasks", "Analyze attack paths"],
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "confidence": 0.95,
+            "sources": ["llm_" + (llm_provider_used or "unknown"), "analytics_db", "remediation_db"],
+        }
+
+    # ── Fallback: keyword-based response with real data ──
+    msg_lower = req.message.lower()
+
     if findings_data and ("compliance" in msg_lower or "framework" in msg_lower or "soc" in msg_lower or "pci" in msg_lower or "iso" in msg_lower or "nist" in msg_lower):
-        fd = findings_data
         response = (
-            f"Compliance analysis based on {fd['total']} active findings:\n\n"
-            "Active compliance frameworks:\n"
-            "  \u2022 SOC 2 Type II \u2014 22 controls, 19 automated\n"
-            "  \u2022 PCI DSS 4.0 \u2014 22 controls, 20 automated\n"
-            "  \u2022 ISO 27001:2022 \u2014 21 controls, 16 automated\n"
-            "  \u2022 NIST 800-53 Rev 5 \u2014 30 controls, 29 automated\n\n"
-            f"Finding sources affecting compliance: {', '.join(fd['by_source'].keys())}\n"
-            f"{fd['by_severity'].get('critical', 0)} critical findings directly impact SOC 2 CC6.1 (Logical Access) and PCI DSS Req 6 (Secure Development).\n\n"
+            f"Compliance analysis based on {fd.get('total', 0)} active findings:\n\n"
+            f"Finding sources affecting compliance: {', '.join(fd.get('by_source', {}).keys())}\n"
+            f"{fd.get('by_severity', {}).get('critical', 0)} critical findings directly impact SOC 2 CC6.1 and PCI DSS Req 6.\n\n"
             "Run a full compliance assessment to get control-level gap analysis with evidence mapping."
         )
         suggestions = ["Run SOC2 assessment", "Generate evidence bundle", "Show control gaps", "Export audit report"]
@@ -340,73 +399,56 @@ async def copilot_chat(req: ChatRequest):
         confidence = 0.94
 
     elif findings_data and ("finding" in msg_lower or "vulnerab" in msg_lower or "critical" in msg_lower or "scan" in msg_lower or "top" in msg_lower or "what" in msg_lower):
-        fd = findings_data
-        crit = fd["by_severity"].get("critical", 0)
-        high = fd["by_severity"].get("high", 0)
-        med = fd["by_severity"].get("medium", 0)
-        low = fd["by_severity"].get("low", 0)
-        sources = ", ".join(f"{k}: {v}" for k, v in fd["by_source"].items())
+        crit = fd.get("by_severity", {}).get("critical", 0)
+        high = fd.get("by_severity", {}).get("high", 0)
+        med = fd.get("by_severity", {}).get("medium", 0)
+        low = fd.get("by_severity", {}).get("low", 0)
+        sources = ", ".join(f"{k}: {v}" for k, v in fd.get("by_source", {}).items())
         crit_details = ""
-        for i, c in enumerate(fd["critical"][:5], 1):
+        for i, c in enumerate(fd.get("critical", [])[:5], 1):
             cve = f" ({c['cve_id']})" if c.get('cve_id') else ""
-            crit_details += f"\n  {i}. {c['title'][:80]}{cve} \u2014 CVSS {c.get('cvss_score', 'N/A')}, EPSS {c.get('epss_score', 'N/A')}"
+            crit_details += f"\n  {i}. {c['title'][:80]}{cve} — CVSS {c.get('cvss_score', 'N/A')}, EPSS {c.get('epss_score', 'N/A')}"
         response = (
-            f"Based on live platform data, your environment has {fd['total']} total findings across {len(fd['by_source'])} scanner sources ({sources}).\n\n"
-            f"Severity breakdown: {crit} Critical, {high} High, {med} Medium, {low} Low.\n"
-            f"{fd['exploitable_count']} findings are confirmed exploitable.\n\n"
-            f"Top critical findings:{crit_details}\n\n"
-            f"Status: {fd['by_status'].get('open', 0)} open, {fd['by_status'].get('in_progress', 0)} in progress, {fd['by_status'].get('resolved', 0)} resolved.\n\n"
-            "I recommend prioritizing the critical exploitable findings with highest EPSS scores first, as they represent the highest likelihood of active exploitation."
+            f"Your environment has {fd.get('total', 0)} findings across {len(fd.get('by_source', {}))} sources ({sources}).\n\n"
+            f"Severity: {crit} Critical, {high} High, {med} Medium, {low} Low.\n"
+            f"{fd.get('exploitable_count', 0)} confirmed exploitable.\n\n"
+            f"Top critical:{crit_details}\n\n"
+            f"Status: {fd.get('by_status', {}).get('open', 0)} open, {fd.get('by_status', {}).get('in_progress', 0)} in progress, {fd.get('by_status', {}).get('resolved', 0)} resolved."
         )
         suggestions = ["Show exploitable findings", "Generate remediation plan", "Run MPTE validation", "Map to compliance frameworks"]
         sources_list = ["analytics_db", "findings_store"]
         confidence = 0.96
 
     elif remediation_data and ("remediat" in msg_lower or "fix" in msg_lower or "patch" in msg_lower or "task" in msg_lower):
-        rd = remediation_data
         response = (
-            f"Remediation pipeline status — {rd['total']} total tasks:\n\n"
-            f"  • Open: {rd['by_status'].get('open', 0)}\n"
-            f"  • Assigned: {rd['by_status'].get('assigned', 0)}\n"
-            f"  • In Progress: {rd['by_status'].get('in_progress', 0)}\n"
-            f"  • Resolved: {rd['by_status'].get('resolved', 0)}\n"
-            f"  • Deferred: {rd['by_status'].get('deferred', 0)}\n\n"
-            f"By severity: {rd['by_severity'].get('critical', 0)} critical, {rd['by_severity'].get('high', 0)} high, {rd['by_severity'].get('medium', 0)} medium.\n\n"
-            "Critical SLA: 72 hours. I can generate autofix patches for code-level findings or create Jira tickets for infrastructure tasks."
+            f"Remediation pipeline — {rd.get('total', 0)} tasks:\n"
+            f"  Open: {rd.get('by_status', {}).get('open', 0)}, "
+            f"In Progress: {rd.get('by_status', {}).get('in_progress', 0)}, "
+            f"Resolved: {rd.get('by_status', {}).get('resolved', 0)}.\n"
+            f"Critical: {rd.get('by_severity', {}).get('critical', 0)}, "
+            f"High: {rd.get('by_severity', {}).get('high', 0)}."
         )
         suggestions = ["Generate autofix patches", "View SLA breaches", "Assign unassigned tasks", "Create Jira tickets"]
         sources_list = ["remediation_db", "sla_engine"]
         confidence = 0.95
 
     elif "risk" in msg_lower or "exposure" in msg_lower or "attack" in msg_lower:
-        fd = findings_data or {}
         response = (
-            f"Risk and exposure analysis based on {fd.get('total', 0)} findings:\n\n"
-            f"Exploitable findings: {fd.get('exploitable_count', 0)} (confirmed via MPTE validation)\n"
-            f"Critical attack paths identified: 3 (via knowledge graph correlation)\n\n"
-            "Top attack chains:\n"
-            "  1. T1190 (Exploit Public App) → T1059 (Command Execution) → T1078 (Valid Accounts) — via SQL injection in API Gateway\n"
-            "  2. T1552 (Unsecured Credentials) → T1530 (Cloud Storage Access) — via exposed AWS keys\n"
-            "  3. CVE-2024-21626 (Container Escape) → Lateral Movement — via runc vulnerability on EKS\n\n"
-            "Overall risk score: 72/100. Recommend focusing on the 3 active attack paths first."
+            f"Risk analysis based on {fd.get('total', 0)} findings:\n"
+            f"Exploitable: {fd.get('exploitable_count', 0)} (MPTE validated).\n"
+            f"Critical: {fd.get('by_severity', {}).get('critical', 0)}.\n"
+            "Use attack path analysis for detailed exposure mapping."
         )
         suggestions = ["View attack paths", "Run attack simulation", "Generate risk report", "Show blast radius"]
         sources_list = ["knowledge_graph", "attack_paths", "analytics_db"]
         confidence = 0.93
 
     else:
-        fd = findings_data or {}
-        rd = remediation_data or {}
         response = (
-            f"Welcome. I'm the {req.agent_id.replace('-', ' ').title()} agent with access to your live platform data.\n\n"
-            f"Current status: {fd.get('total', 0)} findings, {rd.get('total', 0)} remediation tasks, "
-            f"{fd.get('by_severity', {}).get('critical', 0)} critical issues.\n\n"
-            "I can help you with:\n"
-            "  • Security analysis — query findings, triage, correlation\n"
-            "  • Compliance — framework assessment, evidence generation, gap analysis\n"
-            "  • Remediation — autofix, task assignment, SLA tracking\n"
-            "  • Threat intelligence — MITRE mapping, attack path analysis\n\n"
-            "What would you like to explore?"
+            f"I'm the {req.agent_id.replace('-', ' ').title()} agent.\n"
+            f"Status: {fd.get('total', 0)} findings, {rd.get('total', 0)} remediation tasks, "
+            f"{fd.get('by_severity', {}).get('critical', 0)} critical.\n\n"
+            "I can help with: security analysis, compliance, remediation, threat intelligence."
         )
         suggestions = ["Show critical findings", "Check compliance status", "View remediation tasks", "Analyze attack paths"]
         sources_list = ["analytics_db", "remediation_db"]
@@ -614,17 +656,18 @@ async def list_feeds(
     except Exception:
         pass
 
-    # Fall back to querying the feeds router status endpoint internally
+    # Fall back to FeedsService which manages all feed sources
     try:
-        from core.feed_manager import FeedManager
-        mgr = FeedManager()
-        feeds_list = mgr.list_feeds() if hasattr(mgr, "list_feeds") else []
-        return {"items": feeds_list, "total": len(feeds_list), "page": page, "per_page": per_page}
+        from feeds_service import FeedsService
+        svc = FeedsService()
+        # Get recent NVD CVEs as a proxy for feed activity
+        recent = svc.get_recent_nvd_cves(limit=per_page)
+        if recent:
+            return {"items": recent, "total": len(recent), "page": page, "per_page": per_page, "source": "feeds_service"}
     except Exception:
         pass
 
     # Minimal catalog of known configured feeds
-    now = datetime.now(timezone.utc)
     catalog = [
         {"id": "nvd", "name": "NVD CVE Feed", "source": "nvd.nist.gov", "type": "vulnerability", "status": "configured", "format": "JSON"},
         {"id": "kev", "name": "CISA KEV", "source": "cisa.gov", "type": "known_exploited", "status": "configured", "format": "JSON"},
@@ -637,27 +680,60 @@ async def list_feeds(
 
 @feeds_gap.get("/trending")
 async def get_trending_threats():
-    """Get trending threats from real NVD/KEV/EPSS data."""
+    """Get trending threats from real NVD/KEV/EPSS data via FeedsService."""
     now = datetime.now(timezone.utc)
+
+    # Try FeedsService first — it has the real feed databases
     try:
-        # Try to get real EPSS/KEV data from feeds DB
-        db_paths = ["data/feeds/epss.db", ".fixops_data/epss.db", "data/feeds/nvd.db"]
+        from feeds_service import FeedsService
+        svc = FeedsService()
+        # Get recent NVD CVEs sorted by severity
+        recent_cves = svc.get_recent_nvd_cves(severity="CRITICAL", limit=10)
+        if recent_cves:
+            trending = []
+            for cve in recent_cves:
+                d = cve if isinstance(cve, dict) else (cve.__dict__ if hasattr(cve, "__dict__") else {})
+                trending.append({
+                    "cve_id": d.get("cve_id", d.get("id", "")),
+                    "description": d.get("description", "")[:200],
+                    "cvss_score": d.get("cvss_score", d.get("base_score", 0)),
+                    "severity": d.get("severity", "CRITICAL"),
+                    "epss_score": d.get("epss_score", d.get("epss", 0)),
+                    "published": d.get("published", d.get("published_date", "")),
+                    "source": "nvd",
+                })
+            return {"trending": trending, "total": len(trending), "updated_at": now.isoformat(), "source": "feeds_service"}
+    except Exception as e:
+        logger.debug("FeedsService trending unavailable: %s", e)
+
+    # Fallback: query feeds DB directly
+    try:
+        db_paths = ["data/feeds/feeds.db", ".fixops_data/feeds.db", "data/feeds/nvd.db", "data/feeds/epss.db"]
         for p in db_paths:
             if Path(p).exists():
                 conn = sqlite3.connect(p)
                 conn.row_factory = sqlite3.Row
                 try:
-                    rows = conn.execute(
-                        "SELECT * FROM cves ORDER BY epss_score DESC LIMIT 10"
-                    ).fetchall()
-                    items = [dict(r) for r in rows]
+                    # Try multiple table/column names
+                    for query in [
+                        "SELECT * FROM cves ORDER BY epss_score DESC LIMIT 10",
+                        "SELECT * FROM nvd_cves ORDER BY cvss_score DESC LIMIT 10",
+                        "SELECT * FROM vulnerabilities ORDER BY base_score DESC LIMIT 10",
+                    ]:
+                        try:
+                            rows = conn.execute(query).fetchall()
+                            items = [dict(r) for r in rows]
+                            conn.close()
+                            return {"trending": items, "total": len(items), "updated_at": now.isoformat(), "source": "feeds_db"}
+                        except sqlite3.OperationalError:
+                            continue
                     conn.close()
-                    return {"trending": items, "updated_at": now.isoformat(), "source": "epss_db"}
-                except sqlite3.OperationalError:
+                except Exception:
                     conn.close()
     except Exception:
         pass
-    return {"trending": [], "updated_at": now.isoformat(), "source": "none"}
+
+    return {"trending": [], "total": 0, "updated_at": now.isoformat(), "source": "none"}
 
 
 # ── GRAPH (missing: GET /attack-paths, POST /query, GET /visualize) ──
