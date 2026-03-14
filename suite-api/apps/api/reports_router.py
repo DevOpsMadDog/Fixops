@@ -409,6 +409,22 @@ class PaginatedReportResponse(BaseModel):
     offset: int
 
 
+@router.get("/templates")
+async def list_report_templates():
+    """List available report templates."""
+    return {
+        "templates": [
+            {"id": "executive-summary", "name": "Executive Summary", "format": "pdf", "category": "leadership"},
+            {"id": "vulnerability-detail", "name": "Vulnerability Detail Report", "format": "pdf", "category": "technical"},
+            {"id": "compliance-soc2", "name": "SOC 2 Compliance Report", "format": "pdf", "category": "compliance"},
+            {"id": "sbom-export", "name": "SBOM Export (CycloneDX)", "format": "json", "category": "supply-chain"},
+            {"id": "risk-assessment", "name": "Risk Assessment Report", "format": "pdf", "category": "risk"},
+            {"id": "remediation-progress", "name": "Remediation Progress", "format": "pdf", "category": "operations"},
+        ],
+        "total": 6,
+    }
+
+
 @router.get("", response_model=PaginatedReportResponse)
 async def list_reports(
     org_id: str = Depends(get_org_id),

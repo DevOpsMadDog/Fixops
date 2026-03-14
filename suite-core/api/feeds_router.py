@@ -15,6 +15,7 @@ realistic enterprise metrics. Data is refreshed on publish-based schedules.
 from __future__ import annotations
 
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -1193,6 +1194,34 @@ _NVD_RECENT: List[Dict[str, Any]] = [
         "tags": ["Privilege Escalation", "Linux Kernel", "Container Escape Risk"],
     },
 ]
+
+
+@router.get(
+    "/nvd",
+    summary="NVD Feed Overview",
+    description="Returns NVD feed overview including recent advisories, stats, and feed status.",
+)
+def get_nvd_overview(
+    limit: int = Query(default=15, ge=1, le=50),
+) -> Dict[str, Any]:
+    """NVD feed overview — provides feed status, stats, and recent entries."""
+    advisories = _NVD_RECENT[:limit]
+    severity_counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0}
+    for a in advisories:
+        sev = a.get("cvss_severity", "").upper()
+        if sev in severity_counts:
+            severity_counts[sev] += 1
+    kev_count = sum(1 for a in advisories if a.get("kev"))
+    return {
+        "status": "active",
+        "feed": "NVD",
+        "version": "2.0",
+        "total_advisories": len(advisories),
+        "severity_breakdown": severity_counts,
+        "kev_count": kev_count,
+        "advisories": advisories,
+        "last_updated": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 @router.get(

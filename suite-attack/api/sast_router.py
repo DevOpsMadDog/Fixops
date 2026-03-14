@@ -86,6 +86,40 @@ async def scan_files(req: ScanFilesRequest) -> Dict[str, Any]:
     return result.to_dict()
 
 
+@router.get("/findings")
+async def list_sast_findings(
+    severity: str = None,
+    limit: int = 100,
+) -> Dict[str, Any]:
+    """List SAST scan findings."""
+    try:
+        from core.analytics_db import AnalyticsDB
+        db = AnalyticsDB()
+        findings = db.list_findings(limit=limit)
+        sast_findings = []
+        for f in findings:
+            src = getattr(f, 'source', '') or ''
+            if 'sast' in src.lower() or 'static' in src.lower():
+                sev = f.severity.value if hasattr(f.severity, 'value') else str(f.severity)
+                if severity and sev.lower() != severity.lower():
+                    continue
+                sast_findings.append({
+                    'id': f.id,
+                    'title': getattr(f, 'title', 'SAST Finding'),
+                    'severity': sev,
+                    'status': f.status.value if hasattr(f.status, 'value') else str(f.status),
+                    'source': src,
+                    'created_at': f.created_at.isoformat() if hasattr(f, 'created_at') and f.created_at else None,
+                })
+    except Exception:
+        sast_findings = []
+    return {
+        'findings': sast_findings,
+        'total': len(sast_findings),
+        'scanner': 'ALdeci SAST Engine',
+    }
+
+
 @router.get("/rules")
 async def list_rules() -> List[Dict[str, Any]]:
     """List all SAST rules."""

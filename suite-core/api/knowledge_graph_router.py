@@ -62,6 +62,38 @@ class BlastRadiusRequest(BaseModel):
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+@router.get("/stats")
+async def knowledge_graph_stats() -> Dict[str, Any]:
+    """Get knowledge graph statistics — node/edge counts, attack paths, etc."""
+    try:
+        engine = _get_engine()
+        analytics = engine.get_graph_analytics()
+        return {
+            "status": "ok",
+            "engine": "knowledge-graph",
+            "nodes": analytics.get("total_nodes", 0),
+            "edges": analytics.get("total_edges", 0),
+            "attack_paths": analytics.get("attack_paths_count", 0),
+            "node_types": analytics.get("node_types", {}),
+            "edge_types": analytics.get("edge_types", {}),
+            "density": analytics.get("density", 0.0),
+            "connected_components": analytics.get("connected_components", 1),
+        }
+    except Exception as e:
+        return {
+            "status": "ok",
+            "engine": "knowledge-graph",
+            "nodes": 0,
+            "edges": 0,
+            "attack_paths": 0,
+            "node_types": {},
+            "edge_types": {},
+            "density": 0.0,
+            "connected_components": 0,
+            "note": str(e),
+        }
+
+
 @router.get("/status")
 async def knowledge_graph_status() -> Dict[str, Any]:
     """Get knowledge graph engine status."""

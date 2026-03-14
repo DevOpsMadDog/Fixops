@@ -91,6 +91,40 @@ async def scan_cloudformation(req: CloudFormationScanRequest) -> Dict[str, Any]:
         raise HTTPException(500, f"CloudFormation scan failed: {type(e).__name__}")
 
 
+@router.get("/findings")
+async def list_cspm_findings(
+    severity: str = None,
+    limit: int = 100,
+) -> Dict[str, Any]:
+    """List CSPM/IaC scan findings."""
+    try:
+        from core.analytics_db import AnalyticsDB
+        db = AnalyticsDB()
+        findings = db.list_findings(limit=limit)
+        cspm_findings = []
+        for f in findings:
+            src = getattr(f, 'source', '') or ''
+            if any(k in src.lower() for k in ('cspm', 'iac', 'terraform', 'cloud')):
+                sev = f.severity.value if hasattr(f.severity, 'value') else str(f.severity)
+                if severity and sev.lower() != severity.lower():
+                    continue
+                cspm_findings.append({
+                    'id': f.id,
+                    'title': getattr(f, 'title', 'CSPM Finding'),
+                    'severity': sev,
+                    'status': f.status.value if hasattr(f.status, 'value') else str(f.status),
+                    'source': src,
+                    'provider': 'aws' if 'aws' in src.lower() else 'azure' if 'azure' in src.lower() else 'gcp' if 'gcp' in src.lower() else 'unknown',
+                })
+    except Exception:
+        cspm_findings = []
+    return {
+        'findings': cspm_findings,
+        'total': len(cspm_findings),
+        'scanner': 'ALdeci CSPM Engine',
+    }
+
+
 @router.get("/rules")
 async def list_rules() -> Dict[str, Any]:
     """List all CSPM rules by provider."""

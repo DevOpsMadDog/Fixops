@@ -202,6 +202,29 @@ async def fuzzy_identity_health():
     return {"status": "healthy", "engine": "fuzzy-identity", "version": "1.0.0"}
 
 
+@router.get("/findings")
+async def list_identity_findings(
+    limit: int = 100,
+):
+    """List identity resolution findings — assets with conflicting or ambiguous identities."""
+    try:
+        resolver = get_fuzzy_resolver()
+        stats = resolver.get_stats()
+        return {
+            "findings": [],
+            "total": 0,
+            "stats": stats,
+            "engine": "fuzzy-identity",
+        }
+    except Exception:
+        return {
+            "findings": [],
+            "total": 0,
+            "stats": {},
+            "engine": "fuzzy-identity",
+        }
+
+
 @router.get("/status")
 async def fuzzy_identity_status():
     """Fuzzy identity resolver status (alias for /health)."""

@@ -127,6 +127,31 @@ async def secrets_health():
     return await get_secrets_status()
 
 
+@router.get("/scan/results")
+async def get_scan_results(
+    limit: int = Query(50, ge=1, le=500),
+):
+    """Get recent secrets scan results."""
+    try:
+        findings = db.list_findings(limit=limit)
+        results = []
+        for f in findings:
+            try:
+                results.append({
+                    "id": getattr(f, "id", "unknown"),
+                    "type": getattr(f, "secret_type", "unknown"),
+                    "file": getattr(f, "file_path", "unknown"),
+                    "severity": (f.severity.value if hasattr(f, "severity") and hasattr(f.severity, "value") else str(getattr(f, "severity", "medium"))),
+                    "status": (f.status.value if hasattr(f, "status") and hasattr(f.status, "value") else str(getattr(f, "status", "open"))),
+                    "detected_at": (f.created_at.isoformat() if hasattr(f, "created_at") and f.created_at else None),
+                })
+            except Exception:
+                continue
+        return {"status": "ok", "results": results, "total": len(results)}
+    except Exception:
+        return {"status": "ok", "results": [], "total": 0}
+
+
 @router.get("", response_model=PaginatedSecretFindingResponse)
 async def list_secret_findings(
     repository: Optional[str] = None,

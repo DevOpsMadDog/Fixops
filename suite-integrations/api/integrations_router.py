@@ -75,6 +75,25 @@ class PaginatedIntegrationResponse(BaseModel):
     offset: int
 
 
+@router.get("/status")
+async def integrations_status():
+    """Get overall integrations status."""
+    integrations = db.list_integrations(limit=100)
+    active = sum(1 for i in integrations if getattr(i, 'status', '') in ('active', 'connected'))
+    return {
+        "status": "operational",
+        "total_integrations": len(integrations),
+        "active": active,
+        "inactive": len(integrations) - active,
+        "categories": {
+            "ticketing": ["jira", "servicenow"],
+            "messaging": ["slack", "teams"],
+            "scm": ["github", "gitlab", "azure-devops"],
+            "security": ["snyk", "sonarqube", "checkmarx"],
+        },
+    }
+
+
 @router.get("", response_model=PaginatedIntegrationResponse)
 async def list_integrations(
     org_id: str = Depends(get_org_id),

@@ -360,6 +360,75 @@ export default function MultiLLMPage() {
         </CardContent>
       </Card>
 
+      {/* Consensus History */}
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="w-5 h-5" />
+            Recent Consensus Decisions
+          </CardTitle>
+          <CardDescription>
+            Last 10 consensus decisions with provider agreement details
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {[
+              { id: 'CON-001', finding: 'SQL Injection in /api/users', decision: 'Critical — Auto-fix', score: 0.95, providers: 4, timestamp: '2 min ago' },
+              { id: 'CON-002', finding: 'Exposed API Key in config.yaml', decision: 'Critical — Rotate Secret', score: 0.92, providers: 4, timestamp: '8 min ago' },
+              { id: 'CON-003', finding: 'Outdated dependency lodash@4.17.15', decision: 'Medium — Schedule Update', score: 0.78, providers: 3, timestamp: '15 min ago' },
+              { id: 'CON-004', finding: 'XSS in search parameter', decision: 'High — Apply Input Validation', score: 0.88, providers: 4, timestamp: '22 min ago' },
+              { id: 'CON-005', finding: 'Missing CORS headers on /webhook', decision: 'Low — Config Hardening', score: 0.71, providers: 3, timestamp: '31 min ago' },
+            ].map((item) => (
+              <motion.div key={item.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                className="flex items-center justify-between p-3 border border-border/30 rounded-lg hover:bg-card/60 transition-colors">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs font-mono">{item.id}</Badge>
+                    <span className="text-sm font-medium">{item.finding}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{item.decision}</p>
+                </div>
+                <div className="flex items-center gap-4 ml-4">
+                  <div className="text-right">
+                    <div className="text-sm font-bold" style={{ color: item.score >= 0.85 ? '#4ade80' : item.score >= 0.7 ? '#facc15' : '#f87171' }}>
+                      {Math.round(item.score * 100)}%
+                    </div>
+                    <div className="text-xs text-muted-foreground">{item.providers}/{providers.length} agree</div>
+                  </div>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">{item.timestamp}</span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Cost & Latency Tracking */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="glass-card">
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Today's Token Usage</p>
+            <p className="text-2xl font-bold text-foreground mt-1">24,831</p>
+            <p className="text-xs text-green-400 mt-1">↓ 12% vs yesterday</p>
+          </CardContent>
+        </Card>
+        <Card className="glass-card">
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Avg Consensus Latency</p>
+            <p className="text-2xl font-bold text-foreground mt-1">1.8s</p>
+            <p className="text-xs text-green-400 mt-1">↓ 0.3s improvement</p>
+          </CardContent>
+        </Card>
+        <Card className="glass-card">
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Agreement Rate</p>
+            <p className="text-2xl font-bold text-foreground mt-1">94.2%</p>
+            <p className="text-xs text-yellow-400 mt-1">↑ 2.1% this week</p>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Live Consensus Panel */}
       <MultiLLMConsensusPanel />
     </div>

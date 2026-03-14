@@ -162,6 +162,29 @@ async def risk_overview(request: Request) -> Dict[str, Any]:
     }
 
 
+@router.get("/score")
+async def risk_score(request: Request) -> Dict[str, Any]:
+    """Get aggregate enterprise risk score."""
+    try:
+        directory = _resolve_directory(request)
+        report = _load_latest_report(directory)
+        components = report.get("components", {})
+    except HTTPException:
+        components = {}
+    scores = [
+        (data.get("risk_score", 0) if isinstance(data, dict) else 0)
+        for _, data in (components.items() if isinstance(components, dict) else [])
+    ]
+    avg = round(sum(scores) / max(len(scores), 1), 1)
+    return {
+        "status": "ok",
+        "risk_score": avg,
+        "level": "critical" if avg >= 80 else "high" if avg >= 60 else "medium" if avg >= 40 else "low",
+        "components_assessed": len(scores),
+        "timestamp": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+    }
+
+
 @router.get("/scores")
 async def risk_scores(request: Request) -> Dict[str, Any]:
     """Risk scores per component/app."""
