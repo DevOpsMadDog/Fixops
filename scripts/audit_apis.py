@@ -1,0 +1,114 @@
+#!/usr/bin/env python3
+"""Audit all API endpoints the new UI calls."""
+import urllib.request
+import json
+import sys
+
+TOKEN = "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh"
+BASE = "http://localhost:8000"
+
+ENDPOINTS = [
+    "/api/v1/analytics/dashboard/overview",
+    "/api/v1/analytics/dashboard/top-risks",
+    "/api/v1/analytics/dashboard/trends",
+    "/api/v1/analytics/dashboard/compliance-status",
+    "/api/v1/nerve-center/pulse",
+    "/api/v1/nerve-center/state",
+    "/api/v1/nerve-center/overlay",
+    "/api/v1/nerve-center/intelligence-map",
+    "/api/v1/nerve-center/playbooks",
+    "/api/v1/analytics/findings",
+    "/api/v1/cases",
+    "/api/v1/scanner/parsers",
+    "/api/v1/apps/",
+    "/api/v1/fail/drills",
+    "/api/v1/fail/scenarios",
+    "/api/v1/fail/readiness",
+    "/api/v1/fail/history",
+    "/api/v1/mpte/status",
+    "/api/v1/mpte/stats",
+    "/api/v1/mpte/results",
+    "/api/v1/mpte/monitoring",
+    "/api/v1/mpte/health",
+    "/api/v1/attack-sim/campaigns",
+    "/api/v1/attack-sim/scenarios",
+    "/api/v1/attack-sim/mitre/heatmap",
+    "/api/v1/remediation/tasks",
+    "/api/v1/compliance-engine/status",
+    "/api/v1/compliance-engine/frameworks",
+    "/api/v1/compliance-engine/gaps",
+    "/api/v1/evidence/bundles",
+    "/api/v1/evidence/compliance-status",
+    "/api/v1/brain/status",
+    "/api/v1/brain/stats",
+    "/api/v1/brain/pipeline/status",
+    "/api/v1/copilot/agents",
+    "/api/v1/llm/providers",
+    "/api/v1/llm/status",
+    "/api/v1/ml/models",
+    "/api/v1/ml/status",
+    "/api/v1/integrations",
+    "/api/v1/reports",
+    "/api/v1/teams",
+    "/api/v1/users",
+    "/api/v1/workflows",
+    "/api/v1/workflows/rules",
+    "/api/v1/audit",
+    "/api/v1/audit/logs",
+    "/api/v1/policies",
+    "/api/v1/system/health",
+    "/api/v1/system/metrics",
+    "/api/v1/graph/attack-paths",
+    "/api/v1/graph/visualize",
+    "/api/v1/feeds",
+    "/api/v1/feeds/trending",
+    "/api/v1/predictions",
+    "/api/v1/playbooks",
+    "/api/v1/secrets",
+    "/api/v1/inventory/sbom/components",
+    "/api/v1/inventory/sbom/licenses",
+    "/api/v1/cspm/status",
+    "/api/v1/cspm/rules",
+    "/api/v1/container/status",
+    "/api/v1/sast/status",
+    "/api/v1/sast/rules",
+    "/api/v1/deduplication/clusters?org_id=default",
+    "/api/v1/deduplication/stats",
+    "/api/v1/mcp-protocol/status",
+    "/api/v1/mcp-protocol/tools",
+    "/api/v1/marketplace/browse",
+    "/api/v1/marketplace/stats",
+]
+
+print(f"{'ENDPOINT':<55} {'CODE':<6} {'SIZE':<10} {'KEYS'}")
+print("-" * 120)
+
+for ep in ENDPOINTS:
+    url = BASE + ep
+    req = urllib.request.Request(url, headers={"X-API-Key": TOKEN})
+    try:
+        resp = urllib.request.urlopen(req, timeout=10)
+        code = resp.status
+        body = resp.read().decode()
+        size = len(body)
+        try:
+            d = json.loads(body)
+            if isinstance(d, dict):
+                keys = list(d.keys())[:5]
+            elif isinstance(d, list):
+                keys = f"list[{len(d)}]"
+            else:
+                keys = type(d).__name__
+        except Exception:
+            keys = "non-json"
+    except urllib.error.HTTPError as e:
+        code = e.code
+        size = 0
+        keys = str(e.reason)
+    except Exception as e:
+        code = "ERR"
+        size = 0
+        keys = str(e)[:40]
+    print(f"{ep:<55} {code:<6} {size:<10} {keys}")
+    sys.stdout.flush()
+
