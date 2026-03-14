@@ -119,8 +119,8 @@ export default function Playbooks() {
 
   // Extract playbooks from API response - zero mock data
   const rawData = workflowsData?.items || workflowsData?.workflows || (Array.isArray(workflowsData) ? workflowsData : []);
-  const playbooks: Playbook[] = (Array.isArray(rawData) ? rawData : []).map((w: { id?: string; workflow_id?: string; name?: string; description?: string; trigger?: string; trigger_type?: string; status?: string; enabled?: boolean; last_run?: string; last_executed?: string; run_count?: number; execution_count?: number; actions?: string[]; steps?: { name?: string; type?: string }[] }) => ({
-    id: w.id || w.workflow_id || `pb-${Math.random().toString(36).slice(2, 8)}`,
+  const playbooks: Playbook[] = (Array.isArray(rawData) ? rawData : []).map((w: { id?: string; workflow_id?: string; name?: string; description?: string; trigger?: string; trigger_type?: string; status?: string; enabled?: boolean; last_run?: string; last_executed?: string; run_count?: number; execution_count?: number; actions?: string[]; steps?: { name?: string; type?: string }[] }, idx: number) => ({
+    id: w.id || w.workflow_id || `pb-${idx}-${(w.name || 'playbook').slice(0, 8).replace(/\s/g, '-')}`,
     name: w.name || 'Unnamed Playbook',
     description: w.description || '',
     trigger: w.trigger || w.trigger_type || 'manual',

@@ -800,3 +800,63 @@ async def health_check() -> Dict[str, Any]:
             "status": "degraded",
             "error": str(exc),
         }
+
+
+# ---------------------------------------------------------------------------
+# Endpoints: FAIL Scoring (stats, scores, top-risks) — from legacy engine
+# ---------------------------------------------------------------------------
+
+
+@router.get("/scores", summary="List FAIL scores")
+async def list_scores(
+    grade: Optional[str] = Query(None, description="Filter by grade"),
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+):
+    """List FAIL scores (paginated, sorted by score DESC)."""
+    try:
+        from core.fail_db import FAILDB
+        db = FAILDB()
+        scores = db.get_scores_by_org(org_id="default", grade=grade, limit=limit, offset=offset)
+        total = db.count(org_id="default")
+        return {"total": total, "limit": limit, "offset": offset, "results": scores}
+    except Exception as exc:
+        logger.warning("Failed to load FAIL scores: %s", exc)
+        return {"total": 0, "limit": limit, "offset": offset, "results": []}
+
+
+@router.get("/top-risks", summary="Top risks by FAIL score")
+async def top_risks(
+    limit: int = Query(20, ge=1, le=100),
+):
+    """Get the highest-risk findings by FAIL score."""
+    try:
+        from core.fail_db import FAILDB
+        db = FAILDB()
+        risks = db.get_top_risks(org_id="default", limit=limit)
+        total = db.count(org_id="default")
+        return {"risks": risks, "total": total}
+    except Exception as exc:
+        logger.warning("Failed to load top risks: %s", exc)
+        return {"risks": [], "total": 0}
+
+
+@router.get("/stats", summary="FAIL score statistics")
+async def fail_stats():
+    """Aggregate FAIL scoring statistics."""
+    try:
+        from core.fail_db import FAILDB
+        db = FAILDB()
+        stats = db.get_stats(org_id="default")
+        return stats
+    except Exception as exc:
+        logger.warning("Failed to load FAIL stats: %s", exc)
+        return {
+            "total_scored": 0,
+            "grade_distribution": {},
+            "avg_score": 0.0,
+            "critical_count": 0,
+            "high_count": 0,
+            "medium_count": 0,
+            "low_count": 0,
+        }

@@ -94,7 +94,7 @@ function ChartSkeleton({ height = 200 }: { height?: number }) {
             className="rounded-t"
             style={{
               width: '10%',
-              height: `${30 + Math.random() * 70}%`,
+              height: `${30 + ((i * 37 + 13) % 70)}%`,
             }}
           />
         ))}

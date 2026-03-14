@@ -158,6 +158,26 @@ async def create_workflow(workflow_data: WorkflowCreate):
     return WorkflowResponse(**created_workflow.to_dict())
 
 
+# NOTE: /rules MUST be defined BEFORE /{id} to avoid catch-all match
+@router.get("/rules")
+async def list_workflow_rules(org_id: str = Depends(get_org_id)):
+    """List all workflow trigger rules and conditions."""
+    workflows = db.list_workflows(limit=1000)
+    rules = []
+    for w in workflows:
+        if w.triggers:
+            rules.append(
+                {
+                    "workflow_id": w.id,
+                    "workflow_name": w.name,
+                    "enabled": w.enabled,
+                    "triggers": w.triggers,
+                    "steps_count": len(w.steps) if w.steps else 0,
+                }
+            )
+    return {"rules": rules, "total": len(rules)}
+
+
 @router.get("/{id}", response_model=WorkflowResponse)
 async def get_workflow(id: str):
     """Get workflow details by ID."""
@@ -428,25 +448,6 @@ async def get_workflow_history(
         "limit": limit,
         "offset": offset,
     }
-
-
-@router.get("/rules")
-async def list_workflow_rules(org_id: str = Depends(get_org_id)):
-    """List all workflow trigger rules and conditions."""
-    workflows = db.list_workflows(limit=1000)
-    rules = []
-    for w in workflows:
-        if w.triggers:
-            rules.append(
-                {
-                    "workflow_id": w.id,
-                    "workflow_name": w.name,
-                    "enabled": w.enabled,
-                    "triggers": w.triggers,
-                    "steps_count": len(w.steps) if w.steps else 0,
-                }
-            )
-    return {"rules": rules, "total": len(rules)}
 
 
 # ---------------------------------------------------------------------------

@@ -126,8 +126,8 @@ function ForceGraph({
     const { w, h } = sizeRef.current;
     simNodesRef.current = nodes.map((n, i) => ({
       id: n.id, type: n.type, connections: n.connections, properties: n.properties,
-      x: w / 2 + (Math.cos(i * 2.399) * Math.min(w, h) * 0.3) + (Math.random() - 0.5) * 100,
-      y: h / 2 + (Math.sin(i * 2.399) * Math.min(w, h) * 0.3) + (Math.random() - 0.5) * 100,
+      x: w / 2 + (Math.cos(i * 2.399) * Math.min(w, h) * 0.3) + (Math.sin(i * 7.919) * 50),
+      y: h / 2 + (Math.sin(i * 2.399) * Math.min(w, h) * 0.3) + (Math.cos(i * 11.113) * 50),
       vx: 0, vy: 0,
       highlighted: highlightIds.has(n.id),
     }));

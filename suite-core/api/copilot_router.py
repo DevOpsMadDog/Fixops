@@ -732,15 +732,26 @@ async def _action_pentest(params: dict, action: dict) -> dict:
     target = params.get("target", "")
     result = {"status": "completed", "target": target}
     try:
-        from core.attack_simulation import get_attack_engine
+        from core.attack_simulation_engine import get_attack_simulation_engine
 
-        engine = get_attack_engine()
-        sim_result = await engine.run_simulation(
-            target=target,
-            techniques=params.get("techniques", ["T1190"]),
+        engine = get_attack_simulation_engine()
+        techniques = params.get("techniques", ["T1190"])
+        scenario = engine.create_scenario(
+            name=f"Copilot pentest: {target}",
+            targets=[target] if target else ["default"],
+            techniques=techniques,
+        )
+        campaign = await engine.run_campaign(
+            scenario_id=scenario.id,
             mode="safe",
         )
-        result["simulation"] = sim_result
+        result["simulation"] = {
+            "campaign_id": campaign.campaign_id,
+            "status": campaign.status,
+            "risk_score": campaign.risk_score,
+            "techniques_tested": len(campaign.phases),
+            "findings_count": len(campaign.findings) if hasattr(campaign, "findings") else 0,
+        }
         result["message"] = f"Attack simulation completed against {target}"
     except ImportError:
         result["message"] = "Attack simulation engine not available"

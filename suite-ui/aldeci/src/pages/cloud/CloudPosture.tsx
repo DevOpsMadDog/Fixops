@@ -118,8 +118,8 @@ export default function CloudPosture() {
 
   // Cloud resources from inventory API - zero mock data
   const rawInventory = inventoryData?.items || inventoryData?.assets || (Array.isArray(inventoryData) ? inventoryData : []);
-  const cloudResources: CloudResource[] = rawInventory.map((item: { id?: string; asset_id?: string; name?: string; hostname?: string; type?: string; resource_type?: string; provider?: string; cloud_provider?: string; region?: string; location?: string; compliance_status?: string; findings?: number; findings_count?: number; last_scanned?: string; updated_at?: string }) => ({
-    id: item.id || item.asset_id || `r-${Math.random().toString(36).slice(2, 8)}`,
+  const cloudResources: CloudResource[] = rawInventory.map((item: { id?: string; asset_id?: string; name?: string; hostname?: string; type?: string; resource_type?: string; provider?: string; cloud_provider?: string; region?: string; location?: string; compliance_status?: string; findings?: number; findings_count?: number; last_scanned?: string; updated_at?: string }, idx: number) => ({
+    id: item.id || item.asset_id || `r-${idx}-${(item.name || item.hostname || 'res').slice(0, 6)}`,
     name: item.name || item.hostname || 'Unknown Resource',
     type: item.type || item.resource_type || 'Unknown',
     provider: (item.provider || item.cloud_provider || 'aws').toLowerCase() as 'aws' | 'azure' | 'gcp',
@@ -132,8 +132,8 @@ export default function CloudPosture() {
 
   // Misconfigurations from CNAPP API - zero mock data
   const rawFindings = cnappData?.findings || cnappData?.items || (Array.isArray(cnappData) ? cnappData : []);
-  const misconfigurations: Misconfiguration[] = rawFindings.map((f: { id?: string; finding_id?: string; resource?: string; asset_name?: string; resource_id?: string; title?: string; description?: string; rule_id?: string; severity?: string; framework?: string; compliance_framework?: string; rule_set?: string; status?: string }) => ({
-    id: f.id || f.finding_id || `mc-${Math.random().toString(36).slice(2, 8)}`,
+  const misconfigurations: Misconfiguration[] = rawFindings.map((f: { id?: string; finding_id?: string; resource?: string; asset_name?: string; resource_id?: string; title?: string; description?: string; rule_id?: string; severity?: string; framework?: string; compliance_framework?: string; rule_set?: string; status?: string }, idx: number) => ({
+    id: f.id || f.finding_id || `mc-${idx}-${(f.resource || f.rule_id || 'find').slice(0, 6)}`,
     resource: f.resource || f.asset_name || f.resource_id || 'Unknown',
     title: f.title || f.description || f.rule_id || 'Unnamed finding',
     severity: (f.severity || 'medium').toLowerCase() as 'critical' | 'high' | 'medium' | 'low',

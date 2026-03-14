@@ -134,6 +134,56 @@ async def create_integration(integration_data: IntegrationCreate):
         raise
 
 
+# NOTE: /marketplace MUST be defined BEFORE /{id} to avoid catch-all match
+@router.get("/marketplace")
+async def list_marketplace_integrations():
+    """List available integrations marketplace — native + third-party security tools."""
+    try:
+        from core.security_connectors import SecurityToolConnectors
+        stc = SecurityToolConnectors()
+        marketplace = []
+        connector_map = {
+            "snyk": ("SCA", "Open source security and license compliance"),
+            "sonarqube": ("SAST", "Continuous code quality and security analysis"),
+            "dependabot": ("SCA", "Automated dependency updates"),
+            "aws_security_hub": ("Cloud", "AWS centralized security view"),
+            "azure_defender": ("Cloud", "Azure security posture management"),
+            "wiz": ("Cloud", "Cloud security posture management"),
+            "prisma_cloud": ("CSPM", "Comprehensive cloud-native security platform"),
+            "orca": ("Cloud", "Agentless cloud security platform"),
+            "lacework": ("Cloud", "Cloud workload protection"),
+            "threatmapper": ("Container", "Open-source threat mapper"),
+        }
+        for name, (cat, desc) in connector_map.items():
+            connector = getattr(stc, name, None)
+            configured = getattr(connector, "configured", False) if connector else False
+            marketplace.append({
+                "id": name,
+                "name": name.replace("_", " ").title(),
+                "category": cat,
+                "status": "available",
+                "installed": configured,
+                "description": desc,
+            })
+        native_tools = [
+            {"id": "semgrep", "name": "Semgrep", "category": "SAST", "installed": True, "description": "Lightweight static analysis"},
+            {"id": "trivy", "name": "Trivy", "category": "Container", "installed": True, "description": "Vulnerability scanner for containers"},
+            {"id": "owasp-zap", "name": "OWASP ZAP", "category": "DAST", "installed": True, "description": "Web application security scanner"},
+        ]
+        for t in native_tools:
+            t["status"] = "available"
+            marketplace.append(t)
+        categories = sorted(set(m["category"] for m in marketplace))
+        return {
+            "integrations": marketplace,
+            "total": len(marketplace),
+            "categories": categories,
+            "installed": sum(1 for m in marketplace if m["installed"]),
+        }
+    except Exception as e:
+        return {"integrations": [], "total": 0, "categories": [], "installed": 0, "error": str(e)}
+
+
 @router.get("/{id}", response_model=IntegrationResponse)
 async def get_integration(id: str):
     """Get integration details by ID."""

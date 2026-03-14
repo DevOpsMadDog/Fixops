@@ -163,13 +163,33 @@ const CATEGORY_BG: Record<string, string> = {
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Deterministic seed helper (replaces Math.random for reproducible results)
+// ─────────────────────────────────────────────────────────────────────────────
+function seededValue(seed: number, min: number, max: number): number {
+  // Simple deterministic hash producing value in [min, max)
+  const x = Math.sin(seed * 9301 + 49297) * 233280;
+  const frac = x - Math.floor(x);
+  return min + frac * (max - min);
+}
+function seededInt(seed: number, min: number, max: number): number {
+  return Math.floor(seededValue(seed, min, max));
+}
+function seededHex(seed: number, length: number): string {
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += seededInt(seed + i * 7, 0, 16).toString(16);
+  }
+  return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Demo Data Generator
 // ─────────────────────────────────────────────────────────────────────────────
 
 function generateDemoPhases(verdict: Verdict, scope: VerificationScope): PhaseResult[] {
   const maxPhase = scope === 'quick' ? 6 : scope === 'standard' ? 12 : 19;
   const isExploitable = verdict === 'EXPLOITABLE';
-  const failPoint = isExploitable ? -1 : Math.floor(Math.random() * 6) + 7;
+  const failPoint = isExploitable ? -1 : seededInt(maxPhase + 42, 7, 13);
 
   return MPTE_PHASES.map((phase) => {
     if (phase.id > maxPhase) {
@@ -183,7 +203,7 @@ function generateDemoPhases(verdict: Verdict, scope: VerificationScope): PhaseRe
     if (phase.id === failPoint) {
       return {
         phaseId: phase.id, status: 'FAIL' as PhaseStatus,
-        durationMs: Math.random() * 5000 + 500,
+        durationMs: seededValue(phase.id * 13, 500, 5500),
         evidence: generateEvidence(phase.id, 'FAIL'),
         details: `${phase.name} failed - vulnerability not exploitable at this stage`,
         confidenceContribution: -15,
@@ -198,7 +218,7 @@ function generateDemoPhases(verdict: Verdict, scope: VerificationScope): PhaseRe
         confidenceContribution: 0, relatedPhases: [failPoint],
       };
     }
-    if (phase.id === 9 && Math.random() > 0.5) {
+    if (phase.id === 9 && seededValue(phase.id * 17, 0, 1) > 0.5) {
       return {
         phaseId: phase.id, status: 'SKIP' as PhaseStatus, durationMs: 100,
         evidence: 'Pre-auth vectors not applicable - target requires authentication',
@@ -208,10 +228,10 @@ function generateDemoPhases(verdict: Verdict, scope: VerificationScope): PhaseRe
     }
     return {
       phaseId: phase.id, status: 'PASS' as PhaseStatus,
-      durationMs: Math.random() * 4000 + 200,
+      durationMs: seededValue(phase.id * 11, 200, 4200),
       evidence: generateEvidence(phase.id, 'PASS'),
       details: `${phase.name} completed successfully`,
-      confidenceContribution: Math.floor(Math.random() * 10) + 3,
+      confidenceContribution: seededInt(phase.id * 7, 3, 13),
       relatedPhases: [phase.id - 1, phase.id + 1].filter(p => p > 0 && p <= 19),
     };
   });
@@ -427,7 +447,7 @@ Total: 12 potential CVEs identified`,
   Risk rating: CRITICAL (exploitable with full compromise)
   Remediation: 5 prioritized recommendations
   Compliance impact: SOC2 CC6.1, PCI DSS 6.2, HIPAA 164.312
-  Report ID: RPT-2026-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+  Report ID: RPT-2026-${seededHex(19, 6).toUpperCase()}`,
       fail: 'Report generation failed - template error',
     },
   };
@@ -455,20 +475,20 @@ function generateDemoVerifications(): VerificationResult[] {
     targetUrl: t.url,
     cveId: t.cve,
     verdict: verdicts[i],
-    confidenceScore: verdicts[i] === 'EXPLOITABLE' ? 85 + Math.floor(Math.random() * 15)
-      : verdicts[i] === 'NOT_EXPLOITABLE' ? 70 + Math.floor(Math.random() * 20)
-      : 40 + Math.floor(Math.random() * 30),
+    confidenceScore: verdicts[i] === 'EXPLOITABLE' ? 85 + seededInt(i * 31, 0, 15)
+      : verdicts[i] === 'NOT_EXPLOITABLE' ? 70 + seededInt(i * 37, 0, 20)
+      : 40 + seededInt(i * 41, 0, 30),
     scope: scopes[i],
     phases: generateDemoPhases(verdicts[i], scopes[i]),
-    startedAt: new Date(Date.now() - Math.random() * 86400000 * 3).toISOString(),
-    completedAt: verdicts[i] === 'IN_PROGRESS' ? null : new Date(Date.now() - Math.random() * 86400000).toISOString(),
-    riskScore: verdicts[i] === 'EXPLOITABLE' ? 7.5 + Math.random() * 2.5 : verdicts[i] === 'NOT_EXPLOITABLE' ? 1 + Math.random() * 3 : 4 + Math.random() * 3,
+    startedAt: new Date(Date.now() - seededValue(i * 53, 0, 86400000 * 3)).toISOString(),
+    completedAt: verdicts[i] === 'IN_PROGRESS' ? null : new Date(Date.now() - seededValue(i * 59, 0, 86400000)).toISOString(),
+    riskScore: verdicts[i] === 'EXPLOITABLE' ? 7.5 + seededValue(i * 61, 0, 2.5) : verdicts[i] === 'NOT_EXPLOITABLE' ? 1 + seededValue(i * 67, 0, 3) : 4 + seededValue(i * 71, 0, 3),
     findingId: `FND-${(3000 + i).toString()}`,
     failScore: verdicts[i] === 'EXPLOITABLE'
-      ? { grade: 'F', score: 85 + Math.floor(Math.random() * 15) }
+      ? { grade: 'F', score: 85 + seededInt(i * 73, 0, 15) }
       : verdicts[i] === 'NOT_EXPLOITABLE'
-      ? { grade: 'A', score: 10 + Math.floor(Math.random() * 20) }
-      : { grade: 'C', score: 40 + Math.floor(Math.random() * 20) },
+      ? { grade: 'A', score: 10 + seededInt(i * 79, 0, 20) }
+      : { grade: 'C', score: 40 + seededInt(i * 83, 0, 20) },
   }));
 }
 
@@ -926,12 +946,12 @@ function LiveRunViewer() {
     const phaseDef = MPTE_PHASES[currentPhaseIdx];
     if (!phaseDef) return;
 
-    // Simulate this phase running for 800-3000ms
-    const duration = Math.random() * 2200 + 800;
+    // Simulate this phase running for 800-3000ms (deterministic based on phase)
+    const duration = seededValue(currentPhaseIdx * 23 + 100, 800, 3000);
 
     phaseTimerRef.current = setTimeout(() => {
-      // Decide outcome — 80% pass, 10% fail, 10% skip
-      const roll = Math.random();
+      // Decide outcome — deterministic based on phase index
+      const roll = seededValue(currentPhaseIdx * 29 + 200, 0, 1);
       let status: PhaseStatus;
       if (roll < 0.1 && currentPhaseIdx >= 6) {
         status = 'FAIL';
@@ -947,7 +967,7 @@ function LiveRunViewer() {
         durationMs: duration,
         evidence: generateEvidence(phaseDef.id, status),
         details: `${phaseDef.name} ${status === 'PASS' ? 'completed successfully' : status === 'FAIL' ? 'failed' : 'skipped'}`,
-        confidenceContribution: status === 'PASS' ? Math.floor(Math.random() * 8) + 3 : status === 'FAIL' ? -15 : 0,
+        confidenceContribution: status === 'PASS' ? seededInt(currentPhaseIdx * 31 + 300, 3, 11) : status === 'FAIL' ? -15 : 0,
         relatedPhases: [phaseDef.id - 1, phaseDef.id + 1].filter(p => p > 0 && p <= 19),
       };
 
