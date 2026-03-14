@@ -879,15 +879,14 @@ class AdvancedMPTEClient:
 
         logger.info(f"Executing step: {action} with tool: {tool}")
 
-        # This would integrate with MPTE's actual execution
-        # For now, simulate execution
-        await asyncio.sleep(1)  # Simulate work
-
+        # Step execution not yet wired to real engine — return honest failure
+        logger.warning("mpte_step_not_implemented", action=action, tool=tool)
         return {
             "step": step,
-            "success": True,
-            "output": f"Executed {action} using {tool}",
-            "duration_seconds": 1.0,
+            "success": False,
+            "output": f"Step executor for '{action}' (tool: {tool}) is not yet connected to the MPTE engine",
+            "duration_seconds": 0.0,
+            "error": "not_implemented",
         }
 
     async def execute_pentest(self, request: PenTestRequest) -> Dict:

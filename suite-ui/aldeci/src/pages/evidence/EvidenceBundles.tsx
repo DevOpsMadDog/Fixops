@@ -1611,21 +1611,18 @@ export default function EvidenceBundles() {
     try {
       const response = await api.post(`/api/v1/evidence/bundles/${bundle.id}/verify`);
       setVerificationResult(response.data);
-    } catch {
-      // Demo verification result
-      const demoResult: VerificationResult = {
-        valid: bundle.signature_valid,
-        hash_match: bundle.signature_valid,
-        signature_valid: bundle.signature_valid,
+    } catch (e) {
+      console.error('[EvidenceBundles] verify failed:', (e as Error)?.message);
+      // Show honest verification failure instead of fabricating a result
+      const failResult: VerificationResult = {
+        valid: false,
+        hash_match: false,
+        signature_valid: false,
         timestamp: new Date().toISOString(),
-        certificate_chain: [
-          'ALdeci Evidence Engine v1.0 (Root CA)',
-          'ALdeci Signing Authority (Intermediate)',
-          `Bundle ${bundle.id} (Leaf Certificate)`,
-        ],
-        issuer: 'ALdeci Trust Services',
+        certificate_chain: [],
+        issuer: 'Verification unavailable — evidence service returned an error',
       };
-      setVerificationResult(demoResult);
+      setVerificationResult(failResult);
     } finally {
       setVerifyingBundleId(null);
     }
@@ -1648,8 +1645,9 @@ export default function EvidenceBundles() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-    } catch {
-      toast.info(`Demo mode: ${bundle.id}.${format} download simulated`);
+    } catch (e) {
+      console.error('[EvidenceBundles] download failed:', (e as Error)?.message);
+      toast.error(`Download failed for ${bundle.id}.${format} — evidence service unavailable`);
     }
   }, []);
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -44,32 +44,6 @@ const severityColors: Record<string, string> = {
   low: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
 };
 
-// Pre-defined finding titles — cycled through deterministically
-const FINDING_TITLES = [
-  'SQL Injection in auth handler',
-  'Exposed AWS credential in config',
-  'XSS via unsanitized input',
-  'Outdated dependency: lodash@4.17.20',
-  'Missing CSRF token validation',
-  'Insecure TLS configuration',
-  'Hardcoded API key in source',
-  'Path traversal in file upload',
-  'Missing rate limiting on /api/login',
-  'Weak password hashing: MD5',
-  'SSRF via URL parameter',
-  'Container running as root',
-  'Terraform S3 bucket public access',
-  'Missing Content-Security-Policy header',
-  'JWT secret key in environment variable',
-];
-
-// Pre-defined severity sequence (realistic distribution: ~5% critical, 15% high, 40% medium, 40% low)
-const SEVERITY_SEQUENCE: LiveFinding['severity'][] = [
-  'medium', 'low', 'high', 'low', 'medium', 'medium', 'low', 'medium',
-  'high', 'low', 'critical', 'medium', 'low', 'medium', 'low', 'high',
-  'medium', 'low', 'low', 'medium',
-];
-
 // Deterministic processing count increments per step
 const PROCESSING_INCREMENTS = [2, 1, 3, 1, 2, 2, 1, 3, 1, 2, 2, 1];
 
@@ -77,9 +51,7 @@ const PROCESSING_INCREMENTS = [2, 1, 3, 1, 2, 2, 1, 3, 1, 2, 2, 1];
 
 export default function LivePipelineIndicator() {
   const [activeStep, setActiveStep] = useState(0);
-  const [liveFindings, setLiveFindings] = useState<LiveFinding[]>([]);
   const [processingCount, setProcessingCount] = useState(0);
-  const findingIdRef = useRef(0);
 
   // Fetch real pipeline stats
   const { data: brainStats } = useQuery({
@@ -96,7 +68,31 @@ export default function LivePipelineIndicator() {
     retry: 0,
   });
 
-  // Simulate live pipeline activity based on real data
+  // Fetch recent findings from real API
+  const { data: recentFindings } = useQuery({
+    queryKey: ['brain-pipeline-live-findings'],
+    queryFn: () => api.get('/api/v1/analytics/findings', { params: { limit: 8 } })
+      .then(r => {
+        const items = Array.isArray(r.data) ? r.data : r.data?.findings || r.data?.items || [];
+        return items.slice(0, 8).map((f: Record<string, unknown>, i: number) => ({
+          id: (f.id as string) || `f-${i}`,
+          title: (f.title as string) || (f.name as string) || (f.description as string) || 'Finding',
+          severity: (['critical', 'high', 'medium', 'low'].includes(String(f.severity).toLowerCase())
+            ? String(f.severity).toLowerCase()
+            : 'medium') as LiveFinding['severity'],
+          step: PIPELINE_STEPS[i % PIPELINE_STEPS.length].id,
+          timestamp: f.created_at ? new Date(f.created_at as string).getTime() : Date.now() - i * 60000,
+        }));
+      })
+      .catch((e) => { console.error('[LivePipeline] findings fetch failed:', e?.message); return []; }),
+    refetchInterval: 15000,
+    retry: 0,
+  });
+
+  // Use real findings — empty array when none available
+  const liveFindings: LiveFinding[] = recentFindings || [];
+
+  // Simulate pipeline step progression based on real data
   useEffect(() => {
     const totalNodes = brainStats?.total_nodes || 0;
     const totalEdges = brainStats?.total_edges || 0;
@@ -112,32 +108,14 @@ export default function LivePipelineIndicator() {
       });
     }, 3000);
 
-    // Stream live finding items — deterministic cycle through titles and severities
-    const findingInterval = setInterval(() => {
-      const idx = ++findingIdRef.current;
-      const severity = SEVERITY_SEQUENCE[idx % SEVERITY_SEQUENCE.length];
-      const title = FINDING_TITLES[idx % FINDING_TITLES.length];
-
-      const newFinding: LiveFinding = {
-        id: `f-${idx}`,
-        title,
-        severity,
-        step: PIPELINE_STEPS[activeStep].id,
-        timestamp: Date.now(),
-      };
-
-      setLiveFindings(prev => [newFinding, ...prev].slice(0, 8));
-    }, 4500);
-
     return () => {
       clearInterval(stepInterval);
-      clearInterval(findingInterval);
     };
-  }, [brainStats, activeStep]);
+  }, [brainStats]);
 
   const pipelineStatus = brainHealth?.status || 'active';
   const totalProcessed = brainStats?.total_nodes || processingCount;
-  const dedupRate = brainStats?.density ? `${((1 - brainStats.density) * 100).toFixed(0)}%` : '67%';
+  const dedupRate = brainStats?.density ? `${((1 - brainStats.density) * 100).toFixed(0)}%` : '—';
 
   return (
     <Card className="glass-card backdrop-blur-md bg-gray-900/50 border-gray-700/40 overflow-hidden">

@@ -690,21 +690,57 @@ class IntelligentSecurityEngine:
     # Private helper methods
 
     async def _fetch_epss_scores(self, cve_ids: List[str]) -> Dict[str, float]:
-        """Fetch EPSS scores for CVEs."""
-        # Integration with feeds API
-        return {cve: 0.5 for cve in cve_ids}  # Placeholder
+        """Fetch EPSS scores for CVEs from feeds service."""
+        try:
+            from feeds.feeds_service import FeedsService
+            svc = FeedsService()
+            result: Dict[str, float] = {}
+            for cve in cve_ids:
+                score = svc.get_epss_score(cve)
+                result[cve] = score.epss if score else -1.0  # -1 = no data
+            return result
+        except Exception as exc:
+            logger.warning("epss_fetch_failed", error=str(exc), cve_count=len(cve_ids))
+            return {cve: -1.0 for cve in cve_ids}  # -1 = unavailable
 
     async def _fetch_kev_status(self, cve_ids: List[str]) -> Dict[str, bool]:
-        """Check KEV status for CVEs."""
-        return {cve: False for cve in cve_ids}  # Placeholder
+        """Check KEV status for CVEs from feeds service."""
+        try:
+            from feeds.feeds_service import FeedsService
+            svc = FeedsService()
+            result: Dict[str, bool] = {}
+            for cve in cve_ids:
+                kev = svc.is_in_kev(cve)
+                result[cve] = kev if isinstance(kev, bool) else False
+            return result
+        except Exception as exc:
+            logger.warning("kev_fetch_failed", error=str(exc), cve_count=len(cve_ids))
+            return {}  # empty = no KEV data available
 
     async def _map_mitre_techniques(self, cve_ids: List[str]) -> List[str]:
-        """Map CVEs to MITRE ATT&CK techniques."""
-        return ["T1190", "T1059"]  # Placeholder
+        """Map CVEs to MITRE ATT&CK techniques — returns empty when no mapping available."""
+        # No local MITRE mapping DB yet; return empty to avoid fabrication
+        logger.debug("mitre_mapping_not_available", cve_count=len(cve_ids))
+        return []
 
     async def _check_exploit_availability(self, cve_ids: List[str]) -> Dict[str, str]:
-        """Check exploit availability for CVEs."""
-        return {cve: "unknown" for cve in cve_ids}  # Placeholder
+        """Check exploit availability for CVEs — returns 'unknown' honestly when no data."""
+        try:
+            from feeds.feeds_service import FeedsService
+            svc = FeedsService()
+            result: Dict[str, str] = {}
+            for cve in cve_ids:
+                enriched = svc.enrich_findings([{"cve_id": cve}])
+                if enriched and enriched[0].get("in_kev"):
+                    result[cve] = "known_exploited"
+                elif enriched and enriched[0].get("epss_score") and enriched[0]["epss_score"] > 0.5:
+                    result[cve] = "likely"
+                else:
+                    result[cve] = "unknown"
+            return result
+        except Exception as exc:
+            logger.warning("exploit_check_failed", error=str(exc), cve_count=len(cve_ids))
+            return {cve: "unknown" for cve in cve_ids}
 
     async def _predict_threat_actors(
         self, target: str, cve_ids: List[str]
@@ -712,19 +748,31 @@ class IntelligentSecurityEngine:
         """Use MindsDB to predict likely threat actors."""
         if not self.mindsdb:
             return []
-        # Query MindsDB for threat actor predictions
-        return []  # Placeholder
+        # MindsDB integration not yet connected — return empty rather than fabricate
+        logger.debug("threat_actor_prediction_unavailable", target=target)
+        return []
 
     async def _gather_llm_consensus(
         self, target: str, intelligence: ThreatIntelligence, objectives: List[str]
     ) -> Dict[str, Any]:
-        """Gather consensus from multiple LLMs."""
-        # This integrates with the existing MultiAIOrchestrator
+        """Gather consensus from multiple LLMs — returns honest 'no consensus' when LLMs unavailable."""
+        # Check if any LLM providers are configured
+        if not self.config.llm_providers:
+            return {
+                "consensus_reached": False,
+                "confidence": 0.0,
+                "providers": [],
+                "recommendations": [],
+                "error": "No LLM providers configured",
+            }
+        # TODO: Wire to MultiAIOrchestrator when available
+        logger.debug("llm_consensus_not_wired", providers=self.config.llm_providers)
         return {
-            "consensus_reached": True,
-            "confidence": 0.87,
+            "consensus_reached": False,
+            "confidence": 0.0,
             "providers": self.config.llm_providers,
             "recommendations": [],
+            "error": "LLM consensus engine not yet connected",
         }
 
     def _build_attack_phases(

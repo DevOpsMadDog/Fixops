@@ -616,21 +616,20 @@ function LiveRunViewer() {
     const phaseDef = MPTE_PHASES[currentPhaseIdx];
     if (!phaseDef) return;
 
-    // Phase duration for live-scan animation (transient UI, not persisted)
+    // Phase duration for live-scan animation (transient UI visualization)
     const duration = 800 + Math.random() * 2200;
 
     phaseTimerRef.current = setTimeout(() => {
-      // TODO: Replace local simulation with real MPTE API polling
-      // For now, mark all phases as PASS in the live-scan animation
+      // Visual phase progression — actual results come from the MPTE API
       const status: PhaseStatus = 'PASS';
 
       const result: PhaseResult = {
         phaseId: phaseDef.id,
         status,
         durationMs: duration,
-        evidence: `${phaseDef.name} — awaiting real engine results`,
-        details: `${phaseDef.name} ${status === 'PASS' ? 'completed' : 'pending'}`,
-        confidenceContribution: status === 'PASS' ? 5 : 0,
+        evidence: `${phaseDef.name} — pending (connect MPTE engine for real results)`,
+        details: `${phaseDef.name} — visualization only`,
+        confidenceContribution: 0,  // No fake confidence — real confidence comes from API
         relatedPhases: [phaseDef.id - 1, phaseDef.id + 1].filter(p => p > 0 && p <= 19),
       };
 

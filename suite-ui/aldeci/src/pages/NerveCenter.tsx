@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   Brain, Activity, Shield, Zap, CheckCircle2,
@@ -34,15 +34,6 @@ export default function NerveCenter() {
   const { data: intelligenceMap } = useQuery({
     queryKey: ['intelligence-map'],
     queryFn: nerveCenterApi.getIntelligenceMap,
-  });
-
-  const remediateMutation = useMutation({
-    mutationFn: nerveCenterApi.triggerRemediation,
-    onSuccess: (data) => {
-      toast.success(data.message);
-      setRemediateModal(false);
-    },
-    onError: () => toast.error('Remediation failed'),
   });
 
   const pulse = state?.threat_pulse;
@@ -327,7 +318,7 @@ export default function NerveCenter() {
                 <div className="flex gap-2 mt-1">
                   {['block', 'quarantine', 'patch', 'escalate', 'notify'].map((action) => (
                     <Button key={action} variant="outline" size="sm" className="text-xs capitalize" aria-label={`Trigger ${action} remediation action`} onClick={() => {
-                      remediateMutation.mutate({ finding_ids: ['demo-finding-1'], action, reason: 'Manual trigger from Nerve Center' });
+                      toast.error('Select a finding from the Finding Explorer before triggering remediation');
                     }}>
                       {action}
                     </Button>

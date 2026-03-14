@@ -1224,98 +1224,33 @@ def list_verifications():
 
     results = db.list_results(limit=100)
 
-    # If we have real results, enhance them with phase data
+    # If we have real results, return them (without fabricated phase data)
     if results:
         verifications = []
         for result in results:
             result_dict = result.to_dict()
-            # Add 19-phase breakdown
-            result_dict["phases"] = _generate_phases(
-                result.exploitability.value if hasattr(result.exploitability, "value") else str(result.exploitability),
-                seed=hash(result.id) if result.id else 0,
-            )
-            result_dict["phase_summary"] = {
-                "total": 19,
-                "passed": sum(1 for p in result_dict["phases"] if p["status"] == "pass"),
-                "failed": sum(1 for p in result_dict["phases"] if p["status"] == "fail"),
-                "skipped": sum(1 for p in result_dict["phases"] if p["status"] == "skip"),
-            }
+            # Only include real phase data if available from the engine
+            if "phases" not in result_dict or not result_dict.get("phases"):
+                result_dict["phases"] = []
+                result_dict["phase_summary"] = {
+                    "total": 19,
+                    "passed": 0,
+                    "failed": 0,
+                    "skipped": 0,
+                    "note": "Phase data not yet available — run a full MPTE scan to populate",
+                }
+            else:
+                result_dict["phase_summary"] = {
+                    "total": len(result_dict["phases"]),
+                    "passed": sum(1 for p in result_dict["phases"] if p.get("status") == "pass"),
+                    "failed": sum(1 for p in result_dict["phases"] if p.get("status") == "fail"),
+                    "skipped": sum(1 for p in result_dict["phases"] if p.get("status") == "skip"),
+                }
             verifications.append(result_dict)
         return {"verifications": verifications, "total": len(verifications)}
 
-    # Demo data with realistic 19-phase breakdowns
-    demo_verifications = [
-        {
-            "id": "mpte-ver-001",
-            "request_id": "req-001",
-            "target": "https://api.example.com/auth/login",
-            "vulnerability_type": "SQL Injection (CWE-89)",
-            "cve_id": "CVE-2024-3094",
-            "verdict": "EXPLOITABLE",
-            "confidence": 0.94,
-            "risk_score": 92,
-            "exploitability": "confirmed",
-            "started_at": "2026-02-27T09:15:00Z",
-            "completed_at": "2026-02-27T09:15:48Z",
-            "duration_seconds": 48.2,
-            "phases": _generate_phases("confirmed", seed=1),
-        },
-        {
-            "id": "mpte-ver-002",
-            "request_id": "req-002",
-            "target": "https://app.example.com/api/users",
-            "vulnerability_type": "Cross-Site Scripting (CWE-79)",
-            "cve_id": None,
-            "verdict": "NOT_EXPLOITABLE",
-            "confidence": 0.87,
-            "risk_score": 35,
-            "exploitability": "not_exploitable",
-            "started_at": "2026-02-27T09:20:00Z",
-            "completed_at": "2026-02-27T09:20:32Z",
-            "duration_seconds": 32.1,
-            "phases": _generate_phases("not_exploitable", seed=2),
-        },
-        {
-            "id": "mpte-ver-003",
-            "request_id": "req-003",
-            "target": "https://internal.example.com/admin",
-            "vulnerability_type": "Remote Code Execution (CWE-78)",
-            "cve_id": "CVE-2024-21626",
-            "verdict": "EXPLOITABLE",
-            "confidence": 0.98,
-            "risk_score": 98,
-            "exploitability": "confirmed",
-            "started_at": "2026-02-27T10:00:00Z",
-            "completed_at": "2026-02-27T10:01:12Z",
-            "duration_seconds": 72.4,
-            "phases": _generate_phases("confirmed", seed=3),
-        },
-        {
-            "id": "mpte-ver-004",
-            "request_id": "req-004",
-            "target": "https://cdn.example.com/assets",
-            "vulnerability_type": "Path Traversal (CWE-22)",
-            "cve_id": None,
-            "verdict": "INCONCLUSIVE",
-            "confidence": 0.52,
-            "risk_score": 55,
-            "exploitability": "possible",
-            "started_at": "2026-02-27T10:30:00Z",
-            "completed_at": "2026-02-27T10:30:28Z",
-            "duration_seconds": 28.7,
-            "phases": _generate_phases("possible", seed=4),
-        },
-    ]
-
-    for v in demo_verifications:
-        v["phase_summary"] = {
-            "total": 19,
-            "passed": sum(1 for p in v["phases"] if p["status"] == "pass"),
-            "failed": sum(1 for p in v["phases"] if p["status"] == "fail"),
-            "skipped": sum(1 for p in v["phases"] if p["status"] == "skip"),
-        }
-
-    return {"verifications": demo_verifications, "total": len(demo_verifications)}
+    # No results yet — return empty list honestly
+    return {"verifications": [], "total": 0}
 
 
 @router.get("/verifications/{verification_id}")
@@ -1324,102 +1259,13 @@ def get_verification_detail(verification_id: str):
     result = db.get_result(verification_id)
     if result:
         result_dict = result.to_dict()
-        result_dict["phases"] = _generate_phases(
-            result.exploitability.value if hasattr(result.exploitability, "value") else str(result.exploitability),
-            seed=hash(result.id) if result.id else 0,
-        )
+        # Only include real phase data — do not fabricate
+        if "phases" not in result_dict or not result_dict.get("phases"):
+            result_dict["phases"] = []
+            result_dict["phase_detail_note"] = "Phase data not yet available — run a full MPTE scan to populate"
         return result_dict
 
     raise HTTPException(status_code=404, detail=f"Verification {verification_id} not found")
-
-
-def _generate_phases(exploitability: str, seed: int = 0) -> list:
-    """Generate realistic 19-phase verification data.
-
-    Phase outcomes are influenced by the overall exploitability verdict.
-    """
-    import random as _rnd
-
-    _rnd.seed(seed)
-
-    phase_defs = [
-        ("Reconnaissance", "Gather target information, DNS, WHOIS, and publicly available data"),
-        ("Port Discovery", "Scan for open ports and accessible services"),
-        ("Service Fingerprinting", "Identify service versions and technologies"),
-        ("Version Detection", "Match service versions against vulnerability databases"),
-        ("CVE Matching", "Correlate detected versions with known CVEs"),
-        ("Exploit Selection", "Select optimal exploit for target configuration"),
-        ("Payload Generation", "Generate environment-specific exploit payload"),
-        ("Environment Prep", "Prepare sandboxed test environment"),
-        ("Pre-Auth Testing", "Test unauthenticated attack vectors"),
-        ("Auth Bypass Attempt", "Attempt authentication bypass techniques"),
-        ("Exploit Delivery", "Deliver exploit payload to target"),
-        ("Payload Execution", "Execute exploit and verify code execution"),
-        ("Privilege Escalation", "Attempt to escalate from initial access"),
-        ("Lateral Movement", "Test ability to move to adjacent systems"),
-        ("Data Exfiltration", "Verify data access and extraction capability"),
-        ("Persistence Check", "Test ability to maintain persistent access"),
-        ("Cleanup Verification", "Verify all test artifacts are removed"),
-        ("Evidence Collection", "Compile all evidence into structured format"),
-        ("Report Generation", "Generate final verification report"),
-    ]
-
-    phases = []
-    exploit_confirmed = exploitability in ("confirmed", "exploitable")
-    exploit_failed = exploitability == "not_exploitable"
-
-    for i, (name, desc) in enumerate(phase_defs):
-        phase_num = i + 1
-        duration = round(_rnd.uniform(0.1, 5.0), 1)
-
-        # Determine phase status based on overall result
-        if exploit_confirmed:
-            if phase_num <= 12:
-                status = "pass"
-            elif phase_num == 13:
-                status = _rnd.choice(["pass", "pass", "fail"])
-            elif phase_num <= 16:
-                status = "skip" if phases[-1]["status"] == "fail" else _rnd.choice(["pass", "skip"])
-            else:
-                status = "pass"
-        elif exploit_failed:
-            if phase_num <= 5:
-                status = "pass"
-            elif phase_num <= 8:
-                status = _rnd.choice(["pass", "fail"])
-            elif phase_num <= 12:
-                status = "fail" if _rnd.random() > 0.3 else "skip"
-            elif phase_num <= 16:
-                status = "skip"
-            else:
-                status = "pass"
-        else:  # inconclusive
-            if phase_num <= 6:
-                status = "pass"
-            elif phase_num <= 10:
-                status = _rnd.choice(["pass", "fail", "skip"])
-            elif phase_num <= 16:
-                status = _rnd.choice(["fail", "skip", "skip"])
-            else:
-                status = "pass"
-
-        evidence_snippets = {
-            "pass": f"Phase {phase_num} ({name}) completed successfully. {_rnd.choice(['Target responded as expected.', 'Vulnerability vector confirmed.', 'Service fingerprint matched.', 'Payload delivered successfully.', 'Evidence captured and stored.'])}",
-            "fail": f"Phase {phase_num} ({name}) could not complete. {_rnd.choice(['Target not vulnerable to this vector.', 'Compensating controls blocked attempt.', 'Service hardened against this technique.', 'Authentication required — no bypass found.'])}",
-            "skip": f"Phase {phase_num} ({name}) skipped. {_rnd.choice(['Previous phase failed — prerequisite not met.', 'Not applicable to this vulnerability type.', 'Scope limitation — phase excluded.'])}",
-        }
-
-        phases.append({
-            "phase": phase_num,
-            "name": name,
-            "description": desc,
-            "status": status,
-            "duration_seconds": duration if status != "skip" else 0.0,
-            "evidence": evidence_snippets[status],
-            "confidence_contribution": round(_rnd.uniform(0.02, 0.12), 3) if status == "pass" else 0.0,
-        })
-
-    return phases
 
 
 @router.get("/stats")

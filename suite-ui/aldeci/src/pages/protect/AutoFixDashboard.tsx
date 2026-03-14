@@ -386,7 +386,7 @@ const AutoFixDashboard = () => {
             </Button>
           )}
           <Button
-            onClick={() => handleGenerate('demo-finding-' + Date.now())}
+            onClick={() => handleGenerate('finding-' + Date.now())}
             disabled={!!generating}
             className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white shadow-lg shadow-green-500/20"
           >

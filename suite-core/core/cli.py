@@ -2090,61 +2090,46 @@ def _handle_reports(args: argparse.Namespace) -> int:
                 "title": "Executive Security Summary",
                 "period": "Last 30 days",
                 "key_metrics": {
-                    "total_findings": 127,
-                    "critical_findings": 3,
-                    "high_findings": 12,
-                    "remediated": 89,
-                    "mttr_days": 4.2,
-                    "compliance_score": 87.5,
+                    "note": "Connect findings database and analytics engine to populate real metrics",
+                    "total_findings": 0,
+                    "critical_findings": 0,
+                    "high_findings": 0,
+                    "remediated": 0,
+                    "mttr_days": None,
+                    "compliance_score": None,
                 },
-                "risk_trend": "improving",
-                "top_risks": [
-                    "CVE-2024-1234 in production payment service",
-                    "Outdated TLS configuration on API gateway",
-                    "Missing MFA on admin accounts",
-                ],
+                "risk_trend": "unknown",
+                "top_risks": [],
             }
         elif args.type == "vulnerability":
             report_data["content"] = {
                 "title": "Vulnerability Assessment Report",
                 "scan_date": now,
                 "findings_by_severity": {
-                    "critical": 3,
-                    "high": 12,
-                    "medium": 45,
-                    "low": 67,
+                    "critical": 0,
+                    "high": 0,
+                    "medium": 0,
+                    "low": 0,
                 },
-                "findings_by_source": {
-                    "sast": 42,
-                    "dast": 18,
-                    "sca": 67,
-                },
-                "top_cves": [
-                    {"cve": "CVE-2024-1234", "severity": "critical", "affected": 3},
-                    {"cve": "CVE-2024-5678", "severity": "high", "affected": 7},
-                ],
+                "findings_by_source": {},
+                "top_cves": [],
+                "note": "Run SAST/DAST/SCA scans to populate this report with real findings",
             }
         elif args.type == "compliance":
             report_data["content"] = {
                 "title": "Compliance Status Report",
-                "frameworks": {
-                    "SOC2": {"coverage": 87, "gaps": 8},
-                    "ISO27001": {"coverage": 72, "gaps": 26},
-                    "PCI_DSS": {"coverage": 91, "gaps": 7},
-                },
+                "frameworks": {},
                 "recent_assessments": [],
                 "upcoming_audits": [],
+                "note": "Run compliance assessments to populate framework coverage data",
             }
         elif args.type == "audit":
             report_data["content"] = {
                 "title": "Audit Trail Report",
                 "period": "Last 30 days",
-                "total_events": 15234,
-                "events_by_type": {
-                    "decision": 892,
-                    "policy_change": 23,
-                    "user_action": 14319,
-                },
+                "total_events": 0,
+                "events_by_type": {},
+                "note": "Audit trail data will populate as the system processes findings",
             }
 
         output_path = getattr(args, "output", None)
@@ -2772,87 +2757,55 @@ def _handle_analytics(args: argparse.Namespace) -> int:
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "period": getattr(args, "period", "30d"),
             "overview": {
-                "total_findings": 127,
-                "critical": 3,
-                "high": 12,
-                "medium": 45,
-                "low": 67,
-                "remediated_last_30d": 89,
-                "new_last_30d": 38,
+                "note": "Connect findings database to populate real metrics",
+                "total_findings": 0,
+                "critical": 0,
+                "high": 0,
+                "medium": 0,
+                "low": 0,
+                "remediated_last_30d": 0,
+                "new_last_30d": 0,
             },
             "trends": {
-                "findings_trend": "decreasing",
-                "mttr_trend": "improving",
-                "compliance_trend": "stable",
+                "findings_trend": "unknown",
+                "mttr_trend": "unknown",
+                "compliance_trend": "unknown",
             },
-            "top_risks": [
-                {"cve": "CVE-2024-1234", "severity": "critical", "affected_apps": 3},
-                {"cve": "CVE-2024-5678", "severity": "high", "affected_apps": 7},
-                {"cve": "CVE-2024-9012", "severity": "high", "affected_apps": 5},
-            ],
-            "compliance_status": {
-                "SOC2": 87,
-                "ISO27001": 72,
-                "PCI_DSS": 91,
-            },
+            "top_risks": [],
+            "compliance_status": {},
         }
         print(json.dumps(dashboard_data, indent=2))
 
     elif args.analytics_command == "mttr":
         mttr_data = {
             "period": getattr(args, "period", "30d"),
-            "overall_mttr_days": 4.2,
-            "by_severity": {
-                "critical": 1.5,
-                "high": 3.2,
-                "medium": 7.8,
-                "low": 14.3,
-            },
-            "by_team": {
-                "platform": 3.1,
-                "backend": 4.5,
-                "frontend": 5.2,
-            },
-            "trend": "improving",
+            "note": "MTTR requires remediation history — run scans and fix findings to populate",
+            "overall_mttr_days": None,
+            "by_severity": {},
+            "by_team": {},
+            "trend": "unknown",
             "target_mttr_days": 5.0,
         }
         print(json.dumps(mttr_data, indent=2))
 
     elif args.analytics_command == "coverage":
         coverage_data = {
-            "total_applications": 45,
-            "scanned_applications": 42,
-            "coverage_percent": 93.3,
-            "by_scan_type": {
-                "sast": {"covered": 40, "total": 45, "percent": 88.9},
-                "dast": {"covered": 35, "total": 45, "percent": 77.8},
-                "sca": {"covered": 42, "total": 45, "percent": 93.3},
-                "secrets": {"covered": 38, "total": 45, "percent": 84.4},
-            },
-            "unscanned_applications": ["legacy-app-1", "internal-tool-2", "test-app-3"],
+            "note": "Coverage data requires registered applications — use 'app register' first",
+            "total_applications": 0,
+            "scanned_applications": 0,
+            "coverage_percent": 0.0,
+            "by_scan_type": {},
+            "unscanned_applications": [],
         }
         print(json.dumps(coverage_data, indent=2))
 
     elif args.analytics_command == "roi":
         roi_data = {
             "period": getattr(args, "period", "12m"),
-            "cost_savings": {
-                "prevented_breaches_estimate": 450000,
-                "reduced_manual_triage_hours": 2400,
-                "triage_cost_savings": 180000,
-                "compliance_automation_savings": 75000,
-                "total_savings": 705000,
-            },
-            "efficiency_gains": {
-                "noise_reduction_percent": 67,
-                "false_positive_reduction_percent": 45,
-                "time_to_decision_reduction_percent": 82,
-            },
-            "risk_reduction": {
-                "critical_vulns_remediated": 23,
-                "high_vulns_remediated": 89,
-                "average_exposure_days_reduced": 12,
-            },
+            "note": "ROI calculations require historical data — system must be running for at least 30 days",
+            "cost_savings": {},
+            "efficiency_gains": {},
+            "risk_reduction": {},
         }
         print(json.dumps(roi_data, indent=2))
 
@@ -3412,29 +3365,18 @@ def _handle_advanced_pentest(args: argparse.Namespace) -> int:
         result = {
             "simulation_id": f"sim-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
             "attack_type": getattr(args, "attack_type", "chained_exploit"),
-            "target": getattr(args, "target", "https://staging.example.com"),
+            "target": getattr(args, "target", ""),
             "simulation_results": {
-                "attack_chain": [
-                    {"step": 1, "technique": "Initial Access", "success": True},
-                    {"step": 2, "technique": "Privilege Escalation", "success": True},
-                    {
-                        "step": 3,
-                        "technique": "Lateral Movement",
-                        "success": False,
-                        "blocked_by": "network_segmentation",
-                    },
-                ],
-                "max_depth_reached": 2,
-                "blocked_at": "Lateral Movement",
-                "time_to_detect": "4.2 seconds",
+                "note": "Attack simulation engine not yet connected — run MPTE scans to generate real results",
+                "attack_chain": [],
+                "max_depth_reached": 0,
+                "blocked_at": None,
+                "time_to_detect": None,
             },
             "defense_effectiveness": {
-                "controls_tested": 8,
-                "controls_effective": 6,
-                "gaps_identified": [
-                    "Missing EDR on database servers",
-                    "Weak service account passwords",
-                ],
+                "controls_tested": 0,
+                "controls_effective": 0,
+                "gaps_identified": [],
             },
         }
         print(json.dumps(result, indent=2))
@@ -3444,27 +3386,14 @@ def _handle_advanced_pentest(args: argparse.Namespace) -> int:
             "cve_id": args.cve,
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "remediation": {
-                "summary": "Update affected library to patched version",
-                "steps": [
-                    "Update dependency in package.json/requirements.txt",
-                    "Run security tests",
-                    "Deploy to staging",
-                    "Verify fix with pen test",
-                    "Deploy to production",
-                ],
-                "code_fix": {
-                    "language": "python",
-                    "file": "requirements.txt",
-                    "before": "vulnerable-lib==1.2.3",
-                    "after": "vulnerable-lib>=1.2.4",
-                },
-                "verification_test": {
-                    "type": "integration",
-                    "command": "pytest tests/security/test_cve_2024_1234.py",
-                },
+                "note": "Remediation guidance requires AutoFix engine connection — use the API or web UI for AI-generated fix recommendations",
+                "summary": None,
+                "steps": [],
+                "code_fix": None,
+                "verification_test": None,
             },
-            "estimated_effort": "2-4 hours",
-            "risk_if_not_fixed": "critical",
+            "estimated_effort": None,
+            "risk_if_not_fixed": None,
         }
         print(json.dumps(result, indent=2))
 
