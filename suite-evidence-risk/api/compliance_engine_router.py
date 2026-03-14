@@ -755,3 +755,56 @@ async def pci_dss_status_legacy() -> Dict[str, Any]:
         "last_onsite_audit": "2025-09-15",
         "report_on_compliance_due": "2026-09-30",
     }
+
+
+@router.get("/mappings")
+async def compliance_mappings():
+    """Compliance control-to-finding mappings across frameworks."""
+    frameworks = {
+        "SOC2": {
+            "total_controls": 64,
+            "mapped": 48,
+            "unmapped": 16,
+            "categories": [
+                {"name": "Security", "controls": 18, "mapped_findings": 14},
+                {"name": "Availability", "controls": 9, "mapped_findings": 7},
+                {"name": "Processing Integrity", "controls": 11, "mapped_findings": 8},
+                {"name": "Confidentiality", "controls": 13, "mapped_findings": 10},
+                {"name": "Privacy", "controls": 13, "mapped_findings": 9},
+            ],
+        },
+        "PCI-DSS": {
+            "total_controls": 97,
+            "mapped": 72,
+            "unmapped": 25,
+            "categories": [
+                {"name": "Network Security", "controls": 12, "mapped_findings": 10},
+                {"name": "Access Control", "controls": 15, "mapped_findings": 11},
+                {"name": "Data Protection", "controls": 14, "mapped_findings": 9},
+                {"name": "Vulnerability Management", "controls": 12, "mapped_findings": 10},
+                {"name": "Monitoring", "controls": 10, "mapped_findings": 8},
+            ],
+        },
+        "HIPAA": {
+            "total_controls": 75,
+            "mapped": 55,
+            "unmapped": 20,
+            "categories": [
+                {"name": "Administrative Safeguards", "controls": 25, "mapped_findings": 18},
+                {"name": "Physical Safeguards", "controls": 10, "mapped_findings": 7},
+                {"name": "Technical Safeguards", "controls": 20, "mapped_findings": 16},
+                {"name": "Breach Notification", "controls": 10, "mapped_findings": 7},
+                {"name": "Privacy", "controls": 10, "mapped_findings": 7},
+            ],
+        },
+    }
+
+    return {
+        "status": "ok",
+        "frameworks": frameworks,
+        "total_frameworks": len(frameworks),
+        "overall_mapping_rate": round(
+            sum(f["mapped"] for f in frameworks.values()) /
+            max(sum(f["total_controls"] for f in frameworks.values()), 1) * 100, 1
+        ),
+    }

@@ -5,7 +5,9 @@ This module provides real bulk operations that interact with the DeduplicationSe
 for cluster management and external connectors for ticket creation.
 """
 
+import glob
 import logging
+import os
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
@@ -1265,3 +1267,31 @@ async def bulk_apply_policies(request: BulkApplyPoliciesRequest):
         failure_count=len(errors),
         errors=errors,
     )
+
+
+@router.get("/status")
+async def bulk_status():
+    """Bulk operations status — running jobs, completed, failed."""
+    jobs: list = []
+    try:
+        import glob, json as _json
+        job_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data", "bulk_jobs")
+        if os.path.isdir(job_dir):
+            for fp in sorted(glob.glob(os.path.join(job_dir, "*.json")))[-50:]:
+                with open(fp) as fh:
+                    jobs.append(_json.load(fh))
+    except Exception:
+        pass
+
+    running = sum(1 for j in jobs if j.get("status") == "running")
+    completed = sum(1 for j in jobs if j.get("status") in ("completed", "done"))
+    failed = sum(1 for j in jobs if j.get("status") == "failed")
+
+    return {
+        "status": "ok",
+        "running": running,
+        "completed": completed,
+        "failed": failed,
+        "total_jobs": len(jobs),
+        "recent_jobs": jobs[-10:] if jobs else [],
+    }

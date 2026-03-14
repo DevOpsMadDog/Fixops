@@ -1,7 +1,9 @@
 import base64
+import glob
 import hashlib
 import json
 import logging
+import os
 import re
 import uuid
 from datetime import datetime as dt
@@ -720,6 +722,50 @@ async def list_evidence(request: Request) -> dict[str, Any]:
             }
         )
     return {"count": len(releases), "releases": releases}
+
+
+@router.get("/vault")
+async def evidence_vault():
+    """Evidence vault — list of all signed evidence bundles."""
+    bundles = []
+    try:
+        data_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data", "evidence")
+        if os.path.isdir(data_dir):
+            for fp in sorted(glob.glob(os.path.join(data_dir, "*.json")))[-200:]:
+                try:
+                    with open(fp) as fh:
+                        bundle = json.load(fh)
+                    bundles.append({
+                        "id": bundle.get("id") or os.path.basename(fp).replace(".json", ""),
+                        "type": bundle.get("type", "evidence"),
+                        "framework": bundle.get("framework", "unknown"),
+                        "created_at": bundle.get("created_at") or bundle.get("timestamp"),
+                        "signed": bundle.get("signature") is not None,
+                        "status": bundle.get("status", "sealed"),
+                    })
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+    return {
+        "status": "ok",
+        "vault": bundles,
+        "total": len(bundles),
+        "crypto_available": _HAS_CORE_CRYPTO,
+        "retention_policy": "7-year WORM",
+    }
+
+
+@router.get("/list")
+async def evidence_list():
+    """Evidence list — simplified listing for UI tables."""
+    vault_resp = await evidence_vault()
+    return {
+        "status": "ok",
+        "items": vault_resp.get("vault", []),
+        "total": vault_resp.get("total", 0),
+    }
 
 
 @router.get("/{release}")

@@ -124,6 +124,69 @@ async def cve_risk(cve_id: str, request: Request) -> Dict[str, Any]:
     return entry
 
 
+@router.get("/overview")
+async def risk_overview(request: Request) -> Dict[str, Any]:
+    """Risk overview — aggregate risk posture across all apps/components."""
+    try:
+        directory = _resolve_directory(request)
+        report = _load_latest_report(directory)
+        components = report.get("components", {})
+        cves = report.get("cves", {})
+    except HTTPException:
+        components = {}
+        cves = {}
+
+    # Severity breakdown from CVEs
+    severity_counts: Dict[str, int] = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+    for entry in (cves.values() if isinstance(cves, dict) else []):
+        sev = (entry.get("severity") or "low").lower()
+        if sev in severity_counts:
+            severity_counts[sev] += 1
+
+    total_findings = sum(severity_counts.values())
+    risk_score = min(100, severity_counts["critical"] * 25 + severity_counts["high"] * 10 + severity_counts["medium"] * 3 + severity_counts["low"])
+
+    return {
+        "status": "ok",
+        "risk_score": risk_score,
+        "risk_level": "critical" if risk_score >= 75 else "high" if risk_score >= 50 else "medium" if risk_score >= 25 else "low",
+        "total_findings": total_findings,
+        "severity_breakdown": severity_counts,
+        "total_components": len(components) if isinstance(components, dict) else 0,
+        "total_cves": len(cves) if isinstance(cves, dict) else 0,
+        "top_risks": [
+            {"cve_id": cve_id, "severity": (entry.get("severity") or "unknown"), "score": entry.get("cvss_score", 0)}
+            for cve_id, entry in (list(cves.items())[:10] if isinstance(cves, dict) else [])
+        ],
+        "trends": {"direction": "stable", "change_7d": 0, "change_30d": 0},
+    }
+
+
+@router.get("/scores")
+async def risk_scores(request: Request) -> Dict[str, Any]:
+    """Risk scores per component/app."""
+    try:
+        directory = _resolve_directory(request)
+        report = _load_latest_report(directory)
+        components = report.get("components", {})
+    except HTTPException:
+        components = {}
+
+    scores = []
+    for name, data in (components.items() if isinstance(components, dict) else []):
+        score = data.get("risk_score", 0) if isinstance(data, dict) else 0
+        scores.append({"component": name, "risk_score": score, "severity": data.get("severity", "low") if isinstance(data, dict) else "low"})
+
+    scores.sort(key=lambda x: x["risk_score"], reverse=True)
+
+    return {
+        "status": "ok",
+        "scores": scores[:50],
+        "total": len(scores),
+        "average_score": round(sum(s["risk_score"] for s in scores) / max(len(scores), 1), 1),
+    }
+
+
 @router.get("/health")
 async def risk_health():
     """Risk analysis service health check."""

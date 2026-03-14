@@ -10,7 +10,7 @@ from core.services.remediation import (
     RemediationService,
     RemediationStatus,
 )
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -605,4 +605,105 @@ def get_remediation_backlog(
         "by_status": by_status,
         "sprint_ready": sprint_ready,
         "overdue": overdue,
+    }
+
+
+@router.get("/stats")
+async def remediation_stats(request: Request):
+    """Remediation statistics — task counts by severity/status/assignee."""
+    svc = get_remediation_service()
+    tasks = []
+    try:
+        raw = svc.get_tasks(limit=1000) if hasattr(svc, "get_tasks") else []
+        tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
+    except Exception:
+        pass
+
+    by_severity = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+    by_status = {"open": 0, "in_progress": 0, "resolved": 0, "closed": 0}
+    by_assignee: dict = {}
+
+    for t in tasks:
+        t_dict = t if isinstance(t, dict) else (t.__dict__ if hasattr(t, "__dict__") else {})
+        sev = (t_dict.get("severity") or "medium").lower()
+        if sev in by_severity:
+            by_severity[sev] += 1
+        st = (t_dict.get("status") or "open")
+        st_val = st.value if hasattr(st, "value") else str(st)
+        if st_val.lower() in by_status:
+            by_status[st_val.lower()] += 1
+        assignee = t_dict.get("assignee") or "unassigned"
+        by_assignee[assignee] = by_assignee.get(assignee, 0) + 1
+
+    return {
+        "status": "ok",
+        "total": len(tasks),
+        "by_severity": by_severity,
+        "by_status": by_status,
+        "by_assignee": dict(sorted(by_assignee.items(), key=lambda x: -x[1])[:20]),
+    }
+
+
+@router.get("/queue")
+async def remediation_queue(request: Request):
+    """Remediation queue — pending tasks ordered by priority."""
+    svc = get_remediation_service()
+    tasks = []
+    try:
+        raw = svc.get_tasks(limit=200) if hasattr(svc, "get_tasks") else []
+        tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
+    except Exception:
+        pass
+
+    # Filter to open/in_progress tasks
+    queue = []
+    for t in tasks:
+        t_dict = t if isinstance(t, dict) else (t.__dict__ if hasattr(t, "__dict__") else {})
+        st = t_dict.get("status") or ""
+        st_val = st.value if hasattr(st, "value") else str(st)
+        if st_val.lower() in ("open", "assigned", "in_progress", "pending"):
+            queue.append(t_dict)
+
+    severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+    queue.sort(key=lambda t: severity_order.get((t.get("severity") or "low").lower(), 3))
+
+    return {
+        "status": "ok",
+        "queue": queue[:100],
+        "total": len(queue),
+    }
+
+
+@router.get("/summary")
+async def remediation_summary(request: Request):
+    """Remediation summary — high-level overview."""
+    svc = get_remediation_service()
+    tasks = []
+    try:
+        raw = svc.get_tasks(limit=1000) if hasattr(svc, "get_tasks") else []
+        tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
+    except Exception:
+        pass
+
+    total = len(tasks)
+    resolved = 0
+    in_progress = 0
+    for t in tasks:
+        t_dict = t if isinstance(t, dict) else (t.__dict__ if hasattr(t, "__dict__") else {})
+        st = t_dict.get("status") or ""
+        st_val = st.value if hasattr(st, "value") else str(st)
+        if st_val.lower() in ("resolved", "closed", "completed"):
+            resolved += 1
+        elif st_val.lower() == "in_progress":
+            in_progress += 1
+
+    open_count = total - resolved - in_progress
+
+    return {
+        "status": "ok",
+        "total": total,
+        "resolved": resolved,
+        "in_progress": in_progress,
+        "open": open_count,
+        "resolution_rate": round(resolved / max(total, 1) * 100, 1),
     }

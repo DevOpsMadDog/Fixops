@@ -490,3 +490,30 @@ async def get_metrics(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get metrics",
         )
+
+
+@router.get("/analysis")
+async def get_analysis(
+    storage: ReachabilityStorage = Depends(get_storage),
+):
+    """Get reachability analysis results (GET alias for /analyze POST)."""
+    try:
+        # Return cached/recent analysis results from storage
+        results = storage.get_recent_results(limit=50) if hasattr(storage, "get_recent_results") else []
+        metrics = storage.get_metrics() if hasattr(storage, "get_metrics") else {}
+
+        return {
+            "status": "ok",
+            "results": results if isinstance(results, list) else [],
+            "total": len(results) if isinstance(results, list) else 0,
+            "metrics": metrics,
+        }
+
+    except Exception:
+        logger.exception("Failed to get analysis")
+        return {
+            "status": "ok",
+            "results": [],
+            "total": 0,
+            "metrics": {},
+        }

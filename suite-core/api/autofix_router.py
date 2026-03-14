@@ -325,3 +325,49 @@ async def confidence_levels():
             "low": {"min_score": 0.0, "description": "Manual review required"},
         },
     }
+
+
+@router.get("/queue", summary="AutoFix queue")
+async def autofix_queue():
+    """Get pending AutoFix tasks in the queue."""
+    engine = _get_engine()
+    stats = engine.get_stats()
+    # Expose pending/queued fixes
+    pending = stats.get("pending_fixes", [])
+    return {
+        "status": "ok",
+        "queue": pending if isinstance(pending, list) else [],
+        "total_queued": len(pending) if isinstance(pending, list) else stats.get("total_pending", 0),
+        "total_generated": stats.get("total_generated", 0),
+    }
+
+
+@router.get("/tasks", summary="AutoFix tasks")
+async def autofix_tasks():
+    """List recent AutoFix tasks."""
+    engine = _get_engine()
+    stats = engine.get_stats()
+    fixes = stats.get("recent_fixes", []) or stats.get("fixes", [])
+    return {
+        "status": "ok",
+        "tasks": fixes if isinstance(fixes, list) else [],
+        "total": stats.get("total_fixes_stored", 0),
+    }
+
+
+@router.get("/summary", summary="AutoFix summary")
+async def autofix_summary():
+    """AutoFix engine summary — totals, success rates."""
+    engine = _get_engine()
+    stats = engine.get_stats()
+    total_generated = stats.get("total_generated", 0)
+    total_applied = stats.get("total_applied", 0) or stats.get("total_prs_created", 0)
+    return {
+        "status": "ok",
+        "total_generated": total_generated,
+        "total_applied": total_applied,
+        "total_stored": stats.get("total_fixes_stored", 0),
+        "success_rate": round(total_applied / max(total_generated, 1) * 100, 1),
+        "by_type": stats.get("by_fix_type", {}),
+        "by_confidence": stats.get("by_confidence", {}),
+    }

@@ -40,6 +40,7 @@ from apps.api.auth_router import router as auth_router
 from apps.api.bulk_router import router as bulk_router
 from apps.api.collaboration_router import router as collaboration_router
 from apps.api.fail_router import router as fail_router
+from apps.api.sla_router import router as sla_router
 
 # APP_ID Configuration router (app registration, classification, lifecycle)
 app_config_router: Optional[APIRouter] = None
@@ -1307,9 +1308,10 @@ def create_app() -> FastAPI:
         ],
     )
 
-    # Enterprise features - Remediation, Collaboration
+    # Enterprise features - Remediation, Collaboration, SLA
     app.include_router(remediation_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(collaboration_router, dependencies=[Depends(_verify_api_key)])
+    app.include_router(sla_router, dependencies=[Depends(_verify_api_key)])
 
     # Scanner Ingest — 25+ scanner parsers (ZAP, Burp, Nessus, Checkmarx, etc.)
     if scanner_ingest_router:
