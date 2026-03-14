@@ -22,7 +22,7 @@ from apps.api.normalizers import InputNormalizer, NormalizedSARIF, NormalizedSBO
 def _current_utc_timestamp() -> str:
     """Return an ISO8601 timestamp with optional test overrides."""
 
-    override = os.environ.get("FIXOPS_FAKE_NOW")
+    override = os.environ.get("FIXOPS_TIMESTAMP_OVERRIDE")
     if override:
         candidate = override.strip()
         if not candidate:

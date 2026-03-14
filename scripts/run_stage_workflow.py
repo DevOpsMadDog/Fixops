@@ -103,7 +103,7 @@ def run_workflow(
     if run_id_seed:
         _set_env("FIXOPS_RUN_ID_SEED", run_id_seed)
     if fake_now:
-        _set_env("FIXOPS_FAKE_NOW", fake_now)
+        _set_env("FIXOPS_TIMESTAMP_OVERRIDE", fake_now)
     summaries = []
     for stage, relative_path in STAGE_SEQUENCE:
         input_path = _load_input(fixtures_root, relative_path)
@@ -145,7 +145,7 @@ def _parse_args(argv: Iterable[str]) -> argparse.Namespace:
     )
     parser.add_argument(
         "--fake-now",
-        help="Override timestamp used in manifests and bundles (sets FIXOPS_FAKE_NOW)",
+        help="Override timestamp used in manifests and bundles (sets FIXOPS_TIMESTAMP_OVERRIDE)",
     )
     parser.add_argument(
         "--sign", action="store_true", help="Request manifest signing if configured"

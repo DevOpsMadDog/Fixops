@@ -17,23 +17,27 @@ router = APIRouter(prefix="/business-context", tags=["business-integration"])
 async def get_jira_context(
     ticket_id: str, current_user: Dict = Depends(get_current_user)
 ):
-    """Get business context from Jira ticket"""
+    """Get business context from Jira ticket.
+
+    Requires Jira integration to be configured in Settings → Integrations.
+    """
     try:
-        # Simulated Jira integration (replace with real Jira API)
-        jira_context = {
-            "ticket_id": ticket_id,
-            "summary": f"Payment optimization for {ticket_id}",
-            "priority": "Critical",
-            "labels": ["pci-dss", "financial", "payment-processing"],
-            "business_impact": "critical",
-            "data_classification": "pii + financial",
-            "stakeholders": ["product-team", "security-team", "compliance"],
-            "deadline": "2024-10-15",
-            "compliance_requirements": ["PCI DSS", "SOC2"],
+        from core.connectors import AutomationConnectors
+        connectors = AutomationConnectors()
+        if hasattr(connectors, "jira") and connectors.jira and getattr(connectors.jira, "configured", False):
+            result = connectors.jira.get_issue(ticket_id)
+            return {"status": "success", "data": result}
+        return {
+            "status": "not_configured",
+            "message": "Jira integration not configured. Go to Settings → Integrations → Jira to connect.",
+            "data": {"ticket_id": ticket_id},
         }
-
-        return {"status": "success", "data": jira_context}
-
+    except ImportError:
+        return {
+            "status": "not_configured",
+            "message": "Jira connector module not available",
+            "data": {"ticket_id": ticket_id},
+        }
     except Exception as e:
         logger.error(f"Failed to get Jira context: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -43,27 +47,27 @@ async def get_jira_context(
 async def get_confluence_context(
     page_id: str, current_user: Dict = Depends(get_current_user)
 ):
-    """Get threat model and requirements from Confluence"""
+    """Get threat model and requirements from Confluence.
+
+    Requires Confluence integration to be configured in Settings → Integrations.
+    """
     try:
-        # Simulated Confluence integration
-        confluence_context = {
-            "page_id": page_id,
-            "title": "Payment Service Security Requirements",
-            "threat_model": {
-                "assets": ["payment-data", "user-pii", "financial-records"],
-                "threats": ["sql-injection", "data-breach", "unauthorized-access"],
-                "mitigations": ["input-validation", "encryption", "access-controls"],
-            },
-            "security_requirements": [
-                "All payment data must be encrypted at rest and in transit",
-                "Input validation required for all user inputs",
-                "Access logging mandatory for audit compliance",
-            ],
-            "compliance_notes": "PCI DSS Level 1 requirements apply",
+        from core.connectors import AutomationConnectors
+        connectors = AutomationConnectors()
+        if hasattr(connectors, "confluence") and connectors.confluence and getattr(connectors.confluence, "configured", False):
+            result = connectors.confluence.get_page(page_id)
+            return {"status": "success", "data": result}
+        return {
+            "status": "not_configured",
+            "message": "Confluence integration not configured. Go to Settings → Integrations → Confluence to connect.",
+            "data": {"page_id": page_id},
         }
-
-        return {"status": "success", "data": confluence_context}
-
+    except ImportError:
+        return {
+            "status": "not_configured",
+            "message": "Confluence connector module not available",
+            "data": {"page_id": page_id},
+        }
     except Exception as e:
         logger.error(f"Failed to get Confluence context: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

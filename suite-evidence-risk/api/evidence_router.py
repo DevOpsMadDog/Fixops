@@ -566,44 +566,46 @@ async def generate_compliance_bundle(
 
 @router.get("/compliance-status")
 async def get_compliance_status() -> dict[str, Any]:
-    """Get compliance framework coverage overview."""
+    """Get compliance framework coverage overview.
+
+    Queries the compliance engine for real assessment data.
+    Returns empty frameworks if no assessments have been run.
+    """
+    try:
+        from compliance.compliance_engine import ComplianceEngine
+        engine = ComplianceEngine()
+        frameworks: dict[str, Any] = {}
+        for fw in getattr(engine, "_enabled", []):
+            try:
+                result = engine.assess(fw)
+                frameworks[fw] = {
+                    "status": "assessed",
+                    "controls_total": result.get("total_controls", 0),
+                    "controls_mapped": result.get("controls_passed", 0),
+                    "evidence_collected": result.get("evidence_count", 0),
+                    "coverage_pct": result.get("coverage_percent", 0.0),
+                    "last_audit": None,
+                }
+            except Exception:
+                frameworks[fw] = {
+                    "status": "error",
+                    "controls_total": 0,
+                    "controls_mapped": 0,
+                    "evidence_collected": 0,
+                    "coverage_pct": 0.0,
+                    "last_audit": None,
+                }
+    except ImportError:
+        frameworks = {}
+
     return {
-        "frameworks": {
-            "SOC2": {
-                "status": "in_progress",
-                "controls_total": 64,
-                "controls_mapped": 48,
-                "evidence_collected": 42,
-                "coverage_pct": 75.0,
-                "last_audit": "2026-02-27",
-            },
-            "PCI-DSS": {
-                "status": "in_progress",
-                "controls_total": 12,
-                "controls_mapped": 9,
-                "evidence_collected": 7,
-                "coverage_pct": 58.3,
-                "last_audit": "2026-02-25",
-            },
-            "HIPAA": {
-                "status": "planned",
-                "controls_total": 45,
-                "controls_mapped": 0,
-                "evidence_collected": 0,
-                "coverage_pct": 0.0,
-                "last_audit": None,
-            },
-            "ISO27001": {
-                "status": "in_progress",
-                "controls_total": 114,
-                "controls_mapped": 72,
-                "evidence_collected": 55,
-                "coverage_pct": 48.2,
-                "last_audit": "2026-02-20",
-            },
-        },
-        "overall_score": 62.5,
+        "frameworks": frameworks,
+        "overall_score": (
+            round(sum(f["coverage_pct"] for f in frameworks.values()) / len(frameworks), 1)
+            if frameworks else 0.0
+        ),
         "timestamp": dt.now(tz.utc).isoformat(),
+        "note": "Run compliance assessments to populate framework data" if not frameworks else None,
     }
 
 

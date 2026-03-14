@@ -27,7 +27,7 @@ def test_sample_stage_outputs_match_expected(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("FIXOPS_RUN_ID_SEED", "SAMPLE-RUN")
-    monkeypatch.setenv("FIXOPS_FAKE_NOW", "2024-01-01T00:00:00Z")
+    monkeypatch.setenv("FIXOPS_TIMESTAMP_OVERRIDE", "2024-01-01T00:00:00Z")
 
     registry_root = tmp_path / "artefacts"
     registry = RunRegistry(root=registry_root)

@@ -66,19 +66,19 @@ sim: $(VENV)
 .PHONY: demo
 demo: $(VENV)
 	FIXOPS_RUN_ID_SEED=demo-local \
-	FIXOPS_FAKE_NOW=2024-01-01T00:00:00Z \
+	FIXOPS_TIMESTAMP_OVERRIDE=2024-01-01T00:00:00Z \
 	$(PYTHON_BIN) scripts/run_demo_steps.py --mode demo --output artefacts/demo/demo.json
 
 .PHONY: demo-enterprise
 demo-enterprise: $(VENV)
 	FIXOPS_RUN_ID_SEED=enterprise-local \
-	FIXOPS_FAKE_NOW=2024-01-01T00:00:00Z \
+	FIXOPS_TIMESTAMP_OVERRIDE=2024-01-01T00:00:00Z \
 	$(PYTHON_BIN) scripts/run_demo_steps.py --mode enterprise --output artefacts/enterprise/demo.json
 
 .PHONY: stage-workflow
 stage-workflow: $(VENV)
 	FIXOPS_RUN_ID_SEED=stage-demo \
-	FIXOPS_FAKE_NOW=2024-01-01T00:00:00Z \
+	FIXOPS_TIMESTAMP_OVERRIDE=2024-01-01T00:00:00Z \
 	$(PYTHON_BIN) scripts/run_stage_workflow.py \
 		--artefacts artefacts/stage-demo \
 		--summary artefacts/stage-demo/summary.json

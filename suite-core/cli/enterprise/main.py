@@ -553,7 +553,7 @@ class FixOpsCLI:
                     ),  # JSON string for SQLite
                     environment=environment,
                     owner_team="Unknown",
-                    owner_email="unknown@example.com",
+                    owner_email="",
                     repository_url=repository_url,
                 )
                 session.add(service)

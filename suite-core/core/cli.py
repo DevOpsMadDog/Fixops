@@ -2905,7 +2905,7 @@ def _handle_audit(args: argparse.Namespace) -> int:
                 ),
                 (
                     "policy",
-                    "admin@example.com",
+                    "system@fixops.local",
                     "policy_updated",
                     "policy",
                     "pol-456",
@@ -2913,7 +2913,7 @@ def _handle_audit(args: argparse.Namespace) -> int:
                 ),
                 (
                     "user",
-                    "admin@example.com",
+                    "system@fixops.local",
                     "user_login",
                     "user",
                     "user-789",
@@ -3247,35 +3247,23 @@ def _handle_advanced_pentest(args: argparse.Namespace) -> int:
     if args.advanced_pentest_command == "run":
         result = {
             "test_id": f"apt-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
-            "status": "completed",
+            "status": "not_connected",
             "started_at": datetime.now(timezone.utc).isoformat(),
-            "target": getattr(args, "target", "https://staging.example.com"),
+            "target": getattr(args, "target", ""),
             "cve_ids": (
                 getattr(args, "cves", "").split(",")
                 if getattr(args, "cves", None)
                 else []
             ),
             "results": {
-                "vulnerabilities_tested": 5,
-                "exploitable": 1,
-                "blocked": 2,
-                "inconclusive": 2,
-                "findings": [
-                    {
-                        "cve": "CVE-2024-1234",
-                        "exploitability": "confirmed_exploitable",
-                        "attack_vector": "network",
-                        "proof_of_concept": True,
-                    },
-                ],
+                "note": "MPTE engine not connected — use the API or web UI to run real penetration tests",
+                "vulnerabilities_tested": 0,
+                "exploitable": 0,
+                "blocked": 0,
+                "inconclusive": 0,
+                "findings": [],
             },
-            "ai_consensus": {
-                "gemini": "exploitable",
-                "claude": "exploitable",
-                "gpt4": "likely_exploitable",
-                "consensus": "exploitable",
-                "confidence": 0.92,
-            },
+            "ai_consensus": None,
         }
         print(json.dumps(result, indent=2))
 
@@ -3284,80 +3272,35 @@ def _handle_advanced_pentest(args: argparse.Namespace) -> int:
         result = {
             "cve_id": cve_id,
             "queried_at": datetime.now(timezone.utc).isoformat(),
+            "note": "Threat intelligence requires feeds database — run 'fixops feeds sync' to populate",
             "sources": {
-                "nvd": {
-                    "severity": "critical",
-                    "cvss_v3": 9.8,
-                    "description": "Remote code execution vulnerability",
-                },
-                "kev": {
-                    "in_kev": True,
-                    "date_added": "2024-01-15",
-                    "due_date": "2024-02-05",
-                },
-                "epss": {
-                    "score": 0.89,
-                    "percentile": 99.2,
-                },
-                "exploit_db": {
-                    "exploits_available": 3,
-                    "public_poc": True,
-                },
-                "mitre_attack": {
-                    "techniques": ["T1190", "T1059"],
-                    "tactics": ["Initial Access", "Execution"],
-                },
+                "nvd": None,
+                "kev": None,
+                "epss": None,
+                "exploit_db": None,
+                "mitre_attack": None,
             },
-            "risk_assessment": {
-                "overall_risk": "critical",
-                "exploitability": "high",
-                "impact": "high",
-                "recommendation": "Immediate remediation required",
-            },
+            "risk_assessment": None,
         }
         print(json.dumps(result, indent=2))
 
     elif args.advanced_pentest_command == "business-impact":
         result = {
             "analysis_id": f"bia-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
-            "target": getattr(args, "target", "payment-service"),
+            "target": getattr(args, "target", ""),
             "cve_ids": (
                 getattr(args, "cves", "").split(",")
                 if getattr(args, "cves", None)
-                else ["CVE-2024-1234"]
+                else []
             ),
             "impact_assessment": {
-                "financial_impact": {
-                    "estimated_breach_cost": 4240000,
-                    "regulatory_fines": {
-                        "gdpr": 20000000,
-                        "pci_dss": 500000,
-                        "hipaa": 1500000,
-                    },
-                    "reputation_damage": 2500000,
-                    "operational_disruption": 750000,
-                },
-                "data_at_risk": {
-                    "pii_records": 150000,
-                    "financial_records": 45000,
-                    "healthcare_records": 0,
-                },
-                "business_criticality": "high",
-                "affected_services": [
-                    "payment-api",
-                    "user-service",
-                    "notification-service",
-                ],
+                "note": "Business impact analysis requires configured application inventory and risk model",
+                "financial_impact": None,
+                "data_at_risk": None,
+                "business_criticality": None,
+                "affected_services": [],
             },
-            "recommendation": {
-                "priority": "P1",
-                "remediation_deadline": "48 hours",
-                "mitigation_options": [
-                    "Apply vendor patch immediately",
-                    "Enable WAF rules for CVE-2024-1234",
-                    "Isolate affected service",
-                ],
-            },
+            "recommendation": None,
         }
         print(json.dumps(result, indent=2))
 
