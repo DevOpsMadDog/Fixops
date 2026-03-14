@@ -115,32 +115,18 @@ async def scan_image(req: ScanImageRequest) -> Dict[str, Any]:
 async def list_container_images(
     limit: int = 50,
 ) -> Dict[str, Any]:
-    """List scanned container images and their vulnerability status."""
-    import hashlib
-    base_images = [
-        ('nginx:1.25', 'Docker Hub', 3, 'high'),
-        ('python:3.12-slim', 'Docker Hub', 1, 'medium'),
-        ('node:20-alpine', 'Docker Hub', 2, 'medium'),
-        ('alpine:3.19', 'Docker Hub', 0, 'low'),
-        ('postgres:16', 'Docker Hub', 4, 'high'),
-        ('redis:7-alpine', 'Docker Hub', 1, 'low'),
-        ('golang:1.22', 'Docker Hub', 2, 'medium'),
-        ('ubuntu:22.04', 'Docker Hub', 5, 'critical'),
-        ('openjdk:21-slim', 'Docker Hub', 3, 'high'),
-        ('mcr.microsoft.com/dotnet/aspnet:8.0', 'MCR', 1, 'low'),
-    ]
+    """List scanned container images and their vulnerability status.
+
+    Returns images from the container scanner's scan history.
+    Empty list indicates no scans have been performed yet.
+    """
+    scanner = get_container_scanner()
+    scan_history = getattr(scanner, "scan_history", None) or []
     images = []
-    for img, registry, vulns, sev in base_images[:limit]:
-        images.append({
-            'id': hashlib.md5(img.encode()).hexdigest()[:12],
-            'name': img,
-            'registry': registry,
-            'vulnerabilities': vulns,
-            'highest_severity': sev,
-            'last_scanned': '2026-03-08T10:00:00Z',
-            'status': 'scanned',
-        })
-    return {'images': images, 'total': len(images)}
+    for entry in scan_history[:limit]:
+        if isinstance(entry, dict):
+            images.append(entry)
+    return {"images": images, "total": len(images)}
 
 
 @router.get("/status")

@@ -7,6 +7,7 @@ import os
 import re
 import uuid
 from datetime import datetime as dt
+from datetime import timedelta
 from datetime import timezone as tz
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Literal, Optional
@@ -448,8 +449,8 @@ async def list_compliance_bundles(request: Request) -> dict[str, Any]:
                 "framework": manifest_data.get("framework", "SOC2"),
                 "frameworks": manifest_data.get("frameworks", ["SOC2"]),
                 "date_range": manifest_data.get("date_range", {
-                    "start": "2026-01-01",
-                    "end": "2026-02-27",
+                    "start": (dt.now(tz.utc) - timedelta(days=90)).strftime("%Y-%m-%d"),
+                    "end": dt.now(tz.utc).strftime("%Y-%m-%d"),
                 }),
                 "status": "signed" if manifest_data.get("signature") else "generated",
                 "created_at": manifest_data.get("created_at", ""),
@@ -502,7 +503,8 @@ async def generate_compliance_bundle(
         date_range_dict = {"start": body.date_range.start, "end": body.date_range.end}
     else:
         today = dt.now(tz.utc).strftime("%Y-%m-%d")
-        date_range_dict = {"start": "2026-01-01", "end": today}
+        ninety_days_ago = (dt.now(tz.utc) - timedelta(days=90)).strftime("%Y-%m-%d")
+        date_range_dict = {"start": ninety_days_ago, "end": today}
 
     categories = body.categories
 

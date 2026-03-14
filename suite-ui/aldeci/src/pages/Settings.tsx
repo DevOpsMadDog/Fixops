@@ -499,7 +499,7 @@ export default function Settings() {
                     <Database className="w-6 h-6 text-blue-500" />
                     <div>
                       <p className="font-medium">Database</p>
-                      <p className="text-sm text-muted-foreground">SQLite WAL — {healthData?.database_count || 56} domain DBs</p>
+                      <p className="text-sm text-muted-foreground">SQLite WAL — {healthData?.database_count || '—'} domain DBs</p>
                     </div>
                   </div>
                   <Badge variant={healthData?.status === 'healthy' ? 'default' : 'secondary'}>

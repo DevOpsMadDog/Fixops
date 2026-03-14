@@ -212,7 +212,7 @@ export default function EvidenceVault() {
     if (cs) {
       const overallScore = (cs.compliance_score || cs.score || 0) as number;
       return [
-        { id: 'soc2', name: 'SOC 2', version: 'Type II', controls_total: (cs.total_controls || 64) as number, controls_met: (cs.controls_passing || cs.passing || Math.round(64 * overallScore / 100)) as number, score: overallScore },
+        { id: 'soc2', name: 'SOC 2', version: 'Type II', controls_total: (cs.total_controls || 0) as number, controls_met: (cs.controls_passing || cs.passing || 0) as number, score: overallScore },
         { id: 'pci-dss', name: 'PCI DSS', version: '4.0', controls_total: 264, controls_met: Math.round(264 * overallScore / 100), score: overallScore },
         { id: 'hipaa', name: 'HIPAA', version: '2024', controls_total: 89, controls_met: Math.round(89 * overallScore / 100), score: overallScore },
         { id: 'nist', name: 'NIST CSF', version: '2.0', controls_total: 108, controls_met: Math.round(108 * overallScore / 100), score: overallScore },

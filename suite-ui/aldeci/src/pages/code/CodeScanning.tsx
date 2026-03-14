@@ -455,7 +455,7 @@ export default function CodeScanning() {
                 Static Application Security Testing
               </CardTitle>
               <CardDescription>
-                Paste code to scan with ALdeci&apos;s native SAST engine ({(sastRules as unknown[])?.length || 16} rules, {(sastStatus as ScannerStatus)?.languages?.length || 7} languages)
+                Paste code to scan with ALdeci&apos;s native SAST engine ({(sastRules as unknown[])?.length || '—'} rules, {(sastStatus as ScannerStatus)?.languages?.length || '—'} languages)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -660,7 +660,7 @@ export default function CodeScanning() {
                 Import Third-Party Scanner Results
               </CardTitle>
               <CardDescription>
-                Upload output from any of {scannerList.length || 25}+ supported scanners.
+                Upload output from any of {scannerList.length || '—'}+ supported scanners.
                 ALdeci auto-detects the format and normalizes findings.
               </CardDescription>
             </CardHeader>
