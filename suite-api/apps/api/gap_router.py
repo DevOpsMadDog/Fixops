@@ -130,22 +130,92 @@ bulk_gap = APIRouter(prefix="/api/v1/bulk", tags=["bulk-gap"])
 
 @bulk_gap.get("/assign")
 async def get_bulk_assignments():
-    """Get pending bulk assignment operations."""
-    return {"items": [], "total": 0, "pending_assignments": 0}
+    """Get pending bulk assignment operations from real bulk job store."""
+    try:
+        from apps.api.bulk_router import _jobs
+        # Filter jobs to assignment operations
+        items = []
+        for job_id in list(_jobs.keys()):
+            job = _jobs.get(job_id)
+            if job and job.get("action") == "assign":
+                items.append(job)
+        pending = [j for j in items if j.get("status") in ("pending", "in_progress")]
+        return {"items": items, "total": len(items), "pending_assignments": len(pending)}
+    except Exception as e:
+        logger.warning("bulk_gap /assign fallback: %s", e)
+        return {"items": [], "total": 0, "pending_assignments": 0}
 
 @bulk_gap.post("/triage")
 async def bulk_triage(request: Request):
-    """Bulk triage findings."""
+    """Bulk triage findings using real DeduplicationService."""
     body = await request.json() if request.headers.get("content-type") == "application/json" else {}
     finding_ids = body.get("finding_ids", [])
     action = body.get("action", "accept")
-    return {
-        "job_id": f"JOB-{uuid.uuid4().hex[:8].upper()}",
-        "status": "completed",
-        "processed": len(finding_ids),
-        "action": action,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    }
+
+    if not finding_ids:
+        return {"job_id": None, "status": "no_items", "processed": 0, "action": action,
+                "timestamp": datetime.now(timezone.utc).isoformat()}
+
+    try:
+        from core.deduplication import get_dedup_service
+        dedup = get_dedup_service()
+        success = 0
+        errors: List[Dict[str, Any]] = []
+        for fid in finding_ids:
+            try:
+                if action == "suppress":
+                    dedup.suppress_cluster(fid, reason="bulk_triage")
+                elif action == "accept":
+                    dedup.accept_risk(fid, justification="bulk_triage", approved_by="system")
+                elif action == "dismiss":
+                    dedup.dismiss_cluster(fid, reason="bulk_triage")
+                else:
+                    dedup.update_cluster_status(fid, action)
+                success += 1
+            except Exception as exc:
+                errors.append({"id": fid, "error": str(exc)})
+        return {
+            "job_id": f"JOB-{uuid.uuid4().hex[:8].upper()}",
+            "status": "completed",
+            "processed": success,
+            "failures": len(errors),
+            "errors": errors,
+            "action": action,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as e:
+        logger.warning("bulk_triage engine unavailable, using direct DB: %s", e)
+        # Fallback: update via findings DB directly
+        try:
+            from apps.api.bulk_router import _findings_db
+            db = _findings_db()
+            success = 0
+            for fid in finding_ids:
+                try:
+                    finding = db.get_finding(fid)
+                    if finding:
+                        finding.metadata["triage_action"] = action
+                        finding.metadata["triaged_at"] = datetime.now(timezone.utc).isoformat()
+                        db.update_finding(finding)
+                        success += 1
+                except Exception:
+                    pass
+            return {
+                "job_id": f"JOB-{uuid.uuid4().hex[:8].upper()}",
+                "status": "completed",
+                "processed": success,
+                "action": action,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        except Exception:
+            return {
+                "job_id": f"JOB-{uuid.uuid4().hex[:8].upper()}",
+                "status": "failed",
+                "processed": 0,
+                "action": action,
+                "error": str(e),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
 
 
 # ── COPILOT (missing: GET /agents, POST /chat, POST /suggest) ──
@@ -1162,16 +1232,60 @@ evidence_gap = APIRouter(prefix="/api/v1/evidence", tags=["evidence-gap"])
 
 @evidence_gap.post("/generate")
 async def generate_evidence(request: Request):
-    """Generate evidence bundle from current findings."""
+    """Generate evidence bundle using real AutoEvidenceGenerator."""
     body = await request.json() if request.headers.get("content-type") == "application/json" else {}
-    bundle_id = f"EVD-{uuid.uuid4().hex[:8].upper()}"
-    return {
-        "status": "generating",
-        "bundle_id": bundle_id,
-        "type": body.get("type", "comprehensive"),
-        "started_at": datetime.now(timezone.utc).isoformat(),
-        "estimated_completion_seconds": 30,
-    }
+    app_id = body.get("app_id", "default")
+    framework = body.get("framework", "SOC2")
+    control_id = body.get("control_id", "")
+    evidence_type = body.get("type", "comprehensive")
+
+    try:
+        from compliance.compliance_engine import AutoEvidenceGenerator
+        gen = AutoEvidenceGenerator()
+
+        if evidence_type == "comprehensive" or not control_id:
+            # Bulk generate for the whole framework
+            result = gen.bulk_generate(
+                app_id=app_id,
+                framework=framework,
+                scan_findings=body.get("scan_findings"),
+                max_controls=body.get("max_controls", 50),
+            )
+            return {
+                "status": "completed",
+                "bundle_id": f"EVD-{uuid.uuid4().hex[:8].upper()}",
+                "type": evidence_type,
+                "framework": framework,
+                "app_id": app_id,
+                "total_generated": result.get("total_generated", 0),
+                "controls_covered": result.get("controls_covered", []),
+                "bundles": result.get("bundles", []),
+                "generated_at": result.get("generated_at", datetime.now(timezone.utc).isoformat()),
+            }
+        else:
+            # Single control evidence
+            bundle = gen.generate_soc2_evidence(
+                app_id=app_id,
+                control_id=control_id,
+                scan_findings=body.get("scan_findings"),
+                auditor_notes=body.get("auditor_notes", ""),
+            )
+            return {
+                "status": "completed",
+                "bundle_id": f"EVD-{uuid.uuid4().hex[:8].upper()}",
+                "type": "single_control",
+                "bundle": bundle,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+            }
+    except Exception as e:
+        logger.warning("AutoEvidenceGenerator unavailable: %s", e)
+        return {
+            "status": "error",
+            "bundle_id": f"EVD-{uuid.uuid4().hex[:8].upper()}",
+            "type": evidence_type,
+            "error": str(e),
+            "started_at": datetime.now(timezone.utc).isoformat(),
+        }
 
 
 # ── COMPLIANCE ENGINE (missing: POST /audit-bundle) ──
@@ -1179,16 +1293,56 @@ compliance_gap = APIRouter(prefix="/api/v1/compliance-engine", tags=["compliance
 
 @compliance_gap.post("/audit-bundle")
 async def create_audit_bundle(request: Request):
-    """Create compliance audit bundle."""
+    """Create compliance audit bundle using real ComplianceEngine."""
     body = await request.json() if request.headers.get("content-type") == "application/json" else {}
-    return {
-        "status": "created",
-        "bundle_id": f"ADB-{uuid.uuid4().hex[:8].upper()}",
-        "framework": body.get("framework", "soc2"),
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "controls_assessed": 45,
-        "evidence_items": 23,
-    }
+    framework_name = body.get("framework", "SOC2")
+    app_id = body.get("app_id", "")
+    period_days = body.get("period_days", 90)
+
+    try:
+        from compliance.compliance_engine import ComplianceEngine, Framework
+        engine = ComplianceEngine()
+
+        # Map framework string to enum
+        fw_map = {
+            "soc2": "SOC2", "SOC2": "SOC2",
+            "pci": "PCI_DSS_4.0", "PCI_DSS_4.0": "PCI_DSS_4.0", "pci-dss": "PCI_DSS_4.0",
+            "iso27001": "ISO_27001_2022", "ISO_27001_2022": "ISO_27001_2022",
+            "hipaa": "HIPAA", "HIPAA": "HIPAA",
+            "nist": "NIST_800_53_R5", "NIST_800_53_R5": "NIST_800_53_R5",
+            "cmmc": "CMMC_V2", "CMMC_V2": "CMMC_V2",
+            "fedramp": "FedRAMP", "FedRAMP": "FedRAMP",
+        }
+        fw_key = fw_map.get(framework_name, framework_name)
+        fw_enum = Framework(fw_key)
+
+        bundle = engine.generate_audit_bundle(fw_enum, app_id=app_id, period_days=period_days)
+        posture = bundle.get("posture", {})
+        controls = bundle.get("controls", [])
+        gaps = bundle.get("gaps", [])
+
+        return {
+            "status": "created",
+            "bundle_id": f"ADB-{uuid.uuid4().hex[:8].upper()}",
+            "framework": framework_name,
+            "app_id": app_id,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "controls_assessed": len(controls),
+            "evidence_items": sum(1 for c in controls if c.get("evidence")),
+            "posture": posture,
+            "controls": controls,
+            "gaps": gaps,
+            "period_days": period_days,
+        }
+    except Exception as e:
+        logger.warning("ComplianceEngine unavailable: %s", e)
+        return {
+            "status": "error",
+            "bundle_id": f"ADB-{uuid.uuid4().hex[:8].upper()}",
+            "framework": framework_name,
+            "error": str(e),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
 
 
 # ── CHANGES (missing: POST /sla-impact) ──
@@ -1196,17 +1350,87 @@ changes_gap = APIRouter(prefix="/api/v1/changes", tags=["changes-gap"])
 
 @changes_gap.post("/sla-impact")
 async def assess_sla_impact(request: Request):
-    """Assess SLA impact of a change."""
+    """Assess SLA impact of a change using real MaterialChangeDetector + PRAnalyzer."""
     body = await request.json() if request.headers.get("content-type") == "application/json" else {}
-    return {
-        "status": "assessed",
-        "change_id": body.get("change_id", "unknown"),
-        "sla_impact": "low",
-        "affected_slas": [],
-        "risk_score": 15.0,
-        "recommendation": "Change can proceed — no SLA impact detected",
-        "assessed_at": datetime.now(timezone.utc).isoformat(),
-    }
+    change_id = body.get("change_id", f"CHG-{uuid.uuid4().hex[:8].upper()}")
+    raw_diff = body.get("diff", "")
+    file_diffs = body.get("file_diffs", [])
+
+    try:
+        from core.material_change_detector import get_detector, get_pr_analyzer
+
+        if file_diffs:
+            # Full PR analysis
+            analyzer = get_pr_analyzer()
+            assessment = analyzer.analyze(file_diffs)
+            risk_score = assessment.get("overall_risk_score", 0.0)
+            breaking = [c for c in assessment.get("changes", []) if c.get("classification") == "BREAKING"]
+            material = [c for c in assessment.get("changes", []) if c.get("classification") == "MATERIAL"]
+
+            if risk_score >= 75:
+                sla_impact = "critical"
+                recommendation = "HOLD — breaking security changes detected. Requires security review before merge."
+            elif risk_score >= 50:
+                sla_impact = "high"
+                recommendation = "Material security changes detected. Security team review recommended."
+            elif risk_score >= 25:
+                sla_impact = "medium"
+                recommendation = "Minor security-relevant changes. Standard review process applies."
+            else:
+                sla_impact = "low"
+                recommendation = "Change can proceed — no significant SLA impact detected."
+
+            return {
+                "status": "assessed",
+                "change_id": change_id,
+                "sla_impact": sla_impact,
+                "risk_score": risk_score,
+                "breaking_changes": len(breaking),
+                "material_changes": len(material),
+                "total_changes": len(assessment.get("changes", [])),
+                "affected_slas": (
+                    ["security_review_sla", "change_approval_sla"] if sla_impact in ("critical", "high") else []
+                ),
+                "recommendation": recommendation,
+                "assessment": assessment,
+                "assessed_at": datetime.now(timezone.utc).isoformat(),
+            }
+        elif raw_diff:
+            # Single diff analysis
+            detector = get_detector()
+            changes = detector.analyze_diff(raw_diff)
+            scores = [c.risk_score for c in changes]
+            max_score = max(scores) if scores else 0.0
+            sla_impact = "critical" if max_score >= 75 else "high" if max_score >= 50 else "medium" if max_score >= 25 else "low"
+            return {
+                "status": "assessed",
+                "change_id": change_id,
+                "sla_impact": sla_impact,
+                "risk_score": max_score,
+                "total_changes": len(changes),
+                "affected_slas": ["security_review_sla"] if sla_impact in ("critical", "high") else [],
+                "recommendation": f"Risk score {max_score:.1f}/100 — {sla_impact} SLA impact.",
+                "assessed_at": datetime.now(timezone.utc).isoformat(),
+            }
+        else:
+            return {
+                "status": "assessed",
+                "change_id": change_id,
+                "sla_impact": "none",
+                "risk_score": 0.0,
+                "affected_slas": [],
+                "recommendation": "No diff provided — cannot assess SLA impact.",
+                "assessed_at": datetime.now(timezone.utc).isoformat(),
+            }
+    except Exception as e:
+        logger.warning("MaterialChangeDetector unavailable: %s", e)
+        return {
+            "status": "error",
+            "change_id": change_id,
+            "sla_impact": "unknown",
+            "error": str(e),
+            "assessed_at": datetime.now(timezone.utc).isoformat(),
+        }
 
 
 # ── WORKFLOWS (missing: GET /rules) ──
@@ -1422,40 +1646,41 @@ attack_paths_gap = APIRouter(prefix="/api/v1/attack-paths", tags=["attack-paths-
 async def list_attack_paths(
     limit: int = Query(20, ge=1, le=100),
 ):
-    """List discovered attack paths from the knowledge graph."""
+    """List discovered attack paths from the knowledge graph using AttackPathTraversalEngine."""
     try:
-        from core.falkordb_client import get_falkordb_client
-        client = get_falkordb_client()
-        paths = client.find_attack_paths(max_depth=5, limit=limit)
+        from core.falkordb_client import get_attack_path_engine
+        engine = get_attack_path_engine()
+
+        # Get internet-reachable paths (the most enterprise-relevant query)
+        inet_paths = engine.get_internet_reachable_paths(max_hops=5)
+        ranked = engine.rank_paths_by_risk(inet_paths)[:limit]
+
         return {
             "attack_paths": [
                 {
                     "id": f"AP-{i+1:04d}",
-                    "source": p.get("source", "external"),
-                    "target": p.get("target", "data-store"),
-                    "hops": p.get("depth", 3),
-                    "risk_score": p.get("risk_score", 0.0),
-                    "nodes": p.get("nodes", []),
+                    "source": getattr(p, "source_id", "external"),
+                    "target": getattr(p, "target_id", "data-store"),
+                    "hops": len(getattr(p, "path_nodes", [])),
+                    "risk_score": getattr(p, "risk_score", 0.0),
+                    "nodes": getattr(p, "path_nodes", []),
+                    "exploitability": getattr(p, "exploitability_score", 0.0),
+                    "cvss_max": getattr(p, "max_cvss", 0.0),
                 }
-                for i, p in enumerate(paths)
+                for i, p in enumerate(ranked)
             ],
-            "total": len(paths),
+            "total": len(ranked),
+            "source": "knowledge_graph",
         }
-    except Exception:
-        # Return computed paths from attack simulation engine
-        sample_paths = [
-            {"id": "AP-0001", "source": "public-api", "target": "database", "hops": 3, "risk_score": 85.0,
-             "nodes": ["public-api", "auth-service", "backend", "database"]},
-            {"id": "AP-0002", "source": "ci-pipeline", "target": "production", "hops": 4, "risk_score": 72.5,
-             "nodes": ["ci-pipeline", "artifact-registry", "deploy-agent", "k8s-cluster", "production"]},
-            {"id": "AP-0003", "source": "developer-laptop", "target": "secrets-vault", "hops": 2, "risk_score": 65.0,
-             "nodes": ["developer-laptop", "vpn", "secrets-vault"]},
-            {"id": "AP-0004", "source": "third-party-lib", "target": "user-data", "hops": 3, "risk_score": 58.5,
-             "nodes": ["third-party-lib", "application", "api-gateway", "user-data"]},
-            {"id": "AP-0005", "source": "container-escape", "target": "host-os", "hops": 2, "risk_score": 92.0,
-             "nodes": ["container", "container-runtime", "host-os"]},
-        ]
-        return {"attack_paths": sample_paths[:limit], "total": len(sample_paths)}
+    except Exception as e:
+        logger.warning("AttackPathTraversalEngine unavailable: %s", e)
+        # Return empty — no fake data for enterprise
+        return {
+            "attack_paths": [],
+            "total": 0,
+            "source": "unavailable",
+            "error": str(e),
+        }
 
 
 # ── DATA-FABRIC (missing: GET /api/v1/data-fabric/status) ──

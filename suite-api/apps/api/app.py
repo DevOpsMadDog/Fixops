@@ -2964,8 +2964,30 @@ def create_app() -> FastAPI:
     _logger.info("Mounted MCP Auto-Discovery router at /api/v1/mcp")
 
     # ------------------------------------------------------------------
-    # Startup hooks: wire EventBus subscribers + log routes
+    # Startup hooks: database, EventBus, route logging
     # ------------------------------------------------------------------
+    @app.on_event("startup")
+    async def _init_enterprise_db():
+        """Initialize the enterprise DatabaseManager (PostgreSQL / SQLite)."""
+        try:
+            from core.db.enterprise.session import DatabaseManager
+
+            await DatabaseManager.initialize()
+            _logger.info("Enterprise DatabaseManager initialized")
+        except Exception as exc:
+            _logger.warning("Enterprise DB init skipped: %s", exc)
+
+    @app.on_event("shutdown")
+    async def _close_enterprise_db():
+        """Gracefully close the enterprise database pool."""
+        try:
+            from core.db.enterprise.session import DatabaseManager
+
+            await DatabaseManager.close()
+            _logger.info("Enterprise DatabaseManager closed")
+        except Exception:
+            pass
+
     @app.on_event("startup")
     async def _wire_event_subscribers():
         """Register EventBus subscribers so emitted events trigger handlers."""

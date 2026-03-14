@@ -114,9 +114,16 @@ class Settings(BaseSettings):
         description="Timeout in seconds for OPA HTTP requests",
     )
 
-    # Database Configuration
+    # Database Configuration — PostgreSQL is the production backend.
+    # Falls back to async SQLite for local dev when DATABASE_URL is unset.
     DATABASE_URL: str = Field(
-        default=os.getenv("MONGO_URL", "mongodb://mongodb:27017/fixops_production")
+        default=os.getenv(
+            "DATABASE_URL",
+            os.getenv(
+                "FIXOPS_DATABASE_URL",
+                "sqlite+aiosqlite:///data/fixops.db",
+            ),
+        )
     )
     DATABASE_POOL_SIZE: int = Field(default=10)
     DATABASE_MAX_OVERFLOW: int = Field(default=20)

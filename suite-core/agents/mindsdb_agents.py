@@ -93,14 +93,25 @@ class BaseAgent(ABC):
     async def initialize(self) -> bool:
         """Initialize the agent and connect to MindsDB."""
         try:
-            # In production, establish MindsDB connection
-            # self._mindsdb_client = await self._connect_mindsdb()
+            self._mindsdb_client = await self._connect_mindsdb()
             self._initialized = True
             logger.info(f"Agent {self.name} initialized successfully")
             return True
         except Exception as e:
             logger.error(f"Failed to initialize agent {self.name}: {e}")
             return False
+
+    async def _connect_mindsdb(self) -> "MindsDBIntegration":
+        """Establish connection to MindsDB using environment config."""
+        integration = MindsDBIntegration(host=MINDSDB_HOST, port=MINDSDB_PORT)
+        connected = await integration.connect()
+        if not connected:
+            logger.warning(
+                "MindsDB not reachable at %s:%s — agent will operate in degraded mode",
+                MINDSDB_HOST,
+                MINDSDB_PORT,
+            )
+        return integration
 
     @abstractmethod
     async def process(self, message: str, context: Dict[str, Any]) -> Dict[str, Any]:
@@ -953,15 +964,20 @@ class MindsDBIntegration:
         self.connected = False
 
     async def connect(self) -> bool:
-        """Connect to MindsDB."""
+        """Connect to MindsDB via its HTTP API."""
+        import urllib.request
+        url = f"http://{self.host}:{self.port}/api/status"
         try:
-            # In production, establish actual connection
-            # self.conn = await mindsdb_sdk.connect(f"http://{self.host}:{self.port}")
-            self.connected = True
-            logger.info(f"Connected to MindsDB at {self.host}:{self.port}")
-            return True
+            req = urllib.request.Request(url, method="GET")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                if resp.status == 200:
+                    self.connected = True
+                    logger.info(f"Connected to MindsDB at {self.host}:{self.port}")
+                    return True
+            logger.warning("MindsDB returned non-200 at %s", url)
+            return False
         except Exception as e:
-            logger.error(f"Failed to connect to MindsDB: {e}")
+            logger.warning("MindsDB not reachable at %s — %s", url, e)
             return False
 
     async def create_model(
