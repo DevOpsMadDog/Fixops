@@ -8,8 +8,8 @@ import { motion, AnimatePresence, useMotionValue, useTransform, animate, useInVi
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
 import {
-  Shield, ShieldAlert, ShieldCheck, Clock,
-  DollarSign, AlertTriangle, CheckCircle2, Info, ChevronRight
+  Shield, ShieldAlert, ShieldCheck,
+  CheckCircle2, Info, ChevronRight
 } from 'lucide-react';
 
 const STATUS_COLUMNS = ['open', 'triaging', 'fixing', 'resolved', 'closed', 'accepted_risk', 'false_positive'] as const;
@@ -221,18 +221,17 @@ const PriorityBar = ({ label, count, total, color: _color, textColor, delay }: {
 const FindingReductionHero = ({ stats, pipelineStats }: {
   stats: CaseStats; pipelineStats: PipelineStats | null;
 }) => {
-  const rawFindings = pipelineStats?.raw_findings || stats.total_findings || 11300;
-  const totalCases = stats.total_cases || 340;
-  const reductionPct = pipelineStats?.reduction_pct || Math.round((1 - totalCases / rawFindings) * 100);
+  const rawFindings = pipelineStats?.raw_findings || stats.total_findings || 0;
+  const totalCases = stats.total_cases || 0;
+  const reductionPct = rawFindings > 0
+    ? (pipelineStats?.reduction_pct || Math.round((1 - totalCases / rawFindings) * 100))
+    : 0;
 
-  const afterDedup = pipelineStats?.after_dedup || Math.round(rawFindings * 0.177);      // ~2,000
-  const afterCorrelation = pipelineStats?.after_correlation || Math.round(afterDedup * 0.4); // ~800
-  const afterVerification = pipelineStats?.after_verification || totalCases;                // ~340
+  const afterDedup = pipelineStats?.after_dedup || 0;
+  const afterCorrelation = pipelineStats?.after_correlation || 0;
+  const afterVerification = pipelineStats?.after_verification || totalCases;
 
-  const costPerVuln = 4200;
   const noiseReduced = rawFindings - totalCases;
-  const annualSavings = Math.round((noiseReduced * costPerVuln) / 1000000 * 10) / 10; // millions
-  const hoursPerWeek = Math.round(noiseReduced * 0.5 / 52); // ~0.5hr per triage/false-positive, per week
 
   const byPri = stats.by_priority || {};
   const priTotal = Object.values(byPri).reduce((s: number, v: number) => s + v, 0) || totalCases;
@@ -370,7 +369,7 @@ const FindingReductionHero = ({ stats, pipelineStats }: {
             <div>
               <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-4 flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
-                Analyst Impact
+                Pipeline Impact
               </div>
               <div className="space-y-3">
                 <motion.div
@@ -379,12 +378,12 @@ const FindingReductionHero = ({ stats, pipelineStats }: {
                   transition={{ delay: 0.4, duration: 0.5 }}
                   className="bg-gray-800/40 rounded-xl p-3.5 border border-gray-700/30"
                 >
-                  <div className="text-[10px] text-gray-500 uppercase tracking-wider">Annual Savings</div>
-                  <div className="text-2xl font-black bg-gradient-to-r from-green-400 to-emerald-300 bg-clip-text text-transparent">
-                    <AnimatedNumber target={annualSavings} prefix="$" suffix="M" duration={2.0} />
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider">Findings Eliminated</div>
+                  <div className="text-2xl font-black text-purple-400">
+                    <AnimatedNumber target={noiseReduced} duration={1.8} />
                   </div>
                   <div className="text-[10px] text-gray-600 mt-0.5">
-                    at ${costPerVuln.toLocaleString()}/vuln triage cost
+                    via dedup, correlation &amp; MPTE verification
                   </div>
                 </motion.div>
                 <motion.div
@@ -393,13 +392,12 @@ const FindingReductionHero = ({ stats, pipelineStats }: {
                   transition={{ delay: 0.55, duration: 0.5 }}
                   className="bg-gray-800/40 rounded-xl p-3.5 border border-gray-700/30"
                 >
-                  <div className="text-[10px] text-gray-500 uppercase tracking-wider">Analyst Time Recovered</div>
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider">Active Cases</div>
                   <div className="text-2xl font-black text-blue-400">
-                    <AnimatedNumber target={hoursPerWeek} suffix="h" duration={1.8} />
-                    <span className="text-sm font-normal text-gray-500">/week</span>
+                    <AnimatedNumber target={totalCases} duration={1.8} />
                   </div>
                   <div className="text-[10px] text-gray-600 mt-0.5">
-                    80% triage automation via Brain Pipeline
+                    requiring analyst attention
                   </div>
                 </motion.div>
                 <motion.div
@@ -408,12 +406,12 @@ const FindingReductionHero = ({ stats, pipelineStats }: {
                   transition={{ delay: 0.7, duration: 0.5 }}
                   className="bg-gray-800/40 rounded-xl p-3.5 border border-gray-700/30"
                 >
-                  <div className="text-[10px] text-gray-500 uppercase tracking-wider">False Positives Eliminated</div>
-                  <div className="text-2xl font-black text-purple-400">
-                    <AnimatedNumber target={noiseReduced} duration={1.8} />
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider">Verified by MPTE</div>
+                  <div className="text-2xl font-black text-green-400">
+                    <AnimatedNumber target={afterVerification} duration={1.8} />
                   </div>
                   <div className="text-[10px] text-gray-600 mt-0.5">
-                    verified by MPTE + Multi-LLM Consensus
+                    exploitability confirmed
                   </div>
                 </motion.div>
               </div>
@@ -434,36 +432,33 @@ interface ComparisonMetric {
   icon: React.ReactNode;
 }
 
-const BeforeAfterComparison = ({ stats }: { stats: CaseStats }) => {
-  const totalCases = stats.total_cases || 340;
+const BeforeAfterComparison = ({ stats, pipelineStats }: { stats: CaseStats; pipelineStats: PipelineStats | null }) => {
+  const totalCases = stats.total_cases;
+  const rawFindings = pipelineStats?.raw_findings || stats.total_findings;
+
+  // Only show comparison when we have real data from both sides
+  if (!totalCases || !rawFindings || rawFindings === 0) {
+    return (
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
+        <Card className="border border-gray-700/30 bg-gray-900/40">
+          <CardContent className="p-6 text-center text-gray-500 text-sm">
+            Run a full pipeline analysis to see before/after comparison metrics.
+          </CardContent>
+        </Card>
+      </motion.div>
+    );
+  }
+
+  const reductionPct = Math.round((1 - totalCases / rawFindings) * 100);
+
   const metrics: ComparisonMetric[] = [
     {
       label: 'Findings to Triage',
-      before: '11,300',
+      before: rawFindings.toLocaleString(),
       after: totalCases.toLocaleString(),
-      improvement: `${Math.round((1 - totalCases / 11300) * 100)}% fewer`,
+      improvement: `${reductionPct}% fewer`,
       icon: <ShieldAlert className="w-4 h-4" />,
-    },
-    {
-      label: 'False Positive Rate',
-      before: '68%',
-      after: '3%',
-      improvement: '65pt drop',
-      icon: <AlertTriangle className="w-4 h-4" />,
-    },
-    {
-      label: 'Mean Time to Remediate',
-      before: '14 days',
-      after: '2 days',
-      improvement: '7x faster',
-      icon: <Clock className="w-4 h-4" />,
-    },
-    {
-      label: 'Cost per Vulnerability',
-      before: '$4,200',
-      after: '$180',
-      improvement: '96% savings',
-      icon: <DollarSign className="w-4 h-4" />,
     },
   ];
 
@@ -561,13 +556,13 @@ interface FAILGrade {
 }
 
 const FAILScoreDistribution = ({ stats }: { stats: CaseStats }) => {
-  const totalCases = stats.total_cases || 340;
+  const totalCases = stats.total_cases || 0;
   const byPri = stats.by_priority || {};
 
   const grades: FAILGrade[] = [
     {
       grade: 'CRITICAL',
-      count: byPri.critical || Math.round(totalCases * 0.044),
+      count: byPri.critical || 0,
       color: 'bg-red-500',
       bgColor: 'bg-red-500/10',
       borderColor: 'border-red-500/30',
@@ -576,7 +571,7 @@ const FAILScoreDistribution = ({ stats }: { stats: CaseStats }) => {
     },
     {
       grade: 'HIGH',
-      count: byPri.high || Math.round(totalCases * 0.132),
+      count: byPri.high || 0,
       color: 'bg-orange-500',
       bgColor: 'bg-orange-500/10',
       borderColor: 'border-orange-500/30',
@@ -585,7 +580,7 @@ const FAILScoreDistribution = ({ stats }: { stats: CaseStats }) => {
     },
     {
       grade: 'MEDIUM',
-      count: byPri.medium || Math.round(totalCases * 0.353),
+      count: byPri.medium || 0,
       color: 'bg-yellow-500',
       bgColor: 'bg-yellow-500/10',
       borderColor: 'border-yellow-500/30',
@@ -594,7 +589,7 @@ const FAILScoreDistribution = ({ stats }: { stats: CaseStats }) => {
     },
     {
       grade: 'LOW',
-      count: byPri.low || Math.round(totalCases * 0.235),
+      count: byPri.low || 0,
       color: 'bg-blue-500',
       bgColor: 'bg-blue-500/10',
       borderColor: 'border-blue-500/30',
@@ -603,7 +598,7 @@ const FAILScoreDistribution = ({ stats }: { stats: CaseStats }) => {
     },
     {
       grade: 'INFO',
-      count: byPri.info || Math.round(totalCases * 0.235),
+      count: byPri.info || 0,
       color: 'bg-cyan-500',
       bgColor: 'bg-cyan-500/10',
       borderColor: 'border-cyan-500/30',
@@ -831,7 +826,7 @@ const ExposureCaseCenter = () => {
       {stats && (
         <>
           <FindingReductionHero stats={stats} pipelineStats={pipelineStats} />
-          <BeforeAfterComparison stats={stats} />
+          <BeforeAfterComparison stats={stats} pipelineStats={pipelineStats} />
           <FAILScoreDistribution stats={stats} />
         </>
       )}

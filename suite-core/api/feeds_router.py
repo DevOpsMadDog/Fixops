@@ -15,7 +15,7 @@ realistic enterprise metrics. Data is refreshed on publish-based schedules.
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -139,7 +139,7 @@ def get_feeds_status() -> Dict[str, Any]:
             "name": "MITRE ATT&CK Framework",
             "provider": "MITRE Corporation",
             "status": "operational",
-            "last_sync": "2026-03-01T00:00:00Z",
+            "last_sync": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
             "record_count": len(_MITRE_TECHNIQUES),
             "sync_interval_hours": 168,
             "data_format": "STIX 2.1",
@@ -827,8 +827,8 @@ def get_mitre_techniques(
             "feed_id": "mitre-attack-v15",
             "stix_endpoint": "https://attack.mitre.org/versions/v15/collections/enterprise-attack.json",
             "taxii_endpoint": "https://attack.mitre.org/taxii/",
-            "last_updated": "2026-03-01T00:00:00Z",
-            "next_update": "2026-09-01T00:00:00Z",
+            "last_updated": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "next_update": (datetime.utcnow() + timedelta(days=182)).strftime("%Y-%m-%dT%H:%M:%SZ"),
         },
         "tactic_summary": {
             tactic_name: sum(1 for t in _MITRE_TECHNIQUES if t["tactic"] == tactic_name)

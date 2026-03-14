@@ -191,25 +191,33 @@ _BUILTIN_CONTRIBUTORS: List[_MarketplaceContributor] = [
     },
 ]
 
-_MARKETPLACE_STATS = {
-    "total_items": 3,
-    "total_downloads": 11629,
-    "total_contributors": 2,
-    "average_rating": 4.7,
-    "items_by_type": {
-        "remediation_pack": 1,
-        "policy_template": 1,
-        "integration": 1,
-    },
-    "items_by_framework": {
-        "OWASP": 1,
-        "PCI-DSS": 1,
-        "SOC2": 3,
-        "ISO27001": 1,
-        "HIPAA": 1,
-    },
-    "marketplace_mode": "production",
-}
+def _compute_marketplace_stats() -> Dict[str, Any]:
+    """Derive marketplace stats from actual catalog data — no fabricated numbers."""
+    items = _BUILTIN_MARKETPLACE_ITEMS
+    total_downloads = sum(i.get("downloads", 0) for i in items)
+    ratings = [i["rating"] for i in items if i.get("rating", 0) > 0]
+    avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else 0.0
+
+    by_type: Dict[str, int] = {}
+    by_framework: Dict[str, int] = {}
+    for i in items:
+        ct = i.get("content_type", "other")
+        by_type[ct] = by_type.get(ct, 0) + 1
+        for fw in i.get("compliance_frameworks", []):
+            by_framework[fw] = by_framework.get(fw, 0) + 1
+
+    return {
+        "total_items": len(items),
+        "total_downloads": total_downloads,
+        "total_contributors": len(_BUILTIN_CONTRIBUTORS),
+        "average_rating": avg_rating,
+        "items_by_type": by_type,
+        "items_by_framework": by_framework,
+        "marketplace_mode": "production",
+    }
+
+
+_MARKETPLACE_STATS = _compute_marketplace_stats()
 
 
 router = APIRouter(tags=["marketplace"])

@@ -230,11 +230,11 @@ export default function SecretsDetection() {
                 <p className="text-sm text-muted-foreground">Active Scanners</p>
               </div>
               <div>
-                <p className="text-2xl font-bold">{scannerStatus?.patterns || 150}+</p>
+                <p className="text-2xl font-bold">{scannerStatus?.patterns || '—'}</p>
                 <p className="text-sm text-muted-foreground">Detection Patterns</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-green-500">{scannerStatus?.repos_scanned || 12}</p>
+                <p className="text-2xl font-bold text-green-500">{scannerStatus?.repos_scanned || '—'}</p>
                 <p className="text-sm text-muted-foreground">Repos Scanned</p>
               </div>
               <div>

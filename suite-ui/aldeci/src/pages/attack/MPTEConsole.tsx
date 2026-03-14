@@ -540,7 +540,7 @@ function PhaseTimeline({ phases, scope }: { phases: PhaseResult[]; scope: Verifi
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Live Execution Viewer — THE DEMO WOW FEATURE
+// Live Execution Viewer — Phase-by-phase animated MPTE run
 // Phase-by-phase animated execution with live evidence appearing
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1596,7 +1596,7 @@ export default function MPTEConsole() {
     },
   });
 
-  // Transform API data or fall back to demo data
+  // Transform API data into VerificationResult[]
   const verifications: VerificationResult[] = useMemo(() => {
     const rawResults = resultsData?.items || resultsData?.results || (Array.isArray(resultsData) ? resultsData : []);
 
