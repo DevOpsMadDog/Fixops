@@ -745,9 +745,9 @@ const ExposureCaseCenter = () => {
       if (filterOrg) params.org_id = filterOrg;
       if (filterPriority) params.priority = filterPriority;
       const [casesRes, statsRes, funnelRes] = await Promise.all([
-        api.get('/api/v1/cases', { params }).catch(() => ({ data: { cases: [] } })),
-        api.get('/api/v1/cases/stats/summary').catch(() => ({ data: { total_cases: 0, by_status: {}, by_priority: {}, avg_risk_score: 0, kev_cases: 0 } })),
-        api.get('/api/v1/analytics/triage-funnel').catch(() => ({ data: null })),
+        api.get('/api/v1/cases', { params }).catch((e) => { console.error('[Cases] cases fetch failed:', e?.message); return { data: { cases: [] } }; }),
+        api.get('/api/v1/cases/stats/summary').catch((e) => { console.error('[Cases] stats fetch failed:', e?.message); return { data: { total_cases: 0, by_status: {}, by_priority: {}, avg_risk_score: 0, kev_cases: 0 } }; }),
+        api.get('/api/v1/analytics/triage-funnel').catch((e) => { console.error('[Cases] triage-funnel fetch failed:', e?.message); return { data: null }; }),
       ]);
       setCases(casesRes.data?.cases || []);
       setStats(statsRes.data);

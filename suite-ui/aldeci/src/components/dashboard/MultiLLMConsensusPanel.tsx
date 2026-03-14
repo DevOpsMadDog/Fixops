@@ -64,18 +64,7 @@ const DEFAULT_WEIGHTS: Record<string, number> = {
   mistral: 20,
 };
 
-// Deterministic confidence values per known provider (replaces Math.random())
-const PROVIDER_BASE_CONFIDENCE: Record<string, number> = {
-  openai: 85,
-  anthropic: 88,
-  google: 82,
-  sentinel: 78,
-  'sentinel-cyber': 78,
-  local: 72,
-  ollama: 75,
-  azure: 84,
-  mistral: 80,
-};
+// Provider confidence derived from real status data via deriveConfidence()
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -217,7 +206,7 @@ export default function MultiLLMConsensusPanel({
           name: key,
           displayName: PROVIDER_DISPLAY_NAMES[key] || key,
           recommendation: rec as 'ALLOW' | 'BLOCK' | 'REVIEW',
-          confidence: configured ? (PROVIDER_BASE_CONFIDENCE[key] || 82) : 30,
+          confidence: configured ? deriveConfidence({ status: status, configured: true }) : 30,
           weight: DEFAULT_WEIGHTS[key] || 20,
           status: configured ? 'ready' : 'pending',
           reasoning: deriveReasoning({ name: PROVIDER_DISPLAY_NAMES[key] || key }, rec),

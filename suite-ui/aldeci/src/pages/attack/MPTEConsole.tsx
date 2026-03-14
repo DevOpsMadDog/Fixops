@@ -163,336 +163,6 @@ const CATEGORY_BG: Record<string, string> = {
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Deterministic seed helper (replaces Math.random for reproducible results)
-// ─────────────────────────────────────────────────────────────────────────────
-function seededValue(seed: number, min: number, max: number): number {
-  // Simple deterministic hash producing value in [min, max)
-  const x = Math.sin(seed * 9301 + 49297) * 233280;
-  const frac = x - Math.floor(x);
-  return min + frac * (max - min);
-}
-function seededInt(seed: number, min: number, max: number): number {
-  return Math.floor(seededValue(seed, min, max));
-}
-function seededHex(seed: number, length: number): string {
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += seededInt(seed + i * 7, 0, 16).toString(16);
-  }
-  return result;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Demo Data Generator
-// ─────────────────────────────────────────────────────────────────────────────
-
-function generateDemoPhases(verdict: Verdict, scope: VerificationScope): PhaseResult[] {
-  const maxPhase = scope === 'quick' ? 6 : scope === 'standard' ? 12 : 19;
-  const isExploitable = verdict === 'EXPLOITABLE';
-  const failPoint = isExploitable ? -1 : seededInt(maxPhase + 42, 7, 13);
-
-  return MPTE_PHASES.map((phase) => {
-    if (phase.id > maxPhase) {
-      return {
-        phaseId: phase.id, status: 'SKIP' as PhaseStatus, durationMs: 0,
-        evidence: 'Phase skipped - outside scan scope',
-        details: `Not included in ${scope} scope verification`,
-        confidenceContribution: 0, relatedPhases: [],
-      };
-    }
-    if (phase.id === failPoint) {
-      return {
-        phaseId: phase.id, status: 'FAIL' as PhaseStatus,
-        durationMs: seededValue(phase.id * 13, 500, 5500),
-        evidence: generateEvidence(phase.id, 'FAIL'),
-        details: `${phase.name} failed - vulnerability not exploitable at this stage`,
-        confidenceContribution: -15,
-        relatedPhases: [phase.id - 1, phase.id + 1].filter(p => p > 0 && p <= 19),
-      };
-    }
-    if (phase.id > failPoint && failPoint > 0) {
-      return {
-        phaseId: phase.id, status: 'SKIP' as PhaseStatus, durationMs: 0,
-        evidence: 'Phase skipped due to prior phase failure',
-        details: `Skipped because Phase ${failPoint} failed`,
-        confidenceContribution: 0, relatedPhases: [failPoint],
-      };
-    }
-    if (phase.id === 9 && seededValue(phase.id * 17, 0, 1) > 0.5) {
-      return {
-        phaseId: phase.id, status: 'SKIP' as PhaseStatus, durationMs: 100,
-        evidence: 'Pre-auth vectors not applicable - target requires authentication',
-        details: 'Target enforces authentication on all endpoints',
-        confidenceContribution: 0, relatedPhases: [10],
-      };
-    }
-    return {
-      phaseId: phase.id, status: 'PASS' as PhaseStatus,
-      durationMs: seededValue(phase.id * 11, 200, 4200),
-      evidence: generateEvidence(phase.id, 'PASS'),
-      details: `${phase.name} completed successfully`,
-      confidenceContribution: seededInt(phase.id * 7, 3, 13),
-      relatedPhases: [phase.id - 1, phase.id + 1].filter(p => p > 0 && p <= 19),
-    };
-  });
-}
-
-function generateEvidence(phaseId: number, status: PhaseStatus): string {
-  const evidenceMap: Record<number, { pass: string; fail: string }> = {
-    1: {
-      pass: `[RECON] Target resolved: 203.0.113.42
-DNS Records: A, AAAA, MX, TXT (SPF/DKIM present)
-WHOIS: Registered 2019-03-14, Registrar: Cloudflare
-Technologies: nginx/1.24.0, Node.js, React
-SSL Certificate: Let's Encrypt, expires 2026-06-15
-Subdomains discovered: api., staging., admin.`,
-      fail: 'Target unreachable - DNS resolution failed',
-    },
-    2: {
-      pass: `[PORT SCAN] 203.0.113.42
-PORT     STATE  SERVICE
-22/tcp   open   ssh
-80/tcp   open   http
-443/tcp  open   https
-3000/tcp open   node (dev)
-5432/tcp closed postgresql
-8080/tcp open   http-proxy
-Scan completed: 6 ports scanned in 1.8s`,
-      fail: 'All ports filtered - firewall blocking scan',
-    },
-    3: {
-      pass: `[FINGERPRINT] Service Detection Results:
-22/tcp  - OpenSSH 8.9p1 Ubuntu 3ubuntu0.6
-80/tcp  - nginx/1.24.0 (redirect to 443)
-443/tcp - nginx/1.24.0 (reverse proxy)
-  -> Backend: Express.js 4.18.2
-  -> X-Powered-By: Express (leaked)
-  -> Content-Security-Policy: present
-3000/tcp - Node.js development server
-8080/tcp - Envoy proxy 1.28.0`,
-      fail: 'Service detection inconclusive - responses obfuscated',
-    },
-    4: {
-      pass: `[VERSION] Matched Components:
-  nginx 1.24.0  -> CVE database: 3 known issues
-  OpenSSH 8.9p1 -> CVE database: 1 known issue
-  Express 4.18.2 -> CVE database: 2 known issues
-  Node.js 18.x   -> CVE database: 5 known issues
-  Envoy 1.28.0   -> CVE database: 1 known issue
-Total: 12 potential CVEs identified`,
-      fail: 'Version detection incomplete - insufficient banner data',
-    },
-    5: {
-      pass: `[CVE MATCH] High-confidence matches:
-  CVE-2024-38816 - Spring Framework path traversal (CVSS 7.5)
-  CVE-2024-21626 - runc container escape (CVSS 8.6)
-  CVE-2023-44487 - HTTP/2 Rapid Reset (CVSS 7.5)
-
-  EPSS Scores:
-  CVE-2024-38816: 0.89 (89% exploit probability)
-  CVE-2024-21626: 0.72 (72% exploit probability)
-  CVE-2023-44487: 0.95 (95% exploit probability)`,
-      fail: 'No CVE matches found for detected versions',
-    },
-    6: {
-      pass: `[EXPLOIT SELECT] Optimal exploit chain:
-  Primary:  CVE-2024-38816 (path traversal -> file read)
-  Fallback: CVE-2023-44487 (HTTP/2 DoS -> info leak)
-
-  Exploit maturity: WEAPONIZED
-  Public PoC: Available (GitHub, ExploitDB)
-  Metasploit module: exploit/multi/http/spring_path_traversal
-  Reliability: High (90%+ success rate in similar configs)`,
-      fail: 'No reliable exploits available for matched CVEs',
-    },
-    7: {
-      pass: `[PAYLOAD] Generated payload:
-  Type: Path traversal with response parsing
-  Target: /api/v1/files/../../../etc/passwd
-  Encoding: Double URL encoding applied
-  Evasion: WAF bypass via chunked transfer
-  Size: 342 bytes
-  Hash: sha256:a3f2b8c91d...
-  Sandbox validation: PASSED`,
-      fail: 'Payload generation failed - target hardening detected',
-    },
-    8: {
-      pass: `[ENV PREP] Sandbox environment ready:
-  Container: mpte-sandbox-a3f2b8 (isolated network)
-  Network: Isolated VLAN with target access only
-  Monitoring: Full packet capture enabled
-  Rollback: Snapshot created at T+0
-  Timeout: 300s max execution window
-  Cleanup: Auto-destroy on completion`,
-      fail: 'Sandbox creation failed - insufficient resources',
-    },
-    9: {
-      pass: `[PRE-AUTH] Unauthenticated vectors tested:
-  /api/v1/health     -> 200 OK (info leak: version in response)
-  /api/v1/docs       -> 200 OK (Swagger UI exposed)
-  /api/v1/files/     -> 403 Forbidden (but path traversal may bypass)
-  /.env              -> 404 Not Found
-  /admin             -> 302 Redirect to /login
-  Total: 2 information leaks, 1 potential bypass vector`,
-      fail: 'No unauthenticated attack surface found',
-    },
-    10: {
-      pass: `[AUTH BYPASS] Bypass successful:
-  Method: JWT none algorithm attack
-  Token: eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0...
-  Response: 200 OK (admin context obtained)
-
-  Alternate bypasses tested:
-  - SQL injection in login: BLOCKED
-  - Default credentials: NOT FOUND
-  - JWT key confusion: VULNERABLE (secondary)`,
-      fail: 'All authentication bypass attempts failed',
-    },
-    11: {
-      pass: `[DELIVERY] Exploit delivered successfully:
-  Method: HTTP POST with crafted headers
-  Target: https://203.0.113.42/api/v1/files
-  Payload: Path traversal via ..%252f sequences
-  Response: 200 OK
-  Response time: 234ms (normal range)
-  WAF evasion: Successful (chunked encoding)`,
-      fail: 'Exploit delivery blocked by WAF/IPS',
-    },
-    12: {
-      pass: `[EXECUTION] Code execution confirmed:
-  Command: cat /etc/passwd
-  Output: root:x:0:0:root:/root:/bin/bash
-          daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
-          www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
-
-  Execution context: www-data (uid=33)
-  Shell: /bin/sh
-  Working directory: /var/www/app
-  Environment: NODE_ENV=production`,
-      fail: 'Payload executed but no useful output obtained',
-    },
-    13: {
-      pass: `[PRIVESC] Escalation successful:
-  Vector: SUID binary exploitation (/usr/bin/find)
-  Command: find / -exec /bin/sh -p \\;
-  New context: root (uid=0)
-  Kernel: Linux 5.15.0-91-generic
-
-  Additional privesc vectors found:
-  - Docker socket accessible (/var/run/docker.sock)
-  - Writable /etc/cron.d/
-  - sudo NOPASSWD for www-data`,
-      fail: 'Privilege escalation failed - no viable vectors found',
-    },
-    14: {
-      pass: `[LATERAL] Movement paths identified:
-  Internal network: 10.0.0.0/24 (32 hosts)
-  Adjacent services:
-    10.0.0.5:5432 - PostgreSQL (credentials in env)
-    10.0.0.8:6379 - Redis (no auth required)
-    10.0.0.12:9200 - Elasticsearch (open)
-
-  SSH keys found: 2 private keys in /home/deploy/.ssh/
-  Docker networks: bridge, app-network (6 containers)`,
-      fail: 'Network segmentation prevented lateral movement',
-    },
-    15: {
-      pass: `[EXFIL] Data access confirmed:
-  Database: PostgreSQL (10.0.0.5)
-  Tables: users (12,847 rows), payments (89,231 rows)
-  PII accessible: email, name, phone, address
-  Payment data: Card tokens (not full PANs)
-
-  Exfiltration test: 1KB sample via DNS tunneling
-  Channels: HTTP, DNS, ICMP all available
-  DLP: No data loss prevention detected`,
-      fail: 'Data access restricted - encryption at rest effective',
-    },
-    16: {
-      pass: `[PERSIST] Persistence mechanisms tested:
-  Cron job: Writable cron.d (persistence viable)
-  SSH key: Could add authorized_key
-  Webshell: Writable /var/www/app/public/
-  Backdoor: Modified .bashrc for reverse shell
-
-  Detection risk: LOW (no EDR/HIDS detected)
-  Estimated persistence: Days to weeks without monitoring`,
-      fail: 'Persistence blocked - file integrity monitoring active',
-    },
-    17: {
-      pass: `[CLEANUP] All artifacts removed:
-  - Removed test cron entry
-  - Deleted uploaded test files
-  - Cleared shell history
-  - Removed test SSH keys
-  - Reverted .bashrc changes
-  - Verified no residual connections
-  Cleanup status: COMPLETE`,
-      fail: 'Partial cleanup - some artifacts may remain',
-    },
-    18: {
-      pass: `[EVIDENCE] Evidence package compiled:
-  Network captures: 14 PCAP files (2.3 MB)
-  Screenshots: 8 verification images
-  Command outputs: 23 terminal recordings
-  Timeline: 47 events logged with timestamps
-  Chain of custody: SHA-256 hashes for all artifacts
-  Digital signature: Ed25519 signed evidence bundle`,
-      fail: 'Evidence collection incomplete - missing network captures',
-    },
-    19: {
-      pass: `[REPORT] Verification report generated:
-  Format: JSON + PDF
-  Sections: Executive Summary, Technical Details, Evidence Chain
-  Risk rating: CRITICAL (exploitable with full compromise)
-  Remediation: 5 prioritized recommendations
-  Compliance impact: SOC2 CC6.1, PCI DSS 6.2, HIPAA 164.312
-  Report ID: RPT-2026-${seededHex(19, 6).toUpperCase()}`,
-      fail: 'Report generation failed - template error',
-    },
-  };
-  const e = evidenceMap[phaseId];
-  if (!e) return `Phase ${phaseId} ${status === 'PASS' ? 'completed successfully' : 'failed'}`;
-  return status === 'PASS' ? e.pass : e.fail;
-}
-
-function generateDemoVerifications(): VerificationResult[] {
-  const targets = [
-    { target: 'api.acmecorp.com', url: 'https://api.acmecorp.com', cve: 'CVE-2024-38816' },
-    { target: 'staging.payments.io', url: 'https://staging.payments.io:8443', cve: 'CVE-2024-21626' },
-    { target: '10.0.1.45 (Jenkins)', url: 'http://10.0.1.45:8080', cve: 'CVE-2024-23897' },
-    { target: 'auth.internal.dev', url: 'https://auth.internal.dev', cve: null },
-    { target: 'k8s-api.prod.cluster', url: 'https://k8s-api.prod.cluster:6443', cve: 'CVE-2024-21626' },
-    { target: 'graphql.app.io', url: 'https://graphql.app.io/graphql', cve: 'CVE-2023-44487' },
-  ];
-  const verdicts: Verdict[] = ['EXPLOITABLE', 'EXPLOITABLE', 'NOT_EXPLOITABLE', 'INCONCLUSIVE', 'EXPLOITABLE', 'NOT_EXPLOITABLE'];
-  const scopes: VerificationScope[] = ['full', 'full', 'standard', 'quick', 'full', 'standard'];
-
-  return targets.map((t, i) => ({
-    id: `vr-${(1000 + i).toString(36)}-${Date.now().toString(36)}`,
-    requestId: `req-${(2000 + i).toString(36)}`,
-    target: t.target,
-    targetUrl: t.url,
-    cveId: t.cve,
-    verdict: verdicts[i],
-    confidenceScore: verdicts[i] === 'EXPLOITABLE' ? 85 + seededInt(i * 31, 0, 15)
-      : verdicts[i] === 'NOT_EXPLOITABLE' ? 70 + seededInt(i * 37, 0, 20)
-      : 40 + seededInt(i * 41, 0, 30),
-    scope: scopes[i],
-    phases: generateDemoPhases(verdicts[i], scopes[i]),
-    startedAt: new Date(Date.now() - seededValue(i * 53, 0, 86400000 * 3)).toISOString(),
-    completedAt: verdicts[i] === 'IN_PROGRESS' ? null : new Date(Date.now() - seededValue(i * 59, 0, 86400000)).toISOString(),
-    riskScore: verdicts[i] === 'EXPLOITABLE' ? 7.5 + seededValue(i * 61, 0, 2.5) : verdicts[i] === 'NOT_EXPLOITABLE' ? 1 + seededValue(i * 67, 0, 3) : 4 + seededValue(i * 71, 0, 3),
-    findingId: `FND-${(3000 + i).toString()}`,
-    failScore: verdicts[i] === 'EXPLOITABLE'
-      ? { grade: 'F', score: 85 + seededInt(i * 73, 0, 15) }
-      : verdicts[i] === 'NOT_EXPLOITABLE'
-      ? { grade: 'A', score: 10 + seededInt(i * 79, 0, 20) }
-      : { grade: 'C', score: 40 + seededInt(i * 83, 0, 20) },
-  }));
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Helper Components
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -946,28 +616,21 @@ function LiveRunViewer() {
     const phaseDef = MPTE_PHASES[currentPhaseIdx];
     if (!phaseDef) return;
 
-    // Simulate this phase running for 800-3000ms (deterministic based on phase)
-    const duration = seededValue(currentPhaseIdx * 23 + 100, 800, 3000);
+    // Phase duration for live-scan animation (transient UI, not persisted)
+    const duration = 800 + Math.random() * 2200;
 
     phaseTimerRef.current = setTimeout(() => {
-      // Decide outcome — deterministic based on phase index
-      const roll = seededValue(currentPhaseIdx * 29 + 200, 0, 1);
-      let status: PhaseStatus;
-      if (roll < 0.1 && currentPhaseIdx >= 6) {
-        status = 'FAIL';
-      } else if (roll < 0.15 && currentPhaseIdx >= 5) {
-        status = 'SKIP';
-      } else {
-        status = 'PASS';
-      }
+      // TODO: Replace local simulation with real MPTE API polling
+      // For now, mark all phases as PASS in the live-scan animation
+      const status: PhaseStatus = 'PASS';
 
       const result: PhaseResult = {
         phaseId: phaseDef.id,
         status,
         durationMs: duration,
-        evidence: generateEvidence(phaseDef.id, status),
-        details: `${phaseDef.name} ${status === 'PASS' ? 'completed successfully' : status === 'FAIL' ? 'failed' : 'skipped'}`,
-        confidenceContribution: status === 'PASS' ? seededInt(currentPhaseIdx * 31 + 300, 3, 11) : status === 'FAIL' ? -15 : 0,
+        evidence: `${phaseDef.name} — awaiting real engine results`,
+        details: `${phaseDef.name} ${status === 'PASS' ? 'completed' : 'pending'}`,
+        confidenceContribution: status === 'PASS' ? 5 : 0,
         relatedPhases: [phaseDef.id - 1, phaseDef.id + 1].filter(p => p > 0 && p <= 19),
       };
 
@@ -1939,7 +1602,7 @@ export default function MPTEConsole() {
     const rawResults = resultsData?.items || resultsData?.results || (Array.isArray(resultsData) ? resultsData : []);
 
     if (rawResults.length === 0) {
-      return generateDemoVerifications();
+      return []; // No verifications yet — run a scan via the MPTE engine
     }
 
     return rawResults.map((res: Record<string, unknown>, idx: number) => {
@@ -1957,7 +1620,7 @@ export default function MPTEConsole() {
 
       const phases: PhaseResult[] = Array.isArray(res.phases)
         ? (res.phases as PhaseResult[])
-        : generateDemoPhases(verdict, 'full');
+        : []; // No phase data from API — phases unavailable
 
       return {
         id: (res.id as string) || `vr-${idx}`,

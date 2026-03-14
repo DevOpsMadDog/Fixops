@@ -278,8 +278,8 @@ const ContainerSecurity = () => {
     setLoading(true);
     try {
       const [statusRes, vulnsRes] = await Promise.all([
-        containerScanApi.getStatus().catch(() => ({ containers: [], status: 'unknown' })),
-        api.get('/api/v1/vulns/discovered').catch(() => ({ data: { vulnerabilities: [] } })),
+        containerScanApi.getStatus().catch((e) => { console.error('[Container] status fetch failed:', e?.message); return { containers: [], status: 'unknown' }; }),
+        api.get('/api/v1/vulns/discovered').catch((e) => { console.error('[Container] vulns fetch failed:', e?.message); return { data: { vulnerabilities: [] } }; }),
       ]);
       const statusData = typeof statusRes === 'object' && statusRes !== null ? statusRes as { status?: string; containers?: ContainerImage[] } : {};
       setScannerStatus(statusData);

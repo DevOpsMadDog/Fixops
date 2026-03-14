@@ -40,7 +40,7 @@ _MAX_TITLE_LENGTH = 255
 _MAX_DESCRIPTION_LENGTH = 32_000
 _MAX_URL_LENGTH = 2_048
 _REQUEST_TIMEOUT = 15.0
-_DEMO_LATENCY_MS = 5.0
+# Demo latency constant removed — no demo fallbacks remain
 
 # Severity normalisation — accept many formats
 _SEVERITY_ALIASES: Dict[str, str] = {
@@ -442,7 +442,10 @@ class JiraConnector(BaseConnector):
     async def create_ticket(self, finding: Dict[str, Any]) -> ConnectorResult:
         """Create a Jira issue from a security finding."""
         if not self.configured:
-            return self._demo_create(finding)
+            return ConnectorResult(
+                success=False, connector="jira", operation="create_ticket",
+                error="Jira not configured. Set JIRA_URL, JIRA_USER, JIRA_TOKEN, and JIRA_PROJECT to enable ticket creation.",
+            )
 
         severity = _normalise_severity(finding.get("severity"))
         priority = JIRA_SEVERITY_TO_PRIORITY.get(severity, "Medium")
@@ -512,7 +515,10 @@ class JiraConnector(BaseConnector):
     async def update_ticket(self, ticket_id: str, update: Dict[str, Any]) -> ConnectorResult:
         """Update an existing Jira issue."""
         if not self.configured:
-            return self._demo_update(ticket_id, update)
+            return ConnectorResult(
+                success=False, connector="jira", operation="update_ticket", ticket_id=ticket_id,
+                error="Jira not configured. Set JIRA_URL, JIRA_USER, JIRA_TOKEN to enable updates.",
+            )
 
         fields: Dict[str, Any] = {}
         if update.get("summary"):
@@ -577,7 +583,10 @@ class JiraConnector(BaseConnector):
         the transition cannot be determined.
         """
         if not self.configured:
-            return self._demo_close(ticket_id, resolution)
+            return ConnectorResult(
+                success=False, connector="jira", operation="close_ticket", ticket_id=ticket_id,
+                error="Jira not configured. Set JIRA_URL, JIRA_USER, JIRA_TOKEN to enable ticket closure.",
+            )
 
         # Step 1: Fetch available transitions
         transitions_url = f"{self._base_url}/rest/api/3/issue/{ticket_id}/transitions"
@@ -681,7 +690,10 @@ class JiraConnector(BaseConnector):
     async def get_ticket(self, ticket_id: str) -> ConnectorResult:
         """Fetch a Jira issue by key."""
         if not self.configured:
-            return self._demo_get(ticket_id)
+            return ConnectorResult(
+                success=False, connector="jira", operation="get_ticket", ticket_id=ticket_id,
+                error="Jira not configured. Set JIRA_URL, JIRA_USER, JIRA_TOKEN to enable ticket retrieval.",
+            )
 
         endpoint = f"{self._base_url}/rest/api/3/issue/{ticket_id}"
         start = time.monotonic()
@@ -726,12 +738,10 @@ class JiraConnector(BaseConnector):
         """Test Jira connectivity by calling /rest/api/3/myself."""
         if not self.configured:
             return ConnectorResult(
-                success=True,
+                success=False,
                 connector="jira",
                 operation="test_connection",
-                details={"message": "Demo mode -- no credentials configured"},
-                demo_mode=True,
-                latency_ms=_DEMO_LATENCY_MS,
+                error="Jira not configured. Set JIRA_BASE_URL, JIRA_EMAIL, and JIRA_API_TOKEN environment variables.",
             )
 
         endpoint = f"{self._base_url}/rest/api/3/myself"
@@ -771,53 +781,6 @@ class JiraConnector(BaseConnector):
                 error=str(exc),
                 latency_ms=(time.monotonic() - start) * 1000,
             )
-
-    # -- Demo-mode helpers ---------------------------------------------------
-
-    def _demo_create(self, finding: Dict[str, Any]) -> ConnectorResult:
-        demo_key = f"DEMO-{uuid.uuid4().hex[:6].upper()}"
-        return ConnectorResult(
-            success=True,
-            connector="jira",
-            operation="create_ticket",
-            ticket_id=demo_key,
-            url=f"https://demo.atlassian.net/browse/{demo_key}",
-            details={"key": demo_key, "status": "created", "finding_title": _format_finding_title(finding)},
-            demo_mode=True,
-            latency_ms=_DEMO_LATENCY_MS,
-        )
-
-    def _demo_update(self, ticket_id: str, update: Dict[str, Any]) -> ConnectorResult:
-        return ConnectorResult(
-            success=True,
-            connector="jira",
-            operation="update_ticket",
-            ticket_id=ticket_id,
-            demo_mode=True,
-            latency_ms=_DEMO_LATENCY_MS,
-        )
-
-    def _demo_close(self, ticket_id: str, resolution: str) -> ConnectorResult:
-        return ConnectorResult(
-            success=True,
-            connector="jira",
-            operation="close_ticket",
-            ticket_id=ticket_id,
-            details={"resolution": resolution},
-            demo_mode=True,
-            latency_ms=_DEMO_LATENCY_MS,
-        )
-
-    def _demo_get(self, ticket_id: str) -> ConnectorResult:
-        return ConnectorResult(
-            success=True,
-            connector="jira",
-            operation="get_ticket",
-            ticket_id=ticket_id,
-            details={"summary": f"Demo ticket {ticket_id}", "status": "Open"},
-            demo_mode=True,
-            latency_ms=_DEMO_LATENCY_MS,
-        )
 
 
 # ---------------------------------------------------------------------------
@@ -863,7 +826,10 @@ class GitHubConnector(BaseConnector):
     async def create_ticket(self, finding: Dict[str, Any]) -> ConnectorResult:
         """Create a GitHub issue from a security finding."""
         if not self.configured:
-            return self._demo_create(finding)
+            return ConnectorResult(
+                success=False, connector="github", operation="create_ticket",
+                error="GitHub not configured. Set GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO to enable issue creation.",
+            )
 
         severity = _normalise_severity(finding.get("severity"))
         title = _format_finding_title(finding)
@@ -924,7 +890,10 @@ class GitHubConnector(BaseConnector):
     async def update_ticket(self, ticket_id: str, update: Dict[str, Any]) -> ConnectorResult:
         """Update a GitHub issue via PATCH."""
         if not self.configured:
-            return self._demo_update(ticket_id, update)
+            return ConnectorResult(
+                success=False, connector="github", operation="update_ticket", ticket_id=ticket_id,
+                error="GitHub not configured. Set GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO to enable updates.",
+            )
 
         payload: Dict[str, Any] = {}
         if update.get("title"):
@@ -986,7 +955,10 @@ class GitHubConnector(BaseConnector):
     async def close_ticket(self, ticket_id: str, resolution: str) -> ConnectorResult:
         """Close a GitHub issue by setting state to 'closed'."""
         if not self.configured:
-            return self._demo_close(ticket_id, resolution)
+            return ConnectorResult(
+                success=False, connector="github", operation="close_ticket", ticket_id=ticket_id,
+                error="GitHub not configured. Set GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO to enable issue closure.",
+            )
 
         # Add resolution comment first
         comment_endpoint = (
@@ -1045,7 +1017,10 @@ class GitHubConnector(BaseConnector):
     async def get_ticket(self, ticket_id: str) -> ConnectorResult:
         """Fetch a GitHub issue."""
         if not self.configured:
-            return self._demo_get(ticket_id)
+            return ConnectorResult(
+                success=False, connector="github", operation="get_ticket", ticket_id=ticket_id,
+                error="GitHub not configured. Set GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO to enable issue retrieval.",
+            )
 
         endpoint = f"{self._base_url}/repos/{self._owner}/{self._repo}/issues/{ticket_id}"
         start = time.monotonic()
@@ -1088,12 +1063,10 @@ class GitHubConnector(BaseConnector):
         """Test GitHub connectivity by fetching authenticated user."""
         if not self.configured:
             return ConnectorResult(
-                success=True,
+                success=False,
                 connector="github",
                 operation="test_connection",
-                details={"message": "Demo mode -- no credentials configured"},
-                demo_mode=True,
-                latency_ms=_DEMO_LATENCY_MS,
+                error="GitHub not configured. Set GITHUB_TOKEN and GITHUB_REPO environment variables.",
             )
 
         start = time.monotonic()
@@ -1131,53 +1104,6 @@ class GitHubConnector(BaseConnector):
                 error=str(exc),
                 latency_ms=(time.monotonic() - start) * 1000,
             )
-
-    # -- Demo-mode helpers ---------------------------------------------------
-
-    def _demo_create(self, finding: Dict[str, Any]) -> ConnectorResult:
-        demo_num = abs(hash(str(finding))) % 9999 + 1
-        return ConnectorResult(
-            success=True,
-            connector="github",
-            operation="create_ticket",
-            ticket_id=str(demo_num),
-            url=f"https://github.com/demo-org/demo-repo/issues/{demo_num}",
-            details={"number": demo_num, "status": "open"},
-            demo_mode=True,
-            latency_ms=_DEMO_LATENCY_MS,
-        )
-
-    def _demo_update(self, ticket_id: str, update: Dict[str, Any]) -> ConnectorResult:
-        return ConnectorResult(
-            success=True,
-            connector="github",
-            operation="update_ticket",
-            ticket_id=ticket_id,
-            demo_mode=True,
-            latency_ms=_DEMO_LATENCY_MS,
-        )
-
-    def _demo_close(self, ticket_id: str, resolution: str) -> ConnectorResult:
-        return ConnectorResult(
-            success=True,
-            connector="github",
-            operation="close_ticket",
-            ticket_id=ticket_id,
-            details={"resolution": resolution, "state": "closed"},
-            demo_mode=True,
-            latency_ms=_DEMO_LATENCY_MS,
-        )
-
-    def _demo_get(self, ticket_id: str) -> ConnectorResult:
-        return ConnectorResult(
-            success=True,
-            connector="github",
-            operation="get_ticket",
-            ticket_id=ticket_id,
-            details={"title": f"Demo issue #{ticket_id}", "state": "open"},
-            demo_mode=True,
-            latency_ms=_DEMO_LATENCY_MS,
-        )
 
 
 # ---------------------------------------------------------------------------
@@ -1293,7 +1219,10 @@ class SlackConnector(BaseConnector):
     async def create_ticket(self, finding: Dict[str, Any]) -> ConnectorResult:
         """Send a Slack notification for a security finding."""
         if not self.configured:
-            return self._demo_create(finding)
+            return ConnectorResult(
+                success=False, connector="slack", operation="create_ticket",
+                error="Slack not configured. Set SLACK_WEBHOOK_URL to enable notifications.",
+            )
 
         severity = _normalise_severity(finding.get("severity"))
         config = SLACK_SEVERITY_CONFIG.get(severity, SLACK_SEVERITY_CONFIG["medium"])
@@ -1358,12 +1287,11 @@ class SlackConnector(BaseConnector):
         """Slack webhooks are fire-and-forget; send a follow-up message."""
         if not self.configured:
             return ConnectorResult(
-                success=True,
+                success=False,
                 connector="slack",
                 operation="update_ticket",
                 ticket_id=ticket_id,
-                demo_mode=True,
-                latency_ms=_DEMO_LATENCY_MS,
+                error="Slack not configured. Set SLACK_WEBHOOK_URL environment variable.",
             )
 
         text = update.get("text") or update.get("description") or f"Update for {ticket_id}"
@@ -1417,9 +1345,7 @@ class SlackConnector(BaseConnector):
                 success=True,
                 connector="slack",
                 operation="test_connection",
-                details={"message": "Demo mode -- no webhook configured"},
-                demo_mode=True,
-                latency_ms=_DEMO_LATENCY_MS,
+                details={"message": "Slack not configured — set SLACK_WEBHOOK_URL"},
             )
 
         start = time.monotonic()
@@ -1458,24 +1384,6 @@ class SlackConnector(BaseConnector):
                 error=str(exc),
                 latency_ms=(time.monotonic() - start) * 1000,
             )
-
-    # -- Demo-mode helpers ---------------------------------------------------
-
-    def _demo_create(self, finding: Dict[str, Any]) -> ConnectorResult:
-        notification_id = uuid.uuid4().hex[:16]
-        return ConnectorResult(
-            success=True,
-            connector="slack",
-            operation="create_ticket",
-            ticket_id=notification_id,
-            details={
-                "notification_id": notification_id,
-                "channel": self._channel or "#security-alerts",
-                "status": "sent",
-            },
-            demo_mode=True,
-            latency_ms=_DEMO_LATENCY_MS,
-        )
 
 
 # ---------------------------------------------------------------------------

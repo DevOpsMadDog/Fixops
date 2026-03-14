@@ -95,7 +95,7 @@ const SOC2EvidenceUI = () => {
 
   const fetchPacks = useCallback(async () => {
     try {
-      const res = await api.get('/api/v1/brain/evidence/packs').catch(() => ({ data: { packs: [] } }));
+      const res = await api.get('/api/v1/brain/evidence/packs').catch((e) => { console.error('[SOC2] evidence packs fetch failed:', e?.message); return { data: { packs: [] } }; });
       setPacks(res.data?.packs || []);
       setFetchError(null);
     } catch (err) {
@@ -114,7 +114,7 @@ const SOC2EvidenceUI = () => {
       const res = await api.post('/api/v1/brain/evidence/generate', {
         org_id: orgId,
         timeframe_days: timeframeDays,
-      }).catch(() => ({ data: null }));
+      }).catch((e) => { console.error('[SOC2] evidence generate failed:', e?.message); return { data: null }; });
       if (res.data) {
         setCurrentPack(res.data);
         setSelectedPack(res.data);

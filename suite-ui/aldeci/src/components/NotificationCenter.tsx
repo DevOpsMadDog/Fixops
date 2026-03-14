@@ -44,8 +44,8 @@ export default function NotificationCenter() {
   const fetchAlerts = useCallback(async () => {
     try {
       const [auditRes, pulseRes] = await Promise.all([
-        api.get('/api/v1/audit/logs', { params: { limit: 10 } }).catch(() => ({ data: null })),
-        api.get('/api/v1/nerve-center/pulse').catch(() => ({ data: null })),
+        api.get('/api/v1/audit/logs', { params: { limit: 10 } }).catch((e) => { console.error('[Notifications] audit logs fetch failed:', e?.message); return { data: null }; }),
+        api.get('/api/v1/nerve-center/pulse').catch((e) => { console.error('[Notifications] pulse fetch failed:', e?.message); return { data: null }; }),
       ]);
 
       // Convert audit logs to notifications

@@ -241,10 +241,10 @@ const LiveFeedDashboard = () => {
     setLoading(true);
     try {
       const [healthRes, statsRes, epssRes, kevRes] = await Promise.all([
-        api.get('/api/v1/feeds/health').catch(() => ({ data: { feeds: [], status: 'unknown' } })),
-        api.get('/api/v1/feeds/stats').catch(() => ({ data: { total_cves: 0, new_today: 0, sources: {} } })),
-        api.get('/api/v1/feeds/epss', { params: { limit: 25 } }).catch(() => ({ data: { results: [] } })),
-        api.get('/api/v1/feeds/kev', { params: { limit: 25 } }).catch(() => ({ data: { results: [] } })),
+        api.get('/api/v1/feeds/health').catch((e) => { console.error('[Feeds] health fetch failed:', e?.message); return { data: { feeds: [], status: 'unknown' } }; }),
+        api.get('/api/v1/feeds/stats').catch((e) => { console.error('[Feeds] stats fetch failed:', e?.message); return { data: { total_cves: 0, new_today: 0, sources: {} } }; }),
+        api.get('/api/v1/feeds/epss', { params: { limit: 25 } }).catch((e) => { console.error('[Feeds] EPSS fetch failed:', e?.message); return { data: { results: [] } }; }),
+        api.get('/api/v1/feeds/kev', { params: { limit: 25 } }).catch((e) => { console.error('[Feeds] KEV fetch failed:', e?.message); return { data: { results: [] } }; }),
       ]);
 
       const healthData = healthRes.data;
@@ -286,7 +286,7 @@ const LiveFeedDashboard = () => {
         github: '/api/v1/feeds/github/refresh',
       };
       const endpoint = feedEndpoints[feedName.toLowerCase()] || '/api/v1/feeds/refresh/all';
-      await api.post(endpoint).catch(() => {});
+      await api.post(endpoint).catch((e) => { console.error(`[Feeds] ${feedName} refresh failed:`, e?.message); });
       toast.success(`${feedName} feed refreshed`);
       await fetchData();
     } catch (e) {

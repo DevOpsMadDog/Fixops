@@ -246,8 +246,8 @@ const RuntimeProtection = () => {
   const fetchData = useCallback(async () => {
     try {
       const [agentsRes, eventsRes] = await Promise.all([
-        api.get('/api/v1/inventory/services').catch(() => ({ data: { agents: [], services: [] } })),
-        api.get('/api/v1/nerve-center/state').catch(() => ({ data: { events: [], alerts: [] } })),
+        api.get('/api/v1/inventory/services').catch((e) => { console.error('[Runtime] services fetch failed:', e?.message); return { data: { agents: [], services: [] } }; }),
+        api.get('/api/v1/nerve-center/state').catch((e) => { console.error('[Runtime] nerve-center fetch failed:', e?.message); return { data: { events: [], alerts: [] } }; }),
       ]);
       const agentData = agentsRes.data?.agents || agentsRes.data?.services || [];
       setAgents(Array.isArray(agentData) ? agentData : []);

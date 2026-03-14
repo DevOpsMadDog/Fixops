@@ -462,106 +462,8 @@ async def list_compliance_bundles(request: Request) -> dict[str, Any]:
                 "sections": manifest_data.get("sections", []),
             })
 
-    # If no bundles from disk, return demo data for UI development.
-    # These match the DEMO_BUNDLES array in EvidenceBundles.tsx so the
-    # UI renders real data even in demo / air-gapped mode.
-    if not bundles:
-        bundles = [
-            {
-                "id": "EVB-2026-001",
-                "framework": "SOC2",
-                "frameworks": ["SOC2", "ISO27001"],
-                "date_range": {"start": "2026-01-01", "end": "2026-02-27"},
-                "status": "signed",
-                "created_at": "2026-02-27T10:00:00Z",
-                "size_mb": 4.2,
-                "finding_count": 340,
-                "remediation_count": 285,
-                "hash": "sha256:a1b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890",
-                "signed_by": "ALdeci Evidence Engine v1.0",
-                "signature_valid": True,
-                "sections": [
-                    {"name": "Executive Summary", "page_count": 3},
-                    {"name": "Finding Inventory", "page_count": 45},
-                    {"name": "Risk Score Analysis", "page_count": 12},
-                    {"name": "Remediation Evidence", "page_count": 38},
-                    {"name": "MPTE Verification Results", "page_count": 22},
-                    {"name": "Audit Trail", "page_count": 15},
-                    {"name": "Compliance Mapping", "page_count": 8},
-                    {"name": "Digital Signatures", "page_count": 2},
-                ],
-            },
-            {
-                "id": "EVB-2026-002",
-                "framework": "PCI-DSS",
-                "frameworks": ["PCI-DSS"],
-                "date_range": {"start": "2026-02-01", "end": "2026-02-27"},
-                "status": "generated",
-                "created_at": "2026-02-25T14:30:00Z",
-                "size_mb": 2.8,
-                "finding_count": 120,
-                "remediation_count": 95,
-                "hash": "sha256:f6e5d4c3b2a1098765432109876543210987654321098765432109876543210",
-                "signed_by": None,
-                "signature_valid": False,
-                "sections": [
-                    {"name": "Executive Summary", "page_count": 2},
-                    {"name": "PCI-DSS Control Mapping", "page_count": 20},
-                    {"name": "Cardholder Data Findings", "page_count": 15},
-                    {"name": "Network Segmentation Proof", "page_count": 8},
-                    {"name": "Vulnerability Scan Results", "page_count": 12},
-                ],
-            },
-            {
-                "id": "EVB-2026-003",
-                "framework": "HIPAA",
-                "frameworks": ["HIPAA"],
-                "date_range": {"start": "2025-12-01", "end": "2026-02-27"},
-                "status": "verified",
-                "created_at": "2026-02-20T09:15:00Z",
-                "size_mb": 5.7,
-                "finding_count": 210,
-                "remediation_count": 198,
-                "hash": "sha256:1234abcd5678ef901234abcd5678ef901234abcd5678ef901234abcd5678ef90",
-                "signed_by": "ALdeci Evidence Engine v1.0",
-                "signature_valid": True,
-                "sections": [
-                    {"name": "Executive Summary", "page_count": 4},
-                    {"name": "HIPAA Control Mapping", "page_count": 25},
-                    {"name": "PHI Data Flow Analysis", "page_count": 18},
-                    {"name": "Access Control Evidence", "page_count": 14},
-                    {"name": "Encryption Verification", "page_count": 10},
-                    {"name": "Incident Response Evidence", "page_count": 8},
-                    {"name": "Risk Assessment", "page_count": 12},
-                    {"name": "Audit Trail", "page_count": 20},
-                    {"name": "Digital Signatures", "page_count": 2},
-                ],
-            },
-            {
-                "id": "EVB-2025-042",
-                "framework": "ISO27001",
-                "frameworks": ["ISO27001"],
-                "date_range": {"start": "2025-10-01", "end": "2025-12-31"},
-                "status": "expired",
-                "created_at": "2025-12-31T23:59:00Z",
-                "size_mb": 6.1,
-                "finding_count": 450,
-                "remediation_count": 380,
-                "hash": "sha256:deadbeef12345678deadbeef12345678deadbeef12345678deadbeef12345678",
-                "signed_by": "ALdeci Evidence Engine v0.9",
-                "signature_valid": False,
-                "sections": [
-                    {"name": "Executive Summary", "page_count": 5},
-                    {"name": "ISO 27001 Control Mapping", "page_count": 30},
-                    {"name": "Risk Treatment Plan", "page_count": 22},
-                    {"name": "Statement of Applicability", "page_count": 15},
-                    {"name": "Internal Audit Results", "page_count": 18},
-                    {"name": "Corrective Actions", "page_count": 12},
-                    {"name": "Digital Signatures", "page_count": 2},
-                ],
-            },
-        ]
-
+    # Return actual bundles from disk — empty list is honest.
+    # No fabricated bundles: if none exist, the client sees an empty state.
     return {"bundles": bundles, "total": len(bundles)}
 
 
@@ -860,78 +762,17 @@ async def download_evidence_bundle(
             },
         )
 
-    # No physical file -- generate a synthetic JSON bundle for demo mode.
-    # This ensures the UI download flow always succeeds.
-    logger.info(
-        "No physical bundle for %s -- returning synthetic %s payload",
-        safe_bundle_id,
-        format,
-    )
-
-    generated_at = dt.now(tz.utc).isoformat()
-    content_hash = hashlib.sha256(
-        f"{safe_bundle_id}{generated_at}".encode()
-    ).hexdigest()
-
-    synthetic_bundle: dict[str, Any] = {
-        "bundle_id": safe_bundle_id,
-        "format": format,
-        "generated_at": generated_at,
-        "hash": f"sha256:{content_hash}",
-        "signature_algorithm": "RSA-SHA256 + ML-DSA (hybrid)",
-        "signed_by": "ALdeci Evidence Engine v1.0",
-        "sections": [
-            {
-                "name": "Executive Summary",
-                "page_count": 3,
-                "content": (
-                    f"Evidence bundle {safe_bundle_id} generated by ALdeci CTEM+ "
-                    f"platform on {generated_at}. This bundle contains compliance "
-                    "evidence for auditor consumption."
-                ),
-            },
-            {
-                "name": "Finding Inventory",
-                "page_count": 30,
-                "content": "Detailed finding inventory with severity distribution.",
-            },
-            {
-                "name": "Risk Score Analysis",
-                "page_count": 10,
-                "content": "FAIL Engine risk scores and trend analysis.",
-            },
-            {
-                "name": "Remediation Evidence",
-                "page_count": 25,
-                "content": "Remediation actions taken with before/after proof.",
-            },
-            {
-                "name": "MPTE Verification Results",
-                "page_count": 15,
-                "content": "19-phase micro-pentest exploitability verification.",
-            },
-            {
-                "name": "Audit Trail",
-                "page_count": 12,
-                "content": "Tamper-evident chronological log of all platform actions.",
-            },
-        ],
-        "metadata": {
-            "platform": "ALdeci CTEM+",
-            "version": "1.0.0",
-            "retention_policy": "7-year WORM",
-            "quantum_signature": True,
-        },
-    }
-
-    # Return as a downloadable JSON attachment
-    return JSONResponse(
-        content=synthetic_bundle,
-        headers={
-            "Content-Disposition": (
-                f'attachment; filename="fixops-evidence-{safe_bundle_id}.{format}"'
+    # No physical file — return 404 with actionable message.
+    raise HTTPException(
+        status_code=404,
+        detail={
+            "error": "bundle_not_found",
+            "bundle_id": safe_bundle_id,
+            "message": (
+                f"No evidence bundle '{safe_bundle_id}' exists on disk. "
+                "Generate a bundle first via POST /api/v1/evidence/bundles/generate "
+                "or run a compliance scan to produce evidence."
             ),
-            "Access-Control-Expose-Headers": "Content-Disposition",
         },
     )
 
@@ -1022,21 +863,18 @@ async def verify_bundle(
                             issuer="ALdeci Trust Services",
                         )
         except HTTPException:
-            pass  # Evidence storage not configured -- fall through to demo
+            pass  # Evidence storage not configured -- fall through
         except Exception:
             logger.debug(
-                "Real verification failed for %s, falling back to demo",
+                "Real verification failed for %s, returning unverifiable",
                 safe_id,
                 exc_info=True,
             )
 
-    # Demo / fallback verification.
-    # Look up the bundle in the known demo set to determine validity.
-    _DEMO_SIGNED_BUNDLES = {"EVB-2026-001", "EVB-2026-003"}
-    is_valid = safe_id in _DEMO_SIGNED_BUNDLES
-
-    logger.info(
-        "Demo verification for bundle %s: valid=%s", safe_id, is_valid
+    # No real evidence found — return honest "unverifiable" result.
+    # Never fake a pass/fail for a bundle we cannot actually verify.
+    logger.warning(
+        "Bundle %s has no stored manifest or signature — cannot verify", safe_id
     )
 
     # Emit event
@@ -1050,7 +888,8 @@ async def verify_bundle(
                     data={
                         "bundle_id": safe_id,
                         "action": "verify",
-                        "valid": is_valid,
+                        "valid": False,
+                        "reason": "no_manifest",
                     },
                 )
             )
@@ -1058,16 +897,12 @@ async def verify_bundle(
             logger.debug("Failed to emit verification event", exc_info=True)
 
     return BundleVerificationResult(
-        valid=is_valid,
-        hash_match=is_valid,
-        signature_valid=is_valid,
+        valid=False,
+        hash_match=False,
+        signature_valid=False,
         timestamp=verification_ts,
-        certificate_chain=[
-            "ALdeci Evidence Engine v1.0 (Root CA)",
-            "ALdeci Signing Authority (Intermediate)",
-            f"Bundle {safe_id} (Leaf Certificate)",
-        ],
-        issuer="ALdeci Trust Services",
+        certificate_chain=[],
+        issuer="Unverifiable — no signed manifest found for this bundle",
     )
 
 

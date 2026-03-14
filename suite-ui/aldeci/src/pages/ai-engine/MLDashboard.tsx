@@ -60,10 +60,10 @@ const MLDashboard = () => {
     setLoading(true);
     try {
       const [modelsRes, anomaliesRes, trafficRes, healthRes] = await Promise.all([
-        api.get('/api/v1/ml/models').catch(() => ({ data: { models: [] } })),
-        api.get('/api/v1/ml/analytics/anomalies', { params: { limit: 30 } }).catch(() => ({ data: { anomalies: [] } })),
-        api.get('/api/v1/ml/analytics/stats').catch(() => ({ data: {} })),
-        api.get('/api/v1/ml/analytics/health').catch(() => ({ data: { status: 'unknown' } })),
+        api.get('/api/v1/ml/models').catch((e) => { console.error('[ML] models fetch failed:', e?.message); return { data: { models: [] } }; }),
+        api.get('/api/v1/ml/analytics/anomalies', { params: { limit: 30 } }).catch((e) => { console.error('[ML] anomalies fetch failed:', e?.message); return { data: { anomalies: [] } }; }),
+        api.get('/api/v1/ml/analytics/stats').catch((e) => { console.error('[ML] stats fetch failed:', e?.message); return { data: {} }; }),
+        api.get('/api/v1/ml/analytics/health').catch((e) => { console.error('[ML] health fetch failed:', e?.message); return { data: { status: 'unknown' } }; }),
       ]);
       setModels(modelsRes.data?.models || []);
       setAnomalies(anomaliesRes.data?.anomalies || []);
@@ -77,7 +77,7 @@ const MLDashboard = () => {
 
   const handleTrain = async (modelId: string) => {
     try {
-      await api.post(`/api/v1/ml/models/${modelId}/train`).catch(() => {});
+      await api.post(`/api/v1/ml/models/${modelId}/train`).catch((e) => { console.error('[ML] train failed:', e?.message); });
       toast.success(`Training started for model ${modelId}`);
       await fetchData();
     } catch (e) {
@@ -273,28 +273,28 @@ const MLDashboard = () => {
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {[
-                    { name: 'Decision Outcomes', description: 'Tracks whether AI triage decisions led to correct outcomes', accuracy: 94.2, samples: 12847, trend: '+1.3%', color: 'text-green-400' },
-                    { name: 'MPTE Results', description: 'Validates exploitability predictions against micro-pentest results', accuracy: 89.7, samples: 3421, trend: '+2.1%', color: 'text-blue-400' },
-                    { name: 'False Positive Rate', description: 'Monitors and reduces false positive classifications over time', accuracy: 96.1, samples: 45892, trend: '-0.8%', color: 'text-purple-400' },
-                    { name: 'Remediation Success', description: 'Measures whether auto-fixes actually resolved the vulnerability', accuracy: 91.5, samples: 8934, trend: '+0.5%', color: 'text-amber-400' },
-                    { name: 'Policy Violations', description: 'Learns from policy override patterns to refine scoring', accuracy: 97.3, samples: 2156, trend: '-0.2%', color: 'text-cyan-400' },
+                    { name: 'Decision Outcomes', description: 'Tracks whether AI triage decisions led to correct outcomes', color: 'text-green-400' },
+                    { name: 'MPTE Results', description: 'Validates exploitability predictions against micro-pentest results', color: 'text-blue-400' },
+                    { name: 'False Positive Rate', description: 'Monitors and reduces false positive classifications over time', color: 'text-purple-400' },
+                    { name: 'Remediation Success', description: 'Measures whether auto-fixes actually resolved the vulnerability', color: 'text-amber-400' },
+                    { name: 'Policy Violations', description: 'Learns from policy override patterns to refine scoring', color: 'text-cyan-400' },
                   ].map((loop, i) => (
                     <motion.div key={loop.name} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
                       <Card className="border-border/30 bg-card/30 hover:bg-card/60 transition-colors h-full">
                         <CardContent className="pt-5">
                           <div className="flex items-center justify-between mb-2">
                             <h4 className="font-semibold text-sm">{loop.name}</h4>
-                            <Badge variant="outline" className="text-xs">{loop.trend}</Badge>
+                            <Badge variant="outline" className="text-xs">Collecting</Badge>
                           </div>
                           <p className="text-xs text-muted-foreground mb-3">{loop.description}</p>
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-muted-foreground w-16">Accuracy</span>
-                              <Progress value={loop.accuracy} className="flex-1 h-2" />
-                              <span className={`text-xs font-bold w-12 text-right ${loop.color}`}>{loop.accuracy}%</span>
+                              <Progress value={0} className="flex-1 h-2" />
+                              <span className={`text-xs font-bold w-12 text-right ${loop.color}`}>—</span>
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              {loop.samples.toLocaleString()} training samples
+                              Awaiting feedback data
                             </div>
                           </div>
                         </CardContent>
@@ -309,20 +309,9 @@ const MLDashboard = () => {
             <Card className="border-border/50">
               <CardHeader><CardTitle>Learning Curve</CardTitle></CardHeader>
               <CardContent>
-                <div className="grid grid-cols-4 gap-4">
-                  {[
-                    { period: 'Week 1', accuracy: 78.4, decisions: 342 },
-                    { period: 'Week 2', accuracy: 85.1, decisions: 1204 },
-                    { period: 'Week 3', accuracy: 91.7, decisions: 3891 },
-                    { period: 'Current', accuracy: 94.2, decisions: 12847 },
-                  ].map((week, i) => (
-                    <div key={i} className="text-center p-4 border border-border/30 rounded-lg">
-                      <div className="text-lg font-bold text-foreground">{week.accuracy}%</div>
-                      <Progress value={week.accuracy} className="h-1.5 my-2" />
-                      <div className="text-xs text-muted-foreground">{week.period}</div>
-                      <div className="text-xs text-muted-foreground">{week.decisions.toLocaleString()} decisions</div>
-                    </div>
-                  ))}
+                <div className="text-center p-8 text-muted-foreground">
+                  <p className="text-sm">Learning curve data will appear here after the self-learning engine has collected sufficient feedback samples.</p>
+                  <p className="text-xs mt-2">Requires at least 100 decisions with recorded outcomes.</p>
                 </div>
               </CardContent>
             </Card>

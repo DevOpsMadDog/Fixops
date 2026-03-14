@@ -99,108 +99,7 @@ const EVIDENCE_CATEGORIES = [
   { id: 'mpte_verifications', label: 'MPTE Verifications', description: '19-phase exploitability verification results' },
 ] as const;
 
-const DEMO_BUNDLES: EvidenceBundle[] = [
-  {
-    id: 'EVB-2026-001',
-    framework: 'SOC2',
-    frameworks: ['SOC2', 'ISO27001'],
-    date_range: { start: '2026-01-01', end: '2026-02-27' },
-    status: 'signed',
-    created_at: '2026-02-27T10:00:00Z',
-    size_mb: 4.2,
-    finding_count: 340,
-    remediation_count: 285,
-    hash: 'sha256:a1b2c3d4e5f67890abcdef1234567890a1b2c3d4e5f67890abcdef1234567890',
-    signed_by: 'ALdeci Evidence Engine v1.0',
-    signature_valid: true,
-    sections: [
-      { name: 'Executive Summary', page_count: 3 },
-      { name: 'Finding Inventory', page_count: 45 },
-      { name: 'Risk Score Analysis', page_count: 12 },
-      { name: 'Remediation Evidence', page_count: 38 },
-      { name: 'MPTE Verification Results', page_count: 22 },
-      { name: 'Audit Trail', page_count: 15 },
-      { name: 'Compliance Mapping', page_count: 8 },
-      { name: 'Digital Signatures', page_count: 2 },
-    ],
-  },
-  {
-    id: 'EVB-2026-002',
-    framework: 'PCI-DSS',
-    frameworks: ['PCI-DSS'],
-    date_range: { start: '2026-02-01', end: '2026-02-27' },
-    status: 'generated',
-    created_at: '2026-02-25T14:30:00Z',
-    size_mb: 2.8,
-    finding_count: 120,
-    remediation_count: 95,
-    hash: 'sha256:f6e5d4c3b2a10987654321fedcba0987654321fedcba0987654321fedcba0987',
-    signed_by: null,
-    signature_valid: false,
-    sections: [
-      { name: 'Executive Summary', page_count: 2 },
-      { name: 'PCI-DSS Control Mapping', page_count: 20 },
-      { name: 'Cardholder Data Findings', page_count: 15 },
-      { name: 'Network Segmentation Proof', page_count: 8 },
-      { name: 'Vulnerability Scan Results', page_count: 12 },
-    ],
-  },
-  {
-    id: 'EVB-2026-003',
-    framework: 'HIPAA',
-    frameworks: ['HIPAA'],
-    date_range: { start: '2025-12-01', end: '2026-02-27' },
-    status: 'verified',
-    created_at: '2026-02-20T09:15:00Z',
-    size_mb: 5.7,
-    finding_count: 210,
-    remediation_count: 198,
-    hash: 'sha256:1234abcd5678ef901234abcd5678ef901234abcd5678ef901234abcd5678ef90',
-    signed_by: 'ALdeci Evidence Engine v1.0',
-    signature_valid: true,
-    sections: [
-      { name: 'Executive Summary', page_count: 4 },
-      { name: 'HIPAA Control Mapping', page_count: 25 },
-      { name: 'PHI Data Flow Analysis', page_count: 18 },
-      { name: 'Access Control Evidence', page_count: 14 },
-      { name: 'Encryption Verification', page_count: 10 },
-      { name: 'Incident Response Evidence', page_count: 8 },
-      { name: 'Risk Assessment', page_count: 12 },
-      { name: 'Audit Trail', page_count: 20 },
-      { name: 'Digital Signatures', page_count: 2 },
-    ],
-  },
-  {
-    id: 'EVB-2025-042',
-    framework: 'ISO27001',
-    frameworks: ['ISO27001'],
-    date_range: { start: '2025-10-01', end: '2025-12-31' },
-    status: 'expired',
-    created_at: '2025-12-31T23:59:00Z',
-    size_mb: 6.1,
-    finding_count: 450,
-    remediation_count: 380,
-    hash: 'sha256:deadbeef12345678deadbeef12345678deadbeef12345678deadbeef12345678',
-    signed_by: 'ALdeci Evidence Engine v0.9',
-    signature_valid: false,
-    sections: [
-      { name: 'Executive Summary', page_count: 5 },
-      { name: 'ISO 27001 Control Mapping', page_count: 30 },
-      { name: 'Risk Treatment Plan', page_count: 22 },
-      { name: 'Statement of Applicability', page_count: 15 },
-      { name: 'Internal Audit Results', page_count: 18 },
-      { name: 'Corrective Actions', page_count: 12 },
-      { name: 'Digital Signatures', page_count: 2 },
-    ],
-  },
-];
-
-const DEMO_COMPLIANCE: ComplianceStatus[] = [
-  { framework: 'SOC2', controls_total: 64, controls_mapped: 58, evidence_collected: 52, last_assessment: '2026-02-27', status: 'partial' },
-  { framework: 'PCI-DSS', controls_total: 78, controls_mapped: 72, evidence_collected: 68, last_assessment: '2026-02-25', status: 'partial' },
-  { framework: 'HIPAA', controls_total: 54, controls_mapped: 51, evidence_collected: 49, last_assessment: '2026-02-20', status: 'compliant' },
-  { framework: 'ISO27001', controls_total: 114, controls_mapped: 96, evidence_collected: 84, last_assessment: '2025-12-31', status: 'non-compliant' },
-];
+// Demo constants removed — all data fetched from real API endpoints
 
 // ============================================================================
 // Animation Variants
@@ -1620,7 +1519,7 @@ export default function EvidenceBundles() {
         const response = await api.get('/api/v1/evidence/bundles');
         return response.data?.bundles || response.data || [];
       } catch {
-        return DEMO_BUNDLES;
+        return []; // API unavailable — show empty state
       }
     },
     staleTime: 30_000,
@@ -1635,7 +1534,7 @@ export default function EvidenceBundles() {
         const response = await api.get('/api/v1/evidence/compliance-status');
         return response.data?.frameworks || response.data || [];
       } catch {
-        return DEMO_COMPLIANCE;
+        return []; // API unavailable — show empty state
       }
     },
     staleTime: 60_000,
@@ -1691,44 +1590,9 @@ export default function EvidenceBundles() {
           categories: wizardState.categories,
         }).then(() => {
           queryClient.invalidateQueries({ queryKey: ['evidence-bundles'] });
-        }).catch(() => {
-          // Add deterministic bundle to cache based on framework + date
-          queryClient.setQueryData<EvidenceBundle[]>(['evidence-bundles'], (old = []) => {
-            const dateRange = computeDateRange(wizardState.dateRange, wizardState.customStart, wizardState.customEnd);
-            const bundleIdx = old.length + 1;
-            // Deterministic hash based on bundle ID
-            const hashSeed = `EVB-2026-${String(bundleIdx).padStart(3, '0')}-${wizardState.frameworks.join('-')}`;
-            const hashHex = Array.from(hashSeed).reduce((acc, c, i) => {
-              const v = ((c.charCodeAt(0) * 31 + i * 7) % 16).toString(16);
-              return acc + v;
-            }, '').padEnd(64, '0').slice(0, 64);
-
-            const newBundle: EvidenceBundle = {
-              id: `EVB-2026-${String(bundleIdx).padStart(3, '0')}`,
-              framework: wizardState.frameworks[0],
-              frameworks: wizardState.frameworks,
-              date_range: dateRange,
-              status: 'signed',
-              created_at: new Date().toISOString(),
-              size_mb: parseFloat((wizardState.frameworks.length * 1.8 + 1.2).toFixed(1)),
-              finding_count: wizardState.frameworks.length * 45 + 50,
-              remediation_count: wizardState.frameworks.length * 30 + 20,
-              hash: `sha256:${hashHex}`,
-              signed_by: 'ALdeci Evidence Engine v1.0',
-              signature_valid: true,
-              sections: [
-                { name: 'Executive Summary', page_count: 3 },
-                { name: 'Finding Inventory', page_count: wizardState.frameworks.length * 8 + 10 },
-                { name: 'Risk Score Analysis', page_count: wizardState.frameworks.length * 3 + 5 },
-                { name: 'Remediation Evidence', page_count: wizardState.frameworks.length * 6 + 10 },
-                { name: 'MPTE Verification Results', page_count: wizardState.frameworks.length * 4 + 8 },
-                { name: 'Audit Trail', page_count: wizardState.frameworks.length * 3 + 5 },
-                { name: 'Compliance Mapping', page_count: wizardState.frameworks.length * 2 + 4 },
-                { name: 'Digital Signatures', page_count: 2 },
-              ],
-            };
-            return [newBundle, ...old];
-          });
+        }).catch((e) => {
+          console.error('[Evidence] bundle generation failed:', e?.message);
+          toast.error('Evidence bundle generation failed — ensure the evidence engine is running');
         }).finally(() => {
           setIsGenerating(false);
           setGenerationProgress(0);

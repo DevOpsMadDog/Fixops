@@ -25,9 +25,9 @@ const SLSAProvenance = () => {
     setLoading(true);
     try {
       const [attRes, bundleRes, statsRes] = await Promise.all([
-        api.get('/api/v1/provenance/').catch(() => ({ data: { attestations: [] } })),
-        api.get('/api/v1/evidence/', { params: { org_id: 'default', limit: 20 } }).catch(() => ({ data: { bundles: [] } })),
-        api.get('/api/v1/evidence/stats').catch(() => ({ data: {} })),
+        api.get('/api/v1/provenance/').catch((e) => { console.error('[SLSA] provenance fetch failed:', e?.message); return { data: { attestations: [] } }; }),
+        api.get('/api/v1/evidence/', { params: { org_id: 'default', limit: 20 } }).catch((e) => { console.error('[SLSA] evidence fetch failed:', e?.message); return { data: { bundles: [] } }; }),
+        api.get('/api/v1/evidence/stats').catch((e) => { console.error('[SLSA] stats fetch failed:', e?.message); return { data: {} }; }),
       ]);
       setAttestations(attRes.data?.attestations || attRes.data || []);
       setBundles(bundleRes.data?.bundles || bundleRes.data || []);

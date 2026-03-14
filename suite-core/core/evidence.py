@@ -125,12 +125,12 @@ class EvidenceHub:
                     )
                     self.encrypt_bundles = False
                 else:
-                    logger.warning(
-                        f"Evidence encryption requested but {encryption_env} not set. "
-                        f"Using hardcoded sample key for mode={mode}. "
-                        "Set encryption key for production deployments."
+                    raise RuntimeError(
+                        f"SECURITY: Evidence encryption key required but {encryption_env} not set. "
+                        f"Running in mode={mode}. Set the {encryption_env} environment variable "
+                        "with a valid Fernet key (use: python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'). "
+                        "Refusing to start with encryption enabled and no key — this is a production safety guard."
                     )
-                    key = "XA4YsbLpheGujMd1vXX4HR1jAWGTL9D9ZvGBZgy00eg="
             if self.encrypt_bundles and key:
                 try:
                     self._fernet = Fernet(key.encode("utf-8"))

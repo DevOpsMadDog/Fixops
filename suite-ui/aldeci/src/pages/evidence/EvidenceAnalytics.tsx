@@ -192,10 +192,10 @@ const EvidenceAnalytics = () => {
     setLoading(true);
     try {
       const [analyticsRes, trendsRes, anomaliesRes, chainRes] = await Promise.all([
-        api.get('/api/v1/analytics/summary', { params: { org_id: 'default' } }).catch(() => ({ data: {} })),
-        api.get('/api/v1/analytics/trends/severity-over-time', { params: { org_id: 'default', days: 30 } }).catch(() => ({ data: { trend_data: [] } })),
-        api.get('/api/v1/analytics/trends/anomalies', { params: { org_id: 'default' } }).catch(() => ({ data: { anomalies: [] } })),
-        api.get('/api/v1/audit/chain/verify').catch(() => ({ data: { valid: true, total_entries: 0 } })),
+        api.get('/api/v1/analytics/summary', { params: { org_id: 'default' } }).catch((e) => { console.error('[Analytics] summary fetch failed:', e?.message); return { data: {} }; }),
+        api.get('/api/v1/analytics/trends/severity-over-time', { params: { org_id: 'default', days: 30 } }).catch((e) => { console.error('[Analytics] trends fetch failed:', e?.message); return { data: { trend_data: [] } }; }),
+        api.get('/api/v1/analytics/trends/anomalies', { params: { org_id: 'default' } }).catch((e) => { console.error('[Analytics] anomalies fetch failed:', e?.message); return { data: { anomalies: [] } }; }),
+        api.get('/api/v1/audit/chain/verify').catch((e) => { console.error('[Analytics] chain verify failed:', e?.message); return { data: { valid: true, total_entries: 0 } }; }),
       ]);
       setAnalytics(analyticsRes.data);
       setTrends(trendsRes.data?.trend_data || []);

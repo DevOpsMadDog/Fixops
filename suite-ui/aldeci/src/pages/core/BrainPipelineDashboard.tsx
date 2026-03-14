@@ -205,7 +205,7 @@ const BrainPipelineDashboard = () => {
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      const res = await api.get('/api/v1/brain/stats').catch(() => ({ data: null }));
+      const res = await api.get('/api/v1/brain/stats').catch((e) => { console.error('[Brain] stats fetch failed:', e?.message); return { data: null }; });
       if (res.data) setStats(res.data);
     } catch { /* ignore */ }
     finally { setStatsLoading(false); }
@@ -214,7 +214,7 @@ const BrainPipelineDashboard = () => {
   // ── Fetch pipeline run history ─────────────────────────────────────
   const fetchRuns = useCallback(async () => {
     try {
-      const res = await api.get('/api/v1/brain/pipeline/runs').catch(() => ({ data: { runs: [] } }));
+      const res = await api.get('/api/v1/brain/pipeline/runs').catch((e) => { console.error('[Brain] pipeline runs fetch failed:', e?.message); return { data: { runs: [] } }; });
       setRuns(res.data?.runs || []);
     } catch { /* ignore */ }
   }, []);
@@ -274,7 +274,7 @@ const BrainPipelineDashboard = () => {
         run_pentest: true,
         run_playbooks: true,
         generate_evidence: true,
-      }).catch(() => ({ data: null }));
+      }).catch((e) => { console.error('[Brain] pipeline execute failed:', e?.message); return { data: null }; });
 
       if (animRef.current) clearTimeout(animRef.current);
 

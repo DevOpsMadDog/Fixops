@@ -127,9 +127,9 @@ const SBOMGeneration = () => {
     setLoading(true);
     try {
       const [sbomRes, licenseRes, depRes] = await Promise.all([
-        api.get('/api/v1/inventory/applications', { params: { include_sbom: true } }).catch(() => ({ data: { sboms: [], items: [] } })),
-        api.get('/api/v1/inventory/assets', { params: { type: 'license' } }).catch(() => ({ data: { licenses: [], items: [] } })),
-        api.get('/api/v1/inventory/assets', { params: { type: 'dependency' } }).catch(() => ({ data: { dependencies: [], items: [] } })),
+        api.get('/api/v1/inventory/applications', { params: { include_sbom: true } }).catch((e) => { console.error('[SBOM] applications fetch failed:', e?.message); return { data: { sboms: [], items: [] } }; }),
+        api.get('/api/v1/inventory/assets', { params: { type: 'license' } }).catch((e) => { console.error('[SBOM] licenses fetch failed:', e?.message); return { data: { licenses: [], items: [] } }; }),
+        api.get('/api/v1/inventory/assets', { params: { type: 'dependency' } }).catch((e) => { console.error('[SBOM] dependencies fetch failed:', e?.message); return { data: { dependencies: [], items: [] } }; }),
       ]);
       setSboms(sbomRes.data?.sboms || sbomRes.data?.items || []);
       setLicenses(licenseRes.data?.licenses || licenseRes.data?.items || licenseRes.data || []);

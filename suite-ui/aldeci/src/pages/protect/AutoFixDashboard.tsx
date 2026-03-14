@@ -289,9 +289,9 @@ const AutoFixDashboard = () => {
     setLoading(true);
     try {
       const [statsRes, historyRes, typesRes] = await Promise.all([
-        api.get('/api/v1/autofix/stats').catch(() => ({ data: { total_fixes: 0, by_status: {}, by_type: {}, by_confidence: {}, success_rate: 0 } })),
-        api.get('/api/v1/autofix/history').catch(() => ({ data: { fixes: [] } })),
-        api.get('/api/v1/autofix/fix-types').catch(() => ({ data: { fix_types: [] } })),
+        api.get('/api/v1/autofix/stats').catch((e) => { console.error('[AutoFix] stats fetch failed:', e?.message); return { data: { total_fixes: 0, by_status: {}, by_type: {}, by_confidence: {}, success_rate: 0 } }; }),
+        api.get('/api/v1/autofix/history').catch((e) => { console.error('[AutoFix] history fetch failed:', e?.message); return { data: { fixes: [] } }; }),
+        api.get('/api/v1/autofix/fix-types').catch((e) => { console.error('[AutoFix] fix-types fetch failed:', e?.message); return { data: { fix_types: [] } }; }),
       ]);
       setStats(statsRes.data as AutoFixStats);
       setFixes((historyRes.data?.fixes || []) as FixSuggestion[]);

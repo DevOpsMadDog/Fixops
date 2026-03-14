@@ -468,9 +468,9 @@ const KnowledgeGraphExplorer = () => {
     setLoading(true);
     try {
       const [statsRes, nodesRes, edgesRes] = await Promise.all([
-        api.get('/api/v1/brain/stats').catch(() => ({ data: { total_nodes: 0, total_edges: 0, node_types: {}, edge_types: {}, density: 0, avg_connections: 0 } })),
-        api.get('/api/v1/brain/nodes', { params: { limit: 200 } }).catch(() => ({ data: { nodes: [] } })),
-        api.get('/api/v1/brain/all-edges', { params: { limit: 500 } }).catch(() => ({ data: { edges: [] } })),
+        api.get('/api/v1/brain/stats').catch((e) => { console.error('[KG] stats fetch failed:', e?.message); return { data: { total_nodes: 0, total_edges: 0, node_types: {}, edge_types: {}, density: 0, avg_connections: 0 } }; }),
+        api.get('/api/v1/brain/nodes', { params: { limit: 200 } }).catch((e) => { console.error('[KG] nodes fetch failed:', e?.message); return { data: { nodes: [] } }; }),
+        api.get('/api/v1/brain/all-edges', { params: { limit: 500 } }).catch((e) => { console.error('[KG] edges fetch failed:', e?.message); return { data: { edges: [] } }; }),
       ]);
       setStats(statsRes.data);
       const rawNodes = (nodesRes.data?.nodes || []) as Record<string, unknown>[];
@@ -528,7 +528,7 @@ const KnowledgeGraphExplorer = () => {
     const newHighlight = new Set<string>([node.id]);
     if (!node.id) { setNeighbors([]); return; }
     try {
-      const res = await api.get(`/api/v1/brain/nodes/${encodeURIComponent(node.id)}/neighbors`).catch(() => ({ data: { neighbors: [] } }));
+      const res = await api.get(`/api/v1/brain/nodes/${encodeURIComponent(node.id)}/neighbors`).catch((e) => { console.error('[KG] neighbors fetch failed:', e?.message); return { data: { neighbors: [] } }; });
       const raw = (res.data?.neighbors || res.data?.nodes || []) as Record<string, unknown>[];
       const neighborNodes = raw.map(mapNode);
       setNeighbors(neighborNodes);

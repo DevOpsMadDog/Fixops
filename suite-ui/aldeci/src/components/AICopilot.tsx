@@ -187,8 +187,8 @@ Navigate to Cloud Suite → Attack Paths for reachability insights.`;
     } catch (error: any) {
       console.error('AI Copilot error:', error);
       
-      // Provide intelligent fallback responses based on query
-      const fallbackResponse = getFallbackResponse(input.trim());
+      // Provide navigation help when AI service unavailable
+      const fallbackResponse = `> **Note:** AI copilot service is currently offline. Showing navigation guide.\n\n` + getFallbackResponse(input.trim());
       
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
@@ -200,7 +200,7 @@ Navigate to Cloud Suite → Attack Paths for reachability insights.`;
       addMessage(assistantMessage);
       
       if (error.response?.status !== 404) {
-        toast.error('AI service unavailable, using local intelligence');
+        toast.error('AI copilot service unavailable — showing offline help');
       }
     } finally {
       setLoading(false);
