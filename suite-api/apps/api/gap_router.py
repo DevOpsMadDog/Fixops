@@ -3397,3 +3397,835 @@ async def rag_search(req: RAGSearchRequest):
         "kb_filter": req.kb_name,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TIER 3 GAP ROUTERS — Nice-to-have Polish (P18, P19, P21, P31, P37, P42, P48)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+# ── P18: SUPPLY CHAIN GRAPH ──────────────────────────────────────────────────
+supply_chain_gap = APIRouter(prefix="/api/v1/supply-chain", tags=["supply-chain-gap"])
+
+
+@supply_chain_gap.get("/graph")
+async def supply_chain_graph(app_id: str = Query("default", description="Application ID")):
+    """Dependency graph with health + maintainer risk signals.
+
+    Wires: DependencyHealthMonitor + DependencyGraphBuilder from suite-evidence-risk.
+    """
+    components: list = []
+    edges: list = []
+
+    # 1. Try loading SBOM components from DB
+    try:
+        db_paths = ["data/evidence/sbom.db", ".fixops_data/sbom.db", "data/sbom.db"]
+        for p in db_paths:
+            if Path(p).exists():
+                conn = sqlite3.connect(p)
+                conn.row_factory = sqlite3.Row
+                rows = conn.execute(
+                    "SELECT name, version, type, license FROM components LIMIT 200"
+                ).fetchall()
+                conn.close()
+                for r in rows:
+                    components.append(dict(r))
+                break
+    except Exception:
+        pass
+
+    # 2. Enrich with health data
+    health_results: list = []
+    try:
+        from risk.dependency_health import DependencyHealthMonitor
+        monitor = DependencyHealthMonitor()
+        for comp in components:
+            h = monitor.monitor_dependency(
+                name=comp.get("name", ""),
+                version=comp.get("version", "unknown"),
+                package_manager=comp.get("type", "unknown"),
+            )
+            health_results.append({
+                "name": h.name,
+                "version": h.version,
+                "health_score": h.health_score,
+                "maintenance_status": h.maintenance_status.value,
+                "security_posture": h.security_posture.value,
+                "age_days": h.age_days,
+                "recommendations": h.recommendations,
+            })
+    except Exception as exc:
+        logger.debug("DependencyHealthMonitor unavailable: %s", exc)
+        # Fallback: generate basic health data
+        for comp in components:
+            health_results.append({
+                "name": comp.get("name", ""),
+                "version": comp.get("version", "unknown"),
+                "health_score": 75.0,
+                "maintenance_status": "unknown",
+                "security_posture": "unknown",
+                "age_days": 0,
+                "recommendations": [],
+            })
+
+    # 3. Build graph edges from dependency relationships
+    try:
+        from risk.dependency_graph import DependencyGraphBuilder
+        builder = DependencyGraphBuilder()
+        graph = builder.build_from_sbom({"components": components})
+        edges = [{"source": e.source, "target": e.target, "relationship": e.relationship}
+                 for e in graph.edges]
+    except Exception:
+        pass
+
+    # Risk summary
+    abandoned = [h for h in health_results if h["maintenance_status"] == "abandoned"]
+    stale = [h for h in health_results if h["maintenance_status"] == "stale"]
+    vulnerable = [h for h in health_results if h["security_posture"] in ("vulnerable", "critical")]
+
+    return {
+        "app_id": app_id,
+        "graph": {
+            "nodes": health_results,
+            "edges": edges,
+            "total_nodes": len(health_results),
+            "total_edges": len(edges),
+        },
+        "risk_summary": {
+            "abandoned_packages": len(abandoned),
+            "stale_packages": len(stale),
+            "vulnerable_packages": len(vulnerable),
+            "average_health": round(
+                sum(h["health_score"] for h in health_results) / max(len(health_results), 1), 1
+            ),
+        },
+        "abandoned_packages": abandoned[:10],
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@supply_chain_gap.get("/risks")
+async def supply_chain_risks():
+    """Top supply chain risks: abandoned packages, low health scores, vuln clusters."""
+    risks: list = []
+
+    try:
+        from risk.dependency_health import DependencyHealthMonitor
+        monitor = DependencyHealthMonitor()
+
+        # Load components from SBOM DB
+        db_paths = ["data/evidence/sbom.db", ".fixops_data/sbom.db", "data/sbom.db"]
+        components: list = []
+        for p in db_paths:
+            if Path(p).exists():
+                conn = sqlite3.connect(p)
+                conn.row_factory = sqlite3.Row
+                rows = conn.execute("SELECT name, version, type FROM components").fetchall()
+                conn.close()
+                components = [dict(r) for r in rows]
+                break
+
+        report = monitor.monitor_all_dependencies(components)
+        for dep in report.dependencies:
+            if dep.health_score < 60:
+                risks.append({
+                    "package": dep.name,
+                    "version": dep.version,
+                    "health_score": dep.health_score,
+                    "status": dep.maintenance_status.value,
+                    "security": dep.security_posture.value,
+                    "risk_level": "critical" if dep.health_score < 30 else "high",
+                    "recommendations": dep.recommendations,
+                })
+    except Exception as exc:
+        logger.debug("Supply chain risk scan unavailable: %s", exc)
+
+    return {
+        "risks": sorted(risks, key=lambda r: r.get("health_score", 100)),
+        "total": len(risks),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+ALL_GAP_ROUTERS.append(supply_chain_gap)
+
+
+# ── P19: SBOM GENERATION (CycloneDX / SPDX) ────────────────────────────────
+sbom_gap = APIRouter(prefix="/api/v1/sbom", tags=["sbom-gap"])
+
+
+@sbom_gap.post("/generate")
+async def sbom_generate(
+    format: str = Query("cyclonedx", description="cyclonedx or spdx"),
+    path: str = Query(".", description="Codebase path to scan"),
+):
+    """Generate a standards-compliant SBOM from the codebase.
+
+    Wires: SBOMGenerator + SBOMQualityScorer from suite-evidence-risk.
+    """
+    try:
+        from risk.sbom.generator import SBOMGenerator, SBOMFormat, SBOMQualityScorer
+        fmt = SBOMFormat.SPDX if format.lower() == "spdx" else SBOMFormat.CYCLONEDX
+        generator = SBOMGenerator()
+        codebase_path = Path(path) if path != "." else Path(".")
+        sbom = generator.generate_from_codebase(codebase_path, output_format=fmt)
+        scorer = SBOMQualityScorer()
+        quality = scorer.score_sbom(sbom)
+        return {
+            "format": format.lower(),
+            "sbom": sbom,
+            "quality": quality,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as exc:
+        logger.warning("SBOM generation failed: %s", exc)
+        return {
+            "format": format.lower(),
+            "sbom": {},
+            "quality": {"score": 0, "grade": "N/A", "issues": [str(exc)]},
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+
+
+@sbom_gap.get("/export")
+async def sbom_export(
+    format: str = Query("cyclonedx", description="cyclonedx or spdx"),
+):
+    """Export pre-generated SBOM as downloadable JSON."""
+    try:
+        from risk.sbom.generator import SBOMGenerator, SBOMFormat
+        fmt = SBOMFormat.SPDX if format.lower() == "spdx" else SBOMFormat.CYCLONEDX
+        generator = SBOMGenerator()
+        sbom = generator.generate_from_codebase(Path("."), output_format=fmt)
+        components = sbom.get("components", []) or sbom.get("packages", [])
+        return {
+            "format": format.lower(),
+            "spec_version": sbom.get("specVersion", sbom.get("spdxVersion", "unknown")),
+            "component_count": len(components),
+            "sbom": sbom,
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"SBOM export failed: {exc}")
+
+
+ALL_GAP_ROUTERS.append(sbom_gap)
+
+
+# ── P21: LICENSE COMPLIANCE ALERTING ─────────────────────────────────────────
+license_gap = APIRouter(prefix="/api/v1/license", tags=["license-gap"])
+
+
+@license_gap.get("/scan")
+async def license_scan(
+    project_license: str = Query("MIT", description="Project's own license"),
+):
+    """Scan all dependencies for license compliance issues.
+
+    Wires: LicenseComplianceAnalyzer from suite-evidence-risk.
+    """
+    packages: list = []
+
+    # 1. Discover packages via SBOM generator
+    try:
+        from risk.sbom.generator import SBOMGenerator, SBOMFormat
+        gen = SBOMGenerator()
+        sbom = gen.generate_from_codebase(Path("."), output_format=SBOMFormat.CYCLONEDX)
+        for comp in sbom.get("components", []):
+            lic = None
+            if comp.get("licenses"):
+                lic = comp["licenses"][0].get("license", {}).get("id")
+            packages.append({"name": comp["name"], "version": comp.get("version", ""), "license": lic or "UNKNOWN"})
+    except Exception:
+        pass
+
+    # 2. Analyze with LicenseComplianceAnalyzer
+    try:
+        from risk.license_compliance import LicenseComplianceAnalyzer
+        analyzer = LicenseComplianceAnalyzer(config={"policy": {
+            "project_license": project_license,
+            "blocked_licenses": ["AGPL-3.0"],
+        }})
+        result = analyzer.analyze(packages)
+        findings = []
+        for f in result.findings:
+            findings.append({
+                "package": f.package_name,
+                "license": f.license_name,
+                "type": f.license_type.value,
+                "risk": f.risk_level.value,
+                "issues": f.compatibility_issues,
+                "recommendation": f.recommendation,
+            })
+
+        return {
+            "project_license": project_license,
+            "total_packages": result.total_findings,
+            "findings_by_risk": result.findings_by_risk,
+            "findings_by_type": result.findings_by_type,
+            "incompatible": result.incompatible_licenses,
+            "findings": findings,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as exc:
+        return {
+            "project_license": project_license,
+            "total_packages": len(packages),
+            "error": str(exc),
+            "findings": [],
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+
+
+@license_gap.get("/alerts")
+async def license_alerts():
+    """Get active license compliance alerts (copyleft, blocked, policy violations)."""
+    alerts: list = []
+
+    try:
+        from risk.sbom.generator import SBOMGenerator, SBOMFormat
+        from risk.license_compliance import LicenseComplianceAnalyzer, LicenseRisk
+        gen = SBOMGenerator()
+        sbom = gen.generate_from_codebase(Path("."), output_format=SBOMFormat.CYCLONEDX)
+        packages = []
+        for comp in sbom.get("components", []):
+            lic = None
+            if comp.get("licenses"):
+                lic = comp["licenses"][0].get("license", {}).get("id")
+            packages.append({"name": comp["name"], "license": lic or "UNKNOWN"})
+
+        analyzer = LicenseComplianceAnalyzer(config={"policy": {"blocked_licenses": ["AGPL-3.0"]}})
+        result = analyzer.analyze(packages)
+        for f in result.findings:
+            if f.risk_level in (LicenseRisk.HIGH, LicenseRisk.CRITICAL) or f.compatibility_issues:
+                alerts.append({
+                    "package": f.package_name,
+                    "license": f.license_name,
+                    "risk": f.risk_level.value,
+                    "alert_type": "blocked" if f.risk_level == LicenseRisk.CRITICAL else "copyleft",
+                    "issues": f.compatibility_issues,
+                    "recommendation": f.recommendation,
+                })
+    except Exception as exc:
+        logger.debug("License alert scan failed: %s", exc)
+
+    return {
+        "alerts": alerts,
+        "total": len(alerts),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+ALL_GAP_ROUTERS.append(license_gap)
+
+
+# ── P31: THREAT HUNT QUERIES ────────────────────────────────────────────────
+threat_hunt_gap = APIRouter(prefix="/api/v1/threat-hunt", tags=["threat-hunt-gap"])
+
+# In-memory store for hunt rules (persisted to SQLite)
+_HUNT_RULES_DB = "data/threat_hunt_rules.db"
+
+
+def _get_hunt_db():
+    conn = sqlite3.connect(_HUNT_RULES_DB)
+    conn.row_factory = sqlite3.Row
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS hunt_rules ("
+        "id TEXT PRIMARY KEY, name TEXT, description TEXT, query TEXT, "
+        "severity TEXT DEFAULT 'medium', enabled INTEGER DEFAULT 1, "
+        "auto_alert INTEGER DEFAULT 0, created_at TEXT, updated_at TEXT)"
+    )
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS hunt_results ("
+        "id TEXT PRIMARY KEY, rule_id TEXT, matches INTEGER DEFAULT 0, "
+        "result_data TEXT, executed_at TEXT)"
+    )
+    conn.commit()
+    return conn
+
+
+class HuntRuleRequest(BaseModel):
+    name: str
+    description: str = ""
+    query: str
+    severity: str = Field(default="medium", description="low/medium/high/critical")
+    auto_alert: bool = False
+
+
+@threat_hunt_gap.get("/rules")
+async def list_hunt_rules():
+    """List all persistent threat hunt rules."""
+    conn = _get_hunt_db()
+    rows = conn.execute("SELECT * FROM hunt_rules ORDER BY created_at DESC").fetchall()
+    conn.close()
+    return {"rules": [dict(r) for r in rows], "total": len(rows)}
+
+
+@threat_hunt_gap.post("/rules")
+async def create_hunt_rule(req: HuntRuleRequest):
+    """Create a new persistent threat hunt rule."""
+    rule_id = f"hunt-{uuid.uuid4().hex[:8]}"
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_hunt_db()
+    conn.execute(
+        "INSERT INTO hunt_rules (id, name, description, query, severity, enabled, auto_alert, created_at, updated_at) "
+        "VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)",
+        (rule_id, req.name, req.description, req.query, req.severity, int(req.auto_alert), now, now),
+    )
+    conn.commit()
+    conn.close()
+    return {"id": rule_id, "name": req.name, "status": "created", "created_at": now}
+
+
+@threat_hunt_gap.delete("/rules/{rule_id}")
+async def delete_hunt_rule(rule_id: str):
+    """Delete a threat hunt rule."""
+    conn = _get_hunt_db()
+    conn.execute("DELETE FROM hunt_rules WHERE id = ?", (rule_id,))
+    conn.commit()
+    conn.close()
+    return {"id": rule_id, "status": "deleted"}
+
+
+@threat_hunt_gap.post("/rules/{rule_id}/execute")
+async def execute_hunt_rule(rule_id: str):
+    """Execute a hunt rule against current findings and feeds."""
+    conn = _get_hunt_db()
+    rule = conn.execute("SELECT * FROM hunt_rules WHERE id = ?", (rule_id,)).fetchone()
+    if not rule:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Hunt rule not found")
+
+    query_text = rule["query"].lower()
+    matches: list = []
+
+    # Search findings DB for matches
+    try:
+        fconn = sqlite3.connect("data/analytics.db")
+        fconn.row_factory = sqlite3.Row
+        rows = fconn.execute(
+            "SELECT id, title, severity, cve_id, source FROM findings "
+            "WHERE LOWER(title) LIKE ? OR LOWER(cve_id) LIKE ? LIMIT 50",
+            (f"%{query_text}%", f"%{query_text}%"),
+        ).fetchall()
+        fconn.close()
+        for r in rows:
+            matches.append({"type": "finding", **dict(r)})
+    except Exception:
+        pass
+
+    result_id = f"result-{uuid.uuid4().hex[:8]}"
+    now = datetime.now(timezone.utc).isoformat()
+    conn.execute(
+        "INSERT INTO hunt_results (id, rule_id, matches, result_data, executed_at) VALUES (?, ?, ?, ?, ?)",
+        (result_id, rule_id, len(matches), json.dumps(matches[:20]), now),
+    )
+    conn.commit()
+    conn.close()
+
+    return {
+        "rule_id": rule_id,
+        "result_id": result_id,
+        "matches": matches[:20],
+        "total_matches": len(matches),
+        "executed_at": now,
+    }
+
+
+ALL_GAP_ROUTERS.append(threat_hunt_gap)
+
+
+# ── P37: DEPLOYMENT PATTERNS ────────────────────────────────────────────────
+deployment_patterns_gap = APIRouter(prefix="/api/v1/deploy-patterns", tags=["deploy-patterns-gap"])
+
+
+@deployment_patterns_gap.get("/metrics")
+async def deployment_metrics(days: int = Query(30, ge=1, le=365)):
+    """DORA-style deployment metrics: frequency, failure rate, lead time, MTTR."""
+    deploys: list = []
+
+    # Pull from deploy events table (created by post_deploy_gap)
+    try:
+        db_paths = ["data/deploy_events.db", ".fixops_data/deploy_events.db"]
+        for p in db_paths:
+            if Path(p).exists():
+                conn = sqlite3.connect(p)
+                conn.row_factory = sqlite3.Row
+                cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+                rows = conn.execute(
+                    "SELECT * FROM deploy_events WHERE deployed_at >= ? ORDER BY deployed_at DESC",
+                    (cutoff,),
+                ).fetchall()
+                conn.close()
+                deploys = [dict(r) for r in rows]
+                break
+    except Exception:
+        pass
+
+    total = len(deploys)
+    failures = sum(1 for d in deploys if d.get("status") == "failed")
+    rollbacks = sum(1 for d in deploys if d.get("status") == "rollback")
+
+    return {
+        "period_days": days,
+        "total_deployments": total,
+        "deploy_frequency": round(total / max(days, 1), 2),
+        "failure_rate": round(failures / max(total, 1) * 100, 1),
+        "rollback_rate": round(rollbacks / max(total, 1) * 100, 1),
+        "failures": failures,
+        "rollbacks": rollbacks,
+        "successful": total - failures - rollbacks,
+        "deploys": deploys[:20],
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@deployment_patterns_gap.get("/trends")
+async def deployment_trends(days: int = Query(90, ge=7, le=365)):
+    """Weekly deployment trend data for charting."""
+    weeks: Dict[str, Dict[str, int]] = {}
+
+    try:
+        db_paths = ["data/deploy_events.db", ".fixops_data/deploy_events.db"]
+        for p in db_paths:
+            if Path(p).exists():
+                conn = sqlite3.connect(p)
+                conn.row_factory = sqlite3.Row
+                cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+                rows = conn.execute(
+                    "SELECT deployed_at, status FROM deploy_events WHERE deployed_at >= ?",
+                    (cutoff,),
+                ).fetchall()
+                conn.close()
+                for r in rows:
+                    dt = r["deployed_at"][:10]
+                    week = dt[:7]  # YYYY-MM grouping
+                    if week not in weeks:
+                        weeks[week] = {"total": 0, "failed": 0, "success": 0}
+                    weeks[week]["total"] += 1
+                    if r["status"] == "failed":
+                        weeks[week]["failed"] += 1
+                    else:
+                        weeks[week]["success"] += 1
+                break
+    except Exception:
+        pass
+
+    return {
+        "period_days": days,
+        "trends": [{"period": k, **v} for k, v in sorted(weeks.items())],
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+ALL_GAP_ROUTERS.append(deployment_patterns_gap)
+
+
+# ── P42: TOOL OVERLAP VISUALIZATION ─────────────────────────────────────────
+tool_overlap_gap = APIRouter(prefix="/api/v1/tool-overlap", tags=["tool-overlap-gap"])
+
+
+@tool_overlap_gap.get("/analysis")
+async def tool_overlap_analysis():
+    """Analyze scanner overlap: which tools find the same vulns, coverage gaps."""
+    sources: Dict[str, int] = {}
+    cve_to_sources: Dict[str, list] = {}
+    total_findings = 0
+
+    try:
+        conn = sqlite3.connect("data/analytics.db")
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT source, cve_id, severity FROM findings"
+        ).fetchall()
+        conn.close()
+
+        for r in rows:
+            total_findings += 1
+            src = r["source"] or "unknown"
+            sources[src] = sources.get(src, 0) + 1
+            cve = r["cve_id"]
+            if cve:
+                if cve not in cve_to_sources:
+                    cve_to_sources[cve] = []
+                if src not in cve_to_sources[cve]:
+                    cve_to_sources[cve].append(src)
+    except Exception:
+        pass
+
+    # Calculate overlap
+    duplicates = {cve: srcs for cve, srcs in cve_to_sources.items() if len(srcs) > 1}
+    unique_per_tool: Dict[str, int] = {}
+    for cve, srcs in cve_to_sources.items():
+        if len(srcs) == 1:
+            unique_per_tool[srcs[0]] = unique_per_tool.get(srcs[0], 0) + 1
+
+    return {
+        "tools": sources,
+        "total_tools": len(sources),
+        "total_findings": total_findings,
+        "unique_cves": len(cve_to_sources),
+        "duplicate_cves": len(duplicates),
+        "overlap_rate": round(len(duplicates) / max(len(cve_to_sources), 1) * 100, 1),
+        "unique_findings_per_tool": unique_per_tool,
+        "top_duplicates": [
+            {"cve": cve, "found_by": srcs, "overlap_count": len(srcs)}
+            for cve, srcs in sorted(duplicates.items(), key=lambda x: -len(x[1]))[:20]
+        ],
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@tool_overlap_gap.get("/coverage")
+async def tool_coverage():
+    """Coverage map: what each tool covers by severity and category."""
+    coverage: Dict[str, Dict[str, int]] = {}
+
+    try:
+        conn = sqlite3.connect("data/analytics.db")
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT source, severity, COUNT(*) as cnt FROM findings GROUP BY source, severity"
+        ).fetchall()
+        conn.close()
+        for r in rows:
+            src = r["source"] or "unknown"
+            if src not in coverage:
+                coverage[src] = {}
+            coverage[src][r["severity"]] = r["cnt"]
+    except Exception:
+        pass
+
+    return {
+        "coverage": coverage,
+        "total_tools": len(coverage),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+ALL_GAP_ROUTERS.append(tool_overlap_gap)
+
+
+# ── P48: SECURITY TRAINING MICRO-LESSONS ────────────────────────────────────
+training_gap = APIRouter(prefix="/api/v1/training", tags=["training-gap"])
+
+_MICRO_LESSONS = {
+    "sql_injection": {
+        "id": "sql_injection",
+        "title": "Preventing SQL Injection",
+        "category": "injection",
+        "duration_minutes": 5,
+        "difficulty": "beginner",
+        "content": (
+            "SQL injection occurs when untrusted data is sent to an interpreter as part of a command. "
+            "**Fix**: Use parameterized queries / prepared statements. Never concatenate user input into SQL. "
+            "**Example**: `cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))`"
+        ),
+        "quiz": [
+            {"q": "Which is safer?", "options": ["f-string SQL", "Parameterized query"], "answer": 1},
+        ],
+    },
+    "xss": {
+        "id": "xss",
+        "title": "Cross-Site Scripting (XSS) Prevention",
+        "category": "injection",
+        "duration_minutes": 5,
+        "difficulty": "beginner",
+        "content": (
+            "XSS allows attackers to inject scripts into web pages viewed by others. "
+            "**Fix**: Encode output, use Content-Security-Policy, sanitize HTML input. "
+            "Use frameworks that auto-escape (React, Angular)."
+        ),
+        "quiz": [
+            {"q": "What header helps prevent XSS?", "options": ["X-Frame-Options", "Content-Security-Policy"], "answer": 1},
+        ],
+    },
+    "secrets_exposure": {
+        "id": "secrets_exposure",
+        "title": "Preventing Secrets in Code",
+        "category": "secrets",
+        "duration_minutes": 3,
+        "difficulty": "beginner",
+        "content": (
+            "Hardcoded credentials in source code can be discovered by attackers. "
+            "**Fix**: Use environment variables, secret managers (Vault, AWS Secrets Manager), "
+            "and pre-commit hooks to catch secrets before they're committed."
+        ),
+        "quiz": [
+            {"q": "Where should secrets be stored?", "options": ["In code", "In a secret manager"], "answer": 1},
+        ],
+    },
+    "dependency_vulns": {
+        "id": "dependency_vulns",
+        "title": "Managing Vulnerable Dependencies",
+        "category": "supply-chain",
+        "duration_minutes": 5,
+        "difficulty": "intermediate",
+        "content": (
+            "Third-party dependencies can introduce vulnerabilities. "
+            "**Fix**: Regularly update deps, use lockfiles, run SCA scanners (Snyk, Dependabot), "
+            "and review SBOM for abandoned or unmaintained packages."
+        ),
+        "quiz": [
+            {"q": "What tool tracks dependency vulns?", "options": ["Linter", "SCA scanner"], "answer": 1},
+        ],
+    },
+    "insecure_deserialization": {
+        "id": "insecure_deserialization",
+        "title": "Insecure Deserialization",
+        "category": "injection",
+        "duration_minutes": 7,
+        "difficulty": "advanced",
+        "content": (
+            "Deserializing untrusted data can lead to RCE. "
+            "**Fix**: Avoid deserializing untrusted input. Use safe formats (JSON over pickle). "
+            "Implement integrity checks and type constraints."
+        ),
+        "quiz": [
+            {"q": "Which Python module is dangerous for untrusted data?", "options": ["json", "pickle"], "answer": 1},
+        ],
+    },
+}
+
+_TRAINING_PROGRESS_DB = "data/training_progress.db"
+
+
+def _get_training_db():
+    conn = sqlite3.connect(_TRAINING_PROGRESS_DB)
+    conn.row_factory = sqlite3.Row
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS lesson_progress ("
+        "user_id TEXT, lesson_id TEXT, completed INTEGER DEFAULT 0, "
+        "score INTEGER DEFAULT 0, completed_at TEXT, "
+        "PRIMARY KEY (user_id, lesson_id))"
+    )
+    conn.commit()
+    return conn
+
+
+@training_gap.get("/lessons")
+async def list_lessons(category: Optional[str] = None):
+    """List available security micro-lessons."""
+    lessons = list(_MICRO_LESSONS.values())
+    if category:
+        lessons = [l for l in lessons if l["category"] == category]
+    return {"lessons": [{k: v for k, v in l.items() if k != "quiz"} for l in lessons], "total": len(lessons)}
+
+
+@training_gap.get("/lessons/{lesson_id}")
+async def get_lesson(lesson_id: str):
+    """Get a specific micro-lesson with quiz."""
+    lesson = _MICRO_LESSONS.get(lesson_id)
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    return lesson
+
+
+@training_gap.post("/lessons/{lesson_id}/complete")
+async def complete_lesson(lesson_id: str, user_id: str = Query("default"), score: int = Query(0, ge=0, le=100)):
+    """Record lesson completion for a developer."""
+    if lesson_id not in _MICRO_LESSONS:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_training_db()
+    conn.execute(
+        "INSERT OR REPLACE INTO lesson_progress (user_id, lesson_id, completed, score, completed_at) "
+        "VALUES (?, ?, 1, ?, ?)",
+        (user_id, lesson_id, score, now),
+    )
+    conn.commit()
+    conn.close()
+    return {"user_id": user_id, "lesson_id": lesson_id, "score": score, "completed_at": now}
+
+
+@training_gap.get("/progress")
+async def training_progress(user_id: str = Query("default")):
+    """Get training progress for a developer."""
+    conn = _get_training_db()
+    rows = conn.execute(
+        "SELECT * FROM lesson_progress WHERE user_id = ?", (user_id,)
+    ).fetchall()
+    conn.close()
+    completed = [dict(r) for r in rows]
+    total_lessons = len(_MICRO_LESSONS)
+    return {
+        "user_id": user_id,
+        "completed_lessons": len(completed),
+        "total_lessons": total_lessons,
+        "completion_rate": round(len(completed) / max(total_lessons, 1) * 100, 1),
+        "average_score": round(sum(r["score"] for r in completed) / max(len(completed), 1), 1) if completed else 0,
+        "progress": completed,
+    }
+
+
+@training_gap.get("/recommend")
+async def recommend_lessons(user_id: str = Query("default")):
+    """Recommend lessons based on finding types in the platform."""
+    recommendations: list = []
+
+    # Check what finding types exist
+    finding_categories: Dict[str, int] = {}
+    try:
+        conn = sqlite3.connect("data/analytics.db")
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT title, severity FROM findings WHERE severity IN ('critical', 'high') LIMIT 200"
+        ).fetchall()
+        conn.close()
+        for r in rows:
+            title = (r["title"] or "").lower()
+            if "sql" in title or "injection" in title:
+                finding_categories["sql_injection"] = finding_categories.get("sql_injection", 0) + 1
+            elif "xss" in title or "cross-site" in title:
+                finding_categories["xss"] = finding_categories.get("xss", 0) + 1
+            elif "secret" in title or "credential" in title or "password" in title:
+                finding_categories["secrets_exposure"] = finding_categories.get("secrets_exposure", 0) + 1
+            elif "dependency" in title or "vulnerable" in title or "cve" in title:
+                finding_categories["dependency_vulns"] = finding_categories.get("dependency_vulns", 0) + 1
+            elif "deserialization" in title:
+                finding_categories["insecure_deserialization"] = finding_categories.get("insecure_deserialization", 0) + 1
+    except Exception:
+        pass
+
+    # Get completed lessons
+    completed_ids: set = set()
+    try:
+        conn = _get_training_db()
+        rows = conn.execute(
+            "SELECT lesson_id FROM lesson_progress WHERE user_id = ? AND completed = 1",
+            (user_id,),
+        ).fetchall()
+        conn.close()
+        completed_ids = {r["lesson_id"] for r in rows}
+    except Exception:
+        pass
+
+    # Recommend based on findings + not yet completed
+    for lesson_id, count in sorted(finding_categories.items(), key=lambda x: -x[1]):
+        if lesson_id in _MICRO_LESSONS and lesson_id not in completed_ids:
+            lesson = _MICRO_LESSONS[lesson_id]
+            recommendations.append({
+                "lesson_id": lesson_id,
+                "title": lesson["title"],
+                "reason": f"Found {count} related {lesson['category']} findings",
+                "priority": "high" if count > 5 else "medium",
+            })
+
+    # Add uncompleted lessons not tied to findings
+    for lid, lesson in _MICRO_LESSONS.items():
+        if lid not in completed_ids and lid not in finding_categories:
+            recommendations.append({
+                "lesson_id": lid,
+                "title": lesson["title"],
+                "reason": "General security knowledge",
+                "priority": "low",
+            })
+
+    return {
+        "user_id": user_id,
+        "recommendations": recommendations,
+        "total": len(recommendations),
+        "finding_categories": finding_categories,
+    }
+
+
+ALL_GAP_ROUTERS.append(training_gap)
