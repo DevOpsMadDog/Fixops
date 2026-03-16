@@ -1026,6 +1026,357 @@ class MindsDBIntegration:
 
 
 # =============================================================================
+# MindsDB RAG Service — Vector-backed Retrieval-Augmented Generation
+# =============================================================================
+
+
+class MindsDBRAGService:
+    """RAG pipeline over MindsDB knowledge bases.
+
+    Provides:
+    - Knowledge base creation for platform data domains
+    - Document ingestion (findings, remediation, activity, compliance)
+    - Vector similarity search
+    - Chat completions with retrieved context (RAG)
+    - Graceful fallback when MindsDB is unavailable
+
+    MindsDB REST API reference:
+      POST /api/sql/query          — execute SQL (CREATE KB, INSERT, SELECT)
+      POST /api/chat/completions   — OpenAI-compatible chat with KB context
+      GET  /api/status             — health check
+    """
+
+    # Knowledge-base names by domain
+    KB_FINDINGS = "aldeci_findings_kb"
+    KB_REMEDIATION = "aldeci_remediation_kb"
+    KB_ACTIVITY = "aldeci_activity_kb"
+    KB_COMPLIANCE = "aldeci_compliance_kb"
+    ALL_KBS = [KB_FINDINGS, KB_REMEDIATION, KB_ACTIVITY, KB_COMPLIANCE]
+
+    def __init__(
+        self,
+        host: str = MINDSDB_HOST,
+        port: int = MINDSDB_PORT,
+        model_name: str = "aldeci_copilot",
+    ):
+        self.host = host
+        self.port = port
+        self.base_url = f"http://{host}:{port}"
+        self.model_name = model_name
+        self.connected = False
+        self._kb_ready: Dict[str, bool] = {}
+
+    # ── connection ──────────────────────────────────────────────
+
+    async def connect(self) -> bool:
+        """Check MindsDB availability."""
+        import urllib.request
+        try:
+            req = urllib.request.Request(f"{self.base_url}/api/status", method="GET")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                if resp.status == 200:
+                    self.connected = True
+                    logger.info("MindsDB RAG connected at %s:%s", self.host, self.port)
+                    return True
+        except Exception as exc:
+            logger.warning("MindsDB RAG not reachable: %s", exc)
+        self.connected = False
+        return False
+
+    def _exec_sql(self, sql: str) -> Dict[str, Any]:
+        """Execute a SQL statement on MindsDB REST API (synchronous)."""
+        import urllib.request, json as _json
+        url = f"{self.base_url}/api/sql/query"
+        payload = _json.dumps({"query": sql}).encode()
+        req = urllib.request.Request(url, data=payload, method="POST")
+        req.add_header("Content-Type", "application/json")
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                body = _json.loads(resp.read().decode())
+                return {"ok": True, "data": body}
+        except Exception as exc:
+            logger.warning("MindsDB SQL exec failed: %s — SQL: %s", exc, sql[:200])
+            return {"ok": False, "error": str(exc)}
+
+    # ── knowledge base management ───────────────────────────────
+
+    async def ensure_knowledge_bases(self) -> Dict[str, bool]:
+        """Create all knowledge bases if they don't exist."""
+        results: Dict[str, bool] = {}
+        for kb_name in self.ALL_KBS:
+            sql = (
+                f"CREATE KNOWLEDGE BASE IF NOT EXISTS {kb_name}\n"
+                f"USING\n"
+                f"  model = 'mindsdb.embedding_model',\n"
+                f"  storage = 'mindsdb.vector_store';"
+            )
+            res = self._exec_sql(sql)
+            ok = res.get("ok", False)
+            results[kb_name] = ok
+            self._kb_ready[kb_name] = ok
+        logger.info("Knowledge bases ensured: %s", results)
+        return results
+
+    async def ensure_chat_model(self) -> bool:
+        """Create the chat completion model backed by KBs."""
+        kb_list = ", ".join(self.ALL_KBS)
+        sql = (
+            f"CREATE MODEL IF NOT EXISTS {self.model_name}\n"
+            f"PREDICT answer\n"
+            f"USING\n"
+            f"  engine = 'minds_endpoint',\n"
+            f"  knowledge_bases = ['{kb_list}'],\n"
+            f"  prompt_template = 'You are ALdeci Security Copilot. "
+            f"Use the provided context to answer security questions. "
+            f"Be concise, data-driven, and actionable. "
+            f"Context: {{{{context}}}} Question: {{{{question}}}}';"
+        )
+        res = self._exec_sql(sql)
+        return res.get("ok", False)
+
+    # ── ingestion ───────────────────────────────────────────────
+
+    async def ingest_documents(
+        self,
+        kb_name: str,
+        documents: List[Dict[str, str]],
+    ) -> Dict[str, Any]:
+        """Ingest documents into a MindsDB knowledge base.
+
+        Each document should have 'content' and optionally 'metadata'.
+        """
+        if not self.connected:
+            await self.connect()
+        if not self.connected:
+            return {"ok": False, "error": "MindsDB not reachable", "ingested": 0}
+
+        inserted = 0
+        errors = 0
+        for doc in documents:
+            content = doc.get("content", "").replace("'", "''")
+            metadata = doc.get("metadata", "").replace("'", "''")
+            sql = (
+                f"INSERT INTO {kb_name} (content, metadata)\n"
+                f"VALUES ('{content}', '{metadata}');"
+            )
+            res = self._exec_sql(sql)
+            if res.get("ok"):
+                inserted += 1
+            else:
+                errors += 1
+
+        return {"ok": errors == 0, "ingested": inserted, "errors": errors}
+
+    async def ingest_findings(self) -> Dict[str, Any]:
+        """Pull findings from analytics.db and ingest into KB."""
+        import sqlite3 as _sql
+        docs: List[Dict[str, str]] = []
+        try:
+            conn = _sql.connect("data/analytics.db")
+            conn.row_factory = _sql.Row
+            rows = conn.execute(
+                "SELECT id, title, severity, status, source, cve_id, "
+                "cvss_score, epss_score, application_id, description "
+                "FROM findings ORDER BY cvss_score DESC LIMIT 500"
+            ).fetchall()
+            conn.close()
+            for r in rows:
+                content = (
+                    f"Finding: {r['title']}. Severity: {r['severity']}. "
+                    f"CVE: {r['cve_id'] or 'N/A'}. CVSS: {r['cvss_score']}. "
+                    f"EPSS: {r['epss_score']}. Source: {r['source']}. "
+                    f"Status: {r['status']}. App: {r['application_id']}. "
+                    f"Description: {(r['description'] or '')[:300]}"
+                )
+                docs.append({
+                    "content": content,
+                    "metadata": f"type=finding;id={r['id']};severity={r['severity']}",
+                })
+        except Exception as exc:
+            logger.warning("Failed to read findings for RAG ingest: %s", exc)
+
+        if docs:
+            return await self.ingest_documents(self.KB_FINDINGS, docs)
+        return {"ok": True, "ingested": 0, "note": "No findings to ingest"}
+
+    async def ingest_remediation(self) -> Dict[str, Any]:
+        """Pull remediation tasks and ingest into KB."""
+        import sqlite3 as _sql
+        docs: List[Dict[str, str]] = []
+        try:
+            conn = _sql.connect("data/remediation/tasks.db")
+            conn.row_factory = _sql.Row
+            rows = conn.execute(
+                "SELECT task_id, title, severity, status, assigned_to, "
+                "created_at FROM remediation_tasks ORDER BY created_at DESC LIMIT 300"
+            ).fetchall()
+            conn.close()
+            for r in rows:
+                content = (
+                    f"Remediation task: {r['title']}. Severity: {r['severity']}. "
+                    f"Status: {r['status']}. Assigned: {r['assigned_to'] or 'unassigned'}. "
+                    f"Created: {r['created_at']}."
+                )
+                docs.append({
+                    "content": content,
+                    "metadata": f"type=remediation;id={r['task_id']};status={r['status']}",
+                })
+        except Exception as exc:
+            logger.warning("Failed to read remediation for RAG ingest: %s", exc)
+
+        if docs:
+            return await self.ingest_documents(self.KB_REMEDIATION, docs)
+        return {"ok": True, "ingested": 0, "note": "No remediation tasks to ingest"}
+
+    async def ingest_activity(self) -> Dict[str, Any]:
+        """Pull activity events and ingest into KB."""
+        import sqlite3 as _sql
+        docs: List[Dict[str, str]] = []
+        try:
+            conn = _sql.connect("data/activity_feed.db")
+            conn.row_factory = _sql.Row
+            rows = conn.execute(
+                "SELECT event_type, severity, title, category, entity_id, "
+                "created_at FROM activity_events ORDER BY created_at DESC LIMIT 200"
+            ).fetchall()
+            conn.close()
+            for r in rows:
+                content = (
+                    f"Activity: {r['title']}. Type: {r['event_type']}. "
+                    f"Severity: {r['severity']}. Category: {r['category']}. "
+                    f"Entity: {r['entity_id']}. Time: {r['created_at']}."
+                )
+                docs.append({
+                    "content": content,
+                    "metadata": f"type=activity;event={r['event_type']}",
+                })
+        except Exception as exc:
+            logger.warning("Failed to read activity for RAG ingest: %s", exc)
+
+        if docs:
+            return await self.ingest_documents(self.KB_ACTIVITY, docs)
+        return {"ok": True, "ingested": 0, "note": "No activity events to ingest"}
+
+    # ── retrieval ───────────────────────────────────────────────
+
+    async def search(
+        self,
+        query: str,
+        kb_name: Optional[str] = None,
+        limit: int = 5,
+    ) -> List[Dict[str, Any]]:
+        """Vector similarity search across knowledge bases."""
+        if not self.connected:
+            await self.connect()
+
+        targets = [kb_name] if kb_name else self.ALL_KBS
+        results: List[Dict[str, Any]] = []
+
+        for kb in targets:
+            safe_q = query.replace("'", "''")
+            sql = (
+                f"SELECT content, metadata, distance\n"
+                f"FROM {kb}\n"
+                f"WHERE content = '{safe_q}'\n"
+                f"LIMIT {limit};"
+            )
+            res = self._exec_sql(sql)
+            if res.get("ok") and res.get("data"):
+                data = res["data"]
+                # MindsDB returns column_names + data rows
+                cols = data.get("column_names", [])
+                for row in data.get("data", []):
+                    record = dict(zip(cols, row)) if cols else {"raw": row}
+                    record["source_kb"] = kb
+                    results.append(record)
+
+        return results
+
+    # ── chat with RAG ───────────────────────────────────────────
+
+    async def chat(
+        self,
+        question: str,
+        context_override: Optional[str] = None,
+        agent_id: str = "security-analyst",
+    ) -> Dict[str, Any]:
+        """RAG-powered chat: retrieve context from KBs, then generate answer.
+
+        1. Search all KBs for relevant context
+        2. Build augmented prompt
+        3. Call MindsDB chat completions (or model query)
+        4. Return answer + sources
+        """
+        if not self.connected:
+            await self.connect()
+        if not self.connected:
+            return {"ok": False, "error": "MindsDB not reachable"}
+
+        # Step 1: Retrieve
+        retrieved = await self.search(question, limit=8)
+        context_chunks = [r.get("content", "") for r in retrieved if r.get("content")]
+        rag_context = "\n".join(context_chunks[:6])
+
+        if context_override:
+            rag_context = f"{context_override}\n\n{rag_context}"
+
+        # Step 2: Chat via MindsDB model query
+        safe_q = question.replace("'", "''")
+        safe_ctx = rag_context.replace("'", "''")[:4000]
+        sql = (
+            f"SELECT answer FROM {self.model_name}\n"
+            f"WHERE question = '{safe_q}'\n"
+            f"AND context = '{safe_ctx}';"
+        )
+        res = self._exec_sql(sql)
+
+        if res.get("ok") and res.get("data"):
+            data = res["data"]
+            cols = data.get("column_names", [])
+            rows = data.get("data", [])
+            if rows:
+                record = dict(zip(cols, rows[0])) if cols else {}
+                answer = record.get("answer", str(rows[0]))
+                return {
+                    "ok": True,
+                    "answer": answer,
+                    "sources": [r.get("source_kb", "") for r in retrieved[:5]],
+                    "context_chunks": len(context_chunks),
+                    "provider": "mindsdb_rag",
+                }
+
+        return {
+            "ok": False,
+            "error": "No answer from MindsDB model",
+            "context_chunks": len(context_chunks),
+        }
+
+    async def health(self) -> Dict[str, Any]:
+        """Return RAG pipeline health status."""
+        connected = await self.connect()
+        return {
+            "mindsdb_connected": connected,
+            "host": self.host,
+            "port": self.port,
+            "model": self.model_name,
+            "knowledge_bases": self.ALL_KBS,
+            "kb_ready": dict(self._kb_ready),
+        }
+
+
+# Singleton instance
+_rag_service: Optional[MindsDBRAGService] = None
+
+
+def get_rag_service() -> MindsDBRAGService:
+    """Get or create the singleton RAG service."""
+    global _rag_service
+    if _rag_service is None:
+        _rag_service = MindsDBRAGService()
+    return _rag_service
+
+
+# =============================================================================
 # Module Initialization
 # =============================================================================
 

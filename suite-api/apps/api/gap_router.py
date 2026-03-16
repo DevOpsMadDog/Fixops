@@ -314,7 +314,7 @@ def _query_remediation_db():
 
 @copilot_gap.post("/chat")
 async def copilot_chat(req: ChatRequest):
-    """Process a copilot chat message using real LLM + platform data."""
+    """Process a copilot chat message using MindsDB RAG → LLM → keyword fallback."""
     session_id = req.session_id or f"sess-{uuid.uuid4().hex[:8]}"
 
     # Query real data from the platform databases
@@ -339,7 +339,34 @@ async def copilot_chat(req: ChatRequest):
         )
         context_summary += f"Top critical: {crit_summary}\n"
 
-    # ── Try real LLM first ──
+    # ── Priority 1: Try MindsDB RAG pipeline ──
+    try:
+        from agents.mindsdb_agents import get_rag_service
+        rag = get_rag_service()
+        rag_result = await rag.chat(
+            question=req.message,
+            context_override=context_summary,
+            agent_id=req.agent_id,
+        )
+        if rag_result.get("ok") and rag_result.get("answer"):
+            return {
+                "session_id": session_id,
+                "message_id": f"msg-{uuid.uuid4().hex[:8]}",
+                "agent_id": req.agent_id,
+                "response": rag_result["answer"],
+                "suggestions": ["Show critical findings", "Check compliance status", "View remediation tasks", "Analyze attack paths"],
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "confidence": 0.97,
+                "sources": rag_result.get("sources", ["mindsdb_rag"]),
+                "rag": {
+                    "provider": "mindsdb",
+                    "context_chunks": rag_result.get("context_chunks", 0),
+                },
+            }
+    except Exception as e:
+        logger.debug("MindsDB RAG unavailable for copilot: %s", e)
+
+    # ── Priority 2: Try direct LLM providers ──
     llm_response = None
     llm_provider_used = None
     try:
@@ -3274,3 +3301,99 @@ async def active_incidents():
 
 
 ALL_GAP_ROUTERS.append(incident_detection_gap)
+
+
+# ── RAG PIPELINE (MindsDB-backed Copilot RAG) ──────────────────────
+
+
+class RAGIngestRequest(BaseModel):
+    domains: Optional[List[str]] = Field(
+        default=None,
+        description="Domains to ingest: findings, remediation, activity. Null = all.",
+    )
+
+
+class RAGSearchRequest(BaseModel):
+    query: str
+    kb_name: Optional[str] = None
+    limit: int = Field(default=5, ge=1, le=20)
+
+
+@copilot_gap.get("/rag/status")
+async def rag_status():
+    """Get RAG pipeline health status — MindsDB connection, KBs, model."""
+    try:
+        from agents.mindsdb_agents import get_rag_service
+        rag = get_rag_service()
+        return await rag.health()
+    except Exception as exc:
+        return {
+            "mindsdb_connected": False,
+            "error": str(exc),
+            "knowledge_bases": [],
+        }
+
+
+@copilot_gap.post("/rag/ingest")
+async def rag_ingest(req: RAGIngestRequest):
+    """Ingest platform data into MindsDB knowledge bases for RAG retrieval.
+
+    Domains: findings, remediation, activity (or all if omitted).
+    """
+    try:
+        from agents.mindsdb_agents import get_rag_service
+        rag = get_rag_service()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"MindsDB RAG service unavailable: {exc}")
+
+    # Ensure KBs + model exist
+    kb_results = await rag.ensure_knowledge_bases()
+    model_ok = await rag.ensure_chat_model()
+
+    domains = req.domains or ["findings", "remediation", "activity"]
+    ingest_results: Dict[str, Any] = {}
+
+    if "findings" in domains:
+        ingest_results["findings"] = await rag.ingest_findings()
+    if "remediation" in domains:
+        ingest_results["remediation"] = await rag.ingest_remediation()
+    if "activity" in domains:
+        ingest_results["activity"] = await rag.ingest_activity()
+
+    total_ingested = sum(r.get("ingested", 0) for r in ingest_results.values())
+
+    return {
+        "status": "complete",
+        "knowledge_bases": kb_results,
+        "model_ready": model_ok,
+        "ingest_results": ingest_results,
+        "total_ingested": total_ingested,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@copilot_gap.post("/rag/search")
+async def rag_search(req: RAGSearchRequest):
+    """Search MindsDB knowledge bases via vector similarity.
+
+    Returns ranked results from the RAG vector store.
+    """
+    try:
+        from agents.mindsdb_agents import get_rag_service
+        rag = get_rag_service()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"MindsDB RAG service unavailable: {exc}")
+
+    results = await rag.search(
+        query=req.query,
+        kb_name=req.kb_name,
+        limit=req.limit,
+    )
+
+    return {
+        "query": req.query,
+        "results": results,
+        "total": len(results),
+        "kb_filter": req.kb_name,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
