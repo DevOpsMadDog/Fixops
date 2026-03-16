@@ -1197,35 +1197,176 @@ def create_app() -> FastAPI:
 
     @app.get("/api/v1/search", dependencies=[Depends(_verify_api_key)])
     async def global_search(
-        q: str = Query("", description="Search query")
+        q: str = Query("", description="Search query"),
+        entity_types: Optional[str] = Query(
+            None,
+            description="Comma-separated entity types to search: findings,assets,evidence,tickets. Default: all.",
+        ),
+        limit: int = Query(50, ge=1, le=200, description="Max results per entity type"),
     ) -> Dict[str, Any]:
-        """Global search across findings, CVEs, assets, and more."""
-        results: list[Dict[str, Any]] = []
-        if q:
-            try:
-                from core.finding_store import FindingStore
-                from pathlib import Path
+        """Cross-entity global search across findings, assets, evidence, and tickets.
 
-                store = FindingStore(Path("data/findings"))
-                findings = store.list(limit=500)
-                for f in findings:
-                    fd = f if isinstance(f, dict) else (f.to_dict() if hasattr(f, "to_dict") else {"id": str(f)})
-                    searchable = " ".join(str(v) for v in fd.values() if v).lower()
-                    if q.lower() in searchable:
+        Returns unified results sorted by relevance with type annotations so the
+        UI can render heterogeneous result cards in a single list.
+        """
+        results: list[Dict[str, Any]] = []
+        searched_types: list[str] = []
+        errors: Dict[str, str] = {}
+
+        if not q:
+            return {"query": q, "results": [], "total": 0, "searched_types": []}
+
+        q_lower = q.lower()
+        allowed_types = {"findings", "assets", "evidence", "tickets"}
+        if entity_types:
+            requested = {t.strip().lower() for t in entity_types.split(",")}
+            search_types = requested & allowed_types
+        else:
+            search_types = allowed_types
+
+        def _match(text: str) -> bool:
+            return q_lower in text.lower()
+
+        # ── 1. Findings (AnalyticsDB) ──────────────────────────────
+        if "findings" in search_types:
+            searched_types.append("findings")
+            try:
+                from core.analytics_db import AnalyticsDB
+
+                adb = AnalyticsDB()
+                all_findings = adb.list_findings(limit=500)
+                count = 0
+                for f in all_findings:
+                    fd = f.to_dict() if hasattr(f, "to_dict") else f
+                    searchable = " ".join(str(v) for v in fd.values() if v)
+                    if _match(searchable):
                         results.append(
                             {
                                 "type": "finding",
                                 "id": fd.get("id"),
                                 "title": fd.get("title", ""),
                                 "severity": fd.get("severity", ""),
-                                "match": "finding",
+                                "status": fd.get("status", ""),
+                                "source": fd.get("source", ""),
+                                "cve_id": fd.get("cve_id", ""),
+                                "application_id": fd.get("application_id", ""),
                             }
                         )
-                        if len(results) >= 50:
+                        count += 1
+                        if count >= limit:
                             break
-            except Exception:
-                pass  # Search is best-effort; return empty results on store errors
-        return {"query": q, "results": results, "total": len(results)}
+            except Exception as exc:
+                errors["findings"] = str(exc)
+
+        # ── 2. Assets / Inventory ──────────────────────────────────
+        if "assets" in search_types:
+            searched_types.append("assets")
+            try:
+                from core.inventory_db import InventoryDB
+
+                idb = InventoryDB()
+                inv_results = idb.search_inventory(q, limit=limit)
+                for category, items in inv_results.items():
+                    for item in items:
+                        results.append(
+                            {
+                                "type": "asset",
+                                "sub_type": category.rstrip("s"),  # applications -> application
+                                "id": item.get("id", ""),
+                                "name": item.get("name", ""),
+                                "description": item.get("description", ""),
+                                "status": item.get("status", ""),
+                                "criticality": item.get("criticality", ""),
+                            }
+                        )
+            except Exception as exc:
+                errors["assets"] = str(exc)
+
+        # ── 3. Evidence bundles ────────────────────────────────────
+        if "evidence" in search_types:
+            searched_types.append("evidence")
+            try:
+                import glob as _glob
+
+                evidence_dir = os.path.join("data", "evidence")
+                if os.path.isdir(evidence_dir):
+                    count = 0
+                    for fp in sorted(_glob.glob(os.path.join(evidence_dir, "*.json")))[-500:]:
+                        try:
+                            with open(fp) as fh:
+                                bundle = json.load(fh)
+                            searchable = " ".join(
+                                str(bundle.get(k, ""))
+                                for k in ("id", "type", "framework", "status", "app_id")
+                            )
+                            if _match(searchable):
+                                results.append(
+                                    {
+                                        "type": "evidence",
+                                        "id": bundle.get("id", os.path.basename(fp).replace(".json", "")),
+                                        "framework": bundle.get("framework", ""),
+                                        "signed": bundle.get("signature") is not None,
+                                        "status": bundle.get("status", "sealed"),
+                                        "created_at": bundle.get("created_at") or bundle.get("timestamp", ""),
+                                    }
+                                )
+                                count += 1
+                                if count >= limit:
+                                    break
+                        except Exception:
+                            continue
+            except Exception as exc:
+                errors["evidence"] = str(exc)
+
+        # ── 4. Remediation tickets / tasks ─────────────────────────
+        if "tickets" in search_types:
+            searched_types.append("tickets")
+            try:
+                from core.services.remediation import RemediationService
+
+                svc = RemediationService()
+                # Search across all orgs — get recent tasks and filter
+                import sqlite3 as _sqlite3
+
+                conn = _sqlite3.connect(svc.db_path)
+                conn.row_factory = _sqlite3.Row
+                try:
+                    pattern = f"%{q}%"
+                    rows = conn.execute(
+                        """SELECT * FROM remediation_tasks
+                           WHERE title LIKE ? OR description LIKE ?
+                              OR assignee LIKE ? OR ticket_id LIKE ?
+                           ORDER BY updated_at DESC LIMIT ?""",
+                        (pattern, pattern, pattern, pattern, limit),
+                    ).fetchall()
+                    for row in rows:
+                        task = dict(row)
+                        results.append(
+                            {
+                                "type": "ticket",
+                                "id": task.get("task_id", ""),
+                                "title": task.get("title", ""),
+                                "severity": task.get("severity", ""),
+                                "status": task.get("status", ""),
+                                "assignee": task.get("assignee", ""),
+                                "app_id": task.get("app_id", ""),
+                                "ticket_id": task.get("ticket_id", ""),
+                            }
+                        )
+                finally:
+                    conn.close()
+            except Exception as exc:
+                errors["tickets"] = str(exc)
+
+        response: Dict[str, Any] = {
+            "query": q,
+            "results": results,
+            "total": len(results),
+            "searched_types": searched_types,
+        }
+        if errors:
+            response["errors"] = errors
+        return response
 
     app.include_router(enhanced_router, dependencies=[Depends(_verify_api_key)])
     # Enterprise reachability analysis API
@@ -2998,6 +3139,23 @@ def create_app() -> FastAPI:
             _logger.info("EventBus: %d subscribers registered at startup", count)
         except Exception as exc:
             _logger.warning("EventBus subscriber registration failed: %s", exc)
+
+        # Wire activity feed persistence (P3 Vision Gap)
+        try:
+            from apps.api.gap_router import record_activity_event
+            from core.event_bus import get_event_bus
+
+            bus = get_event_bus()
+
+            async def _activity_feed_recorder(event):
+                """Persist every event to the activity feed SQLite DB."""
+                et = event.event_type.value if hasattr(event.event_type, "value") else str(event.event_type)
+                record_activity_event(et, event.source, event.data, event.org_id)
+
+            bus.subscribe_all(_activity_feed_recorder)
+            _logger.info("Activity feed recorder wired to EventBus (wildcard)")
+        except Exception as exc:
+            _logger.warning("Activity feed recorder wiring failed: %s", exc)
 
     @app.on_event("startup")
     async def _log_mounted_routes():

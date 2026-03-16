@@ -1,8 +1,10 @@
 """Remediation Lifecycle Management API endpoints."""
 
 import logging
+import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from apps.api.dependencies import get_org_id
 from core.services.remediation import (
@@ -707,3 +709,136 @@ async def remediation_summary(request: Request):
         "open": open_count,
         "resolution_rate": round(resolved / max(total, 1) * 100, 1),
     }
+
+
+@router.get("/tasks/{task_id}/timeline")
+def get_task_timeline(task_id: str) -> Dict[str, Any]:
+    """Full remediation lifecycle timeline for a task.
+
+    Returns every phase of the finding lifecycle:
+    discovery → triage → ticket → fix → verification → evidence,
+    assembled from task_history, task metadata, and linked evidence.
+    """
+    service = get_remediation_service()
+    task = service.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    task_dict = dict(task) if not isinstance(task, dict) else task
+
+    # Build timeline events from task_history
+    events: List[Dict[str, Any]] = []
+    try:
+        conn = sqlite3.connect(service.db_path)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT * FROM task_history WHERE task_id = ? ORDER BY timestamp ASC",
+            (task_id,),
+        ).fetchall()
+        conn.close()
+        for row in rows:
+            r = dict(row)
+            events.append(
+                {
+                    "phase": _status_to_phase(r.get("new_status", "")),
+                    "status": r.get("new_status", ""),
+                    "previous_status": r.get("old_status"),
+                    "changed_by": r.get("changed_by"),
+                    "reason": r.get("reason"),
+                    "timestamp": r.get("timestamp"),
+                }
+            )
+    except Exception:
+        pass
+
+    # Derive lifecycle phases with timestamps
+    phases: Dict[str, Any] = {
+        "discovery": {
+            "status": "completed",
+            "timestamp": task_dict.get("created_at"),
+        },
+        "triage": {"status": "pending", "timestamp": None},
+        "ticket": {"status": "pending", "timestamp": None},
+        "fix": {"status": "pending", "timestamp": None},
+        "verification": {"status": "pending", "timestamp": None},
+        "evidence": {"status": "pending", "timestamp": None},
+    }
+
+    # Mark phases based on history events
+    for ev in events:
+        phase = ev.get("phase", "")
+        ts = ev.get("timestamp")
+        if phase in phases and ts:
+            phases[phase] = {"status": "completed", "timestamp": ts}
+
+    # Ticket linking
+    if task_dict.get("ticket_id"):
+        phases["ticket"] = {
+            "status": "completed",
+            "timestamp": task_dict.get("updated_at"),
+            "ticket_id": task_dict.get("ticket_id"),
+            "ticket_url": task_dict.get("ticket_url"),
+        }
+
+    # Verification evidence
+    if task_dict.get("verification_evidence"):
+        phases["evidence"] = {
+            "status": "completed",
+            "timestamp": task_dict.get("resolved_at") or task_dict.get("updated_at"),
+        }
+
+    # Compute MTTR if resolved
+    mttr_hours = None
+    if task_dict.get("resolved_at") and task_dict.get("created_at"):
+        try:
+            created = datetime.fromisoformat(task_dict["created_at"])
+            resolved = datetime.fromisoformat(task_dict["resolved_at"])
+            mttr_hours = round((resolved - created).total_seconds() / 3600, 2)
+        except Exception:
+            pass
+
+    # Current phase
+    current_phase = "discovery"
+    for p in ("evidence", "verification", "fix", "ticket", "triage", "discovery"):
+        if phases[p]["status"] == "completed":
+            idx = list(phases.keys()).index(p)
+            next_phases = list(phases.keys())
+            if idx + 1 < len(next_phases):
+                current_phase = next_phases[idx + 1]
+            else:
+                current_phase = p  # all done
+            break
+
+    sla_breached = bool(task_dict.get("sla_breached"))
+
+    return {
+        "task_id": task_id,
+        "title": task_dict.get("title", ""),
+        "severity": task_dict.get("severity", ""),
+        "current_status": task_dict.get("status", ""),
+        "current_phase": current_phase,
+        "phases": phases,
+        "events": events,
+        "mttr_hours": mttr_hours,
+        "sla_breached": sla_breached,
+        "sla_hours": task_dict.get("sla_hours"),
+        "assignee": task_dict.get("assignee"),
+        "app_id": task_dict.get("app_id"),
+    }
+
+
+def _status_to_phase(status: str) -> str:
+    """Map a remediation status to a lifecycle phase."""
+    mapping = {
+        "open": "discovery",
+        "triaged": "triage",
+        "in_progress": "fix",
+        "review": "fix",
+        "verification": "verification",
+        "verified": "verification",
+        "resolved": "evidence",
+        "closed": "evidence",
+        "wont_fix": "triage",
+        "deferred": "triage",
+    }
+    return mapping.get(status, "discovery")

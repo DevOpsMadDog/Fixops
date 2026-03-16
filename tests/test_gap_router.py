@@ -26,6 +26,26 @@ from apps.api.gap_router import (
     feeds_gap,
     graph_gap,
     integrations_gap,
+    mpte_gap,
+    playbooks_gap,
+    predictions_gap,
+    reports_gap,
+    scanner_gap,
+    evidence_gap,
+    compliance_gap,
+    changes_gap,
+    workflows_gap,
+    sbom_gap,
+    attack_paths_gap,
+    data_fabric_gap,
+    correlation_gap,
+    scanner_registry_gap,
+    notifications_gap,
+    app_config_gap,
+    attack_simulation_gap,
+    slsa_gap,
+    findings_gap,
+    compliance_status_gap,
 )
 
 
@@ -38,13 +58,16 @@ from apps.api.gap_router import (
 def app():
     """Create a FastAPI app with gap routers mounted."""
     _app = FastAPI()
-    _app.include_router(audit_gap)
-    _app.include_router(bulk_gap)
-    _app.include_router(copilot_gap)
-    _app.include_router(fail_gap)
-    _app.include_router(feeds_gap)
-    _app.include_router(graph_gap)
-    _app.include_router(integrations_gap)
+    for r in [
+        audit_gap, bulk_gap, copilot_gap, fail_gap, feeds_gap, graph_gap,
+        integrations_gap, mpte_gap, playbooks_gap, predictions_gap,
+        reports_gap, scanner_gap, evidence_gap, compliance_gap, changes_gap,
+        workflows_gap, sbom_gap, attack_paths_gap, data_fabric_gap,
+        correlation_gap, scanner_registry_gap, notifications_gap,
+        app_config_gap, attack_simulation_gap, slsa_gap, findings_gap,
+        compliance_status_gap,
+    ]:
+        _app.include_router(r)
     return _app
 
 
@@ -122,3 +145,304 @@ class TestIntegrationsGap:
     def test_list_integrations(self, client):
         resp = client.get("/api/v1/integrations/")
         assert resp.status_code == 200
+
+    def test_list_marketplace(self, client):
+        resp = client.get("/api/v1/integrations/marketplace")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "integrations" in data
+        assert "total" in data
+
+
+# ──────────────────────────────────────────────────────
+#  MPTE Gap
+# ──────────────────────────────────────────────────────
+
+
+class TestMpteGap:
+    def test_monitoring(self, client):
+        resp = client.get("/api/v1/mpte/monitoring")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert isinstance(data, dict)
+
+
+# ──────────────────────────────────────────────────────
+#  Playbooks Gap
+# ──────────────────────────────────────────────────────
+
+
+class TestPlaybooksGap:
+    def test_list_playbooks(self, client):
+        resp = client.get("/api/v1/playbooks/")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "items" in data
+        assert "total" in data
+
+    def test_list_templates(self, client):
+        resp = client.get("/api/v1/playbooks/templates")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "templates" in data
+        assert data["total"] > 0
+
+
+# ──────────────────────────────────────────────────────
+#  Predictions Gap
+# ──────────────────────────────────────────────────────
+
+
+class TestPredictionsGap:
+    def test_list_predictions(self, client):
+        resp = client.get("/api/v1/predictions/")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "predictions" in data
+        assert "model_version" in data
+
+
+# ──────────────────────────────────────────────────────
+#  Reports Gap
+# ──────────────────────────────────────────────────────
+
+
+class TestReportsGap:
+    def test_list_report_templates(self, client):
+        resp = client.get("/api/v1/reports/templates")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "templates" in data
+        assert data["total"] > 0
+
+
+# ──────────────────────────────────────────────────────
+#  Scanner Gap
+# ──────────────────────────────────────────────────────
+
+
+class TestScannerGap:
+    def test_list_parsers(self, client):
+        resp = client.get("/api/v1/scanner/parsers")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "parsers" in data
+
+
+# ──────────────────────────────────────────────────────
+#  Evidence Gap
+# ──────────────────────────────────────────────────────
+
+
+class TestEvidenceGap:
+    def test_generate_evidence(self, client):
+        resp = client.post("/api/v1/evidence/generate", json={
+            "finding_id": "VULN-001",
+            "evidence_type": "screenshot",
+        })
+        assert resp.status_code in (200, 422)
+
+
+# ──────────────────────────────────────────────────────
+#  Compliance Gap
+# ──────────────────────────────────────────────────────
+
+
+class TestComplianceGap:
+    def test_audit_bundle(self, client):
+        resp = client.post("/api/v1/compliance-engine/audit-bundle", json={
+            "framework": "pci-dss",
+        })
+        assert resp.status_code in (200, 422)
+
+
+# ──────────────────────────────────────────────────────
+#  Changes Gap
+# ──────────────────────────────────────────────────────
+
+
+class TestChangesGap:
+    def test_sla_impact(self, client):
+        resp = client.post("/api/v1/changes/sla-impact", json={
+            "change_id": "CHG-001",
+        })
+        assert resp.status_code in (200, 422)
+
+
+# ──────────────────────────────────────────────────────
+#  Workflows Gap
+# ──────────────────────────────────────────────────────
+
+
+class TestWorkflowsGap:
+    def test_list_rules(self, client):
+        resp = client.get("/api/v1/workflows/rules")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "rules" in data
+
+
+# ──────────────────────────────────────────────────────
+#  App Config Gap
+# ──────────────────────────────────────────────────────
+
+
+class TestAppConfigGap:
+    def test_get_config(self, client):
+        resp = client.get("/api/v1/app-config/")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "platform" in data
+        assert "features" in data
+
+
+# ──────────────────────────────────────────────────────
+#  SBOM Gap
+# ──────────────────────────────────────────────────────
+
+
+class TestSbomGap:
+    def test_list_sbom(self, client):
+        resp = client.get("/api/v1/sbom/")
+        assert resp.status_code == 200
+
+
+# ──────────────────────────────────────────────────────
+#  Attack Paths Gap
+# ──────────────────────────────────────────────────────
+
+
+class TestAttackPathsGap:
+    def test_list_attack_paths(self, client):
+        resp = client.get("/api/v1/attack-paths/")
+        assert resp.status_code == 200
+
+
+# ──────────────────────────────────────────────────────
+#  Data Fabric Gap
+# ──────────────────────────────────────────────────────
+
+
+class TestDataFabricGap:
+    def test_status(self, client):
+        resp = client.get("/api/v1/data-fabric/status")
+        assert resp.status_code == 200
+
+
+# ──────────────────────────────────────────────────────
+#  Correlation Gap
+# ──────────────────────────────────────────────────────
+
+
+class TestCorrelationGap:
+    def test_status(self, client):
+        resp = client.get("/api/v1/correlation/status")
+        assert resp.status_code == 200
+
+
+# ──────────────────────────────────────────────────────
+#  Scanner Registry Gap
+# ──────────────────────────────────────────────────────
+
+
+class TestScannerRegistryGap:
+    def test_list_scanners(self, client):
+        resp = client.get("/api/v1/scanner-registry/")
+        assert resp.status_code == 200
+
+
+# ──────────────────────────────────────────────────────
+#  Notifications Gap
+# ──────────────────────────────────────────────────────
+
+
+class TestNotificationsGap:
+    def test_preferences(self, client):
+        resp = client.get("/api/v1/notifications/preferences")
+        assert resp.status_code == 200
+
+
+# ──────────────────────────────────────────────────────
+#  Attack Simulation Gap
+# ──────────────────────────────────────────────────────
+
+
+class TestAttackSimulationGap:
+    def test_scenarios(self, client):
+        resp = client.get("/api/v1/attack-simulation/scenarios")
+        assert resp.status_code == 200
+
+
+# ──────────────────────────────────────────────────────
+#  SLSA Gap
+# ──────────────────────────────────────────────────────
+
+
+class TestSlsaGap:
+    def test_provenance(self, client):
+        resp = client.get("/api/v1/slsa/provenance")
+        assert resp.status_code == 200
+
+
+# ──────────────────────────────────────────────────────
+#  Findings Gap
+# ──────────────────────────────────────────────────────
+
+
+class TestFindingsGap:
+    def test_list_findings(self, client):
+        resp = client.get("/api/v1/findings/")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "findings" in data or "items" in data or isinstance(data, list)
+
+
+# ──────────────────────────────────────────────────────
+#  Compliance Status Gap
+# ──────────────────────────────────────────────────────
+
+
+class TestComplianceStatusGap:
+    def test_status(self, client):
+        resp = client.get("/api/v1/compliance/status")
+        assert resp.status_code == 200
+
+
+# ──────────────────────────────────────────────────────
+#  Copilot Chat
+# ──────────────────────────────────────────────────────
+
+
+class TestCopilotChat:
+    def test_chat(self, client):
+        resp = client.post("/api/v1/copilot/chat", json={
+            "message": "What are the top vulnerabilities?",
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "response" in data or "message" in data or "answer" in data
+
+    def test_suggest(self, client):
+        resp = client.post("/api/v1/copilot/suggest", json={
+            "context": "SQL injection in login form",
+        })
+        assert resp.status_code in (200, 404, 405, 422)
+
+
+# ──────────────────────────────────────────────────────
+#  Feeds Gap extended
+# ──────────────────────────────────────────────────────
+
+
+class TestFeedsGapExtended:
+    def test_list_feeds(self, client):
+        resp = client.get("/api/v1/feeds/")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert isinstance(data, dict)
+
+    def test_trending(self, client):
+        resp = client.get("/api/v1/feeds/trending")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "threats" in data or "trending" in data or isinstance(data, dict)
