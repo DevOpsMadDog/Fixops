@@ -3551,7 +3551,7 @@ ALL_GAP_ROUTERS.append(supply_chain_gap)
 
 
 # ── P19: SBOM GENERATION (CycloneDX / SPDX) ────────────────────────────────
-sbom_gap = APIRouter(prefix="/api/v1/sbom", tags=["sbom-gap"])
+# NOTE: sbom_gap router already defined above (line ~1627) — add routes to it
 
 
 @sbom_gap.post("/generate")
@@ -3608,7 +3608,7 @@ async def sbom_export(
         raise HTTPException(status_code=500, detail=f"SBOM export failed: {exc}")
 
 
-ALL_GAP_ROUTERS.append(sbom_gap)
+# sbom_gap already in ALL_GAP_ROUTERS from original definition above
 
 
 # ── P21: LICENSE COMPLIANCE ALERTING ─────────────────────────────────────────

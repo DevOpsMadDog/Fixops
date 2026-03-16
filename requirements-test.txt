@@ -9,6 +9,7 @@ pytest-cov>=4.1.0
 pytest-asyncio>=0.21.0
 pytest-mock>=3.11.0
 pytest-timeout>=2.2.0
+pytest-xdist>=3.5.0
 
 # Additional deps for async / DB tests
 aiohttp>=3.9.0
