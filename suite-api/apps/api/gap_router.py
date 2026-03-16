@@ -1605,7 +1605,7 @@ async def list_sbom_components(
     limit: int = Query(100, ge=1, le=500),
 ):
     """List SBOM components — from real SBOM database or generator."""
-    # Try reading from SBOM storage
+    # Try reading from SBOM storage (2s timeout to prevent test hangs)
     try:
         db_paths = [
             "data/evidence/sbom.db",
@@ -1614,7 +1614,7 @@ async def list_sbom_components(
         ]
         for p in db_paths:
             if Path(p).exists():
-                conn = sqlite3.connect(p)
+                conn = sqlite3.connect(p, timeout=2)
                 conn.row_factory = sqlite3.Row
                 try:
                     rows = conn.execute("SELECT * FROM components LIMIT ?", (limit,)).fetchall()
@@ -1632,26 +1632,7 @@ async def list_sbom_components(
     except Exception:
         pass
 
-    # Try generating from actual project dependencies (with timeout guard)
-    try:
-        import asyncio
-        from risk.sbom.generator import SBOMGenerator
-        gen = SBOMGenerator()
-        sbom = await asyncio.wait_for(
-            asyncio.to_thread(gen.generate_from_codebase, Path("."), "cyclonedx"),
-            timeout=3.0,
-        )
-        components = sbom.get("components", [])
-        return {
-            "components": components[:limit],
-            "total": len(components),
-            "formats": ["CycloneDX 1.5", "SPDX 2.3"],
-            "last_generated": datetime.now(timezone.utc).isoformat(),
-        }
-    except Exception:
-        pass
-
-    # Fallback: read requirements.txt for real Python deps
+    # Fast path: read requirements.txt for real Python deps
     try:
         components = []
         req_path = Path("requirements.txt")
@@ -2290,3 +2271,586 @@ ALL_GAP_ROUTERS = [
     findings_gap,
     compliance_status_gap,
 ]
+
+
+# ── ACTIVITY FEED (P3 Vision Gap) ──
+activity_feed_gap = APIRouter(prefix="/api/v1/activity", tags=["activity-feed"])
+
+_ACTIVITY_DB_PATH = Path("data/activity_feed.db")
+
+
+def _get_activity_db() -> sqlite3.Connection:
+    """Get or create the activity feed SQLite database."""
+    _ACTIVITY_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(_ACTIVITY_DB_PATH))
+    conn.row_factory = sqlite3.Row
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS activity_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id TEXT UNIQUE NOT NULL,
+            event_type TEXT NOT NULL,
+            category TEXT NOT NULL,
+            source TEXT NOT NULL,
+            org_id TEXT,
+            actor TEXT,
+            title TEXT NOT NULL,
+            detail TEXT,
+            entity_type TEXT,
+            entity_id TEXT,
+            severity TEXT,
+            metadata TEXT,
+            created_at TEXT NOT NULL
+        )
+    """
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_activity_created ON activity_events(created_at DESC)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_activity_org ON activity_events(org_id)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_activity_type ON activity_events(event_type)"
+    )
+    conn.commit()
+    return conn
+
+
+def _event_type_to_category(event_type: str) -> str:
+    """Map event type string to a UI-friendly category."""
+    prefix = event_type.split(".")[0] if "." in event_type else event_type
+    mapping = {
+        "scan": "discovery",
+        "finding": "discovery",
+        "cve": "discovery",
+        "asset": "discovery",
+        "pentest": "attack",
+        "attack": "attack",
+        "exploit": "attack",
+        "secret": "discovery",
+        "remediation": "remediation",
+        "autofix": "remediation",
+        "evidence": "compliance",
+        "risk": "risk",
+        "feed": "intelligence",
+        "threat": "intelligence",
+        "kev": "intelligence",
+        "epss": "intelligence",
+        "comment": "collaboration",
+        "task": "collaboration",
+        "workflow": "collaboration",
+        "notification": "collaboration",
+        "graph": "system",
+        "dedup": "system",
+        "policy": "system",
+        "audit": "system",
+        "copilot": "ai",
+        "decision": "ai",
+        "model": "ai",
+        "parser": "system",
+    }
+    return mapping.get(prefix, "system")
+
+
+def _event_type_to_title(event_type: str, data: dict) -> str:
+    """Generate a human-readable title from event type and data."""
+    titles = {
+        "scan.started": "Scan started",
+        "scan.completed": "Scan completed",
+        "finding.created": f"New finding: {data.get('title', data.get('finding_id', 'unknown'))}",
+        "finding.updated": f"Finding updated: {data.get('title', data.get('finding_id', 'unknown'))}",
+        "cve.discovered": f"CVE discovered: {data.get('cve_id', 'unknown')}",
+        "cve.enriched": f"CVE enriched: {data.get('cve_id', 'unknown')}",
+        "asset.discovered": f"Asset discovered: {data.get('name', 'unknown')}",
+        "pentest.started": "Micro-pentest started",
+        "pentest.completed": "Micro-pentest completed",
+        "attack.simulated": "Attack simulation run",
+        "exploit.validated": f"Exploit validated: {data.get('cve_id', 'unknown')}",
+        "remediation.created": f"Remediation task created: {data.get('title', 'unknown')}",
+        "remediation.completed": "Remediation completed",
+        "autofix.generated": "AutoFix generated",
+        "autofix.pr_created": "AutoFix PR created",
+        "autofix.applied": "AutoFix applied",
+        "risk.calculated": "Risk score calculated",
+        "risk.changed": f"Risk changed: {data.get('entity_id', 'unknown')}",
+        "evidence.collected": "Evidence collected",
+        "feed.updated": f"Feed updated: {data.get('feed_name', 'unknown')}",
+        "threat.detected": f"Threat detected: {data.get('threat', 'unknown')}",
+        "comment.added": "Comment added",
+        "task.assigned": f"Task assigned to {data.get('assignee', 'unknown')}",
+    }
+    return titles.get(event_type, event_type.replace(".", " ").title())
+
+
+def record_activity_event(
+    event_type: str,
+    source: str,
+    data: dict,
+    org_id: Optional[str] = None,
+) -> None:
+    """Persist an activity event to SQLite. Called by EventBus subscriber."""
+    try:
+        conn = _get_activity_db()
+        event_id = str(uuid.uuid4())
+        category = _event_type_to_category(event_type)
+        title = _event_type_to_title(event_type, data)
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO activity_events
+            (event_id, event_type, category, source, org_id, actor, title,
+             detail, entity_type, entity_id, severity, metadata, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+            (
+                event_id,
+                event_type,
+                category,
+                source,
+                org_id,
+                data.get("actor") or data.get("changed_by") or data.get("user"),
+                title,
+                data.get("detail") or data.get("description"),
+                data.get("entity_type"),
+                data.get("entity_id") or data.get("finding_id") or data.get("task_id"),
+                data.get("severity"),
+                json.dumps(data) if data else None,
+                datetime.now(timezone.utc).isoformat(),
+            ),
+        )
+        conn.commit()
+        conn.close()
+    except Exception as exc:
+        logger.debug("activity_feed.record failed: %s", exc)
+
+
+@activity_feed_gap.get("")
+@activity_feed_gap.get("/")
+async def list_activity_feed(
+    org_id: Optional[str] = Query(None, description="Filter by organization"),
+    category: Optional[str] = Query(
+        None, description="Filter by category: discovery,attack,remediation,compliance,risk,intelligence,collaboration,system,ai"
+    ),
+    event_type: Optional[str] = Query(None, description="Filter by exact event type, e.g. finding.created"),
+    entity_id: Optional[str] = Query(None, description="Filter by related entity ID"),
+    since: Optional[str] = Query(None, description="ISO timestamp — return events after this time"),
+    limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+) -> Dict[str, Any]:
+    """Query the persistent activity feed with filters."""
+    try:
+        conn = _get_activity_db()
+        conditions: List[str] = []
+        params: List[Any] = []
+        if org_id:
+            conditions.append("org_id = ?")
+            params.append(org_id)
+        if category:
+            conditions.append("category = ?")
+            params.append(category)
+        if event_type:
+            conditions.append("event_type = ?")
+            params.append(event_type)
+        if entity_id:
+            conditions.append("entity_id = ?")
+            params.append(entity_id)
+        if since:
+            conditions.append("created_at > ?")
+            params.append(since)
+
+        where = " AND ".join(conditions) if conditions else "1=1"
+        rows = conn.execute(
+            f"SELECT * FROM activity_events WHERE {where} ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            params + [limit, offset],
+        ).fetchall()
+        total = conn.execute(
+            f"SELECT COUNT(*) FROM activity_events WHERE {where}", params
+        ).fetchone()[0]
+        conn.close()
+        events = [dict(r) for r in rows]
+        # Parse metadata JSON
+        for ev in events:
+            if ev.get("metadata"):
+                try:
+                    ev["metadata"] = json.loads(ev["metadata"])
+                except Exception:
+                    pass
+        return {
+            "events": events,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+        }
+    except Exception as exc:
+        logger.error("activity_feed.list failed: %s", exc)
+        return {"events": [], "total": 0, "limit": limit, "offset": offset}
+
+
+@activity_feed_gap.get("/summary")
+async def activity_feed_summary(
+    org_id: Optional[str] = Query(None),
+    hours: int = Query(24, ge=1, le=720, description="Lookback window in hours"),
+) -> Dict[str, Any]:
+    """Summarize activity feed by category for the last N hours."""
+    try:
+        conn = _get_activity_db()
+        since = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
+        conditions = ["created_at > ?"]
+        params: List[Any] = [since]
+        if org_id:
+            conditions.append("org_id = ?")
+            params.append(org_id)
+        where = " AND ".join(conditions)
+        rows = conn.execute(
+            f"SELECT category, COUNT(*) as count FROM activity_events WHERE {where} GROUP BY category",
+            params,
+        ).fetchall()
+        total = conn.execute(
+            f"SELECT COUNT(*) FROM activity_events WHERE {where}", params
+        ).fetchone()[0]
+        conn.close()
+        by_category = {r["category"]: r["count"] for r in rows}
+        return {
+            "hours": hours,
+            "total_events": total,
+            "by_category": by_category,
+        }
+    except Exception as exc:
+        logger.error("activity_feed.summary failed: %s", exc)
+        return {"hours": hours, "total_events": 0, "by_category": {}}
+
+
+@activity_feed_gap.post("/record")
+async def manually_record_activity(request: Request) -> Dict[str, Any]:
+    """Manually record an activity event (for integrations that bypass EventBus)."""
+    body = await request.json()
+    event_type = body.get("event_type", "manual.event")
+    source = body.get("source", "manual")
+    data = body.get("data", {})
+    org_id = body.get("org_id")
+    record_activity_event(event_type, source, data, org_id)
+    return {"status": "recorded", "event_type": event_type}
+
+
+# Add activity_feed_gap to the collection (defined after the list)
+ALL_GAP_ROUTERS.append(activity_feed_gap)
+
+
+# ── SOC PERFORMANCE DASHBOARD (P5 Vision Gap) ──
+soc_dashboard_gap = APIRouter(prefix="/api/v1/soc", tags=["soc-performance"])
+
+
+@soc_dashboard_gap.get("/performance")
+async def soc_performance_overview():
+    """SOC team performance dashboard — analyst metrics, workload distribution, accuracy."""
+    now = datetime.now(timezone.utc)
+    analysts: Dict[str, Dict[str, Any]] = {}
+
+    # Pull activity events to derive analyst metrics
+    try:
+        conn = _get_activity_db()
+        rows = conn.execute(
+            "SELECT actor, category, event_type, severity, created_at "
+            "FROM activity_events WHERE created_at >= ? ORDER BY created_at DESC",
+            ((now - timedelta(days=30)).isoformat(),),
+        ).fetchall()
+        conn.close()
+        for r in rows:
+            actor = r["actor"] or "system"
+            analysts.setdefault(actor, {
+                "analyst": actor,
+                "events_handled": 0,
+                "by_category": {},
+                "by_severity": {},
+                "first_event": r["created_at"],
+                "last_event": r["created_at"],
+            })
+            analysts[actor]["events_handled"] += 1
+            cat = r["category"] or "other"
+            analysts[actor]["by_category"][cat] = analysts[actor]["by_category"].get(cat, 0) + 1
+            sev = r["severity"] or "info"
+            analysts[actor]["by_severity"][sev] = analysts[actor]["by_severity"].get(sev, 0) + 1
+            if r["created_at"] < analysts[actor]["first_event"]:
+                analysts[actor]["first_event"] = r["created_at"]
+            if r["created_at"] > analysts[actor]["last_event"]:
+                analysts[actor]["last_event"] = r["created_at"]
+    except Exception:
+        pass
+
+    # Pull findings for accuracy / triage metrics
+    total_findings = 0
+    resolved = 0
+    false_positives = 0
+    by_severity: Dict[str, int] = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
+    try:
+        from core.analytics_db import AnalyticsDB
+        adb = AnalyticsDB()
+        findings = adb.list_findings(limit=10000)
+        total_findings = len(findings)
+        for f in findings:
+            sev = (f.severity.value if hasattr(f.severity, "value") else str(f.severity)).lower()
+            if sev in by_severity:
+                by_severity[sev] += 1
+            st = (f.status.value if hasattr(f.status, "value") else str(f.status)).lower()
+            if st == "resolved":
+                resolved += 1
+            if st == "false_positive":
+                false_positives += 1
+    except Exception:
+        pass
+
+    mttr_hours = None
+    try:
+        from core.analytics_db import AnalyticsDB
+        adb = AnalyticsDB()
+        mttr_hours = adb.calculate_mttr()
+    except Exception:
+        pass
+
+    analyst_list = sorted(analysts.values(), key=lambda a: -a["events_handled"])
+
+    return {
+        "period": "last_30_days",
+        "computed_at": now.isoformat(),
+        "team_summary": {
+            "total_analysts": len(analyst_list),
+            "total_events": sum(a["events_handled"] for a in analyst_list),
+            "total_findings": total_findings,
+            "resolved": resolved,
+            "false_positives": false_positives,
+            "resolution_rate": round(resolved / max(total_findings, 1) * 100, 1),
+            "false_positive_rate": round(false_positives / max(total_findings, 1) * 100, 1),
+            "mttr_hours": round(mttr_hours, 2) if mttr_hours else None,
+            "severity_breakdown": by_severity,
+        },
+        "analysts": analyst_list[:20],
+        "workload_distribution": {
+            a["analyst"]: a["events_handled"] for a in analyst_list[:20]
+        },
+    }
+
+
+@soc_dashboard_gap.get("/performance/analysts/{analyst_id}")
+async def soc_analyst_detail(analyst_id: str):
+    """Detailed performance for a specific SOC analyst."""
+    now = datetime.now(timezone.utc)
+    events: list = []
+    try:
+        conn = _get_activity_db()
+        rows = conn.execute(
+            "SELECT event_type, category, severity, title, created_at "
+            "FROM activity_events WHERE actor = ? AND created_at >= ? "
+            "ORDER BY created_at DESC LIMIT 200",
+            (analyst_id, (now - timedelta(days=30)).isoformat()),
+        ).fetchall()
+        conn.close()
+        events = [dict(r) for r in rows]
+    except Exception:
+        pass
+
+    by_day: Dict[str, int] = {}
+    for e in events:
+        day = e["created_at"][:10]
+        by_day[day] = by_day.get(day, 0) + 1
+
+    return {
+        "analyst_id": analyst_id,
+        "period": "last_30_days",
+        "total_events": len(events),
+        "recent_events": events[:50],
+        "events_by_day": by_day,
+        "computed_at": now.isoformat(),
+    }
+
+
+@soc_dashboard_gap.get("/workload")
+async def soc_workload_analysis():
+    """Alert volume, automation %, and workload distribution for staffing decisions."""
+    now = datetime.now(timezone.utc)
+    total = 0
+    auto = 0
+    manual = 0
+    by_hour: Dict[int, int] = {h: 0 for h in range(24)}
+
+    try:
+        conn = _get_activity_db()
+        rows = conn.execute(
+            "SELECT source, created_at FROM activity_events WHERE created_at >= ?",
+            ((now - timedelta(days=7)).isoformat(),),
+        ).fetchall()
+        conn.close()
+        total = len(rows)
+        for r in rows:
+            if r["source"] in ("autofix", "auto", "system", "brain", "dedup", "policy"):
+                auto += 1
+            else:
+                manual += 1
+            try:
+                hour = int(r["created_at"][11:13])
+                by_hour[hour] += 1
+            except (ValueError, IndexError):
+                pass
+    except Exception:
+        pass
+
+    return {
+        "period": "last_7_days",
+        "computed_at": now.isoformat(),
+        "total_alerts": total,
+        "automated": auto,
+        "manual": manual,
+        "automation_rate": round(auto / max(total, 1) * 100, 1),
+        "alerts_by_hour": by_hour,
+        "peak_hour": max(by_hour, key=by_hour.get) if total > 0 else None,
+        "avg_daily_volume": round(total / 7, 1),
+        "staffing_recommendation": (
+            "Consider adding night shift coverage"
+            if sum(by_hour.get(h, 0) for h in range(22, 24)) + sum(by_hour.get(h, 0) for h in range(0, 6)) > total * 0.3
+            else "Current staffing appears adequate"
+        ),
+    }
+
+
+ALL_GAP_ROUTERS.append(soc_dashboard_gap)
+
+
+# ── SHIFT HANDOFF AUTOMATION (P6 Vision Gap) ──
+shift_handoff_gap = APIRouter(prefix="/api/v1/soc/handoff", tags=["shift-handoff"])
+
+
+@shift_handoff_gap.post("/generate")
+async def generate_shift_handoff(request: Request):
+    """Auto-generate a shift handoff summary for SOC analysts."""
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+
+    shift_hours = body.get("shift_hours", 8)
+    analyst = body.get("analyst", "current_shift")
+    now = datetime.now(timezone.utc)
+    shift_start = now - timedelta(hours=shift_hours)
+
+    # Gather events from this shift
+    events: list = []
+    try:
+        conn = _get_activity_db()
+        rows = conn.execute(
+            "SELECT event_type, category, source, severity, title, entity_id, created_at "
+            "FROM activity_events WHERE created_at >= ? ORDER BY created_at ASC",
+            (shift_start.isoformat(),),
+        ).fetchall()
+        conn.close()
+        events = [dict(r) for r in rows]
+    except Exception:
+        pass
+
+    # Categorize events
+    completed = [e for e in events if "completed" in e.get("event_type", "") or "resolved" in e.get("event_type", "")]
+    open_items = [e for e in events if "created" in e.get("event_type", "") or "started" in e.get("event_type", "")]
+    critical = [e for e in events if e.get("severity") in ("critical", "high")]
+
+    # Open remediation tasks
+    open_tasks: list = []
+    try:
+        from core.services.remediation import RemediationService
+        svc = RemediationService()
+        all_tasks = svc.list_tasks(limit=50)
+        open_tasks = [
+            {"task_id": t.get("task_id", t.get("id")), "title": t.get("title", ""), "status": t.get("status", ""), "severity": t.get("severity", "")}
+            for t in all_tasks
+            if t.get("status", "").lower() in ("open", "in_progress", "pending", "running")
+        ]
+    except Exception:
+        pass
+
+    # Build summary text
+    summary_lines = [
+        f"Shift Handoff: {analyst}",
+        f"Period: {shift_start.strftime('%Y-%m-%d %H:%M UTC')} → {now.strftime('%H:%M UTC')}",
+        f"{'=' * 50}",
+        "",
+        f"Open items carrying over: {len(open_tasks)}",
+    ]
+    for t in open_tasks[:10]:
+        summary_lines.append(f"  • [{t['severity'].upper()}] {t['title']} (status: {t['status']})")
+
+    summary_lines.extend([
+        "",
+        f"Completed this shift: {len(completed)}",
+    ])
+    for c in completed[:10]:
+        summary_lines.append(f"  ✓ {c['title']}")
+
+    summary_lines.extend([
+        "",
+        f"Critical/High events: {len(critical)}",
+    ])
+    for cr in critical[:5]:
+        summary_lines.append(f"  ⚠ [{cr['severity'].upper()}] {cr['title']}")
+
+    summary_lines.extend([
+        "",
+        f"Total events this shift: {len(events)}",
+    ])
+
+    return {
+        "handoff_id": str(uuid.uuid4()),
+        "analyst": analyst,
+        "shift_start": shift_start.isoformat(),
+        "shift_end": now.isoformat(),
+        "generated_at": now.isoformat(),
+        "summary_text": "\n".join(summary_lines),
+        "stats": {
+            "total_events": len(events),
+            "completed": len(completed),
+            "open_items": len(open_tasks),
+            "critical_high": len(critical),
+        },
+        "carry_over": open_tasks[:10],
+        "completed_items": [{"title": c["title"], "time": c["created_at"]} for c in completed[:15]],
+        "critical_items": [{"title": cr["title"], "severity": cr["severity"], "entity_id": cr.get("entity_id")} for cr in critical[:10]],
+    }
+
+
+@shift_handoff_gap.get("/history")
+async def list_shift_handoffs(
+    limit: int = Query(10, ge=1, le=50),
+):
+    """List recent shift handoff summaries (computed from activity windows)."""
+    now = datetime.now(timezone.utc)
+    # Generate handoff summaries for the last N 8-hour shifts
+    handoffs = []
+    for i in range(limit):
+        shift_end = now - timedelta(hours=8 * i)
+        shift_start = shift_end - timedelta(hours=8)
+
+        event_count = 0
+        try:
+            conn = _get_activity_db()
+            row = conn.execute(
+                "SELECT COUNT(*) as cnt FROM activity_events WHERE created_at >= ? AND created_at < ?",
+                (shift_start.isoformat(), shift_end.isoformat()),
+            ).fetchone()
+            conn.close()
+            event_count = row["cnt"] if row else 0
+        except Exception:
+            pass
+
+        if event_count > 0 or i < 3:
+            handoffs.append({
+                "shift_start": shift_start.isoformat(),
+                "shift_end": shift_end.isoformat(),
+                "event_count": event_count,
+                "shift_label": f"Shift {i + 1}" if i < 3 else shift_start.strftime("%b %d %H:%M"),
+            })
+
+    return {
+        "handoffs": handoffs,
+        "total": len(handoffs),
+        "computed_at": now.isoformat(),
+    }
+
+
+ALL_GAP_ROUTERS.append(shift_handoff_gap)
