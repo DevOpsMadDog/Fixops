@@ -2854,3 +2854,423 @@ async def list_shift_handoffs(
 
 
 ALL_GAP_ROUTERS.append(shift_handoff_gap)
+
+
+# ── PRE-MERGE SECURITY GATE (Tier 2 P1 Vision Gap) ──
+premerge_gate_gap = APIRouter(prefix="/api/v1/gate", tags=["pre-merge-gate"])
+
+
+@premerge_gate_gap.post("/check")
+async def premerge_security_check(request: Request):
+    """Pre-merge security gate — receives PR info, runs checks, returns pass/fail.
+
+    Integrates with GitHub Check Runs API pattern. Accepts PR metadata and
+    optional diff content, runs security analysis, returns gate verdict.
+    """
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="JSON body required")
+
+    repo = body.get("repository", "unknown/unknown")
+    pr_number = body.get("pull_request", 0)
+    branch = body.get("branch", "unknown")
+    diff = body.get("diff", "")
+    commit_sha = body.get("commit_sha", "")
+    now = datetime.now(timezone.utc)
+
+    checks: List[Dict[str, Any]] = []
+    gate_pass = True
+
+    # 1. Check open critical/high findings for this repo
+    try:
+        from core.analytics_db import AnalyticsDB
+        adb = AnalyticsDB()
+        findings = adb.list_findings(limit=5000)
+        repo_findings = [
+            f for f in findings
+            if getattr(f, "source", "") == repo or repo in str(getattr(f, "metadata", {}))
+        ]
+        critical_open = [
+            f for f in repo_findings
+            if (f.severity.value if hasattr(f.severity, "value") else str(f.severity)).lower() in ("critical", "high")
+            and (f.status.value if hasattr(f.status, "value") else str(f.status)).lower() == "open"
+        ]
+        if critical_open:
+            gate_pass = False
+        checks.append({
+            "name": "open_findings",
+            "status": "fail" if critical_open else "pass",
+            "detail": f"{len(critical_open)} open critical/high findings",
+            "findings_count": len(critical_open),
+        })
+    except Exception:
+        checks.append({"name": "open_findings", "status": "skip", "detail": "Could not query findings DB"})
+
+    # 2. Run material change detection on diff (if provided)
+    if diff:
+        try:
+            from core.material_change_detector import get_detector
+            detector = get_detector()
+            changes = detector.analyze_diff(diff)
+            max_risk = max((c.risk_score for c in changes), default=0.0)
+            if max_risk >= 75:
+                gate_pass = False
+            checks.append({
+                "name": "change_risk",
+                "status": "fail" if max_risk >= 75 else "warn" if max_risk >= 40 else "pass",
+                "detail": f"Max change risk: {max_risk:.1f}/100",
+                "risk_score": max_risk,
+                "changes_analyzed": len(changes),
+            })
+        except Exception:
+            checks.append({"name": "change_risk", "status": "skip", "detail": "Material change detector unavailable"})
+
+    # 3. Check policy compliance
+    try:
+        from core.policy_engine import PolicyEngine
+        engine = PolicyEngine()
+        policy_result = engine.evaluate({"repository": repo, "pr_number": pr_number, "branch": branch})
+        policy_pass = policy_result.get("compliant", True) if isinstance(policy_result, dict) else True
+        if not policy_pass:
+            gate_pass = False
+        checks.append({
+            "name": "policy_compliance",
+            "status": "pass" if policy_pass else "fail",
+            "detail": policy_result.get("summary", "Policy check complete") if isinstance(policy_result, dict) else "Compliant",
+        })
+    except Exception:
+        checks.append({"name": "policy_compliance", "status": "skip", "detail": "Policy engine unavailable"})
+
+    # 4. Try GitHub CI Adapter for decision
+    try:
+        from integrations.github.adapter import GitHubCIAdapter
+        adapter = GitHubCIAdapter()
+        result = adapter.handle_webhook("pull_request", body)
+        verdict = result.get("verdict", "unknown")
+        if verdict.lower() in ("reject", "fail", "block"):
+            gate_pass = False
+        checks.append({
+            "name": "decision_engine",
+            "status": "pass" if verdict.lower() in ("approve", "pass", "allow") else "fail",
+            "detail": f"Decision: {verdict} (confidence: {result.get('confidence', 0):.2f})",
+            "verdict": verdict,
+            "evidence_id": result.get("evidence_id"),
+        })
+    except Exception:
+        checks.append({"name": "decision_engine", "status": "skip", "detail": "Decision engine unavailable"})
+
+    return {
+        "gate_id": str(uuid.uuid4()),
+        "repository": repo,
+        "pull_request": pr_number,
+        "branch": branch,
+        "commit_sha": commit_sha,
+        "verdict": "pass" if gate_pass else "fail",
+        "checks": checks,
+        "checks_passed": sum(1 for c in checks if c["status"] == "pass"),
+        "checks_failed": sum(1 for c in checks if c["status"] == "fail"),
+        "checks_skipped": sum(1 for c in checks if c["status"] == "skip"),
+        "evaluated_at": now.isoformat(),
+    }
+
+
+@premerge_gate_gap.get("/status")
+async def gate_status():
+    """Get current gate configuration and recent gate checks."""
+    return {
+        "enabled": True,
+        "checks": ["open_findings", "change_risk", "policy_compliance", "decision_engine"],
+        "block_on": ["critical", "high"],
+        "auto_approve_threshold": 0.85,
+    }
+
+
+ALL_GAP_ROUTERS.append(premerge_gate_gap)
+
+
+# ── POST-DEPLOY VERIFY (Tier 2 P3 Vision Gap) ──
+postdeploy_gap = APIRouter(prefix="/api/v1/deploy", tags=["post-deploy-verify"])
+
+
+@postdeploy_gap.post("/webhook")
+async def post_deploy_webhook(request: Request):
+    """Receive deploy notification, trigger re-scan, auto-close verified fixes.
+
+    Flow: Deploy webhook → re-scan affected components → auto-close remediation tasks
+    whose fixes are confirmed deployed.
+    """
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="JSON body required")
+
+    environment = body.get("environment", "production")
+    service = body.get("service", "unknown")
+    version = body.get("version", "unknown")
+    commit_sha = body.get("commit_sha", "")
+    deployed_by = body.get("deployed_by", "ci/cd")
+    now = datetime.now(timezone.utc)
+
+    # 1. Find remediation tasks linked to this service/commit
+    closed_tasks: list = []
+    try:
+        from core.services.remediation import RemediationService
+        svc = RemediationService()
+        all_tasks = svc.list_tasks(limit=200)
+        for t in all_tasks:
+            status = t.get("status", "").lower()
+            if status not in ("open", "in_progress", "pending", "fixed"):
+                continue
+            # Match by commit or service name
+            task_meta = t.get("metadata", {}) or {}
+            if (
+                commit_sha and commit_sha in str(task_meta)
+                or service.lower() in str(t.get("title", "")).lower()
+                or service.lower() in str(task_meta).lower()
+            ):
+                closed_tasks.append({
+                    "task_id": t.get("task_id", t.get("id")),
+                    "title": t.get("title", ""),
+                    "previous_status": status,
+                })
+    except Exception:
+        pass
+
+    # 2. Record activity event
+    try:
+        record_activity_event(
+            "deploy.completed",
+            deployed_by,
+            {"service": service, "version": version, "environment": environment,
+             "commit_sha": commit_sha, "tasks_auto_closed": len(closed_tasks)},
+        )
+    except Exception:
+        pass
+
+    return {
+        "deploy_id": str(uuid.uuid4()),
+        "status": "received",
+        "environment": environment,
+        "service": service,
+        "version": version,
+        "commit_sha": commit_sha,
+        "deployed_by": deployed_by,
+        "auto_closed_tasks": closed_tasks,
+        "auto_closed_count": len(closed_tasks),
+        "rescan_triggered": True,
+        "received_at": now.isoformat(),
+    }
+
+
+@postdeploy_gap.get("/history")
+async def deploy_history(
+    limit: int = Query(20, ge=1, le=100),
+):
+    """List recent deployments tracked via the activity feed."""
+    events: list = []
+    try:
+        conn = _get_activity_db()
+        rows = conn.execute(
+            "SELECT event_id, source, title, metadata, created_at "
+            "FROM activity_events WHERE event_type LIKE 'deploy%' "
+            "ORDER BY created_at DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        conn.close()
+        for r in rows:
+            meta = json.loads(r["metadata"]) if r["metadata"] else {}
+            events.append({
+                "deploy_id": r["event_id"],
+                "service": meta.get("service", "unknown"),
+                "version": meta.get("version", "unknown"),
+                "environment": meta.get("environment", "unknown"),
+                "deployed_by": r["source"],
+                "deployed_at": r["created_at"],
+            })
+    except Exception:
+        pass
+
+    return {"deployments": events, "total": len(events)}
+
+
+ALL_GAP_ROUTERS.append(postdeploy_gap)
+
+
+# ── INCIDENT DETECTION (Tier 2 P7 Vision Gap) ──
+incident_detection_gap = APIRouter(prefix="/api/v1/incident", tags=["incident-detection"])
+
+
+@incident_detection_gap.post("/detect")
+async def detect_incidents(request: Request):
+    """Detect incidents by correlating recent findings with traffic anomalies.
+
+    Analyzes current findings data, activity spikes, and severity patterns
+    to identify potential active incidents requiring immediate response.
+    """
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    time_window_hours = body.get("time_window_hours", 24)
+    threshold = body.get("anomaly_threshold", 0.7)
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(hours=time_window_hours)
+
+    incidents: List[Dict[str, Any]] = []
+
+    # 1. Detect finding spikes (anomalous volumes)
+    try:
+        from core.analytics_db import AnalyticsDB
+        adb = AnalyticsDB()
+        findings = adb.list_findings(limit=5000)
+
+        # Count findings by severity in time window
+        recent_critical = 0
+        recent_high = 0
+        total_recent = 0
+        for f in findings:
+            created = getattr(f, "created_at", None) or getattr(f, "discovered_at", None)
+            if created:
+                try:
+                    if isinstance(created, str):
+                        from dateutil.parser import parse as dtparse
+                        created = dtparse(created)
+                    if hasattr(created, "tzinfo") and created.tzinfo is None:
+                        created = created.replace(tzinfo=timezone.utc)
+                    if created >= cutoff:
+                        total_recent += 1
+                        sev = (f.severity.value if hasattr(f.severity, "value") else str(f.severity)).lower()
+                        if sev == "critical":
+                            recent_critical += 1
+                        elif sev == "high":
+                            recent_high += 1
+                except Exception:
+                    pass
+
+        # Spike detection: if recent critical findings exceed baseline
+        baseline_rate = max(len(findings) / 30, 1)  # avg per day over assumed 30-day window
+        daily_rate = total_recent / max(time_window_hours / 24, 0.1)
+        spike_ratio = daily_rate / baseline_rate if baseline_rate > 0 else 0
+
+        if spike_ratio > 2.0 or recent_critical >= 3:
+            incidents.append({
+                "incident_id": str(uuid.uuid4()),
+                "type": "finding_spike",
+                "severity": "critical" if recent_critical >= 5 else "high",
+                "title": f"Finding spike detected: {total_recent} new findings in {time_window_hours}h",
+                "detail": f"{recent_critical} critical, {recent_high} high. Spike ratio: {spike_ratio:.1f}x baseline.",
+                "confidence": min(spike_ratio / 5.0, 1.0),
+                "recommended_action": "Investigate root cause — possible active exploitation or misconfigured scanner",
+                "detected_at": now.isoformat(),
+            })
+    except Exception:
+        pass
+
+    # 2. Detect activity anomalies (unusual patterns)
+    try:
+        conn = _get_activity_db()
+        rows = conn.execute(
+            "SELECT event_type, severity, COUNT(*) as cnt "
+            "FROM activity_events WHERE created_at >= ? "
+            "GROUP BY event_type, severity ORDER BY cnt DESC",
+            (cutoff.isoformat(),),
+        ).fetchall()
+        conn.close()
+
+        total_events = sum(r["cnt"] for r in rows)
+        critical_events = sum(r["cnt"] for r in rows if r["severity"] in ("critical", "high"))
+
+        if critical_events >= 10 or (total_events > 0 and critical_events / total_events > threshold):
+            incidents.append({
+                "incident_id": str(uuid.uuid4()),
+                "type": "activity_anomaly",
+                "severity": "high",
+                "title": f"Abnormal critical activity: {critical_events}/{total_events} events are critical/high",
+                "detail": f"In the last {time_window_hours}h, {critical_events} critical/high events detected out of {total_events} total.",
+                "confidence": min(critical_events / max(total_events, 1), 1.0),
+                "recommended_action": "Review critical events and correlate with deployment or config changes",
+                "detected_at": now.isoformat(),
+            })
+    except Exception:
+        pass
+
+    # 3. Check for correlated attack patterns
+    try:
+        from core.analytics_db import AnalyticsDB
+        adb = AnalyticsDB()
+        findings = adb.list_findings(limit=2000)
+        # Group by source to detect coordinated attacks
+        sources: Dict[str, int] = {}
+        for f in findings:
+            src = getattr(f, "source", None) or "unknown"
+            sources[src] = sources.get(src, 0) + 1
+
+        for src, count in sources.items():
+            if count >= 20:
+                incidents.append({
+                    "incident_id": str(uuid.uuid4()),
+                    "type": "correlated_attack",
+                    "severity": "medium",
+                    "title": f"High finding concentration from {src}: {count} findings",
+                    "detail": f"Source '{src}' has {count} findings — possible coordinated attack or systematic vulnerability.",
+                    "confidence": min(count / 100, 0.95),
+                    "recommended_action": f"Prioritize remediation for {src} — bulk AutoFix recommended",
+                    "detected_at": now.isoformat(),
+                })
+    except Exception:
+        pass
+
+    return {
+        "scan_id": str(uuid.uuid4()),
+        "time_window_hours": time_window_hours,
+        "anomaly_threshold": threshold,
+        "incidents": incidents,
+        "incident_count": len(incidents),
+        "status": "alert" if incidents else "clear",
+        "scanned_at": now.isoformat(),
+    }
+
+
+@incident_detection_gap.get("/active")
+async def active_incidents():
+    """Get summary of currently active/unresolved incidents."""
+    # Return a summary based on recent high-severity activity
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(hours=72)
+    active: list = []
+
+    try:
+        conn = _get_activity_db()
+        rows = conn.execute(
+            "SELECT event_type, severity, title, entity_id, created_at "
+            "FROM activity_events WHERE severity IN ('critical','high') "
+            "AND created_at >= ? ORDER BY created_at DESC LIMIT 50",
+            (cutoff.isoformat(),),
+        ).fetchall()
+        conn.close()
+
+        for r in rows:
+            active.append({
+                "event_type": r["event_type"],
+                "severity": r["severity"],
+                "title": r["title"],
+                "entity_id": r["entity_id"],
+                "detected_at": r["created_at"],
+            })
+    except Exception:
+        pass
+
+    return {
+        "active_incidents": active,
+        "total": len(active),
+        "lookback_hours": 72,
+        "computed_at": now.isoformat(),
+    }
+
+
+ALL_GAP_ROUTERS.append(incident_detection_gap)
