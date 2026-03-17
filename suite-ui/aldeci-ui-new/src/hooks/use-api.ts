@@ -25,6 +25,7 @@ import {
   scannerApi,
   casesApi,
   llmApi,
+  brainApi,
   getStoredOrgId,
 } from "@/lib/api";
 import { toast } from "sonner";
@@ -667,5 +668,321 @@ export function useChangesVelocity(repo: string) {
       return data;
     },
     enabled: !!repo,
+  });
+}
+
+// ═══════════════════════════════════════════
+// Workflow mutations
+// ═══════════════════════════════════════════
+
+export function useCreateWorkflow() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: unknown) => {
+      const { data } = await workflowsApi.create(payload);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["workflows"] });
+      toast.success("Workflow rule created");
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.detail ?? "Failed to create workflow"),
+  });
+}
+
+export function useUpdateWorkflow() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data: payload }: { id: string; data: unknown }) => {
+      const { data } = await workflowsApi.update(id, payload);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["workflows"] });
+      toast.success("Workflow rule updated");
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.detail ?? "Failed to update workflow"),
+  });
+}
+
+export function useDeleteWorkflow() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await workflowsApi.delete(id);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["workflows"] });
+      toast.success("Workflow rule deleted");
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.detail ?? "Failed to delete workflow"),
+  });
+}
+
+export function useTriggerWorkflow() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await workflowsApi.trigger(id);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["workflows"] });
+      toast.success("Workflow triggered");
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.detail ?? "Failed to trigger workflow"),
+  });
+}
+
+// ═══════════════════════════════════════════
+// User mutations
+// ═══════════════════════════════════════════
+
+export function useCreateUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: unknown) => {
+      const { data } = await usersApi.create(payload);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["users"] });
+      toast.success("User invited successfully");
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.detail ?? "Failed to invite user"),
+  });
+}
+
+export function useUpdateUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data: payload }: { id: string; data: unknown }) => {
+      const { data } = await usersApi.update(id, payload);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["users"] });
+      toast.success("User updated");
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.detail ?? "Failed to update user"),
+  });
+}
+
+// ═══════════════════════════════════════════
+// Team mutations
+// ═══════════════════════════════════════════
+
+export function useCreateTeam() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: unknown) => {
+      const { data } = await teamsApi.create(payload);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["teams"] });
+      toast.success("Team created");
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.detail ?? "Failed to create team"),
+  });
+}
+
+export function useUpdateTeam() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data: payload }: { id: string; data: unknown }) => {
+      const { data } = await teamsApi.update(id, payload);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["teams"] });
+      toast.success("Team updated");
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.detail ?? "Failed to update team"),
+  });
+}
+
+// ═══════════════════════════════════════════
+// Policy mutations
+// ═══════════════════════════════════════════
+
+export function useCreatePolicy() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: unknown) => {
+      const { data } = await policiesApi.create(payload);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["policies"] });
+      toast.success("Policy created");
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.detail ?? "Failed to create policy"),
+  });
+}
+
+export function useUpdatePolicy() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data: payload }: { id: string; data: unknown }) => {
+      const { data } = await policiesApi.update(id, payload);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["policies"] });
+      toast.success("Policy updated");
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.detail ?? "Failed to update policy"),
+  });
+}
+
+// ═══════════════════════════════════════════
+// Playbook mutations
+// ═══════════════════════════════════════════
+
+export function useCreatePlaybook() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: unknown) => {
+      const { data } = await playbooksApi.create(payload);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["playbooks"] });
+      toast.success("Playbook created");
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.detail ?? "Failed to create playbook"),
+  });
+}
+
+export function useUpdatePlaybook() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data: payload }: { id: string; data: unknown }) => {
+      const { data } = await playbooksApi.update(id, payload);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["playbooks"] });
+      toast.success("Playbook saved");
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.detail ?? "Failed to save playbook"),
+  });
+}
+
+export function useRunPlaybook() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await playbooksApi.run(id);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["playbooks"] });
+      toast.success("Playbook execution started");
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.detail ?? "Failed to run playbook"),
+  });
+}
+
+// ═══════════════════════════════════════════
+// Integration mutations
+// ═══════════════════════════════════════════
+
+export function useTestIntegration() {
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await integrationsApi.test(id);
+      return data;
+    },
+    onSuccess: () => toast.success("Connection test successful"),
+    onError: (err: any) => toast.error(err?.response?.data?.detail ?? "Connection test failed"),
+  });
+}
+
+export function useSyncIntegration() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await integrationsApi.sync(id);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["integrations"] });
+      toast.success("Integration synced");
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.detail ?? "Sync failed"),
+  });
+}
+
+export function useConfigureIntegration() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data: payload }: { id: string; data: unknown }) => {
+      const { data } = await integrationsApi.configure(id, payload);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["integrations"] });
+      toast.success("Integration configured");
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.detail ?? "Configuration failed"),
+  });
+}
+
+// ═══════════════════════════════════════════
+// App + Brain mutations (for onboarding)
+// ═══════════════════════════════════════════
+
+export function useCreateApp() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: unknown) => {
+      const { data } = await appsApi.create(payload);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["apps"] });
+      toast.success("Application registered");
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.detail ?? "Failed to register app"),
+  });
+}
+
+export function useRunBrainPipeline() {
+  return useMutation({
+    mutationFn: async (payload?: unknown) => {
+      const { data } = await brainApi.pipelineRun(payload);
+      return data;
+    },
+    onSuccess: () => toast.success("Brain pipeline scan started"),
+    onError: (err: any) => toast.error(err?.response?.data?.detail ?? "Failed to start scan"),
+  });
+}
+
+export function useIngestScanner() {
+  return useMutation({
+    mutationFn: async (payload: unknown) => {
+      const { data } = await scannerApi.ingest(payload);
+      return data;
+    },
+    onSuccess: () => toast.success("Scanner data ingested"),
+    onError: (err: any) => toast.error(err?.response?.data?.detail ?? "Ingestion failed"),
+  });
+}
+
+// ═══════════════════════════════════════════
+// System admin mutations (SettingsHub)
+// ═══════════════════════════════════════════
+
+export function useSystemHealthCheck() {
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await systemApi.health();
+      return data;
+    },
+    onSuccess: (data) => toast.success(`Health check passed — status: ${data?.status ?? "ok"}`),
+    onError: (err: any) => toast.error(err?.response?.data?.detail ?? "Health check failed"),
   });
 }

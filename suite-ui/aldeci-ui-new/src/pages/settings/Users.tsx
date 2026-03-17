@@ -20,7 +20,7 @@ import {
   Users, UserPlus, Shield, Clock, CheckCircle, XCircle, Search,
   RefreshCw, MoreHorizontal, Mail, Lock, Key, Activity, Copy, Eye, EyeOff
 } from "lucide-react";
-import { useUsers } from "@/hooks/use-api";
+import { useUsers, useCreateUser, useUpdateUser } from "@/hooks/use-api";
 import { useQuery } from "@tanstack/react-query";
 import { auditApi } from "@/lib/api";
 import { getInitials } from "@/lib/utils";
@@ -46,6 +46,7 @@ const USER_ACTIVITY_LOG_FALLBACK = [
 function UserApiKeyDialog({ user }: { user: any }) {
   const [open, setOpen] = useState(false);
   const [showKey, setShowKey] = useState(false);
+  const updateUser = useUpdateUser();
   const maskedKey = `sk-${(user.name ?? user.email ?? "user").slice(0, 3)}-••••••••••••••••••••`;
   const realKey = `sk-${(user.name ?? user.email ?? "user").slice(0, 3)}-xK9mN2pQ7rL4wV8tJ1dF`;
 
@@ -87,7 +88,7 @@ function UserApiKeyDialog({ user }: { user: any }) {
           </div>
           <Separator />
           <div className="flex gap-2 justify-end">
-            <Button variant="destructive" size="sm" onClick={() => { toast.info("Key revoked locally — revoke API pending"); setOpen(false); }}>Revoke Key</Button>
+            <Button variant="destructive" size="sm" onClick={() => { updateUser.mutate({ id: user.id ?? user.email, data: { api_key: null, key_revoked: true } }); setOpen(false); }}>Revoke Key</Button>
             <Button onClick={() => setOpen(false)}>Close</Button>
           </div>
         </div>
@@ -111,13 +112,15 @@ function InviteUserDialog({ onInvite }: { onInvite: () => void }) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("Analyst");
   const [isSending, setIsSending] = useState(false);
+  const createUser = useCreateUser();
 
   const handleInvite = async () => {
     if (!email) return;
-    // TODO: Wire to real user invite API
-    toast.info(`Invite for ${email} not yet wired to API`);
-    setOpen(false);
-    setEmail("");
+    setIsSending(true);
+    createUser.mutate({ email, role, status: "pending" }, {
+      onSuccess: () => { onInvite(); setOpen(false); setEmail(""); setIsSending(false); },
+      onError: () => { setIsSending(false); },
+    });
   };
 
   return (

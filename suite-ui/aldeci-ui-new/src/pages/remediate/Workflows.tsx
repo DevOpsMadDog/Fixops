@@ -59,7 +59,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useWorkflowRules } from "@/hooks/use-api";
+import { useWorkflowRules, useCreateWorkflow, useUpdateWorkflow, useDeleteWorkflow } from "@/hooks/use-api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -286,7 +286,7 @@ function CreateRuleDialog({
     setTrigger("");
     setCondition("");
     setActions(["create_task"]);
-    toast.info("Workflow rule created locally — persist API pending");
+    // toast handled by mutation hook
   };
 
   return (
@@ -404,8 +404,10 @@ function CreateRuleDialog({
 
 export default function Workflows() {
   const rulesQuery = useWorkflowRules();
+  const createMutation = useCreateWorkflow();
+  const updateMutation = useUpdateWorkflow();
+  const deleteMutation = useDeleteWorkflow();
 
-  const [localRules, setLocalRules] = useState<Record<string, unknown>[]>([]);
   const [search, setSearch] = useState("");
   const [showActive, setShowActive] = useState(false);
   const [selectedRule, setSelectedRule] = useState<Record<string, unknown> | null>(null);
@@ -415,10 +417,8 @@ export default function Workflows() {
   if (rulesQuery.isLoading) return <PageSkeleton />;
   if (rulesQuery.isError) return <ErrorState message="Failed to load workflow rules" onRetry={refetch} />;
 
-  const apiRules: Record<string, unknown>[] =
+  const allRules: Record<string, unknown>[] =
     toArray(rulesQuery.data);
-
-  const allRules = [...apiRules, ...localRules];
 
   const activeCount = allRules.filter((r) => (r.enabled as boolean) ?? true).length;
   const totalTriggers = allRules.reduce(
@@ -448,31 +448,25 @@ export default function Workflows() {
   });
 
   const handleToggle = (id: string, enabled: boolean) => {
-    setLocalRules((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, enabled } : r))
-    );
-    toast.info(`Rule ${enabled ? "enabled" : "disabled"} locally — persist API pending`);
+    updateMutation.mutate({ id, data: { enabled } });
   };
 
   const handleDuplicate = (rule: Record<string, unknown>) => {
-    const newRule = {
-      ...rule,
-      id: `rule_${Date.now()}`,
+    const { id: _id, ...rest } = rule;
+    createMutation.mutate({
+      ...rest,
       name: `${(rule.name as string) ?? "Rule"} (Copy)`,
       total_executions: 0,
       last_triggered: "Never",
-    };
-    setLocalRules((prev) => [...prev, newRule]);
-    toast.info("Rule duplicated locally — persist API pending");
+    });
   };
 
   const handleDelete = (id: string) => {
-    setLocalRules((prev) => prev.filter((r) => r.id !== id));
-    toast.info("Rule deleted locally — persist API pending");
+    deleteMutation.mutate(id);
   };
 
   const handleCreateRule = (rule: Record<string, unknown>) => {
-    setLocalRules((prev) => [...prev, rule]);
+    createMutation.mutate(rule);
   };
 
   return (
@@ -609,7 +603,7 @@ export default function Workflows() {
                           last_triggered: "Never",
                           created_at: new Date().toISOString(),
                         });
-                        toast.info(`Rule created from template: ${template.name} — local only`);
+                        // toast handled by mutation hook
                       }}
                     >
                       <Plus className="h-3.5 w-3.5 mr-2" />

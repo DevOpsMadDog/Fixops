@@ -40,7 +40,7 @@ import {
   Code,
   Eye,
 } from "lucide-react";
-import { usePlaybooks } from "@/hooks/use-api";
+import { usePlaybooks, useCreatePlaybook, useUpdatePlaybook, useRunPlaybook } from "@/hooks/use-api";
 import { toast } from "sonner";
 
 type StepType = "trigger" | "condition" | "action" | "notification" | "wait";
@@ -326,18 +326,29 @@ export default function PlaybookEditor() {
     });
   };
 
+  const createPlaybook = useCreatePlaybook();
+  const updatePlaybook = useUpdatePlaybook();
+  const runPlaybook = useRunPlaybook();
+
   const handleSave = () => {
     if (!name.trim()) {
       toast.error("Playbook name is required");
       return;
     }
-    // TODO: Wire to POST /api/v1/playbooks (create) or PUT /api/v1/playbooks/:id (update)
-    toast.info(editId ? "Save not yet wired — playbook update API pending" : "Save not yet wired — playbook create API pending");
+    const payload = { name, description, steps, category, trigger };
+    if (editId) {
+      updatePlaybook.mutate({ id: editId, data: payload });
+    } else {
+      createPlaybook.mutate(payload);
+    }
   };
 
   const handleTest = () => {
-    // TODO: Wire to POST /api/v1/playbooks/:id/test when API is available
-    toast.info("Test run not yet wired — playbook test API pending");
+    if (editId) {
+      runPlaybook.mutate(editId);
+    } else {
+      toast.error("Save the playbook first before testing");
+    }
   };
 
   const yaml = generateYaml(name, description, steps);

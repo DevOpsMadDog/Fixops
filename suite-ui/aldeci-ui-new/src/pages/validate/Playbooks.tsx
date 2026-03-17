@@ -46,7 +46,7 @@ import {
   Grid,
   AlertCircle,
 } from "lucide-react";
-import { usePlaybooks } from "@/hooks/use-api";
+import { usePlaybooks, useRunPlaybook } from "@/hooks/use-api";
 
 const CATEGORIES = [
   "All",
@@ -358,10 +358,13 @@ export default function Playbooks() {
     setRunDialogOpen(true);
   };
 
+  const runPlaybook = useRunPlaybook();
   const handleConfirmRun = () => {
-    // TODO: Wire to POST /api/v1/playbooks/:id/run when API is available
-    toast.info("Playbook run not yet wired — execute API pending");
-    setRunDialogOpen(false);
+    if (runTarget) {
+      runPlaybook.mutate(runTarget.id as string, {
+        onSettled: () => setRunDialogOpen(false),
+      });
+    }
   };
 
   return (

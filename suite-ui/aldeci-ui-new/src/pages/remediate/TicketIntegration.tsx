@@ -47,7 +47,7 @@ import {
   Plus,
   Loader2,
 } from "lucide-react";
-import { useIntegrations } from "@/hooks/use-api";
+import { useIntegrations, useSyncIntegration, useTestIntegration, useConfigureIntegration } from "@/hooks/use-api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -351,14 +351,16 @@ export default function TicketIntegration() {
     }))
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
+  const syncMutation = useSyncIntegration();
+  const testMutation = useTestIntegration();
+  const configureMutation = useConfigureIntegration();
+
   const handleSync = (id: string) => {
-    // TODO: Wire to POST /api/v1/integrations/:id/sync when backend supports it
-    toast.info("Sync not yet wired — integration sync API pending");
+    syncMutation.mutate(id);
   };
 
   const handleTest = (id: string) => {
-    // TODO: Wire to POST /api/v1/integrations/:id/test when backend supports it
-    toast.info("Connection test not yet wired — integration test API pending");
+    testMutation.mutate(id);
   };
 
   const handleToggleBidirectional = (id: string, val: boolean) => {
@@ -366,7 +368,7 @@ export default function TicketIntegration() {
       ...prev,
       [id]: { ...prev[id], bidirectional: val },
     }));
-    toast.info(`Bi-directional sync ${val ? "enabled" : "disabled"} — save not yet wired`);
+    configureMutation.mutate({ id, data: { bidirectional: val } });
   };
 
   const handleSaveConfig = (id: string, config: Record<string, string>) => {
@@ -374,7 +376,7 @@ export default function TicketIntegration() {
       ...prev,
       [id]: { ...prev[id], url: config.url, project: config.project, status: "connected" },
     }));
-    toast.info("Configuration saved locally — persist API pending");
+    configureMutation.mutate({ id, data: config });
   };
 
   return (

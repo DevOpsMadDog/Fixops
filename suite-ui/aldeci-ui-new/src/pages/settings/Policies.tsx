@@ -21,7 +21,7 @@ import {
   Shield, Plus, RefreshCw, AlertTriangle, Zap, CheckCircle, Clock,
   MoreHorizontal, FileCode, GitBranch, Activity, Edit3, Copy, Play, Pause
 } from "lucide-react";
-import { usePolicies } from "@/hooks/use-api";
+import { usePolicies, useUpdatePolicy, useCreatePolicy } from "@/hooks/use-api";
 import { toast } from "sonner";
 
 const SAMPLE_POLICY_YAML = `# FixOps Security Policy
@@ -60,14 +60,16 @@ function PolicyYamlEditor({ policy, onSave }: { policy: any; onSave: () => void 
   const [open, setOpen] = useState(false);
   const [yaml, setYaml] = useState(policy.yaml ?? SAMPLE_POLICY_YAML.replace("critical-cve-response", (policy.name ?? "policy").toLowerCase().replace(/ /g, "-")));
   const [isSaving, setIsSaving] = useState(false);
+  const updatePolicy = useUpdatePolicy();
 
   const lineCount = yaml.split("\n").length;
 
   const handleSave = async () => {
-    // TODO: Wire to real policy YAML save API
-    toast.info(`Policy "${policy.name}" YAML saved locally — persist API pending`);
-    onSave();
-    setOpen(false);
+    setIsSaving(true);
+    updatePolicy.mutate({ id: policy.id, data: { yaml } }, {
+      onSuccess: () => { onSave(); setOpen(false); setIsSaving(false); },
+      onError: () => { setIsSaving(false); },
+    });
   };
 
   return (
@@ -148,12 +150,16 @@ function CreatePolicyDialog({ onSave }: { onSave: () => void }) {
   const [yaml, setYaml] = useState(`name: my-policy\nconditions:\n  - field: severity\n    op: equals\n    value: critical\nactions:\n  - type: alert\n    channel: pagerduty`);
   const [isSaving, setIsSaving] = useState(false);
 
+  const createPolicy = useCreatePolicy();
+
   const handleSave = async () => {
     if (!name) return;
-    // TODO: Wire to real policy creation API
-    toast.info(`Policy "${name}" created locally — persist API pending`);
-    onSave();
-    setOpen(false);
+    setIsSaving(true);
+    const payload = mode === "yaml" ? { name, description, yaml } : { name, description };
+    createPolicy.mutate(payload, {
+      onSuccess: () => { onSave(); setOpen(false); setName(""); setDescription(""); setIsSaving(false); },
+      onError: () => { setIsSaving(false); },
+    });
   };
 
   return (

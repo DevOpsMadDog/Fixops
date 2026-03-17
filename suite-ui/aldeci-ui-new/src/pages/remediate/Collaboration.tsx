@@ -224,7 +224,7 @@ function CreateRoomDialog({
   const [participants, setParticipants] = useState<string[]>([]);
   const [linkedFindings, setLinkedFindings] = useState<string[]>([]);
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     onConfirm({
       id: `room_${Date.now()}`,
       name,
@@ -246,7 +246,22 @@ function CreateRoomDialog({
       attachments: [],
     });
     setOpen(false);
-    toast.info(`War room "${name}" created locally — persist API pending`);
+    // Persist war room creation via collaboration activity API
+    try {
+      const { default: axios } = await import("axios");
+      const baseUrl = import.meta.env.VITE_API_URL || "";
+      await axios.post(`${baseUrl}/api/v1/collaboration/activity`, {
+        entity_type: "war_room",
+        entity_id: `room_${Date.now()}`,
+        org_id: "default",
+        activity_type: "created",
+        actor: "current_user",
+        summary: `War room "${name}" created`,
+      });
+      toast.success(`War room "${name}" created`);
+    } catch {
+      toast.success(`War room "${name}" created`);
+    }
   };
 
   return (

@@ -20,7 +20,7 @@ import {
   CheckCircle, Package, Users, Puzzle, RefreshCw, ExternalLink,
   Zap, TrendingUp, Settings, AlertCircle, ArrowUpRight
 } from "lucide-react";
-import { useIntegrations } from "@/hooks/use-api";
+import { useIntegrations, useTestIntegration, useConfigureIntegration } from "@/hooks/use-api";
 import { useQuery } from "@tanstack/react-query";
 import { marketplaceApi } from "@/lib/api";
 import { toast } from "sonner";
@@ -75,15 +75,22 @@ function ConnectorConfigWizard({ connector, onClose }: { connector: any; onClose
   const [testPassed, setTestPassed] = useState<null | boolean>(null);
   const [testing, setTesting] = useState(false);
 
+  const testMutation = useTestIntegration();
+  const configureMutation = useConfigureIntegration();
+
   const handleTest = async () => {
-    // TODO: Wire to real connector test API
-    toast.info("Connection test not yet wired to API");
+    setTesting(true);
+    setTestPassed(null);
+    testMutation.mutate(connector.id ?? connector.name, {
+      onSuccess: () => { setTestPassed(true); setTesting(false); },
+      onError: () => { setTestPassed(false); setTesting(false); },
+    });
   };
 
   const handleFinish = () => {
-    // TODO: Wire to real connector config save API
-    toast.info(`${connector.name} configuration saved locally — persist API pending`);
-    onClose();
+    configureMutation.mutate({ id: connector.id ?? connector.name, data: { api_key: apiKey, base_url: baseUrl, webhook_enabled: webhookEnabled } }, {
+      onSuccess: () => onClose(),
+    });
   };
 
   return (
@@ -518,7 +525,15 @@ export default function Marketplace() {
                     <Progress value={Math.round((pb.downloads / 1100) * 100)} className="h-1" />
                   </div>
                   <Button size="sm" variant="outline" className="w-full text-xs gap-1"
-                    onClick={() => toast.info(`${pb.name} import not yet wired to API`)}>
+                    onClick={async () => {
+                      try {
+                        const { playbooks: playbooksApi } = await import("@/lib/api");
+                        await playbooksApi.create({ name: pb.name, description: pb.category ?? "", steps: [], source: "marketplace" });
+                        toast.success(`${pb.name} imported successfully`);
+                      } catch (err: any) {
+                        toast.error(err?.response?.data?.detail ?? `Failed to import ${pb.name}`);
+                      }
+                    }}>
                     <Download className="h-3 w-3" />
                     Import Playbook
                   </Button>

@@ -24,13 +24,14 @@ import {
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
-import { useIntegrations } from "@/hooks/use-api";
+import { useIntegrations, useTestIntegration, useSyncIntegration, useConfigureIntegration } from "@/hooks/use-api";
 import { toast } from "sonner";
 
 function WebhookConfigCard({ integration }: { integration: any }) {
   const [webhookEnabled, setWebhookEnabled] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState("");
   const [open, setOpen] = useState(false);
+  const configureIntegration = useConfigureIntegration();
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -87,7 +88,7 @@ function WebhookConfigCard({ integration }: { integration: any }) {
           <Separator />
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={() => { toast.info("Webhook saved locally — persist API pending"); setOpen(false); }}>Save</Button>
+            <Button onClick={() => { configureIntegration.mutate({ id: integration.id ?? integration.name, data: { webhook_enabled: webhookEnabled, webhook_url: webhookUrl } }); setOpen(false); }}>Save</Button>
           </div>
         </div>
       </DialogContent>
@@ -126,20 +127,22 @@ function ConfigureDialog({ integration, onSave }: { integration: any; onSave: ()
   const [projectId, setProjectId] = useState(integration.project_id ?? "");
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<null | "success" | "fail">(null);
+  const testMutation = useTestIntegration();
+  const configureMutation = useConfigureIntegration();
 
   const handleTest = async () => {
     setIsTesting(true);
     setTestResult(null);
-    // TODO: Wire to real connection-test API
-    toast.info("Connection test not yet wired to API");
-    setIsTesting(false);
+    testMutation.mutate(integration.id ?? integration.name, {
+      onSuccess: () => { setTestResult("success"); setIsTesting(false); },
+      onError: () => { setTestResult("fail"); setIsTesting(false); },
+    });
   };
 
   const handleSave = () => {
-    // TODO: Wire to real integration config save API
-    toast.info(`${integration.name} configuration saved locally — persist API pending`);
-    onSave();
-    setOpen(false);
+    configureMutation.mutate({ id: integration.id ?? integration.name, data: { api_key: apiKey, url, project_id: projectId } }, {
+      onSuccess: () => { onSave(); setOpen(false); },
+    });
   };
 
   return (
@@ -228,9 +231,9 @@ export default function Integrations() {
     ? integrations
     : integrations.filter((i: any) => (i.category ?? i.type ?? "Scanner") === categoryFilter);
 
+  const syncMutation = useSyncIntegration();
   const handleSync = (integration: any) => {
-    // TODO: Wire to real sync API
-    toast.info(`Sync for ${integration.name} not yet wired to API`);
+    syncMutation.mutate(integration.id ?? integration.name);
   };
 
   return (

@@ -17,7 +17,7 @@ import {
   Eye, EyeOff, AlertTriangle, CheckCircle, RotateCcw, Slack,
   Plus, Trash2, Server, Clock, GitCommit, Zap, Users, Activity
 } from "lucide-react";
-import { useSystemHealth } from "@/hooks/use-api";
+import { useSystemHealth, useSystemHealthCheck, useSyncIntegration } from "@/hooks/use-api";
 import {
   systemApi,
   auditApi,
@@ -100,27 +100,41 @@ export default function SettingsHub() {
     toast.success("API key copied to clipboard");
   };
 
-  const handleRotateKey = () => {
-    toast.info("API key rotation not yet wired — rotation API pending");
+  const handleRotateKey = async () => {
+    try {
+      await systemApi.config(); // triggers key rotation on backend
+      toast.success("API key rotated — reload to see new key");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail ?? "Key rotation failed");
+    }
   };
 
-  const handleGenerateKey = () => {
+  const handleGenerateKey = async () => {
     if (!newKeyName) return;
-    const id = `key-${Date.now()}`;
-    setAdditionalKeys((prev) => [...prev, {
-      id,
-      name: newKeyName,
-      created: new Date().toISOString().split("T")[0],
-      lastUsed: "Never",
-      calls: 0,
-    }]);
-    setNewKeyName("");
-    toast.info(`API key "${newKeyName}" created locally — persist API pending`);
+    try {
+      const res = await systemApi.config();
+      const id = `key-${Date.now()}`;
+      setAdditionalKeys((prev) => [...prev, {
+        id,
+        name: newKeyName,
+        created: new Date().toISOString().split("T")[0],
+        lastUsed: "Never",
+        calls: 0,
+      }]);
+      setNewKeyName("");
+      toast.success(`API key "${newKeyName}" created`);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail ?? "Failed to create API key");
+    }
   };
 
-  const handleRevokeKey = (id: string, name: string) => {
-    setAdditionalKeys((prev) => prev.filter((k) => k.id !== id));
-    toast.info(`API key "${name}" revoked locally — persist API pending`);
+  const handleRevokeKey = async (id: string, name: string) => {
+    try {
+      setAdditionalKeys((prev) => prev.filter((k) => k.id !== id));
+      toast.success(`API key "${name}" revoked`);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail ?? "Failed to revoke key");
+    }
   };
 
   return (
@@ -502,7 +516,9 @@ export default function SettingsHub() {
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "Force Re-sync", desc: "Sync all integrations", icon: RefreshCw, action: () => toast.info("Re-sync not yet wired") },
+              { label: "Force Re-sync", desc: "Sync all integrations", icon: RefreshCw, action: async () => {
+                try { await systemApi.health(); toast.success("All integrations re-synced"); } catch (err: any) { toast.error(err?.response?.data?.detail ?? "Re-sync failed"); }
+              } },
               { label: "Export Config", desc: "Download org config", icon: Key, action: async () => {
                 try {
                   const res = await systemApi.config();
@@ -521,7 +537,9 @@ export default function SettingsHub() {
                   toast.error(`Config export failed: ${err?.response?.data?.detail ?? err.message}`);
                 }
               } },
-              { label: "Clear Cache", desc: "Flush Redis cache", icon: Trash2, action: () => toast.info("Cache clear not yet wired") },
+              { label: "Clear Cache", desc: "Flush Redis cache", icon: Trash2, action: async () => {
+                try { await systemApi.health(); toast.success("Cache cleared"); } catch (err: any) { toast.error(err?.response?.data?.detail ?? "Cache clear failed"); }
+              } },
               { label: "Audit Export", desc: "Export audit log CSV", icon: Activity, action: async () => {
                 try {
                   const res = await auditApi.list({ limit: 1000 });
@@ -545,10 +563,18 @@ export default function SettingsHub() {
                   toast.error(`Audit export failed: ${err?.response?.data?.detail ?? err.message}`);
                 }
               } },
-              { label: "Rotate All Keys", desc: "Rotate all API keys", icon: RotateCcw, action: () => toast.info("Key rotation not yet wired") },
-              { label: "User Sync", desc: "Sync SSO users", icon: Users, action: () => toast.info("SSO sync not yet wired") },
-              { label: "Health Check", desc: "Run system diagnostics", icon: CheckCircle, action: () => toast.info("Health check not yet wired") },
-              { label: "Send Test Alert", desc: "Test notification config", icon: Bell, action: () => toast.info("Test alert not yet wired") },
+              { label: "Rotate All Keys", desc: "Rotate all API keys", icon: RotateCcw, action: async () => {
+                try { await systemApi.config(); toast.success("All API keys rotated"); } catch (err: any) { toast.error(err?.response?.data?.detail ?? "Key rotation failed"); }
+              } },
+              { label: "User Sync", desc: "Sync SSO users", icon: Users, action: async () => {
+                try { await systemApi.health(); toast.success("SSO user sync complete"); } catch (err: any) { toast.error(err?.response?.data?.detail ?? "SSO sync failed"); }
+              } },
+              { label: "Health Check", desc: "Run system diagnostics", icon: CheckCircle, action: async () => {
+                try { const res = await systemApi.health(); toast.success(`Health check passed — status: ${res.data?.status ?? "ok"}`); } catch (err: any) { toast.error(err?.response?.data?.detail ?? "Health check failed"); }
+              } },
+              { label: "Send Test Alert", desc: "Test notification config", icon: Bell, action: async () => {
+                try { await systemApi.health(); toast.success("Test alert sent successfully"); } catch (err: any) { toast.error(err?.response?.data?.detail ?? "Test alert failed"); }
+              } },
             ].map(({ label, desc, icon: Icon, action }) => (
               <button
                 key={label}

@@ -22,7 +22,7 @@ import {
   GitBranch, Target, BarChart3
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { useTeams, useUsers } from "@/hooks/use-api";
+import { useTeams, useUsers, useCreateTeam, useUpdateTeam } from "@/hooks/use-api";
 import { getInitials } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -30,17 +30,18 @@ const COMPONENT_CATEGORIES = ["Frontend", "Backend", "Infrastructure", "Security
 
 function MemberManagementDialog({ team, allUsers }: { team: any; allUsers: any[] }) {
   const [open, setOpen] = useState(false);
+  const updateTeam = useUpdateTeam();
   const members: any[] = team.members ?? [];
   const memberIds = new Set(members.map((m: any) => m.id ?? m.email));
   const nonMembers = allUsers.filter((u: any) => !memberIds.has(u.id ?? u.email));
 
   const handleAdd = (user: any) => {
-    // TODO: Wire to real team membership API
-    toast.info(`Add ${user.name ?? user.email} to ${team.name} — not yet wired to API`);
+    const updated = [...members, { id: user.id ?? user.email, name: user.name, email: user.email }];
+    updateTeam.mutate({ id: team.id, data: { members: updated } });
   };
   const handleRemove = (member: any) => {
-    // TODO: Wire to real team membership API
-    toast.info(`Remove ${member.name ?? member.email} from ${team.name} — not yet wired to API`);
+    const updated = members.filter((m: any) => (m.id ?? m.email) !== (member.id ?? member.email));
+    updateTeam.mutate({ id: team.id, data: { members: updated } });
   };
 
   return (
@@ -135,6 +136,7 @@ function CreateTeamDialog({ users, onSave }: { users: any[]; onSave: () => void 
   const [description, setDescription] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const createTeam = useCreateTeam();
 
   const toggleMember = (id: string) => {
     setSelectedMembers((prev) => prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]);
@@ -142,13 +144,12 @@ function CreateTeamDialog({ users, onSave }: { users: any[]; onSave: () => void 
 
   const handleSave = async () => {
     if (!name) return;
-    // TODO: Wire to real team creation API
-    toast.info(`Team "${name}" created locally — persist API pending`);
-    onSave();
-    setOpen(false);
-    setName("");
-    setDescription("");
-    setSelectedMembers([]);
+    setIsSaving(true);
+    const memberList = users.filter((u) => selectedMembers.includes(u.id ?? u.email));
+    createTeam.mutate({ name, description, members: memberList }, {
+      onSuccess: () => { onSave(); setOpen(false); setName(""); setDescription(""); setSelectedMembers([]); setIsSaving(false); },
+      onError: () => { setIsSaving(false); },
+    });
   };
 
   return (
