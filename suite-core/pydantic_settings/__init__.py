@@ -66,9 +66,23 @@ class BaseSettings:
     def _default_for(cls, name: str) -> Any:
         candidate = getattr(cls, name, None)
         if isinstance(candidate, FieldInfo):
+            # Support default_factory (pydantic v2 Field feature)
+            default_factory = getattr(candidate, "default_factory", None)
+            if default_factory is not None and callable(default_factory):
+                return default_factory()
             value = candidate.default
         else:
             value = candidate
+        # Pydantic v2 uses a sentinel for "no default" — return None in that case
+        _pydantic_undef = None
+        try:
+            from pydantic_core import PydanticUndefinedType
+            if isinstance(value, PydanticUndefinedType):
+                _pydantic_undef = value
+        except ImportError:
+            pass
+        if _pydantic_undef is not None and value is _pydantic_undef:
+            return None
         if isinstance(value, list):
             return list(value)
         if isinstance(value, dict):

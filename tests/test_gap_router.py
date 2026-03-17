@@ -73,8 +73,14 @@ def app():
 
 @pytest.fixture
 def client(app):
-    """Create a test client."""
-    return TestClient(app)
+    """Create a test client with auth headers pre-configured.
+
+    Gap router sub-routers now require authentication (defense-in-depth).
+    Use the FIXOPS_API_TOKEN env var (set by conftest.py) as the API key.
+    """
+    import os
+    token = os.getenv("FIXOPS_API_TOKEN", "test-token")
+    return TestClient(app, headers={"X-API-Key": token})
 
 
 # ──────────────────────────────────────────────────────

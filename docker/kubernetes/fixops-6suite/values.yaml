@@ -6,9 +6,28 @@ global:
   imagePullSecrets: []
   storageClass: ""
   env:
-    # ⚠️  SECURITY: Replace with a cryptographically random ≥32-byte secret
-    # before deploying.  Generate with: openssl rand -base64 32
-    FIXOPS_JWT_SECRET: "CHANGE_ME"
+    # SECURITY — REQUIRED BEFORE PRODUCTION DEPLOYMENT:
+    #
+    # FIXOPS_JWT_SECRET must be set to a cryptographically random ≥32-byte value.
+    # Generate one with: openssl rand -base64 48
+    #
+    # In production (ENVIRONMENT=production), leaving this blank will cause the
+    # API pod to refuse to start (enforced by settings.py / app.py startup checks).
+    #
+    # For multi-replica deployments ALL pods must share the same secret so JWT
+    # tokens issued by one pod can be validated by any other pod.
+    #
+    # Preferred approach: store in a Kubernetes Secret and mount it:
+    #   kubectl create secret generic fixops-jwt \
+    #     --from-literal=FIXOPS_JWT_SECRET="$(openssl rand -base64 48)"
+    # Then reference it:
+    #   envFrom:
+    #     - secretRef:
+    #         name: fixops-jwt
+    #
+    # Single-replica non-production use: leave empty ("") and the pod will
+    # auto-generate an ephemeral secret (tokens invalidated on restart).
+    FIXOPS_JWT_SECRET: ""
     FIXOPS_ALLOWED_ORIGINS: "https://aldeci.example.com"
     FIXOPS_AUTH_MODE: "enforced"
     FIXOPS_CACHE_URL: "redis://aldeci-redis-master:6379/0"
