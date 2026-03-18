@@ -1,1 +1,1 @@
-/home/user/workspace/Fixops/suite-core/api/airgap_router.py
+../../../suite-core/api/airgap_router.py

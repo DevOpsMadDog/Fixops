@@ -629,7 +629,7 @@ class RealVulnerabilityScanner:
             signals += 1
             profile.confidence = min(1.0, signals / 5)
 
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             profile.confidence = 0.0
         return profile
 
@@ -764,7 +764,7 @@ class RealVulnerabilityScanner:
                     cvss_score=7.5,
                 )
             )
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass  # Other errors handled elsewhere
 
     async def _check_sql_injection(

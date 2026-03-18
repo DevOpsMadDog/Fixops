@@ -74,7 +74,7 @@ class EvidenceLake:
 
             return evidence_record["evidence_id"]
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Failed to store evidence: {str(e)}")
             raise
 
@@ -131,7 +131,7 @@ class EvidenceLake:
                             signature_bytes,
                             fingerprint,
                         )
-                    except Exception as exc:  # pragma: no cover - defensive logging
+                    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # pragma: no cover - defensive logging
                         logger.error(
                             "Failed to verify evidence signature",
                             evidence_id=evidence_id,
@@ -151,7 +151,7 @@ class EvidenceLake:
 
                 return evidence_record
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Failed to retrieve evidence: {str(e)}")
             return None
 
@@ -190,7 +190,7 @@ class EvidenceLake:
                     "audit_compliance": 1.0,
                 }
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Failed to get evidence summary: {str(e)}")
             return {
                 "total_evidence_records": 0,

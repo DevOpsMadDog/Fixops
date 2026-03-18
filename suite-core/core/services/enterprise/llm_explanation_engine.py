@@ -111,7 +111,7 @@ class CybersecurityLLMEngine:
 
             logger.info("✅ Cybersecurity explanation engine initialized with ChatGPT")
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"ChatGPT initialization for explanations failed: {e}")
             self.llm_client = None
 
@@ -280,7 +280,7 @@ class LLMExplanationEngine:
 
             return explanation
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Explanation generation failed: {e}")
             return await self._generate_error_explanation(request, str(e))
 
@@ -305,7 +305,7 @@ class LLMExplanationEngine:
             logger.info(f"Generated explanation using ChatGPT {context_type} profile")
             return response.get("content", "")
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Awesome-LLM4Cybersecurity call failed: {e}")
             raise
 

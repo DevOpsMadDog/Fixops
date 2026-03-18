@@ -10,9 +10,10 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from apps.api.dependencies import get_org_id
 from core.event_bus import Event, EventType, get_event_bus
 from core.knowledge_brain import EdgeType, EntityType, GraphEdge, GraphNode, get_brain
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field, field_validator
 
 logger = logging.getLogger(__name__)
@@ -98,13 +99,18 @@ class IngestRemediationRequest(BaseModel):
 
 
 @router.post("/nodes", status_code=201)
-async def create_or_update_node(body: NodeCreateRequest) -> Dict[str, Any]:
+async def create_or_update_node(
+    body: NodeCreateRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Create or update a node in the Knowledge Graph."""
+    # Prefer explicit org_id in body; fall back to request-scoped org_id
+    effective_org_id = body.org_id or org_id
     brain = get_brain()
     node = GraphNode(
         node_id=body.node_id,
         node_type=body.node_type,
-        org_id=body.org_id,
+        org_id=effective_org_id,
         properties=body.properties,
     )
     result = brain.upsert_node(node)
@@ -114,7 +120,7 @@ async def create_or_update_node(body: NodeCreateRequest) -> Dict[str, Any]:
             event_type=EventType.GRAPH_UPDATED,
             source="brain_router",
             data={"action": "upsert_node", "node_id": body.node_id, "node_type": body.node_type},
-            org_id=body.org_id,
+            org_id=effective_org_id,
         )
     )
     return {
@@ -132,17 +138,21 @@ async def create_or_update_node(body: NodeCreateRequest) -> Dict[str, Any]:
 @router.get("/nodes")
 async def query_nodes(
     node_type: Optional[str] = Query(None, description="Filter by entity type"),
-    org_id: Optional[str] = Query(None, description="Filter by organization"),
+    org_id_param: Optional[str] = Query(None, alias="org_id", description="Filter by organization (overrides auth-derived org_id)"),
     search: Optional[str] = Query(
         None, description="Full-text search in node_id and properties"
     ),
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
-    """Query nodes with optional filters."""
+    """Query nodes with optional filters. Results are scoped to the caller's org_id."""
+    # Explicit org_id query param allows super-admin cross-tenant queries;
+    # default is the authenticated request's org_id.
+    effective_org_id = org_id_param or org_id
     brain = get_brain()
     result = brain.query_nodes(
-        node_type=node_type, org_id=org_id, search=search, limit=limit, offset=offset
+        node_type=node_type, org_id=effective_org_id, search=search, limit=limit, offset=offset
     )
     return {
         "nodes": result.nodes,
@@ -243,8 +253,8 @@ async def list_all_edges(
                         "created_at": row[5],
                     }
                 )
-    except Exception as exc:
-        logger.error("Failed to list edges: %s", exc)
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        logger.error("Failed to list edges: %s", type(exc).__name__, exc_info=True)
     return {"edges": all_edges, "count": len(all_edges)}
 
 
@@ -398,72 +408,92 @@ async def list_edge_types() -> Dict[str, Any]:
 
 
 @router.post("/ingest/cve")
-async def ingest_cve(body: IngestCVERequest) -> Dict[str, Any]:
+async def ingest_cve(
+    body: IngestCVERequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Ingest a CVE into the Knowledge Brain."""
+    effective_org_id = body.org_id or org_id
     brain = get_brain()
     extra = body.model_dump(exclude={"cve_id", "org_id"}, exclude_none=True)
-    node = brain.ingest_cve(body.cve_id, org_id=body.org_id, **extra)
+    node = brain.ingest_cve(body.cve_id, org_id=effective_org_id, **extra)
     bus = get_event_bus()
     await bus.emit(
         Event(
             event_type=EventType.CVE_DISCOVERED,
             source="brain_router",
             data={"cve_id": body.cve_id, **extra},
-            org_id=body.org_id,
+            org_id=effective_org_id,
         )
     )
     return {"node_id": node.node_id, "node_type": "cve", "ingested": True}
 
 
 @router.post("/ingest/finding")
-async def ingest_finding(body: IngestFindingRequest) -> Dict[str, Any]:
+async def ingest_finding(
+    body: IngestFindingRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Ingest a security finding into the Knowledge Brain."""
+    effective_org_id = body.org_id or org_id
     brain = get_brain()
     extra = body.model_dump(exclude={"finding_id", "org_id", "cve_id"}, exclude_none=True)
-    node = brain.ingest_finding(body.finding_id, org_id=body.org_id, cve_id=body.cve_id, **extra)
+    node = brain.ingest_finding(body.finding_id, org_id=effective_org_id, cve_id=body.cve_id, **extra)
     bus = get_event_bus()
     await bus.emit(
         Event(
             event_type=EventType.FINDING_CREATED,
             source="brain_router",
             data={"finding_id": body.finding_id, "cve_id": body.cve_id, **extra},
-            org_id=body.org_id,
+            org_id=effective_org_id,
         )
     )
     return {"node_id": node.node_id, "node_type": "finding", "ingested": True}
 
 
 @router.post("/ingest/scan")
-async def ingest_scan(body: IngestScanRequest) -> Dict[str, Any]:
+async def ingest_scan(
+    body: IngestScanRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Ingest a scan result into the Knowledge Brain."""
+    effective_org_id = body.org_id or org_id
     brain = get_brain()
     extra = body.model_dump(exclude={"scan_id", "org_id", "findings"}, exclude_none=True)
-    node = brain.ingest_scan(body.scan_id, org_id=body.org_id, findings=body.findings, **extra)
+    node = brain.ingest_scan(body.scan_id, org_id=effective_org_id, findings=body.findings, **extra)
     return {"node_id": node.node_id, "node_type": "scan", "ingested": True}
 
 
 @router.post("/ingest/asset")
-async def ingest_asset(body: IngestAssetRequest) -> Dict[str, Any]:
+async def ingest_asset(
+    body: IngestAssetRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Ingest an asset into the Knowledge Brain."""
+    effective_org_id = body.org_id or org_id
     brain = get_brain()
     extra = body.model_dump(exclude={"asset_id", "org_id"}, exclude_none=True)
-    node = brain.ingest_asset(body.asset_id, org_id=body.org_id, **extra)
+    node = brain.ingest_asset(body.asset_id, org_id=effective_org_id, **extra)
     return {"node_id": node.node_id, "node_type": "asset", "ingested": True}
 
 
 @router.post("/ingest/remediation")
-async def ingest_remediation(body: IngestRemediationRequest) -> Dict[str, Any]:
+async def ingest_remediation(
+    body: IngestRemediationRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Ingest a remediation task into the Knowledge Brain."""
+    effective_org_id = body.org_id or org_id
     brain = get_brain()
     extra = body.model_dump(exclude={"task_id", "org_id", "finding_id"}, exclude_none=True)
-    node = brain.ingest_remediation(body.task_id, finding_id=body.finding_id, org_id=body.org_id, **extra)
+    node = brain.ingest_remediation(body.task_id, finding_id=body.finding_id, org_id=effective_org_id, **extra)
     bus = get_event_bus()
     await bus.emit(
         Event(
             event_type=EventType.REMEDIATION_CREATED,
             source="brain_router",
             data={"task_id": body.task_id, "finding_id": body.finding_id, **extra},
-            org_id=body.org_id,
+            org_id=effective_org_id,
         )
     )
     return {"node_id": node.node_id, "node_type": "remediation", "ingested": True}
@@ -578,8 +608,8 @@ async def brain_trends(
 
         report = analyzer.analyze(org_id=org_id, app_id=app_id)
         return report.to_dict()
-    except Exception as e:
-        logger.error("brain_trends error: %s", e, exc_info=True)
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        logger.error("brain_trends error: %s", type(e).__name__, exc_info=True)
         return {
             "error": type(e).__name__,
             "scan_count": 0,

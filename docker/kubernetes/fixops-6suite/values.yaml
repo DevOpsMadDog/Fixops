@@ -172,7 +172,8 @@ redis:
   enabled: true
   architecture: standalone
   auth:
-    enabled: false
+    enabled: true
+    password: ""  # MUST be set via --set redis.auth.password=<secret> or sealed secret
   master:
     persistence:
       enabled: true

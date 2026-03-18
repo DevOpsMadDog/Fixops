@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional, Set
 from apps.api.dependencies import get_org_id
 from core.inventory_db import InventoryDB
 from core.inventory_models import Application, ApplicationCriticality, ApplicationStatus
-from core.persistent_store import PersistentDict
+from core.persistent_store import get_persistent_store
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -23,7 +23,7 @@ router = APIRouter(prefix="/api/v1/inventory", tags=["inventory"])
 db = InventoryDB()
 
 # Persistent stores for enrichment data
-_dependency_store: PersistentDict = PersistentDict("inventory_deps")  # app_id -> deps
+_dependency_store = get_persistent_store("inventory_deps")  # app_id -> deps
 _license_db: Dict[str, str] = {
     "MIT": "permissive",
     "Apache-2.0": "permissive",
@@ -349,8 +349,8 @@ async def get_application_dependencies(id: str, include_transitive: bool = Query
 
 
 # Persistent service/API stores
-_service_store: PersistentDict = PersistentDict("inventory_services")
-_api_store: PersistentDict = PersistentDict("inventory_apis")
+_service_store = get_persistent_store("inventory_services")
+_api_store = get_persistent_store("inventory_apis")
 
 
 @router.get("/services")
@@ -441,7 +441,7 @@ async def get_api_security(id: str):
                     sev, 5
                 )
                 score = max(0, score - penalty)
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
     return {
         "api_id": id,
@@ -594,8 +594,8 @@ async def generate_sbom(
 # ---------------------------------------------------------------------------
 
 # In-memory global component store (populated from SBOM ingestion)
-_global_components: PersistentDict = PersistentDict("global_sbom_components")
-_ingested_sboms: PersistentDict = PersistentDict("ingested_sboms")
+_global_components = get_persistent_store("global_sbom_components")
+_ingested_sboms = get_persistent_store("ingested_sboms")
 
 
 @router.get("/sbom/components")

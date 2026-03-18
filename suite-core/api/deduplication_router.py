@@ -459,7 +459,7 @@ def _get_analytics_findings_count() -> Dict[str, Any]:
             return {"total_findings": total, "open_findings": open_count}
         finally:
             conn.close()
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         return {}
 
 

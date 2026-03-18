@@ -73,7 +73,7 @@ async def make_security_decision(request: DecisionRequest):
 
         return response
 
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error("Decision making failed: %s", type(e).__name__)
         FixOpsMetrics.record_decision_error(reason="exception")
         raise HTTPException(status_code=500, detail="Decision engine error")
@@ -86,7 +86,7 @@ async def get_decision_metrics():
         metrics = await decision_engine.get_decision_metrics()
         return {"status": "success", "data": metrics}
 
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error("Failed to get decision metrics: %s", type(e).__name__)
         raise HTTPException(status_code=500, detail="Failed to get decision metrics")
 
@@ -98,7 +98,7 @@ async def get_recent_decisions(limit: int = Query(default=10, ge=1, le=50)):
         decisions = await decision_engine.get_recent_decisions(limit)
         return {"status": "success", "data": decisions}
 
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error("Failed to get recent decisions: %s", type(e).__name__)
         raise HTTPException(status_code=500, detail="Failed to get recent decisions")
 
@@ -110,7 +110,7 @@ async def get_ssdlc_stage_data(current_user: Dict = Depends(get_current_user)):
         stage_data = await decision_engine.get_ssdlc_stage_data()
         return {"status": "success", "data": stage_data}
 
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error("Failed to get SSDLC stage data: %s", type(e).__name__)
         raise HTTPException(status_code=500, detail="Failed to get SSDLC stage data")
 
@@ -207,7 +207,7 @@ async def get_core_components_status(current_user: Dict = Depends(get_current_us
 
         return {"status": "success", "data": components}
 
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error("Failed to get core components status: %s", type(e).__name__)
         # Return error status but don't fail completely
         return {
@@ -273,7 +273,7 @@ async def get_evidence_record(
 
     except HTTPException:
         raise
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error("Failed to get evidence record: %s", type(e).__name__)
         FixOpsMetrics.record_evidence_request(
             source=source or "unknown",

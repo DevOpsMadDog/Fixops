@@ -9,7 +9,8 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 from core.autofix_verifier import AutoFixVerifier
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/autofix/verify", tags=["autofix-verification"])

@@ -154,7 +154,7 @@ class ExplanationGenerator:
         if self._client is None:
             try:
                 self._client = self._client_factory()
-            except Exception as exc:  # pragma: no cover - defensive guard
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # pragma: no cover - defensive guard
                 raise ExplanationError(
                     "Unable to initialise SentinelGPT client"
                 ) from exc

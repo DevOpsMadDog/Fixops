@@ -27,30 +27,43 @@ class DatabaseManager:
         if cls._engine is not None:
             return
 
-        # Create async engine with performance optimizations
-        cls._engine = create_async_engine(
-            settings.DATABASE_URL,
-            # Connection pooling for high performance
-            poolclass=QueuePool,
-            pool_size=settings.DATABASE_POOL_SIZE,
-            max_overflow=settings.DATABASE_MAX_OVERFLOW,
-            pool_timeout=settings.DATABASE_POOL_TIMEOUT,
-            pool_recycle=3600,  # Recycle connections every hour
-            pool_pre_ping=True,  # Validate connections before use
-            # Performance optimizations
-            echo=settings.DEBUG,  # Only log SQL in debug mode
-            echo_pool=settings.DEBUG,
-            future=True,
-            # Connection optimization (conditional based on database type)
-            connect_args={}
-            if "sqlite" in settings.DATABASE_URL
-            else {
-                "server_settings": {
-                    "application_name": "fixops-enterprise",
-                    "jit": "off",  # Disable JIT for consistent performance
-                }
-            },
-        )
+        # Ensure async-compatible URL (sqlite:// → sqlite+aiosqlite://)
+        db_url = settings.DATABASE_URL
+        if db_url.startswith("sqlite://") and "+aiosqlite" not in db_url:
+            db_url = db_url.replace("sqlite://", "sqlite+aiosqlite://", 1)
+
+        # Build engine kwargs — SQLite uses StaticPool, Postgres uses QueuePool
+        is_sqlite = "sqlite" in db_url
+        engine_kwargs: dict = {
+            "echo": settings.DEBUG,
+            "echo_pool": settings.DEBUG,
+            "future": True,
+        }
+        if is_sqlite:
+            from sqlalchemy.pool import StaticPool
+
+            engine_kwargs.update(
+                poolclass=StaticPool,
+                connect_args={"check_same_thread": False},
+            )
+        else:
+            engine_kwargs.update(
+                poolclass=QueuePool,
+                pool_size=settings.DATABASE_POOL_SIZE,
+                max_overflow=settings.DATABASE_MAX_OVERFLOW,
+                pool_timeout=settings.DATABASE_POOL_TIMEOUT,
+                pool_recycle=3600,
+                pool_pre_ping=True,
+                connect_args={
+                    "server_settings": {
+                        "application_name": "fixops-enterprise",
+                        "jit": "off",
+                    }
+                },
+            )
+
+        # Create async engine
+        cls._engine = create_async_engine(db_url, **engine_kwargs)
 
         # Create session factory
         cls._sessionmaker = async_sessionmaker(
@@ -113,7 +126,7 @@ class DatabaseManager:
         try:
             yield session
             await session.commit()
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             await session.rollback()
             raise
         finally:
@@ -129,7 +142,7 @@ class DatabaseManager:
             async with cls.get_session_context() as session:
                 result = await session.execute(text("SELECT 1"))
                 return result.scalar() == 1
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Database health check failed: {str(e)}")
             return False
 

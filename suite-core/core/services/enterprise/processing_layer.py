@@ -31,7 +31,7 @@ try:  # pragma: no cover - optional dependency
     from pgmpy.models import BayesianNetwork
 
     PGMPY_AVAILABLE = True
-except ImportError:  # pragma: no cover - exercised when pgmpy missing
+except (ImportError, SyntaxError):  # pragma: no cover - SyntaxError on Python 3.14 (invalid \p escapes in pgmpy)
     PGMPY_AVAILABLE = False
 
 try:  # pragma: no cover - optional dependency
@@ -185,7 +185,7 @@ class BayesianPriorMapping:
 
             logger.info("✅ Bayesian Prior Mapping network initialized with pgmpy")
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Bayesian network initialization failed: {e}")
             self.network = None
 
@@ -212,7 +212,7 @@ class BayesianPriorMapping:
 
                 return priors
 
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.error(f"Bayesian inference failed: {e}")
 
         # Fallback to heuristic mapping
@@ -314,7 +314,7 @@ class MarkovTransitionMatrixBuilder:
 
             logger.info("✅ Real Markov Transition Matrix initialized using mchmm")
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Real mchmm initialization failed: {e}")
             self.hmm_model = None
 
@@ -382,7 +382,7 @@ class MarkovTransitionMatrixBuilder:
                 "real_mchmm_used": self.hmm_model is not None,
             }
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"mchmm prediction failed: {e}")
             return {"error": str(e), "predictions": []}
 
@@ -412,7 +412,7 @@ class MarkovTransitionMatrixBuilder:
 
             return {self.states[i]: normalized[i] for i in range(len(normalized))}
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Transition probability calculation failed: {e}")
             return {state: 0.25 for state in self.states}
 
@@ -674,7 +674,7 @@ class SARIFVulnerabilityHandler:
                 },
             }
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"SARIF processing failed: {e}")
             return {"error": str(e), "total_findings": 0}
 
@@ -722,7 +722,7 @@ class SARIFVulnerabilityHandler:
                 confidence=confidence,
             )
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Vulnerability extraction failed: {e}")
             return None
 
@@ -1022,7 +1022,7 @@ class ProcessingLayer:
             self.knowledge_graph = knowledge_graph
             logger.info("✅ Knowledge Graph Construction initialized")
 
-        except Exception as e:
+        except ImportError as e:
             logger.warning(f"Knowledge Graph initialization failed: {e}")
             self.knowledge_graph = None
 
@@ -1035,6 +1035,6 @@ class ProcessingLayer:
             self.explanation_engine = explanation_engine
             logger.info("✅ LLM Explanation Engine initialized")
 
-        except Exception as e:
+        except ImportError as e:
             logger.warning(f"LLM Explanation Engine initialization failed: {e}")
             self.explanation_engine = None

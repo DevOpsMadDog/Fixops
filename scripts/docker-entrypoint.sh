@@ -39,11 +39,37 @@ if [[ -z "${FIXOPS_API_TOKEN:-}" ]]; then
 fi
 
 # ─── Helper: Start API server and wait for health ────────────
+# Scaling:
+#   FIXOPS_WORKERS=1          → uvicorn (single process, default)
+#   FIXOPS_WORKERS=4          → gunicorn with 4 uvicorn workers
+#   FIXOPS_WORKERS=auto       → gunicorn with (2 * CPU cores + 1) workers
+#   Recommendation: 2-4 workers per CPU core for I/O-bound workloads
 start_api_server() {
     local log_level="${1:-${FIXOPS_LOG_LEVEL}}"
+    local workers="${FIXOPS_WORKERS:-1}"
     echo -e "${YELLOW}Starting ALdeci API server (${FIXOPS_MODE} mode)...${NC}"
     local start_ts=$(date +%s)
-    uvicorn apps.api.app:app --host 0.0.0.0 --port 8000 --log-level "$log_level" &
+
+    if [[ "$workers" == "1" ]]; then
+        # Single-process uvicorn (fastest startup, simplest debugging)
+        uvicorn apps.api.app:create_app --factory --host 0.0.0.0 --port 8000 --log-level "$log_level" &
+    else
+        # Multi-worker gunicorn with uvicorn workers (production scaling)
+        if [[ "$workers" == "auto" ]]; then
+            workers=$(python3 -c "import os; print(os.cpu_count() * 2 + 1)")
+        fi
+        echo -e "${CYAN}Scaling: ${workers} gunicorn workers${NC}"
+        gunicorn apps.api.app:create_app \
+            --worker-class uvicorn.workers.UvicornWorker \
+            --workers "$workers" \
+            --bind 0.0.0.0:8000 \
+            --timeout 120 \
+            --graceful-timeout 30 \
+            --keep-alive 5 \
+            --access-logfile - \
+            --error-logfile - \
+            --log-level "$log_level" &
+    fi
     API_PID=$!
 
     echo -e "${CYAN}Waiting for API server to be ready...${NC}"

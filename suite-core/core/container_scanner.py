@@ -412,7 +412,7 @@ class ContainerImageScanner:
                 logger.warning("Trivy returned invalid JSON for %s: %s", image_ref, e.msg)
             except FileNotFoundError:
                 logger.debug("Trivy not found in PATH")
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.warning("Trivy scan error for %s: %s", image_ref, type(e).__name__)
 
         by_sev: Dict[str, int] = {}

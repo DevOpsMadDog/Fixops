@@ -17,7 +17,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -820,6 +821,7 @@ async def get_suggestions(
     column: int,
     content: Optional[str] = None,
     language: Optional[str] = None,
+    org_id: str = Depends(get_org_id),
 ) -> SuggestionResponse:
     """Get context-aware code suggestions for cursor position."""
     start_time = time.time()

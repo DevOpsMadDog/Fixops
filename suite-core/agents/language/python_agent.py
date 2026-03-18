@@ -42,7 +42,7 @@ class PythonAgent(CodeRepoAgent):
             # Convert to SARIF format
             return self._findings_to_sarif("FixOps Python Analyzer", findings)
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Error collecting Python SARIF: {e}")
             # Fallback to OSS tools
             return await self._collect_sarif_oss_fallback()
@@ -79,7 +79,7 @@ class PythonAgent(CodeRepoAgent):
                 # Convert Bandit to SARIF
                 return self._bandit_to_sarif(bandit_data)
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Error in OSS fallback: {e}")
 
         return None
@@ -180,6 +180,6 @@ class PythonAgent(CodeRepoAgent):
 
             return sbom
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Error collecting Python SBOM: {e}")
             return None

@@ -123,7 +123,7 @@ class _RedisBackend:
             await self._redis.ping()
             self._connected = True
             logger.info("Redis cache connected: %s", self._url)
-        except Exception as exc:
+        except ImportError as exc:
             logger.warning("Redis unavailable (%s), using in-memory fallback", exc)
             self._redis = None
 

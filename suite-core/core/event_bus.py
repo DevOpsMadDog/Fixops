@@ -206,7 +206,7 @@ class EventBus:
 
                 self._brain = get_brain()
             self._brain.log_event(key, event.source, event.data)
-        except Exception:
+        except ImportError:
             pass  # Don't fail the event if brain is unavailable
 
         # Notify subscribers
@@ -216,7 +216,7 @@ class EventBus:
             try:
                 await handler(event)
                 notified += 1
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.error(
                     "Event handler %s failed for %s: %s",
                     handler.__name__,

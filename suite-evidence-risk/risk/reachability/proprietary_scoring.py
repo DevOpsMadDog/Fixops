@@ -263,7 +263,7 @@ class ProprietaryScoringEngine:
                 decay_rate = 0.001  # Tuned parameter
                 temporal = self.decay_functions["exponential"](age_days, decay_rate)
                 return min(1.0, max(0.0, temporal))
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
 
         # Default: recent vulnerabilities are more relevant

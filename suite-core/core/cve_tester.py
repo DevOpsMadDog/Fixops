@@ -178,7 +178,7 @@ async def test_log4shell(
                     vulnerable = True
                     confidence = max(confidence, 0.7)
 
-            except Exception as e:
+            except (httpx.RequestError, httpx.HTTPStatusError, OSError) as e:
                 evidence["tests_run"].append(
                     {
                         "header": header,
@@ -247,7 +247,7 @@ async def test_proxyshell(
                         "vulnerability_indicator"
                     ] = "Autodiscover endpoint accessible with path confusion"
 
-        except Exception as e:
+        except (httpx.RequestError, httpx.HTTPStatusError, OSError) as e:
             evidence["tests_run"].append(
                 {
                     "path": path,
@@ -318,7 +318,7 @@ async def test_confluence_auth_bypass(
                         "vulnerability_indicator"
                     ] = "Setup endpoints accessible without authentication"
 
-        except Exception as e:
+        except (httpx.RequestError, httpx.HTTPStatusError, OSError) as e:
             evidence["tests_run"].append(
                 {
                     "path": path,
@@ -390,7 +390,7 @@ async def test_moveit_sqli(
                             "vulnerability_indicator"
                         ] = "SQL error on quote injection"
 
-        except Exception as e:
+        except (httpx.RequestError, httpx.HTTPStatusError, OSError) as e:
             evidence["tests_run"].append(
                 {
                     "path": path,
@@ -464,10 +464,10 @@ async def test_panos_cmd_injection(
                         evidence[
                             "vulnerability_indicator"
                         ] = "GlobalProtect endpoint accessible"
-                except Exception:
+                except (httpx.RequestError, httpx.HTTPStatusError, OSError, ValueError):
                     pass
 
-        except Exception as e:
+        except (httpx.RequestError, httpx.HTTPStatusError, OSError) as e:
             evidence["tests_run"].append(
                 {
                     "path": path,
@@ -540,10 +540,10 @@ async def test_bigip_auth_bypass(
                         evidence[
                             "vulnerability_indicator"
                         ] = "Management API accessible with smuggled auth"
-                except Exception:
+                except (httpx.RequestError, httpx.HTTPStatusError, OSError):
                     pass
 
-        except Exception as e:
+        except (httpx.RequestError, httpx.HTTPStatusError, OSError) as e:
             evidence["tests_run"].append(
                 {
                     "path": path,
@@ -617,7 +617,7 @@ async def test_proxylogon(
                     "vulnerability_indicator"
                 ] = "ECP endpoint accessible with manipulated anchor"
 
-    except Exception as e:
+    except (httpx.RequestError, httpx.HTTPStatusError, OSError) as e:
         evidence["tests_run"].append(
             {
                 "path": test_url,
@@ -689,9 +689,9 @@ async def test_spring4shell(
                             evidence[
                                 "vulnerability_indicator"
                             ] = "Class loader param accepted without error"
-                except Exception:
+                except (httpx.RequestError, httpx.HTTPStatusError, OSError, ValueError):
                     pass
-        except Exception as e:
+        except (httpx.RequestError, httpx.HTTPStatusError, OSError) as e:
             evidence["tests_run"].append({"path": path, "error": type(e).__name__})
     return vulnerable, confidence, evidence
 
@@ -740,7 +740,7 @@ async def test_citrix_bleed(
                 evidence[
                     "vulnerability_indicator"
                 ] = "Oversized response to large Host header"
-        except Exception as e:
+        except (httpx.RequestError, httpx.HTTPStatusError, OSError) as e:
             evidence["tests_run"].append({"path": path, "error": type(e).__name__})
     return vulnerable, confidence, evidence
 
@@ -800,9 +800,9 @@ async def test_heartbleed(
                             "version": ssock.version(),
                             "cipher": ssock.cipher(),
                         }
-            except Exception:
+            except (ssl.SSLError, OSError):
                 pass
-    except Exception as e:
+    except (httpx.RequestError, httpx.HTTPStatusError, OSError, ssl.SSLError) as e:
         evidence["tests_run"].append({"url": target_url, "error": type(e).__name__})
     return vulnerable, confidence, evidence
 
@@ -862,9 +862,9 @@ async def test_struts_rce(
                         evidence[
                             "vulnerability_indicator"
                         ] = "OGNL expression processed in Content-Type"
-                except Exception:
+                except (httpx.RequestError, httpx.HTTPStatusError, OSError):
                     pass
-        except Exception as e:
+        except (httpx.RequestError, httpx.HTTPStatusError, OSError) as e:
             evidence["tests_run"].append({"path": path, "error": type(e).__name__})
     return vulnerable, confidence, evidence
 
@@ -918,7 +918,7 @@ async def test_fortinet_sslvpn(
                 evidence[
                     "vulnerability_indicator"
                 ] = "SSL-VPN session file accessible via path traversal"
-        except Exception as e:
+        except (httpx.RequestError, httpx.HTTPStatusError, OSError) as e:
             evidence["tests_run"].append({"path": path, "error": type(e).__name__})
     return vulnerable, confidence, evidence
 
@@ -955,7 +955,7 @@ async def test_cisco_iosxe(
                 evidence[
                     "vulnerability_indicator"
                 ] = "IOS XE web UI implant indicator accessible"
-        except Exception as e:
+        except (httpx.RequestError, httpx.HTTPStatusError, OSError) as e:
             evidence["tests_run"].append({"path": path, "error": type(e).__name__})
     # Check for implant via specific URI
     try:
@@ -969,7 +969,7 @@ async def test_cisco_iosxe(
         )
         if resp.status_code == 200 and len(resp.content) > 0:
             evidence["implant_possible"] = True
-    except Exception:
+    except (httpx.RequestError, httpx.HTTPStatusError, OSError):
         pass
     return vulnerable, confidence, evidence
 
@@ -1017,7 +1017,7 @@ async def test_ivanti_connect(
                     evidence[
                         "vulnerability_indicator"
                     ] = "Ivanti REST API accessible without auth"
-        except Exception as e:
+        except (httpx.RequestError, httpx.HTTPStatusError, OSError) as e:
             evidence["tests_run"].append({"path": path, "error": type(e).__name__})
     return vulnerable, confidence, evidence
 
@@ -1063,7 +1063,7 @@ async def test_goanywhere(
                 evidence[
                     "vulnerability_indicator"
                 ] = "License Response Servlet accessible"
-        except Exception as e:
+        except (httpx.RequestError, httpx.HTTPStatusError, OSError) as e:
             evidence["tests_run"].append({"path": path, "error": type(e).__name__})
     return vulnerable, confidence, evidence
 
@@ -1106,7 +1106,7 @@ async def test_papercut(
                     evidence[
                         "vulnerability_indicator"
                     ] = "Setup/admin page accessible without authentication"
-        except Exception as e:
+        except (httpx.RequestError, httpx.HTTPStatusError, OSError) as e:
             evidence["tests_run"].append({"path": path, "error": type(e).__name__})
     return vulnerable, confidence, evidence
 
@@ -1147,7 +1147,7 @@ async def test_connectwise_screenconnect(
                     evidence[
                         "vulnerability_indicator"
                     ] = "Setup wizard accessible post-installation"
-        except Exception as e:
+        except (httpx.RequestError, httpx.HTTPStatusError, OSError) as e:
             evidence["tests_run"].append({"path": path, "error": type(e).__name__})
     return vulnerable, confidence, evidence
 
@@ -1199,8 +1199,8 @@ async def test_generic_cve(
         if server:
             evidence["server"] = server
 
-    except Exception as e:
-        evidence["error"] = str(e)
+    except (httpx.RequestError, httpx.HTTPStatusError, OSError) as e:
+        evidence["error"] = type(e).__name__
 
     # ALWAYS return not-vulnerable for generic tests — accuracy > coverage
     return False, 0.0, evidence
@@ -1286,7 +1286,7 @@ class CVEVulnerabilityTester:
 
                 try:
                     raw_vuln, raw_conf, evidence = await test_func(client, target_url)
-                except Exception as e:
+                except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                     logger.error(f"CVE test failed for {cve_id}: {e}")
                     raw_vuln, raw_conf, evidence = False, 0.0, {"error": type(e).__name__}
 
@@ -1392,7 +1392,7 @@ class CVEVulnerabilityTester:
                         f"CVE test: {cve_id} on {target_url} - "
                         f"Vulnerable: {result.vulnerable}, Confidence: {result.confidence}"
                     )
-                except Exception as e:
+                except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                     logger.error(f"Failed to test {cve_id} on {target_url}: {e}")
                     results.append(
                         CVETestResult(

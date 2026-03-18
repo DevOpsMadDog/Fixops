@@ -1,1 +1,1 @@
-/home/user/workspace/Fixops/suite-core/api/copilot_router.py
+../../../suite-core/api/copilot_router.py

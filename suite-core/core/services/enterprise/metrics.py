@@ -165,7 +165,7 @@ class FixOpsMetrics:
             HTTP_INFLIGHT.labels(family=family).set(
                 FixOpsMetrics._inflight_counts[family]
             )
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     @staticmethod
@@ -181,7 +181,7 @@ class FixOpsMetrics:
             HTTP_INFLIGHT.labels(family=family).set(
                 FixOpsMetrics._inflight_counts[family]
             )
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     @staticmethod
@@ -199,7 +199,7 @@ class FixOpsMetrics:
                 status=str(status),
             ).inc()
             HTTP_LATENCY.labels(endpoint=endpoint).observe(duration)
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             # Metrics must never break the hot path
             pass
 
@@ -211,7 +211,7 @@ class FixOpsMetrics:
         try:
             ratio = totals["errors"] / totals["total"] if totals["total"] > 0 else 0.0
             HTTP_ERROR_RATIO.labels(family=family).set(ratio)
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
         hot_path_label = FixOpsMetrics._resolve_hot_path(endpoint)
@@ -221,7 +221,7 @@ class FixOpsMetrics:
             FixOpsMetrics._hot_path_latency_us[hot_path_label] = latency_us
             try:
                 HOT_PATH_LATENCY.labels(endpoint=hot_path_label).set(latency_us)
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
 
     # ------------------------------------------------------------------
@@ -252,7 +252,7 @@ class FixOpsMetrics:
             try:
                 HTTP_ERROR_RATIO.labels(family=family).set(0)
                 HTTP_INFLIGHT.labels(family=family).set(0)
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
         FixOpsMetrics._observed_families.clear()
 
@@ -262,14 +262,14 @@ class FixOpsMetrics:
 
         try:
             RATE_LIMIT_TRIGGER.inc()
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
         for endpoint in list(FixOpsMetrics._observed_hot_paths):
             FixOpsMetrics._hot_path_latency_us.pop(endpoint, None)
             try:
                 HOT_PATH_LATENCY.labels(endpoint=endpoint).set(0)
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
         FixOpsMetrics._observed_hot_paths.clear()
 
@@ -279,7 +279,7 @@ class FixOpsMetrics:
             try:
                 SIGNING_KEY_AGE.labels(provider=provider).set(0)
                 SIGNING_KEY_HEALTH.labels(provider=provider).set(0)
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
         FixOpsMetrics._observed_key_providers.clear()
 
@@ -294,14 +294,14 @@ class FixOpsMetrics:
             ENGINE_DECISIONS.labels(verdict=verdict).inc()
             DECISION_LATENCY.labels(verdict=verdict).observe(duration_seconds)
             DECISION_CONFIDENCE.set(confidence)
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     @staticmethod
     def record_decision_error(reason: str = "unknown") -> None:
         try:
             DECISION_ERRORS.labels(reason=reason).inc()
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     @staticmethod
@@ -313,7 +313,7 @@ class FixOpsMetrics:
             EVIDENCE_LATENCY.labels(source=source, status=status).observe(
                 duration_seconds
             )
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     @classmethod
@@ -328,14 +328,14 @@ class FixOpsMetrics:
 
             if cls._policy_total:
                 POLICY_BLOCK_RATIO.set(cls._policy_blocked / cls._policy_total)
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     @staticmethod
     def record_upload(scan_type: str) -> None:
         try:
             UPLOADS_COMPLETED.labels(scan_type=scan_type).inc()
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     # ------------------------------------------------------------------
@@ -349,7 +349,7 @@ class FixOpsMetrics:
         try:
             SIGNING_KEY_AGE.labels(provider=provider).set(age_days)
             SIGNING_KEY_HEALTH.labels(provider=provider).set(1.0 if healthy else 0.0)
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     @staticmethod

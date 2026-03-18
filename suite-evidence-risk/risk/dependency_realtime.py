@@ -60,7 +60,7 @@ class RealTimeDependencyScanner:
             try:
                 await self._scan_cycle()
                 await asyncio.sleep(self.scan_interval)
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.error(f"Error in monitoring cycle: {e}")
                 await asyncio.sleep(5)  # Short delay on error
 
@@ -124,7 +124,7 @@ class RealTimeDependencyScanner:
                     for callback in self.update_callbacks:
                         try:
                             callback(update)
-                        except Exception as e:
+                        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                             logger.error(f"Error in update callback: {e}")
 
                     # Update stored version
@@ -136,12 +136,12 @@ class RealTimeDependencyScanner:
                     for callback in self.alert_callbacks:
                         try:
                             callback(alert)
-                        except Exception as e:
+                        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                             logger.error(f"Error in alert callback: {e}")
 
                 dep_info["last_scan"] = datetime.now(timezone.utc)
 
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.error(f"Error scanning {key}: {e}")
 
     async def _check_for_updates(
@@ -212,7 +212,7 @@ class RealTimeDependencyScanner:
                                     "critical_vulnerability_count": 0,
                                 }
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"Failed to check updates for {package_name}: {e}")
 
         return None
@@ -308,7 +308,7 @@ class RealTimeDependencyScanner:
                         )
                         alerts.append(alert)
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"Failed to check vulnerabilities for {package_name}: {e}")
 
         return alerts
@@ -338,7 +338,7 @@ class WebhookHandler:
             for callback in self.scanner.alert_callbacks:
                 try:
                     callback(alert)
-                except Exception as e:
+                except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                     logger.error(f"Error in webhook alert callback: {e}")
 
             return {"status": "processed", "alert_id": alert.cve_id}
@@ -359,7 +359,7 @@ class WebhookHandler:
             for callback in self.scanner.update_callbacks:
                 try:
                     callback(update)
-                except Exception as e:
+                except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                     logger.error(f"Error in webhook update callback: {e}")
 
             return {"status": "processed", "package": update.package_name}

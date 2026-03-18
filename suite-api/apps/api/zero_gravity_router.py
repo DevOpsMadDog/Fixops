@@ -1,1 +1,1 @@
-/home/user/workspace/Fixops/suite-core/api/zero_gravity_router.py
+../../../suite-core/api/zero_gravity_router.py

@@ -40,7 +40,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field, validator
 
 # Import the core engine — supports air-gapped / offline deployments
@@ -400,6 +401,7 @@ async def analyze_diff_endpoint(
         le=100.0,
         description="Only return changes with risk_score >= this value",
     ),
+    org_id: str = Depends(get_org_id),
     classification: Optional[str] = Query(
         None,
         description="Filter by classification: BREAKING, MATERIAL, or COSMETIC",
@@ -432,7 +434,7 @@ async def analyze_diff_endpoint(
             request.diff,
             historical_vuln_density=request.historical_vuln_density,
         )
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.error("analyze_diff failed: %s\n%s", exc, traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Analysis error: {exc}") from exc
 
@@ -540,7 +542,7 @@ async def analyze_pr_endpoint(request: AnalyzePRRequest) -> AnalyzePRResponse:
             record_velocity=request.record_velocity,
             repo=request.repo,
         )
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.error("analyze_pr failed for PR %s: %s\n%s", request.pr_id, exc, traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"PR analysis error: {exc}") from exc
 
@@ -607,7 +609,7 @@ async def get_risk_profile_endpoint(
 
     try:
         profile = _get_risk_profile(repo=repo, window_days=window_days)
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.error("get_risk_profile failed for repo %s: %s", repo, exc)
         raise HTTPException(status_code=500, detail=f"Risk profile error: {exc}") from exc
 
@@ -659,6 +661,7 @@ async def classify_endpoint(
         False,
         description="If True, return HTTP 422 when any BREAKING change is detected",
     ),
+    org_id: str = Depends(get_org_id),
 ) -> ClassifyResponse:
     """Classify a set of file diffs as BREAKING, MATERIAL, or COSMETIC.
 
@@ -674,7 +677,7 @@ async def classify_endpoint(
 
     try:
         result = _classify_changes(file_diffs_plain)
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.error("classify_changes failed: %s\n%s", exc, traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Classification error: {exc}") from exc
 
@@ -749,7 +752,7 @@ async def get_velocity_endpoint(
 
     try:
         snapshot = _get_velocity(repo=repo, window_days=window_days)
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.error("get_velocity failed for repo %s: %s", repo, exc)
         raise HTTPException(status_code=500, detail=f"Velocity error: {exc}") from exc
 
@@ -793,7 +796,7 @@ async def get_velocity_endpoint(
                 snapshot["category_breakdown"] = cat_breakdown
             else:
                 snapshot["category_breakdown"] = {}
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning("category breakdown failed: %s", exc)
             snapshot["category_breakdown"] = {}
 
@@ -827,6 +830,7 @@ async def review_checklist_endpoint(
         False,
         description="If True, group checklist items by security category",
     ),
+    org_id: str = Depends(get_org_id),
 ) -> ReviewChecklistResponse:
     """Generate a security review checklist from a set of file diffs.
 
@@ -845,7 +849,7 @@ async def review_checklist_endpoint(
 
     try:
         checklist = _generate_checklist(file_diffs_plain)
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.error("generate_checklist failed: %s\n%s", exc, traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Checklist generation error: {exc}") from exc
 
@@ -864,7 +868,7 @@ async def review_checklist_endpoint(
                 cat_val = c.category.value if hasattr(c.category, "value") else str(c.category)
                 if c.classification != ChangeClassification.COSMETIC and cat_val not in categories_seen:
                     categories_seen.append(cat_val)
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         categories_seen = []
 
     # Group by category if requested
@@ -880,7 +884,7 @@ async def review_checklist_endpoint(
                 cat_items = [item for item in checklist[offset:] if item in template_items]
                 if cat_items:
                     grouped[cat.value] = cat_items
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             grouped = {"general": checklist}
 
     data: Dict[str, Any] = {
@@ -952,7 +956,7 @@ async def health_endpoint() -> HealthResponse:
             "status": "OK",
             "pattern_count": pattern_count,
         }
-    except Exception as exc:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
         checks["pattern_library"] = {"status": "FAIL", "detail": str(exc)}
 
     # Check 2: Diff parser smoke test
@@ -972,7 +976,7 @@ async def health_endpoint() -> HealthResponse:
             "status": "OK",
             "test_files_parsed": len(parsed),
         }
-    except Exception as exc:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
         checks["diff_parser"] = {"status": "FAIL", "detail": str(exc)}
 
     # Check 3: AST analyzer
@@ -984,7 +988,7 @@ async def health_endpoint() -> HealthResponse:
             "status": "OK",
             "test_findings": len(findings),
         }
-    except Exception as exc:
+    except ImportError as exc:
         checks["ast_analyzer"] = {"status": "FAIL", "detail": str(exc)}
 
     # Check 4: Risk scorer
@@ -1002,7 +1006,7 @@ async def health_endpoint() -> HealthResponse:
             "status": "OK",
             "test_score": score,
         }
-    except Exception as exc:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
         checks["risk_scorer"] = {"status": "FAIL", "detail": str(exc)}
 
     # Check 5: Velocity tracker
@@ -1013,7 +1017,7 @@ async def health_endpoint() -> HealthResponse:
             "status": "OK",
             "tracked_repos": len(repos),
         }
-    except Exception as exc:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
         checks["velocity_tracker"] = {"status": "FAIL", "detail": str(exc)}
 
     # Overall health

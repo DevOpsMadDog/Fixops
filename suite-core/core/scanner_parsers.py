@@ -1079,7 +1079,7 @@ class TrivyScannerNormalizer(_Base):
                 if "ArtifactName" in d or "ArtifactType" in d or "SchemaVersion" in d:
                     return 0.95
                 return 0.6
-        except Exception:
+        except (json.JSONDecodeError, KeyError, ValueError, UnicodeDecodeError):
             pass
         return 0.0
 
@@ -1152,7 +1152,7 @@ class GrypeScannerNormalizer(_Base):
             d = json.loads(content)
             if "matches" in d:
                 return 0.9
-        except Exception:
+        except (json.JSONDecodeError, KeyError, ValueError, UnicodeDecodeError):
             pass
         return 0.0
 
@@ -1205,7 +1205,7 @@ class SemgrepScannerNormalizer(_Base):
                 if any("check_id" in r for r in d["results"][:3]):
                     return 0.95
             return 0.0
-        except Exception:
+        except (json.JSONDecodeError, KeyError, ValueError, UnicodeDecodeError):
             return 0.0
 
     def normalize(self, content: bytes, content_type=None) -> list:
@@ -1244,7 +1244,7 @@ class DependabotScannerNormalizer(_Base):
                 if "security_advisory" in d[0] or "dependency" in d[0]:
                     return 0.9
             return 0.0
-        except Exception:
+        except (json.JSONDecodeError, KeyError, ValueError, UnicodeDecodeError):
             return 0.0
 
     def normalize(self, content: bytes, content_type=None) -> list:
@@ -2075,7 +2075,7 @@ def register_scanner_normalizers(registry) -> int:
             registry.register(name, normalizer)
             count += 1
             logger.info("Registered scanner normalizer: %s", name)
-        except Exception as e:
+        except (TypeError, AttributeError, ImportError, ValueError) as e:
             # Only expose exception type — str(e) may contain import paths
             logger.warning(
                 "Failed to register %s normalizer: %s", name, type(e).__name__
@@ -2100,7 +2100,7 @@ def auto_detect_scanner(content: bytes) -> Optional[str]:
             if score > best_score:
                 best_score = score
                 best_name = name
-        except Exception:
+        except (TypeError, AttributeError, ValueError, json.JSONDecodeError, UnicodeDecodeError):
             continue
 
     return best_name if best_score >= 0.5 else None
@@ -2153,10 +2153,11 @@ def parse_scanner_output(
         if not isinstance(findings, list):
             logger.warning("Normalizer %s returned non-list: %s", name, type(findings).__name__)
             findings = list(findings) if findings else []
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(
             "Normalizer %s crashed on input (%d bytes): %s",
             name, len(content), type(e).__name__,
+            exc_info=True,
         )
         return []
 

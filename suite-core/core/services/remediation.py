@@ -61,6 +61,39 @@ DEFAULT_SLA_POLICIES = {
     "low": 720,  # 30 days
 }
 
+# Security: allowlist of column names that may appear in dynamic UPDATE SET clauses.
+# This prevents SQL injection when building "col = ?" fragments programmatically.
+# Only columns that are actually written by this service are listed here.
+_ALLOWED_UPDATE_COLUMNS: frozenset = frozenset({
+    "status",
+    "updated_at",
+    "resolved_at",
+    "severity",
+    "sla_hours",
+    "due_at",
+    "assignee",
+    "assignee_email",
+    "sla_breached",
+    "ticket_id",
+    "ticket_url",
+})
+
+
+def _build_set_clause(updates: Dict[str, Any]) -> str:
+    """Build a safe SQL SET clause from an updates dict.
+
+    Security: validates every column name against _ALLOWED_UPDATE_COLUMNS
+    before interpolating it into the SQL string. Values are passed via
+    parameterised query (?) so they are never interpolated.
+    """
+    for col in updates:
+        if col not in _ALLOWED_UPDATE_COLUMNS:
+            raise ValueError(
+                f"SQL injection guard: column '{col}' is not in the "
+                "allowed update column list for remediation_tasks."
+            )
+    return ", ".join(f"{col} = ?" for col in updates)
+
 
 class RemediationService:
     """Service for managing remediation tasks with SLA tracking."""
@@ -368,9 +401,10 @@ class RemediationService:
             if target_status == RemediationStatus.RESOLVED:
                 updates["resolved_at"] = now
 
-            set_clause = ", ".join(f"{k} = ?" for k in updates.keys())
+            # _build_set_clause validates column names against _ALLOWED_UPDATE_COLUMNS
+            set_clause = _build_set_clause(updates)
             cursor.execute(
-                f"UPDATE remediation_tasks SET {set_clause} WHERE task_id = ?",
+                f"UPDATE remediation_tasks SET {set_clause} WHERE task_id = ?",  # nosec B608 — columns allowlisted
                 list(updates.values()) + [task_id],
             )
 
@@ -601,33 +635,39 @@ class RemediationService:
         try:
             cursor = conn.cursor()
 
-            base_query = "FROM remediation_tasks WHERE org_id = ?"
-            params: List[Any] = [org_id]
-            if app_id:
-                base_query += " AND app_id = ?"
-                params.append(app_id)
+            # Security: use fully static SQL with an optional parameterised app_id
+            # clause.  Values are always bound via ? placeholders — no f-strings
+            # with user-supplied identifiers.
+            app_filter = " AND app_id = ?" if app_id else ""
+            base_params: List[Any] = [org_id] + ([app_id] if app_id else [])
 
             cursor.execute(
-                f"SELECT status, COUNT(*) as count {base_query} GROUP BY status", params
+                "SELECT status, COUNT(*) as count "
+                "FROM remediation_tasks WHERE org_id = ?"
+                + app_filter
+                + " GROUP BY status",
+                base_params,
             )
             status_counts = {row["status"]: row["count"] for row in cursor.fetchall()}
 
             cursor.execute(
-                f"SELECT severity, COUNT(*) as count {base_query} GROUP BY severity",
-                params,
+                "SELECT severity, COUNT(*) as count "
+                "FROM remediation_tasks WHERE org_id = ?"
+                + app_filter
+                + " GROUP BY severity",
+                base_params,
             )
             severity_counts = {
                 row["severity"]: row["count"] for row in cursor.fetchall()
             }
 
             cursor.execute(
-                f"""
-                SELECT severity,
-                       AVG(julianday(resolved_at) - julianday(created_at)) * 24 as avg_hours
-                {base_query} AND resolved_at IS NOT NULL
-                GROUP BY severity
-            """,
-                params,
+                "SELECT severity, "
+                "AVG(julianday(resolved_at) - julianday(created_at)) * 24 as avg_hours "
+                "FROM remediation_tasks WHERE org_id = ?"
+                + app_filter
+                + " AND resolved_at IS NOT NULL GROUP BY severity",
+                base_params,
             )
             mttr_by_severity = {
                 row["severity"]: (
@@ -637,14 +677,20 @@ class RemediationService:
             }
 
             cursor.execute(
-                f"SELECT COUNT(*) as total {base_query} AND resolved_at IS NOT NULL",
-                params,
+                "SELECT COUNT(*) as total "
+                "FROM remediation_tasks WHERE org_id = ?"
+                + app_filter
+                + " AND resolved_at IS NOT NULL",
+                base_params,
             )
             total_resolved = cursor.fetchone()["total"]
 
             cursor.execute(
-                f"SELECT COUNT(*) as breached {base_query} AND sla_breached = 1 AND resolved_at IS NOT NULL",
-                params,
+                "SELECT COUNT(*) as breached "
+                "FROM remediation_tasks WHERE org_id = ?"
+                + app_filter
+                + " AND sla_breached = 1 AND resolved_at IS NOT NULL",
+                base_params,
             )
             total_breached = cursor.fetchone()["breached"]
 
@@ -656,11 +702,11 @@ class RemediationService:
 
             now = datetime.now(timezone.utc).isoformat()
             cursor.execute(
-                f"""
-                SELECT COUNT(*) as overdue {base_query}
-                AND due_at < ? AND status NOT IN ('resolved', 'wont_fix')
-            """,
-                params + [now],
+                "SELECT COUNT(*) as overdue "
+                "FROM remediation_tasks WHERE org_id = ?"
+                + app_filter
+                + " AND due_at < ? AND status NOT IN ('resolved', 'wont_fix')",
+                base_params + [now],
             )
             overdue_count = cursor.fetchone()["overdue"]
 
@@ -832,9 +878,10 @@ class RemediationService:
 
             # Update task
             if updates:
-                set_clause = ", ".join(f"{k} = ?" for k in updates.keys())
+                # _build_set_clause validates column names against _ALLOWED_UPDATE_COLUMNS
+                set_clause = _build_set_clause(updates)
                 cursor.execute(
-                    f"UPDATE remediation_tasks SET {set_clause} WHERE task_id = ?",
+                    f"UPDATE remediation_tasks SET {set_clause} WHERE task_id = ?",  # nosec B608 — columns allowlisted
                     list(updates.values()) + [task_id],
                 )
 
@@ -915,7 +962,7 @@ class RemediationService:
                             results["notifications_sent"].append(
                                 {"task_id": breach["task_id"], "type": "sla_breach"}
                             )
-                        except Exception as e:
+                        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                             logger.warning(
                                 f"Failed to send SLA breach notification for task "
                                 f"{breach['task_id']}: {e}"
@@ -923,7 +970,7 @@ class RemediationService:
                             results.setdefault("notification_failures", []).append(
                                 {"task_id": breach["task_id"], "error": str(e)}
                             )
-                except Exception as e:
+                except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                     logger.error("Failed to escalate task %s: %s", breach.get("task_id"), type(e).__name__)
                     results.setdefault("escalation_failures", []).append(
                         {"task_id": breach["task_id"], "error": type(e).__name__}
@@ -955,7 +1002,7 @@ class RemediationService:
                     results["notifications_sent"].append(
                         {"task_id": task["task_id"], "type": "sla_warning"}
                     )
-                except Exception as e:
+                except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                     logger.warning(
                         f"Failed to send SLA warning notification for task "
                         f"{task['task_id']}: {e}"
@@ -1069,7 +1116,7 @@ class SLAScheduler:
                 results["total_warnings"] += len(
                     org_result.get("approaching_breach", [])
                 )
-            except Exception as e:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
                 results["by_org"][org_id] = {"error": str(e)}
 
         return results
@@ -1101,7 +1148,7 @@ class SLAScheduler:
                     f"{results['total_escalations']} escalations, "
                     f"{results['total_warnings']} warnings"
                 )
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.error("SLA check failed: %s", type(e).__name__)
 
             await asyncio.sleep(delay_seconds)

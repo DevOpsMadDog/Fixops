@@ -25,7 +25,7 @@ from core.connectors import (
 )
 from core.integration_db import IntegrationDB
 from core.integration_models import IntegrationType
-from core.persistent_store import PersistentDict
+from core.persistent_store import get_persistent_store
 from core.policy_db import PolicyDB
 from core.services.deduplication import ClusterStatus, DeduplicationService
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
@@ -107,7 +107,7 @@ class ActionType(str, Enum):
 
 
 # Persistent job store — survives restarts
-_jobs: PersistentDict = PersistentDict("bulk_jobs")
+_jobs = get_persistent_store("bulk_jobs")
 
 
 class BulkUpdateRequest(BaseModel):
@@ -357,7 +357,7 @@ async def _process_bulk_status(
                 failure,
                 error={"id": cluster_id, "error": type(e).__name__},
             )
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             failure += 1
             logger.error(f"Failed to update cluster {cluster_id}: {e}")
             _update_job_progress(
@@ -417,7 +417,7 @@ async def _process_bulk_assign(
                     failure,
                     error={"id": cluster_id, "error": "Cluster not found"},
                 )
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             failure += 1
             logger.error(f"Failed to assign cluster {cluster_id}: {e}")
             _update_job_progress(
@@ -501,7 +501,7 @@ async def _process_bulk_accept_risk(
                 failure,
                 error={"id": cluster_id, "error": type(e).__name__},
             )
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             failure += 1
             logger.error(f"Failed to accept risk for cluster {cluster_id}: {e}")
             _update_job_progress(
@@ -675,7 +675,7 @@ async def _process_bulk_tickets(
                     failure,
                     error={"id": cluster_id, "error": error_msg},
                 )
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             failure += 1
             logger.error(f"Failed to create ticket for cluster {cluster_id}: {e}")
             _update_job_progress(
@@ -836,7 +836,7 @@ async def _process_bulk_export(
             filepath,
             file_size,
         )
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.exception("Export job %s failed", job_id)
         _jobs[job_id]["errors"].append({"error": type(e).__name__})
         _complete_job(job_id, JobStatus.FAILED.value)
@@ -1144,7 +1144,7 @@ async def bulk_update_findings(request: BulkUpdateRequest):
 
             db.update_finding(finding)
             success += 1
-        except Exception as e:
+        except ImportError as e:
             errors.append({"id": finding_id, "error": type(e).__name__})
 
     return BulkOperationResponse(
@@ -1168,7 +1168,7 @@ async def bulk_delete_findings(request: BulkDeleteRequest):
                 success += 1
             else:
                 errors.append({"id": finding_id, "error": "Finding not found"})
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             errors.append({"id": finding_id, "error": type(e).__name__})
 
     return BulkOperationResponse(
@@ -1199,7 +1199,7 @@ async def bulk_assign_findings(request: BulkAssignRequest):
 
             db.update_finding(finding)
             success += 1
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             errors.append({"id": finding_id, "error": type(e).__name__})
 
     return BulkOperationResponse(
@@ -1259,7 +1259,7 @@ async def bulk_apply_policies(request: BulkApplyPoliciesRequest):
 
             adb.update_finding(finding)
             success += 1
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             errors.append({"id": finding_id, "error": type(e).__name__})
 
     return BulkOperationResponse(
@@ -1280,7 +1280,7 @@ async def bulk_status():
             for fp in sorted(glob.glob(os.path.join(job_dir, "*.json")))[-50:]:
                 with open(fp) as fh:
                     jobs.append(_json.load(fh))
-    except Exception:
+    except ImportError:
         pass
 
     running = sum(1 for j in jobs if j.get("status") == "running")

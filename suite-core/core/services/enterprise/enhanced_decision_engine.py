@@ -46,7 +46,7 @@ class EnhancedDecisionEngine:
                 "✅ Enhanced Decision Engine initialized with multi-LLM intelligence"
             )
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Enhanced Decision Engine initialization failed: {str(e)}")
             raise
 
@@ -221,7 +221,7 @@ class EnhancedDecisionEngine:
                 "recommendations": final_decision.get("recommendations", []),
             }
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Enhanced decision making failed: {str(e)}")
             return self._create_enhanced_fallback_decision(
                 service_name, environment, str(e)
@@ -624,7 +624,7 @@ class EnhancedDecisionEngine:
             from core.services.enterprise.evidence_lake import EvidenceLake
 
             await EvidenceLake.store_evidence(evidence_record)
-        except Exception as e:
+        except ImportError as e:
             logger.warning(f"Enhanced evidence storage failed: {str(e)}")
             await self.cache.set(f"evidence:{evidence_id}", evidence_record, ttl=86400)
 

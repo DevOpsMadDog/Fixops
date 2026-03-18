@@ -41,7 +41,7 @@ def _parse_overlay(text: str) -> Dict[str, Any]:
 
     try:
         import yaml  # type: ignore
-    except Exception:  # pragma: no cover - PyYAML is optional
+    except ImportError:  # pragma: no cover - PyYAML is optional
         try:
             return json.loads(text)
         except json.JSONDecodeError as exc:  # pragma: no cover - defensive branch
@@ -1138,7 +1138,7 @@ class OverlayConfig:
             flag_value = self.flag_provider.bool(flag_key, None)
             if flag_value is not None:
                 return flag_value
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
         raw = self.modules.get(name)

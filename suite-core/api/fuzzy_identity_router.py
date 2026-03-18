@@ -72,7 +72,7 @@ async def register_canonical(req: RegisterCanonicalRequest):
     try:
         brain = get_brain()
         brain.ingest_asset(cid, org_id=req.org_id, **(req.properties or {}))
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.warning("Knowledge Brain unavailable for asset ingestion: %s", exc)
     # Emit event (non-fatal if event bus fails)
     try:
@@ -84,7 +84,7 @@ async def register_canonical(req: RegisterCanonicalRequest):
                 data={"canonical_id": cid, "org_id": req.org_id},
             )
         )
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.warning("Event bus unavailable for asset event: %s", exc)
     return {"canonical_id": cid, "status": "registered"}
 
@@ -183,7 +183,7 @@ async def get_stats(org_id: Optional[str] = Query(None)):
     try:
         resolver = get_fuzzy_resolver()
         return resolver.get_resolution_stats(org_id=org_id)
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.warning("Failed to get identity resolution stats: %s", exc)
         return {
             "total_canonical": 0,
@@ -216,7 +216,7 @@ async def list_identity_findings(
             "stats": stats,
             "engine": "fuzzy-identity",
         }
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         return {
             "findings": [],
             "total": 0,

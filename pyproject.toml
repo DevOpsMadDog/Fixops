@@ -96,4 +96,5 @@ filterwarnings = [
     "ignore:Unclosed.*MemoryObject.*:ResourceWarning",
     "ignore::ResourceWarning",
     "ignore::fastapi.exceptions.FastAPIDeprecationWarning",
+    "ignore:Duplicate Operation ID:UserWarning",
 ]

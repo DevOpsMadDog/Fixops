@@ -54,7 +54,7 @@ class LearningMiddleware(BaseHTTPMiddleware):
                 from core.api_learning_store import get_learning_store
 
                 self._store = get_learning_store()
-            except Exception as exc:
+            except ImportError as exc:
                 logger.warning("Could not initialise learning store: %s", exc)
                 self._enabled = False
         return self._store
@@ -136,7 +136,7 @@ class LearningMiddleware(BaseHTTPMiddleware):
 
                 # Mark anomaly flag for DB storage
                 anomaly.is_anomaly
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
 
             # Inject ML headers
@@ -164,7 +164,7 @@ class LearningMiddleware(BaseHTTPMiddleware):
 
             return response
 
-        except Exception as exc:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
             duration_ms = (time.perf_counter() - start) * 1000
             error_type = type(exc).__name__
 
@@ -187,7 +187,7 @@ class LearningMiddleware(BaseHTTPMiddleware):
                         error_type=error_type,
                     )
                 )
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass  # Never let middleware recording break the request
 
             raise

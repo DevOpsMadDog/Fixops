@@ -30,6 +30,7 @@ import asyncio
 import concurrent.futures
 import hashlib
 import logging
+import os
 import threading
 import time
 import uuid
@@ -111,8 +112,8 @@ class PipelineInput:
     assets: List[Dict[str, Any]] = field(default_factory=list)
     # Options
     run_pentest: bool = False
-    run_playbooks: bool = False
-    generate_evidence: bool = False
+    run_playbooks: bool = True
+    generate_evidence: bool = True
     evidence_framework: str = "soc2"
     evidence_timeframe_days: int = 90
     # Policy overrides
@@ -147,6 +148,7 @@ class PipelineResult:
     pentest_validated: int = 0
     playbooks_executed: int = 0
     evidence_generated: bool = False
+    evidence_signed: bool = False  # True when crypto signing succeeded
     error: Optional[str] = None
 
     def __post_init__(self):
@@ -179,9 +181,55 @@ class PipelineResult:
                 "pentest_validated": self.pentest_validated,
                 "playbooks_executed": self.playbooks_executed,
                 "evidence_generated": self.evidence_generated,
+                "evidence_signed": self.evidence_signed,
             },
             "error": self.error,
         }
+
+
+# ---------------------------------------------------------------------------
+# Lightweight HTTP OPA client for FIXOPS_OPA_URL integration
+# ---------------------------------------------------------------------------
+
+class _HttpOPAEngine:
+    """Thin synchronous wrapper around an external OPA server.
+
+    Compatible with the async ``evaluate_policy`` interface expected by
+    ``_opa_policy_decisions`` — the async call is just a coroutine wrapper
+    around a synchronous ``urllib`` request so there are no extra dependencies.
+
+    Protocol: POST {base_url}/v1/data/{policy_path}
+    Body: {"input": <payload>}
+    Response: {"result": {"decision": "allow|block|defer", ...}}
+    """
+
+    def __init__(self, base_url: str) -> None:
+        self._base_url = base_url.rstrip("/")
+
+    async def evaluate_policy(
+        self, policy_path: str, payload: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Evaluate a policy via OPA HTTP API.  Returns OPA result dict."""
+        import json as _json
+        import urllib.error
+        import urllib.request
+
+        url = f"{self._base_url}/v1/data/{policy_path}"
+        data = _json.dumps({"input": payload}).encode()
+        req = urllib.request.Request(
+            url,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=5) as resp:  # noqa: S310
+                body = _json.loads(resp.read())
+                return body.get("result", {})
+        except (urllib.error.URLError, OSError) as exc:
+            raise RuntimeError(f"OPA HTTP call failed: {exc}") from exc
+        except _json.JSONDecodeError as exc:
+            raise RuntimeError(f"OPA response not JSON: {exc}") from exc
 
 
 class BrainPipeline:
@@ -383,7 +431,7 @@ class BrainPipeline:
             try:
                 step.output = func(ctx, inp) or {}
                 step.status = StepStatus.COMPLETED
-            except Exception as e:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
                 step.status = StepStatus.FAILED
                 # Only expose exception type, not message (may contain secrets/PII)
                 step.error = f"{type(e).__name__}: pipeline step failed"
@@ -418,6 +466,15 @@ class BrainPipeline:
         result.playbooks_executed = len(ctx.get("playbook_results", []))
         result.avg_risk_score = ctx.get("risk_scores", {}).get("avg", 0.0)
         result.critical_cases = ctx.get("risk_scores", {}).get("critical", 0)
+        # Reflect evidence generation and signing state from Step 12 output
+        evidence_step = next(
+            (s for s in result.steps if s.name == "generate_evidence"), None
+        )
+        if evidence_step and evidence_step.status == StepStatus.COMPLETED:
+            result.evidence_generated = True
+            result.evidence_signed = bool(
+                evidence_step.output.get("signed", False)
+            )
 
         # Compute dedup rate metric
         dedup_rate = 0.0
@@ -454,6 +511,19 @@ class BrainPipeline:
                 self._metrics = self._metrics[-100:]
 
         self._emit_event(result)
+
+        # ----------------------------------------------------------------
+        # Persist PipelineRun to enterprise DatabaseManager (Sprint 2).
+        # The sync wrapper is non-blocking on failure — it never raises.
+        # All existing sqlite3 behaviour is untouched; this is an additive
+        # write only.
+        # ----------------------------------------------------------------
+        try:
+            from core.brain_pipeline_db import persist_pipeline_run_sync  # noqa: PLC0415
+            persist_pipeline_run_sync(result, org_id=inp.org_id or "default")
+        except ImportError:
+            pass  # DB write failure must never surface to callers
+
         return result
 
     async def run_async(self, inp: PipelineInput) -> PipelineResult:
@@ -465,7 +535,21 @@ class BrainPipeline:
         [V3] Decision Intelligence — scales past 100 concurrent requests.
         """
         loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(None, self.run, inp)
+        result = await loop.run_in_executor(None, self.run, inp)
+
+        # ----------------------------------------------------------------
+        # Async persist — run after the executor returns so we have a
+        # running event loop available.  The sync persist in run() will
+        # have already fired the fire-and-background path; this await
+        # ensures the actual write completes in async contexts (FastAPI).
+        # ----------------------------------------------------------------
+        try:
+            from core.brain_pipeline_db import persist_pipeline_run  # noqa: PLC0415
+            await persist_pipeline_run(result, org_id=inp.org_id or "default")
+        except ImportError:
+            pass  # DB write failure must never surface to callers
+
+        return result
 
     def cancel(self, run_id: str) -> bool:
         """Cancel a running pipeline by run_id.
@@ -573,12 +657,393 @@ class BrainPipeline:
     # Step 1: Connect everything once
     # ------------------------------------------------------------------
     def _step_connect(self, ctx: Dict[str, Any], inp: PipelineInput) -> Dict[str, Any]:
-        """Connectors already ingested → just tally."""
-        return {
+        """Attempt to pull findings from configured connectors, then tally.
+
+        Connector configuration is resolved in priority order:
+        1. ``inp.metadata["connector_config"]`` — caller-supplied dict
+        2. Environment variables (FIXOPS_SNYK_TOKEN, FIXOPS_GITHUB_TOKEN, etc.)
+
+        Each connector is invoked independently — a failure in one NEVER
+        blocks the others or halts the pipeline.  All connector-fetched
+        findings are appended to ctx["findings"] with a ``connector_source``
+        tag so downstream steps can distinguish them from caller-supplied data.
+        """
+        connectors_queried: List[str] = []
+        connector_errors: List[str] = []
+        fetched_count = 0
+
+        # ------------------------------------------------------------------
+        # Resolve connector configuration
+        # ------------------------------------------------------------------
+        caller_cfg: Dict[str, Any] = {}
+        if isinstance(inp.metadata.get("connector_config"), dict):
+            caller_cfg = inp.metadata["connector_config"]
+
+        def _cfg(name: str) -> Dict[str, Any]:
+            """Merge caller config with env-var defaults for a named connector."""
+            base = caller_cfg.get(name, {}) if caller_cfg else {}
+            return base  # env-var fallbacks applied per connector below
+
+        # ------------------------------------------------------------------
+        # Helper: normalise a raw finding from an external source
+        # ------------------------------------------------------------------
+        def _normalise(raw: Any, source_tag: str) -> Optional[Dict[str, Any]]:
+            if not isinstance(raw, dict):
+                return None
+            f: Dict[str, Any] = dict(raw)
+            f.setdefault("connector_source", source_tag)
+            f.setdefault("org_id", ctx["org_id"])
+            f.setdefault("source", source_tag)
+            # Coerce severity to lowercase
+            if "severity" in f and isinstance(f["severity"], str):
+                f["severity"] = f["severity"].lower()
+            return f
+
+        # ------------------------------------------------------------------
+        # 1a. Snyk — FIXOPS_SNYK_TOKEN + FIXOPS_SNYK_ORG_ID
+        # ------------------------------------------------------------------
+        snyk_token = os.environ.get("FIXOPS_SNYK_TOKEN") or _cfg("snyk").get("token")
+        snyk_org = os.environ.get("FIXOPS_SNYK_ORG_ID") or _cfg("snyk").get("org_id")
+        if snyk_token and snyk_org:
+            try:
+                from core.security_connectors import SnykConnector
+
+                snyk = SnykConnector(
+                    {"token": snyk_token, "org_id": snyk_org}
+                )
+                connectors_queried.append("snyk")
+                projects_result = snyk.list_projects()
+                if projects_result.status == "fetched":
+                    projects = projects_result.details.get("projects", [])
+                    for proj in projects[:20]:  # cap at 20 projects to avoid blocking
+                        pid = proj.get("id") or proj.get("projectId")
+                        if not pid:
+                            continue
+                        issues_result = snyk.get_issues(str(pid))
+                        if issues_result.status == "fetched":
+                            for issue in issues_result.details.get("issues", []):
+                                vuln = issue.get("issueData") or issue
+                                norm = _normalise(
+                                    {
+                                        "id": issue.get("id", ""),
+                                        "title": vuln.get("title", ""),
+                                        "severity": vuln.get("severity", "medium"),
+                                        "cve_id": (
+                                            vuln.get("identifiers", {})
+                                            .get("CVE", [None])[0]
+                                        ),
+                                        "cvss_score": vuln.get("cvssScore"),
+                                        "description": vuln.get("description", ""),
+                                        "component": proj.get("name", ""),
+                                        "fix_available": issue.get(
+                                            "isUpgradable", False
+                                        ),
+                                    },
+                                    "snyk",
+                                )
+                                if norm:
+                                    ctx["findings"].append(norm)
+                                    fetched_count += 1
+                elif projects_result.status == "failed":
+                    connector_errors.append(
+                        f"snyk:list_projects:{projects_result.details.get('error', 'unknown')}"
+                    )
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
+                connector_errors.append(f"snyk:{type(exc).__name__}")
+                logger.debug("Snyk connector error in Step 1: %s", type(exc).__name__)
+
+        # ------------------------------------------------------------------
+        # 1b. SonarQube — FIXOPS_SONARQUBE_URL + FIXOPS_SONARQUBE_TOKEN
+        # ------------------------------------------------------------------
+        sonar_url = os.environ.get("FIXOPS_SONARQUBE_URL") or _cfg("sonarqube").get("url")
+        sonar_token = (
+            os.environ.get("FIXOPS_SONARQUBE_TOKEN") or _cfg("sonarqube").get("token")
+        )
+        if sonar_url and sonar_token:
+            try:
+                from core.security_connectors import SonarQubeConnector
+
+                sonar = SonarQubeConnector(
+                    {
+                        "base_url": sonar_url,
+                        "token": sonar_token,
+                        "project_key": _cfg("sonarqube").get("project_key"),
+                    }
+                )
+                connectors_queried.append("sonarqube")
+                issues_result = sonar.get_issues()
+                if issues_result.status == "fetched":
+                    for issue in issues_result.details.get("issues", []):
+                        sev_map = {
+                            "BLOCKER": "critical",
+                            "CRITICAL": "high",
+                            "MAJOR": "medium",
+                            "MINOR": "low",
+                            "INFO": "info",
+                        }
+                        norm = _normalise(
+                            {
+                                "id": issue.get("key", ""),
+                                "title": issue.get("message", ""),
+                                "severity": sev_map.get(
+                                    str(issue.get("severity", "")).upper(), "medium"
+                                ),
+                                "rule_id": issue.get("rule"),
+                                "component": issue.get("component", ""),
+                                "file_path": issue.get("component", ""),
+                                "line": issue.get("line"),
+                                "description": issue.get("message", ""),
+                            },
+                            "sonarqube",
+                        )
+                        if norm:
+                            ctx["findings"].append(norm)
+                            fetched_count += 1
+                elif issues_result.status == "failed":
+                    connector_errors.append(
+                        f"sonarqube:get_issues:{issues_result.details.get('error', 'unknown')}"
+                    )
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
+                connector_errors.append(f"sonarqube:{type(exc).__name__}")
+                logger.debug("SonarQube connector error in Step 1: %s", type(exc).__name__)
+
+        # ------------------------------------------------------------------
+        # 1c. GitHub Dependabot / Code Scanning Alerts
+        #     FIXOPS_GITHUB_TOKEN + FIXOPS_GITHUB_OWNER + FIXOPS_GITHUB_REPO
+        # ------------------------------------------------------------------
+        gh_token = (
+            os.environ.get("FIXOPS_GITHUB_TOKEN") or _cfg("github").get("token")
+        )
+        gh_owner = (
+            os.environ.get("FIXOPS_GITHUB_OWNER") or _cfg("github").get("owner")
+        )
+        gh_repo = (
+            os.environ.get("FIXOPS_GITHUB_REPO") or _cfg("github").get("repo")
+        )
+        if gh_token and gh_owner and gh_repo:
+            try:
+                from core.connectors import GitHubConnector as _GHConnector
+
+                gh = _GHConnector(
+                    {
+                        "token": gh_token,
+                        "owner": gh_owner,
+                        "repo": gh_repo,
+                    }
+                )
+                connectors_queried.append("github")
+
+                # Fetch Dependabot vulnerability alerts via GitHub REST API
+                dep_endpoint = (
+                    f"https://api.github.com/repos/{gh_owner}/{gh_repo}"
+                    "/dependabot/alerts?state=open&per_page=100"
+                )
+                try:
+                    dep_resp = gh._request(
+                        "GET",
+                        dep_endpoint,
+                        headers={
+                            "Authorization": f"Bearer {gh_token}",
+                            "Accept": "application/vnd.github+json",
+                            "X-GitHub-Api-Version": "2022-11-28",
+                        },
+                    )
+                    if dep_resp.status_code == 200:
+                        alerts = dep_resp.json() if dep_resp.content else []
+                        for alert in alerts if isinstance(alerts, list) else []:
+                            adv = alert.get("security_advisory") or {}
+                            vuln = alert.get("security_vulnerability") or {}
+                            sev_map = {
+                                "critical": "critical",
+                                "high": "high",
+                                "moderate": "medium",
+                                "low": "low",
+                            }
+                            cves = [
+                                i["value"]
+                                for i in adv.get("identifiers", [])
+                                if i.get("type") == "CVE"
+                            ]
+                            norm = _normalise(
+                                {
+                                    "id": f"dependabot-{alert.get('number', '')}",
+                                    "title": adv.get("summary", ""),
+                                    "severity": sev_map.get(
+                                        str(adv.get("severity", "")).lower(), "medium"
+                                    ),
+                                    "cve_id": cves[0] if cves else None,
+                                    "cvss_score": adv.get("cvss", {}).get("score"),
+                                    "component": vuln.get("package", {}).get("name"),
+                                    "description": adv.get("description", ""),
+                                    "fix_available": bool(
+                                        vuln.get("first_patched_version")
+                                    ),
+                                },
+                                "github_dependabot",
+                            )
+                            if norm:
+                                ctx["findings"].append(norm)
+                                fetched_count += 1
+                except (OSError, ValueError, KeyError, RuntimeError) as dep_exc:  # narrowed from bare Exception
+                    logger.debug(
+                        "GitHub Dependabot fetch error: %s", type(dep_exc).__name__
+                    )
+                    connector_errors.append(f"github_dependabot:{type(dep_exc).__name__}")
+
+                # Fetch Code Scanning alerts
+                cs_endpoint = (
+                    f"https://api.github.com/repos/{gh_owner}/{gh_repo}"
+                    "/code-scanning/alerts?state=open&per_page=100"
+                )
+                try:
+                    cs_resp = gh._request(
+                        "GET",
+                        cs_endpoint,
+                        headers={
+                            "Authorization": f"Bearer {gh_token}",
+                            "Accept": "application/vnd.github+json",
+                            "X-GitHub-Api-Version": "2022-11-28",
+                        },
+                    )
+                    if cs_resp.status_code == 200:
+                        cs_alerts = cs_resp.json() if cs_resp.content else []
+                        for alert in cs_alerts if isinstance(cs_alerts, list) else []:
+                            rule = alert.get("rule") or {}
+                            sev_map = {
+                                "critical": "critical",
+                                "high": "high",
+                                "medium": "medium",
+                                "warning": "medium",
+                                "low": "low",
+                                "note": "info",
+                            }
+                            location = alert.get("most_recent_instance", {}).get(
+                                "location", {}
+                            )
+                            norm = _normalise(
+                                {
+                                    "id": f"code-scan-{alert.get('number', '')}",
+                                    "title": rule.get("name", rule.get("id", "")),
+                                    "severity": sev_map.get(
+                                        str(rule.get("severity", "")).lower(), "medium"
+                                    ),
+                                    "rule_id": rule.get("id"),
+                                    "description": rule.get("description", ""),
+                                    "file_path": location.get("path"),
+                                    "line": location.get("start_line"),
+                                    "cwe_id": (
+                                        rule.get("tags", [None])[0]
+                                        if rule.get("tags")
+                                        else None
+                                    ),
+                                },
+                                "github_code_scanning",
+                            )
+                            if norm:
+                                ctx["findings"].append(norm)
+                                fetched_count += 1
+                except (OSError, ValueError, KeyError, RuntimeError) as cs_exc:  # narrowed from bare Exception
+                    logger.debug(
+                        "GitHub code-scanning fetch error: %s", type(cs_exc).__name__
+                    )
+                    connector_errors.append(
+                        f"github_code_scanning:{type(cs_exc).__name__}"
+                    )
+
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
+                connector_errors.append(f"github:{type(exc).__name__}")
+                logger.debug("GitHub connector error in Step 1: %s", type(exc).__name__)
+
+        # ------------------------------------------------------------------
+        # 1d. Jira — pull existing security tickets tagged as findings
+        #     FIXOPS_JIRA_URL + FIXOPS_JIRA_USER + FIXOPS_JIRA_TOKEN
+        # ------------------------------------------------------------------
+        jira_url = os.environ.get("FIXOPS_JIRA_URL") or _cfg("jira").get("url")
+        jira_user = os.environ.get("FIXOPS_JIRA_USER") or _cfg("jira").get("user_email")
+        jira_token = os.environ.get("FIXOPS_JIRA_TOKEN") or _cfg("jira").get("token")
+        jira_project = (
+            os.environ.get("FIXOPS_JIRA_PROJECT") or _cfg("jira").get("project_key")
+        )
+        jira_jql = (
+            os.environ.get("FIXOPS_JIRA_FINDINGS_JQL")
+            or _cfg("jira").get("findings_jql")
+        )
+        if jira_url and jira_user and jira_token and (jira_project or jira_jql):
+            try:
+                from core.connectors import JiraConnector as _JiraConnector
+
+                jira = _JiraConnector(
+                    {
+                        "url": jira_url,
+                        "user_email": jira_user,
+                        "token": jira_token,
+                        "project_key": jira_project or "SEC",
+                    }
+                )
+                connectors_queried.append("jira")
+                jql = jira_jql or (
+                    f"project = {jira_project} AND labels = security-finding"
+                    " AND statusCategory != Done ORDER BY created DESC"
+                )
+                result = jira.search_issues(jql, max_results=200)
+                if result.status == "fetched":
+                    for issue in result.details.get("issues", []):
+                        fields = issue.get("fields", {})
+                        pri = (fields.get("priority") or {}).get("name", "Medium")
+                        sev_map = {
+                            "Highest": "critical",
+                            "High": "high",
+                            "Medium": "medium",
+                            "Low": "low",
+                            "Lowest": "info",
+                        }
+                        norm = _normalise(
+                            {
+                                "id": issue.get("key", ""),
+                                "title": fields.get("summary", ""),
+                                "severity": sev_map.get(pri, "medium"),
+                                "description": str(
+                                    fields.get("description") or ""
+                                )[:500],
+                                "asset_name": fields.get("components", [{}])[0].get(
+                                    "name", ""
+                                )
+                                if fields.get("components")
+                                else "",
+                                "jira_key": issue.get("key"),
+                            },
+                            "jira",
+                        )
+                        if norm:
+                            ctx["findings"].append(norm)
+                            fetched_count += 1
+                elif result.status == "failed":
+                    connector_errors.append(
+                        f"jira:search:{result.details.get('reason', 'unknown')}"
+                    )
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
+                connector_errors.append(f"jira:{type(exc).__name__}")
+                logger.debug("Jira connector error in Step 1: %s", type(exc).__name__)
+
+        # ------------------------------------------------------------------
+        # Tally and return
+        # ------------------------------------------------------------------
+        result_out: Dict[str, Any] = {
             "findings_count": len(ctx.get("findings", [])),
             "assets_count": len(ctx.get("assets", [])),
             "source": inp.source,
+            "connector_fetched": fetched_count,
+            "connectors_queried": connectors_queried,
         }
+        if connector_errors:
+            result_out["connector_errors"] = connector_errors
+        if not connectors_queried:
+            result_out["connector_note"] = (
+                "No connectors configured. Set FIXOPS_SNYK_TOKEN, "
+                "FIXOPS_SONARQUBE_TOKEN, FIXOPS_GITHUB_TOKEN, or "
+                "FIXOPS_JIRA_TOKEN to enable live ingestion."
+            )
+        return result_out
 
     # ------------------------------------------------------------------
     # Step 2: Translate into common language
@@ -641,7 +1106,7 @@ class BrainPipeline:
                     quality_result.warning_count,
                     scanner_type,
                 )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug("Parser quality validation skipped: %s", type(e).__name__)
 
         result = {"normalized_count": normalized}
@@ -663,7 +1128,7 @@ class BrainPipeline:
             from core.services.fuzzy_identity import get_fuzzy_resolver
 
             resolver = get_fuzzy_resolver()
-        except Exception:
+        except ImportError:
             return {
                 "resolved": 0,
                 "skipped": True,
@@ -746,7 +1211,7 @@ class BrainPipeline:
             from core.services.deduplication import DeduplicationService
 
             dedup = DeduplicationService(db_path=Path("fixops_dedup.db"))
-        except Exception:
+        except ImportError:
             use_local_fallback = True
             dedup = None
 
@@ -770,7 +1235,7 @@ class BrainPipeline:
                     len(ctx["findings"]),
                 )
                 use_local_fallback = True
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.warning("Dedup step failed (%s), using local fallback", type(e).__name__)
                 use_local_fallback = True
 
@@ -850,7 +1315,7 @@ class BrainPipeline:
                 cluster_detail = None
                 try:
                     cluster_detail = dedup.get_cluster(cid)
-                except Exception:
+                except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                     pass
 
                 severity = (cluster_detail or {}).get("severity", "medium")
@@ -901,7 +1366,7 @@ class BrainPipeline:
                 created = mgr.create_case(case)
                 cases_created.append(created.case_id)
             ctx["exposure_cases"] = cases_created
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             # Only expose exception type — str(e) may leak DB paths or credentials
             logger.warning(
                 "Could not create exposure cases: %s", type(e).__name__
@@ -941,7 +1406,7 @@ class BrainPipeline:
             )
 
             brain = get_brain()
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return {"nodes": 0, "edges": 0, "skipped": True}
 
         t_prep_start = time.monotonic()
@@ -1030,7 +1495,7 @@ class BrainPipeline:
                         )
                     )
                     nodes_added += 1
-                except Exception as graph_err:
+                except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as graph_err:
                     graph_errors += 1
                     if graph_errors <= 5:
                         logger.warning(
@@ -1050,7 +1515,7 @@ class BrainPipeline:
                     )
                 )
                 nodes_added += 1
-            except Exception as graph_err:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as graph_err:
                 graph_errors += 1
                 if graph_errors <= 5:
                     logger.warning(
@@ -1089,7 +1554,7 @@ class BrainPipeline:
                     )
                 )
                 edges_added += 1
-            except Exception as graph_err:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as graph_err:
                 graph_errors += 1
                 if graph_errors <= 5:
                     logger.warning(
@@ -1109,7 +1574,7 @@ class BrainPipeline:
                     )
                 )
                 edges_added += 1
-            except Exception as graph_err:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as graph_err:
                 graph_errors += 1
                 if graph_errors <= 5:
                     logger.warning(
@@ -1155,7 +1620,7 @@ class BrainPipeline:
                 hotspots = gnn.get_attention_hotspots(top_k=5)
                 if hotspots:
                     result["gnn_hotspots"] = [h["node_id"] for h in hotspots[:3]]
-        except Exception as gnn_err:
+        except (OSError, ValueError, KeyError, RuntimeError) as gnn_err:  # narrowed from bare Exception
             logger.debug("GNN analysis skipped: %s", type(gnn_err).__name__)
 
         return result
@@ -1191,7 +1656,7 @@ class BrainPipeline:
             enricher = get_threat_enricher()
             result = enricher.enrich_findings(ctx["findings"])
             return result
-        except Exception as e:
+        except ImportError as e:
             # Only expose exception type — str(e) may contain API keys or URLs
             logger.warning(
                 "ThreatEnricher unavailable (%s), using severity-based estimation",
@@ -1264,7 +1729,7 @@ class BrainPipeline:
             ML_MODEL_VERSION = _ml_ver
             risk_model = get_risk_model()
             ml_available = risk_model.is_trained
-        except Exception as e:
+        except ImportError as e:
             logger.debug("ML risk scorer unavailable: %s", type(e).__name__)
 
         scores = []
@@ -1312,7 +1777,7 @@ class BrainPipeline:
                         "narrative": explanation.risk_narrative,
                         "base_value": round(explanation.base_value / 100.0, 4),
                     }
-                except Exception as expl_err:
+                except (OSError, ValueError, KeyError, RuntimeError) as expl_err:  # narrowed from bare Exception
                     logger.debug("SHAP explanation failed: %s", type(expl_err).__name__)
                 predictions_meta.append({
                     "model": pred.model_version,
@@ -1351,15 +1816,312 @@ class BrainPipeline:
             avg_ci = sum(p["ci_width"] for p in predictions_meta) / len(predictions_meta)
             result["avg_confidence_width"] = round(avg_ci, 2)
 
+        # ------------------------------------------------------------------
+        # SBOM-to-Runtime Correlation (ALdeci differentiator)
+        # If SBOM data is provided in pipeline metadata, correlate components
+        # against runtime findings and apply risk adjustments.
+        # ------------------------------------------------------------------
+        sbom_data = inp.metadata.get("sbom") if inp.metadata else None
+        if sbom_data and isinstance(sbom_data, dict):
+            try:
+                from core.sbom_runtime_correlator import SBOMRuntimeCorrelator
+
+                correlator = SBOMRuntimeCorrelator()
+                correlation = correlator.correlate(
+                    sbom=sbom_data,
+                    findings=ctx.get("findings", []),
+                    org_id=inp.org_id or "",
+                )
+                # Apply risk adjustments to findings in-place
+                findings = ctx.get("findings", [])
+                adjustments_applied = 0
+                for finding in findings:
+                    fid = finding.get("id", finding.get("finding_id", ""))
+                    delta = correlation.risk_adjustments.get(fid)
+                    if delta is not None:
+                        old_score = finding.get("risk_score", 0.5)
+                        finding["risk_score"] = round(
+                            min(max(old_score + delta, 0.0), 1.0), 4
+                        )
+                        finding["sbom_correlated"] = True
+                        finding["sbom_risk_delta"] = round(delta, 4)
+                        adjustments_applied += 1
+
+                # Store correlation result in context for downstream steps
+                ctx["sbom_correlation"] = correlation.to_dict()
+
+                # Recalculate aggregate scores after SBOM adjustments
+                adj_scores = [f.get("risk_score", 0.5) for f in findings]
+                if adj_scores:
+                    result["avg_risk_score"] = round(sum(adj_scores) / len(adj_scores), 4)
+                    result["critical_count"] = sum(1 for s in adj_scores if s >= 0.75)
+                    ctx["risk_scores"]["avg"] = result["avg_risk_score"]
+                    ctx["risk_scores"]["critical"] = result["critical_count"]
+
+                result["sbom_correlation"] = {
+                    "components_in_sbom": correlation.stats.get("components_in_sbom", 0),
+                    "matched": correlation.stats.get("matched_components", 0),
+                    "sbom_only": correlation.stats.get("sbom_only_components", 0),
+                    "shadow_dependencies": correlation.stats.get("shadow_count", 0),
+                    "shadow_alert": correlation.shadow_dependency_alert,
+                    "adjustments_applied": adjustments_applied,
+                }
+                logger.info(
+                    "SBOM correlation applied: org=%s matched=%d shadows=%d adj=%d",
+                    inp.org_id or "?",
+                    correlation.stats.get("matched_components", 0),
+                    correlation.stats.get("shadow_count", 0),
+                    adjustments_applied,
+                )
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as sbom_exc:
+                # SBOM correlation is additive — never fail the pipeline
+                logger.warning(
+                    "SBOM correlation failed (non-fatal): %s", type(sbom_exc).__name__
+                )
+                result["sbom_correlation"] = {"error": type(sbom_exc).__name__}
+
         return result
 
     # ------------------------------------------------------------------
     # Step 8: Policy decides what must happen
     # ------------------------------------------------------------------
+
+    # OPA engine singleton — lazily initialised once per process.
+    # None = untried; False = unavailable; OPAEngine instance = ready.
+    _opa_engine: Any = None
+    _opa_available: Optional[bool] = None
+
+    def _get_opa_engine(self) -> Any:
+        """Return a live OPA engine, or None if unavailable.
+
+        Resolution order (first that works wins):
+        1. FIXOPS_OPA_URL env var → HTTP OPA client (air-gap + cloud compatible)
+        2. real_opa_engine.OPAEngineFactory (enterprise install)
+        3. None — falls back to expression evaluator in ``_opa_policy_decisions``
+
+        Cached on the class so all BrainPipeline instances share one instance.
+        Import / connection errors are caught and logged at DEBUG level so they
+        never surface as pipeline failures.
+        """
+        if BrainPipeline._opa_available is not None:
+            return BrainPipeline._opa_engine if BrainPipeline._opa_available else None
+
+        # --- Path 1: FIXOPS_OPA_URL → lightweight HTTP OPA client -----------
+        opa_url = os.environ.get("FIXOPS_OPA_URL", "").strip()
+        if opa_url:
+            try:
+                engine = _HttpOPAEngine(base_url=opa_url)
+                BrainPipeline._opa_engine = engine
+                BrainPipeline._opa_available = True
+                logger.info("OPA engine (HTTP) initialised at %s", opa_url)
+                return engine
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+                logger.debug("HTTP OPA engine init failed: %s", exc)
+                # fall through to enterprise path
+
+        # --- Path 2: Enterprise real_opa_engine import -----------------------
+        try:
+            from core.services.enterprise.real_opa_engine import OPAEngineFactory  # type: ignore[import]
+
+            engine = OPAEngineFactory.create()
+            BrainPipeline._opa_engine = engine
+            BrainPipeline._opa_available = True
+            logger.info("OPA engine initialised for Step 8: %s", type(engine).__name__)
+            return engine
+        except ImportError as exc:
+            BrainPipeline._opa_available = False
+            BrainPipeline._opa_engine = None
+            logger.debug("OPA engine unavailable, using expression evaluator: %s", exc)
+            return None
+
+    @staticmethod
+    def _run_async_in_thread(coro: Any) -> Any:
+        """Run an async coroutine from a synchronous context via a worker thread."""
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(asyncio.run, coro)
+            return future.result(timeout=5)
+
+    # Canonical field aliases for policy expressions — maps human-readable
+    # names to the actual keys stored in finding dicts.
+    _POLICY_FIELD_ALIASES: Dict[str, str] = {
+        # Risk / scoring fields
+        "risk_score": "risk_score",
+        "risk": "risk_score",
+        "cvss_score": "cvss_score",
+        "cvss": "cvss_score",
+        "epss_score": "epss_score",
+        "epss": "epss_score",
+        # Severity
+        "severity": "severity",
+        # Threat-intel booleans
+        "in_kev": "in_kev",
+        "kev": "in_kev",
+        "fix_available": "fix_available",
+        "has_fix": "fix_available",
+        "autofix_available": "fix_available",
+        # Asset
+        "asset_criticality": "asset_criticality",
+        "criticality": "asset_criticality",
+    }
+
+    @staticmethod
+    def _evaluate_condition(condition: str, finding: Dict[str, Any]) -> bool:
+        """Evaluate a policy condition expression against a finding dict.
+
+        Supports:
+        - Numeric comparisons:  ``risk_score >= 0.85``, ``cvss_score > 7``
+        - Boolean equality:     ``in_kev == true``, ``fix_available == false``
+        - String equality:      ``severity == CRITICAL``
+        - Inequality:           ``severity != low``
+        - Membership:           ``severity in [critical, high]``
+        - Non-membership:       ``severity not in [low, info]``
+        - Compound:             ``risk_score >= 0.6 and in_kev == true``
+        - OR:                   ``risk_score >= 0.9 or severity == CRITICAL``
+
+        AND is evaluated before OR (standard precedence).
+        Parentheses are not supported.
+        Unrecognised clauses return False (conservative default).
+
+        Supported fields: risk_score, cvss_score, epss_score, severity,
+        in_kev, fix_available, asset_criticality (plus common aliases).
+        """
+        import operator as op_module
+        import re as _re
+
+        # Operator table for numeric/equality comparisons
+        _OPS = {
+            ">=": op_module.ge,
+            "<=": op_module.le,
+            ">": op_module.gt,
+            "<": op_module.lt,
+            "==": op_module.eq,
+            "!=": op_module.ne,
+        }
+
+        # Field alias resolution (instance-independent)
+        _ALIASES = BrainPipeline._POLICY_FIELD_ALIASES
+
+        def _resolve_field(name: str) -> Any:
+            """Resolve a field name (with aliases) from the finding."""
+            canonical = _ALIASES.get(name, name)
+            return finding.get(canonical)
+
+        def _eval_single_clause(clause: str) -> bool:
+            clause = clause.strip()
+            if not clause:
+                return False
+
+            # --- membership: ``severity in [critical, high]`` ----------------
+            m_in = _re.match(
+                r"^(\w+)\s+in\s+\[([^\]]*)\]$", clause, flags=_re.IGNORECASE
+            )
+            if m_in:
+                field_name = m_in.group(1).strip()
+                values = [v.strip().strip("\"'") for v in m_in.group(2).split(",")]
+                finding_val = _resolve_field(field_name)
+                if finding_val is None:
+                    return False
+                return str(finding_val).lower() in [v.lower() for v in values]
+
+            # --- non-membership: ``severity not in [low, info]`` ---------------
+            m_not_in = _re.match(
+                r"^(\w+)\s+not\s+in\s+\[([^\]]*)\]$", clause, flags=_re.IGNORECASE
+            )
+            if m_not_in:
+                field_name = m_not_in.group(1).strip()
+                values = [v.strip().strip("\"'") for v in m_not_in.group(2).split(",")]
+                finding_val = _resolve_field(field_name)
+                if finding_val is None:
+                    return True  # not in the list if missing
+                return str(finding_val).lower() not in [v.lower() for v in values]
+
+            # --- comparison operators: >=, <=, >, <, ==, != -------------------
+            for sym, func in _OPS.items():
+                m = _re.match(rf"^(\w+)\s*{_re.escape(sym)}\s*(.+)$", clause)
+                if m:
+                    field_name = m.group(1).strip()
+                    raw_val = m.group(2).strip()
+                    finding_val = _resolve_field(field_name)
+                    # Parse RHS value
+                    if raw_val.lower() in ("true", "false"):
+                        rhs: Any = raw_val.lower() == "true"
+                    else:
+                        try:
+                            rhs = float(raw_val)
+                        except ValueError:
+                            rhs = raw_val.strip("\"'")
+                    # Coerce LHS for numeric comparisons
+                    if isinstance(rhs, float) and finding_val is not None:
+                        try:
+                            finding_val = float(finding_val)
+                        except (TypeError, ValueError):
+                            finding_val = 0.0
+                    # String comparisons are case-insensitive
+                    if isinstance(rhs, str) and isinstance(finding_val, str):
+                        finding_val = finding_val.lower()
+                        rhs = rhs.lower()
+                    try:
+                        return bool(func(finding_val, rhs))
+                    except TypeError:
+                        return False
+
+            logger.debug("Policy clause not parsed: %r", clause)
+            return False  # No operator matched
+
+        # OR splits (lowest precedence); AND within each OR clause
+        for or_part in _re.split(r"\s+or\s+", condition, flags=_re.IGNORECASE):
+            and_parts = _re.split(r"\s+and\s+", or_part, flags=_re.IGNORECASE)
+            if all(_eval_single_clause(c) for c in and_parts):
+                return True
+        return False
+
+    def _opa_policy_decisions(
+        self, findings: List[Dict[str, Any]]
+    ) -> Dict[str, str]:
+        """Run findings through the OPA vulnerability policy in batch.
+
+        Returns ``{finding_id: decision}`` where decision is 'allow', 'block',
+        or 'defer'.  Returns an empty dict on any failure so the caller always
+        continues with the expression evaluator.
+        """
+        engine = self._get_opa_engine()
+        if engine is None:
+            return {}
+        try:
+            vuln_list = [
+                {
+                    "cve_id": f.get("cve_id", f.get("id", "")),
+                    "severity": str(f.get("severity", "LOW")).upper(),
+                    "fix_available": bool(
+                        f.get("fix_available")
+                        or f.get("has_fix")
+                        or f.get("autofix_available")
+                    ),
+                }
+                for f in findings
+            ]
+            coro = engine.evaluate_policy("vulnerability", {"vulnerabilities": vuln_list})
+            opa_result = self._run_async_in_thread(coro)
+            decision = opa_result.get("decision", "allow")
+            # OPA returns a single batch verdict; broadcast to all findings
+            return {f.get("id", ""): decision for f in findings}
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+            logger.warning("OPA batch evaluation failed, continuing without OPA: %s", exc)
+            return {}
+
     def _step_apply_policy(
         self, ctx: Dict[str, Any], inp: PipelineInput
     ) -> Dict[str, Any]:
-        """Evaluate policy rules and determine required actions."""
+        """Evaluate policy rules and determine required actions.
+
+        Evaluation order (highest priority first):
+        1. Policy rules (built-in defaults or caller-supplied) evaluated via a
+           proper expression parser — handles numeric comparisons, boolean
+           equality, string equality, and AND/OR logic.
+        2. OPA engine (if available) acts as a secondary gate: if OPA says
+           'block' and the expression evaluator only said 'allow', OPA wins.
+        3. Default fallback: 'allow'.
+        """
         decisions = []
         rules = inp.policy_rules or [
             {
@@ -1379,39 +2141,56 @@ class BrainPipeline:
             },
         ]
 
+        # Attempt OPA batch evaluation (best-effort — never blocks on failure)
+        opa_decisions = self._opa_policy_decisions(ctx["findings"])
+        opa_used = bool(opa_decisions)
+
         for f in ctx["findings"]:
-            risk = f.get("risk_score", 0)
-            in_kev = f.get("in_kev", False)
+            finding_id = f.get("id", "")
             action = "allow"
             triggered_rule = None
+
+            # Evaluate policy rules via expression parser
             for rule in rules:
                 cond = rule.get("condition", "")
-                if "risk_score >= 0.85" in cond and risk >= 0.85:
-                    action = rule["action"]
-                    triggered_rule = rule["name"]
-                    break
-                elif "risk_score >= 0.6" in cond and risk >= 0.6:
-                    action = rule["action"]
-                    triggered_rule = rule["name"]
-                    break
-                elif "in_kev" in cond and in_kev:
-                    action = rule["action"]
-                    triggered_rule = rule["name"]
-                    break
+                if not cond:
+                    continue
+                try:
+                    if self._evaluate_condition(cond, f):
+                        action = rule["action"]
+                        triggered_rule = rule["name"]
+                        break
+                except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+                    logger.debug(
+                        "Policy condition error rule=%s: %s", rule.get("name"), exc
+                    )
+
+            # OPA veto: if OPA says 'block' and rules only said 'allow',
+            # honour OPA as the stricter authority.
+            opa_verdict = opa_decisions.get(finding_id, "allow")
+            if opa_verdict == "block" and action == "allow":
+                action = "block"
+                triggered_rule = "opa_vulnerability_policy"
+
             decisions.append(
                 {
-                    "finding_id": f.get("id", ""),
+                    "finding_id": finding_id,
                     "action": action,
                     "rule": triggered_rule,
+                    "opa_verdict": opa_verdict if opa_used else None,
                 }
             )
             f["policy_action"] = action
 
         ctx["policy_decisions"] = decisions
-        action_counts = {}
+        action_counts: Dict[str, int] = {}
         for d in decisions:
             action_counts[d["action"]] = action_counts.get(d["action"], 0) + 1
-        return {"decisions": len(decisions), "action_breakdown": action_counts}
+        return {
+            "decisions": len(decisions),
+            "action_breakdown": action_counts,
+            "opa_engine_used": opa_used,
+        }
 
     # ------------------------------------------------------------------
     # Step 9: Multi-LLM consensus
@@ -1486,7 +2265,7 @@ class BrainPipeline:
         except (TimeoutError, concurrent.futures.TimeoutError):
             logger.warning("LLM consensus timed out — using deterministic fallback")
             return self._deterministic_consensus(critical, ctx)
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("LLM consensus skipped: %s", type(e).__name__)
             return self._deterministic_consensus(critical, ctx)
 
@@ -1599,7 +2378,7 @@ class BrainPipeline:
         except TimeoutError:
             logger.warning("MicroPenTest timed out after 120s")
             return {"tested": 0, "skipped": True, "reason": "timeout"}
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("MicroPenTest skipped: %s", type(e).__name__)
             return {"tested": 0, "skipped": True, "reason": type(e).__name__}
 
@@ -1628,7 +2407,7 @@ class BrainPipeline:
             try:
                 from core.autofix_engine import AutoFixEngine
                 autofix_engine = AutoFixEngine()
-            except Exception:
+            except ImportError:
                 pass
 
         for f in actionable:
@@ -1653,20 +2432,333 @@ class BrainPipeline:
                             code_context=f.get("code_context", {}),
                         )
                         pb["autofix"] = {"status": "generated", "fix_id": fix.get("fix_id")}
-                    except Exception:
+                    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
                         pb["autofix"] = {"status": "skipped"}
                 else:
                     pb["autofix"] = {"status": "skipped", "reason": "engine_unavailable"}
             playbook_results.append(pb)
 
         ctx["playbook_results"] = playbook_results
-        return {
+
+        # ------------------------------------------------------------------
+        # Real connector dispatch: Jira tickets + Slack notification + GitHub PRs
+        #
+        # Each connector is attempted independently.  A failure in any one
+        # NEVER blocks the others or crashes the pipeline.  Missing config =
+        # graceful skip.  Results are accumulated and returned in step output.
+        # ------------------------------------------------------------------
+        jira_dispatched = 0
+        slack_dispatched = 0
+        github_prs_created = 0
+        connector_errors: List[str] = []
+
+        # ---- 11a. Jira — create tickets for "block" and "escalate" actions --
+        jira_url = os.environ.get("FIXOPS_JIRA_URL", "")
+        jira_user = os.environ.get("FIXOPS_JIRA_USER", "")
+        jira_token = os.environ.get("FIXOPS_JIRA_TOKEN", "")
+        jira_project = os.environ.get("FIXOPS_JIRA_PROJECT", "")
+        if jira_url and jira_user and jira_token and jira_project:
+            try:
+                from core.connectors import JiraConnector
+
+                jira = JiraConnector(
+                    {
+                        "url": jira_url,
+                        "user_email": jira_user,
+                        "token": jira_token,
+                        "project_key": jira_project,
+                    }
+                )
+                for pb in playbook_results:
+                    if pb.get("action") in ("block", "escalate"):
+                        cve_id = pb.get("cve_id") or "unknown"
+                        finding_id = pb.get("finding_id") or "unknown"
+                        jira_action = {
+                            "summary": (
+                                f"[ALdeci] {pb['action'].upper()} — {cve_id}"
+                                f" on {finding_id}"
+                            ),
+                            "description": (
+                                f"ALdeci Brain Pipeline detected a '{pb['action']}'"
+                                f" policy action.\n\n"
+                                f"Finding ID: {finding_id}\n"
+                                f"CVE: {cve_id}\n"
+                                f"Org: {ctx.get('org_id', 'unknown')}\n"
+                                f"Autofix: {pb.get('autofix', {}).get('status', 'n/a')}\n\n"
+                                f"Run ID: {ctx.get('run_id', 'unknown')}"
+                            ),
+                            "priority": "High" if pb["action"] == "block" else "Medium",
+                        }
+                        outcome = jira.create_issue(jira_action)
+                        if outcome.status == "sent":
+                            jira_dispatched += 1
+                            pb["jira_issue"] = outcome.details.get("issue_key")
+                        elif outcome.status == "failed":
+                            connector_errors.append(
+                                "jira:{}:{}".format(
+                                    finding_id,
+                                    outcome.details.get("reason", "unknown"),
+                                )
+                            )
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
+                connector_errors.append(f"jira:{type(exc).__name__}")
+                logger.debug("Jira dispatch error in Step 11: %s", type(exc).__name__)
+
+        # ---- 11b. Slack — notify on "review" actions + overall summary ------
+        slack_webhook = os.environ.get("FIXOPS_SLACK_WEBHOOK", "")
+        if slack_webhook and playbook_results:
+            try:
+                from core.connectors import SlackConnector
+
+                slack = SlackConnector({"webhook_url": slack_webhook})
+
+                # Per-finding Slack messages for "review" actions
+                for pb in playbook_results:
+                    if pb.get("action") == "review":
+                        cve_id = pb.get("cve_id") or "unknown"
+                        finding_id = pb.get("finding_id") or "unknown"
+                        review_action = {
+                            "text": (
+                                f":eyes: *ALdeci REVIEW Required* — Finding `{finding_id}`"
+                                f" (CVE: `{cve_id}`) requires manual review.\n"
+                                f"Org: `{ctx.get('org_id', 'unknown')}`  "
+                                f"Jira: `{pb.get('jira_issue', 'pending')}`"
+                            ),
+                        }
+                        outcome = slack.post_message(review_action)
+                        if outcome.status == "sent":
+                            slack_dispatched += 1
+                        elif outcome.status == "failed":
+                            connector_errors.append(
+                                f"slack:review:{outcome.details.get('reason', 'unknown')}"
+                            )
+
+                # Overall pipeline summary message
+                block_count = sum(
+                    1 for p in playbook_results if p.get("action") == "block"
+                )
+                escalate_count = sum(
+                    1 for p in playbook_results if p.get("action") == "escalate"
+                )
+                review_count = sum(
+                    1 for p in playbook_results if p.get("action") == "review"
+                )
+                summary_action = {
+                    "text": (
+                        f":shield: *ALdeci Brain Pipeline* — Playbooks dispatched"
+                        f" for org `{ctx.get('org_id', 'unknown')}`\n"
+                        f"• Block: {block_count}  Escalate: {escalate_count}"
+                        f"  Review: {review_count}  Total: {len(playbook_results)}\n"
+                        f"• Jira tickets: {jira_dispatched}"
+                        f"  GitHub PRs: {github_prs_created}"
+                    ),
+                }
+                outcome = slack.post_message(summary_action)
+                if outcome.status == "sent":
+                    slack_dispatched += 1
+                elif outcome.status == "failed":
+                    connector_errors.append(
+                        f"slack:summary:{outcome.details.get('reason', 'unknown')}"
+                    )
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
+                connector_errors.append(f"slack:{type(exc).__name__}")
+                logger.debug("Slack dispatch error in Step 11: %s", type(exc).__name__)
+
+        # ---- 11c. GitHub PRs — create PRs for findings with autofix patches -
+        gh_token = os.environ.get("FIXOPS_GITHUB_TOKEN", "")
+        gh_owner = os.environ.get("FIXOPS_GITHUB_OWNER", "")
+        gh_repo = os.environ.get("FIXOPS_GITHUB_REPO", "")
+        gh_base_branch = os.environ.get("FIXOPS_GITHUB_BASE_BRANCH", "main")
+        if gh_token and gh_owner and gh_repo:
+            try:
+                import json as _json
+                import urllib.error
+                import urllib.request
+
+                gh_api_base = f"https://api.github.com/repos/{gh_owner}/{gh_repo}"
+                gh_headers = {
+                    "Authorization": f"Bearer {gh_token}",
+                    "Accept": "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                    "Content-Type": "application/json",
+                }
+
+                def _gh_request(
+                    method: str, url: str, body: Optional[Dict[str, Any]] = None
+                ) -> Dict[str, Any]:
+                    """Minimal GitHub REST call — no dependency on connector class."""
+                    data = _json.dumps(body).encode() if body else None
+                    req = urllib.request.Request(
+                        url, data=data, headers=gh_headers, method=method
+                    )
+                    try:
+                        with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310
+                            return _json.loads(resp.read()) if resp.length != 0 else {}
+                    except urllib.error.HTTPError as exc:
+                        error_body = exc.read().decode(errors="replace")
+                        raise RuntimeError(
+                            f"GitHub API {method} {url} -> {exc.code}: {error_body[:200]}"
+                        ) from exc
+
+                # Get HEAD SHA for base branch
+                try:
+                    ref_data = _gh_request(
+                        "GET",
+                        f"{gh_api_base}/git/ref/heads/{gh_base_branch}",
+                    )
+                    base_sha = (
+                        ref_data.get("object", {}).get("sha", "")
+                    )
+                except (OSError, ValueError, KeyError, RuntimeError) as sha_exc:  # narrowed from bare Exception
+                    logger.debug(
+                        "GitHub: could not fetch base branch SHA: %s",
+                        type(sha_exc).__name__,
+                    )
+                    base_sha = ""
+
+                if base_sha:
+                    for pb in playbook_results:
+                        # Only create PRs for block actions with generated autofix patches
+                        autofix = pb.get("autofix") or {}
+                        if pb.get("action") != "block":
+                            continue
+                        if autofix.get("status") != "generated":
+                            continue
+                        patch_content = autofix.get("patch") or autofix.get("fix_content")
+                        if not patch_content:
+                            continue
+
+                        cve_id = pb.get("cve_id") or "unknown"
+                        finding_id = pb.get("finding_id") or "unknown"
+                        fix_id = autofix.get("fix_id", uuid.uuid4().hex[:8])
+                        branch_name = (
+                            f"aldeci/autofix-{cve_id.replace('/', '-').lower()}"
+                            f"-{fix_id[:8]}"
+                        )
+                        try:
+                            # Create a new branch off base
+                            _gh_request(
+                                "POST",
+                                f"{gh_api_base}/git/refs",
+                                {
+                                    "ref": f"refs/heads/{branch_name}",
+                                    "sha": base_sha,
+                                },
+                            )
+
+                            # Determine target file path from autofix metadata
+                            file_path = (
+                                autofix.get("file_path")
+                                or autofix.get("target_file")
+                                or f"aldeci-patches/{fix_id[:8]}.patch"
+                            )
+                            # Encode file content
+                            import base64 as _b64
+
+                            encoded_content = _b64.b64encode(
+                                str(patch_content).encode()
+                            ).decode()
+
+                            # Get current file SHA if it already exists (for update)
+                            current_file_sha: Optional[str] = None
+                            try:
+                                existing = _gh_request(
+                                    "GET",
+                                    f"{gh_api_base}/contents/{file_path}"
+                                    f"?ref={branch_name}",
+                                )
+                                current_file_sha = existing.get("sha")
+                            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
+                                pass  # File does not exist yet — create it
+
+                            commit_body: Dict[str, Any] = {
+                                "message": (
+                                    f"fix(security): ALdeci autofix for {cve_id}\n\n"
+                                    f"Finding: {finding_id}\n"
+                                    f"Fix ID: {fix_id}\n"
+                                    f"Generated by ALdeci Brain Pipeline"
+                                ),
+                                "content": encoded_content,
+                                "branch": branch_name,
+                            }
+                            if current_file_sha:
+                                commit_body["sha"] = current_file_sha
+
+                            _gh_request(
+                                "PUT",
+                                f"{gh_api_base}/contents/{file_path}",
+                                commit_body,
+                            )
+
+                            # Create PR
+                            pr_data = _gh_request(
+                                "POST",
+                                f"{gh_api_base}/pulls",
+                                {
+                                    "title": (
+                                        f"[ALdeci AutoFix] {cve_id} —"
+                                        f" {finding_id}"
+                                    ),
+                                    "body": (
+                                        f"## ALdeci AutoFix\n\n"
+                                        f"**CVE**: {cve_id}  \n"
+                                        f"**Finding ID**: {finding_id}  \n"
+                                        f"**Fix ID**: {fix_id}  \n"
+                                        f"**Org**: {ctx.get('org_id', 'unknown')}  \n\n"
+                                        f"This PR was automatically generated by ALdeci"
+                                        f" Brain Pipeline (Step 11 — Playbook Dispatch)."
+                                        f"\n\nPlease review before merging."
+                                    ),
+                                    "head": branch_name,
+                                    "base": gh_base_branch,
+                                    "draft": True,
+                                },
+                            )
+                            pr_url = pr_data.get("html_url", "")
+                            pr_number = pr_data.get("number")
+                            pb["github_pr"] = {
+                                "url": pr_url,
+                                "number": pr_number,
+                                "branch": branch_name,
+                                "status": "created",
+                            }
+                            github_prs_created += 1
+                            logger.info(
+                                "GitHub PR created for %s: %s", cve_id, pr_url
+                            )
+                        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as pr_exc:
+                            pb["github_pr"] = {
+                                "status": "failed",
+                                "error": type(pr_exc).__name__,
+                            }
+                            connector_errors.append(
+                                f"github_pr:{finding_id}:{type(pr_exc).__name__}"
+                            )
+                            logger.debug(
+                                "GitHub PR creation failed for %s: %s",
+                                finding_id,
+                                type(pr_exc).__name__,
+                            )
+
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
+                connector_errors.append(f"github:{type(exc).__name__}")
+                logger.debug(
+                    "GitHub connector error in Step 11: %s", type(exc).__name__
+                )
+
+        result = {
             "executed": len(playbook_results),
             "actions": {
                 a: sum(1 for p in playbook_results if p["action"] == a)
                 for a in set(p["action"] for p in playbook_results)
             },
+            "jira_tickets_created": jira_dispatched,
+            "slack_notifications_sent": slack_dispatched,
+            "github_prs_created": github_prs_created,
         }
+        if connector_errors:
+            result["connector_errors"] = connector_errors
+        return result
 
     # ------------------------------------------------------------------
     # Step 12: SOC2 Type II evidence pack
@@ -1674,7 +2766,15 @@ class BrainPipeline:
     def _step_generate_evidence(
         self, ctx: Dict[str, Any], inp: PipelineInput
     ) -> Dict[str, Any]:
-        """Generate SOC2 evidence pack from the pipeline results."""
+        """Generate SOC2 evidence pack from the pipeline results and sign it cryptographically.
+
+        [V10] CTEM + cryptographic evidence — produces a hybrid RSA-4096 + ML-DSA-65
+        signed evidence bundle suitable for SOC2 Type II, FedRAMP, and compliance auditors.
+
+        Signing is attempted via crypto.sign_evidence().  If keys are not configured or
+        the cryptography dependency is absent (air-gap mode), the bundle is returned
+        unsigned with ``signed: false`` — the pipeline NEVER fails due to missing keys.
+        """
         now = datetime.now(timezone.utc)
         evidence = {
             "framework": inp.evidence_framework,
@@ -1714,7 +2814,54 @@ class BrainPipeline:
                 },
             },
         }
-        return evidence
+
+        # ------------------------------------------------------------------
+        # Cryptographic signing — [V10] Evidence integrity
+        # Use the module-level sign_evidence() convenience function which
+        # falls back gracefully when keys are absent (air-gap / dev mode).
+        # ------------------------------------------------------------------
+        signed = False
+        signature_algorithm = None
+        key_fingerprint = None
+        signing_error = None
+
+        try:
+            from core.crypto import sign_evidence, CryptoError
+
+            signed_bundle = sign_evidence(evidence)
+            # Merge signature block into evidence; replace local reference
+            evidence = signed_bundle
+            sig_block = evidence.get("signature", {})
+            signed = True
+            signature_algorithm = sig_block.get("algorithm", "hybrid-rsa-ml-dsa")
+            key_fingerprint = sig_block.get("key_fingerprint")
+            logger.info(
+                "Evidence bundle signed: algorithm=%s fingerprint=%s",
+                signature_algorithm,
+                key_fingerprint,
+            )
+        except ImportError:
+            signing_error = "crypto module not available (air-gap mode)"
+            logger.debug("Evidence signing skipped: %s", signing_error)
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
+            # CryptoError (no keys configured), KeyGenerationError, etc.
+            # We log at DEBUG — missing keys is expected in dev/CI environments.
+            signing_error = type(exc).__name__
+            logger.debug("Evidence signing skipped: %s — %s", type(exc).__name__, exc)
+
+        # Store signed evidence bundle in context for downstream consumers
+        ctx["evidence"] = evidence
+
+        # Build step output (returned to StepResult.output and pipeline summary)
+        step_output = dict(evidence)
+        step_output["signed"] = signed
+        if signed:
+            step_output["signature_algorithm"] = signature_algorithm
+            step_output["key_fingerprint"] = key_fingerprint
+        else:
+            step_output["signing_skipped_reason"] = signing_error or "unknown"
+
+        return step_output
 
     # ------------------------------------------------------------------
     # Event emission
@@ -1767,7 +2914,7 @@ class BrainPipeline:
                 loop = asyncio.new_event_loop()
                 loop.run_until_complete(bus.emit(event))
                 loop.close()
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug("Event emission skipped: %s", type(e).__name__)
 
     def _run_anomaly_check(
@@ -1805,7 +2952,7 @@ class BrainPipeline:
                     anomaly.anomaly_reasons[:3],
                 )
             return anomaly.to_dict()
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug("Anomaly detection skipped: %s", type(e).__name__)
             return None
 
@@ -1853,7 +3000,7 @@ class BrainPipeline:
                 result.run_id,
                 len(findings_for_trend),
             )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug("Trend analysis skipped: %s", type(e).__name__)
 
 

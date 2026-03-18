@@ -1642,7 +1642,7 @@ class MaterialChangeDetector:
         if file_diff.language == "python" and file_diff.all_added_text.strip():
             try:
                 ast_findings = self.ast_analyzer.analyze_added_code(file_diff.all_added_text)
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
 
         # Synthesize AST findings into AUTH / DATA_FLOW pattern matches

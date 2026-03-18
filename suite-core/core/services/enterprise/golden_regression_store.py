@@ -330,7 +330,7 @@ class GoldenRegressionStore:
         try:
             with self.dataset_path.open("r", encoding="utf-8") as handle:
                 raw = json.load(handle)
-        except Exception as exc:  # pragma: no cover - defensive logging
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # pragma: no cover - defensive logging
             _log("error", "Failed to load golden regression dataset", error=str(exc))
             return
 
@@ -354,7 +354,7 @@ class GoldenRegressionStore:
 
             try:
                 case = RegressionCase.from_dict(case_data)
-            except Exception as exc:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
                 _log(
                     "warning",
                     "Skipping invalid regression case",

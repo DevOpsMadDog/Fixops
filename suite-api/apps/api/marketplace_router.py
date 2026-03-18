@@ -88,7 +88,7 @@ def _get_enterprise_service_safe():
     try:
         service = get_marketplace_service()
         return service
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         # Enterprise service exists but failed to initialize (missing config, DB, etc.)
         logger.debug("Enterprise marketplace service unavailable: %s", e)
         return None

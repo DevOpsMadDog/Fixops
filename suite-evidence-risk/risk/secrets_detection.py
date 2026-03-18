@@ -157,7 +157,7 @@ class SecretsDetector:
                     file_findings = self._scan_file(file_path)
                     findings.extend(file_findings)
                     files_scanned += 1
-                except Exception as e:
+                except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                     logger.warning(f"Failed to scan {file_path}: {e}")
 
         return self._build_result(findings, files_scanned)
@@ -199,7 +199,7 @@ class SecretsDetector:
 
                         findings.append(finding)
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"Failed to scan file {file_path}: {e}")
 
         return findings

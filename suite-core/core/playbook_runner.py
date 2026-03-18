@@ -280,7 +280,7 @@ class PlaybookRunner:
             self._overlay = prepare_overlay(
                 path=Path(overlay_path), ensure_directories=False
             )
-        except Exception as exc:
+        except ImportError as exc:
             logger.warning("Failed to load overlay: %s", type(exc).__name__)
 
     def _get_connectors(self) -> Any:
@@ -298,7 +298,7 @@ class PlaybookRunner:
                     self._overlay.toggles,
                     flag_provider=self._overlay.flag_provider,
                 )
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning("Failed to initialize connectors: %s", type(exc).__name__)
         return self._connectors
 
@@ -457,7 +457,7 @@ class PlaybookRunner:
         try:
             playbook = self.load_playbook(path)
             return self.validate_playbook(playbook)
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return [ValidationError("file", str(exc))]
 
     def _parse_playbook(self, data: Dict[str, Any]) -> Playbook:
@@ -724,7 +724,7 @@ class PlaybookRunner:
                 if "set" in step.on_success:
                     context.variables.update(step.on_success["set"])
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.exception("Step %s failed: %s", step.name, type(e).__name__)
             result.status = StepStatus.FAILED
             result.error = str(e)
@@ -955,7 +955,7 @@ class PlaybookRunner:
                         params.get("policy", "default"), params.get("input", {})
                     )
                     return result or {"result": "pass", "details": {}}
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning("OPA evaluation failed: %s", type(exc).__name__)
         return {"result": "pass", "details": {}, "note": "OPA not configured"}
 
@@ -994,7 +994,7 @@ class PlaybookRunner:
                     "evidence_id": evidence_id,
                     "evidence_types": params.get("evidence_types", []),
                 }
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning("Evidence collection failed: %s", type(exc).__name__)
         fallback_id = (
             f"ev-fallback-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
@@ -1031,7 +1031,7 @@ class PlaybookRunner:
                     "control": params.get("control"),
                     "details": {},
                 }
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning("Compliance check failed: %s", type(exc).__name__)
         return {
             "status": "pass",
@@ -1069,7 +1069,7 @@ class PlaybookRunner:
             _config = MicroPentestConfig()  # noqa: F841
             # Queue pentest request
             return {"request_id": "pt-001", "status": "queued"}
-        except Exception as exc:
+        except ImportError as exc:
             logger.warning("Pentest request failed: %s", type(exc).__name__)
         return {"request_id": "pt-001", "status": "queued"}
 
@@ -1102,7 +1102,7 @@ class PlaybookRunner:
                     }
                 )
                 return result.to_dict()
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning("Slack notification failed: %s", type(exc).__name__)
         return {
             "sent": True,
@@ -1134,7 +1134,7 @@ class PlaybookRunner:
             try:
                 result = connectors.jira.create_issue(params)
                 return result.to_dict()
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning("Jira create failed: %s", type(exc).__name__)
         return {
             "issue_key": "SEC-001",
@@ -1152,7 +1152,7 @@ class PlaybookRunner:
             try:
                 result = connectors.jira.update_issue(params)
                 return result.to_dict()
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning("Jira update failed: %s", type(exc).__name__)
         return {"updated": True, "issue_key": params.get("issue_key")}
 
@@ -1166,7 +1166,7 @@ class PlaybookRunner:
             try:
                 result = connectors.jira.add_comment(params)
                 return result.to_dict()
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning("Jira comment failed: %s", type(exc).__name__)
         return {"comment_id": "c-001", "issue_key": params.get("issue_key")}
 
@@ -1180,7 +1180,7 @@ class PlaybookRunner:
             try:
                 result = connectors.confluence.create_page(params)
                 return result.to_dict()
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning("Confluence create failed: %s", type(exc).__name__)
         return {"page_id": "pg-001", "title": params.get("title")}
 
@@ -1194,7 +1194,7 @@ class PlaybookRunner:
             try:
                 result = connectors.confluence.update_page(params)
                 return result.to_dict()
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning("Confluence update failed: %s", type(exc).__name__)
         return {"updated": True, "page_id": params.get("page_id")}
 

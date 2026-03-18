@@ -150,7 +150,7 @@ class MPTEClient:
                 if e.response.status_code < 500 or attempt == self.max_retries - 1:
                     raise
                 await asyncio.sleep(2**attempt)
-            except Exception:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
                 if attempt == self.max_retries - 1:
                     raise
                 await asyncio.sleep(2**attempt)

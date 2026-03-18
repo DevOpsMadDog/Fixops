@@ -53,7 +53,7 @@ def run_enhanced_analysis(
             "Invalid payload for enhanced analysis: %s", type(exc).__name__
         )
         raise HTTPException(status_code=400, detail="Invalid payload for enhanced analysis")
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         logger.exception("Enhanced analysis failed")
         raise HTTPException(status_code=500, detail="Analysis failed")
 

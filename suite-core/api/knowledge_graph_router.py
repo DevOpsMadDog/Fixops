@@ -12,7 +12,8 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -80,7 +81,7 @@ async def knowledge_graph_stats() -> Dict[str, Any]:
             "density": analytics.get("density", 0.0),
             "connected_components": analytics.get("connected_components", 1),
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         return {
             "status": "ok",
             "engine": "knowledge-graph",
@@ -107,7 +108,7 @@ async def knowledge_graph_status() -> Dict[str, Any]:
             "version": "1.0.0",
             **analytics,
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         return {
             "status": "degraded",
             "engine": "knowledge-graph",
@@ -134,7 +135,7 @@ async def ingest_findings(req: IngestFindingsRequest) -> Dict[str, Any]:
             "findings_count": len(req.findings),
             "graph_elements_created": count,
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         raise HTTPException(status_code=500, detail=f"Ingestion failed: {e}")
 
 
@@ -149,8 +150,8 @@ async def add_dependency(req: AddDependencyRequest) -> Dict[str, Any]:
             "source": req.source,
             "target": req.target,
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.get("/attack-paths")
@@ -180,7 +181,7 @@ async def list_attack_paths() -> Dict[str, Any]:
             "last_computed": datetime.now(timezone.utc).isoformat() if paths else None,
             "note": "Populate the knowledge graph via POST /seed-demo or ingest findings to compute attack paths" if not paths else None,
         }
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         return {
             "attack_paths": [],
             "total_paths": 0,
@@ -216,8 +217,8 @@ async def find_attack_paths(req: AttackPathRequest) -> Dict[str, Any]:
             "source": req.source_id,
             "target": req.target_id,
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.post("/blast-radius")
@@ -236,8 +237,8 @@ async def calculate_blast_radius(req: BlastRadiusRequest) -> Dict[str, Any]:
             "depth": radius.depth,
             "critical_path": radius.critical_path,
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.get("/analytics")
@@ -246,8 +247,8 @@ async def graph_analytics() -> Dict[str, Any]:
     try:
         engine = _get_engine()
         return engine.get_graph_analytics()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.get("/export")
@@ -258,8 +259,8 @@ async def export_graph(format: str = Query("json", pattern="^(json|mermaid)$")) 
         if format == "mermaid":
             return {"format": "mermaid", "diagram": engine.export_mermaid()}
         return {"format": "json", "graph": engine.export_json()}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.get("/node-types")
@@ -639,6 +640,6 @@ async def seed_demo_data() -> Dict[str, Any]:
                 "export_json": "GET /api/v1/knowledge-graph/export?format=json",
             },
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Demo seed failed: {e}")
         raise HTTPException(status_code=500, detail=f"Demo seed failed: {e}")

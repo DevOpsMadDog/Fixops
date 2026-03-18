@@ -921,7 +921,7 @@ class DrillDB:
         try:
             yield conn
             conn.commit()
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             conn.rollback()
             raise
         finally:
@@ -1928,7 +1928,7 @@ class DrillEngine:
         for scenario in self._scenarios.values():
             try:
                 self._db.upsert_scenario(scenario)
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning("Failed to seed scenario %s: %s", scenario.scenario_id, exc)
 
     # ------------------------------------------------------------------

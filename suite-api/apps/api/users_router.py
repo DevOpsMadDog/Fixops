@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional
 
 import jwt
 from apps.api.dependencies import get_org_id
-from core.persistent_store import PersistentDict
+from core.persistent_store import get_persistent_store
 from core.user_db import UserDB
 from core.user_models import User, UserRole, UserStatus
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -57,7 +57,7 @@ JWT_ACCESS_TOKEN_EXPIRE_HOURS = int(os.environ.get("FIXOPS_JWT_EXPIRE_HOURS", "2
 JWT_REFRESH_TOKEN_EXPIRE_DAYS = int(os.environ.get("FIXOPS_JWT_REFRESH_DAYS", "7"))
 
 # Rate limiting for login attempts — persisted so restarts don't reset lockouts
-_login_attempts: PersistentDict = PersistentDict("login_attempts")
+_login_attempts = get_persistent_store("login_attempts")
 MAX_LOGIN_ATTEMPTS = 5
 LOGIN_LOCKOUT_SECONDS = 300  # 5 minutes
 

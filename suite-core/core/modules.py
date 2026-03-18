@@ -105,7 +105,7 @@ def execute_custom_modules(
             continue
         try:
             handler = _resolve_callable(entrypoint)
-        except Exception as exc:  # pragma: no cover - surfaced via outcome
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # pragma: no cover - surfaced via outcome
             outcomes.append(
                 {
                     "name": spec.get("name") or entrypoint,

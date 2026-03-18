@@ -59,7 +59,7 @@ def create_flag_provider(
                 else:
                     logger.info("LaunchDarkly running in offline mode")
                     ld_provider = None  # Don't use offline LD provider
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning("Failed to initialize LaunchDarkly provider: %s", exc)
 
     if ld_provider:

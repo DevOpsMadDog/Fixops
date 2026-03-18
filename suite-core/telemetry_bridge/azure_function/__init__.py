@@ -28,7 +28,7 @@ def load_overlay_config() -> Dict[str, Any]:
         with open(overlay_path, "r") as f:
             overlay = yaml.safe_load(f)
         return overlay.get("telemetry_bridge", {})
-    except Exception as e:
+    except ImportError as e:
         logger.warning(f"Failed to load overlay from {overlay_path}: {e}")
         return {
             "mode": os.environ.get("TELEMETRY_MODE", "http"),
@@ -57,7 +57,7 @@ def parse_event_hub_message(event: func.EventHubEvent) -> List[Dict[str, Any]]:
             return data
         else:
             return [data]
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Failed to parse Event Hub message: {e}")
         return []
 
@@ -169,6 +169,6 @@ def main(event: func.EventHubEvent) -> None:
         result = send_to_fixops(telemetry, config)
         logger.info(f"Result: {result}")
 
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Error processing telemetry: {e}", exc_info=True)
         raise

@@ -142,7 +142,7 @@ class ReachabilityMonitor:
                 span.set_attribute("fixops.reachability.confidence", metrics.confidence)
                 span.set_status("ok")
 
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             # Record error
             metrics.error = str(e)
 
@@ -197,7 +197,7 @@ class ReachabilityMonitor:
             if span:
                 span.set_status("ok")
 
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             if span:
                 span.set_status("error", str(e))
                 span.record_exception(e)

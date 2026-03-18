@@ -6,7 +6,8 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Mapping
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
+from apps.api.dependencies import get_org_id
 
 # Knowledge Brain + Event Bus integration (graceful degradation)
 try:
@@ -211,13 +212,13 @@ async def risk_scores(request: Request) -> Dict[str, Any]:
 
 
 @router.get("/health")
-async def risk_health():
+async def risk_health(org_id: str = Depends(get_org_id)):
     """Risk analysis service health check."""
     return {"status": "healthy", "engine": "risk", "version": "1.0.0"}
 
 
 @router.get("/status")
-async def risk_status():
+async def risk_status(org_id: str = Depends(get_org_id)):
     """Risk analysis service status (alias for /health)."""
     return await risk_health()
 

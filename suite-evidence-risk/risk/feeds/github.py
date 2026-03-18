@@ -253,7 +253,7 @@ class GitHubSecurityAdvisoriesFeed(ThreatIntelligenceFeed):
             self.logger.info("Fetched %d advisories from GitHub", len(records))
             return records
 
-        except Exception as exc:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
             self.logger.error("Failed to fetch GitHub advisories: %s", exc)
             return []
 

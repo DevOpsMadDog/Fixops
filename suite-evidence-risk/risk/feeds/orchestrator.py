@@ -113,7 +113,7 @@ class ThreatIntelligenceOrchestrator:
         try:
             update_kev_feed(cache_dir=self.cache_dir)
             results["KEV"] = True
-        except Exception as exc:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
             LOGGER.error("Failed to update KEV feed: %s", exc)
             results["KEV"] = False
 
@@ -156,7 +156,7 @@ class ThreatIntelligenceOrchestrator:
                 )
                 kev_records.append(record)
             results["KEV"] = kev_records
-        except Exception as exc:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
             LOGGER.error("Failed to load KEV feed: %s", exc)
 
         total_records = sum(len(records) for records in results.values())
@@ -187,7 +187,7 @@ class ThreatIntelligenceOrchestrator:
                         record_count=len(kev_catalog),
                     )
                 )
-            except Exception as exc:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
                 LOGGER.debug("Failed to get KEV metadata: %s", exc)
 
         return metadata

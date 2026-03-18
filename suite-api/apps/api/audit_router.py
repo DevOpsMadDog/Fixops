@@ -295,7 +295,7 @@ async def get_compliance_gaps(id: str):
             fd = f.to_dict() if hasattr(f, "to_dict") else {}
             for tag in fd.get("tags", []):
                 findings_by_control[tag] += 1
-    except Exception:
+    except ImportError:
         pass
 
     gaps: List[Dict[str, Any]] = []

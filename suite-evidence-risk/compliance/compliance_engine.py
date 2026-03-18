@@ -685,7 +685,7 @@ class ComplianceEngine:
                     for g in fw_gaps:
                         g.setdefault("framework", fw.value)
                     all_gaps.extend(fw_gaps)
-                except Exception:
+                except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                     pass
             return all_gaps
         if isinstance(framework, str):

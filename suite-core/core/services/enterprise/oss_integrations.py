@@ -60,7 +60,7 @@ class TrivyScanner:
                 }
             else:
                 return {"status": "error", "error": stderr.decode(), "scanner": "trivy"}
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Trivy scan failed: {e}")
             return {"status": "error", "error": str(e), "scanner": "trivy"}
 
@@ -133,7 +133,7 @@ class OPAPolicyEngine:
                 }
             else:
                 return {"status": "error", "error": stderr.decode(), "engine": "opa"}
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"OPA policy evaluation failed: {e}")
             return {"status": "error", "error": str(e), "engine": "opa"}
 
@@ -184,7 +184,7 @@ class SigstoreVerifier:
                     "error": stderr.decode(),
                     "verifier": "sigstore",
                 }
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Sigstore verification failed: {e}")
             return {"status": "error", "error": str(e), "verifier": "sigstore"}
 
@@ -236,7 +236,7 @@ class GrypeScanner:
                     }
             else:
                 return {"status": "error", "error": stderr.decode(), "scanner": "grype"}
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Grype scan failed: {e}")
             return {"status": "error", "error": str(e), "scanner": "grype"}
 

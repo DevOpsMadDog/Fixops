@@ -1,0 +1,93 @@
+ALdeci Enterprise Software License Agreement (EULA)
+
+Copyright (c) 2024-2026 ALdeci, Inc. All rights reserved.
+
+IMPORTANT — READ CAREFULLY: This End-User License Agreement ("EULA") is a legal
+agreement between you (either an individual or a single entity, "Licensee") and
+ALdeci, Inc. ("ALdeci") for the ALdeci CTEM+ Decision Intelligence Platform
+software, including all associated documentation, updates, and support materials
+(collectively, the "Software").
+
+BY INSTALLING, COPYING, OR OTHERWISE USING THE SOFTWARE, YOU AGREE TO BE BOUND
+BY THE TERMS OF THIS EULA. IF YOU DO NOT AGREE, DO NOT INSTALL OR USE THE
+SOFTWARE.
+
+1. GRANT OF LICENSE
+   ALdeci grants Licensee a non-exclusive, non-transferable, revocable license
+   to use the Software solely for Licensee's internal business purposes, subject
+   to the terms of the applicable commercial subscription agreement ("Order").
+
+2. RESTRICTIONS
+   Licensee shall NOT:
+   (a) Copy, modify, or create derivative works of the Software;
+   (b) Reverse engineer, decompile, or disassemble the Software;
+   (c) Sublicense, rent, lease, or lend the Software to any third party;
+   (d) Remove or alter any proprietary notices, labels, or marks;
+   (e) Use the Software to provide managed security services to third parties
+       without a separate OEM/MSSP agreement;
+   (f) Transmit the Software or any data derived from it to any jurisdiction
+       subject to export restrictions without prior authorization.
+
+3. INTELLECTUAL PROPERTY
+   The Software, including all algorithms, architectures, models, and
+   documentation, is the exclusive property of ALdeci. This EULA does not
+   convey any ownership rights. ALdeci retains all patents, copyrights, trade
+   secrets, and other intellectual property rights in the Software.
+
+4. CONFIDENTIALITY
+   The Software contains trade secrets and proprietary information of ALdeci.
+   Licensee agrees to maintain the confidentiality of the Software and to not
+   disclose it to any third party without ALdeci's prior written consent.
+
+5. DATA PROCESSING
+   The Software processes security findings, vulnerability data, and application
+   metadata. All data remains under Licensee's control. ALdeci does not access,
+   collect, or transmit Licensee data except as required for support services
+   with Licensee's explicit consent. The Software supports fully air-gapped
+   deployment with zero external network requirements.
+
+6. WARRANTY DISCLAIMER
+   THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. ALDECI DOES NOT
+   WARRANT THAT THE SOFTWARE WILL BE ERROR-FREE OR UNINTERRUPTED.
+
+7. LIMITATION OF LIABILITY
+   IN NO EVENT SHALL ALDECI BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL,
+   CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING OUT OF OR RELATED TO THIS EULA,
+   REGARDLESS OF THE THEORY OF LIABILITY. ALDECI'S TOTAL LIABILITY SHALL NOT
+   EXCEED THE FEES PAID BY LICENSEE IN THE TWELVE (12) MONTHS PRECEDING THE
+   CLAIM.
+
+8. TERM AND TERMINATION
+   This EULA is effective until terminated. ALdeci may terminate this EULA
+   immediately if Licensee breaches any term. Upon termination, Licensee must
+   destroy all copies of the Software and certify such destruction in writing.
+
+9. COMPLIANCE AND AUDIT
+   ALdeci reserves the right to audit Licensee's use of the Software to verify
+   compliance with this EULA, upon reasonable notice and during business hours.
+
+10. GOVERNING LAW
+    This EULA shall be governed by the laws of the State of Delaware, United
+    States, without regard to conflict of law principles. Any disputes shall be
+    resolved in the state or federal courts located in Delaware.
+
+11. EXPORT COMPLIANCE
+    Licensee agrees to comply with all applicable export control laws and
+    regulations, including U.S. Export Administration Regulations (EAR) and
+    International Traffic in Arms Regulations (ITAR).
+
+12. U.S. GOVERNMENT RIGHTS
+    If Licensee is a U.S. Government agency, the Software is provided as
+    "commercial computer software" and "commercial computer software
+    documentation" under FAR 12.212 and DFARS 227.7202.
+
+13. ENTIRE AGREEMENT
+    This EULA, together with any applicable Order, constitutes the entire
+    agreement between Licensee and ALdeci regarding the Software and supersedes
+    all prior agreements.
+
+For licensing inquiries: legal@aldeci.com
+For support: support@aldeci.com
+

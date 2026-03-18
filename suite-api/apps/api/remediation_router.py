@@ -497,7 +497,7 @@ def _to_backlog_item(task: Dict[str, Any]) -> Dict[str, Any]:
         import json as _json
         try:
             metadata = _json.loads(metadata)
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             metadata = {}
     finding_id = (metadata or {}).get("finding_id") or task.get("task_id")
 
@@ -618,7 +618,7 @@ async def remediation_stats(request: Request):
     try:
         raw = svc.get_tasks(limit=1000) if hasattr(svc, "get_tasks") else []
         tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     by_severity = {"critical": 0, "high": 0, "medium": 0, "low": 0}
@@ -654,7 +654,7 @@ async def remediation_queue(request: Request):
     try:
         raw = svc.get_tasks(limit=200) if hasattr(svc, "get_tasks") else []
         tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     # Filter to open/in_progress tasks
@@ -684,7 +684,7 @@ async def remediation_summary(request: Request):
     try:
         raw = svc.get_tasks(limit=1000) if hasattr(svc, "get_tasks") else []
         tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     total = len(tasks)
@@ -748,7 +748,7 @@ def get_task_timeline(task_id: str) -> Dict[str, Any]:
                     "timestamp": r.get("timestamp"),
                 }
             )
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     # Derive lifecycle phases with timestamps
@@ -794,7 +794,7 @@ def get_task_timeline(task_id: str) -> Dict[str, Any]:
             created = datetime.fromisoformat(task_dict["created_at"])
             resolved = datetime.fromisoformat(task_dict["resolved_at"])
             mttr_hours = round((resolved - created).total_seconds() / 3600, 2)
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     # Current phase

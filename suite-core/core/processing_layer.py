@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 try:  # networkx is optional but preferred for rich graph metrics
     import networkx as nx  # type: ignore[import]
-except Exception:  # pragma: no cover - optional dependency
+except ImportError:  # pragma: no cover - optional dependency
     nx = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
@@ -18,19 +18,19 @@ try:  # pgmpy is declared in requirements and provides Bayesian inference
     from pgmpy.factors.discrete import TabularCPD
     from pgmpy.inference import VariableElimination
     from pgmpy.models import BayesianNetwork
-except Exception:  # pragma: no cover - defensive guard for environments without pgmpy
+except (ImportError, SyntaxError):  # pragma: no cover - SyntaxError on Python 3.14 (invalid \p escapes in pgmpy)
     BayesianNetwork = None  # type: ignore[assignment]
     VariableElimination = None  # type: ignore[assignment]
     TabularCPD = None  # type: ignore[assignment]
 
 try:  # optional dependency for probabilistic modelling
     from pomegranate import BayesianNetwork as PomegranateBayes  # type: ignore
-except Exception:  # pragma: no cover - optional dependency
+except ImportError:  # pragma: no cover - optional dependency
     PomegranateBayes = None  # type: ignore[assignment]
 
 try:  # optional dependency for Markov modelling
     import mchmm  # type: ignore
-except Exception:  # pragma: no cover - optional dependency
+except ImportError:  # pragma: no cover - optional dependency
     mchmm = None  # type: ignore[assignment]
 
 
@@ -199,7 +199,7 @@ class ProcessingLayer:
                 state: float(prob)
                 for state, prob in zip(result.state_names["risk"], result.values)
             }
-        except Exception:  # pragma: no cover - pgmpy misconfiguration
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):  # pragma: no cover - pgmpy misconfiguration
             return {**defaults, "risk": "medium", "confidence": 0.5}  # type: ignore[dict-item]
         risk_level = max(distribution, key=distribution.get)  # type: ignore[arg-type]
         return {  # type: ignore[arg-type]
@@ -233,7 +233,7 @@ class ProcessingLayer:
                     "forecast": list(forecast),
                     "library": "mchmm",
                 }
-            except Exception:  # pragma: no cover - handle modelling error
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):  # pragma: no cover - handle modelling error
                 pass
 
         severities = [
@@ -307,7 +307,8 @@ class ProcessingLayer:
             rule_id = finding.get("rule_id") or finding.get("ruleId") or "finding"
             node_id = f"finding:{rule_id}"
             graph.add_node(node_id, type="finding", severity=finding.get("level"))
-            target = finding.get("raw", {}).get("locations", [{}])[0]
+            _locs = finding.get("raw", {}).get("locations") or [{}]
+            target = _locs[0] if _locs else {}
             component_ref = None
             if isinstance(target, Mapping):
                 physical = target.get("physicalLocation")
@@ -345,7 +346,7 @@ class ProcessingLayer:
         }
         try:
             centrality = nx.degree_centrality(graph)
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             centrality = {}
         top_nodes = sorted(centrality.items(), key=lambda item: item[1], reverse=True)[
             :5
@@ -395,7 +396,8 @@ class ProcessingLayer:
             rule_id = finding.get("rule_id") or finding.get("ruleId") or "finding"
             node_id = f"finding:{rule_id}"
             _ensure_node(node_id, type="finding", severity=finding.get("level"))
-            target = finding.get("raw", {}).get("locations", [{}])[0]
+            _locs = finding.get("raw", {}).get("locations") or [{}]
+            target = _locs[0] if _locs else {}
             component_ref = None
             if isinstance(target, Mapping):
                 physical = target.get("physicalLocation")

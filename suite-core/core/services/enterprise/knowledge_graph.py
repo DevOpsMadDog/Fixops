@@ -85,7 +85,7 @@ class CTINexusEntityExtractor:
                 max_tokens=1500,
             )
             logger.info("✅ CTINexus LLM client initialized with ChatGPT")
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"CTINexus ChatGPT initialization failed: {e}")
             self.llm_client = None
 
@@ -147,7 +147,7 @@ class CTINexusEntityExtractor:
             logger.info(f"CTINexus extracted {len(entities)} entities from scan data")
             return entities
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"CTINexus entity extraction failed: {e}")
             return []
 
@@ -174,7 +174,7 @@ class CTINexusEntityExtractor:
 
             return entities
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"CTINexus LLM extraction failed: {e}")
             return []
 
@@ -264,7 +264,7 @@ Output: """
                     )
                     entities.append(entity)
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"CTINexus response parsing failed: {e}")
 
         return entities
@@ -644,7 +644,7 @@ class KnowledgeGraphBuilder:
                 "recommendations": await self._generate_recommendations(),
             }
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Knowledge graph construction failed: {e}")
             return {"status": "error", "error": str(e)}
 
@@ -757,7 +757,7 @@ class KnowledgeGraphBuilder:
 
             return metrics
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Graph analysis failed: {e}")
             return {"error": str(e)}
 
@@ -800,7 +800,7 @@ class KnowledgeGraphBuilder:
             critical_paths.sort(key=lambda x: x["risk_score"], reverse=True)
             return critical_paths[:10]  # Top 10 critical paths
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Critical path analysis failed: {e}")
             return []
 
@@ -859,7 +859,7 @@ class KnowledgeGraphBuilder:
 
             return clusters
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Risk cluster identification failed: {e}")
             return []
 

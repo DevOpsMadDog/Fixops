@@ -18,7 +18,8 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import structlog
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 logger = structlog.get_logger(__name__)
@@ -44,7 +45,7 @@ def _get_feeds():
 
             _feeds_service = FeedsService()
             logger.info("mpte_orchestrator.feeds_service.loaded")
-        except Exception as exc:
+        except ImportError as exc:
             logger.warning(
                 "mpte_orchestrator.feeds_service.unavailable: %s", type(exc).__name__
             )
@@ -60,7 +61,7 @@ def _get_attack_engine():
 
             _attack_engine = AttackSimulationEngine()
             logger.info("mpte_orchestrator.attack_engine.loaded")
-        except Exception as exc:
+        except ImportError as exc:
             logger.warning(
                 "mpte_orchestrator.attack_engine.unavailable: %s", type(exc).__name__
             )
@@ -76,7 +77,7 @@ def _get_autofix_engine():
 
             _autofix_engine = AutoFixEngine()
             logger.info("mpte_orchestrator.autofix_engine.loaded")
-        except Exception as exc:
+        except ImportError as exc:
             logger.warning(
                 "mpte_orchestrator.autofix_engine.unavailable: %s", type(exc).__name__
             )
@@ -120,7 +121,7 @@ class PentestRunRequest(BaseModel):
 
 
 @router.get("/health")
-async def health():
+async def health(org_id: str = Depends(get_org_id)):
     """MPTE Orchestrator health check — dynamically checks availability of sub-engines."""
     feeds_ok = _get_feeds() is not None
     attack_ok = _get_attack_engine() is not None
@@ -139,13 +140,13 @@ async def health():
 
 
 @router.get("/status")
-async def mpte_orchestrator_status():
+async def mpte_orchestrator_status(org_id: str = Depends(get_org_id)):
     """Status alias for MPTE orchestrator."""
     return await health()
 
 
 @router.get("/capabilities")
-async def get_capabilities():
+async def get_capabilities(org_id: str = Depends(get_org_id)):
     """List MPTE Orchestrator capabilities — dynamically reflects loaded engines."""
     feeds = _get_feeds()
     attack = _get_attack_engine()
@@ -245,7 +246,7 @@ async def get_capabilities():
 
 
 @router.post("/threat-intel")
-async def threat_intel(body: ThreatIntelRequest):
+async def threat_intel(body: ThreatIntelRequest, org_id: str = Depends(get_org_id)):
     """Get threat intelligence for a CVE from real feed databases."""
     cve_id = body.cve_id.upper()
     feeds = _get_feeds()
@@ -341,7 +342,7 @@ async def threat_intel(body: ThreatIntelRequest):
 
 
 @router.post("/business-impact")
-async def business_impact(body: BusinessImpactRequest):
+async def business_impact(body: BusinessImpactRequest, org_id: str = Depends(get_org_id)):
     """Analyze business impact based on real CVE severity and exploit data."""
     feeds = _get_feeds()
     cve_ids = body.cve_ids or []
@@ -432,7 +433,7 @@ async def business_impact(body: BusinessImpactRequest):
 
 
 @router.post("/simulate")
-async def simulate_attack(body: SimulateRequest):
+async def simulate_attack(body: SimulateRequest, org_id: str = Depends(get_org_id)):
     """Simulate attack chain using AttackSimulationEngine."""
     engine = _get_attack_engine()
     if not engine:
@@ -490,13 +491,13 @@ async def simulate_attack(body: SimulateRequest):
         }
     except HTTPException:
         raise
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.error("mpte_orchestrator.simulate.error: %s", type(exc).__name__, exc_info=True)
         raise HTTPException(500, detail=f"Simulation failed: {type(exc).__name__}")
 
 
 @router.post("/remediation")
-async def remediation(body: RemediationRequest):
+async def remediation(body: RemediationRequest, org_id: str = Depends(get_org_id)):
     """Generate remediation guidance using AutoFixEngine and FeedsService."""
     cve_id = body.cve_id.upper()
     feeds = _get_feeds()
@@ -551,7 +552,7 @@ async def remediation(body: RemediationRequest):
                     for d in (suggestion.dependency_fixes or [])
                 ],
             }
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning("mpte_orchestrator.autofix.error: %s", type(exc).__name__)
             fix_result = {"status": "autofix_unavailable", "error": type(exc).__name__}
 
@@ -599,7 +600,7 @@ _pentest_campaign_map: Dict[str, str] = {}  # test_id → campaign_id
 
 
 @router.post("/run")
-async def run_pentest(body: PentestRunRequest):
+async def run_pentest(body: PentestRunRequest, org_id: str = Depends(get_org_id)):
     """Run an advanced penetration test using AttackSimulationEngine."""
     engine = _get_attack_engine()
     if not engine:
@@ -637,13 +638,13 @@ async def run_pentest(body: PentestRunRequest):
         }
     except HTTPException:
         raise
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.error("mpte_orchestrator.run.error: %s", type(exc).__name__, exc_info=True)
         raise HTTPException(500, detail=f"Pentest run failed: {type(exc).__name__}")
 
 
 @router.get("/status/{test_id}")
-async def get_pentest_status(test_id: str):
+async def get_pentest_status(test_id: str, org_id: str = Depends(get_org_id)):
     """Get real status of an advanced penetration test from engine."""
     engine = _get_attack_engine()
 

@@ -185,7 +185,7 @@ class MLDSAEngine:
                 created_at=datetime.now(timezone.utc).isoformat(),
                 algorithm=self._sizes["name"],
             )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"dilithium-py keygen failed, falling back: {e}")
             return self._keygen_simplified(key_id)
 
@@ -210,7 +210,7 @@ class MLDSAEngine:
                 created_at=datetime.now(timezone.utc).isoformat(),
                 algorithm=self._sizes["name"],
             )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"liboqs keygen failed, falling back: {e}")
             return self._keygen_simplified(key_id)
 
@@ -240,7 +240,7 @@ class MLDSAEngine:
             level_map = {2: dilithium.Dilithium2, 3: dilithium.Dilithium3, 5: dilithium.Dilithium5}
             impl = level_map[self.security_level]
             return impl.sign(private_key, message)
-        except Exception as e:
+        except ImportError as e:
             logger.warning(f"dilithium-py sign failed, using simplified: {e}")
             return self._sign_simplified(message, private_key)
 
@@ -250,7 +250,7 @@ class MLDSAEngine:
             alg_map = {2: "Dilithium2", 3: "Dilithium3", 5: "Dilithium5"}
             signer = oqs.Signature(alg_map[self.security_level], private_key)
             return signer.sign(message)
-        except Exception as e:
+        except ImportError as e:
             logger.warning(f"liboqs sign failed, using simplified: {e}")
             return self._sign_simplified(message, private_key)
 
@@ -285,7 +285,7 @@ class MLDSAEngine:
             level_map = {2: dilithium.Dilithium2, 3: dilithium.Dilithium3, 5: dilithium.Dilithium5}
             impl = level_map[self.security_level]
             return impl.verify(public_key, message, signature)
-        except Exception:
+        except ImportError:
             return False
 
     def _verify_oqs(self, message: bytes, signature: bytes, public_key: bytes) -> bool:
@@ -294,7 +294,7 @@ class MLDSAEngine:
             alg_map = {2: "Dilithium2", 3: "Dilithium3", 5: "Dilithium5"}
             verifier = oqs.Signature(alg_map[self.security_level])
             return verifier.verify(message, signature, public_key)
-        except Exception:
+        except ImportError:
             return False
 
 
@@ -353,7 +353,7 @@ class QuantumKeyStore:
             try:
                 meta = json.loads(meta_file.read_text())
                 keys.append(meta)
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 continue
         return keys
 
@@ -595,7 +595,7 @@ class HybridQuantumSigner:
                 result["classical"] = self._rsa_verifier.verify(
                     data, rsa_sig, envelope.classical_key_fingerprint
                 )
-            except Exception as e:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
                 result["details"] = f"RSA verification failed: {e}"
                 return result
 
@@ -606,7 +606,7 @@ class HybridQuantumSigner:
                 result["quantum"] = self._mldsa.verify(
                     data, mldsa_sig, self._mldsa_keypair.public_key
                 )
-            except Exception as e:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
                 result["details"] = f"ML-DSA verification failed: {e}"
                 return result
         elif envelope.quantum_algorithm == "DISABLED":
@@ -900,7 +900,7 @@ class HybridSignerV2:
 
         try:
             envelope = HybridSignatureV2.from_bundle(bundle)
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             result["details"] = f"Bundle parse error: {e}"
             return result
 
@@ -909,7 +909,7 @@ class HybridSignerV2:
         # Reconstruct payload
         try:
             payload = base64.b64decode(envelope.payload_b64)
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             result["details"] = f"Payload decode error: {e}"
             return result
 
@@ -923,7 +923,7 @@ class HybridSignerV2:
         try:
             classical_sig = base64.b64decode(envelope.classical_sig_b64)
             result["classical"] = self._rsa_verify(payload, envelope.payload_hash, classical_sig)
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             result["details"] = f"RSA verification error: {e}"
             result["classical"] = False
 
@@ -934,7 +934,7 @@ class HybridSignerV2:
             result["pq"] = self._pq_verify(
                 payload, app_key, envelope.key_id, pq_sig
             )
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             result["details"] = f"PQ verification error: {e}"
             result["pq"] = False
 
@@ -1078,7 +1078,7 @@ class HybridSignerV2:
             )
             result = self._rsa_signer.verify(payload, env)
             return bool(result.get("classical", False))
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return False
 
     def _pq_sign(self, payload: bytes, app_key: bytes, key_id: str) -> bytes:
@@ -1113,7 +1113,7 @@ class HybridSignerV2:
             result["schema_version"] = "v1"
             result["key_id"] = bundle.get("key_fingerprint", "")
             return result
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             return {
                 "valid": False,
                 "classical": False,
@@ -2320,7 +2320,7 @@ class WORMStorage:
             data = self._load_data(record.data_ref)
             actual_hash = hashlib.sha256(data).hexdigest()
             hash_match = actual_hash == record.content_hash
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             hash_match = False
 
         within_retention = record.is_within_retention()
@@ -2391,7 +2391,7 @@ class WORMStorage:
                 newest = newest.replace(tzinfo=timezone.utc) if newest.tzinfo is None else newest
                 span_days = max(1, (newest - oldest).days)
                 daily_rate = total_bytes / span_days
-            except Exception:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
                 daily_rate = 1024 * 100  # 100 KB/day fallback
         else:
             daily_rate = 0

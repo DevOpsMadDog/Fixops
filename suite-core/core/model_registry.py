@@ -284,7 +284,7 @@ class ModelRegistry:
                     prediction.confidence,
                 )
                 return prediction
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning(
                     "Model %s failed: %s. Will try fallback if enabled.",
                     target_model_id,
@@ -320,7 +320,7 @@ class ModelRegistry:
                         prediction.risk_score,
                     )
                     return prediction
-                except Exception as exc:
+                except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                     logger.warning(
                         "Fallback model %s also failed: %s", fallback_id, exc
                     )

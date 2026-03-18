@@ -1067,7 +1067,7 @@ class CollaborationService:
             response.raise_for_status()
 
             return {"success": True, "recipient": recipient}
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             return {"success": False, "recipient": recipient, "error": str(e)}
 
     def _deliver_email(
@@ -1125,7 +1125,7 @@ class CollaborationService:
                 server.send_message(msg)
 
             return {"success": True, "recipient": recipient}
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             return {"success": False, "recipient": recipient, "error": str(e)}
 
     def process_pending_notifications(

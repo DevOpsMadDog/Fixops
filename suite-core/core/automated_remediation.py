@@ -207,7 +207,7 @@ Respond in JSON format with key "suggestions" containing an array of remediation
             return [
                 self._create_suggestion(s, finding, "architect") for s in suggestions
             ]
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Architect remediation failed: %s", type(e).__name__)
             return []
 
@@ -248,7 +248,7 @@ Respond in JSON format with key "suggestions" containing an array of remediation
             return [
                 self._create_suggestion(s, finding, "developer") for s in suggestions
             ]
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Developer remediation failed: %s", type(e).__name__)
             return []
 
@@ -287,7 +287,7 @@ Respond in JSON format with key "suggestions" containing an array of remediation
             suggestions = result.get("suggestions", [])
 
             return [self._create_suggestion(s, finding, "lead") for s in suggestions]
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Lead remediation failed: %s", type(e).__name__)
             return []
 
@@ -411,7 +411,7 @@ Respond in JSON format with key "suggestions" containing an array of remediation
 
             return verification
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Remediation verification failed: %s", type(e).__name__)
             return self._failed_verification(suggestion, str(e))
 
@@ -444,7 +444,7 @@ If no regressions are likely, return empty array.
             response = await self._call_llm("openai", prompt)
             result = json.loads(response)
             regressions = result.get("regressions", [])
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Regression check failed: %s", type(e).__name__)
 
         return regressions
@@ -660,7 +660,7 @@ If no regressions are likely, return empty array.
                             ]
                         }
                     )
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.warning("Failed to parse LLM response: %s", type(e).__name__)
 
         # Fallback response when LLM is unavailable

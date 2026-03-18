@@ -154,7 +154,6 @@ class ConnectorResult:
     error: Optional[str] = None
     details: Dict[str, Any] = field(default_factory=dict)
     latency_ms: float = 0.0
-    demo_mode: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         d: Dict[str, Any] = {
@@ -171,8 +170,6 @@ class ConnectorResult:
         if self.details:
             d["details"] = self.details
         d["latency_ms"] = round(self.latency_ms, 2)
-        if self.demo_mode:
-            d["demo_mode"] = True
         return d
 
 
@@ -277,7 +274,7 @@ class BaseConnector(ABC):
 
             return response
 
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             self._circuit_breaker.record_failure()
             self._error_count += 1
             raise
@@ -501,7 +498,7 @@ class JiraConnector(BaseConnector):
                     error=f"HTTP {response.status_code}: {error_text}",
                     latency_ms=latency,
                 )
-        except Exception as exc:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
             latency = (time.monotonic() - start) * 1000
             logger.error("Jira create_ticket exception: %s", exc)
             return ConnectorResult(
@@ -566,7 +563,7 @@ class JiraConnector(BaseConnector):
                     error=f"HTTP {response.status_code}",
                     latency_ms=latency,
                 )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorResult(
                 success=False,
                 connector="jira",
@@ -677,7 +674,7 @@ class JiraConnector(BaseConnector):
                     latency_ms=latency,
                 )
 
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorResult(
                 success=False,
                 connector="jira",
@@ -724,7 +721,7 @@ class JiraConnector(BaseConnector):
                     error=f"HTTP {response.status_code}",
                     latency_ms=latency,
                 )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorResult(
                 success=False,
                 connector="jira",
@@ -773,7 +770,7 @@ class JiraConnector(BaseConnector):
                     error=f"HTTP {response.status_code}: {response.text[:200]}",
                     latency_ms=latency,
                 )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorResult(
                 success=False,
                 connector="jira",
@@ -878,7 +875,7 @@ class GitHubConnector(BaseConnector):
                     error=f"HTTP {response.status_code}: {response.text[:500]}",
                     latency_ms=latency,
                 )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorResult(
                 success=False,
                 connector="github",
@@ -942,7 +939,7 @@ class GitHubConnector(BaseConnector):
                     error=f"HTTP {response.status_code}",
                     latency_ms=latency,
                 )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorResult(
                 success=False,
                 connector="github",
@@ -1004,7 +1001,7 @@ class GitHubConnector(BaseConnector):
                     error=f"HTTP {response.status_code}",
                     latency_ms=latency,
                 )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorResult(
                 success=False,
                 connector="github",
@@ -1049,7 +1046,7 @@ class GitHubConnector(BaseConnector):
                     error=f"HTTP {response.status_code}",
                     latency_ms=latency,
                 )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorResult(
                 success=False,
                 connector="github",
@@ -1096,7 +1093,7 @@ class GitHubConnector(BaseConnector):
                     error=f"HTTP {response.status_code}",
                     latency_ms=latency,
                 )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorResult(
                 success=False,
                 connector="github",
@@ -1274,7 +1271,7 @@ class SlackConnector(BaseConnector):
                     error=f"HTTP {response.status_code}: {response.text[:300]}",
                     latency_ms=latency,
                 )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorResult(
                 success=False,
                 connector="slack",
@@ -1311,7 +1308,7 @@ class SlackConnector(BaseConnector):
                 error=None if response.status_code == 200 else f"HTTP {response.status_code}",
                 latency_ms=latency,
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorResult(
                 success=False,
                 connector="slack",
@@ -1376,7 +1373,7 @@ class SlackConnector(BaseConnector):
                     error=f"HTTP {response.status_code}",
                     latency_ms=latency,
                 )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorResult(
                 success=False,
                 connector="slack",
@@ -1521,7 +1518,7 @@ class UniversalConnector:
         """Execute create_ticket with error isolation."""
         try:
             return await conn.create_ticket(finding)
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.error("Connector %s failed during create_ticket: %s", name, exc)
             return ConnectorResult(
                 success=False,
@@ -1535,7 +1532,7 @@ class UniversalConnector:
         """Execute test_connection with error isolation."""
         try:
             return await conn.test_connection()
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.error("Connector %s failed during test_connection: %s", name, exc)
             return ConnectorResult(
                 success=False,

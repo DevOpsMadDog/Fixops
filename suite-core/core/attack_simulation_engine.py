@@ -396,7 +396,7 @@ class AttackSimulationEngine:
                 from core.knowledge_brain import get_brain
 
                 self._brain = get_brain()
-            except Exception:
+            except ImportError:
                 pass
         return self._brain
 
@@ -406,7 +406,7 @@ class AttackSimulationEngine:
                 from core.event_bus import get_event_bus
 
                 self._bus = get_event_bus()
-            except Exception:
+            except ImportError:
                 pass
         return self._bus
 
@@ -416,7 +416,7 @@ class AttackSimulationEngine:
                 from core.llm_providers import LLMProviderManager
 
                 self._llm = LLMProviderManager()
-            except Exception:
+            except ImportError:
                 pass
         return self._llm
 
@@ -426,7 +426,7 @@ class AttackSimulationEngine:
                 from core.attack_graph_gnn import GraphNeuralPredictor
 
                 self._gnn = GraphNeuralPredictor()
-            except Exception:
+            except ImportError:
                 pass
         return self._gnn
 
@@ -509,7 +509,7 @@ class AttackSimulationEngine:
                     default_confidence=0.7,
                     default_reasoning="LLM-generated attack scenario",
                 )
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning("llm_scenario_generation.failed: %s", exc)
 
         reasoning = (
@@ -585,7 +585,7 @@ class AttackSimulationEngine:
                         org_id=org_id,
                     )
                 )
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
 
         try:
@@ -637,7 +637,7 @@ class AttackSimulationEngine:
                 ).timestamp()
             )
 
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.error("campaign.failed: %s", exc)
             campaign.status = CampaignStatus.FAILED
             campaign.completed_at = datetime.now(timezone.utc).isoformat()
@@ -665,7 +665,7 @@ class AttackSimulationEngine:
                         org_id=org_id,
                     )
                 )
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
 
         logger.info(
@@ -767,7 +767,7 @@ class AttackSimulationEngine:
                 ]
             )
             step.success_probability = resp.confidence
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.debug("llm_enrich_step.fallback: %s", exc)
             step.description = f"Simulate {step.technique_name} ({step.technique_id}) against {step.target_asset}"
             step.mitigations = [f"Monitor for {step.technique_name} indicators"]
@@ -996,7 +996,7 @@ class AttackSimulationEngine:
                     default_reasoning="Attack simulation summary",
                 )
                 return resp.reasoning[:500]
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
 
         # Fallback
@@ -1087,7 +1087,7 @@ class AttackSimulationEngine:
                             properties={"campaign": campaign.campaign_id},
                         )
                     )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.debug("persist_to_brain.failed: %s", exc)
 
     # ---- Campaign Queries ----

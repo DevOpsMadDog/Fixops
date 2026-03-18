@@ -195,6 +195,27 @@ python -m pytest tests/test_brain_pipeline.py -v
 
 ---
 
+## Skills (`.claude/skills/`)
+
+Reusable domain expertise for any agent or session. Read the relevant skill before starting a task.
+
+| Skill | File | When to Use |
+|-------|------|-------------|
+| **Codebase Navigation** | `.claude/skills/codebase-navigation.md` | First time in repo, finding files, understanding imports |
+| **Database Migration** | `.claude/skills/database-migration.md` | Migrating sqlite3/PersistentDict → DatabaseManager |
+| **Multi-Tenancy** | `.claude/skills/multi-tenancy.md` | Adding org_id isolation to any endpoint |
+| **Error Handling** | `.claude/skills/error-handling.md` | Replacing bare `except Exception`, custom exception hierarchy |
+| **Endpoint Hardening** | `.claude/skills/endpoint-hardening.md` | 8-point checklist for every API endpoint |
+| **Testing Patterns** | `.claude/skills/testing-patterns.md` | Writing tests, fixing collection errors, growing coverage |
+| **Knowledge Graph** | `.claude/skills/knowledge-graph.md` | Extending the security graph, attack path analysis |
+| **Scanner Development** | `.claude/skills/scanner-development.md` | Hardening/extending the 8 native scanners |
+| **Observability** | `.claude/skills/observability.md` | Metrics, tracing, structured logging, health checks |
+| **Acquisition Readiness** | `.claude/skills/acquisition-readiness.md` | Due diligence prep, documentation, compliance |
+
+**Rule**: Before working on a task, check if a matching skill exists. Load it. Follow its patterns.
+
+---
+
 ## Known Issues
 
 1. **New UI is missing** — `suite-ui/aldeci-ui-new/` directory does not exist on disk

@@ -552,7 +552,7 @@ class FuzzyIdentityResolver:
                     (input_name, resolved_to, confidence, strategy.value, org_id, now),
                 )
                 self._conn.commit()
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass  # Don't fail resolution on logging error
 
     def get_resolution_stats(self, org_id: Optional[str] = None) -> Dict[str, Any]:
@@ -561,15 +561,15 @@ class FuzzyIdentityResolver:
             where = "WHERE org_id = ?" if org_id else ""
             params: list = [org_id] if org_id else []
             total = self._conn.execute(
-                f"SELECT COUNT(*) FROM resolution_log {where}", params
+                f"SELECT COUNT(*) FROM resolution_log {where}", params  # nosec B608 — WHERE from hardcoded columns with ? params
             ).fetchone()[0]
             resolved = self._conn.execute(
-                f"SELECT COUNT(*) FROM resolution_log {where} {'AND' if org_id else 'WHERE'} resolved_to IS NOT NULL",
+                f"SELECT COUNT(*) FROM resolution_log {where} {'AND' if org_id else 'WHERE'} resolved_to IS NOT NULL",  # nosec B608
                 params,
             ).fetchone()[0]
             by_strategy = {}
             cursor = self._conn.execute(
-                f"SELECT strategy, COUNT(*) FROM resolution_log {where} GROUP BY strategy",
+                f"SELECT strategy, COUNT(*) FROM resolution_log {where} GROUP BY strategy",  # nosec B608
                 params,
             )
             for row in cursor:
@@ -616,7 +616,7 @@ class FuzzyIdentityResolver:
     def __del__(self) -> None:
         try:
             self._conn.close()
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
 

@@ -84,14 +84,15 @@ class OpenAIChatProvider(BaseLLMProvider):
         self,
         name: str,
         *,
-        model: str = "gpt-4o-mini",
+        model: str = "gpt-5.2",
         api_key_envs: Sequence[str] | None = None,
         timeout: float = 30.0,
         focus: Sequence[str] | None = None,
         style: str = "consensus",
     ) -> None:
         super().__init__(name, style=style, focus=focus)
-        self.model = model
+        # Allow env-var override for model selection
+        self.model = os.environ.get("FIXOPS_OPENAI_MODEL", model)
         self.api_key_envs = list(
             api_key_envs or ("OPENAI_API_KEY", "FIXOPS_OPENAI_KEY")
         )
@@ -197,7 +198,7 @@ class OpenAIChatProvider(BaseLLMProvider):
                     error_json = exc.response.json()
                     # Extract structured error message, never raw exception string — may contain API keys
                     error_detail = error_json.get("error", {}).get("message", f"HTTP {exc.response.status_code}")
-                except Exception:
+                except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
                     error_detail = f"HTTP {exc.response.status_code}" if exc.response else type(exc).__name__
             metadata = {
                 "mode": "fallback",
@@ -245,7 +246,7 @@ class OpenAIChatProvider(BaseLLMProvider):
                 ),
                 metadata=metadata,
             )
-        except Exception as exc:  # noqa: BLE001 - capture provider error
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # noqa: BLE001 - capture provider error
             logger.warning(
                 "OpenAI provider %s failed, falling back to deterministic: %s",
                 self.name,
@@ -305,14 +306,15 @@ class AnthropicMessagesProvider(BaseLLMProvider):
         self,
         name: str,
         *,
-        model: str = "claude-3-5-sonnet-20240620",
+        model: str = "claude-sonnet-4-20250514",
         api_key_envs: Sequence[str] | None = None,
         timeout: float = 30.0,
         focus: Sequence[str] | None = None,
         style: str = "analyst",
     ) -> None:
         super().__init__(name, style=style, focus=focus)
-        self.model = model
+        # Allow env-var override for model selection
+        self.model = os.environ.get("FIXOPS_ANTHROPIC_MODEL", model)
         self.api_key_envs = list(
             api_key_envs or ("ANTHROPIC_API_KEY", "FIXOPS_ANTHROPIC_KEY")
         )
@@ -341,7 +343,7 @@ class AnthropicMessagesProvider(BaseLLMProvider):
             )
         payload = {
             "model": self.model,
-            "max_tokens": 400,
+            "max_tokens": 2048,
             "temperature": 0,
             "system": (
                 "Return a JSON object with recommended_action, confidence, reasoning, "
@@ -367,7 +369,7 @@ class AnthropicMessagesProvider(BaseLLMProvider):
             response.raise_for_status()
             content = response.json()["content"][0]["text"]
             parsed = json.loads(content)
-        except Exception as exc:  # noqa: BLE001 - capture provider error
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # noqa: BLE001 - capture provider error
             logger.warning(
                 "Anthropic provider %s failed, falling back to deterministic: %s",
                 self.name,
@@ -489,7 +491,7 @@ class GeminiProvider(BaseLLMProvider):
                 raise RuntimeError("no candidates returned")
             content = candidates[0]["content"]["parts"][0]["text"]
             parsed = json.loads(content)
-        except Exception as exc:  # noqa: BLE001 - capture provider error
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # noqa: BLE001 - capture provider error
             logger.warning(
                 "Gemini provider %s failed, falling back to deterministic: %s",
                 self.name,
@@ -694,7 +696,7 @@ class VLLMSelfHostedProvider(BaseLLMProvider):
                 ),
                 metadata=metadata,
             )
-        except Exception as exc:  # noqa: BLE001
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # noqa: BLE001
             logger.warning(
                 "vLLM provider %s failed, falling back to deterministic: %s",
                 self.name, type(exc).__name__,
@@ -746,7 +748,7 @@ class VLLMSelfHostedProvider(BaseLLMProvider):
             url = f"{self.base_url}/models"
             resp = self._session.get(url, timeout=5)
             return resp.status_code == 200
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return False
 
     def model_info(self) -> Dict[str, Any]:
@@ -857,7 +859,7 @@ class OllamaSelfHostedProvider(BaseLLMProvider):
                 default_reasoning=default_reasoning,
                 mitigation_hints=mitigation_hints,
             )
-        except Exception as exc:  # noqa: BLE001
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # noqa: BLE001
             logger.warning(
                 "Ollama provider %s failed: %s", self.name, type(exc).__name__,
             )
@@ -892,7 +894,7 @@ class OllamaSelfHostedProvider(BaseLLMProvider):
         try:
             resp = self._session.get(f"{self.base_url}/api/tags", timeout=5)
             return resp.status_code == 200
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return False
 
     def model_info(self) -> Dict[str, Any]:

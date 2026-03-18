@@ -63,7 +63,7 @@ def _san_body(raw: str) -> str:
     try:
         d = json.loads(raw)
         return json.dumps(_redact(d) if isinstance(d, dict) else d, default=str)
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         return raw
 
 
@@ -132,7 +132,7 @@ class DetailedLogStore:
             )
             c.commit()
             c.close()
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("Log insert failed: %s", e)
         with _ring_lock:
             _log_ring.appendleft(r)
@@ -186,7 +186,7 @@ class DetailedLogStore:
             s = f"%{search}%"
             p.extend([s, s, s, s])
         wh = " AND ".join(w) if w else "1=1"
-        sql = f"SELECT * FROM api_logs WHERE {wh} ORDER BY ts DESC LIMIT ? OFFSET ?"
+        sql = f"SELECT * FROM api_logs WHERE {wh} ORDER BY ts DESC LIMIT ? OFFSET ?"  # nosec B608 — WHERE from hardcoded columns with ? params
         p.extend([limit, offset])
         rows = c.execute(sql, p).fetchall()
         c.close()
@@ -243,7 +243,7 @@ class DetailedLogStore:
             if k in d and isinstance(d[k], str):
                 try:
                     d[k] = json.loads(d[k])
-                except Exception:
+                except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                     pass
         return d
 
@@ -261,7 +261,7 @@ class DetailedLoggingMiddleware(BaseHTTPMiddleware):
         if self._store is None:
             try:
                 self._store = DetailedLogStore.get_instance()
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.warning("DetailedLogStore init failed: %s", e)
                 self._enabled = False
         return self._store
@@ -305,7 +305,7 @@ class DetailedLoggingMiddleware(BaseHTTPMiddleware):
                     body_bytes[:MAX_BODY].decode("utf-8", errors="replace")
                     + "...[TRUNCATED]"
                 )
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             req_body_raw = "[UNREADABLE]"
 
         start = time.perf_counter()
@@ -380,7 +380,7 @@ class DetailedLoggingMiddleware(BaseHTTPMiddleware):
             store.insert(record)
             return new_response
 
-        except Exception as exc:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
             duration_ms = round((time.perf_counter() - start) * 1000, 2)
             error_msg = str(exc)
             error_type = type(exc).__name__
@@ -407,7 +407,7 @@ class DetailedLoggingMiddleware(BaseHTTPMiddleware):
             }
             try:
                 store.insert(record)
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
             raise
 

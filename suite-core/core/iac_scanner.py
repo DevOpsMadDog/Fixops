@@ -449,7 +449,7 @@ class IaCScanner:
             )
         except FileNotFoundError:
             return [], "", "Checkov is not installed or not in PATH"
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             return [], "", f"Checkov scan failed: {str(e)}"
 
     async def _run_tfsec(
@@ -531,7 +531,7 @@ class IaCScanner:
             )
         except FileNotFoundError:
             return [], "", "tfsec is not installed or not in PATH"
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             return [], "", f"tfsec scan failed: {str(e)}"
 
     async def scan_content(
@@ -689,7 +689,7 @@ class IaCScanner:
                     duration_seconds=duration,
                     raw_output=raw_output,
                 )
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 return ScanResult(
                     scan_id=scan_id,
                     status=ScanStatus.FAILED,

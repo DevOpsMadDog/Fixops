@@ -193,7 +193,7 @@ async def score_finding(
         _db.save_score(result_dict, org_id=org_id, input_dict=req.model_dump())
 
         return FAILScoreResponse(**result_dict)
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.exception("FAIL scoring failed: %s", e)
         raise HTTPException(status_code=500, detail=f"Scoring failed: {type(e).__name__}")
 
@@ -213,7 +213,7 @@ async def score_batch(
             result_dict = result.to_dict()
             _db.save_score(result_dict, org_id=org_id, input_dict=finding_req.model_dump())
             results.append(FAILScoreResponse(**result_dict))
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("FAIL batch item %d failed: %s", idx, e)
             errors.append(FAILBatchError(
                 index=idx,

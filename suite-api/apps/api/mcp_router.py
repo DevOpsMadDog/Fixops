@@ -20,7 +20,8 @@ import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set
 
-from fastapi import APIRouter, FastAPI, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
+from apps.api.dependencies import get_org_id
 from fastapi.routing import APIRoute
 from pydantic import BaseModel, Field
 
@@ -339,12 +340,12 @@ def _annotation_to_json_schema(annotation: Any) -> Dict[str, Any]:
     if hasattr(annotation, "model_json_schema"):
         try:
             return annotation.model_json_schema()
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return {"type": "object"}
     if hasattr(annotation, "schema"):
         try:
             return annotation.schema()
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return {"type": "object"}
 
     # Enum types
@@ -381,13 +382,13 @@ def _extract_request_body_schema(route: APIRoute) -> Optional[Dict[str, Any]]:
         if isinstance(annotation, type) and hasattr(annotation, "model_json_schema"):
             try:
                 return annotation.model_json_schema()
-            except Exception:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
                 return {"type": "object", "description": f"Request body: {annotation.__name__}"}
         # Legacy Pydantic v1
         if isinstance(annotation, type) and hasattr(annotation, "schema"):
             try:
                 return annotation.schema()
-            except Exception:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
                 return {"type": "object", "description": f"Request body: {annotation.__name__}"}
 
     return None
@@ -677,6 +678,7 @@ async def get_mcp_tool(request: Request, tool_name: str) -> MCPToolDefinition:
 async def execute_mcp_tool(
     request: Request,
     body: MCPExecuteRequest,
+    org_id: str = Depends(get_org_id),
 ) -> MCPExecuteResponse:
     """Execute an MCP tool by name with the given arguments.
 
@@ -796,7 +798,7 @@ async def execute_mcp_tool(
         # Parse response
         try:
             result = resp.json()
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             result = resp.text
 
         elapsed = _elapsed_ms(start)
@@ -810,7 +812,7 @@ async def execute_mcp_tool(
             execution_time_ms=elapsed,
         )
 
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("MCP tool execution failed: %s", tool_name)
         return MCPExecuteResponse(
             tool_name=tool_name,
@@ -938,6 +940,40 @@ async def mcp_stats(request: Request) -> MCPCatalogStats:
     return _catalog_stats
 
 
+@router.get("/manifest")
+async def get_mcp_manifest(request: Request) -> Dict[str, Any]:
+    """Return the MCP server manifest for IDE/agent configuration.
+
+    This returns JSON that can be added to VS Code settings (.vscode/mcp.json),
+    Cursor (.cursor/mcp.json), or Claude Desktop config.
+    """
+    _ensure_catalog(request.app)
+    base_url = str(request.base_url).rstrip("/")
+    return {
+        "mcpServers": {
+            "fixops": {
+                "url": f"{base_url}/api/v1/mcp-protocol/sse",
+                "env": {
+                    "FIXOPS_API_URL": base_url,
+                    "FIXOPS_API_KEY": "${FIXOPS_API_KEY}",
+                },
+                "description": "FixOps CTEM+ security platform — findings, scans, evidence, remediation",
+                "transport": "sse",
+            }
+        },
+        "http_config": {
+            "tools_url": f"{base_url}/api/v1/mcp/tools",
+            "execute_url": f"{base_url}/api/v1/mcp/execute",
+            "schemas_url": f"{base_url}/api/v1/mcp/schemas",
+            "headers": {
+                "X-API-Key": "${FIXOPS_API_KEY}",
+            },
+        },
+        "catalog_size": len(_tool_catalog),
+        "generated_at": _catalog_generated_at,
+    }
+
+
 @router.post("/refresh")
 async def refresh_catalog(request: Request) -> Dict[str, Any]:
     """Manually refresh the MCP tool catalog.
@@ -1011,5 +1047,5 @@ def register_startup_hook(app: FastAPI) -> None:
                 len(catalog),
                 len(set(t.category for t in catalog.values())),
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.error("MCP catalog generation failed: %s", exc, exc_info=True)

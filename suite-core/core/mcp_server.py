@@ -217,7 +217,7 @@ class MCPToolRegistry:
                     self.register_tool(tool)
                     count += 1
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Auto-discovery error: %s", type(e).__name__)
 
         logger.info("Auto-discovered %d MCP tools from FastAPI routes", count)
@@ -247,7 +247,7 @@ class MCPToolRegistry:
             type_hints = {}
             try:
                 type_hints = inspect.get_annotations(endpoint) if hasattr(inspect, 'get_annotations') else {}
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
 
             for param_name, param in sig.parameters.items():
@@ -276,7 +276,7 @@ class MCPToolRegistry:
                 if param.default is inspect.Parameter.empty:
                     required.append(param_name)
 
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
         # Extract path parameters
@@ -469,14 +469,14 @@ class MCPResourceServer:
             from compliance.compliance_engine import ComplianceEngine
             engine = ComplianceEngine()
             return engine.assess_all_frameworks([])
-        except Exception:
+        except ImportError:
             return {"status": "engine_not_initialized"}
 
     def _get_graph_overview(self) -> Dict:
         try:
             from core.falkordb_client import get_knowledge_graph
             return get_knowledge_graph().get_graph_analytics()
-        except Exception:
+        except ImportError:
             return {"status": "graph_not_initialized"}
 
     def _get_risk_dashboard(self) -> Dict:
@@ -704,6 +704,9 @@ class MCPProtocolHandler:
         self._audit_enabled = os.getenv("FIXOPS_MCP_AUDIT_LOG", "true").lower() in ("true", "1")
         self._audit_log: List[Dict] = []
 
+        # Register vulnerability intelligence tools
+        self._register_vulnerability_tools()
+
         # Method dispatch table
         self._handlers: Dict[str, Callable] = {
             MCPMethod.INITIALIZE.value: self._handle_initialize,
@@ -717,6 +720,22 @@ class MCPProtocolHandler:
             MCPMethod.PROMPTS_GET.value: self._handle_prompts_get,
             MCPMethod.COMPLETION.value: self._handle_completion,
         }
+
+    def _register_vulnerability_tools(self) -> None:
+        """Register vulnerability intelligence tools from vulnerability_tools module."""
+        try:
+            from core.vulnerability_tools import get_all_vulnerability_tools
+            for tool_def in get_all_vulnerability_tools():
+                self.tool_registry.register_tool(MCPToolDefinition(
+                    name=tool_def["name"],
+                    description=tool_def["description"],
+                    input_schema=tool_def["input_schema"],
+                    category=tool_def.get("category", "vulnerability-intel"),
+                    handler=tool_def["handler"],
+                ))
+            logger.info("Registered %d vulnerability intelligence tools", 8)
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+            logger.warning("Failed to register vulnerability tools: %s", e)
 
     def handle(self, request: MCPRequest) -> MCPResponse:
         """Handle an MCP request and return a response."""
@@ -733,7 +752,7 @@ class MCPProtocolHandler:
             return MCPResponse.success(request.id, result)
         except KeyError as e:
             return MCPResponse.error_response(request.id, INVALID_PARAMS, f"Missing parameter: {e}")
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("MCP handler error: %s: %s", type(e).__name__, e, exc_info=True)
             return MCPResponse.error_response(request.id, INTERNAL_ERROR, f"Internal error: {type(e).__name__}")
 
@@ -835,7 +854,7 @@ class MCPProtocolHandler:
                         }
                     ],
                 }
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 return {
                     "content": [{"type": "text", "text": f"Error: {e}"}],
                     "isError": True,
@@ -1122,7 +1141,7 @@ class MCPAutoDiscovery:
                         "category": cat_name,
                     })
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("MCPAutoDiscovery error: %s", e, exc_info=True)
 
         logger.info(
@@ -1218,7 +1237,7 @@ class MCPAutoDiscovery:
             hints = {}
             try:
                 hints = typing.get_type_hints(endpoint)
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
 
             for param_name, param in sig.parameters.items():
@@ -1237,7 +1256,7 @@ class MCPAutoDiscovery:
                     try:
                         pydantic_schema = hint.schema() if hasattr(hint, "schema") else {}
                         prop = {"$ref": f"#/definitions/{hint.__name__}", **pydantic_schema}
-                    except Exception:
+                    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                         pass
 
                 schema["properties"][param_name] = prop
@@ -1249,7 +1268,7 @@ class MCPAutoDiscovery:
                     if not is_optional:
                         required.append(param_name)
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug("Schema extraction error for %s: %s", path, e)
 
         # Always include path parameters
@@ -1611,7 +1630,7 @@ class ResourceStreamManager:
                     finding.get("id", "?"), severity, age_days - sla_days,
                 )
                 return event_id
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug("SLA check error: %s", e)
 
         return None
@@ -2230,7 +2249,7 @@ class MCPWebSocketTransport:
                     "result" in response_data and
                     "sessionId" in response_data["result"]):
                 conn.session_id = response_data["result"]["sessionId"]
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
         return response_str
@@ -2279,7 +2298,7 @@ class MCPWebSocketTransport:
                 ).timestamp()
                 if now - last_hb > self.CONNECTION_TIMEOUT:
                     stale.append(conn_id)
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
         return stale
 
@@ -2332,12 +2351,12 @@ class MCPWebSocketTransport:
                     response = self.handle_message(conn_id, raw)
                     if response:
                         await websocket.send_text(response)
-                except Exception as recv_err:
+                except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as recv_err:
                     # Connection closed or error
                     logger.info("WebSocket %s receive error: %s", conn_id, type(recv_err).__name__)
                     break
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("WebSocket connection %s error: %s", conn_id, e)
         finally:
             self.disconnect(conn_id)

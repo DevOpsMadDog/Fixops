@@ -83,7 +83,7 @@ class SplunkIntegration(SIEMIntegration):
                     json=payload,
                 ) as response:
                     return response.status == 200
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Splunk integration error: {e}")
             return False
 
@@ -120,7 +120,7 @@ class QRadarIntegration(SIEMIntegration):
                     json=payload,
                 ) as response:
                     return response.status == 200
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"QRadar integration error: {e}")
             return False
 
@@ -179,7 +179,7 @@ class JiraIntegration(TicketingIntegration):
                         result = await response.json()
                         return result.get("key")
                     return None
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Jira integration error: {e}")
             return None
 
@@ -221,7 +221,7 @@ class JiraIntegration(TicketingIntegration):
                     )
 
                 return True
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Jira update error: {e}")
             return False
 
@@ -263,7 +263,7 @@ class ServiceNowIntegration(TicketingIntegration):
                         result = await response.json()
                         return result.get("result", {}).get("sys_id")
                     return None
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"ServiceNow integration error: {e}")
             return None
 
@@ -286,7 +286,7 @@ class ServiceNowIntegration(TicketingIntegration):
                     auth=auth,
                 ) as response:
                     return response.status == 200
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"ServiceNow update error: {e}")
             return False
 
@@ -341,7 +341,7 @@ class GitHubIntegration(SCMIntegration):
                         result = await response.json()
                         return result.get("html_url")
                     return None
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"GitHub integration error: {e}")
             return None
 
@@ -360,7 +360,7 @@ class GitHubIntegration(SCMIntegration):
                     if response.status == 200:
                         return await response.json()
                     return {}
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"GitHub repo info error: {e}")
             return {}
 

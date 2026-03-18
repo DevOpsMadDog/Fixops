@@ -1,1 +1,1 @@
-/home/user/workspace/Fixops/suite-core/api/mitre_mapper_router.py
+../../../suite-core/api/mitre_mapper_router.py

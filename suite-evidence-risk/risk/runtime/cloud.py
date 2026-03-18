@@ -171,7 +171,7 @@ class CloudRuntimeAnalyzer:
                                 recommendation="Enable all four PublicAccessBlock settings",
                             )
                         )
-                except Exception:
+                except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
                     findings.append(
                         CloudFinding(
                             threat_type=CloudThreatType.PUBLIC_ACCESS,
@@ -216,9 +216,9 @@ class CloudRuntimeAnalyzer:
                                 recommendation="Enable versioning for data protection",
                             )
                         )
-                except Exception:
+                except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                     pass
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.error("AWS S3 analysis failed: %s", exc)
         return findings
 
@@ -278,7 +278,7 @@ class CloudRuntimeAnalyzer:
                             recommendation="Set backup retention period to at least 7 days",
                         )
                     )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.error("AWS RDS analysis failed: %s", exc)
         return findings
 
@@ -330,7 +330,7 @@ class CloudRuntimeAnalyzer:
                                                     recommendation=f"Restrict port {port} to specific CIDR ranges",
                                                 )
                                             )
-                        except Exception:
+                        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                             pass
                     # Check IAM role
                     if not inst.get("IamInstanceProfile"):
@@ -367,9 +367,9 @@ class CloudRuntimeAnalyzer:
                                                 recommendation="Enable EBS encryption at rest",
                                             )
                                         )
-                            except Exception:
+                            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                                 pass
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.error("AWS EC2 analysis failed: %s", exc)
         return findings
 
@@ -411,7 +411,7 @@ class CloudRuntimeAnalyzer:
                                         recommendation="Apply least-privilege principle — restrict actions and resources",
                                     )
                                 )
-                except Exception:
+                except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                     pass
             # Check users for MFA
             users = iam.list_users().get("Users", [])
@@ -433,9 +433,9 @@ class CloudRuntimeAnalyzer:
                                 recommendation="Enable MFA for all console users",
                             )
                         )
-                    except Exception:
+                    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                         pass  # No login profile = service account, MFA not applicable
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.error("AWS IAM analysis failed: %s", exc)
         return findings
 
@@ -505,7 +505,7 @@ class CloudRuntimeAnalyzer:
                             recommendation="Consider using Customer-Managed Keys (CMK) for enhanced control",
                         )
                     )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.error("Azure Storage analysis failed: %s", exc)
         return findings
 
@@ -567,9 +567,9 @@ class CloudRuntimeAnalyzer:
                                     recommendation="Enable Transparent Data Encryption (TDE)",
                                 )
                             )
-                    except Exception:
+                    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                         pass
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.error("Azure SQL analysis failed: %s", exc)
         return findings
 
@@ -626,7 +626,7 @@ class CloudRuntimeAnalyzer:
                                 recommendation="Enable Azure Disk Encryption or server-side encryption with CMK",
                             )
                         )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.error("Azure VM analysis failed: %s", exc)
         return findings
 
@@ -685,7 +685,7 @@ class CloudRuntimeAnalyzer:
                             recommendation="Configure Customer-Managed Encryption Key (CMEK) for enhanced control",
                         )
                     )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.error("GCP Storage analysis failed: %s", exc)
         return findings
 
@@ -752,7 +752,7 @@ class CloudRuntimeAnalyzer:
                             recommendation="Enable automated backups with point-in-time recovery",
                         )
                     )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.error("GCP SQL analysis failed: %s", exc)
         return findings
 
@@ -836,7 +836,7 @@ class CloudRuntimeAnalyzer:
                                 )
                             )
                             break  # Only report once per instance
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.error("GCP Compute analysis failed: %s", exc)
         return findings
 

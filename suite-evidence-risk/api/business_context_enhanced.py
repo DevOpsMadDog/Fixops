@@ -94,7 +94,7 @@ async def upload_business_context(
     except ValueError as e:
         logger.warning(f"Context processing error: {e}")
         raise HTTPException(status_code=400, detail="Context processing error")
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Business context upload failed: {e}")
         raise HTTPException(status_code=500, detail="Upload processing failed")
 
@@ -157,7 +157,7 @@ async def get_sample_context(format_type: str, service_name: str = "payment-serv
             },
         )
 
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Sample generation failed: {e}")
         raise HTTPException(status_code=500, detail="Sample generation failed")
 
@@ -266,6 +266,6 @@ async def validate_business_context(
             "error": "Validation failed",
             "validation_results": {"format": format_type, "valid": False},
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Context validation failed: {e}")
         raise HTTPException(status_code=500, detail="Context validation failed")

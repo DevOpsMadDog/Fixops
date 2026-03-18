@@ -1,1 +1,1 @@
-/home/user/workspace/Fixops/suite-core/api/pipeline_router.py
+../../../suite-core/api/pipeline_router.py

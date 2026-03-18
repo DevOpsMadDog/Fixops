@@ -114,7 +114,7 @@ class DependencyUpdater:
                 elif package_manager == "gradle":
                     self._update_gradle_package(project_path, update)
                     files_modified.append("build.gradle")
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.error(f"Failed to update {update.package_name}: {e}")
 
         return UpdateResult(
@@ -179,7 +179,7 @@ class DependencyUpdater:
                             has_security_vulnerability=has_vuln,
                         )
                     )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"Failed to find npm updates: {e}")
 
         return updates
@@ -222,7 +222,7 @@ class DependencyUpdater:
                             has_security_vulnerability=has_vuln,
                         )
                     )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"Failed to find pip updates: {e}")
 
         return updates

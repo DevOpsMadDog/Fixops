@@ -93,7 +93,7 @@ def _handle_normalize(
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         print(f"Unexpected error during normalization: {e}", file=sys.stderr)
         return 1
 
@@ -119,7 +119,7 @@ def _handle_quality(normalized_path: str, html_path: str, json_path: str) -> int
     except json.JSONDecodeError as e:
         print(f"Error: Invalid JSON in {normalized_path}: {e}", file=sys.stderr)
         return 1
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         print(
             f"Unexpected error during quality report generation: {e}", file=sys.stderr
         )

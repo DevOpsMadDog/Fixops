@@ -159,7 +159,7 @@ async def update_case(case_id: str, req: UpdateCaseRequest):
         updated = mgr.update_case(case_id, updates)
         return updated.to_dict()
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=type(e).__name__)
 
 
 @router.post("/{case_id}/transition")
@@ -176,7 +176,8 @@ async def transition_case(case_id: str, req: TransitionRequest):
         return case.to_dict()
     except ValueError as e:
         raise HTTPException(
-            status_code=400 if "Invalid transition" in str(e) else 404, detail=str(e)
+            status_code=400 if "Invalid transition" in str(e) else 404,
+            detail=type(e).__name__,
         )
 
 
@@ -188,7 +189,7 @@ async def add_clusters(case_id: str, req: AddClustersRequest):
         case = mgr.add_clusters(case_id, req.cluster_ids, req.finding_count_delta)
         return case.to_dict()
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=type(e).__name__)
 
 
 @router.get("/{case_id}/transitions")

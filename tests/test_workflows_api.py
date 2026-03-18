@@ -32,6 +32,7 @@ def client(monkeypatch, db):
         "FIXOPS_API_TOKEN", os.getenv("FIXOPS_API_TOKEN", "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh")
     )
     monkeypatch.setenv("FIXOPS_MODE", os.getenv("FIXOPS_MODE", "enterprise"))
+    monkeypatch.setenv("FIXOPS_DISABLE_RATE_LIMIT", "1")
     app = create_app()
     return TestClient(app)
 

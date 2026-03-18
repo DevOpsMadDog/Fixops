@@ -297,7 +297,7 @@ class TierIndex:
         if self._conn:
             try:
                 self._conn.close()
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
             self._conn = None
 
@@ -576,7 +576,7 @@ class ZeroGravityEngine:
             try:
                 self._migrate_hot_to_warm(item)
                 results["hot_to_warm"] += 1
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.warning(f"Failed to migrate {item['id']} hot→warm: {e}")
 
         # Warm → Cold (summarize)
@@ -586,7 +586,7 @@ class ZeroGravityEngine:
             try:
                 self._migrate_warm_to_cold(item)
                 results["warm_to_cold"] += 1
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.warning(f"Failed to migrate {item['id']} warm→cold: {e}")
 
         # Cold → Archive (seal)
@@ -596,7 +596,7 @@ class ZeroGravityEngine:
             try:
                 self._migrate_cold_to_archive(item)
                 results["cold_to_archive"] += 1
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.warning(f"Failed to migrate {item['id']} cold→archive: {e}")
 
         # Check for expired items (beyond retention)
@@ -1676,7 +1676,7 @@ class PrioritizedBuffer:
             for rank, idx in enumerate(sorted_indices):
                 recency = rank / max(1, n - 1)
                 self._buffer[idx].recency_score = recency
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass  # Timestamps may be malformed; skip
 
     @staticmethod
@@ -1686,7 +1686,7 @@ class PrioritizedBuffer:
         try:
             import random as _random
             r = _random.random()
-        except Exception:
+        except ImportError:
             pass
         cumulative = 0.0
         for i, p in enumerate(probs):
@@ -2010,7 +2010,7 @@ class StorageForecaster:
                     tier: info.get("bytes", 0)
                     for tier, info in stats.get("tiers", {}).items()
                 }
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
         return {"hot": 0, "warm": 0, "cold": 0, "archive": 0}
 

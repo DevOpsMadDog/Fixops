@@ -41,7 +41,7 @@ async def get_oss_status():
                 ],
             },
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Failed to get OSS status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -62,7 +62,7 @@ async def run_comprehensive_scan(
             "scan_id": f"scan_{request.target.replace(':', '_').replace('/', '_')}",
             "results": results,
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Comprehensive scan failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -78,7 +78,7 @@ async def run_trivy_scan(request: ScanRequest):
         return results
     except HTTPException:
         raise
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Trivy scan failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -94,7 +94,7 @@ async def run_grype_scan(request: ScanRequest):
         return results
     except HTTPException:
         raise
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Grype scan failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -114,7 +114,7 @@ async def verify_sigstore_signature(
         return results
     except HTTPException:
         raise
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Sigstore verification failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -132,7 +132,7 @@ async def evaluate_policy(request: PolicyEvalRequest):
         return results
     except HTTPException:
         raise
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Policy evaluation failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -154,7 +154,7 @@ async def list_policies():
             )
 
         return {"status": "success", "policies": policies, "count": len(policies)}
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Failed to list policies: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 

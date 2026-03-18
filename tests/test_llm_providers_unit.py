@@ -139,7 +139,7 @@ class TestOpenAIChatProvider:
         from core.llm_providers import OpenAIChatProvider
         with patch.dict(os.environ, {}, clear=True):
             provider = OpenAIChatProvider("test")
-            assert provider.model == "gpt-4o-mini"
+            assert provider.model == "gpt-5.2"
 
     def test_custom_model(self):
         from core.llm_providers import OpenAIChatProvider

@@ -230,7 +230,7 @@ class ContinuousValidationEngine:
 
             logger.info(f"Validation job {job.id} completed: {job.result['summary']}")
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Validation job {job.id} failed: {e}")
             job.status = ValidationStatus.FAILED
             job.completed_at = datetime.now(timezone.utc)
@@ -420,7 +420,7 @@ Respond as a JSON array of recommendation strings.
             response = await self.orchestrator._call_llm("gemini", prompt)
             recommendations = json.loads(response)
             return recommendations if isinstance(recommendations, list) else []
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Failed to generate recommendations: {e}")
             return [
                 "Prioritize remediation of critical vulnerabilities",

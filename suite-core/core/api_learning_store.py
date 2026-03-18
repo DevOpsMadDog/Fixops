@@ -276,7 +276,7 @@ class APILearningStore:
                     key = f"{row['method']}:{row['path']}"
                     self._path_stats[key]["avg_duration"] = row["avg_duration_ms"]
                     self._path_stats[key]["error_rate"] = row["error_rate"]
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug("Could not load path stats: %s", e)
 
     # -- Traffic Recording ----------------------------------------------------
@@ -331,7 +331,7 @@ class APILearningStore:
                     ],
                 )
             logger.debug("Flushed %d traffic records to DB", len(batch))
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Failed to flush traffic batch: %s", e)
 
     def flush(self):
@@ -432,7 +432,7 @@ class APILearningStore:
             self._save_model_info(info)
             return info
 
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             info.status = ModelStatus.STALE
             logger.error("Failed to train anomaly detector: %s", e)
             return info
@@ -474,7 +474,7 @@ class APILearningStore:
             self._save_model_info(info)
             return info
 
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             info.status = ModelStatus.STALE
             logger.error("Failed to train response predictor: %s", e)
             return info
@@ -525,7 +525,7 @@ class APILearningStore:
             logger.info("Threat classifier trained, accuracy=%.3f", info.accuracy)
             self._save_model_info(info)
             return info
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             info.status = ModelStatus.STALE
             logger.error("Failed to train threat classifier: %s", e)
             return info
@@ -570,7 +570,7 @@ class APILearningStore:
             logger.info("Error predictor trained, accuracy=%.3f", info.accuracy)
             self._save_model_info(info)
             return info
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             info.status = ModelStatus.STALE
             logger.error("Failed to train error predictor: %s", e)
             return info
@@ -604,7 +604,7 @@ class APILearningStore:
                         json.dumps(info.feature_names),
                     ),
                 )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Failed to save model info: %s", e)
 
     # -- Predictions -----------------------------------------------------------
@@ -669,7 +669,7 @@ class APILearningStore:
                 confidence=min(abs(score) * 2, 1.0),
                 reason=reason,
             )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Anomaly detection failed: %s", e)
             return AnomalyResult(is_anomaly=False, score=0.0, confidence=0.0)
 
@@ -743,7 +743,7 @@ class APILearningStore:
                 "confidence": 0.7,
                 "method": "ml_model",
             }
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Response time prediction failed: %s", e)
             return {
                 "predicted_ms": hist_avg or 100.0,
@@ -837,7 +837,7 @@ class APILearningStore:
                     (client_ip, cutoff),
                 ).fetchone()
                 return row["cnt"] if row else 0
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return 0
 
     # -- Analytics & Stats ----------------------------------------------------
@@ -864,7 +864,7 @@ class APILearningStore:
                         "VALUES (?,?,?,?,?,datetime('now'))",
                         (path, method, avg_dur, p95_dur, error_rate),
                     )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Failed to update API patterns: %s", e)
 
     def get_stats(self) -> Dict[str, Any]:
@@ -916,7 +916,7 @@ class APILearningStore:
                     for name, info in self._model_info.items()
                 },
             }
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Failed to get stats: %s", e)
             return {"error": str(e)}
 
@@ -930,7 +930,7 @@ class APILearningStore:
                     (limit,),
                 ).fetchall()
                 return [dict(r) for r in rows]
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return []
 
     def get_threat_indicators(
@@ -945,7 +945,7 @@ class APILearningStore:
                     (int(acknowledged), limit),
                 ).fetchall()
                 return [dict(r) for r in rows]
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return []
 
     def record_threat(
@@ -975,7 +975,7 @@ class APILearningStore:
                         json.dumps(details or {}),
                     ),
                 )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Failed to record threat: %s", e)
 
     def get_api_health(self) -> Dict[str, Any]:

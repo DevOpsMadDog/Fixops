@@ -175,7 +175,7 @@ def _verify_signature(attestation: Path, signature_path: str, public_key: str) -
     signature_bytes = b64decode(Path(signature_path).read_text(encoding="utf-8"))
     try:
         key.verify(signature_bytes, payload)
-    except Exception as exc:  # pragma: no cover - verification failure
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # pragma: no cover - verification failure
         raise RuntimeError(f"Signature verification failed: {exc}") from exc
 
 
@@ -196,7 +196,7 @@ def _handle_attest(args: argparse.Namespace) -> int:
             signature_path = _sign_attestation(
                 Path(destination), args.signing_key, args.signature_out
             )
-        except Exception as exc:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
             print(f"Failed to sign attestation: {exc}", file=sys.stderr)
             return 2
         print(f"Wrote attestation signature to {signature_path}")

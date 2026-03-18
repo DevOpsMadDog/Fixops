@@ -563,7 +563,7 @@ class S3ObjectLockBackend(StorageBackend):
             logger.info(f"Bucket {self.bucket} versioning is enabled")
         except ConfigurationError:
             raise
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             raise ConfigurationError(
                 f"Failed to check versioning status for bucket {self.bucket}: {e}"
             ) from e
@@ -592,7 +592,7 @@ class S3ObjectLockBackend(StorageBackend):
             )
         except ConfigurationError:
             raise
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             # Some S3-compatible services may not support Object Lock queries
             logger.warning(
                 f"Could not verify Object Lock configuration for {self.bucket}: {e}. "
@@ -691,7 +691,7 @@ class S3ObjectLockBackend(StorageBackend):
                 f"Stored object {full_key} in S3 ({len(content)} bytes, "
                 f"retention={effective_retention.mode.value if effective_retention else 'none'})"
             )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             raise StorageError(f"Failed to store object in S3: {e}") from e
 
         return StorageMetadata(
@@ -711,7 +711,7 @@ class S3ObjectLockBackend(StorageBackend):
             return response["Body"].read()
         except self.client.exceptions.NoSuchKey:
             raise ObjectNotFoundError(f"Object not found: {key}")
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             raise StorageError(f"Failed to retrieve object from S3: {e}") from e
 
     def get_metadata(self, key: str) -> StorageMetadata:
@@ -751,7 +751,7 @@ class S3ObjectLockBackend(StorageBackend):
             )
         except self.client.exceptions.NoSuchKey:
             raise ObjectNotFoundError(f"Object not found: {key}")
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             raise StorageError(f"Failed to get metadata from S3: {e}") from e
 
     def exists(self, key: str) -> bool:
@@ -761,7 +761,7 @@ class S3ObjectLockBackend(StorageBackend):
             return True
         except self.client.exceptions.NoSuchKey:
             return False
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return False
 
     def delete(self, key: str) -> bool:
@@ -782,7 +782,7 @@ class S3ObjectLockBackend(StorageBackend):
             return False
         except RetentionViolationError:
             raise
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             raise StorageError(f"Failed to delete object from S3: {e}") from e
 
     def list_objects(
@@ -804,9 +804,9 @@ class S3ObjectLockBackend(StorageBackend):
                     try:
                         meta = self.get_metadata(key)
                         results.append(meta)
-                    except Exception:
+                    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                         pass
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             raise StorageError(f"Failed to list objects in S3: {e}") from e
         return results
 
@@ -823,7 +823,7 @@ class S3ObjectLockBackend(StorageBackend):
             )
         except self.client.exceptions.NoSuchKey:
             raise ObjectNotFoundError(f"Object not found: {key}")
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             raise StorageError(f"Failed to set legal hold: {e}") from e
 
 
@@ -964,7 +964,7 @@ class AzureImmutableBlobBackend(StorageBackend):
                 self._immutability_enabled = None
 
             return True
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             raise ConfigurationError(
                 f"Failed to validate container configuration for {self.container}: {e}"
             ) from e
@@ -1045,7 +1045,7 @@ class AzureImmutableBlobBackend(StorageBackend):
                 f"Stored blob {full_key} in Azure ({len(content)} bytes, "
                 f"retention={effective_retention.mode.value if effective_retention else 'none'})"
             )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             raise StorageError(f"Failed to store blob in Azure: {e}") from e
 
         return StorageMetadata(
@@ -1063,7 +1063,7 @@ class AzureImmutableBlobBackend(StorageBackend):
         try:
             blob_client = self.container_client.get_blob_client(full_key)
             return blob_client.download_blob().readall()
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             if "BlobNotFound" in str(e):
                 raise ObjectNotFoundError(f"Blob not found: {key}")
             raise StorageError(f"Failed to retrieve blob from Azure: {e}") from e
@@ -1107,7 +1107,7 @@ class AzureImmutableBlobBackend(StorageBackend):
                 retention_policy=retention,
                 custom_metadata=dict(properties.metadata or {}),
             )
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             if "BlobNotFound" in str(e):
                 raise ObjectNotFoundError(f"Blob not found: {key}")
             raise StorageError(f"Failed to get blob metadata from Azure: {e}") from e
@@ -1118,7 +1118,7 @@ class AzureImmutableBlobBackend(StorageBackend):
             blob_client = self.container_client.get_blob_client(full_key)
             blob_client.get_blob_properties()
             return True
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return False
 
     def delete(self, key: str) -> bool:
@@ -1140,7 +1140,7 @@ class AzureImmutableBlobBackend(StorageBackend):
             return False
         except RetentionViolationError:
             raise
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             raise StorageError(f"Failed to delete blob from Azure: {e}") from e
 
     def list_objects(
@@ -1159,9 +1159,9 @@ class AzureImmutableBlobBackend(StorageBackend):
                 try:
                     meta = self.get_metadata(key)
                     results.append(meta)
-                except Exception:
+                except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                     pass
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             raise StorageError(f"Failed to list blobs in Azure: {e}") from e
         return results
 
@@ -1173,7 +1173,7 @@ class AzureImmutableBlobBackend(StorageBackend):
             logger.info(
                 f"Legal hold {'enabled' if enabled else 'disabled'} for {full_key}"
             )
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             if "BlobNotFound" in str(e):
                 raise ObjectNotFoundError(f"Blob not found: {key}")
             raise StorageError(f"Failed to set legal hold: {e}") from e

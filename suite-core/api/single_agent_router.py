@@ -9,7 +9,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -56,7 +57,7 @@ async def ai_agent_status() -> Dict[str, Any]:
             "cache_size": len(engine._cache),
             "consensus_threshold": 0.85,
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         return {
             "status": "degraded",
             "engine": "single-agent",
@@ -82,7 +83,7 @@ async def decide(req: DecideRequest) -> Dict[str, Any]:
             "dissenting_views": decision.dissenting_views,
             "decided_at": decision.decided_at,
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         raise HTTPException(status_code=500, detail=f"Decision failed: {e}")
 
 
@@ -106,7 +107,7 @@ async def batch_decide(req: BatchDecideRequest) -> Dict[str, Any]:
             ],
             "total": len(decisions),
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         raise HTTPException(status_code=500, detail=f"Batch decision failed: {e}")
 
 
@@ -133,21 +134,21 @@ async def list_backends() -> Dict[str, Any]:
         from core.single_agent import VLLMBackend
         b = VLLMBackend()
         backends.append({"name": "vLLM", "available": b.is_available(), "info": b.model_info()})
-    except Exception:
+    except ImportError:
         backends.append({"name": "vLLM", "available": False})
 
     try:
         from core.single_agent import OllamaBackend
         b = OllamaBackend()
         backends.append({"name": "Ollama", "available": b.is_available(), "info": b.model_info()})
-    except Exception:
+    except ImportError:
         backends.append({"name": "Ollama", "available": False})
 
     try:
         from core.single_agent import GGUFBackend
         b = GGUFBackend()
         backends.append({"name": "GGUF", "available": b.is_available(), "info": b.model_info()})
-    except Exception:
+    except ImportError:
         backends.append({"name": "GGUF", "available": False})
 
     backends.append({"name": "API Fallback", "available": True, "info": {"provider": "OpenAI/Anthropic"}})
@@ -163,5 +164,5 @@ async def clear_cache() -> Dict[str, Any]:
         engine = SingleAgentEngine()
         engine.clear_cache()
         return {"cleared": True}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except ImportError as e:
+        raise HTTPException(status_code=500, detail=type(e).__name__)

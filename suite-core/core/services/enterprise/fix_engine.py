@@ -38,7 +38,7 @@ class FixEngine:
         try:
             self.initialized = True
             logger.info("Fix Engine initialized successfully")
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Fix Engine initialization failed", error=str(e))
             raise
 

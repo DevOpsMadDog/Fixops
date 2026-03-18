@@ -14,7 +14,8 @@ import re
 from typing import Any, Dict
 
 from core.container_scanner import get_container_scanner
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field, field_validator
 
 logger = logging.getLogger(__name__)
@@ -94,7 +95,7 @@ async def scan_dockerfile(req: ScanDockerfileRequest) -> Dict[str, Any]:
         scanner = get_container_scanner()
         result = scanner.scan_dockerfile(req.content, safe_filename)
         return result.to_dict()
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.exception("Container Dockerfile scan failed: %s", type(e).__name__)
         raise HTTPException(500, f"Scan failed: {type(e).__name__}")
 
@@ -106,7 +107,7 @@ async def scan_image(req: ScanImageRequest) -> Dict[str, Any]:
         scanner = get_container_scanner()
         result = await scanner.scan_image(req.image_ref)
         return result.to_dict()
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.exception("Container image scan failed: %s", type(e).__name__)
         raise HTTPException(500, f"Image scan failed: {type(e).__name__}")
 
@@ -114,6 +115,7 @@ async def scan_image(req: ScanImageRequest) -> Dict[str, Any]:
 @router.get("/images")
 async def list_container_images(
     limit: int = 50,
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """List scanned container images and their vulnerability status.
 

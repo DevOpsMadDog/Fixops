@@ -237,7 +237,7 @@ class ChromaDBVectorStore(VectorStore):
             self._initialized = True
             logger.info("✅ ChromaDB Vector Store initialized successfully")
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"ChromaDB initialization failed: {e}")
             raise
 
@@ -345,7 +345,7 @@ class ChromaDBVectorStore(VectorStore):
 
             logger.info(f"✅ ChromaDB upserted {len(records)} records successfully")
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"ChromaDB upsert failed: {e}")
             raise
 
@@ -384,7 +384,7 @@ class ChromaDBVectorStore(VectorStore):
             logger.info(f"ChromaDB search returned {len(records)} results")
             return records
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"ChromaDB search failed: {e}")
             return []
 
@@ -396,7 +396,7 @@ class ChromaDBVectorStore(VectorStore):
                 embedding = self.embedding_function.encode(text).tolist()
                 return embedding
 
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.error(f"Embedding generation failed: {e}")
 
         # Fallback to simple hash-based embedding

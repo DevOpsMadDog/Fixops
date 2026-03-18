@@ -413,7 +413,7 @@ def receive_jira_webhook(
         conn.commit()
 
         return result
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         cursor.execute(
             "UPDATE webhook_events SET error = ? WHERE event_id = ?",
             (str(e), event_id),
@@ -516,7 +516,7 @@ def receive_servicenow_webhook(
         conn.commit()
 
         return result
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         cursor.execute(
             "UPDATE webhook_events SET error = ? WHERE event_id = ?",
             (str(e), event_id),
@@ -1353,7 +1353,7 @@ def process_pending_outbox_items(limit: int = 10) -> Dict[str, Any]:
         try:
             result = execute_outbox_item(outbox_id)
             results.append(result)
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Failed to execute outbox item {outbox_id}: {e}")
             results.append(
                 {
@@ -1528,7 +1528,7 @@ def receive_gitlab_webhook(
         conn.commit()
 
         return result
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         cursor.execute(
             "UPDATE webhook_events SET error = ? WHERE event_id = ?",
             (str(e), event_id),
@@ -1677,7 +1677,7 @@ def receive_azure_devops_webhook(
         conn.commit()
 
         return result
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         cursor.execute(
             "UPDATE webhook_events SET error = ? WHERE event_id = ?",
             (str(e), event_id),

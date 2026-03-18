@@ -78,7 +78,7 @@ class KnowledgeGraphProcessor:
     def _instantiate_builder(self) -> Any:
         try:
             builder = self._builder_factory()
-        except Exception as exc:  # pragma: no cover - defensive guard
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # pragma: no cover - defensive guard
             raise KnowledgeGraphError(
                 "Failed to construct CTINexus graph builder"
             ) from exc
@@ -134,7 +134,7 @@ class KnowledgeGraphProcessor:
             return self._serializer_factory(builder)
         except KnowledgeGraphError:
             raise
-        except Exception as exc:  # pragma: no cover - defensive guard
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # pragma: no cover - defensive guard
             raise KnowledgeGraphError("Failed to create CTINexus serializer") from exc
 
     # ------------------------------------------------------------------
@@ -277,7 +277,7 @@ class KnowledgeGraphProcessor:
                         "relationship_count", len(extraction.relationships)
                     )
                     return analytics_dict
-            except Exception:  # pragma: no cover - best effort fallback
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):  # pragma: no cover - best effort fallback
                 logger.exception(
                     "CTINexus analytics callback failed; falling back to local metrics"
                 )

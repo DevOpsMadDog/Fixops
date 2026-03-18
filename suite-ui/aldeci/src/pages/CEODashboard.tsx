@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
 import {
@@ -90,11 +91,13 @@ interface KPIProps {
   sparkline?: number[];
   accent?: string;
   loading?: boolean;
+  onClick?: () => void;
 }
 
-function KPICard({ title, value, subtitle, icon: Icon, trend, sparkline, accent = '#3b82f6', loading }: KPIProps) {
+function KPICard({ title, value, subtitle, icon: Icon, trend, sparkline, accent = '#3b82f6', loading, onClick }: KPIProps) {
   return (
-    <motion.div variants={itemV} whileHover={{ scale: 1.02, y: -3 }} transition={{ type: 'spring', stiffness: 300 }}>
+    <motion.div variants={itemV} whileHover={{ scale: 1.02, y: -3 }} transition={{ type: 'spring', stiffness: 300 }}
+      onClick={onClick} className={onClick ? 'cursor-pointer' : ''}>
       <Card className="glass-card backdrop-blur-md bg-gray-900/50 border-gray-700/40 hover:border-primary/30 transition-all h-full">
         <CardContent className="p-5">
           <div className="flex items-start justify-between">
@@ -156,6 +159,8 @@ function SeverityBar({ label, count, total, color }: { label: string; count: num
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function CEODashboard() {
+  const navigate = useNavigate();
+
   // ── Data fetching ────────────────────────────────────────────────────────
 
   const { data: overview, isLoading: overviewLoading } = useQuery({
@@ -308,7 +313,7 @@ export default function CEODashboard() {
       {/* ── Top-Level Score Rings ──────────────────────────────────────────── */}
       <motion.div variants={containerV} initial="hidden" animate="visible"
         className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <motion.div variants={itemV}>
+        <motion.div variants={itemV} whileHover={{ scale: 1.03, y: -4 }} className="cursor-pointer" onClick={() => navigate('/risk-overview')}>
           <Card className="glass-card backdrop-blur-md bg-gray-900/50 border-gray-700/40 hover:border-emerald-500/30 transition-all">
             <CardContent className="flex items-center justify-center py-8">
               <ScoreRing
@@ -319,7 +324,7 @@ export default function CEODashboard() {
             </CardContent>
           </Card>
         </motion.div>
-        <motion.div variants={itemV}>
+        <motion.div variants={itemV} whileHover={{ scale: 1.03, y: -4 }} className="cursor-pointer" onClick={() => navigate('/compliance')}>
           <Card className="glass-card backdrop-blur-md bg-gray-900/50 border-gray-700/40 hover:border-blue-500/30 transition-all">
             <CardContent className="flex items-center justify-center py-8">
               <ScoreRing
@@ -330,7 +335,7 @@ export default function CEODashboard() {
             </CardContent>
           </Card>
         </motion.div>
-        <motion.div variants={itemV}>
+        <motion.div variants={itemV} whileHover={{ scale: 1.03, y: -4 }} className="cursor-pointer" onClick={() => navigate('/mission-control/sla')}>
           <Card className="glass-card backdrop-blur-md bg-gray-900/50 border-gray-700/40 hover:border-purple-500/30 transition-all">
             <CardContent className="flex items-center justify-center py-8">
               <ScoreRing
@@ -353,6 +358,7 @@ export default function CEODashboard() {
           icon={Clock}
           accent="#8b5cf6"
           loading={overviewLoading}
+          onClick={() => navigate('/mission-control/sla')}
         />
         <KPICard
           title="Open Findings"
@@ -361,6 +367,7 @@ export default function CEODashboard() {
           icon={AlertTriangle}
           accent="#f59e0b"
           loading={overviewLoading}
+          onClick={() => navigate('/evidence/analytics')}
         />
         <KPICard
           title="Critical / High"
@@ -369,6 +376,7 @@ export default function CEODashboard() {
           icon={Zap}
           accent="#ef4444"
           loading={overviewLoading}
+          onClick={() => navigate('/evidence/analytics')}
         />
         <KPICard
           title="Overdue Tasks"
@@ -377,6 +385,7 @@ export default function CEODashboard() {
           icon={Target}
           accent={overdueCount > 0 ? '#ef4444' : '#22c55e'}
           loading={overviewLoading}
+          onClick={() => navigate('/mission-control/sla')}
         />
       </motion.div>
 
@@ -488,9 +497,9 @@ export default function CEODashboard() {
       {/* ── Bottom Strip: Intel & Feeds ───────────────────────────────────── */}
       <motion.div variants={containerV} initial="hidden" animate="visible"
         className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <KPICard title="CVEs Tracked" value={feedStats?.total_cves ?? 0} icon={Lock} accent="#6366f1" subtitle="NVD + OSV + GitHub" />
-        <KPICard title="EPSS Scores" value={feedStats?.epss_count ?? 0} icon={TrendingUp} accent="#06b6d4" subtitle="Exploit prediction data" />
-        <KPICard title="KEV Entries" value={feedStats?.kev_count ?? 0} icon={FileCheck} accent="#f43f5e" subtitle="CISA known exploits" />
+        <KPICard title="CVEs Tracked" value={feedStats?.total_cves ?? 0} icon={Lock} accent="#6366f1" subtitle="NVD + OSV + GitHub" onClick={() => navigate('/feeds/live')} />
+        <KPICard title="EPSS Scores" value={feedStats?.epss_count ?? 0} icon={TrendingUp} accent="#06b6d4" subtitle="Exploit prediction data" onClick={() => navigate('/feeds/live')} />
+        <KPICard title="KEV Entries" value={feedStats?.kev_count ?? 0} icon={FileCheck} accent="#f43f5e" subtitle="CISA known exploits" onClick={() => navigate('/feeds/live')} />
       </motion.div>
     </div>
   );

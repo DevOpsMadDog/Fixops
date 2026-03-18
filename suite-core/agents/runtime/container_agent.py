@@ -50,7 +50,7 @@ class ContainerAgent(BaseAgent):
             logger.info(f"Connected to {self.container_runtime} runtime")
             return True
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Failed to connect to {self.container_runtime}: {e}")
             return False
 
@@ -98,7 +98,7 @@ class ContainerAgent(BaseAgent):
 
             return data_items
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Error collecting container data: {e}")
             return []
 
@@ -147,7 +147,7 @@ class ContainerAgent(BaseAgent):
                             }
                         )
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Error scanning containers: {e}")
 
         return scans
@@ -163,7 +163,7 @@ class ContainerAgent(BaseAgent):
 
             return result
 
-        except Exception as e:
+        except ImportError as e:
             logger.error(f"Error scanning image {image}: {e}")
             return {"error": str(e)}
 
@@ -178,6 +178,6 @@ class ContainerAgent(BaseAgent):
 
             return metrics
 
-        except Exception as e:
+        except ImportError as e:
             logger.error(f"Error collecting runtime metrics: {e}")
             return None

@@ -15,6 +15,28 @@ warnings.filterwarnings(
 import sys
 from pathlib import Path
 
+# ── Python 3.14.1 dataclasses bug workaround (cpython#142214) ──────────
+# dataclasses._add_slots crashes: 'wrapper_descriptor' has no '__annotate__'
+# when @dataclass(init=False, slots=True) is used (e.g. networkx).
+# The project-root sitecustomize.py has this patch too, but is NOT loaded
+# by Python when a system-level sitecustomize.py exists.  Applying here
+# ensures it runs before pytest collects tests that import networkx, etc.
+if sys.version_info[:2] == (3, 14):
+    import dataclasses as _dc
+
+    _orig_add_slots = _dc._add_slots  # type: ignore[attr-defined]
+
+    def _safe_add_slots(cls, is_frozen, weakref_slot, fields):  # type: ignore[no-untyped-def]
+        try:
+            return _orig_add_slots(cls, is_frozen, weakref_slot, fields)
+        except AttributeError as exc:
+            if "__annotate__" in str(exc):
+                return cls  # fall back to non-slots
+            raise
+
+    _dc._add_slots = _safe_add_slots  # type: ignore[attr-defined]
+# ── End Python 3.14 workaround ──
+
 import pytest
 import structlog
 
@@ -118,19 +140,22 @@ collect_ignore = [
     "test_signing_verify.py",  # imports core.services.enterprise.signing (not exported)
     "test_new_backend_api.py",  # new_backend/api.py deleted (dead stub)
     # Tests with missing module imports discovered during collection
-    "test_advanced_llm_engine_coverage.py",  # imports missing advanced LLM modules
     "test_analytics_comprehensive.py",  # imports missing analytics modules
     "test_analytics_router_unit.py",  # imports missing analytics router modules
     "test_api_routers_coverage.py",  # imports missing API router modules
     "test_api_smoke.py",  # imports missing API smoke modules
-    "test_cache_service_coverage.py",  # imports missing cache service modules
-    "test_correlation_engine_coverage.py",  # imports missing correlation engine
-    "test_decision_engine_coverage.py",  # imports missing decision engine modules
-    "test_enhanced_decision_engine_coverage.py",  # imports missing enhanced decision engine
-    "test_evidence_export_coverage.py",  # imports missing evidence export modules
-    "test_metrics_enterprise_coverage.py",  # imports missing metrics enterprise modules
-    "test_policy_engine_coverage.py",  # imports missing policy engine modules
-    "test_rl_controller_coverage.py",  # imports missing RL controller modules
+    # NOTE: The following 7 files were previously ignored but their modules now exist.
+    # They have been removed from collect_ignore so they are collected normally:
+    # test_advanced_llm_engine_coverage.py
+    # test_cache_service_coverage.py
+    # test_correlation_engine_coverage.py
+    # test_decision_engine_coverage.py
+    # test_enhanced_decision_engine_coverage.py
+    # test_policy_engine_coverage.py
+    # test_rl_controller_coverage.py
+    # These 2 still fail collection — keep ignored:
+    "test_evidence_export_coverage.py",  # still missing evidence export module
+    "test_metrics_enterprise_coverage.py",  # still missing metrics enterprise module
     # Risk module tests - risk package not in Python path
     "risk/",  # entire risk/ subdirectory imports from risk.* which is not available
 ]
@@ -146,6 +171,10 @@ if "FIXOPS_MODE" not in os.environ:
 # Set JWT secret for enterprise mode (required for app initialization)
 if "FIXOPS_JWT_SECRET" not in os.environ:
     os.environ["FIXOPS_JWT_SECRET"] = "test-jwt-secret-for-ci-testing"
+
+# Disable rate limiting in tests to avoid 429 errors
+if "FIXOPS_DISABLE_RATE_LIMIT" not in os.environ:
+    os.environ["FIXOPS_DISABLE_RATE_LIMIT"] = "1"
 
 # Shared API token for tests - uses env var or default
 API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh")

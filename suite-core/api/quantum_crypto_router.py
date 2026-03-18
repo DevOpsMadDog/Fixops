@@ -1,7 +1,8 @@
 """Quantum-Secure Cryptography Router (V6).
 
 Exposes hybrid ML-DSA + RSA signing, verification, and key management.
-FIPS 204 compliant post-quantum signatures with 7-year WORM retention.
+Uses ML-DSA-65 (FIPS 204) when dilithium-py is installed; falls back to
+HMAC-SHA512 placeholder signatures when the post-quantum library is absent.
 """
 
 from __future__ import annotations
@@ -9,7 +10,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -76,7 +78,7 @@ async def quantum_crypto_status() -> Dict[str, Any]:
             "hybrid_mode": "ML-DSA + RSA-SHA256",
             "fips_204_compliant": True,
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         return {
             "status": "degraded",
             "engine": "quantum-crypto",
@@ -101,7 +103,7 @@ async def sign_content(req: SignRequest) -> Dict[str, Any]:
             "worm_retention_until": sig.worm_retention_until,
             "verified": True,
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         raise HTTPException(status_code=500, detail=f"Signing failed: {e}")
 
 
@@ -119,7 +121,7 @@ async def verify_signature(req: VerifyRequest) -> Dict[str, Any]:
             "mldsa_verified": True,
             "content_hash": sig.content_hash,
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         return {
             "valid": False,
             "error": type(e).__name__,
@@ -139,8 +141,8 @@ async def get_key_info() -> Dict[str, Any]:
             "rsa_available": signer._rsa_signer is not None,
             "hybrid_mode": True,
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.post("/keys/rotate")
@@ -155,5 +157,5 @@ async def rotate_keys() -> Dict[str, Any]:
             "new_algorithm": signer.mldsa.algorithm_name,
             "security_level": signer.mldsa.security_level,
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         raise HTTPException(status_code=500, detail=f"Key rotation failed: {e}")

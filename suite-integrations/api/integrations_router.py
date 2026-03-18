@@ -101,12 +101,17 @@ async def list_integrations(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ):
-    """List all integrations with optional filtering."""
+    """List integrations belonging to the caller's org."""
     integrations = db.list_integrations(
         integration_type=integration_type,
         limit=limit,
         offset=offset,
     )
+    # Filter to this org (config._org_id set at creation; "default" is legacy/unscoped)
+    integrations = [
+        i for i in integrations
+        if i.config.get("_org_id", "default") in ("default", org_id)
+    ]
     return {
         "items": [IntegrationResponse(**i.to_dict()) for i in integrations],
         "total": len(integrations),
@@ -116,15 +121,20 @@ async def list_integrations(
 
 
 @router.post("", response_model=IntegrationResponse, status_code=201)
-async def create_integration(integration_data: IntegrationCreate):
-    """Create a new integration."""
+async def create_integration(
+    integration_data: IntegrationCreate,
+    org_id: str = Depends(get_org_id),
+):
+    """Create a new integration, scoped to the caller's org."""
     try:
+        # Embed org_id in config for tenant isolation
+        config = {**integration_data.config, "_org_id": org_id}
         integration = Integration(
             id="",
             name=integration_data.name,
             integration_type=integration_data.integration_type,
             status=integration_data.status,
-            config=integration_data.config,
+            config=config,
         )
         created_integration = db.create_integration(integration)
         return IntegrationResponse(**created_integration.to_dict())
@@ -180,24 +190,39 @@ async def list_marketplace_integrations():
             "categories": categories,
             "installed": sum(1 for m in marketplace if m["installed"]),
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         return {"integrations": [], "total": 0, "categories": [], "installed": 0, "error": str(e)}
 
 
 @router.get("/{id}", response_model=IntegrationResponse)
-async def get_integration(id: str):
-    """Get integration details by ID."""
+async def get_integration(
+    id: str,
+    org_id: str = Depends(get_org_id),
+):
+    """Get integration details by ID, restricted to the caller's org."""
     integration = db.get_integration(id)
     if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    # Enforce tenant isolation: reject access to other orgs' integrations
+    stored_org = integration.config.get("_org_id", "default")
+    if stored_org != "default" and stored_org != org_id:
         raise HTTPException(status_code=404, detail="Integration not found")
     return IntegrationResponse(**integration.to_dict())
 
 
 @router.put("/{id}", response_model=IntegrationResponse)
-async def update_integration(id: str, integration_data: IntegrationUpdate):
-    """Update an integration."""
+async def update_integration(
+    id: str,
+    integration_data: IntegrationUpdate,
+    org_id: str = Depends(get_org_id),
+):
+    """Update an integration, restricted to the caller's org."""
     integration = db.get_integration(id)
     if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    # Enforce tenant isolation
+    stored_org = integration.config.get("_org_id", "default")
+    if stored_org != "default" and stored_org != org_id:
         raise HTTPException(status_code=404, detail="Integration not found")
 
     if integration_data.name is not None:
@@ -212,10 +237,17 @@ async def update_integration(id: str, integration_data: IntegrationUpdate):
 
 
 @router.delete("/{id}", status_code=204)
-async def delete_integration(id: str):
-    """Delete an integration."""
+async def delete_integration(
+    id: str,
+    org_id: str = Depends(get_org_id),
+):
+    """Delete an integration, restricted to the caller's org."""
     integration = db.get_integration(id)
     if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    # Enforce tenant isolation
+    stored_org = integration.config.get("_org_id", "default")
+    if stored_org != "default" and stored_org != org_id:
         raise HTTPException(status_code=404, detail="Integration not found")
     db.delete_integration(id)
     return None
@@ -387,7 +419,7 @@ async def test_integration(id: str):
                 "message": f"Test not implemented for {integration.integration_type.value}",
             }
 
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         import logging
 
         logging.getLogger(__name__).error(
@@ -571,7 +603,7 @@ async def trigger_sync(id: str):
                 "error"
             ] = f"Sync not implemented for {integration.integration_type.value}"
 
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Sync failed for integration {id}: {e}")
         sync_success = False
         sync_details["error"] = str(e)

@@ -207,7 +207,7 @@ class CodeAnalyzer:
                     continue
 
                 results[tool] = result
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.error(f"Analysis failed with {tool.value}: {e}")
                 results[tool] = AnalysisResult(
                     tool=tool,

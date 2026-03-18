@@ -470,13 +470,13 @@ class KnowledgeBrain:
 
         with self._conn_lock:
             count_row = self._conn.execute(
-                f"SELECT COUNT(*) FROM brain_nodes {where}", params
+                f"SELECT COUNT(*) FROM brain_nodes {where}", params  # nosec B608 — WHERE from hardcoded columns with ? params
             ).fetchone()
             total = count_row[0] if count_row else 0
 
             params_page = params + [limit, offset]
             cursor = self._conn.execute(
-                f"SELECT node_id, node_type, org_id, properties, created_at, updated_at FROM brain_nodes {where} ORDER BY updated_at DESC LIMIT ? OFFSET ?",
+                f"SELECT node_id, node_type, org_id, properties, created_at, updated_at FROM brain_nodes {where} ORDER BY updated_at DESC LIMIT ? OFFSET ?",  # nosec B608
                 params_page,
             )
             nodes = []
@@ -602,7 +602,7 @@ class KnowledgeBrain:
         if self._graph is not None and nx is not None and node_count > 1:
             try:
                 density = nx.density(self._graph)
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
 
         return {
@@ -636,7 +636,7 @@ class KnowledgeBrain:
                         node["degree"] = degree
                         results.append(node)
                 return results
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
         # Fallback
         with self._conn_lock:
@@ -835,7 +835,7 @@ class KnowledgeBrain:
     def __del__(self) -> None:
         try:
             self._conn.close()
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
 

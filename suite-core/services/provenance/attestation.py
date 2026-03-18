@@ -553,7 +553,7 @@ class InTotoEnvelope:
                         "In-toto statement signed with RSA-SHA256",
                         extra={"fingerprint": fingerprint},
                     )
-                except Exception as exc:
+                except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
                     if require_signature:
                         raise RuntimeError(
                             f"Signing required but failed: {exc}"
@@ -648,7 +648,7 @@ def verify_envelope_signature(envelope: InTotoEnvelope) -> bool:
 
     try:
         payload_bytes = base64.b64decode(envelope.payload)
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.warning(f"Failed to decode envelope payload: {exc}")
         return False
 
@@ -667,7 +667,7 @@ def verify_envelope_signature(envelope: InTotoEnvelope) -> bool:
                     extra={"fingerprint": keyid},
                 )
                 return True
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning(f"Signature verification failed for keyid {keyid}: {exc}")
 
     return False

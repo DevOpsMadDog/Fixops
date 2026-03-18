@@ -50,7 +50,7 @@ async def verify_signature(request: Any) -> Dict[str, Any]:
 
     try:
         sig_bytes = base64.b64decode(request.signature)
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         raise HTTPException(
             status_code=400,
             detail=f"Invalid signature encoding: {exc}",

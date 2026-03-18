@@ -13,6 +13,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from apps.api.dependencies import get_org_id
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 
@@ -194,10 +195,10 @@ def register_app(
             config = mgr.load_from_dict(request.config)  # type: ignore[arg-type]
         registered = mgr.register_app(config)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
-    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=type(exc).__name__)
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Unexpected error registering app")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=type(exc).__name__)
 
     return {"message": "App registered successfully", "app": _config_to_dict(registered)}
 
@@ -253,10 +254,10 @@ def update_app(
     try:
         updated = mgr.update_app(app_id, request.updates)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
-    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=type(exc).__name__)
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Unexpected error updating app '%s'", app_id)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=type(exc).__name__)
     return {"message": "App updated successfully", "app": _config_to_dict(updated)}
 
 
@@ -364,7 +365,7 @@ def get_sla(
     try:
         result = mgr.get_sla(app_id, severity, component_name=component)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=type(exc).__name__)
     return SLAResponse(**result)
 
 
@@ -431,7 +432,7 @@ def validate_classification(
     try:
         result = mgr.validate_classification(app_id)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=type(exc).__name__)
     return ClassificationValidationResponse(**result)
 
 
@@ -451,7 +452,7 @@ def export_config(
     try:
         yaml_str = mgr.export_config(app_id)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=type(exc).__name__)
     return PlainTextResponse(
         content=yaml_str,
         media_type="text/yaml",

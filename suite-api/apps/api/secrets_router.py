@@ -1,1 +1,1 @@
-/home/user/workspace/Fixops/suite-attack/api/secrets_router.py
+../../../suite-attack/api/secrets_router.py

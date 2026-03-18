@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from apps.api.dependencies import get_org_id
-from core.persistent_store import PersistentDict
+from core.persistent_store import get_persistent_store
 from core.policy_db import PolicyDB
 from core.policy_models import Policy, PolicyStatus
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -25,7 +25,7 @@ router = APIRouter(prefix="/api/v1/policies", tags=["policies"])
 db = PolicyDB()
 
 # Persistent violation store
-_violation_store: PersistentDict = PersistentDict(
+_violation_store = get_persistent_store(
     "policy_violations"
 )  # policy_id -> violations
 
@@ -417,7 +417,7 @@ async def enforce_policy(id: str):
             findings_data.append(
                 f.to_dict() if hasattr(f, "to_dict") else {"id": str(f)}
             )
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     violations = _evaluate_policy(policy, findings_data)

@@ -26,7 +26,7 @@ try:
     from pgmpy.models import BayesianNetwork
 
     PGMPY_AVAILABLE = True
-except Exception:
+except (ImportError, SyntaxError):  # SyntaxError on Python 3.14 (invalid \p escapes in pgmpy)
     BayesianNetwork = None  # type: ignore[assignment]
     VariableElimination = None  # type: ignore[assignment]
     TabularCPD = None  # type: ignore[assignment]
@@ -37,7 +37,7 @@ try:
     from sklearn.linear_model import LogisticRegression
 
     SKLEARN_AVAILABLE = True
-except Exception:
+except ImportError:
     LogisticRegression = None  # type: ignore[assignment]
     np = None  # type: ignore[assignment]
     SKLEARN_AVAILABLE = False
@@ -305,7 +305,7 @@ class BNLRHybridModel(RiskModel):
                 state: float(prob)
                 for state, prob in zip(result.state_names["risk"], result.values)
             }
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.error("BN inference failed in BN-LR hybrid: %s", exc, exc_info=True)
             raise RuntimeError(f"BN inference failed: {exc}") from exc
 

@@ -9,7 +9,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -53,7 +54,7 @@ async def zero_gravity_status() -> Dict[str, Any]:
             "version": "1.0.0",
             **status,
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         return {
             "status": "degraded",
             "engine": "zero-gravity",
@@ -74,7 +75,7 @@ async def ingest_data(req: IngestRequest) -> Dict[str, Any]:
             metadata=req.metadata,
         )
         return {"ingested": True, **result}
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         raise HTTPException(status_code=500, detail=f"Ingestion failed: {e}")
 
 
@@ -93,8 +94,8 @@ async def retrieve_data(data_id: str) -> Dict[str, Any]:
         return {"data_id": data_id, "content": result, "found": True}
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.post("/migrate")
@@ -105,7 +106,7 @@ async def run_migration() -> Dict[str, Any]:
         engine = ZeroGravityEngine()
         result = engine.run_migration_cycle()
         return {"migration": "completed", **result}
-    except Exception as e:
+    except ImportError as e:
         raise HTTPException(status_code=500, detail=f"Migration failed: {e}")
 
 
@@ -116,8 +117,8 @@ async def storage_forecast(days: int = Query(365, ge=1, le=3650)) -> Dict[str, A
         from core.zero_gravity import ZeroGravityEngine
         engine = ZeroGravityEngine()
         return engine.forecast_storage(days)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except ImportError as e:
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.get("/tiers")

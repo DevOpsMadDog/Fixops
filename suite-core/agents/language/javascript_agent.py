@@ -40,7 +40,7 @@ class JavaScriptAgent(CodeRepoAgent):
             # Convert to SARIF format
             return self._findings_to_sarif(findings, "FixOps JavaScript Analyzer")
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Error collecting JavaScript SARIF: {e}")
             return await self._collect_sarif_oss_fallback()
 
@@ -72,7 +72,7 @@ class JavaScriptAgent(CodeRepoAgent):
             if result.returncode in (0, 1):
                 return self._eslint_to_sarif(json.loads(result.stdout))
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Error in OSS fallback: {e}")
 
         return None

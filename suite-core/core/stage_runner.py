@@ -718,7 +718,7 @@ class StageRunner:
                 raise ValueError(
                     "YAML deploy manifests require PyYAML; install it or submit JSON"
                 ) from exc
-            except Exception as exc:
+            except ImportError as exc:
                 raise ValueError("Deploy manifest is not valid YAML") from exc
         if payload is None:
             payload = {}

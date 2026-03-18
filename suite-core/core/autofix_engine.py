@@ -390,7 +390,7 @@ class AutoFixEngine:
             suggestion.pr_description = self._build_pr_description(suggestion, finding)
             suggestion.status = FixStatus.GENERATED
 
-        except Exception as exc:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
             # Only log exception type — str(exc) may contain LLM API keys or secrets
             logger.error(
                 "[AutoFix] Generation failed for %s: %s",
@@ -447,7 +447,7 @@ class AutoFixEngine:
                     )
                 )
             )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug("Event bus emit failed: %s", type(e).__name__)
 
         return suggestion
@@ -557,7 +557,7 @@ class AutoFixEngine:
                 cve_node = brain.get_node(cve)
                 if cve_node:
                     ctx["related_cves"].append(cve_node)
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.debug("[AutoFix] Graph enrichment skipped: %s", type(exc).__name__)
         return ctx
 
@@ -774,7 +774,7 @@ Provide JSON: {{"config_changes": {{"key": "value"}}, "title": "...", "descripti
         except json.JSONDecodeError:
             logger.debug("Failed to parse structured JSON from LLM response")
             data = {}
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug("Error extracting structured data from LLM: %s", type(e).__name__)
             data = {}
 
@@ -830,7 +830,7 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
         except json.JSONDecodeError:
             logger.debug("Failed to parse structured JSON from LLM response")
             data = {}
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug("Error extracting structured data from LLM: %s", type(e).__name__)
             data = {}
 
@@ -887,7 +887,7 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
         except json.JSONDecodeError:
             logger.debug("Failed to parse structured JSON from LLM response")
             data = {}
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug("Error extracting structured data from LLM: %s", type(e).__name__)
             data = {}
 
@@ -1098,7 +1098,7 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
             # Return score normalised to 0-1 range
             return min(max(prediction.confidence_score / 100.0, 0.1), 0.99)
 
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.debug(
                 "[AutoFix] ML confidence model unavailable (%s), using rule-based fallback",
                 type(exc).__name__,
@@ -1336,14 +1336,14 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
                                 )
                             )
                         )
-                    except Exception as e:
+                    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                         logger.debug("Event bus emit (PR created) failed: %s", type(e).__name__)
                 else:
                     suggestion.status = FixStatus.FAILED
                     result.error = pr_result.error or "PR creation failed"
                     self._stats["total_failed"] += 1
 
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.error("[AutoFix] PR creation failed: %s: %s", type(exc).__name__, exc)
                 suggestion.status = FixStatus.FAILED
                 result.error = f"PR creation failed ({type(exc).__name__})"
@@ -1403,7 +1403,7 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
                     )
                 )
             )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug("Event bus emit (rollback) failed: %s", type(e).__name__)
 
         return {"success": True, "fix_id": fix_id, "status": "rolled_back"}

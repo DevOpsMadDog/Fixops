@@ -276,7 +276,7 @@ class SSDLCEvaluator:
         )
         try:
             total = int(component_count)  # type: ignore[arg-type]
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             total = len(getattr(sbom, "components", []) or [])
         if total:
             return "satisfied", f"SBOM contains {total} components"

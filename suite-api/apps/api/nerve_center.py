@@ -1,1 +1,1 @@
-/home/user/workspace/Fixops/suite-core/api/nerve_center.py
+../../../suite-core/api/nerve_center.py

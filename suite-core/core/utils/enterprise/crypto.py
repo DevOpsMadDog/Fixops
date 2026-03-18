@@ -135,7 +135,7 @@ class EnvKeyProvider:
                 hashes.SHA256(),
             )
             return True
-        except Exception as exc:  # pragma: no cover - defensive logging
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # pragma: no cover - defensive logging
             logger.error("RSA signature verification failed", error=str(exc))
             return False
 
@@ -193,7 +193,7 @@ class AWSKMSProvider:
         if self.kms_client is None:
             try:
                 import boto3  # type: ignore
-            except Exception as exc:  # pragma: no cover - optional dependency
+            except ImportError as exc:  # pragma: no cover - optional dependency
                 raise RuntimeError(
                     "boto3 is required to use the AWS KMS signing provider"
                 ) from exc
@@ -239,7 +239,7 @@ class AWSKMSProvider:
                 hashes.SHA256(),
             )
             return True
-        except Exception as exc:  # pragma: no cover - defensive logging
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # pragma: no cover - defensive logging
             logger.error("AWS KMS signature verification failed", error=str(exc))
             return False
 
@@ -344,7 +344,7 @@ class AzureKeyVaultProvider:
                     CryptographyClient,
                     SignatureAlgorithm,
                 )
-            except Exception as exc:  # pragma: no cover - optional dependency
+            except ImportError as exc:  # pragma: no cover - optional dependency
                 raise RuntimeError(
                     "azure-identity and azure-keyvault-keys are required for the Azure signing provider"
                 ) from exc
@@ -400,7 +400,7 @@ class AzureKeyVaultProvider:
                 hashes.SHA256(),
             )
             return True
-        except Exception as exc:  # pragma: no cover - defensive logging
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # pragma: no cover - defensive logging
             logger.error(
                 "Azure Key Vault signature verification failed", error=str(exc)
             )
@@ -542,7 +542,7 @@ def _coerce_bigint_bytes(value: Any) -> Optional[bytes]:
     if isinstance(value, str):
         try:
             return _decode_base64url(value)
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return None
     return None
 
@@ -808,7 +808,7 @@ def verify_sensitive_data(data: str, stored_hash: str, salt: str) -> bool:
         # Use constant-time comparison to prevent timing attacks
         return hmac.compare_digest(stored_hash, computed_hash)
 
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         return False
 
 
@@ -934,7 +934,7 @@ class SecureTokenManager:
 
             return payload
 
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return None
 
     def generate_hmac_signature(self, data: str, secret_key: str) -> str:

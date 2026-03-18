@@ -10,7 +10,8 @@ import logging
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field, field_validator
 
 logger = logging.getLogger(__name__)
@@ -59,7 +60,7 @@ def _is_safe_url(url: str) -> bool:
             # (DNS resolution would require network access)
             pass
         return True
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         return False
 
 
@@ -150,7 +151,7 @@ async def dast_scan(req: DastScanRequest) -> Dict[str, Any]:
             max_depth=req.max_depth,
         )
         return result.to_dict()
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.exception("DAST scan failed for target %s", req.target_url)
         raise HTTPException(500, f"Scan failed: {type(e).__name__}")
 

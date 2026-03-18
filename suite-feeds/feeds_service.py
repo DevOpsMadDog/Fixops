@@ -1027,6 +1027,21 @@ class FeedsService:
             "CREATE INDEX IF NOT EXISTS idx_nvd_published ON nvd_cves(published)"
         )
 
+        # VEDAS (Vulnerability & Exploit Data Aggregation System) scores table
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS vedas_scores (
+                cve_id TEXT PRIMARY KEY,
+                epss REAL NOT NULL,
+                vedas REAL NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        """
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_vedas_score ON vedas_scores(vedas)"
+        )
+
         conn.commit()
         conn.close()
 
@@ -1122,7 +1137,7 @@ class FeedsService:
                 records_updated=0,
                 error=error_msg,
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             error_msg = f"Error processing EPSS feed: {exc}"
             logger.error(error_msg)
             return FeedRefreshResult(
@@ -1231,7 +1246,7 @@ class FeedsService:
                 records_updated=0,
                 error=error_msg,
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             error_msg = f"Error processing KEV feed: {exc}"
             logger.error(error_msg)
             return FeedRefreshResult(
@@ -1411,7 +1426,7 @@ class FeedsService:
             return FeedRefreshResult(
                 feed_name="nvd", success=False, records_updated=0, error=error_msg
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             error_msg = f"Error processing NVD feed: {exc}"
             logger.error(error_msg)
             return FeedRefreshResult(
@@ -1520,7 +1535,7 @@ class FeedsService:
             return FeedRefreshResult(
                 feed_name="exploitdb", success=False, records_updated=0, error=error_msg
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             error_msg = f"Error processing ExploitDB feed: {exc}"
             logger.error(error_msg)
             return FeedRefreshResult(
@@ -1658,7 +1673,7 @@ class FeedsService:
                         "OSV %s: %d vulnerabilities fetched", ecosystem, len(records)
                     )
 
-                except Exception as eco_exc:
+                except (OSError, ValueError, KeyError, RuntimeError) as eco_exc:  # narrowed from bare Exception
                     logger.warning("OSV %s failed: %s", ecosystem, eco_exc)
                     continue
 
@@ -1683,7 +1698,7 @@ class FeedsService:
                 records_updated=total_records,
             )
 
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             error_msg = f"Error processing OSV feeds: {exc}"
             logger.error(error_msg)
             return FeedRefreshResult(
@@ -1836,7 +1851,7 @@ class FeedsService:
                 records_updated=0,
                 error=error_msg,
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             error_msg = f"Error processing GitHub advisories: {exc}"
             logger.error(error_msg)
             return FeedRefreshResult(
@@ -1845,6 +1860,147 @@ class FeedsService:
                 records_updated=0,
                 error=error_msg,
             )
+
+    # =========================================================================
+    # VEDAS (ARPSyndicate) Feed Methods
+    # =========================================================================
+
+    def refresh_vedas(self) -> FeedRefreshResult:
+        """Refresh VEDAS scores from ARPSyndicate CVE-Scores dataset.
+
+        Downloads the VEDAS (Vulnerability & Exploit Data Aggregation System)
+        scores CSV which provides an alternative vulnerability scoring to EPSS.
+        Source: https://github.com/ARPSyndicate/cve-scores
+
+        Returns:
+            FeedRefreshResult with success status and record count
+        """
+        url = "https://raw.githubusercontent.com/ARPSyndicate/cve-scores/master/cve-scores.csv"
+        logger.info("Refreshing VEDAS scores from %s", url)
+
+        try:
+            resp = requests.get(url, timeout=self.timeout, stream=True)
+            resp.raise_for_status()
+
+            now = datetime.now(timezone.utc).isoformat()
+            records: list[tuple] = []
+
+            # Parse CSV — format: CVE,EPSS,VEDAS (with header)
+            lines = resp.iter_lines(decode_unicode=True)
+            header = next(lines, None)  # skip header
+            if header is None:
+                return FeedRefreshResult(
+                    feed_name="vedas",
+                    success=False,
+                    records_updated=0,
+                    error="Empty CSV response from VEDAS feed",
+                )
+
+            for line in lines:
+                if not line or not line.startswith("CVE-"):
+                    continue
+                parts = line.split(",")
+                if len(parts) != 3:
+                    continue
+                try:
+                    cve_id = parts[0].strip()
+                    epss_val = float(parts[1].strip())
+                    vedas_val = float(parts[2].strip())
+                    records.append((cve_id, epss_val, vedas_val, now))
+                except (ValueError, IndexError):
+                    continue
+
+            if records:
+                conn = sqlite3.connect(self.db_path)
+                cursor = conn.cursor()
+
+                # Batch insert with chunking for large datasets
+                chunk_size = 5000
+                for i in range(0, len(records), chunk_size):
+                    chunk = records[i : i + chunk_size]
+                    cursor.executemany(
+                        """INSERT OR REPLACE INTO vedas_scores
+                           (cve_id, epss, vedas, updated_at)
+                           VALUES (?, ?, ?, ?)""",
+                        chunk,
+                    )
+
+                cursor.execute(
+                    """INSERT OR REPLACE INTO feed_metadata
+                       (feed_name, last_refresh, records_count, status)
+                       VALUES (?, ?, ?, ?)""",
+                    ("vedas", now, len(records), "success"),
+                )
+
+                conn.commit()
+                conn.close()
+
+            logger.info("VEDAS refresh complete: %d records", len(records))
+
+            return FeedRefreshResult(
+                feed_name="vedas",
+                success=True,
+                records_updated=len(records),
+            )
+
+        except RequestException as exc:
+            error_msg = f"Failed to fetch VEDAS scores: {exc}"
+            logger.error(error_msg)
+            return FeedRefreshResult(
+                feed_name="vedas",
+                success=False,
+                records_updated=0,
+                error=error_msg,
+            )
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+            error_msg = f"Error processing VEDAS scores: {exc}"
+            logger.error(error_msg)
+            return FeedRefreshResult(
+                feed_name="vedas",
+                success=False,
+                records_updated=0,
+                error=error_msg,
+            )
+
+    def get_vedas_score(self, cve_id: str) -> Optional[Dict[str, Any]]:
+        """Get VEDAS score for a specific CVE.
+
+        Args:
+            cve_id: CVE identifier (e.g., CVE-2021-44228)
+
+        Returns:
+            Dict with VEDAS data if found, None otherwise
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM vedas_scores WHERE cve_id = ?", (cve_id,))
+        row = cursor.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    def get_vedas_high_risk(
+        self, threshold: float = 0.7, limit: int = 100
+    ) -> List[Dict[str, Any]]:
+        """Get CVEs with high VEDAS scores.
+
+        Args:
+            threshold: Minimum VEDAS score (default: 0.7)
+            limit: Maximum results to return
+
+        Returns:
+            List of CVE dicts with high VEDAS scores
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT * FROM vedas_scores WHERE vedas >= ? ORDER BY vedas DESC LIMIT ?",
+            (threshold, limit),
+        )
+        rows = cursor.fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
 
     # =========================================================================
     # NVD CVE Lookup Methods
@@ -2814,6 +2970,15 @@ class FeedsService:
             }
 
             # Count records in each table
+            # Security: table names are defined as a hardcoded allowlist here —
+            # never interpolate user-supplied table names into SQL.
+            _ALLOWED_STAT_TABLES = frozenset({
+                "epss_scores", "kev_entries", "exploit_intelligence",
+                "threat_actor_mappings", "supply_chain_vulns",
+                "cloud_security_bulletins", "early_signals",
+                "national_cert_advisories", "exploit_confidence_scores",
+                "geo_weighted_risks",
+            })
             tables = [
                 ("epss_scores", "authoritative"),
                 ("kev_entries", "authoritative"),
@@ -2828,8 +2993,12 @@ class FeedsService:
             ]
 
             for table, category in tables:
+                # Allowlist check prevents any future code paths from injecting
+                # attacker-controlled table names into this query.
+                if table not in _ALLOWED_STAT_TABLES:
+                    raise ValueError(f"Disallowed table name in stats query: {table!r}")
                 try:
-                    cursor.execute(f"SELECT COUNT(*) as count FROM {table}")
+                    cursor.execute(f"SELECT COUNT(*) as count FROM {table}")  # nosec B608 — allowlisted above
                     count = cursor.fetchone()["count"]
                     if category not in stats["categories"]:
                         stats["categories"][category] = {}
@@ -2976,6 +3145,7 @@ class FeedsService:
             feeds = [
                 ("EPSS", service.refresh_epss),
                 ("KEV", service.refresh_kev),
+                ("VEDAS", service.refresh_vedas),
                 ("NVD", lambda: service.refresh_nvd(days=7)),
                 ("ExploitDB", service.refresh_exploitdb),
                 ("OSV", service.refresh_osv),
@@ -2990,11 +3160,11 @@ class FeedsService:
                         )
                     else:
                         logger.warning("%s refresh failed: %s", name, result.error)
-                except Exception as exc:
+                except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                     logger.error("%s refresh error: %s", name, exc)
 
         # Initial refresh on startup
-        logger.info("Starting initial feed refresh (all 6 feeds)")
+        logger.info("Starting initial feed refresh (all 7 feeds)")
         _refresh_all()
 
         while True:

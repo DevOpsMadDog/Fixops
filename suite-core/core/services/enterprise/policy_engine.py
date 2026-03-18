@@ -117,7 +117,7 @@ class PolicyEngine:
                     "No ChatGPT API key found, using rule-based policy evaluation only"
                 )
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Failed to initialize ChatGPT policy helper: {str(e)}")
             self.llm_chat = None
 
@@ -186,7 +186,7 @@ class PolicyEngine:
 
             return final_result
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Policy evaluation failed: {str(e)}")
             # Fail safe - default to defer for manual review
             return PolicyEvaluationResult(
@@ -333,7 +333,7 @@ class PolicyEngine:
                 logger.warning(f"Unknown rule type: {policy.rule_type}")
                 return None
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Policy evaluation failed for {policy.name}: {str(e)}")
             return None
 
@@ -486,7 +486,7 @@ class PolicyEngine:
                     "rationale": f"Python rule result: {result}",
                 }
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Python rule evaluation error: {str(e)}")
             return None
 
@@ -539,7 +539,7 @@ class PolicyEngine:
             else:
                 return None  # Rule doesn't apply
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"JSON rule evaluation error: {str(e)}")
             return None
 
@@ -592,7 +592,7 @@ class PolicyEngine:
 
             return None  # No matching rules
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Rego rule evaluation error: {str(e)}")
             return None
 
@@ -687,7 +687,7 @@ class PolicyEngine:
                         )
                         session.add(log_entry)
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Failed to log policy decision: {str(e)}")
 
     async def get_policy_stats(self) -> Dict[str, Any]:

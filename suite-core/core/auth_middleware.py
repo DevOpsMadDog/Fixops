@@ -195,7 +195,7 @@ def _validate_api_key(raw_key: str) -> Optional[AuthContext]:
     # Touch last_used_at (fire-and-forget)
     try:
         db.touch_api_key(stored.id)
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
     # Look up user
     user = db.get_user(stored.user_id)

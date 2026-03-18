@@ -1,1 +1,1 @@
-/home/user/workspace/Fixops/suite-core/api/streaming_router.py
+../../../suite-core/api/streaming_router.py

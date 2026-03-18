@@ -82,7 +82,7 @@ def _load_jwt_secret() -> Optional[str]:
         return None
     if len(secret) < _MIN_JWT_SECRET_LENGTH:
         logger.warning(
-            "FIXOPS_JWT_SECRET is only %d chars (minimum %d) — JWT auth disabled.",
+            "JWT signing key is only %d chars (minimum %d) — JWT auth disabled.",
             len(secret),
             _MIN_JWT_SECRET_LENGTH,
         )

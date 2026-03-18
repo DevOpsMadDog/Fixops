@@ -14,7 +14,8 @@ from typing import Any, Callable, Dict, List, Literal, Optional
 
 import yaml  # type: ignore[import]
 from core.paths import verify_allowlisted_path
-from fastapi import APIRouter, HTTPException, Query, Request
+from apps.api.dependencies import get_org_id
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field, field_validator
 
@@ -441,7 +442,7 @@ async def list_compliance_bundles(request: Request) -> dict[str, Any]:
             try:
                 with manifest_path.open("r", encoding="utf-8") as fh:
                     manifest_data = yaml.safe_load(fh) or {}
-            except Exception:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
                 manifest_data = {}
 
             bundles.append({
@@ -472,6 +473,7 @@ async def list_compliance_bundles(request: Request) -> dict[str, Any]:
 async def generate_compliance_bundle(
     request: Request,
     body: BundleGenerateRequest | None = None,
+    org_id: str = Depends(get_org_id),
 ) -> dict[str, Any]:
     """Generate a new compliance evidence bundle.
 
@@ -523,6 +525,7 @@ async def generate_compliance_bundle(
 
     bundle: dict[str, Any] = {
         "id": bundle_id,
+        "org_id": org_id,
         "framework": primary_framework,
         "frameworks": frameworks,
         "date_range": date_range_dict,
@@ -560,7 +563,7 @@ async def generate_compliance_bundle(
                     },
                 )
             )
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             logger.debug("Failed to emit EVIDENCE_COLLECTED event", exc_info=True)
 
     return bundle
@@ -588,7 +591,7 @@ async def get_compliance_status() -> dict[str, Any]:
                     "coverage_pct": result.get("coverage_percent", 0.0),
                     "last_audit": None,
                 }
-            except Exception:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
                 frameworks[fw] = {
                     "status": "error",
                     "controls_total": 0,
@@ -649,9 +652,9 @@ async def evidence_vault():
                         "signed": bundle.get("signature") is not None,
                         "status": bundle.get("status", "sealed"),
                     })
-                except Exception:
+                except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                     pass
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     return {
@@ -868,7 +871,7 @@ async def verify_bundle(
                         )
         except HTTPException:
             pass  # Evidence storage not configured -- fall through
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             logger.debug(
                 "Real verification failed for %s, returning unverifiable",
                 safe_id,
@@ -897,7 +900,7 @@ async def verify_bundle(
                     },
                 )
             )
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             logger.debug("Failed to emit verification event", exc_info=True)
 
     return BundleVerificationResult(
@@ -1037,7 +1040,7 @@ async def verify_evidence(
 
     try:
         signature_bytes = base64.b64decode(signature_b64)
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         return EvidenceVerifyResponse(
             bundle_id=bundle_id,
             verified=False,
@@ -1049,7 +1052,7 @@ async def verify_evidence(
 
     try:
         verified = _rsa_verify(bundle_bytes, signature_bytes, fingerprint)
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning(f"RSA verification failed for bundle {bundle_id}: {e}")
         return EvidenceVerifyResponse(
             bundle_id=bundle_id,
@@ -1259,7 +1262,7 @@ def _build_export_bundle(
                 framework,
                 len(controls_list),
             )
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             logger.warning(
                 "ComplianceEngine failed for %s, using fallback", framework, exc_info=True
             )
@@ -1394,7 +1397,7 @@ def _build_export_bundle(
                 bundle_id,
                 fingerprint,
             )
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             logger.warning(
                 "RSA signing failed for bundle %s", bundle_id, exc_info=True
             )
@@ -1436,6 +1439,7 @@ def _build_export_bundle(
 async def export_compliance_bundle(
     request: Request,
     body: ExportRequest | None = None,
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Export a signed compliance evidence bundle with framework control mapping.
 
@@ -1460,11 +1464,13 @@ async def export_compliance_bundle(
 
     bundle = _build_export_bundle(
         framework=body.framework,
-        app_id=body.app_id,
+        app_id=body.app_id or org_id,
         period_days=body.period_days,
         include_evidence=body.include_evidence,
         sign=body.sign,
     )
+    # Tag the bundle with the requesting org's ID for audit traceability
+    bundle.setdefault("metadata", {})["org_id"] = org_id
 
     # Emit event if brain is available
     if _HAS_BRAIN:
@@ -1482,7 +1488,7 @@ async def export_compliance_bundle(
                     },
                 )
             )
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             logger.debug("Failed to emit EVIDENCE_COLLECTED event", exc_info=True)
 
     logger.info(
@@ -1564,7 +1570,7 @@ async def verify_export_bundle(
                 signature_bytes,
                 expected_fingerprint=key_fingerprint,
             )
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             logger.warning("Signature verification failed", exc_info=True)
     else:
         return {
@@ -1618,7 +1624,7 @@ async def export_status() -> Dict[str, Any]:
                 "key_size": meta.key_size,
                 "created_at": meta.created_at,
             }
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             key_info = {"error": "Key metadata unavailable"}
 
     return {

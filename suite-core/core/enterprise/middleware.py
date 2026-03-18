@@ -45,7 +45,7 @@ class PerformanceMiddleware(BaseHTTPMiddleware):  # pragma: no cover
         except HTTPException as exc:
             status_code = exc.status_code
             raise
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             raise
         finally:
             duration = time.perf_counter() - start_time
@@ -141,7 +141,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if hasattr(settings, "model_dump"):
             try:
                 config_values = settings.model_dump()
-            except Exception:  # pragma: no cover - defensive fallback
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):  # pragma: no cover - defensive fallback
                 config_values = {}
 
         enabled_value = config_values.get("FIXOPS_RL_ENABLED")

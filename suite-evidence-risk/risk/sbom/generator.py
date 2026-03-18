@@ -80,7 +80,7 @@ class DependencyDiscoverer:
                         if dep:
                             dependencies.append(dep)
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"Failed to parse Python file {file_path}: {e}")
 
         return dependencies
@@ -117,7 +117,7 @@ class DependencyDiscoverer:
                     )
                     dependencies.append(dep)
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"Failed to parse JavaScript file {file_path}: {e}")
 
         return dependencies
@@ -148,7 +148,7 @@ class DependencyDiscoverer:
                     )
                     dependencies.append(dep)
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"Failed to parse Java file {file_path}: {e}")
 
         return dependencies

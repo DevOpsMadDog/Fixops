@@ -21,7 +21,8 @@ import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile
+from apps.api.dependencies import get_org_id
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +146,7 @@ async def upload_scanner_output(
     app_id: str = Form(""),
     component: str = Form(""),
     pipeline: bool = Form(False),
+    org_id: str = Depends(get_org_id),
 ):
     """
     Upload a scanner output file for ingestion.
@@ -198,10 +200,10 @@ async def upload_scanner_output(
             app_id=app_id,
             component=component,
         )
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         _ingest_stats["errors"] += 1
         # Security: don't leak internal error details — only expose type
-        logger.error("Parse error for %s: %s", detected, e)
+        logger.error("Parse error for %s: %s", detected, type(e).__name__, exc_info=True)
         raise HTTPException(
             status_code=422,
             detail=f"Parse error ({type(e).__name__}): could not parse {detected} output",
@@ -235,12 +237,13 @@ async def upload_scanner_output(
                 pipeline_result = pipeline_result.model_dump(exclude_none=True)
             elif hasattr(pipeline_result, "__dict__"):
                 pipeline_result = pipeline_result.__dict__
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("Pipeline execution failed: %s", type(e).__name__)
             pipeline_result = {"error": type(e).__name__}
 
     return {
         "status": "success",
+        "org_id": org_id,
         "scanner": detected,
         "file_name": safe_filename or file.filename,
         "findings_count": len(findings),
@@ -264,6 +267,7 @@ async def webhook_ingest(
     app_id: str = Query(""),
     component: str = Query(""),
     pipeline: bool = Query(False),
+    org_id: str = Depends(get_org_id),
 ):
     """
     Receive scanner output via webhook (raw body).
@@ -298,10 +302,10 @@ async def webhook_ingest(
             app_id=app_id,
             component=component,
         )
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         _ingest_stats["errors"] += 1
         # Security: don't leak internal error details
-        logger.error("Parse error for webhook %s: %s", scanner, e)
+        logger.error("Parse error for webhook %s: %s", scanner, type(e).__name__, exc_info=True)
         raise HTTPException(
             status_code=422,
             detail=f"Parse error ({type(e).__name__}): could not parse {scanner} output",
@@ -334,12 +338,13 @@ async def webhook_ingest(
                 pipeline_result = pipeline_result.model_dump(exclude_none=True)
             elif hasattr(pipeline_result, "__dict__"):
                 pipeline_result = pipeline_result.__dict__
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("Webhook pipeline failed: %s", type(e).__name__)
             pipeline_result = {"error": type(e).__name__}
 
     return {
         "status": "success",
+        "org_id": org_id,
         "scanner": scanner,
         "findings_count": len(findings),
         "parse_time_ms": round(elapsed * 1000, 1),
@@ -381,7 +386,7 @@ async def detect_scanner_type(
             score = normalizer.can_handle(content)
             if score > 0:
                 scores[name] = round(score, 3)
-        except Exception:
+        except (TypeError, AttributeError, ValueError, KeyError, UnicodeDecodeError):
             continue
 
     # Sort by score descending
@@ -489,8 +494,8 @@ def _get_db_ingest_stats() -> Dict[str, Any]:
             }
         finally:
             conn.close()
-    except Exception as e:
-        logger.warning("Could not read analytics DB for ingest stats: %s", e)
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        logger.warning("Could not read analytics DB for ingest stats: %s", type(e).__name__)
         return None
 
 

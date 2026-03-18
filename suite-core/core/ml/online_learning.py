@@ -550,7 +550,7 @@ class IncrementalTrainer:
 
             return result
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Incremental retrain failed: %s", e, exc_info=True)
             result.rejection_reason = f"Training error: {str(e)}"
             result.elapsed_seconds = time.time() - t0
@@ -654,7 +654,7 @@ class IncrementalTrainer:
             warm_model.n_estimators = new_n_estimators
             try:
                 warm_model.fit(X_scaled, y, sample_weight=sample_weights)
-            except Exception:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
                 # Warm start failed, fall back to fresh training
                 warm_model = GradientBoostingRegressor(
                     n_estimators=200,
@@ -998,7 +998,7 @@ class OnlineLearningPipeline:
                 "Model swapped to version %s (MAE: %.4f → %.4f)",
                 result.model_version, result.old_mae, result.new_mae,
             )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("Failed to persist swapped model: %s", e)
 
     def _emit_retrained_event(self, result: RetrainResult) -> None:
@@ -1029,7 +1029,7 @@ class OnlineLearningPipeline:
             except RuntimeError:
                 # No event loop — run synchronously
                 asyncio.run(bus.emit(event))
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug("Could not emit MODEL_RETRAINED event: %s", e)
 
     def _log_retrain(self, result: RetrainResult) -> None:
@@ -1054,7 +1054,7 @@ class OnlineLearningPipeline:
             with open(self._log_path, "w") as f:
                 json.dump(history, f, indent=2)
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug("Could not persist retrain log: %s", e)
 
 
@@ -1111,7 +1111,7 @@ async def _handle_decision_made(event: Any) -> None:
         }
 
         pipeline.ingest_feedback(feedback)
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.debug("Error handling DECISION_MADE event: %s", e)
 
 
@@ -1132,7 +1132,7 @@ async def _handle_remediation_completed(event: Any) -> None:
         }
 
         pipeline.ingest_feedback(feedback)
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.debug("Error handling REMEDIATION_COMPLETED event: %s", e)
 
 
@@ -1152,7 +1152,7 @@ def register_online_learning_handlers(bus: Any) -> None:
         bus.subscribe(EventType.REMEDIATION_COMPLETED, _handle_remediation_completed)
         _eventbus_registered = True
         logger.info("Online learning EventBus handlers registered")
-    except Exception as e:
+    except ImportError as e:
         logger.warning("Could not register online learning handlers: %s", e)
 
 

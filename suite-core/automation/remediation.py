@@ -1294,7 +1294,7 @@ class RemediationEngine:
                 result.status = RemediationStatus.PENDING
                 result.fix_description = "Manual remediation required"
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Remediation failed for %s: %s", finding_id, e)
             result.status = RemediationStatus.FAILED
             result.error = str(e)
@@ -1348,7 +1348,7 @@ class RemediationEngine:
                 cwe_fix.confidence * 100,
             )
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("CWE remediation failed for %s: %s", finding_id, e)
             result.status = RemediationStatus.FAILED
             result.error = str(e)
@@ -1403,12 +1403,12 @@ class RemediationEngine:
                                 result.pr_id = str(pr_result.pr_number)
                                 result.branch_name = branch
                                 result.status = RemediationStatus.PR_CREATED
-                        except Exception as e:
+                        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                             logger.warning("PR creation failed for CWE fix: %s", e)
                             # Fix is still generated even if PR fails
 
                 return result
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.warning("CWE template failed, falling back to AutoFix: %s", e)
 
         # Fallback to AutoFix engine
@@ -1424,7 +1424,7 @@ class RemediationEngine:
                     result.status = RemediationStatus.FAILED
                     result.error = "AutoFix could not generate a fix"
                     return result
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.warning("AutoFix failed, falling back to guided: %s", e)
                 result.status = RemediationStatus.FIX_GENERATED
                 result.fix_description = (
@@ -1451,7 +1451,7 @@ class RemediationEngine:
                         result.status = RemediationStatus.PR_CREATED
                     else:
                         result.error = pr_result.error
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.warning("PR creation failed: %s", e)
                 result.error = str(e)
 
@@ -1480,7 +1480,7 @@ class RemediationEngine:
                 result.files_modified = cwe_fix.files_modified
                 result.status = RemediationStatus.FIX_GENERATED
                 return result
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.warning("CWE template failed in guided mode: %s", e)
 
         result.status = RemediationStatus.FIX_GENERATED

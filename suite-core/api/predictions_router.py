@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/predictions", tags=["predictions"])
@@ -109,7 +110,7 @@ def predict_attack_chain(request: AttackChainRequest) -> Dict[str, Any]:
         raise HTTPException(
             status_code=503, detail=f"Markov Chain module not available: {e}"
         )
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         raise HTTPException(
             status_code=500, detail=f"Attack chain prediction failed: {e}"
         )
@@ -138,7 +139,7 @@ def calculate_risk_trajectory(request: RiskTrajectoryRequest) -> Dict[str, Any]:
         raise HTTPException(
             status_code=503, detail=f"Markov Chain module not available: {e}"
         )
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         raise HTTPException(
             status_code=500, detail=f"Risk trajectory calculation failed: {e}"
         )
@@ -176,7 +177,7 @@ def simulate_attack_path(request: SimulationRequest) -> Dict[str, Any]:
         raise HTTPException(
             status_code=503, detail=f"Markov Chain module not available: {e}"
         )
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         raise HTTPException(status_code=500, detail=f"Attack simulation failed: {e}")
 
 
@@ -198,7 +199,7 @@ def get_markov_states() -> Dict[str, Any]:
         raise HTTPException(
             status_code=503, detail=f"Markov Chain module not available: {e}"
         )
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         raise HTTPException(status_code=500, detail=f"Failed to retrieve states: {e}")
 
 
@@ -220,7 +221,7 @@ def get_markov_transitions() -> Dict[str, Any]:
         raise HTTPException(
             status_code=503, detail=f"Markov Chain module not available: {e}"
         )
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         raise HTTPException(
             status_code=500, detail=f"Failed to retrieve transitions: {e}"
         )
@@ -256,7 +257,7 @@ def bayesian_update(request: BayesianUpdateRequest) -> Dict[str, Any]:
         raise HTTPException(
             status_code=503, detail=f"Bayesian module not available: {e}"
         )
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         raise HTTPException(status_code=500, detail=f"Bayesian update failed: {e}")
 
 
@@ -341,7 +342,7 @@ def bayesian_risk_assessment(request: VulnerabilityRiskRequest) -> Dict[str, Any
             },
             "fallback_risk": _compute_fallback_risk(request),
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         raise HTTPException(
             status_code=500, detail=f"Bayesian risk assessment failed: {e}"
         )
@@ -397,6 +398,7 @@ def combined_risk_analysis(
     cvss_score: float = 7.5,
     exploitation: str = "none",
     exposure: str = "controlled",
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Perform combined Markov Chain and Bayesian Network analysis.
 
@@ -438,7 +440,7 @@ def combined_risk_analysis(
             "bayesian_analysis": bayesian_result,
             "combined_verdict": _combine_verdicts(markov_result, bayesian_result),
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         raise HTTPException(status_code=500, detail=f"Combined analysis failed: {e}")
 
 
@@ -483,13 +485,13 @@ def _combine_verdicts(markov_result: Dict, bayesian_result: Dict) -> Dict[str, A
 
 
 @router.get("/health")
-async def predictions_health():
+async def predictions_health(org_id: str = Depends(get_org_id)):
     """Predictions engine health check."""
     return {"status": "healthy", "engine": "predictions", "version": "1.0.0"}
 
 
 @router.get("/status")
-async def predictions_status():
+async def predictions_status(org_id: str = Depends(get_org_id)):
     """Predictions engine status (alias for /health)."""
     return await predictions_health()
 

@@ -19,8 +19,9 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from core.persistent_store import PersistentDict
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from core.persistent_store import get_persistent_store
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 # Optional httpx import for MPTE integration
@@ -443,7 +444,7 @@ def _now() -> datetime:
 
 
 # Persistent task storage — survives restarts
-_agent_tasks: PersistentDict = PersistentDict("agent_tasks")
+_agent_tasks = get_persistent_store("agent_tasks")
 
 
 # =============================================================================
@@ -455,6 +456,7 @@ _agent_tasks: PersistentDict = PersistentDict("agent_tasks")
 async def analyze_vulnerability(
     request: AnalyzeVulnRequest,
     background_tasks: BackgroundTasks,
+    org_id: str = Depends(get_org_id),
 ) -> AgentTaskResponse:
     """Deep vulnerability analysis.
 
@@ -512,7 +514,7 @@ async def _run_analysis(task_id: str, request: AnalyzeVulnRequest) -> None:
                     "due_date": kev_entry.due_date,
                     "required_action": kev_entry.required_action,
                 }
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"FeedsService lookup failed: {e}")
 
     # Determine severity based on real scores
@@ -600,9 +602,9 @@ async def get_threat_intelligence(request: ThreatIntelRequest) -> Dict[str, Any]
                         kev_entry.known_ransomware_campaign_use == "Known"
                     )
                     intel["due_date"] = kev_entry.due_date
-            except Exception as e:
-                logger.warning(f"Threat intel lookup failed for {cve}: {e}")
-                intel["error"] = str(e)
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+                logger.warning("Threat intel lookup failed for %s: %s", cve, type(e).__name__)
+                intel["error"] = type(e).__name__
 
         if not intel["sources"]:
             intel["sources"].append("pending_refresh")
@@ -659,7 +661,7 @@ async def prioritize_vulnerabilities(request: PrioritizationRequest) -> Dict[str
                     score_info["priority_score"] = max(
                         score_info["priority_score"], 1.0
                     )  # KEV = highest priority
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.warning(f"EPSS/KEV lookup failed for {fid}: {e}")
 
         finding_scores.append(score_info)
@@ -761,7 +763,7 @@ async def analyze_attack_path(request: AttackPathRequest) -> Dict[str, Any]:
                 "depth_requested": request.depth,
                 "include_lateral": request.include_lateral,
             }
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Attack path analysis failed: {e}")
             return {
                 "asset_id": request.asset_id,
@@ -821,7 +823,7 @@ async def get_trending_threats(
                         else "high",
                     }
                 )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"Trending threats query failed: {e}")
 
     return {
@@ -872,7 +874,7 @@ async def get_asset_risk_score(asset_id: str) -> Dict[str, Any]:
             # Count connected edges for context
             edges = brain.get_edges(asset_id)
             connected_count = len(edges) if edges else 0
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"Brain risk scoring for {asset_id}: {e}")
             connected_count = 0
     else:
@@ -891,7 +893,7 @@ async def get_asset_risk_score(asset_id: str) -> Dict[str, Any]:
                     or asset_id in (fd.get("metadata") or "")
                 ):
                     open_findings += 1
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug(f"Finding count for {asset_id}: {e}")
 
     return {
@@ -971,7 +973,7 @@ async def get_cve_deep_analysis(cve_id: str) -> VulnAnalysisResponse:
                     "note": "CVE not found in EPSS database",
                 }
                 recommendation = "No EPSS data available - check CVE validity"
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("CVE analysis failed for %s: %s", cve_id, type(e).__name__)
             threat_intel = {"error": type(e).__name__}
 
@@ -1018,7 +1020,7 @@ async def _call_mpte_api(
                     "success": False,
                     "error": f"MPTE returned {response.status_code}",
                 }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("MPTE API call failed: %s", type(e).__name__)
         return {"success": False, "error": type(e).__name__}
 
@@ -1027,6 +1029,7 @@ async def _call_mpte_api(
 async def validate_exploit(
     request: ValidateExploitRequest,
     background_tasks: BackgroundTasks,
+    org_id: str = Depends(get_org_id),
 ) -> AgentTaskResponse:
     """Validate if a vulnerability is exploitable.
 
@@ -1117,7 +1120,7 @@ async def generate_poc(request: GeneratePocRequest) -> Dict[str, Any]:
             if kev_entry:
                 kev_listed = True
                 cve_description = kev_entry.vulnerability_name or ""
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"FeedsService lookup failed for PoC generation: {e}")
 
     # Build a safe verification template based on language
@@ -1256,7 +1259,7 @@ async def check_reachability(request: ReachabilityRequest) -> Dict[str, Any]:
                         "method": "knowledge_graph_traversal",
                     }
                 )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"KnowledgeBrain reachability check failed: {e}")
             reachability_results = [
                 {
@@ -1312,7 +1315,7 @@ async def check_reachability(request: ReachabilityRequest) -> Dict[str, Any]:
             }
     except ImportError:
         pass
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning(f"Sandboxed reachability probe failed: {e}")
 
     # Tier 4: Nothing available
@@ -1330,6 +1333,7 @@ async def check_reachability(request: ReachabilityRequest) -> Dict[str, Any]:
 async def simulate_attack(
     request: SimulateAttackRequest,
     background_tasks: BackgroundTasks,
+    org_id: str = Depends(get_org_id),
 ) -> AgentTaskResponse:
     """Simulate attack scenario for tabletop exercise via MPTE."""
     task_id = _generate_id()
@@ -1433,7 +1437,7 @@ async def get_pentest_evidence(evidence_id: str) -> Dict[str, Any]:
                     ],
                     "collected_at": _now().isoformat(),
                 }
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"AnalyticsDB evidence lookup failed: {e}")
 
     # Neither source has the evidence
@@ -1452,6 +1456,7 @@ async def schedule_pentest(
     background_tasks: BackgroundTasks,
     schedule: str = "immediate",
     notification_emails: List[str] = None,
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Schedule a pentest campaign.
 
@@ -1495,7 +1500,7 @@ async def schedule_pentest(
                     logger.info(
                         f"Pentest campaign {campaign_id} completed: {result.status}"
                     )
-                except Exception as exc:
+                except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                     logger.error(f"Pentest campaign {campaign_id} failed: {exc}")
 
             background_tasks.add_task(_run_campaign)
@@ -1510,7 +1515,7 @@ async def schedule_pentest(
                 "message": "Campaign started via local micro-pentest engine.",
                 "notification_emails": notification_emails or [],
             }
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"Local micro_pentest scheduling failed: {e}")
 
     # Deferred schedule or no local engine available — record the request
@@ -1534,6 +1539,7 @@ async def schedule_pentest(
 @router.post("/compliance/map-findings", response_model=ComplianceMappingResponse)
 async def map_findings_to_compliance(
     request: MapFindingsRequest,
+    org_id: str = Depends(get_org_id),
 ) -> ComplianceMappingResponse:
     """Map vulnerability findings to compliance frameworks.
 
@@ -1737,7 +1743,7 @@ async def check_regulatory_alerts(request: RegulatoryAlertRequest) -> Dict[str, 
                     }
                 )
             conn.close()
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"Regulatory alerts query failed: {e}")
 
     return {
@@ -1758,6 +1764,7 @@ async def check_regulatory_alerts(request: RegulatoryAlertRequest) -> Dict[str, 
 async def get_framework_controls(
     framework: ComplianceFramework,
     category: Optional[str] = None,
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get all controls for a compliance framework.
 
@@ -2183,7 +2190,7 @@ async def get_framework_controls(
                 finding_dicts = [f.to_dict() for f in findings]
             result = compliance_engine.evaluate([fw_key], finding_dicts)
             posture = result.get(fw_key)
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"ComplianceEngine posture evaluation failed: {e}")
 
     return {
@@ -2275,6 +2282,7 @@ async def generate_compliance_report(
     framework: ComplianceFramework,
     report_type: str = "executive",
     include_evidence: bool = True,
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Generate compliance report.
 
@@ -2369,7 +2377,7 @@ async def generate_fix(request: GenerateFixRequest) -> Dict[str, Any]:
                 "language": request.language or "unknown",
                 "include_tests": request.include_tests,
             }
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"AutoFix generate failed: {e}")
             return {
                 "finding_id": request.finding_id,
@@ -2427,7 +2435,7 @@ async def create_pull_request(request: CreatePRRequest) -> Dict[str, Any]:
                     "pr_url": result.pr_url,
                     "auto_merge": request.auto_merge,
                 }
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"PR creation failed: {e}")
             return {
                 "status": "error",
@@ -2498,7 +2506,7 @@ async def update_dependencies(request: DependencyUpdateRequest) -> Dict[str, Any
                 "packages": results,
                 "strategy": request.update_strategy,
             }
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Dependency update failed: {e}")
             return {
                 "sbom_id": request.sbom_id,
@@ -2594,7 +2602,7 @@ async def generate_playbook(request: PlaybookRequest) -> Dict[str, Any]:
             pb = runner.load_playbook_from_string(_yaml.dump(playbook_yaml))
             await runner.execute(pb, inputs={}, dry_run=True)
             validated = True
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"Playbook dry-run validation failed: {e}")
 
     return {
@@ -2680,7 +2688,7 @@ async def get_recommendations(finding_id: str) -> Dict[str, Any]:
                             "kev_entry": True,
                         }
                     )
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
 
     # KnowledgeBrain enrichment
@@ -2712,7 +2720,7 @@ async def get_recommendations(finding_id: str) -> Dict[str, Any]:
                             "connected_nodes": connected[:10],
                         }
                     )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug(f"Brain enrichment for {finding_id}: {e}")
 
     return {
@@ -2730,6 +2738,7 @@ async def get_recommendations(finding_id: str) -> Dict[str, Any]:
 async def verify_remediation(
     finding_ids: List[str],
     verification_type: str = "scan",
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Verify remediation by checking finding status in AnalyticsDB.
 
@@ -2876,6 +2885,7 @@ async def get_remediation_queue(
 async def orchestrate_agents(
     request: OrchestrateRequest,
     background_tasks: BackgroundTasks,
+    org_id: str = Depends(get_org_id),
 ) -> AgentTaskResponse:
     """Orchestrate multiple agents for complex objectives.
 

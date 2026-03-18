@@ -18,7 +18,8 @@ import logging
 import time
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -111,7 +112,7 @@ async def vllm_status() -> Dict[str, Any]:
             "all_providers": available_providers,
             "recommendation": _get_recommendation(status),
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         return {
             "status": "error",
             "error": type(e).__name__,

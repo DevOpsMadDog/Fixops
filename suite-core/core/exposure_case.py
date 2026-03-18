@@ -286,10 +286,10 @@ class ExposureCaseManager:
         where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
         with self._conn_lock:
             total = self._conn.execute(
-                f"SELECT COUNT(*) FROM exposure_cases {where}", params
+                f"SELECT COUNT(*) FROM exposure_cases {where}", params  # nosec B608 — WHERE from hardcoded columns with ? params
             ).fetchone()[0]
             rows = self._conn.execute(
-                f"SELECT * FROM exposure_cases {where} ORDER BY risk_score DESC, updated_at DESC LIMIT ? OFFSET ?",
+                f"SELECT * FROM exposure_cases {where} ORDER BY risk_score DESC, updated_at DESC LIMIT ? OFFSET ?",  # nosec B608
                 params + [limit, offset],
             ).fetchall()
         return {
@@ -463,28 +463,28 @@ class ExposureCaseManager:
         params = [org_id] if org_id else []
         with self._conn_lock:
             total = self._conn.execute(
-                f"SELECT COUNT(*) FROM exposure_cases {where}", params
+                f"SELECT COUNT(*) FROM exposure_cases {where}", params  # nosec B608 — WHERE from hardcoded columns with ? params
             ).fetchone()[0]
             by_status = {}
             for row in self._conn.execute(
-                f"SELECT status, COUNT(*) FROM exposure_cases {where} GROUP BY status",
+                f"SELECT status, COUNT(*) FROM exposure_cases {where} GROUP BY status",  # nosec B608
                 params,
             ):
                 by_status[row[0]] = row[1]
             by_priority = {}
             for row in self._conn.execute(
-                f"SELECT priority, COUNT(*) FROM exposure_cases {where} GROUP BY priority",
+                f"SELECT priority, COUNT(*) FROM exposure_cases {where} GROUP BY priority",  # nosec B608
                 params,
             ):
                 by_priority[row[0]] = row[1]
             avg_risk = (
                 self._conn.execute(
-                    f"SELECT AVG(risk_score) FROM exposure_cases {where}", params
+                    f"SELECT AVG(risk_score) FROM exposure_cases {where}", params  # nosec B608
                 ).fetchone()[0]
                 or 0
             )
             kev_count = self._conn.execute(
-                f"SELECT COUNT(*) FROM exposure_cases {where} {'AND' if org_id else 'WHERE'} in_kev=1",
+                f"SELECT COUNT(*) FROM exposure_cases {where} {'AND' if org_id else 'WHERE'} in_kev=1",  # nosec B608
                 params,
             ).fetchone()[0]
         return {
@@ -579,7 +579,7 @@ class ExposureCaseManager:
                         edge_type=EdgeType.REFERENCES,
                     )
                 )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("Failed to persist exposure case to brain: %s", e)
 
     def _emit_event(
@@ -607,7 +607,7 @@ class ExposureCaseManager:
                 loop.create_task(bus.emit(event))
             except RuntimeError:
                 asyncio.run(bus.emit(event))
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug("Event emit failed (non-critical): %s", e)
 
     def close(self) -> None:
@@ -617,7 +617,7 @@ class ExposureCaseManager:
     def __del__(self) -> None:
         try:
             self._conn.close()
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
 

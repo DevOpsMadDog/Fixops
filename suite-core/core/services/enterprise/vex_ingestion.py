@@ -99,7 +99,7 @@ class VEXIngestor:
 
         try:
             cached = json.loads(cls.CACHE_FILE.read_text(encoding="utf-8"))
-        except Exception as exc:  # pragma: no cover - defensive logging
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # pragma: no cover - defensive logging
             logger.error("Failed to read cached VEX assertions", error=str(exc))
             return {}
 

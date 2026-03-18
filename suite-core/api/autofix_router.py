@@ -10,7 +10,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field, model_validator
 
 logger = logging.getLogger(__name__)
@@ -102,8 +103,8 @@ class GenerateFixRequest(BaseModel):
                             return values
                     finally:
                         conn.close()
-            except Exception as e:
-                logger.warning("Failed to look up finding %s: %s", fid, e)
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+                logger.warning("Failed to look up finding %s: %s", fid, type(e).__name__)
 
         # Fallback: build from individual fields
         fid = fid or f"FIND-{id(values) % 10000:04d}"
@@ -163,11 +164,18 @@ def _get_engine():
 
 
 @router.post("/generate", summary="Generate fix for a finding")
-async def generate_fix(req: GenerateFixRequest):
+async def generate_fix(
+    req: GenerateFixRequest,
+    org_id: str = Depends(get_org_id),
+):
     """Generate an AI-powered fix suggestion for a security vulnerability."""
     engine = _get_engine()
+    # Stamp the finding with org_id so generated fixes are tenant-scoped
+    finding = req.finding or {}
+    if isinstance(finding, dict) and not finding.get("org_id"):
+        finding = {**finding, "org_id": org_id}
     suggestion = await engine.generate_fix(
-        finding=req.finding,
+        finding=finding,
         source_code=req.source_code,
         repo_context=req.repo_context,
     )
@@ -175,11 +183,17 @@ async def generate_fix(req: GenerateFixRequest):
 
 
 @router.post("/generate/bulk", summary="Generate fixes for multiple findings")
-async def generate_bulk_fixes(req: BulkGenerateRequest):
+async def generate_bulk_fixes(
+    req: BulkGenerateRequest,
+    org_id: str = Depends(get_org_id),
+):
     """Generate fixes for a batch of findings."""
     engine = _get_engine()
     results = []
     for finding in req.findings[:20]:  # Cap at 20 per request
+        # Stamp each finding with org_id if not already set
+        if isinstance(finding, dict) and not finding.get("org_id"):
+            finding = {**finding, "org_id": org_id}
         suggestion = await engine.generate_fix(
             finding=finding,
             repo_context=req.repo_context,
@@ -243,6 +257,7 @@ async def get_suggestions(
     status: Optional[str] = Query(None, description="Filter by status"),
     fix_type: Optional[str] = Query(None, description="Filter by fix type"),
     limit: int = Query(50, ge=1, le=200),
+    org_id: str = Depends(get_org_id),
 ):
     """Get all fix suggestions for a specific finding."""
     engine = _get_engine()
@@ -261,19 +276,32 @@ async def get_suggestions(
             pass
 
     fixes = engine.list_fixes(**filters)
+    # Filter to only return fixes belonging to this org
+    fixes = [f for f in fixes if not getattr(f, "org_id", org_id) or getattr(f, "org_id", org_id) == org_id]
     return {
         "status": "ok",
         "finding_id": finding_id,
+        "org_id": org_id,
         "suggestions": [engine.to_dict(f) for f in fixes],
         "count": len(fixes),
     }
 
 
 @router.get("/history", summary="Fix action history")
-async def get_history(limit: int = Query(100, ge=1, le=1000)):
-    """Get the autofix action history."""
+async def get_history(
+    limit: int = Query(100, ge=1, le=1000),
+    org_id: str = Depends(get_org_id),
+):
+    """Get the autofix action history, scoped to the caller's org."""
     engine = _get_engine()
-    return {"status": "ok", "history": engine.get_history(limit)}
+    history = engine.get_history(limit)
+    # Filter history entries to this org (entries stamped with org_id by generate_fix)
+    if isinstance(history, list):
+        history = [
+            h for h in history
+            if not h.get("org_id") or h.get("org_id") == org_id
+        ]
+    return {"status": "ok", "org_id": org_id, "history": history}
 
 
 @router.get("/stats", summary="AutoFix statistics")

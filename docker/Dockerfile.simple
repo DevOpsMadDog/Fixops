@@ -56,7 +56,6 @@ LABEL org.opencontainers.image.vendor="ALdeci"
 ENV FIXOPS_MODE=demo \
     FIXOPS_DATA_DIR=/app/.fixops_data \
     FIXOPS_DISABLE_TELEMETRY=1 \
-    FIXOPS_DISABLE_RATE_LIMIT=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app/suite-api:/app/suite-core:/app/suite-attack:/app/suite-feeds:/app/suite-evidence-risk:/app/suite-integrations:/app
 

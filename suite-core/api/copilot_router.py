@@ -23,8 +23,9 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from core.persistent_store import PersistentDict
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from core.persistent_store import get_persistent_store
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 # Knowledge Brain + Event Bus integration (graceful degradation)
@@ -215,9 +216,9 @@ class QuickReportRequest(BaseModel):
 # =============================================================================
 
 
-_sessions: PersistentDict = PersistentDict("copilot_sessions")
-_messages: PersistentDict = PersistentDict("copilot_messages")
-_actions: PersistentDict = PersistentDict("copilot_actions")
+_sessions = get_persistent_store("copilot_sessions")
+_messages = get_persistent_store("copilot_messages")
+_actions = get_persistent_store("copilot_actions")
 
 
 # =============================================================================
@@ -303,7 +304,7 @@ async def _call_llm_agent(
                 brain_context = "\n\n**Knowledge Graph Context:**\n"
                 for node in related[:5]:
                     brain_context += f"- {node.get('node_type', 'unknown')}: {json.dumps(node.get('properties', {}), default=str)[:200]}\n"
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     full_prompt = f"{system_prompt}\n\n" f"User query: {message}\n"
@@ -313,10 +314,10 @@ async def _call_llm_agent(
     if brain_context:
         full_prompt += brain_context
 
-    # Try providers in order: OpenAI → Anthropic → deterministic
+    # Try providers in order: Anthropic (Claude) → OpenAI → deterministic
     llm_response: Optional[LLMResponse] = None
     provider_used = "none"
-    for provider_name in ("openai", "anthropic", "sentinel"):
+    for provider_name in ("anthropic", "openai", "sentinel"):
         try:
             llm_response = manager.analyse(
                 provider_name,
@@ -330,7 +331,7 @@ async def _call_llm_agent(
             # If we got a real remote response, use it
             if llm_response.metadata.get("mode") == "remote":
                 break
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning("LLM provider %s failed: %s", provider_name, exc)
             continue
 
@@ -388,7 +389,7 @@ async def _call_llm_agent(
                     },
                 )
             )
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     return {
@@ -490,6 +491,7 @@ async def send_message(
     session_id: str,
     request: SendMessageRequest,
     background_tasks: BackgroundTasks,
+    org_id: str = Depends(get_org_id),
 ) -> MessageResponse:
     """Send a message and get AI response.
 
@@ -612,6 +614,7 @@ async def execute_action(
     session_id: str,
     request: ExecuteActionRequest,
     background_tasks: BackgroundTasks,
+    org_id: str = Depends(get_org_id),
 ) -> ActionResponse:
     """Execute an agent action.
 
@@ -689,7 +692,7 @@ async def _execute_action_sync(action_id: str) -> None:
         action["status"] = ActionStatus.COMPLETED
         action["completed_at"] = _now()
 
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         action["status"] = ActionStatus.FAILED
         action["error"] = str(e)
         action["completed_at"] = _now()
@@ -710,7 +713,7 @@ async def _action_analyze(params: dict, action: dict) -> dict:
             cve_key = target.strip().upper()
             result["enrichments"]["epss"] = epss_scores.get(cve_key)
             result["enrichments"]["kev_listed"] = cve_key in kev_index
-    except Exception as exc:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
         result["enrichments"]["feeds_error"] = str(exc)
     # Knowledge Graph context
     if _HAS_BRAIN:
@@ -722,7 +725,7 @@ async def _action_analyze(params: dict, action: dict) -> dict:
                 result["enrichments"]["risk_score"] = brain.risk_score_for_node(
                     nodes[0].get("node_id", "")
                 )
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
     return result
 
@@ -756,7 +759,7 @@ async def _action_pentest(params: dict, action: dict) -> dict:
     except ImportError:
         result["message"] = "Attack simulation engine not available"
         result["status"] = "degraded"
-    except Exception as exc:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
         result["message"] = f"Simulation error: {exc}"
         result["status"] = "degraded"
     return result
@@ -776,7 +779,7 @@ async def _action_remediate(params: dict, action: dict) -> dict:
     except ImportError:
         result["message"] = "AutoFix engine not available"
         result["status"] = "degraded"
-    except Exception as exc:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
         result["message"] = f"AutoFix error: {exc}"
         result["status"] = "degraded"
     return result
@@ -800,6 +803,7 @@ async def get_action_status(action_id: str) -> ActionResponse:
 async def add_context(
     session_id: str,
     request: AddContextRequest,
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add context to a session.
 
@@ -957,7 +961,7 @@ def _rule_based_suggestions(context_type: Optional[str], limit: int) -> List[Sug
                 action={"type": "review", "endpoint": "/api/v1/inventory/assets"},
             ))
 
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.warning("Rule-based suggestion generation failed: %s", exc)
         suggestions.append(SuggestionResponse(
             id=str(uuid.uuid4()),
@@ -1000,7 +1004,7 @@ async def get_suggestions(
                 brain_summary += "Recent events: " + "; ".join(
                     e.get("event_type", "?") for e in recent[:5]
                 )
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     context_filter = f" Focus on {context_type} context." if context_type else ""
@@ -1025,7 +1029,7 @@ async def get_suggestions(
     manager = LLMProviderManager()
     suggestions: List[SuggestionResponse] = []
 
-    for provider_name in ("openai", "anthropic"):
+    for provider_name in ("anthropic", "openai"):
         try:
             resp = manager.analyse(
                 provider_name,
@@ -1055,7 +1059,7 @@ async def get_suggestions(
                             )
                         )
                     break
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning(
                 "Suggestion generation via %s failed: %s", provider_name, exc
             )
@@ -1114,7 +1118,7 @@ async def quick_analyze(request: QuickAnalyzeRequest) -> Dict[str, Any]:
                 "nvd": nvd,
                 "data_source": "EPSS/CISA-KEV/NVD",
             }
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning("FeedsService lookup failed: %s", exc)
 
     # Use LLM for deep analysis
@@ -1134,7 +1138,7 @@ async def quick_analyze(request: QuickAnalyzeRequest) -> Dict[str, Any]:
             analysis_prompt += f"Description: {request.description}\n"
 
         manager = LLMProviderManager()
-        for prov in ("openai", "anthropic"):
+        for prov in ("anthropic", "openai"):
             try:
                 resp = manager.analyse(
                     prov,
@@ -1147,7 +1151,7 @@ async def quick_analyze(request: QuickAnalyzeRequest) -> Dict[str, Any]:
                 if resp.metadata.get("mode") == "remote":
                     llm_analysis = resp.reasoning
                     break
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 continue
 
     return {
@@ -1171,6 +1175,7 @@ async def quick_analyze(request: QuickAnalyzeRequest) -> Dict[str, Any]:
 async def quick_pentest(
     request: QuickPentestRequest,
     background_tasks: BackgroundTasks,
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Quick pentest initiation.
 
@@ -1207,7 +1212,7 @@ async def _run_quick_pentest(task_id: str, request: QuickPentestRequest) -> None
             "risk_score (0-10), summary, recommended_actions (array of strings)."
         )
         manager = LLMProviderManager()
-        for prov in ("openai", "anthropic"):
+        for prov in ("anthropic", "openai"):
             try:
                 resp = manager.analyse(
                     prov,
@@ -1226,7 +1231,7 @@ async def _run_quick_pentest(task_id: str, request: QuickPentestRequest) -> None
                         "mitre_techniques": resp.mitre_techniques,
                     }
                     break
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 continue
 
     if not result_content:
@@ -1952,7 +1957,7 @@ async def ask_security_question(request: AskRequest) -> AskResponse:
                 "Please provide an enhanced, clear explanation in 2–3 paragraphs. "
                 "Keep it practical and jargon-free for a junior developer."
             )
-            for provider_name in ("openai", "anthropic"):
+            for provider_name in ("anthropic", "openai"):
                 llm_resp = manager.analyse(
                     provider_name,
                     prompt=llm_prompt,
@@ -1965,7 +1970,7 @@ async def ask_security_question(request: AskRequest) -> AskResponse:
                     answer_text = llm_resp.reasoning
                     source = f"llm_enhanced_{provider_name}"
                     break
-        except Exception as llm_exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as llm_exc:  # narrowed from bare Exception
             logger.debug("LLM enhancement for /ask failed (non-fatal): %s", llm_exc)
 
     # Log to Knowledge Brain if available
@@ -1984,7 +1989,7 @@ async def ask_security_question(request: AskRequest) -> AskResponse:
                     },
                 )
             )
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     logger.info(

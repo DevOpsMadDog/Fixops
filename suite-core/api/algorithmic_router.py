@@ -21,7 +21,8 @@ from core.causal_inference import CausalInferenceEngine, analyze_vulnerability_c
 
 # Import algorithmic engines
 from core.monte_carlo import FAIRInputs, MonteCarloRiskEngine, quantify_cve_risk
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/algorithms", tags=["ALdeci Algorithms"])
@@ -125,8 +126,8 @@ async def quantify_risk_monte_carlo(request: MonteCarloRequest) -> Dict[str, Any
             "iterations": request.iterations,
             "result": result.to_dict(),
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.post("/monte-carlo/cve")
@@ -147,8 +148,8 @@ async def quantify_cve_risk_endpoint(request: CVERiskRequest) -> Dict[str, Any]:
             "cve_id": request.cve_id,
             "result": result,
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.post("/monte-carlo/portfolio")
@@ -189,8 +190,8 @@ async def quantify_portfolio_risk(request: PortfolioRiskRequest) -> Dict[str, An
             },
             "individual_results": individual_results,
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 # ============================================================================
@@ -226,6 +227,7 @@ class CounterfactualRequest(BaseModel):
 @router.post("/causal/analyze")
 async def analyze_vulnerability_root_cause(
     request: CausalAnalysisRequest,
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Perform causal inference analysis on a vulnerability.
 
@@ -246,8 +248,8 @@ async def analyze_vulnerability_root_cause(
             "algorithm": "Causal Inference (DAG-based)",
             "result": result,
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.post("/causal/counterfactual")
@@ -304,8 +306,8 @@ async def analyze_counterfactual(request: CounterfactualRequest) -> Dict[str, An
             "intervention": request.intervention,
             "result": result.to_dict(),
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.post("/causal/treatment-effect")
@@ -325,8 +327,8 @@ async def estimate_treatment_effect(request: CounterfactualRequest) -> Dict[str,
             "treatment": request.intervention,
             "result": result,
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 # ============================================================================
@@ -412,8 +414,8 @@ async def analyze_attack_surface_gnn(request: AttackSurfaceRequest) -> Dict[str,
             "algorithm": "Graph Neural Network Attack Path Prediction",
             "result": result,
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.post("/gnn/critical-nodes")
@@ -446,8 +448,8 @@ async def identify_critical_nodes(request: CriticalNodeRequest) -> Dict[str, Any
             "total_edges": len(graph.edges),
             "critical_nodes": critical_nodes,
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.post("/gnn/risk-propagation")
@@ -509,8 +511,8 @@ async def propagate_risk_through_graph(request: AttackSurfaceRequest) -> Dict[st
                 for node_id, score in sorted_risks[:50]
             ],
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 # ============================================================================

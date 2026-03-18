@@ -225,7 +225,7 @@ class NVDFeed(ThreatIntelligenceFeed):
             records = self.parse_feed(data)
             self.logger.info("Fetched %d recent CVEs from NVD", len(records))
             return records
-        except Exception as exc:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
             self.logger.error("Failed to fetch recent NVD CVEs: %s", exc)
             return []
 

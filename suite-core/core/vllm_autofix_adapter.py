@@ -310,7 +310,7 @@ class VLLMAutoFixAdapter:
                     "mitre_techniques": list(response.mitre_techniques),
                 },
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning(
                 "Self-hosted fix generation failed on %s: %s",
                 backend, type(exc).__name__,
@@ -337,7 +337,7 @@ class VLLMAutoFixAdapter:
                             model=getattr(ollama, "model", "unknown"),
                             duration_ms=round(duration, 2),
                         )
-                    except Exception:
+                    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                         pass
 
             return self._deterministic_fix(finding, source_code)

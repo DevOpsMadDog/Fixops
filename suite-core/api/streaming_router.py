@@ -69,7 +69,7 @@ async def stream_pipeline_progress(run_id: str):
                     if hasattr(pipeline, "get_run_status")
                     else None
                 )
-            except Exception:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
                 status = None
 
             if status is None:

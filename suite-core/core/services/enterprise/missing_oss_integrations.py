@@ -47,7 +47,7 @@ class SSVCFramework:
 
             self.ssvc_client = ssvc
             logger.info("✅ Real SSVC Framework initialized using python-ssvc library")
-        except Exception as e:
+        except ImportError as e:
             logger.error(f"SSVC initialization failed: {e}")
             self.ssvc_client = None
 
@@ -90,7 +90,7 @@ class SSVCFramework:
 
             return result
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"SSVC evaluation failed: {e}")
             return {"status": "error", "error": str(e)}
 
@@ -137,7 +137,7 @@ class SBOMParser:
             self.generator = generator
             self.parser = parser
             logger.info("✅ Real SBOM Parser initialized using lib4sbom library")
-        except Exception as e:
+        except ImportError as e:
             logger.error(f"lib4sbom initialization failed: {e}")
             self.lib4sbom = None
 
@@ -191,7 +191,7 @@ class SBOMParser:
                     parsed_component = self._parse_component_detailed(component, idx)
                     if parsed_component:
                         parsed_components.append(parsed_component)
-                except Exception as e:
+                except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
                     validation_errors.append(f"Component {idx}: {str(e)}")
 
             # Extract dependencies if present
@@ -217,7 +217,7 @@ class SBOMParser:
                 "validation_status": "valid" if not validation_errors else "warnings",
             }
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"SBOM parsing failed: {e}")
             return {
                 "status": "error",
@@ -335,7 +335,7 @@ class SBOMParser:
                 "original": purl,
             }
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             return {"valid": False, "error": str(e)}
 
     def _parse_supplier(self, supplier_data: Any) -> Dict[str, Any]:
@@ -561,7 +561,7 @@ class SBOMParser:
                 "generated_with": "lib4sbom",
             }
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"SBOM generation failed: {e}")
             return {"status": "error", "error": str(e)}
 
@@ -583,7 +583,7 @@ class SARIFProcessor:
 
             self.sarif_tools = sarif
             logger.info("✅ Real SARIF Processor initialized using sarif-tools library")
-        except Exception as e:
+        except ImportError as e:
             logger.error(f"sarif-tools initialization failed: {e}")
             self.sarif_tools = None
 
@@ -649,7 +649,7 @@ class SARIFProcessor:
                 "processed_with": "sarif-tools",
             }
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"SARIF processing failed: {e}")
             return {"status": "error", "error": str(e)}
 
@@ -732,7 +732,7 @@ class SARIFProcessor:
                 "converted_with": "sarif-tools",
             }
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"SARIF conversion failed: {e}")
             return {"status": "error", "error": str(e)}
 
@@ -845,7 +845,7 @@ class SARIFProcessor:
                 "fingerprint": self._generate_result_fingerprint(result),
             }
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Error processing SARIF result: {e}")
             return None
 
@@ -1221,7 +1221,7 @@ class PomegranateEngine:
 
             self.pomegranate = pom
             logger.info("✅ Pomegranate Bayesian Engine initialized")
-        except Exception as e:
+        except ImportError as e:
             logger.error(f"Pomegranate initialization failed: {e}")
             self.pomegranate = None
 
@@ -1273,7 +1273,7 @@ class PomegranateEngine:
                 "model_confidence": 0.85,
             }
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Pomegranate Bayesian network creation failed: {e}")
             return {"status": "error", "error": str(e)}
 

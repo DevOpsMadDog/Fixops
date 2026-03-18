@@ -7,6 +7,7 @@ and validates file system side-effects.
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -37,7 +38,7 @@ class CLIRunner:
 
     def __init__(
         self,
-        python_path: str = "python",
+        python_path: str = sys.executable,
         cli_module: str = "core.cli",
         cwd: Optional[Path] = None,
         env: Optional[dict] = None,

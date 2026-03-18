@@ -108,7 +108,7 @@ class AnalyticsStore:
             for path in run_dir.glob("*.json"):
                 try:
                     data = json.loads(path.read_text(encoding="utf-8"))
-                except Exception:  # pragma: no cover - corrupted entry ignored
+                except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):  # pragma: no cover - corrupted entry ignored
                     continue
                 if isinstance(data, Mapping):
                     record = dict(data)
@@ -125,7 +125,7 @@ class AnalyticsStore:
         for path in directory.glob("*.json"):
             try:
                 data = json.loads(path.read_text(encoding="utf-8"))
-            except Exception:  # pragma: no cover - corrupted entry ignored
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):  # pragma: no cover - corrupted entry ignored
                 continue
             if isinstance(data, Mapping):
                 record = dict(data)
@@ -759,7 +759,7 @@ class FeedbackOutcomeStore:
         if self._analytics_store is not None:
             try:  # pragma: no cover - analytics persistence is best-effort
                 self._analytics_store.record_feedback_outcomes(safe_run_id, serialised)
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
         return record_path
 
@@ -768,7 +768,7 @@ class FeedbackOutcomeStore:
             return None
         try:
             return self._analytics_store.record_feedback_event(entry)
-        except Exception:  # pragma: no cover - best-effort persistence
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):  # pragma: no cover - best-effort persistence
             return None
 
 

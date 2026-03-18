@@ -21,7 +21,8 @@ from datetime import datetime, timezone
 from tempfile import SpooledTemporaryFile
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, HTTPException, UploadFile, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel
 
 from .normalizers import (
@@ -289,7 +290,7 @@ async def validate_input(
                 result.metadata["schema_uri"] = sarif.schema_uri
                 if not sarif.findings:
                     result.warnings.append("SARIF contains no findings (empty results)")
-            except Exception as exc:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
                 result.errors.append(f"SARIF parsing failed: {exc}")
 
         elif detected_type == "sbom":
@@ -301,7 +302,7 @@ async def validate_input(
                 result.metadata["vulnerabilities_count"] = len(sbom.vulnerabilities)
                 if not sbom.components:
                     result.warnings.append("SBOM contains no components")
-            except Exception as exc:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
                 result.errors.append(f"SBOM parsing failed: {exc}")
 
         elif detected_type == "cve":
@@ -316,7 +317,7 @@ async def validate_input(
                     result.warnings.extend(cve_feed.errors[:5])
                 if not cve_feed.records:
                     result.warnings.append("CVE feed contains no records")
-            except Exception as exc:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
                 result.errors.append(f"CVE feed parsing failed: {exc}")
 
         elif detected_type == "vex":
@@ -327,7 +328,7 @@ async def validate_input(
                 result.metadata["suppressed_count"] = len(vex.suppressed_refs)
                 if not vex.assertions:
                     result.warnings.append("VEX document contains no assertions")
-            except Exception as exc:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
                 result.errors.append(f"VEX parsing failed: {exc}")
 
         elif detected_type == "cnapp":
@@ -338,7 +339,7 @@ async def validate_input(
                 result.components_count = len(cnapp.assets)
                 if not cnapp.findings:
                     result.warnings.append("CNAPP payload contains no findings")
-            except Exception as exc:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
                 result.errors.append(f"CNAPP parsing failed: {exc}")
 
         elif detected_type == "design":
@@ -492,12 +493,12 @@ async def get_supported_formats() -> Dict[str, Any]:
 
 
 @router.get("/health")
-async def validation_health():
+async def validation_health(org_id: str = Depends(get_org_id)):
     """Validation service health check."""
     return {"status": "healthy", "engine": "validation", "version": "1.0.0"}
 
 
 @router.get("/status")
-async def validation_status():
+async def validation_status(org_id: str = Depends(get_org_id)):
     """Validation service status (alias for /health)."""
     return await validation_health()

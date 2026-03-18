@@ -121,7 +121,7 @@ class OSSFallbackEngine:
                     proprietary_result = self._run_proprietary(
                         proprietary_analyzer, codebase_path, proprietary_config
                     )
-                except Exception as e:
+                except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                     logger.warning(f"Proprietary analysis failed: {e}")
                     proprietary_result = AnalysisResult(
                         source="proprietary",
@@ -142,7 +142,7 @@ class OSSFallbackEngine:
                         continue
                     try:
                         oss_result = self._run_oss_tool(tool, language, codebase_path)
-                    except Exception as e:
+                    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                         logger.warning(f"OSS tool {tool_name} failed: {e}")
                         oss_result = AnalysisResult(
                             source="oss",
@@ -179,7 +179,7 @@ class OSSFallbackEngine:
                 success=True,
                 execution_time=execution_time,
             )
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             execution_time = time.time() - start_time
             return AnalysisResult(
                 source="proprietary",
@@ -259,7 +259,7 @@ class OSSFallbackEngine:
                 error="Timeout",
                 execution_time=execution_time,
             )
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             execution_time = time.time() - start_time
             return AnalysisResult(
                 source="oss",
@@ -313,7 +313,7 @@ class OSSFallbackEngine:
 
             # ... add more tool parsers
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Failed to parse {tool_name} output: {e}")
 
         return findings

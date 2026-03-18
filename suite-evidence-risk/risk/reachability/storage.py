@@ -154,7 +154,7 @@ class ReachabilityStorage:
         try:
             data = json.loads(result_json)
             return VulnerabilityReachability(**data)
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"Failed to deserialize cached result: {e}")
             return None
 
@@ -307,7 +307,7 @@ class ReachabilityStorage:
             cursor.execute("SELECT 1")
             conn.close()
             return "ok"
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             return f"error: {str(e)}"
 
     def get_metrics(self) -> Dict[str, Any]:

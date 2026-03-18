@@ -1,0 +1,123 @@
+[
+  {
+    "id": "SP-001",
+    "title": "SQL Injection",
+    "description": "Unsanitised user input used in SQL queries allowing arbitrary data access or modification",
+    "category": "injection",
+    "controls": ["CWE-89", "OWASP-A03"],
+    "tags": ["sqli", "database", "input-validation"]
+  },
+  {
+    "id": "SP-002",
+    "title": "Cross-Site Scripting (XSS)",
+    "description": "User-controllable data rendered in HTML without proper encoding enabling script injection",
+    "category": "injection",
+    "controls": ["CWE-79", "OWASP-A03"],
+    "tags": ["xss", "web", "output-encoding"]
+  },
+  {
+    "id": "SP-003",
+    "title": "Broken Authentication",
+    "description": "Weak or missing authentication mechanisms allowing unauthorized access to protected resources",
+    "category": "authentication",
+    "controls": ["CWE-287", "OWASP-A07"],
+    "tags": ["auth", "session", "identity"]
+  },
+  {
+    "id": "SP-004",
+    "title": "Insecure Deserialization",
+    "description": "Untrusted data deserialized without validation enabling remote code execution or injection",
+    "category": "injection",
+    "controls": ["CWE-502", "OWASP-A08"],
+    "tags": ["deserialization", "rce", "input-validation"]
+  },
+  {
+    "id": "SP-005",
+    "title": "Server-Side Request Forgery (SSRF)",
+    "description": "Application makes HTTP requests to attacker-controlled URLs enabling internal network scanning",
+    "category": "injection",
+    "controls": ["CWE-918", "OWASP-A10"],
+    "tags": ["ssrf", "network", "input-validation"]
+  },
+  {
+    "id": "SP-006",
+    "title": "Path Traversal",
+    "description": "User input used to construct file paths without sanitisation allowing access to arbitrary files",
+    "category": "injection",
+    "controls": ["CWE-22", "OWASP-A01"],
+    "tags": ["path-traversal", "filesystem", "input-validation"]
+  },
+  {
+    "id": "SP-007",
+    "title": "Sensitive Data Exposure",
+    "description": "Sensitive information like credentials, tokens, or PII exposed in logs, responses, or storage",
+    "category": "data-protection",
+    "controls": ["CWE-200", "OWASP-A02"],
+    "tags": ["data-leak", "pii", "encryption"]
+  },
+  {
+    "id": "SP-008",
+    "title": "Broken Access Control",
+    "description": "Missing or insufficient authorization checks allowing users to access resources beyond their permissions",
+    "category": "authorization",
+    "controls": ["CWE-862", "OWASP-A01"],
+    "tags": ["idor", "authz", "access-control"]
+  },
+  {
+    "id": "SP-009",
+    "title": "Security Misconfiguration",
+    "description": "Default credentials, unnecessary services, or overly permissive settings creating attack surface",
+    "category": "configuration",
+    "controls": ["CWE-16", "OWASP-A05"],
+    "tags": ["config", "hardening", "defaults"]
+  },
+  {
+    "id": "SP-010",
+    "title": "Vulnerable Dependencies",
+    "description": "Third-party libraries with known CVEs introducing exploitable vulnerabilities into the application",
+    "category": "supply-chain",
+    "controls": ["CWE-1104", "OWASP-A06"],
+    "tags": ["sca", "dependencies", "sbom"]
+  },
+  {
+    "id": "SP-011",
+    "title": "Command Injection",
+    "description": "User input passed to OS command execution without sanitisation enabling arbitrary command execution",
+    "category": "injection",
+    "controls": ["CWE-78", "OWASP-A03"],
+    "tags": ["command-injection", "rce", "input-validation"]
+  },
+  {
+    "id": "SP-012",
+    "title": "Cryptographic Weakness",
+    "description": "Use of weak, broken, or improperly implemented cryptographic algorithms compromising data confidentiality",
+    "category": "cryptography",
+    "controls": ["CWE-327", "OWASP-A02"],
+    "tags": ["crypto", "encryption", "hashing"]
+  },
+  {
+    "id": "SP-013",
+    "title": "Insufficient Logging and Monitoring",
+    "description": "Lack of security event logging or alerting preventing detection of attacks and breaches",
+    "category": "observability",
+    "controls": ["CWE-778", "OWASP-A09"],
+    "tags": ["logging", "monitoring", "siem"]
+  },
+  {
+    "id": "SP-014",
+    "title": "Container Escape",
+    "description": "Misconfigured container runtime or privileged containers allowing breakout to host system",
+    "category": "infrastructure",
+    "controls": ["CWE-250"],
+    "tags": ["container", "docker", "kubernetes", "privilege-escalation"]
+  },
+  {
+    "id": "SP-015",
+    "title": "API Security Violation",
+    "description": "Missing rate limiting, input validation, or authentication on API endpoints enabling abuse",
+    "category": "api-security",
+    "controls": ["CWE-307", "OWASP-API"],
+    "tags": ["api", "rate-limiting", "validation"]
+  }
+]
+

@@ -128,7 +128,7 @@ class AgentOrchestrator:
                 try:
                     data = await agent.collect_data()
                     design_data[agent.config.agent_id] = data
-                except Exception as e:
+                except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                     logger.error(f"Error collecting from {agent.config.agent_id}: {e}")
 
         # Collect from runtime agents
@@ -138,7 +138,7 @@ class AgentOrchestrator:
                 try:
                     data = await agent.collect_data()
                     runtime_data[agent.config.agent_id] = data
-                except Exception as e:
+                except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                     logger.error(f"Error collecting from {agent.config.agent_id}: {e}")
 
         # Correlate and push

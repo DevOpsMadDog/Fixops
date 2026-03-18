@@ -338,7 +338,7 @@ class FalkorDBBackend:
 
         try:
             self._connect()
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"FalkorDB unavailable ({e}), using NetworkX fallback")
             self._using_fallback = True
 
@@ -352,7 +352,7 @@ class FalkorDBBackend:
             logger.info(f"Connected to FalkorDB: {self.url}/{self.graph_name}")
         except ImportError:
             raise RuntimeError("falkordb package not installed")
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             raise RuntimeError(f"Cannot connect to FalkorDB: {e}")
 
     def add_node(self, node: GraphNode) -> None:
@@ -370,7 +370,7 @@ class FalkorDBBackend:
                 f"MERGE (n:{node.type.value} {{{prop_str}}})",
                 props
             )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"FalkorDB add_node failed: {e}")
             self._fallback.add_node(node)
 
@@ -385,7 +385,7 @@ class FalkorDBBackend:
                     MERGE (a)-[r:{edge.type.value} {{weight: $weight}}]->(b)""",
                 {"src": edge.source_id, "tgt": edge.target_id, "weight": edge.weight}
             )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"FalkorDB add_edge failed: {e}")
             self._fallback.add_edge(edge)
 
@@ -407,7 +407,7 @@ class FalkorDBBackend:
                     type=NodeType(label),
                     properties=dict(node_data.properties) if hasattr(node_data, 'properties') else {},
                 )
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
         return self._fallback.get_node(node_id)
 
@@ -431,7 +431,7 @@ class FalkorDBBackend:
                 props = dict(row[1].properties) if hasattr(row[1], 'properties') else {}
                 nodes.append(GraphNode(id=node_id, type=node_type, properties=props))
             return nodes
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return self._fallback.get_nodes_by_type(node_type)
 
     def find_paths(self, start_id: str, end_id: str, max_depth: int = 10) -> List[List[str]]:
@@ -446,7 +446,7 @@ class FalkorDBBackend:
                 {"start": start_id, "end": end_id}
             )
             return [row[0] for row in result.result_set]
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return self._fallback.find_paths(start_id, end_id, max_depth)
 
     def bfs_reachable(self, start_id: str, max_depth: int = -1) -> Dict[str, int]:
@@ -465,7 +465,7 @@ class FalkorDBBackend:
         try:
             result = self._graph.query("MATCH (n) RETURN count(n)")
             return result.result_set[0][0]
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return self._fallback.node_count
 
     @property
@@ -475,7 +475,7 @@ class FalkorDBBackend:
         try:
             result = self._graph.query("MATCH ()-[r]->() RETURN count(r)")
             return result.result_set[0][0]
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return self._fallback.edge_count
 
     def to_json(self) -> Dict[str, Any]:
@@ -488,7 +488,7 @@ class FalkorDBBackend:
         if not self._using_fallback:
             try:
                 self._graph.query("MATCH (n) DETACH DELETE n")
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
         self._fallback.clear()
 
@@ -531,7 +531,7 @@ class KnowledgeGraphEngine:
                 self._backend = FalkorDBBackend()
                 if isinstance(self._backend, FalkorDBBackend) and self._backend._using_fallback:
                     self._backend = NetworkXGraphBackend()
-            except Exception:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
                 self._backend = NetworkXGraphBackend()
 
         logger.info(f"KnowledgeGraphEngine initialized: {type(self._backend).__name__}")
@@ -1504,7 +1504,7 @@ class NLQueryEngine:
                         llm_result["cypher"] = validated
                         self._log_query(question, validated, "llm")
                         return llm_result
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.warning("LLM Cypher translation failed: %s", e)
 
         # Step 3: Fallback — generic node search
@@ -1563,7 +1563,7 @@ class NLQueryEngine:
             else:
                 # NetworkX fallback execution
                 results = self._execute_networkx_query(translation, params, max_results)
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("Query execution error: %s (falling back to NX)", e)
             results = self._execute_networkx_query(translation, params, max_results)
 
@@ -1636,7 +1636,7 @@ class NLQueryEngine:
                         "parameters": {},
                         "estimated_rows": 50,
                     }
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug("LLM response parse error: %s", e)
 
         return None
@@ -1725,7 +1725,7 @@ class NLQueryEngine:
             try:
                 nodes = self._backend.get_nodes_by_type(nt)
                 all_nodes.extend(nodes[:20])
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
 
         return [

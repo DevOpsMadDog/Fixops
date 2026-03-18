@@ -130,7 +130,7 @@ class FeedbackDB:
         if self._conn:
             try:
                 self._conn.close()
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
             self._conn = None
 

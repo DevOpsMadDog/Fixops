@@ -727,6 +727,6 @@ def get_predictive_scorer(golden_path: str = "data/golden_regression_cases.json"
         _default_scorer = PredictiveScorer()
         try:
             _default_scorer.fit_from_cve_history(golden_path)
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("PredictiveScorer fit failed: %s — predictions will have wider CIs", e)
     return _default_scorer

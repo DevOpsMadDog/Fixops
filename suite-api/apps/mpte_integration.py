@@ -488,6 +488,6 @@ async def health_check() -> Dict:
 
         return {"status": "healthy", "message": "MPTE integration is operational"}
 
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Health check failed: {e}")
         return {"status": "unhealthy", "error": "Health check failed"}

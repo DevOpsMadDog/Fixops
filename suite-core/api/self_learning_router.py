@@ -19,7 +19,15 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict
 
-from fastapi import APIRouter, HTTPException, Path, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from apps.api.dependencies import get_org_id
+
+try:
+    from apps.api.auth_deps import require_auth as _verify_api_key
+except ImportError:
+    # Fallback: no-op dependency if auth_deps not available
+    async def _verify_api_key():
+        pass
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -107,7 +115,7 @@ async def self_learning_status() -> Dict[str, Any]:
             "version": "1.0.0",
             **engine.get_status(),
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         return {
             "status": "degraded",
             "engine": "self-learning",
@@ -174,8 +182,8 @@ async def self_learning_stats() -> Dict[str, Any]:
                 "decay_factor": status.get("decay_factor", 0.95),
             },
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.post("/feedback/decision")
@@ -193,8 +201,8 @@ async def record_decision_feedback(req: DecisionFeedbackRequest) -> Dict[str, An
             context=req.context,
         )
         return {"recorded": True, "feedback_id": feedback_id, "loop": "decision_outcome"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.post("/feedback/mpte")
@@ -211,8 +219,8 @@ async def record_mpte_feedback(req: MPTEFeedbackRequest) -> Dict[str, Any]:
             context=req.context,
         )
         return {"recorded": True, "feedback_id": feedback_id, "loop": "mpte_result"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.post("/feedback/false-positive")
@@ -229,8 +237,8 @@ async def record_fp_feedback(req: FPFeedbackRequest) -> Dict[str, Any]:
             context=req.context,
         )
         return {"recorded": True, "feedback_id": feedback_id, "loop": "false_positive"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.post("/feedback/remediation")
@@ -248,8 +256,8 @@ async def record_remediation_feedback(req: RemediationFeedbackRequest) -> Dict[s
             context=req.context,
         )
         return {"recorded": True, "feedback_id": feedback_id, "loop": "remediation_success"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.post("/feedback/policy")
@@ -266,8 +274,8 @@ async def record_policy_feedback(req: PolicyFeedbackRequest) -> Dict[str, Any]:
             context=req.context,
         )
         return {"recorded": True, "feedback_id": feedback_id, "loop": "policy_violation"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.get("/analyze")
@@ -277,8 +285,8 @@ async def analyze_all(days: int = Query(90, ge=1, le=365)) -> Dict[str, Any]:
         from core.self_learning import get_learning_engine
         engine = get_learning_engine()
         return engine.analyze_all(days)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except ImportError as e:
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.get("/insights")
@@ -288,8 +296,8 @@ async def get_insights() -> Dict[str, Any]:
         from core.self_learning import get_learning_engine
         engine = get_learning_engine()
         return engine.get_insights()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except ImportError as e:
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.get("/analyze/{loop}")
@@ -316,8 +324,8 @@ async def analyze_loop(
         return loop_map[loop].analyze(days)
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.get("/suppressed-rules")
@@ -328,8 +336,8 @@ async def get_suppressed_rules() -> Dict[str, Any]:
         engine = get_learning_engine()
         rules = engine.fp_loop.get_suppressed_rules()
         return {"suppressed_rules": rules, "count": len(rules)}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except ImportError as e:
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -361,8 +369,8 @@ async def score_with_learning(req: ScoreWithLearningRequest) -> Dict[str, Any]:
             "rule_id": req.rule_id,
             "fix_type": req.fix_type,
         })
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.post("/compute-adjustments")
@@ -403,8 +411,8 @@ async def compute_adjustments() -> Dict[str, Any]:
                 __import__("datetime").timezone.utc
             ).isoformat(),
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.get("/weights")
@@ -457,8 +465,8 @@ async def get_weights() -> Dict[str, Any]:
             "computed_on_demand": computed_now,
             "retrieved_at": _dt.datetime.now(_dt.timezone.utc).isoformat(),
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.put("/weights/{key:path}")
@@ -478,8 +486,8 @@ async def set_weight(
             "new_value": round(req.value, 4),
             "updated": True,
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.get("/metrics/trends")
@@ -495,12 +503,12 @@ async def get_metrics_trends(
         from core.self_learning import get_learning_engine
         engine = get_learning_engine()
         return engine.get_metrics_trends(days)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except ImportError as e:
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
-@router.post("/demo/seed")
-async def seed_demo_data() -> Dict[str, Any]:
+@router.post("/demo/seed", tags=["admin"])
+async def seed_demo_data(api_key: str = Depends(_verify_api_key)) -> Dict[str, Any]:
     """Seed realistic demo data for all 5 feedback loops.
 
     Populates the learning database with 98 realistic feedback records
@@ -513,12 +521,12 @@ async def seed_demo_data() -> Dict[str, Any]:
         from core.self_learning import get_learning_engine
         engine = get_learning_engine()
         return engine.seed_demo_data()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except ImportError as e:
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
-@router.post("/demo/reset")
-async def reset_demo_data() -> Dict[str, Any]:
+@router.post("/demo/reset", tags=["admin"])
+async def reset_demo_data(_: str = Depends(_verify_api_key)) -> Dict[str, Any]:
     """Reset all learning data for a fresh demo.
 
     Clears all feedback records, weight adjustments, and metrics.
@@ -528,12 +536,12 @@ async def reset_demo_data() -> Dict[str, Any]:
         from core.self_learning import get_learning_engine
         engine = get_learning_engine()
         return engine.reset_learning()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except ImportError as e:
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
-@router.get("/demo/full-loop")
-async def demo_full_loop() -> Dict[str, Any]:
+@router.get("/demo/full-loop", tags=["admin"])
+async def demo_full_loop(_: str = Depends(_verify_api_key)) -> Dict[str, Any]:
     """Execute a complete self-learning demo in one call.
 
     This endpoint demonstrates the FULL feedback loop:
@@ -646,9 +654,9 @@ async def demo_full_loop() -> Dict[str, Any]:
                 "policy_violation — tracks justified violations → relaxes over-strict policies",
             ],
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.exception("Demo full loop failed")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 class LiveFeedbackRequest(BaseModel):
@@ -683,8 +691,8 @@ class LiveFeedbackRequest(BaseModel):
     asset_criticality: float = Field(0.7, ge=0, le=1)
 
 
-@router.post("/demo/live-feedback")
-async def demo_live_feedback(req: LiveFeedbackRequest) -> Dict[str, Any]:
+@router.post("/demo/live-feedback", tags=["admin"])
+async def demo_live_feedback(req: LiveFeedbackRequest, _: str = Depends(_verify_api_key)) -> Dict[str, Any]:
     """Submit one feedback record, run learning, and show scoring effect.
 
     This is the interactive demo endpoint: submit a single feedback item,
@@ -798,6 +806,6 @@ async def demo_live_feedback(req: LiveFeedbackRequest) -> Dict[str, Any]:
         }
     except HTTPException:
         raise
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.exception("Live feedback demo failed")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=type(e).__name__)

@@ -13,8 +13,9 @@ import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from core.persistent_store import PersistentDict
-from fastapi import APIRouter, HTTPException
+from core.persistent_store import get_persistent_store
+from fastapi import APIRouter, HTTPException, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/llm", tags=["LLM"])
@@ -86,7 +87,7 @@ class LLMSettings(BaseModel):
 
 
 # Persistent LLM settings — seed defaults on first run
-_settings: PersistentDict = PersistentDict("llm_settings")
+_settings = get_persistent_store("llm_settings")
 _LLM_DEFAULTS: Dict[str, Any] = {
     "default_provider": "openai",
     "timeout_seconds": 30,
@@ -303,7 +304,7 @@ async def test_llm_provider(request: LLMTestRequest) -> LLMTestResponse:
             provider=provider,
             error=f"Provider not available: {e}",
         )
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         latency = (time.perf_counter() - start) * 1000
         return LLMTestResponse(
             success=False,

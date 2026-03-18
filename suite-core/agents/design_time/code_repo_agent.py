@@ -44,7 +44,7 @@ class CodeRepoAgent(BaseAgent):
             try:
                 repo = git.Repo(self.repo_path)
                 repo.remotes.origin.pull()
-            except Exception:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
                 repo = git.Repo.clone_from(self.repo_url, self.repo_path)
 
             repo.git.checkout(self.repo_branch)
@@ -53,7 +53,7 @@ class CodeRepoAgent(BaseAgent):
             logger.info(f"Connected to repository: {self.repo_url}")
             return True
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Failed to connect to repository {self.repo_url}: {e}")
             return False
 
@@ -133,7 +133,7 @@ class CodeRepoAgent(BaseAgent):
 
             return data_items
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Error collecting data from {self.repo_url}: {e}")
             return []
 
@@ -162,7 +162,7 @@ class CodeRepoAgent(BaseAgent):
                 ],
             }
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Error collecting SARIF: {e}")
             return None
 
@@ -180,7 +180,7 @@ class CodeRepoAgent(BaseAgent):
 
             return sbom
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Error collecting SBOM: {e}")
             return None
 
@@ -195,6 +195,6 @@ class CodeRepoAgent(BaseAgent):
                 "dependencies": {},
             }
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Error collecting design context: {e}")
             return None

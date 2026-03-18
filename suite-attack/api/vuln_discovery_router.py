@@ -21,8 +21,9 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from core.persistent_store import PersistentDict
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from core.persistent_store import get_persistent_store
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field, validator
 
 # Knowledge Brain + Event Bus integration (graceful degradation)
@@ -280,9 +281,9 @@ class RetrainResponse(BaseModel):
 # =============================================================================
 
 
-_discovered_vulns: PersistentDict = PersistentDict("discovered_vulns")
-_contributions: PersistentDict = PersistentDict("cve_contributions")
-_retrain_jobs: PersistentDict = PersistentDict("retrain_jobs")
+_discovered_vulns = get_persistent_store("discovered_vulns")
+_contributions = get_persistent_store("cve_contributions")
+_retrain_jobs = get_persistent_store("retrain_jobs")
 _trained_models: Dict[str, Any] = {}  # sklearn model objects (not serialisable)
 
 # Counter for internal IDs
@@ -339,7 +340,7 @@ def _calculate_cvss(vector: Optional[str]) -> Optional[float]:
 
         c = CVSS3(vector)
         return float(c.base_score)
-    except Exception:
+    except ImportError:
         logger.warning("CVSS calculation failed for vector: %s", vector)
         return None
 
@@ -374,7 +375,7 @@ async def list_discovered_vulnerabilities(
     for v in vulns[offset : offset + limit]:
         try:
             results.append(DiscoveredVulnResponse(**v))
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             # Gracefully skip entries that fail Pydantic validation (stale data)
             pass
     return results
@@ -384,6 +385,7 @@ async def list_discovered_vulnerabilities(
 async def report_discovered_vulnerability(
     request: DiscoveredVulnRequest,
     background_tasks: BackgroundTasks,
+    org_id: str = Depends(get_org_id),
 ) -> DiscoveredVulnResponse:
     """Report a pentest-discovered vulnerability.
 
@@ -499,6 +501,7 @@ async def _notify_vendor(vuln_id: str) -> None:
 async def contribute_to_cve_program(
     request: ContributeRequest,
     background_tasks: BackgroundTasks,
+    org_id: str = Depends(get_org_id),
 ) -> ContributeResponse:
     """Submit a discovered vulnerability to CVE/MITRE program.
 
@@ -665,6 +668,7 @@ async def get_internal_vulnerability(vuln_id: str) -> Dict[str, Any]:
 async def update_internal_vulnerability(
     vuln_id: str,
     updates: Dict[str, Any],
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update an internal vulnerability."""
     if vuln_id not in _discovered_vulns:
@@ -699,6 +703,7 @@ async def update_internal_vulnerability(
 async def retrain_ml_models(
     request: RetrainRequest,
     background_tasks: BackgroundTasks,
+    org_id: str = Depends(get_org_id),
 ) -> RetrainResponse:
     """Retrain ML models on new vulnerability data.
 
@@ -732,7 +737,7 @@ async def retrain_ml_models(
 
         _epss = FeedsService._load_epss_scores()
         external_count = len(_epss) if _epss else 0
-    except Exception:
+    except ImportError:
         pass  # Feed unavailable — external_count stays 0
     total_data_points = internal_count + external_count
 
@@ -834,7 +839,7 @@ def _build_training_dataset(
             from feeds_service import FeedsService as _FS
 
             epss_records = _FS._load_epss_scores()
-        except Exception:
+        except ImportError:
             pass
 
     # Build feature matrix from internal vulns
@@ -934,7 +939,7 @@ async def _run_training(job_id: str) -> None:
                     model_name, X, severity_labels, exploitability_scores
                 )
                 results[model_name] = result
-            except Exception as e:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
                 results[model_name] = {
                     "status": "failed",
                     "message": str(e),
@@ -953,7 +958,7 @@ async def _run_training(job_id: str) -> None:
             f"{len(X_rows)} samples, {len(job['models_queued'])} models"
         )
 
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         job["status"] = "failed"
         job["completed_at"] = _now()
         job["results"] = {

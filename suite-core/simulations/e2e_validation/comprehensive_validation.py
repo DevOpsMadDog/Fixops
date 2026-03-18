@@ -219,7 +219,7 @@ class ComprehensiveValidator:
                 f"  ✓ Completed validation for {app_name}: {len(all_findings)} total findings"
             )
 
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             self.log(f"  ✗ Error validating {app_name}: {str(e)}", "ERROR")
             app_results["errors"].append(str(e))
 
@@ -286,7 +286,7 @@ class ComprehensiveValidator:
             }
             self.log(f"  ✓ Found {len(transitive_vulns)} transitive vulnerabilities")
 
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             test_result["status"] = "error"
             test_result["error"] = str(e)
             self.log(f"  ✗ Error: {str(e)}", "ERROR")
@@ -355,7 +355,7 @@ class ComprehensiveValidator:
             }
             self.log(f"  ✓ Detected {len(typosquat_packages)} typosquat packages")
 
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             test_result["status"] = "error"
             test_result["error"] = str(e)
             self.log(f"  ✗ Error: {str(e)}", "ERROR")
@@ -417,7 +417,7 @@ class ComprehensiveValidator:
                 f"  ✓ Eliminated {duplicates} duplicates ({test_result['details']['deduplication_rate']})"
             )
 
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             test_result["status"] = "error"
             test_result["error"] = str(e)
             self.log(f"  ✗ Error: {str(e)}", "ERROR")
@@ -457,7 +457,7 @@ class ComprehensiveValidator:
                 f"  ✓ Mapped {test_result['details']['total_controls']} compliance controls"
             )
 
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             test_result["status"] = "error"
             test_result["error"] = str(e)
             self.log(f"  ✗ Error: {str(e)}", "ERROR")
@@ -505,7 +505,7 @@ class ComprehensiveValidator:
             }
             self.log(f"  ✓ Processed {processed} findings in {elapsed_time:.2f}s")
 
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             test_result["status"] = "error"
             test_result["error"] = str(e)
             self.log(f"  ✗ Error: {str(e)}", "ERROR")
@@ -547,7 +547,7 @@ class ComprehensiveValidator:
                 f"  ✓ Determinism test: {mismatches} mismatches out of {len(scores_run1)}"
             )
 
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             test_result["status"] = "error"
             test_result["error"] = str(e)
             self.log(f"  ✗ Error: {str(e)}", "ERROR")

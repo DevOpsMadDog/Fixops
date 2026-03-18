@@ -21,7 +21,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field, validator
 
 logger = logging.getLogger(__name__)
@@ -235,7 +236,7 @@ class KillChainResponse(BaseModel):
     summary="Map findings to MITRE ATT&CK techniques",
     response_model=MapFindingsResponse,
 )
-async def map_findings(req: MapFindingsRequest):
+async def map_findings(req: MapFindingsRequest, org_id: str = Depends(get_org_id)):
     """
     Map a list of application vulnerability scanner findings to MITRE ATT&CK v14
     techniques using CWE IDs, CVE IDs, and text-based matching.
@@ -267,8 +268,8 @@ async def map_findings(req: MapFindingsRequest):
             ],
         )
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
+        raise HTTPException(status_code=400, detail=type(exc).__name__)
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Error mapping findings: %s", exc)
         raise HTTPException(status_code=500, detail="Internal mapping error")
 
@@ -311,7 +312,7 @@ async def list_techniques(
             "attack_version": "14",
             "techniques": techniques,
         }
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Error listing techniques: %s", exc)
         raise HTTPException(status_code=500, detail="Internal error")
 
@@ -320,7 +321,7 @@ async def list_techniques(
     "/tactics",
     summary="List all 14 MITRE ATT&CK tactics",
 )
-async def list_tactics():
+async def list_tactics(org_id: str = Depends(get_org_id)):
     """
     List all 14 MITRE ATT&CK v14 Enterprise tactics (Reconnaissance through Impact).
     """
@@ -331,7 +332,7 @@ async def list_tactics():
             "attack_version": "14",
             "tactics": mapper.list_tactics(),
         }
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Error listing tactics: %s", exc)
         raise HTTPException(status_code=500, detail="Internal error")
 
@@ -340,7 +341,7 @@ async def list_tactics():
     "/navigator-json",
     summary="Generate MITRE ATT&CK Navigator layer JSON",
 )
-async def generate_navigator_json(req: NavigatorLayerRequest):
+async def generate_navigator_json(req: NavigatorLayerRequest, org_id: str = Depends(get_org_id)):
     """
     Generate a MITRE ATT&CK Navigator layer JSON from scanner findings.
 
@@ -367,8 +368,8 @@ async def generate_navigator_json(req: NavigatorLayerRequest):
             "navigator_layer": layer,
         }
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
+        raise HTTPException(status_code=400, detail=type(exc).__name__)
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Error generating Navigator JSON: %s", exc)
         raise HTTPException(status_code=500, detail="Internal error generating Navigator layer")
 
@@ -378,7 +379,7 @@ async def generate_navigator_json(req: NavigatorLayerRequest):
     summary="Kill chain coverage analysis",
     response_model=KillChainResponse,
 )
-async def kill_chain_analysis(req: KillChainRequest):
+async def kill_chain_analysis(req: KillChainRequest, org_id: str = Depends(get_org_id)):
     """
     Analyze which MITRE ATT&CK kill chain phases are covered by the provided findings.
 
@@ -428,8 +429,8 @@ async def kill_chain_analysis(req: KillChainRequest):
             },
         )
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
+        raise HTTPException(status_code=400, detail=type(exc).__name__)
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Error in kill chain analysis: %s", exc)
         raise HTTPException(status_code=500, detail="Internal error in kill chain analysis")
 
@@ -438,7 +439,7 @@ async def kill_chain_analysis(req: KillChainRequest):
     "/cwe/{cwe_id}",
     summary="Get ATT&CK technique mappings for a CWE",
 )
-async def get_cwe_mapping(cwe_id: str):
+async def get_cwe_mapping(cwe_id: str, org_id: str = Depends(get_org_id)):
     """
     Get MITRE ATT&CK technique mappings for a specific CWE ID.
 
@@ -463,7 +464,7 @@ async def get_cwe_mapping(cwe_id: str):
         }
     except HTTPException:
         raise
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Error fetching CWE mapping for %s: %s", cwe_id, exc)
         raise HTTPException(status_code=500, detail="Internal error")
 
@@ -472,7 +473,7 @@ async def get_cwe_mapping(cwe_id: str):
     "/health",
     summary="MITRE ATT&CK mapper health check",
 )
-async def health():
+async def health(org_id: str = Depends(get_org_id)):
     """
     Health check for the MITRE ATT&CK mapping engine.
 
@@ -502,7 +503,7 @@ async def health():
             "supported_sources": ["cwe_id", "cve_ids", "title_text_match", "description_text_match"],
             "output_formats": ["json", "mitre_navigator_layer_v4.5"],
         }
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("MITRE mapper health check failed: %s", exc)
         return {
             "status": "unhealthy",

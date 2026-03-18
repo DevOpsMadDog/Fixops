@@ -402,7 +402,7 @@ class DASTEngine:
                     await self._crawl(client, full, visited, max_depth, depth + 1)
         except httpx.TimeoutException:
             logger.debug("Crawl timeout for %s (depth=%d)", url, depth)
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug("Crawl error for %s: %s", url, type(e).__name__)
 
     async def _check_headers(
@@ -443,7 +443,7 @@ class DASTEngine:
                 )
         except httpx.TimeoutException:
             logger.debug("Header check timeout for %s", url)
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug("Header check error for %s: %s", url, type(e).__name__)
         return findings
 
@@ -478,7 +478,7 @@ class DASTEngine:
                         return findings
             except httpx.TimeoutException:
                 logger.debug("SQLi test timeout for %s", test_url)
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.debug("SQLi test error for %s: %s", url, type(e).__name__)
         return findings
 
@@ -510,7 +510,7 @@ class DASTEngine:
                     return findings
             except httpx.TimeoutException:
                 logger.debug("XSS test timeout for %s", test_url)
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.debug("XSS test error for %s: %s", url, type(e).__name__)
         return findings
 
@@ -540,7 +540,7 @@ class DASTEngine:
                     return findings
             except httpx.TimeoutException:
                 logger.debug("Path traversal test timeout for %s", test_url)
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.debug("Path traversal test error for %s: %s", url, type(e).__name__)
         return findings
 
@@ -577,7 +577,7 @@ class DASTEngine:
                     return findings
             except httpx.TimeoutException:
                 logger.debug("SSRF test timeout for %s", test_url)
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.debug("SSRF test error for %s: %s", url, type(e).__name__)
         return findings
 
@@ -618,7 +618,7 @@ class DASTEngine:
                         )
             except httpx.TimeoutException:
                 logger.debug("Info disclosure check timeout for %s%s", base, path)
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.debug("Info disclosure check error for %s: %s", base, type(e).__name__)
         return findings
 

@@ -78,12 +78,17 @@ interface StatCardProps {
   icon: React.ElementType;
   trend?: { value: number; isPositive: boolean };
   loading?: boolean;
+  onClick?: () => void;
+  accentColor?: string;
 }
 
-function StatCard({ title, value, description, icon: Icon, trend, loading }: StatCardProps) {
+function StatCard({ title, value, description, icon: Icon, trend, loading, onClick, accentColor }: StatCardProps) {
   return (
     <motion.div variants={itemVariants} whileHover={{ scale: 1.03, y: -4 }} transition={{ type: 'spring', stiffness: 300 }}>
-      <Card className="glass-card backdrop-blur-md bg-gray-900/40 border-gray-700/40 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
+      <Card
+        className={`glass-card backdrop-blur-md bg-gray-900/40 border-gray-700/40 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 ${onClick ? 'cursor-pointer' : ''}`}
+        onClick={onClick}
+      >
         <CardContent className="p-6">
           <div className="flex items-start justify-between">
             <div className="space-y-2">
@@ -110,13 +115,20 @@ function StatCard({ title, value, description, icon: Icon, trend, loading }: Sta
               )}
             </div>
             <motion.div
-              className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center"
+              className={`w-12 h-12 rounded-lg flex items-center justify-center ${accentColor ? '' : 'bg-primary/10'}`}
+              style={accentColor ? { backgroundColor: `${accentColor}15` } : undefined}
               whileHover={{ rotate: 12 }}
               transition={{ type: 'spring', stiffness: 300 }}
             >
-              <Icon className="w-6 h-6 text-primary" />
+              <Icon className="w-6 h-6 text-primary" style={accentColor ? { color: accentColor } : undefined} />
             </motion.div>
           </div>
+          {onClick && (
+            <div className="flex items-center gap-1 mt-3 text-xs text-muted-foreground/60 group-hover:text-primary/60">
+              <ArrowUpRight className="w-3 h-3" />
+              <span>View details</span>
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>
@@ -187,10 +199,17 @@ function ScannerMiniGrid() {
     const s = d?.status as string;
     return s === 'ready' || s === 'healthy' || s === 'active' || s === 'ok' || s === 'running';
   };
+  // api-fuzz, malware, llm-mon use DAST/SAST/LLM monitor status endpoints
+  const { data: apiFuzz } = useQuery({ queryKey: ['sc-api-fuzz'], queryFn: () => api.get<Record<string, unknown>>('/api/v1/dast/status').then(r => r.data).catch(() => null), retry: 0, staleTime: 30_000 });
+  const { data: malwareSc } = useQuery({ queryKey: ['sc-malware'], queryFn: () => api.get<Record<string, unknown>>('/api/v1/sast/status').then(r => r.data).catch(() => null), retry: 0, staleTime: 30_000 });
+  const { data: llmMon } = useQuery({ queryKey: ['sc-llm-mon'], queryFn: () => api.get<Record<string, unknown>>('/api/v1/llm-monitor/status').then(r => r.data).catch(() => api.get<Record<string, unknown>>('/api/v1/sast/status').then(r => r.data).catch(() => null)), retry: 0, staleTime: 30_000 });
+
   const statusByKey: Record<string, boolean> = {
     sast: isActive(sast), dast: isActive(dast), secrets: isActive(secrets),
     container: isActive(container), cspm: isActive(cspm),
-    'api-fuzz': true, malware: true, 'llm-mon': true, // built-in, always available
+    'api-fuzz': isActive(apiFuzz ?? undefined),
+    malware: isActive(malwareSc ?? undefined),
+    'llm-mon': isActive(llmMon ?? undefined),
   };
 
   return (
@@ -275,10 +294,18 @@ export default function Dashboard() {
     queryFn: algorithmsApi.getStatus,
   });
 
-  const { data: _dashboardData, isLoading: _dashboardLoading } = useQuery({
+  const { data: overviewData, isLoading: overviewLoading } = useQuery({
     queryKey: ['dashboard-overview'],
     queryFn: () => dashboardApi.getOverview('default'),
-    retry: false, // Don't retry if endpoint doesn't exist
+    retry: 1,
+    staleTime: 30_000,
+  });
+
+  const { data: mttrData } = useQuery({
+    queryKey: ['dashboard-mttr'],
+    queryFn: () => api.get('/api/v1/analytics/mttr', { params: { org_id: 'default' } }).then(r => r.data),
+    retry: 0,
+    staleTime: 60_000,
   });
 
   const handleRefresh = () => {
@@ -356,7 +383,57 @@ export default function Dashboard() {
         </Card>
       </motion.div>
 
-      {/* Stats Grid */}
+      {/* ── Primary KPI Row (Posture, Threats, MTTR, SLA, Noise) ─────── */}
+      <motion.div variants={containerVariants} initial="hidden" animate="visible"
+        className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <StatCard
+          title="Posture Score"
+          value={overviewData ? `${Math.round(100 - (overviewData.critical_findings ?? 0) * 2 - (overviewData.high_findings ?? 0))}%` : '—'}
+          description="Overall security posture"
+          icon={Shield}
+          loading={overviewLoading}
+          onClick={() => navigate('/executive')}
+          accentColor="#22c55e"
+        />
+        <StatCard
+          title="Active Threats"
+          value={overviewData ? (overviewData.critical_findings ?? 0) + (overviewData.high_findings ?? 0) : 0}
+          description={`${overviewData?.critical_findings ?? 0} critical, ${overviewData?.high_findings ?? 0} high`}
+          icon={AlertTriangle}
+          loading={overviewLoading}
+          onClick={() => navigate('/evidence/analytics')}
+          accentColor="#ef4444"
+        />
+        <StatCard
+          title="MTTR"
+          value={mttrData?.overall_mttr_hours ? `${(mttrData.overall_mttr_hours / 24).toFixed(1)}d` : overviewData?.mttr_hours ? `${(overviewData.mttr_hours / 24).toFixed(1)}d` : '—'}
+          description="Mean time to remediate"
+          icon={Activity}
+          loading={overviewLoading}
+          onClick={() => navigate('/mission-control/sla')}
+          accentColor="#8b5cf6"
+        />
+        <StatCard
+          title="SLA Compliance"
+          value={overviewData?.sla_compliance ? `${Math.round(overviewData.sla_compliance)}%` : '—'}
+          description="Remediation SLA adherence"
+          icon={CheckCircle2}
+          loading={overviewLoading}
+          onClick={() => navigate('/mission-control/sla')}
+          accentColor="#3b82f6"
+        />
+        <StatCard
+          title="Noise Reduction"
+          value={overviewData?.dedup_rate ? `${Math.round(overviewData.dedup_rate)}%` : '—'}
+          description={`${overviewData?.clusters_count ?? 0} clusters from ${overviewData?.total_findings ?? 0} findings`}
+          icon={Sparkles}
+          loading={overviewLoading}
+          onClick={() => navigate('/core/dedup')}
+          accentColor="#f59e0b"
+        />
+      </motion.div>
+
+      {/* ── Secondary Stats Row (Feeds & System) ───────────────────── */}
       <motion.div variants={containerVariants} initial="hidden" animate="visible"
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -365,6 +442,7 @@ export default function Dashboard() {
           description="Exploit prediction scores loaded"
           icon={TrendingUp}
           loading={epssLoading}
+          onClick={() => navigate('/feeds/live')}
         />
         <StatCard
           title="KEV Entries"
@@ -372,6 +450,7 @@ export default function Dashboard() {
           description="Known exploited vulnerabilities"
           icon={AlertTriangle}
           loading={kevLoading}
+          onClick={() => navigate('/feeds/live')}
         />
         <StatCard
           title="Algorithms"
@@ -379,6 +458,7 @@ export default function Dashboard() {
           description="Prioritization algorithms available"
           icon={Brain}
           loading={capabilitiesLoading}
+          onClick={() => navigate('/ai-engine/multi-llm')}
         />
         <StatCard
           title="API Status"
@@ -386,6 +466,7 @@ export default function Dashboard() {
           description={healthData?.service || 'Backend API'}
           icon={Activity}
           loading={healthLoading}
+          onClick={() => navigate('/system/health')}
         />
       </motion.div>
 

@@ -281,7 +281,7 @@ async def analyze_reachability(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Analysis failed",
         )
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         logger.exception("Reachability analysis failed")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -338,7 +338,7 @@ async def analyze_bulk(
             created_at=datetime.now(timezone.utc).isoformat(),
         )
 
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         logger.exception("Bulk analysis failed")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -365,7 +365,7 @@ async def get_job_status(
 
     except HTTPException:
         raise
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         logger.exception("Failed to get job status")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -402,7 +402,7 @@ async def get_result(
 
     except HTTPException:
         raise
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         logger.exception("Failed to get result")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -431,7 +431,7 @@ async def delete_result(
 
         return {"message": "Result deleted successfully"}
 
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         logger.exception("Failed to delete result")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -460,7 +460,7 @@ async def health_check(
 
         return health_status
 
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         logger.exception("Health check failed")
         return {
             "status": "unhealthy",
@@ -484,7 +484,7 @@ async def get_metrics(
 
         return metrics
 
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         logger.exception("Failed to get metrics")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -509,7 +509,7 @@ async def get_analysis(
             "metrics": metrics,
         }
 
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         logger.exception("Failed to get analysis")
         return {
             "status": "ok",

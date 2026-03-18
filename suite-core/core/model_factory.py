@@ -58,7 +58,7 @@ def create_model_registry_from_config(
     if flag_provider:
         try:
             enabled = flag_provider.bool("fixops.model.risk.enabled", enabled)
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     if not enabled:
@@ -82,7 +82,7 @@ def create_model_registry_from_config(
             weighted_model.metadata.priority = weighted_config.get("priority", 10)
             registry.register(weighted_model, add_to_fallback=True)
             logger.info("Registered weighted_scoring_v1 model")
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.error("Failed to register weighted_scoring_v1: %s", exc)
 
     bn_config = models_config.get("bayesian_network_v1", {})
@@ -95,7 +95,7 @@ def create_model_registry_from_config(
             bn_model.metadata.priority = bn_config.get("priority", 50)
             registry.register(bn_model, add_to_fallback=True)
             logger.info("Registered bayesian_network_v1 model")
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.error("Failed to register bayesian_network_v1: %s", exc)
 
     bn_lr_config = models_config.get("bn_lr_hybrid_v1", {})
@@ -108,7 +108,7 @@ def create_model_registry_from_config(
             bn_lr_model.metadata.priority = bn_lr_config.get("priority", 100)
             registry.register(bn_lr_model, add_to_fallback=True)
             logger.info("Registered bn_lr_hybrid_v1 model")
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.error("Failed to register bn_lr_hybrid_v1: %s", exc)
 
     default_model_id = risk_models_config.get("default_model")
@@ -117,14 +117,14 @@ def create_model_registry_from_config(
             flag_default = flag_provider.string("fixops.model.risk.default", None)
             if flag_default:
                 default_model_id = flag_default
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     if default_model_id:
         try:
             registry.set_default_model(default_model_id)
             logger.info("Set default model to: %s", default_model_id)
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning("Failed to set default model %s: %s", default_model_id, exc)
 
     fallback_chain = risk_models_config.get("fallback_chain", [])
@@ -132,7 +132,7 @@ def create_model_registry_from_config(
         try:
             registry.set_fallback_chain(fallback_chain)
             logger.info("Set fallback chain: %s", " -> ".join(fallback_chain))
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning("Failed to set fallback chain: %s", exc)
 
     ab_test_config = risk_models_config.get("ab_test", {})
@@ -149,7 +149,7 @@ def create_model_registry_from_config(
                 ab_test_config["control_model"],
                 ab_test_config["treatment_model"],
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning("Failed to configure A/B test: %s", exc)
 
     return registry

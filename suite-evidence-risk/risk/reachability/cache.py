@@ -100,7 +100,7 @@ class AnalysisCache:
 
             # Reconstruct result
             return VulnerabilityReachability(**data["result"])
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"Failed to load cache entry: {e}")
             cache_file.unlink(missing_ok=True)
             return None
@@ -129,7 +129,7 @@ class AnalysisCache:
 
             with open(cache_file, "w") as f:
                 json.dump(data, f, indent=2)
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"Failed to cache result: {e}")
 
     def clear_expired(self) -> int:
@@ -152,7 +152,7 @@ class AnalysisCache:
                 if cached_at.replace(tzinfo=timezone.utc) < cutoff:
                     cache_file.unlink()
                     cleared += 1
-            except Exception:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
                 # Invalid cache file, delete it
                 cache_file.unlink(missing_ok=True)
                 cleared += 1

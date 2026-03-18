@@ -858,7 +858,7 @@ class AppConfigManager:
                 "apps": app_count,
                 "components": comp_count,
             }
-        except Exception as exc:  # noqa: BLE001
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # noqa: BLE001
             logger.exception("Health check failed")
             return {"status": "error", "detail": str(exc)}
 

@@ -23,7 +23,7 @@ from pydantic import (
 
 try:  # Optional dependency for YAML parsing
     import yaml  # type: ignore[import]
-except Exception:  # pragma: no cover - optional dependency
+except ImportError:  # pragma: no cover - optional dependency
     yaml = None  # type: ignore[assignment]
 
 try:  # Optional dependency for rich SBOM parsing
@@ -54,7 +54,7 @@ except ImportError:  # pragma: no cover - library is declared but optional at ru
 
 try:  # Optional converter for Snyk JSON → SARIF
     from snyk_to_sarif import converter as snyk_converter  # type: ignore
-except Exception:  # pragma: no cover - the package may require manual installation
+except ImportError:  # pragma: no cover - the package may require manual installation
     snyk_converter = None
 
 try:
@@ -620,7 +620,7 @@ class InputNormalizer:
             start = None
             try:
                 start = handle.tell()  # type: ignore[attr-defined]
-            except Exception:  # pragma: no cover - not all streams support tell
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):  # pragma: no cover - not all streams support tell
                 start = None
             while True:
                 chunk = handle.read(chunk_size)
@@ -739,7 +739,7 @@ class InputNormalizer:
         if active_parser is not None:
             try:
                 return self._load_sbom_with_lib4sbom(payload, active_parser)
-            except Exception as exc:  # pragma: no cover - surface provider fallback
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # pragma: no cover - surface provider fallback
                 last_error = exc
 
         provider_result = self._load_sbom_from_provider(payload)
@@ -843,7 +843,7 @@ class InputNormalizer:
                                             }
                                         ]
                                         vulnerabilities.append(vuln_copy)
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"Failed to extract component-level vulnerabilities: {e}")
 
         # Deduplicate vulnerabilities by ID
@@ -1214,7 +1214,7 @@ class InputNormalizer:
                     CveRecord.validate(record)  # type: ignore[arg-type]
                 except CveRecordValidationError as exc:  # type: ignore[misc]
                     validation_error = str(exc)
-                except Exception as exc:  # pragma: no cover - defensive guard
+                except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # pragma: no cover - defensive guard
                     validation_error = str(exc)
 
             if validation_error:

@@ -16,6 +16,7 @@ from typing import Dict, List, Optional
 from urllib.parse import urlparse
 
 import httpx
+from apps.api.dependencies import get_org_id
 from core.mpte_db import MPTEDB
 from core.mpte_models import (
     ExploitabilityLevel,
@@ -26,7 +27,7 @@ from core.mpte_models import (
     PenTestStatus,
 )
 from core.tls_config import tls_verify
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from integrations.mpte_service import AdvancedMPTEService
 from pydantic import BaseModel, Field, field_validator
 
@@ -166,7 +167,7 @@ def get_mpte_service() -> Optional[AdvancedMPTEService]:
                     api_key=config.api_key,
                     db=db,
                 )
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.error("Failed to initialize MPTE service: %s", type(e).__name__)
                 return None
         else:
@@ -232,7 +233,7 @@ async def _call_real_mpte_verify(data) -> dict:
                 return result
             else:
                 logger.warning("MPTE verify returned %s", resp.status_code)
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("MPTE verify call failed: %s", type(e).__name__)
 
     # Fallback: return pending status for async processing
@@ -280,7 +281,7 @@ async def _call_real_mpte_scan(data) -> dict:
                     return result
                 else:
                     logger.warning("MPTE scan returned %s", resp.status_code)
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.warning("MPTE scan call failed: %s", type(e).__name__)
 
         return {
@@ -428,12 +429,18 @@ def list_pen_test_requests(
     status: Optional[str] = Query(None),
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
+    org_id: str = Depends(get_org_id),
 ):
-    """List pen test requests."""
+    """List pen test requests, scoped to the caller's org."""
     status_enum = PenTestStatus(status) if status else None
     requests = db.list_requests(
         finding_id=finding_id, status=status_enum, limit=limit, offset=offset
     )
+    # Filter to this org — org_id stored in metadata at creation time
+    requests = [
+        r for r in requests
+        if not r.metadata.get("org_id") or r.metadata.get("org_id") == org_id
+    ]
     return {"items": [r.to_dict() for r in requests], "total": len(requests)}
 
 
@@ -441,6 +448,7 @@ def list_pen_test_requests(
 async def create_pen_test_request(
     data: CreatePenTestRequestModel,
     background_tasks: BackgroundTasks,
+    org_id: str = Depends(get_org_id),
 ):
     """Create a new pen test request with automated testing.
 
@@ -473,6 +481,7 @@ async def create_pen_test_request(
             test_case=data.test_case,
             priority=priority,
             status=PenTestStatus.PENDING,
+            metadata={"org_id": org_id},
         )
         created = db.create_request(request)
 
@@ -487,7 +496,7 @@ async def create_pen_test_request(
         return created.to_dict()
     except HTTPException:
         raise
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error("Failed to create pen test: %s", type(e).__name__)
         raise HTTPException(status_code=500, detail="Failed to create pen test")
     finally:
@@ -596,7 +605,7 @@ async def _run_mpte_verification_background(
 
         logger.info("Local engine completed for request %s", request_id)
 
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error("Local engine also failed for request %s: %s", request_id, type(e).__name__)
         request.status = PenTestStatus.FAILED
         request.completed_at = datetime.now(timezone.utc)
@@ -662,8 +671,9 @@ def list_pen_test_results(
     exploitability: Optional[str] = Query(None),
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
+    org_id: str = Depends(get_org_id),
 ):
-    """List pen test results including real scan results."""
+    """List pen test results for the caller's org, including real scan results."""
     exploitability_enum = (
         ExploitabilityLevel(exploitability) if exploitability else None
     )
@@ -708,7 +718,7 @@ def list_pen_test_results(
         for req in db.list_requests(limit=500):
             rd = req.to_dict() if hasattr(req, "to_dict") else req
             request_map[str(rd.get("id", ""))] = rd
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     # Normalize DB results to include fields the frontend expects
@@ -909,7 +919,7 @@ async def verify_vulnerability(data: VerifyVulnerabilityModel):
         logger.warning("MPTE service unavailable: %s", type(e).__name__)
         # Try direct MPTE API call as fallback
         return await _call_real_mpte_verify(data)
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         # Check if it's a connection-related error
         error_str = str(e).lower()
         if (
@@ -958,7 +968,7 @@ async def setup_continuous_monitoring(data: ContinuousMonitoringModel):
             status_code=503,
             detail="MPTE service unavailable. External pen testing service is not reachable.",
         )
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         # Check if it's a connection-related error
         error_str = str(e).lower()
         if (
@@ -1085,7 +1095,7 @@ async def run_comprehensive_scan(data: ComprehensiveScanModel):
                 },
             )
             db.create_result(pen_result)
-        except Exception as db_err:
+        except (OSError, ValueError, KeyError, RuntimeError) as db_err:  # narrowed from bare Exception
             logger.warning("Failed to store scan in DB: %s", type(db_err).__name__)
 
         # Auto-create Exposure Cases from scan findings
@@ -1128,7 +1138,7 @@ async def run_comprehensive_scan(data: ComprehensiveScanModel):
                 )
                 case_mgr.create_case(case)
             logger.info("Created %d exposure cases from scan %s", len(cats), result.scan_id)
-        except Exception as case_err:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as case_err:
             import traceback
             logger.error("Failed to create exposure cases: %s — %s", type(case_err).__name__, str(case_err)[:300])
             logger.error("Traceback: %s", traceback.format_exc()[:500])
@@ -1148,7 +1158,7 @@ async def run_comprehensive_scan(data: ComprehensiveScanModel):
         }
     except HTTPException:
         raise
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error("Failed to run scan: %s", type(e).__name__)
         raise HTTPException(
             status_code=500, detail=f"Scan failed: {type(e).__name__}"
@@ -1206,7 +1216,7 @@ def get_finding_exploitability(finding_id: str):
         }
     except HTTPException:
         raise
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error("Failed to get exploitability: %s", type(e).__name__)
         raise HTTPException(
             status_code=500,

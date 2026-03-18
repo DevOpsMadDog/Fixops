@@ -137,7 +137,7 @@ class TerraformAnalyzer:
                 findings.extend(file_findings)
                 files_analyzed += 1
 
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.warning(f"Failed to analyze {tf_file}: {e}")
 
         return self._build_result(findings, files_analyzed)

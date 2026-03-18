@@ -17,6 +17,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, Request
+from apps.api.dependencies import get_org_id
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ def _get_remediation_db():
     try:
         from apps.api.remediation_router import _get_db
         return _get_db()
-    except Exception:
+    except ImportError:
         return None
 
 
@@ -55,7 +56,7 @@ async def sla_dashboard() -> Dict[str, Any]:
         if db:
             raw = db.list_tasks(limit=500) if hasattr(db, "list_tasks") else []
             tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     # Compute SLA stats from tasks
@@ -139,7 +140,7 @@ async def sla_metrics() -> Dict[str, Any]:
         if db:
             raw = db.list_tasks(limit=500) if hasattr(db, "list_tasks") else []
             tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     # Calculate MTTR from resolved tasks
@@ -199,7 +200,7 @@ async def sla_breaches() -> Dict[str, Any]:
         if db:
             raw = db.list_tasks(limit=500) if hasattr(db, "list_tasks") else []
             tasks = raw if isinstance(raw, list) else (raw.get("tasks", []) if isinstance(raw, dict) else [])
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     breaches = []
@@ -240,7 +241,7 @@ async def sla_breaches() -> Dict[str, Any]:
 
 
 @router.get("/health")
-async def sla_health():
+async def sla_health(org_id: str = Depends(get_org_id)):
     """SLA service health check."""
     return {"status": "healthy", "engine": "sla", "version": "1.0.0"}
 

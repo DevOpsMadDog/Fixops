@@ -110,8 +110,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return null;
     }
     // Token-based auth (API key) — no JWT session needed; treat as authenticated
-    const apiKey = getStoredAuthToken();
+    const apiKey = getStoredAuthToken() || (import.meta as any).env?.VITE_API_KEY || "";
     if (apiKey) {
+      // Ensure the token is persisted for API interceptor to pick up
+      if (!getStoredAuthToken() && apiKey) {
+        setStoredAuthStrategy("token");
+        setStoredAuthToken(apiKey);
+      }
       return userFromStorage() ?? { id: "api-key", email: "", first_name: "API", last_name: "User", role: "admin" as UserRole };
     }
     return null;

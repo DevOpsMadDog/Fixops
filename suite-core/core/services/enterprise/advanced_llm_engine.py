@@ -71,7 +71,7 @@ class AdvancedLLMEngine:
                     LLMProvider.SPECIALIZED_CYBER.value,
                 ]
                 logger.info("✅ Enhanced LLM Engine initialized with ChatGPT")
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.error(f"ChatGPT client initialization failed: {exc}")
                 self.llm_client = None
         else:
@@ -154,7 +154,7 @@ class AdvancedLLMEngine:
                 expert_validation_required=expert_validation_required,
             )
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Enhanced security analysis failed: {e}")
             # Return fallback result
             return MultiLLMResult(
@@ -203,7 +203,7 @@ class AdvancedLLMEngine:
                 processing_time_ms=processing_time,
             )
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"LLM analysis failed for {provider}: {e}")
             processing_time = (time.time() - start_time) * 1000
 

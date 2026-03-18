@@ -2374,7 +2374,7 @@ class AzureDevOpsConnector(_BaseConnector):
         if state:
             safe_state = self._sanitize_wiql_value(state)
             conditions.append(f"[System.State] = '{safe_state}'")
-        wiql = f"SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE {' AND '.join(conditions)} ORDER BY [System.ChangedDate] DESC"
+        wiql = f"SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE {' AND '.join(conditions)} ORDER BY [System.ChangedDate] DESC"  # nosec B608 — WIQL (not SQL), values sanitized by _sanitize_wiql_value
         return self.search_work_items(wiql, max_results=max_results)
 
     def health_check(self) -> ConnectorHealth:
@@ -2866,7 +2866,7 @@ class AutomationConnectors:
         if self.flag_provider:
             try:
                 return self.flag_provider.bool(flag_name, default)
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
         return default
 

@@ -616,7 +616,7 @@ class AutoFixConfidenceModel:
                 self._bootstrap_models = joblib.load(boot_path)
             self._trained = True
             return True
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Failed to load autofix confidence model: %s", e)
             return False
 
@@ -719,7 +719,7 @@ def get_autofix_confidence_model() -> AutoFixConfidenceModel:
             try:
                 _model_instance.train()
                 _model_instance.save()
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.warning("Could not train autofix confidence model: %s", e)
     return _model_instance
 

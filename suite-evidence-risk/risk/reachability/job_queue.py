@@ -239,7 +239,7 @@ class JobQueue:
                 # Get job from queue (blocking with timeout)
                 try:
                     priority, job_id = self.priority_queue.get(timeout=1)
-                except Exception:
+                except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                     continue
 
                 if job_id not in self.jobs:
@@ -278,7 +278,7 @@ class JobQueue:
 
                     logger.info(f"Job {job_id} completed successfully")
 
-                except Exception as e:
+                except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                     logger.error(f"Job {job_id} failed: {e}", exc_info=True)
                     result.status = JobStatus.FAILED
                     result.error = str(e)
@@ -287,7 +287,7 @@ class JobQueue:
                 # Persist result
                 self._persist_result(result)
 
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.error(f"Worker error: {e}", exc_info=True)
 
     def _persist_job(self, job: ReachabilityJob) -> None:
@@ -309,7 +309,7 @@ class JobQueue:
                     f,
                     indent=2,
                 )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"Failed to persist job {job.job_id}: {e}")
 
     def _persist_result(self, result: JobResult) -> None:
@@ -337,7 +337,7 @@ class JobQueue:
                     f,
                     indent=2,
                 )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"Failed to persist result {result.job_id}: {e}")
 
     def health_check(self) -> str:
@@ -350,7 +350,7 @@ class JobQueue:
                 return f"degraded ({active_workers}/{self.max_workers} workers)"
 
             return "ok"
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             return f"error: {str(e)}"
 
     def get_metrics(self) -> Dict[str, Any]:

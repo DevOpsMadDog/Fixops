@@ -11,13 +11,13 @@ FROM node:20-alpine AS builder
 WORKDIR /build
 
 # Copy package files first for layer caching
-COPY suite-ui/aldeci/package.json suite-ui/aldeci/package-lock.json* ./
+COPY suite-ui/aldeci-ui-new/package.json suite-ui/aldeci-ui-new/package-lock.json* ./
 
 # Install dependencies
 RUN npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts
 
 # Copy source code
-COPY suite-ui/aldeci/ ./
+COPY suite-ui/aldeci-ui-new/ ./
 
 # Build-time env: API URL is empty string so the browser uses relative URLs
 # (nginx proxies /api/* to the backend container)

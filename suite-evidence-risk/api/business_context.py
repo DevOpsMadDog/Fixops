@@ -38,9 +38,9 @@ async def get_jira_context(
             "message": "Jira connector module not available",
             "data": {"ticket_id": ticket_id},
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Failed to get Jira context: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.get("/confluence-context/{page_id}")
@@ -68,9 +68,9 @@ async def get_confluence_context(
             "message": "Confluence connector module not available",
             "data": {"page_id": page_id},
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Failed to get Confluence context: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.post("/enrich-context")
@@ -94,9 +94,9 @@ async def enrich_business_context(
 
         return {"status": "success", "data": enriched_context}
 
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Failed to enrich business context: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 def _assess_business_impact(service_name: str) -> str:

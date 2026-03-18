@@ -431,7 +431,7 @@ class SQLInjectionPreventer:
                 request.query_params.get("sort", "created_at"),
                 allowed_columns={"created_at", "severity", "status"}
             )
-            cursor.execute(f"SELECT * FROM findings ORDER BY {sort_col}")
+            cursor.execute(f"SELECT * FROM findings ORDER BY {sort_col}")  # nosec B608 — sort_col validated by allowlist above
         """
         if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", column):
             raise ValueError(
@@ -633,7 +633,7 @@ class SSRFProtection:
         """
         try:
             parsed = urlparse(url)
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             raise ValueError("Invalid URL format")
 
         # Scheme check
@@ -1358,7 +1358,7 @@ class SecurityAuditLogger:
                     conn.commit()
                 finally:
                     conn.close()
-        except Exception as exc:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
             # Audit failures must not crash the application —
             # log to stderr and continue
             logger.error(
@@ -1509,7 +1509,7 @@ class SecurityAuditLogger:
             params.append(since.isoformat())
 
         where = "WHERE " + " AND ".join(conditions) if conditions else ""
-        query = f"SELECT * FROM security_audit_log {where} ORDER BY timestamp DESC LIMIT ?"
+        query = f"SELECT * FROM security_audit_log {where} ORDER BY timestamp DESC LIMIT ?"  # nosec B608 — WHERE from hardcoded columns with ? params
         params.append(limit)
 
         conn = self._get_conn()

@@ -91,7 +91,7 @@ class EvidenceHub:
             encrypt_flag = overlay.flag_provider.bool(
                 "fixops.feature.evidence.encryption", encrypt_flag
             )
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
         self.encrypt_bundles = bool(encrypt_flag)
@@ -134,7 +134,7 @@ class EvidenceHub:
             if self.encrypt_bundles and key:
                 try:
                     self._fernet = Fernet(key.encode("utf-8"))
-                except Exception as exc:  # pragma: no cover - invalid key handling
+                except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # pragma: no cover - invalid key handling
                     is_ci_env = (
                         os.getenv("CI") == "true"
                         or os.getenv("GITHUB_ACTIONS") == "true"
@@ -158,7 +158,7 @@ class EvidenceHub:
             )
             if flag_retention is not None:
                 retention_value = flag_retention
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
         try:
@@ -171,7 +171,7 @@ class EvidenceHub:
             sign_flag = overlay.flag_provider.bool(
                 "fixops.feature.evidence.signing", sign_flag
             )
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
         self.sign_bundles = bool(sign_flag)
@@ -211,7 +211,7 @@ class EvidenceHub:
             branding = self.overlay.flag_provider.json("fixops.branding", {})
             if branding and isinstance(branding, dict):
                 product_name = branding.get("short_name", "fixops").lower()
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
         raw_name = str(
@@ -241,7 +241,7 @@ class EvidenceHub:
             branding = self.overlay.flag_provider.json("fixops.branding", {})
             if branding and isinstance(branding, dict):
                 producer_name = branding.get("product_name", "FixOps")
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
         bundle_payload: Dict[str, Any] = {
@@ -344,7 +344,7 @@ class EvidenceHub:
                         "signed_at": signed_at,
                     },
                 )
-            except Exception as exc:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
                 # Clean up orphaned bundle file on signing failure to maintain data integrity
                 try:
                     if final_path.exists():
@@ -352,7 +352,7 @@ class EvidenceHub:
                         logger.info(
                             f"Cleaned up orphaned bundle file after signing failure: {final_path}"
                         )
-                except Exception as cleanup_exc:
+                except (OSError, ValueError, KeyError, RuntimeError) as cleanup_exc:  # narrowed from bare Exception
                     logger.warning(
                         f"Failed to clean up orphaned bundle file {final_path}: {cleanup_exc}"
                     )
@@ -428,7 +428,7 @@ class EvidenceHub:
             }
             with audit_path.open("a", encoding="utf-8") as handle:
                 handle.write(json.dumps(entry) + "\n")
-        except Exception:  # pragma: no cover - audit logs must not break persistence
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):  # pragma: no cover - audit logs must not break persistence
             pass
 
 

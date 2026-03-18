@@ -72,7 +72,7 @@ class FeedsService:
             return None
         try:
             return json.loads(path.read_text(encoding="utf-8"))
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return None
 
     @classmethod
@@ -89,7 +89,7 @@ class FeedsService:
                 len(data.get("data", [])) if isinstance(data.get("data"), list) else 0
             )
             return {"status": "success", "count": count}
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"EPSS refresh error: {e}")
             return {"status": "error", "message": str(e)}
 
@@ -106,7 +106,7 @@ class FeedsService:
             # KEV format contains {"vulnerabilities": [ ... ]}
             count = len(data.get("vulnerabilities", []))
             return {"status": "success", "count": count}
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"KEV refresh error: {e}")
             return {"status": "error", "message": str(e)}
 
@@ -139,7 +139,7 @@ class FeedsService:
                     await cls.refresh_epss()
                 if settings.ENABLED_KEV:
                     await cls.refresh_kev()
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.error(f"Feed scheduler error: {e}")
             await asyncio.sleep(sleep_seconds)
 

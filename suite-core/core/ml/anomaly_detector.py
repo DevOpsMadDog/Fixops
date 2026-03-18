@@ -694,7 +694,7 @@ def get_anomaly_detector() -> AnomalyDetector:
         # Initialize with synthetic baseline
         try:
             _detector_instance.fit_from_synthetic_baseline()
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("Could not fit anomaly baseline: %s", e)
     return _detector_instance
 

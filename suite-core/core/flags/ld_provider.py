@@ -95,7 +95,7 @@ class LaunchDarklyProvider(FeatureFlagProvider):
                     "LaunchDarkly client failed to initialize. Running in offline mode."
                 )
                 self.offline = True
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning(
                 "Failed to initialize LaunchDarkly client: %s. Running in offline mode.",
                 exc,
@@ -142,7 +142,7 @@ class LaunchDarklyProvider(FeatureFlagProvider):
         try:
             ld_context = self._build_ld_context(context)
             return self.client.variation(key, ld_context, default)
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning(
                 "LaunchDarkly evaluation failed for %s: %s. Using default.", key, exc
             )
@@ -161,7 +161,7 @@ class LaunchDarklyProvider(FeatureFlagProvider):
         try:
             ld_context = self._build_ld_context(context)
             return self.client.variation(key, ld_context, default)
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning(
                 "LaunchDarkly evaluation failed for %s: %s. Using default.", key, exc
             )
@@ -181,7 +181,7 @@ class LaunchDarklyProvider(FeatureFlagProvider):
             ld_context = self._build_ld_context(context)
             value = self.client.variation(key, ld_context, default)
             return float(value)
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning(
                 "LaunchDarkly evaluation failed for %s: %s. Using default.", key, exc
             )
@@ -203,7 +203,7 @@ class LaunchDarklyProvider(FeatureFlagProvider):
             if isinstance(value, dict):
                 return value
             return default
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning(
                 "LaunchDarkly evaluation failed for %s: %s. Using default.", key, exc
             )
@@ -222,7 +222,7 @@ class LaunchDarklyProvider(FeatureFlagProvider):
         try:
             ld_context = self._build_ld_context(context)
             return self.client.variation(key, ld_context, default)
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning(
                 "LaunchDarkly evaluation failed for %s: %s. Using default.", key, exc
             )
@@ -233,7 +233,7 @@ class LaunchDarklyProvider(FeatureFlagProvider):
         if self.client:
             try:
                 self.client.close()
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning("Failed to close LaunchDarkly client: %s", exc)
 
 

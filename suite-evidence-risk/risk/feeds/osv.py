@@ -65,7 +65,7 @@ class OSVFeed(ThreatIntelligenceFeed):
             ecosystems = data.decode("utf-8").strip().split("\n")
             self.logger.info("Fetched %d OSV ecosystems", len(ecosystems))
             return ecosystems
-        except Exception as exc:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
             self.logger.error("Failed to fetch OSV ecosystems: %s", exc)
             return []
 
@@ -116,7 +116,7 @@ class OSVFeed(ThreatIntelligenceFeed):
             )
             return records
 
-        except Exception as exc:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
             self.logger.error(
                 "Failed to fetch OSV vulnerabilities for %s: %s", ecosystem, exc
             )

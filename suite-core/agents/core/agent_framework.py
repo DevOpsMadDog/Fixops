@@ -138,7 +138,7 @@ class BaseAgent(ABC):
             )
             return True
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Error pushing data from {self.config.agent_id}: {e}")
             self.error_count += 1
             return False
@@ -207,7 +207,7 @@ class BaseAgent(ABC):
                     if self._stop_requested:
                         break
 
-                except Exception as e:
+                except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                     logger.error(f"Error in agent {self.config.agent_id} loop: {e}")
                     self.error_count += 1
                     self.status = AgentStatus.ERROR
@@ -222,7 +222,7 @@ class BaseAgent(ABC):
                         )
                         break
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Fatal error in agent {self.config.agent_id}: {e}")
             self.status = AgentStatus.ERROR
 

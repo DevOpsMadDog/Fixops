@@ -89,7 +89,7 @@ class CallGraphBuilder:
                 tree = ast.parse(content, filename=str(py_file))
                 visitor = PythonCallGraphVisitor(str(py_file), call_graph)
                 visitor.visit(tree)
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.warning(f"Failed to parse {py_file}: {e}")
 
         return call_graph

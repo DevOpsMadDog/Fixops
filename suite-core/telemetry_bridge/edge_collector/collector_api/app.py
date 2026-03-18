@@ -89,7 +89,7 @@ def load_overlay_config() -> Dict[str, Any]:
         with open(overlay_path, "r") as f:
             overlay = yaml.safe_load(f)
         return overlay.get("telemetry_bridge", {})
-    except Exception as e:
+    except ImportError as e:
         logger.warning(f"Failed to load overlay from {overlay_path}: {e}")
         return {
             "mode": os.environ.get("TELEMETRY_MODE", "http"),
@@ -178,7 +178,7 @@ async def ingest_telemetry(payload: TelemetryPayload):
     except requests.RequestException as e:
         logger.error(f"Failed to forward telemetry: {e}")
         raise HTTPException(status_code=502, detail="Failed to forward telemetry")
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Error processing telemetry: {e}")
         raise HTTPException(status_code=500, detail="Error processing telemetry")
 
@@ -224,7 +224,7 @@ async def generate_evidence(
 
         return {"ok": True, "metadata": metadata, "upload": upload_result}
 
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Error generating evidence: {e}")
         raise HTTPException(status_code=500, detail="Error generating evidence")
 
@@ -343,7 +343,7 @@ def upload_to_s3(
             "key": f"evidence/{filename}",
             "url": f"s3://{s3_bucket}/evidence/{filename}",
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Failed to upload to S3: {e}")
         raise
 
@@ -368,7 +368,7 @@ def upload_to_azure_blob(
 
         try:
             container_client.create_container()
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass  # Container already exists
 
         blob_client = container_client.get_blob_client(filename)
@@ -390,7 +390,7 @@ def upload_to_azure_blob(
             "blob": filename,
             "url": f"https://{storage_account}.blob.core.windows.net/evidence/{filename}",
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Failed to upload to Azure Blob: {e}")
         raise
 
@@ -425,7 +425,7 @@ def upload_to_gcs(
             "blob": f"evidence/{filename}",
             "url": f"gs://{gcs_bucket}/evidence/{filename}",
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Failed to upload to GCS: {e}")
         raise
 

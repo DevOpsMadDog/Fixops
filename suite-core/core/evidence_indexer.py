@@ -269,7 +269,7 @@ class EvidenceBundleIndexer:
                 bundle_data = json.loads(bundle_file.read_text(encoding="utf-8"))
                 self.index_evidence_bundle(bundle_file, bundle_data)
                 indexed_count += 1
-            except Exception as exc:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
                 self.logger.error("Failed to index bundle %s: %s", bundle_file, exc)
 
         self.logger.info("Indexed %d evidence bundles", indexed_count)

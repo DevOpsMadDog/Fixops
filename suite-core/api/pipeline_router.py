@@ -18,7 +18,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException
+from apps.api.dependencies import get_org_id
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -75,13 +76,19 @@ class EvidenceGenerateRequest(BaseModel):
 # Pipeline Endpoints
 # ---------------------------------------------------------------------------
 @router.post("/pipeline/run")
-async def run_pipeline(req: PipelineRunRequest) -> Dict[str, Any]:
+async def run_pipeline(
+    req: PipelineRunRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Execute the full 12-step ALdeci Brain Pipeline synchronously."""
     from core.brain_pipeline import PipelineInput, get_brain_pipeline
 
+    # The request body's org_id takes precedence (caller may specify a sub-org);
+    # fall back to the JWT/header derived org_id.
+    effective_org_id = req.org_id or org_id
     pipeline = get_brain_pipeline()
     inp = PipelineInput(
-        org_id=req.org_id,
+        org_id=effective_org_id,
         findings=[f.model_dump() for f in req.findings],
         assets=[a.model_dump() for a in req.assets],
         source=req.source,
@@ -129,14 +136,18 @@ async def get_pipeline_run(run_id: str) -> Dict[str, Any]:
 # Evidence Endpoints
 # ---------------------------------------------------------------------------
 @router.post("/evidence/generate")
-async def generate_evidence_pack(req: EvidenceGenerateRequest) -> Dict[str, Any]:
+async def generate_evidence_pack(
+    req: EvidenceGenerateRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Generate a SOC2 Type II evidence pack."""
     from core.soc2_evidence_generator import SOC2EvidenceGenerator
 
+    effective_org_id = req.org_id or org_id
     generator = SOC2EvidenceGenerator()
     platform_data = _collect_platform_data(req)
     pack = generator.generate(
-        org_id=req.org_id,
+        org_id=effective_org_id,
         timeframe_days=req.timeframe_days,
         controls=req.controls,
         platform_data=platform_data,
@@ -185,7 +196,7 @@ def _collect_platform_data(req: EvidenceGenerateRequest) -> Dict[str, Any]:
         brain = get_brain()
         stats = brain.stats()
         data["graph_stats"] = stats
-    except Exception:
+    except ImportError:
         pass
 
     # Try to collect exposure case stats
@@ -194,7 +205,7 @@ def _collect_platform_data(req: EvidenceGenerateRequest) -> Dict[str, Any]:
 
         mgr = ExposureCaseManager.get_instance()
         data["case_stats"] = mgr.stats()
-    except Exception:
+    except ImportError:
         pass
 
     return data

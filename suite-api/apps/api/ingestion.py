@@ -407,7 +407,7 @@ class BaseNormalizer:
 
         try:
             text = content.decode("utf-8", errors="ignore")[:10000]
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return 0.0
 
         matches = sum(1 for p in self._compiled_patterns if p.search(text))
@@ -1409,7 +1409,7 @@ class NormalizerRegistry:
             with open(config_path, "r") as f:
                 self._config = yaml.safe_load(f) or {}
             logger.info(f"Loaded normalizer config from {config_path}")
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"Failed to load config from {config_path}: {e}")
             self._load_default_config()
 
@@ -1629,7 +1629,7 @@ class NormalizerRegistry:
                 logger.warning(
                     f"Failed to find class {class_name} in {module_path}: {e}"
                 )
-            except Exception as e:
+            except ImportError as e:
                 logger.warning(f"Failed to load plugin {name}: {e}")
 
     def _register_scanner_parsers(self) -> None:
@@ -1641,7 +1641,7 @@ class NormalizerRegistry:
             logger.info(f"Auto-registered {count} scanner parser normalizers")
         except ImportError:
             logger.debug("Scanner parsers module not available — skipping")
-        except Exception as e:
+        except ImportError as e:
             logger.warning(f"Failed to register scanner parsers: {e}")
 
     def register(self, name: str, normalizer: BaseNormalizer) -> None:
@@ -1771,7 +1771,7 @@ class NormalizerRegistry:
                 f"in {elapsed:.2f}s"
             )
             return findings
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Normalization failed with {normalizer.name}: {e}")
             return self._try_all_normalizers(content, content_type)
 
@@ -1793,7 +1793,7 @@ class NormalizerRegistry:
                 if findings:
                     logger.info(f"Successfully normalized with fallback: {name}")
                     return findings
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.debug(f"Normalizer {name} failed: {e}")
                 continue
 
@@ -1846,7 +1846,7 @@ class NormalizerRegistry:
         for future in futures:
             try:
                 results.append(future.result(timeout=300))
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.error(f"Batch normalization failed: {e}")
                 results.append([])
 
@@ -1860,7 +1860,7 @@ class NormalizerRegistry:
         """Cleanup executor on garbage collection."""
         try:
             self._executor.shutdown(wait=False)
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
 
@@ -1949,7 +1949,7 @@ class IngestionService:
                 else:
                     self._asset_inventory[stable_key] = asset
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Ingestion failed: {e}")
             result.status = "error"
             result.errors.append(str(e))

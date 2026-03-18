@@ -239,7 +239,7 @@ class GitRepositoryAnalyzer:
             raise RuntimeError(
                 f"Git clone timed out after {self.clone_timeout_seconds} seconds"
             )
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             if temp_path.exists():
                 shutil.rmtree(temp_path, ignore_errors=True)
             logger.error(f"Failed to clone repository: {e}")
@@ -397,7 +397,7 @@ class GitRepositoryAnalyzer:
                         with open(file_path, "rb") as f:
                             lines = sum(1 for _ in f)
                             total_lines += lines
-                    except Exception:
+                    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                         pass
 
         return file_count, language_dist, total_lines

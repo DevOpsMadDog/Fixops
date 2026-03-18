@@ -229,7 +229,7 @@ class ContainerRuntimeAnalyzer:
                 import json
 
                 return json.loads(result.stdout)[0]
-        except Exception as e:
+        except ImportError as e:
             logger.warning(f"Failed to get container info: {e}")
 
         return {}
@@ -248,7 +248,7 @@ class ContainerRuntimeAnalyzer:
                 import json
 
                 return json.loads(result.stdout)
-        except Exception as e:
+        except ImportError as e:
             logger.warning(f"Failed to get pod spec: {e}")
 
         return {}
@@ -314,7 +314,7 @@ class ContainerRuntimeAnalyzer:
                     if container_id:
                         container_findings = self.analyze_container(container_id)
                         findings.extend(container_findings)
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"Failed to list containers: {e}")
 
         # Group findings

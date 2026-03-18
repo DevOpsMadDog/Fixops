@@ -62,7 +62,7 @@ class CombinedProvider(FeatureFlagProvider):
                 logger.debug(
                     "Flag %s returned default from primary, trying fallback", key
                 )
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning(
                     "Primary provider failed for %s: %s. Trying fallback.", key, exc
                 )
@@ -72,7 +72,7 @@ class CombinedProvider(FeatureFlagProvider):
                 result = self.fallback.bool(key, default, context)
                 logger.debug("Flag %s evaluated by fallback provider: %s", key, result)
                 return result
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning(
                     "Fallback provider failed for %s: %s. Using default.", key, exc
                 )
@@ -98,7 +98,7 @@ class CombinedProvider(FeatureFlagProvider):
                 logger.debug(
                     "Flag %s returned default from primary, trying fallback", key
                 )
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning(
                     "Primary provider failed for %s: %s. Trying fallback.", key, exc
                 )
@@ -108,7 +108,7 @@ class CombinedProvider(FeatureFlagProvider):
                 result = self.fallback.string(key, default, context)
                 logger.debug("Flag %s evaluated by fallback provider: %s", key, result)
                 return result
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning(
                     "Fallback provider failed for %s: %s. Using default.", key, exc
                 )
@@ -134,7 +134,7 @@ class CombinedProvider(FeatureFlagProvider):
                 logger.debug(
                     "Flag %s returned default from primary, trying fallback", key
                 )
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning(
                     "Primary provider failed for %s: %s. Trying fallback.", key, exc
                 )
@@ -144,7 +144,7 @@ class CombinedProvider(FeatureFlagProvider):
                 result = self.fallback.number(key, default, context)
                 logger.debug("Flag %s evaluated by fallback provider: %s", key, result)
                 return result
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning(
                     "Fallback provider failed for %s: %s. Using default.", key, exc
                 )
@@ -168,7 +168,7 @@ class CombinedProvider(FeatureFlagProvider):
                 logger.debug(
                     "Flag %s returned default from primary, trying fallback", key
                 )
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning(
                     "Primary provider failed for %s: %s. Trying fallback.", key, exc
                 )
@@ -178,7 +178,7 @@ class CombinedProvider(FeatureFlagProvider):
                 result = self.fallback.json(key, default, context)
                 logger.debug("Flag %s evaluated by fallback provider", key)
                 return result
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning(
                     "Fallback provider failed for %s: %s. Using default.", key, exc
                 )
@@ -204,7 +204,7 @@ class CombinedProvider(FeatureFlagProvider):
                 logger.debug(
                     "Flag %s returned default from primary, trying fallback", key
                 )
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning(
                     "Primary provider failed for %s: %s. Trying fallback.", key, exc
                 )
@@ -214,7 +214,7 @@ class CombinedProvider(FeatureFlagProvider):
                 result = self.fallback.variant(key, default, context)
                 logger.debug("Flag %s evaluated by fallback provider: %s", key, result)
                 return result
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning(
                     "Fallback provider failed for %s: %s. Using default.", key, exc
                 )

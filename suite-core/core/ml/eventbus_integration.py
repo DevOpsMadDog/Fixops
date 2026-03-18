@@ -167,7 +167,7 @@ async def _handle_scan_completed(event: "Event") -> None:
             elapsed_ms, org_id, scanner_type, anomaly_result.is_anomalous,
         )
 
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error("ML anomaly detection failed for event %s: %s", event.event_id, e)
 
 
@@ -218,7 +218,7 @@ async def _handle_parser_quality(event: "Event") -> None:
                 },
             ))
 
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error("Parser quality check failed for event %s: %s", event.event_id, e)
 
 
@@ -257,7 +257,7 @@ def register_ml_handlers(bus: Optional[Any] = None) -> bool:
         )
         return True
 
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error("Failed to register ML EventBus handlers: %s", e)
         return False
 

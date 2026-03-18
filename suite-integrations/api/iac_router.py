@@ -11,7 +11,8 @@ from typing import Any, Dict, List, Optional
 from core.iac_db import IaCDB
 from core.iac_models import IaCFinding, IaCFindingStatus, IaCProvider
 from core.iac_scanner import ScannerType, get_iac_scanner
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -82,7 +83,7 @@ async def list_iac_findings(
 
 
 @router.post("", response_model=IaCFindingResponse, status_code=201)
-async def create_iac_finding(finding_data: IaCFindingCreate):
+async def create_iac_finding(finding_data: IaCFindingCreate, org_id: str = Depends(get_org_id)):
     """Create a new IaC finding."""
     finding = IaCFinding(
         id="",
@@ -104,7 +105,7 @@ async def create_iac_finding(finding_data: IaCFindingCreate):
 
 
 @router.get("/{id}", response_model=IaCFindingResponse)
-async def get_iac_finding(id: str):
+async def get_iac_finding(id: str, org_id: str = Depends(get_org_id)):
     """Get IaC finding by ID."""
     finding = db.get_finding(id)
     if not finding:
@@ -113,7 +114,7 @@ async def get_iac_finding(id: str):
 
 
 @router.post("/{id}/resolve", response_model=IaCFindingResponse)
-async def resolve_iac_finding(id: str):
+async def resolve_iac_finding(id: str, org_id: str = Depends(get_org_id)):
     """Mark IaC finding as resolved."""
     finding = db.get_finding(id)
     if not finding:
@@ -126,7 +127,7 @@ async def resolve_iac_finding(id: str):
 
 
 @router.post("/{id}/remediate", response_model=IaCFindingResponse)
-async def remediate_iac_finding(id: str):
+async def remediate_iac_finding(id: str, org_id: str = Depends(get_org_id)):
     """Remediate IaC finding (alias for resolve with REMEDIATED status)."""
     finding = db.get_finding(id)
     if not finding:
@@ -164,7 +165,7 @@ class ScannerStatusResponse(BaseModel):
 
 
 @router.get("/scanners/status", response_model=ScannerStatusResponse)
-async def get_scanner_status():
+async def get_scanner_status(org_id: str = Depends(get_org_id)):
     """Get status of available IaC scanners."""
     scanner = get_iac_scanner()
     available = scanner.get_available_scanners()
@@ -190,7 +191,7 @@ class IaCScanContentRequest(BaseModel):
 
 
 @router.post("/scan/content", response_model=IaCScanResponse)
-async def scan_iac_content(request: IaCScanContentRequest):
+async def scan_iac_content(request: IaCScanContentRequest, org_id: str = Depends(get_org_id)):
     """
     Scan IaC content provided as a string.
 
@@ -216,14 +217,14 @@ async def scan_iac_content(request: IaCScanContentRequest):
             provider=request.provider,
             scanner=scanner_type,
         )
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.exception(f"IaC content scan failed: {e}")
         raise HTTPException(status_code=500, detail=f"Scan failed: {str(e)}")
 
     for finding in result.findings:
         try:
             db.create_finding(finding)
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(f"Failed to persist finding: {e}")
 
     return IaCScanResponse(

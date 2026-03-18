@@ -25,7 +25,7 @@ from config.enterprise.settings import get_settings
 
 try:  # pragma: no cover - import guarded for minimal environments
     from openai import AsyncOpenAI
-except Exception:  # pragma: no cover - fallback when OpenAI SDK missing
+except ImportError:  # pragma: no cover - fallback when OpenAI SDK missing
     AsyncOpenAI = None  # type: ignore[assignment]
 
 
@@ -84,7 +84,7 @@ class ChatGPTClient:
                 if temperature is not None
                 else self._temperature,
             )
-        except Exception as exc:  # pragma: no cover - network/runtime errors
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # pragma: no cover - network/runtime errors
             logger.error("ChatGPT completion failed", error=str(exc))
             raise
 

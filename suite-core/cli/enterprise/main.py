@@ -170,7 +170,7 @@ class FixOpsCLI:
 
             return result
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Scan ingestion failed: {str(e)}")
             return {"status": "error", "error": str(e), "exit_code": 2}
 
@@ -231,7 +231,7 @@ class FixOpsCLI:
 
             return result
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Policy check failed: {str(e)}")
             return {"status": "error", "error": str(e), "exit_code": 2}
 
@@ -305,7 +305,7 @@ class FixOpsCLI:
 
             return result
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Decision making failed: {str(e)}")
             return {
                 "status": "error",
@@ -342,7 +342,7 @@ class FixOpsCLI:
 
             return result
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Evidence retrieval failed: {str(e)}")
             return {"status": "error", "error": str(e), "exit_code": 2}
 
@@ -410,7 +410,7 @@ class FixOpsCLI:
 
             return result
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Correlation analysis failed: {str(e)}")
             return {"status": "error", "error": str(e), "exit_code": 2}
 
@@ -474,7 +474,7 @@ class FixOpsCLI:
 
             return result
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Health check failed: {str(e)}")
             return {"status": "error", "error": str(e), "exit_code": 2}
 
@@ -873,7 +873,7 @@ async def main():
         exit_code = result.get("exit_code", 0)
         sys.exit(exit_code)
 
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"CLI execution failed: {str(e)}")
         print(json.dumps({"status": "error", "error": str(e)}, indent=2))
         sys.exit(2)

@@ -57,7 +57,7 @@ export const useAuthStore = create<AuthStore>()(
     (set) => ({
       user: null,
       apiKey: import.meta.env.VITE_API_KEY || '',
-      isAuthenticated: true,
+      isAuthenticated: !!(import.meta.env.VITE_API_KEY),
       setUser: (user) => set({ user, isAuthenticated: !!user }),
       setApiKey: (key) => {
         updateApiKeyGlobal(key)
@@ -75,7 +75,7 @@ export const useAuthStore = create<AuthStore>()(
         if (version < 2) {
           // v0/v1 → v2: reset apiKey to env value (clear stale test-token-123)
           const envKey = import.meta.env.VITE_API_KEY || ''
-          return { ...persistedState, apiKey: envKey, isAuthenticated: true }
+          return { ...persistedState, apiKey: envKey, isAuthenticated: !!envKey }
         }
         return persistedState as AuthStore
       },

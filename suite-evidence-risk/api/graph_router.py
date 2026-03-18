@@ -1,7 +1,8 @@
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request, Depends
+from apps.api.dependencies import get_org_id
 from services.graph.graph import GraphSources, build_graph_from_sources
 
 router = APIRouter(prefix="/graph", tags=["graph"])
@@ -99,12 +100,12 @@ async def version_anomalies(request: Request) -> list[dict[str, Any]]:
 
 
 @router.get("/health")
-async def graph_health():
+async def graph_health(org_id: str = Depends(get_org_id)):
     """Dependency graph health check."""
     return {"status": "healthy", "engine": "graph", "version": "1.0.0"}
 
 
 @router.get("/status")
-async def graph_status():
+async def graph_status(org_id: str = Depends(get_org_id)):
     """Dependency graph status (alias for /health)."""
     return await graph_health()

@@ -5,7 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from core.paths import verify_allowlisted_path
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
+from apps.api.dependencies import get_org_id
 from services.provenance import load_attestation
 
 router = APIRouter(prefix="/provenance", tags=["provenance"])
@@ -55,13 +56,13 @@ async def provenance_chains(request: Request) -> dict:
 
 
 @router.get("/health")
-async def provenance_health():
+async def provenance_health(org_id: str = Depends(get_org_id)):
     """Provenance service health check."""
     return {"status": "healthy", "engine": "provenance", "version": "1.0.0"}
 
 
 @router.get("/status")
-async def provenance_status():
+async def provenance_status(org_id: str = Depends(get_org_id)):
     """Provenance service status (alias for /health)."""
     return await provenance_health()
 

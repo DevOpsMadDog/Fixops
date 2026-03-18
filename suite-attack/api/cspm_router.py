@@ -14,7 +14,8 @@ import logging
 import os
 from typing import Any, Dict
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -70,7 +71,7 @@ async def scan_terraform(req: TerraformScanRequest) -> Dict[str, Any]:
         engine = get_cspm_engine()
         result = engine.scan_terraform(req.content, safe_filename)
         return result.to_dict()
-    except Exception as e:
+    except ImportError as e:
         logger.exception("Terraform scan failed: %s", type(e).__name__)
         raise HTTPException(500, f"Terraform scan failed: {type(e).__name__}")
 
@@ -86,7 +87,7 @@ async def scan_cloudformation(req: CloudFormationScanRequest) -> Dict[str, Any]:
         engine = get_cspm_engine()
         result = engine.scan_cloudformation(req.content)
         return result.to_dict()
-    except Exception as e:
+    except ImportError as e:
         logger.exception("CloudFormation scan failed: %s", type(e).__name__)
         raise HTTPException(500, f"CloudFormation scan failed: {type(e).__name__}")
 
@@ -95,6 +96,7 @@ async def scan_cloudformation(req: CloudFormationScanRequest) -> Dict[str, Any]:
 async def list_cspm_findings(
     severity: str = None,
     limit: int = 100,
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """List CSPM/IaC scan findings."""
     try:
@@ -116,7 +118,7 @@ async def list_cspm_findings(
                     'source': src,
                     'provider': 'aws' if 'aws' in src.lower() else 'azure' if 'azure' in src.lower() else 'gcp' if 'gcp' in src.lower() else 'unknown',
                 })
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         cspm_findings = []
     return {
         'findings': cspm_findings,

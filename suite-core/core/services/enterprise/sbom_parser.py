@@ -16,7 +16,7 @@ try:
     pass
 
     HAS_LIB4SBOM = True
-except Exception:  # pragma: no cover
+except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):  # pragma: no cover
     HAS_LIB4SBOM = False
 
 
@@ -28,13 +28,13 @@ async def parse_sbom(content: str) -> Dict[str, Any]:
             doc = json.loads(content)
             # In a full integration, lib4sbom would convert and validate formats
             return _extract_findings_from_cyclonedx(doc)
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("lib4sbom parsing failed, falling back", error=str(e))
     # Fallback
     try:
         doc = json.loads(content)
         return _extract_findings_from_cyclonedx(doc)
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error("SBOM parse failed", error=str(e))
         return {"findings": []}
 

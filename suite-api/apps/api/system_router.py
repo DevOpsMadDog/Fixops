@@ -47,7 +47,7 @@ def _check_db(db_path: str) -> Dict[str, Any]:
         conn.close()
         size_mb = round(path.stat().st_size / (1024 * 1024), 2)
         return {"status": "healthy", "size_mb": size_mb}
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         return {"status": "unhealthy", "error": type(e).__name__}
 
 
@@ -87,7 +87,7 @@ async def system_health(request: Request) -> Dict[str, Any]:
             }
         else:
             subsystems["configuration"] = {"status": "degraded", "message": "App state not initialized"}
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         subsystems["configuration"] = {"status": "unhealthy", "error": type(e).__name__}
         overall_healthy = False
 
@@ -109,10 +109,31 @@ async def system_health(request: Request) -> Dict[str, Any]:
             overall_healthy = False
 
     healthy_dbs = sum(1 for v in db_checks.values() if v["status"] == "healthy")
+
+    # Enterprise DatabaseManager pool stats
+    enterprise_db: Dict[str, Any] = {"status": "not_initialized"}
+    try:
+        from core.db.enterprise.session import DatabaseManager
+
+        if DatabaseManager._engine is not None:
+            pool = DatabaseManager._engine.pool
+            enterprise_db = {
+                "status": "healthy",
+                "backend": str(DatabaseManager._engine.url).split("@")[-1] if "@" in str(DatabaseManager._engine.url) else str(DatabaseManager._engine.url),
+                "pool_size": pool.size(),
+                "checked_in": pool.checkedin(),
+                "checked_out": pool.checkedout(),
+                "overflow": pool.overflow(),
+                "pool_status": pool.status(),
+            }
+    except (ImportError, AttributeError, ValueError, RuntimeError):
+        pass
+
     subsystems["databases"] = {
         "status": "healthy" if healthy_dbs == len(db_checks) else "degraded",
         "total": len(db_checks),
         "healthy": healthy_dbs,
+        "enterprise_pool": enterprise_db,
         "details": db_checks,
     }
 
@@ -138,7 +159,7 @@ async def system_health(request: Request) -> Dict[str, Any]:
                     scanner_status[name] = {"status": "available"}
                 else:
                     scanner_status[name] = {"status": "not_found"}
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             scanner_status[name] = {"status": "error", "error": type(e).__name__}
 
     available_scanners = sum(
@@ -160,7 +181,7 @@ async def system_health(request: Request) -> Dict[str, Any]:
             subsystems["brain_pipeline"] = {
                 "status": "available" if brain_path.exists() else "not_found",
             }
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         subsystems["brain_pipeline"] = {"status": "error", "error": type(e).__name__}
 
     # 6. Data directories
@@ -192,7 +213,7 @@ async def system_health(request: Request) -> Dict[str, Any]:
             "total": len(connectors),
             "configured": configured,
         }
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         subsystems["connectors"] = {"status": "degraded", "message": "Connector module not available"}
 
     return {
@@ -238,7 +259,7 @@ async def system_config(request: Request) -> Dict[str, Any]:
         if overlay:
             config_summary["auth_strategy"] = overlay.auth.get("strategy", "none")
             config_summary["overlay_mode"] = overlay.mode
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     return {

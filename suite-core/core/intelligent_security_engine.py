@@ -19,6 +19,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re as _re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -203,6 +204,44 @@ class ExecutionResult:
     completed_at: datetime = field(default_factory=datetime.utcnow)
 
 
+# ---------------------------------------------------------------------------
+# MindsDB SQL security helpers
+# ---------------------------------------------------------------------------
+
+# MindsDB sends SQL over HTTP, so Python sqlite3 ? placeholders are not
+# available.  We defend in two layers:
+#   1. Identifier validation — model/kb/agent names must match a safe pattern
+#      (alphanumeric + underscore + hyphen, 1–128 chars).
+#   2. String value escaping — single quotes and backslashes in VALUES/WHERE
+#      literals are escaped so they cannot break out of the SQL string.
+
+_SAFE_IDENTIFIER_RE = _re.compile(r"^[A-Za-z0-9_\-]{1,128}$")
+
+
+def _validate_mindsdb_identifier(value: str, label: str = "identifier") -> str:
+    """Raise ValueError if value is not a safe SQL identifier."""
+    if not isinstance(value, str) or not _SAFE_IDENTIFIER_RE.match(value):
+        raise ValueError(
+            f"MindsDB SQL injection guard: {label!r} contains invalid characters "
+            f"or exceeds 128 chars. Got: {value!r}"
+        )
+    return value
+
+
+def _escape_mindsdb_string(value: str) -> str:
+    """Escape a string value for safe embedding in a MindsDB SQL literal.
+
+    Escapes backslashes first, then single quotes, so that the result can be
+    safely wrapped in single quotes: 'escaped_value'.
+    """
+    if not isinstance(value, str):
+        value = str(value)
+    # Escape backslash before quote so we don't double-escape
+    value = value.replace("\\", "\\\\")
+    value = value.replace("'", "\\'")
+    return value
+
+
 class MindsDBClient:
     """Client for MindsDB AI/ML operations."""
 
@@ -214,10 +253,12 @@ class MindsDBClient:
         self, name: str, predict_column: str, training_data: List[Dict]
     ) -> Dict[str, Any]:
         """Create an ML predictor in MindsDB."""
-        # Convert to SQL for MindsDB
+        # Security: validate identifiers before interpolating into MindsDB SQL
+        safe_name = _validate_mindsdb_identifier(name, "model name")
+        safe_col = _validate_mindsdb_identifier(predict_column, "predict_column")
         sql = f"""
-        CREATE MODEL {name}
-        PREDICT {predict_column}
+        CREATE MODEL {safe_name}
+        PREDICT {safe_col}
         USING engine = 'lightwood'
         """
         return await self._execute_sql(sql)
@@ -225,55 +266,97 @@ class MindsDBClient:
     async def predict(
         self, model_name: str, input_data: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Make a prediction using a MindsDB model."""
-        where_clause = " AND ".join(f"{k} = '{v}'" for k, v in input_data.items())
-        sql = f"SELECT * FROM {model_name} WHERE {where_clause}"
+        """Make a prediction using a MindsDB model.
+
+        Security: model_name is validated as a safe identifier; input_data
+        keys are validated as identifiers and values are escaped as SQL
+        string literals to prevent injection.
+        """
+        safe_model = _validate_mindsdb_identifier(model_name, "model_name")
+        # Validate every key (column name) and escape every value
+        where_parts = []
+        for k, v in input_data.items():
+            safe_key = _validate_mindsdb_identifier(k, f"input_data key '{k}'")
+            safe_val = _escape_mindsdb_string(str(v))
+            where_parts.append(f"{safe_key} = '{safe_val}'")
+        where_clause = " AND ".join(where_parts)
+        sql = f"SELECT * FROM {safe_model} WHERE {where_clause}"  # nosec B608 — identifiers validated by _validate_mindsdb_identifier, values by _escape_mindsdb_string
         return await self._execute_sql(sql)
 
     async def create_knowledge_base(
         self, name: str, model: str = "gpt-4", storage: str = "chromadb"
     ) -> Dict[str, Any]:
         """Create a knowledge base for RAG."""
+        # Security: validate identifiers; model/storage are config values,
+        # still escaped as strings since they're quoted in the SQL.
+        safe_name = _validate_mindsdb_identifier(name, "knowledge base name")
+        safe_model = _escape_mindsdb_string(model)
+        safe_storage = _escape_mindsdb_string(storage)
         sql = f"""
-        CREATE KNOWLEDGE_BASE {name}
+        CREATE KNOWLEDGE_BASE {safe_name}
         USING
-            model = '{model}',
-            storage = '{storage}'
+            model = '{safe_model}',
+            storage = '{safe_storage}'
         """
         return await self._execute_sql(sql)
 
     async def insert_knowledge(
         self, kb_name: str, content: str, metadata: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Insert knowledge into a knowledge base."""
+        """Insert knowledge into a knowledge base.
+
+        Security: kb_name validated as identifier; content and serialised
+        metadata are escaped before embedding in the SQL VALUES clause.
+        """
+        safe_kb = _validate_mindsdb_identifier(kb_name, "knowledge base name")
+        safe_content = _escape_mindsdb_string(content)
+        safe_metadata = _escape_mindsdb_string(json.dumps(metadata))
         sql = f"""
-        INSERT INTO {kb_name} (content, metadata)
-        VALUES ('{content}', '{json.dumps(metadata)}')
+        INSERT INTO {safe_kb} (content, metadata)
+        VALUES ('{safe_content}', '{safe_metadata}')
         """
         return await self._execute_sql(sql)
 
     async def query_knowledge(
         self, kb_name: str, question: str, limit: int = 5
     ) -> Dict[str, Any]:
-        """Query a knowledge base."""
+        """Query a knowledge base.
+
+        Security: kb_name validated as identifier; question is escaped as a
+        SQL string literal; limit is cast to int to prevent injection.
+        """
+        safe_kb = _validate_mindsdb_identifier(kb_name, "knowledge base name")
+        safe_question = _escape_mindsdb_string(question)
+        # Cast limit to int explicitly — prevents any string injection
+        safe_limit = int(limit)
         sql = f"""
-        SELECT * FROM {kb_name}
-        WHERE question = '{question}'
-        LIMIT {limit}
+        SELECT * FROM {safe_kb}
+        WHERE question = '{safe_question}'
+        LIMIT {safe_limit}
         """
         return await self._execute_sql(sql)
 
     async def create_agent(
         self, name: str, model: str = "gpt-4", skills: List[str] = None
     ) -> Dict[str, Any]:
-        """Create an AI agent in MindsDB."""
+        """Create an AI agent in MindsDB.
+
+        Security: name is validated as an identifier; model is escaped as a
+        string literal; each skill name is validated as an identifier.
+        """
+        safe_name = _validate_mindsdb_identifier(name, "agent name")
+        safe_model = _escape_mindsdb_string(model)
         skills_clause = ""
         if skills:
-            skills_clause = f", skills = [{', '.join(skills)}]"
+            # Validate each skill identifier before interpolating
+            safe_skills = [
+                _validate_mindsdb_identifier(s, f"skill '{s}'") for s in skills
+            ]
+            skills_clause = f", skills = [{', '.join(safe_skills)}]"
         sql = f"""
-        CREATE AGENT {name}
+        CREATE AGENT {safe_name}
         USING
-            model = '{model}'{skills_clause}
+            model = '{safe_model}'{skills_clause}
         """
         return await self._execute_sql(sql)
 
@@ -285,7 +368,7 @@ class MindsDBClient:
             )
             response.raise_for_status()
             return response.json()
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("mindsdb.sql_error", error=str(e), sql=sql[:100])
             return {"error": str(e)}
 
@@ -294,7 +377,7 @@ class MindsDBClient:
         try:
             response = await self.client.get(f"{self.base_url}/api/status")
             return response.json()
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return {"status": "unavailable"}
 
 
@@ -361,7 +444,7 @@ class IntelligentSecurityEngine:
             # Create predictive models
             await self._create_predictive_models()
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("mindsdb.initialization_failed", error=str(e))
 
     async def _create_predictive_models(self):
@@ -388,7 +471,7 @@ class IntelligentSecurityEngine:
             """
             )
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("mindsdb.model_creation_failed", error=str(e))
 
     async def gather_intelligence(
@@ -553,7 +636,7 @@ class IntelligentSecurityEngine:
                 if result.get("compliance_violations"):
                     compliance_violations.extend(result["compliance_violations"])
 
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.error("execution.phase_failed", phase=phase_name, error=str(e))
                 if self.config.guardrails.get("auto_stop_on_detection"):
                     break
@@ -699,7 +782,7 @@ class IntelligentSecurityEngine:
                 score = svc.get_epss_score(cve)
                 result[cve] = score.epss if score else -1.0  # -1 = no data
             return result
-        except Exception as exc:
+        except ImportError as exc:
             logger.warning("epss_fetch_failed", error=str(exc), cve_count=len(cve_ids))
             return {cve: -1.0 for cve in cve_ids}  # -1 = unavailable
 
@@ -713,7 +796,7 @@ class IntelligentSecurityEngine:
                 kev = svc.is_in_kev(cve)
                 result[cve] = kev if isinstance(kev, bool) else False
             return result
-        except Exception as exc:
+        except ImportError as exc:
             logger.warning("kev_fetch_failed", error=str(exc), cve_count=len(cve_ids))
             return {}  # empty = no KEV data available
 
@@ -738,7 +821,7 @@ class IntelligentSecurityEngine:
                 else:
                     result[cve] = "unknown"
             return result
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning("exploit_check_failed", error=str(exc), cve_count=len(cve_ids))
             return {cve: "unknown" for cve in cve_ids}
 

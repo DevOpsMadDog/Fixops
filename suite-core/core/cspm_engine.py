@@ -520,7 +520,7 @@ class CSPMEngine:
         except json.JSONDecodeError as e:
             logger.warning("Invalid CloudFormation JSON at position %d: %s", e.pos or 0, e.msg)
             data = {}
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("Failed to parse CloudFormation: %s", type(e).__name__)
             data = {}
         resources = data.get("Resources", {})

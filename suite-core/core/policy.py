@@ -215,7 +215,7 @@ class PolicyAutomation:
         for action in planned_actions:
             try:
                 outcome = self.dispatcher.dispatch(action)
-            except Exception as exc:  # pragma: no cover - defensive logging
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # pragma: no cover - defensive logging
                 outcome = {
                     "status": "failed",
                     "error": str(exc),

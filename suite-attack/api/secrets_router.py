@@ -17,7 +17,8 @@ from typing import Any, Dict, List, Optional
 from core.secrets_db import SecretsDB
 from core.secrets_models import SecretFinding, SecretStatus, SecretType
 from core.secrets_scanner import SecretsScanner, get_secrets_detector
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field, field_validator
 
 # Knowledge Brain + Event Bus integration (graceful degradation)
@@ -103,7 +104,7 @@ class PaginatedSecretFindingResponse(BaseModel):
 
 
 @router.get("/status")
-async def get_secrets_status():
+async def get_secrets_status(org_id: str = Depends(get_org_id)):
     """Get status of secrets scanning subsystem."""
     findings = db.list_findings(limit=10000)
     resolved = sum(1 for f in findings if f.status == SecretStatus.RESOLVED)
@@ -122,7 +123,7 @@ async def get_secrets_status():
 
 
 @router.get("/health")
-async def secrets_health():
+async def secrets_health(org_id: str = Depends(get_org_id)):
     """Secrets scanner health check (alias for /status)."""
     return await get_secrets_status()
 
@@ -145,10 +146,10 @@ async def get_scan_results(
                     "status": (f.status.value if hasattr(f, "status") and hasattr(f.status, "value") else str(getattr(f, "status", "open"))),
                     "detected_at": (f.created_at.isoformat() if hasattr(f, "created_at") and f.created_at else None),
                 })
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 continue
         return {"status": "ok", "results": results, "total": len(results)}
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         return {"status": "ok", "results": [], "total": 0}
 
 
@@ -169,7 +170,7 @@ async def list_secret_findings(
 
 
 @router.post("", response_model=SecretFindingResponse, status_code=201)
-async def create_secret_finding(finding_data: SecretFindingCreate):
+async def create_secret_finding(finding_data: SecretFindingCreate, org_id: str = Depends(get_org_id)):
     """Create a new secret finding."""
     finding = SecretFinding(
         id="",
@@ -211,14 +212,14 @@ async def create_secret_finding(finding_data: SecretFindingCreate):
                     },
                 )
             )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("Brain/EventBus integration failed: %s", type(e).__name__)
 
     return SecretFindingResponse(**created_finding.to_dict())
 
 
 @router.get("/{id}", response_model=SecretFindingResponse)
-async def get_secret_finding(id: str):
+async def get_secret_finding(id: str, org_id: str = Depends(get_org_id)):
     """Get secret finding by ID."""
     finding = db.get_finding(id)
     if not finding:
@@ -227,7 +228,7 @@ async def get_secret_finding(id: str):
 
 
 @router.post("/{id}/resolve", response_model=SecretFindingResponse)
-async def resolve_secret_finding(id: str):
+async def resolve_secret_finding(id: str, org_id: str = Depends(get_org_id)):
     """Mark secret finding as resolved."""
     finding = db.get_finding(id)
     if not finding:
@@ -266,7 +267,7 @@ class SecretsDetectorStatusResponse(BaseModel):
 
 
 @router.get("/scanners/status", response_model=SecretsDetectorStatusResponse)
-async def get_detector_status():
+async def get_detector_status(org_id: str = Depends(get_org_id)):
     """Get status of available secrets scanners."""
     detector = get_secrets_detector()
     available = detector.get_available_scanners()
@@ -316,7 +317,7 @@ class SecretsScanContentRequest(BaseModel):
 
 
 @router.post("/scan/content", response_model=SecretsScanResponse)
-async def scan_content_for_secrets(request: SecretsScanContentRequest):
+async def scan_content_for_secrets(request: SecretsScanContentRequest, org_id: str = Depends(get_org_id)):
     """
     Scan content provided as a string for secrets.
 
@@ -343,7 +344,7 @@ async def scan_content_for_secrets(request: SecretsScanContentRequest):
             branch=request.branch,
             scanner=scanner_type,
         )
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         # SECURITY: Never include exception details that might contain secret values
         logger.error(
             "Secrets content scan failed: %s: %s",
@@ -358,7 +359,7 @@ async def scan_content_for_secrets(request: SecretsScanContentRequest):
     for finding in result.findings:
         try:
             db.create_finding(finding)
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("Failed to persist finding: %s", type(e).__name__)
 
     return SecretsScanResponse(

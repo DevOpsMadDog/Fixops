@@ -4,11 +4,38 @@ Enterprise Redis cache service with high-performance optimization
 
 from typing import Any, Dict, List, Optional
 
-import orjson
-import redis.asyncio as redis
+try:
+    import orjson
+    _ORJSON_AVAILABLE = True
+except ImportError:
+    import json as orjson  # type: ignore[no-redef]
+    # Shim: json.dumps returns str, not bytes; wrap to match orjson interface
+    _orjson_orig = orjson
+    class _OrjsonShim:
+        @staticmethod
+        def dumps(obj: Any) -> bytes:
+            return _orjson_orig.dumps(obj).encode("utf-8")
+        @staticmethod
+        def loads(data: Any) -> Any:
+            if isinstance(data, (bytes, bytearray)):
+                data = data.decode("utf-8")
+            return _orjson_orig.loads(data)
+        class JSONDecodeError(Exception):
+            pass
+    orjson = _OrjsonShim()  # type: ignore[assignment]
+    _ORJSON_AVAILABLE = False
+
+try:
+    import redis.asyncio as redis
+    from redis.asyncio.connection import ConnectionPool
+    _REDIS_AVAILABLE = True
+except ImportError:
+    redis = None  # type: ignore[assignment]
+    ConnectionPool = None  # type: ignore[assignment]
+    _REDIS_AVAILABLE = False
+
 import structlog
 from config.enterprise.settings import get_settings
-from redis.asyncio.connection import ConnectionPool
 
 logger = structlog.get_logger()
 settings = get_settings()
@@ -18,8 +45,8 @@ class CacheService:
     """High-performance Redis cache service with enterprise features"""
 
     _instance: Optional["CacheService"] = None
-    _redis_pool: Optional[ConnectionPool] = None
-    _redis_client: Optional[redis.Redis] = None
+    _redis_pool: Optional[Any] = None
+    _redis_client: Optional[Any] = None
     _in_memory_cache: Dict[str, Any] = {}
 
     def __init__(self):
@@ -32,6 +59,11 @@ class CacheService:
     async def initialize(cls):
         """Initialize Redis connection pool with enterprise configuration"""
         if cls._redis_pool is not None:
+            return
+
+        if not _REDIS_AVAILABLE:
+            logger.warning("Redis package not available, using in-memory cache fallback")
+            cls._in_memory_cache = {}
             return
 
         # Parse Redis URL
@@ -63,7 +95,7 @@ class CacheService:
             logger.info(
                 f"Redis cache service initialized max_connections={settings.REDIS_MAX_CONNECTIONS} url={display_url}"
             )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning(
                 f"Redis connection failed, falling back to in-memory cache: {str(e)}"
             )
@@ -99,7 +131,7 @@ class CacheService:
                 return True
             # In-memory cache is always available
             return hasattr(self.__class__, "_in_memory_cache")
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Redis ping failed: {str(e)}")
             return hasattr(self.__class__, "_in_memory_cache")
 
@@ -128,21 +160,26 @@ class CacheService:
                 )
                 return bool(result)
             else:
-                # In-memory cache fallback
+                # In-memory cache fallback — normalise value to match Redis behaviour:
+                # dict/list are stored as-is (deserialisable JSON),
+                # str is stored as-is, everything else is coerced to str().
                 if nx and key in self.__class__._in_memory_cache:
                     return False
+
+                if not isinstance(value, (dict, list, str)):
+                    value = str(value)
 
                 # Store with timestamp for TTL support
                 import time
 
                 cache_item = {
                     "value": value,
-                    "expires_at": time.time() + ttl if ttl else None,
+                    "expires_at": time.time() + ttl if ttl is not None else None,
                 }
                 self.__class__._in_memory_cache[key] = cache_item
                 return True
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Cache set error for key {key}: {str(e)}")
             return False
 
@@ -181,7 +218,7 @@ class CacheService:
 
                 return cache_item["value"]
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Cache get error for key {key}: {str(e)}")
             return default
 
@@ -197,7 +234,7 @@ class CacheService:
                     del self.__class__._in_memory_cache[key]
                     return True
                 return False
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Cache delete error for key {key}: {str(e)}")
             return False
 
@@ -224,7 +261,7 @@ class CacheService:
                     return False
 
                 return True
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Cache exists error for key {key}: {str(e)}")
             return False
 
@@ -233,7 +270,7 @@ class CacheService:
         try:
             result = await self._redis_client.expire(key, ttl)
             return bool(result)
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Cache expire error for key {key}: {str(e)}")
             return False
 
@@ -241,7 +278,7 @@ class CacheService:
         """Get remaining TTL for key (-1 = no expiry, -2 = key doesn't exist)"""
         try:
             return await self._redis_client.ttl(key)
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Cache TTL error for key {key}: {str(e)}")
             return -2
 
@@ -250,7 +287,7 @@ class CacheService:
         try:
             result = await self._redis_client.incrby(key, amount)
             return result
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Cache increment error for key {key}: {str(e)}")
             return None
 
@@ -259,7 +296,7 @@ class CacheService:
         try:
             result = await self._redis_client.decrby(key, amount)
             return result
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Cache decrement error for key {key}: {str(e)}")
             return None
 
@@ -283,7 +320,7 @@ class CacheService:
 
             return True
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Cache set_hash error for key {key}: {str(e)}")
             return False
 
@@ -310,7 +347,7 @@ class CacheService:
                         result[k.decode("utf-8")] = v.decode("utf-8")
                 return result
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Cache get_hash error for key {key}: {str(e)}")
             return None if field else {}
 
@@ -334,7 +371,7 @@ class CacheService:
 
             return result
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Cache add_to_set error for key {key}: {str(e)}")
             return 0
 
@@ -350,7 +387,7 @@ class CacheService:
                     result.append(member.decode("utf-8"))
             return result
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Cache get_set_members error for key {key}: {str(e)}")
             return []
 
@@ -366,7 +403,7 @@ class CacheService:
             result = await self._redis_client.sismember(key, serialized_value)
             return bool(result)
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Cache is_in_set error for key {key}: {str(e)}")
             return False
 
@@ -393,7 +430,7 @@ class CacheService:
 
             return result
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Cache push_to_list error for key {key}: {str(e)}")
             return 0
 
@@ -411,7 +448,7 @@ class CacheService:
                     result.append(item.decode("utf-8"))
             return result
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Cache get_list_range error for key {key}: {str(e)}")
             return []
 
@@ -428,7 +465,7 @@ class CacheService:
                 "instantaneous_ops_per_sec": info.get("instantaneous_ops_per_sec", 0),
                 "uptime_in_seconds": info.get("uptime_in_seconds", 0),
             }
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Cache stats error: {str(e)}")
             return {}
 

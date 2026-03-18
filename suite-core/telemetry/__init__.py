@@ -54,7 +54,7 @@ if not _NOOP:
             """Export spans, suppressing connection errors."""
             try:
                 return self._exporter.export(spans)
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.debug(f"Failed to export spans: {exc}")
                 from opentelemetry.sdk.trace.export import SpanExportResult
 
@@ -64,14 +64,14 @@ if not _NOOP:
             """Shutdown the exporter, suppressing errors."""
             try:
                 return self._exporter.shutdown()
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.debug(f"Failed to shutdown span exporter: {exc}")
 
         def force_flush(self, timeout_millis=None):
             """Force flush, suppressing errors."""
             try:
                 return self._exporter.force_flush(timeout_millis)
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.debug(f"Failed to force flush spans: {exc}")
                 return True
 
@@ -79,28 +79,29 @@ if not _NOOP:
         """Wrapper around OTLPMetricExporter that suppresses connection errors."""
 
         def __init__(self, exporter: MetricExporter):
+            super().__init__()
             self._exporter = exporter
 
-        def export(self, metrics):
+        def export(self, metrics, *args, **kwargs):
             """Export metrics, suppressing connection errors."""
             try:
-                return self._exporter.export(metrics)
-            except Exception as exc:
+                return self._exporter.export(metrics, *args, **kwargs)
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.debug(f"Failed to export metrics: {exc}")
                 return MetricExportResult.SUCCESS
 
-        def shutdown(self, timeout_millis=30000):
+        def shutdown(self, *args, **kwargs):
             """Shutdown the exporter, suppressing errors."""
             try:
-                return self._exporter.shutdown(timeout_millis)
-            except Exception as exc:
+                return self._exporter.shutdown(*args, **kwargs)
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.debug(f"Failed to shutdown metric exporter: {exc}")
 
-        def force_flush(self, timeout_millis=10000):
+        def force_flush(self, *args, **kwargs):
             """Force flush, suppressing errors."""
             try:
-                return self._exporter.force_flush(timeout_millis)
-            except Exception as exc:
+                return self._exporter.force_flush(*args, **kwargs)
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.debug(f"Failed to force flush metrics: {exc}")
                 return True
 
@@ -171,7 +172,7 @@ def configure(service_name: str = "fixops-platform") -> None:
 
         _CONFIGURED = True
         logger.info(f"Telemetry configured for {service_name}, endpoint: {endpoint}")
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.warning(
             f"Failed to configure telemetry: {exc}. Application will continue without telemetry."
         )

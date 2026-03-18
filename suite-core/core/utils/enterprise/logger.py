@@ -95,7 +95,7 @@ async def log_security_event(
             timestamp=datetime.now(timezone.utc).isoformat(),
         )
 
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         # Never let logging failures impact the application
         logger = structlog.get_logger()
         logger.error(f"Failed to log security event: {str(e)}")

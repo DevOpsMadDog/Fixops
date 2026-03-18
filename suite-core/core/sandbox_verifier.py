@@ -389,7 +389,7 @@ class SandboxVerifier:
                 result.status = VerificationStatus.ERROR
                 result.error_message = "Docker runtime not found"
                 return result
-            except Exception as e:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
                 result.status = VerificationStatus.ERROR
                 # Only expose exception type, not message (may leak paths/secrets)
                 result.error_message = f"Execution error: {type(e).__name__}"
@@ -644,7 +644,7 @@ for payload in payloads:
         body = resp.read().decode("utf-8", errors="ignore")
         if "error" in body.lower() or "sql" in body.lower() or resp.status == 200:
             print(f"VULNERABLE: SQL injection indicator with payload: {{payload[:20]}}")
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         print(f"Error: {{e}}")
 print("Verification complete")
 """,
@@ -698,7 +698,7 @@ if target:
             print(f"VULNERABLE: Missing security headers: {{', '.join(missing)}}")
         else:
             print("NOT_VULNERABLE: Security headers present")
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         print(f"Error reaching target: {{e}}")
 else:
     print("No target URL provided — static analysis only")
@@ -969,7 +969,7 @@ echo "PROBE_END"
             except subprocess.TimeoutExpired:
                 result.error = f"Probe timeout after {self.timeout}s"
                 return result
-            except Exception as e:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
                 result.error = str(e)
                 return result
 

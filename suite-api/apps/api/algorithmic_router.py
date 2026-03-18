@@ -1,1 +1,1 @@
-/home/user/workspace/Fixops/suite-core/api/algorithmic_router.py
+../../../suite-core/api/algorithmic_router.py

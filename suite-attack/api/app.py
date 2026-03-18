@@ -106,7 +106,7 @@ for module_name, display_name in _attack_routers.items():
         _router: APIRouter = getattr(mod, "router")
         app.include_router(_router, dependencies=[_auth_dep])
         logger.info("Loaded %s router", display_name)
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.warning("%s router not available: %s", display_name, exc)
 
 # Enterprise reachability analysis (lives in suite-evidence-risk/risk/reachability/)

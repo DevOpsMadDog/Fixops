@@ -912,7 +912,7 @@ class RiskScoringModel:
             self._trained = True
             logger.info("Model loaded from %s", load_dir)
             return True
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Failed to load model: %s", e)
             return False
 
@@ -1170,7 +1170,7 @@ class RiskScoringModel:
         try:
             import sklearn
             return sklearn.__version__
-        except Exception:
+        except ImportError:
             return "unknown"
 
 
@@ -1193,7 +1193,7 @@ def get_risk_model() -> RiskScoringModel:
                 try:
                     _model_instance.train_from_golden_dataset()
                     _model_instance.save()
-                except Exception as e:
+                except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                     logger.warning("Could not train risk model: %s", e)
     return _model_instance
 

@@ -19,6 +19,7 @@ import os
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field, validator
 
@@ -209,7 +210,7 @@ def _with_banner(response: Dict[str, Any]) -> Dict[str, Any]:
     try:
         engine = _get_engine()
         return engine.classify_response(response)
-    except Exception:
+    except (ImportError, AttributeError, RuntimeError):
         return response
 
 
@@ -236,9 +237,9 @@ async def get_status(_: str = Depends(_require_api_key)) -> Dict[str, Any]:
         engine = _get_engine()
         status = engine.get_status()
         return _with_banner({"status": "ok", **status})
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Error fetching air-gap status")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -273,10 +274,10 @@ async def configure_airgap(
             "instance_id": updated.instance_id,
         })
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
+        raise HTTPException(status_code=400, detail=type(exc).__name__)
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Error configuring air-gap mode")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -304,9 +305,9 @@ async def health_check(_: str = Depends(_require_api_key)) -> Dict[str, Any]:
         engine = _get_engine()
         result = engine.run_health_check()
         return _with_banner({"status": "ok", **result})
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Error running air-gap health check")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -348,12 +349,12 @@ async def import_vuln_db(
             "size_bytes": info.size_bytes,
         })
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=type(exc).__name__)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
+        raise HTTPException(status_code=400, detail=type(exc).__name__)
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Error importing vulnerability DB")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -388,10 +389,10 @@ async def export_vuln_db(
             "output_path": output_path,
         })
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
-    except Exception as exc:
+        raise HTTPException(status_code=404, detail=type(exc).__name__)
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Error exporting vulnerability DB")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -428,12 +429,12 @@ async def import_threat_intel(
             **manifest,
         })
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=type(exc).__name__)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
+        raise HTTPException(status_code=400, detail=type(exc).__name__)
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Error importing threat intelligence")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -477,12 +478,12 @@ async def export_threat_intel(
             "classification": req.classification or engine.config.classification_level,
         })
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=type(exc).__name__)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
+        raise HTTPException(status_code=400, detail=type(exc).__name__)
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Error exporting threat intelligence")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -517,8 +518,8 @@ async def get_classification(_: str = Depends(_require_api_key)) -> Dict[str, An
             "classification_level": level,
             "banner": banner,
         })
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -561,10 +562,10 @@ async def set_classification(
             "set_by": req.set_by,
         })
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
+        raise HTTPException(status_code=400, detail=type(exc).__name__)
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Error setting classification level")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -596,9 +597,9 @@ async def get_fips_status(_: str = Depends(_require_api_key)) -> Dict[str, Any]:
         engine = _get_engine()
         report = engine.get_fips_status()
         return _with_banner({"status": "ok", **report})
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Error fetching FIPS status")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -646,12 +647,12 @@ async def create_update_package(
             **manifest,
         })
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=type(exc).__name__)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
+        raise HTTPException(status_code=400, detail=type(exc).__name__)
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Error creating update package")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -686,12 +687,12 @@ async def apply_update_package(
         result = engine.apply_update_package(req.package_path)
         return _with_banner({"status": "ok", **result})
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=type(exc).__name__)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
+        raise HTTPException(status_code=400, detail=type(exc).__name__)
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Error applying update package")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -709,6 +710,7 @@ async def list_dependencies(
         None,
         description="Filter by type: api | dns | package_registry | llm | vuln_db",
     ),
+    org_id: str = Depends(get_org_id),
     required_only: bool = Query(
         False,
         description="Only return required dependencies",
@@ -753,9 +755,9 @@ async def list_dependencies(
                 "offline_available": offline_available,
             },
         })
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Error listing dependencies")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -796,9 +798,9 @@ async def detect_isolation(_: str = Depends(_require_api_key)) -> Dict[str, Any]
             "detection_method": status.detection_method,
             "mode_after_detection": engine.config.mode,
         })
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Error during isolation detection")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
 
 
 @router.post(
@@ -835,9 +837,9 @@ async def probe_local_llm(_: str = Depends(_require_api_key)) -> Dict[str, Any]:
                 else "No local LLM backend found. Install Ollama or vLLM."
             ),
         })
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Error probing local LLM")
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
 
 
 @router.get(
@@ -883,9 +885,9 @@ async def lookup_cve(
         })
     except HTTPException:
         raise
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Error looking up CVE %s", cve_id)
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
 
 
 @router.get(
@@ -928,8 +930,8 @@ async def get_vuln_db_info(_: str = Depends(_require_api_key)) -> Dict[str, Any]
             "size_bytes": info.size_bytes,
             "is_valid": info.is_valid,
         })
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
 
 
 @router.get(
@@ -962,8 +964,8 @@ async def get_threat_intel_info(_: str = Depends(_require_api_key)) -> Dict[str,
             "available": True,
             **manifest,
         })
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+    except ImportError as exc:
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
 
 
 @router.get(
@@ -987,8 +989,8 @@ async def list_applied_updates(_: str = Depends(_require_api_key)) -> Dict[str, 
             "count": len(packages),
             "packages": packages,
         })
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
 
 
 @router.get(
@@ -1025,5 +1027,5 @@ async def list_fips_algorithms(_: str = Depends(_require_api_key)) -> Dict[str, 
                 "MD5 and SHA-1 are explicitly forbidden under FIPS 140-2/3."
             ),
         })
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(exc).__name__)

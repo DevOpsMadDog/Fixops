@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Send, X, Bot, User, Loader2, Sparkles } from 'lucide-react';
+import { Send, X, Bot, User, Loader2, Sparkles, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
@@ -15,10 +15,43 @@ interface Message {
   timestamp: Date;
 }
 
+// ── Service unavailable error state component ──────────────────────────────
+function CopilotServiceError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.96 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="mx-3 my-4 rounded-xl border border-red-500/20 bg-red-500/5 p-4"
+    >
+      <div className="flex items-start gap-3">
+        <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-red-300">AI Copilot Unavailable</p>
+          <p className="text-xs text-red-400/80 mt-1 leading-relaxed">
+            The AI Copilot service is currently offline. This may be due to missing
+            LLM API credentials (OPENAI_API_KEY / ANTHROPIC_API_KEY) or a backend
+            service interruption.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRetry}
+            className="mt-3 h-7 border-red-500/30 text-red-300 hover:bg-red-500/10 hover:border-red-400/50 text-xs"
+          >
+            <RefreshCw className="w-3 h-3 mr-1.5" />
+            Retry Connection
+          </Button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function AICopilot() {
   const { toggleCopilot } = useUIStore();
   const { messages, addMessage, isLoading, setLoading } = useChatStore();
   const [input, setInput] = useState('');
+  const [serviceError, setServiceError] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -172,10 +205,26 @@ Navigate to Cloud Suite → Attack Paths for reachability insights.`;
         }
       }
       else {
-        // Generic helpful response
-        response = getFallbackResponse(input.trim());
+        // Route unrecognised queries to the backend copilot chat endpoint
+        try {
+          const chatRes = await fetch('/api/v1/copilot/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: input.trim(), agent_id: 'security-analyst' }),
+          });
+          if (!chatRes.ok) throw new Error(`HTTP ${chatRes.status}`);
+          const chatData = await chatRes.json() as { response?: string };
+          response = chatData.response || 'No response from copilot service.';
+          setServiceError(false);
+        } catch {
+          // Backend copilot endpoint unreachable — surface a proper error state
+          setServiceError(true);
+          setLoading(false);
+          return;
+        }
       }
 
+      setServiceError(false);
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -184,101 +233,19 @@ Navigate to Cloud Suite → Attack Paths for reachability insights.`;
       };
 
       addMessage(assistantMessage);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('AI Copilot error:', error);
-      
-      // Provide navigation help when AI service unavailable
-      const fallbackResponse = `> **Note:** AI copilot service is currently offline. Showing navigation guide.\n\n` + getFallbackResponse(input.trim());
-      
-      const assistantMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: fallbackResponse,
-        timestamp: new Date(),
-      };
-
-      addMessage(assistantMessage);
-      
-      if (error.response?.status !== 404) {
-        toast.error('AI copilot service unavailable — showing offline help');
-      }
+      setServiceError(true);
+      toast.error('AI Copilot service unavailable');
     } finally {
       setLoading(false);
     }
   };
 
-  const getFallbackResponse = (query: string): string => {
-    const lowerQuery = query.toLowerCase();
-    
-    if (lowerQuery.includes('vulnerability') || lowerQuery.includes('cve')) {
-      return `I can help you analyze vulnerabilities. Based on the current data in the system:
-
-**Quick Actions:**
-- View all critical vulnerabilities in the Intelligence Hub
-- Check EPSS scores for prioritization
-- Review KEV (Known Exploited Vulnerabilities) status
-
-To get specific CVE details, navigate to the Data Fabric and use the vulnerability search feature.`;
-    }
-    
-    if (lowerQuery.includes('risk') || lowerQuery.includes('priority')) {
-      return `For risk prioritization, I recommend using the Decision Engine which applies multiple algorithms:
-
-**Available Algorithms:**
-- CVSS (Common Vulnerability Scoring System)
-- EPSS (Exploit Prediction Scoring System)
-- SSVC (Stakeholder-Specific Vulnerability Categorization)
-- KEV (Known Exploited Vulnerabilities)
-
-Navigate to Decision Engine to configure your prioritization strategy.`;
-    }
-    
-    if (lowerQuery.includes('pentest') || lowerQuery.includes('attack') || lowerQuery.includes('exploit')) {
-      return `The Attack Lab provides micro-penetration testing capabilities:
-
-**Features:**
-- Automated exploit validation
-- Safe sandbox environment
-- Proof-of-concept generation
-- Exploitability verification
-
-Navigate to Attack Lab to run security validation tests.`;
-    }
-    
-    if (lowerQuery.includes('compliance') || lowerQuery.includes('pci') || lowerQuery.includes('soc')) {
-      return `Compliance mapping is available in the Evidence Vault:
-
-**Supported Frameworks:**
-- PCI DSS 4.0
-- SOC 2 Type II
-- NIST CSF
-- ISO 27001
-
-Navigate to Evidence Vault to generate compliance reports and evidence packages.`;
-    }
-    
-    if (lowerQuery.includes('remediation') || lowerQuery.includes('fix') || lowerQuery.includes('patch')) {
-      return `The Remediation Center provides actionable fixes:
-
-**Capabilities:**
-- AI-generated remediation code
-- Patch recommendations
-- Dependency upgrade paths
-- Pull request generation
-
-Navigate to Remediation Center for guided fix workflows.`;
-    }
-    
-    return `I'm ALdeci's AI assistant. I can help you with:
-
-- **Vulnerability Analysis** - Search and analyze CVEs
-- **Risk Prioritization** - Use EPSS, SSVC, KEV algorithms
-- **Attack Simulation** - Validate exploitability safely
-- **Compliance Mapping** - Generate evidence packages
-- **Remediation Guidance** - Get actionable fixes
-
-What would you like to explore?`;
-  };
+  const handleRetry = useCallback(() => {
+    setServiceError(false);
+    inputRef.current?.focus();
+  }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -398,6 +365,9 @@ What would you like to explore?`;
           )}
         </div>
       </ScrollArea>
+
+      {/* Service error banner — shown below messages, above input */}
+      {serviceError && <CopilotServiceError onRetry={handleRetry} />}
 
       {/* Input */}
       <div className="p-4 border-t border-border">

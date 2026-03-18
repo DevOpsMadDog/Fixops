@@ -427,7 +427,7 @@ class BuiltinScanner:
                 self._phase = 19
                 # Verification complete
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Scan failed for %s: %s", target, type(e).__name__)
             # Even on error, return whatever findings we collected
             if not self._findings:
@@ -495,7 +495,7 @@ class BuiltinScanner:
         """Fetch a URL with error handling."""
         try:
             return await client.get(url)
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("Failed to fetch %s: %s", url, type(e).__name__)
             return None
 
@@ -505,13 +505,13 @@ class BuiltinScanner:
         try:
             ips = socket.getaddrinfo(hostname, None, socket.AF_INET)
             result["ipv4"] = list(set(ip[4][0] for ip in ips))
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             result["ipv4"] = []
 
         try:
             ips6 = socket.getaddrinfo(hostname, None, socket.AF_INET6)
             result["ipv6"] = list(set(ip[4][0] for ip in ips6))
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             result["ipv6"] = []
 
         return result
@@ -712,7 +712,7 @@ class BuiltinScanner:
                     impact="Cross-origin credential theft",
                     owasp_category="A01:2021 Broken Access Control",
                 ))
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     async def _check_cookies(self, resp: httpx.Response, url: str) -> None:
@@ -841,7 +841,7 @@ class BuiltinScanner:
             allow_header = resp.headers.get("allow", "")
             if allow_header:
                 allowed = [m.strip().upper() for m in allow_header.split(",")]
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
         # Test TRACE specifically
@@ -849,7 +849,7 @@ class BuiltinScanner:
             resp = await client.request("TRACE", url)
             if resp.status_code < 400:
                 allowed.append("TRACE")
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
         dangerous_found = [m for m in dangerous_methods if m in allowed]
@@ -938,7 +938,7 @@ class BuiltinScanner:
                         impact="Sensitive data exposure" if is_sensitive else "Information disclosure",
                         owasp_category="A01:2021 Broken Access Control" if is_sensitive else "A05:2021 Security Misconfiguration",
                     ))
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     async def _check_open_ports(self, hostname: str) -> List[Dict[str, Any]]:
@@ -982,7 +982,7 @@ class BuiltinScanner:
                             impact="Unauthorized access to sensitive service",
                             owasp_category="A05:2021 Security Misconfiguration",
                         ))
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
 
         tasks = [check_port(p, s) for p, s in common_ports.items()]
@@ -1053,7 +1053,7 @@ class BuiltinScanner:
                         impact="Unencrypted data transmission",
                         owasp_category="A02:2021 Cryptographic Failures",
                     ))
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     def _correlate_risks(self) -> None:

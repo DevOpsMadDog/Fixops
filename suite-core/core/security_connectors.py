@@ -68,7 +68,7 @@ class SnykConnector(_BaseConnector):
                     "count": len(data.get("projects", [])),
                 },
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def get_issues(self, project_id: str) -> ConnectorOutcome:
@@ -84,7 +84,7 @@ class SnykConnector(_BaseConnector):
             data = resp.json()
             issues = data.get("issues", [])
             return ConnectorOutcome("fetched", {"issues": issues, "count": len(issues)})
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def health_check(self) -> ConnectorHealth:
@@ -103,7 +103,7 @@ class SnykConnector(_BaseConnector):
             return ConnectorHealth(
                 healthy=False, latency_ms=ms, message=f"HTTP {resp.status_code}"
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorHealth(
                 healthy=False, latency_ms=(time.time() - start) * 1000, message=str(exc)
             )
@@ -162,7 +162,7 @@ class SonarQubeConnector(_BaseConnector):
                 "fetched",
                 {"issues": data.get("issues", []), "total": data.get("total", 0)},
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def get_quality_gate(self, project_key: Optional[str] = None) -> ConnectorOutcome:
@@ -176,7 +176,7 @@ class SonarQubeConnector(_BaseConnector):
             resp = self._request("GET", url, headers=self._headers(), params=params)
             resp.raise_for_status()
             return ConnectorOutcome("fetched", resp.json())
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def health_check(self) -> ConnectorHealth:
@@ -195,7 +195,7 @@ class SonarQubeConnector(_BaseConnector):
             return ConnectorHealth(
                 healthy=False, latency_ms=ms, message=f"HTTP {resp.status_code}"
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorHealth(
                 healthy=False, latency_ms=(time.time() - start) * 1000, message=str(exc)
             )
@@ -246,7 +246,7 @@ class DependabotConnector(_BaseConnector):
             resp.raise_for_status()
             alerts = resp.json()
             return ConnectorOutcome("fetched", {"alerts": alerts, "count": len(alerts)})
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def dismiss_alert(
@@ -267,7 +267,7 @@ class DependabotConnector(_BaseConnector):
             return ConnectorOutcome(
                 "updated", {"alert_number": alert_number, "state": "dismissed"}
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def health_check(self) -> ConnectorHealth:
@@ -288,7 +288,7 @@ class DependabotConnector(_BaseConnector):
             return ConnectorHealth(
                 healthy=False, latency_ms=ms, message=f"HTTP {resp.status_code}"
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorHealth(
                 healthy=False, latency_ms=(time.time() - start) * 1000, message=str(exc)
             )
@@ -349,7 +349,7 @@ class AWSSecurityHubConnector(_BaseConnector):
             return ConnectorOutcome(
                 "fetched", {"findings": findings, "count": len(findings)}
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def batch_update_findings(
@@ -367,7 +367,7 @@ class AWSSecurityHubConnector(_BaseConnector):
             return ConnectorOutcome(
                 "updated", {"count": len(finding_ids), "status": workflow_status}
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def health_check(self) -> ConnectorHealth:
@@ -381,7 +381,7 @@ class AWSSecurityHubConnector(_BaseConnector):
             client.get_findings(MaxResults=1)
             ms = (time.time() - start) * 1000
             return ConnectorHealth(healthy=True, latency_ms=ms, message="OK")
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorHealth(
                 healthy=False, latency_ms=(time.time() - start) * 1000, message=str(exc)
             )
@@ -438,7 +438,7 @@ class AzureSecurityCenterConnector(_BaseConnector):
             resp.raise_for_status()
             self._token = resp.json().get("access_token")
             return self._token
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return None
 
     def _headers(self) -> Dict[str, str]:
@@ -463,7 +463,7 @@ class AzureSecurityCenterConnector(_BaseConnector):
             return ConnectorOutcome(
                 "fetched", {"assessments": assessments, "count": len(assessments)}
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def get_alerts(self) -> ConnectorOutcome:
@@ -482,7 +482,7 @@ class AzureSecurityCenterConnector(_BaseConnector):
             data = resp.json()
             alerts = data.get("value", [])
             return ConnectorOutcome("fetched", {"alerts": alerts, "count": len(alerts)})
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def health_check(self) -> ConnectorHealth:
@@ -545,7 +545,7 @@ class WizConnector(_BaseConnector):
             self._token = data["access_token"]
             self._token_expires = time.time() + data.get("expires_in", 3600) - 60
             return self._token
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning(f"Wiz auth failed: {exc}")
             return None
 
@@ -593,7 +593,7 @@ class WizConnector(_BaseConnector):
             data = self._graphql(query, {"first": limit, "filterBy": filters})
             issues = data.get("data", {}).get("issues", {}).get("nodes", [])
             return ConnectorOutcome("fetched", {"issues": issues, "count": len(issues)})
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def get_vulnerabilities(self, limit: int = 100) -> ConnectorOutcome:
@@ -628,7 +628,7 @@ class WizConnector(_BaseConnector):
             return ConnectorOutcome(
                 "fetched", {"vulnerabilities": vulns, "count": len(vulns)}
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def get_cloud_resources(self, limit: int = 100) -> ConnectorOutcome:
@@ -650,7 +650,7 @@ class WizConnector(_BaseConnector):
             return ConnectorOutcome(
                 "fetched", {"resources": resources, "count": len(resources)}
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def health_check(self) -> ConnectorHealth:
@@ -708,7 +708,7 @@ class PrismaCloudConnector(_BaseConnector):
             self._token = data["token"]
             self._token_expires = time.time() + 600 - 30  # Token valid ~10 mins
             return self._token
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning(f"Prisma Cloud auth failed: {exc}")
             return None
 
@@ -738,7 +738,7 @@ class PrismaCloudConnector(_BaseConnector):
             resp.raise_for_status()
             alerts = resp.json()
             return ConnectorOutcome("fetched", {"alerts": alerts, "count": len(alerts)})
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def get_vulnerabilities(self, limit: int = 100) -> ConnectorOutcome:
@@ -762,7 +762,7 @@ class PrismaCloudConnector(_BaseConnector):
             return ConnectorOutcome(
                 "fetched", {"vulnerabilities": vulns, "count": len(vulns)}
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def get_compliance_findings(self, limit: int = 100) -> ConnectorOutcome:
@@ -781,7 +781,7 @@ class PrismaCloudConnector(_BaseConnector):
             return ConnectorOutcome(
                 "fetched", {"compliance": data, "count": len(data.get("items", []))}
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def health_check(self) -> ConnectorHealth:
@@ -843,7 +843,7 @@ class OrcaSecurityConnector(_BaseConnector):
             data = resp.json()
             alerts = data.get("data", [])
             return ConnectorOutcome("fetched", {"alerts": alerts, "count": len(alerts)})
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def get_vulnerabilities(self, limit: int = 100) -> ConnectorOutcome:
@@ -861,7 +861,7 @@ class OrcaSecurityConnector(_BaseConnector):
             return ConnectorOutcome(
                 "fetched", {"vulnerabilities": vulns, "count": len(vulns)}
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def health_check(self) -> ConnectorHealth:
@@ -880,7 +880,7 @@ class OrcaSecurityConnector(_BaseConnector):
             return ConnectorHealth(
                 healthy=False, latency_ms=ms, message=f"HTTP {resp.status_code}"
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorHealth(
                 healthy=False, latency_ms=(time.time() - start) * 1000, message=str(exc)
             )
@@ -926,7 +926,7 @@ class LaceworkConnector(_BaseConnector):
             self._token = data.get("token")
             self._token_expires = time.time() + 3600 - 60
             return self._token
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning(f"Lacework auth failed: {exc}")
             return None
 
@@ -955,7 +955,7 @@ class LaceworkConnector(_BaseConnector):
                     if a.get("severity", "").lower() == severity.lower()
                 ]
             return ConnectorOutcome("fetched", {"alerts": alerts, "count": len(alerts)})
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def get_vulnerabilities(self, limit: int = 100) -> ConnectorOutcome:
@@ -979,7 +979,7 @@ class LaceworkConnector(_BaseConnector):
             return ConnectorOutcome(
                 "fetched", {"vulnerabilities": vulns[:limit], "count": len(vulns)}
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def health_check(self) -> ConnectorHealth:
@@ -1057,7 +1057,7 @@ class ThreatMapperConnector(_BaseConnector):
             # ThreatMapper tokens typically last 24 h; refresh at 23 h
             self._token_expires = time.time() + 82800
             return self._token
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning(f"ThreatMapper auth failed: {exc}")
             return None
 
@@ -1111,7 +1111,7 @@ class ThreatMapperConnector(_BaseConnector):
             return ConnectorOutcome(
                 "fetched", {"vulnerabilities": vulns, "count": len(vulns)}
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     # -- secret scans -------------------------------------------------------
@@ -1145,7 +1145,7 @@ class ThreatMapperConnector(_BaseConnector):
             return ConnectorOutcome(
                 "fetched", {"secrets": secrets, "count": len(secrets)}
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     # -- malware scans ------------------------------------------------------
@@ -1179,7 +1179,7 @@ class ThreatMapperConnector(_BaseConnector):
             return ConnectorOutcome(
                 "fetched", {"malware": malware, "count": len(malware)}
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     # -- compliance ---------------------------------------------------------
@@ -1223,7 +1223,7 @@ class ThreatMapperConnector(_BaseConnector):
             return ConnectorOutcome(
                 "fetched", {"compliance_results": results, "count": len(results)}
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     # -- topology / inventory -----------------------------------------------
@@ -1243,7 +1243,7 @@ class ThreatMapperConnector(_BaseConnector):
             resp.raise_for_status()
             data = resp.json()
             return ConnectorOutcome("fetched", {"topology": data})
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     # -- trigger scans ------------------------------------------------------
@@ -1273,7 +1273,7 @@ class ThreatMapperConnector(_BaseConnector):
                 "success",
                 {"scan_ids": data.get("scan_ids", []), "message": "Scan started"},
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def trigger_secret_scan(
@@ -1301,7 +1301,7 @@ class ThreatMapperConnector(_BaseConnector):
                 "success",
                 {"scan_ids": data.get("scan_ids", []), "message": "Scan started"},
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     # -- health check -------------------------------------------------------

@@ -42,7 +42,7 @@ def _derive_brand_namespace(provider: FeatureFlagProvider) -> str:
         if branding and isinstance(branding, dict):
             short_name = branding.get("short_name", "fixops")
             return short_name.lower().strip()
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     return "fixops"
@@ -125,7 +125,7 @@ class NamespaceAdapterProvider(FeatureFlagProvider):
                         result,
                     )
                     return result, True
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.debug(
                     "Brand namespace %s lookup failed for %s: %s",
                     brand_ns,
@@ -137,7 +137,7 @@ class NamespaceAdapterProvider(FeatureFlagProvider):
             method = getattr(self.wrapped, method_name)
             result = method(key, default, context)
             return result, result != default
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.debug("Canonical lookup failed for %s: %s", key, exc)
             return default, False
 

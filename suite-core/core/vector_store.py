@@ -13,13 +13,13 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 try:  # Optional dependency – available when enterprise extras installed
     import chromadb  # type: ignore
     from chromadb.config import Settings as ChromaSettings  # type: ignore
-except Exception:  # pragma: no cover - environment without chromadb
+except ImportError:  # pragma: no cover - environment without chromadb
     chromadb = None  # type: ignore[assignment]
     ChromaSettings = None  # type: ignore[assignment]
 
 try:  # Optional dependency for richer embeddings
     from sentence_transformers import SentenceTransformer  # type: ignore
-except Exception:  # pragma: no cover - keep optional
+except ImportError:  # pragma: no cover - keep optional
     SentenceTransformer = None  # type: ignore[assignment]
 
 
@@ -156,7 +156,7 @@ class ChromaVectorStore(BaseVectorStore):
             return None
         try:
             return SentenceTransformer("all-MiniLM-L6-v2")
-        except Exception:  # pragma: no cover - model download failures
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):  # pragma: no cover - model download failures
             return None
 
     def _embed(self, text: str) -> Vector:

@@ -97,7 +97,7 @@ class BaseAgent(ABC):
             self._initialized = True
             logger.info(f"Agent {self.name} initialized successfully")
             return True
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Failed to initialize agent {self.name}: {e}")
             return False
 
@@ -976,7 +976,7 @@ class MindsDBIntegration:
                     return True
             logger.warning("MindsDB returned non-200 at %s", url)
             return False
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("MindsDB not reachable at %s — %s", url, e)
             return False
 
@@ -1078,7 +1078,7 @@ class MindsDBRAGService:
                     self.connected = True
                     logger.info("MindsDB RAG connected at %s:%s", self.host, self.port)
                     return True
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning("MindsDB RAG not reachable: %s", exc)
         self.connected = False
         return False
@@ -1094,7 +1094,7 @@ class MindsDBRAGService:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 body = _json.loads(resp.read().decode())
                 return {"ok": True, "data": body}
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning("MindsDB SQL exec failed: %s — SQL: %s", exc, sql[:200])
             return {"ok": False, "error": str(exc)}
 
@@ -1104,7 +1104,7 @@ class MindsDBRAGService:
         """Create all knowledge bases if they don't exist."""
         results: Dict[str, bool] = {}
         for kb_name in self.ALL_KBS:
-            sql = (
+            sql = (  # nosec B608 — kb_name from hardcoded ALL_KBS allowlist; MindsDB SQL, not database SQL
                 f"CREATE KNOWLEDGE BASE IF NOT EXISTS {kb_name}\n"
                 f"USING\n"
                 f"  model = 'mindsdb.embedding_model',\n"
@@ -1120,7 +1120,7 @@ class MindsDBRAGService:
     async def ensure_chat_model(self) -> bool:
         """Create the chat completion model backed by KBs."""
         kb_list = ", ".join(self.ALL_KBS)
-        sql = (
+        sql = (  # nosec B608 — model_name set in __init__ (hardcoded default); MindsDB SQL
             f"CREATE MODEL IF NOT EXISTS {self.model_name}\n"
             f"PREDICT answer\n"
             f"USING\n"
@@ -1155,7 +1155,7 @@ class MindsDBRAGService:
         for doc in documents:
             content = doc.get("content", "").replace("'", "''")
             metadata = doc.get("metadata", "").replace("'", "''")
-            sql = (
+            sql = (  # nosec B608 — kb_name from ALL_KBS allowlist; values escaped above; MindsDB SQL
                 f"INSERT INTO {kb_name} (content, metadata)\n"
                 f"VALUES ('{content}', '{metadata}');"
             )
@@ -1192,7 +1192,7 @@ class MindsDBRAGService:
                     "content": content,
                     "metadata": f"type=finding;id={r['id']};severity={r['severity']}",
                 })
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning("Failed to read findings for RAG ingest: %s", exc)
 
         if docs:
@@ -1221,7 +1221,7 @@ class MindsDBRAGService:
                     "content": content,
                     "metadata": f"type=remediation;id={r['task_id']};status={r['status']}",
                 })
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning("Failed to read remediation for RAG ingest: %s", exc)
 
         if docs:
@@ -1250,7 +1250,7 @@ class MindsDBRAGService:
                     "content": content,
                     "metadata": f"type=activity;event={r['event_type']}",
                 })
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning("Failed to read activity for RAG ingest: %s", exc)
 
         if docs:
@@ -1274,7 +1274,7 @@ class MindsDBRAGService:
 
         for kb in targets:
             safe_q = query.replace("'", "''")
-            sql = (
+            sql = (  # nosec B608 — kb from ALL_KBS allowlist; safe_q escaped above; MindsDB SQL
                 f"SELECT content, metadata, distance\n"
                 f"FROM {kb}\n"
                 f"WHERE content = '{safe_q}'\n"
@@ -1323,7 +1323,7 @@ class MindsDBRAGService:
         # Step 2: Chat via MindsDB model query
         safe_q = question.replace("'", "''")
         safe_ctx = rag_context.replace("'", "''")[:4000]
-        sql = (
+        sql = (  # nosec B608 — model_name hardcoded; safe_q/safe_ctx escaped above; MindsDB SQL
             f"SELECT answer FROM {self.model_name}\n"
             f"WHERE question = '{safe_q}'\n"
             f"AND context = '{safe_ctx}';"

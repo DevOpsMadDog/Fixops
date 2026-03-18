@@ -170,7 +170,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             response.headers["X-Response-Time"] = f"{duration_ms:.2f}ms"
 
             return response
-        except Exception as exc:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
             duration_ms = (time.perf_counter() - start_time) * 1000
             logger.error(
                 "request.failed",
@@ -185,6 +185,49 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             raise
 
 
+class RequestTracingMiddleware(BaseHTTPMiddleware):
+    """
+    Simple request tracing middleware — adds X-Request-ID and X-Correlation-ID
+    headers when OpenTelemetry is not available or as a lightweight alternative.
+
+    X-Request-ID:     unique per-request UUID (always generated fresh)
+    X-Correlation-ID: propagated from the client or generated (handled by
+                      CorrelationIdMiddleware); this middleware mirrors it onto
+                      the response so callers always see both headers together.
+
+    Both IDs are logged at request start so they appear in every log line
+    generated during the request lifetime, enabling full traceability in
+    Splunk/ELK/CloudWatch without a full OpenTelemetry stack.
+    """
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        # Always create a fresh per-request ID (not the correlation ID which may
+        # be reused across retries by the client).
+        request_id = str(uuid.uuid4())
+        request.state.request_id = request_id
+
+        # Correlation ID may already be set by CorrelationIdMiddleware (which runs
+        # outermost when added last).  Mirror it here as a fallback.
+        correlation_id = getattr(request.state, "correlation_id", None) or str(uuid.uuid4())
+
+        logger.info(
+            "request.tracing",
+            extra={
+                "request_id": request_id,
+                "correlation_id": correlation_id,
+                "method": request.method,
+                "path": request.url.path,
+            },
+        )
+
+        response = await call_next(request)
+
+        response.headers["X-Request-ID"] = request_id
+        response.headers["X-Correlation-ID"] = correlation_id
+
+        return response
+
+
 # Re-export LearningMiddleware for convenience
 try:
     from core.learning_middleware import LearningMiddleware  # noqa: F401
@@ -194,6 +237,7 @@ except ImportError:
 __all__ = [
     "CorrelationIdMiddleware",
     "RequestLoggingMiddleware",
+    "RequestTracingMiddleware",
     "SecurityHeadersMiddleware",
     "LearningMiddleware",
 ]

@@ -16,6 +16,27 @@ This enables backward compatibility with existing scripts, imports, and uvicorn 
 import sys
 from pathlib import Path
 
+# ── Python 3.14 dataclasses bug workaround (cpython#142214) ──
+# dataclasses._add_slots crashes: 'wrapper_descriptor' has no '__annotate__'
+# when @dataclass(init=False, slots=True) is used (e.g. networkx).
+# NOTE: This sitecustomize.py may not be loaded if a system-level one exists.
+# The same patch is also applied in tests/conftest.py for pytest.
+if sys.version_info[:2] == (3, 14):
+    import dataclasses as _dc
+
+    _orig_add_slots = _dc._add_slots  # type: ignore[attr-defined]
+
+    def _safe_add_slots(cls, is_frozen, weakref_slot, fields):  # type: ignore[no-untyped-def]
+        try:
+            return _orig_add_slots(cls, is_frozen, weakref_slot, fields)
+        except AttributeError as exc:
+            if "__annotate__" in str(exc):
+                return cls  # fall back to non-slots
+            raise
+
+    _dc._add_slots = _safe_add_slots  # type: ignore[attr-defined]
+# ── End Python 3.14 workaround ──
+
 # Determine the project root (same directory as this file)
 _PROJECT_ROOT = Path(__file__).parent.resolve()
 

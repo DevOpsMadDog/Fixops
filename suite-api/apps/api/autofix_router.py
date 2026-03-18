@@ -1,1 +1,1 @@
-/home/user/workspace/Fixops/suite-core/api/autofix_router.py
+../../../suite-core/api/autofix_router.py

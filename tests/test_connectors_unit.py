@@ -7,12 +7,12 @@ Covers:
   - _sanitise_text: control chars, truncation, empty/None
   - _mask_secret: short, long, empty
   - _AsyncCircuitBreaker: state transitions closed->open->half_open->closed
-  - ConnectorResult: to_dict() with/without optional fields, demo_mode flag
+  - ConnectorResult: to_dict() with/without optional fields
   - _format_finding_title: severity prefix, CVE prefix, sanitisation
   - _format_finding_description: all optional fields
-  - JiraConnector: configured property, demo mode CRUD
-  - GitHubConnector: configured property, demo mode CRUD
-  - SlackConnector: configured property, demo mode, block building, get_ticket error
+  - JiraConnector: configured property, unconfigured CRUD
+  - GitHubConnector: configured property, unconfigured CRUD
+  - SlackConnector: configured property, block building, get_ticket error
   - UniversalConnector: register, unregister, list, create_tickets fan-out, test_all
   - BaseConnector: metrics, close
 """
@@ -264,14 +264,12 @@ class TestConnectorResult:
             url="https://github.com/org/repo/issues/42",
             details={"number": 42, "status": "open"},
             latency_ms=123.456,
-            demo_mode=True,
         )
         d = r.to_dict()
         assert d["ticket_id"] == "42"
         assert d["url"] == "https://github.com/org/repo/issues/42"
         assert d["details"]["number"] == 42
         assert d["latency_ms"] == 123.46
-        assert d["demo_mode"] is True
 
     def test_to_dict_error_included_when_present(self):
         r = ConnectorResult(
@@ -282,16 +280,6 @@ class TestConnectorResult:
         )
         d = r.to_dict()
         assert d["error"] == "HTTP 500: Internal Server Error"
-
-    def test_demo_mode_omitted_when_false(self):
-        r = ConnectorResult(
-            success=True,
-            connector="jira",
-            operation="create_ticket",
-            demo_mode=False,
-        )
-        d = r.to_dict()
-        assert "demo_mode" not in d
 
 
 # ---------------------------------------------------------------------------
@@ -417,38 +405,38 @@ class TestJiraConnector:
         assert jira.connector_type == "jira"
 
     def test_demo_create_ticket(self):
-        jira = self._make_jira(api_token="")  # unconfigured = demo mode
+        jira = self._make_jira(api_token="")  # unconfigured
         finding = {"severity": "critical", "title": "SQL Injection", "cve_id": "CVE-2024-1234"}
         result = run_async(jira.create_ticket(finding))
-        assert result.success is True
-        assert result.demo_mode is True
-        assert result.ticket_id.startswith("DEMO-")
+        assert result.success is False
+        assert result.ticket_id is None
+        assert result.error is not None
         assert result.connector == "jira"
         assert result.operation == "create_ticket"
 
     def test_demo_update_ticket(self):
         jira = self._make_jira(api_token="")
         result = run_async(jira.update_ticket("DEMO-ABC", {"summary": "Updated"}))
-        assert result.success is True
-        assert result.demo_mode is True
+        assert result.success is False
+        assert result.error is not None
 
     def test_demo_close_ticket(self):
         jira = self._make_jira(api_token="")
         result = run_async(jira.close_ticket("DEMO-ABC", "Fixed"))
-        assert result.success is True
-        assert result.demo_mode is True
+        assert result.success is False
+        assert result.error is not None
 
     def test_demo_get_ticket(self):
         jira = self._make_jira(api_token="")
         result = run_async(jira.get_ticket("DEMO-ABC"))
-        assert result.success is True
-        assert result.demo_mode is True
+        assert result.success is False
+        assert result.error is not None
 
     def test_demo_test_connection(self):
         jira = self._make_jira(api_token="")
         result = run_async(jira.test_connection())
-        assert result.success is True
-        assert result.demo_mode is True
+        assert result.success is False
+        assert result.error is not None
 
     def test_metrics_default(self):
         jira = self._make_jira()
@@ -503,34 +491,33 @@ class TestGitHubConnector:
         gh = self._make_github(token="")
         finding = {"severity": "high", "title": "XSS Vulnerability"}
         result = run_async(gh.create_ticket(finding))
-        assert result.success is True
-        assert result.demo_mode is True
+        assert result.success is False
+        assert result.error is not None
         assert result.connector == "github"
 
     def test_demo_update_ticket(self):
         gh = self._make_github(token="")
         result = run_async(gh.update_ticket("42", {"title": "Updated"}))
-        assert result.success is True
-        assert result.demo_mode is True
+        assert result.success is False
+        assert result.error is not None
 
     def test_demo_close_ticket(self):
         gh = self._make_github(token="")
         result = run_async(gh.close_ticket("42", "Resolved"))
-        assert result.success is True
-        assert result.demo_mode is True
-        assert result.details.get("state") == "closed"
+        assert result.success is False
+        assert result.error is not None
 
     def test_demo_get_ticket(self):
         gh = self._make_github(token="")
         result = run_async(gh.get_ticket("42"))
-        assert result.success is True
-        assert result.demo_mode is True
+        assert result.success is False
+        assert result.error is not None
 
     def test_demo_test_connection(self):
         gh = self._make_github(token="")
         result = run_async(gh.test_connection())
-        assert result.success is True
-        assert result.demo_mode is True
+        assert result.success is False
+        assert result.error is not None
 
 
 # ---------------------------------------------------------------------------
@@ -564,8 +551,8 @@ class TestSlackConnector:
         slack = self._make_slack(webhook_url="")
         finding = {"severity": "critical", "title": "Critical Alert"}
         result = run_async(slack.create_ticket(finding))
-        assert result.success is True
-        assert result.demo_mode is True
+        assert result.success is False
+        assert result.error is not None
         assert result.connector == "slack"
 
     def test_get_ticket_always_fails(self):
@@ -578,7 +565,6 @@ class TestSlackConnector:
         slack = self._make_slack(webhook_url="")
         result = run_async(slack.test_connection())
         assert result.success is True
-        assert result.demo_mode is True
 
     def test_build_blocks_returns_list(self):
         slack = self._make_slack()
@@ -602,11 +588,11 @@ class TestSlackConnector:
         header_types = [b["type"] for b in blocks]
         assert "header" in header_types
 
-    def test_update_ticket_unconfigured_returns_demo(self):
+    def test_update_ticket_unconfigured_returns_error(self):
         slack = self._make_slack(webhook_url="")
         result = run_async(slack.update_ticket("id-123", {"text": "update"}))
-        assert result.success is True
-        assert result.demo_mode is True
+        assert result.success is False
+        assert result.error is not None
 
 
 # ---------------------------------------------------------------------------
@@ -658,9 +644,9 @@ class TestUniversalConnector:
         assert result["total"] == 0
         assert result["success_count"] == 0
 
-    def test_create_tickets_fan_out_demo_mode(self):
+    def test_create_tickets_fan_out_unconfigured(self):
         uc = UniversalConnector()
-        # Register unconfigured connectors (demo mode)
+        # Register unconfigured connectors — all return success=False
         uc.register("jira", JiraConnector("", "", "", ""))
         uc.register("github", GitHubConnector("", "", ""))
         uc.register("slack", SlackConnector(""))
@@ -668,8 +654,8 @@ class TestUniversalConnector:
         finding = {"severity": "critical", "title": "Demo Test", "cve_id": "CVE-2024-9999"}
         result = run_async(uc.create_tickets(finding))
         assert result["total"] == 3
-        assert result["success_count"] == 3
-        assert result["error_count"] == 0
+        assert result["success_count"] == 0
+        assert result["error_count"] == 3
 
     def test_create_tickets_with_targets(self):
         uc = UniversalConnector()
@@ -693,13 +679,15 @@ class TestUniversalConnector:
         result = run_async(uc.test_all())
         assert result["total"] == 0
 
-    def test_test_all_demo_mode(self):
+    def test_test_all_unconfigured(self):
         uc = UniversalConnector()
+        # Jira unconfigured → success=False (unhealthy)
+        # Slack unconfigured → success=True (special case: not configured is still "OK")
         uc.register("jira", JiraConnector("", "", "", ""))
         uc.register("slack", SlackConnector(""))
         result = run_async(uc.test_all())
         assert result["total"] == 2
-        assert result["healthy_count"] == 2
+        assert result["healthy_count"] == 1
 
     def test_close_all(self):
         uc = UniversalConnector()

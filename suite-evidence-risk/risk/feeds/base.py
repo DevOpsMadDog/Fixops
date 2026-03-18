@@ -216,7 +216,7 @@ class ThreatIntelligenceFeed(ABC):
             try:
                 records = self.load_feed(cache_path)
                 record_count = len(records)
-            except Exception as exc:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
                 self.logger.debug("Failed to count records: %s", exc)
 
         return FeedMetadata(
@@ -267,7 +267,7 @@ class FeedRegistry:
                 path = feed.update_feed()
                 results[name] = path
                 LOGGER.info("Updated feed: %s", name)
-            except Exception as exc:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
                 LOGGER.error("Failed to update feed %s: %s", name, exc)
         return results
 
@@ -285,7 +285,7 @@ class FeedRegistry:
                 records = feed.load_feed()
                 results[name] = records
                 LOGGER.info("Loaded feed: %s (%d records)", name, len(records))
-            except Exception as exc:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
                 LOGGER.error("Failed to load feed %s: %s", name, exc)
         return results
 

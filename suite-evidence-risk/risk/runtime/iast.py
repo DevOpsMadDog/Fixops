@@ -104,7 +104,7 @@ class IASTInstrumentation:
 
                 return result
 
-            except Exception as e:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
                 # Analyze exception for vulnerabilities
                 self._analyze_exception(full_name, e, request_id)
                 raise

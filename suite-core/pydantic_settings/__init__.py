@@ -22,11 +22,11 @@ def _get_annotations(cls_or_obj: Any) -> Dict[str, Any]:
     """Get annotations compatible with Python 3.13+ (PEP 749)."""
     try:
         return get_type_hints(cls_or_obj)
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
     try:
         return inspect.get_annotations(cls_or_obj, eval_str=True)
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
     return getattr(cls_or_obj, "__annotations__", {})
 

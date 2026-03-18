@@ -1,12 +1,118 @@
 # ============================================
 # ALdeci CTEM+ Platform — Docker Compose
 # ============================================
-# One-command demo: docker compose up
-# Full stack:       docker compose --profile feeds up
-# With sidecars:    docker compose --profile demo up
+# One-command demo:     docker compose up
+# With PostgreSQL+Redis: docker compose --profile enterprise up
+# Full stack:           docker compose --profile feeds --profile enterprise up
+# With sidecars:        docker compose --profile demo up
+# ============================================
+#
+# Database modes:
+#   SQLite (default):    docker compose up
+#   PostgreSQL:          docker compose --profile enterprise up
+#                        (sets FIXOPS_DB_TYPE=postgres automatically)
 # ============================================
 
 services:
+  # ─── Infrastructure Services (enterprise profile) ──────────
+
+  # PostgreSQL 16 — primary database for enterprise multi-tenant deployment
+  postgres:
+    image: postgres:16-alpine
+    container_name: fixops-postgres
+    environment:
+      POSTGRES_DB: ${FIXOPS_PG_DB:-fixops}
+      POSTGRES_USER: ${FIXOPS_PG_USER:-fixops}
+      POSTGRES_PASSWORD: ${FIXOPS_PG_PASSWORD:?FIXOPS_PG_PASSWORD must be set for enterprise profile}
+      # Performance tuning for ALdeci workload (JSONB-heavy, write-moderate)
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    command: >
+      postgres
+        -c max_connections=100
+        -c shared_buffers=256MB
+        -c effective_cache_size=768MB
+        -c maintenance_work_mem=64MB
+        -c checkpoint_completion_target=0.9
+        -c wal_buffers=16MB
+        -c default_statistics_target=100
+        -c random_page_cost=1.1
+        -c effective_io_concurrency=200
+        -c work_mem=4MB
+        -c huge_pages=off
+        -c min_wal_size=1GB
+        -c max_wal_size=4GB
+        -c log_min_duration_statement=1000
+        -c log_lock_waits=on
+    volumes:
+      - fixops-pg-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${FIXOPS_PG_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${FIXOPS_PG_USER:-fixops} -d ${FIXOPS_PG_DB:-fixops}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+    profiles:
+      - enterprise
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # Redis 7 — caching layer for feed data, session store, rate limiting
+  redis:
+    image: redis:7-alpine
+    container_name: fixops-redis
+    command: >
+      redis-server
+        --appendonly yes
+        --appendfsync everysec
+        --maxmemory 256mb
+        --maxmemory-policy allkeys-lru
+        --save 900 1
+        --save 300 10
+        --save 60 10000
+        --loglevel warning
+        --requirepass ${FIXOPS_REDIS_PASSWORD:-}
+    volumes:
+      - fixops-redis-data:/data
+    ports:
+      - "${FIXOPS_REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${FIXOPS_REDIS_PASSWORD:-}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+    profiles:
+      - enterprise
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  # Alembic migration runner — applies schema migrations before API starts
+  # Runs once at deploy time; exits 0 on success.
+  alembic-migrate:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: ${FIXOPS_IMAGE:-fixops:local}
+    container_name: fixops-alembic
+    environment:
+      - FIXOPS_DB_DSN=postgresql://${FIXOPS_PG_USER:-fixops}:${FIXOPS_PG_PASSWORD}@postgres:5432/${FIXOPS_PG_DB:-fixops}
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    profiles:
+      - enterprise
+
   # ─── Core Services (start by default) ─────────────────────
 
   # Main ALdeci API Server — CTEM+ Decision Intelligence
@@ -23,10 +129,15 @@ services:
       - FIXOPS_JWT_SECRET=${FIXOPS_JWT_SECRET:?FIXOPS_JWT_SECRET must be set}
       - FIXOPS_DISABLE_TELEMETRY=1
       - FIXOPS_MODE=enterprise
-      - FIXOPS_DISABLE_RATE_LIMIT=1
+      - FIXOPS_DISABLE_RATE_LIMIT=${FIXOPS_DISABLE_RATE_LIMIT:-0}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      # PostgreSQL — only active when FIXOPS_DB_TYPE=postgres
+      - FIXOPS_DB_TYPE=${FIXOPS_DB_TYPE:-sqlite}
+      - FIXOPS_DB_DSN=${FIXOPS_DB_DSN:-}
+      # Redis — URL used by caching, session, and rate-limit modules
+      - FIXOPS_REDIS_URL=${FIXOPS_REDIS_URL:-}
     volumes:
       - fixops-data:/app/data
     healthcheck:
@@ -36,6 +147,54 @@ services:
       retries: 5
       start_period: 20s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+
+  # ALdeci API Server — Enterprise profile wires PostgreSQL + Redis
+  # This service override is merged with the base fixops service when
+  # --profile enterprise is used.
+  fixops-enterprise:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: ${FIXOPS_IMAGE:-fixops:local}
+    container_name: fixops-api
+    ports:
+      - "${FIXOPS_PORT:-8000}:8000"
+    environment:
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:?FIXOPS_API_TOKEN must be set}
+      - FIXOPS_JWT_SECRET=${FIXOPS_JWT_SECRET:?FIXOPS_JWT_SECRET must be set}
+      - FIXOPS_DISABLE_TELEMETRY=1
+      - FIXOPS_MODE=enterprise
+      - FIXOPS_DISABLE_RATE_LIMIT=${FIXOPS_DISABLE_RATE_LIMIT:-0}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      # PostgreSQL backend — enabled via FIXOPS_DB_TYPE=postgres
+      - FIXOPS_DB_TYPE=postgres
+      - FIXOPS_DB_DSN=postgresql://${FIXOPS_PG_USER:-fixops}:${FIXOPS_PG_PASSWORD}@postgres:5432/${FIXOPS_PG_DB:-fixops}
+      # Redis — constructed from service name and optional password
+      - FIXOPS_REDIS_URL=redis://:${FIXOPS_REDIS_PASSWORD:-}@redis:6379/0
+    volumes:
+      - fixops-data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      alembic-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    profiles:
+      - enterprise
     deploy:
       resources:
         limits:
@@ -129,3 +288,7 @@ services:
 
 volumes:
   fixops-data:
+  fixops-pg-data:
+    driver: local
+  fixops-redis-data:
+    driver: local

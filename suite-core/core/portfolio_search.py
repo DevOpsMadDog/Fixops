@@ -105,7 +105,7 @@ class PortfolioSearchEngine:
                 }
                 indexed_count += 1
 
-            except Exception as exc:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
                 self.logger.error("Failed to index bundle %s: %s", bundle_file, exc)
 
         self.logger.info("Built portfolio search index with %d bundles", indexed_count)

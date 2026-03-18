@@ -92,7 +92,7 @@ class LocalOPAEngine(OPAEngine):
             result["execution_time_ms"] = execution_time
             return result
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Local OPA evaluation failed: {e}")
             return {
                 "decision": "defer",
@@ -251,7 +251,7 @@ class ProductionOPAEngine(OPAEngine):
         except ImportError:
             logger.error("opa-python not available, falling back to HTTP requests")
             self.client = None
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"OPA client initialization failed: {e}")
             self.client = None
 
@@ -271,7 +271,7 @@ class ProductionOPAEngine(OPAEngine):
             result["execution_time_ms"] = execution_time
             return result
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Production OPA evaluation failed: {e}")
             return {
                 "decision": "defer",
@@ -294,7 +294,7 @@ class ProductionOPAEngine(OPAEngine):
             allow, opa_payload = self._extract_decision(result)
             return self._format_decision(policy_name, allow, opa_payload)
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"OPA client evaluation failed: {e}")
             raise
 
@@ -328,7 +328,7 @@ class ProductionOPAEngine(OPAEngine):
                             f"OPA server responded with status {response.status}"
                         )
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"OPA HTTP evaluation failed: {e}")
             raise
 
@@ -372,7 +372,7 @@ class ProductionOPAEngine(OPAEngine):
 
             return True
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"OPA health check failed: {e}")
             return False
 

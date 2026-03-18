@@ -216,8 +216,8 @@ class TestPipelineInput:
         assert inp.findings == []
         assert inp.assets == []
         assert inp.run_pentest is False
-        assert inp.run_playbooks is False
-        assert inp.generate_evidence is False
+        assert inp.run_playbooks is True
+        assert inp.generate_evidence is True
         assert inp.evidence_framework == "soc2"
         assert inp.evidence_timeframe_days == 90
         assert inp.policy_rules == []
@@ -319,14 +319,14 @@ class TestPipelineRun:
         assert len(result.steps) == 12
 
     def test_optional_steps_skipped_by_default(self, pipeline, basic_input):
-        """Steps 10/11/12 should be SKIPPED when not requested."""
+        """Step 10 (pentest) should be SKIPPED; 11/12 run by default."""
         result = pipeline.run(basic_input)
         micro_pentest = result.steps[9]
         run_playbooks = result.steps[10]
         gen_evidence = result.steps[11]
         assert micro_pentest.status == StepStatus.SKIPPED
-        assert run_playbooks.status == StepStatus.SKIPPED
-        assert gen_evidence.status == StepStatus.SKIPPED
+        assert run_playbooks.status == StepStatus.COMPLETED
+        assert gen_evidence.status == StepStatus.COMPLETED
 
     def test_required_steps_completed(self, pipeline, basic_input):
         """Steps 1-8 should be COMPLETED (or FAILED gracefully)."""
@@ -656,7 +656,12 @@ class TestStepMicroPentest:
 
 
 class TestStepRunPlaybooks:
-    def test_skipped_by_default(self, pipeline, basic_input):
+    def test_runs_by_default(self, pipeline, basic_input):
+        result = pipeline.run(basic_input)
+        assert result.steps[10].status == StepStatus.COMPLETED
+
+    def test_skipped_when_disabled(self, pipeline, basic_input):
+        basic_input.run_playbooks = False
         result = pipeline.run(basic_input)
         assert result.steps[10].status == StepStatus.SKIPPED
 
@@ -684,7 +689,12 @@ class TestStepRunPlaybooks:
 
 
 class TestStepGenerateEvidence:
-    def test_skipped_by_default(self, pipeline, basic_input):
+    def test_runs_by_default(self, pipeline, basic_input):
+        result = pipeline.run(basic_input)
+        assert result.steps[11].status == StepStatus.COMPLETED
+
+    def test_skipped_when_disabled(self, pipeline, basic_input):
+        basic_input.generate_evidence = False
         result = pipeline.run(basic_input)
         assert result.steps[11].status == StepStatus.SKIPPED
 

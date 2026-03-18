@@ -461,7 +461,7 @@ async def create_report(report_data: ReportCreate):
         created_report.completed_at = datetime.now(timezone.utc)
         created_report.file_path = str(file_path)
         created_report.file_size = file_path.stat().st_size
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.error("Report generation failed for %s: %s", created_report.id, exc)
         created_report.status = ReportStatus.FAILED
         created_report.error_message = str(exc)

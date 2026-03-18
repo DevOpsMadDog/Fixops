@@ -203,7 +203,7 @@ Respond in JSON format with keys: recommendation, confidence, reasoning, priorit
                     "business_impact": result.get("business_impact", "Unknown"),
                 },
             )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Architect decision failed: {e}")
             return self._fallback_decision(AIRole.ARCHITECT, vulnerability)
 
@@ -245,7 +245,7 @@ Respond in JSON format with keys: recommendation, confidence, reasoning, priorit
                     "exploit_strategy": result.get("exploit_strategy", ""),
                 },
             )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Developer decision failed: {e}")
             return self._fallback_decision(AIRole.DEVELOPER, vulnerability)
 
@@ -285,7 +285,7 @@ Respond in JSON format with keys: recommendation, confidence, reasoning, priorit
                     "success_criteria": result.get("success_criteria", []),
                 },
             )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Lead decision failed: {e}")
             return self._fallback_decision(AIRole.LEAD, vulnerability)
 
@@ -349,7 +349,7 @@ Respond in JSON format with keys: action, confidence, reasoning, execution_plan 
             self.decision_history.append(consensus)
             return consensus
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Consensus composition failed: {e}")
             # Fallback: simple averaging
             return self._fallback_consensus(architect, developer, lead)
@@ -458,7 +458,7 @@ Respond in JSON format with keys: action, confidence, reasoning, execution_plan 
                 logger.warning(
                     f"LLM call to {provider} timed out (attempt {attempt + 1}/{self.config.max_retries})"
                 )
-            except Exception as e:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
                 last_error = e
                 logger.warning(
                     f"LLM call to {provider} failed (attempt {attempt + 1}/{self.config.max_retries}): {e}"
@@ -694,7 +694,7 @@ class ExploitValidationFramework:
 
             return exploitability, result
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Exploitability validation failed: %s", type(e).__name__)
             return ExploitabilityLevel.INCONCLUSIVE, {"error": type(e).__name__}
 
@@ -917,7 +917,7 @@ class AdvancedMPTEClient:
 
             return result
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Pentest execution failed: {e}")
             request.status = PenTestStatus.FAILED
             request.completed_at = datetime.now(timezone.utc)
@@ -952,7 +952,7 @@ class AdvancedMPTEClient:
                 response.raise_for_status()
                 result = await response.json()
                 return result
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"MPTE API call failed: {e}")
             return self._create_inconclusive_response(request, str(e))
 
@@ -1042,7 +1042,7 @@ class AdvancedMPTEClient:
             else:
                 return True, "Vulnerability successfully remediated"
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Remediation validation failed: {e}")
             return False, f"Validation error: {str(e)}"
 

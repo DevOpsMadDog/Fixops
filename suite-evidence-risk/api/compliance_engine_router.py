@@ -9,7 +9,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -53,7 +54,7 @@ async def compliance_engine_status() -> Dict[str, Any]:
             "supported_frameworks": frameworks,
             "framework_count": len(frameworks),
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         return {
             "status": "degraded",
             "engine": "compliance-engine",
@@ -68,25 +69,31 @@ async def list_frameworks() -> Dict[str, Any]:
         from compliance.compliance_engine import ComplianceEngine
         engine = ComplianceEngine()
         return {"frameworks": engine.get_supported_frameworks()}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except ImportError as e:
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.post("/map-findings")
-async def map_findings(req: MapFindingsRequest) -> Dict[str, Any]:
-    """Map findings to compliance controls."""
+async def map_findings(
+    req: MapFindingsRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Map findings to compliance controls, scoped to the caller's org."""
     try:
         from compliance.compliance_engine import ComplianceEngine
         engine = ComplianceEngine()
         mappings = engine.map_findings_to_controls(req.findings)
-        return {"mappings": mappings, "total": len(mappings)}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return {"mappings": mappings, "total": len(mappings), "org_id": org_id}
+    except ImportError as e:
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.post("/assess")
-async def assess_framework(req: AssessFrameworkRequest) -> Dict[str, Any]:
-    """Assess compliance posture for a specific framework."""
+async def assess_framework(
+    req: AssessFrameworkRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Assess compliance posture for a specific framework, scoped to the caller's org."""
     try:
         from compliance.compliance_engine import ComplianceEngine, Framework
         engine = ComplianceEngine()
@@ -115,25 +122,31 @@ async def assess_framework(req: AssessFrameworkRequest) -> Dict[str, Any]:
                 return dataclasses.asdict(result)
             return result.__dict__
         return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except ImportError as e:
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.post("/assess-all")
-async def assess_all_frameworks(req: MapFindingsRequest) -> Dict[str, Any]:
-    """Assess compliance posture across all frameworks."""
+async def assess_all_frameworks(
+    req: MapFindingsRequest,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Assess compliance posture across all frameworks, scoped to the caller's org."""
     try:
         from compliance.compliance_engine import ComplianceEngine
         engine = ComplianceEngine()
         result = engine.assess_all_frameworks(req.findings)
+        if isinstance(result, dict):
+            result["org_id"] = org_id
         return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except ImportError as e:
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.get("/gaps")
 async def get_compliance_gaps(
     framework: Optional[str] = Query(None),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get compliance gaps (controls without evidence)."""
     try:
@@ -148,9 +161,9 @@ async def get_compliance_gaps(
                     for g in fw_gaps:
                         g["framework"] = fw.value
                     all_gaps.extend(fw_gaps)
-                except Exception:
+                except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                     pass
-            return {"gaps": all_gaps, "total": len(all_gaps), "framework": "all"}
+            return {"gaps": all_gaps, "total": len(all_gaps), "framework": "all", "org_id": org_id}
         # Map string to Framework enum (case-insensitive)
         fw_map = {f.value.lower(): f for f in Framework}
         fw_key = framework.lower().replace("-", "_").replace(" ", "_")
@@ -161,11 +174,11 @@ async def get_compliance_gaps(
                 detail=f"Unknown framework '{framework}'. Valid: {[f.value for f in Framework]}",
             )
         gaps = engine.get_compliance_gaps(fw_enum)
-        return {"gaps": gaps, "total": len(gaps), "framework": fw_enum.value}
+        return {"gaps": gaps, "total": len(gaps), "framework": fw_enum.value, "org_id": org_id}
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.get("/audit-bundle")
@@ -178,8 +191,8 @@ async def generate_audit_bundle(
         engine = ComplianceEngine()
         bundle = engine.generate_audit_bundle(framework)
         return bundle
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except ImportError as e:
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.get("/cwe-mapping/{cwe_id}")
@@ -190,8 +203,8 @@ async def get_cwe_mapping(cwe_id: str) -> Dict[str, Any]:
         engine = ComplianceEngine()
         mapping = engine.get_cwe_control_mapping(cwe_id)
         return {"cwe_id": cwe_id, "controls": mapping}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except ImportError as e:
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.get("/control/{control_id}")
@@ -206,8 +219,8 @@ async def get_control_details(control_id: str) -> Dict[str, Any]:
         return details
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -265,9 +278,9 @@ async def soc2_status() -> Dict[str, Any]:
             "posture_trend": posture_dict.get("trend", "stable"),
             "last_assessed": posture_dict.get("last_evaluated", ""),
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error("soc2_status error: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.get("/hipaa/status_old_stub")
@@ -325,9 +338,9 @@ async def hipaa_status() -> Dict[str, Any]:
         }
     except HTTPException:
         raise
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error("hipaa_status error: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.get("/hipaa/status_legacy")
@@ -386,9 +399,9 @@ async def pci_dss_status() -> Dict[str, Any]:
         }
     except HTTPException:
         raise
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error("pci_dss_status error: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.get("/pci-dss/status_legacy")
@@ -420,7 +433,7 @@ async def compliance_mappings():
                     "unmapped": total - satisfied,
                     "gaps_count": len(gaps),
                 }
-            except Exception:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
                 frameworks[fw.value] = {
                     "total_controls": 0,
                     "mapped": 0,
@@ -435,6 +448,6 @@ async def compliance_mappings():
             "total_frameworks": len(frameworks),
             "overall_mapping_rate": round(mapped_all / max(total_all, 1) * 100, 1),
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error("compliance_mappings error: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=type(e).__name__)

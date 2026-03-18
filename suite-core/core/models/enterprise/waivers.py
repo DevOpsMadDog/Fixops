@@ -11,14 +11,14 @@ try:  # pragma: no cover - optional imports based on runtime database
     from core.models.enterprise.security import (
         KevFindingWaiver as PostgresKevFindingWaiver,
     )
-except Exception:  # pragma: no cover - fallback for limited runtimes
+except ImportError:  # pragma: no cover - fallback for limited runtimes
     PostgresKevFindingWaiver = None  # type: ignore[assignment]
 
 try:  # pragma: no cover - optional imports based on runtime database
     from core.models.enterprise.security_sqlite import (
         KevFindingWaiver as SqliteKevFindingWaiver,
     )
-except Exception:  # pragma: no cover - fallback for limited runtimes
+except ImportError:  # pragma: no cover - fallback for limited runtimes
     SqliteKevFindingWaiver = None  # type: ignore[assignment]
 
 

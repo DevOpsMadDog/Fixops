@@ -272,7 +272,7 @@ class AttackPathEngine:
                             break
                     if len(all_chains) >= max_paths:
                         break
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.warning("Auto-discovery failed: %s", e)
 
         # Sort by score
@@ -459,7 +459,7 @@ class AttackPathEngine:
                 crown_jewels=crown_jewels[:10],
                 risk_score=risk_score,
             )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("Attack surface analysis failed: %s", e)
             return AttackSurface(
                 total_assets=0,
@@ -517,7 +517,7 @@ class AttackPathEngine:
                     "medium" if total_risk >= 10 else "low"
                 ),
             }
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("Blast radius calculation failed: %s", e)
             return {
                 "source_node": node_id,
@@ -601,7 +601,7 @@ class AttackPathEngine:
                 "algorithms": ["bfs", "dfs", "dijkstra", "a_star"],
                 "cache_size": len(self._path_cache),
             }
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             return {
                 "engine": "attack-path-engine",
                 "version": "1.0.0",

@@ -97,7 +97,7 @@ class DecisionEngine:
                 try:
                     self.chatgpt_client = ChatGPTClient(api_key=api_key)
                     logger.info("✅ ChatGPT integration initialized")
-                except Exception as exc:
+                except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                     logger.error(f"ChatGPT initialization failed: {str(exc)}")
                     self.chatgpt_client = None
 
@@ -105,7 +105,7 @@ class DecisionEngine:
 
             logger.info("Decision Engine initialized successfully")
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Decision Engine initialization failed: {str(e)}")
             raise
 
@@ -153,7 +153,7 @@ class DecisionEngine:
 
             logger.info("Production mode initialized with real integrations")
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Production mode initialization failed: {str(e)}")
             logger.warning(
                 "Engine will operate with reduced functionality — "
@@ -183,7 +183,7 @@ class DecisionEngine:
             self.real_vector_db_stats = stats
             logger.info(f"✅ Real Vector DB initialized successfully: {stats}")
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Real Vector DB initialization failed: {str(e)}")
             # Fallback to in-memory data
             self.real_vector_db = None
@@ -215,7 +215,7 @@ class DecisionEngine:
 
             logger.info("Real Jira integration initialized")
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Real Jira initialization failed: {str(e)}")
             raise
 
@@ -241,7 +241,7 @@ class DecisionEngine:
 
             logger.info("Real Confluence integration initialized")
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Real Confluence initialization failed: {str(e)}")
             raise
 
@@ -260,7 +260,7 @@ class DecisionEngine:
 
             logger.info("Real threat intelligence initialized")
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Real threat intel initialization failed: {str(e)}")
             raise
 
@@ -290,7 +290,7 @@ class DecisionEngine:
             if status.get("opa", {}).get("available", False):
                 logger.info("OPA available - default security policies loaded")
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"OSS tools initialization failed: {str(e)}")
             self.oss_integrations = None
 
@@ -303,7 +303,7 @@ class DecisionEngine:
                 "✅ Processing Layer initialized with Bayesian/Markov/SSVC/SARIF components"
             )
 
-        except Exception as e:
+        except ImportError as e:
             logger.error(f"Processing Layer initialization failed: {str(e)}")
             self.processing_layer = None
 
@@ -336,7 +336,7 @@ class DecisionEngine:
 
             return result
 
-        except Exception as e:
+        except ImportError as e:
             logger.error(f"Decision making failed: {str(e)}")
             return self._create_error_decision(context, start_time, str(e))
 
@@ -377,7 +377,7 @@ class DecisionEngine:
                     ],
                     enterprise_mode=True,
                 )
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.error(
                     f"Processing Layer failed, falling back to individual components: {str(e)}"
                 )
@@ -540,7 +540,7 @@ class DecisionEngine:
 
             return enriched
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Real context enrichment failed: {str(e)}")
             enriched["sources"] = ["Fallback Context"]
             return enriched
@@ -637,7 +637,7 @@ class DecisionEngine:
                 "sources": ["LLM Parse Error"],
                 "error": "Invalid LLM response format",
             }
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Real LLM enrichment failed: {str(e)}")
             return {"sources": ["LLM Error"], "error": str(e)}
 
@@ -776,7 +776,7 @@ class DecisionEngine:
             )
             return result
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Vector DB lookup failed: {str(e)}")
             return {
                 "status": "error",
@@ -972,7 +972,7 @@ class DecisionEngine:
                 "opa_engine_used": True,
             }
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Real OPA policy evaluation failed: {str(e)}")
             # Fallback to basic policy evaluation
             return await self._fallback_policy_evaluation(context, enriched_context)
@@ -1064,7 +1064,7 @@ class DecisionEngine:
                 }
                 results["tools_used"].append("trivy")
                 results["trivy_results"] = trivy_result
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.error(f"Trivy SBOM scan failed: {str(e)}")
 
         # Use Grype if available
@@ -1087,7 +1087,7 @@ class DecisionEngine:
                 }
                 results["tools_used"].append("grype")
                 results["grype_results"] = grype_result
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.error(f"Grype SBOM scan failed: {str(e)}")
 
         # Determine overall criticality
@@ -1216,7 +1216,7 @@ class DecisionEngine:
 
                 stored_id = await EvidenceLake.store_evidence(evidence_record)
                 logger.info(f"✅ Evidence stored in Evidence Lake: {stored_id}")
-            except Exception as e:
+            except ImportError as e:
                 logger.error(f"Evidence Lake storage failed, using cache fallback: {e}")
                 # Fallback to cache storage
                 await self.cache.set(
@@ -1227,7 +1227,7 @@ class DecisionEngine:
 
             return evidence_id
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Evidence generation failed: {e}")
             # Create simple evidence record
             simple_evidence = {
@@ -1251,7 +1251,7 @@ class DecisionEngine:
                 records = await EvidenceLake.get_recent(limit=limit)
                 if records:
                     return records
-            except Exception as el_err:
+            except ImportError as el_err:
                 logger.warning(f"Evidence Lake query failed: {el_err}")
 
             # Fallback: scan cache for recent evidence keys
@@ -1262,12 +1262,12 @@ class DecisionEngine:
                     raw = await self.cache.get(key)
                     if raw:
                         cached.append(json.loads(raw))
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
 
             return cached
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Failed to get recent decisions: {e}")
             return []
 
@@ -1358,7 +1358,7 @@ class DecisionEngine:
                     },
                 }
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Failed to get SSDLC stage data: {e}")
             # Fallback to basic structure
             return {"error": "Failed to load SSDLC data", "fallback": True}
@@ -1442,7 +1442,7 @@ class DecisionEngine:
                 "processing_metadata": processing_results["processing_metadata"],
             }
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Processing Layer execution failed: {str(e)}")
             raise
 

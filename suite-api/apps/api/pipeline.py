@@ -234,14 +234,17 @@ class PipelineOrchestrator:
                 return normalised
         return "medium"
 
-    def _ensure_vector_matcher(self, overlay: OverlayConfig) -> SecurityPatternMatcher:
+    def _ensure_vector_matcher(self, overlay: OverlayConfig) -> Optional[SecurityPatternMatcher]:
         config = overlay.module_config("vector_store")
         signature = json.dumps(config, sort_keys=True, default=str)
         if self._vector_matcher is None or self._vector_signature != signature:
-            matcher = SecurityPatternMatcher(config, root=self._repo_root)
-            self._vector_matcher = matcher
-            self._vector_signature = signature
-        assert self._vector_matcher is not None
+            try:
+                matcher = SecurityPatternMatcher(config, root=self._repo_root)
+                self._vector_matcher = matcher
+                self._vector_signature = signature
+            except (FileNotFoundError, ValueError) as exc:
+                logger.warning("Vector matcher unavailable: %s — skipping pattern matching", exc)
+                return None
         return self._vector_matcher
 
     def _evaluate_guardrails(
@@ -528,7 +531,7 @@ class PipelineOrchestrator:
                 "model_used": "bn_lr",
                 "bn_cpd_hash": result.get("bn_cpd_hash"),
             }
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             return {
                 "score": 0.5,
                 "method": "bn_lr_fallback",
@@ -1512,17 +1515,20 @@ class PipelineOrchestrator:
             if overlay.is_module_enabled("vector_store"):
                 try:
                     matcher = self._ensure_vector_matcher(overlay)
-                    vector_matches = matcher.recommend_for_crosswalk(crosswalk)
-                except Exception as exc:  # pragma: no cover - defensive guard
+                    if matcher is None:
+                        modules_status["vector_store"] = "unavailable"
+                        result["vector_similarity"] = {"error": "pattern catalogue not found"}
+                    else:
+                        vector_matches = matcher.recommend_for_crosswalk(crosswalk)
+                        result["vector_similarity"] = {
+                            "provider": matcher.provider_metadata,
+                            "matches": vector_matches,
+                        }
+                        modules_status["vector_store"] = "executed"
+                        executed_modules.append("vector_store")
+                except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # pragma: no cover - defensive guard
                     modules_status["vector_store"] = "error"
                     result["vector_similarity"] = {"error": str(exc)}
-                else:
-                    result["vector_similarity"] = {
-                        "provider": matcher.provider_metadata,
-                        "matches": vector_matches,
-                    }
-                    modules_status["vector_store"] = "executed"
-                    executed_modules.append("vector_store")
             else:
                 modules_status["vector_store"] = "disabled"
 
@@ -1617,32 +1623,37 @@ class PipelineOrchestrator:
                 modules_status["performance"] = "disabled"
 
             if overlay.is_module_enabled("enhanced_decision"):
-                enhanced_settings = dict(overlay.enhanced_decision_settings)
-                if knowledge_graph:
-                    enhanced_settings["knowledge_graph"] = knowledge_graph.get(
-                        "graph", knowledge_graph
+                try:
+                    enhanced_settings = dict(overlay.enhanced_decision_settings)
+                    if knowledge_graph:
+                        enhanced_settings["knowledge_graph"] = knowledge_graph.get(
+                            "graph", knowledge_graph
+                        )
+
+                    risk_profile = self._compute_risk_profile(
+                        processing_result=processing_result,
+                        exploit_summary=result.get("exploitability_insights"),
+                        cve_records=cve.records,
+                        cnapp_exposures=cnapp_exposures,
                     )
 
-                risk_profile = self._compute_risk_profile(
-                    processing_result=processing_result,
-                    exploit_summary=result.get("exploitability_insights"),
-                    cve_records=cve.records,
-                    cnapp_exposures=cnapp_exposures,
-                )
-
-                enhanced_engine = EnhancedDecisionEngine(enhanced_settings)
-                enhanced_payload = enhanced_engine.evaluate_pipeline(
-                    result,
-                    context_summary=context_summary,
-                    compliance_status=compliance_status,
-                    knowledge_graph=knowledge_graph,
-                    risk_profile=risk_profile,
-                )
-                result["enhanced_decision"] = enhanced_payload
-                if risk_profile:
-                    result["risk_profile"] = risk_profile
-                modules_status["enhanced_decision"] = "executed"
-                executed_modules.append("enhanced_decision")
+                    enhanced_engine = EnhancedDecisionEngine(enhanced_settings)
+                    enhanced_payload = enhanced_engine.evaluate_pipeline(
+                        result,
+                        context_summary=context_summary,
+                        compliance_status=compliance_status,
+                        knowledge_graph=knowledge_graph,
+                        risk_profile=risk_profile,
+                    )
+                    result["enhanced_decision"] = enhanced_payload
+                    if risk_profile:
+                        result["risk_profile"] = risk_profile
+                    modules_status["enhanced_decision"] = "executed"
+                    executed_modules.append("enhanced_decision")
+                except Exception as exc:  # LLM provider may be unavailable
+                    logger.warning("Enhanced decision failed (LLM unavailable?): %s", exc)
+                    result["enhanced_decision"] = {"error": str(exc), "fallback": True}
+                    modules_status["enhanced_decision"] = "error"
             else:
                 modules_status["enhanced_decision"] = "disabled"
 
@@ -1661,13 +1672,18 @@ class PipelineOrchestrator:
                 modules_status["iac_posture"] = "disabled"
 
             if overlay.is_module_enabled("evidence"):
-                evidence_hub = EvidenceHub(overlay)
-                evidence_bundle = evidence_hub.persist(
-                    result, context_summary, compliance_status, policy_summary
-                )
-                result["evidence_bundle"] = evidence_bundle
-                modules_status["evidence"] = "executed"
-                executed_modules.append("evidence")
+                try:
+                    evidence_hub = EvidenceHub(overlay)
+                    evidence_bundle = evidence_hub.persist(
+                        result, context_summary, compliance_status, policy_summary
+                    )
+                    result["evidence_bundle"] = evidence_bundle
+                    modules_status["evidence"] = "executed"
+                    executed_modules.append("evidence")
+                except (RuntimeError, OSError) as exc:
+                    logger.warning("Evidence module failed: %s", exc)
+                    result["evidence_bundle"] = {"error": str(exc), "fallback": True}
+                    modules_status["evidence"] = "error"
             else:
                 modules_status["evidence"] = "disabled"
 

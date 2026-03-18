@@ -30,7 +30,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field, validator
 
 logger = logging.getLogger(__name__)
@@ -225,7 +226,7 @@ async def verify_fix(req: VerifyFixRequest) -> Dict[str, Any]:
             context_code=req.context_code,
             dep_changes=req.dep_changes,
         )
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.error("postfix_verifier error: %s", type(exc).__name__)
         raise HTTPException(status_code=500, detail=f"Verification error: {type(exc).__name__}") from exc
 
@@ -264,7 +265,7 @@ async def verify_bulk(req: BulkVerifyRequest) -> Dict[str, Any]:
                 context_code=fix_req.context_code,
                 dep_changes=fix_req.dep_changes,
             )
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.error("bulk verify item %d error: %s", idx, type(exc).__name__)
             reports.append({
                 "index": idx,
@@ -316,7 +317,7 @@ async def check_regression(req: RegressionCheckRequest) -> Dict[str, Any]:
             fixed=req.fixed_code,
             language=req.language,
         )
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.error("regression check error: %s", type(exc).__name__)
         raise HTTPException(status_code=500, detail=f"Regression check error: {type(exc).__name__}") from exc
 
@@ -370,7 +371,7 @@ async def mpte_retest(req: MPTERetestRequest) -> Dict[str, Any]:
             language=req.language,
             finding_type=req.finding_type,
         )
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.error("mpte retest error: %s", type(exc).__name__)
         raise HTTPException(status_code=500, detail=f"MPTE re-test error: {type(exc).__name__}") from exc
 

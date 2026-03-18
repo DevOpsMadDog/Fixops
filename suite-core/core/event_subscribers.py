@@ -33,7 +33,7 @@ async def _on_cve_discovered(event):
             **{k: v for k, v in data.items() if k != "cve_id"},
         )
         logger.info("CVE %s ingested into Knowledge Graph", cve_id)
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.warning("Failed to ingest CVE %s into graph: %s", cve_id, exc)
 
     # Trigger EPSS lookup
@@ -44,7 +44,7 @@ async def _on_cve_discovered(event):
         epss = await svc.get_epss_score(cve_id)
         if epss:
             logger.info("EPSS score for %s: %s", cve_id, epss)
-    except Exception as exc:
+    except ImportError as exc:
         logger.debug("EPSS lookup skipped for %s: %s", cve_id, exc)
 
 
@@ -58,7 +58,7 @@ async def _on_scan_completed(event):
 
         brain = get_brain()
         brain.log_event("scan.completed", event.source, data)
-    except Exception as exc:
+    except ImportError as exc:
         logger.debug("Graph log skipped: %s", exc)
 
 
@@ -78,7 +78,7 @@ async def _on_finding_created(event):
             cve_id=cve_id,
             **{k: v for k, v in data.items() if k not in ("finding_id", "cve_id")},
         )
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.debug("Finding graph ingest skipped: %s", exc)
 
 
@@ -91,7 +91,7 @@ async def _on_autofix_generated(event):
 
         brain = get_brain()
         brain.log_event("autofix.generated", event.source, data)
-    except Exception as exc:
+    except ImportError as exc:
         logger.debug("AutoFix graph log skipped: %s", exc)
 
 
@@ -104,7 +104,7 @@ async def _on_pentest_completed(event):
 
         brain = get_brain()
         brain.log_event("pentest.completed", event.source, data)
-    except Exception as exc:
+    except ImportError as exc:
         logger.debug("Pentest graph log skipped: %s", exc)
 
 
@@ -185,7 +185,7 @@ def register_all_subscribers() -> int:
         ml_handlers_registered = register_ml_handlers(bus)
         if ml_handlers_registered:
             logger.info("ML EventBus handlers registered (anomaly_detector, parser_quality)")
-    except Exception as exc:
+    except ImportError as exc:
         logger.debug("ML EventBus handlers skipped: %s", exc)
 
     # [V3] Register Online Learning handlers (DECISION_MADE, REMEDIATION_COMPLETED → retrain)
@@ -196,7 +196,7 @@ def register_all_subscribers() -> int:
         register_online_learning_handlers(bus)
         online_learning_registered = True
         logger.info("Online learning EventBus handlers registered (feedback→retrain)")
-    except Exception as exc:
+    except ImportError as exc:
         logger.debug("Online learning handlers skipped: %s", exc)
 
     _registered = True

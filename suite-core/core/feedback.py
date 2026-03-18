@@ -125,7 +125,7 @@ class FeedbackRecorder:
         connectors = self._forward_to_connectors(entry)
         try:
             self._outcome_store.record_feedback_event(entry)
-        except Exception:  # pragma: no cover - persistence best effort
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):  # pragma: no cover - persistence best effort
             logger.exception(
                 "Failed to persist feedback analytics for run %s", entry["run_id"]
             )
@@ -159,7 +159,7 @@ class FeedbackRecorder:
         for name, connector in self._connectors.items():
             try:
                 outcome = self._send_to_connector(name, connector, entry)
-            except Exception as exc:  # pragma: no cover - defensive logging
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # pragma: no cover - defensive logging
                 logger.exception("Feedback forwarding failed for connector %s", name)
                 outcomes[str(name)] = {"status": "error", "error": str(exc)}
                 continue

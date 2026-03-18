@@ -96,7 +96,6 @@ ENV FIXOPS_MODE=enterprise \
     FIXOPS_DATA_DIR=/app/.fixops_data \
     FIXOPS_API_URL=http://localhost:8000 \
     FIXOPS_DISABLE_TELEMETRY=1 \
-    FIXOPS_DISABLE_RATE_LIMIT=1 \
     PYTHONUNBUFFERED=1 \
     TERM=xterm-256color \
     # Suite architecture: each suite dir must be on PYTHONPATH so

@@ -22,7 +22,7 @@ try:
     from pgmpy.models import BayesianNetwork
 
     PGMPY_AVAILABLE = True
-except Exception:
+except (ImportError, SyntaxError):  # SyntaxError on Python 3.14 (invalid \p escapes in pgmpy)
     BayesianNetwork = None  # type: ignore[assignment]
     VariableElimination = None  # type: ignore[assignment]
     TabularCPD = None  # type: ignore[assignment]
@@ -238,7 +238,7 @@ class BayesianNetworkModel(RiskModel):
             most_likely_level = max(distribution, key=distribution.get)  # type: ignore
             confidence = distribution[most_likely_level]
 
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.error("BN inference failed: %s", exc, exc_info=True)
             raise RuntimeError(f"Bayesian Network inference failed: {exc}") from exc
 

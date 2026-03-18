@@ -17,7 +17,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -118,7 +119,7 @@ def _get_store():
         from core.api_learning_store import get_learning_store
 
         return get_learning_store()
-    except Exception as exc:
+    except ImportError as exc:
         raise HTTPException(
             status_code=503, detail=f"Learning store unavailable: {exc}"
         )
@@ -130,13 +131,13 @@ def _get_store():
 
 
 @router.get("/health")
-async def get_ml_health():
+async def get_ml_health(org_id: str = Depends(get_org_id)):
     """Health check for ML/MindsDB engine."""
     return {"status": "healthy", "engine": "mindsdb", "version": "1.0.0"}
 
 
 @router.get("/status", response_model=AllModelsStatusResponse)
-async def get_ml_status():
+async def get_ml_status(org_id: str = Depends(get_org_id)):
     """Get status of all ML models and overall store statistics."""
     store = _get_store()
     stats = store.get_stats()
@@ -155,7 +156,7 @@ async def get_ml_status():
 
 
 @router.get("/models")
-async def get_ml_models():
+async def get_ml_models(org_id: str = Depends(get_org_id)):
     """Get all ML models as a list (frontend-friendly format).
 
     Returns models as a list with ``model_id`` field for the ML Dashboard UI.
@@ -181,7 +182,7 @@ async def get_ml_models():
 
 
 @router.post("/train", response_model=Dict[str, TrainResult])
-async def train_all_models(background_tasks: BackgroundTasks):
+async def train_all_models(background_tasks: BackgroundTasks, org_id: str = Depends(get_org_id)):
     """Trigger training of all ML models on collected traffic data."""
     store = _get_store()
     results = store.train_all_models()
@@ -197,7 +198,7 @@ async def train_all_models(background_tasks: BackgroundTasks):
 
 
 @router.post("/models/{model_id}/train")
-async def train_single_model(model_id: str):
+async def train_single_model(model_id: str, org_id: str = Depends(get_org_id)):
     """Train a specific ML model by its model_id.
 
     Falls back to training all models if individual training is not supported.
@@ -219,7 +220,7 @@ async def train_single_model(model_id: str):
 
 
 @router.post("/predict/anomaly", response_model=AnomalyPredictionResponse)
-async def predict_anomaly(req: AnomalyPredictionRequest):
+async def predict_anomaly(req: AnomalyPredictionRequest, org_id: str = Depends(get_org_id)):
     """Detect if a request pattern is anomalous using trained ML model."""
     store = _get_store()
     result = store.detect_anomaly(
@@ -239,7 +240,7 @@ async def predict_anomaly(req: AnomalyPredictionRequest):
 
 
 @router.post("/predict/threat", response_model=ThreatAssessmentResponse)
-async def predict_threat(req: ThreatAssessmentRequest):
+async def predict_threat(req: ThreatAssessmentRequest, org_id: str = Depends(get_org_id)):
     """Assess threat level for a request pattern."""
     store = _get_store()
     result = store.assess_threat(
@@ -278,28 +279,28 @@ async def predict_response_time(
 
 
 @router.get("/stats")
-async def get_stats_alias():
+async def get_stats_alias(org_id: str = Depends(get_org_id)):
     """Alias for /analytics/stats — keeps frontend happy."""
     store = _get_store()
     return store.get_stats()
 
 
 @router.get("/analytics/stats")
-async def get_traffic_stats():
+async def get_traffic_stats(org_id: str = Depends(get_org_id)):
     """Get overall API traffic statistics."""
     store = _get_store()
     return store.get_stats()
 
 
 @router.get("/analytics/health")
-async def get_api_health():
+async def get_api_health(org_id: str = Depends(get_org_id)):
     """Get per-endpoint API health scores based on learned patterns."""
     store = _get_store()
     return store.get_api_health()
 
 
 @router.get("/analytics/anomalies")
-async def get_recent_anomalies(limit: int = Query(20, ge=1, le=100)):
+async def get_recent_anomalies(limit: int = Query(20, ge=1, le=100), org_id: str = Depends(get_org_id)):
     """Get recent anomalous requests detected by the ML layer."""
     store = _get_store()
     return store.get_recent_anomalies(limit=limit)
@@ -316,7 +317,7 @@ async def get_threat_indicators(
 
 
 @router.post("/analytics/threats/{indicator_id}/acknowledge")
-async def acknowledge_threat(indicator_id: int):
+async def acknowledge_threat(indicator_id: int, org_id: str = Depends(get_org_id)):
     """Acknowledge a threat indicator."""
     _get_store()
     try:
@@ -329,12 +330,12 @@ async def acknowledge_threat(indicator_id: int):
                 (indicator_id,),
             )
         return {"acknowledged": True, "id": indicator_id}
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(exc).__name__)
 
 
 @router.post("/flush")
-async def flush_traffic():
+async def flush_traffic(org_id: str = Depends(get_org_id)):
     """Force-flush any pending traffic records to the database."""
     store = _get_store()
     store.flush()

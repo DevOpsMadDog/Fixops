@@ -1,1 +1,1 @@
-/home/user/workspace/Fixops/suite-attack/api/sast_router.py
+../../../suite-attack/api/sast_router.py

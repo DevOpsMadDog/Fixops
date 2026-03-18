@@ -40,7 +40,7 @@ class JavaAgent(CodeRepoAgent):
 
             return self._findings_to_sarif(findings, "FixOps Java Analyzer")
 
-        except Exception as e:
+        except ImportError as e:
             logger.error(f"Error collecting Java SARIF: {e}")
             return await self._collect_sarif_oss_fallback()
 
@@ -75,7 +75,7 @@ class JavaAgent(CodeRepoAgent):
             if returncode in (0, 1):
                 return self._semgrep_to_sarif(json.loads(stdout))
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Error in OSS fallback: {e}")
 
         return None

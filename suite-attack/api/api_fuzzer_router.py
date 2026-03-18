@@ -14,7 +14,8 @@ import logging
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, field_validator
 
 _logger = logging.getLogger(__name__)

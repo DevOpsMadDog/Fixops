@@ -44,7 +44,7 @@ def api_get(endpoint: str):
         resp = requests.get(url, headers=get_api_headers(), timeout=30)
         resp.raise_for_status()
         return resp.json()
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         click.echo(f"❌ API error: {e}", err=True)
         return None
 
@@ -56,7 +56,7 @@ def api_post(endpoint: str, data: dict):
         resp = requests.post(url, headers=get_api_headers(), json=data, timeout=60)
         resp.raise_for_status()
         return resp.json()
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         click.echo(f"❌ API error: {e}", err=True)
         return None
 
@@ -701,7 +701,7 @@ def main():
                 global DEFAULT_API_URL, API_KEY
                 DEFAULT_API_URL = config.get("api_url", DEFAULT_API_URL)
                 API_KEY = config.get("api_key", API_KEY)
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     cli()

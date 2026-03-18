@@ -121,7 +121,7 @@ class FixOpsContextProcessor:
             )
             return context
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"FixOps YAML processing failed: {e}")
             raise
 
@@ -150,7 +150,7 @@ class FixOpsContextProcessor:
             )
             return ssvc_context
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"OTM processing failed: {e}")
             raise
 

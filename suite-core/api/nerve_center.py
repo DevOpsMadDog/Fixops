@@ -13,7 +13,7 @@ import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from core.persistent_store import PersistentDict
+from core.persistent_store import get_persistent_store
 from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
 
@@ -29,7 +29,7 @@ def _brain():
         from core.knowledge_brain import get_brain
 
         return get_brain()
-    except Exception:
+    except ImportError:
         return None
 
 
@@ -39,7 +39,7 @@ def _ml_store():
         from core.api_learning_store import get_learning_store
 
         return get_learning_store()
-    except Exception:
+    except ImportError:
         return None
 
 
@@ -49,7 +49,7 @@ def _event_bus():
         from core.event_bus import get_event_bus
 
         return get_event_bus()
-    except Exception:
+    except ImportError:
         return None
 
 
@@ -157,7 +157,7 @@ async def get_threat_pulse():
         try:
             st = ml.get_stats()
             active_incidents = st.get("total_anomalies", 0)
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     # Pending decisions = recent DECISION_MADE events not yet resolved
@@ -168,7 +168,7 @@ async def get_threat_pulse():
             pending_decisions = sum(
                 1 for e in recent if e.get("event_type", "").startswith("decision.")
             )
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     # Auto-blocked = brain edges of type BLOCKED / QUARANTINED
@@ -180,7 +180,7 @@ async def get_threat_pulse():
             auto_blocked = edge_types.get("BLOCKED", 0) + edge_types.get(
                 "QUARANTINED", 0
             )
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     # Composite score: weighted blend of error rate + anomalies + edge density
@@ -193,14 +193,14 @@ async def get_threat_pulse():
                 st.get("total_anomalies", 0) / max(st.get("total_requests", 1), 1)
             ) * 100
             score = min(err_rate * 0.5 + anomaly_pct * 40 + active_incidents * 2, 100)
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             score = 10.0
     if brain:
         try:
             bs = brain.stats()
             density = bs.get("density", 0)
             score = min(score + density * 20, 100)
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     score = round(score, 1)
@@ -268,7 +268,7 @@ async def get_nerve_center_state():
                 endpoints = body.get("routes", body.get("endpoints", 0))
             elif r.status_code < 500:
                 status = "degraded"
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
         suites.append(
             SuiteStatus(
@@ -299,7 +299,7 @@ async def get_nerve_center_state():
                         events_per_min=round(cnt / max(len(recent) / 60, 1), 1),
                     )
                 )
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
     if not links:
         # Fallback: structural links (always valid)
@@ -347,7 +347,7 @@ async def get_nerve_center_state():
                     )
                 if len(recent_actions) >= 10:
                     break
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     # ── Pipeline throughput from ML store ─────────────────────────────
@@ -363,7 +363,7 @@ async def get_nerve_center_state():
                 "unique_endpoints": st.get("unique_endpoints", 0),
                 "error_rate_pct": st.get("error_rate", 0),
             }
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     # ── Decision engine metrics ───────────────────────────────────────
@@ -372,7 +372,7 @@ async def get_nerve_center_state():
         from core.services.enterprise.decision_engine import decision_engine as de
 
         de_metrics = await de.get_decision_metrics()
-    except Exception as exc:
+    except ImportError as exc:
         _log.debug("Decision engine metrics unavailable: %s", exc)
         de_metrics = {"status": "unavailable"}
 
@@ -396,7 +396,7 @@ async def get_nerve_center_state():
             compliance["coverage_pct"] = round(
                 compliance["controls_passing"] / total_ctrl * 100, 1
             )
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     # ── Compose threat pulse from same data ───────────────────────────
@@ -572,7 +572,7 @@ async def get_intelligence_map():
     if brain:
         try:
             brain_stats = brain.stats()
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     return {
@@ -621,7 +621,7 @@ async def list_playbooks():
                         "author": props.get("author", "FixOps"),
                     }
                 )
-        except Exception as exc:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
             _log.debug("Playbook query from brain failed: %s", exc)
 
     # If brain has no playbook nodes, seed defaults and return them
@@ -690,7 +690,7 @@ async def list_playbooks():
                         label=pb["name"],
                         properties={k: v for k, v in pb.items() if k != "id"},
                     )
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
         playbooks = _DEFAULTS
     return {"playbooks": playbooks}
@@ -854,7 +854,7 @@ async def get_overlay_config():
     }
 
 
-_overlay_config: PersistentDict = PersistentDict("nerve_center_overlay")
+_overlay_config = get_persistent_store("nerve_center_overlay")
 
 
 @router.put("/overlay")

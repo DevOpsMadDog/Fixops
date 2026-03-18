@@ -177,7 +177,7 @@ class MarketplaceService:
                     key: ContributorProfile.from_dict(value)
                     for key, value in raw_contributors.items()
                 }
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Failed to load marketplace data", error=str(e))
 
     def _persist(self):
@@ -195,7 +195,7 @@ class MarketplaceService:
                 ),
                 encoding="utf-8",
             )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Failed to persist marketplace data", error=str(e))
 
     def _seed_items(self):
@@ -264,7 +264,7 @@ class MarketplaceService:
                     "pricing_model": PricingModel(content.get("pricing_model", "free")),
                 }
             )
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             raise ValueError(f"Invalid content fields: {e}")
 
     def _run_automated_validation(
@@ -388,7 +388,7 @@ class MarketplaceService:
             if int(datetime.now(timezone.utc).timestamp()) > exp:
                 return False, None
             return True, purchase_id
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return False, None
 
     # Public API

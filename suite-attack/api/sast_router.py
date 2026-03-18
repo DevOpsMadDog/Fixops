@@ -12,7 +12,8 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 from core.sast_engine import SAST_RULES, get_sast_engine
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/sast", tags=["SAST"])
@@ -90,6 +91,7 @@ async def scan_files(req: ScanFilesRequest) -> Dict[str, Any]:
 async def list_sast_findings(
     severity: str = None,
     limit: int = 100,
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """List SAST scan findings."""
     try:
@@ -111,7 +113,7 @@ async def list_sast_findings(
                     'source': src,
                     'created_at': f.created_at.isoformat() if hasattr(f, 'created_at') and f.created_at else None,
                 })
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         sast_findings = []
     return {
         'findings': sast_findings,

@@ -1,1 +1,1 @@
-/home/user/workspace/Fixops/suite-core/api/mcp_protocol_router.py
+../../../suite-core/api/mcp_protocol_router.py

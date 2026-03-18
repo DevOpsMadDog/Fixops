@@ -595,7 +595,7 @@ async def collaboration_channels():
     try:
         raw = service.get_activities(limit=100) if hasattr(service, "get_activities") else []
         activities = raw if isinstance(raw, list) else (raw.get("activities", []) if isinstance(raw, dict) else [])
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     # Derive channels from entity types

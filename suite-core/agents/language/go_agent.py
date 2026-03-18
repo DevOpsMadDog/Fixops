@@ -39,7 +39,7 @@ class GoAgent(CodeRepoAgent):
 
             return self._findings_to_sarif(findings, "FixOps Go Analyzer")
 
-        except Exception as e:
+        except ImportError as e:
             logger.error(f"Error collecting Go SARIF: {e}")
             return await self._collect_sarif_oss_fallback()
 
@@ -72,7 +72,7 @@ class GoAgent(CodeRepoAgent):
             if result.returncode in (0, 1):
                 return self._gosec_to_sarif(json.loads(result.stdout))
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Error in OSS fallback: {e}")
 
         return None

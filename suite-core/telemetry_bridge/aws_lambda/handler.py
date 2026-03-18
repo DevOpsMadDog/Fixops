@@ -30,7 +30,7 @@ def load_overlay_config() -> Dict[str, Any]:
         with open(overlay_path, "r") as f:
             overlay = yaml.safe_load(f)
         return overlay.get("telemetry_bridge", {})
-    except Exception as e:
+    except ImportError as e:
         logger.warning(f"Failed to load overlay from {overlay_path}: {e}")
         return {
             "mode": os.environ.get("TELEMETRY_MODE", "http"),
@@ -172,6 +172,6 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
         return result
 
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error(f"Error processing telemetry: {e}", exc_info=True)
         return {"ok": False, "error": str(e)}

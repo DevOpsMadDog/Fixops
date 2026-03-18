@@ -486,7 +486,7 @@ class ReachabilityAnalyzer:
                     key=lambda r: len(r.findings) if r.success else 0,
                 )
                 return best_result
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Design-time analysis failed: {e}")
 
         return None
@@ -520,7 +520,7 @@ class ReachabilityAnalyzer:
                     key=lambda r: len(r.findings) if r.success else 0,
                 )
                 return best_result
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Runtime analysis failed: {e}")
 
         return None

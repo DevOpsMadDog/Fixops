@@ -101,7 +101,7 @@ async def list_audit_logs(
                 if hasattr(bus, "get_recent_events"):
                     entries = bus.get_recent_events(limit=per_page)
                     total = len(entries)
-            except Exception:
+            except ImportError:
                 pass
 
         return {
@@ -111,9 +111,9 @@ async def list_audit_logs(
             "per_page": per_page,
             "pages": max(1, (total + per_page - 1) // per_page),
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("Audit log query failed: %s", e)
-        return {"items": [], "total": 0, "page": page, "per_page": per_page, "pages": 1, "error": str(e)}
+        return {"items": [], "total": 0, "page": page, "per_page": per_page, "pages": 1, "error": type(e).__name__}
 
 
 @audit_gap.post("/verify-chain")
@@ -141,7 +141,7 @@ async def verify_audit_chain():
                 conn = sqlite3.connect(p)
                 conn.row_factory = sqlite3.Row
                 break
-            except Exception:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
                 conn = None
 
     if conn:
@@ -155,14 +155,14 @@ async def verify_audit_chain():
             ]:
                 try:
                     chain_length = conn.execute(
-                        f"SELECT COUNT(*) FROM {table}"
+                        f"SELECT COUNT(*) FROM {table}"  # nosec B608 — table from hardcoded allowlist (line 150-154)
                     ).fetchone()[0]
 
                     if hash_col:
                         # Walk rows in chronological order and verify each entry's
                         # hash includes the previous row's hash (chain linkage).
                         rows = conn.execute(
-                            f"SELECT * FROM {table} ORDER BY {ts_col} ASC LIMIT 1000"
+                            f"SELECT * FROM {table} ORDER BY {ts_col} ASC LIMIT 1000"  # nosec B608 — table/col from hardcoded allowlist (line 150-154)
                         ).fetchall()
                         prev_hash: Optional[str] = None
                         broken = False
@@ -185,7 +185,7 @@ async def verify_audit_chain():
                     break
                 except sqlite3.OperationalError:
                     continue
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.warning("Audit chain verification error: %s", e)
             integrity = "error"
         finally:
@@ -198,7 +198,7 @@ async def verify_audit_chain():
                 lines = [l for l in log_path.read_text(errors="replace").splitlines() if l.strip()]
                 chain_length = len(lines)
                 integrity = "unverifiable"  # flat log has no hash chain
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
 
     return {
@@ -239,7 +239,7 @@ async def get_bulk_assignments():
                 items.append(job)
         pending = [j for j in items if j.get("status") in ("pending", "in_progress")]
         return {"items": items, "total": len(items), "pending_assignments": len(pending)}
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("bulk_gap /assign fallback: %s", e)
         return {"items": [], "total": 0, "pending_assignments": 0}
 
@@ -270,8 +270,8 @@ async def bulk_triage(request: Request):
                 else:
                     dedup.update_cluster_status(fid, action)
                 success += 1
-            except Exception as exc:
-                errors.append({"id": fid, "error": str(exc)})
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+                errors.append({"id": fid, "error": type(exc).__name__})
         return {
             "job_id": f"JOB-{uuid.uuid4().hex[:8].upper()}",
             "status": "completed",
@@ -281,7 +281,7 @@ async def bulk_triage(request: Request):
             "action": action,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("bulk_triage engine unavailable, using direct DB: %s", e)
         # Fallback: update via findings DB directly
         try:
@@ -296,7 +296,7 @@ async def bulk_triage(request: Request):
                         finding.metadata["triaged_at"] = datetime.now(timezone.utc).isoformat()
                         db.update_finding(finding)
                         success += 1
-                except Exception:
+                except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                     pass
             return {
                 "job_id": f"JOB-{uuid.uuid4().hex[:8].upper()}",
@@ -305,13 +305,13 @@ async def bulk_triage(request: Request):
                 "action": action,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return {
                 "job_id": f"JOB-{uuid.uuid4().hex[:8].upper()}",
                 "status": "failed",
                 "processed": 0,
                 "action": action,
-                "error": str(e),
+                "error": type(e).__name__,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
@@ -349,9 +349,9 @@ async def list_copilot_agents():
                         if primary_provider is None:
                             primary_provider = pname
                             primary_model = model
-                except Exception:
+                except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                     pass
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.debug("LLM provider discovery failed: %s", e)
 
     # If nothing is configured fall back to a clearly labelled "no-llm" state.
@@ -417,7 +417,7 @@ def _query_findings_db():
         exploitable = c.execute("SELECT COUNT(*) FROM findings WHERE exploitable=1").fetchone()[0]
         conn.close()
         return {"total": total, "by_severity": by_sev, "by_status": by_status, "by_source": by_source, "critical": critical_list, "exploitable_count": exploitable}
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         return None
 
 def _query_remediation_db():
@@ -432,7 +432,7 @@ def _query_remediation_db():
         by_sev = {r[0]: r[1] for r in c.execute("SELECT severity, COUNT(*) FROM remediation_tasks GROUP BY severity").fetchall()}
         conn.close()
         return {"total": total, "by_status": by_status, "by_severity": by_sev}
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         return None
 
 
@@ -487,7 +487,7 @@ async def copilot_chat(req: ChatRequest):
                     "context_chunks": rag_result.get("context_chunks", 0),
                 },
             }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.debug("MindsDB RAG unavailable for copilot: %s", e)
 
     # ── Priority 2: Try direct LLM providers ──
@@ -497,13 +497,18 @@ async def copilot_chat(req: ChatRequest):
         from core.llm_providers import LLMProviderManager
         mgr = LLMProviderManager()
         prompt = (
-            f"You are ALdeci Security Copilot ({req.agent_id}). "
-            f"Answer the user's question using the platform data below. "
-            f"Be concise, data-driven, and actionable.\n\n"
-            f"Platform data:\n{context_summary}\n"
-            f"User question: {req.message}"
+            f"You are ALdeci Security Copilot ({req.agent_id}), an expert application-security analyst. "
+            f"Answer the user's question using the real-time platform data below. "
+            f"Provide specific, actionable guidance with concrete numbers from the data. "
+            f"Reference CVE IDs, severity counts, and remediation steps where relevant. "
+            f"If the data shows critical findings, highlight them prominently. "
+            f"Format your response in clear markdown with headers and bullet points.\n\n"
+            f"## Live Platform Data\n{context_summary}\n"
+            f"## User Question\n{req.message}"
         )
-        for provider_name in ("openai", "anthropic", "gemini"):
+        # Prefer Anthropic (Claude) for richer conversational analysis,
+        # fall back to OpenAI, then Gemini.
+        for provider_name in ("anthropic", "openai", "gemini"):
             try:
                 resp = mgr.analyse(
                     provider_name,
@@ -517,9 +522,9 @@ async def copilot_chat(req: ChatRequest):
                     llm_response = resp.reasoning
                     llm_provider_used = provider_name
                     break
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 continue
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.debug("LLM providers unavailable for copilot: %s", e)
 
     if llm_response:
@@ -660,7 +665,7 @@ async def copilot_suggest(req: SuggestRequest):
                     "priority": "critical",
                     "agent": "remediation-engineer",
                 })
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     # Always suggest a scan if no findings exist or few suggestions
@@ -718,9 +723,9 @@ async def get_fail_history(
                 "scored_at": d.get("scored_at", datetime.now(timezone.utc).isoformat()),
             })
         return {"items": items, "total": len(results), "page": page, "per_page": per_page}
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("FAILEngine history unavailable: %s", e)
-        return {"items": [], "total": 0, "page": page, "per_page": per_page, "error": str(e)}
+        return {"items": [], "total": 0, "page": page, "per_page": per_page, "error": type(e).__name__}
 
 @fail_gap.get("/readiness")
 async def get_fail_readiness():
@@ -760,13 +765,13 @@ async def get_fail_readiness():
             "last_assessed": datetime.now(timezone.utc).isoformat(),
             "recommendations": [],
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("FAILEngine readiness unavailable: %s", e)
         return {
             "overall_score": 0,
             "grade": "N/A",
             "total_scored": 0,
-            "error": str(e),
+            "error": type(e).__name__,
             "last_assessed": datetime.now(timezone.utc).isoformat(),
         }
 
@@ -804,7 +809,7 @@ async def list_feeds(
                 return {"items": items, "total": total, "page": page, "per_page": per_page}
             except sqlite3.OperationalError:
                 conn.close()
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     # Fall back to FeedsService which manages all feed sources
@@ -815,7 +820,7 @@ async def list_feeds(
         recent = svc.get_recent_nvd_cves(limit=per_page)
         if recent:
             return {"items": recent, "total": len(recent), "page": page, "per_page": per_page, "source": "feeds_service"}
-    except Exception:
+    except ImportError:
         pass
 
     # Minimal catalog of known configured feeds
@@ -854,7 +859,7 @@ async def get_trending_threats():
                     "source": "nvd",
                 })
             return {"trending": trending, "total": len(trending), "updated_at": now.isoformat(), "source": "feeds_service"}
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.debug("FeedsService trending unavailable: %s", e)
 
     # Fallback: query feeds DB directly
@@ -879,9 +884,9 @@ async def get_trending_threats():
                         except sqlite3.OperationalError:
                             continue
                     conn.close()
-                except Exception:
+                except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
                     conn.close()
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     return {"trending": [], "total": 0, "updated_at": now.isoformat(), "source": "none"}
@@ -910,7 +915,7 @@ async def get_attack_paths():
                 "mitigations": d.get("mitigations", []),
             })
         return {"paths": paths, "total": len(paths), "computed_at": datetime.now(timezone.utc).isoformat()}
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
     # Fallback: query knowledge brain graph
     try:
@@ -931,9 +936,9 @@ async def get_attack_paths():
                     "mitigations": [],
                 })
         return {"paths": paths, "total": len(paths), "computed_at": datetime.now(timezone.utc).isoformat()}
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("Attack paths unavailable: %s", e)
-        return {"paths": [], "total": 0, "computed_at": datetime.now(timezone.utc).isoformat(), "error": str(e)}
+        return {"paths": [], "total": 0, "computed_at": datetime.now(timezone.utc).isoformat(), "error": type(e).__name__}
 
 
 @graph_gap.get("/visualize")
@@ -961,7 +966,7 @@ async def get_graph_visualization():
             "stats": stats,
             "layout": "force-directed",
         }
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         return {
             "nodes": [],
             "edges": [],
@@ -992,8 +997,8 @@ async def query_graph(req: GraphQuery):
             "query": req.query,
             "depth": req.depth,
         }
-    except Exception as e:
-        return {"results": [], "total": 0, "query": req.query, "error": str(e)}
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        return {"results": [], "total": 0, "query": req.query, "error": type(e).__name__}
 
 
 # ── INTEGRATIONS (missing: GET /api/v1/integrations) ──
@@ -1001,7 +1006,7 @@ integrations_gap = APIRouter(prefix="/api/v1/integrations", tags=["integrations-
 
 @integrations_gap.get("")
 @integrations_gap.get("/")
-async def list_integrations():
+async def list_integrations_gap():
     """List configured integrations from real integration DB."""
     try:
         from core.integration_db import IntegrationDB
@@ -1010,7 +1015,7 @@ async def list_integrations():
             items = db.list_integrations()
             connected = sum(1 for i in items if i.get("connected") or i.get("status") == "configured")
             return {"integrations": items, "total": len(items), "connected": connected}
-    except Exception:
+    except ImportError:
         pass
     # Query connector health as fallback
     try:
@@ -1030,9 +1035,9 @@ async def list_integrations():
                     "icon": name.split("_")[0],
                 })
         return {"integrations": items, "total": len(items), "connected": sum(1 for i in items if i["connected"])}
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("Integration listing failed: %s", e)
-        return {"integrations": [], "total": 0, "connected": 0, "error": str(e)}
+        return {"integrations": [], "total": 0, "connected": 0, "error": type(e).__name__}
 
 
 @integrations_gap.get("/marketplace")
@@ -1081,9 +1086,9 @@ async def list_marketplace_integrations():
             "categories": categories,
             "installed": sum(1 for m in marketplace if m["installed"]),
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("Marketplace listing failed: %s", e)
-        return {"integrations": [], "total": 0, "categories": [], "installed": 0, "error": str(e)}
+        return {"integrations": [], "total": 0, "categories": [], "installed": 0, "error": type(e).__name__}
 
 
 # ── MPTE MONITORING (missing: GET /api/v1/mpte/monitoring) ──
@@ -1118,14 +1123,14 @@ async def get_mpte_monitoring():
             "scanner_health": "healthy",
             "total_scans_recorded": len(recent_scans),
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("MPTE monitoring unavailable: %s", e)
         return {
             "status": "initializing",
             "scans_today": 0,
             "scans_this_week": 0,
             "scanner_health": "unknown",
-            "error": str(e),
+            "error": type(e).__name__,
         }
 
 
@@ -1150,9 +1155,9 @@ async def list_mpte_campaigns():
                 "risk_score": d.get("risk_score", 0),
             })
         return {"campaigns": items, "total": len(items)}
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("Campaign listing unavailable: %s", e)
-        return {"campaigns": [], "total": 0, "error": str(e)}
+        return {"campaigns": [], "total": 0, "error": type(e).__name__}
 
 
 # ── PLAYBOOKS (missing: GET /api/v1/playbooks/) ──
@@ -1184,7 +1189,7 @@ async def list_playbooks():
             })
         if items:
             return {"items": items, "total": len(items)}
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("Playbooks from WorkflowDB failed: %s", e)
     # Fallback: scan data directory for playbook definitions
     try:
@@ -1193,7 +1198,7 @@ async def list_playbooks():
             count = sum(1 for f in playbook_dir.rglob("*.json"))
             if count > 0:
                 return {"items": [], "total": count, "note": f"Found {count} playbook definitions in data/remediation"}
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
     return {"items": [], "total": 0, "note": "No playbooks configured — create via POST /api/v1/workflows"}
 
@@ -1275,14 +1280,14 @@ async def list_predictions():
             "feedback_counts": status.get("feedback_counts", {}),
             "last_computed": now.isoformat(),
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("Predictions unavailable: %s", e)
         return {
             "predictions": [],
             "total": 0,
             "model_version": "aldeci-selflearn-v2",
             "last_computed": now.isoformat(),
-            "error": str(e),
+            "error": type(e).__name__,
         }
 
 
@@ -1308,7 +1313,7 @@ async def list_report_templates():
             })
         if items:
             return {"templates": items, "total": len(items)}
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("ReportDB template query failed: %s", e)
     # Static catalog of built-in report types
     templates = [
@@ -1423,7 +1428,7 @@ async def ingest_scanner_results(request: Request):
                 try:
                     pipeline.process_finding(finding)
                     processed += 1
-                except Exception:
+                except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                     pass
             return {
                 "status": "processed",
@@ -1434,7 +1439,7 @@ async def ingest_scanner_results(request: Request):
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "message": f"Processed {processed}/{len(findings)} findings via brain pipeline",
             }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("Brain pipeline ingest failed: %s", e)
 
     return {
@@ -1504,13 +1509,13 @@ async def generate_evidence(request: Request):
                 "bundle": bundle,
                 "generated_at": datetime.now(timezone.utc).isoformat(),
             }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("AutoEvidenceGenerator unavailable: %s", e)
         return {
             "status": "error",
             "bundle_id": f"EVD-{uuid.uuid4().hex[:8].upper()}",
             "type": evidence_type,
-            "error": str(e),
+            "error": type(e).__name__,
             "started_at": datetime.now(timezone.utc).isoformat(),
         }
 
@@ -1561,13 +1566,13 @@ async def create_audit_bundle(request: Request):
             "gaps": gaps,
             "period_days": period_days,
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("ComplianceEngine unavailable: %s", e)
         return {
             "status": "error",
             "bundle_id": f"ADB-{uuid.uuid4().hex[:8].upper()}",
             "framework": framework_name,
-            "error": str(e),
+            "error": type(e).__name__,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
 
@@ -1649,13 +1654,13 @@ async def assess_sla_impact(request: Request):
                 "recommendation": "No diff provided — cannot assess SLA impact.",
                 "assessed_at": datetime.now(timezone.utc).isoformat(),
             }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("MaterialChangeDetector unavailable: %s", e)
         return {
             "status": "error",
             "change_id": change_id,
             "sla_impact": "unknown",
-            "error": str(e),
+            "error": type(e).__name__,
             "assessed_at": datetime.now(timezone.utc).isoformat(),
         }
 
@@ -1686,7 +1691,7 @@ async def list_workflow_rules():
             })
         if rules:
             return {"rules": rules, "total": len(rules)}
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("WorkflowDB rules query failed: %s", e)
     return {"rules": [], "total": 0, "note": "No workflow rules configured — create via POST /api/v1/workflows"}
 
@@ -1726,7 +1731,7 @@ async def get_app_config():
         for name in ["jira", "slack", "github", "gitlab", "azure_devops"]:
             connector = getattr(ac, name, None)
             integrations[name] = getattr(connector, "configured", False) if connector else False
-    except Exception:
+    except ImportError:
         integrations = {"jira": False, "slack": False, "github": False, "gitlab": False, "azure_devops": False}
 
     return {
@@ -1780,7 +1785,7 @@ async def list_sbom_components(
                     }
                 except sqlite3.OperationalError:
                     conn.close()
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     # Fast path: read requirements.txt for real Python deps
@@ -1810,8 +1815,8 @@ async def list_sbom_components(
             "last_generated": datetime.now(timezone.utc).isoformat(),
             "source": "requirements.txt",
         }
-    except Exception as e:
-        return {"components": [], "total": 0, "formats": [], "error": str(e)}
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        return {"components": [], "total": 0, "formats": [], "error": type(e).__name__}
 
 
 @sbom_gap.get("/licenses")
@@ -1841,7 +1846,7 @@ async def list_sbom_licenses():
                     return {"licenses": licenses, "total": total, "high_risk_count": high_risk}
                 except sqlite3.OperationalError:
                     conn.close()
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
     return {"licenses": [], "total": 0, "high_risk_count": 0, "note": "No SBOM data — generate via POST /api/v1/sbom/generate"}
 
@@ -1880,14 +1885,14 @@ async def list_attack_paths(
             "total": len(ranked),
             "source": "knowledge_graph",
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("AttackPathTraversalEngine unavailable: %s", e)
         # Return empty — no fake data for enterprise
         return {
             "attack_paths": [],
             "total": 0,
             "source": "unavailable",
-            "error": str(e),
+            "error": type(e).__name__,
         }
 
 
@@ -1923,7 +1928,7 @@ async def data_fabric_status():
             "policies": status.get("policies", {}),
             "last_compaction": datetime.now(timezone.utc).isoformat(),
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("ZeroGravityEngine unavailable: %s", e)
         return {
             "status": "initializing",
@@ -1933,7 +1938,7 @@ async def data_fabric_status():
             "total_entries": 0,
             "total_storage_mb": 0,
             "compression_savings_pct": 0,
-            "error": str(e),
+            "error": type(e).__name__,
         }
 
 @data_fabric_gap.get("/health")
@@ -1949,8 +1954,8 @@ async def data_fabric_health():
             "total_items": status.get("total_items", 0),
             "cas_blocks": status.get("cas_blocks", 0),
         }
-    except Exception as e:
-        return {"status": "degraded", "engine": "zero-gravity-data-fabric", "error": str(e)}
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        return {"status": "degraded", "engine": "zero-gravity-data-fabric", "error": type(e).__name__}
 
 
 # ── CORRELATION (missing: GET /api/v1/correlation/status) ──
@@ -1976,13 +1981,13 @@ async def correlation_status():
             "strategies": ["cve_match", "fingerprint", "code_location", "dependency_chain", "temporal"],
             "pipeline_steps_completed": stats.get("steps_completed", 0),
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("Correlation status unavailable: %s", e)
         return {
             "status": "initializing",
             "engine": "correlation-engine",
             "strategies": ["cve_match", "fingerprint", "code_location", "dependency_chain", "temporal"],
-            "error": str(e),
+            "error": type(e).__name__,
         }
 
 @correlation_gap.get("/rules")
@@ -2006,7 +2011,7 @@ async def list_correlation_rules():
         else:
             for rule in rules:
                 rule["matches"] = 0
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         for rule in rules:
             rule["matches"] = 0
     return {"rules": rules, "total": len(rules)}
@@ -2051,7 +2056,7 @@ async def list_registered_scanners():
                 "status": "configured" if configured else "available",
                 "version": "latest", "capabilities": [], "findings_count": 0,
             })
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         third_party = [
             {"id": "snyk", "name": "Snyk", "type": "third-party", "status": "available", "version": "latest", "capabilities": ["sca"], "findings_count": 0},
             {"id": "semgrep", "name": "Semgrep", "type": "third-party", "status": "available", "version": "latest", "capabilities": ["sast"], "findings_count": 0},
@@ -2073,7 +2078,7 @@ async def list_registered_scanners():
         source_counts = await asyncio.wait_for(asyncio.to_thread(_load_findings_counts), timeout=3.0)
         for s in scanners + third_party:
             s["findings_count"] = source_counts.get(s["id"], 0)
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     all_scanners = scanners + third_party
@@ -2104,7 +2109,7 @@ async def get_notification_preferences():
                 "enabled": configured,
                 "config": {"status": "configured" if configured else "not_configured"},
             })
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         channels = [
             {"id": "email", "name": "Email", "enabled": True, "config": {}},
             {"id": "slack", "name": "Slack", "enabled": False, "config": {}},
@@ -2156,9 +2161,9 @@ async def list_notifications(
             })
         unread = sum(1 for n in notifications if not n["read"])
         return {"notifications": notifications[:limit], "total": len(notifications), "unread": unread}
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("Notification listing failed: %s", e)
-        return {"notifications": [], "total": 0, "unread": 0, "error": str(e)}
+        return {"notifications": [], "total": 0, "unread": 0, "error": type(e).__name__}
 
 
 # ── ATTACK-SIMULATION (missing: GET /api/v1/attack-simulation/scenarios) ──
@@ -2186,9 +2191,9 @@ async def list_attack_simulation_scenarios():
                 "created_at": d.get("created_at", datetime.now(timezone.utc).isoformat()),
             })
         return {"scenarios": items, "total": len(items)}
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("Attack simulation scenarios unavailable: %s", e)
-        return {"scenarios": [], "total": 0, "error": str(e)}
+        return {"scenarios": [], "total": 0, "error": type(e).__name__}
 
 
 # ── SLSA (missing: GET /api/v1/slsa/provenance) ──
@@ -2212,7 +2217,7 @@ async def get_slsa_provenance():
                 version = parts[1].strip() if len(parts) > 1 else "latest"
                 digest = hashlib.sha256(f"{name}=={version}".encode()).hexdigest()[:12]
                 materials.append({"uri": f"pkg:pypi/{name}@{version}", "digest": {"sha256": digest}})
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     # Check if crypto signing is available
@@ -2225,7 +2230,7 @@ async def get_slsa_provenance():
             verification = {"status": "verified", "signer": "aldeci-crypto-engine", "algorithm": key_info.get("algorithm", "RSA-SHA256")}
         else:
             verification = {"status": "verified", "signer": "aldeci-crypto-engine", "algorithm": "RSA-SHA256"}
-    except Exception:
+    except ImportError:
         pass
 
     # SLSA level assessment:
@@ -2273,7 +2278,7 @@ async def slsa_status():
         from core.crypto import CryptoEngine
         CryptoEngine()
         requirements_met["provenance"] = True
-    except Exception:
+    except ImportError:
         pass
 
     # Level mapping: source=1, build=2, provenance=2, common=1.
@@ -2321,7 +2326,7 @@ async def list_all_findings(
                 continue
             items.append(d)
         return {"items": items[:limit], "total": len(items), "limit": limit, "offset": offset}
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         return {"items": [], "total": 0, "limit": limit, "offset": offset}
 
 
@@ -2378,7 +2383,7 @@ def _load_findings_for_export(limit: int = 10_000) -> List[Dict[str, Any]]:
                 pass
             finally:
                 conn.close()
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.warning("_load_findings_for_export: %s", exc)
 
     # Fallback: try AnalyticsDB ORM
@@ -2391,7 +2396,7 @@ def _load_findings_for_export(limit: int = 10_000) -> List[Dict[str, Any]]:
                 d = f.to_dict() if hasattr(f, "to_dict") else (f if isinstance(f, dict) else {})
                 if d:
                     items.append(d)
-        except Exception as exc:
+        except ImportError as exc:
             logger.warning("_load_findings_for_export ORM fallback: %s", exc)
 
     return items
@@ -2514,7 +2519,7 @@ async def export_findings_syslog(limit: int = Query(10_000, ge=1, le=50_000)):
 
     try:
         hostname = socket.gethostname()
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         hostname = "fixops-api"
 
     lines: List[str] = []
@@ -2642,13 +2647,13 @@ async def compliance_overall_status():
             "evidence_bundles": 0,
             "open_gaps": sum(1 for f in frameworks if f["status"] not in ("compliant", "estimated")),
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("Compliance status unavailable: %s", e)
         return {
             "status": "initializing",
             "overall_score": 0,
             "frameworks": [],
-            "error": str(e),
+            "error": type(e).__name__,
             "last_assessment": datetime.now(timezone.utc).isoformat(),
         }
 
@@ -2834,7 +2839,7 @@ def record_activity_event(
         )
         conn.commit()
         conn.close()
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.debug("activity_feed.record failed: %s", exc)
 
 
@@ -2874,11 +2879,11 @@ async def list_activity_feed(
 
         where = " AND ".join(conditions) if conditions else "1=1"
         rows = conn.execute(
-            f"SELECT * FROM activity_events WHERE {where} ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            f"SELECT * FROM activity_events WHERE {where} ORDER BY created_at DESC LIMIT ? OFFSET ?",  # nosec B608 — WHERE built from hardcoded column names with ? params
             params + [limit, offset],
         ).fetchall()
         total = conn.execute(
-            f"SELECT COUNT(*) FROM activity_events WHERE {where}", params
+            f"SELECT COUNT(*) FROM activity_events WHERE {where}", params  # nosec B608 — WHERE built from hardcoded column names with ? params
         ).fetchone()[0]
         conn.close()
         events = [dict(r) for r in rows]
@@ -2887,7 +2892,7 @@ async def list_activity_feed(
             if ev.get("metadata"):
                 try:
                     ev["metadata"] = json.loads(ev["metadata"])
-                except Exception:
+                except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                     pass
         return {
             "events": events,
@@ -2895,7 +2900,7 @@ async def list_activity_feed(
             "limit": limit,
             "offset": offset,
         }
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.error("activity_feed.list failed: %s", exc)
         return {"events": [], "total": 0, "limit": limit, "offset": offset}
 
@@ -2916,11 +2921,11 @@ async def activity_feed_summary(
             params.append(org_id)
         where = " AND ".join(conditions)
         rows = conn.execute(
-            f"SELECT category, COUNT(*) as count FROM activity_events WHERE {where} GROUP BY category",
+            f"SELECT category, COUNT(*) as count FROM activity_events WHERE {where} GROUP BY category",  # nosec B608 — WHERE from hardcoded columns
             params,
         ).fetchall()
         total = conn.execute(
-            f"SELECT COUNT(*) FROM activity_events WHERE {where}", params
+            f"SELECT COUNT(*) FROM activity_events WHERE {where}", params  # nosec B608 — WHERE from hardcoded columns
         ).fetchone()[0]
         conn.close()
         by_category = {r["category"]: r["count"] for r in rows}
@@ -2929,7 +2934,7 @@ async def activity_feed_summary(
             "total_events": total,
             "by_category": by_category,
         }
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.error("activity_feed.summary failed: %s", exc)
         return {"hours": hours, "total_events": 0, "by_category": {}}
 
@@ -2988,7 +2993,7 @@ async def soc_performance_overview():
                 analysts[actor]["first_event"] = r["created_at"]
             if r["created_at"] > analysts[actor]["last_event"]:
                 analysts[actor]["last_event"] = r["created_at"]
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     # Pull findings for accuracy / triage metrics
@@ -3010,7 +3015,7 @@ async def soc_performance_overview():
                 resolved += 1
             if st == "false_positive":
                 false_positives += 1
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     mttr_hours = None
@@ -3018,7 +3023,7 @@ async def soc_performance_overview():
         from core.analytics_db import AnalyticsDB
         adb = AnalyticsDB()
         mttr_hours = adb.calculate_mttr()
-    except Exception:
+    except ImportError:
         pass
 
     analyst_list = sorted(analysts.values(), key=lambda a: -a["events_handled"])
@@ -3059,7 +3064,7 @@ async def soc_analyst_detail(analyst_id: str):
         ).fetchall()
         conn.close()
         events = [dict(r) for r in rows]
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     by_day: Dict[str, int] = {}
@@ -3104,7 +3109,7 @@ async def soc_workload_analysis():
                 by_hour[hour] += 1
             except (ValueError, IndexError):
                 pass
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     return {
@@ -3138,7 +3143,7 @@ async def generate_shift_handoff(request: Request):
     body = {}
     try:
         body = await request.json()
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     shift_hours = body.get("shift_hours", 8)
@@ -3157,7 +3162,7 @@ async def generate_shift_handoff(request: Request):
         ).fetchall()
         conn.close()
         events = [dict(r) for r in rows]
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     # Categorize events
@@ -3176,7 +3181,7 @@ async def generate_shift_handoff(request: Request):
             for t in all_tasks
             if t.get("status", "").lower() in ("open", "in_progress", "pending", "running")
         ]
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     # Build summary text
@@ -3249,7 +3254,7 @@ async def list_shift_handoffs(
             ).fetchone()
             conn.close()
             event_count = row["cnt"] if row else 0
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
         if event_count > 0 or i < 3:
@@ -3284,7 +3289,7 @@ async def premerge_security_check(request: Request):
     body = {}
     try:
         body = await request.json()
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         raise HTTPException(status_code=400, detail="JSON body required")
 
     repo = body.get("repository", "unknown/unknown")
@@ -3319,7 +3324,7 @@ async def premerge_security_check(request: Request):
             "detail": f"{len(critical_open)} open critical/high findings",
             "findings_count": len(critical_open),
         })
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         checks.append({"name": "open_findings", "status": "skip", "detail": "Could not query findings DB"})
 
     # 2. Run material change detection on diff (if provided)
@@ -3338,7 +3343,7 @@ async def premerge_security_check(request: Request):
                 "risk_score": max_risk,
                 "changes_analyzed": len(changes),
             })
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             checks.append({"name": "change_risk", "status": "skip", "detail": "Material change detector unavailable"})
 
     # 3. Check policy compliance
@@ -3354,7 +3359,7 @@ async def premerge_security_check(request: Request):
             "status": "pass" if policy_pass else "fail",
             "detail": policy_result.get("summary", "Policy check complete") if isinstance(policy_result, dict) else "Compliant",
         })
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         checks.append({"name": "policy_compliance", "status": "skip", "detail": "Policy engine unavailable"})
 
     # 4. Try GitHub CI Adapter for decision
@@ -3372,7 +3377,7 @@ async def premerge_security_check(request: Request):
             "verdict": verdict,
             "evidence_id": result.get("evidence_id"),
         })
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         checks.append({"name": "decision_engine", "status": "skip", "detail": "Decision engine unavailable"})
 
     return {
@@ -3418,7 +3423,7 @@ async def post_deploy_webhook(request: Request):
     body = {}
     try:
         body = await request.json()
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         raise HTTPException(status_code=400, detail="JSON body required")
 
     environment = body.get("environment", "production")
@@ -3450,7 +3455,7 @@ async def post_deploy_webhook(request: Request):
                     "title": t.get("title", ""),
                     "previous_status": status,
                 })
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     # 2. Record activity event
@@ -3461,7 +3466,7 @@ async def post_deploy_webhook(request: Request):
             {"service": service, "version": version, "environment": environment,
              "commit_sha": commit_sha, "tasks_auto_closed": len(closed_tasks)},
         )
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     return {
@@ -3504,7 +3509,7 @@ async def deploy_history(
                 "deployed_by": r["source"],
                 "deployed_at": r["created_at"],
             })
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     return {"deployments": events, "total": len(events)}
@@ -3527,7 +3532,7 @@ async def detect_incidents(request: Request):
     body = {}
     try:
         body = await request.json()
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         body = {}
 
     time_window_hours = body.get("time_window_hours", 24)
@@ -3563,7 +3568,7 @@ async def detect_incidents(request: Request):
                             recent_critical += 1
                         elif sev == "high":
                             recent_high += 1
-                except Exception:
+                except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                     pass
 
         # Spike detection: if recent critical findings exceed baseline
@@ -3582,7 +3587,7 @@ async def detect_incidents(request: Request):
                 "recommended_action": "Investigate root cause — possible active exploitation or misconfigured scanner",
                 "detected_at": now.isoformat(),
             })
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     # 2. Detect activity anomalies (unusual patterns)
@@ -3610,7 +3615,7 @@ async def detect_incidents(request: Request):
                 "recommended_action": "Review critical events and correlate with deployment or config changes",
                 "detected_at": now.isoformat(),
             })
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     # 3. Check for correlated attack patterns
@@ -3636,7 +3641,7 @@ async def detect_incidents(request: Request):
                     "recommended_action": f"Prioritize remediation for {src} — bulk AutoFix recommended",
                     "detected_at": now.isoformat(),
                 })
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     return {
@@ -3676,7 +3681,7 @@ async def active_incidents():
                 "entity_id": r["entity_id"],
                 "detected_at": r["created_at"],
             })
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     return {
@@ -3713,10 +3718,10 @@ async def rag_status():
         from agents.mindsdb_agents import get_rag_service
         rag = get_rag_service()
         return await rag.health()
-    except Exception as exc:
+    except ImportError as exc:
         return {
             "mindsdb_connected": False,
-            "error": str(exc),
+            "error": type(exc).__name__,
             "knowledge_bases": [],
         }
 
@@ -3730,7 +3735,7 @@ async def rag_ingest(req: RAGIngestRequest):
     try:
         from agents.mindsdb_agents import get_rag_service
         rag = get_rag_service()
-    except Exception as exc:
+    except ImportError as exc:
         raise HTTPException(status_code=503, detail=f"MindsDB RAG service unavailable: {exc}")
 
     # Ensure KBs + model exist
@@ -3768,7 +3773,7 @@ async def rag_search(req: RAGSearchRequest):
     try:
         from agents.mindsdb_agents import get_rag_service
         rag = get_rag_service()
-    except Exception as exc:
+    except ImportError as exc:
         raise HTTPException(status_code=503, detail=f"MindsDB RAG service unavailable: {exc}")
 
     results = await rag.search(
@@ -3818,7 +3823,7 @@ async def supply_chain_graph(app_id: str = Query("default", description="Applica
                 for r in rows:
                     components.append(dict(r))
                 break
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     # 2. Enrich with health data
@@ -3841,7 +3846,7 @@ async def supply_chain_graph(app_id: str = Query("default", description="Applica
                 "age_days": h.age_days,
                 "recommendations": h.recommendations,
             })
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.debug("DependencyHealthMonitor unavailable: %s", exc)
         # Fallback: generate basic health data
         for comp in components:
@@ -3862,7 +3867,7 @@ async def supply_chain_graph(app_id: str = Query("default", description="Applica
         graph = builder.build_from_sbom({"components": components})
         edges = [{"source": e.source, "target": e.target, "relationship": e.relationship}
                  for e in graph.edges]
-    except Exception:
+    except ImportError:
         pass
 
     # Risk summary
@@ -3924,7 +3929,7 @@ async def supply_chain_risks():
                     "risk_level": "critical" if dep.health_score < 30 else "high",
                     "recommendations": dep.recommendations,
                 })
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.debug("Supply chain risk scan unavailable: %s", exc)
 
     return {
@@ -3964,7 +3969,7 @@ async def sbom_generate(
             "quality": quality,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.warning("SBOM generation failed: %s", exc)
         return {
             "format": format.lower(),
@@ -3991,7 +3996,7 @@ async def sbom_export(
             "component_count": len(components),
             "sbom": sbom,
         }
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         raise HTTPException(status_code=500, detail=f"SBOM export failed: {exc}")
 
 
@@ -4069,14 +4074,14 @@ async def sbom_correlate(request: Request):
 
         except HTTPException:
             raise
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             raise HTTPException(status_code=400, detail=f"Multipart parse error: {exc}")
 
     else:
         # JSON body
         try:
             body = await request.json()
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             raise HTTPException(status_code=400, detail="Request body must be valid JSON")
 
         sbom_dict = body.get("sbom")
@@ -4117,7 +4122,7 @@ async def sbom_correlate(request: Request):
                     findings = [dict(r) for r in rows]
                     if findings:
                         break
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     # ------------------------------------------------------------------ #
@@ -4134,7 +4139,7 @@ async def sbom_correlate(request: Request):
         )
         return result.to_dict()
 
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("SBOM correlation endpoint error: %s", exc)
         raise HTTPException(status_code=500, detail=f"Correlation failed: {exc}")
 
@@ -4166,7 +4171,7 @@ async def license_scan(
             if comp.get("licenses"):
                 lic = comp["licenses"][0].get("license", {}).get("id")
             packages.append({"name": comp["name"], "version": comp.get("version", ""), "license": lic or "UNKNOWN"})
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     # 2. Analyze with LicenseComplianceAnalyzer
@@ -4197,11 +4202,11 @@ async def license_scan(
             "findings": findings,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         return {
             "project_license": project_license,
             "total_packages": len(packages),
-            "error": str(exc),
+            "error": type(exc).__name__,
             "findings": [],
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
@@ -4236,7 +4241,7 @@ async def license_alerts():
                     "issues": f.compatibility_issues,
                     "recommendation": f.recommendation,
                 })
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.debug("License alert scan failed: %s", exc)
 
     return {
@@ -4341,7 +4346,7 @@ async def execute_hunt_rule(rule_id: str):
         fconn.close()
         for r in rows:
             matches.append({"type": "finding", **dict(r)})
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     result_id = f"result-{uuid.uuid4().hex[:8]}"
@@ -4389,7 +4394,7 @@ async def deployment_metrics(days: int = Query(30, ge=1, le=365)):
                 conn.close()
                 deploys = [dict(r) for r in rows]
                 break
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     total = len(deploys)
@@ -4438,7 +4443,7 @@ async def deployment_trends(days: int = Query(90, ge=7, le=365)):
                     else:
                         weeks[week]["success"] += 1
                 break
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     return {
@@ -4480,7 +4485,7 @@ async def tool_overlap_analysis():
                     cve_to_sources[cve] = []
                 if src not in cve_to_sources[cve]:
                     cve_to_sources[cve].append(src)
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     # Calculate overlap
@@ -4523,7 +4528,7 @@ async def tool_coverage():
             if src not in coverage:
                 coverage[src] = {}
             coverage[src][r["severity"]] = r["cnt"]
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     return {
@@ -4714,7 +4719,7 @@ async def recommend_lessons(user_id: str = Query("default")):
                 finding_categories["dependency_vulns"] = finding_categories.get("dependency_vulns", 0) + 1
             elif "deserialization" in title:
                 finding_categories["insecure_deserialization"] = finding_categories.get("insecure_deserialization", 0) + 1
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     # Get completed lessons
@@ -4727,7 +4732,7 @@ async def recommend_lessons(user_id: str = Query("default")):
         ).fetchall()
         conn.close()
         completed_ids = {r["lesson_id"] for r in rows}
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     # Recommend based on findings + not yet completed

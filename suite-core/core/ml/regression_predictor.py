@@ -1261,7 +1261,7 @@ class RegressionPredictor:
             self._trained = True
             logger.info("Regression predictor loaded from %s", model_path)
             return True
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Failed to load model: %s", e)
             return False
 

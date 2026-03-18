@@ -416,7 +416,7 @@ class SecretsDetector:
             )
         except FileNotFoundError:
             return [], "", "Gitleaks is not installed or not in PATH"
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Gitleaks scan failed: %s: %s", type(e).__name__, e)
             return [], "", f"Gitleaks scan failed ({type(e).__name__})"
 
@@ -503,7 +503,7 @@ class SecretsDetector:
             )
         except FileNotFoundError:
             return [], "", "Trufflehog is not installed or not in PATH"
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error("Trufflehog scan failed: %s: %s", type(e).__name__, e)
             return [], "", f"Trufflehog scan failed ({type(e).__name__})"
 
@@ -566,7 +566,7 @@ class SecretsDetector:
         except PathContainmentError:
             logger.warning("Path escapes base directory in repo info: %s", type(path).__name__)
             return str(path), "main"
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug("Failed to get repo info: %s", type(e).__name__)
             return str(path), "main"
 
@@ -822,7 +822,7 @@ class SecretsDetector:
                     duration_seconds=duration,
                     raw_output=raw_output,
                 )
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.error("Secrets scan failed: %s: %s", type(e).__name__, e)
                 return SecretsScanResult(
                     scan_id=scan_id,

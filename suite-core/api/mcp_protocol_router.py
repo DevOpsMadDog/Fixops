@@ -109,7 +109,7 @@ async def mcp_protocol_status() -> Dict[str, Any]:
             "resource_count": len(handler.resource_server.list_resources()),
             "prompt_count": len(handler.prompt_library.list_prompts()),
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         return {
             "status": "degraded",
             "engine": "mcp-protocol",
@@ -133,8 +133,8 @@ async def mcp_protocol_stats() -> Dict[str, Any]:
             "active_sessions": status.get("active_sessions", 0),
             "audit_entries": status.get("audit_entries", 0),
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.post("/jsonrpc")
@@ -155,7 +155,7 @@ async def handle_jsonrpc(req: MCPJsonRpcRequest) -> Dict[str, Any]:
             "result": response.result,
             "error": response.error,
         }
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         return {
             "jsonrpc": "2.0",
             "id": req.id,
@@ -171,7 +171,7 @@ async def handle_raw_jsonrpc(request: Request) -> Dict[str, Any]:
         body = await request.body()
         response = handler.handle_raw(body.decode())
         return json.loads(response)
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         return {
             "jsonrpc": "2.0",
             "id": None,
@@ -197,8 +197,8 @@ async def sse_stream() -> StreamingResponse:
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
         )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.get("/tools")
@@ -208,8 +208,8 @@ async def list_mcp_tools() -> Dict[str, Any]:
         handler = _get_handler()
         tools_list, next_cursor = handler.tool_registry.list_tools(limit=1000)
         return {"tools": tools_list, "total": handler.tool_registry.tool_count}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.get("/resources")
@@ -219,8 +219,8 @@ async def list_mcp_resources() -> Dict[str, Any]:
         handler = _get_handler()
         resources = handler.resource_server.list_resources()
         return {"resources": resources, "total": len(resources)}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.get("/prompts")
@@ -230,8 +230,8 @@ async def list_mcp_prompts() -> Dict[str, Any]:
         handler = _get_handler()
         prompts = handler.prompt_library.list_prompts()
         return {"prompts": prompts, "total": len(prompts)}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 @router.post("/discover")
@@ -245,8 +245,8 @@ async def auto_discover_tools(request: Request) -> Dict[str, Any]:
             "tool_count": handler.tool_registry.tool_count,
             "newly_discovered": count,
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -287,7 +287,7 @@ async def execute_tool(req: MCPToolExecuteRequest) -> Dict[str, Any]:
             "result": response.result,
             "elapsed_ms": elapsed,
         }
-    except Exception as e:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
         elapsed = round((time.time() - start) * 1000, 2)
         logger.error("Tool execution error: %s — %s", req.tool_name, e)
         raise HTTPException(status_code=500, detail=f"Tool execution failed: {e}")
@@ -310,8 +310,8 @@ async def read_resource(resource_uri: str) -> Dict[str, Any]:
     except AttributeError:
         # read_resource may not exist — return not found
         raise HTTPException(status_code=404, detail=f"Resource not found: {resource_uri}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -328,8 +328,8 @@ async def get_prompt(prompt_name: str) -> Dict[str, Any]:
         return {"name": prompt_name, "prompt": prompt}
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -408,7 +408,7 @@ async def websocket_mcp(ws: WebSocket):
                 await ws.send_json(resp_dict)
                 _ws_sessions[session_id]["messages_out"] += 1
 
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 error_resp = {
                     "jsonrpc": "2.0",
                     "id": data.get("id"),
@@ -419,7 +419,7 @@ async def websocket_mcp(ws: WebSocket):
 
     except WebSocketDisconnect:
         logger.info("MCP WebSocket session %s disconnected", session_id)
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error("MCP WebSocket error in session %s: %s", session_id, e)
     finally:
         _ws_sessions.pop(session_id, None)
@@ -434,7 +434,7 @@ async def list_sessions() -> Dict[str, Any]:
     try:
         handler = _get_handler()
         handler_sessions = handler.session_manager.active_sessions()
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         handler_sessions = []
 
     ws_list = [
@@ -468,5 +468,5 @@ async def terminate_session(session_id: str) -> Dict[str, Any]:
         handler = _get_handler()
         handler.session_manager.terminate(session_id)
         return {"terminated": True, "session_id": session_id, "transport": "handler"}
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         raise HTTPException(status_code=404, detail=f"Session not found: {session_id}")

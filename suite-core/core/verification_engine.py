@@ -244,7 +244,7 @@ async def _measure_timing(
     start = time.monotonic()
     try:
         await client.get(url, headers=headers or {}, timeout=timeout)
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
     return time.monotonic() - start
 
@@ -360,7 +360,7 @@ class VerificationEngine:
                             detail_parts.append(
                                 f"Path {path} (HTTP {path_resp.status_code})"
                             )
-                except Exception:
+                except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                     pass
 
             # Check cookies
@@ -374,7 +374,7 @@ class VerificationEngine:
                         detected = True
                         detail_parts.append(f"Cookie match: {cookie_p}")
 
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             detail_parts.append(f"Error: {e}")
 
         contribution = (
@@ -450,7 +450,7 @@ class VerificationEngine:
                                     f"Version from {path}: {version_found}"
                                 )
                                 break
-                    except Exception:
+                    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                         pass
 
             # Check version range
@@ -473,7 +473,7 @@ class VerificationEngine:
             else:
                 detail_parts.append("Version not detected")
 
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             detail_parts.append(f"Error: {e}")
 
         contribution = (
@@ -577,7 +577,7 @@ class VerificationEngine:
                     exploit_confirmed = True
                     detail_parts.append(f"Payload {i}: timeout (indicates success)")
                 payload_results.append({"payload_index": i, "error": "timeout"})
-            except Exception as e:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
                 payload_results.append({"payload_index": i, "error": str(e)})
 
         contribution = (
@@ -685,7 +685,7 @@ class VerificationEngine:
                 confirmed = True
                 detail_parts.append(f"Timing anomaly: {time_diff:.1f}s difference")
 
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             detail_parts.append(f"Error: {e}")
 
         contribution = (

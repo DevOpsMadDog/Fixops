@@ -182,7 +182,7 @@ class ConsensusEngine:
                     resp, duration_ms = future.result()
                     responses[name] = resp
                     timings[name] = duration_ms
-                except Exception as exc:
+                except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                     logger.warning("Provider %s failed in consensus: %s", name, exc)
                     errors[name] = str(exc)
 

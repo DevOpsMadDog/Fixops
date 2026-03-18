@@ -299,7 +299,7 @@ class NetworkIsolationDetector:
                 req = urllib.request.Request(url, method="HEAD")
                 with urllib.request.urlopen(req, timeout=2, context=ctx):
                     return True
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 continue
         return False
 
@@ -313,13 +313,13 @@ class NetworkIsolationDetector:
         try:
             tcp_ok = self.probe_tcp()
             details["tcp_probe"] = "reachable" if tcp_ok else "unreachable"
-        except Exception as exc:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
             details["tcp_probe_error"] = str(exc)
 
         try:
             dns_ok = self.probe_dns()
             details["dns_probe"] = "resolving" if dns_ok else "no_resolution"
-        except Exception as exc:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
             details["dns_probe_error"] = str(exc)
 
         if tcp_ok or dns_ok:
@@ -330,7 +330,7 @@ class NetworkIsolationDetector:
             try:
                 https_ok = self.probe_https()
                 details["https_probe"] = "reachable" if https_ok else "unreachable"
-            except Exception as exc:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
                 details["https_probe_error"] = str(exc)
 
         is_isolated = not (tcp_ok or dns_ok or https_ok)
@@ -450,7 +450,7 @@ class OfflineVulnDBManager:
             errors.append(f"JSON parse error: {exc}")
         except gzip.BadGzipFile:
             errors.append("Not a valid gzip file")
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             errors.append(f"Validation error: {exc}")
         return cve_count, errors
 
@@ -501,7 +501,7 @@ class OfflineVulnDBManager:
         try:
             data = json.loads(info_file.read_text())
             return VulnDBInfo(**data)
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return None
 
     def is_available(self) -> bool:
@@ -529,7 +529,7 @@ class OfflineVulnDBManager:
                     )
                 if item_id.upper() == cve_upper:
                     return item
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.warning("CVE lookup error: %s", exc)
         return None
 
@@ -578,7 +578,7 @@ class LocalLLMRouter:
         try:
             with urllib.request.urlopen(url, timeout=timeout):
                 return True
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return False
 
     def _get_first_model(self, backend: LLMBackend, base_url: str) -> str:
@@ -601,7 +601,7 @@ class LocalLLMRouter:
             else:
                 models = data.get("data", [])
                 return models[0]["id"] if models else ""
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return ""
 
     def build_chat_payload(
@@ -949,7 +949,7 @@ class OfflineUpdateManager:
         for f in self.base_path.glob("package_*.json"):
             try:
                 packages.append(json.loads(f.read_text()))
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
         return sorted(packages, key=lambda x: x.get("created_at", ""), reverse=True)
 
@@ -970,7 +970,7 @@ class FIPSComplianceManager:
         if FIPS_MARKER_FILE.exists():
             try:
                 return FIPS_MARKER_FILE.read_text().strip() == "1"
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
         return False
 
@@ -1358,7 +1358,7 @@ class AirGapConfigEngine:
                     **raw,
                 )
                 logger.info("Loaded air-gap configuration (mode=%s)", self._config.mode)
-            except Exception as exc:
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
                 logger.warning("Could not load air-gap state: %s", exc)
 
     def _save_state(self) -> None:

@@ -386,7 +386,7 @@ def _build_pipeline_result(args: argparse.Namespace) -> Dict[str, Any]:
                 original_filename=args.context.name,
                 raw_bytes=args.context.read_bytes(),
             )
-    except Exception as exc:  # pragma: no cover - archival should not abort CLI runs
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # pragma: no cover - archival should not abort CLI runs
         print(f"Warning: failed to persist artefacts locally: {exc}", file=sys.stderr)
 
     result = orchestrator.run(
@@ -501,7 +501,7 @@ def _handle_ingest_file(args: argparse.Namespace) -> int:
                 if result.errors:
                     errors.extend(result.errors)
 
-            except Exception as e:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
                 # Sanitize error messages to prevent information exposure
                 error_type = type(e).__name__
                 safe_error = f"Ingestion failed: {error_type}"
@@ -641,7 +641,7 @@ def _handle_analyze(args: argparse.Namespace) -> int:
         for temp_file in temp_files:
             try:
                 Path(temp_file).unlink()
-            except Exception:
+            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
     decision, exit_code = _derive_decision_exit(result)
 
@@ -690,7 +690,7 @@ def _handle_health(args: argparse.Namespace) -> int:
     }
     try:
         evidence = EvidenceHub(overlay)
-    except Exception as exc:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
         health["evidence_ready"] = False
         health["evidence_error"] = str(exc)
     else:
@@ -3554,7 +3554,7 @@ def _handle_mpte_orchestrator(args: argparse.Namespace) -> int:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 result = json.loads(resp.read().decode())
             print(json.dumps(result, indent=2))
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             print(f"❌ Enterprise scan failed: {e}", file=sys.stderr)
             return 1
         return 0
@@ -3572,7 +3572,7 @@ def _handle_mpte_orchestrator(args: argparse.Namespace) -> int:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 result = json.loads(resp.read().decode())
             print(json.dumps(result, indent=2))
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             print(f"❌ Failed to list enterprise scans: {e}", file=sys.stderr)
             return 1
         return 0
@@ -3590,7 +3590,7 @@ def _handle_mpte_orchestrator(args: argparse.Namespace) -> int:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 result = json.loads(resp.read().decode())
             print(json.dumps(result, indent=2))
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             print(f"❌ Failed to get audit logs: {e}", file=sys.stderr)
             return 1
         return 0
@@ -3608,7 +3608,7 @@ def _handle_mpte_orchestrator(args: argparse.Namespace) -> int:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 result = json.loads(resp.read().decode())
             print(json.dumps(result, indent=2))
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             print(f"❌ Failed to list attack vectors: {e}", file=sys.stderr)
             return 1
         return 0
@@ -3626,7 +3626,7 @@ def _handle_mpte_orchestrator(args: argparse.Namespace) -> int:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 result = json.loads(resp.read().decode())
             print(json.dumps(result, indent=2))
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             print(f"❌ Failed to list threat categories: {e}", file=sys.stderr)
             return 1
         return 0
@@ -3644,7 +3644,7 @@ def _handle_mpte_orchestrator(args: argparse.Namespace) -> int:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 result = json.loads(resp.read().decode())
             print(json.dumps(result, indent=2))
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             print(f"❌ Failed to list compliance frameworks: {e}", file=sys.stderr)
             return 1
         return 0
@@ -3662,7 +3662,7 @@ def _handle_mpte_orchestrator(args: argparse.Namespace) -> int:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 result = json.loads(resp.read().decode())
             print(json.dumps(result, indent=2))
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             print(f"❌ Failed to list scan modes: {e}", file=sys.stderr)
             return 1
         return 0
@@ -3687,7 +3687,7 @@ def _handle_mpte_orchestrator(args: argparse.Namespace) -> int:
             with urllib.request.urlopen(req, timeout=60) as resp:
                 result = json.loads(resp.read().decode())
             print(json.dumps(result, indent=2))
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             print(f"❌ Report generation failed: {e}", file=sys.stderr)
             return 1
         return 0
@@ -3705,7 +3705,7 @@ def _handle_mpte_orchestrator(args: argparse.Namespace) -> int:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 result = json.loads(resp.read().decode())
             print(json.dumps(result, indent=2))
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             print(f"❌ Failed to get report data: {e}", file=sys.stderr)
             return 1
         return 0
@@ -4183,7 +4183,7 @@ def _handle_notifications(args: argparse.Namespace) -> int:
                         f"{result['sent']} sent, {result['failed']} failed, "
                         f"{result['no_channels']} no channels"
                     )
-            except Exception as e:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
                 print(f"Error processing notifications: {e}", file=sys.stderr)
 
             if once:
@@ -4224,7 +4224,7 @@ def _handle_playbook(args: argparse.Namespace) -> int:
 
         try:
             playbook = runner.load_playbook(playbook_path)
-        except Exception as exc:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
             print(f"Error loading playbook: {exc}", file=sys.stderr)
             return 1
 
@@ -4245,7 +4245,7 @@ def _handle_playbook(args: argparse.Namespace) -> int:
         if findings_path:
             try:
                 inputs["findings"] = json.loads(Path(findings_path).read_text())
-            except Exception as exc:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
                 print(f"Error loading findings: {exc}", file=sys.stderr)
                 return 1
 
@@ -4253,7 +4253,7 @@ def _handle_playbook(args: argparse.Namespace) -> int:
 
         try:
             context = runner.execute_sync(playbook, inputs, dry_run=dry_run)
-        except Exception as exc:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
             print(f"Error executing playbook: {exc}", file=sys.stderr)
             return 1
 
@@ -4321,7 +4321,7 @@ def _handle_playbook(args: argparse.Namespace) -> int:
                         "path": str(path),
                     }
                 )
-            except Exception as exc:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
                 playbooks.append(
                     {
                         "path": str(path),
@@ -4341,7 +4341,7 @@ def _handle_playbook(args: argparse.Namespace) -> int:
                         "path": str(path),
                     }
                 )
-            except Exception as exc:
+            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
                 playbooks.append(
                     {
                         "path": str(path),

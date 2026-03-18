@@ -16,7 +16,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from apps.api.dependencies import get_org_id
-from core.persistent_store import PersistentDict
+from core.persistent_store import get_persistent_store
 from core.workflow_db import WorkflowDB
 from core.workflow_models import Workflow, WorkflowExecution, WorkflowStatus
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -26,9 +26,9 @@ router = APIRouter(prefix="/api/v1/workflows", tags=["workflows"])
 db = WorkflowDB()
 
 # Persistent SLA / execution state stores
-_sla_store: PersistentDict = PersistentDict("workflow_sla")
-_execution_steps: PersistentDict = PersistentDict("workflow_steps")
-_paused_executions: PersistentDict = PersistentDict("workflow_paused")
+_sla_store = get_persistent_store("workflow_sla")
+_execution_steps = get_persistent_store("workflow_steps")
+_paused_executions = get_persistent_store("workflow_paused")
 
 
 class WorkflowCreate(BaseModel):
@@ -291,7 +291,7 @@ async def _run_step(step: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, 
                 "completed_at": completed.isoformat(),
                 "duration_ms": int((completed - started).total_seconds() * 1000),
             }
-        except Exception as exc:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
             last_error = type(exc).__name__
             attempt += 1
             if attempt <= max_retries:

@@ -14,7 +14,7 @@ from typing import Any, Iterable, Mapping, MutableMapping, Sequence
 
 try:  # NetworkX provides the richest graph experience but is optional
     import networkx as nx  # type: ignore[import]
-except Exception:  # pragma: no cover - optional dependency
+except ImportError:  # pragma: no cover - optional dependency
     nx = None  # type: ignore[assignment]
 
 from packaging.version import InvalidVersion, Version
@@ -167,7 +167,7 @@ def _ancestors(graph: Any, node_id: str) -> set[str]:
     if nx is not None:
         try:
             return nx.ancestors(graph, node_id)
-        except Exception:  # pragma: no cover - defensive guard
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):  # pragma: no cover - defensive guard
             return set()
     if hasattr(graph, "ancestors"):
         return set(graph.ancestors(node_id))
@@ -227,7 +227,7 @@ class ProvenanceGraph:
         try:
             if hasattr(self, 'connection') and self.connection:
                 self.connection.close()
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
     def close(self) -> None:
@@ -692,7 +692,7 @@ def _load_attestations(attestation_dir: Path) -> list[ProvenanceAttestation]:
     for path in sorted(attestation_dir.glob("*.json")):
         try:
             attestations.append(load_attestation(path))
-        except Exception:  # pragma: no cover - defensive against user supplied files
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):  # pragma: no cover - defensive against user supplied files
             continue
     return attestations
 

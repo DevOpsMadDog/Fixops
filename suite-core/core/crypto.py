@@ -44,6 +44,7 @@ NOTE: No demo tokens, no test credentials, no placeholder logic.
 from __future__ import annotations
 
 import base64
+import binascii
 import hashlib
 import json
 import logging
@@ -504,7 +505,7 @@ class RSAKeyManager:
             )
         except CryptoError:
             raise
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             raise CryptoError(f"Failed to load RSA private key: {exc}") from exc
 
     def _load_public_key(self) -> None:
@@ -527,7 +528,7 @@ class RSAKeyManager:
             )
         except CryptoError:
             raise
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             raise CryptoError(f"Failed to load RSA public key: {exc}") from exc
 
     def _generate_key_pair(self) -> None:
@@ -554,7 +555,7 @@ class RSAKeyManager:
             )
         except KeyGenerationError:
             raise
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             raise KeyGenerationError(f"Failed to generate RSA key pair: {exc}") from exc
 
     def _save_private_key(self) -> None:
@@ -573,8 +574,10 @@ class RSAKeyManager:
             self.private_key_path.write_bytes(pem_data)
             self.private_key_path.chmod(0o600)
             logger.info("Saved RSA private key to %s", self.private_key_path)
-        except Exception as exc:
-            logger.warning("Failed to save RSA private key: %s", exc)
+        except OSError as exc:
+            logger.warning("Failed to save RSA private key (I/O): %s", type(exc).__name__)
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+            logger.warning("Failed to save RSA private key: %s", type(exc).__name__)
 
     def _save_public_key(self) -> None:
         """Persist public key to PEM file if a path is configured."""
@@ -590,8 +593,10 @@ class RSAKeyManager:
             )
             self.public_key_path.write_bytes(pem_data)
             logger.info("Saved RSA public key to %s", self.public_key_path)
-        except Exception as exc:
-            logger.warning("Failed to save RSA public key: %s", exc)
+        except OSError as exc:
+            logger.warning("Failed to save RSA public key (I/O): %s", type(exc).__name__)
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+            logger.warning("Failed to save RSA public key: %s", type(exc).__name__)
 
     def _compute_metadata(self) -> None:
         """Compute and cache :class:`KeyMetadata` from the current public key."""
@@ -845,7 +850,7 @@ class MLDSAKeyManager:
             )
         except CryptoError:
             raise
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             raise CryptoError(f"Failed to load ML-DSA private key: {exc}") from exc
 
     def _load_public_key(self) -> None:
@@ -873,7 +878,7 @@ class MLDSAKeyManager:
             )
         except CryptoError:
             raise
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             raise CryptoError(f"Failed to load ML-DSA public key: {exc}") from exc
 
     def _generate_key_pair(self) -> None:
@@ -900,7 +905,7 @@ class MLDSAKeyManager:
             )
         except KeyGenerationError:
             raise
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             raise KeyGenerationError(f"Failed to generate ML-DSA key pair: {exc}") from exc
 
     def _save_private_key(self) -> None:
@@ -915,8 +920,10 @@ class MLDSAKeyManager:
             self.private_key_path.write_text(pem_text, encoding="utf-8")
             self.private_key_path.chmod(0o600)
             logger.info("Saved ML-DSA-%d private key to %s", self.level, self.private_key_path)
-        except Exception as exc:
-            logger.warning("Failed to save ML-DSA private key: %s", exc)
+        except OSError as exc:
+            logger.warning("Failed to save ML-DSA private key (I/O): %s", type(exc).__name__)
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+            logger.warning("Failed to save ML-DSA private key: %s", type(exc).__name__)
 
     def _save_public_key(self) -> None:
         """Persist ML-DSA public key to file if a path is configured."""
@@ -929,8 +936,10 @@ class MLDSAKeyManager:
             pem_text = self._wrap_public_pem(self._public_key_bytes)
             self.public_key_path.write_text(pem_text, encoding="utf-8")
             logger.info("Saved ML-DSA-%d public key to %s", self.level, self.public_key_path)
-        except Exception as exc:
-            logger.warning("Failed to save ML-DSA public key: %s", exc)
+        except OSError as exc:
+            logger.warning("Failed to save ML-DSA public key (I/O): %s", type(exc).__name__)
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+            logger.warning("Failed to save ML-DSA public key: %s", type(exc).__name__)
 
     # ------------------------------------------------------------------
     # Public properties
@@ -1194,7 +1203,7 @@ class RSASigner:
             return signature, fingerprint
         except CryptoError:
             raise
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             raise CryptoError(f"RSA signing failed: {exc}") from exc
 
     def sign_base64(self, data: bytes) -> Tuple[str, str]:
@@ -1271,10 +1280,15 @@ class RSAVerifier:
             )
             logger.debug("RSA signature verified for %d bytes", len(data))
             return True
-        except (InvalidSignature, Exception) as exc:
-            logger.debug("RSA verification failed: %s", exc)
+        except InvalidSignature as exc:
+            logger.debug("RSA signature invalid: %s", type(exc).__name__)
             if raise_on_failure:
-                raise SignatureVerificationError(f"RSA verification failed: {exc}") from exc
+                raise SignatureVerificationError("RSA verification failed: invalid signature") from exc
+            return False
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+            logger.debug("RSA verification error: %s", type(exc).__name__)
+            if raise_on_failure:
+                raise SignatureVerificationError(f"RSA verification failed: {type(exc).__name__}") from exc
             return False
 
     def verify_base64(
@@ -1295,7 +1309,7 @@ class RSAVerifier:
         """
         try:
             signature = base64.b64decode(signature_b64)
-        except Exception:
+        except (binascii.Error, ValueError):
             logger.warning("RSA verify_base64: invalid base64 input")
             return False
         return self.verify(data, signature, expected_fingerprint)
@@ -1355,7 +1369,7 @@ class MLDSASigner:
             return sig, fingerprint
         except CryptoError:
             raise
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             raise CryptoError(f"ML-DSA signing failed: {exc}") from exc
 
     def sign_base64(self, data: bytes) -> Tuple[str, str]:
@@ -1425,7 +1439,7 @@ class MLDSAVerifier:
             if result:
                 logger.debug("ML-DSA-%d signature verified for %d bytes", self._key_manager.level, len(data))
             return result
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.debug("ML-DSA verification failed: %s", exc)
             if raise_on_failure:
                 raise SignatureVerificationError(f"ML-DSA verification failed: {exc}") from exc
@@ -1449,7 +1463,7 @@ class MLDSAVerifier:
         """
         try:
             sig = base64.b64decode(signature_b64)
-        except Exception:
+        except (binascii.Error, ValueError):
             logger.warning("ML-DSA verify_base64: invalid base64 input")
             return False
         return self.verify(data, sig, expected_fingerprint)
@@ -1559,8 +1573,8 @@ class HybridSigner:
 
         try:
             canonical_bytes = json.dumps(output, sort_keys=True, ensure_ascii=True).encode("utf-8")
-        except Exception as exc:
-            raise CryptoError(f"Failed to serialise evidence bundle for signing: {exc}") from exc
+        except (TypeError, ValueError) as exc:
+            raise CryptoError(f"Failed to serialise evidence bundle for signing: {type(exc).__name__}") from exc
 
         hybrid_sig = self.sign(canonical_bytes)
         output["signature"] = hybrid_sig.to_dict()
@@ -1639,7 +1653,7 @@ class HybridVerifier:
         # Decode base64 signatures
         try:
             rsa_sig_bytes = base64.b64decode(sig.classical_sig)
-        except Exception as exc:
+        except (binascii.Error, ValueError) as exc:
             return VerificationResult(
                 classical_valid=False,
                 pq_valid=False,
@@ -1647,12 +1661,12 @@ class HybridVerifier:
                 algorithm=sig.algorithm,
                 key_fingerprint=sig.key_fingerprint,
                 verified_at=timestamp,
-                error_detail=f"Invalid base64 classical signature: {exc}",
+                error_detail=f"Invalid base64 classical signature: {type(exc).__name__}",
             )
 
         try:
             mldsa_sig_bytes = base64.b64decode(sig.pq_sig)
-        except Exception as exc:
+        except (binascii.Error, ValueError) as exc:
             return VerificationResult(
                 classical_valid=False,
                 pq_valid=False,
@@ -1660,7 +1674,7 @@ class HybridVerifier:
                 algorithm=sig.algorithm,
                 key_fingerprint=sig.key_fingerprint,
                 verified_at=timestamp,
-                error_detail=f"Invalid base64 PQ signature: {exc}",
+                error_detail=f"Invalid base64 PQ signature: {type(exc).__name__}",
             )
 
         classical_valid = self._rsa_verifier.verify(data, rsa_sig_bytes)
@@ -1742,11 +1756,11 @@ class HybridVerifier:
         payload = {k: v for k, v in bundle.items() if k != "signature"}
         try:
             canonical_bytes = json.dumps(payload, sort_keys=True, ensure_ascii=True).encode("utf-8")
-        except Exception as exc:
+        except (TypeError, ValueError) as exc:
             return VerificationResult.failure(
                 algorithm="unknown",
                 fingerprint=sig_block.get("key_fingerprint", "unknown") if isinstance(sig_block, dict) else "unknown",
-                detail=f"Failed to serialise bundle for verification: {exc}",
+                detail=f"Failed to serialise bundle for verification: {type(exc).__name__}",
             )
 
         # v2 hybrid bundle
@@ -1900,7 +1914,7 @@ class EvidenceEncryptor:
             return ciphertext, nonce, salt
         except EncryptionError:
             raise
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             raise EncryptionError(f"AES-256-GCM encryption failed: {exc}") from exc
 
     def decrypt(
@@ -1934,7 +1948,7 @@ class EvidenceEncryptor:
                 len(plaintext),
             )
             return plaintext
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             raise DecryptionError(f"AES-256-GCM decryption failed: {exc}") from exc
 
     def encrypt_envelope(self, plaintext: bytes, associated_data: Optional[bytes] = None) -> Dict[str, str]:
@@ -1980,7 +1994,7 @@ class EvidenceEncryptor:
             }
         except EncryptionError:
             raise
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             raise EncryptionError(f"Envelope encryption failed: {exc}") from exc
 
     def decrypt_envelope(
@@ -2023,7 +2037,7 @@ class EvidenceEncryptor:
             return aesgcm.decrypt(nonce, ciphertext, associated_data)
         except DecryptionError:
             raise
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             raise DecryptionError(f"Envelope decryption failed: {exc}") from exc
 
 
@@ -2170,11 +2184,19 @@ class SignatureChain:
                         result.pq_valid,
                     )
                     return False
-            except Exception as exc:
+            except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
                 logger.error(
                     "SignatureChain verification error at entry %d: %s",
                     entry.entry_id,
-                    exc,
+                    type(exc).__name__,
+                )
+                return False
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+                logger.error(
+                    "SignatureChain verification unexpected error at entry %d: %s",
+                    entry.entry_id,
+                    type(exc).__name__,
+                    exc_info=True,
                 )
                 return False
 
@@ -2219,8 +2241,10 @@ class SignatureChain:
         try:
             raw_entries = data.get("entries", [])
             chain._entries = [SignatureChainEntry.from_dict(e) for e in raw_entries]
-        except Exception as exc:
-            raise CryptoError(f"Failed to deserialise SignatureChain: {exc}") from exc
+        except (KeyError, TypeError, ValueError) as exc:
+            raise CryptoError(f"Failed to deserialise SignatureChain: {type(exc).__name__}") from exc
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+            raise CryptoError(f"Failed to deserialise SignatureChain: {type(exc).__name__}") from exc
         return chain
 
 
@@ -2481,18 +2505,48 @@ def hybrid_verify(data: bytes, sig: HybridSignature) -> VerificationResult:
 
 
 def sign_evidence(bundle: Dict[str, Any]) -> Dict[str, Any]:
-    """Sign an evidence bundle dict with the default hybrid signer.
+    """Sign an evidence bundle dict with the best available signer.
 
-    This is the high-level production API for signing evidence bundles.
+    Attempts hybrid (RSA + ML-DSA) signing first.  If the ML-DSA library
+    (dilithium_py) is not installed, falls back to RSA-only signing so that
+    evidence bundles are ALWAYS signed in production — never returned unsigned.
 
     Args:
         bundle: Evidence bundle dict.  Must not contain a ``"signature"`` key
                 (it will be replaced/added).
 
     Returns:
-        New bundle dict with the ``"signature"`` block populated (v2 format).
+        New bundle dict with the ``"signature"`` block populated.
     """
-    return _get_default_hybrid_signer().sign_evidence_bundle(bundle)
+    # Try hybrid first (RSA + ML-DSA)
+    try:
+        return _get_default_hybrid_signer().sign_evidence_bundle(bundle)
+    except (KeyGenerationError, CryptoError, ImportError, AttributeError) as exc:
+        logger.info(
+            "Hybrid signing unavailable (%s: %s), falling back to RSA-only",
+            type(exc).__name__, exc,
+        )
+
+    # Fallback: RSA-only signing (always available if cryptography is installed)
+    try:
+        rsa_signer = _get_default_rsa_signer()
+        signed = dict(bundle)
+        signed["version"] = 1
+        # Remove existing signature if any
+        signed.pop("signature", None)
+        payload = json.dumps(signed, sort_keys=True, default=str).encode("utf-8")
+        sig_b64, fingerprint = rsa_signer.sign_base64(payload)
+        signed["signature"] = {
+            "format_version": 1,
+            "algorithm": "rsa-sha256",
+            "classical_sig": sig_b64,
+            "key_fingerprint": fingerprint,
+            "signed_at": datetime.now(timezone.utc).isoformat(),
+        }
+        return signed
+    except (OSError, ValueError, KeyError, RuntimeError) as rsa_exc:  # narrowed from bare Exception
+        logger.warning("RSA signing also failed: %s", type(rsa_exc).__name__)
+        raise
 
 
 def verify_evidence(bundle: Dict[str, Any]) -> VerificationResult:

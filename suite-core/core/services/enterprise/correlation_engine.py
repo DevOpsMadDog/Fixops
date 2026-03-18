@@ -89,7 +89,7 @@ class CorrelationEngine:
                     "No ChatGPT API key found, using rule-based correlation only"
                 )
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Failed to initialize ChatGPT correlation helper: {str(e)}")
             self.llm_chat = None
 
@@ -150,7 +150,7 @@ class CorrelationEngine:
 
             return best_correlation
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Correlation failed for finding {finding_id}: {str(e)}")
             return None
 
@@ -468,7 +468,7 @@ class CorrelationEngine:
                 )
                 session.add(correlation_record)
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Failed to store correlation: {str(e)}")
 
     async def get_correlation_stats(self) -> Dict[str, Any]:
@@ -649,7 +649,7 @@ class CorrelationEngine:
                         "analysis_timestamp": datetime.now(timezone.utc).isoformat(),
                     }
 
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"AI correlation analysis failed: {str(e)}")
             return {"error": f"AI analysis failed: {str(e)}"}
 

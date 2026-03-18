@@ -22,7 +22,7 @@ class ConfigManager:
             try:
                 with open(self.config_path, "r") as f:
                     return json.load(f)
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.warning(f"Failed to load config: {e}")
 
         return {
@@ -47,5 +47,5 @@ class ConfigManager:
         try:
             with open(self.config_path, "w") as f:
                 json.dump(config, f, indent=2)
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.error(f"Failed to save config: {e}")

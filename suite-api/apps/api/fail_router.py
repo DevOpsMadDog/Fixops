@@ -285,8 +285,8 @@ async def inject_vulnerability(req: InjectRequest) -> InjectResponse:
             ),
         )
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
+        raise HTTPException(status_code=400, detail=type(exc).__name__)
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Failed to inject FAIL drill: %s", exc)
         raise HTTPException(status_code=500, detail=f"Injection failed: {type(exc).__name__}")
 
@@ -367,8 +367,8 @@ async def mark_detected(drill_id: str, req: DetectRequest) -> Dict[str, Any]:
             detection_note=req.detection_note,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
+        raise HTTPException(status_code=400, detail=type(exc).__name__)
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("mark_detected failed: %s", exc)
         raise HTTPException(status_code=500, detail="Internal error")
 
@@ -393,8 +393,8 @@ async def mark_triaged(drill_id: str, req: TriageRequest) -> Dict[str, Any]:
             triage_note=req.triage_note,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
+        raise HTTPException(status_code=400, detail=type(exc).__name__)
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("mark_triaged failed: %s", exc)
         raise HTTPException(status_code=500, detail="Internal error")
 
@@ -416,8 +416,8 @@ async def mark_remediated(drill_id: str, req: RemediateRequest) -> Dict[str, Any
             remediation_note=req.remediation_note,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
+        raise HTTPException(status_code=400, detail=type(exc).__name__)
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("mark_remediated failed: %s", exc)
         raise HTTPException(status_code=500, detail="Internal error")
 
@@ -469,8 +469,8 @@ async def grade_drill(drill_id: str, req: GradeRequest) -> GradeResponse:
             feedback=score.feedback,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
+        raise HTTPException(status_code=400, detail=type(exc).__name__)
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("grade_drill failed: %s", exc)
         raise HTTPException(status_code=500, detail=f"Grading failed: {type(exc).__name__}")
 
@@ -503,8 +503,8 @@ async def cancel_drill(
             reason=reason,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
+        raise HTTPException(status_code=400, detail=type(exc).__name__)
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("cancel_drill failed: %s", exc)
         raise HTTPException(status_code=500, detail="Internal error")
 
@@ -678,7 +678,7 @@ async def create_scenario(req: CreateScenarioRequest) -> Dict[str, Any]:
             "scenario": scenario.to_dict(),
             "message": f"Custom scenario '{req.scenario_id}' created successfully.",
         }
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("create_scenario failed: %s", exc)
         raise HTTPException(
             status_code=400, detail=f"Failed to create scenario: {exc}"
@@ -771,7 +771,7 @@ async def log_activity(req: LogActivityRequest) -> Dict[str, Any]:
             "component": req.component,
             "activity_type": req.activity_type,
         }
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("log_activity failed: %s", exc)
         raise HTTPException(status_code=500, detail="Failed to log activity")
 
@@ -794,7 +794,7 @@ async def health_check() -> Dict[str, Any]:
     try:
         engine = _get_engine()
         return engine.health()
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Health check failed: %s", exc)
         return {
             "status": "degraded",
@@ -820,7 +820,7 @@ async def list_scores(
         scores = db.get_scores_by_org(org_id="default", grade=grade, limit=limit, offset=offset)
         total = db.count(org_id="default")
         return {"total": total, "limit": limit, "offset": offset, "results": scores}
-    except Exception as exc:
+    except ImportError as exc:
         logger.warning("Failed to load FAIL scores: %s", exc)
         return {"total": 0, "limit": limit, "offset": offset, "results": []}
 
@@ -836,7 +836,7 @@ async def top_risks(
         risks = db.get_top_risks(org_id="default", limit=limit)
         total = db.count(org_id="default")
         return {"risks": risks, "total": total}
-    except Exception as exc:
+    except ImportError as exc:
         logger.warning("Failed to load top risks: %s", exc)
         return {"risks": [], "total": 0}
 
@@ -849,7 +849,7 @@ async def fail_stats():
         db = FAILDB()
         stats = db.get_stats(org_id="default")
         return stats
-    except Exception as exc:
+    except ImportError as exc:
         logger.warning("Failed to load FAIL stats: %s", exc)
         return {
             "total_scored": 0,

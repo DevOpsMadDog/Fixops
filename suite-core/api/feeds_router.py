@@ -19,7 +19,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
+from apps.api.dependencies import get_org_id
 
 router = APIRouter(prefix="/api/v1/feeds", tags=["Threat Intelligence Feeds"])
 
@@ -349,7 +350,7 @@ def _query_nvd_cves(
             }
             for r in rows
         ]
-    except Exception:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         return []
     finally:
         conn.close()

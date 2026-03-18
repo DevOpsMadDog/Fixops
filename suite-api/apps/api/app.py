@@ -624,7 +624,18 @@ if _has_otel_fastapi:
 else:  # pragma: no cover - fallback when instrumentation is unavailable
     from telemetry.fastapi_noop import FastAPIInstrumentor  # type: ignore[assignment]
 
-from .middleware import CorrelationIdMiddleware, RequestLoggingMiddleware, SecurityHeadersMiddleware
+from .middleware import CorrelationIdMiddleware, RequestLoggingMiddleware, RequestTracingMiddleware, SecurityHeadersMiddleware
+from .metrics_middleware import PrometheusMetricsMiddleware, metrics_response
+
+# Security audit logger — logs auth events, permission denials, scanner runs
+# Import is lazy-safe: if the module is missing (e.g. sys.path issue) the
+# audit logging silently degrades rather than breaking app startup.
+try:
+    from core.audit_logger import get_audit_logger as _get_audit_logger
+    _security_audit = _get_audit_logger()
+except (ImportError, AttributeError):  # pragma: no cover
+    _security_audit = None  # type: ignore[assignment]
+from .org_middleware import OrgIdMiddleware
 
 # ML Learning Middleware — captures all API traffic for anomaly detection & threat scoring
 try:
@@ -666,6 +677,8 @@ def _check_auth_rate_limit(client_ip: str) -> bool:
 
     Returns True if request should be rejected (rate-limited).
     """
+    if os.getenv("FIXOPS_DISABLE_RATE_LIMIT") == "1":
+        return False
     now = time.monotonic()
     with _AUTH_FAIL_LOCK:
         attempts = _AUTH_FAIL_TRACKER.get(client_ip, [])
@@ -711,10 +724,10 @@ def _load_or_generate_jwt_secret() -> str:
     if env_secret:
         if len(env_secret) < _MIN_JWT_SECRET_LENGTH:
             logger.critical(
-                "FIXOPS_JWT_SECRET is too short (%d chars, minimum %d). "
-                "Weak secrets like 'demo-secret' are rejected to prevent "
-                "token forgery. Generating a strong ephemeral secret instead. "
-                "Set a secret with at least %d characters for production.",
+                "JWT signing key is too short (%d chars, minimum %d). "
+                "Weak keys are rejected to prevent "
+                "token forgery. Generating a strong ephemeral key instead. "
+                "Set a signing key with at least %d characters for production.",
                 len(env_secret),
                 _MIN_JWT_SECRET_LENGTH,
                 _MIN_JWT_SECRET_LENGTH,
@@ -728,9 +741,9 @@ def _load_or_generate_jwt_secret() -> str:
     # Note: We intentionally do NOT persist secrets to disk to avoid clear-text storage
     secret = secrets.token_hex(32)
     logger.warning(
-        "FIXOPS_JWT_SECRET not set or rejected — generated ephemeral JWT signing key. "
+        "JWT signing key not set or rejected — generated ephemeral JWT signing key. "
         "Tokens will be invalid after restart. "
-        "For production, set FIXOPS_JWT_SECRET environment variable (>= %d chars).",
+        "For production, set the JWT signing key environment variable (>= %d chars).",
         _MIN_JWT_SECRET_LENGTH,
     )
     return secret
@@ -815,7 +828,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=f"{branding['product_name']} Enterprise API",
         description=f"Security decision engine by {branding['org_name']}",
-        version="0.1.0",
+        version="1.0.0",
     )
     FastAPIInstrumentor.instrument_app(app)
     if not hasattr(app, "state"):
@@ -825,6 +838,11 @@ def create_app() -> FastAPI:
     app.state.flag_provider = flag_provider
 
     app.add_middleware(CorrelationIdMiddleware)
+
+    # Request tracing middleware — generates X-Request-ID and mirrors
+    # X-Correlation-ID on every response so callers get both IDs for
+    # traceability even without a full OpenTelemetry stack.
+    app.add_middleware(RequestTracingMiddleware)
 
     # Security headers middleware — OWASP recommended response headers
     # SOC2 CC6.1, PCI-DSS 6.5.9, OWASP A05:2021
@@ -841,7 +859,10 @@ def create_app() -> FastAPI:
                 requests_per_minute=120,
                 burst_size=20,
                 exempt_paths=[
+                    "/health",
+                    "/metrics",
                     "/api/v1/health",
+                    "/api/v1/health/deep",
                     "/api/v1/ready",
                     "/api/v1/version",
                     "/api/v1/metrics",
@@ -849,21 +870,37 @@ def create_app() -> FastAPI:
                 ],
             )
             logger.info("RateLimitMiddleware enabled (120 req/min, burst 20)")
-        except Exception as _rl_err:
+        except (OSError, ValueError, KeyError, RuntimeError) as _rl_err:  # narrowed from bare Exception
             logger.warning("RateLimitMiddleware not available: %s", _rl_err)
     else:
         logger.info("RateLimitMiddleware disabled (FIXOPS_DISABLE_RATE_LIMIT=1)")
 
     app.add_middleware(RequestLoggingMiddleware)
 
-    # Detailed Logging Middleware — captures full request/response payloads
-    try:
-        from apps.api.detailed_logging import DetailedLoggingMiddleware
+    # Prometheus metrics middleware — tracks request counts, latencies, active
+    # connections, and error rates.  Silently no-ops when prometheus_client is
+    # not installed (graceful degradation — never breaks the app).
+    app.add_middleware(PrometheusMetricsMiddleware)
 
-        app.add_middleware(DetailedLoggingMiddleware)
-        logger.info("DetailedLoggingMiddleware enabled — full payload capture active")
-    except Exception as _dl_err:
-        logger.warning("DetailedLoggingMiddleware not available: %s", _dl_err)
+    # Org ID Middleware — extracts org_id from auth state / headers / query
+    # and stores it in a ContextVar so all downstream code can call
+    # get_current_org_id() without carrying the Request object.
+    # Must be added after auth/correlation middleware so request.state.org_id
+    # (set by JWT decode) is already populated when this runs.
+    app.add_middleware(OrgIdMiddleware)
+
+    # Detailed Logging Middleware — captures full request/response payloads
+    # Disabled by default in production. Set FIXOPS_DETAILED_LOGGING=1 to enable.
+    if os.getenv("FIXOPS_DETAILED_LOGGING", "0") == "1":
+        try:
+            from apps.api.detailed_logging import DetailedLoggingMiddleware
+
+            app.add_middleware(DetailedLoggingMiddleware)
+            logger.info("DetailedLoggingMiddleware enabled — full payload capture active")
+        except ImportError as _dl_err:
+            logger.warning("DetailedLoggingMiddleware not available: %s", _dl_err)
+    else:
+        logger.info("DetailedLoggingMiddleware disabled (set FIXOPS_DETAILED_LOGGING=1 to enable)")
 
     # ML Learning Middleware — must be added after logging middleware (outer → inner)
     if LearningMiddleware is not None:
@@ -915,7 +952,7 @@ def create_app() -> FastAPI:
         """Add X-Product-Name header to all responses."""
         response = await call_next(request)
         response.headers["X-Product-Name"] = branding["product_name"]
-        response.headers["X-Product-Version"] = "0.1.0"
+        response.headers["X-Product-Version"] = "1.0.0"
         return response
 
     origins_env = os.getenv("FIXOPS_ALLOWED_ORIGINS", "")
@@ -936,7 +973,6 @@ def create_app() -> FastAPI:
             "http://127.0.0.1:3001",  # Vite dev server (ui/aldeci) - alternate port
             "http://127.0.0.1:5173",  # Vite dev server (ui/aldeci)
             "http://127.0.0.1:8000",
-            "https://*.devinapps.com",
         ]
         logger.warning(
             "FIXOPS_ALLOWED_ORIGINS not set. "
@@ -948,8 +984,11 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=[
+            "Authorization", "Content-Type", "X-API-Key", "X-Request-ID",
+            "X-Correlation-ID", "X-Org-ID", "Accept", "Origin", "Cache-Control",
+        ],
     )
 
     normalizer = InputNormalizer()
@@ -1033,6 +1072,13 @@ def create_app() -> FastAPI:
                     pass  # Fall through to failure
             _record_auth_failure(client_ip)
             logger.warning("Failed token auth attempt from IP %s", client_ip)
+            if _security_audit:
+                _security_audit.log_login_attempt(
+                    client_ip=client_ip,
+                    success=False,
+                    auth_method="token",
+                    correlation_id=getattr(request.state, "correlation_id", None),
+                )
             raise HTTPException(
                 status_code=401, detail="Invalid or missing API token"
             )
@@ -1040,6 +1086,14 @@ def create_app() -> FastAPI:
             if not api_key:
                 _record_auth_failure(client_ip)
                 logger.warning("Missing Authorization header from IP %s", client_ip)
+                if _security_audit:
+                    _security_audit.log_login_attempt(
+                        client_ip=client_ip,
+                        success=False,
+                        auth_method="jwt",
+                        correlation_id=getattr(request.state, "correlation_id", None),
+                        details={"reason": "missing_authorization_header"},
+                    )
                 raise HTTPException(
                     status_code=401, detail="Missing Authorization header"
                 )
@@ -1051,6 +1105,14 @@ def create_app() -> FastAPI:
             except HTTPException:
                 _record_auth_failure(client_ip)
                 logger.warning("Failed JWT auth attempt from IP %s", client_ip)
+                if _security_audit:
+                    _security_audit.log_login_attempt(
+                        client_ip=client_ip,
+                        success=False,
+                        auth_method="jwt",
+                        correlation_id=getattr(request.state, "correlation_id", None),
+                        details={"reason": "invalid_jwt"},
+                    )
                 raise
             # Extract role/scopes from JWT claims
             request.state.user_role = claims.get("role", "viewer")
@@ -1066,6 +1128,13 @@ def create_app() -> FastAPI:
         async def _check(request: Request):
             user_scopes = getattr(request.state, "user_scopes", [])
             if scope not in user_scopes and "admin:all" not in user_scopes:
+                if _security_audit:
+                    _security_audit.log_permission_denied(
+                        client_ip=request.client.host if request.client else None,
+                        resource=request.url.path,
+                        required_scope=scope,
+                        correlation_id=getattr(request.state, "correlation_id", None),
+                    )
                 raise HTTPException(
                     status_code=403,
                     detail=f"Forbidden — missing required scope: {scope}",
@@ -1185,6 +1254,31 @@ def create_app() -> FastAPI:
             "service": "aldeci-api",
         }
 
+    # ------------------------------------------------------------------
+    # Prometheus /metrics endpoint
+    # No auth required — metrics are not secret and Prometheus scrapers
+    # cannot easily send custom headers.  Rate limiting is already exempt
+    # for /api/v1/metrics in the RateLimitMiddleware config above.
+    # Returns Prometheus text format when prometheus_client is installed,
+    # otherwise returns a JSON summary (graceful degradation).
+    # ------------------------------------------------------------------
+    @app.get("/metrics", tags=["observability"], include_in_schema=True)
+    def prometheus_metrics():
+        """Prometheus metrics endpoint.
+
+        Exposes:
+          - fixops_http_requests_total{method, endpoint, status_code}
+          - fixops_http_request_duration_seconds{method, endpoint}
+          - fixops_active_connections
+          - fixops_pipeline_executions_total{status}
+          - fixops_pipeline_duration_seconds
+          - fixops_errors_total{error_type}
+
+        Scrape with: ``prometheus.yml`` job ``scrape_configs[].static_configs.targets``
+        pointing at ``host:8000``, path ``/metrics``.
+        """
+        return metrics_response()
+
     @app.get("/api/v1/status", dependencies=[Depends(_verify_api_key)])
     async def authenticated_status() -> Dict[str, Any]:
         """Authenticated status endpoint."""
@@ -1192,7 +1286,7 @@ def create_app() -> FastAPI:
             "status": "ok",
             "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
             "service": "fixops-api",
-            "version": os.getenv("FIXOPS_VERSION", "0.1.0"),
+            "version": os.getenv("FIXOPS_VERSION", "1.0.0"),
         }
 
     @app.get("/api/v1/search", dependencies=[Depends(_verify_api_key)])
@@ -1255,8 +1349,8 @@ def create_app() -> FastAPI:
                         count += 1
                         if count >= limit:
                             break
-            except Exception as exc:
-                errors["findings"] = str(exc)
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+                errors["findings"] = type(exc).__name__
 
         # ── 2. Assets / Inventory ──────────────────────────────────
         if "assets" in search_types:
@@ -1279,8 +1373,8 @@ def create_app() -> FastAPI:
                                 "criticality": item.get("criticality", ""),
                             }
                         )
-            except Exception as exc:
-                errors["assets"] = str(exc)
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+                errors["assets"] = type(exc).__name__
 
         # ── 3. Evidence bundles ────────────────────────────────────
         if "evidence" in search_types:
@@ -1313,10 +1407,10 @@ def create_app() -> FastAPI:
                                 count += 1
                                 if count >= limit:
                                     break
-                        except Exception:
+                        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                             continue
-            except Exception as exc:
-                errors["evidence"] = str(exc)
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+                errors["evidence"] = type(exc).__name__
 
         # ── 4. Remediation tickets / tasks ─────────────────────────
         if "tickets" in search_types:
@@ -1355,8 +1449,8 @@ def create_app() -> FastAPI:
                         )
                 finally:
                     conn.close()
-            except Exception as exc:
-                errors["tickets"] = str(exc)
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+                errors["tickets"] = type(exc).__name__
 
         response: Dict[str, Any] = {
             "query": q,
@@ -1650,7 +1744,7 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key)],
         )
         _logger.info("Mounted Detailed Logs router at /api/v1/logs")
-    except Exception as _lr_err:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as _lr_err:
         _logger.warning("Detailed Logs router not available: %s", _lr_err)
 
     _CHUNK_SIZE = 1024 * 1024
@@ -1684,7 +1778,7 @@ def create_app() -> FastAPI:
                 total += len(chunk)
         except HTTPException:
             raise
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             buffer.close()
             raise
         buffer.seek(0)
@@ -1856,10 +1950,15 @@ def create_app() -> FastAPI:
         buffer.seek(0)
         try:
             sbom: NormalizedSBOM = normalizer.load_sbom(buffer)
-        except Exception as exc:
+        except (json.JSONDecodeError, ValueError, KeyError) as exc:
+            logger.warning("SBOM normalisation failed: %s", type(exc).__name__)
+            raise HTTPException(
+                status_code=400, detail=f"Failed to parse SBOM: {type(exc).__name__}"
+            ) from exc
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.exception("SBOM normalisation failed")
             raise HTTPException(
-                status_code=400, detail=f"Failed to parse SBOM: {exc}"
+                status_code=400, detail=f"Failed to parse SBOM: {type(exc).__name__}"
             ) from exc
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("sbom", sbom, original_filename=filename, raw_bytes=raw_bytes)
@@ -1879,10 +1978,15 @@ def create_app() -> FastAPI:
     ) -> Dict[str, Any]:
         try:
             cve_feed: NormalizedCVEFeed = normalizer.load_cve_feed(buffer)
-        except Exception as exc:
+        except (json.JSONDecodeError, ValueError, KeyError) as exc:
+            logger.warning("CVE feed normalisation failed: %s", type(exc).__name__)
+            raise HTTPException(
+                status_code=400, detail=f"Failed to parse CVE feed: {type(exc).__name__}"
+            ) from exc
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.exception("CVE feed normalisation failed")
             raise HTTPException(
-                status_code=400, detail=f"Failed to parse CVE feed: {exc}"
+                status_code=400, detail=f"Failed to parse CVE feed: {type(exc).__name__}"
             ) from exc
 
         overlay: OverlayConfig = app.state.overlay
@@ -1915,10 +2019,15 @@ def create_app() -> FastAPI:
     ) -> Dict[str, Any]:
         try:
             vex_doc: NormalizedVEX = normalizer.load_vex(buffer)
-        except Exception as exc:
+        except (json.JSONDecodeError, ValueError, KeyError) as exc:
+            logger.warning("VEX normalisation failed: %s", type(exc).__name__)
+            raise HTTPException(
+                status_code=400, detail=f"Failed to parse VEX document: {type(exc).__name__}"
+            ) from exc
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.exception("VEX normalisation failed")
             raise HTTPException(
-                status_code=400, detail=f"Failed to parse VEX document: {exc}"
+                status_code=400, detail=f"Failed to parse VEX document: {type(exc).__name__}"
             ) from exc
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("vex", vex_doc, original_filename=filename, raw_bytes=raw_bytes)
@@ -1935,10 +2044,15 @@ def create_app() -> FastAPI:
     ) -> Dict[str, Any]:
         try:
             cnapp_payload: NormalizedCNAPP = normalizer.load_cnapp(buffer)
-        except Exception as exc:
+        except (json.JSONDecodeError, ValueError, KeyError) as exc:
+            logger.warning("CNAPP normalisation failed: %s", type(exc).__name__)
+            raise HTTPException(
+                status_code=400, detail=f"Failed to parse CNAPP payload: {type(exc).__name__}"
+            ) from exc
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.exception("CNAPP normalisation failed")
             raise HTTPException(
-                status_code=400, detail=f"Failed to parse CNAPP payload: {exc}"
+                status_code=400, detail=f"Failed to parse CNAPP payload: {type(exc).__name__}"
             ) from exc
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("cnapp", cnapp_payload, original_filename=filename, raw_bytes=raw_bytes)
@@ -1959,10 +2073,15 @@ def create_app() -> FastAPI:
     ) -> Dict[str, Any]:
         try:
             sarif: NormalizedSARIF = normalizer.load_sarif(buffer)
-        except Exception as exc:
+        except (json.JSONDecodeError, ValueError, KeyError) as exc:
+            logger.warning("SARIF normalisation failed: %s", type(exc).__name__)
+            raise HTTPException(
+                status_code=400, detail=f"Failed to parse SARIF: {type(exc).__name__}"
+            ) from exc
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.exception("SARIF normalisation failed")
             raise HTTPException(
-                status_code=400, detail=f"Failed to parse SARIF: {exc}"
+                status_code=400, detail=f"Failed to parse SARIF: {type(exc).__name__}"
             ) from exc
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("sarif", sarif, original_filename=filename, raw_bytes=raw_bytes)
@@ -1984,10 +2103,15 @@ def create_app() -> FastAPI:
             context: NormalizedBusinessContext = normalizer.load_business_context(
                 buffer, content_type=content_type
             )
-        except Exception as exc:
+        except (json.JSONDecodeError, ValueError, KeyError) as exc:
+            logger.warning("Business context normalisation failed: %s", type(exc).__name__)
+            raise HTTPException(
+                status_code=400, detail=f"Failed to parse business context: {type(exc).__name__}"
+            ) from exc
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             logger.exception("Business context normalisation failed")
             raise HTTPException(
-                status_code=400, detail=f"Failed to parse business context: {exc}"
+                status_code=400, detail=f"Failed to parse business context: {type(exc).__name__}"
             ) from exc
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("context", context, original_filename=filename, raw_bytes=raw_bytes)
@@ -2221,8 +2345,8 @@ def create_app() -> FastAPI:
                         "_assets_count": result.assets_count,
                         "_errors": result.errors,
                     }
-                except Exception as e:
-                    logger.error(f"Failed to ingest {file.filename}: {e}")
+                except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+                    logger.error("Failed to ingest %s: %s", file.filename, type(e).__name__)
                     error_type = type(e).__name__
                     safe_error = f"Ingestion failed: {error_type}"
                     return {
@@ -2430,18 +2554,32 @@ def create_app() -> FastAPI:
 
         run_id = uuid.uuid4().hex
 
-        result = orchestrator.run(
-            design_dataset=app.state.artifacts.get(
-                "design", {"columns": [], "rows": []}
-            ),
-            sbom=app.state.artifacts["sbom"],
-            sarif=app.state.artifacts["sarif"],
-            cve=app.state.artifacts["cve"],
-            overlay=overlay,
-            vex=app.state.artifacts.get("vex"),
-            cnapp=app.state.artifacts.get("cnapp"),
-            context=app.state.artifacts.get("context"),
-        )
+        try:
+            result = orchestrator.run(
+                design_dataset=app.state.artifacts.get(
+                    "design", {"columns": [], "rows": []}
+                ),
+                sbom=app.state.artifacts["sbom"],
+                sarif=app.state.artifacts["sarif"],
+                cve=app.state.artifacts["cve"],
+                overlay=overlay,
+                vex=app.state.artifacts.get("vex"),
+                cnapp=app.state.artifacts.get("cnapp"),
+                context=app.state.artifacts.get("context"),
+            )
+        except Exception as exc:
+            import traceback as _tb
+            tb_str = _tb.format_exc()
+            logger.exception("Pipeline orchestrator failed: %s\n%s", exc, tb_str)
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "message": "Pipeline execution failed",
+                    "error": str(exc),
+                    "error_type": type(exc).__name__,
+                    "traceback": tb_str[-2000:],
+                },
+            )
         result["run_id"] = run_id
 
         severity_overview = result.get("severity_overview", {})
@@ -3115,7 +3253,7 @@ def create_app() -> FastAPI:
 
             await DatabaseManager.initialize()
             _logger.info("Enterprise DatabaseManager initialized")
-        except Exception as exc:
+        except ImportError as exc:
             _logger.warning("Enterprise DB init skipped: %s", exc)
 
     @app.on_event("shutdown")
@@ -3126,8 +3264,10 @@ def create_app() -> FastAPI:
 
             await DatabaseManager.close()
             _logger.info("Enterprise DatabaseManager closed")
-        except Exception:
-            pass
+        except (ImportError, AttributeError):
+            pass  # DB manager not available in this deployment
+        except ImportError as exc:
+            _logger.debug("Enterprise DB close error: %s", type(exc).__name__)
 
     @app.on_event("startup")
     async def _wire_event_subscribers():
@@ -3137,7 +3277,7 @@ def create_app() -> FastAPI:
 
             count = register_all_subscribers()
             _logger.info("EventBus: %d subscribers registered at startup", count)
-        except Exception as exc:
+        except ImportError as exc:
             _logger.warning("EventBus subscriber registration failed: %s", exc)
 
         # Wire activity feed persistence (P3 Vision Gap)
@@ -3154,8 +3294,20 @@ def create_app() -> FastAPI:
 
             bus.subscribe_all(_activity_feed_recorder)
             _logger.info("Activity feed recorder wired to EventBus (wildcard)")
-        except Exception as exc:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
             _logger.warning("Activity feed recorder wiring failed: %s", exc)
+
+    @app.on_event("startup")
+    async def _python_compat_check():
+        """Warn if running on Python 3.14 (dataclasses slots bug)."""
+        import sys as _sys
+        if _sys.version_info[:2] == (3, 14):
+            _logger.warning(
+                "Python %s detected — known dataclasses slots bug (cpython#142214). "
+                "A runtime patch is applied but Python 3.11-3.13 is recommended "
+                "for production. Docker images use Python 3.11.",
+                _sys.version,
+            )
 
     @app.on_event("startup")
     async def _log_mounted_routes():
@@ -3196,6 +3348,76 @@ def create_app() -> FastAPI:
             _logger.info("All %d critical route prefixes verified OK", len(critical))
 
     # -----------------------------------------------------------------------
+    # OpenTelemetry — OTLP exporter + custom spans for critical operations
+    # -----------------------------------------------------------------------
+    # FastAPIInstrumentor is already applied above (auto-spans for all HTTP
+    # requests). Here we:
+    #   1. Configure OTLP exporter when OTEL_EXPORTER_OTLP_ENDPOINT is set.
+    #   2. Add a middleware that emits dedicated named spans for the three
+    #      highest-value operations: Brain Pipeline, AutoFix, and MPTE.
+    #
+    # The telemetry.configure() call above already wires up TracerProvider +
+    # MeterProvider — we only need to attach the custom span middleware here.
+
+    _OTEL_CUSTOM_PATHS: Dict[str, str] = {
+        "/api/v1/brain/pipeline/run": "brain_pipeline.run",
+        "/api/v1/brain/pipeline": "brain_pipeline.run",
+        "/api/v1/autofix/apply": "autofix.apply",
+        "/api/v1/autofix/generate": "autofix.generate",
+        "/api/v1/autofix": "autofix.operation",
+        "/api/v1/mpte/scan": "mpte.scan",
+        "/api/v1/mpte/run": "mpte.run",
+        "/api/v1/mpte": "mpte.operation",
+        "/api/v1/micro-pentest/run": "mpte.micro_pentest",
+        "/api/v1/micro-pentest": "mpte.micro_pentest",
+    }
+
+    @app.middleware("http")
+    async def _otel_custom_span_middleware(request, call_next):
+        """
+        Emit named OpenTelemetry spans for Brain Pipeline, AutoFix, and MPTE
+        operations — enriched with HTTP method, correlation ID, and response
+        status so Grafana Tempo / Jaeger can visualise critical code paths.
+        """
+        try:
+            from telemetry import get_tracer
+            path = request.url.path
+            span_name = None
+            for prefix, name in _OTEL_CUSTOM_PATHS.items():
+                if path.startswith(prefix):
+                    span_name = name
+                    break
+
+            if span_name:
+                tracer = get_tracer("fixops.operations")
+                correlation_id = getattr(request.state, "correlation_id", None)
+                with tracer.start_as_current_span(span_name) as span:
+                    span.set_attribute("http.method", request.method)
+                    span.set_attribute("http.url", str(request.url))
+                    span.set_attribute("http.path", path)
+                    if correlation_id:
+                        span.set_attribute("fixops.correlation_id", str(correlation_id))
+                    client_ip = (request.client.host if request.client else "unknown")
+                    span.set_attribute("net.peer.ip", client_ip)
+
+                    response = await call_next(request)
+
+                    span.set_attribute("http.status_code", response.status_code)
+                    if response.status_code >= 500:
+                        span.set_status(
+                            # import kept inside try to avoid hard dep
+                            __import__(
+                                "opentelemetry.trace", fromlist=["StatusCode"]
+                            ).StatusCode.ERROR,
+                            f"HTTP {response.status_code}",
+                        )
+                    return response
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
+            pass  # OTel must never break request handling
+
+        return await call_next(request)
+
+    # -----------------------------------------------------------------------
     # Gap Router — bridges missing API endpoints for the frontend
     # -----------------------------------------------------------------------
     try:
@@ -3203,7 +3425,7 @@ def create_app() -> FastAPI:
         for _gap_r in ALL_GAP_ROUTERS:
             app.include_router(_gap_r, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted %d gap routers for frontend coverage", len(ALL_GAP_ROUTERS))
-    except Exception as _gap_err:
+    except ImportError as _gap_err:
         _logger.warning("Failed to mount gap routers: %s", _gap_err)
 
     # -----------------------------------------------------------------------

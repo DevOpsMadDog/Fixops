@@ -93,7 +93,7 @@ def _auto_refresh_feeds():
                 logger.info("Auto-refreshing KEV feed (empty)")
                 result = service.refresh_kev()
                 logger.info("KEV refresh: %d records", result.records_updated)
-    except Exception as e:
+    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.warning("Auto-refresh failed: %s", type(e).__name__)
 
 
@@ -485,6 +485,69 @@ async def refresh_github_advisories_feed() -> Dict[str, Any]:
         "timestamp": result.refreshed_at,
         "error": result.error,
     }
+
+
+# =============================================================================
+# VEDAS (ARPSyndicate) Endpoints
+# =============================================================================
+
+
+@router.post("/vedas/refresh")
+async def refresh_vedas_feed() -> Dict[str, Any]:
+    """Refresh VEDAS scores from ARPSyndicate CVE-Scores dataset.
+
+    Downloads alternative vulnerability scoring (VEDAS) for 380k+ CVEs.
+    Source: https://github.com/ARPSyndicate/cve-scores
+    """
+    service = get_feeds_service()
+    result = service.refresh_vedas()
+
+    if _HAS_BRAIN:
+        bus = get_event_bus()
+        await bus.emit(
+            Event(
+                event_type=EventType.FEED_UPDATED,
+                source="feeds_router.vedas_refresh",
+                data={
+                    "feed": "vedas",
+                    "records": result.records_updated,
+                    "success": result.success,
+                },
+            )
+        )
+
+    return {
+        "status": "success" if result.success else "error",
+        "records_updated": result.records_updated,
+        "error": result.error,
+    }
+
+
+@router.get("/vedas/{cve_id}")
+def get_vedas_score(cve_id: str) -> Dict[str, Any]:
+    """Get VEDAS score for a specific CVE.
+
+    Returns VEDAS and EPSS scores from the ARPSyndicate dataset.
+    """
+    service = get_feeds_service()
+    score = service.get_vedas_score(cve_id)
+    if not score:
+        raise HTTPException(status_code=404, detail=f"No VEDAS data for {cve_id}")
+    return score
+
+
+@router.get("/vedas")
+def list_vedas_high_risk(
+    threshold: float = Query(default=0.7, ge=0.0, le=1.0),
+    limit: int = Query(default=100, ge=1, le=1000),
+) -> Dict[str, Any]:
+    """List CVEs with high VEDAS scores.
+
+    Returns CVEs above the threshold sorted by VEDAS score descending.
+    """
+    service = get_feeds_service()
+    high_risk = service.get_vedas_high_risk(threshold=threshold, limit=limit)
+    return {"scores": high_risk, "count": len(high_risk)}
 
 
 # =============================================================================
@@ -980,6 +1043,12 @@ def get_feed_health() -> Dict[str, Any]:
         "supply_chain": {},
         "threat_actor": {},
     }
+    # Security: table names for COUNT queries are defined as a hardcoded
+    # allowlist — never interpolate user-supplied values into SQL.
+    _ALLOWED_COUNT_TABLES = frozenset({
+        "nvd_cves", "exploit_intelligence",
+        "supply_chain_vulns", "threat_actor_mappings",
+    })
     try:
         conn = _sql.connect(service.db_path)
         cur = conn.cursor()
@@ -989,13 +1058,15 @@ def get_feed_health() -> Dict[str, Any]:
             ("supply_chain_vulns", "supply_chain", "supply_chain_vulns"),
             ("threat_actor_mappings", "threat_actor", "threat_actor_mappings"),
         ]:
+            if table not in _ALLOWED_COUNT_TABLES:
+                raise ValueError(f"Disallowed table name in count query: {table!r}")
             try:
-                cur.execute(f"SELECT COUNT(*) FROM {table}")
+                cur.execute(f"SELECT COUNT(*) FROM {table}")  # nosec B608 — allowlisted above
                 cats[cat][key] = cur.fetchone()[0]
             except _sql.OperationalError:
                 cats[cat][key] = 0
         conn.close()
-    except Exception:
+    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
         pass
 
     epss_count = epss_data.get("total_cves", 0)
@@ -1139,7 +1210,7 @@ async def refresh_all_feeds(
 
     results = {}
 
-    # Always refresh EPSS and KEV (fast, authoritative)
+    # Always refresh EPSS, KEV, and VEDAS (fast, authoritative)
     epss_result = service.refresh_epss()
     results["epss"] = {
         "success": epss_result.success,
@@ -1152,6 +1223,13 @@ async def refresh_all_feeds(
         "success": kev_result.success,
         "records_updated": kev_result.records_updated,
         "error": kev_result.error,
+    }
+
+    vedas_result = service.refresh_vedas()
+    results["vedas"] = {
+        "success": vedas_result.success,
+        "records_updated": vedas_result.records_updated,
+        "error": vedas_result.error,
     }
 
     # NVD — NIST National Vulnerability Database

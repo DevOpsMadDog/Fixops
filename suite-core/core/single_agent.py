@@ -159,7 +159,7 @@ class VLLMBackend(BaseInferenceBackend):
                 text = result["choices"][0]["message"]["content"]
                 tokens = result.get("usage", {}).get("total_tokens", 0)
                 return text, tokens
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             raise RuntimeError(f"vLLM generation failed: {e}")
 
     def is_available(self) -> bool:
@@ -168,7 +168,7 @@ class VLLMBackend(BaseInferenceBackend):
             req = urllib.request.Request(f"{self.base_url}/models")
             with urllib.request.urlopen(req, timeout=5) as resp:
                 return resp.status == 200
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return False
 
     def model_info(self) -> Dict[str, Any]:
@@ -210,7 +210,7 @@ class OllamaBackend(BaseInferenceBackend):
                 text = result.get("response", "")
                 tokens = result.get("eval_count", 0) + result.get("prompt_eval_count", 0)
                 return text, tokens
-        except Exception as e:
+        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             raise RuntimeError(f"Ollama generation failed: {e}")
 
     def is_available(self) -> bool:
@@ -219,7 +219,7 @@ class OllamaBackend(BaseInferenceBackend):
             req = urllib.request.Request(f"{self.base_url}/api/tags")
             with urllib.request.urlopen(req, timeout=5) as resp:
                 return resp.status == 200
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             return False
 
     def model_info(self) -> Dict[str, Any]:
@@ -307,7 +307,7 @@ class APIFallbackBackend(BaseInferenceBackend):
                     return self._call_openai(provider, prompt, system_prompt, max_tokens, temperature)
                 elif provider["name"] == "anthropic":
                     return self._call_anthropic(provider, prompt, system_prompt, max_tokens, temperature)
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.warning("API provider %s failed: %s", provider.get("name"), type(e).__name__)
                 continue
 
@@ -478,7 +478,7 @@ class SingleAgentEngine:
                     if b.is_available():
                         logger.info("Auto-selected backend: %s", b.model_info().get("backend"))
                         return b
-                except Exception:
+                except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                     continue
             # Final fallback — return API backend even if no keys (will error on use)
             logger.warning("No inference backend available — using API fallback (may require API keys)")
@@ -515,7 +515,7 @@ class SingleAgentEngine:
             try:
                 opinion = self._get_expert_opinion(role, prompt)
                 opinions.append(opinion)
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.warning("Expert %s failed: %s", role.value, type(e).__name__)
                 opinions.append(ExpertOpinion(
                     role=role,
@@ -560,7 +560,7 @@ class SingleAgentEngine:
             # If moderator has strong opinion, it can override
             if moderator_opinion.confidence > 0.9:
                 top_decision = moderator_opinion.decision
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             moderator_summary = f"Moderator unavailable: {e}"
 
         # Determine consensus result
@@ -649,7 +649,7 @@ class SingleAgentEngine:
         # Parse JSON response
         try:
             parsed = self._parse_json_response(response_text)
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             parsed = {
                 "decision": "NEEDS_MORE_INFO",
                 "confidence": 0.3,
@@ -699,7 +699,7 @@ class SingleAgentEngine:
 
         try:
             parsed = self._parse_json_response(response_text)
-        except Exception:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
             parsed = {
                 "decision": "MANUAL_REVIEW",
                 "confidence": 0.5,
@@ -755,7 +755,7 @@ class SingleAgentEngine:
             try:
                 decision = self.decide(finding, app_context)
                 results.append(decision)
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.error("Failed to decide on %s: %s", finding.get("id", "?"), type(e).__name__)
                 results.append(ConsensusDecision(
                     finding_id=finding.get("id", "unknown"),
@@ -1524,7 +1524,7 @@ class BatchInferenceManager:
                     try:
                         decision = self._engine.decide(finding, job.app_context)
                         job.results.append(decision)
-                    except Exception as e:
+                    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                         logger.warning("Batch job %s: finding error: %s", job.job_id, e)
                         job.results.append({"error": str(e), "finding_id": finding.get("id", "?")})
 
@@ -1534,7 +1534,7 @@ class BatchInferenceManager:
                 job.status = "completed"
                 job.progress = 100
 
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             job.status = "error"
             job.error = str(e)
             logger.error("Batch job %s failed: %s", job.job_id, e)
@@ -2058,7 +2058,7 @@ class FineTuningPipeline:
             self._training_jobs[job_id]["status"] = "completed"
             logger.info("Fine-tuning job %s completed, adapter: %s", job_id, adapter_path)
 
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             self._training_jobs[job_id]["status"] = "error"
             self._training_jobs[job_id]["error"] = str(e)
             logger.error("Fine-tuning job %s failed: %s", job_id, e)
@@ -2148,7 +2148,7 @@ print(f"Adapter saved to {{OUTPUT_DIR}}")
                     msg = json.loads(line).get("messages", [])
                     if msg:
                         examples_preview.append(msg[0].get("content", "")[:200])
-        except Exception:
+        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
             pass
 
         modelfile_content = f"""FROM {base_model}
@@ -2209,7 +2209,7 @@ PARAMETER repeat_penalty 1.1
                 else:
                     decision_counts[expected]["fn"] += 1
                     decision_counts[predicted]["fp"] += 1
-            except Exception as e:
+            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
                 logger.warning("Eval error for finding %s: %s", finding.get("id", "?"), e)
 
         accuracy = correct / total if total > 0 else 0.0
@@ -2310,7 +2310,7 @@ PARAMETER repeat_penalty 1.1
                 "new_model": adapter_path,
                 "deployed_at": datetime.now(timezone.utc).isoformat(),
             }
-        except Exception as e:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
             # Rollback
             logger.error("Deployment failed, rolling back: %s", e)
             return {"success": False, "error": str(e), "rollback": True}

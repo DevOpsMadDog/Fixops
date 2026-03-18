@@ -12,7 +12,7 @@ from typing import Any, Dict, Iterable, Mapping, MutableMapping, Optional
 
 try:  # Optional dependency, only needed for YAML overlays
     import yaml  # type: ignore
-except Exception:  # pragma: no cover - yaml is optional
+except ImportError:  # pragma: no cover - yaml is optional
     yaml = None  # type: ignore
 
 BASE_DIR = Path(__file__).resolve().parent
