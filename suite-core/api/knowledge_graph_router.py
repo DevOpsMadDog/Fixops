@@ -9,6 +9,7 @@ Includes demo seed endpoint for DEMO-010 (enterprise demo attack paths).
 from __future__ import annotations
 
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -283,8 +284,20 @@ async def list_node_types() -> Dict[str, Any]:
 # DEMO-010: Seed Demo Data Endpoint [V3]
 # Seeds 5 applications, 20 vulnerabilities, 10+ attack paths for enterprise demo
 # ---------------------------------------------------------------------------
-@router.post("/seed-demo")
-async def seed_demo_data() -> Dict[str, Any]:
+def _require_non_enterprise() -> None:
+    """Block demo/seed endpoints in enterprise mode."""
+    mode = os.getenv("FIXOPS_MODE", "").lower()
+    if mode == "enterprise":
+        raise HTTPException(
+            status_code=403,
+            detail="Demo endpoints are disabled in enterprise mode",
+        )
+
+
+@router.post("/seed-demo", tags=["demo"])
+async def seed_demo_data(
+    _mode: None = Depends(_require_non_enterprise),
+) -> Dict[str, Any]:
     """Seed the knowledge graph with realistic enterprise demo data.
 
     Creates 5 applications, 20 vulnerabilities, component dependencies,

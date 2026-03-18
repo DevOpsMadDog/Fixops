@@ -138,6 +138,9 @@ services:
       - FIXOPS_DB_DSN=${FIXOPS_DB_DSN:-}
       # Redis — URL used by caching, session, and rate-limit modules
       - FIXOPS_REDIS_URL=${FIXOPS_REDIS_URL:-}
+      # Dependency-Track — SBOM analysis backend (optional)
+      - DTRACK_URL=${DTRACK_URL:-http://dtrack-api:8080}
+      - DTRACK_API_KEY=${DTRACK_API_KEY:-}
     volumes:
       - fixops-data:/app/data
     healthcheck:
@@ -286,9 +289,72 @@ services:
     profiles:
       - pentest
 
+  # ─── Dependency-Track (SBOM Analysis — sbom profile) ─────
+  # OWASP Dependency-Track: industry-standard SBOM lifecycle management.
+  # Handles CycloneDX/SPDX parsing, continuous CVE monitoring, license compliance.
+  # FixOps acts as the decision/orchestration layer on top.
+  #   Start:  docker compose --profile sbom up
+  #   UI:     http://localhost:8081  (admin/admin on first run)
+  #   API:    http://dtrack-api:8080/api/v1/
+
+  dtrack-api:
+    image: dependencytrack/apiserver:4.12.3
+    container_name: fixops-dtrack-api
+    environment:
+      # Use embedded H2 by default; switch to Postgres for production
+      - ALPINE_DATABASE_MODE=${DTRACK_DB_MODE:-external}
+      - ALPINE_DATABASE_URL=jdbc:postgresql://postgres:5432/${FIXOPS_PG_DB:-fixops}
+      - ALPINE_DATABASE_DRIVER=org.postgresql.Driver
+      - ALPINE_DATABASE_USERNAME=${FIXOPS_PG_USER:-fixops}
+      - ALPINE_DATABASE_PASSWORD=${FIXOPS_PG_PASSWORD:-fixops}
+      # Data directory inside container
+      - ALPINE_DATA_DIRECTORY=/data
+      # CORS — allow FixOps API and UI to call DTrack
+      - ALPINE_CORS_ENABLED=true
+      - ALPINE_CORS_ALLOW_ORIGIN=*
+    volumes:
+      - dtrack-data:/data
+    ports:
+      - "${DTRACK_API_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/version"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+    profiles:
+      - sbom
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+
+  dtrack-frontend:
+    image: dependencytrack/frontend:4.12.3
+    container_name: fixops-dtrack-ui
+    environment:
+      - API_BASE_URL=http://localhost:${DTRACK_API_PORT:-8080}
+    ports:
+      - "${DTRACK_UI_PORT:-8081}:8080"
+    depends_on:
+      dtrack-api:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles:
+      - sbom
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
 volumes:
   fixops-data:
   fixops-pg-data:
     driver: local
   fixops-redis-data:
+    driver: local
+  dtrack-data:
     driver: local

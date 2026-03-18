@@ -1747,4 +1747,49 @@ class PipelineOrchestrator:
                 verdict = enhanced.get("final_decision", "allow")
         result["verdict"] = verdict
 
+        # ── Dependency-Track enrichment (optional) ─────────────────
+        # If DTrack is configured and the SBOM was forwarded, pull back
+        # enriched vulnerability data to supplement our local analysis.
+        try:
+            from core.security_connectors import DependencyTrackConnector
+
+            dtrack = DependencyTrackConnector()
+            if dtrack.configured:
+                # Derive project name from SBOM metadata
+                project_name = sbom.metadata.get("component_name") or sbom.document.get(
+                    "metadata", {}
+                ).get("component", {}).get("name")
+                if project_name:
+                    try:
+                        project = dtrack.get_or_create_project(project_name)
+                        project_uuid = project.get("uuid")
+                        if project_uuid:
+                            findings_outcome = dtrack.fetch_findings(project_uuid)
+                            if findings_outcome.success:
+                                dtrack_findings = findings_outcome.details.get("data", [])
+                                metrics_outcome = dtrack.fetch_project_metrics(project_uuid)
+                                dtrack_metrics = (
+                                    metrics_outcome.details.get("data", {})
+                                    if metrics_outcome.success
+                                    else {}
+                                )
+                                result["dependency_track"] = {
+                                    "project_uuid": project_uuid,
+                                    "project_name": project_name,
+                                    "findings_count": findings_outcome.details.get("total", 0),
+                                    "findings_preview": dtrack_findings[:10],
+                                    "metrics": dtrack_metrics,
+                                }
+                                logger.info(
+                                    "Enriched pipeline with %d DTrack findings for %s",
+                                    len(dtrack_findings),
+                                    project_name,
+                                )
+                    except Exception:
+                        logger.debug("DTrack project lookup failed for %s", project_name)
+        except ImportError:
+            pass  # DTrack connector not available
+        except Exception:
+            logger.debug("Dependency-Track enrichment skipped")
+
         return result

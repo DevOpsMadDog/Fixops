@@ -431,6 +431,17 @@ except ImportError as e:
     _logger.warning("Self-Learning router not available: %s", e)
 
 # ---------------------------------------------------------------------------
+# Dependency-Track router (SBOM analysis — from suite-core/api/)
+# ---------------------------------------------------------------------------
+dtrack_router: Optional[APIRouter] = None
+try:
+    from api.dtrack_router import router as dtrack_router
+
+    _logger.info("Loaded Dependency-Track router from suite-core")
+except ImportError as e:
+    _logger.warning("Dependency-Track router not available: %s", e)
+
+# ---------------------------------------------------------------------------
 # Suite-Attack routers (additional offensive security — from suite-attack/api/)
 # ---------------------------------------------------------------------------
 attack_sim_router: Optional[APIRouter] = None
@@ -1556,6 +1567,14 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Scanner Ingest router")
 
+    # Dependency-Track — SBOM analysis via OWASP Dependency-Track
+    if dtrack_router:
+        app.include_router(
+            dtrack_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+        _logger.info("Mounted Dependency-Track router")
+
     # Sandbox PoC Verifier — Docker-isolated exploit verification
     if sandbox_router:
         app.include_router(
@@ -1962,7 +1981,42 @@ def create_app() -> FastAPI:
             ) from exc
         raw_bytes = _maybe_materialise_raw(buffer, total)
         _store("sbom", sbom, original_filename=filename, raw_bytes=raw_bytes)
-        return {
+
+        # ── Forward SBOM to Dependency-Track (fire-and-forget) ──────
+        dtrack_status = None
+        try:
+            from core.security_connectors import DependencyTrackConnector
+
+            dtrack = DependencyTrackConnector()
+            if dtrack.configured:
+                project_name = (
+                    sbom_data.get("metadata", {}).get("component", {}).get("name")
+                    or os.path.splitext(filename)[0]
+                    or "fixops-upload"
+                )
+                sbom_json = json.dumps(sbom_data)
+                outcome = dtrack.upload_sbom(
+                    project_name=project_name,
+                    sbom_content=sbom_json,
+                )
+                dtrack_status = outcome.status
+                if outcome.success:
+                    logger.info(
+                        "SBOM forwarded to Dependency-Track: project=%s token=%s",
+                        project_name,
+                        outcome.details.get("token", ""),
+                    )
+                else:
+                    logger.warning(
+                        "Dependency-Track SBOM upload returned: %s",
+                        outcome.details.get("error", "unknown"),
+                    )
+        except ImportError:
+            pass  # DTrack connector not available
+        except Exception:
+            logger.debug("Dependency-Track forwarding skipped (not configured or unavailable)")
+
+        result: Dict[str, Any] = {
             "status": "ok",
             "stage": "sbom",
             "input_filename": filename,
@@ -1972,6 +2026,9 @@ def create_app() -> FastAPI:
             ],
             "format": sbom.format,
         }
+        if dtrack_status:
+            result["dependency_track"] = {"status": dtrack_status}
+        return result
 
     def _process_cve(
         buffer: SpooledTemporaryFile, total: int, filename: str

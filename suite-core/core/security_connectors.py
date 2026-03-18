@@ -1321,6 +1321,340 @@ class ThreatMapperConnector(_BaseConnector):
         return ConnectorHealth(healthy=False, latency_ms=ms, message="Auth failed")
 
 
+# ---------------------------------------------------------------------------
+# 11. Dependency-Track Connector (OWASP SBOM Analysis)
+# ---------------------------------------------------------------------------
+
+
+class DependencyTrackConnector(_BaseConnector):
+    """Upload SBOMs and fetch vulnerability/license findings from OWASP Dependency-Track.
+
+    Dependency-Track is an intelligent Component Analysis platform that allows
+    organizations to identify and reduce risk in the software supply chain.
+
+    Capabilities:
+      - Upload CycloneDX / SPDX SBOMs
+      - Continuous vulnerability monitoring (NVD, OSS Index, GitHub Advisories, Snyk, OSV)
+      - License compliance policy engine
+      - Portfolio-wide impact analysis ("which apps use log4j?")
+      - VEX / VDR support
+
+    Environment variables:
+      DTRACK_URL       — Base URL (default: http://localhost:8080)
+      DTRACK_API_KEY   — API key with PORTFOLIO_MANAGEMENT + VIEW_PORTFOLIO permissions
+    """
+
+    def __init__(self, settings: Mapping[str, Any] | None = None):
+        settings = settings or {}
+        super().__init__(timeout=float(settings.get("timeout", 30.0) or 30.0))
+        self.base_url = str(
+            settings.get("base_url")
+            or settings.get("url")
+            or os.getenv("DTRACK_URL", "http://localhost:8080")
+        ).rstrip("/")
+        api_key = settings.get("api_key") or os.getenv("DTRACK_API_KEY", "")
+        self.session.headers.update({
+            "X-Api-Key": str(api_key),
+            "Accept": "application/json",
+        })
+        self._api_key = api_key
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.base_url and self._api_key)
+
+    def health_check(self) -> ConnectorHealth:
+        """Check Dependency-Track API availability."""
+        import time as _time
+
+        start = _time.time()
+        try:
+            resp = self._request("GET", f"{self.base_url}/api/version")
+            elapsed = (_time.time() - start) * 1000
+            if resp.status_code == 200:
+                version_info = resp.json()
+                return ConnectorHealth(
+                    healthy=True,
+                    latency_ms=elapsed,
+                    message=f"Dependency-Track {version_info.get('version', 'unknown')} OK",
+                )
+            return ConnectorHealth(
+                healthy=False, latency_ms=elapsed,
+                message=f"HTTP {resp.status_code}",
+            )
+        except Exception as exc:
+            elapsed = (_time.time() - start) * 1000
+            return ConnectorHealth(
+                healthy=False, latency_ms=elapsed, message=str(exc),
+            )
+
+    # ── Project management ──────────────────────────────────────
+
+    def get_or_create_project(
+        self, name: str, version: str = "latest"
+    ) -> Dict[str, Any]:
+        """Get a project by name+version, or create it if it doesn't exist."""
+        # Try to find existing
+        resp = self._request(
+            "GET",
+            f"{self.base_url}/api/v1/project/lookup",
+            params={"name": name, "version": version},
+        )
+        if resp.status_code == 200:
+            return resp.json()
+        # Create new project
+        resp = self._request(
+            "PUT",
+            f"{self.base_url}/api/v1/project",
+            json={"name": name, "version": version, "active": True},
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    def list_projects(self, page_size: int = 100, page: int = 1) -> List[Dict[str, Any]]:
+        """List all projects in the portfolio."""
+        resp = self._request(
+            "GET",
+            f"{self.base_url}/api/v1/project",
+            params={"pageSize": page_size, "pageNumber": page},
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    # ── SBOM upload ─────────────────────────────────────────────
+
+    def upload_sbom(
+        self,
+        project_name: str,
+        sbom_content: str | bytes,
+        project_version: str = "latest",
+        auto_create: bool = True,
+    ) -> ConnectorOutcome:
+        """Upload a CycloneDX or SPDX SBOM to Dependency-Track.
+
+        The SBOM is base64-encoded and sent via the BOM upload endpoint.
+        Dependency-Track auto-detects the format (CycloneDX / SPDX).
+        """
+        import base64
+
+        if isinstance(sbom_content, str):
+            sbom_bytes = sbom_content.encode("utf-8")
+        else:
+            sbom_bytes = sbom_content
+
+        encoded = base64.b64encode(sbom_bytes).decode("ascii")
+
+        payload = {
+            "projectName": project_name,
+            "projectVersion": project_version,
+            "autoCreate": auto_create,
+            "bom": encoded,
+        }
+
+        try:
+            resp = self._request(
+                "PUT",
+                f"{self.base_url}/api/v1/bom",
+                json=payload,
+            )
+            if resp.status_code in (200, 201):
+                data = resp.json() if resp.text else {}
+                token = data.get("token", "")
+                logger.info(
+                    "SBOM uploaded to Dependency-Track: project=%s version=%s token=%s",
+                    project_name, project_version, token,
+                )
+                return ConnectorOutcome(
+                    status="success",
+                    details={
+                        "token": token,
+                        "project_name": project_name,
+                        "project_version": project_version,
+                    },
+                )
+            else:
+                logger.warning(
+                    "DTrack SBOM upload failed: HTTP %s — %s",
+                    resp.status_code, resp.text[:500],
+                )
+                return ConnectorOutcome(
+                    status="error",
+                    details={
+                        "http_status": resp.status_code,
+                        "error": resp.text[:500],
+                    },
+                )
+        except Exception as exc:
+            logger.exception("DTrack SBOM upload error")
+            return ConnectorOutcome(
+                status="error", details={"error": str(exc)},
+            )
+
+    def get_bom_processing_status(self, token: str) -> Dict[str, Any]:
+        """Check whether a previously uploaded BOM has been fully processed."""
+        resp = self._request(
+            "GET",
+            f"{self.base_url}/api/v1/bom/token/{token}",
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    # ── Findings (vulnerabilities) ──────────────────────────────
+
+    def fetch_findings(
+        self, project_uuid: str, page_size: int = 100, page: int = 1
+    ) -> ConnectorOutcome:
+        """Fetch vulnerability findings for a specific project."""
+        try:
+            resp = self._request(
+                "GET",
+                f"{self.base_url}/api/v1/finding/project/{project_uuid}",
+                params={"pageSize": page_size, "pageNumber": page},
+            )
+            resp.raise_for_status()
+            findings = resp.json()
+            total = int(resp.headers.get("X-Total-Count", len(findings)))
+
+            normalized = []
+            for f in findings:
+                vuln = f.get("vulnerability", {})
+                comp = f.get("component", {})
+                normalized.append({
+                    "id": vuln.get("vulnId", ""),
+                    "source": vuln.get("source", "NVD"),
+                    "severity": str(vuln.get("severity", "UNASSIGNED")).lower(),
+                    "cvss_v3": vuln.get("cvssV3BaseScore"),
+                    "epss_score": vuln.get("epssScore"),
+                    "epss_percentile": vuln.get("epssPercentile"),
+                    "title": vuln.get("title") or vuln.get("vulnId", ""),
+                    "description": vuln.get("description", ""),
+                    "component_name": comp.get("name", ""),
+                    "component_version": comp.get("version", ""),
+                    "component_purl": comp.get("purl", ""),
+                    "component_group": comp.get("group", ""),
+                    "attribution": f.get("attribution", {}),
+                    "analysis_state": (f.get("analysis") or {}).get("state", ""),
+                    "suppressed": f.get("isSuppressed", False),
+                })
+
+            logger.info(
+                "Fetched %d/%d findings from Dependency-Track for project %s",
+                len(normalized), total, project_uuid,
+            )
+            return ConnectorOutcome(
+                status="fetched",
+                details={
+                    "data": normalized,
+                    "total": total,
+                    "page": page,
+                    "page_size": page_size,
+                },
+            )
+        except Exception as exc:
+            logger.exception("DTrack fetch_findings error")
+            return ConnectorOutcome(
+                status="error", details={"error": str(exc)},
+            )
+
+    # ── License info ────────────────────────────────────────────
+
+    def fetch_licenses(
+        self, project_uuid: str, page_size: int = 100, page: int = 1
+    ) -> ConnectorOutcome:
+        """Fetch component license data for a project."""
+        try:
+            resp = self._request(
+                "GET",
+                f"{self.base_url}/api/v1/component/project/{project_uuid}",
+                params={"pageSize": page_size, "pageNumber": page},
+            )
+            resp.raise_for_status()
+            components = resp.json()
+
+            licenses: List[Dict[str, Any]] = []
+            for comp in components:
+                license_info = comp.get("resolvedLicense") or {}
+                licenses.append({
+                    "component": comp.get("name", ""),
+                    "version": comp.get("version", ""),
+                    "purl": comp.get("purl", ""),
+                    "license_id": license_info.get("licenseId", ""),
+                    "license_name": license_info.get("name", "Unknown"),
+                    "is_osi_approved": license_info.get("isOsiApproved", False),
+                    "is_fsf_libre": license_info.get("isFsfLibre", False),
+                })
+
+            return ConnectorOutcome(
+                status="fetched",
+                details={"data": licenses, "total": len(licenses)},
+            )
+        except Exception as exc:
+            logger.exception("DTrack fetch_licenses error")
+            return ConnectorOutcome(
+                status="error", details={"error": str(exc)},
+            )
+
+    # ── Policy violations ───────────────────────────────────────
+
+    def fetch_policy_violations(
+        self, project_uuid: str, page_size: int = 100, page: int = 1
+    ) -> ConnectorOutcome:
+        """Fetch policy violations (license, security, operational) for a project."""
+        try:
+            resp = self._request(
+                "GET",
+                f"{self.base_url}/api/v1/violation/project/{project_uuid}",
+                params={"pageSize": page_size, "pageNumber": page},
+            )
+            resp.raise_for_status()
+            violations = resp.json()
+            return ConnectorOutcome(
+                status="fetched",
+                details={"data": violations, "total": len(violations)},
+            )
+        except Exception as exc:
+            logger.exception("DTrack fetch_policy_violations error")
+            return ConnectorOutcome(
+                status="error", details={"error": str(exc)},
+            )
+
+    # ── Portfolio metrics ───────────────────────────────────────
+
+    def fetch_portfolio_metrics(self) -> ConnectorOutcome:
+        """Fetch portfolio-wide vulnerability metrics."""
+        try:
+            resp = self._request(
+                "GET",
+                f"{self.base_url}/api/v1/metrics/portfolio/current",
+            )
+            resp.raise_for_status()
+            return ConnectorOutcome(
+                status="fetched", details={"data": resp.json()},
+            )
+        except Exception as exc:
+            logger.exception("DTrack fetch_portfolio_metrics error")
+            return ConnectorOutcome(
+                status="error", details={"error": str(exc)},
+            )
+
+    def fetch_project_metrics(self, project_uuid: str) -> ConnectorOutcome:
+        """Fetch vulnerability metrics for a specific project."""
+        try:
+            resp = self._request(
+                "GET",
+                f"{self.base_url}/api/v1/metrics/project/{project_uuid}/current",
+            )
+            resp.raise_for_status()
+            return ConnectorOutcome(
+                status="fetched", details={"data": resp.json()},
+            )
+        except Exception as exc:
+            logger.exception("DTrack fetch_project_metrics error")
+            return ConnectorOutcome(
+                status="error", details={"error": str(exc)},
+            )
+
+
 __all__ = [
     "SnykConnector",
     "SonarQubeConnector",
@@ -1332,4 +1666,5 @@ __all__ = [
     "OrcaSecurityConnector",
     "LaceworkConnector",
     "ThreatMapperConnector",
+    "DependencyTrackConnector",
 ]

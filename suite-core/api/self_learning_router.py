@@ -17,6 +17,7 @@ Demo endpoints:
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -33,6 +34,16 @@ from pydantic import BaseModel, Field
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/self-learning", tags=["Self-Learning"])
+
+
+def _require_non_enterprise() -> None:
+    """Block demo/seed endpoints in enterprise mode to prevent data tampering."""
+    mode = os.getenv("FIXOPS_MODE", "").lower()
+    if mode == "enterprise":
+        raise HTTPException(
+            status_code=403,
+            detail="Demo endpoints are disabled in enterprise mode",
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -507,8 +518,11 @@ async def get_metrics_trends(
         raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
-@router.post("/demo/seed", tags=["admin"])
-async def seed_demo_data(api_key: str = Depends(_verify_api_key)) -> Dict[str, Any]:
+@router.post("/demo/seed", tags=["admin", "demo"])
+async def seed_demo_data(
+    _mode: None = Depends(_require_non_enterprise),
+    api_key: str = Depends(_verify_api_key),
+) -> Dict[str, Any]:
     """Seed realistic demo data for all 5 feedback loops.
 
     Populates the learning database with 98 realistic feedback records
@@ -525,8 +539,11 @@ async def seed_demo_data(api_key: str = Depends(_verify_api_key)) -> Dict[str, A
         raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
-@router.post("/demo/reset", tags=["admin"])
-async def reset_demo_data(_: str = Depends(_verify_api_key)) -> Dict[str, Any]:
+@router.post("/demo/reset", tags=["admin", "demo"])
+async def reset_demo_data(
+    _mode: None = Depends(_require_non_enterprise),
+    _: str = Depends(_verify_api_key),
+) -> Dict[str, Any]:
     """Reset all learning data for a fresh demo.
 
     Clears all feedback records, weight adjustments, and metrics.
@@ -540,8 +557,11 @@ async def reset_demo_data(_: str = Depends(_verify_api_key)) -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail=type(e).__name__)
 
 
-@router.get("/demo/full-loop", tags=["admin"])
-async def demo_full_loop(_: str = Depends(_verify_api_key)) -> Dict[str, Any]:
+@router.get("/demo/full-loop", tags=["admin", "demo"])
+async def demo_full_loop(
+    _mode: None = Depends(_require_non_enterprise),
+    _: str = Depends(_verify_api_key),
+) -> Dict[str, Any]:
     """Execute a complete self-learning demo in one call.
 
     This endpoint demonstrates the FULL feedback loop:
@@ -691,8 +711,12 @@ class LiveFeedbackRequest(BaseModel):
     asset_criticality: float = Field(0.7, ge=0, le=1)
 
 
-@router.post("/demo/live-feedback", tags=["admin"])
-async def demo_live_feedback(req: LiveFeedbackRequest, _: str = Depends(_verify_api_key)) -> Dict[str, Any]:
+@router.post("/demo/live-feedback", tags=["admin", "demo"])
+async def demo_live_feedback(
+    req: LiveFeedbackRequest,
+    _mode: None = Depends(_require_non_enterprise),
+    _: str = Depends(_verify_api_key),
+) -> Dict[str, Any]:
     """Submit one feedback record, run learning, and show scoring effect.
 
     This is the interactive demo endpoint: submit a single feedback item,
