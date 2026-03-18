@@ -63,25 +63,40 @@ async def quantum_crypto_health() -> Dict[str, Any]:
 
 @router.get("/status")
 async def quantum_crypto_status() -> Dict[str, Any]:
-    """Get quantum crypto engine status."""
+    """Get quantum crypto engine status.
+
+    Honestly reports whether real ML-DSA (dilithium-py / liboqs) is available
+    or whether the system is running with the HMAC-SHA512 placeholder backend.
+    """
     try:
         from core.quantum_crypto import get_quantum_signer
         signer = get_quantum_signer()
+        mldsa_engine = signer.mldsa
+        backend = mldsa_engine._backend if mldsa_engine else "N/A"
+        is_real_pq = backend in ("dilithium-py", "liboqs")
         return {
             "status": "operational",
             "engine": "quantum-crypto",
             "version": "1.0.0",
-            "mldsa_available": True,
+            "quantum_ready": is_real_pq,
+            "mldsa_available": mldsa_engine is not None,
+            "mldsa_backend": backend,
+            "mldsa_production_grade": is_real_pq,
             "rsa_available": True,
-            "security_level": signer.mldsa.security_level,
-            "algorithm": signer.mldsa.algorithm_name,
+            "security_level": mldsa_engine.security_level if mldsa_engine else None,
+            "algorithm": mldsa_engine.algorithm_name if mldsa_engine else None,
             "hybrid_mode": "ML-DSA + RSA-SHA256",
-            "fips_204_compliant": True,
+            "fips_204_compliant": is_real_pq,
+            "note": None if is_real_pq else (
+                "ML-DSA signatures use HMAC-SHA512 placeholder. "
+                "Install dilithium-py or liboqs-python for real post-quantum security."
+            ),
         }
     except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         return {
             "status": "degraded",
             "engine": "quantum-crypto",
+            "quantum_ready": False,
             "error": type(e).__name__,
         }
 

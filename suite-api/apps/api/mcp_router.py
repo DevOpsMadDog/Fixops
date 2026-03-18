@@ -144,6 +144,12 @@ _EXCLUDE_PATHS: Set[str] = {
 # Path prefixes to exclude (MCP's own routes to avoid recursion)
 _EXCLUDE_PREFIXES: tuple = ("/api/v1/mcp",)
 
+# Tags that should be excluded from MCP tool discovery (demo/admin endpoints)
+_EXCLUDE_TAGS: Set[str] = {"admin", "demo"}
+
+# Path substrings that should be excluded from MCP tool discovery
+_EXCLUDE_PATH_SUBSTRINGS: tuple = ("/demo/", "/seed-demo",)
+
 # Keywords used to classify a route as "analysis" category
 _ANALYSIS_KEYWORDS: Set[str] = {
     "analyze",
@@ -458,6 +464,17 @@ def generate_tool_catalog(app: FastAPI) -> Dict[str, MCPToolDefinition]:
         description = _extract_description(endpoint)
         tags = list(route.tags or [])
         is_deprecated = getattr(route, "deprecated", False) or False
+
+        # Skip routes tagged with excluded tags (demo/admin endpoints)
+        route_tags_lower = {t.lower() for t in tags}
+        if route_tags_lower & _EXCLUDE_TAGS:
+            skipped += 1
+            continue
+
+        # Skip routes with excluded path substrings
+        if any(sub in path for sub in _EXCLUDE_PATH_SUBSTRINGS):
+            skipped += 1
+            continue
 
         for method in sorted(methods):
             # Skip HEAD and OPTIONS (not useful as MCP tools)
