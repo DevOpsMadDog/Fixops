@@ -17,6 +17,11 @@ from pathlib import Path
 # Project root for running the script
 PROJECT_ROOT = Path(__file__).parent.parent
 SCRIPT_PATH = PROJECT_ROOT / "scripts" / "api_surface_report.py"
+_SUITE_PYTHONPATH = os.pathsep.join([
+    str(PROJECT_ROOT / d)
+    for d in ("suite-api", "suite-core", "suite-evidence-risk",
+              "suite-attack", "suite-feeds", "suite-integrations", ".")
+])
 
 
 class TestApiSurfaceReportScript:
@@ -33,7 +38,7 @@ class TestApiSurfaceReportScript:
             cwd=PROJECT_ROOT,
             capture_output=True,
             text=True,
-            env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
+            env={**os.environ, "PYTHONPATH": _SUITE_PYTHONPATH},
         )
         assert (
             result.returncode == 0
@@ -46,7 +51,7 @@ class TestApiSurfaceReportScript:
             cwd=PROJECT_ROOT,
             capture_output=True,
             text=True,
-            env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
+            env={**os.environ, "PYTHONPATH": _SUITE_PYTHONPATH},
         )
         assert result.returncode == 0
 
@@ -65,7 +70,7 @@ class TestApiSurfaceReportScript:
             cwd=PROJECT_ROOT,
             capture_output=True,
             text=True,
-            env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
+            env={**os.environ, "PYTHONPATH": _SUITE_PYTHONPATH},
         )
         assert result.returncode == 0
         stdout = result.stdout
@@ -81,7 +86,7 @@ class TestApiSurfaceReportScript:
             cwd=PROJECT_ROOT,
             capture_output=True,
             text=True,
-            env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
+            env={**os.environ, "PYTHONPATH": _SUITE_PYTHONPATH},
         )
         assert result.returncode == 0
         assert "/api/v1" in result.stdout
@@ -101,7 +106,7 @@ class TestApiSurfaceReportJson:
                 cwd=PROJECT_ROOT,
                 capture_output=True,
                 text=True,
-                env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
+                env={**os.environ, "PYTHONPATH": _SUITE_PYTHONPATH},
             )
             assert result.returncode == 0, f"Script failed:\n{result.stderr}"
 
@@ -124,7 +129,7 @@ class TestApiSurfaceReportJson:
                 cwd=PROJECT_ROOT,
                 capture_output=True,
                 text=True,
-                env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
+                env={**os.environ, "PYTHONPATH": _SUITE_PYTHONPATH},
             )
             assert result.returncode == 0
 
@@ -149,7 +154,7 @@ class TestApiSurfaceReportJson:
                 cwd=PROJECT_ROOT,
                 capture_output=True,
                 text=True,
-                env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
+                env={**os.environ, "PYTHONPATH": _SUITE_PYTHONPATH},
             )
             assert result.returncode == 0
 
@@ -173,7 +178,7 @@ class TestApiSurfaceReportJson:
                 cwd=PROJECT_ROOT,
                 capture_output=True,
                 text=True,
-                env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
+                env={**os.environ, "PYTHONPATH": _SUITE_PYTHONPATH},
             )
             assert result.returncode == 0
 
@@ -196,7 +201,7 @@ class TestApiSurfaceReportJson:
                 cwd=PROJECT_ROOT,
                 capture_output=True,
                 text=True,
-                env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
+                env={**os.environ, "PYTHONPATH": _SUITE_PYTHONPATH},
             )
             assert result.returncode == 0
 
@@ -219,7 +224,7 @@ class TestApiSurfaceReportMinEndpoints:
             cwd=PROJECT_ROOT,
             capture_output=True,
             text=True,
-            env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
+            env={**os.environ, "PYTHONPATH": _SUITE_PYTHONPATH},
         )
         assert result.returncode == 0
         assert "PASS" in result.stdout
@@ -231,7 +236,7 @@ class TestApiSurfaceReportMinEndpoints:
             cwd=PROJECT_ROOT,
             capture_output=True,
             text=True,
-            env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
+            env={**os.environ, "PYTHONPATH": _SUITE_PYTHONPATH},
         )
         assert result.returncode == 1
         assert "FAIL" in result.stderr
@@ -260,7 +265,7 @@ class TestApiSurfaceReportOnlyPrefix:
                 cwd=PROJECT_ROOT,
                 capture_output=True,
                 text=True,
-                env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
+                env={**os.environ, "PYTHONPATH": _SUITE_PYTHONPATH},
             )
             assert result.returncode == 0
 
@@ -299,7 +304,7 @@ class TestApiSurfaceReportQuietMode:
                 cwd=PROJECT_ROOT,
                 capture_output=True,
                 text=True,
-                env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
+                env={**os.environ, "PYTHONPATH": _SUITE_PYTHONPATH},
             )
             assert result.returncode == 0
 

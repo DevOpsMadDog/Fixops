@@ -24,9 +24,19 @@ def db():
     os.unlink(path)
 
 
+@pytest.fixture(autouse=True)
+def _no_background_mpte(monkeypatch):
+    """Disable background MPTE verification to avoid network calls in tests."""
+    async def _noop(*args, **kwargs):
+        pass
+    monkeypatch.setattr(
+        "api.mpte_router._run_mpte_verification_background", _noop
+    )
+
+
 def test_list_pen_test_requests(client, db, monkeypatch):
     """Test listing pen test requests."""
-    monkeypatch.setattr("apps.api.mpte_router.db", db)
+    monkeypatch.setattr("api.mpte_router.db", db)
 
     response = client.get("/api/v1/mpte/requests")
     assert response.status_code == 200
@@ -37,7 +47,7 @@ def test_list_pen_test_requests(client, db, monkeypatch):
 
 def test_create_pen_test_request(client, db, monkeypatch):
     """Test creating pen test request."""
-    monkeypatch.setattr("apps.api.mpte_router.db", db)
+    monkeypatch.setattr("api.mpte_router.db", db)
 
     response = client.post(
         "/api/v1/mpte/requests",
@@ -57,7 +67,7 @@ def test_create_pen_test_request(client, db, monkeypatch):
 
 def test_get_pen_test_request(client, db, monkeypatch):
     """Test getting pen test request."""
-    monkeypatch.setattr("apps.api.mpte_router.db", db)
+    monkeypatch.setattr("api.mpte_router.db", db)
 
     create_response = client.post(
         "/api/v1/mpte/requests",
@@ -78,7 +88,7 @@ def test_get_pen_test_request(client, db, monkeypatch):
 
 def test_update_pen_test_request(client, db, monkeypatch):
     """Test updating pen test request."""
-    monkeypatch.setattr("apps.api.mpte_router.db", db)
+    monkeypatch.setattr("api.mpte_router.db", db)
 
     create_response = client.post(
         "/api/v1/mpte/requests",
@@ -102,7 +112,7 @@ def test_update_pen_test_request(client, db, monkeypatch):
 
 def test_start_pen_test(client, db, monkeypatch):
     """Test starting pen test."""
-    monkeypatch.setattr("apps.api.mpte_router.db", db)
+    monkeypatch.setattr("api.mpte_router.db", db)
 
     create_response = client.post(
         "/api/v1/mpte/requests",
@@ -123,7 +133,7 @@ def test_start_pen_test(client, db, monkeypatch):
 
 def test_cancel_pen_test(client, db, monkeypatch):
     """Test cancelling pen test."""
-    monkeypatch.setattr("apps.api.mpte_router.db", db)
+    monkeypatch.setattr("api.mpte_router.db", db)
 
     create_response = client.post(
         "/api/v1/mpte/requests",
@@ -144,7 +154,7 @@ def test_cancel_pen_test(client, db, monkeypatch):
 
 def test_list_pen_test_results(client, db, monkeypatch):
     """Test listing pen test results."""
-    monkeypatch.setattr("apps.api.mpte_router.db", db)
+    monkeypatch.setattr("api.mpte_router.db", db)
 
     response = client.get("/api/v1/mpte/results")
     assert response.status_code == 200
@@ -155,7 +165,7 @@ def test_list_pen_test_results(client, db, monkeypatch):
 
 def test_create_pen_test_result(client, db, monkeypatch):
     """Test creating pen test result."""
-    monkeypatch.setattr("apps.api.mpte_router.db", db)
+    monkeypatch.setattr("api.mpte_router.db", db)
 
     req_response = client.post(
         "/api/v1/mpte/requests",
@@ -190,7 +200,7 @@ def test_create_pen_test_result(client, db, monkeypatch):
 
 def test_get_pen_test_result_by_request(client, db, monkeypatch):
     """Test getting pen test result by request ID."""
-    monkeypatch.setattr("apps.api.mpte_router.db", db)
+    monkeypatch.setattr("api.mpte_router.db", db)
 
     req_response = client.post(
         "/api/v1/mpte/requests",
@@ -222,7 +232,7 @@ def test_get_pen_test_result_by_request(client, db, monkeypatch):
 
 def test_list_pen_test_configs(client, db, monkeypatch):
     """Test listing MPTE configurations."""
-    monkeypatch.setattr("apps.api.mpte_router.db", db)
+    monkeypatch.setattr("api.mpte_router.db", db)
 
     response = client.get("/api/v1/mpte/configs")
     assert response.status_code == 200
@@ -233,7 +243,7 @@ def test_list_pen_test_configs(client, db, monkeypatch):
 
 def test_create_pen_test_config(client, db, monkeypatch):
     """Test creating MPTE configuration."""
-    monkeypatch.setattr("apps.api.mpte_router.db", db)
+    monkeypatch.setattr("api.mpte_router.db", db)
 
     response = client.post(
         "/api/v1/mpte/configs",
@@ -254,7 +264,7 @@ def test_create_pen_test_config(client, db, monkeypatch):
 
 def test_get_pen_test_config(client, db, monkeypatch):
     """Test getting MPTE configuration."""
-    monkeypatch.setattr("apps.api.mpte_router.db", db)
+    monkeypatch.setattr("api.mpte_router.db", db)
 
     create_response = client.post(
         "/api/v1/mpte/configs",
@@ -269,7 +279,7 @@ def test_get_pen_test_config(client, db, monkeypatch):
 
 def test_update_pen_test_config(client, db, monkeypatch):
     """Test updating MPTE configuration."""
-    monkeypatch.setattr("apps.api.mpte_router.db", db)
+    monkeypatch.setattr("api.mpte_router.db", db)
 
     create_response = client.post(
         "/api/v1/mpte/configs",
@@ -288,7 +298,7 @@ def test_update_pen_test_config(client, db, monkeypatch):
 
 def test_delete_pen_test_config(client, db, monkeypatch):
     """Test deleting MPTE configuration."""
-    monkeypatch.setattr("apps.api.mpte_router.db", db)
+    monkeypatch.setattr("api.mpte_router.db", db)
 
     create_response = client.post(
         "/api/v1/mpte/configs",

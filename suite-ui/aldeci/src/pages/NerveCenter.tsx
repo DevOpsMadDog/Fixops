@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Brain, Activity, Shield, Zap, CheckCircle2,
@@ -22,6 +23,7 @@ const actionStatusBadge: Record<string, string> = {
 };
 
 export default function NerveCenter() {
+  const navigate = useNavigate();
   const [remediateModal, setRemediateModal] = useState(false);
 
   // Real-time state — refresh every 5s
@@ -318,7 +320,9 @@ export default function NerveCenter() {
                 <div className="flex gap-2 mt-1">
                   {['block', 'quarantine', 'patch', 'escalate', 'notify'].map((action) => (
                     <Button key={action} variant="outline" size="sm" className="text-xs capitalize" aria-label={`Trigger ${action} remediation action`} onClick={() => {
-                      toast.error('Select a finding from the Finding Explorer before triggering remediation');
+                      setRemediateModal(false);
+                      navigate(`/protect/remediation?status=open`);
+                      toast.info(`Navigate to Remediation Center to select findings for "${action}" action`);
                     }}>
                       {action}
                     </Button>

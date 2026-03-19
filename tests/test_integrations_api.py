@@ -32,7 +32,7 @@ def db():
 
 def test_list_integrations_empty(client, db, monkeypatch):
     """Test listing integrations when database is empty."""
-    monkeypatch.setattr("apps.api.integrations_router.db", db)
+    monkeypatch.setattr("api.integrations_router.db", db)
 
     response = client.get("/api/v1/integrations")
     assert response.status_code == 200
@@ -43,7 +43,7 @@ def test_list_integrations_empty(client, db, monkeypatch):
 
 def test_create_integration(client, db, monkeypatch):
     """Test creating a new integration."""
-    monkeypatch.setattr("apps.api.integrations_router.db", db)
+    monkeypatch.setattr("api.integrations_router.db", db)
 
     integration_data = {
         "name": "Test Jira",
@@ -65,7 +65,7 @@ def test_create_integration(client, db, monkeypatch):
 
 def test_get_integration(client, db, monkeypatch):
     """Test getting integration by ID."""
-    monkeypatch.setattr("apps.api.integrations_router.db", db)
+    monkeypatch.setattr("api.integrations_router.db", db)
 
     integration = Integration(
         id="",
@@ -85,7 +85,7 @@ def test_get_integration(client, db, monkeypatch):
 
 def test_get_integration_not_found(client, db, monkeypatch):
     """Test getting non-existent integration."""
-    monkeypatch.setattr("apps.api.integrations_router.db", db)
+    monkeypatch.setattr("api.integrations_router.db", db)
 
     response = client.get("/api/v1/integrations/nonexistent-id")
     assert response.status_code == 404
@@ -93,7 +93,7 @@ def test_get_integration_not_found(client, db, monkeypatch):
 
 def test_update_integration(client, db, monkeypatch):
     """Test updating integration."""
-    monkeypatch.setattr("apps.api.integrations_router.db", db)
+    monkeypatch.setattr("api.integrations_router.db", db)
 
     integration = Integration(
         id="",
@@ -115,7 +115,7 @@ def test_update_integration(client, db, monkeypatch):
 
 def test_delete_integration(client, db, monkeypatch):
     """Test deleting integration."""
-    monkeypatch.setattr("apps.api.integrations_router.db", db)
+    monkeypatch.setattr("api.integrations_router.db", db)
 
     integration = Integration(
         id="",
@@ -135,7 +135,7 @@ def test_delete_integration(client, db, monkeypatch):
 
 def test_test_integration_jira(client, db, monkeypatch):
     """Test testing Jira integration connection."""
-    monkeypatch.setattr("apps.api.integrations_router.db", db)
+    monkeypatch.setattr("api.integrations_router.db", db)
 
     integration = Integration(
         id="",
@@ -159,7 +159,7 @@ def test_test_integration_jira(client, db, monkeypatch):
 
 def test_test_integration_inactive(client, db, monkeypatch):
     """Test testing inactive integration."""
-    monkeypatch.setattr("apps.api.integrations_router.db", db)
+    monkeypatch.setattr("api.integrations_router.db", db)
 
     integration = Integration(
         id="",
@@ -179,7 +179,7 @@ def test_test_integration_inactive(client, db, monkeypatch):
 
 def test_get_sync_status(client, db, monkeypatch):
     """Test getting integration sync status."""
-    monkeypatch.setattr("apps.api.integrations_router.db", db)
+    monkeypatch.setattr("api.integrations_router.db", db)
 
     integration = Integration(
         id="",
@@ -199,7 +199,7 @@ def test_get_sync_status(client, db, monkeypatch):
 
 def test_trigger_sync(client, db, monkeypatch):
     """Test triggering manual sync."""
-    monkeypatch.setattr("apps.api.integrations_router.db", db)
+    monkeypatch.setattr("api.integrations_router.db", db)
 
     integration = Integration(
         id="",
@@ -219,7 +219,7 @@ def test_trigger_sync(client, db, monkeypatch):
 
 def test_trigger_sync_inactive(client, db, monkeypatch):
     """Test triggering sync on inactive integration."""
-    monkeypatch.setattr("apps.api.integrations_router.db", db)
+    monkeypatch.setattr("api.integrations_router.db", db)
 
     integration = Integration(
         id="",
@@ -236,7 +236,7 @@ def test_trigger_sync_inactive(client, db, monkeypatch):
 
 def test_list_integrations_with_filter(client, db, monkeypatch):
     """Test listing integrations with type filter."""
-    monkeypatch.setattr("apps.api.integrations_router.db", db)
+    monkeypatch.setattr("api.integrations_router.db", db)
 
     jira_integration = Integration(
         id="",
@@ -265,7 +265,7 @@ def test_list_integrations_with_filter(client, db, monkeypatch):
 
 def test_test_integration_servicenow_configured(client, db, monkeypatch):
     """Test testing ServiceNow integration connection when configured."""
-    monkeypatch.setattr("apps.api.integrations_router.db", db)
+    monkeypatch.setattr("api.integrations_router.db", db)
 
     integration = Integration(
         id="",
@@ -291,7 +291,7 @@ def test_test_integration_servicenow_configured(client, db, monkeypatch):
 
 def test_test_integration_servicenow_not_configured(client, db, monkeypatch):
     """Test testing ServiceNow integration when not fully configured."""
-    monkeypatch.setattr("apps.api.integrations_router.db", db)
+    monkeypatch.setattr("api.integrations_router.db", db)
 
     integration = Integration(
         id="",
@@ -311,7 +311,7 @@ def test_test_integration_servicenow_not_configured(client, db, monkeypatch):
 
 def test_test_integration_gitlab_configured(client, db, monkeypatch):
     """Test testing GitLab integration connection when configured."""
-    monkeypatch.setattr("apps.api.integrations_router.db", db)
+    monkeypatch.setattr("api.integrations_router.db", db)
 
     integration = Integration(
         id="",
@@ -338,7 +338,7 @@ def test_test_integration_gitlab_configured(client, db, monkeypatch):
 
 def test_test_integration_gitlab_not_configured(client, db, monkeypatch):
     """Test testing GitLab integration when not fully configured."""
-    monkeypatch.setattr("apps.api.integrations_router.db", db)
+    monkeypatch.setattr("api.integrations_router.db", db)
 
     integration = Integration(
         id="",
@@ -358,7 +358,7 @@ def test_test_integration_gitlab_not_configured(client, db, monkeypatch):
 
 def test_test_integration_github_configured(client, db, monkeypatch):
     """Test testing GitHub integration connection when configured."""
-    monkeypatch.setattr("apps.api.integrations_router.db", db)
+    monkeypatch.setattr("api.integrations_router.db", db)
 
     integration = Integration(
         id="",
@@ -385,7 +385,7 @@ def test_test_integration_github_configured(client, db, monkeypatch):
 
 def test_test_integration_github_not_configured(client, db, monkeypatch):
     """Test testing GitHub integration when not fully configured."""
-    monkeypatch.setattr("apps.api.integrations_router.db", db)
+    monkeypatch.setattr("api.integrations_router.db", db)
 
     integration = Integration(
         id="",
@@ -405,7 +405,7 @@ def test_test_integration_github_not_configured(client, db, monkeypatch):
 
 def test_test_integration_azure_devops_configured(client, db, monkeypatch):
     """Test testing Azure DevOps integration connection when configured."""
-    monkeypatch.setattr("apps.api.integrations_router.db", db)
+    monkeypatch.setattr("api.integrations_router.db", db)
 
     integration = Integration(
         id="",
@@ -432,7 +432,7 @@ def test_test_integration_azure_devops_configured(client, db, monkeypatch):
 
 def test_test_integration_azure_devops_not_configured(client, db, monkeypatch):
     """Test testing Azure DevOps integration when not fully configured."""
-    monkeypatch.setattr("apps.api.integrations_router.db", db)
+    monkeypatch.setattr("api.integrations_router.db", db)
 
     integration = Integration(
         id="",

@@ -29,7 +29,7 @@ def db():
 
 def test_list_iac_findings(client, db, monkeypatch):
     """Test listing IaC findings."""
-    monkeypatch.setattr("apps.api.iac_router.db", db)
+    monkeypatch.setattr("api.iac_router.db", db)
 
     response = client.get("/api/v1/iac")
     assert response.status_code == 200
@@ -41,7 +41,7 @@ def test_list_iac_findings(client, db, monkeypatch):
 
 def test_create_iac_finding(client, db, monkeypatch):
     """Test creating IaC finding."""
-    monkeypatch.setattr("apps.api.iac_router.db", db)
+    monkeypatch.setattr("api.iac_router.db", db)
 
     response = client.post(
         "/api/v1/iac",
@@ -65,7 +65,7 @@ def test_create_iac_finding(client, db, monkeypatch):
 
 def test_get_iac_finding(client, db, monkeypatch):
     """Test getting IaC finding."""
-    monkeypatch.setattr("apps.api.iac_router.db", db)
+    monkeypatch.setattr("api.iac_router.db", db)
 
     create_response = client.post(
         "/api/v1/iac",
@@ -90,7 +90,7 @@ def test_get_iac_finding(client, db, monkeypatch):
 
 def test_resolve_iac_finding(client, db, monkeypatch):
     """Test resolving IaC finding."""
-    monkeypatch.setattr("apps.api.iac_router.db", db)
+    monkeypatch.setattr("api.iac_router.db", db)
 
     create_response = client.post(
         "/api/v1/iac",
@@ -115,7 +115,7 @@ def test_resolve_iac_finding(client, db, monkeypatch):
 
 def test_scan_iac_content(client, db, monkeypatch):
     """Test scanning IaC content."""
-    monkeypatch.setattr("apps.api.iac_router.db", db)
+    monkeypatch.setattr("api.iac_router.db", db)
 
     response = client.post(
         "/api/v1/iac/scan/content",
@@ -136,7 +136,7 @@ def test_scan_iac_content(client, db, monkeypatch):
 
 def test_scan_iac_content_invalid_scanner(client, db, monkeypatch):
     """Test that invalid scanner type is rejected for content scan."""
-    monkeypatch.setattr("apps.api.iac_router.db", db)
+    monkeypatch.setattr("api.iac_router.db", db)
 
     response = client.post(
         "/api/v1/iac/scan/content",
@@ -161,14 +161,14 @@ def test_get_scanner_status(client):
 
 def test_scan_iac_content_scanner_exception(client, db, monkeypatch):
     """Test that scanner exceptions during content scan are handled and return 500."""
-    monkeypatch.setattr("apps.api.iac_router.db", db)
+    monkeypatch.setattr("api.iac_router.db", db)
 
     # Mock the scanner to raise an exception
     class MockScanner:
         async def scan_content(self, *args, **kwargs):
             raise RuntimeError("Content scanner crashed unexpectedly")
 
-    monkeypatch.setattr("apps.api.iac_router.get_iac_scanner", lambda: MockScanner())
+    monkeypatch.setattr("api.iac_router.get_iac_scanner", lambda: MockScanner())
 
     response = client.post(
         "/api/v1/iac/scan/content",
@@ -220,12 +220,12 @@ def test_scan_iac_content_finding_persist_failure(client, db, monkeypatch):
         async def scan_content(self, *args, **kwargs):
             return mock_result
 
-    monkeypatch.setattr("apps.api.iac_router.get_iac_scanner", lambda: MockScanner())
+    monkeypatch.setattr("api.iac_router.get_iac_scanner", lambda: MockScanner())
 
     # Mock db to raise exception on create_finding
     mock_db = MagicMock()
     mock_db.create_finding.side_effect = Exception("Database error")
-    monkeypatch.setattr("apps.api.iac_router.db", mock_db)
+    monkeypatch.setattr("api.iac_router.db", mock_db)
 
     response = client.post(
         "/api/v1/iac/scan/content",

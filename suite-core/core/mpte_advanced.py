@@ -694,7 +694,7 @@ class ExploitValidationFramework:
 
             return exploitability, result
 
-        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        except Exception as e:  # external MPTE call can raise anything
             logger.error("Exploitability validation failed: %s", type(e).__name__)
             return ExploitabilityLevel.INCONCLUSIVE, {"error": type(e).__name__}
 
@@ -880,7 +880,7 @@ class AdvancedMPTEClient:
         logger.info(f"Executing step: {action} with tool: {tool}")
 
         # Step execution not yet wired to real engine — return honest failure
-        logger.warning("mpte_step_not_implemented", action=action, tool=tool)
+        logger.warning("mpte_step_not_implemented: action=%s tool=%s", action, tool)
         return {
             "step": step,
             "success": False,

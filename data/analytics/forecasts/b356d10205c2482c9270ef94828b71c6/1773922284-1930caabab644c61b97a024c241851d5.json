@@ -1,0 +1,78 @@
+{
+  "forecast": {
+    "components": [
+      {
+        "current_severity": "low",
+        "escalation_probability": 0.2,
+        "name": "payment-api",
+        "next_state_distribution": {
+          "low": 0.8,
+          "medium": 0.2
+        }
+      }
+    ],
+    "metrics": {
+      "critical_horizon_risk": 0.2985,
+      "entropy_bits": 1.5488,
+      "expected_critical_next_cycle": 0.2437,
+      "expected_high_or_critical": 0.75,
+      "exploited_records": 0,
+      "mixing_time_estimate": 61,
+      "perplexity": 2.9257,
+      "spectral_gap": 0.1524,
+      "stationary_critical_mass": 0.3226
+    },
+    "next_state": {
+      "critical": 0.2437,
+      "high": 0.45,
+      "low": 0.1125,
+      "medium": 0.1938
+    },
+    "notes": [
+      "30% chance of reaching critical severity within 3 cycles",
+      "Stationary distribution retains high critical mass; long-term steady-state risk remains elevated",
+      "Estimated mixing time 61 steps exceeds remediation horizon; accelerate mitigations"
+    ],
+    "posterior": {
+      "critical": 0.125,
+      "high": 0.625,
+      "low": 0.125,
+      "medium": 0.125
+    }
+  },
+  "run_id": "b356d10205c2482c9270ef94828b71c6",
+  "severity_overview": {
+    "counts": {
+      "high": 1
+    },
+    "highest": "high",
+    "metadata": {
+      "file": "pom.xml",
+      "location": "pom.xml:42",
+      "message": "CVE-2021-44228 in log4j-core 2.14.1",
+      "rule_id": "SNYK-JAVA-LOG4J-2314726",
+      "type": "sast"
+    },
+    "sources": {
+      "cve": {},
+      "sarif": {
+        "high": 1
+      }
+    },
+    "trigger": {
+      "file": "pom.xml",
+      "level": "error",
+      "rule_id": "SNYK-JAVA-LOG4J-2314726",
+      "source": "sarif"
+    }
+  },
+  "summary": {
+    "component_count": 1,
+    "entropy_bits": 1.5488,
+    "expected_critical_next_cycle": 0.2437,
+    "expected_high_or_critical": 0.75,
+    "exploited_records": 0,
+    "hotspot_count": 1
+  },
+  "timestamp": 1773922284
+}

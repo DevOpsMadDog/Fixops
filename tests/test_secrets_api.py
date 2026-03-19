@@ -42,7 +42,7 @@ def db():
 
 def test_list_secret_findings(client, db, monkeypatch, auth_headers):
     """Test listing secret findings."""
-    monkeypatch.setattr("apps.api.secrets_router.db", db)
+    monkeypatch.setattr("api.secrets_router.db", db)
 
     response = client.get("/api/v1/secrets", headers=auth_headers)
     assert response.status_code == 200
@@ -54,7 +54,7 @@ def test_list_secret_findings(client, db, monkeypatch, auth_headers):
 
 def test_create_secret_finding(client, db, monkeypatch, auth_headers):
     """Test creating secret finding."""
-    monkeypatch.setattr("apps.api.secrets_router.db", db)
+    monkeypatch.setattr("api.secrets_router.db", db)
 
     response = client.post(
         "/api/v1/secrets",
@@ -76,7 +76,7 @@ def test_create_secret_finding(client, db, monkeypatch, auth_headers):
 
 def test_get_secret_finding(client, db, monkeypatch, auth_headers):
     """Test getting secret finding."""
-    monkeypatch.setattr("apps.api.secrets_router.db", db)
+    monkeypatch.setattr("api.secrets_router.db", db)
 
     create_response = client.post(
         "/api/v1/secrets",
@@ -98,7 +98,7 @@ def test_get_secret_finding(client, db, monkeypatch, auth_headers):
 
 def test_resolve_secret_finding(client, db, monkeypatch, auth_headers):
     """Test resolving secret finding."""
-    monkeypatch.setattr("apps.api.secrets_router.db", db)
+    monkeypatch.setattr("api.secrets_router.db", db)
 
     create_response = client.post(
         "/api/v1/secrets",
@@ -122,7 +122,7 @@ def test_resolve_secret_finding(client, db, monkeypatch, auth_headers):
 
 def test_scan_secrets_content(client, db, monkeypatch, auth_headers):
     """Test scanning content for secrets."""
-    monkeypatch.setattr("apps.api.secrets_router.db", db)
+    monkeypatch.setattr("api.secrets_router.db", db)
 
     response = client.post(
         "/api/v1/secrets/scan/content",
@@ -145,7 +145,7 @@ def test_scan_secrets_content(client, db, monkeypatch, auth_headers):
 
 def test_scan_secrets_content_invalid_scanner(client, db, monkeypatch, auth_headers):
     """Test that invalid scanner type is rejected for content scan."""
-    monkeypatch.setattr("apps.api.secrets_router.db", db)
+    monkeypatch.setattr("api.secrets_router.db", db)
 
     response = client.post(
         "/api/v1/secrets/scan/content",

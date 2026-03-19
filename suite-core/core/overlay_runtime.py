@@ -62,6 +62,10 @@ def prepare_overlay(
                     f"Evidence encryption disabled: {encryption_env} environment variable not set. "
                     "Evidence bundles will be stored in plaintext."
                 )
+    elif Fernet is None or not os.getenv("FIXOPS_EVIDENCE_KEY", ""):
+        # Proactively disable encryption when crypto library is unavailable
+        # or when the encryption key is not set
+        evidence_limits["encrypt"] = False
     if evidence_limits:
         limits["evidence"] = evidence_limits
         overlay.limits = limits

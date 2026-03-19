@@ -1,5 +1,6 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Wrench, RefreshCw, Search, Filter, CheckCircle2, Clock,
@@ -213,9 +214,20 @@ function TaskCard({
 
 export default function Remediation() {
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterSeverity, setFilterSeverity] = useState('all');
   const [activeTab, setActiveTab] = useState('all');
+
+  // Apply URL search params as initial filters (deep-link support)
+  useEffect(() => {
+    const severity = searchParams.get('severity');
+    const status = searchParams.get('status');
+    const cve = searchParams.get('cve_id');
+    if (severity && severity !== 'all') setFilterSeverity(severity.toLowerCase());
+    if (status && status !== 'all') setActiveTab(status.toLowerCase());
+    if (cve) setSearchQuery(cve);
+  }, [searchParams]);
 
   // Fetch tasks from real API
   const { data: rawTasks = [], isLoading, isError, refetch } = useQuery({

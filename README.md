@@ -458,6 +458,18 @@ curl http://localhost:8000/health
 # {"status":"healthy","version":"..."}
 ```
 
+### Frontend (suite-ui/aldeci)
+
+The official UI is a Vite + React application at `suite-ui/aldeci/`.
+
+```bash
+cd suite-ui/aldeci
+npm install
+npm run dev   # starts on http://localhost:5173
+```
+
+> **Note:** The legacy web/ micro-frontends are deprecated and archived at `archive/web_mfe_legacy/`. See [docs/legacy-ui.md](docs/legacy-ui.md) for migration details.
+
 > **Or use `make bootstrap`** to create the venv and install everything in one command:
 > ```bash
 > make bootstrap

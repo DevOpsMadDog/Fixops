@@ -401,7 +401,7 @@ export default function Dashboard() {
           description={`${overviewData?.critical_findings ?? 0} critical, ${overviewData?.high_findings ?? 0} high`}
           icon={AlertTriangle}
           loading={overviewLoading}
-          onClick={() => navigate('/evidence/analytics')}
+          onClick={() => navigate('/protect/remediation?severity=critical')}
           accentColor="#ef4444"
         />
         <StatCard

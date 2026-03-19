@@ -749,13 +749,15 @@ class TestAdvancedMPTEClient:
         )
         result = await client._execute_consensus_plan(consensus, {"id": "v1"}, {})
         assert result["steps_executed"] == 2
-        assert result["overall_success"] is True
+        # Steps are not yet wired to real engine — overall_success reflects that
+        assert result["overall_success"] is False
 
     @pytest.mark.asyncio
     async def test_execute_step(self, client):
         step = {"action": "Reconnaissance", "tool": "nmap"}
         result = await client._execute_step(step, {"id": "v1"}, {})
-        assert result["success"] is True
+        # Step executor not yet connected — returns honest failure
+        assert result["success"] is False
         assert "Reconnaissance" in result["output"]
 
 

@@ -551,7 +551,14 @@ export default function MainLayout({ children }: MainLayoutProps) {
                             key={finding.id}
                             className="w-full px-3 py-2 text-left hover:bg-accent rounded-md flex items-center gap-3"
                             onClick={() => {
-                              navigate('/intelligence');
+                              const cveId = finding.cve_id;
+                              if (cveId) {
+                                navigate(`/protect/remediation?cve_id=${encodeURIComponent(cveId)}`);
+                              } else if (finding.severity === 'critical' || finding.severity === 'high') {
+                                navigate(`/protect/remediation?severity=${finding.severity}`);
+                              } else {
+                                navigate('/intelligence');
+                              }
                               setShowSearchResults(false);
                             }}
                           >

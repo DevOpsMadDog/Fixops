@@ -137,7 +137,7 @@ class MPTEDB:
                 request.started_at.isoformat() if request.started_at else None,
                 request.completed_at.isoformat() if request.completed_at else None,
                 request.mpte_job_id,
-                str(request.metadata),
+                json.dumps(request.metadata),
             ),
         )
 

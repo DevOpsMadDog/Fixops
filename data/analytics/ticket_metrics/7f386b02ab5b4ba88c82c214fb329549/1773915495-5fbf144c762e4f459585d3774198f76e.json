@@ -1,0 +1,89 @@
+{
+  "policy_summary": {
+    "actions": [
+      {
+        "context": {
+          "counts": {
+            "critical": 10,
+            "high": 9,
+            "medium": 1
+          },
+          "highest": "critical",
+          "metadata": {
+            "file": "pom.xml",
+            "location": "pom.xml:45",
+            "message": "Vulnerable Log4j 2.14.1 detected. This version is affected by Log4Shell (CVE-2021-44228), a critical RCE vulnerability with CVSS 10.0. Actively exploited in the wild. Upgrade to 2.17.0+.",
+            "rule_id": "CVE-2021-44228",
+            "type": "sast"
+          },
+          "sources": {
+            "cve": {
+              "critical": 10,
+              "high": 0
+            },
+            "sarif": {
+              "high": 9,
+              "medium": 1
+            }
+          },
+          "trigger": {
+            "cve_id": "CVE-2021-44228",
+            "exploited": true,
+            "severity": "critical",
+            "source": "cve"
+          }
+        },
+        "description": "FixOps detected a guardrail failure and created this ticket automatically.",
+        "id": "jira-guardrail-fail",
+        "issue_type": "Task",
+        "priority": "High",
+        "project_key": "SEC",
+        "summary": "Guardrail failure detected",
+        "type": "jira_issue"
+      }
+    ],
+    "execution": {
+      "delivery_results": [
+        {
+          "reason": "jira connector not fully configured",
+          "status": "skipped"
+        }
+      ],
+      "dispatched_count": 1,
+      "failed_count": 0,
+      "results": [
+        {
+          "delivery": {
+            "reason": "jira connector not fully configured",
+            "status": "skipped"
+          },
+          "id": "jira-guardrail-fail",
+          "path": "/Users/devops.ai/developement/fixops/Fixops/data/automation/20260319T101812-jira-guardrail-fail.json",
+          "status": "dispatched"
+        }
+      ],
+      "status": "completed"
+    },
+    "skipped": [
+      {
+        "id": "confluence-guardrail-warn",
+        "reason": "trigger 'guardrail:warn' not met"
+      }
+    ],
+    "status": "ready"
+  },
+  "run_id": "7f386b02ab5b4ba88c82c214fb329549",
+  "summary": {
+    "connector_usage": {
+      "unknown": 1
+    },
+    "delivery_status": {
+      "skipped": 1
+    },
+    "dispatched_count": 1,
+    "execution_status": "completed",
+    "failed_count": 0,
+    "planned_actions": 1
+  },
+  "timestamp": 1773915495
+}

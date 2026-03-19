@@ -7,10 +7,21 @@ Tests the new application-layer MITRE mapping and air-gapped deployment features
 import os
 import sys
 import requests
+import pytest
 
 API = os.getenv("FIXOPS_API", "http://localhost:8000/api/v1")
 KEY = os.getenv("FIXOPS_API_KEY", "fixops_sk_WIjum9WxuQv8s6vzJeU2gYKximI5WSdMDtshH1U_p0U")
 HEADERS = {"X-API-Key": KEY, "Content-Type": "application/json"}
+
+# Skip all tests if the live API server is not running
+def _server_available():
+    try:
+        requests.get(f"{API}/health", headers=HEADERS, timeout=2)
+        return True
+    except Exception:
+        return False
+
+pytestmark = pytest.mark.skipif(not _server_available(), reason="Live API server not running (start with uvicorn)")
 
 passed = 0
 failed = 0

@@ -224,7 +224,7 @@ async def scan_iac_content(request: IaCScanContentRequest, org_id: str = Depends
     for finding in result.findings:
         try:
             db.create_finding(finding)
-        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        except Exception as e:  # DB persist is best-effort — scan result still valid
             logger.warning(f"Failed to persist finding: {e}")
 
     return IaCScanResponse(

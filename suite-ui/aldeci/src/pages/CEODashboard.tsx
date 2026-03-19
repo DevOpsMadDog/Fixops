@@ -313,7 +313,7 @@ export default function CEODashboard() {
       {/* ── Top-Level Score Rings ──────────────────────────────────────────── */}
       <motion.div variants={containerV} initial="hidden" animate="visible"
         className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <motion.div variants={itemV} whileHover={{ scale: 1.03, y: -4 }} className="cursor-pointer" onClick={() => navigate('/risk-overview')}>
+        <motion.div variants={itemV} whileHover={{ scale: 1.03, y: -4 }} className="cursor-pointer" onClick={() => navigate('/evidence/analytics')}>
           <Card className="glass-card backdrop-blur-md bg-gray-900/50 border-gray-700/40 hover:border-emerald-500/30 transition-all">
             <CardContent className="flex items-center justify-center py-8">
               <ScoreRing
@@ -324,7 +324,7 @@ export default function CEODashboard() {
             </CardContent>
           </Card>
         </motion.div>
-        <motion.div variants={itemV} whileHover={{ scale: 1.03, y: -4 }} className="cursor-pointer" onClick={() => navigate('/compliance')}>
+        <motion.div variants={itemV} whileHover={{ scale: 1.03, y: -4 }} className="cursor-pointer" onClick={() => navigate('/evidence/compliance')}>
           <Card className="glass-card backdrop-blur-md bg-gray-900/50 border-gray-700/40 hover:border-blue-500/30 transition-all">
             <CardContent className="flex items-center justify-center py-8">
               <ScoreRing
@@ -367,7 +367,7 @@ export default function CEODashboard() {
           icon={AlertTriangle}
           accent="#f59e0b"
           loading={overviewLoading}
-          onClick={() => navigate('/evidence/analytics')}
+          onClick={() => navigate('/protect/remediation?status=open')}
         />
         <KPICard
           title="Critical / High"
@@ -376,7 +376,7 @@ export default function CEODashboard() {
           icon={Zap}
           accent="#ef4444"
           loading={overviewLoading}
-          onClick={() => navigate('/evidence/analytics')}
+          onClick={() => navigate('/protect/remediation?severity=critical')}
         />
         <KPICard
           title="Overdue Tasks"

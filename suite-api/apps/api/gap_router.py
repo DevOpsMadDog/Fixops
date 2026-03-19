@@ -2293,7 +2293,6 @@ def _load_findings_for_export(limit: int = 10_000) -> List[Dict[str, Any]]:
 @findings_gap.get(
     "/export/cef",
     summary="Export findings as CEF (Common Event Format) for SIEM ingestion",
-    response_class=None,
 )
 async def export_findings_cef(limit: int = Query(10_000, ge=1, le=50_000)):
     """
@@ -2369,7 +2368,6 @@ async def export_findings_cef(limit: int = Query(10_000, ge=1, le=50_000)):
 @findings_gap.get(
     "/export/syslog",
     summary="Export findings as RFC 5424 syslog messages for Elastic SIEM",
-    response_class=None,
 )
 async def export_findings_syslog(limit: int = Query(10_000, ge=1, le=50_000)):
     """
