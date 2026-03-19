@@ -340,7 +340,7 @@ def _calculate_cvss(vector: Optional[str]) -> Optional[float]:
 
         c = CVSS3(vector)
         return float(c.base_score)
-    except ImportError:
+    except (ImportError, ValueError, Exception):
         logger.warning("CVSS calculation failed for vector: %s", vector)
         return None
 

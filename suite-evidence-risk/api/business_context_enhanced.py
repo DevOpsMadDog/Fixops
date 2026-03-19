@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict
 
 import structlog
+from core.persistent_store import PersistentDict
 from core.services.enterprise.business_context_processor import context_processor
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
@@ -14,10 +15,8 @@ from fastapi.responses import JSONResponse
 logger = structlog.get_logger()
 router = APIRouter(prefix="/business-context", tags=["business-context"])
 
-# In-memory store for uploaded business contexts (keyed by service_name).
-# Persists for the lifetime of the server process.  A production deployment
-# should back this with SQLite / Postgres.
-_context_store: Dict[str, Dict[str, Any]] = {}
+# Persistent store for business contexts — survives server restarts.
+_context_store: PersistentDict = PersistentDict("business_context")
 
 
 @router.post("/upload")

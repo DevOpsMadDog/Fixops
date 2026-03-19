@@ -105,6 +105,13 @@ AUTHORITATIVE_FEEDS = {
         "api_key_required": False,
         "refresh_hours": 6,
     },
+    "cisa_vulnrichment": {
+        "name": "CISA Vulnrichment (SSVC Decision Points + ADP)",
+        "url": "https://api.github.com/repos/cisagov/vulnrichment/git/trees/develop?recursive=1",
+        "format": "json",
+        "api_key_required": False,
+        "refresh_hours": 12,
+    },
     "epss": {
         "name": "EPSS - Exploit Prediction Scoring System",
         "url": "https://epss.cyentia.com/epss_scores-current.csv.gz",
@@ -252,10 +259,25 @@ EXPLOIT_FEEDS = {
         "refresh_hours": 6,
     },
     "nuclei_templates": {
-        "name": "Nuclei Templates",
+        "name": "Nuclei Templates (CVE → Template Mapping)",
         "url": "https://raw.githubusercontent.com/projectdiscovery/nuclei-templates/main/cves.json",
+        "git_repo": "https://api.github.com/repos/projectdiscovery/nuclei-templates/git/trees/main?recursive=1",
         "format": "json",
         "refresh_hours": 24,
+    },
+    "poc_in_github": {
+        "name": "PoC-in-GitHub (Public Exploit PoCs)",
+        "url": "https://api.github.com/repos/nomi-sec/PoC-in-GitHub/git/trees/master?recursive=1",
+        "format": "json",
+        "api_key_required": False,
+        "refresh_hours": 12,
+    },
+    "inthewild": {
+        "name": "InTheWild.io (Exploitation-in-the-Wild)",
+        "url": "https://inthewild.io/api/exploited",
+        "format": "json",
+        "api_key_required": False,
+        "refresh_hours": 6,
     },
 }
 
@@ -1042,8 +1064,91 @@ class FeedsService:
             "CREATE INDEX IF NOT EXISTS idx_vedas_score ON vedas_scores(vedas)"
         )
 
+        # CISA Vulnrichment — SSVC decision points + ADP enrichments
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS vulnrichment (
+                cve_id TEXT PRIMARY KEY,
+                ssvc_exploitation TEXT,
+                ssvc_automatable TEXT,
+                ssvc_technical_impact TEXT,
+                ssvc_action TEXT,
+                adp_provider TEXT,
+                affected_products TEXT,
+                reference_urls TEXT,
+                date_added TEXT,
+                updated_at TEXT NOT NULL
+            )
+        """
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_vulnrichment_action ON vulnrichment(ssvc_action)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_vulnrichment_exploitation ON vulnrichment(ssvc_exploitation)"
+        )
+
+        # PoC-in-GitHub — public exploit proof-of-concepts
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS poc_in_github (
+                cve_id TEXT NOT NULL,
+                repo_url TEXT NOT NULL,
+                description TEXT,
+                stargazers_count INTEGER DEFAULT 0,
+                forks_count INTEGER DEFAULT 0,
+                created_at TEXT,
+                updated_at TEXT NOT NULL,
+                UNIQUE(cve_id, repo_url)
+            )
+        """
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_poc_cve ON poc_in_github(cve_id)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_poc_stars ON poc_in_github(stargazers_count)"
+        )
+
+        # InTheWild — exploitation-in-the-wild signals
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS inthewild_exploited (
+                cve_id TEXT PRIMARY KEY,
+                first_seen TEXT,
+                source TEXT,
+                source_url TEXT,
+                updated_at TEXT NOT NULL
+            )
+        """
+        )
+
+        # Nuclei Templates — CVE to nuclei template mapping
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS nuclei_templates (
+                cve_id TEXT NOT NULL,
+                template_path TEXT NOT NULL,
+                template_url TEXT,
+                severity TEXT,
+                updated_at TEXT NOT NULL,
+                UNIQUE(cve_id, template_path)
+            )
+        """
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_nuclei_cve ON nuclei_templates(cve_id)"
+        )
+
         conn.commit()
         conn.close()
+
+
+    @staticmethod
+    def _get_github_token() -> Optional[str]:
+        """Get GitHub API token from environment for higher rate limits."""
+        import os
+        return os.getenv("GITHUB_TOKEN") or os.getenv("FIXOPS_GITHUB_TOKEN") or None
 
     def refresh_epss(self) -> FeedRefreshResult:
         """Refresh EPSS scores from FIRST.org.
@@ -2001,6 +2106,555 @@ class FeedsService:
         rows = cursor.fetchall()
         conn.close()
         return [dict(r) for r in rows]
+
+    # =========================================================================
+    # CISA Vulnrichment (SSVC Decision Intelligence)
+    # =========================================================================
+
+    def refresh_vulnrichment(self) -> FeedRefreshResult:
+        """Refresh SSVC decision points from CISA Vulnrichment (cisagov/vulnrichment).
+
+        Downloads CVE enrichment files from the CISA Vulnrichment GitHub repo.
+        Each file contains SSVC decision points (Exploitation, Automatable,
+        Technical Impact) and ADP (Authorized Data Publisher) enrichments.
+
+        The SSVC framework answers "should you act?" — not "how bad is it?"
+        This is the single most important enrichment for actionable triage.
+
+        Returns:
+            FeedRefreshResult with success status and record count
+        """
+        # We use the GitHub API to list CVE files, then fetch a batch of recent ones.
+        # Full repo has 40k+ files — we fetch the tree and parse CVE IDs from paths.
+        tree_url = "https://api.github.com/repos/cisagov/vulnrichment/git/trees/develop?recursive=1"
+        logger.info("Refreshing CISA Vulnrichment from %s", tree_url)
+
+        try:
+            headers = {"Accept": "application/vnd.github.v3+json"}
+            gh_token = self._get_github_token()
+            if gh_token:
+                headers["Authorization"] = f"token {gh_token}"
+
+            resp = requests.get(tree_url, timeout=self.timeout, headers=headers)
+            resp.raise_for_status()
+            tree_data = resp.json()
+
+            # Filter for CVE JSON files: paths like "2024/CVE-2024-1234.json"
+            import re as _re
+            cve_files = []
+            for item in tree_data.get("tree", []):
+                path = item.get("path", "")
+                if path.endswith(".json") and "/CVE-" in path:
+                    # Extract CVE ID from filename
+                    match = _re.search(r"(CVE-\d{4}-\d{4,})", path)
+                    if match:
+                        cve_files.append((match.group(1), path))
+
+            if not cve_files:
+                return FeedRefreshResult(
+                    feed_name="vulnrichment",
+                    success=True,
+                    records_updated=0,
+                    error="No CVE files found in repo tree",
+                )
+
+            # Fetch the most recent CVE files (sort by year desc, limit batch)
+            cve_files.sort(key=lambda x: x[0], reverse=True)
+            batch = cve_files[:500]  # Latest 500 CVEs
+
+            now = datetime.now(timezone.utc).isoformat()
+            records: list[tuple] = []
+
+            for cve_id, path in batch:
+                raw_url = f"https://raw.githubusercontent.com/cisagov/vulnrichment/develop/{path}"
+                try:
+                    file_resp = requests.get(raw_url, timeout=15, headers=headers)
+                    if file_resp.status_code != 200:
+                        continue
+                    cve_data = file_resp.json()
+
+                    # Extract SSVC decision points from ADP containers
+                    ssvc = self._extract_ssvc(cve_data)
+                    adp_provider = ""
+                    affected = ""
+                    refs = ""
+
+                    # Parse ADP containers
+                    containers = cve_data.get("containers", {})
+                    adp_list = containers.get("adp", [])
+                    if isinstance(adp_list, list):
+                        for adp in adp_list:
+                            adp_provider = adp.get("providerOrgId", adp_provider)
+                            affected_list = adp.get("affected", [])
+                            if affected_list:
+                                affected = json.dumps(affected_list[:20])
+                            ref_list = adp.get("references", [])
+                            if ref_list:
+                                refs = json.dumps([r.get("url", "") for r in ref_list[:10]])
+
+                    records.append((
+                        cve_id,
+                        ssvc.get("exploitation", ""),
+                        ssvc.get("automatable", ""),
+                        ssvc.get("technical_impact", ""),
+                        ssvc.get("action", ""),
+                        adp_provider,
+                        affected,
+                        refs,
+                        ssvc.get("date_added", ""),
+                        now,
+                    ))
+
+                except (RequestException, json.JSONDecodeError, KeyError):
+                    continue
+
+            if records:
+                conn = sqlite3.connect(self.db_path)
+                cursor = conn.cursor()
+                cursor.executemany(
+                    """INSERT OR REPLACE INTO vulnrichment
+                       (cve_id, ssvc_exploitation, ssvc_automatable, ssvc_technical_impact,
+                        ssvc_action, adp_provider, affected_products, reference_urls,
+                        date_added, updated_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    records,
+                )
+                cursor.execute(
+                    """INSERT OR REPLACE INTO feed_metadata
+                       (feed_name, last_refresh, records_count, status)
+                       VALUES (?, ?, ?, ?)""",
+                    ("vulnrichment", now, len(records), "success"),
+                )
+                conn.commit()
+                conn.close()
+
+            logger.info("Vulnrichment refresh complete: %d SSVC records", len(records))
+            return FeedRefreshResult(
+                feed_name="vulnrichment",
+                success=True,
+                records_updated=len(records),
+            )
+
+        except RequestException as exc:
+            error_msg = f"Failed to fetch Vulnrichment: {exc}"
+            logger.error(error_msg)
+            return FeedRefreshResult(feed_name="vulnrichment", success=False, records_updated=0, error=error_msg)
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:
+            error_msg = f"Error processing Vulnrichment: {exc}"
+            logger.error(error_msg)
+            return FeedRefreshResult(feed_name="vulnrichment", success=False, records_updated=0, error=error_msg)
+
+    @staticmethod
+    def _extract_ssvc(cve_data: Dict[str, Any]) -> Dict[str, str]:
+        """Extract SSVC decision points from a Vulnrichment CVE record."""
+        ssvc: Dict[str, str] = {}
+        containers = cve_data.get("containers", {})
+        adp_list = containers.get("adp", [])
+        if not isinstance(adp_list, list):
+            return ssvc
+        for adp in adp_list:
+            metrics = adp.get("metrics", [])
+            for metric_block in metrics:
+                other = metric_block.get("other", {})
+                content = other.get("content", {})
+                if not content:
+                    continue
+                # SSVC fields
+                for key in ("exploitation", "automatable", "technical_impact"):
+                    val = content.get(key) or content.get(key.replace("_", " ").title())
+                    if val:
+                        ssvc[key] = str(val).lower()
+                # SSVC recommended action
+                options = content.get("options", [])
+                if isinstance(options, list):
+                    for opt in options:
+                        if isinstance(opt, dict) and opt.get("Exploitation"):
+                            ssvc["exploitation"] = str(opt["Exploitation"]).lower()
+                        if isinstance(opt, dict) and opt.get("Automatable"):
+                            ssvc["automatable"] = str(opt["Automatable"]).lower()
+                        if isinstance(opt, dict) and opt.get("Technical Impact"):
+                            ssvc["technical_impact"] = str(opt["Technical Impact"]).lower()
+                # Decision / action
+                action = content.get("action") or content.get("Action")
+                if action:
+                    ssvc["action"] = str(action).lower()
+            # Also check providerMetadata for date
+            prov = adp.get("providerMetadata", {})
+            ssvc["date_added"] = prov.get("dateUpdated", "")
+        return ssvc
+
+    def get_vulnrichment(self, cve_id: str) -> Optional[Dict[str, Any]]:
+        """Get SSVC decision points for a CVE from local Vulnrichment data."""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM vulnrichment WHERE cve_id = ?", (cve_id.upper(),))
+        row = cursor.fetchone()
+        conn.close()
+        if not row:
+            return None
+        result = dict(row)
+        # Parse JSON fields
+        for field_name in ("affected_products", "reference_urls"):
+            raw = result.get(field_name)
+            if raw:
+                try:
+                    result[field_name] = json.loads(raw)
+                except json.JSONDecodeError:
+                    pass
+        return result
+
+    def get_ssvc_actionable(self, action: str = "act", limit: int = 100) -> List[Dict[str, Any]]:
+        """Get CVEs where SSVC recommends a specific action (act, attend, track, track*)."""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT * FROM vulnrichment WHERE ssvc_action = ? ORDER BY updated_at DESC LIMIT ?",
+            (action.lower(), limit),
+        )
+        rows = cursor.fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+
+    # =========================================================================
+    # PoC-in-GitHub (Public Exploit PoC Tracking)
+    # =========================================================================
+
+    def refresh_poc_in_github(self) -> FeedRefreshResult:
+        """Refresh public exploit PoC data from nomi-sec/PoC-in-GitHub.
+
+        This repo auto-collects GitHub repositories that contain proof-of-concept
+        exploits mapped to CVE IDs. Answers: "Does a weaponized exploit exist?"
+
+        The repo structure is: {year}/{CVE-ID}.json — each JSON file contains
+        a list of GitHub repos with PoC code for that CVE.
+
+        Returns:
+            FeedRefreshResult with success status and record count
+        """
+        tree_url = "https://api.github.com/repos/nomi-sec/PoC-in-GitHub/git/trees/master?recursive=1"
+        logger.info("Refreshing PoC-in-GitHub from %s", tree_url)
+
+        try:
+            headers = {"Accept": "application/vnd.github.v3+json"}
+            gh_token = self._get_github_token()
+            if gh_token:
+                headers["Authorization"] = f"token {gh_token}"
+
+            resp = requests.get(tree_url, timeout=self.timeout, headers=headers)
+            resp.raise_for_status()
+            tree_data = resp.json()
+
+            import re as _re
+            cve_files = []
+            for item in tree_data.get("tree", []):
+                path = item.get("path", "")
+                if path.endswith(".json") and "CVE-" in path:
+                    match = _re.search(r"(CVE-\d{4}-\d{4,})", path)
+                    if match:
+                        cve_files.append((match.group(1), path))
+
+            if not cve_files:
+                return FeedRefreshResult(
+                    feed_name="poc_in_github", success=True, records_updated=0,
+                    error="No CVE files found in PoC-in-GitHub tree",
+                )
+
+            # Fetch most recent CVE PoC files
+            cve_files.sort(key=lambda x: x[0], reverse=True)
+            batch = cve_files[:300]
+
+            now = datetime.now(timezone.utc).isoformat()
+            records: list[tuple] = []
+
+            for cve_id, path in batch:
+                raw_url = f"https://raw.githubusercontent.com/nomi-sec/PoC-in-GitHub/master/{path}"
+                try:
+                    file_resp = requests.get(raw_url, timeout=15, headers=headers)
+                    if file_resp.status_code != 200:
+                        continue
+                    poc_list = file_resp.json()
+                    if not isinstance(poc_list, list):
+                        continue
+
+                    for poc in poc_list[:10]:  # Cap at 10 PoCs per CVE
+                        repo_url = poc.get("html_url") or poc.get("url", "")
+                        if not repo_url:
+                            continue
+                        records.append((
+                            cve_id,
+                            repo_url,
+                            (poc.get("description") or "")[:500],
+                            poc.get("stargazers_count", 0),
+                            poc.get("forks_count", 0),
+                            poc.get("created_at", ""),
+                            now,
+                        ))
+
+                except (RequestException, json.JSONDecodeError, KeyError):
+                    continue
+
+            if records:
+                conn = sqlite3.connect(self.db_path)
+                cursor = conn.cursor()
+                chunk_size = 2000
+                for i in range(0, len(records), chunk_size):
+                    chunk = records[i : i + chunk_size]
+                    cursor.executemany(
+                        """INSERT OR REPLACE INTO poc_in_github
+                           (cve_id, repo_url, description, stargazers_count,
+                            forks_count, created_at, updated_at)
+                           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                        chunk,
+                    )
+                cursor.execute(
+                    """INSERT OR REPLACE INTO feed_metadata
+                       (feed_name, last_refresh, records_count, status)
+                       VALUES (?, ?, ?, ?)""",
+                    ("poc_in_github", now, len(records), "success"),
+                )
+                conn.commit()
+                conn.close()
+
+            logger.info("PoC-in-GitHub refresh complete: %d PoC records", len(records))
+            return FeedRefreshResult(
+                feed_name="poc_in_github", success=True, records_updated=len(records),
+            )
+
+        except RequestException as exc:
+            error_msg = f"Failed to fetch PoC-in-GitHub: {exc}"
+            logger.error(error_msg)
+            return FeedRefreshResult(feed_name="poc_in_github", success=False, records_updated=0, error=error_msg)
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:
+            error_msg = f"Error processing PoC-in-GitHub: {exc}"
+            logger.error(error_msg)
+            return FeedRefreshResult(feed_name="poc_in_github", success=False, records_updated=0, error=error_msg)
+
+    def get_poc_for_cve(self, cve_id: str) -> List[Dict[str, Any]]:
+        """Get public PoC exploits for a CVE."""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT * FROM poc_in_github WHERE cve_id = ? ORDER BY stargazers_count DESC",
+            (cve_id.upper(),),
+        )
+        rows = cursor.fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+
+    def has_public_exploit(self, cve_id: str) -> bool:
+        """Check if a CVE has any public exploit PoC on GitHub."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM poc_in_github WHERE cve_id = ? LIMIT 1", (cve_id.upper(),))
+        result = cursor.fetchone()
+        conn.close()
+        return result is not None
+
+    # =========================================================================
+    # InTheWild.io (Exploitation-in-the-Wild Signals)
+    # =========================================================================
+
+    def refresh_inthewild(self) -> FeedRefreshResult:
+        """Refresh exploitation-in-the-wild signals from inthewild.io.
+
+        This feed tracks CVEs that have been observed being actively exploited
+        in the wild, with source attribution. Complements CISA KEV with
+        broader, faster coverage from the security community.
+
+        Returns:
+            FeedRefreshResult with success status and record count
+        """
+        api_url = "https://inthewild.io/api/exploited"
+        logger.info("Refreshing InTheWild.io from %s", api_url)
+
+        try:
+            resp = requests.get(api_url, timeout=self.timeout)
+            resp.raise_for_status()
+            data = resp.json()
+
+            if not isinstance(data, list):
+                return FeedRefreshResult(
+                    feed_name="inthewild", success=True, records_updated=0,
+                    error="Unexpected response format from InTheWild API",
+                )
+
+            now = datetime.now(timezone.utc).isoformat()
+            records: list[tuple] = []
+
+            for entry in data:
+                cve_id = entry.get("cve") or entry.get("id") or ""
+                if not cve_id.upper().startswith("CVE-"):
+                    continue
+                records.append((
+                    cve_id.upper(),
+                    entry.get("first_seen") or entry.get("firstSeen", ""),
+                    entry.get("source") or entry.get("reporter", ""),
+                    entry.get("source_url") or entry.get("sourceUrl", ""),
+                    now,
+                ))
+
+            if records:
+                conn = sqlite3.connect(self.db_path)
+                cursor = conn.cursor()
+                cursor.executemany(
+                    """INSERT OR REPLACE INTO inthewild_exploited
+                       (cve_id, first_seen, source, source_url, updated_at)
+                       VALUES (?, ?, ?, ?, ?)""",
+                    records,
+                )
+                cursor.execute(
+                    """INSERT OR REPLACE INTO feed_metadata
+                       (feed_name, last_refresh, records_count, status)
+                       VALUES (?, ?, ?, ?)""",
+                    ("inthewild", now, len(records), "success"),
+                )
+                conn.commit()
+                conn.close()
+
+            logger.info("InTheWild refresh complete: %d exploitation signals", len(records))
+            return FeedRefreshResult(
+                feed_name="inthewild", success=True, records_updated=len(records),
+            )
+
+        except RequestException as exc:
+            error_msg = f"Failed to fetch InTheWild: {exc}"
+            logger.error(error_msg)
+            return FeedRefreshResult(feed_name="inthewild", success=False, records_updated=0, error=error_msg)
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:
+            error_msg = f"Error processing InTheWild: {exc}"
+            logger.error(error_msg)
+            return FeedRefreshResult(feed_name="inthewild", success=False, records_updated=0, error=error_msg)
+
+    def is_exploited_in_wild(self, cve_id: str) -> bool:
+        """Check if a CVE is being actively exploited in the wild (via InTheWild.io)."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM inthewild_exploited WHERE cve_id = ? LIMIT 1", (cve_id.upper(),))
+        result = cursor.fetchone()
+        conn.close()
+        return result is not None
+
+    def get_inthewild_data(self, cve_id: str) -> Optional[Dict[str, Any]]:
+        """Get exploitation-in-the-wild data for a CVE."""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM inthewild_exploited WHERE cve_id = ?", (cve_id.upper(),))
+        row = cursor.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    # =========================================================================
+    # Nuclei Templates (CVE → Validation Template Mapping)
+    # =========================================================================
+
+    def refresh_nuclei_templates(self) -> FeedRefreshResult:
+        """Refresh CVE-to-Nuclei-template mappings from projectdiscovery/nuclei-templates.
+
+        Maps CVE IDs to their corresponding Nuclei scanning templates, enabling
+        "One-Click Validation" — verify if a vulnerability is exploitable using
+        the exact template from the nuclei-templates repository.
+
+        Returns:
+            FeedRefreshResult with success status and record count
+        """
+        tree_url = "https://api.github.com/repos/projectdiscovery/nuclei-templates/git/trees/main?recursive=1"
+        logger.info("Refreshing Nuclei Templates from %s", tree_url)
+
+        try:
+            headers = {"Accept": "application/vnd.github.v3+json"}
+            gh_token = self._get_github_token()
+            if gh_token:
+                headers["Authorization"] = f"token {gh_token}"
+
+            resp = requests.get(tree_url, timeout=self.timeout, headers=headers)
+            resp.raise_for_status()
+            tree_data = resp.json()
+
+            import re as _re
+            now = datetime.now(timezone.utc).isoformat()
+            records: list[tuple] = []
+
+            for item in tree_data.get("tree", []):
+                path = item.get("path", "")
+                if not path.endswith(".yaml"):
+                    continue
+                # Match CVE references in template paths: e.g., "http/cves/2024/CVE-2024-1234.yaml"
+                match = _re.search(r"(CVE-\d{4}-\d{4,})", path)
+                if not match:
+                    continue
+                cve_id = match.group(1)
+                template_url = f"https://github.com/projectdiscovery/nuclei-templates/blob/main/{path}"
+
+                # Infer severity from path segments
+                severity = "unknown"
+                path_lower = path.lower()
+                for sev in ("critical", "high", "medium", "low", "info"):
+                    if sev in path_lower:
+                        severity = sev
+                        break
+
+                records.append((cve_id, path, template_url, severity, now))
+
+            if records:
+                conn = sqlite3.connect(self.db_path)
+                cursor = conn.cursor()
+                chunk_size = 2000
+                for i in range(0, len(records), chunk_size):
+                    chunk = records[i : i + chunk_size]
+                    cursor.executemany(
+                        """INSERT OR REPLACE INTO nuclei_templates
+                           (cve_id, template_path, template_url, severity, updated_at)
+                           VALUES (?, ?, ?, ?, ?)""",
+                        chunk,
+                    )
+                cursor.execute(
+                    """INSERT OR REPLACE INTO feed_metadata
+                       (feed_name, last_refresh, records_count, status)
+                       VALUES (?, ?, ?, ?)""",
+                    ("nuclei_templates", now, len(records), "success"),
+                )
+                conn.commit()
+                conn.close()
+
+            logger.info("Nuclei Templates refresh complete: %d template mappings", len(records))
+            return FeedRefreshResult(
+                feed_name="nuclei_templates", success=True, records_updated=len(records),
+            )
+
+        except RequestException as exc:
+            error_msg = f"Failed to fetch Nuclei Templates: {exc}"
+            logger.error(error_msg)
+            return FeedRefreshResult(feed_name="nuclei_templates", success=False, records_updated=0, error=error_msg)
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:
+            error_msg = f"Error processing Nuclei Templates: {exc}"
+            logger.error(error_msg)
+            return FeedRefreshResult(feed_name="nuclei_templates", success=False, records_updated=0, error=error_msg)
+
+    def get_nuclei_templates(self, cve_id: str) -> List[Dict[str, Any]]:
+        """Get Nuclei validation templates for a CVE."""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT * FROM nuclei_templates WHERE cve_id = ? ORDER BY severity",
+            (cve_id.upper(),),
+        )
+        rows = cursor.fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+
+    def has_nuclei_template(self, cve_id: str) -> bool:
+        """Check if a CVE has a Nuclei validation template available."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM nuclei_templates WHERE cve_id = ? LIMIT 1", (cve_id.upper(),))
+        result = cursor.fetchone()
+        conn.close()
+        return result is not None
 
     # =========================================================================
     # NVD CVE Lookup Methods
@@ -3115,6 +3769,30 @@ class FeedsService:
                         e.nuclei_template for e in exploits
                     )
 
+                # SSVC decision intelligence (Vulnrichment)
+                ssvc = self.get_vulnrichment(cve_id)
+                if ssvc:
+                    enriched_finding["ssvc_action"] = ssvc.get("ssvc_action", "")
+                    enriched_finding["ssvc_exploitation"] = ssvc.get("ssvc_exploitation", "")
+                    enriched_finding["ssvc_automatable"] = ssvc.get("ssvc_automatable", "")
+                    enriched_finding["ssvc_technical_impact"] = ssvc.get("ssvc_technical_impact", "")
+
+                # PoC availability
+                enriched_finding["has_public_poc"] = self.has_public_exploit(cve_id)
+                poc_list = self.get_poc_for_cve(cve_id)
+                if poc_list:
+                    enriched_finding["poc_count"] = len(poc_list)
+                    enriched_finding["top_poc_url"] = poc_list[0].get("repo_url", "")
+
+                # Exploitation in the wild
+                enriched_finding["exploited_in_wild"] = self.is_exploited_in_wild(cve_id)
+
+                # Nuclei template availability
+                enriched_finding["has_nuclei_template"] = self.has_nuclei_template(cve_id)
+                nuclei = self.get_nuclei_templates(cve_id)
+                if nuclei:
+                    enriched_finding["nuclei_template_url"] = nuclei[0].get("template_url", "")
+
             enriched.append(enriched_finding)
 
         return enriched
@@ -3150,6 +3828,10 @@ class FeedsService:
                 ("ExploitDB", service.refresh_exploitdb),
                 ("OSV", service.refresh_osv),
                 ("GitHub Advisories", service.refresh_github_advisories),
+                ("Vulnrichment (SSVC)", service.refresh_vulnrichment),
+                ("PoC-in-GitHub", service.refresh_poc_in_github),
+                ("InTheWild", service.refresh_inthewild),
+                ("Nuclei Templates", service.refresh_nuclei_templates),
             ]
             for name, refresh_fn in feeds:
                 try:
@@ -3164,7 +3846,7 @@ class FeedsService:
                     logger.error("%s refresh error: %s", name, exc)
 
         # Initial refresh on startup
-        logger.info("Starting initial feed refresh (all 7 feeds)")
+        logger.info("Starting initial feed refresh (all 11 feeds)")
         _refresh_all()
 
         while True:

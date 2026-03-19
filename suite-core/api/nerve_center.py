@@ -127,7 +127,33 @@ class RemediationTrigger(BaseModel):
 @router.get("/status")
 async def nerve_center_status():
     """Overall nerve center status — aggregates threat pulse, suite health, and pipeline state."""
+    import os
     pulse = await get_threat_pulse()
+
+    # Count suites that are actually importable
+    suite_names = [
+        "apps.api.app", "core.brain_pipeline", "api.mpte_router",
+        "api.feeds_router", "api.evidence_router", "api.mcp_router",
+    ]
+    suites_ok = 0
+    for mod in suite_names:
+        try:
+            __import__(mod)
+            suites_ok += 1
+        except ImportError:
+            pass
+
+    # Compute real uptime from process start
+    try:
+        import psutil
+        proc = psutil.Process(os.getpid())
+        uptime_s = (datetime.now(timezone.utc) - datetime.fromtimestamp(
+            proc.create_time(), tz=timezone.utc
+        )).total_seconds()
+        uptime_hours = round(uptime_s / 3600, 2)
+    except Exception:
+        uptime_hours = 0.0
+
     return {
         "status": "operational",
         "engine": "nerve-center",
@@ -137,8 +163,8 @@ async def nerve_center_status():
         "active_incidents": pulse.active_incidents,
         "auto_blocked": pulse.auto_blocked,
         "pending_decisions": pulse.pending_decisions,
-        "suites_monitored": 6,
-        "uptime_hours": 99.97,
+        "suites_monitored": suites_ok,
+        "uptime_hours": uptime_hours,
         "last_heartbeat": datetime.now(timezone.utc).isoformat(),
     }
 

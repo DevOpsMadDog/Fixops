@@ -31,11 +31,12 @@ import concurrent.futures
 import hashlib
 import logging
 import os
+import re
 import threading
 import time
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -149,6 +150,8 @@ class PipelineResult:
     playbooks_executed: int = 0
     evidence_generated: bool = False
     evidence_signed: bool = False  # True when crypto signing succeeded
+    data_quality: Optional[Dict[str, Any]] = None  # Per-step data quality tracking
+    enrichment_stats: Optional[Dict[str, Any]] = None  # Post-pipeline enrichment stats
     error: Optional[str] = None
 
     def __post_init__(self):
@@ -183,6 +186,8 @@ class PipelineResult:
                 "evidence_generated": self.evidence_generated,
                 "evidence_signed": self.evidence_signed,
             },
+            "data_quality": self.data_quality,
+            "enrichment_stats": self.enrichment_stats,
             "error": self.error,
         }
 
@@ -494,6 +499,17 @@ class BrainPipeline:
             else (PipelineStatus.FAILED if failed else PipelineStatus.PARTIAL)
         )
 
+        # ── Post-Pipeline Enrichment ─────────────────────────────
+        # Add compliance mapping, SLA deadlines, and attack path data
+        # to every finding. This NEVER causes pipeline failure.
+        enrichment_stats = self._enrich_post_pipeline(ctx)
+        result.enrichment_stats = enrichment_stats
+
+        # ── Data Quality Assessment ──────────────────────────────
+        # Tell the customer EXACTLY which steps did real work vs fell back.
+        data_quality = self._compute_data_quality(ctx, result)
+        result.data_quality = data_quality
+
         # Store pipeline metrics (thread-safe)
         run_metrics = {
             "run_id": result.run_id,
@@ -523,6 +539,13 @@ class BrainPipeline:
             persist_pipeline_run_sync(result, org_id=inp.org_id or "default")
         except ImportError:
             pass  # DB write failure must never surface to callers
+
+        # ── Analytics Data Bridge ────────────────────────────────
+        # Sync findings to analytics.db so dashboards show pipeline results.
+        # This bridges the data island between pipeline and analytics.
+        synced = self._sync_to_analytics(ctx)
+        if synced > 0:
+            logger.info("Synced %d findings to analytics.db", synced)
 
         return result
 
@@ -652,6 +675,428 @@ class BrainPipeline:
         with self._lock:
             runs = sorted(self._runs.values(), key=lambda r: r.started_at, reverse=True)
             return [r.to_dict() for r in runs[:limit]]
+
+    # ------------------------------------------------------------------
+    # Post-Pipeline Enrichment (compliance, SLA, attack paths)
+    # ------------------------------------------------------------------
+
+    # SLA targets by severity (in hours)
+    _SLA_HOURS: Dict[str, int] = {
+        "critical": 24,
+        "high": 72,
+        "medium": 168,
+        "low": 720,
+        "info": 2160,
+        "informational": 2160,
+    }
+
+    def _enrich_post_pipeline(self, ctx: Dict[str, Any]) -> Dict[str, Any]:
+        """Add compliance mapping, SLA deadlines, and attack path data.
+
+        This runs after all 12 pipeline steps complete. It enriches each
+        finding in-place with cross-cutting concerns that span multiple
+        steps. It NEVER raises -- all failures are logged as warnings and
+        skipped gracefully.
+
+        Returns a stats dict with counts of what was enriched.
+        """
+        findings: List[Dict[str, Any]] = ctx.get("findings", [])
+        stats: Dict[str, Any] = {
+            "total_findings": len(findings),
+            "compliance_mapped": 0,
+            "sla_assigned": 0,
+            "attack_paths_enriched": 0,
+            "frameworks_affected": set(),
+        }
+
+        # ---- Load compliance mappings (optional dependency) ----
+        cwe_mappings: Dict[str, Any] = {}
+        try:
+            from compliance.mapping import DEFAULT_CWE_MAPPINGS  # noqa: PLC0415
+            cwe_mappings = DEFAULT_CWE_MAPPINGS
+        except ImportError:
+            logger.warning(
+                "Post-pipeline enrichment: compliance.mapping not available, "
+                "skipping compliance mapping"
+            )
+        except Exception:  # noqa: BLE001
+            logger.warning(
+                "Post-pipeline enrichment: failed to load compliance mappings"
+            )
+
+        # ---- Load attack path engine (optional dependency) ----
+        ap_engine = None
+        try:
+            from core.attack_path_engine import blast_radius as _blast_radius  # noqa: PLC0415, F811
+            ap_engine = _blast_radius
+        except ImportError:
+            logger.warning(
+                "Post-pipeline enrichment: attack_path_engine not available, "
+                "skipping attack path enrichment"
+            )
+        except Exception:  # noqa: BLE001
+            logger.warning(
+                "Post-pipeline enrichment: failed to load attack path engine"
+            )
+
+        now = datetime.now(timezone.utc)
+
+        for finding in findings:
+            if not isinstance(finding, dict):
+                continue
+
+            # ── (a) Compliance mapping ──
+            try:
+                self._enrich_compliance(finding, cwe_mappings, stats)
+            except Exception:  # noqa: BLE001
+                logger.warning(
+                    "Post-pipeline enrichment: compliance mapping failed for "
+                    "finding %s", finding.get("id", "unknown")
+                )
+
+            # ── (b) SLA deadline assignment ──
+            try:
+                self._enrich_sla(finding, now, stats)
+            except Exception:  # noqa: BLE001
+                logger.warning(
+                    "Post-pipeline enrichment: SLA assignment failed for "
+                    "finding %s", finding.get("id", "unknown")
+                )
+
+            # ── (c) Attack path enrichment ──
+            try:
+                self._enrich_attack_paths(finding, ap_engine, stats)
+            except Exception:  # noqa: BLE001
+                logger.warning(
+                    "Post-pipeline enrichment: attack path enrichment failed "
+                    "for finding %s", finding.get("id", "unknown")
+                )
+
+        # Convert set to list for JSON serialization
+        stats["frameworks_affected"] = sorted(stats["frameworks_affected"])
+        ctx["_post_pipeline_enriched"] = True
+        return stats
+
+    def _enrich_compliance(
+        self,
+        finding: Dict[str, Any],
+        cwe_mappings: Dict[str, Any],
+        stats: Dict[str, Any],
+    ) -> None:
+        """Map CWE to compliance framework controls on a single finding."""
+        if not cwe_mappings:
+            return
+
+        # Extract CWE ID from finding -- try cwe_id field first, then rule_id
+        cwe_id = finding.get("cwe_id") or finding.get("cwe")
+        if not cwe_id:
+            rule_id = finding.get("rule_id", "") or ""
+            match = re.search(r"CWE-(\d+)", str(rule_id), re.IGNORECASE)
+            if match:
+                cwe_id = f"CWE-{match.group(1)}"
+
+        if not cwe_id:
+            return
+
+        # Normalize CWE ID format
+        cwe_id = str(cwe_id).upper()
+        if not cwe_id.startswith("CWE-"):
+            cwe_id = f"CWE-{cwe_id}"
+
+        mapping = cwe_mappings.get(cwe_id)
+        if not mapping:
+            return
+
+        # Build compliance_impact dict from the ControlMapping
+        frameworks: List[str] = []
+        compliance_impact: Dict[str, Any] = {"cwe_id": cwe_id}
+
+        if hasattr(mapping, "nist_800_53") and mapping.nist_800_53:
+            compliance_impact["nist_800_53"] = list(mapping.nist_800_53)
+            frameworks.append("NIST 800-53")
+        if hasattr(mapping, "pci_dss") and mapping.pci_dss:
+            compliance_impact["pci_dss"] = list(mapping.pci_dss)
+            frameworks.append("PCI DSS")
+        if hasattr(mapping, "iso_27001") and mapping.iso_27001:
+            compliance_impact["iso_27001"] = list(mapping.iso_27001)
+            frameworks.append("ISO 27001")
+        if hasattr(mapping, "owasp_category") and mapping.owasp_category:
+            compliance_impact["owasp"] = mapping.owasp_category
+            frameworks.append("OWASP Top 10")
+        if hasattr(mapping, "control_families") and mapping.control_families:
+            compliance_impact["control_families"] = list(mapping.control_families)
+
+        compliance_impact["frameworks_affected"] = frameworks
+        compliance_impact["frameworks_count"] = len(frameworks)
+        finding["compliance_impact"] = compliance_impact
+
+        stats["compliance_mapped"] += 1
+        stats["frameworks_affected"].update(frameworks)
+
+    def _enrich_sla(
+        self,
+        finding: Dict[str, Any],
+        now: datetime,
+        stats: Dict[str, Any],
+    ) -> None:
+        """Assign SLA deadline based on severity."""
+        severity = str(finding.get("severity", "info")).lower().strip()
+        target_hours = self._SLA_HOURS.get(severity, self._SLA_HOURS["info"])
+
+        deadline = now + timedelta(hours=target_hours)
+
+        # SLA urgency: 1.0 = deadline is now, 0.0 = full time remaining
+        # For newly assigned SLAs, urgency starts at 0.0
+        sla_urgency = 0.0
+
+        # If finding has an existing discovered_at, compute actual urgency
+        discovered_at_str = finding.get("discovered_at") or finding.get("created_at")
+        if discovered_at_str and isinstance(discovered_at_str, str):
+            try:
+                discovered_at = datetime.fromisoformat(
+                    discovered_at_str.replace("Z", "+00:00")
+                )
+                elapsed = (now - discovered_at).total_seconds() / 3600.0
+                sla_urgency = min(1.0, max(0.0, round(elapsed / target_hours, 4)))
+                # Recompute deadline from discovery time, not now
+                deadline = discovered_at + timedelta(hours=target_hours)
+            except (ValueError, TypeError):
+                pass  # Use defaults if timestamp is malformed
+
+        finding["sla_deadline"] = deadline.isoformat()
+        finding["sla_target_hours"] = target_hours
+        finding["sla_urgency"] = sla_urgency
+        stats["sla_assigned"] += 1
+
+    def _enrich_attack_paths(
+        self,
+        finding: Dict[str, Any],
+        ap_engine: Any,
+        stats: Dict[str, Any],
+    ) -> None:
+        """Add attack path count and blast radius from graph engine."""
+        if ap_engine is None:
+            return
+
+        # Determine node ID for graph lookup -- prefer CVE, then finding ID
+        node_id = (
+            finding.get("cve_id")
+            or finding.get("id")
+            or finding.get("finding_id")
+        )
+        if not node_id or not isinstance(node_id, str):
+            return
+
+        br_result = ap_engine(node_id, max_hops=3)
+        if not isinstance(br_result, dict):
+            return
+
+        finding["attack_paths_count"] = br_result.get("total_paths", 0)
+        finding["blast_radius"] = br_result.get("affected_nodes", 0)
+        stats["attack_paths_enriched"] += 1
+
+    # ------------------------------------------------------------------
+    # Data Quality Assessment
+    # ------------------------------------------------------------------
+    def _compute_data_quality(
+        self, ctx: Dict[str, Any], result: "PipelineResult"
+    ) -> Dict[str, Any]:
+        """Compute per-step data quality so customers know what's trustworthy.
+
+        Returns a dict with overall score and per-step status showing whether
+        each step did real work, used a fallback, or was skipped entirely.
+        """
+        steps_quality: Dict[str, Dict[str, str]] = {}
+        warnings: List[str] = []
+        degraded = 0
+
+        for step in result.steps:
+            name = step.name
+            output = step.output or {}
+
+            if step.status == StepStatus.SKIPPED:
+                steps_quality[name] = {"status": "skipped", "detail": "Step was not requested"}
+                continue
+            if step.status == StepStatus.FAILED:
+                steps_quality[name] = {"status": "failed", "detail": step.error or "Unknown error"}
+                degraded += 1
+                continue
+
+            # Detect fallback per step
+            if name == "connect":
+                connectors_val = output.get("connectors_queried", 0)
+                n_connectors = len(connectors_val) if isinstance(connectors_val, list) else int(connectors_val or 0)
+                if n_connectors > 0:
+                    steps_quality[name] = {"status": "real", "detail": f"{n_connectors} connectors queried"}
+                else:
+                    steps_quality[name] = {"status": "fallback", "detail": "No external scanners configured"}
+                    warnings.append("Step 1 (Connect): No external scanners — using only provided findings")
+                    degraded += 1
+
+            elif name == "enrich_threats":
+                source = ctx.get("_enrich_source", "estimated")
+                if source == "live_api":
+                    steps_quality[name] = {"status": "real", "detail": "Live EPSS/KEV/NVD API data"}
+                elif source == "local_feeds":
+                    hits = ctx.get("_enrich_feed_hits", 0)
+                    steps_quality[name] = {"status": "real", "detail": f"Local feed DB ({hits} CVE matches)"}
+                else:
+                    steps_quality[name] = {"status": "fallback", "detail": "Severity-based estimates only"}
+                    warnings.append("Step 6 (Enrich): EPSS/CVSS are estimates. Run feed sync for real data.")
+                    degraded += 1
+
+            elif name == "score_risk":
+                model_ver = output.get("model_version", "")
+                if "deterministic" in str(model_ver):
+                    steps_quality[name] = {"status": "fallback", "detail": "Deterministic formula"}
+                    warnings.append("Step 7 (Score): Deterministic risk formula. Train ML model for accuracy.")
+                    degraded += 1
+                else:
+                    steps_quality[name] = {"status": "real", "detail": f"ML model {model_ver}"}
+
+            elif name == "multi_llm_consensus":
+                mode = output.get("mode", "")
+                if mode == "deterministic" or output.get("skipped"):
+                    steps_quality[name] = {"status": "fallback", "detail": "Rule-based — no LLM keys"}
+                    warnings.append("Step 9 (AI Consensus): No LLM providers. Set OPENAI_API_KEY.")
+                    degraded += 1
+                else:
+                    steps_quality[name] = {"status": "real", "detail": "LLM consensus completed"}
+
+            else:
+                if output.get("skipped"):
+                    steps_quality[name] = {"status": "fallback", "detail": output.get("reason", "Dependency unavailable")}
+                    degraded += 1
+                else:
+                    steps_quality[name] = {"status": "real", "detail": "OK"}
+
+        total_active = sum(1 for s in result.steps if s.status != StepStatus.SKIPPED)
+        real_count = sum(1 for v in steps_quality.values() if v["status"] == "real")
+        score = round(real_count / max(total_active, 1), 2)
+
+        # Post-pipeline enrichment quality
+        enrichment_quality: Dict[str, Any] = {"status": "skipped", "detail": "Not run"}
+        if ctx.get("_post_pipeline_enriched"):
+            e_stats = result.enrichment_stats or {}
+            total = e_stats.get("total_findings", 0)
+            mapped = e_stats.get("compliance_mapped", 0)
+            sla = e_stats.get("sla_assigned", 0)
+            ap = e_stats.get("attack_paths_enriched", 0)
+            if total > 0 and (mapped > 0 or sla > 0):
+                enrichment_quality = {
+                    "status": "real",
+                    "detail": (
+                        f"compliance={mapped}/{total}, "
+                        f"sla={sla}/{total}, "
+                        f"attack_paths={ap}/{total}"
+                    ),
+                }
+            elif total > 0:
+                enrichment_quality = {
+                    "status": "fallback",
+                    "detail": "No enrichment dependencies available",
+                }
+                warnings.append(
+                    "Post-pipeline enrichment: no compliance mappings or "
+                    "graph engine available"
+                )
+            else:
+                enrichment_quality = {
+                    "status": "skipped",
+                    "detail": "No findings to enrich",
+                }
+        steps_quality["post_pipeline_enrichment"] = enrichment_quality
+
+        return {
+            "overall_score": score,
+            "overall_grade": "A" if score >= 0.9 else "B" if score >= 0.7 else "C" if score >= 0.5 else "D",
+            "steps": steps_quality,
+            "warnings": warnings,
+            "degraded_steps": degraded,
+            "real_steps": real_count,
+            "total_active_steps": total_active,
+        }
+
+    # ------------------------------------------------------------------
+    # Analytics Data Bridge
+    # ------------------------------------------------------------------
+    def _sync_to_analytics(self, ctx: Dict[str, Any]) -> int:
+        """Sync pipeline findings to analytics.db so dashboards show results.
+
+        This bridges the data island between pipeline and analytics. Never raises.
+        """
+        try:
+            import sqlite3 as _sqlite3
+            from pathlib import Path as _Path
+
+            db_path = _Path("data/analytics.db")
+            if not db_path.exists():
+                return 0
+
+            conn = _sqlite3.connect(str(db_path), timeout=5)
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS findings (
+                    id TEXT PRIMARY KEY,
+                    title TEXT,
+                    severity TEXT,
+                    status TEXT DEFAULT 'open',
+                    source TEXT,
+                    asset_name TEXT,
+                    cve_id TEXT,
+                    cvss_score REAL,
+                    epss_score REAL,
+                    risk_score REAL,
+                    in_kev INTEGER DEFAULT 0,
+                    org_id TEXT,
+                    created_at TEXT,
+                    updated_at TEXT
+                )
+            """)
+
+            synced = 0
+            now = datetime.now(timezone.utc).isoformat()
+            for f in ctx.get("findings", []):
+                title = str(f.get("title", ""))[:500]
+                severity = str(f.get("severity", "medium"))[:20]
+                source = str(f.get("source", "pipeline"))[:100]
+                asset = str(f.get("asset_name", ""))[:200]
+                cve = str(f.get("cve_id", ""))[:30]
+
+                finding_id = f.get("finding_id") or f.get("id")
+                if not finding_id:
+                    import hashlib
+                    finding_id = hashlib.sha256(
+                        f"{title}|{asset}|{severity}".encode()
+                    ).hexdigest()[:16]
+
+                try:
+                    cursor.execute(
+                        """INSERT INTO findings (id, title, severity, status, source,
+                           asset_name, cve_id, cvss_score, epss_score, risk_score,
+                           in_kev, org_id, created_at, updated_at)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                           ON CONFLICT(id) DO UPDATE SET
+                             cvss_score=excluded.cvss_score, epss_score=excluded.epss_score,
+                             risk_score=excluded.risk_score, in_kev=excluded.in_kev,
+                             updated_at=excluded.updated_at
+                        """,
+                        (finding_id, title, severity, str(f.get("status", "open")),
+                         source, asset, cve, f.get("cvss_score"), f.get("epss_score"),
+                         f.get("risk_score"), 1 if f.get("in_kev") else 0,
+                         ctx.get("org_id", "default"), now, now),
+                    )
+                    synced += 1
+                except _sqlite3.Error:
+                    continue
+
+            conn.commit()
+            conn.close()
+            return synced
+        except Exception as e:
+            logger.warning("Analytics sync failed (non-fatal): %s", type(e).__name__)
+            return 0
 
     # ------------------------------------------------------------------
     # Step 1: Connect everything once
@@ -1635,15 +2080,10 @@ class BrainPipeline:
 
         [V3] Decision Intelligence — Real threat feed enrichment.
 
-        Uses the ThreatEnricher service to fetch live data from:
-        - FIRST.org EPSS API (Exploit Prediction Scoring System)
-        - CISA KEV catalog (Known Exploited Vulnerabilities)
-        - NVD CVSS scores (cached)
-
-        Falls back to calibrated severity-based estimates ONLY when
-        API data is unavailable. The fallback estimates are based on
-        FIRST.org EPSS research (median EPSS by CVSS severity bucket),
-        NOT the old deterministic formula (cvss/10*0.6).
+        Priority chain:
+        1. ThreatEnricher service (live API data from FIRST.org, CISA, NVD)
+        2. Local feed databases (data/feeds/feeds.db — 317K EPSS + 1.5K KEV)
+        3. Severity-based estimates (last resort, marked as estimated)
         """
         cve_ids = [f["cve_id"] for f in ctx["findings"] if f.get("cve_id")]
         if not cve_ids:
@@ -1655,53 +2095,152 @@ class BrainPipeline:
 
             enricher = get_threat_enricher()
             result = enricher.enrich_findings(ctx["findings"])
+            ctx["_enrich_source"] = "live_api"
             return result
-        except ImportError as e:
-            # Only expose exception type — str(e) may contain API keys or URLs
+        except (ImportError, Exception) as e:
             logger.warning(
-                "ThreatEnricher unavailable (%s), using severity-based estimation",
+                "ThreatEnricher unavailable (%s), trying local feed databases",
                 type(e).__name__,
             )
 
-        # Fallback: calibrated severity-based estimation
-        # Based on FIRST.org EPSS research — median EPSS by severity
+        # Try local feed databases — real data, not hardcoded
+        epss_lookup, kev_lookup, nvd_lookup = self._load_local_feeds()
+        feed_source = "local_feeds" if (epss_lookup or kev_lookup) else "estimated"
+
         enriched = 0
+        feed_hits = 0
         for f in ctx["findings"]:
             cve = f.get("cve_id")
             if not cve:
                 continue
-            sev = f.get("severity", "medium").lower()
-            # CVSS estimation from severity
-            cvss_map = {
-                "critical": 9.5,
-                "high": 7.5,
-                "medium": 5.0,
-                "low": 2.5,
-                "info": 0.5,
-            }
-            # EPSS estimation: calibrated medians from FIRST.org research
-            epss_map = {
-                "critical": 0.25,
-                "high": 0.10,
-                "medium": 0.03,
-                "low": 0.01,
-                "info": 0.001,
-            }
-            cvss = cvss_map.get(sev, 5.0)
-            epss = epss_map.get(sev, 0.03)
 
-            # Boost EPSS if exploit is known
-            if f.get("exploit_available"):
-                epss = min(epss * 3.0, 0.95)
+            # EPSS: real data from local feed DB, else estimate
+            if cve in epss_lookup:
+                f["epss_score"] = epss_lookup[cve]["epss"]
+                f["epss_percentile"] = epss_lookup[cve].get("percentile", 0.0)
+                f["epss_source"] = "feeds_db"
+                feed_hits += 1
+            else:
+                sev = f.get("severity", "medium").lower()
+                epss_est = {"critical": 0.25, "high": 0.10, "medium": 0.03,
+                            "low": 0.01, "info": 0.001}.get(sev, 0.03)
+                if f.get("exploit_available"):
+                    epss_est = min(epss_est * 3.0, 0.95)
+                f["epss_score"] = round(epss_est, 6)
+                f["epss_source"] = "estimated"
 
-            f["cvss_score"] = cvss
-            f["epss_score"] = round(epss, 6)
-            f["epss_source"] = "estimated"
-            f["in_kev"] = False  # Conservative: don't assume KEV without data
-            f["kev_source"] = "unavailable"
+            # KEV: real lookup from local feed DB
+            if cve in kev_lookup:
+                f["in_kev"] = True
+                f["kev_source"] = "feeds_db"
+                f["kev_date_added"] = kev_lookup[cve].get("date_added", "")
+                f["kev_due_date"] = kev_lookup[cve].get("due_date", "")
+                f["kev_ransomware"] = kev_lookup[cve].get("ransomware", "Unknown")
+                feed_hits += 1
+            else:
+                f["in_kev"] = False
+                f["kev_source"] = "feeds_db" if kev_lookup else "unavailable"
+
+            # CVSS: real data from NVD cache, else estimate from severity
+            if cve in nvd_lookup:
+                f["cvss_score"] = nvd_lookup[cve]
+                f["cvss_source"] = "feeds_db"
+            else:
+                sev = f.get("severity", "medium").lower()
+                f["cvss_score"] = {"critical": 9.5, "high": 7.5, "medium": 5.0,
+                                   "low": 2.5, "info": 0.5}.get(sev, 5.0)
+                f["cvss_source"] = "estimated"
+
             enriched += 1
 
-        return {"enriched": enriched, "unique_cves": len(set(cve_ids))}
+        ctx["_enrich_source"] = feed_source
+        ctx["_enrich_feed_hits"] = feed_hits
+        return {
+            "enriched": enriched,
+            "unique_cves": len(set(cve_ids)),
+            "source": feed_source,
+            "feed_hits": feed_hits,
+            "feed_misses": enriched - feed_hits,
+        }
+
+    @staticmethod
+    def _load_local_feeds() -> tuple:
+        """Load EPSS, KEV, and NVD data from local feed databases.
+
+        Returns (epss_dict, kev_dict, nvd_dict) — each keyed by CVE ID.
+        Returns empty dicts if databases are unavailable.
+        """
+        import sqlite3
+        from pathlib import Path
+
+        epss: Dict[str, Any] = {}
+        kev: Dict[str, Any] = {}
+        nvd: Dict[str, float] = {}
+
+        # Search for feeds.db in common locations
+        candidates = [
+            Path("data/feeds/feeds.db"),
+            Path(".fixops_data/feeds/feeds.db"),
+        ]
+        db_path = None
+        for p in candidates:
+            if p.exists():
+                db_path = p
+                break
+
+        if not db_path:
+            logger.info("No local feed database found — enrichment will use estimates")
+            return epss, kev, nvd
+
+        try:
+            conn = sqlite3.connect(str(db_path), timeout=5)
+            conn.row_factory = sqlite3.Row
+
+            # Load EPSS scores
+            try:
+                cursor = conn.execute("SELECT cve_id, epss, percentile FROM epss_scores")
+                for row in cursor:
+                    epss[row["cve_id"]] = {
+                        "epss": round(float(row["epss"]), 6),
+                        "percentile": round(float(row["percentile"]), 4),
+                    }
+            except sqlite3.OperationalError:
+                pass
+
+            # Load KEV entries
+            try:
+                cursor = conn.execute(
+                    "SELECT cve_id, date_added, due_date, known_ransomware_campaign_use "
+                    "FROM kev_entries"
+                )
+                for row in cursor:
+                    kev[row["cve_id"]] = {
+                        "date_added": row["date_added"] or "",
+                        "due_date": row["due_date"] or "",
+                        "ransomware": row["known_ransomware_campaign_use"] or "Unknown",
+                    }
+            except sqlite3.OperationalError:
+                pass
+
+            # Load NVD CVSS scores
+            try:
+                cursor = conn.execute("SELECT cve_id, cvss_v3_score FROM nvd_cves WHERE cvss_v3_score IS NOT NULL")
+                for row in cursor:
+                    score = row["cvss_v3_score"]
+                    if score is not None:
+                        nvd[row["cve_id"]] = round(float(score), 1)
+            except sqlite3.OperationalError:
+                pass
+
+            conn.close()
+            logger.info(
+                "Loaded local feeds: %d EPSS, %d KEV, %d NVD CVSS",
+                len(epss), len(kev), len(nvd),
+            )
+        except (sqlite3.Error, OSError) as e:
+            logger.warning("Failed to load local feeds: %s", type(e).__name__)
+
+        return epss, kev, nvd
 
     # ------------------------------------------------------------------
     # Step 7: Run smart algorithms (GNN + attack paths)

@@ -36,6 +36,14 @@ except ImportError:
 import jwt
 from apps.api.analytics_router import router as analytics_router
 from apps.api.audit_router import router as audit_router
+
+# Unified Triage router (crown jewel — finding + attack path + compliance + SLA in one call)
+triage_router: Optional[APIRouter] = None
+try:
+    from apps.api.triage_router import router as triage_router
+    logging.getLogger(__name__).info("Loaded Unified Triage router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("Triage router not available: %s", e)
 from apps.api.auth_router import router as auth_router
 from apps.api.bulk_router import router as bulk_router
 from apps.api.collaboration_router import router as collaboration_router
@@ -153,14 +161,29 @@ except ImportError as e:
 
 # ---------------------------------------------------------------------------
 # Suite-Feeds router (real-time vulnerability intelligence — from suite-feeds/api/)
+# Explicitly import from suite-feeds (richer 1,294 LOC version with NVD/KEV/EPSS)
+# rather than suite-core's 855 LOC version that sys.path would resolve first.
 # ---------------------------------------------------------------------------
 feeds_router: Optional[APIRouter] = None
 try:
-    from api.feeds_router import router as feeds_router
+    import importlib
+    import sys as _sys
+    from pathlib import Path as _FeedsPath
 
-    _logger.info("Loaded Feeds router from suite-feeds")
-except ImportError as e:
-    _logger.warning("Feeds router not available: %s", e)
+    _feeds_api_dir = str(_FeedsPath(__file__).resolve().parent.parent.parent.parent / "suite-feeds")
+    if _feeds_api_dir not in _sys.path:
+        _sys.path.insert(0, _feeds_api_dir)
+    _feeds_mod = importlib.import_module("api.feeds_router")
+    feeds_router = _feeds_mod.router
+    _logger.info("Loaded Feeds router from suite-feeds (production, 31 endpoints)")
+except (ImportError, AttributeError) as e:
+    # Fallback to whatever api.feeds_router sys.path resolves (suite-core version)
+    try:
+        from api.feeds_router import router as feeds_router
+
+        _logger.info("Loaded Feeds router from suite-core (fallback)")
+    except ImportError as e2:
+        _logger.warning("Feeds router not available: %s / %s", e, e2)
 
 # ---------------------------------------------------------------------------
 # Scanner Ingest router (25+ scanner parsers — from apps/api/)
@@ -172,6 +195,17 @@ try:
     _logger.info("Loaded Scanner Ingest router (15 new parsers)")
 except ImportError as e:
     _logger.warning("Scanner Ingest router not available: %s", e)
+
+# ---------------------------------------------------------------------------
+# Webhook Subscriptions router (push-based event notifications)
+# ---------------------------------------------------------------------------
+webhook_subscriptions_router: Optional[APIRouter] = None
+try:
+    from apps.api.webhook_subscriptions_router import router as webhook_subscriptions_router
+
+    _logger.info("Loaded Webhook Subscriptions router")
+except ImportError as e:
+    _logger.warning("Webhook Subscriptions router not available: %s", e)
 
 # ---------------------------------------------------------------------------
 # Sandbox PoC Verifier router (Docker-isolated exploit verification)
@@ -344,9 +378,6 @@ try:
 except ImportError as e:
     _logger.warning("Algorithmic router not available: %s", e)
 
-# intelligent_engine_routes.py deleted — replaced by mindsdb_router.py
-intelligent_engine_router: Optional[APIRouter] = None
-
 llm_monitor_router: Optional[APIRouter] = None
 try:
     from api.llm_monitor_router import router as llm_monitor_router
@@ -429,6 +460,15 @@ try:
     _logger.info("Loaded Self-Learning router from suite-core (V8)")
 except ImportError as e:
     _logger.warning("Self-Learning router not available: %s", e)
+
+# Developer Risk Profiles router (Apiiro-competitive feature)
+developer_profiles_router: Optional[APIRouter] = None
+try:
+    from api.developer_profiles_router import router as developer_profiles_router
+
+    _logger.info("Loaded Developer Risk Profiles router from suite-core")
+except ImportError as e:
+    _logger.warning("Developer Risk Profiles router not available: %s", e)
 
 # ---------------------------------------------------------------------------
 # Dependency-Track router (SBOM analysis — from suite-core/api/)
@@ -1511,6 +1551,10 @@ def create_app() -> FastAPI:
 
     app.include_router(analytics_router, dependencies=[Depends(_verify_api_key)])
 
+    # Unified Triage — crown jewel endpoint (finding + attack path + compliance + SLA)
+    if triage_router is not None:
+        app.include_router(triage_router, dependencies=[Depends(_verify_api_key)])
+
     # FAIL Engine — expanded fault injection, drill grading, neglect zones (Pillar V2)
     app.include_router(fail_router, dependencies=[Depends(_verify_api_key)])
 
@@ -1566,6 +1610,14 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key)],
         )
         _logger.info("Mounted Scanner Ingest router")
+
+    # Webhook Subscriptions — push-based event notifications (Aikido parity)
+    if webhook_subscriptions_router:
+        app.include_router(
+            webhook_subscriptions_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+        _logger.info("Mounted Webhook Subscriptions router")
 
     # Dependency-Track — SBOM analysis via OWASP Dependency-Track
     if dtrack_router:
@@ -1649,7 +1701,6 @@ def create_app() -> FastAPI:
         (predictions_router, "Predictions", None),
         (llm_router, "LLM", None),
         (algorithmic_router, "Algorithmic", None),
-        # intelligent_engine_router removed — replaced by mindsdb_router
         (llm_monitor_router, "LLM Monitor", None),
         (code_to_cloud_router, "Code-to-Cloud", None),
         (streaming_router, "SSE Streaming", None),
@@ -1660,6 +1711,7 @@ def create_app() -> FastAPI:
         (vllm_router, "Self-Hosted LLM (Air-Gapped)", None),
         (mcp_protocol_router, "MCP Protocol", None),
         (self_learning_router, "Self-Learning", None),
+        (developer_profiles_router, "Developer Risk Profiles", None),
     ]
     for _r, _name, _prefix in _core_routers:
         if _r:
@@ -1949,12 +2001,19 @@ def create_app() -> FastAPI:
             detected_manifests = sbom_data.get("detectedManifests")
             artifacts = sbom_data.get("artifacts")
             descriptor = sbom_data.get("descriptor")
+            # SPDX format detection — SPDX docs use spdxVersion/SPDXID/packages
+            spdx_version = sbom_data.get("spdxVersion")
+            spdx_id = sbom_data.get("SPDXID")
+            spdx_packages = sbom_data.get("packages")
 
             has_known_format = (
                 isinstance(components, list)
                 or isinstance(detected_manifests, dict)
                 or isinstance(artifacts, list)
                 or isinstance(descriptor, dict)
+                or isinstance(spdx_version, str)
+                or isinstance(spdx_id, str)
+                or isinstance(spdx_packages, list)
             )
 
             if not has_known_format and strict_validation:
@@ -1962,7 +2021,7 @@ def create_app() -> FastAPI:
                     status_code=422,
                     detail={
                         "message": "SBOM missing bomFormat and has unrecognized structure",
-                        "hint": "Provide bomFormat field or use a known format (CycloneDX, GitHub dependency snapshot, Syft)",
+                        "hint": "Provide bomFormat field or use a known format (CycloneDX, SPDX, GitHub dependency snapshot, Syft)",
                     },
                 )
 

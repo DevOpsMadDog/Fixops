@@ -775,123 +775,6 @@ async def get_fail_readiness():
             "last_assessed": datetime.now(timezone.utc).isoformat(),
         }
 
-
-# ── FEEDS (missing: GET /, GET /trending) ──
-feeds_gap = APIRouter(prefix="/api/v1/feeds", tags=["feeds-gap"], dependencies=_AUTH_DEP)
-
-@feeds_gap.get("")
-@feeds_gap.get("/")
-async def list_feeds(
-    page: int = Query(1, ge=1),
-    per_page: int = Query(50, ge=1, le=200),
-):
-    """List threat intelligence feeds from real feed database."""
-    try:
-        db_paths = [
-            "data/feeds/feeds.db",
-            ".fixops_data/feeds.db",
-            "data/feeds.db",
-        ]
-        conn = None
-        for p in db_paths:
-            if Path(p).exists():
-                conn = sqlite3.connect(p)
-                conn.row_factory = sqlite3.Row
-                break
-
-        if conn:
-            try:
-                rows = conn.execute("SELECT * FROM feeds ORDER BY last_sync DESC LIMIT ? OFFSET ?",
-                                    (per_page, (page - 1) * per_page)).fetchall()
-                total = conn.execute("SELECT COUNT(*) FROM feeds").fetchone()[0]
-                items = [dict(r) for r in rows]
-                conn.close()
-                return {"items": items, "total": total, "page": page, "per_page": per_page}
-            except sqlite3.OperationalError:
-                conn.close()
-    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
-        pass
-
-    # Fall back to FeedsService which manages all feed sources
-    try:
-        from feeds_service import FeedsService
-        svc = FeedsService()
-        # Get recent NVD CVEs as a proxy for feed activity
-        recent = svc.get_recent_nvd_cves(limit=per_page)
-        if recent:
-            return {"items": recent, "total": len(recent), "page": page, "per_page": per_page, "source": "feeds_service"}
-    except ImportError:
-        pass
-
-    # Minimal catalog of known configured feeds
-    catalog = [
-        {"id": "nvd", "name": "NVD CVE Feed", "source": "nvd.nist.gov", "type": "vulnerability", "status": "configured", "format": "JSON"},
-        {"id": "kev", "name": "CISA KEV", "source": "cisa.gov", "type": "known_exploited", "status": "configured", "format": "JSON"},
-        {"id": "mitre", "name": "MITRE ATT&CK", "source": "attack.mitre.org", "type": "attack_patterns", "status": "configured", "format": "STIX 2.1"},
-        {"id": "epss", "name": "EPSS Scores", "source": "first.org", "type": "exploit_prediction", "status": "configured", "format": "CSV"},
-        {"id": "osv", "name": "OSV Database", "source": "osv.dev", "type": "vulnerability", "status": "configured", "format": "JSON"},
-    ]
-    return {"items": catalog, "total": len(catalog), "page": page, "per_page": per_page}
-
-
-@feeds_gap.get("/trending")
-async def get_trending_threats():
-    """Get trending threats from real NVD/KEV/EPSS data via FeedsService."""
-    now = datetime.now(timezone.utc)
-
-    # Try FeedsService first — it has the real feed databases
-    try:
-        from feeds_service import FeedsService
-        svc = FeedsService()
-        # Get recent NVD CVEs sorted by severity
-        recent_cves = svc.get_recent_nvd_cves(severity="CRITICAL", limit=10)
-        if recent_cves:
-            trending = []
-            for cve in recent_cves:
-                d = cve if isinstance(cve, dict) else (cve.__dict__ if hasattr(cve, "__dict__") else {})
-                trending.append({
-                    "cve_id": d.get("cve_id", d.get("id", "")),
-                    "description": d.get("description", "")[:200],
-                    "cvss_score": d.get("cvss_score", d.get("base_score", 0)),
-                    "severity": d.get("severity", "CRITICAL"),
-                    "epss_score": d.get("epss_score", d.get("epss", 0)),
-                    "published": d.get("published", d.get("published_date", "")),
-                    "source": "nvd",
-                })
-            return {"trending": trending, "total": len(trending), "updated_at": now.isoformat(), "source": "feeds_service"}
-    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
-        logger.debug("FeedsService trending unavailable: %s", e)
-
-    # Fallback: query feeds DB directly
-    try:
-        db_paths = ["data/feeds/feeds.db", ".fixops_data/feeds.db", "data/feeds/nvd.db", "data/feeds/epss.db"]
-        for p in db_paths:
-            if Path(p).exists():
-                conn = sqlite3.connect(p)
-                conn.row_factory = sqlite3.Row
-                try:
-                    # Try multiple table/column names
-                    for query in [
-                        "SELECT * FROM cves ORDER BY epss_score DESC LIMIT 10",
-                        "SELECT * FROM nvd_cves ORDER BY cvss_score DESC LIMIT 10",
-                        "SELECT * FROM vulnerabilities ORDER BY base_score DESC LIMIT 10",
-                    ]:
-                        try:
-                            rows = conn.execute(query).fetchall()
-                            items = [dict(r) for r in rows]
-                            conn.close()
-                            return {"trending": items, "total": len(items), "updated_at": now.isoformat(), "source": "feeds_db"}
-                        except sqlite3.OperationalError:
-                            continue
-                    conn.close()
-                except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
-                    conn.close()
-    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
-        pass
-
-    return {"trending": [], "total": 0, "updated_at": now.isoformat(), "source": "none"}
-
-
 # ── GRAPH (missing: GET /attack-paths, POST /query, GET /visualize) ──
 graph_gap = APIRouter(prefix="/api/v1/graph", tags=["graph-gap"], dependencies=_AUTH_DEP)
 
@@ -1012,15 +895,23 @@ async def list_integrations_gap():
         from core.integration_db import IntegrationDB
         db = IntegrationDB()
         if hasattr(db, "list_integrations"):
-            items = db.list_integrations()
-            connected = sum(1 for i in items if i.get("connected") or i.get("status") == "configured")
+            raw_items = db.list_integrations()
+            # Normalise to dicts — list_integrations may return ORM objects
+            items = []
+            for i in raw_items:
+                d = i if isinstance(i, dict) else (i.__dict__ if hasattr(i, "__dict__") else {"id": str(i)})
+                items.append(d)
+            connected = sum(
+                1 for d in items
+                if d.get("connected") or d.get("status") == "configured"
+            )
             return {"integrations": items, "total": len(items), "connected": connected}
     except ImportError:
         pass
     # Query connector health as fallback
     try:
         from core.connectors import AutomationConnectors
-        ac = AutomationConnectors()
+        ac = AutomationConnectors({}, {})
         items = []
         for name in ["jira", "slack", "github", "gitlab", "azure_devops", "servicenow", "confluence"]:
             connector = getattr(ac, name, None)
@@ -1044,24 +935,28 @@ async def list_integrations_gap():
 async def list_marketplace_integrations():
     """List available integrations — from security connectors registry."""
     try:
-        from core.security_connectors import SecurityToolConnectors
-        stc = SecurityToolConnectors()
+        import core.security_connectors as _sc_mod
         marketplace = []
         connector_map = {
-            "snyk": ("SCA", "Open source security and license compliance"),
-            "sonarqube": ("SAST", "Continuous code quality and security analysis"),
-            "dependabot": ("SCA", "Automated dependency updates"),
-            "aws_security_hub": ("Cloud", "AWS centralized security view"),
-            "azure_defender": ("Cloud", "Azure security posture management"),
-            "wiz": ("Cloud", "Cloud security posture management"),
-            "prisma_cloud": ("CSPM", "Comprehensive cloud-native security platform"),
-            "orca": ("Cloud", "Agentless cloud security platform"),
-            "lacework": ("Cloud", "Cloud workload protection"),
-            "threatmapper": ("Container", "Open-source threat mapper"),
+            "snyk": ("SCA", "Open source security and license compliance", "SnykConnector"),
+            "sonarqube": ("SAST", "Continuous code quality and security analysis", "SonarQubeConnector"),
+            "dependabot": ("SCA", "Automated dependency updates", "DependabotConnector"),
+            "aws_security_hub": ("Cloud", "AWS centralized security view", "AWSSecurityHubConnector"),
+            "azure_defender": ("Cloud", "Azure security posture management", "AzureSecurityCenterConnector"),
+            "wiz": ("Cloud", "Cloud security posture management", "WizConnector"),
+            "prisma_cloud": ("CSPM", "Comprehensive cloud-native security platform", "PrismaCloudConnector"),
+            "orca": ("Cloud", "Agentless cloud security platform", "OrcaSecurityConnector"),
+            "lacework": ("Cloud", "Cloud workload protection", "LaceworkConnector"),
+            "threatmapper": ("Container", "Open-source threat mapper", "ThreatMapperConnector"),
         }
-        for name, (cat, desc) in connector_map.items():
-            connector = getattr(stc, name, None)
-            configured = getattr(connector, "configured", False) if connector else False
+        for name, (cat, desc, cls_name) in connector_map.items():
+            cls = getattr(_sc_mod, cls_name, None)
+            configured = False
+            if cls is not None:
+                try:
+                    configured = getattr(cls(), "configured", False)
+                except Exception:
+                    pass
             marketplace.append({
                 "id": name,
                 "name": name.replace("_", " ").title(),
@@ -1226,13 +1121,6 @@ async def list_playbook_templates():
          "steps": 10, "description": "Close unnecessary ports and restrict via firewall"},
     ]
     return {"templates": templates, "total": len(templates)}
-
-
-# ── POLICIES (missing: GET /api/v1/policies/) ──
-# This is actually handled by policies_router but the route is GET "" not GET "/"
-# The policies_router uses @router.get("") which should work, but let's check
-# We'll add a fallback
-policies_gap = APIRouter(prefix="/api/v1/policies", tags=["policies-gap"], dependencies=_AUTH_DEP)
 
 
 # ── PREDICTIONS (missing: GET /api/v1/predictions/) ──
@@ -1450,13 +1338,6 @@ async def ingest_scanner_results(request: Request):
         "message": f"Scan results queued for processing via {parser_id} parser",
     }
 
-
-# ── TEAMS (add root listing since the existing one uses @router.get("")) ──
-teams_gap = APIRouter(prefix="/api/v1/teams", tags=["teams-gap"], dependencies=_AUTH_DEP)
-
-
-# ── USERS (add root listing) ──
-users_gap = APIRouter(prefix="/api/v1/users", tags=["users-gap"], dependencies=_AUTH_DEP)
 
 
 # ── EVIDENCE (missing: POST /generate) ──
@@ -1727,7 +1608,7 @@ async def get_app_config():
     integrations = {}
     try:
         from core.connectors import AutomationConnectors
-        ac = AutomationConnectors()
+        ac = AutomationConnectors({}, {})
         for name in ["jira", "slack", "github", "gitlab", "azure_devops"]:
             connector = getattr(ac, name, None)
             integrations[name] = getattr(connector, "configured", False) if connector else False
@@ -2046,17 +1927,22 @@ async def list_registered_scanners():
     # Third-party scanners — check connector status
     third_party = []
     try:
-        from core.security_connectors import SecurityToolConnectors
-        stc = SecurityToolConnectors()
+        import core.security_connectors as _sc_mod2
         for name, display in [("snyk", "Snyk"), ("sonarqube", "SonarQube"), ("dependabot", "Dependabot")]:
-            connector = getattr(stc, name, None)
-            configured = getattr(connector, "configured", False) if connector else False
+            cls_map = {"snyk": "SnykConnector", "sonarqube": "SonarQubeConnector", "dependabot": "DependabotConnector"}
+            cls = getattr(_sc_mod2, cls_map.get(name, ""), None)
+            configured = False
+            if cls is not None:
+                try:
+                    configured = getattr(cls(), "configured", False)
+                except Exception:
+                    pass
             third_party.append({
                 "id": name, "name": display, "type": "third-party",
                 "status": "configured" if configured else "available",
                 "version": "latest", "capabilities": [], "findings_count": 0,
             })
-    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
+    except (ImportError, ValueError, KeyError, RuntimeError, TypeError, AttributeError):
         third_party = [
             {"id": "snyk", "name": "Snyk", "type": "third-party", "status": "available", "version": "latest", "capabilities": ["sca"], "findings_count": 0},
             {"id": "semgrep", "name": "Semgrep", "type": "third-party", "status": "available", "version": "latest", "capabilities": ["sast"], "findings_count": 0},
@@ -2095,7 +1981,7 @@ async def get_notification_preferences():
     # Check which notification channels are configured
     try:
         from core.connectors import AutomationConnectors
-        ac = AutomationConnectors()
+        ac = AutomationConnectors({}, {})
         channel_map = [
             ("email", "Email", None),
             ("slack", "Slack", ac.slack if hasattr(ac, "slack") else None),
@@ -2312,7 +2198,7 @@ async def list_all_findings(
 ):
     """List all findings across all scanners."""
     try:
-        from core.analytics_models import AnalyticsDB
+        from core.analytics_db import AnalyticsDB
         adb = AnalyticsDB()
         findings = adb.get_findings(limit=limit, offset=offset)
         items = []
@@ -2389,7 +2275,7 @@ def _load_findings_for_export(limit: int = 10_000) -> List[Dict[str, Any]]:
     # Fallback: try AnalyticsDB ORM
     if not items:
         try:
-            from core.analytics_models import AnalyticsDB
+            from core.analytics_db import AnalyticsDB
             adb = AnalyticsDB()
             raw = adb.get_findings(limit=limit)
             for f in raw:
@@ -2666,7 +2552,6 @@ ALL_GAP_ROUTERS = [
     bulk_gap,
     copilot_gap,
     fail_gap,
-    feeds_gap,
     graph_gap,
     integrations_gap,
     mpte_gap,

@@ -307,10 +307,28 @@ async def system_metrics() -> Dict[str, Any]:
 async def system_status() -> Dict[str, Any]:
     """Return simplified system status for dashboards.
 
-    Provides a quick UP/DOWN status with key indicators.
+    Provides a quick UP/DOWN status with key indicators derived from real checks.
     """
     now = datetime.now(timezone.utc)
     uptime_seconds = time.monotonic() - _START_TIME
+
+    # Check database — try to open the analytics DB
+    db_status = "down"
+    try:
+        import sqlite3
+        conn = sqlite3.connect("data/analytics.db", timeout=2)
+        conn.execute("SELECT 1")
+        conn.close()
+        db_status = "up"
+    except Exception:
+        pass
+
+    # Check AI engine — do we have any LLM API keys?
+    ai_status = "unavailable"
+    for key in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GOOGLE_API_KEY"):
+        if os.getenv(key):
+            ai_status = "available"
+            break
 
     return {
         "status": "operational",
@@ -321,10 +339,662 @@ async def system_status() -> Dict[str, Any]:
         "uptime_seconds": round(uptime_seconds, 1),
         "indicators": {
             "api": "up",
-            "database": "up",
+            "database": db_status,
             "scanners": "available",
-            "ai_engine": "standby",
+            "ai_engine": ai_status,
         },
+    }
+
+
+# ---------------------------------------------------------------------------
+# Readiness endpoint — the MOST IMPORTANT endpoint in the product.
+# Tells the customer exactly what's configured, missing, and degraded.
+# NO authentication required — first thing a customer checks after deploy.
+# NEVER exposes actual secret values — only reports whether they are set.
+# ---------------------------------------------------------------------------
+
+_FEED_FILES = {
+    "epss": "data/feeds/epss-latest.json",
+    "kev": "data/feeds/kev-latest.json",
+    "nvd": "data/feeds/nvd-recent.json",
+    "feeds_db": "data/feeds/feeds.db",
+    "epss_cache": "data/feeds/epss-enrichment-cache.json",
+}
+
+_CAPABILITY_DEFINITIONS = [
+    # --- LLM Providers ---
+    {
+        "name": "openai_llm",
+        "category": "llm_providers",
+        "env_var": "OPENAI_API_KEY",
+        "impact": "AI-powered triage, auto-remediation suggestions, and natural-language queries are unavailable.",
+        "priority": "recommended",
+        "capability_label": "OpenAI LLM Provider",
+    },
+    {
+        "name": "anthropic_llm",
+        "category": "llm_providers",
+        "env_var": "ANTHROPIC_API_KEY",
+        "impact": "Anthropic Claude-based analysis, code review, and advanced reasoning are unavailable.",
+        "priority": "optional",
+        "capability_label": "Anthropic LLM Provider",
+    },
+    {
+        "name": "google_llm",
+        "category": "llm_providers",
+        "env_var": "GOOGLE_API_KEY",
+        "impact": "Google Gemini-based analysis is unavailable.",
+        "priority": "optional",
+        "capability_label": "Google LLM Provider",
+    },
+    # --- Connectors ---
+    {
+        "name": "jira_connector",
+        "category": "connectors",
+        "env_var": "FIXOPS_JIRA_URL",
+        "impact": "Cannot create or sync Jira tickets for vulnerability remediation tracking.",
+        "priority": "recommended",
+        "capability_label": "Jira Integration",
+    },
+    {
+        "name": "slack_connector",
+        "category": "connectors",
+        "env_var": "FIXOPS_SLACK_WEBHOOK",
+        "impact": "Real-time Slack alerting for critical findings is unavailable.",
+        "priority": "recommended",
+        "capability_label": "Slack Notifications",
+    },
+    {
+        "name": "github_connector",
+        "category": "connectors",
+        "env_var": "FIXOPS_GITHUB_TOKEN",
+        "impact": "Cannot create GitHub issues/PRs or perform repository scanning via GitHub API.",
+        "priority": "recommended",
+        "capability_label": "GitHub Integration",
+    },
+    # --- Security Scanners ---
+    {
+        "name": "snyk_scanner",
+        "category": "security_scanners",
+        "env_var": "FIXOPS_SNYK_TOKEN",
+        "impact": "Snyk SCA/container vulnerability scanning is unavailable; must rely on built-in scanners.",
+        "priority": "optional",
+        "capability_label": "Snyk Scanner",
+    },
+    {
+        "name": "sonarqube_scanner",
+        "category": "security_scanners",
+        "env_var": "FIXOPS_SONARQUBE_URL",
+        "impact": "SonarQube code quality and SAST integration is unavailable.",
+        "priority": "optional",
+        "capability_label": "SonarQube Integration",
+    },
+    {
+        "name": "dependency_track",
+        "category": "security_scanners",
+        "env_var": "FIXOPS_DTRACK_API_KEY",
+        "alt_env_var": "DTRACK_API_KEY",
+        "impact": "Dependency-Track SBOM management and continuous monitoring are unavailable.",
+        "priority": "optional",
+        "capability_label": "Dependency-Track",
+    },
+    # --- PentAGI / MPTE ---
+    {
+        "name": "mpte_service",
+        "category": "pentagi",
+        "env_var": "MPTE_BASE_URL",
+        "impact": "Micro-pentest engine (MPTE) verification of exploitability is unavailable; cannot prove-before-patch.",
+        "priority": "recommended",
+        "capability_label": "MPTE Pentest Engine",
+    },
+]
+
+# Scoring weights (summing to 100)
+_SCORE_WEIGHTS: Dict[str, int] = {
+    # Critical infrastructure (40 points)
+    "core_databases": 20,
+    "data_directories": 10,
+    "brain_pipeline": 10,
+    # AI / Enrichment (25 points)
+    "any_llm": 15,
+    "feed_data": 10,
+    # Integration / Verification (20 points)
+    "any_connector": 10,
+    "mpte_service": 10,
+    # Security Scanners (15 points)
+    "any_security_scanner": 5,
+    "builtin_scanners": 10,
+}
+
+
+def _check_env_capability(defn: Dict[str, Any]) -> Dict[str, Any]:
+    """Check if an env-var-based capability is configured."""
+    env_var = defn["env_var"]
+    is_set = bool(os.getenv(env_var))
+    # Check alternate env var if present
+    alt_var = defn.get("alt_env_var")
+    if not is_set and alt_var:
+        is_set = bool(os.getenv(alt_var))
+
+    return {
+        "status": "configured" if is_set else "missing",
+        "env_var": env_var,
+        "alt_env_var": alt_var,
+        "impact": defn["impact"],
+        "priority": defn["priority"],
+        "label": defn["capability_label"],
+        "category": defn["category"],
+    }
+
+
+def _check_feed_freshness(feed_path: str) -> Dict[str, Any]:
+    """Check if a feed file exists and report its last-modified time."""
+    p = Path(feed_path)
+    if not p.exists():
+        return {"status": "missing", "path": feed_path}
+    try:
+        stat = p.stat()
+        mtime = datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
+        age_hours = (datetime.now(timezone.utc) - mtime).total_seconds() / 3600
+        size_kb = round(stat.st_size / 1024, 1)
+        freshness = "fresh" if age_hours < 24 else ("stale" if age_hours < 168 else "outdated")
+        return {
+            "status": "available",
+            "freshness": freshness,
+            "last_modified": mtime.isoformat() + "Z",
+            "age_hours": round(age_hours, 1),
+            "size_kb": size_kb,
+        }
+    except OSError:
+        return {"status": "error", "path": feed_path}
+
+
+def _compute_readiness_score(
+    capabilities: Dict[str, Dict[str, Any]],
+    db_health: Dict[str, Any],
+    feed_health: Dict[str, Any],
+    scanner_availability: Dict[str, Any],
+    brain_status: str,
+    dir_status: Dict[str, str],
+) -> int:
+    """Compute a 0-100 readiness score based on weighted component checks."""
+    score = 0
+
+    # --- Core databases (20 pts) ---
+    critical_dbs = ["analytics", "fixops_brain", "users"]
+    dbs_found = sum(1 for name in critical_dbs if db_health.get(name, {}).get("status") == "healthy")
+    score += int(_SCORE_WEIGHTS["core_databases"] * (dbs_found / max(len(critical_dbs), 1)))
+
+    # --- Data directories (10 pts) ---
+    total_dirs = len(dir_status)
+    accessible_dirs = sum(1 for v in dir_status.values() if v == "accessible")
+    score += int(_SCORE_WEIGHTS["data_directories"] * (accessible_dirs / max(total_dirs, 1)))
+
+    # --- Brain pipeline (10 pts) ---
+    if brain_status in ("loaded", "available"):
+        score += _SCORE_WEIGHTS["brain_pipeline"]
+
+    # --- Any LLM provider (15 pts) ---
+    llm_caps = {k: v for k, v in capabilities.items() if v.get("category") == "llm_providers"}
+    if any(v["status"] == "configured" for v in llm_caps.values()):
+        score += _SCORE_WEIGHTS["any_llm"]
+
+    # --- Feed data (10 pts) ---
+    feed_items = feed_health.get("feeds", {})
+    available_feeds = sum(1 for v in feed_items.values() if v.get("status") == "available")
+    total_feeds = max(len(feed_items), 1)
+    score += int(_SCORE_WEIGHTS["feed_data"] * (available_feeds / total_feeds))
+
+    # --- Any connector (10 pts) ---
+    connector_caps = {k: v for k, v in capabilities.items() if v.get("category") == "connectors"}
+    if any(v["status"] == "configured" for v in connector_caps.values()):
+        score += _SCORE_WEIGHTS["any_connector"]
+
+    # --- MPTE service (10 pts) ---
+    mpte_cap = capabilities.get("mpte_service", {})
+    if mpte_cap.get("status") == "configured":
+        score += _SCORE_WEIGHTS["mpte_service"]
+
+    # --- Any external security scanner (5 pts) ---
+    scanner_caps = {k: v for k, v in capabilities.items() if v.get("category") == "security_scanners"}
+    if any(v["status"] == "configured" for v in scanner_caps.values()):
+        score += _SCORE_WEIGHTS["any_security_scanner"]
+
+    # --- Built-in scanners (10 pts) ---
+    available_bi = scanner_availability.get("available", 0)
+    total_bi = max(scanner_availability.get("total", 1), 1)
+    score += int(_SCORE_WEIGHTS["builtin_scanners"] * (available_bi / total_bi))
+
+    return min(score, 100)
+
+
+def _readiness_level(score: int) -> str:
+    """Map numeric score to human-readable readiness level."""
+    if score <= 20:
+        return "not_ready"
+    if score <= 50:
+        return "basic"
+    if score <= 80:
+        return "operational"
+    return "production"
+
+
+@router.get("/readiness", summary="Full deployment readiness assessment")
+async def system_readiness() -> Dict[str, Any]:
+    """Comprehensive readiness check -- the first thing a customer runs after deploy.
+
+    Reports every integration, database, feed, and scanner with its status,
+    computes an overall readiness score (0-100), and provides actionable
+    recommendations for anything that is missing or degraded.
+
+    **No authentication required.**  Secret values are NEVER exposed --
+    only whether the corresponding env var is set.
+    """
+    now = datetime.now(timezone.utc)
+
+    # ---- 1. Check all env-var-based capabilities ----
+    capabilities: Dict[str, Dict[str, Any]] = {}
+    for defn in _CAPABILITY_DEFINITIONS:
+        capabilities[defn["name"]] = _check_env_capability(defn)
+
+    # ---- 2. Database health ----
+    db_files_to_check = {
+        "analytics": "data/analytics.db",
+        "fixops_brain": "data/fixops_brain.db",
+        "users": "data/users.db",
+        "integrations": "data/integrations.db",
+        "audit": "data/audit.db",
+        "policies": "data/policies.db",
+        "fail_engine": "data/fail_engine.db",
+        "mpte": "data/mpte.db",
+        "inventory": "data/inventory.db",
+        "compliance": "data/compliance.db",
+        "workflows": "data/workflows.db",
+    }
+    db_health: Dict[str, Any] = {}
+    for name, path_str in db_files_to_check.items():
+        db_health[name] = _check_db(path_str)
+    healthy_dbs = sum(1 for v in db_health.values() if v["status"] == "healthy")
+
+    # ---- 3. Feed data freshness ----
+    feed_details: Dict[str, Any] = {}
+    for feed_name, feed_path in _FEED_FILES.items():
+        feed_details[feed_name] = _check_feed_freshness(feed_path)
+    available_feeds = sum(1 for v in feed_details.values() if v.get("status") == "available")
+    stale_feeds = sum(1 for v in feed_details.values() if v.get("freshness") in ("stale", "outdated"))
+
+    feed_health: Dict[str, Any] = {
+        "total": len(feed_details),
+        "available": available_feeds,
+        "stale": stale_feeds,
+        "feeds": feed_details,
+    }
+
+    # ---- 4. Built-in scanner availability ----
+    scanner_modules = {
+        "sast": "core.sast_engine",
+        "dast": "core.dast_engine",
+        "secrets": "core.secrets_scanner",
+        "container": "core.container_scanner",
+        "cspm": "core.cspm_engine",
+        "autofix": "core.autofix_engine",
+    }
+    scanner_details: Dict[str, str] = {}
+    for name, module in scanner_modules.items():
+        if module in sys.modules:
+            scanner_details[name] = "loaded"
+        else:
+            parts = module.split(".")
+            module_path = Path("suite-core") / "/".join(parts[:-1]) / f"{parts[-1]}.py"
+            scanner_details[name] = "available" if module_path.exists() else "not_found"
+    available_scanners = sum(1 for v in scanner_details.values() if v in ("loaded", "available"))
+    scanner_availability = {
+        "total": len(scanner_details),
+        "available": available_scanners,
+        "details": scanner_details,
+    }
+
+    # ---- 5. Brain pipeline ----
+    brain_status = "not_found"
+    if "core.brain_pipeline" in sys.modules:
+        brain_status = "loaded"
+    elif Path("suite-core/core/brain_pipeline.py").exists():
+        brain_status = "available"
+
+    # ---- 6. Data directories ----
+    required_dirs = ["data", "data/archive", "data/evidence", "data/feeds", "data/findings"]
+    dir_status: Dict[str, str] = {}
+    for d in required_dirs:
+        p = Path(d)
+        if p.exists() and p.is_dir():
+            dir_status[d] = "accessible"
+        elif p.exists():
+            dir_status[d] = "not_directory"
+        else:
+            dir_status[d] = "missing"
+
+    # ---- 7. Compute readiness score ----
+    score = _compute_readiness_score(
+        capabilities=capabilities,
+        db_health=db_health,
+        feed_health=feed_health,
+        scanner_availability=scanner_availability,
+        brain_status=brain_status,
+        dir_status=dir_status,
+    )
+    level = _readiness_level(score)
+
+    # ---- 8. Build missing-critical list ----
+    missing_critical: list[Dict[str, str]] = []
+    # Critical databases
+    for db_name in ("analytics", "fixops_brain", "users"):
+        if db_health.get(db_name, {}).get("status") != "healthy":
+            missing_critical.append({
+                "component": f"database:{db_name}",
+                "status": db_health.get(db_name, {}).get("status", "unknown"),
+                "impact": f"The {db_name} database is missing or unhealthy; core functionality depends on it.",
+            })
+    # At least one LLM
+    llm_caps = {k: v for k, v in capabilities.items() if v.get("category") == "llm_providers"}
+    if not any(v["status"] == "configured" for v in llm_caps.values()):
+        missing_critical.append({
+            "component": "llm_provider",
+            "status": "none_configured",
+            "impact": "No LLM provider is configured. AI-powered triage, auto-fix, and NL queries are unavailable.",
+            "env_vars": "OPENAI_API_KEY or ANTHROPIC_API_KEY or GOOGLE_API_KEY",
+        })
+    # Brain pipeline
+    if brain_status == "not_found":
+        missing_critical.append({
+            "component": "brain_pipeline",
+            "status": "not_found",
+            "impact": "Brain pipeline module is missing; the 12-step CTEM decision engine cannot run.",
+        })
+
+    # ---- 9. Build recommendations ----
+    recommendations: list[str] = []
+
+    # Missing capabilities
+    for cap_name, cap in capabilities.items():
+        if cap["status"] == "missing" and cap["priority"] in ("critical", "recommended"):
+            env_hint = cap["env_var"]
+            if cap.get("alt_env_var"):
+                env_hint += f" (or {cap['alt_env_var']})"
+            recommendations.append(
+                f"Set {env_hint} to enable {cap['label']}. {cap['impact']}"
+            )
+
+    # Stale feeds
+    for feed_name, info in feed_details.items():
+        freshness = info.get("freshness")
+        if freshness == "outdated":
+            recommendations.append(
+                f"Feed '{feed_name}' is outdated (last updated {info.get('age_hours', '?')}h ago). "
+                f"Run the feed-sync job to refresh threat intelligence."
+            )
+        elif freshness == "stale":
+            recommendations.append(
+                f"Feed '{feed_name}' is stale (last updated {info.get('age_hours', '?')}h ago). "
+                f"Consider scheduling automatic feed updates."
+            )
+
+    # Missing feeds
+    for feed_name, info in feed_details.items():
+        if info.get("status") == "missing":
+            recommendations.append(
+                f"Feed '{feed_name}' is missing. Run the initial feed sync to populate threat intel data."
+            )
+
+    # Missing directories
+    for d, status in dir_status.items():
+        if status == "missing":
+            recommendations.append(f"Create directory '{d}' to enable data storage for that subsystem.")
+
+    # Unhealthy databases
+    for db_name, info in db_health.items():
+        if info.get("status") == "unhealthy":
+            recommendations.append(
+                f"Database '{db_name}' is unhealthy (error: {info.get('error', 'unknown')}). "
+                f"Check file permissions and disk space."
+            )
+
+    # General level-based advice
+    if level == "not_ready":
+        recommendations.append(
+            "URGENT: System is not ready for use. Ensure core databases exist and at least "
+            "one LLM provider is configured before onboarding users."
+        )
+    elif level == "basic":
+        recommendations.append(
+            "System can ingest and deduplicate findings but lacks AI enrichment. "
+            "Configure an LLM provider and connect at least one ticketing system."
+        )
+
+    return {
+        "readiness_score": score,
+        "readiness_level": level,
+        "timestamp": now.isoformat() + "Z",
+        "service": "fixops-api",
+        "version": _VERSION,
+        "capabilities": capabilities,
+        "databases": {
+            "total": len(db_health),
+            "healthy": healthy_dbs,
+            "details": db_health,
+        },
+        "feeds": feed_health,
+        "scanners": scanner_availability,
+        "brain_pipeline": {"status": brain_status},
+        "storage": {"directories": dir_status},
+        "missing_critical": missing_critical,
+        "recommendations": recommendations,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Guided Onboarding Wizard — step-by-step setup assistant for new deployments
+# Returns a checklist of setup steps with status and next actions.
+# Designed for first-time customers: "deploy → hit /onboarding → follow steps"
+# ---------------------------------------------------------------------------
+
+_ONBOARDING_STEPS = [
+    {
+        "step": 1,
+        "name": "core_infrastructure",
+        "title": "Core Infrastructure",
+        "description": "Verify data directories and databases are initialized",
+        "checks": [
+            {"name": "data_dir", "path": "data", "type": "directory"},
+            {"name": "feeds_dir", "path": "data/feeds", "type": "directory"},
+            {"name": "evidence_dir", "path": "data/evidence", "type": "directory"},
+            {"name": "analytics_db", "path": "data/analytics.db", "type": "database"},
+        ],
+    },
+    {
+        "step": 2,
+        "name": "threat_intelligence",
+        "title": "Threat Intelligence Feeds",
+        "description": "Sync EPSS, KEV, and NVD feeds for real-time enrichment",
+        "checks": [
+            {"name": "epss_feed", "path": "data/feeds/epss-latest.json", "type": "feed"},
+            {"name": "kev_feed", "path": "data/feeds/kev-latest.json", "type": "feed"},
+            {"name": "feeds_db", "path": "data/feeds/feeds.db", "type": "database"},
+        ],
+        "action": "POST /api/v1/feeds/sync to populate threat intel data",
+    },
+    {
+        "step": 3,
+        "name": "ai_provider",
+        "title": "AI Provider Configuration",
+        "description": "Configure at least one LLM for AI-powered triage and auto-fix",
+        "env_vars": ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GOOGLE_API_KEY"],
+        "action": "Set OPENAI_API_KEY or ANTHROPIC_API_KEY in environment",
+    },
+    {
+        "step": 4,
+        "name": "scanner_integration",
+        "title": "Scanner Integration",
+        "description": "Connect external scanners or use built-in scanners",
+        "env_vars": ["FIXOPS_SNYK_TOKEN", "FIXOPS_SONARQUBE_URL", "FIXOPS_GITHUB_TOKEN"],
+        "builtin_modules": [
+            "core.sast_engine", "core.dast_engine", "core.secrets_scanner",
+            "core.container_scanner", "core.cspm_engine",
+        ],
+        "action": "Built-in scanners work out of the box. External scanners are optional.",
+    },
+    {
+        "step": 5,
+        "name": "ticketing_integration",
+        "title": "Ticketing & Notifications",
+        "description": "Connect Jira, Slack, or GitHub for automated remediation tracking",
+        "env_vars": ["FIXOPS_JIRA_URL", "FIXOPS_SLACK_WEBHOOK", "FIXOPS_GITHUB_TOKEN"],
+        "action": "Set FIXOPS_JIRA_URL + FIXOPS_JIRA_TOKEN for Jira integration",
+    },
+    {
+        "step": 6,
+        "name": "first_pipeline_run",
+        "title": "Run First Pipeline",
+        "description": "Execute the brain pipeline to verify end-to-end flow",
+        "action": "POST /api/v1/brain/pipeline/run with sample findings",
+    },
+]
+
+
+@router.get("/onboarding", summary="Guided onboarding wizard")
+async def system_onboarding() -> Dict[str, Any]:
+    """Step-by-step onboarding wizard for new ALdeci deployments.
+
+    Returns a checklist of setup steps with completion status, progress
+    percentage, and next recommended action. Designed for first-time
+    customers — deploy, hit this endpoint, follow the steps.
+
+    **No authentication required** — first thing after deploy.
+    """
+    now = datetime.now(timezone.utc)
+    completed_steps = 0
+    total_steps = len(_ONBOARDING_STEPS)
+    step_results = []
+
+    for step_def in _ONBOARDING_STEPS:
+        step_status = "complete"
+        step_details: Dict[str, Any] = {}
+        issues: list[str] = []
+
+        # Check file/directory/database existence
+        for check in step_def.get("checks", []):
+            p = Path(check["path"])
+            if check["type"] == "directory":
+                if p.exists() and p.is_dir():
+                    step_details[check["name"]] = "ok"
+                else:
+                    step_details[check["name"]] = "missing"
+                    issues.append(f"Directory '{check['path']}' is missing")
+                    step_status = "incomplete"
+            elif check["type"] == "database":
+                db_result = _check_db(check["path"])
+                step_details[check["name"]] = db_result["status"]
+                if db_result["status"] != "healthy":
+                    issues.append(f"Database '{check['path']}' is {db_result['status']}")
+                    step_status = "incomplete"
+            elif check["type"] == "feed":
+                feed_result = _check_feed_freshness(check["path"])
+                step_details[check["name"]] = feed_result.get("status", "missing")
+                if feed_result.get("status") != "available":
+                    issues.append(f"Feed '{check['path']}' is missing — run feed sync")
+                    step_status = "incomplete"
+                elif feed_result.get("freshness") == "outdated":
+                    step_details[check["name"]] = "outdated"
+                    issues.append(f"Feed '{check['path']}' is outdated — rerun feed sync")
+                    step_status = "needs_update"
+
+        # Check environment variables
+        env_vars = step_def.get("env_vars", [])
+        if env_vars:
+            any_set = any(bool(os.getenv(v)) for v in env_vars)
+            step_details["env_vars_checked"] = len(env_vars)
+            step_details["env_vars_set"] = sum(1 for v in env_vars if os.getenv(v))
+            if not any_set:
+                step_status = "incomplete"
+                issues.append(f"No environment variable set from: {', '.join(env_vars)}")
+
+        # Check builtin scanner modules
+        builtin_modules = step_def.get("builtin_modules", [])
+        if builtin_modules:
+            available = 0
+            for mod in builtin_modules:
+                parts = mod.split(".")
+                module_path = Path("suite-core") / "/".join(parts[:-1]) / f"{parts[-1]}.py"
+                if module_path.exists() or mod in sys.modules:
+                    available += 1
+            step_details["builtin_scanners_available"] = available
+            step_details["builtin_scanners_total"] = len(builtin_modules)
+            if available >= 3:
+                if step_status == "incomplete" and not env_vars:
+                    step_status = "complete"
+                elif step_status == "incomplete":
+                    # External scanners optional if builtins available
+                    step_status = "optional"
+
+        # Special check for first pipeline run
+        if step_def["name"] == "first_pipeline_run":
+            try:
+                import sqlite3 as _sq3
+                brain_db = Path("data/fixops_brain.db")
+                if brain_db.exists():
+                    conn = _sq3.connect(str(brain_db), timeout=2)
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table'")
+                    tables = cursor.fetchone()[0]
+                    conn.close()
+                    if tables > 0:
+                        step_details["pipeline_db"] = "initialized"
+                    else:
+                        step_status = "incomplete"
+                        step_details["pipeline_db"] = "empty"
+                else:
+                    step_status = "incomplete"
+                    step_details["pipeline_db"] = "not_found"
+                    issues.append("No pipeline runs found. Run POST /api/v1/brain/pipeline/run")
+            except (OSError, ValueError, RuntimeError):
+                step_status = "incomplete"
+
+        if step_status in ("complete", "optional"):
+            completed_steps += 1
+
+        step_results.append({
+            "step": step_def["step"],
+            "name": step_def["name"],
+            "title": step_def["title"],
+            "description": step_def["description"],
+            "status": step_status,
+            "details": step_details,
+            "issues": issues,
+            "next_action": step_def.get("action"),
+        })
+
+    progress_pct = round(completed_steps / max(total_steps, 1) * 100, 1)
+
+    # Determine next recommended step
+    next_step = None
+    for sr in step_results:
+        if sr["status"] in ("incomplete", "needs_update"):
+            next_step = {
+                "step": sr["step"],
+                "title": sr["title"],
+                "action": sr.get("next_action"),
+            }
+            break
+
+    return {
+        "timestamp": now.isoformat() + "Z",
+        "service": "fixops-api",
+        "version": _VERSION,
+        "onboarding_progress": progress_pct,
+        "completed_steps": completed_steps,
+        "total_steps": total_steps,
+        "status": "complete" if completed_steps == total_steps else "in_progress",
+        "next_recommended_step": next_step,
+        "steps": step_results,
     }
 
 

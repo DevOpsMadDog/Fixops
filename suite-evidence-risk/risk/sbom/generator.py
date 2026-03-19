@@ -50,11 +50,210 @@ class SBOMComponent:
 
 
 class DependencyDiscoverer:
-    """Proprietary dependency discovery from source code."""
+    """Proprietary dependency discovery from source code and lockfiles."""
+
+    # Extended Python stdlib list for accurate filtering
+    _PYTHON_STDLIB = frozenset([
+        "sys", "os", "json", "datetime", "collections", "itertools",
+        "functools", "operator", "math", "random", "string", "re",
+        "pathlib", "typing", "abc", "io", "hashlib", "hmac", "secrets",
+        "sqlite3", "csv", "xml", "html", "http", "urllib", "email",
+        "logging", "unittest", "dataclasses", "enum", "copy", "shutil",
+        "tempfile", "glob", "fnmatch", "time", "threading", "multiprocessing",
+        "subprocess", "socket", "ssl", "signal", "struct", "array",
+        "queue", "heapq", "bisect", "weakref", "contextlib", "textwrap",
+        "difflib", "pprint", "inspect", "dis", "traceback", "warnings",
+        "argparse", "configparser", "importlib", "pkgutil", "platform",
+        "uuid", "base64", "binascii", "codecs", "decimal", "fractions",
+        "statistics", "cmath", "numbers", "ast", "token", "tokenize",
+        "pdb", "profile", "timeit", "trace", "gc", "resource",
+        "asyncio", "concurrent", "zipfile", "tarfile", "gzip", "bz2",
+        "lzma", "zlib", "pickle", "shelve", "marshal", "dbm",
+        "posixpath", "ntpath", "genericpath", "stat", "fileinput",
+        "linecache", "atexit", "builtins", "site", "sysconfig",
+        "_thread", "ctypes", "mmap", "select", "selectors", "errno",
+    ])
 
     def __init__(self):
         """Initialize dependency discoverer."""
         self.discovered_deps: Dict[str, Dependency] = {}
+
+    # -----------------------------------------------------------------
+    # Lockfile parsers — extract exact versions from package manager files
+    # -----------------------------------------------------------------
+
+    def discover_from_requirements_txt(self, file_path: Path) -> List[Dependency]:
+        """Parse Python requirements.txt / constraints.txt for pinned deps."""
+        dependencies = []
+        try:
+            content = file_path.read_text(encoding="utf-8")
+            for line in content.splitlines():
+                line = line.strip()
+                if not line or line.startswith("#") or line.startswith("-"):
+                    continue
+                # Handle: package==1.2.3, package>=1.0, package~=2.0
+                match = re.match(
+                    r"^([A-Za-z0-9][A-Za-z0-9._-]*)\s*(?:([=~<>!]=?)\s*([^\s;,#]+))?",
+                    line,
+                )
+                if match:
+                    name = match.group(1).lower()
+                    version = match.group(3) if match.group(2) in ("==", "~=") else None
+                    dependencies.append(Dependency(
+                        name=name,
+                        version=version,
+                        package_manager="pip",
+                        source_file=str(file_path),
+                        confidence=1.0 if version else 0.7,
+                    ))
+        except OSError:
+            logger.warning("Failed to read %s", file_path)
+        return dependencies
+
+    def discover_from_pipfile_lock(self, file_path: Path) -> List[Dependency]:
+        """Parse Pipfile.lock for exact pinned versions."""
+        import json as _json
+        dependencies = []
+        try:
+            data = _json.loads(file_path.read_text(encoding="utf-8"))
+            for section in ("default", "develop"):
+                packages = data.get(section, {})
+                for name, info in packages.items():
+                    if not isinstance(info, dict):
+                        continue
+                    version = info.get("version", "").lstrip("=")
+                    dependencies.append(Dependency(
+                        name=name.lower(),
+                        version=version or None,
+                        package_manager="pip",
+                        source_file=str(file_path),
+                        confidence=1.0,
+                    ))
+        except (OSError, ValueError):
+            logger.warning("Failed to parse %s", file_path)
+        return dependencies
+
+    def discover_from_package_lock_json(self, file_path: Path) -> List[Dependency]:
+        """Parse package-lock.json (npm) for exact pinned versions."""
+        import json as _json
+        dependencies = []
+        try:
+            data = _json.loads(file_path.read_text(encoding="utf-8"))
+            # npm lockfile v2/v3 uses "packages", v1 uses "dependencies"
+            packages = data.get("packages", {})
+            if packages:
+                for pkg_path, info in packages.items():
+                    if not pkg_path or not isinstance(info, dict):
+                        continue
+                    # Extract package name from node_modules path
+                    parts = pkg_path.split("node_modules/")
+                    if len(parts) < 2:
+                        continue
+                    name = parts[-1]
+                    version = info.get("version")
+                    dependencies.append(Dependency(
+                        name=name,
+                        version=version,
+                        package_manager="npm",
+                        source_file=str(file_path),
+                        confidence=1.0,
+                        license=info.get("license"),
+                    ))
+            else:
+                # Fallback to v1 format
+                for name, info in data.get("dependencies", {}).items():
+                    if not isinstance(info, dict):
+                        continue
+                    dependencies.append(Dependency(
+                        name=name,
+                        version=info.get("version"),
+                        package_manager="npm",
+                        source_file=str(file_path),
+                        confidence=1.0,
+                    ))
+        except (OSError, ValueError):
+            logger.warning("Failed to parse %s", file_path)
+        return dependencies
+
+    def discover_from_yarn_lock(self, file_path: Path) -> List[Dependency]:
+        """Parse yarn.lock for pinned versions (simplified parser)."""
+        dependencies = []
+        try:
+            content = file_path.read_text(encoding="utf-8")
+            current_pkg = None
+            for line in content.splitlines():
+                # Package header: "package-name@^1.0.0":
+                header = re.match(r'^"?(@?[^@\s"]+)@', line)
+                if header:
+                    current_pkg = header.group(1)
+                elif current_pkg and line.strip().startswith("version "):
+                    version = re.search(r'"([^"]+)"', line)
+                    if version:
+                        dependencies.append(Dependency(
+                            name=current_pkg,
+                            version=version.group(1),
+                            package_manager="npm",
+                            source_file=str(file_path),
+                            confidence=1.0,
+                        ))
+                    current_pkg = None
+        except OSError:
+            logger.warning("Failed to parse %s", file_path)
+        return dependencies
+
+    def discover_from_pom_xml(self, file_path: Path) -> List[Dependency]:
+        """Parse Maven pom.xml for dependencies."""
+        dependencies = []
+        try:
+            content = file_path.read_text(encoding="utf-8")
+            # Simple regex — avoids xml.etree for security (XXE)
+            dep_blocks = re.findall(
+                r"<dependency>\s*(.*?)\s*</dependency>",
+                content,
+                re.DOTALL,
+            )
+            for block in dep_blocks:
+                gid = re.search(r"<groupId>\s*([^<]+)\s*</groupId>", block)
+                aid = re.search(r"<artifactId>\s*([^<]+)\s*</artifactId>", block)
+                ver = re.search(r"<version>\s*([^<$]+)\s*</version>", block)
+                if gid and aid:
+                    name = f"{gid.group(1).strip()}:{aid.group(1).strip()}"
+                    version = ver.group(1).strip() if ver else None
+                    dependencies.append(Dependency(
+                        name=name,
+                        version=version,
+                        package_manager="maven",
+                        source_file=str(file_path),
+                        confidence=1.0 if version else 0.8,
+                    ))
+        except OSError:
+            logger.warning("Failed to parse %s", file_path)
+        return dependencies
+
+    def discover_from_go_sum(self, file_path: Path) -> List[Dependency]:
+        """Parse go.sum for Go module dependencies."""
+        dependencies = []
+        seen = set()
+        try:
+            content = file_path.read_text(encoding="utf-8")
+            for line in content.splitlines():
+                parts = line.strip().split()
+                if len(parts) >= 2:
+                    module = parts[0]
+                    version = parts[1].split("/")[0].lstrip("v")
+                    key = f"{module}@{version}"
+                    if key not in seen:
+                        seen.add(key)
+                        dependencies.append(Dependency(
+                            name=module,
+                            version=version,
+                            package_manager="go",
+                            source_file=str(file_path),
+                            confidence=1.0,
+                        ))
+        except OSError:
+            logger.warning("Failed to parse %s", file_path)
+        return dependencies
 
     def discover_from_python(self, file_path: Path) -> List[Dependency]:
         """Discover Python dependencies from code."""
@@ -158,20 +357,7 @@ class DependencyDiscoverer:
     ) -> Optional[Dependency]:
         """Parse Python import to dependency."""
         # Skip standard library
-        if module_name.split(".")[0] in [
-            "sys",
-            "os",
-            "json",
-            "datetime",
-            "collections",
-            "itertools",
-            "functools",
-            "operator",
-            "math",
-            "random",
-            "string",
-            "re",
-        ]:
+        if module_name.split(".")[0] in self._PYTHON_STDLIB:
             return None
 
         # Skip relative imports
@@ -185,6 +371,7 @@ class DependencyDiscoverer:
             name=package_name,
             package_manager="pip",
             source_file=str(file_path),
+            confidence=0.6,  # Heuristic — lower confidence than lockfile
         )
 
 
@@ -199,55 +386,99 @@ class SBOMGenerator:
     def generate_from_codebase(
         self, codebase_path: Path, output_format: SBOMFormat = SBOMFormat.CYCLONEDX
     ) -> Dict[str, Any]:
-        """Generate SBOM from codebase."""
+        """Generate SBOM from codebase using lockfiles + code analysis.
+
+        Resolution order (highest confidence first):
+        1. Lockfiles (exact versions — confidence 1.0)
+        2. Manifest files (declared deps — confidence 0.8-1.0)
+        3. Source code imports (heuristic — confidence 0.6)
+        """
         dependencies = []
 
-        # Discover dependencies from code
+        ignore_dirs = {".git", "node_modules", "venv", "__pycache__", "target", "build", ".tox", "dist"}
+
+        def _should_skip(p: Path) -> bool:
+            return any(part in ignore_dirs for part in p.parts)
+
+        # ----- Phase 1: Lockfiles (highest confidence) -----
+        lockfile_map = {
+            "requirements.txt": self.discoverer.discover_from_requirements_txt,
+            "requirements-dev.txt": self.discoverer.discover_from_requirements_txt,
+            "requirements-prod.txt": self.discoverer.discover_from_requirements_txt,
+            "Pipfile.lock": self.discoverer.discover_from_pipfile_lock,
+            "package-lock.json": self.discoverer.discover_from_package_lock_json,
+            "yarn.lock": self.discoverer.discover_from_yarn_lock,
+            "pom.xml": self.discoverer.discover_from_pom_xml,
+            "go.sum": self.discoverer.discover_from_go_sum,
+        }
+
+        lockfile_count = 0
+        for filename, parser in lockfile_map.items():
+            for lockfile in codebase_path.rglob(filename):
+                if not _should_skip(lockfile):
+                    deps = parser(lockfile)
+                    dependencies.extend(deps)
+                    if deps:
+                        lockfile_count += 1
+
+        # ----- Phase 2: Source code imports (lower confidence) -----
         python_files = list(codebase_path.rglob("*.py"))
         js_files = list(codebase_path.rglob("*.js")) + list(codebase_path.rglob("*.ts"))
         java_files = list(codebase_path.rglob("*.java"))
 
-        ignore_dirs = {".git", "node_modules", "venv", "__pycache__", "target", "build"}
-
         for py_file in python_files:
-            if not any(part in ignore_dirs for part in py_file.parts):
+            if not _should_skip(py_file):
                 deps = self.discoverer.discover_from_python(py_file)
                 dependencies.extend(deps)
 
         for js_file in js_files:
-            if not any(part in ignore_dirs for part in js_file.parts):
+            if not _should_skip(js_file):
                 deps = self.discoverer.discover_from_javascript(js_file)
                 dependencies.extend(deps)
 
         for java_file in java_files:
-            if not any(part in ignore_dirs for part in java_file.parts):
+            if not _should_skip(java_file):
                 deps = self.discoverer.discover_from_java(java_file)
                 dependencies.extend(deps)
 
-        # Deduplicate
+        # Deduplicate (lockfile versions take precedence over heuristic)
         unique_deps = self._deduplicate_dependencies(dependencies)
 
         # Generate SBOM
         if output_format == SBOMFormat.CYCLONEDX:
-            return self._generate_cyclonedx(unique_deps, codebase_path)
+            sbom = self._generate_cyclonedx(unique_deps, codebase_path)
         else:
-            return self._generate_spdx(unique_deps, codebase_path)
+            sbom = self._generate_spdx(unique_deps, codebase_path)
+
+        # Add discovery metadata
+        sbom["_discovery_metadata"] = {
+            "lockfiles_parsed": lockfile_count,
+            "source_files_scanned": len(python_files) + len(js_files) + len(java_files),
+            "total_components": len(unique_deps),
+            "with_exact_version": sum(1 for d in unique_deps if d.version and d.confidence >= 0.9),
+            "heuristic_only": sum(1 for d in unique_deps if d.confidence < 0.7),
+        }
+
+        return sbom
 
     def _deduplicate_dependencies(
         self, dependencies: List[Dependency]
     ) -> List[Dependency]:
-        """Deduplicate dependencies."""
-        seen = {}
+        """Deduplicate dependencies, preferring highest-confidence entries."""
+        seen: Dict[str, Dependency] = {}
 
         for dep in dependencies:
             key = f"{dep.package_manager}:{dep.name}"
             if key not in seen:
                 seen[key] = dep
             else:
-                # Merge versions if different
                 existing = seen[key]
-                if dep.version and not existing.version:
+                # Higher confidence wins (lockfile > heuristic)
+                if dep.confidence > existing.confidence:
+                    seen[key] = dep
+                elif dep.version and not existing.version:
                     existing.version = dep.version
+                    existing.confidence = max(existing.confidence, dep.confidence)
 
         return list(seen.values())
 

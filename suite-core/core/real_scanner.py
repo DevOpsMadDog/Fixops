@@ -15,13 +15,16 @@ Features:
 - IaC misconfiguration detection with pattern matching
 """
 
+import asyncio
 import hashlib
+import logging
 import re
 import ssl
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 import httpx
@@ -141,6 +144,46 @@ SQL_ERROR_PATTERNS = [
     r"System\.Data\.SQLite\.SQLiteException",
     r"unrecognized token:",
     r"SQLITE_ERROR",
+]
+
+# Time-based blind SQL injection payloads (one per DBMS)
+BLIND_SQLI_PAYLOADS = [
+    ("1' AND SLEEP(3)--", "mysql"),
+    ("1'; WAITFOR DELAY '0:0:3'--", "mssql"),
+    ("1' AND pg_sleep(3)--", "postgres"),
+    ("1' AND LIKE('ABCDEFG', UPPER(HEX(RANDOMBLOB(500000000))))--", "sqlite"),
+]
+
+# Threshold in seconds: if response exceeds baseline by this much, flag it
+_BLIND_SQLI_THRESHOLD_S = 2.5
+
+# SSRF probe parameters — URL-accepting parameter names commonly vulnerable
+_SSRF_PROBE_PARAMS = [
+    "redirect", "url", "link", "next", "callback", "path",
+    "file", "fetch", "load", "src", "image",
+]
+
+# SSRF probe URLs targeting internal/cloud metadata endpoints
+_SSRF_PROBE_URLS = [
+    "http://169.254.169.254/latest/meta-data/",
+    "http://127.0.0.1:80/",
+    "http://localhost:22/",
+]
+
+# SSRF response indicators suggesting the server made an outbound request
+_SSRF_ERROR_INDICATORS = [
+    "connection refused",
+    "connect to",
+    "could not connect",
+    "getaddrinfo",
+    "name or service not known",
+    "no route to host",
+]
+
+# CSRF token field names (case-insensitive partial matches)
+_CSRF_TOKEN_NAMES = [
+    "csrf", "token", "_token", "authenticity_token", "nonce",
+    "csrfmiddlewaretoken", "anti-forgery", "xsrf",
 ]
 
 # XSS test payloads
@@ -313,23 +356,118 @@ IAC_PATTERNS = {
 }
 
 
+logger = logging.getLogger(__name__)
+
+# Valid authentication types for ScanConfig
+_VALID_AUTH_TYPES = frozenset({
+    "none", "cookie", "bearer", "basic", "oauth2", "custom_header",
+})
+
+# Maximum limits to prevent misuse
+_MAX_CRAWL_DEPTH = 10
+_MAX_CRAWL_URLS = 500
+_MAX_EXCLUDE_PATTERNS = 50
+_MAX_LOGIN_BODY_KEYS = 20
+_MAX_COOKIES = 50
+_MAX_PAYLOADS_PER_CHECK = 100
+_MAX_SCAN_DELAY_MS = 10_000  # 10 seconds max delay
+
+
+@dataclass
+class ScanConfig:
+    """Configuration for authenticated and crawled scans."""
+
+    # Authentication
+    auth_type: str = "none"  # none, cookie, bearer, basic, oauth2, custom_header
+    auth_token: str = ""  # Bearer token, API key, etc.
+    auth_cookies: Dict[str, str] = field(default_factory=dict)  # Session cookies
+    auth_username: str = ""  # Basic auth username
+    auth_password: str = ""  # Basic auth password
+    auth_header_name: str = "Authorization"  # Custom header name
+    auth_header_value: str = ""  # Custom header value
+
+    # Login flow (for session-based auth)
+    login_url: str = ""  # POST login URL
+    login_body: Dict[str, str] = field(default_factory=dict)  # Login form data
+    login_success_indicator: str = ""  # String in response that indicates success
+
+    # Crawling
+    crawl: bool = False  # Enable application crawling before scanning
+    max_crawl_depth: int = 3  # Maximum crawl depth
+    max_crawl_urls: int = 50  # Maximum URLs to crawl
+    crawl_scope: str = "same-origin"  # same-origin, same-domain, custom
+    exclude_patterns: List[str] = field(default_factory=list)  # URL patterns to skip
+
+    # Scan tuning
+    max_payloads_per_check: int = 10  # Limit payloads per vulnerability check
+    scan_delay_ms: int = 0  # Delay between requests (rate limiting)
+
+    def __post_init__(self) -> None:
+        """Validate configuration values after initialization."""
+        # Validate auth_type
+        if self.auth_type not in _VALID_AUTH_TYPES:
+            raise ValueError(
+                f"Invalid auth_type '{self.auth_type}'. "
+                f"Must be one of: {', '.join(sorted(_VALID_AUTH_TYPES))}"
+            )
+        # Clamp numeric limits
+        self.max_crawl_depth = max(0, min(self.max_crawl_depth, _MAX_CRAWL_DEPTH))
+        self.max_crawl_urls = max(1, min(self.max_crawl_urls, _MAX_CRAWL_URLS))
+        self.max_payloads_per_check = max(1, min(self.max_payloads_per_check, _MAX_PAYLOADS_PER_CHECK))
+        self.scan_delay_ms = max(0, min(self.scan_delay_ms, _MAX_SCAN_DELAY_MS))
+        # Validate crawl_scope
+        if self.crawl_scope not in ("same-origin", "same-domain", "custom"):
+            self.crawl_scope = "same-origin"
+        # Truncate lists to prevent abuse
+        if len(self.exclude_patterns) > _MAX_EXCLUDE_PATTERNS:
+            self.exclude_patterns = self.exclude_patterns[:_MAX_EXCLUDE_PATTERNS]
+        if len(self.login_body) > _MAX_LOGIN_BODY_KEYS:
+            raise ValueError(
+                f"login_body has {len(self.login_body)} keys, maximum is {_MAX_LOGIN_BODY_KEYS}"
+            )
+        if len(self.auth_cookies) > _MAX_COOKIES:
+            raise ValueError(
+                f"auth_cookies has {len(self.auth_cookies)} entries, maximum is {_MAX_COOKIES}"
+            )
+        # Validate login_url scheme if provided
+        if self.login_url:
+            parsed = urlparse(self.login_url)
+            if parsed.scheme not in ("http", "https"):
+                raise ValueError(
+                    f"login_url must use http or https scheme, got '{parsed.scheme}'"
+                )
+
+
 class RealVulnerabilityScanner:
     """Real HTTP-based vulnerability scanner.
 
     This scanner performs ACTUAL security tests against target URLs,
-    not simulated or mocked responses.
+    not simulated or mocked responses. Supports authenticated scanning
+    via cookies, bearer tokens, basic auth, or custom headers, and
+    application crawling to discover scan targets beyond the initial URL.
     """
 
-    def __init__(self, timeout: float = 30.0, verify_ssl: bool = True):
+    def __init__(
+        self,
+        timeout: float = 30.0,
+        verify_ssl: bool = True,
+        config: Optional[ScanConfig] = None,
+    ):
         self.timeout = timeout
         self.verify_ssl = verify_ssl
+        self.config = config or ScanConfig()
         self._findings: List[RealFinding] = []
         self.architecture_profiles: Dict[str, ArchitectureProfile] = {}
+        self._crawled_urls: List[str] = []
 
     async def scan_url(
         self, url: str, headers: Optional[Dict[str, str]] = None
     ) -> List[RealFinding]:
         """Perform comprehensive security scan on a URL.
+
+        If a ScanConfig with authentication is provided, the scanner will
+        authenticate before scanning.  If crawling is enabled, the scanner
+        discovers additional URLs from the application and scans each one.
 
         Args:
             url: Target URL to scan
@@ -339,74 +477,602 @@ class RealVulnerabilityScanner:
             List of real security findings
         """
         self._findings = []
+        self._crawled_urls = []
 
-        async with httpx.AsyncClient(
-            timeout=self.timeout,
-            verify=self.verify_ssl,
-            follow_redirects=True,
-        ) as client:
-            # Phase 0: Architecture Intelligence Profiling
-            arch_profile = await self._profile_architecture(client, url, headers)
-            self.architecture_profiles[url] = arch_profile
+        # Build auth-aware headers
+        auth_headers = self._build_auth_headers(headers)
 
-            # Phase 1: Basic connectivity and header check
-            await self._check_security_headers(client, url, headers)
+        # Build client kwargs including cookies from config
+        client_kwargs: Dict[str, Any] = {
+            "timeout": self.timeout,
+            "verify": self.verify_ssl,
+            "follow_redirects": True,
+        }
+        if self.config.auth_cookies:
+            client_kwargs["cookies"] = dict(self.config.auth_cookies)
 
-            # Phase 2: SSL/TLS check
-            await self._check_ssl_tls(url)
+        # Basic auth support
+        if self.config.auth_type == "basic" and self.config.auth_username:
+            client_kwargs["auth"] = (self.config.auth_username, self.config.auth_password)
 
-            # Phase 3: SQL Injection check
-            await self._check_sql_injection(client, url, headers)
+        async with httpx.AsyncClient(**client_kwargs) as client:
+            # Perform login flow if configured
+            if self.config.login_url:
+                login_ok = await self._perform_login(client, self.config)
+                if not login_ok:
+                    logger.warning(
+                        "Login flow failed for %s — proceeding unauthenticated",
+                        self.config.login_url,
+                    )
 
-            # Phase 4: XSS check
-            await self._check_xss(client, url, headers)
+            # Determine scan targets
+            scan_targets: List[str] = [url]
+            if self.config.crawl:
+                crawled = await self._crawl_application(client, url, auth_headers)
+                self._crawled_urls = crawled
+                # Merge: original URL + crawled URLs (deduplicated, order preserved)
+                seen: Set[str] = {url}
+                for crawled_url in crawled:
+                    if crawled_url not in seen:
+                        scan_targets.append(crawled_url)
+                        seen.add(crawled_url)
+                logger.info(
+                    "Crawl complete: %d URLs discovered, %d total scan targets",
+                    len(crawled),
+                    len(scan_targets),
+                )
 
-            # Phase 5: Information disclosure
-            await self._check_information_disclosure(client, url, headers)
+            # Scan each target URL
+            for target_url in scan_targets:
+                await self._scan_single_url(client, target_url, auth_headers)
 
-            # Phase 6: Path traversal
-            await self._check_path_traversal(client, url, headers)
-
-            # Phase 7: CORS misconfiguration
-            await self._check_cors_misconfiguration(client, url, headers)
-
-            # Phase 8: Cookie security
-            await self._check_cookie_security(client, url, headers)
-
-            # Phase 9: HTTP method enumeration
-            await self._check_http_methods(client, url, headers)
-
-            # Phase 10: Technology fingerprinting
-            await self._check_technology_fingerprinting(client, url, headers)
-
-            # Phase 11: WAF detection
-            await self._check_waf_detection(client, url, headers)
-
-            # Phase 12: Open redirect
-            await self._check_open_redirect(client, url, headers)
-
-            # Phase 13: CRLF injection
-            await self._check_crlf_injection(client, url, headers)
-
-            # Phase 14: API endpoint discovery
-            await self._check_api_endpoint_discovery(client, url, headers)
-
-            # Phase 15: Server-Side Template Injection (SSTI)
-            await self._check_ssti(client, url, headers)
-
-            # Phase 16: HTTP Request Smuggling indicators
-            await self._check_http_request_smuggling(client, url, headers)
-
-            # Phase 17: Host Header Injection
-            await self._check_host_header_injection(client, url, headers)
-
-            # Phase 18: Deserialization indicators
-            await self._check_deserialization(client, url, headers)
-
-            # Phase 19: Cache Poisoning
-            await self._check_cache_poisoning(client, url, headers)
+                # Respect scan delay between URLs
+                if self.config.scan_delay_ms > 0 and target_url != scan_targets[-1]:
+                    await asyncio.sleep(self.config.scan_delay_ms / 1000.0)
 
         return self._findings
+
+    async def _scan_single_url(
+        self,
+        client: httpx.AsyncClient,
+        url: str,
+        headers: Optional[Dict[str, str]] = None,
+    ) -> None:
+        """Run all scan phases on a single URL.
+
+        This method encapsulates the original scan logic so it can be
+        called once per URL when crawling discovers multiple targets.
+        """
+        # Phase 0: Architecture Intelligence Profiling
+        arch_profile = await self._profile_architecture(client, url, headers)
+        self.architecture_profiles[url] = arch_profile
+
+        # Phase 1: Basic connectivity and header check
+        await self._check_security_headers(client, url, headers)
+
+        # Phase 2: SSL/TLS check
+        await self._check_ssl_tls(url)
+
+        # Phase 3: SQL Injection check (error-based + time-based blind)
+        await self._check_sql_injection(client, url, headers)
+
+        # Phase 4: XSS check
+        await self._check_xss(client, url, headers)
+
+        # Phase 5: Information disclosure
+        await self._check_information_disclosure(client, url, headers)
+
+        # Phase 6: Path traversal
+        await self._check_path_traversal(client, url, headers)
+
+        # Phase 7: CORS misconfiguration
+        await self._check_cors_misconfiguration(client, url, headers)
+
+        # Phase 8: Cookie security
+        await self._check_cookie_security(client, url, headers)
+
+        # Phase 9: HTTP method enumeration
+        await self._check_http_methods(client, url, headers)
+
+        # Phase 10: Technology fingerprinting
+        await self._check_technology_fingerprinting(client, url, headers)
+
+        # Phase 11: WAF detection
+        await self._check_waf_detection(client, url, headers)
+
+        # Phase 12: Open redirect
+        await self._check_open_redirect(client, url, headers)
+
+        # Phase 13: CRLF injection
+        await self._check_crlf_injection(client, url, headers)
+
+        # Phase 14: API endpoint discovery
+        await self._check_api_endpoint_discovery(client, url, headers)
+
+        # Phase 15: Server-Side Template Injection (SSTI)
+        await self._check_ssti(client, url, headers)
+
+        # Phase 16: HTTP Request Smuggling indicators
+        await self._check_http_request_smuggling(client, url, headers)
+
+        # Phase 17: Host Header Injection
+        await self._check_host_header_injection(client, url, headers)
+
+        # Phase 18: Deserialization indicators
+        await self._check_deserialization(client, url, headers)
+
+        # Phase 19: Cache Poisoning
+        await self._check_cache_poisoning(client, url, headers)
+
+        # Phase 20: SSRF (Server-Side Request Forgery)
+        await self._check_ssrf(client, url, headers)
+
+        # Phase 21: CSRF (Cross-Site Request Forgery)
+        await self._check_csrf(client, url, headers)
+
+    def _build_auth_headers(
+        self, base_headers: Optional[Dict[str, str]] = None
+    ) -> Dict[str, str]:
+        """Merge authentication headers from ScanConfig into base headers.
+
+        Returns a new dict — the original *base_headers* is never mutated.
+        """
+        merged: Dict[str, str] = dict(base_headers or {})
+        cfg = self.config
+
+        if cfg.auth_type == "bearer" and cfg.auth_token:
+            merged["Authorization"] = f"Bearer {cfg.auth_token}"
+        elif cfg.auth_type == "oauth2" and cfg.auth_token:
+            merged["Authorization"] = f"Bearer {cfg.auth_token}"
+        elif cfg.auth_type == "custom_header" and cfg.auth_header_name and cfg.auth_header_value:
+            merged[cfg.auth_header_name] = cfg.auth_header_value
+        # "basic" auth is handled via httpx's auth= parameter, not headers
+        # "cookie" auth is handled via httpx's cookies= parameter
+        # "none" requires no extra headers
+
+        return merged
+
+    async def _perform_login(
+        self, client: httpx.AsyncClient, config: ScanConfig
+    ) -> bool:
+        """Perform session-based login flow.
+
+        POSTs credentials to ``config.login_url`` and captures the resulting
+        session cookies. Supports both form-encoded and JSON login bodies.
+
+        Args:
+            client: The httpx async client (cookies are stored on it).
+            config: Scan configuration with login details.
+
+        Returns:
+            True if login succeeded, False otherwise.
+        """
+        if not config.login_url or not config.login_body:
+            return False
+
+        try:
+            # Determine content type: if login URL hints at an API, use JSON.
+            # Otherwise use form encoding.
+            login_url_lower = config.login_url.lower()
+            use_json = any(
+                kw in login_url_lower
+                for kw in ("/api/", "/graphql", "/auth/token", "/oauth/")
+            )
+
+            if use_json:
+                response = await client.post(
+                    config.login_url,
+                    json=config.login_body,
+                    timeout=min(self.timeout, 15.0),
+                )
+            else:
+                response = await client.post(
+                    config.login_url,
+                    data=config.login_body,
+                    timeout=min(self.timeout, 15.0),
+                )
+
+            # Check HTTP status first
+            if response.status_code >= 400:
+                logger.warning(
+                    "Login POST to %s returned HTTP %d",
+                    config.login_url,
+                    response.status_code,
+                )
+                return False
+
+            # Capture any Set-Cookie headers — httpx stores them on the client
+            # automatically, so we just verify success.
+
+            # Check for bearer token in JSON response body
+            if "application/json" in response.headers.get("content-type", ""):
+                try:
+                    body = response.json()
+                    # Common token field names
+                    for token_field in ("access_token", "token", "jwt", "id_token", "auth_token"):
+                        token_val = body.get(token_field)
+                        if token_val and isinstance(token_val, str):
+                            # Store as bearer token for subsequent requests
+                            self.config = ScanConfig(
+                                auth_type="bearer",
+                                auth_token=token_val,
+                                # Preserve the rest of the config
+                                auth_cookies=config.auth_cookies,
+                                crawl=config.crawl,
+                                max_crawl_depth=config.max_crawl_depth,
+                                max_crawl_urls=config.max_crawl_urls,
+                                crawl_scope=config.crawl_scope,
+                                exclude_patterns=config.exclude_patterns,
+                                max_payloads_per_check=config.max_payloads_per_check,
+                                scan_delay_ms=config.scan_delay_ms,
+                            )
+                            logger.info(
+                                "Login succeeded — captured bearer token from '%s' field",
+                                token_field,
+                            )
+                            return True
+                except (ValueError, AttributeError):
+                    pass
+
+            # Verify via success indicator string
+            if config.login_success_indicator:
+                response_text = response.text
+                if config.login_success_indicator in response_text:
+                    logger.info("Login succeeded — success indicator found in response")
+                    return True
+                else:
+                    logger.warning(
+                        "Login success indicator '%s' not found in response",
+                        config.login_success_indicator,
+                    )
+                    return False
+
+            # No explicit indicator — if we got cookies and a 2xx/3xx, assume success
+            if response.cookies or client.cookies:
+                logger.info(
+                    "Login assumed successful — %d cookies received",
+                    len(response.cookies) + len(client.cookies),
+                )
+                return True
+
+            # 2xx with no cookies and no indicator — optimistic success
+            if 200 <= response.status_code < 300:
+                logger.info("Login returned HTTP %d — assuming success", response.status_code)
+                return True
+
+            return False
+
+        except httpx.RequestError as exc:
+            logger.warning(
+                "Login request to %s failed: %s",
+                config.login_url,
+                type(exc).__name__,
+            )
+            return False
+
+    async def _crawl_application(
+        self,
+        client: httpx.AsyncClient,
+        base_url: str,
+        headers: Optional[Dict[str, str]] = None,
+    ) -> List[str]:
+        """Crawl the target application to discover scannable URLs.
+
+        Uses regex-based HTML parsing (no BeautifulSoup dependency) to extract
+        links from ``href``, ``src``, and ``action`` attributes, plus common
+        JavaScript ``fetch``/``axios`` URL patterns.
+
+        Args:
+            client: Authenticated httpx async client.
+            base_url: Starting URL to crawl from.
+            headers: HTTP headers to include in crawl requests.
+
+        Returns:
+            Deduplicated list of discovered URLs within scope.
+        """
+        parsed_base = urlparse(base_url)
+        base_origin = f"{parsed_base.scheme}://{parsed_base.netloc}"
+        base_domain = parsed_base.hostname or ""
+
+        discovered: List[str] = []
+        visited: Set[str] = set()
+        queue: List[tuple] = [(base_url, 0)]  # (url, depth) pairs
+
+        # Compile exclude patterns once
+        exclude_regexes: List[re.Pattern] = []
+        for pattern in self.config.exclude_patterns:
+            try:
+                exclude_regexes.append(re.compile(pattern))
+            except re.error:
+                logger.warning("Invalid exclude pattern ignored: %s", pattern)
+
+        # Regex patterns for link extraction (no external HTML parser needed)
+        _HREF_SRC_ACTION = re.compile(
+            r"""(?:href|src|action)\s*=\s*["']([^"'#]+?)["']""",
+            re.IGNORECASE,
+        )
+        _JS_FETCH_URLS = re.compile(
+            r"""(?:fetch|axios\.(?:get|post|put|delete|patch))\s*\(\s*["'`]([^"'`]+?)["'`]""",
+            re.IGNORECASE,
+        )
+        _JS_URL_ASSIGN = re.compile(
+            r"""(?:url|endpoint|apiUrl|href)\s*[:=]\s*["'`]([^"'`]+?)["'`]""",
+            re.IGNORECASE,
+        )
+
+        while queue and len(discovered) < self.config.max_crawl_urls:
+            current_url, depth = queue.pop(0)
+
+            # Normalize URL before checking visited set
+            normalized = self._normalize_crawl_url(current_url, base_origin)
+            if not normalized or normalized in visited:
+                continue
+
+            visited.add(normalized)
+
+            # Enforce depth limit
+            if depth > self.config.max_crawl_depth:
+                continue
+
+            # Check scope
+            if not self._url_in_crawl_scope(normalized, parsed_base, base_domain):
+                continue
+
+            # Check exclude patterns
+            if any(rx.search(normalized) for rx in exclude_regexes):
+                continue
+
+            # Fetch the page
+            try:
+                resp = await client.get(
+                    normalized,
+                    headers=headers,
+                    timeout=min(self.timeout, 10.0),
+                    follow_redirects=True,
+                )
+            except httpx.RequestError:
+                continue
+
+            # Skip error responses
+            content_type = resp.headers.get("content-type", "").lower()
+            if resp.status_code >= 400:
+                continue
+
+            # Record this URL as discovered
+            if normalized != base_url and normalized not in discovered:
+                discovered.append(normalized)
+
+            # Only extract links from HTML/XHTML content
+            if "html" not in content_type and "xhtml" not in content_type:
+                continue
+
+            # Limit body size we parse to avoid OOM on huge pages
+            body = resp.text[:500_000]
+
+            # Extract links from HTML attributes
+            raw_links: List[str] = []
+            raw_links.extend(_HREF_SRC_ACTION.findall(body))
+
+            # Extract URLs from inline JavaScript
+            raw_links.extend(_JS_FETCH_URLS.findall(body))
+            raw_links.extend(_JS_URL_ASSIGN.findall(body))
+
+            # Resolve and queue discovered links
+            for raw_link in raw_links:
+                raw_link = raw_link.strip()
+                if not raw_link:
+                    continue
+
+                # Skip non-navigable schemes
+                if raw_link.startswith(("javascript:", "mailto:", "tel:", "data:", "#")):
+                    continue
+
+                # Resolve relative URLs
+                resolved = urljoin(normalized, raw_link)
+
+                # Strip fragment
+                frag_idx = resolved.find("#")
+                if frag_idx != -1:
+                    resolved = resolved[:frag_idx]
+
+                if resolved and resolved not in visited:
+                    queue.append((resolved, depth + 1))
+
+            # Respect scan delay during crawling too
+            if self.config.scan_delay_ms > 0:
+                await asyncio.sleep(self.config.scan_delay_ms / 1000.0)
+
+        logger.info(
+            "Crawl finished: visited %d pages, discovered %d URLs",
+            len(visited),
+            len(discovered),
+        )
+        return discovered
+
+    def _normalize_crawl_url(self, url: str, base_origin: str) -> Optional[str]:
+        """Normalize a URL for crawling — resolve relative, strip fragments.
+
+        Returns None if the URL is not valid for crawling.
+        """
+        if not url:
+            return None
+
+        # Resolve relative URLs against base origin
+        if url.startswith("/"):
+            url = base_origin + url
+
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            return None
+
+        # Strip fragment and trailing whitespace
+        clean = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+        if parsed.query:
+            clean += f"?{parsed.query}"
+
+        return clean
+
+    def _url_in_crawl_scope(
+        self, url: str, base_parsed: Any, base_domain: str
+    ) -> bool:
+        """Check whether a URL falls within the configured crawl scope."""
+        parsed = urlparse(url)
+        url_host = (parsed.hostname or "").lower()
+        base_host = base_domain.lower()
+
+        if self.config.crawl_scope == "same-origin":
+            # Must match scheme + host + port exactly
+            return (
+                parsed.scheme == base_parsed.scheme
+                and parsed.netloc == base_parsed.netloc
+            )
+        elif self.config.crawl_scope == "same-domain":
+            # Host must match or be a subdomain of the base domain
+            return url_host == base_host or url_host.endswith(f".{base_host}")
+        elif self.config.crawl_scope == "custom":
+            # Custom scope: rely solely on exclude_patterns for filtering
+            return parsed.scheme in ("http", "https")
+
+        return False
+
+    # ── OpenAPI / Swagger Schema Import ──────────────────────────────
+
+    @staticmethod
+    def parse_openapi_spec(
+        spec: Dict[str, Any], base_url: str
+    ) -> List[Dict[str, Any]]:
+        """Parse an OpenAPI/Swagger spec and generate scan targets.
+
+        Supports OpenAPI 3.x (``servers``) and Swagger 2.0 (``basePath``).
+        Path parameters are replaced with fuzz-safe defaults. Query parameters
+        get type-aware placeholder values.
+
+        Args:
+            spec: Parsed OpenAPI/Swagger JSON dict.
+            base_url: Fallback base URL when the spec has no ``servers``.
+
+        Returns:
+            List of target dicts with keys: ``url``, ``method``, ``path``,
+            ``params``, ``content_type``, ``operation_id``, ``summary``.
+        """
+        targets: List[Dict[str, Any]] = []
+
+        # Determine API base
+        api_base = base_url.rstrip("/")
+        if "servers" in spec and spec["servers"]:
+            first_server = spec["servers"][0].get("url", "")
+            if first_server.startswith("http"):
+                api_base = first_server.rstrip("/")
+            elif first_server.startswith("/"):
+                api_base = base_url.rstrip("/") + first_server.rstrip("/")
+        elif "basePath" in spec:
+            api_base = base_url.rstrip("/") + spec["basePath"].rstrip("/")
+
+        http_methods = frozenset({"get", "post", "put", "patch", "delete", "head", "options"})
+
+        for path, path_item in (spec.get("paths") or {}).items():
+            if not isinstance(path_item, dict):
+                continue
+            for method, operation in path_item.items():
+                if method.lower() not in http_methods or not isinstance(operation, dict):
+                    continue
+
+                # Replace path params with safe fuzz values
+                fuzz_path = re.sub(r"\{[^}]+\}", "1", path)
+                target_url = api_base + fuzz_path
+
+                # Collect query parameters with type-aware values
+                query_params: Dict[str, str] = {}
+                for param in operation.get("parameters", []):
+                    if not isinstance(param, dict):
+                        continue
+                    if param.get("in") != "query":
+                        continue
+                    name = param.get("name", "")
+                    if not name:
+                        continue
+                    schema = param.get("schema", {})
+                    ptype = schema.get("type", "string") if isinstance(schema, dict) else "string"
+                    if ptype == "integer":
+                        query_params[name] = "1"
+                    elif ptype == "boolean":
+                        query_params[name] = "true"
+                    else:
+                        query_params[name] = "test"
+
+                if query_params:
+                    target_url += "?" + urlencode(query_params)
+
+                # Detect request content type
+                content_type = "application/json"
+                if "requestBody" in operation:
+                    rb_content = operation["requestBody"].get("content", {})
+                    if rb_content:
+                        content_type = next(iter(rb_content.keys()), "application/json")
+
+                targets.append({
+                    "url": target_url,
+                    "method": method.upper(),
+                    "path": path,
+                    "params": query_params,
+                    "content_type": content_type,
+                    "operation_id": operation.get("operationId", ""),
+                    "summary": operation.get("summary", ""),
+                })
+
+        return targets
+
+    async def scan_openapi(
+        self,
+        spec: Dict[str, Any],
+        base_url: str,
+        headers: Optional[Dict[str, str]] = None,
+    ) -> List["RealFinding"]:
+        """Scan all endpoints defined in an OpenAPI/Swagger spec.
+
+        Parses the spec, generates targets, and runs the full 22-phase
+        scanner against each target URL.
+
+        Args:
+            spec: Parsed OpenAPI JSON dict.
+            base_url: Base URL of the API server.
+            headers: Optional additional HTTP headers.
+
+        Returns:
+            Combined findings across all spec endpoints.
+        """
+        targets = self.parse_openapi_spec(spec, base_url)
+        logger.info("OpenAPI scan: %d endpoints parsed from spec", len(targets))
+
+        all_findings: List[RealFinding] = []
+        merged_headers = dict(headers or {})
+        auth_hdrs = self._build_auth_headers(merged_headers)
+
+        cookies = dict(self.config.auth_cookies)
+        client_kwargs: Dict[str, Any] = {
+            "timeout": self.timeout,
+            "verify": self.verify_ssl,
+            "follow_redirects": True,
+        }
+        if cookies:
+            client_kwargs["cookies"] = cookies
+        if self.config.auth_type == "basic" and self.config.auth_username:
+            client_kwargs["auth"] = (self.config.auth_username, self.config.auth_password)
+
+        async with httpx.AsyncClient(**client_kwargs) as client:
+            if self.config.login_url:
+                await self._perform_login(client, self.config)
+
+            for target in targets:
+                self._findings = []
+                await self._scan_single_url(client, target["url"], auth_hdrs)
+                all_findings.extend(self._findings)
+
+                if self.config.scan_delay_ms > 0:
+                    await asyncio.sleep(self.config.scan_delay_ms / 1000.0)
+
+        self._findings = all_findings
+        return all_findings
 
     # ── Phase 0: Architecture Intelligence Profiling ────────────────
     async def _profile_architecture(
@@ -838,6 +1504,70 @@ class RealVulnerabilityScanner:
                                 )
                             )
                             return
+                except httpx.RequestError:
+                    pass
+
+            # Step 3: Time-based blind SQL injection detection
+            # Measure baseline response time first, then compare with sleep payloads
+            try:
+                baseline_t0 = time.monotonic()
+                await client.get(
+                    f"{base_url}?{urlencode(benign_params, doseq=True)}",
+                    headers=headers,
+                    timeout=10.0,
+                )
+                baseline_duration = time.monotonic() - baseline_t0
+            except httpx.RequestError:
+                continue  # Cannot measure baseline, skip blind checks for this param
+
+            for blind_payload, dbms in BLIND_SQLI_PAYLOADS:
+                blind_params = dict(params)
+                blind_params[param_name] = [blind_payload]
+                try:
+                    t0 = time.monotonic()
+                    blind_resp = await client.get(
+                        f"{base_url}?{urlencode(blind_params, doseq=True)}",
+                        headers=headers,
+                        timeout=10.0,
+                    )
+                    elapsed = time.monotonic() - t0
+                    delay = elapsed - baseline_duration
+                    if delay >= _BLIND_SQLI_THRESHOLD_S:
+                        self._findings.append(
+                            RealFinding(
+                                finding_id=self._generate_finding_id(),
+                                vulnerability_type=VulnerabilityType.SQL_INJECTION,
+                                title=f"Time-Based Blind SQL Injection Detected ({dbms})",
+                                description=(
+                                    f"Parameter '{param_name}' responded {delay:.1f}s slower "
+                                    f"with time-delay payload targeting {dbms}. "
+                                    f"Baseline: {baseline_duration:.2f}s, "
+                                    f"Payload: {elapsed:.2f}s. "
+                                    f"This strongly indicates blind SQL injection."
+                                ),
+                                severity="critical",
+                                evidence={
+                                    "parameter": param_name,
+                                    "payload": blind_payload,
+                                    "dbms_target": dbms,
+                                    "baseline_time_s": round(baseline_duration, 3),
+                                    "payload_time_s": round(elapsed, 3),
+                                    "delay_s": round(delay, 3),
+                                    "threshold_s": _BLIND_SQLI_THRESHOLD_S,
+                                    "detection_type": "time-based_blind",
+                                    "differential": True,
+                                    "response_status": blind_resp.status_code,
+                                },
+                                affected_url=url,
+                                remediation="Use parameterized queries or prepared statements. "
+                                "Never concatenate user input into SQL queries. "
+                                "Time-based blind SQLi is especially dangerous as it "
+                                "requires no visible error messages.",
+                                cwe_id="CWE-89",
+                                cvss_score=9.8,
+                            )
+                        )
+                        return  # Confirmed blind SQLi, stop testing
                 except httpx.RequestError:
                     pass
 
@@ -1842,6 +2572,272 @@ class RealVulnerabilityScanner:
                     "Use Vary header or disable caching for dynamic content.",
                     cwe_id="CWE-349",
                     cvss_score=7.5,
+                )
+            )
+
+    # ── Phase 20: SSRF Detection ───────────────────────────────────
+    async def _check_ssrf(
+        self,
+        client: httpx.AsyncClient,
+        url: str,
+        headers: Optional[Dict[str, str]] = None,
+    ) -> None:
+        """Detect Server-Side Request Forgery (SSRF) vulnerabilities.
+
+        Tests URL-accepting parameters by injecting internal/cloud metadata
+        URLs and checking for response anomalies (status changes, body size
+        shifts, error messages revealing outbound connections, or timing
+        differences indicating the server followed the injected URL).
+        """
+        parsed = urlparse(url)
+        base_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+
+        # Collect candidate parameters: from query string + common SSRF param names
+        existing_params = parse_qs(parsed.query) if parsed.query else {}
+        candidate_params: List[str] = list(existing_params.keys())
+        # Also probe well-known SSRF-prone parameter names not already present
+        for p in _SSRF_PROBE_PARAMS:
+            if p not in candidate_params:
+                candidate_params.append(p)
+
+        if not candidate_params:
+            return
+
+        # Get baseline response for differential comparison
+        try:
+            baseline_t0 = time.monotonic()
+            baseline_resp = await client.get(url, headers=headers, timeout=8.0)
+            baseline_duration = time.monotonic() - baseline_t0
+            baseline_status = baseline_resp.status_code
+            baseline_size = len(baseline_resp.content)
+            baseline_text = baseline_resp.text[:5000].lower()
+        except httpx.RequestError:
+            return
+
+        for param_name in candidate_params:
+            for probe_url in _SSRF_PROBE_URLS:
+                test_params = dict(existing_params)
+                test_params[param_name] = [probe_url]
+                test_url = f"{base_url}?{urlencode(test_params, doseq=True)}"
+
+                try:
+                    t0 = time.monotonic()
+                    resp = await client.get(
+                        test_url, headers=headers, timeout=8.0
+                    )
+                    elapsed = time.monotonic() - t0
+                    resp_text = resp.text[:5000].lower()
+                    resp_size = len(resp.content)
+
+                    indicators: List[str] = []
+
+                    # Indicator 1: Status code changed significantly
+                    if resp.status_code != baseline_status and resp.status_code not in (
+                        400, 404, 422,
+                    ):
+                        indicators.append(
+                            f"status changed {baseline_status} -> {resp.status_code}"
+                        )
+
+                    # Indicator 2: Response body size changed >50%
+                    if baseline_size > 0:
+                        size_ratio = abs(resp_size - baseline_size) / baseline_size
+                        if size_ratio > 0.5:
+                            indicators.append(
+                                f"body size changed {baseline_size} -> {resp_size} "
+                                f"({size_ratio:.0%} delta)"
+                            )
+
+                    # Indicator 3: Error messages indicating outbound connection
+                    for error_indicator in _SSRF_ERROR_INDICATORS:
+                        if (
+                            error_indicator in resp_text
+                            and error_indicator not in baseline_text
+                        ):
+                            indicators.append(
+                                f"network error leaked: '{error_indicator}'"
+                            )
+                            break
+
+                    # Indicator 4: Blind SSRF via timing (response >3s slower)
+                    timing_delay = elapsed - baseline_duration
+                    if timing_delay > 3.0:
+                        indicators.append(
+                            f"timing anomaly: {timing_delay:.1f}s slower "
+                            f"(baseline {baseline_duration:.2f}s, "
+                            f"probe {elapsed:.2f}s)"
+                        )
+
+                    if indicators:
+                        self._findings.append(
+                            RealFinding(
+                                finding_id=self._generate_finding_id(),
+                                vulnerability_type=VulnerabilityType.SSRF,
+                                title=f"Potential SSRF via '{param_name}' Parameter",
+                                description=(
+                                    f"Parameter '{param_name}' shows SSRF indicators when "
+                                    f"injected with internal URL '{probe_url}'. "
+                                    f"Signals: {'; '.join(indicators)}."
+                                ),
+                                severity="high",
+                                evidence={
+                                    "parameter": param_name,
+                                    "probe_url": probe_url,
+                                    "indicators": indicators,
+                                    "indicator_count": len(indicators),
+                                    "baseline_status": baseline_status,
+                                    "probe_status": resp.status_code,
+                                    "baseline_size": baseline_size,
+                                    "probe_size": resp_size,
+                                    "baseline_time_s": round(baseline_duration, 3),
+                                    "probe_time_s": round(elapsed, 3),
+                                    "differential": True,
+                                },
+                                affected_url=url,
+                                remediation=(
+                                    "Validate and sanitize all user-supplied URLs. "
+                                    "Block requests to internal IP ranges (127.0.0.0/8, "
+                                    "10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, "
+                                    "169.254.0.0/16). Use an allowlist of permitted "
+                                    "external domains. Disable HTTP redirects in "
+                                    "server-side HTTP clients."
+                                ),
+                                cwe_id="CWE-918",
+                                cvss_score=7.5,
+                            )
+                        )
+                        return  # One SSRF finding per URL is sufficient
+
+                except httpx.RequestError:
+                    pass
+
+    # ── Phase 21: CSRF Detection ───────────────────────────────────
+    async def _check_csrf(
+        self,
+        client: httpx.AsyncClient,
+        url: str,
+        headers: Optional[Dict[str, str]] = None,
+    ) -> None:
+        """Detect Cross-Site Request Forgery (CSRF) vulnerabilities.
+
+        Fetches the target URL, parses HTML forms via regex, and checks
+        whether POST forms include CSRF protection tokens, SameSite cookie
+        attributes, or CSRF-related response headers.
+        """
+        try:
+            resp = await client.get(url, headers=headers, timeout=8.0)
+            body = resp.text
+        except httpx.RequestError:
+            return
+
+        # Check response-level CSRF protections
+        resp_headers_lower = {k.lower(): v for k, v in resp.headers.items()}
+        has_csrf_header = any(
+            h in resp_headers_lower
+            for h in ("x-csrf-token", "x-xsrf-token", "csrf-token")
+        )
+
+        # Check if SameSite cookies are set
+        raw_cookies = [
+            v
+            for k, v in resp.headers.multi_items()
+            if k.lower() == "set-cookie"
+        ]
+        has_samesite_cookie = any(
+            "samesite" in c.lower() for c in raw_cookies
+        )
+
+        # Parse <form> tags from the HTML body
+        # Match <form ...> blocks: extract action and method attributes
+        form_pattern = re.compile(
+            r"<form\b([^>]*)>(.*?)</form>",
+            re.IGNORECASE | re.DOTALL,
+        )
+        method_pattern = re.compile(
+            r"""method\s*=\s*["']?(\w+)["']?""", re.IGNORECASE
+        )
+        action_pattern = re.compile(
+            r"""action\s*=\s*["']([^"']*)["']""", re.IGNORECASE
+        )
+        # Pattern for hidden input fields that look like CSRF tokens
+        hidden_input_pattern = re.compile(
+            r"""<input\b[^>]*type\s*=\s*["']hidden["'][^>]*name\s*=\s*["']([^"']+)["'][^>]*/?>""",
+            re.IGNORECASE,
+        )
+        # Also match reversed attribute order (name before type)
+        hidden_input_pattern_alt = re.compile(
+            r"""<input\b[^>]*name\s*=\s*["']([^"']+)["'][^>]*type\s*=\s*["']hidden["'][^>]*/?>""",
+            re.IGNORECASE,
+        )
+
+        vulnerable_forms: List[Dict[str, Any]] = []
+
+        for form_match in form_pattern.finditer(body):
+            form_attrs = form_match.group(1)
+            form_body = form_match.group(2)
+
+            # Extract method (default GET)
+            method_m = method_pattern.search(form_attrs)
+            method = method_m.group(1).upper() if method_m else "GET"
+
+            # Only POST forms need CSRF protection
+            if method != "POST":
+                continue
+
+            # Extract action
+            action_m = action_pattern.search(form_attrs)
+            action = action_m.group(1) if action_m else ""
+
+            # Check for CSRF token in hidden fields
+            hidden_names: List[str] = []
+            for pattern in (hidden_input_pattern, hidden_input_pattern_alt):
+                hidden_names.extend(
+                    m.group(1).lower() for m in pattern.finditer(form_body)
+                )
+
+            has_csrf_field = any(
+                any(token_name in field_name for token_name in _CSRF_TOKEN_NAMES)
+                for field_name in hidden_names
+            )
+
+            if not has_csrf_field and not has_csrf_header and not has_samesite_cookie:
+                vulnerable_forms.append({
+                    "action": action or "(self)",
+                    "method": method,
+                    "hidden_fields": list(set(hidden_names)),
+                    "csrf_token_found": False,
+                    "csrf_header_present": has_csrf_header,
+                    "samesite_cookie_present": has_samesite_cookie,
+                })
+
+        if vulnerable_forms:
+            self._findings.append(
+                RealFinding(
+                    finding_id=self._generate_finding_id(),
+                    vulnerability_type=VulnerabilityType.CSRF,
+                    title=f"CSRF Vulnerability: {len(vulnerable_forms)} Unprotected POST Form(s)",
+                    description=(
+                        f"Found {len(vulnerable_forms)} POST form(s) without CSRF protection. "
+                        "No CSRF token field, no X-CSRF-Token response header, and no "
+                        "SameSite cookie attribute detected. An attacker can forge "
+                        "cross-origin requests to these forms."
+                    ),
+                    severity="medium",
+                    evidence={
+                        "vulnerable_forms": vulnerable_forms[:10],  # Cap at 10 for readability
+                        "total_vulnerable_forms": len(vulnerable_forms),
+                        "csrf_header_present": has_csrf_header,
+                        "samesite_cookie_present": has_samesite_cookie,
+                    },
+                    affected_url=url,
+                    remediation=(
+                        "Add CSRF tokens to all state-changing forms. Use a framework-provided "
+                        "CSRF middleware (e.g., Django CSRF, Rails authenticity_token). "
+                        "Set SameSite=Strict or SameSite=Lax on session cookies. "
+                        "Verify the Origin/Referer header on the server side."
+                    ),
+                    cwe_id="CWE-352",
+                    cvss_score=5.5,
                 )
             )
 

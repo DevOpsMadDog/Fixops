@@ -520,7 +520,23 @@ async def brain_health() -> Dict[str, Any]:
 
 @router.get("/pipeline/status")
 async def brain_pipeline_status() -> Dict[str, Any]:
-    """Get brain pipeline processing status."""
+    """Get brain pipeline processing status — from real run history."""
+    from core.brain_pipeline import get_brain_pipeline
+
+    pipeline = get_brain_pipeline()
+    runs = pipeline.list_runs(limit=1000)
+    completed = [r for r in runs if r.get("status") == "completed"]
+    active = [r for r in runs if r.get("status") == "running"]
+
+    # Compute real average duration from completed runs
+    durations = [
+        r.get("duration_ms", 0) for r in completed if r.get("duration_ms")
+    ]
+    avg_duration = int(sum(durations) / len(durations)) if durations else 0
+
+    # Last run timestamp (real)
+    last_run = completed[0].get("started_at") if completed else None
+
     return {
         "status": "operational",
         "pipeline": "12-step-ctem",
@@ -529,10 +545,10 @@ async def brain_pipeline_status() -> Dict[str, Any]:
             "BUILD_GRAPH", "ENRICH", "SCORE", "EVALUATE_POLICY",
             "MULTI_LLM_CONSENSUS", "MICRO_PENTEST", "AUTOFIX", "GENERATE_EVIDENCE",
         ],
-        "active_runs": 0,
-        "completed_runs": 47,
-        "avg_duration_ms": 2340,
-        "last_run": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+        "active_runs": len(active),
+        "completed_runs": len(completed),
+        "avg_duration_ms": avg_duration,
+        "last_run": last_run,
     }
 
 

@@ -5,7 +5,6 @@ Covers:
   - Bulk gap endpoints
   - Copilot gap endpoints (ChatRequest model)
   - FAIL gap endpoints
-  - Feeds gap endpoints
   - Graph gap endpoints
   - Integrations gap endpoints
   - Router mounting and tag validation
@@ -23,7 +22,6 @@ from apps.api.gap_router import (
     copilot_gap,
     ChatRequest,
     fail_gap,
-    feeds_gap,
     graph_gap,
     integrations_gap,
     mpte_gap,
@@ -59,7 +57,7 @@ def app():
     """Create a FastAPI app with gap routers mounted."""
     _app = FastAPI()
     for r in [
-        audit_gap, bulk_gap, copilot_gap, fail_gap, feeds_gap, graph_gap,
+        audit_gap, bulk_gap, copilot_gap, fail_gap, graph_gap,
         integrations_gap, mpte_gap, playbooks_gap, predictions_gap,
         reports_gap, scanner_gap, evidence_gap, compliance_gap, changes_gap,
         workflows_gap, sbom_gap, attack_paths_gap, data_fabric_gap,
@@ -434,21 +432,3 @@ class TestCopilotChat:
         })
         assert resp.status_code in (200, 404, 405, 422)
 
-
-# ──────────────────────────────────────────────────────
-#  Feeds Gap extended
-# ──────────────────────────────────────────────────────
-
-
-class TestFeedsGapExtended:
-    def test_list_feeds(self, client):
-        resp = client.get("/api/v1/feeds/")
-        assert resp.status_code == 200
-        data = resp.json()
-        assert isinstance(data, dict)
-
-    def test_trending(self, client):
-        resp = client.get("/api/v1/feeds/trending")
-        assert resp.status_code == 200
-        data = resp.json()
-        assert "threats" in data or "trending" in data or isinstance(data, dict)

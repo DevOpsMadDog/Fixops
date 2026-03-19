@@ -195,7 +195,10 @@ async def get_dashboard_summary(
         "severity": by_severity,
         "risk_score": risk_score,
         "risk_level": "critical" if risk_score >= 75 else "high" if risk_score >= 50 else "medium" if risk_score >= 25 else "low",
-        "scanners_active": 8,
+        "scanners_active": len(set(
+            getattr(f, "source", "unknown") for f in db.list_findings(limit=5000)
+            if getattr(f, "source", None)
+        )),
         "last_scan": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -280,8 +283,8 @@ async def get_analytics_overview(
         "status_breakdown": by_status,
         "risk_score": risk_score,
         "compliance_score": round(resolved / max(total, 1) * 100, 1),
-        "frameworks_assessed": 5,
-        "evidence_bundles": 12,
+        "frameworks_assessed": 0,
+        "evidence_bundles": 0,
         "last_assessment": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -937,76 +940,79 @@ async def triage_funnel(
     """Get triage funnel metrics showing finding reduction through ALdeci pipeline.
 
     Shows the progression: raw scanner findings → deduplicated → correlated →
-    risk-prioritized exposure cases. This powers the hero reduction visualization
-    in the Triage Dashboard.
+    risk-prioritized exposure cases. All numbers are computed from real data.
+    Returns zeros when no data exists rather than fabricated demo numbers.
     """
     findings = db.list_findings(limit=50000)
 
     total_raw = len(findings)
 
-    # Compute funnel stages — use realistic ratios when data is sparse
-    if total_raw > 0:
-        # Stage 1: Raw findings from all scanners
-        raw_count = total_raw
-        # Stage 2: After deduplication (~82% reduction typical)
-        dedup_count = max(1, int(total_raw * 0.18))
-        # Stage 3: After correlation (~60% further reduction)
-        correlated_count = max(1, int(dedup_count * 0.40))
-        # Stage 4: After risk prioritization (FAIL scoring) — final exposure cases
-        prioritized_count = max(1, int(correlated_count * 0.42))
-    else:
-        # Demo defaults matching the 11,300→340 narrative
-        raw_count = 11300
-        dedup_count = 2000
-        correlated_count = 800
-        prioritized_count = 340
+    if total_raw == 0:
+        return {
+            "org_id": org_id,
+            "funnel": {
+                "raw_findings": 0,
+                "after_dedup": 0,
+                "after_correlation": 0,
+                "exposure_cases": 0,
+            },
+            "reduction_percentage": 0.0,
+            "fail_distribution": {
+                "critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0,
+            },
+            "data_available": False,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
 
-    reduction_pct = round(
-        (1 - prioritized_count / max(raw_count, 1)) * 100, 1
+    # Count unique (title, asset, severity) tuples — real dedup count
+    seen_keys: set = set()
+    for f in findings:
+        title = getattr(f, "title", "") or ""
+        asset = getattr(f, "asset_name", "") or getattr(f, "source", "") or ""
+        sev = f.severity.value if hasattr(f.severity, "value") else str(f.severity)
+        seen_keys.add((title, asset, sev))
+    dedup_count = len(seen_keys)
+
+    # Count findings with risk_score (correlated = have been scored)
+    correlated_count = sum(
+        1 for f in findings if getattr(f, "risk_score", None) is not None
+    )
+    if correlated_count == 0:
+        correlated_count = dedup_count  # If no scoring done, equal to dedup
+
+    # Count open non-info findings — real exposure cases
+    prioritized_count = sum(
+        1 for f in findings
+        if (f.severity.value if hasattr(f.severity, "value") else str(f.severity)).lower()
+        not in ("info", "none")
+        and (f.status.value if hasattr(f.status, "value") else str(f.status)).lower()
+        in ("open", "confirmed", "in_progress")
     )
 
-    # FAIL grade distribution of final exposure cases
-    severity_counts = {}
+    reduction_pct = round(
+        (1 - prioritized_count / max(total_raw, 1)) * 100, 1
+    )
+
+    # Real severity distribution
+    severity_counts: Dict[str, int] = {
+        "critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0,
+    }
     for f in findings:
         sev = f.severity.value if hasattr(f.severity, "value") else str(f.severity)
-        severity_counts[sev] = severity_counts.get(sev, 0) + 1
-
-    fail_distribution = {
-        "critical": severity_counts.get("critical", 15),
-        "high": severity_counts.get("high", 45),
-        "medium": severity_counts.get("medium", 120),
-        "low": severity_counts.get("low", 80),
-        "info": severity_counts.get("info", 80),
-    }
-
-    # Before/after comparison metrics
-    without_aldeci = {
-        "findings": raw_count,
-        "false_positive_rate": 68.0,
-        "mttr_days": 14,
-        "cost_per_vuln": 4200,
-        "analyst_hours_per_week": 160,
-    }
-    with_aldeci = {
-        "findings": prioritized_count,
-        "false_positive_rate": 3.0,
-        "mttr_days": 2,
-        "cost_per_vuln": 180,
-        "analyst_hours_per_week": 12,
-    }
+        if sev.lower() in severity_counts:
+            severity_counts[sev.lower()] += 1
 
     return {
         "org_id": org_id,
         "funnel": {
-            "raw_findings": raw_count,
+            "raw_findings": total_raw,
             "after_dedup": dedup_count,
             "after_correlation": correlated_count,
             "exposure_cases": prioritized_count,
         },
         "reduction_percentage": reduction_pct,
-        "fail_distribution": fail_distribution,
-        "without_aldeci": without_aldeci,
-        "with_aldeci": with_aldeci,
+        "fail_distribution": severity_counts,
+        "data_available": True,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -1109,7 +1115,7 @@ async def executive_summary(request: Request) -> Dict[str, Any]:
         "kpis": {
             "mttr_hours": 0,
             "false_positive_rate": round(by_status.get("false_positive", 0) / max(total, 1) * 100, 1),
-            "sla_compliance": 85.0,
+            "sla_compliance": round(resolution_rate, 1),
             "scanner_coverage": len(by_scanner),
         },
     }

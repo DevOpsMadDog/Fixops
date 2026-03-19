@@ -1654,6 +1654,151 @@ class DependencyTrackConnector(_BaseConnector):
                 status="error", details={"error": str(exc)},
             )
 
+    # ── Component search (portfolio-wide) ──────────────────────
+
+    def search_components(
+        self, query: str, page_size: int = 100, page: int = 1
+    ) -> ConnectorOutcome:
+        """Search components across entire portfolio (e.g. 'which apps use log4j?')."""
+        try:
+            resp = self._request(
+                "GET",
+                f"{self.base_url}/api/v1/component",
+                params={"searchText": query, "pageSize": page_size, "pageNumber": page},
+            )
+            resp.raise_for_status()
+            components = resp.json()
+            total = int(resp.headers.get("X-Total-Count", len(components)))
+            return ConnectorOutcome(
+                status="fetched",
+                details={"data": components, "total": total, "query": query},
+            )
+        except Exception as exc:
+            logger.exception("DTrack search_components error")
+            return ConnectorOutcome(status="error", details={"error": str(exc)})
+
+    def fetch_project_components(
+        self, project_uuid: str, page_size: int = 100, page: int = 1
+    ) -> ConnectorOutcome:
+        """Fetch all components (dependencies) for a specific project."""
+        try:
+            resp = self._request(
+                "GET",
+                f"{self.base_url}/api/v1/component/project/{project_uuid}",
+                params={"pageSize": page_size, "pageNumber": page},
+            )
+            resp.raise_for_status()
+            components = resp.json()
+            total = int(resp.headers.get("X-Total-Count", len(components)))
+
+            normalized = []
+            for comp in components:
+                license_info = comp.get("resolvedLicense") or {}
+                normalized.append({
+                    "uuid": comp.get("uuid", ""),
+                    "name": comp.get("name", ""),
+                    "version": comp.get("version", ""),
+                    "group": comp.get("group", ""),
+                    "purl": comp.get("purl", ""),
+                    "type": comp.get("classifier", "LIBRARY"),
+                    "license": license_info.get("licenseId", ""),
+                    "license_name": license_info.get("name", "Unknown"),
+                    "is_internal": comp.get("isInternal", False),
+                    "md5": comp.get("md5", ""),
+                    "sha1": comp.get("sha1", ""),
+                    "sha256": comp.get("sha256", ""),
+                })
+
+            return ConnectorOutcome(
+                status="fetched",
+                details={"data": normalized, "total": total},
+            )
+        except Exception as exc:
+            logger.exception("DTrack fetch_project_components error")
+            return ConnectorOutcome(status="error", details={"error": str(exc)})
+
+    # ── VEX (Vulnerability Exploitability eXchange) ────────────
+
+    def upload_vex(
+        self, project_name: str, vex_content: str | bytes, project_version: str = "latest"
+    ) -> ConnectorOutcome:
+        """Upload a CycloneDX VEX document to apply analysis decisions."""
+        import base64
+
+        if isinstance(vex_content, str):
+            vex_bytes = vex_content.encode("utf-8")
+        else:
+            vex_bytes = vex_content
+
+        encoded = base64.b64encode(vex_bytes).decode("ascii")
+        payload = {
+            "projectName": project_name,
+            "projectVersion": project_version,
+            "vex": encoded,
+        }
+        try:
+            resp = self._request(
+                "PUT",
+                f"{self.base_url}/api/v1/vex",
+                json=payload,
+            )
+            if resp.status_code in (200, 201):
+                return ConnectorOutcome(
+                    status="success",
+                    details={"project_name": project_name, "applied": True},
+                )
+            return ConnectorOutcome(
+                status="error",
+                details={"http_status": resp.status_code, "error": resp.text[:500]},
+            )
+        except Exception as exc:
+            logger.exception("DTrack VEX upload error")
+            return ConnectorOutcome(status="error", details={"error": str(exc)})
+
+    # ── Project tags (for FixOps metadata) ─────────────────────
+
+    def tag_project(self, project_uuid: str, tags: List[str]) -> ConnectorOutcome:
+        """Add tags to a project for FixOps-level categorization."""
+        try:
+            tag_objects = [{"name": t} for t in tags]
+            resp = self._request(
+                "POST",
+                f"{self.base_url}/api/v1/tag/{project_uuid}",
+                json=tag_objects,
+            )
+            if resp.status_code in (200, 201, 204):
+                return ConnectorOutcome(
+                    status="success", details={"tags": tags},
+                )
+            return ConnectorOutcome(
+                status="error",
+                details={"http_status": resp.status_code, "error": resp.text[:500]},
+            )
+        except Exception as exc:
+            return ConnectorOutcome(status="error", details={"error": str(exc)})
+
+    # ── Export BOM ─────────────────────────────────────────────
+
+    def export_sbom(
+        self, project_uuid: str, fmt: str = "json"
+    ) -> ConnectorOutcome:
+        """Export the current BOM for a project in CycloneDX format."""
+        accept = "application/vnd.cyclonedx+json" if fmt == "json" else "application/vnd.cyclonedx+xml"
+        try:
+            resp = self._request(
+                "GET",
+                f"{self.base_url}/api/v1/bom/cyclonedx/project/{project_uuid}",
+                headers={"Accept": accept},
+            )
+            resp.raise_for_status()
+            return ConnectorOutcome(
+                status="fetched",
+                details={"data": resp.text, "format": f"cyclonedx-{fmt}"},
+            )
+        except Exception as exc:
+            logger.exception("DTrack export_sbom error")
+            return ConnectorOutcome(status="error", details={"error": str(exc)})
+
 
 __all__ = [
     "SnykConnector",

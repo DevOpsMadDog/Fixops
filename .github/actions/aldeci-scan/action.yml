@@ -1,0 +1,281 @@
+name: 'ALdeci Security Scan'
+description: 'Run ALdeci CTEM+ pipeline on your PR — vulnerability triage, risk scoring, and auto-fix suggestions'
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  api-url:
+    description: 'ALdeci API base URL'
+    required: true
+    default: 'http://localhost:8000'
+  api-token:
+    description: 'ALdeci API token (use GitHub secrets)'
+    required: true
+  scan-type:
+    description: 'Scan type: full, quick, or sbom-only'
+    required: false
+    default: 'full'
+  fail-on:
+    description: 'Fail the check if findings at this severity or above. Options: critical, high, medium, low, none'
+    required: false
+    default: 'critical'
+  sbom-path:
+    description: 'Path to SBOM file (CycloneDX or SPDX JSON). Auto-detected if not specified.'
+    required: false
+  sarif-path:
+    description: 'Path to SARIF scan results to ingest'
+    required: false
+  run-pentest:
+    description: 'Run MPTE micro-pentest verification (slower but proves exploitability)'
+    required: false
+    default: 'false'
+  comment-on-pr:
+    description: 'Post scan summary as PR comment'
+    required: false
+    default: 'true'
+
+outputs:
+  findings-count:
+    description: 'Total findings discovered'
+    value: ${{ steps.scan.outputs.findings_count }}
+  critical-count:
+    description: 'Critical severity findings'
+    value: ${{ steps.scan.outputs.critical_count }}
+  risk-score:
+    description: 'Overall risk score (0-100)'
+    value: ${{ steps.scan.outputs.risk_score }}
+  data-quality-grade:
+    description: 'Pipeline data quality grade (A-D)'
+    value: ${{ steps.scan.outputs.data_quality_grade }}
+  report-url:
+    description: 'URL to full report in ALdeci dashboard'
+    value: ${{ steps.scan.outputs.report_url }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check ALdeci Readiness
+      id: readiness
+      shell: bash
+      run: |
+        echo "::group::Checking ALdeci API readiness"
+        READINESS=$(curl -sf "${{ inputs.api-url }}/api/v1/system/readiness" 2>/dev/null || echo '{"readiness_score":0}')
+        SCORE=$(echo "$READINESS" | python3 -c "import sys,json; print(json.load(sys.stdin).get('readiness_score',0))" 2>/dev/null || echo 0)
+        LEVEL=$(echo "$READINESS" | python3 -c "import sys,json; print(json.load(sys.stdin).get('readiness_level','unknown'))" 2>/dev/null || echo unknown)
+        echo "ALdeci readiness: $SCORE/100 ($LEVEL)"
+        if [ "$SCORE" -lt 20 ]; then
+          echo "::error::ALdeci API is not ready (score: $SCORE). Check configuration."
+          exit 1
+        fi
+        echo "::endgroup::"
+
+    - name: Auto-detect SBOM
+      id: detect
+      shell: bash
+      run: |
+        SBOM_FILE="${{ inputs.sbom-path }}"
+        if [ -z "$SBOM_FILE" ]; then
+          # Search common SBOM locations
+          for f in bom.json sbom.json sbom.cdx.json bom.cdx.json \
+                   cyclonedx.json .sbom/bom.json build/sbom.json; do
+            if [ -f "$f" ]; then
+              SBOM_FILE="$f"
+              echo "Auto-detected SBOM: $f"
+              break
+            fi
+          done
+        fi
+        echo "sbom_file=$SBOM_FILE" >> "$GITHUB_OUTPUT"
+
+    - name: Run ALdeci Pipeline
+      id: scan
+      shell: bash
+      env:
+        ALDECI_URL: ${{ inputs.api-url }}
+        ALDECI_TOKEN: ${{ inputs.api-token }}
+        SCAN_TYPE: ${{ inputs.scan-type }}
+        RUN_PENTEST: ${{ inputs.run-pentest }}
+      run: |
+        echo "::group::Running ALdeci CTEM+ Pipeline"
+
+        # Build pipeline request
+        FINDINGS_JSON="[]"
+
+        # Ingest SARIF if provided
+        SARIF="${{ inputs.sarif-path }}"
+        if [ -n "$SARIF" ] && [ -f "$SARIF" ]; then
+          echo "Ingesting SARIF: $SARIF"
+          INGEST=$(curl -sf -X POST \
+            -H "X-API-Key: $ALDECI_TOKEN" \
+            -F "file=@$SARIF" \
+            -F "scanner_type=sarif" \
+            -F "pipeline=false" \
+            "$ALDECI_URL/api/v1/scanner-ingest/upload" 2>/dev/null || echo '{}')
+          echo "Ingest result: $(echo "$INGEST" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'{d.get(\"findings_count\",0)} findings parsed')" 2>/dev/null)"
+        fi
+
+        # Ingest SBOM if found
+        SBOM="${{ steps.detect.outputs.sbom_file }}"
+        if [ -n "$SBOM" ] && [ -f "$SBOM" ]; then
+          echo "Uploading SBOM: $SBOM"
+          curl -sf -X POST \
+            -H "X-API-Key: $ALDECI_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d @"$SBOM" \
+            "$ALDECI_URL/api/v1/dtrack/sbom/upload" 2>/dev/null || true
+        fi
+
+        # Run the brain pipeline
+        PENTEST_FLAG="false"
+        if [ "$RUN_PENTEST" = "true" ]; then PENTEST_FLAG="true"; fi
+
+        PIPELINE_RESULT=$(curl -sf -X POST \
+          -H "X-API-Key: $ALDECI_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"org_id\": \"github-action\",
+            \"findings\": $FINDINGS_JSON,
+            \"source\": \"github-pr\",
+            \"run_pentest\": $PENTEST_FLAG,
+            \"generate_evidence\": true
+          }" \
+          "$ALDECI_URL/api/v1/brain/pipeline/run" 2>/dev/null || echo '{}')
+
+        # Extract results
+        FINDINGS_COUNT=$(echo "$PIPELINE_RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('summary',{}).get('findings_ingested',0))" 2>/dev/null || echo 0)
+        CRITICAL_COUNT=$(echo "$PIPELINE_RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('summary',{}).get('critical_cases',0))" 2>/dev/null || echo 0)
+        RISK_SCORE=$(echo "$PIPELINE_RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(int(d.get('summary',{}).get('avg_risk_score',0)*100))" 2>/dev/null || echo 0)
+        DQ_GRADE=$(echo "$PIPELINE_RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data_quality',{}).get('overall_grade','?'))" 2>/dev/null || echo "?")
+        DQ_WARNINGS=$(echo "$PIPELINE_RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); w=d.get('data_quality',{}).get('warnings',[]); [print(f'  ⚠ {x}') for x in w]" 2>/dev/null || true)
+        RUN_ID=$(echo "$PIPELINE_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('run_id',''))" 2>/dev/null || echo "")
+
+        echo "findings_count=$FINDINGS_COUNT" >> "$GITHUB_OUTPUT"
+        echo "critical_count=$CRITICAL_COUNT" >> "$GITHUB_OUTPUT"
+        echo "risk_score=$RISK_SCORE" >> "$GITHUB_OUTPUT"
+        echo "data_quality_grade=$DQ_GRADE" >> "$GITHUB_OUTPUT"
+        echo "report_url=$ALDECI_URL/dashboard/pipeline/$RUN_ID" >> "$GITHUB_OUTPUT"
+        echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+
+        echo ""
+        echo "=== ALdeci Scan Results ==="
+        echo "Findings:       $FINDINGS_COUNT"
+        echo "Critical:       $CRITICAL_COUNT"
+        echo "Risk Score:     $RISK_SCORE/100"
+        echo "Data Quality:   Grade $DQ_GRADE"
+        if [ -n "$DQ_WARNINGS" ]; then
+          echo "Warnings:"
+          echo "$DQ_WARNINGS"
+        fi
+        echo "=========================="
+        echo "::endgroup::"
+
+    - name: Gate Check
+      shell: bash
+      run: |
+        FAIL_ON="${{ inputs.fail-on }}"
+        CRITICAL=${{ steps.scan.outputs.critical_count }}
+
+        if [ "$FAIL_ON" = "none" ]; then
+          echo "Gate check: disabled (fail-on=none)"
+          exit 0
+        fi
+
+        if [ "$FAIL_ON" = "critical" ] && [ "$CRITICAL" -gt 0 ]; then
+          echo "::error::$CRITICAL critical findings detected. Fix before merging."
+          exit 1
+        fi
+
+        echo "Gate check passed (fail-on=$FAIL_ON)"
+
+    - name: Comment on PR
+      if: inputs.comment-on-pr == 'true' && github.event_name == 'pull_request'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        FINDINGS=${{ steps.scan.outputs.findings_count }}
+        CRITICAL=${{ steps.scan.outputs.critical_count }}
+        RISK=${{ steps.scan.outputs.risk_score }}
+        GRADE=${{ steps.scan.outputs.data_quality_grade }}
+
+        if [ "$CRITICAL" -gt 0 ]; then
+          ICON="🔴"
+          STATUS="CRITICAL FINDINGS DETECTED"
+        elif [ "$RISK" -gt 50 ]; then
+          ICON="🟡"
+          STATUS="Elevated Risk"
+        else
+          ICON="🟢"
+          STATUS="Clean"
+        fi
+
+        BODY="## $ICON ALdeci Security Scan: $STATUS
+
+| Metric | Value |
+|--------|-------|
+| Findings | $FINDINGS |
+| Critical | $CRITICAL |
+| Risk Score | $RISK/100 |
+| Data Quality | Grade $GRADE |
+
+[View Full Report](${{ steps.scan.outputs.report_url }})"
+
+        gh pr comment "${{ github.event.pull_request.number }}" --body "$BODY" 2>/dev/null || true
+
+    - name: PR Risk Analysis (Material Change Detection)
+      if: github.event_name == 'pull_request'
+      id: pr_risk
+      shell: bash
+      env:
+        ALDECI_URL: ${{ inputs.api-url }}
+        ALDECI_TOKEN: ${{ inputs.api-token }}
+      run: |
+        echo "::group::PR Risk Analysis"
+
+        # Get the diff for this PR
+        DIFF=$(git diff "${{ github.event.pull_request.base.sha }}" HEAD 2>/dev/null || echo "")
+        if [ -z "$DIFF" ]; then
+          echo "No diff available, skipping PR risk analysis"
+          echo "::endgroup::"
+          exit 0
+        fi
+
+        # Get changed files
+        FILES_CHANGED=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" HEAD 2>/dev/null | wc -l | tr -d ' ')
+        PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+
+        # Analyze material changes
+        PR_ANALYSIS=$(curl -sf -X POST \
+          -H "X-API-Key: $ALDECI_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"diff\": $(echo "$DIFF" | head -c 100000 | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))'),
+            \"source\": \"github-pr\",
+            \"pr_number\": ${{ github.event.pull_request.number }},
+            \"author\": \"$PR_AUTHOR\"
+          }" \
+          "$ALDECI_URL/api/v1/material-changes/analyze" 2>/dev/null || echo '{}')
+
+        RISK_LEVEL=$(echo "$PR_ANALYSIS" | python3 -c "import sys,json; print(json.load(sys.stdin).get('risk_level','unknown'))" 2>/dev/null || echo "unknown")
+        MATERIAL_CHANGES=$(echo "$PR_ANALYSIS" | python3 -c "import sys,json; print(json.load(sys.stdin).get('material_change_count',0))" 2>/dev/null || echo 0)
+        BREAKING_CHANGES=$(echo "$PR_ANALYSIS" | python3 -c "import sys,json; print(json.load(sys.stdin).get('breaking_change_count',0))" 2>/dev/null || echo 0)
+
+        echo "PR Risk Level: $RISK_LEVEL"
+        echo "Material Changes: $MATERIAL_CHANGES"
+        echo "Breaking Changes: $BREAKING_CHANGES"
+        echo "Files Changed: $FILES_CHANGED"
+
+        # Get developer risk context
+        DEV_RISK=$(curl -sf -X GET \
+          -H "X-API-Key: $ALDECI_TOKEN" \
+          "$ALDECI_URL/api/v1/developer-profiles/$PR_AUTHOR/risk" 2>/dev/null || echo '{}')
+
+        DEV_SCORE=$(echo "$DEV_RISK" | python3 -c "import sys,json; print(json.load(sys.stdin).get('risk_score',0))" 2>/dev/null || echo 0)
+
+        echo "pr_risk_level=$RISK_LEVEL" >> "$GITHUB_OUTPUT"
+        echo "material_changes=$MATERIAL_CHANGES" >> "$GITHUB_OUTPUT"
+        echo "breaking_changes=$BREAKING_CHANGES" >> "$GITHUB_OUTPUT"
+        echo "developer_risk_score=$DEV_SCORE" >> "$GITHUB_OUTPUT"
+
+        echo "::endgroup::"

@@ -228,8 +228,18 @@ class AutoFixEngine:
     MAX_HISTORY_ENTRIES = 10000
 
     def __init__(self) -> None:
+        # Persistent stores — survive server restarts via SQLite-backed PersistentDict
+        try:
+            from core.persistent_store import PersistentDict
+            self._fixes_store: Any = PersistentDict("autofix_fixes")
+            self._history_store: Any = PersistentDict("autofix_history")
+        except (ImportError, OSError):
+            self._fixes_store = {}
+            self._history_store = {}
         self._fixes: Dict[str, AutoFixSuggestion] = {}
         self._history: List[Dict[str, Any]] = []
+        # Hydrate from persistent store on startup
+        self._hydrate_from_store()
         self._stats = {
             "total_generated": 0,
             "total_applied": 0,
@@ -277,6 +287,93 @@ class AutoFixEngine:
 
             self._pr_gen = PRGenerator()
         return self._pr_gen
+
+    # ------------------------------------------------------------------
+    # Persistence helpers
+    # ------------------------------------------------------------------
+
+    def _hydrate_from_store(self) -> None:
+        """Reload fixes and history from persistent store on startup."""
+        try:
+            for key in list(self._fixes_store.keys()):
+                d = self._fixes_store[key]
+                if isinstance(d, dict):
+                    self._fixes[key] = self._dict_to_suggestion(d)
+        except (OSError, ValueError, KeyError, RuntimeError):
+            pass
+        try:
+            hist_data = self._history_store.get("_entries")
+            if isinstance(hist_data, list):
+                self._history = hist_data[-self.MAX_HISTORY_ENTRIES:]
+        except (OSError, ValueError, KeyError, RuntimeError):
+            pass
+
+    def _persist_fix(self, fix_id: str, suggestion: AutoFixSuggestion) -> None:
+        """Write a fix to the persistent store."""
+        try:
+            self._fixes_store[fix_id] = self.to_dict(suggestion)
+        except (OSError, ValueError, RuntimeError):
+            pass
+
+    def _persist_history(self) -> None:
+        """Write history to the persistent store."""
+        try:
+            self._history_store["_entries"] = self._history[-self.MAX_HISTORY_ENTRIES:]
+        except (OSError, ValueError, RuntimeError):
+            pass
+
+    @staticmethod
+    def _dict_to_suggestion(d: Dict[str, Any]) -> "AutoFixSuggestion":
+        """Reconstruct an AutoFixSuggestion from a serialized dict."""
+        patches = []
+        for p in d.get("code_patches", []):
+            patches.append(CodePatch(
+                file_path=p.get("file_path", ""),
+                original_code=p.get("original_code", ""),
+                fixed_code=p.get("fixed_code", ""),
+                patch_content=p.get("patch_content", ""),
+                patch_format=PatchFormat(p.get("patch_format", "unified_diff")),
+                line_start=p.get("line_start", 0),
+                line_end=p.get("line_end", 0),
+            ))
+        dep_fixes = []
+        for df in d.get("dependency_fixes", []):
+            dep_fixes.append(DependencyFix(
+                package_name=df.get("package_name", ""),
+                current_version=df.get("current_version", ""),
+                fixed_version=df.get("fixed_version", ""),
+                package_file=df.get("package_file", ""),
+                ecosystem=df.get("ecosystem", ""),
+            ))
+        return AutoFixSuggestion(
+            fix_id=d.get("fix_id", ""),
+            finding_id=d.get("finding_id", ""),
+            finding_title=d.get("finding_title", ""),
+            fix_type=FixType(d.get("fix_type", "code_patch")),
+            confidence=FixConfidence(d.get("confidence", "medium")),
+            confidence_score=d.get("confidence_score", 0.0),
+            title=d.get("title", ""),
+            description=d.get("description", ""),
+            code_patches=patches,
+            dependency_fixes=dep_fixes,
+            config_changes=d.get("config_changes", {}),
+            pr_title=d.get("pr_title", ""),
+            pr_description=d.get("pr_description", ""),
+            pr_branch=d.get("pr_branch", ""),
+            testing_guidance=d.get("testing_guidance", ""),
+            rollback_steps=d.get("rollback_steps", ""),
+            risk_assessment=d.get("risk_assessment", ""),
+            effort_minutes=d.get("effort_minutes", 0),
+            status=FixStatus(d.get("status", "generated")),
+            cve_ids=d.get("cve_ids", []),
+            mitre_techniques=d.get("mitre_techniques", []),
+            compliance_frameworks=d.get("compliance_frameworks", []),
+            created_at=d.get("created_at", ""),
+            applied_at=d.get("applied_at", ""),
+            pr_url=d.get("pr_url", ""),
+            pr_number=d.get("pr_number", 0),
+            metadata=d.get("metadata", {}),
+        )
 
     # ------------------------------------------------------------------
     # Fix ID generation
@@ -401,6 +498,7 @@ class AutoFixEngine:
 
         # Store and track (with memory bounds enforcement)
         self._fixes[fix_id] = suggestion
+        self._persist_fix(fix_id, suggestion)
         # Evict oldest fixes when exceeding MAX_FIXES_STORED
         if len(self._fixes) > self.MAX_FIXES_STORED:
             oldest_keys = list(self._fixes.keys())[
@@ -408,6 +506,10 @@ class AutoFixEngine:
             ]
             for k in oldest_keys:
                 del self._fixes[k]
+                try:
+                    del self._fixes_store[k]
+                except (KeyError, OSError):
+                    pass
             logger.debug(
                 "[AutoFix] Evicted %d old fixes (cap=%d)",
                 len(oldest_keys),
@@ -427,6 +529,7 @@ class AutoFixEngine:
         # Evict oldest history entries when exceeding MAX_HISTORY_ENTRIES
         if len(self._history) > self.MAX_HISTORY_ENTRIES:
             self._history = self._history[-self.MAX_HISTORY_ENTRIES :]
+        self._persist_history()
 
         # Emit event
         try:
@@ -631,6 +734,9 @@ Provide ONLY valid JSON. The fix must be precise, minimal, and production-ready.
             default_reasoning="Generated code patch for vulnerability fix",
         )
 
+        # Detect deterministic/fallback response (no real LLM available)
+        _is_fallback = response.metadata.get("mode") in ("deterministic", "fallback")
+
         # Parse LLM response
         try:
             raw = response.reasoning
@@ -677,15 +783,119 @@ Provide ONLY valid JSON. The fix must be precise, minimal, and production-ready.
 
         except (json.JSONDecodeError, KeyError) as exc:
             logger.warning(
-                "[AutoFix] LLM response parse failed (%s), using fallback",
+                "[AutoFix] LLM response parse failed (%s), trying template library",
                 type(exc).__name__,
             )
-            suggestion.title = f"Fix {finding.get('title', 'vulnerability')}"
-            suggestion.description = response.reasoning[:500]
-            suggestion.testing_guidance = "Manual review required — LLM parse failed"
-            suggestion.confidence_score = 0.4
+            # --- Offline template fallback ---
+            # When LLM is unavailable or returns non-JSON, use the template
+            # library to produce actionable fix suggestions instead of empty patches.
+            template_suggestion = self._try_template_fallback(finding, language, file_path)
+            if template_suggestion is not None:
+                suggestion.title = template_suggestion.get(
+                    "title", f"Fix {finding.get('title', 'vulnerability')}"
+                )
+                suggestion.description = template_suggestion.get("description", "")
+                suggestion.testing_guidance = template_suggestion.get(
+                    "testing_guidance", "Run security tests to verify fix"
+                )
+                suggestion.rollback_steps = template_suggestion.get(
+                    "rollback_steps", "Revert the commit"
+                )
+                suggestion.risk_assessment = template_suggestion.get(
+                    "risk_assessment", "Low risk — template-based fix"
+                )
+                suggestion.effort_minutes = template_suggestion.get("effort_minutes", 15)
+                suggestion.mitre_techniques = template_suggestion.get("mitre_techniques", [])
+                suggestion.compliance_frameworks = template_suggestion.get("compliance_refs", [])
+                suggestion.confidence_score = template_suggestion.get("confidence_score", 0.65)
+                suggestion.metadata["template_based"] = True
+                suggestion.metadata["template_cwe"] = template_suggestion.get("cwe_id", "")
+
+                for patch_data in template_suggestion.get("patches", []):
+                    patch = CodePatch(
+                        file_path=patch_data.get("file_path", file_path),
+                        language=patch_data.get("language", language),
+                        old_code=patch_data.get("before", ""),
+                        new_code=patch_data.get("after", ""),
+                        explanation=patch_data.get("explanation", ""),
+                        patch_format=PatchFormat.UNIFIED_DIFF,
+                    )
+                    patch.unified_diff = self._make_unified_diff(
+                        patch.file_path, patch.old_code, patch.new_code
+                    )
+                    suggestion.code_patches.append(patch)
+
+                logger.info(
+                    "[AutoFix] Template fallback produced %d patches for %s (%s)",
+                    len(suggestion.code_patches),
+                    finding.get("id", "unknown"),
+                    template_suggestion.get("cwe_id", "unknown"),
+                )
+            else:
+                # No template match either — last resort fallback
+                suggestion.title = f"Fix {finding.get('title', 'vulnerability')}"
+                suggestion.description = response.reasoning[:500]
+                suggestion.testing_guidance = "Manual review required — no LLM or template match"
+                suggestion.confidence_score = 0.4
+
+        # If we got a fallback response but JSON parsed OK (unlikely for deterministic
+        # responses that just echo default_reasoning), still check if we have empty patches.
+        # This handles edge cases where the LLM returned parseable JSON but with no patches.
+        if _is_fallback and not suggestion.code_patches and not suggestion.dependency_fixes:
+            template_suggestion = self._try_template_fallback(finding, language, file_path)
+            if template_suggestion is not None:
+                suggestion.metadata["template_based"] = True
+                suggestion.metadata["template_cwe"] = template_suggestion.get("cwe_id", "")
+                suggestion.confidence_score = template_suggestion.get("confidence_score", 0.65)
+                suggestion.description = template_suggestion.get(
+                    "description", suggestion.description
+                )
+                suggestion.testing_guidance = template_suggestion.get(
+                    "testing_guidance", suggestion.testing_guidance
+                )
+                for patch_data in template_suggestion.get("patches", []):
+                    patch = CodePatch(
+                        file_path=patch_data.get("file_path", file_path),
+                        language=patch_data.get("language", language),
+                        old_code=patch_data.get("before", ""),
+                        new_code=patch_data.get("after", ""),
+                        explanation=patch_data.get("explanation", ""),
+                        patch_format=PatchFormat.UNIFIED_DIFF,
+                    )
+                    patch.unified_diff = self._make_unified_diff(
+                        patch.file_path, patch.old_code, patch.new_code
+                    )
+                    suggestion.code_patches.append(patch)
 
         return suggestion
+
+    # ------------------------------------------------------------------
+    # Offline template fallback
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _try_template_fallback(
+        finding: Dict[str, Any],
+        language: str,
+        file_path: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Attempt to produce a fix suggestion from the offline template library.
+
+        Returns a suggestion dict compatible with generate_offline_suggestion(),
+        or None if no matching template exists for this finding.
+        """
+        try:
+            from core.autofix_templates import get_template_library
+
+            library = get_template_library()
+            suggestion = library.generate_offline_suggestion(finding)
+            if suggestion is not None:
+                return suggestion
+        except (ImportError, OSError, ValueError, RuntimeError) as exc:
+            logger.debug(
+                "[AutoFix] Template library unavailable: %s", type(exc).__name__
+            )
+        return None
 
     # ------------------------------------------------------------------
     # Dependency fix generation
@@ -1366,6 +1576,8 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         )
+        self._persist_fix(fix_id, suggestion)
+        self._persist_history()
 
         return result
 
@@ -1388,6 +1600,8 @@ Provide JSON: {{"patches": [{{"file_path": "{file_path}", "old_code": "...", "ne
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         )
+        self._persist_fix(fix_id, suggestion)
+        self._persist_history()
 
         try:
             import asyncio

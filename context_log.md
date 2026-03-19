@@ -28,6 +28,24 @@
 
 ## Session Log
 
+### [2026-03-19 10:00] backend-hardener — SCANNER_AUTH_CRAWL
+- **What**: Added authenticated scanning and application crawling capabilities to `RealVulnerabilityScanner` in `suite-core/core/real_scanner.py`.
+  - Added `ScanConfig` dataclass (21 fields) with input validation (`__post_init__`): auth_type allowlist, numeric clamping, scheme validation, list size limits.
+  - Modified `RealVulnerabilityScanner.__init__` to accept optional `config: ScanConfig` (backward compatible).
+  - Refactored `scan_url()` to build authenticated httpx client (cookies, basic auth, bearer/custom headers), perform login flow, crawl for URLs, then scan all targets.
+  - Extracted `_scan_single_url()` to encapsulate the 22-phase scan loop (all existing phases preserved).
+  - Added `_build_auth_headers()` — merges auth config into request headers without mutating input.
+  - Added `_perform_login()` — POSTs to login URL with form-encoded or JSON body, captures session cookies or bearer tokens from JSON response, verifies via success indicator string.
+  - Added `_crawl_application()` — BFS crawl with regex-based HTML link extraction (href/src/action + JS fetch/axios URLs), scope enforcement (same-origin/same-domain/custom), exclude patterns, depth/URL count limits, scan delay between requests.
+  - Added `_normalize_crawl_url()` and `_url_in_crawl_scope()` helpers.
+  - All existing check methods (phases 0-21) untouched.
+  - Wrote 50+ tests in `tests/test_scanner_auth_crawl.py` covering ScanConfig validation, all auth types, login flows, crawl BFS, scope enforcement, exclusions, backward compat.
+- **Files touched**:
+  - `suite-core/core/real_scanner.py` (modified)
+  - `tests/test_scanner_auth_crawl.py` (created)
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V5 (MPTE Verification), V9 (Air-gapped — no new dependencies)
+
 ### [2026-03-17 19:30] security-analyst — ORG_ID_MULTITENANCY_CRITICAL_ROUTERS
 - **What**: Added `org_id` multi-tenancy enforcement (Depends(get_org_id)) to the 10 most critical API routers
   - `get_org_id` already existed in `dependencies.py` (re-exported from `org_middleware.py`) — no new infra needed
