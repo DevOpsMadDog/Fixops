@@ -429,7 +429,7 @@ class ProprietaryCallGraphBuilder:
                 # Track entry points
                 self.entry_points.update(builder.entry_points)
 
-            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+            except Exception as e:  # narrowed from bare Exception
                 logger.warning(f"Failed to build graph for {py_file}: {e}")
 
         return {
@@ -468,7 +468,7 @@ class ProprietaryCallGraphBuilder:
                             "is_exported": "export" in content[: match.start()],
                         }
 
-            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+            except Exception as e:
                 logger.warning(f"Failed to build graph for {js_file}: {e}")
 
         return {
@@ -505,7 +505,7 @@ class ProprietaryCallGraphBuilder:
                             "is_public": "public" in match.group(0),
                         }
 
-            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+            except Exception as e:
                 logger.warning(f"Failed to build graph for {java_file}: {e}")
 
         return {
@@ -844,7 +844,7 @@ class ProprietaryReachabilityAnalyzer:
                 )
                 results["data_flows"].extend(flows)
 
-            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+            except Exception as e:
                 logger.warning(f"Failed to analyze {code_file}: {e}")
 
         # Determine reachability

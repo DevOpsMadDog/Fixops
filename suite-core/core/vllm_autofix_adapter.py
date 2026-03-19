@@ -188,21 +188,24 @@ class VLLMAutoFixAdapter:
         Returns:
             Backend name: 'vllm', 'ollama', or 'none'
         """
-        if self.backend_preference in ("vllm", "ollama"):
-            provider = self._providers.get(self.backend_preference)
-            if provider and hasattr(provider, "is_available") and provider.is_available():
-                return self.backend_preference
+        try:
+            if self.backend_preference in ("vllm", "ollama"):
+                provider = self._providers.get(self.backend_preference)
+                if provider and hasattr(provider, "is_available") and provider.is_available():
+                    return self.backend_preference
 
-        # Auto-detect: try vLLM first, then Ollama
-        if self.backend_preference in ("auto", "vllm"):
-            vllm = self._providers.get("vllm")
-            if vllm and hasattr(vllm, "is_available") and vllm.is_available():
-                return "vllm"
+            # Auto-detect: try vLLM first, then Ollama
+            if self.backend_preference in ("auto", "vllm"):
+                vllm = self._providers.get("vllm")
+                if vllm and hasattr(vllm, "is_available") and vllm.is_available():
+                    return "vllm"
 
-        if self.backend_preference in ("auto", "ollama"):
-            ollama = self._providers.get("ollama")
-            if ollama and hasattr(ollama, "is_available") and ollama.is_available():
-                return "ollama"
+            if self.backend_preference in ("auto", "ollama"):
+                ollama = self._providers.get("ollama")
+                if ollama and hasattr(ollama, "is_available") and ollama.is_available():
+                    return "ollama"
+        except Exception:
+            pass  # network errors — no backend available
 
         return "none"
 
@@ -392,10 +395,16 @@ class VLLMAutoFixAdapter:
         for name, provider in self._providers.items():
             available = False
             if hasattr(provider, "is_available"):
-                available = provider.is_available()
+                try:
+                    available = provider.is_available()
+                except Exception:
+                    available = False
             info = {}
             if hasattr(provider, "model_info"):
-                info = provider.model_info()
+                try:
+                    info = provider.model_info()
+                except Exception:
+                    info = {"error": "unavailable"}
             status["providers"][name] = {
                 "available": available,
                 **info,

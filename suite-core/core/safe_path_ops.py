@@ -28,20 +28,22 @@ from typing import IO, Iterator, List, Optional, Union
 _DEFAULT_TRUSTED_ROOT = "/var/fixops"
 TRUSTED_ROOT = os.environ.get("FIXOPS_TRUSTED_ROOT", _DEFAULT_TRUSTED_ROOT)
 
-# Auto-create the trusted root directory in local/dev mode
-if os.environ.get("FIXOPS_LOCAL_DEV", "false").lower() == "true":
-    _trusted_paths = [TRUSTED_ROOT, f"{TRUSTED_ROOT}/scans", f"{TRUSTED_ROOT}/policies"]
-    for _path in _trusted_paths:
-        try:
-            os.makedirs(_path, exist_ok=True)
-        except PermissionError:
-            # Fall back to /tmp for development
-            if TRUSTED_ROOT == _DEFAULT_TRUSTED_ROOT:
-                TRUSTED_ROOT = "/tmp/fixops"
-                os.makedirs(TRUSTED_ROOT, exist_ok=True)
-                os.makedirs(f"{TRUSTED_ROOT}/scans", exist_ok=True)
-                os.makedirs(f"{TRUSTED_ROOT}/policies", exist_ok=True)
-            break
+# Auto-create the trusted root directory; fall back to /tmp/fixops when the
+# default /var/fixops cannot be created (e.g. non-root on macOS/Linux dev).
+if not os.path.isdir(TRUSTED_ROOT):
+    try:
+        os.makedirs(TRUSTED_ROOT, exist_ok=True)
+    except (PermissionError, OSError):
+        if TRUSTED_ROOT == _DEFAULT_TRUSTED_ROOT:
+            TRUSTED_ROOT = "/tmp/fixops"
+            os.makedirs(TRUSTED_ROOT, exist_ok=True)
+
+# Ensure standard subdirectories exist
+for _subdir in ("scans", "policies"):
+    try:
+        os.makedirs(os.path.join(TRUSTED_ROOT, _subdir), exist_ok=True)
+    except (PermissionError, OSError):
+        pass
 
 
 class PathContainmentError(ValueError):

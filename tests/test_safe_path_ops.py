@@ -32,7 +32,13 @@ from core.safe_path_ops import (
     safe_write_text,
 )
 
-TRUSTED_TEST_ROOT = "/var/fixops/test-scans"
+TRUSTED_TEST_ROOT = TRUSTED_ROOT
+
+# Paths under TRUSTED_ROOT but outside any per-test temp_dir.
+# Used to assert "Path escapes base directory" errors.
+_OUTSIDE_BASE_PATH = os.path.join(TRUSTED_ROOT, "other")
+_OUTSIDE_BASE_FILE = os.path.join(TRUSTED_ROOT, "other", "test.txt")
+_OUTSIDE_BASE_FILE2 = os.path.join(TRUSTED_ROOT, "other", "file.txt")
 
 
 class TestPathContainmentError:
@@ -89,7 +95,7 @@ class TestSafeExists:
     def test_safe_exists_path_escapes_base_directory(self, temp_dir):
         """Test safe_exists raises when path escapes base_path."""
         with pytest.raises(PathContainmentError) as exc_info:
-            safe_exists("/var/fixops/other/test.txt", temp_dir)
+            safe_exists(_OUTSIDE_BASE_FILE, temp_dir)
         assert "Path escapes base directory" in str(exc_info.value)
 
 
@@ -133,7 +139,7 @@ class TestSafeIsfile:
     def test_safe_isfile_path_escapes_base_directory(self, temp_dir):
         """Test safe_isfile raises when path escapes base_path."""
         with pytest.raises(PathContainmentError) as exc_info:
-            safe_isfile("/var/fixops/other/test.txt", temp_dir)
+            safe_isfile(_OUTSIDE_BASE_FILE, temp_dir)
         assert "Path escapes base directory" in str(exc_info.value)
 
 
@@ -174,7 +180,7 @@ class TestSafeIsdir:
     def test_safe_isdir_path_escapes_base_directory(self, temp_dir):
         """Test safe_isdir raises when path escapes base_path."""
         with pytest.raises(PathContainmentError) as exc_info:
-            safe_isdir("/var/fixops/other", temp_dir)
+            safe_isdir(_OUTSIDE_BASE_PATH, temp_dir)
         assert "Path escapes base directory" in str(exc_info.value)
 
 
@@ -211,7 +217,7 @@ class TestSafeListdir:
     def test_safe_listdir_path_escapes_base_directory(self, temp_dir):
         """Test safe_listdir raises when path escapes base_path."""
         with pytest.raises(PathContainmentError) as exc_info:
-            safe_listdir("/var/fixops/other", temp_dir)
+            safe_listdir(_OUTSIDE_BASE_PATH, temp_dir)
         assert "Path escapes base directory" in str(exc_info.value)
 
 
@@ -244,7 +250,7 @@ class TestSafeOpenRead:
     def test_safe_open_read_path_escapes_base_directory(self, temp_dir):
         """Test safe_open_read raises when path escapes base_path."""
         with pytest.raises(PathContainmentError) as exc_info:
-            safe_open_read("/var/fixops/other/test.txt", temp_dir)
+            safe_open_read(_OUTSIDE_BASE_FILE, temp_dir)
         assert "Path escapes base directory" in str(exc_info.value)
 
 
@@ -293,7 +299,7 @@ class TestSafeReadText:
     def test_safe_read_text_path_escapes_base_directory(self, temp_dir):
         """Test safe_read_text raises when path escapes base_path."""
         with pytest.raises(PathContainmentError) as exc_info:
-            safe_read_text("/var/fixops/other/test.txt", temp_dir)
+            safe_read_text(_OUTSIDE_BASE_FILE, temp_dir)
         assert "Path escapes base directory" in str(exc_info.value)
 
 
@@ -332,7 +338,7 @@ class TestSafeWriteText:
     def test_safe_write_text_path_escapes_base_directory(self, temp_dir):
         """Test safe_write_text raises when path escapes base_path."""
         with pytest.raises(PathContainmentError) as exc_info:
-            safe_write_text("/var/fixops/other/test.txt", temp_dir, "content")
+            safe_write_text(_OUTSIDE_BASE_FILE, temp_dir, "content")
         assert "Path escapes base directory" in str(exc_info.value)
 
 
@@ -407,7 +413,7 @@ class TestSafeResolvePath:
     def test_safe_resolve_path_absolute_path_outside_base(self, temp_dir):
         """Test safe_resolve_path raises when absolute path is outside base."""
         with pytest.raises(PathContainmentError) as exc_info:
-            safe_resolve_path("/var/fixops/other/file.txt", temp_dir)
+            safe_resolve_path(_OUTSIDE_BASE_FILE2, temp_dir)
         assert "Path escapes base directory" in str(exc_info.value)
 
 
@@ -437,7 +443,7 @@ class TestSafeSubprocessRun:
     def test_safe_subprocess_run_cwd_escapes_base_directory(self, temp_dir):
         """Test safe_subprocess_run raises when cwd escapes base_path."""
         with pytest.raises(PathContainmentError) as exc_info:
-            safe_subprocess_run(["echo", "hello"], "/var/fixops/other", temp_dir)
+            safe_subprocess_run(["echo", "hello"], _OUTSIDE_BASE_PATH, temp_dir)
         assert "Path escapes base directory" in str(exc_info.value)
 
 
@@ -472,7 +478,7 @@ class TestSafeSubprocessExec:
     async def test_safe_subprocess_exec_cwd_escapes_base_directory(self, temp_dir):
         """Test safe_subprocess_exec raises when cwd escapes base_path."""
         with pytest.raises(PathContainmentError) as exc_info:
-            await safe_subprocess_exec(["echo", "hello"], "/var/fixops/other", temp_dir)
+            await safe_subprocess_exec(["echo", "hello"], _OUTSIDE_BASE_PATH, temp_dir)
         assert "Path escapes base directory" in str(exc_info.value)
 
     @pytest.mark.asyncio
@@ -522,7 +528,7 @@ class TestSafeIterdir:
     def test_safe_iterdir_path_escapes_base_directory(self, temp_dir):
         """Test safe_iterdir raises when path escapes base_path."""
         with pytest.raises(PathContainmentError) as exc_info:
-            list(safe_iterdir("/var/fixops/other", temp_dir))
+            list(safe_iterdir(_OUTSIDE_BASE_PATH, temp_dir))
         assert "Path escapes base directory" in str(exc_info.value)
 
 
@@ -543,7 +549,7 @@ class TestSafeGetParentDirs:
         os.makedirs(subdir, exist_ok=True)
         result = list(safe_get_parent_dirs(subdir, temp_dir))
         assert len(result) >= 1
-        assert subdir in result
+        assert os.path.realpath(subdir) in result
 
     def test_safe_get_parent_dirs_file_path(self, temp_dir):
         """Test safe_get_parent_dirs with a file path."""
@@ -552,7 +558,7 @@ class TestSafeGetParentDirs:
             f.write("test")
         result = list(safe_get_parent_dirs(test_file, temp_dir))
         assert len(result) >= 1
-        assert temp_dir in result
+        assert os.path.realpath(temp_dir) in result
 
     def test_safe_get_parent_dirs_path_escapes_trusted_root(self, temp_dir):
         """Test safe_get_parent_dirs raises when path escapes TRUSTED_ROOT."""
@@ -571,7 +577,7 @@ class TestSafeGetParentDirs:
     def test_safe_get_parent_dirs_path_escapes_base_directory(self, temp_dir):
         """Test safe_get_parent_dirs raises when path escapes base_path."""
         with pytest.raises(PathContainmentError) as exc_info:
-            list(safe_get_parent_dirs("/var/fixops/other", temp_dir))
+            list(safe_get_parent_dirs(_OUTSIDE_BASE_PATH, temp_dir))
         assert "Path escapes base directory" in str(exc_info.value)
 
 
@@ -580,7 +586,7 @@ class TestTrustedRootConstant:
 
     def test_trusted_root_value(self):
         """Test TRUSTED_ROOT has expected value."""
-        assert TRUSTED_ROOT == "/var/fixops"
+        assert TRUSTED_ROOT in ("/var/fixops", "/tmp/fixops")
 
     def test_trusted_root_is_string(self):
         """Test TRUSTED_ROOT is a string."""
@@ -629,7 +635,7 @@ class TestSafeMakedirs:
         from core.safe_path_ops import safe_makedirs
 
         with pytest.raises(PathContainmentError) as exc_info:
-            safe_makedirs("/var/fixops/other", temp_dir)
+            safe_makedirs(_OUTSIDE_BASE_PATH, temp_dir)
         assert "Path escapes base directory" in str(exc_info.value)
 
     def test_safe_makedirs_exist_ok(self, temp_dir):

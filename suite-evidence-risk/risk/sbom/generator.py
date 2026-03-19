@@ -279,7 +279,7 @@ class DependencyDiscoverer:
                         if dep:
                             dependencies.append(dep)
 
-        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        except (OSError, SyntaxError, ValueError, KeyError, RuntimeError) as e:
             logger.warning(f"Failed to parse Python file {file_path}: {e}")
 
         return dependencies

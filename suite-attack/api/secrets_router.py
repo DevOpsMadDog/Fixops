@@ -344,7 +344,7 @@ async def scan_content_for_secrets(request: SecretsScanContentRequest, org_id: s
             branch=request.branch,
             scanner=scanner_type,
         )
-    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
+    except Exception as e:  # must catch all for resilience (scanner may raise any type)
         # SECURITY: Never include exception details that might contain secret values
         logger.error(
             "Secrets content scan failed: %s: %s",
@@ -359,7 +359,7 @@ async def scan_content_for_secrets(request: SecretsScanContentRequest, org_id: s
     for finding in result.findings:
         try:
             db.create_finding(finding)
-        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        except Exception as e:  # must catch all — persist failure must not break scan response
             logger.warning("Failed to persist finding: %s", type(e).__name__)
 
     return SecretsScanResponse(

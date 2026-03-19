@@ -1353,7 +1353,7 @@ def process_pending_outbox_items(limit: int = 10) -> Dict[str, Any]:
         try:
             result = execute_outbox_item(outbox_id)
             results.append(result)
-        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        except Exception as e:  # catch ALL errors — outbox must not crash on one bad item
             logger.error(f"Failed to execute outbox item {outbox_id}: {e}")
             results.append(
                 {

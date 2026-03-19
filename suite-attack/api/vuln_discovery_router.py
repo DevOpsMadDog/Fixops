@@ -735,9 +735,10 @@ async def retrain_ml_models(
     try:
         from feeds_service import FeedsService
 
-        _epss = FeedsService._load_epss_scores()
-        external_count = len(_epss) if _epss else 0
-    except ImportError:
+        _fs = FeedsService()
+        _stats = _fs.get_feed_stats() if hasattr(_fs, "get_feed_stats") else {}
+        external_count = _stats.get("epss_count", 0) if isinstance(_stats, dict) else 0
+    except (ImportError, Exception):
         pass  # Feed unavailable — external_count stays 0
     total_data_points = internal_count + external_count
 

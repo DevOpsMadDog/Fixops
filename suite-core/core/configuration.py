@@ -1138,7 +1138,7 @@ class OverlayConfig:
             flag_value = self.flag_provider.bool(flag_key, None)
             if flag_value is not None:
                 return flag_value
-        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
+        except Exception:  # flag_provider may raise arbitrary errors
             pass
 
         raw = self.modules.get(name)

@@ -566,7 +566,7 @@ class SecretsDetector:
         except PathContainmentError:
             logger.warning("Path escapes base directory in repo info: %s", type(path).__name__)
             return str(path), "main"
-        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        except Exception as e:  # must catch all (subprocess.TimeoutExpired, etc.)
             logger.debug("Failed to get repo info: %s", type(e).__name__)
             return str(path), "main"
 

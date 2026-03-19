@@ -246,7 +246,7 @@ class OpenAIChatProvider(BaseLLMProvider):
                 ),
                 metadata=metadata,
             )
-        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # noqa: BLE001 - capture provider error
+        except Exception as exc:  # noqa: BLE001 - capture provider error
             logger.warning(
                 "OpenAI provider %s failed, falling back to deterministic: %s",
                 self.name,
@@ -369,7 +369,7 @@ class AnthropicMessagesProvider(BaseLLMProvider):
             response.raise_for_status()
             content = response.json()["content"][0]["text"]
             parsed = json.loads(content)
-        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # noqa: BLE001 - capture provider error
+        except Exception as exc:  # noqa: BLE001 - capture provider error
             logger.warning(
                 "Anthropic provider %s failed, falling back to deterministic: %s",
                 self.name,
@@ -491,7 +491,7 @@ class GeminiProvider(BaseLLMProvider):
                 raise RuntimeError("no candidates returned")
             content = candidates[0]["content"]["parts"][0]["text"]
             parsed = json.loads(content)
-        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # noqa: BLE001 - capture provider error
+        except Exception as exc:  # noqa: BLE001 - capture provider error
             logger.warning(
                 "Gemini provider %s failed, falling back to deterministic: %s",
                 self.name,
@@ -696,7 +696,7 @@ class VLLMSelfHostedProvider(BaseLLMProvider):
                 ),
                 metadata=metadata,
             )
-        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
             logger.warning(
                 "vLLM provider %s failed, falling back to deterministic: %s",
                 self.name, type(exc).__name__,
@@ -748,18 +748,22 @@ class VLLMSelfHostedProvider(BaseLLMProvider):
             url = f"{self.base_url}/models"
             resp = self._session.get(url, timeout=5)
             return resp.status_code == 200
-        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
+        except Exception:
             return False
 
     def model_info(self) -> Dict[str, Any]:
         """Return metadata about the configured vLLM backend."""
+        try:
+            available = self.is_available()
+        except Exception:
+            available = False
         return {
             "backend": "vllm",
             "url": self.base_url,
             "model": self.model,
             "cost": "$0/month (self-hosted)",
             "air_gapped": True,
-            "available": self.is_available(),
+            "available": available,
         }
 
     def _resolve_api_key(self) -> Optional[str]:
@@ -859,7 +863,7 @@ class OllamaSelfHostedProvider(BaseLLMProvider):
                 default_reasoning=default_reasoning,
                 mitigation_hints=mitigation_hints,
             )
-        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
             logger.warning(
                 "Ollama provider %s failed: %s", self.name, type(exc).__name__,
             )
@@ -894,7 +898,7 @@ class OllamaSelfHostedProvider(BaseLLMProvider):
         try:
             resp = self._session.get(f"{self.base_url}/api/tags", timeout=5)
             return resp.status_code == 200
-        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
+        except Exception:
             return False
 
     def model_info(self) -> Dict[str, Any]:

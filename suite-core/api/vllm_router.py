@@ -112,11 +112,21 @@ async def vllm_status() -> Dict[str, Any]:
             "all_providers": available_providers,
             "recommendation": _get_recommendation(status),
         }
-    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+    except Exception as e:  # graceful degradation when backends unavailable
         return {
-            "status": "error",
+            "status": "degraded",
             "error": type(e).__name__,
             "air_gapped_ready": False,
+            "active_backend": "none",
+            "backends": {"vllm": False, "ollama": False},
+            "all_providers": [
+                {"name": "vllm", "type": "VLLMProvider", "air_gapped": True},
+                {"name": "ollama", "type": "OllamaProvider", "air_gapped": True},
+                {"name": "openai", "type": "OpenAIProvider", "air_gapped": False},
+                {"name": "anthropic", "type": "AnthropicProvider", "air_gapped": False},
+                {"name": "gemini", "type": "GeminiProvider", "air_gapped": False},
+            ],
+            "recommendation": "Install vLLM or Ollama for air-gapped operation",
         }
 
 
@@ -224,8 +234,17 @@ async def autofix_status() -> Dict[str, Any]:
 
     Shows whether AutoFix can generate fixes without external API keys.
     """
-    adapter = _get_adapter()
-    return adapter.get_status()
+    try:
+        adapter = _get_adapter()
+        return adapter.get_status()
+    except Exception as e:
+        return {
+            "active_backend": "none",
+            "backends": {"vllm": False, "ollama": False},
+            "can_generate_fixes": False,
+            "provider_info": {"status": "unavailable", "error": type(e).__name__},
+            "status": "degraded",
+        }
 
 
 @router.post("/generate-fix")
@@ -236,23 +255,39 @@ async def generate_fix_endpoint(req: GenerateFixRequest) -> Dict[str, Any]:
     external API keys. Falls back to deterministic rules if no
     LLM backend is available.
     """
-    adapter = _get_adapter()
-    result = adapter.generate_fix(req.finding, req.source_code)
+    try:
+        adapter = _get_adapter()
+        result = adapter.generate_fix(req.finding, req.source_code)
 
-    return {
-        "success": result.success,
-        "fix": {
-            "code": result.fix_code,
-            "explanation": result.explanation,
-            "confidence": result.confidence,
-            "unified_diff": result.unified_diff,
-        },
-        "backend": result.backend,
-        "model": result.model,
-        "duration_ms": result.duration_ms,
-        "error": result.error or None,
-        "metadata": result.metadata,
-    }
+        return {
+            "success": result.success,
+            "fix": {
+                "code": result.fix_code,
+                "explanation": result.explanation,
+                "confidence": result.confidence,
+                "unified_diff": result.unified_diff,
+            },
+            "backend": result.backend,
+            "model": result.model,
+            "duration_ms": result.duration_ms,
+            "error": result.error or None,
+            "metadata": result.metadata,
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "fix": {
+                "code": "",
+                "explanation": f"No LLM backend available: {type(e).__name__}",
+                "confidence": 0.0,
+                "unified_diff": "",
+            },
+            "backend": "none",
+            "model": "none",
+            "duration_ms": 0,
+            "error": str(e),
+            "metadata": {"fallback": True},
+        }
 
 
 # ---------------------------------------------------------------------------

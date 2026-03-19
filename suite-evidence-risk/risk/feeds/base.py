@@ -267,7 +267,7 @@ class FeedRegistry:
                 path = feed.update_feed()
                 results[name] = path
                 LOGGER.info("Updated feed: %s", name)
-            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
+            except (OSError, ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
                 LOGGER.error("Failed to update feed %s: %s", name, exc)
         return results
 
@@ -285,7 +285,7 @@ class FeedRegistry:
                 records = feed.load_feed()
                 results[name] = records
                 LOGGER.info("Loaded feed: %s (%d records)", name, len(records))
-            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
+            except (OSError, ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
                 LOGGER.error("Failed to load feed %s: %s", name, exc)
         return results
 

@@ -168,12 +168,12 @@ class TestVLLMBackend:
         mock_urlopen.return_value = mock_resp
         backend = VLLMBackend(base_url="http://test:8001/v1")
         result = backend.generate("test prompt")
-        assert isinstance(result, str)
+        assert isinstance(result, tuple) and isinstance(result[0], str)
 
     def test_generate_failure_no_server(self):
         backend = VLLMBackend(base_url="http://localhost:99999/v1")
         result = backend.generate("test prompt")
-        assert result == "" or isinstance(result, str)
+        assert isinstance(result, tuple) and result[0] == ""
 
 
 class TestOllamaBackend:

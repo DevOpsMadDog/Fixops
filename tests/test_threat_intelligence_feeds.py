@@ -404,10 +404,15 @@ class TestThreatIntelligenceOrchestrator:
 
     @pytest.mark.timeout(30)
     def test_orchestrator_update_all_feeds(self, temp_cache_dir: Path):
-        """Test updating all feeds with orchestrator."""
+        """Test updating all feeds with orchestrator — mocked to avoid network timeouts."""
+        from unittest.mock import patch
+
         orchestrator = ThreatIntelligenceOrchestrator(cache_dir=temp_cache_dir)
 
-        results = orchestrator.update_all_feeds()
+        # Mock network calls to avoid timeouts in CI
+        with patch.object(orchestrator.registry, "update_all", return_value={"NVD": True, "EPSS": True}), \
+             patch("risk.feeds.orchestrator.update_kev_feed", return_value=None):
+            results = orchestrator.update_all_feeds()
 
         assert isinstance(results, dict)
         assert len(results) > 0

@@ -171,7 +171,7 @@ def test_get_detector_status(client, auth_headers):
 
 def test_scan_secrets_content_scanner_exception(client, db, monkeypatch, auth_headers):
     """Test that scanner exceptions during content scan are handled and return 500."""
-    monkeypatch.setattr("apps.api.secrets_router.db", db)
+    monkeypatch.setattr("api.secrets_router.db", db)
 
     # Mock the detector to raise an exception
     class MockDetector:
@@ -179,7 +179,7 @@ def test_scan_secrets_content_scanner_exception(client, db, monkeypatch, auth_he
             raise RuntimeError("Content scanner crashed unexpectedly")
 
     monkeypatch.setattr(
-        "apps.api.secrets_router.get_secrets_detector", lambda: MockDetector()
+        "api.secrets_router.get_secrets_detector", lambda: MockDetector()
     )
 
     response = client.post(
@@ -237,13 +237,13 @@ def test_scan_secrets_content_finding_persist_failure(
             return mock_result
 
     monkeypatch.setattr(
-        "apps.api.secrets_router.get_secrets_detector", lambda: MockDetector()
+        "api.secrets_router.get_secrets_detector", lambda: MockDetector()
     )
 
     # Mock db to raise exception on create_finding
     mock_db = MagicMock()
     mock_db.create_finding.side_effect = Exception("Database error")
-    monkeypatch.setattr("apps.api.secrets_router.db", mock_db)
+    monkeypatch.setattr("api.secrets_router.db", mock_db)
 
     response = client.post(
         "/api/v1/secrets/scan/content",

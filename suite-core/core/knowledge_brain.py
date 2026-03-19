@@ -256,7 +256,9 @@ class KnowledgeBrain:
             )
             for row in cursor:
                 node_id, node_type, org_id, props_json, created_at, updated_at = row
-                props = json.loads(props_json)
+                if node_id is None:
+                    continue  # skip corrupt rows
+                props = json.loads(props_json) if props_json else {}
                 self._graph.add_node(
                     node_id,
                     node_type=node_type,
@@ -270,7 +272,9 @@ class KnowledgeBrain:
             )
             for row in cursor:
                 src, tgt, edge_type, props_json, confidence, created_at = row
-                props = json.loads(props_json)
+                if src is None or tgt is None:
+                    continue  # skip corrupt rows
+                props = json.loads(props_json) if props_json else {}
                 self._graph.add_edge(
                     src,
                     tgt,

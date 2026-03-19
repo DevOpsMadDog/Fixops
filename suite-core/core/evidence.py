@@ -91,7 +91,7 @@ class EvidenceHub:
             encrypt_flag = overlay.flag_provider.bool(
                 "fixops.feature.evidence.encryption", encrypt_flag
             )
-        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
+        except Exception:  # flag_provider may raise arbitrary errors
             pass
 
         self.encrypt_bundles = bool(encrypt_flag)
@@ -158,7 +158,7 @@ class EvidenceHub:
             )
             if flag_retention is not None:
                 retention_value = flag_retention
-        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
+        except Exception:  # flag_provider may raise arbitrary errors
             pass
 
         try:
@@ -171,7 +171,7 @@ class EvidenceHub:
             sign_flag = overlay.flag_provider.bool(
                 "fixops.feature.evidence.signing", sign_flag
             )
-        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
+        except Exception:  # flag_provider may raise arbitrary errors
             pass
 
         self.sign_bundles = bool(sign_flag)
@@ -211,7 +211,7 @@ class EvidenceHub:
             branding = self.overlay.flag_provider.json("fixops.branding", {})
             if branding and isinstance(branding, dict):
                 product_name = branding.get("short_name", "fixops").lower()
-        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
+        except Exception:  # flag_provider may raise arbitrary errors
             pass
 
         raw_name = str(
@@ -241,7 +241,7 @@ class EvidenceHub:
             branding = self.overlay.flag_provider.json("fixops.branding", {})
             if branding and isinstance(branding, dict):
                 producer_name = branding.get("product_name", "FixOps")
-        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
+        except Exception:  # flag_provider may raise arbitrary errors
             pass
 
         bundle_payload: Dict[str, Any] = {
@@ -344,7 +344,7 @@ class EvidenceHub:
                         "signed_at": signed_at,
                     },
                 )
-            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
+            except Exception as exc:
                 # Clean up orphaned bundle file on signing failure to maintain data integrity
                 try:
                     if final_path.exists():
@@ -352,7 +352,7 @@ class EvidenceHub:
                         logger.info(
                             f"Cleaned up orphaned bundle file after signing failure: {final_path}"
                         )
-                except (OSError, ValueError, KeyError, RuntimeError) as cleanup_exc:  # narrowed from bare Exception
+                except Exception as cleanup_exc:
                     logger.warning(
                         f"Failed to clean up orphaned bundle file {final_path}: {cleanup_exc}"
                     )

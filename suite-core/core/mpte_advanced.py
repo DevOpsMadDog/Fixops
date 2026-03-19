@@ -458,7 +458,7 @@ Respond in JSON format with keys: action, confidence, reasoning, execution_plan 
                 logger.warning(
                     f"LLM call to {provider} timed out (attempt {attempt + 1}/{self.config.max_retries})"
                 )
-            except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
+            except Exception as e:  # catch ALL LLM errors — must fallback gracefully
                 last_error = e
                 logger.warning(
                     f"LLM call to {provider} failed (attempt {attempt + 1}/{self.config.max_retries}): {e}"

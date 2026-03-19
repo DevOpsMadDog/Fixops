@@ -240,7 +240,7 @@ class ApiFuzzerEngine:
                             findings.extend(
                                 self._analyze_response(resp, ep, pname, str(payload))
                             )
-                        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
+                        except Exception:  # fuzzer must swallow ALL transport errors
                             pass
 
                 if ep.auth_required:
@@ -264,7 +264,7 @@ class ApiFuzzerEngine:
                                     )
                                 )
                                 break
-                        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
+                        except Exception:  # fuzzer must swallow ALL transport errors
                             pass
 
         by_sev: Dict[str, int] = {}

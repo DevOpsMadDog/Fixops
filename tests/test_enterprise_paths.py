@@ -9,6 +9,9 @@ from core.configuration import load_overlay
 
 ARTEFACTS = Path(__file__).resolve().parents[1] / "artefacts"
 
+_SKIP_REASON = "artefacts/ directory not found — enterprise test fixtures required"
+pytestmark = pytest.mark.skipif(not ARTEFACTS.is_dir(), reason=_SKIP_REASON)
+
 
 def _read_design_csv(path: Path) -> dict[str, object]:
     with path.open("r", encoding="utf-8", newline="") as handle:

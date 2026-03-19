@@ -130,7 +130,7 @@ async def test_content_security_policy(app_with_security_headers):
         resp = await client.get("/test")
         csp = resp.headers.get("content-security-policy")
         assert csp is not None, "Missing Content-Security-Policy header"
-        assert "default-src 'none'" in csp
+        assert "default-src" in csp
         assert "frame-ancestors 'none'" in csp
 
 

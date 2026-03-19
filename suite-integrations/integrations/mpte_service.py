@@ -115,7 +115,7 @@ class AdvancedMPTEService:
             # Start async monitoring
             asyncio.create_task(self._monitor_test(request.id, mpte_test_id))
 
-        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        except Exception as e:
             logger.error(f"Failed to create MPTE test: {e}")
             request.status = PenTestStatus.FAILED
             request = self.db.update_request(request)
@@ -150,7 +150,7 @@ class AdvancedMPTEService:
 
                 await asyncio.sleep(check_interval)
 
-            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+            except Exception as e:
                 logger.error(f"Error monitoring test {mpte_test_id}: {e}")
                 await asyncio.sleep(check_interval)
 
@@ -373,7 +373,7 @@ class AdvancedMPTEService:
 
             return result
 
-        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        except Exception as e:
             logger.error(f"Failed to verify vulnerability: {e}")
             raise
 
@@ -398,7 +398,7 @@ class AdvancedMPTEService:
             job_ids = await self.client.continuous_monitoring(targets, interval_minutes)
             self._monitoring_jobs.update(job_ids)
             return job_ids
-        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        except Exception as e:
             logger.error(f"Failed to setup continuous monitoring: {e}")
             raise
 
@@ -451,7 +451,7 @@ class AdvancedMPTEService:
                 # Start monitoring
                 asyncio.create_task(self._monitor_test(request.id, test_id))
 
-            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+            except Exception as e:
                 logger.error(f"Failed to create {scan_type.value} scan: {e}")
 
         return requests

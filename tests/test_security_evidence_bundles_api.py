@@ -364,9 +364,10 @@ class TestVerifyBundle:
         resp = client.post(
             f"{BASE}/bundles/..%2F..%2Fetc%2Fpasswd/verify", headers=auth
         )
-        # FastAPI may resolve the URL path before routing (404) or our
-        # sanitizer catches it (400). Either way, not 200.
-        assert resp.status_code in (400, 404)
+        # FastAPI may resolve the URL path before routing (404), our
+        # sanitizer catches it (400), or the path doesn't match a route (405).
+        # Either way, not 200.
+        assert resp.status_code in (400, 404, 405)
 
     def test_verify_empty_bundle_id_rejected(self, client, auth):
         """Empty bundle_id is routed to a different endpoint (not matched)."""

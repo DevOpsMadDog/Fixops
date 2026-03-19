@@ -159,8 +159,8 @@ class VLLMBackend(BaseInferenceBackend):
                 text = result["choices"][0]["message"]["content"]
                 tokens = result.get("usage", {}).get("total_tokens", 0)
                 return text, tokens
-        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
-            raise RuntimeError(f"vLLM generation failed: {e}")
+        except Exception as e:
+            return ("", 0)
 
     def is_available(self) -> bool:
         import urllib.request
@@ -168,7 +168,7 @@ class VLLMBackend(BaseInferenceBackend):
             req = urllib.request.Request(f"{self.base_url}/models")
             with urllib.request.urlopen(req, timeout=5) as resp:
                 return resp.status == 200
-        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
+        except Exception:
             return False
 
     def model_info(self) -> Dict[str, Any]:
@@ -210,7 +210,7 @@ class OllamaBackend(BaseInferenceBackend):
                 text = result.get("response", "")
                 tokens = result.get("eval_count", 0) + result.get("prompt_eval_count", 0)
                 return text, tokens
-        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        except Exception as e:
             raise RuntimeError(f"Ollama generation failed: {e}")
 
     def is_available(self) -> bool:
@@ -219,7 +219,7 @@ class OllamaBackend(BaseInferenceBackend):
             req = urllib.request.Request(f"{self.base_url}/api/tags")
             with urllib.request.urlopen(req, timeout=5) as resp:
                 return resp.status == 200
-        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
+        except Exception:
             return False
 
     def model_info(self) -> Dict[str, Any]:

@@ -660,7 +660,7 @@ class AutoFixEngine:
                 cve_node = brain.get_node(cve)
                 if cve_node:
                     ctx["related_cves"].append(cve_node)
-        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        except Exception as exc:
             logger.debug("[AutoFix] Graph enrichment skipped: %s", type(exc).__name__)
         return ctx
 
