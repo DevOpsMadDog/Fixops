@@ -706,6 +706,7 @@ class BrainPipeline:
             "compliance_mapped": 0,
             "sla_assigned": 0,
             "attack_paths_enriched": 0,
+            "code_to_cloud_enriched": 0,
             "frameworks_affected": set(),
         }
 
@@ -769,6 +770,15 @@ class BrainPipeline:
             except Exception:  # noqa: BLE001
                 logger.warning(
                     "Post-pipeline enrichment: attack path enrichment failed "
+                    "for finding %s", finding.get("id", "unknown")
+                )
+
+            # ── (d) Code-to-Cloud trace enrichment ──
+            try:
+                self._enrich_code_to_cloud(finding, stats)
+            except Exception:  # noqa: BLE001
+                logger.warning(
+                    "Post-pipeline enrichment: code-to-cloud trace failed "
                     "for finding %s", finding.get("id", "unknown")
                 )
 
@@ -894,6 +904,48 @@ class BrainPipeline:
         finding["attack_paths_count"] = br_result.get("total_paths", 0)
         finding["blast_radius"] = br_result.get("affected_nodes", 0)
         stats["attack_paths_enriched"] += 1
+
+    def _enrich_code_to_cloud(
+        self,
+        finding: Dict[str, Any],
+        stats: Dict[str, Any],
+    ) -> None:
+        """Add code-to-cloud trace data (risk amplification, cloud exposure).
+
+        Uses the CodeToCloudTracer to determine how a vulnerability's risk
+        amplifies as it propagates from source code through build/deploy
+        to cloud runtime. This is the key differentiator vs Apiiro/Wiz.
+        """
+        try:
+            from core.code_to_cloud_tracer import get_code_to_cloud_tracer
+        except ImportError:
+            return
+
+        vuln_id = (
+            finding.get("cve_id")
+            or finding.get("id")
+            or finding.get("finding_id")
+        )
+        if not vuln_id or not isinstance(vuln_id, str):
+            return
+
+        tracer = get_code_to_cloud_tracer()
+        result = tracer.trace(
+            vulnerability_id=vuln_id,
+            source_file=finding.get("file_path", finding.get("source_file", "")),
+            source_line=finding.get("line_number", finding.get("source_line", 0)),
+            cloud_service=finding.get("cloud_service", ""),
+            internet_facing=finding.get("internet_facing", False),
+        )
+
+        finding["code_to_cloud"] = {
+            "trace_id": result.trace_id,
+            "risk_amplification": result.risk_amplification,
+            "cloud_exposure": result.cloud_exposure,
+            "attack_path_length": result.attack_path_length,
+            "remediation_points": len(result.remediation_points),
+        }
+        stats["code_to_cloud_enriched"] += 1
 
     # ------------------------------------------------------------------
     # Data Quality Assessment

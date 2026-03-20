@@ -178,6 +178,12 @@ export const scannerApi = {
   list: () => api.get("/api/v1/scanner/parsers"),
 };
 
+export const scannerIngestApi = {
+  stats: () => api.get("/api/v1/scanner-ingest/stats"),
+  status: () => api.get("/api/v1/scanner-ingest/status"),
+  supported: () => api.get("/api/v1/scanner-ingest/supported"),
+};
+
 export const appsApi = {
   list: (params?: Record<string, unknown>) => api.get("/api/v1/apps/", { params }),
   get: (id: string) => api.get(`/api/v1/apps/${id}`),
@@ -234,6 +240,13 @@ export const mpteApi = {
   orchestratorStatus: (id: string) => api.get(`/api/v1/mpte-orchestrator/status/${id}`),
 };
 
+export const slaApi = {
+  dashboard: () => api.get("/api/v1/sla/dashboard"),
+  metrics: () => api.get("/api/v1/sla/metrics"),
+  breaches: () => api.get("/api/v1/sla/breaches"),
+  health: () => api.get("/api/v1/sla/health"),
+};
+
 export const remediationApi = {
   list: (params?: Record<string, unknown>) => api.get("/api/v1/remediation/tasks", { params }),
   get: (id: string) => api.get(`/api/v1/remediation/tasks/${id}`),
@@ -278,6 +291,7 @@ export const copilotApi = {
 
 export const integrationsApi = {
   list: () => api.get("/api/v1/integrations"),
+  status: () => api.get("/api/v1/integrations/status"),
   test: (id: string) => api.post(`/api/v1/integrations/${id}/test`),
   sync: (id: string) => api.post(`/api/v1/integrations/${id}/sync`),
   configure: (id: string, data: unknown) => api.put(`/api/v1/integrations/${id}`, data),
@@ -344,11 +358,21 @@ export const knowledgeGraphApi = {
   visualize: (params?: Record<string, string>) => api.get("/api/v1/graph/visualize", { params }),
   paths: (data?: unknown) => data ? api.post("/api/v1/graph/attack-paths", data) : api.get("/api/v1/graph/attack-paths"),
   attackPaths: () => api.get("/api/v1/graph/attack-paths"),
+  blastRadius: (data: unknown) => api.post("/api/v1/graph/blast-radius", data),
+  stats: () => api.get("/api/v1/graph/stats"),
 };
 
 export const threatFeedsApi = {
   list: (params?: Record<string, string>) => api.get("/api/v1/feeds", { params }),
   trending: () => api.get("/api/v1/feeds/trending"),
+  epss: (cveIds: string) => api.get("/api/v1/feeds/epss", { params: { cve_ids: cveIds } }),
+  kev: (cveId?: string) => api.get("/api/v1/feeds/kev", { params: cveId ? { cve_id: cveId } : undefined }),
+};
+
+export const reachabilityApi = {
+  analysis: () => api.get("/api/v1/reachability/analysis"),
+  analyze: (data: unknown) => api.post("/api/v1/reachability/analyze", data),
+  health: () => api.get("/api/v1/reachability/health"),
 };
 
 export const predictionsApi = {
@@ -384,6 +408,9 @@ export const sbomApi = {
   components: (params?: Record<string, unknown>) => api.get("/api/v1/inventory/sbom/components", { params }),
   licenses: () => api.get("/api/v1/inventory/sbom/licenses"),
   ingest: (data: unknown) => api.post("/api/v1/inventory/sbom/ingest", data),
+  correlate: (data: unknown) => api.post("/api/v1/sbom/correlate", data),
+  generate: (params?: Record<string, string>) => api.post("/api/v1/sbom/generate", null, { params }),
+  export: (params?: Record<string, string>) => api.get("/api/v1/sbom/export", { params }),
 };
 
 export const cspmApi = {

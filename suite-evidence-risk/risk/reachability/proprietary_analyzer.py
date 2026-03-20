@@ -439,52 +439,238 @@ class ProprietaryCallGraphBuilder:
         }
 
     def _build_javascript_graph(self, repo_path: Path) -> Dict[str, Any]:
-        """Build proprietary JavaScript call graph."""
-        # Proprietary JavaScript call graph building
-        graph = {}
+        """Build proprietary JavaScript call graph with full ES6+ support."""
+        graph: Dict[str, Dict[str, Any]] = {}
+        exports_map: Dict[str, Set[str]] = {}  # file -> exported names
+        imports_map: Dict[str, Dict[str, str]] = {}  # file -> {local: source_file}
 
         js_files = list(repo_path.rglob("*.js")) + list(repo_path.rglob("*.ts"))
-        ignore_dirs = {".git", "node_modules", "vendor", "dist", "build"}
+        js_files += list(repo_path.rglob("*.jsx")) + list(repo_path.rglob("*.tsx"))
+        ignore_dirs = {".git", "node_modules", "vendor", "dist", "build", ".next"}
         js_files = [
             f for f in js_files if not any(part in ignore_dirs for part in f.parts)
         ]
 
-        # Proprietary JavaScript parser (simplified)
+        # JS keywords that should never be treated as function names
+        js_keywords = {
+            "if", "else", "for", "while", "do", "switch", "case", "break",
+            "continue", "return", "throw", "try", "catch", "finally", "new",
+            "delete", "typeof", "void", "instanceof", "in", "of", "with",
+            "class", "extends", "super", "import", "from", "as", "default",
+        }
+
+        # Patterns for function definitions (ES6+ comprehensive)
+        patterns = [
+            # Named function declarations: function name(
+            (r"(?:export\s+(?:default\s+)?)?(?:async\s+)?function\s+(\w+)\s*\(", "function_decl"),
+            # Arrow functions assigned to const/let/var: const name = (...) =>
+            (r"(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\(?[^)]*\)?\s*=>", "arrow_func"),
+            # Function expressions: const name = function(
+            (r"(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?function\s*\(", "func_expr"),
+            # Class methods: methodName( or async methodName(
+            (r"^\s+(?:static\s+)?(?:async\s+)?(\w+)\s*\([^)]*\)\s*\{", "class_method"),
+            # Object methods: name: function( or name: (
+            (r"(\w+)\s*:\s*(?:async\s+)?function\s*\(", "obj_method"),
+            (r"(\w+)\s*:\s*(?:async\s+)?\([^)]*\)\s*=>", "obj_arrow"),
+        ]
+
+        # Export patterns
+        export_patterns = [
+            r"export\s+(?:default\s+)?(?:function|class|const|let|var)\s+(\w+)",
+            r"export\s*\{([^}]+)\}",
+            r"module\.exports\s*=\s*\{([^}]+)\}",
+            r"module\.exports\s*=\s*(\w+)",
+            r"exports\.(\w+)\s*=",
+        ]
+
+        # Import patterns
+        import_patterns = [
+            r"import\s+\{([^}]+)\}\s+from\s+['\"]([^'\"]+)['\"]",
+            r"import\s+(\w+)\s+from\s+['\"]([^'\"]+)['\"]",
+            r"const\s+\{([^}]+)\}\s*=\s*require\(['\"]([^'\"]+)['\"]\)",
+            r"const\s+(\w+)\s*=\s*require\(['\"]([^'\"]+)['\"]\)",
+        ]
+
         for js_file in js_files:
             try:
                 with open(js_file, "r", encoding="utf-8") as f:
                     content = f.read()
 
-                # Proprietary pattern matching for function definitions
-                function_pattern = r"function\s+(\w+)\s*\("
-                for match in re.finditer(function_pattern, content):
-                    func_name = match.group(1)
-                    if func_name not in graph:
-                        graph[func_name] = {
-                            "file": str(js_file),
-                            "line": content[: match.start()].count("\n") + 1,
-                            "callers": [],
-                            "callees": [],
-                            "is_exported": "export" in content[: match.start()],
-                        }
+                file_key = str(js_file)
+                file_functions: Set[str] = set()
+                exports_map[file_key] = set()
+                imports_map[file_key] = {}
+
+                # Extract function definitions
+                for pattern, def_type in patterns:
+                    for match in re.finditer(pattern, content, re.MULTILINE):
+                        func_name = match.group(1)
+                        if func_name in js_keywords or func_name.startswith("_"):
+                            continue
+                        file_functions.add(func_name)
+                        if func_name not in graph:
+                            graph[func_name] = {
+                                "file": file_key,
+                                "line": content[: match.start()].count("\n") + 1,
+                                "callers": [],
+                                "callees": [],
+                                "is_exported": False,
+                                "def_type": def_type,
+                            }
+
+                # Extract exports
+                for ep in export_patterns:
+                    for match in re.finditer(ep, content):
+                        names_str = match.group(1)
+                        for name in re.findall(r"(\w+)", names_str):
+                            exports_map[file_key].add(name.strip())
+                            if name in graph:
+                                graph[name]["is_exported"] = True
+
+                # Extract imports
+                for ip in import_patterns:
+                    for match in re.finditer(ip, content):
+                        names_str = match.group(1)
+                        source = match.group(2)
+                        for name in re.findall(r"(\w+)", names_str):
+                            imports_map[file_key][name.strip()] = source
+
+                # Extract callees for each function
+                self._extract_js_callees(content, file_functions, graph, file_key)
 
             except Exception as e:
                 logger.warning(f"Failed to build graph for {js_file}: {e}")
 
+        # Resolve cross-module caller/callee relationships
+        self._resolve_js_cross_module(graph, imports_map, exports_map)
+
+        # Detect entry points: exported functions, route handlers, event listeners
+        entry_point_indicators = {
+            "app.get", "app.post", "app.put", "app.delete", "app.use",
+            "router.get", "router.post", "router.put", "router.delete",
+            "addEventListener", "on(", "handle", "controller", "middleware",
+        }
+        entry_points = []
+        for fname, info in graph.items():
+            if info.get("is_exported") or info.get("def_type") == "class_method":
+                entry_points.append(fname)
+
         return {
             "graph": graph,
-            "entry_points": [f for f, info in graph.items() if info.get("is_exported")],
+            "entry_points": entry_points,
             "total_functions": len(graph),
+            "language": "javascript",
         }
 
+    def _extract_js_callees(
+        self,
+        content: str,
+        file_functions: Set[str],
+        graph: Dict[str, Dict[str, Any]],
+        file_key: str,
+    ) -> None:
+        """Extract function callees from JavaScript function bodies."""
+        # Simple call pattern: identifier followed by (
+        call_pattern = re.compile(r"(?<!\w)(\w+)\s*\(")
+        js_builtins = {
+            "if", "for", "while", "switch", "catch", "function", "return",
+            "console", "require", "import", "export", "class", "new",
+            "typeof", "void", "delete", "throw", "try", "finally",
+        }
+
+        for func_name in file_functions:
+            if func_name not in graph:
+                continue
+            # Find the function body (simplified: look for its definition and extract block)
+            func_info = graph[func_name]
+            if func_info["file"] != file_key:
+                continue
+            start_line = func_info["line"] - 1
+            lines = content.split("\n")
+            # Scan from definition to find matching brace
+            brace_count = 0
+            started = False
+            body_lines = []
+            for i in range(start_line, min(start_line + 200, len(lines))):
+                line = lines[i]
+                for ch in line:
+                    if ch == "{":
+                        brace_count += 1
+                        started = True
+                    elif ch == "}":
+                        brace_count -= 1
+                if started:
+                    body_lines.append(line)
+                if started and brace_count <= 0:
+                    break
+
+            body = "\n".join(body_lines)
+            for call_match in call_pattern.finditer(body):
+                callee = call_match.group(1)
+                if callee not in js_builtins and callee != func_name:
+                    if callee not in func_info["callees"]:
+                        func_info["callees"].append(callee)
+                    # Register as caller in the callee's graph entry
+                    if callee in graph and func_name not in graph[callee]["callers"]:
+                        graph[callee]["callers"].append(func_name)
+
+    def _resolve_js_cross_module(
+        self,
+        graph: Dict[str, Dict[str, Any]],
+        imports_map: Dict[str, Dict[str, str]],
+        exports_map: Dict[str, Set[str]],
+    ) -> None:
+        """Resolve cross-module function references via import/export."""
+        for _file_key, file_imports in imports_map.items():
+            for local_name, _source in file_imports.items():
+                # If the imported name exists in graph, mark it as reachable
+                if local_name in graph:
+                    graph[local_name]["is_exported"] = True
+
     def _build_java_graph(self, repo_path: Path) -> Dict[str, Any]:
-        """Build proprietary Java call graph."""
-        graph = {}
+        """Build proprietary Java call graph with Spring/Jakarta annotation support."""
+        graph: Dict[str, Dict[str, Any]] = {}
 
         java_files = list(repo_path.rglob("*.java"))
-        ignore_dirs = {".git", "target", "build", "out"}
+        ignore_dirs = {".git", "target", "build", "out", ".gradle", ".idea"}
         java_files = [
             f for f in java_files if not any(part in ignore_dirs for part in f.parts)
+        ]
+
+        # Java keywords/control-flow that regex might falsely capture
+        java_keywords = {
+            "if", "else", "for", "while", "do", "switch", "case", "catch",
+            "return", "throw", "try", "finally", "new", "instanceof",
+            "import", "package", "class", "interface", "enum", "extends",
+            "implements", "super", "this", "assert", "synchronized",
+        }
+
+        # Spring/Jakarta annotations that mark HTTP entry points
+        entry_annotations = {
+            "RequestMapping", "GetMapping", "PostMapping", "PutMapping",
+            "DeleteMapping", "PatchMapping", "RestController", "Controller",
+            "EventListener", "Scheduled", "KafkaListener", "JmsListener",
+            "RabbitListener", "MessageMapping",
+        }
+
+        # Improved method pattern: requires access modifier OR annotation before return type
+        method_patterns = [
+            # Standard methods: public/private/protected [static] [final] ReturnType methodName(
+            (
+                r"(?:(?:@\w+(?:\([^)]*\))?)\s+)*"  # optional annotations
+                r"(?:public|private|protected)\s+"   # access modifier (required)
+                r"(?:static\s+)?(?:final\s+)?(?:synchronized\s+)?"
+                r"(?:<[^>]+>\s+)?"                    # optional generics
+                r"[\w<>\[\],\s]+?\s+"                 # return type
+                r"(\w+)\s*\(",                        # method name
+                "method"
+            ),
+            # Constructors: ClassName(
+            (
+                r"(?:public|private|protected)\s+"
+                r"([A-Z]\w+)\s*\(",
+                "constructor"
+            ),
         ]
 
         for java_file in java_files:
@@ -492,27 +678,138 @@ class ProprietaryCallGraphBuilder:
                 with open(java_file, "r", encoding="utf-8") as f:
                     content = f.read()
 
-                # Proprietary Java method detection
-                method_pattern = r"(public|private|protected)?\s*\w+\s+(\w+)\s*\("
-                for match in re.finditer(method_pattern, content):
-                    method_name = match.group(2)
-                    if method_name not in graph:
-                        graph[method_name] = {
-                            "file": str(java_file),
-                            "line": content[: match.start()].count("\n") + 1,
-                            "callers": [],
-                            "callees": [],
-                            "is_public": "public" in match.group(0),
-                        }
+                file_key = str(java_file)
+                file_methods: Set[str] = set()
+
+                # Detect class name for qualified names
+                class_match = re.search(
+                    r"(?:public\s+)?(?:abstract\s+)?(?:final\s+)?class\s+(\w+)", content
+                )
+                class_name = class_match.group(1) if class_match else Path(java_file).stem
+
+                # Detect if class has entry point annotations
+                has_controller = bool(re.search(
+                    r"@(?:Rest)?Controller|@RequestMapping", content
+                ))
+
+                # Extract method definitions
+                for pattern, def_type in method_patterns:
+                    for match in re.finditer(pattern, content):
+                        method_name = match.group(1)
+                        if method_name in java_keywords:
+                            continue
+
+                        qualified_name = f"{class_name}.{method_name}"
+                        file_methods.add(method_name)
+
+                        # Check for entry point annotations on this method
+                        pre_context = content[max(0, match.start() - 200):match.start()]
+                        is_entry = any(
+                            f"@{ann}" in pre_context for ann in entry_annotations
+                        )
+
+                        if qualified_name not in graph:
+                            graph[qualified_name] = {
+                                "file": file_key,
+                                "line": content[: match.start()].count("\n") + 1,
+                                "callers": [],
+                                "callees": [],
+                                "is_public": "public" in match.group(0),
+                                "is_entry_point": is_entry or has_controller,
+                                "class_name": class_name,
+                                "def_type": def_type,
+                            }
+
+                # Extract callees for each method
+                self._extract_java_callees(
+                    content, file_methods, graph, file_key, class_name
+                )
 
             except Exception as e:
                 logger.warning(f"Failed to build graph for {java_file}: {e}")
 
+        # Build entry points list
+        entry_points = [
+            fname for fname, info in graph.items()
+            if info.get("is_entry_point") or (
+                info.get("is_public") and info.get("def_type") == "method"
+            )
+        ]
+
         return {
             "graph": graph,
-            "entry_points": [f for f, info in graph.items() if info.get("is_public")],
+            "entry_points": entry_points,
             "total_functions": len(graph),
+            "language": "java",
         }
+
+    def _extract_java_callees(
+        self,
+        content: str,
+        file_methods: Set[str],
+        graph: Dict[str, Dict[str, Any]],
+        file_key: str,
+        class_name: str,
+    ) -> None:
+        """Extract method callees from Java method bodies."""
+        call_pattern = re.compile(r"(?:(\w+)\.)?(\w+)\s*\(")
+        java_keywords = {
+            "if", "else", "for", "while", "do", "switch", "case", "catch",
+            "return", "throw", "try", "finally", "new", "instanceof",
+            "class", "super", "this", "import", "package",
+        }
+
+        for method_name in file_methods:
+            qualified = f"{class_name}.{method_name}"
+            if qualified not in graph or graph[qualified]["file"] != file_key:
+                continue
+
+            start_line = graph[qualified]["line"] - 1
+            lines = content.split("\n")
+            brace_count = 0
+            started = False
+            body_lines = []
+            for i in range(start_line, min(start_line + 300, len(lines))):
+                line = lines[i]
+                for ch in line:
+                    if ch == "{":
+                        brace_count += 1
+                        started = True
+                    elif ch == "}":
+                        brace_count -= 1
+                if started:
+                    body_lines.append(line)
+                if started and brace_count <= 0:
+                    break
+
+            body = "\n".join(body_lines)
+            for call_match in call_pattern.finditer(body):
+                callee = call_match.group(2)
+                if callee in java_keywords or callee == method_name:
+                    continue
+                # Try qualified lookup first, then plain
+                callee_qualified = None
+                obj_name = call_match.group(1)
+                if obj_name:
+                    # e.g., service.process() -> look for Service.process
+                    candidate = f"{obj_name}.{callee}"
+                    # Check capitalized version too
+                    cap_candidate = f"{obj_name[0].upper()}{obj_name[1:]}.{callee}" if obj_name else None
+                    if candidate in graph:
+                        callee_qualified = candidate
+                    elif cap_candidate and cap_candidate in graph:
+                        callee_qualified = cap_candidate
+                if not callee_qualified:
+                    # Same-class call
+                    same_class = f"{class_name}.{callee}"
+                    if same_class in graph:
+                        callee_qualified = same_class
+
+                if callee_qualified:
+                    if callee_qualified not in graph[qualified].get("callees", []):
+                        graph[qualified]["callees"].append(callee_qualified)
+                    if qualified not in graph[callee_qualified].get("callers", []):
+                        graph[callee_qualified]["callers"].append(qualified)
 
 
 class ProprietaryCallGraphBuilderVisitor(ast.NodeVisitor):

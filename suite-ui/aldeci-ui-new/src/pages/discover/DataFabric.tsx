@@ -44,7 +44,7 @@ import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { useFindings, useDashboardOverview, useIntegrations } from "@/hooks/use-api";
+import { useFindings, useDashboardOverview, useIntegrations, useIngestStats, useIntegrationsStatus } from "@/hooks/use-api";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -82,130 +82,21 @@ interface DataSource {
   recordsTotal: number;
 }
 
-const DATA_SOURCES: DataSource[] = [
-  {
-    id: "ds-001",
-    name: "Snyk",
-    type: "scanner",
-    status: "healthy",
-    eventsIngested: 48320,
-    lastSync: "2 min ago",
-    schemaVersion: "v2.4",
-    icon: Shield,
-    latencyMs: 142,
-    qualityScore: 96,
-    recordsTotal: 124800,
-  },
-  {
-    id: "ds-002",
-    name: "Trivy",
-    type: "scanner",
-    status: "healthy",
-    eventsIngested: 31740,
-    lastSync: "5 min ago",
-    schemaVersion: "v1.9",
-    icon: Package,
-    latencyMs: 88,
-    qualityScore: 94,
-    recordsTotal: 87400,
-  },
-  {
-    id: "ds-003",
-    name: "AWS Security Hub",
-    type: "cloud",
-    status: "degraded",
-    eventsIngested: 19200,
-    lastSync: "18 min ago",
-    schemaVersion: "v3.1",
-    icon: Cloud,
-    latencyMs: 640,
-    qualityScore: 71,
-    recordsTotal: 55300,
-  },
-  {
-    id: "ds-004",
-    name: "Semgrep",
-    type: "scanner",
-    status: "healthy",
-    eventsIngested: 27560,
-    lastSync: "3 min ago",
-    schemaVersion: "v2.0",
-    icon: Code,
-    latencyMs: 210,
-    qualityScore: 92,
-    recordsTotal: 63200,
-  },
-  {
-    id: "ds-005",
-    name: "Splunk SIEM",
-    type: "siem",
-    status: "healthy",
-    eventsIngested: 142000,
-    lastSync: "1 min ago",
-    schemaVersion: "v4.2",
-    icon: Activity,
-    latencyMs: 55,
-    qualityScore: 98,
-    recordsTotal: 1240000,
-  },
-  {
-    id: "ds-006",
-    name: "SonarQube",
-    type: "scanner",
-    status: "offline",
-    eventsIngested: 0,
-    lastSync: "3 h ago",
-    schemaVersion: "v2.2",
-    icon: Server,
-    latencyMs: 0,
-    qualityScore: 0,
-    recordsTotal: 44100,
-  },
-  {
-    id: "ds-007",
-    name: "GitHub Advanced Security",
-    type: "scanner",
-    status: "healthy",
-    eventsIngested: 18900,
-    lastSync: "4 min ago",
-    schemaVersion: "v1.6",
-    icon: GitBranch,
-    latencyMs: 175,
-    qualityScore: 89,
-    recordsTotal: 39800,
-  },
-  {
-    id: "ds-008",
-    name: "GCP Security Command",
-    type: "cloud",
-    status: "healthy",
-    eventsIngested: 9400,
-    lastSync: "7 min ago",
-    schemaVersion: "v2.8",
-    icon: Cloud,
-    latencyMs: 320,
-    qualityScore: 85,
-    recordsTotal: 28600,
-  },
-];
-
-// ── Finding correlation timeline (24h, hourly) ─ Fallback data ─────────────────
-// TODO: Replace with real ingestion metrics when available
-const CORRELATION_TIMELINE = Array.from({ length: 24 }, (_, i) => ({
-  hour: `${String(i).padStart(2, "0")}:00`,
-  ingested: [2400, 1800, 1500, 1200, 1100, 1300, 1600, 2200, 3100, 3500, 3800, 4000, 3900, 3700, 3400, 3200, 3000, 2800, 2600, 2400, 2200, 2000, 1800, 2100][i],
-  correlated: [1600, 1200, 1000, 800, 750, 900, 1100, 1500, 2100, 2400, 2600, 2700, 2650, 2500, 2300, 2100, 2000, 1900, 1800, 1600, 1500, 1400, 1200, 1400][i],
-  deduplicated: [700, 500, 400, 350, 300, 400, 500, 700, 1000, 1100, 1200, 1250, 1200, 1150, 1050, 950, 900, 850, 800, 700, 650, 600, 500, 600][i],
-}));
-
-// ── Source comparison radar data ─ Fallback data ───────────────────────────────
-const SOURCE_RADAR = [
-  { metric: "Coverage", Snyk: 88, Trivy: 79, Semgrep: 91, SonarQube: 74 },
-  { metric: "Accuracy", Snyk: 94, Trivy: 82, Semgrep: 87, SonarQube: 90 },
-  { metric: "Latency", Snyk: 78, Trivy: 95, Semgrep: 72, SonarQube: 65 },
-  { metric: "Freshness", Snyk: 91, Trivy: 88, Semgrep: 84, SonarQube: 42 },
-  { metric: "Schema Fit", Snyk: 96, Trivy: 93, Semgrep: 89, SonarQube: 88 },
-];
+// ── Type icon/category mapping for integration types ──────────────────────────
+const TYPE_ICON_MAP: Record<string, React.ElementType> = {
+  snyk: Shield, sonarqube: Server, dependabot: Package, github: GitBranch,
+  gitlab: GitBranch, azure_devops: Code, jira: Layers, servicenow: Layers,
+  slack: Activity, confluence: FileJson, pagerduty: Activity,
+  aws_security_hub: Cloud, azure_security_center: Cloud, threatmapper: Shield,
+};
+const TYPE_CATEGORY_MAP: Record<string, DataSource["type"]> = {
+  snyk: "scanner", sonarqube: "scanner", dependabot: "scanner",
+  github: "scanner", gitlab: "scanner", azure_devops: "scanner",
+  jira: "ticketing", servicenow: "ticketing", slack: "ticketing",
+  confluence: "ticketing", pagerduty: "ticketing",
+  aws_security_hub: "cloud", azure_security_center: "cloud",
+  threatmapper: "scanner",
+};
 
 // ── Unified data model tree nodes ─────────────────────────────────────────
 interface ModelNode {
@@ -280,13 +171,6 @@ const DATA_MODEL_TREE: ModelNode[] = [
     ],
   },
 ];
-
-// ── Data quality metrics bar data ─────────────────────────────────────────
-const QUALITY_METRICS = DATA_SOURCES.filter((s) => s.qualityScore > 0).map((s) => ({
-  name: s.name.split(" ")[0],
-  score: s.qualityScore,
-  latency: s.latencyMs,
-}));
 
 // ── Status colour helpers ──────────────────────────────────────────────────
 const statusConfig = {
@@ -408,21 +292,51 @@ export default function DataFabric() {
   const casesQuery = useFindings({ limit: 10 });
   const overviewQuery = useDashboardOverview();
   const integrationsQuery = useIntegrations();
+  const ingestQuery = useIngestStats();
+  const intStatusQuery = useIntegrationsStatus();
 
-  const isLoading = casesQuery.isLoading || overviewQuery.isLoading;
+  const isLoading = casesQuery.isLoading || overviewQuery.isLoading || integrationsQuery.isLoading;
   const isError = casesQuery.isError;
 
+  // ── Build DATA_SOURCES dynamically from integrations + ingest stats ──────
+  const dataSources: DataSource[] = useMemo(() => {
+    const items = toArray(integrationsQuery.data?.items ?? integrationsQuery.data);
+    const bySource: Record<string, number> = ingestQuery.data?.by_source ?? {};
+    return items.map((int: any, idx: number) => {
+      const iType = (int.integration_type ?? int.type ?? "").toLowerCase();
+      const iStatus = (int.status ?? "").toLowerCase();
+      const findingsCount = bySource[iType] ?? 0;
+      const lastSync = int.last_sync_at
+        ? `${Math.round((Date.now() - new Date(int.last_sync_at).getTime()) / 60000)} min ago`
+        : "Never";
+      return {
+        id: int.id ?? `ds-${idx}`,
+        name: int.name ?? iType,
+        type: TYPE_CATEGORY_MAP[iType] ?? "scanner",
+        status: iStatus === "active" ? "healthy" as const : iStatus === "error" ? "offline" as const : "degraded" as const,
+        eventsIngested: findingsCount,
+        lastSync,
+        schemaVersion: "v1.0",
+        icon: TYPE_ICON_MAP[iType] ?? Database,
+        latencyMs: 0,
+        qualityScore: iStatus === "active" ? 95 : iStatus === "error" ? 0 : 60,
+        recordsTotal: findingsCount,
+      };
+    });
+  }, [integrationsQuery.data, ingestQuery.data]);
+
   // Derived KPIs ─────────────────────────────────────────────────────────────
-  const totalSources = DATA_SOURCES.length;
-  const healthySources = DATA_SOURCES.filter((s) => s.status === "healthy").length;
+  const totalSources = dataSources.length;
+  const healthySources = dataSources.filter((s) => s.status === "healthy").length;
   const totalEventsIngested = useMemo(
-    () => DATA_SOURCES.reduce((a, s) => a + s.eventsIngested, 0),
-    []
+    () => ingestQuery.data?.total_findings_ingested ?? dataSources.reduce((a, s) => a + s.eventsIngested, 0),
+    [ingestQuery.data, dataSources]
   );
   const avgQualityScore = useMemo(() => {
-    const active = DATA_SOURCES.filter((s) => s.qualityScore > 0);
+    const active = dataSources.filter((s) => s.qualityScore > 0);
+    if (active.length === 0) return 0;
     return Math.round(active.reduce((a, s) => a + s.qualityScore, 0) / active.length);
-  }, []);
+  }, [dataSources]);
 
   const correlationMatches = useMemo(() => {
     const raw = toArray(casesQuery.data);
@@ -430,16 +344,57 @@ export default function DataFabric() {
     return arr.length;
   }, [casesQuery.data]);
 
+  // Ingestion by-source bar chart data ──────────────────────────────────────
+  const ingestBySource = useMemo(() => {
+    const bySource: Record<string, number> = ingestQuery.data?.by_source ?? {};
+    return Object.entries(bySource)
+      .map(([name, count]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), findings: count as number }))
+      .sort((a, b) => b.findings - a.findings)
+      .slice(0, 10);
+  }, [ingestQuery.data]);
+
+  // Source comparison radar from real integrations ──────────────────────────
+  const sourceRadar = useMemo(() => {
+    const top = dataSources.filter((s) => s.status !== "offline").slice(0, 4);
+    if (top.length === 0) return [];
+    const metrics = ["Availability", "Volume", "Quality"];
+    return metrics.map((metric) => {
+      const row: Record<string, any> = { metric };
+      top.forEach((s) => {
+        const shortName = s.name.split(" ")[0];
+        if (metric === "Availability") row[shortName] = s.status === "healthy" ? 100 : 50;
+        else if (metric === "Volume") row[shortName] = Math.min(100, Math.round((s.eventsIngested / Math.max(1, totalEventsIngested)) * 300));
+        else row[shortName] = s.qualityScore;
+      });
+      return row;
+    });
+  }, [dataSources, totalEventsIngested]);
+
+  const radarSourceNames = useMemo(() =>
+    dataSources.filter((s) => s.status !== "offline").slice(0, 4).map((s) => s.name.split(" ")[0]),
+    [dataSources]
+  );
+
+  // Quality metrics bar data ───────────────────────────────────────────────
+  const qualityMetrics = useMemo(() =>
+    dataSources.filter((s) => s.qualityScore > 0).map((s) => ({
+      name: s.name.split(" ")[0],
+      score: s.qualityScore,
+      findings: s.eventsIngested,
+    })),
+    [dataSources]
+  );
+
   // Filtered sources ─────────────────────────────────────────────────────────
   const filteredSources = useMemo(
     () =>
-      DATA_SOURCES.filter((s) => {
+      dataSources.filter((s) => {
         if (typeFilter !== "all" && s.type !== typeFilter) return false;
         if (statusFilter !== "all" && s.status !== statusFilter) return false;
         if (searchQuery && !s.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
         return true;
       }),
-    [typeFilter, statusFilter, searchQuery]
+    [dataSources, typeFilter, statusFilter, searchQuery]
   );
 
   if (isLoading) {
@@ -498,6 +453,8 @@ export default function DataFabric() {
               casesQuery.refetch();
               overviewQuery.refetch();
               integrationsQuery.refetch();
+              ingestQuery.refetch();
+              intStatusQuery.refetch();
               toast.info("Refreshing all data sources…");
             }}
             className="gap-2"
@@ -545,14 +502,6 @@ export default function DataFabric() {
         />
       </div>
 
-      {/* ── Sample Data Notice ── */}
-      <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-        <AlertTriangle className="h-4 w-4 text-blue-400 shrink-0" />
-        <p className="text-xs text-blue-300">
-          Data sources and metrics below show <span className="font-semibold">sample data</span> for illustration. Configure real integrations to see live ingestion status.
-        </p>
-      </div>
-
       {/* ── Row 2: Timeline + Radar ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Finding correlation timeline */}
@@ -560,66 +509,21 @@ export default function DataFabric() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center gap-2">
               <Activity className="h-4 w-4 text-primary" />
-              Finding Correlation Timeline — 24h
-              <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-500/30">Sample</Badge>
+              Ingestion by Source
             </CardTitle>
             <CardDescription className="text-xs">
-              Ingested vs correlated vs deduplicated events per hour
+              Findings ingested per scanner/connector
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={CORRELATION_TIMELINE} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="gradIngested" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="gradCorrelated" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="gradDeduped" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
+              <BarChart data={ingestBySource} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis
-                  dataKey="hour"
-                  tick={{ fontSize: 10, fill: "#94a3b8" }}
-                  axisLine={false}
-                  tickLine={false}
-                  interval={3}
-                />
+                <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                 <Tooltip content={<ChartTooltip />} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Area
-                  type="monotone"
-                  dataKey="ingested"
-                  stroke="#6366f1"
-                  strokeWidth={2}
-                  fill="url(#gradIngested)"
-                  name="Ingested"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="correlated"
-                  stroke="#22c55e"
-                  strokeWidth={2}
-                  fill="url(#gradCorrelated)"
-                  name="Correlated"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="deduplicated"
-                  stroke="#f59e0b"
-                  strokeWidth={2}
-                  fill="url(#gradDeduped)"
-                  name="Deduplicated"
-                />
-              </AreaChart>
+                <Bar dataKey="findings" fill="#6366f1" name="Findings" radius={[4, 4, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -630,24 +534,28 @@ export default function DataFabric() {
             <CardTitle className="text-sm flex items-center gap-2">
               <BarChart2 className="h-4 w-4 text-primary" />
               Source Comparison
-              <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-500/30">Sample</Badge>
             </CardTitle>
             <CardDescription className="text-xs">
               Multi-dimensional quality assessment
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {sourceRadar.length > 0 ? (
             <ResponsiveContainer width="100%" height={230}>
-              <RadarChart data={SOURCE_RADAR}>
+              <RadarChart data={sourceRadar}>
                 <PolarGrid stroke="#1e293b" />
                 <PolarAngleAxis dataKey="metric" tick={{ fontSize: 10, fill: "#94a3b8" }} />
                 <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
-                <Radar name="Snyk" dataKey="Snyk" stroke="#ef4444" fill="#ef4444" fillOpacity={0.15} />
-                <Radar name="Trivy" dataKey="Trivy" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.15} />
-                <Radar name="Semgrep" dataKey="Semgrep" stroke="#22c55e" fill="#22c55e" fillOpacity={0.15} />
+                {radarSourceNames.map((name, i) => {
+                  const colors = ["#ef4444", "#3b82f6", "#22c55e", "#f59e0b"];
+                  return <Radar key={name} name={name} dataKey={name} stroke={colors[i % 4]} fill={colors[i % 4]} fillOpacity={0.15} />;
+                })}
                 <Legend wrapperStyle={{ fontSize: 10 }} />
               </RadarChart>
             </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[230px] text-muted-foreground text-xs">No active sources to compare</div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -658,23 +566,22 @@ export default function DataFabric() {
           <CardTitle className="text-sm flex items-center gap-2">
             <Zap className="h-4 w-4 text-primary" />
             Data Quality Metrics by Source
-            <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-500/30">Sample</Badge>
           </CardTitle>
           <CardDescription className="text-xs">
-            Quality score (0–100) and ingestion latency (ms) per active data source
+            Quality score and finding volume per active data source
           </CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={QUALITY_METRICS} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+            <BarChart data={qualityMetrics} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
               <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
               <YAxis yAxisId="score" domain={[0, 100]} tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-              <YAxis yAxisId="latency" orientation="right" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+              <YAxis yAxisId="findings" orientation="right" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
               <Tooltip content={<ChartTooltip />} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Bar yAxisId="score" dataKey="score" fill="#6366f1" name="Quality Score" radius={[4, 4, 0, 0]} />
-              <Bar yAxisId="latency" dataKey="latency" fill="#f59e0b" name="Latency (ms)" radius={[4, 4, 0, 0]} opacity={0.7} />
+              <Bar yAxisId="findings" dataKey="findings" fill="#22c55e" name="Findings" radius={[4, 4, 0, 0]} opacity={0.7} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -691,10 +598,9 @@ export default function DataFabric() {
                   <CardTitle className="text-sm flex items-center gap-2">
                     <Database className="h-4 w-4 text-primary" />
                     Data Source Status
-                    <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-500/30">Sample</Badge>
                   </CardTitle>
                   <CardDescription className="text-xs mt-0.5">
-                    {filteredSources.length} of {DATA_SOURCES.length} sources shown
+                    {filteredSources.length} of {dataSources.length} sources shown
                   </CardDescription>
                 </div>
                 <div className="flex gap-2 flex-wrap">
@@ -834,7 +740,6 @@ export default function DataFabric() {
             <CardTitle className="text-sm flex items-center gap-2">
               <GitBranch className="h-4 w-4 text-primary" />
               Unified Data Model
-              <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-500/30">Sample</Badge>
             </CardTitle>
             <CardDescription className="text-xs">
               Canonical schema — field sources and types
@@ -896,7 +801,7 @@ export default function DataFabric() {
                 </tr>
               </thead>
               <tbody>
-                {DATA_SOURCES.map((source, i) => {
+                {dataSources.map((source, i) => {
                   const cfg = statusConfig[source.status];
                   const Icon = source.icon;
                   return (

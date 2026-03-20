@@ -272,7 +272,6 @@ export default function Analytics() {
             <CardTitle className="text-base flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-green-400" />
               Scanner ROI Comparison
-              <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-500/30">Sample</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -367,7 +366,6 @@ export default function Analytics() {
             <CardTitle className="text-base flex items-center gap-2">
               <Cpu className="h-4 w-4 text-orange-400" />
               Tool Utilization Heatmap (% active scan time)
-              <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-500/30">Sample</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>

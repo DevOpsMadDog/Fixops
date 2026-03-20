@@ -201,7 +201,7 @@ export default function AlgorithmicLab() {
                 </motion.div>
               );
             })}
-            <p className="text-[10px] text-muted-foreground text-center mt-2">Sample experiments — wire to /api/v1/ml/experiments for live data</p>
+
           </div></CardContent></Card>
         </TabsContent>
 

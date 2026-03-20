@@ -34,7 +34,7 @@ import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { useFindings } from "@/hooks/use-api";
+import { useFindings, useContainerStatus } from "@/hooks/use-api";
 import { cn } from "@/lib/utils";
 import {
   AreaChart,
@@ -107,13 +107,7 @@ function StatusBadge({ status }: { status?: string }) {
   return <Badge className={cn("border text-xs", map[s] || "bg-slate-500/10 text-slate-400 border-slate-500/20")}>{status || "—"}</Badge>;
 }
 
-const RUNTIME_PROTECTIONS = [
-  { name: "Runtime Monitoring", active: true, description: "Behavioral anomaly detection active" },
-  { name: "Syscall Filtering", active: true, description: "Seccomp profiles enforced" },
-  { name: "Network Policy", active: false, description: "Pod network policies not configured" },
-  { name: "Read-only Root FS", active: true, description: "Immutable container root filesystem" },
-  { name: "Privilege Escalation", active: true, description: "No privilege escalation allowed" },
-];
+// Runtime protections derived from container status API capabilities
 
 export default function ContainerSecurity() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -128,7 +122,22 @@ export default function ContainerSecurity() {
   }, [statusFilter]);
 
   const query = useFindings(params);
-  const refetch = useCallback(() => query.refetch(), [query]);
+  const containerStatusQuery = useContainerStatus();
+  const refetch = useCallback(() => { query.refetch(); containerStatusQuery.refetch(); }, [query, containerStatusQuery]);
+
+  // Derive runtime protections from container status capabilities
+  const runtimeProtections = useMemo(() => {
+    const caps: string[] = containerStatusQuery.data?.capabilities ?? [];
+    const trivyAvail = containerStatusQuery.data?.trivy_available ?? false;
+    const grypeAvail = containerStatusQuery.data?.grype_available ?? false;
+    return [
+      { name: "Dockerfile Analysis", active: caps.includes("dockerfile_analysis"), description: caps.includes("dockerfile_analysis") ? "Dockerfile misconfiguration scanning active" : "Dockerfile scanning not available" },
+      { name: "Base Image Checks", active: caps.includes("base_image_check"), description: caps.includes("base_image_check") ? "Known-vulnerable base image detection active" : "Base image checks not configured" },
+      { name: "Trivy Integration", active: trivyAvail, description: trivyAvail ? "Trivy container image scanning active" : "Trivy not available — install trivy CLI" },
+      { name: "Grype Integration", active: grypeAvail, description: grypeAvail ? "Grype vulnerability scanning active" : "Grype not available — install grype CLI" },
+      { name: "Read-only Root FS", active: caps.includes("dockerfile_analysis"), description: "Immutable container root filesystem checks" },
+    ];
+  }, [containerStatusQuery.data]);
 
   const allFindings: ContainerFinding[] = useMemo(() => {
     const d = query.data;
@@ -274,7 +283,7 @@ export default function ContainerSecurity() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {RUNTIME_PROTECTIONS.map((protection) => (
+            {runtimeProtections.map((protection) => (
               <div key={protection.name} className="flex items-start gap-3">
                 {protection.active ? (
                   <CheckCircle className="h-4 w-4 text-green-400 shrink-0 mt-0.5" />

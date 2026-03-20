@@ -34,7 +34,22 @@ from fastapi.testclient import TestClient
 API_TOKEN = os.environ["FIXOPS_API_TOKEN"]
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(autouse=True)
+def _fresh_report_db(monkeypatch, tmp_path):
+    """Ensure each test gets a fresh ReportDB/AnalyticsDB/REPORTS_DIR to prevent cross-test contamination."""
+    from core.analytics_db import AnalyticsDB
+    from core.report_db import ReportDB
+
+    fresh_db = ReportDB(db_path=str(tmp_path / "test_reports.db"))
+    fresh_analytics = AnalyticsDB(db_path=str(tmp_path / "test_analytics.db"))
+    reports_dir = tmp_path / "reports"
+    reports_dir.mkdir()
+    monkeypatch.setattr("apps.api.reports_router.db", fresh_db)
+    monkeypatch.setattr("apps.api.reports_router._analytics_db", fresh_analytics)
+    monkeypatch.setattr("apps.api.reports_router.REPORTS_DIR", reports_dir)
+
+
+@pytest.fixture
 def client():
     """Create a test client for report endpoints."""
     app = create_app()
@@ -657,10 +672,9 @@ class TestReportDownloadEdgeCases:
 
     def test_download_pending_report_returns_400(self, client, auth_headers):
         """Download of a not-yet-completed report returns 400."""
-        from core.report_db import ReportDB
+        import apps.api.reports_router as rr
         from core.report_models import Report, ReportFormat, ReportStatus, ReportType
 
-        db = ReportDB()
         report = Report(
             id="",
             name="Pending Report",
@@ -669,7 +683,7 @@ class TestReportDownloadEdgeCases:
             status=ReportStatus.PENDING,
             parameters={},
         )
-        created = db.create_report(report)
+        created = rr.db.create_report(report)
 
         resp = client.get(
             f"/api/v1/reports/{created.id}/download",
@@ -680,10 +694,9 @@ class TestReportDownloadEdgeCases:
 
     def test_download_failed_report_returns_400(self, client, auth_headers):
         """Download of a failed report returns 400."""
-        from core.report_db import ReportDB
+        import apps.api.reports_router as rr
         from core.report_models import Report, ReportFormat, ReportStatus, ReportType
 
-        db = ReportDB()
         report = Report(
             id="",
             name="Failed Report",
@@ -693,7 +706,7 @@ class TestReportDownloadEdgeCases:
             parameters={},
             error_message="Generation error",
         )
-        created = db.create_report(report)
+        created = rr.db.create_report(report)
 
         resp = client.get(
             f"/api/v1/reports/{created.id}/download",
@@ -703,10 +716,9 @@ class TestReportDownloadEdgeCases:
 
     def test_file_serving_nonexistent_file_path(self, client, auth_headers):
         """When file_path exists in DB but file is missing on disk, returns 503."""
-        from core.report_db import ReportDB
+        import apps.api.reports_router as rr
         from core.report_models import Report, ReportFormat, ReportStatus, ReportType
 
-        db = ReportDB()
         report = Report(
             id="",
             name="Missing File Report",
@@ -717,8 +729,8 @@ class TestReportDownloadEdgeCases:
             file_path="/tmp/nonexistent_fixops_report_xyz.json",
             file_size=100,
         )
-        created = db.create_report(report)
-        db.update_report(created)
+        created = rr.db.create_report(report)
+        rr.db.update_report(created)
 
         resp = client.get(
             f"/api/v1/reports/{created.id}/file",

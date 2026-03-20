@@ -1,5 +1,6 @@
 import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -9,6 +10,7 @@ import {
   Clock, AlertTriangle, CheckCircle2, TrendingUp, TrendingDown,
   Users, Filter, RefreshCw, Timer, AlertCircle, Shield,
   ChevronUp, ChevronDown, Flame, Target, BarChart3,
+  ExternalLink, Activity,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +28,8 @@ import {
   useRemediationTasks,
   useDashboardOverview,
 } from "@/hooks/use-api";
+import { slaApi } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 
 const CHART_TOOLTIP_STYLE = {
@@ -130,6 +134,7 @@ function UrgencyBadge({ hoursLeft }: { hoursLeft: number }) {
 }
 
 export default function SLADashboard() {
+  const navigate = useNavigate();
   const [teamFilter, setTeamFilter] = useState("all");
   const [timeRange, setTimeRange] = useState("30d");
   const [sortField, setSortField] = useState<string | null>(null);
@@ -138,24 +143,46 @@ export default function SLADashboard() {
   const tasks = useRemediationTasks({ include_sla: true });
   const overview = useDashboardOverview();
 
+  // Real SLA backend queries
+  const slaDashQuery = useQuery({
+    queryKey: ["sla", "dashboard"],
+    queryFn: async () => { const { data } = await slaApi.dashboard(); return data; },
+    staleTime: 30_000,
+  });
+  const slaMetricsQuery = useQuery({
+    queryKey: ["sla", "metrics"],
+    queryFn: async () => { const { data } = await slaApi.metrics(); return data; },
+    staleTime: 30_000,
+  });
+
   const isLoading = tasks.isLoading || overview.isLoading;
   const isError = tasks.isError && overview.isError;
   const refetch = useCallback(() => {
     tasks.refetch();
     overview.refetch();
-  }, [tasks, overview]);
+    slaDashQuery.refetch();
+    slaMetricsQuery.refetch();
+  }, [tasks, overview, slaDashQuery, slaMetricsQuery]);
 
   if (isLoading) return <PageSkeleton />;
   if (isError) return <ErrorState message="Failed to load SLA data" onRetry={refetch} />;
 
   const ov = overview.data ?? {};
+  const sla = (slaDashQuery.data ?? {}) as Record<string, unknown>;
+  const slaMetrics = (slaMetricsQuery.data ?? {}) as Record<string, unknown>;
   const taskList: Record<string, unknown>[] = toArray(tasks.data);
 
-  // SLA metrics from overview
-  const overallSla = Number(ov.sla_compliance_pct ?? ov.sla_compliance ?? 0);
-  const criticalSla = Number(ov.critical_sla_pct ?? ov.sla_critical ?? 0);
-  const highSla = Number(ov.high_sla_pct ?? ov.sla_high ?? 0);
-  const mediumSla = Number(ov.medium_sla_pct ?? ov.sla_medium ?? 0);
+  // SLA metrics — prefer real SLA backend, fallback to overview
+  const overallSla = Number(sla.compliance_rate ?? sla.sla_compliance_pct ?? ov.sla_compliance_pct ?? ov.sla_compliance ?? 0);
+  const bySev = (sla.by_severity ?? {}) as Record<string, Record<string, number>>;
+  const criticalSla = bySev.critical ? Math.round((bySev.critical.compliant / Math.max(bySev.critical.total, 1)) * 100) : Number(ov.critical_sla_pct ?? ov.sla_critical ?? 0);
+  const highSla = bySev.high ? Math.round((bySev.high.compliant / Math.max(bySev.high.total, 1)) * 100) : Number(ov.high_sla_pct ?? ov.sla_high ?? 0);
+  const mediumSla = bySev.medium ? Math.round((bySev.medium.compliant / Math.max(bySev.medium.total, 1)) * 100) : Number(ov.medium_sla_pct ?? ov.sla_medium ?? 0);
+
+  // MTTR from real SLA metrics endpoint
+  const mttrAvg = Number(slaMetrics.mttr_avg_hours ?? slaMetrics.avg_mttr ?? 0);
+  const mttrP50 = Number(slaMetrics.mttr_p50_hours ?? slaMetrics.p50_mttr ?? 0);
+  const mttrP90 = Number(slaMetrics.mttr_p90_hours ?? slaMetrics.p90_mttr ?? 0);
 
   // Aging analysis
   const overdueCount = taskList.filter((t) => t.sla_status === "breached" || t.overdue === true).length;
@@ -264,7 +291,7 @@ export default function SLADashboard() {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-2 gap-3 sm:grid-cols-4"
+        className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"
       >
         <motion.div variants={itemVariants} className="sm:col-span-1">
           <Card className="h-full flex items-center justify-center p-4">
@@ -278,6 +305,7 @@ export default function SLADashboard() {
             icon={Flame}
             trend={(atRiskCritical + overdueCount) > 0 ? "up" : "down"}
             className={cn((atRiskCritical + overdueCount) > 0 && "border-red-500/30 bg-red-500/5")}
+            onClick={() => navigate("/remediate?status=overdue&severity=critical")}
           />
         </motion.div>
         <motion.div variants={itemVariants}>
@@ -287,14 +315,32 @@ export default function SLADashboard() {
             icon={AlertCircle}
             trend={atRiskCount > 5 ? "up" : "flat"}
             className={cn(atRiskCount > 0 && "border-yellow-500/30 bg-yellow-500/5")}
+            onClick={() => navigate("/remediate?status=at_risk")}
           />
         </motion.div>
         <motion.div variants={itemVariants}>
           <KpiCard
-            title="Overdue (High)"
-            value={overdueHigh}
+            title="MTTR (Avg)"
+            value={mttrAvg > 0 ? `${mttrAvg.toFixed(0)}h` : "—"}
+            icon={Clock}
+            className="border-blue-500/20"
+          />
+        </motion.div>
+        <motion.div variants={itemVariants}>
+          <KpiCard
+            title="MTTR (P50)"
+            value={mttrP50 > 0 ? `${mttrP50.toFixed(0)}h` : "—"}
+            icon={Activity}
+            className="border-cyan-500/20"
+          />
+        </motion.div>
+        <motion.div variants={itemVariants}>
+          <KpiCard
+            title="MTTR (P90)"
+            value={mttrP90 > 0 ? `${mttrP90.toFixed(0)}h` : "—"}
             icon={AlertTriangle}
-            trend={overdueHigh > 0 ? "up" : "down"}
+            trend={mttrP90 > 72 ? "up" : "down"}
+            className={cn(mttrP90 > 72 && "border-orange-500/20")}
           />
         </motion.div>
       </motion.div>
@@ -466,7 +512,7 @@ export default function SLADashboard() {
                 </TableHeader>
                 <TableBody>
                   {sortedTeamRows.map((row, i) => (
-                    <TableRow key={i} className="hover:bg-muted/30">
+                    <TableRow key={i} className="hover:bg-muted/30 cursor-pointer" onClick={() => navigate(`/remediate?assignee=${encodeURIComponent(row.name)}`)}>
                       <TableCell className="text-xs font-medium py-2.5">{row.name}</TableCell>
                       <TableCell className="text-xs py-2.5 tabular-nums">{row.total}</TableCell>
                       <TableCell className="py-2.5 w-40">
@@ -537,6 +583,7 @@ export default function SLADashboard() {
                       <TableHead className="text-[11px] h-8">Team</TableHead>
                       <TableHead className="text-[11px] h-8">Time Remaining</TableHead>
                       <TableHead className="text-[11px] h-8">Urgency</TableHead>
+                      <TableHead className="text-[11px] h-8 text-right">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -549,11 +596,12 @@ export default function SLADashboard() {
                         : hoursLeft < 1
                         ? `${Math.round(hoursLeft * 60)}m`
                         : `${hoursLeft.toFixed(0)}h`;
+                      const findingName = String(item.title ?? item.name ?? item.finding_id ?? `Finding ${i + 1}`);
                       return (
-                        <TableRow key={i} className="hover:bg-muted/30">
+                        <TableRow key={i} className="hover:bg-muted/30 cursor-pointer" onClick={() => navigate(`/remediate?search=${encodeURIComponent(findingName)}`)}>
                           <TableCell className="py-2.5">
                             <p className="text-xs font-medium truncate max-w-[200px]">
-                              {String(item.title ?? item.name ?? item.finding_id ?? `Finding ${i + 1}`)}
+                              {findingName}
                             </p>
                             <p className="text-[10px] text-muted-foreground truncate">
                               {String(item.component ?? item.app_name ?? "")}
@@ -593,6 +641,19 @@ export default function SLADashboard() {
                           </TableCell>
                           <TableCell className="py-2.5">
                             <UrgencyBadge hoursLeft={hoursLeft} />
+                          </TableCell>
+                          <TableCell className="py-2.5 text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-[10px] gap-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/discover?search=${encodeURIComponent(findingName)}`);
+                              }}
+                            >
+                              <ExternalLink className="h-3 w-3" /> View
+                            </Button>
                           </TableCell>
                         </TableRow>
                       );

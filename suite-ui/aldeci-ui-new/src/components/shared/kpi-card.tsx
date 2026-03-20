@@ -14,6 +14,7 @@ export interface KpiCardProps {
   trend?: "up" | "down" | "flat";
   trendLabel?: string;
   className?: string;
+  onClick?: () => void;
 }
 
 export function KpiCard({
@@ -26,6 +27,7 @@ export function KpiCard({
   trend,
   trendLabel,
   className,
+  onClick,
 }: KpiCardProps) {
   const trendColor =
     trend === "up"
@@ -40,7 +42,7 @@ export function KpiCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <Card className={cn("p-5", className)}>
+      <Card className={cn("p-5", onClick && "cursor-pointer hover:border-primary/30 transition-colors", className)} onClick={onClick} role={onClick ? "button" : undefined} tabIndex={onClick ? 0 : undefined} onKeyDown={onClick ? (e) => e.key === "Enter" && onClick() : undefined}>
         <div className="flex items-start justify-between">
           <div className="space-y-2">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">

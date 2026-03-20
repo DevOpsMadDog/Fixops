@@ -1,9 +1,11 @@
 import { useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Target, RefreshCw, Download, AlertTriangle, Shield,
   ArrowRight, Zap, GitMerge, CheckCircle, Filter,
   MoreHorizontal, Eye, ChevronRight, Activity, Search,
+  Loader2, Crosshair,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -43,9 +45,10 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { useFindings } from "@/hooks/use-api";
-import { useQuery } from "@tanstack/react-query";
-import { knowledgeGraphApi } from "@/lib/api";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { knowledgeGraphApi, mpteApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface AttackPath {
   id?: string;
@@ -102,11 +105,13 @@ function BlastRadiusBar({ radius }: { radius?: number }) {
 }
 
 export default function AttackPaths() {
+  const navigate = useNavigate();
   const [severityFilter, setSeverityFilter] = useState("all");
   const [verifiedFilter, setVerifiedFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [detailPath, setDetailPath] = useState<AttackPath | null>(null);
   const [blastSource, setBlastSource] = useState("");
+  const [blastResult, setBlastResult] = useState<Record<string, unknown> | null>(null);
 
   // Use knowledge graph attack paths
   const attackPathsQuery = useQuery({
@@ -120,6 +125,36 @@ export default function AttackPaths() {
   // Also get related findings
   const findingsQuery = useFindings({ limit: 50, type: "attack" });
   const refetch = useCallback(() => { attackPathsQuery.refetch(); findingsQuery.refetch(); }, [attackPathsQuery, findingsQuery]);
+
+  // Blast radius mutation
+  const blastMutation = useMutation({
+    mutationFn: async (source: string) => {
+      const { data } = await knowledgeGraphApi.blastRadius({ finding_id: source, max_depth: 5 });
+      return data;
+    },
+    onSuccess: (data) => {
+      setBlastResult(data as Record<string, unknown>);
+      toast.success("Blast radius calculated");
+    },
+    onError: () => toast.error("Blast radius calculation failed"),
+  });
+
+  // MPTE scan mutation
+  const mpteMutation = useMutation({
+    mutationFn: async (path: AttackPath) => {
+      const { data } = await mpteApi.verify({
+        finding_id: path.id || path.path_id,
+        attack_path: { source: path.source, target: path.target, steps: path.steps },
+        scan_type: "attack_path_verification",
+      });
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("MPTE verification scan initiated");
+      attackPathsQuery.refetch();
+    },
+    onError: () => toast.error("MPTE scan request failed"),
+  });
 
   const allPaths: AttackPath[] = useMemo(() => {
     const d = attackPathsQuery.data;
@@ -168,6 +203,7 @@ export default function AttackPaths() {
 
   const stats = useMemo(() => {
     const critical = allPaths.filter((p) => p.severity?.toLowerCase() === "critical").length;
+    const verified = allPaths.filter((p) => p.mpte_verified || p.verified).length;
     const avgBlast = allPaths.length > 0
       ? allPaths.reduce((sum, p) => sum + (p.blast_radius || 0), 0) / allPaths.length
       : 0;
@@ -175,6 +211,7 @@ export default function AttackPaths() {
     return {
       total: allPaths.length,
       critical,
+      verified,
       avgBlast: avgBlast.toFixed(1),
       maxHops,
     };
@@ -216,10 +253,11 @@ export default function AttackPaths() {
       </PageHeader>
 
       {/* KPI Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         <KpiCard title="Total Attack Paths" value={stats.total} icon={GitMerge} />
-        <KpiCard title="Critical Paths" value={stats.critical} icon={AlertTriangle} className="border-red-500/20" />
-        <KpiCard title="Avg Blast Radius" value={stats.avgBlast} icon={Activity} className="border-orange-500/20" />
+        <KpiCard title="Critical Paths" value={stats.critical} icon={AlertTriangle} className="border-red-500/20" onClick={() => setSeverityFilter(severityFilter === "critical" ? "all" : "critical")} />
+        <KpiCard title="MPTE Verified" value={stats.verified} icon={CheckCircle} className="border-green-500/20" onClick={() => setVerifiedFilter(verifiedFilter === "verified" ? "all" : "verified")} />
+        <KpiCard title="Avg Blast Radius" value={stats.avgBlast} icon={Crosshair} className="border-orange-500/20" />
         <KpiCard title="Max Hops" value={stats.maxHops} icon={ChevronRight} />
       </div>
 
@@ -339,11 +377,11 @@ export default function AttackPaths() {
                                 <DropdownMenuItem onClick={() => setDetailPath(path)}>
                                   <Eye className="h-3.5 w-3.5 mr-2" /> View Path
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => mpteMutation.mutate(path)}>
                                   <Target className="h-3.5 w-3.5 mr-2" /> Request MPTE Scan
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                  <Shield className="h-3.5 w-3.5 mr-2" /> Block Path
+                                <DropdownMenuItem onClick={() => navigate(`/remediate?search=${encodeURIComponent(path.target || path.source || "")}`)}>
+                                  <Shield className="h-3.5 w-3.5 mr-2" /> Create Remediation
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -378,9 +416,40 @@ export default function AttackPaths() {
                   className="text-sm"
                 />
               </div>
-              <Button className="w-full gap-2" size="sm" disabled={!blastSource.trim()}>
-                <Activity className="h-4 w-4" /> Calculate Blast Radius
+              <Button
+                className="w-full gap-2"
+                size="sm"
+                disabled={!blastSource.trim() || blastMutation.isPending}
+                onClick={() => blastMutation.mutate(blastSource)}
+              >
+                {blastMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
+                {blastMutation.isPending ? "Calculating..." : "Calculate Blast Radius"}
               </Button>
+
+              {/* Blast Radius Result */}
+              {blastResult && (
+                <div className="p-3 bg-orange-500/5 border border-orange-500/20 rounded-lg space-y-2">
+                  <p className="text-xs font-semibold text-orange-400">Blast Radius Result</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-muted-foreground">Affected Nodes</span>
+                      <p className="font-mono font-bold">{String(blastResult.affected_nodes ?? blastResult.affected_components ?? "—")}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Risk Multiplier</span>
+                      <p className="font-mono font-bold">{String(blastResult.risk_multiplier ?? "—")}×</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Depth</span>
+                      <p className="font-mono font-bold">{String(blastResult.depth ?? blastResult.max_depth ?? "—")}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Chained CVEs</span>
+                      <p className="font-mono font-bold">{Array.isArray(blastResult.chained_cves) ? blastResult.chained_cves.length : "—"}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <Separator />
 
@@ -542,14 +611,30 @@ export default function AttackPaths() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button size="sm" className="gap-1">
-                    <Target className="h-3 w-3" /> Request MPTE Scan
+                  <Button
+                    size="sm"
+                    className="gap-1"
+                    disabled={mpteMutation.isPending}
+                    onClick={() => { if (detailPath) mpteMutation.mutate(detailPath); }}
+                  >
+                    {mpteMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Target className="h-3 w-3" />}
+                    {mpteMutation.isPending ? "Scanning..." : "Request MPTE Scan"}
                   </Button>
-                  <Button size="sm" variant="outline" className="gap-1">
-                    <Shield className="h-3 w-3" /> Block Path
-                  </Button>
-                  <Button size="sm" variant="outline" className="gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1"
+                    onClick={() => navigate(`/remediate?search=${encodeURIComponent(detailPath?.target || detailPath?.source || "")}`)}
+                  >
                     <Filter className="h-3 w-3" /> Create Remediation
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1"
+                    onClick={() => navigate(`/discover?search=${encodeURIComponent(detailPath?.source || "")}`)}
+                  >
+                    <Eye className="h-3 w-3" /> View Findings
                   </Button>
                 </div>
               </div>

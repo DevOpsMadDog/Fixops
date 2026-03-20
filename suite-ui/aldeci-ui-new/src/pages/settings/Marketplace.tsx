@@ -489,7 +489,12 @@ export default function Marketplace() {
               <Users className="h-4 w-4" />
               Community Playbooks
             </h2>
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs"
+              onClick={() => setCategory("Community")}
+            >
               <ArrowUpRight className="h-3.5 w-3.5" />
               Browse All
             </Button>

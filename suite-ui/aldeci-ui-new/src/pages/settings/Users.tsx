@@ -355,7 +355,50 @@ export default function UsersPage() {
             </div>
             <div className="flex items-center gap-3">
               <Badge className="bg-violet-900/40 text-violet-300 border-violet-600">Not Configured</Badge>
-              <Button size="sm" variant="outline">Configure SSO</Button>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline">Configure SSO</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Lock className="h-4 w-4 text-primary" />
+                      SSO / SAML Configuration
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">Identity Provider</Label>
+                      <Select defaultValue="okta">
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="okta">Okta</SelectItem>
+                          <SelectItem value="azure_ad">Azure AD</SelectItem>
+                          <SelectItem value="google">Google Workspace</SelectItem>
+                          <SelectItem value="onelogin">OneLogin</SelectItem>
+                          <SelectItem value="custom">Custom SAML 2.0</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">SSO URL</Label>
+                      <Input placeholder="https://your-idp.com/sso/saml" />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">Certificate (PEM)</Label>
+                      <Input type="file" accept=".pem,.crt,.cer" />
+                    </div>
+                    <Separator />
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="outline" onClick={() => toast.info("SSO configuration cancelled")}>Cancel</Button>
+                      <Button onClick={() => toast.success("SSO configuration saved — pending verification")} className="gap-2">
+                        <CheckCircle className="h-3.5 w-3.5" />
+                        Save SSO Config
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </CardContent>

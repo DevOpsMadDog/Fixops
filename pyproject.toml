@@ -24,6 +24,7 @@ python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 testpaths = ["tests"]
+pythonpath = [".", "suite-api", "suite-core", "suite-attack", "suite-feeds", "suite-integrations", "suite-evidence-risk"]
 timeout = 10
 addopts = [
     "-v",

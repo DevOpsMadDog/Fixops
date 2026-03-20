@@ -7,32 +7,28 @@ from core.report_models import Report, ReportFormat, ReportStatus, ReportType
 
 
 @pytest.fixture
-def db():
-    """Create test database using the same path as the API router."""
-    # Use the same database path as the API router (data/reports.db)
-    # This must be created BEFORE the client fixture to ensure tables exist
-    return ReportDB(db_path="data/reports.db")
-
-
-@pytest.fixture
-def client(authenticated_client, db):
-    """Create test client using shared authenticated_client fixture.
-
-    Note: db fixture is a dependency to ensure database tables are created
-    before the app is created and the reports router is imported.
-    """
-    return authenticated_client
+def db(tmp_path):
+    """Create test database in a temp directory to avoid contaminating shared state."""
+    return ReportDB(db_path=str(tmp_path / "test_reports.db"))
 
 
 @pytest.fixture(autouse=True)
-def cleanup_db():
-    """Clean up test database after each test."""
-    yield
-    import os
+def _isolate_reports(monkeypatch, db, tmp_path):
+    """Patch the router's module-level db and REPORTS_DIR so tests don't touch shared files."""
+    from core.analytics_db import AnalyticsDB
 
-    # Clean up the reports database used by both tests and API
-    if os.path.exists("data/reports.db"):
-        os.remove("data/reports.db")
+    fresh_analytics = AnalyticsDB(db_path=str(tmp_path / "test_analytics.db"))
+    reports_dir = tmp_path / "reports"
+    reports_dir.mkdir()
+    monkeypatch.setattr("apps.api.reports_router.db", db)
+    monkeypatch.setattr("apps.api.reports_router._analytics_db", fresh_analytics)
+    monkeypatch.setattr("apps.api.reports_router.REPORTS_DIR", reports_dir)
+
+
+@pytest.fixture
+def client(authenticated_client):
+    """Create test client using shared authenticated_client fixture."""
+    return authenticated_client
 
 
 def test_list_reports_empty(client):

@@ -28,6 +28,13 @@
 
 ## Session Log
 
+### [2026-03-20 19:57] ai-researcher — APIIRO_COMPETITIVE_DEEP_DIVE
+- **What**: Produced comprehensive Apiiro product capability analysis covering all 8 requested categories: Risk Scoring (4 features), Code Analysis (4 features), Supply Chain (3 features), CI/CD (3 features), Compliance (2 features), Developer Experience (3 features), Integrations (5 features), API/CLI (4 features). Documented 17 verified gaps in Apiiro's capabilities. Produced feature-by-feature comparison matrix: ALdeci leads on 16 features, Apiiro leads on 8 (maturity/scale), 6 even.
+- **Files touched**: `.claude/team-state/research/apiiro-competitive-deep-dive.md` (created, ~500 lines)
+- **Outcome**: SUCCESS
+- **Decisions made**: Network access was blocked by sandbox; compiled analysis from training data (through Jan 2025) and codebase competitive docs. Flagged need for live URL refresh post-RSA 2026.
+- **Pillar(s) served**: V3 (competitive positioning), V9 (air-gap advantage documentation)
+
 ### [2026-03-19 10:00] backend-hardener — SCANNER_AUTH_CRAWL
 - **What**: Added authenticated scanning and application crawling capabilities to `RealVulnerabilityScanner` in `suite-core/core/real_scanner.py`.
   - Added `ScanConfig` dataclass (21 fields) with input validation (`__post_init__`): auth_type allowlist, numeric clamping, scheme validation, list size limits.

@@ -1,13 +1,17 @@
 import { useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Package, RefreshCw, Download, AlertTriangle, CheckCircle,
   FileText, Layers, List, Scale, Server, ChevronRight, Search,
+  Shield, Zap, ExternalLink, Eye, ShieldAlert, GitBranch,
+  Activity, Ghost, Radio,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import {
   Select,
   SelectContent,
@@ -31,14 +35,14 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { useApps } from "@/hooks/use-api";
-import { sbomApi } from "@/lib/api";
+import { sbomApi, threatFeedsApi, reachabilityApi } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import {
   PieChart,
   Pie,
   Cell,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
   Legend,
 } from "recharts";
@@ -58,6 +62,93 @@ interface SbomPackage {
   latest_version?: string;
   severity?: string;
   status?: string;
+  cve_ids?: string[];
+  reachable?: boolean;
+  direct?: boolean;
+  depth?: number;
+  purl?: string;
+  runtime_status?: "confirmed" | "sbom_only" | "shadow" | "unknown";
+  risk_score?: number;
+  epss_score?: number;
+  is_kev?: boolean;
+}
+
+const LICENSE_RISK: Record<string, { level: string; color: string; label: string }> = {
+  MIT: { level: "permissive", color: "text-green-400", label: "Permissive" },
+  "Apache-2.0": { level: "permissive", color: "text-green-400", label: "Permissive" },
+  BSD: { level: "permissive", color: "text-green-400", label: "Permissive" },
+  ISC: { level: "permissive", color: "text-green-400", label: "Permissive" },
+  LGPL: { level: "weak-copyleft", color: "text-yellow-400", label: "Weak Copyleft" },
+  MPL: { level: "weak-copyleft", color: "text-yellow-400", label: "Weak Copyleft" },
+  GPL: { level: "copyleft", color: "text-red-400", label: "Copyleft" },
+  AGPL: { level: "copyleft", color: "text-red-400", label: "Strong Copyleft" },
+  UNKNOWN: { level: "unknown", color: "text-slate-400", label: "Unknown Risk" },
+};
+
+function getLicenseRisk(license?: string): { level: string; color: string; label: string } {
+  const l = (license || "").toUpperCase();
+  const key = Object.keys(LICENSE_RISK).find((k) => l.includes(k.toUpperCase()));
+  return key ? LICENSE_RISK[key] : LICENSE_RISK.UNKNOWN;
+}
+
+function VulnSeverityDot({ severity }: { severity?: string }) {
+  const s = (severity || "").toLowerCase();
+  const colors: Record<string, string> = {
+    critical: "bg-red-500",
+    high: "bg-orange-500",
+    medium: "bg-yellow-500",
+    low: "bg-blue-500",
+  };
+  if (!s || !colors[s]) return null;
+  return (
+    <span className={cn("inline-block h-2 w-2 rounded-full", colors[s])} title={`${severity} severity`} />
+  );
+}
+
+function ReachBadge({ reachable, direct }: { reachable?: boolean; direct?: boolean }) {
+  if (reachable === true) {
+    return (
+      <Badge className="bg-red-500/10 text-red-400 border-red-500/20 text-[10px] border gap-1">
+        <Zap className="h-2.5 w-2.5" />
+        {direct ? "Direct" : "Reachable"}
+      </Badge>
+    );
+  }
+  if (reachable === false) {
+    return (
+      <Badge className="bg-slate-500/10 text-slate-400 border-slate-500/20 text-[10px] border">
+        Unreachable
+      </Badge>
+    );
+  }
+  return <span className="text-[10px] text-muted-foreground">—</span>;
+}
+
+function RuntimeStatusBadge({ status }: { status?: string }) {
+  if (status === "confirmed") {
+    return (
+      <Badge className="bg-green-500/10 text-green-400 border-green-500/20 text-[10px] border gap-1">
+        <Activity className="h-2.5 w-2.5" />
+        Runtime
+      </Badge>
+    );
+  }
+  if (status === "shadow") {
+    return (
+      <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 text-[10px] border gap-1">
+        <Ghost className="h-2.5 w-2.5" />
+        Shadow
+      </Badge>
+    );
+  }
+  if (status === "sbom_only") {
+    return (
+      <Badge className="bg-slate-500/10 text-slate-400 border-slate-500/20 text-[10px] border">
+        SBOM Only
+      </Badge>
+    );
+  }
+  return <span className="text-[10px] text-muted-foreground">—</span>;
 }
 
 interface AssetItem {
@@ -133,9 +224,11 @@ function DependencyTree({ deps, level = 0 }: { deps: Dependency[]; level?: numbe
 }
 
 export default function SBOMInventory() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("sbom");
   const [ecosystemFilter, setEcosystemFilter] = useState("all");
   const [licenseFilter, setLicenseFilter] = useState("all");
+  const [riskFilter, setRiskFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   const query = useQuery({
@@ -147,19 +240,67 @@ export default function SBOMInventory() {
       return data;
     },
   });
+
+  // Reachability enrichment
+  const reachQuery = useQuery({
+    queryKey: ["reachability", "analysis"],
+    queryFn: async () => {
+      const { data } = await reachabilityApi.analysis();
+      return data;
+    },
+    staleTime: 120_000,
+  });
+
+  // License compliance from backend
+  const licenseQuery = useQuery({
+    queryKey: ["sbom", "licenses"],
+    queryFn: async () => {
+      const { data } = await sbomApi.licenses();
+      return data;
+    },
+    staleTime: 120_000,
+  });
+
   const appsQuery = useApps();
-  const refetch = useCallback(() => { query.refetch(); appsQuery.refetch(); }, [query, appsQuery]);
+  const refetch = useCallback(() => { query.refetch(); appsQuery.refetch(); reachQuery.refetch(); licenseQuery.refetch(); }, [query, appsQuery, reachQuery, licenseQuery]);
 
   const allPackages: SbomPackage[] = useMemo(() => {
     const d = query.data;
     if (!d) return [];
-    if (Array.isArray(d)) return d;
-    const obj = d as Record<string, unknown>;
-    if (Array.isArray(obj?.components)) return obj.components as SbomPackage[];
-    if (Array.isArray(obj?.packages)) return obj.packages as SbomPackage[];
-    if (Array.isArray(obj?.items)) return obj.items as SbomPackage[];
-    return [];
-  }, [query.data]);
+    let pkgs: SbomPackage[] = [];
+    if (Array.isArray(d)) pkgs = d;
+    else {
+      const obj = d as Record<string, unknown>;
+      if (Array.isArray(obj?.components)) pkgs = obj.components as SbomPackage[];
+      else if (Array.isArray(obj?.packages)) pkgs = obj.packages as SbomPackage[];
+      else if (Array.isArray(obj?.items)) pkgs = obj.items as SbomPackage[];
+    }
+
+    // Merge reachability data
+    const reachData = reachQuery.data as Record<string, unknown> | undefined;
+    const reachComponents = (reachData?.components ?? reachData?.results ?? []) as Array<Record<string, unknown>>;
+    if (reachComponents.length > 0) {
+      const reachMap = new Map<string, Record<string, unknown>>();
+      for (const rc of reachComponents) {
+        const key = String(rc.name ?? rc.package ?? "").toLowerCase();
+        if (key) reachMap.set(key, rc);
+      }
+      pkgs = pkgs.map((p) => {
+        const key = (p.name ?? "").toLowerCase();
+        const rc = reachMap.get(key);
+        if (rc) {
+          return {
+            ...p,
+            reachable: p.reachable ?? (rc.reachable === true),
+            direct: p.direct ?? (rc.direct === true),
+            runtime_status: p.runtime_status ?? (rc.runtime ? "confirmed" as const : (rc.shadow ? "shadow" as const : p.runtime_status)),
+          };
+        }
+        return p;
+      });
+    }
+    return pkgs;
+  }, [query.data, reachQuery.data]);
 
   const assets: AssetItem[] = useMemo(() => {
     const d = appsQuery.data;
@@ -179,12 +320,20 @@ export default function SBOMInventory() {
         return l.includes(licenseFilter.toUpperCase());
       });
     }
+    if (riskFilter === "reachable") list = list.filter((p) => p.reachable === true);
+    else if (riskFilter === "vulnerable") list = list.filter((p) => (p.vulnerabilities || p.vuln_count || 0) > 0);
+    else if (riskFilter === "shadow") list = list.filter((p) => p.runtime_status === "shadow");
+    else if (riskFilter === "outdated") list = list.filter((p) => p.outdated);
+    else if (riskFilter === "copyleft") list = list.filter((p) => {
+      const l = (p.license || "").toUpperCase();
+      return l.includes("GPL") || l.includes("AGPL");
+    });
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       list = list.filter((p) => p.name?.toLowerCase().includes(q) || p.version?.toLowerCase().includes(q));
     }
     return list;
-  }, [allPackages, licenseFilter, searchQuery]);
+  }, [allPackages, licenseFilter, riskFilter, searchQuery]);
 
   const ecosystems = useMemo(() =>
     Array.from(new Set(allPackages.map((p) => p.ecosystem || p.language).filter(Boolean))),
@@ -194,12 +343,19 @@ export default function SBOMInventory() {
   const stats = useMemo(() => {
     const outdated = allPackages.filter((p) => p.outdated).length;
     const withVulns = allPackages.filter((p) => (p.vulnerabilities || p.vuln_count || 0) > 0).length;
+    const reachable = allPackages.filter((p) => p.reachable === true).length;
+    const runtimeConfirmed = allPackages.filter((p) => p.runtime_status === "confirmed").length;
+    const shadow = allPackages.filter((p) => p.runtime_status === "shadow").length;
+    const copyleft = allPackages.filter((p) => {
+      const l = (p.license || "").toUpperCase();
+      return l.includes("GPL") || l.includes("AGPL");
+    }).length;
     const licCounts = allPackages.reduce<Record<string, number>>((acc, p) => {
       const l = p.license || "Unknown";
       acc[l] = (acc[l] || 0) + 1;
       return acc;
     }, {});
-    return { total: allPackages.length, outdated, withVulns, licenses: Object.keys(licCounts).length };
+    return { total: allPackages.length, outdated, withVulns, reachable, runtimeConfirmed, shadow, copyleft, licenses: Object.keys(licCounts).length };
   }, [allPackages]);
 
   const licenseChartData = useMemo(() => {
@@ -256,7 +412,7 @@ export default function SBOMInventory() {
       transition={{ duration: 0.3 }}
       className="space-y-6"
     >
-      <PageHeader title="SBOM & Asset Inventory" description="Software bill of materials, asset inventory, dependencies, and licenses">
+      <PageHeader title="XBOM — Extended Bill of Materials" description="Runtime-correlated SBOM with reachability analysis, shadow dependency detection, and license compliance">
         <Button variant="outline" size="sm" onClick={refetch} className="gap-2">
           <RefreshCw className="h-4 w-4" /> Refresh
         </Button>
@@ -266,12 +422,28 @@ export default function SBOMInventory() {
       </PageHeader>
 
       {/* KPI Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
         <KpiCard title="Total Packages" value={stats.total} icon={Package} />
-        <KpiCard title="Outdated" value={stats.outdated} icon={AlertTriangle} className="border-yellow-500/20" />
-        <KpiCard title="With Vulnerabilities" value={stats.withVulns} icon={AlertTriangle} className="border-red-500/20" />
-        <KpiCard title="Unique Licenses" value={stats.licenses} icon={Scale} />
+        <KpiCard title="Vulnerable" value={stats.withVulns} icon={ShieldAlert} className="border-red-500/20" onClick={() => setRiskFilter(riskFilter === "vulnerable" ? "all" : "vulnerable")} />
+        <KpiCard title="Reachable" value={stats.reachable} icon={Zap} className="border-orange-500/20" onClick={() => setRiskFilter(riskFilter === "reachable" ? "all" : "reachable")} />
+        <KpiCard title="Shadow Deps" value={stats.shadow} icon={Ghost} className="border-purple-500/20" onClick={() => setRiskFilter(riskFilter === "shadow" ? "all" : "shadow")} />
+        <KpiCard title="Runtime Confirmed" value={stats.runtimeConfirmed} icon={Activity} className="border-green-500/20" />
+        <KpiCard title="Copyleft Risk" value={stats.copyleft} icon={Scale} className="border-red-500/20" onClick={() => setRiskFilter(riskFilter === "copyleft" ? "all" : "copyleft")} />
+        <KpiCard title="Outdated" value={stats.outdated} icon={AlertTriangle} className="border-yellow-500/20" onClick={() => setRiskFilter(riskFilter === "outdated" ? "all" : "outdated")} />
+        <KpiCard title="Unique Licenses" value={stats.licenses} icon={FileText} />
       </div>
+
+      {/* Shadow Dependency Alert */}
+      {stats.shadow > 0 && (
+        <Alert className="border-purple-500/30 bg-purple-500/5">
+          <Ghost className="h-4 w-4 text-purple-400" />
+          <AlertDescription className="text-sm">
+            <span className="font-semibold text-purple-400">{stats.shadow} shadow dependencies</span> detected —
+            packages running at runtime but NOT declared in your SBOM. This is a supply chain blind spot.{" "}
+            <Button variant="link" className="h-auto p-0 text-purple-400 text-sm" onClick={() => setRiskFilter("shadow")}>View shadow deps →</Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Outdated Alert */}
       {outdatedPackages.length > 0 && (
@@ -280,7 +452,7 @@ export default function SBOMInventory() {
           <AlertDescription className="text-sm">
             <span className="font-semibold text-yellow-400">{outdatedPackages.length} outdated packages</span> detected.
             Outdated packages may contain known vulnerabilities.{" "}
-            <Button variant="link" className="h-auto p-0 text-yellow-400 text-sm">View all →</Button>
+            <Button variant="link" className="h-auto p-0 text-yellow-400 text-sm" onClick={() => setRiskFilter("outdated")}>View all →</Button>
           </AlertDescription>
         </Alert>
       )}
@@ -335,6 +507,19 @@ export default function SBOMInventory() {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={riskFilter} onValueChange={setRiskFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Risk Filter" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Risk Levels</SelectItem>
+                <SelectItem value="vulnerable">Vulnerable</SelectItem>
+                <SelectItem value="reachable">Reachable</SelectItem>
+                <SelectItem value="shadow">Shadow Deps</SelectItem>
+                <SelectItem value="copyleft">Copyleft</SelectItem>
+                <SelectItem value="outdated">Outdated</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <Card>
@@ -350,17 +535,19 @@ export default function SBOMInventory() {
                     <TableHead>Version</TableHead>
                     <TableHead>Ecosystem</TableHead>
                     <TableHead>License</TableHead>
-                    <TableHead className="text-right">Vulnerabilities</TableHead>
-                    <TableHead className="text-center">Outdated</TableHead>
+                    <TableHead className="text-center">Runtime</TableHead>
+                    <TableHead className="text-center">Reachability</TableHead>
+                    <TableHead className="text-right">Vulns</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredPackages.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                         <div className="flex flex-col items-center gap-2">
                           <Package className="h-8 w-8 opacity-30" />
-                          <p>No packages found</p>
+                          <p>No packages found{riskFilter !== "all" ? ` matching "${riskFilter}" filter` : ""}</p>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -369,7 +556,21 @@ export default function SBOMInventory() {
                       const vulnCount = pkg.vulnerabilities || pkg.vuln_count || 0;
                       return (
                         <TableRow key={pkg.id || String(idx)} className="hover:bg-muted/40">
-                          <TableCell className="font-mono text-xs font-semibold">{pkg.name || "—"}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-xs font-semibold">{pkg.name || "—"}</span>
+                              {pkg.depth !== undefined && pkg.depth > 0 && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <Badge variant="outline" className="text-[9px] px-1">{`d${pkg.depth}`}</Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Transitive dependency (depth {pkg.depth})</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell className="font-mono text-xs text-muted-foreground">{pkg.version || "—"}</TableCell>
                           <TableCell>
                             <EcoBadge ecosystem={pkg.ecosystem || pkg.language} />
@@ -377,20 +578,34 @@ export default function SBOMInventory() {
                           <TableCell>
                             <LicenseBadge license={pkg.license} />
                           </TableCell>
+                          <TableCell className="text-center">
+                            <RuntimeStatusBadge status={pkg.runtime_status} />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <ReachBadge reachable={pkg.reachable} direct={pkg.direct} />
+                          </TableCell>
                           <TableCell className="text-right">
                             {vulnCount > 0 ? (
-                              <span className="text-red-400 font-mono font-bold text-sm">{vulnCount}</span>
+                              <span
+                                className="text-red-400 font-mono font-bold text-sm cursor-pointer hover:underline"
+                                onClick={() => navigate(`/discover?search=${encodeURIComponent(pkg.name || "")}`)}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => e.key === "Enter" && navigate(`/discover?search=${encodeURIComponent(pkg.name || "")}`)}
+                              >
+                                {vulnCount}
+                              </span>
                             ) : (
                               <span className="text-green-400 font-mono text-xs">0</span>
                             )}
                           </TableCell>
                           <TableCell className="text-center">
                             {pkg.outdated ? (
-                              <Badge className="bg-yellow-500/10 text-yellow-400 border-yellow-500/20 text-xs border">
+                              <Badge className="bg-yellow-500/10 text-yellow-400 border-yellow-500/20 text-[10px] border">
                                 {pkg.latest_version ? `→ ${pkg.latest_version}` : "Outdated"}
                               </Badge>
                             ) : (
-                              <CheckCircle className="h-4 w-4 text-green-400 mx-auto" />
+                              <CheckCircle className="h-3.5 w-3.5 text-green-400 mx-auto" />
                             )}
                           </TableCell>
                         </TableRow>
@@ -509,7 +724,7 @@ export default function SBOMInventory() {
                           <Cell key={i} fill={entry.fill} />
                         ))}
                       </Pie>
-                      <Tooltip
+                      <RechartsTooltip
                         contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
                       />
                       <Legend />

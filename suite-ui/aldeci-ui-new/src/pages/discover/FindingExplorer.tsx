@@ -1,12 +1,15 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, Filter, Download, CheckSquare, AlertTriangle,
   Shield, Bug, RefreshCw, ChevronUp, ChevronDown, ChevronsUpDown,
   MoreHorizontal, Eye, UserCheck, Archive, X, ExternalLink, Upload, Loader2,
+  Wrench, Zap, Sparkles, GitBranch,
 } from "lucide-react";
 import { toast } from "sonner";
-import { bulkApi, analyticsApi } from "@/lib/api";
+import { bulkApi, analyticsApi, threatFeedsApi, autofixApi } from "@/lib/api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -106,6 +109,55 @@ function MpteBadge({ verdict }: { verdict?: string }) {
   );
 }
 
+function EpssBadge({ score, percentile }: { score?: number; percentile?: number }) {
+  if (score == null) return <span className="text-muted-foreground text-xs">—</span>;
+  const pct = Math.round(score * 100);
+  const color = pct >= 50 ? "bg-red-500/15 text-red-400 border-red-500/30"
+    : pct >= 10 ? "bg-orange-500/15 text-orange-400 border-orange-500/30"
+    : pct >= 1 ? "bg-yellow-500/15 text-yellow-400 border-yellow-500/30"
+    : "bg-slate-500/15 text-slate-400 border-slate-500/30";
+  return (
+    <div className="flex flex-col items-start gap-0.5">
+      <Badge className={cn("border text-xs tabular-nums", color)}>
+        {pct}%
+      </Badge>
+      {percentile != null && (
+        <span className="text-[10px] text-muted-foreground">Top {Math.round((1 - percentile) * 100)}%</span>
+      )}
+    </div>
+  );
+}
+
+function KevBadge({ isKev, dueDate }: { isKev?: boolean; dueDate?: string }) {
+  if (!isKev) return <span className="text-muted-foreground text-xs">—</span>;
+  return (
+    <div className="flex flex-col items-start gap-0.5">
+      <Badge className="border bg-red-600/20 text-red-300 border-red-600/40 text-xs font-bold gap-1">
+        <AlertTriangle className="h-3 w-3" /> KEV
+      </Badge>
+      {dueDate && (
+        <span className="text-[10px] text-red-400">Due {new Date(dueDate).toLocaleDateString()}</span>
+      )}
+    </div>
+  );
+}
+
+function ReachabilityBadge({ reachable }: { reachable?: boolean | string }) {
+  if (reachable == null) return <span className="text-muted-foreground text-xs">—</span>;
+  const isReachable = reachable === true || reachable === "reachable" || reachable === "yes";
+  const isUnknown = reachable === "unknown" || reachable === "pending";
+  if (isUnknown) return <Badge className="border bg-slate-500/10 text-slate-400 border-slate-500/20 text-xs">Unknown</Badge>;
+  return isReachable ? (
+    <Badge className="border bg-red-500/10 text-red-400 border-red-500/20 text-xs gap-1">
+      <Zap className="h-3 w-3" /> Reachable
+    </Badge>
+  ) : (
+    <Badge className="border bg-green-500/10 text-green-400 border-green-500/20 text-xs gap-1">
+      <Shield className="h-3 w-3" /> Unreachable
+    </Badge>
+  );
+}
+
 function getAgeDays(dateStr?: string): string {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
@@ -133,9 +185,20 @@ interface Finding {
   file?: string;
   line?: number;
   rule?: string;
+  epss_score?: number;
+  epss_percentile?: number;
+  kev?: boolean;
+  kev_due_date?: string;
+  reachable?: boolean | string;
+  fail_score?: number;
+  attack_paths_count?: number;
+  blast_radius?: number;
 }
 
 export default function FindingExplorer() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [severityFilter, setSeverityFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -147,6 +210,21 @@ export default function FindingExplorer() {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [detailFinding, setDetailFinding] = useState<Finding | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
+
+  // ── Deep-link support: read URL search params ──
+  useEffect(() => {
+    const severity = searchParams.get("severity");
+    const status = searchParams.get("status");
+    const scanner = searchParams.get("scanner");
+    const search = searchParams.get("search") || searchParams.get("q");
+    if (severity && severity !== "all") {
+      setSeverityFilter(severity.toLowerCase());
+      setActiveTab(severity.toLowerCase());
+    }
+    if (status && status !== "all") setStatusFilter(status.toLowerCase());
+    if (scanner && scanner !== "all") setScannerFilter(scanner.toLowerCase());
+    if (search) setSearchQuery(search);
+  }, [searchParams]);
 
   const PAGE_SIZE = 20;
 
@@ -161,7 +239,7 @@ export default function FindingExplorer() {
   const query = useFindings(params);
   const refetch = useCallback(() => query.refetch(), [query]);
 
-  const allFindings: Finding[] = useMemo(() => {
+  const rawFindings: Finding[] = useMemo(() => {
     const d = query.data;
     if (!d) return [];
     if (Array.isArray(d)) return d;
@@ -172,12 +250,82 @@ export default function FindingExplorer() {
     return [];
   }, [query.data]);
 
+  // ── EPSS Enrichment: fetch scores for all CVEs in batch ──
+  const cveIds = useMemo(() => rawFindings.filter(f => f.cve).map(f => f.cve!).join(","), [rawFindings]);
+  const epssQuery = useQuery({
+    queryKey: ["epss", cveIds],
+    queryFn: async () => {
+      if (!cveIds) return {};
+      try {
+        const { data } = await threatFeedsApi.epss(cveIds);
+        const scores = data?.scores || data?.data || [];
+        const map: Record<string, { score: number; percentile: number }> = {};
+        for (const s of scores) {
+          const id = s.cve || s.cve_id;
+          if (id) map[id] = { score: s.epss ?? s.score ?? 0, percentile: s.percentile ?? 0 };
+        }
+        return map;
+      } catch { return {}; }
+    },
+    enabled: !!cveIds,
+    staleTime: 5 * 60_000,
+  });
+
+  // ── KEV Enrichment: check which CVEs are in CISA KEV ──
+  const kevQuery = useQuery({
+    queryKey: ["kev"],
+    queryFn: async () => {
+      try {
+        const { data } = await threatFeedsApi.kev();
+        const entries = data?.vulnerabilities || data?.entries || data?.data || [];
+        const set = new Set<string>();
+        const dueDates: Record<string, string> = {};
+        for (const e of entries) {
+          const id = e.cve_id || e.cveID || e.id;
+          if (id) { set.add(id); if (e.due_date || e.dueDate) dueDates[id] = e.due_date || e.dueDate; }
+        }
+        return { set, dueDates };
+      } catch { return { set: new Set<string>(), dueDates: {} as Record<string, string> }; }
+    },
+    staleTime: 10 * 60_000,
+  });
+
+  // ── Merge enrichment data into findings ──
+  const allFindings: Finding[] = useMemo(() => {
+    const epss = epssQuery.data || {};
+    const kev = kevQuery.data || { set: new Set<string>(), dueDates: {} };
+    return rawFindings.map(f => ({
+      ...f,
+      epss_score: f.epss_score ?? (f.cve && epss[f.cve] ? epss[f.cve].score : undefined),
+      epss_percentile: f.epss_percentile ?? (f.cve && epss[f.cve] ? epss[f.cve].percentile : undefined),
+      kev: f.kev ?? (f.cve ? kev.set.has(f.cve) : false),
+      kev_due_date: f.kev_due_date ?? (f.cve ? kev.dueDates[f.cve] : undefined),
+    }));
+  }, [rawFindings, epssQuery.data, kevQuery.data]);
+
+  // ── AutoFix mutation ──
+  const qc = useQueryClient();
+  const autofixMutation = useMutation({
+    mutationFn: async (findingId: string) => {
+      const { data } = await autofixApi.generate(findingId);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["findings"] });
+      toast.success("AutoFix generated — check Remediation Center");
+    },
+    onError: () => toast.error("AutoFix generation failed"),
+  });
+
   const stats = useMemo(() => ({
     total: allFindings.length,
     critical: allFindings.filter((f) => f.severity?.toLowerCase() === "critical").length,
     high: allFindings.filter((f) => f.severity?.toLowerCase() === "high").length,
     medium: allFindings.filter((f) => f.severity?.toLowerCase() === "medium").length,
     low: allFindings.filter((f) => f.severity?.toLowerCase() === "low").length,
+    kevCount: allFindings.filter((f) => f.kev).length,
+    highEpss: allFindings.filter((f) => (f.epss_score || 0) >= 0.1).length,
+    reachable: allFindings.filter((f) => f.reachable === true || f.reachable === "reachable").length,
   }), [allFindings]);
 
   const filtered = useMemo(() => {
@@ -318,12 +466,15 @@ export default function FindingExplorer() {
       />
 
       {/* KPI Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <KpiCard title="Total Findings" value={stats.total} icon={Shield} />
-        <KpiCard title="Critical" value={stats.critical} icon={AlertTriangle} className="border-red-500/20" />
-        <KpiCard title="High" value={stats.high} icon={Bug} className="border-orange-500/20" />
-        <KpiCard title="Medium" value={stats.medium} icon={AlertTriangle} className="border-yellow-500/20" />
-        <KpiCard title="Low" value={stats.low} icon={Shield} className="border-blue-500/20" />
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
+        <KpiCard title="Total Findings" value={stats.total} icon={Shield} onClick={() => { setActiveTab("all"); setSeverityFilter("all"); }} />
+        <KpiCard title="Critical" value={stats.critical} icon={AlertTriangle} className="border-red-500/20" onClick={() => { setActiveTab("critical"); setSeverityFilter("critical"); }} />
+        <KpiCard title="High" value={stats.high} icon={Bug} className="border-orange-500/20" onClick={() => { setActiveTab("high"); setSeverityFilter("high"); }} />
+        <KpiCard title="Medium" value={stats.medium} icon={AlertTriangle} className="border-yellow-500/20" onClick={() => { setActiveTab("medium"); setSeverityFilter("medium"); }} />
+        <KpiCard title="Low" value={stats.low} icon={Shield} className="border-blue-500/20" onClick={() => { setActiveTab("low"); setSeverityFilter("low"); }} />
+        <KpiCard title="CISA KEV" value={stats.kevCount} icon={AlertTriangle} className="border-red-600/30" />
+        <KpiCard title="EPSS ≥ 10%" value={stats.highEpss} icon={Zap} className="border-orange-600/30" />
+        <KpiCard title="Reachable" value={stats.reachable} icon={GitBranch} className="border-purple-500/30" />
       </div>
 
       {/* Filters */}
@@ -517,12 +668,16 @@ export default function FindingExplorer() {
                           <span className="flex items-center">Title <SortIcon field="title" sortField={sortField} sortDir={sortDir} /></span>
                         </TableHead>
                         <TableHead>CVE</TableHead>
-                        <TableHead>Component</TableHead>
+                        <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("epss_score")}>
+                          <span className="flex items-center">EPSS <SortIcon field="epss_score" sortField={sortField} sortDir={sortDir} /></span>
+                        </TableHead>
+                        <TableHead>KEV</TableHead>
+                        <TableHead>Reachability</TableHead>
                         <TableHead>Scanner</TableHead>
                         <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("status")}>
                           <span className="flex items-center">Status <SortIcon field="status" sortField={sortField} sortDir={sortDir} /></span>
                         </TableHead>
-                        <TableHead>MPTE Verdict</TableHead>
+                        <TableHead>MPTE</TableHead>
                         <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("created_at")}>
                           <span className="flex items-center">Age <SortIcon field="created_at" sortField={sortField} sortDir={sortDir} /></span>
                         </TableHead>
@@ -532,7 +687,7 @@ export default function FindingExplorer() {
                     <TableBody>
                       {paginated.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">
+                          <TableCell colSpan={14} className="text-center py-12 text-muted-foreground">
                             <div className="flex flex-col items-center gap-2">
                               <Shield className="h-8 w-8 opacity-30" />
                               <p>No findings match the current filters</p>
@@ -570,8 +725,14 @@ export default function FindingExplorer() {
                                   <span className="text-muted-foreground">—</span>
                                 )}
                               </TableCell>
-                              <TableCell className="text-xs text-muted-foreground max-w-[150px]">
-                                <span className="truncate block">{finding.component || "—"}</span>
+                              <TableCell>
+                                <EpssBadge score={finding.epss_score} percentile={finding.epss_percentile} />
+                              </TableCell>
+                              <TableCell>
+                                <KevBadge isKev={finding.kev} dueDate={finding.kev_due_date} />
+                              </TableCell>
+                              <TableCell>
+                                <ReachabilityBadge reachable={finding.reachable} />
                               </TableCell>
                               <TableCell className="text-xs">
                                 <Badge variant="outline" className="text-xs">{finding.scanner || "—"}</Badge>
@@ -605,11 +766,21 @@ export default function FindingExplorer() {
                                     }}>
                                       <UserCheck className="h-3.5 w-3.5 mr-2" /> Triage
                                     </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => {
+                                      navigate(`/remediate?search=${encodeURIComponent(finding.cve || finding.title || finding.finding_id || "")}&severity=${finding.severity || ""}`);
+                                    }}>
+                                      <Wrench className="h-3.5 w-3.5 mr-2" /> Create Remediation Task
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => {
+                                      autofixMutation.mutate(finding.id || finding.finding_id || "");
+                                    }}>
+                                      <Sparkles className="h-3.5 w-3.5 mr-2" /> AutoFix
+                                    </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={() => {
-                                      window.open(`/validate/mpte?finding=${finding.cve || finding.finding_id || ""}`, "_blank");
+                                      navigate(`/validate/mpte?finding=${encodeURIComponent(finding.cve || finding.finding_id || "")}`);
                                     }}>
-                                      <ExternalLink className="h-3.5 w-3.5 mr-2" /> Open in Scanner
+                                      <ExternalLink className="h-3.5 w-3.5 mr-2" /> Validate with MPTE
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={async () => {
                                       try {
@@ -691,6 +862,33 @@ export default function FindingExplorer() {
           </DialogHeader>
           {detailFinding && (
             <div className="space-y-4 mt-2">
+              {/* Risk Intelligence Panel */}
+              {(detailFinding.epss_score != null || detailFinding.kev || detailFinding.reachable != null) && (
+                <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-amber-400">Risk Intelligence</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-muted-foreground">EPSS Probability</p>
+                      <EpssBadge score={detailFinding.epss_score} percentile={detailFinding.epss_percentile} />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-muted-foreground">CISA KEV</p>
+                      <KevBadge isKev={detailFinding.kev} dueDate={detailFinding.kev_due_date} />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-muted-foreground">Reachability</p>
+                      <ReachabilityBadge reachable={detailFinding.reachable} />
+                    </div>
+                  </div>
+                  {(detailFinding.attack_paths_count ?? 0) > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      <GitBranch className="inline h-3 w-3 mr-1" />
+                      {detailFinding.attack_paths_count} attack paths · Blast radius: {detailFinding.blast_radius ?? "—"} assets
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 {[
                   { label: "Status", value: <StatusBadge status={detailFinding.status} /> },
@@ -721,7 +919,7 @@ export default function FindingExplorer() {
                   </code>
                 </div>
               )}
-              <div className="flex gap-2 pt-2">
+              <div className="flex flex-wrap gap-2 pt-2">
                 <Button size="sm" className="gap-1" onClick={async () => {
                   try {
                     await bulkApi.triage([detailFinding.id || detailFinding.finding_id || ""], "triage", "triaged");
@@ -730,9 +928,21 @@ export default function FindingExplorer() {
                     query.refetch();
                   } catch (e) { toast.error(`Triage failed: ${e}`); }
                 }}><UserCheck className="h-3 w-3" /> Triage</Button>
+                <Button size="sm" variant="outline" className="gap-1"
+                  disabled={autofixMutation.isPending}
+                  onClick={() => {
+                    autofixMutation.mutate(detailFinding.id || detailFinding.finding_id || "");
+                  }}>
+                  {autofixMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} AutoFix
+                </Button>
                 <Button size="sm" variant="outline" className="gap-1" onClick={() => {
-                  window.open(`/validate/mpte?finding=${detailFinding.cve || detailFinding.finding_id || ""}`, "_blank");
-                }}><ExternalLink className="h-3 w-3" /> Open Scanner</Button>
+                  navigate(`/remediate?search=${encodeURIComponent(detailFinding.cve || detailFinding.title || detailFinding.finding_id || "")}&severity=${detailFinding.severity || ""}`);
+                  setDetailFinding(null);
+                }}><Wrench className="h-3 w-3" /> Remediate</Button>
+                <Button size="sm" variant="outline" className="gap-1" onClick={() => {
+                  navigate(`/validate/mpte?finding=${encodeURIComponent(detailFinding.cve || detailFinding.finding_id || "")}`);
+                  setDetailFinding(null);
+                }}><ExternalLink className="h-3 w-3" /> MPTE Validate</Button>
                 <Button size="sm" variant="outline" className="gap-1" onClick={async () => {
                   try {
                     await bulkApi.updateFindings([detailFinding.id || detailFinding.finding_id || ""], { status: "archived" });

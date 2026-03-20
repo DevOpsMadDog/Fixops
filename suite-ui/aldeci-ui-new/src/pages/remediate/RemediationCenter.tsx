@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toArray } from "@/lib/api-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -230,6 +231,7 @@ function WorkflowButton({
 }
 
 export default function RemediationCenter() {
+  const [searchParams] = useSearchParams();
   const tasksQuery = useRemediationTasks();
   const usersQuery = useUsers();
   const teamsQuery = useTeams();
@@ -240,6 +242,18 @@ export default function RemediationCenter() {
   const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+
+  // ── Deep-link support: read URL search params ──
+  useEffect(() => {
+    const status = searchParams.get("status");
+    const severity = searchParams.get("severity");
+    const assignee = searchParams.get("assignee");
+    const q = searchParams.get("search") || searchParams.get("q");
+    if (status && status !== "all") setStatusFilter(status.toLowerCase());
+    if (severity && severity !== "all") setSeverityFilter(severity.toLowerCase());
+    if (assignee && assignee !== "all") setAssigneeFilter(assignee);
+    if (q) setSearch(q);
+  }, [searchParams]);
 
   const refetchAll = useCallback(() => {
     tasksQuery.refetch();

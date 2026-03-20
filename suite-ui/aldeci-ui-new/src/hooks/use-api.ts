@@ -23,9 +23,11 @@ import {
   threatFeedsApi,
   playbooks as playbooksApi,
   scannerApi,
+  scannerIngestApi,
   casesApi,
   llmApi,
   brainApi,
+  containerApi,
   getStoredOrgId,
 } from "@/lib/api";
 import { toast } from "sonner";
@@ -529,6 +531,38 @@ export function useIntegrations() {
     queryKey: ["integrations"],
     queryFn: async () => {
       const { data } = await integrationsApi.list();
+      return data;
+    },
+  });
+}
+
+export function useIntegrationsStatus() {
+  return useQuery({
+    queryKey: ["integrations", "status"],
+    queryFn: async () => {
+      const { data } = await integrationsApi.status();
+      return data;
+    },
+    refetchInterval: 30_000,
+  });
+}
+
+export function useIngestStats() {
+  return useQuery({
+    queryKey: ["scanner-ingest", "stats"],
+    queryFn: async () => {
+      const { data } = await scannerIngestApi.stats();
+      return data;
+    },
+    refetchInterval: 30_000,
+  });
+}
+
+export function useContainerStatus() {
+  return useQuery({
+    queryKey: ["container", "status"],
+    queryFn: async () => {
+      const { data } = await containerApi.status();
       return data;
     },
   });

@@ -1,5 +1,6 @@
 import { toArray } from "@/lib/api-utils";
 import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -231,9 +232,20 @@ export default function Integrations() {
     ? integrations
     : integrations.filter((i: any) => (i.category ?? i.type ?? "Scanner") === categoryFilter);
 
+  const navigate = useNavigate();
   const syncMutation = useSyncIntegration();
+  const configureMutation = useConfigureIntegration();
   const handleSync = (integration: any) => {
     syncMutation.mutate(integration.id ?? integration.name);
+  };
+  const handleToggleConnection = (integration: any) => {
+    const newStatus = integration.status === "connected" ? "disconnected" : "connected";
+    configureMutation.mutate(
+      { id: integration.id ?? integration.name, data: { status: newStatus } },
+      {
+        onSuccess: () => toast.success(`${integration.name} ${newStatus === "connected" ? "connected" : "disconnected"}`),
+      }
+    );
   };
 
   return (
@@ -252,7 +264,7 @@ export default function Integrations() {
           <RefreshCw className="h-4 w-4" />
           Refresh
         </Button>
-        <Button size="sm" className="gap-2">
+        <Button size="sm" className="gap-2" onClick={() => navigate("/settings/marketplace")}>
           <Plus className="h-4 w-4" />
           Add Integration
         </Button>
@@ -347,6 +359,7 @@ export default function Integrations() {
                         size="sm"
                         variant={status === "connected" ? "destructive" : "default"}
                         className="flex-1 text-xs"
+                        onClick={() => handleToggleConnection(integration)}
                       >
                         {status === "connected" ? "Disconnect" : "Connect"}
                       </Button>

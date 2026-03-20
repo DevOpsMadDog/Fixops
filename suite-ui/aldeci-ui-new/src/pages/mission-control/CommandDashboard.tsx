@@ -1,15 +1,18 @@
 import { useState, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend,
+  BarChart, Bar, Cell,
 } from "recharts";
 import {
   Shield, AlertTriangle, Activity, Clock, CheckCircle2,
   RefreshCw, Filter,
   Zap, Radio, BrainCircuit, AlertCircle,
   BarChart3, Target, Timer, Wrench, Bell, Eye,
-  XCircle, Circle,
+  XCircle, Circle, TrendingDown, Layers,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +33,7 @@ import {
   useDashboardTrends,
   useDashboardCompliance,
 } from "@/hooks/use-api";
+import { analyticsApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const SEVERITY_COLORS: Record<string, string> = {
@@ -85,15 +89,21 @@ function PostureGauge({ score }: { score: number }) {
   );
 }
 
-function SeverityPill({ severity, count, isNew }: { severity: string; count: number; isNew?: boolean }) {
+function SeverityPill({ severity, count, isNew, onClick }: { severity: string; count: number; isNew?: boolean; onClick?: () => void }) {
   const colors: Record<string, string> = {
-    critical: "bg-red-500/10 text-red-400 border-red-500/20",
-    high: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-    medium: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-    low: "bg-green-500/10 text-green-400 border-green-500/20",
+    critical: "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20",
+    high: "bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500/20",
+    medium: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20 hover:bg-yellow-500/20",
+    low: "bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20",
   };
   return (
-    <div className={cn("flex items-center justify-between rounded-lg border px-3 py-2", colors[severity] ?? "bg-muted/10 border-border text-muted-foreground")}>
+    <div
+      className={cn("flex items-center justify-between rounded-lg border px-3 py-2 cursor-pointer transition-colors", colors[severity] ?? "bg-muted/10 border-border text-muted-foreground")}
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === "Enter" && onClick?.()}
+    >
       <div className="flex items-center gap-2">
         <span className="text-xs font-semibold uppercase tracking-wide">{severity}</span>
         {isNew && <Badge className="h-4 text-[10px] px-1 bg-blue-500/20 text-blue-400 border-blue-500/30">NEW</Badge>}
@@ -103,13 +113,19 @@ function SeverityPill({ severity, count, isNew }: { severity: string; count: num
   );
 }
 
-function ComplianceBadge({ name, status }: { name: string; status: string }) {
+function ComplianceBadge({ name, status, onClick }: { name: string; status: string; onClick?: () => void }) {
   const ok = status === "compliant" || status === "passing" || status === "active";
   return (
-    <div className={cn(
-      "flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-all",
-      ok ? "border-green-500/30 bg-green-500/5" : "border-yellow-500/30 bg-yellow-500/5"
-    )}>
+    <div
+      className={cn(
+        "flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-all cursor-pointer",
+        ok ? "border-green-500/30 bg-green-500/5 hover:bg-green-500/10" : "border-yellow-500/30 bg-yellow-500/5 hover:bg-yellow-500/10"
+      )}
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === "Enter" && onClick?.()}
+    >
       {ok
         ? <CheckCircle2 className="h-5 w-5 text-green-400" />
         : <AlertCircle className="h-5 w-5 text-yellow-400" />
@@ -134,6 +150,7 @@ function EventTypeBadge({ type }: { type: string }) {
 }
 
 export default function CommandDashboard() {
+  const navigate = useNavigate();
   const [timeRange, setTimeRange] = useState("30d");
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [eventFilter, setEventFilter] = useState("all");
@@ -144,6 +161,16 @@ export default function CommandDashboard() {
   const trends = useDashboardTrends({ period: timeRange });
   const compliance = useDashboardCompliance();
 
+  // ── Noise Reduction Funnel (real data from /analytics/triage-funnel) ──
+  const funnelQuery = useQuery({
+    queryKey: ["analytics", "triage-funnel"],
+    queryFn: async () => {
+      const { data } = await analyticsApi.triageFunnel();
+      return data;
+    },
+    staleTime: 60_000,
+  });
+
   const isLoading = overview.isLoading;
   const isError = overview.isError;
 
@@ -152,8 +179,9 @@ export default function CommandDashboard() {
     pulse.refetch();
     trends.refetch();
     compliance.refetch();
+    funnelQuery.refetch();
     setLastRefreshed(new Date());
-  }, [overview, pulse, trends, compliance]);
+  }, [overview, pulse, trends, compliance, funnelQuery]);
 
   useEffect(() => {
     if (!autoRefresh) return;
@@ -168,13 +196,26 @@ export default function CommandDashboard() {
   const pulseData = pulse.data ?? {};
   const trendData = trends.data ?? {};
   const compData = compliance.data ?? {};
+  const funnelData = funnelQuery.data ?? {};
 
   const postureScore = Number(ov.posture_score ?? ov.security_score ?? 0);
   const activeThreats = Number(ov.active_threats ?? ov.critical_findings ?? 0);
   const mttr = Number(ov.mttr_hours ?? ov.avg_resolution_hours ?? 0);
   const slaCompliance = Number(ov.sla_compliance_pct ?? compData.compliance_score ?? 0);
-  const noiseReduction = Number(ov.noise_reduction_pct ?? pulseData.noise_reduction ?? 0);
+  const noiseReductionFromFunnel = Number(funnelData.reduction_percentage ?? 0);
+  const noiseReduction = noiseReductionFromFunnel > 0 ? noiseReductionFromFunnel : Number(ov.noise_reduction_pct ?? pulseData.noise_reduction ?? 0);
   const fixesToday = Number(ov.fixes_today ?? ov.resolved_today ?? 0);
+
+  // Funnel stages
+  const funnel = funnelData.funnel ?? {};
+  const funnelStages = [
+    { label: "Raw Findings", value: Number(funnel.raw_findings ?? 0), color: "#ef4444" },
+    { label: "After Dedup", value: Number(funnel.after_dedup ?? 0), color: "#f97316" },
+    { label: "After Correlation", value: Number(funnel.after_correlation ?? 0), color: "#eab308" },
+    { label: "Exposure Cases", value: Number(funnel.exposure_cases ?? 0), color: "#22c55e" },
+  ];
+  const funnelHasData = funnelData.data_available === true || Number(funnel.raw_findings ?? 0) > 0;
+  const failDist = funnelData.fail_distribution ?? {};
 
   const criticalCount = Number(ov.critical_findings ?? 0);
   const highCount = Number(ov.high_findings ?? 0);
@@ -283,6 +324,7 @@ export default function CommandDashboard() {
               icon={AlertTriangle}
               trend={activeThreats > 10 ? "up" : activeThreats > 0 ? "flat" : "down"}
               className={cn(activeThreats > 5 && "border-red-500/30 bg-red-500/5")}
+              onClick={() => navigate("/discover?severity=critical")}
             />
           </motion.div>
           <motion.div variants={itemVariants}>
@@ -291,6 +333,7 @@ export default function CommandDashboard() {
               value={mttr > 0 ? `${mttr.toFixed(1)}h` : "—"}
               icon={Timer}
               trend={mttr < 24 ? "up" : mttr < 72 ? "flat" : "down"}
+              onClick={() => navigate("/remediate?status=in_progress")}
             />
           </motion.div>
           <motion.div variants={itemVariants}>
@@ -299,6 +342,7 @@ export default function CommandDashboard() {
               value={`${slaCompliance.toFixed(0)}%`}
               icon={Target}
               trend={slaCompliance >= 95 ? "up" : slaCompliance >= 80 ? "flat" : "down"}
+              onClick={() => navigate("/comply")}
             />
           </motion.div>
           <motion.div variants={itemVariants}>
@@ -307,6 +351,7 @@ export default function CommandDashboard() {
               value={`${noiseReduction.toFixed(0)}%`}
               icon={Zap}
               trend={noiseReduction > 50 ? "up" : "flat"}
+              onClick={() => navigate("/discover?status=suppressed")}
             />
           </motion.div>
           {/* Fixes Today — only shows on lg+ */}
@@ -327,6 +372,7 @@ export default function CommandDashboard() {
             value={fixesToday}
             icon={Wrench}
             trend={fixesToday > 0 ? "up" : "flat"}
+            onClick={() => navigate("/remediate?status=resolved")}
           />
         </motion.div>
 
@@ -353,19 +399,23 @@ export default function CommandDashboard() {
                     severity="critical"
                     count={criticalCount}
                     isNew={(criticalCount > 0)}
+                    onClick={() => navigate("/discover?severity=critical")}
                   />
                   <SeverityPill
                     severity="high"
                     count={highCount}
                     isNew={(highCount > 0)}
+                    onClick={() => navigate("/discover?severity=high")}
                   />
                   <SeverityPill
                     severity="medium"
                     count={mediumCount}
+                    onClick={() => navigate("/discover?severity=medium")}
                   />
                   <SeverityPill
                     severity="low"
                     count={Number(ov.low_findings ?? 0)}
+                    onClick={() => navigate("/discover?severity=low")}
                   />
                   <Separator className="my-3" />
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -392,7 +442,7 @@ export default function CommandDashboard() {
                 <CardContent>
                   <div className="grid grid-cols-2 gap-2">
                     {frameworks.map((fw) => (
-                      <ComplianceBadge key={fw.name} name={fw.name} status={String(fw.status)} />
+                      <ComplianceBadge key={fw.name} name={fw.name} status={String(fw.status)} onClick={() => navigate(`/comply?framework=${encodeURIComponent(fw.name)}`)} />
                     ))}
                   </div>
                   {compData.last_assessed && (
@@ -458,8 +508,100 @@ export default function CommandDashboard() {
               </Card>
             </motion.div>
 
+            {/* Noise Reduction Funnel */}
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+              <Card className="border-emerald-500/20 bg-emerald-500/5">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2 text-emerald-400">
+                      <TrendingDown className="h-4 w-4" />
+                      Noise Reduction Funnel
+                    </CardTitle>
+                    {noiseReduction > 0 && (
+                      <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px]">
+                        {noiseReduction.toFixed(0)}% reduced
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {funnelHasData ? (
+                    <div className="space-y-3">
+                      {/* Funnel bars */}
+                      <div className="space-y-2">
+                        {funnelStages.map((stage, i) => {
+                          const maxVal = funnelStages[0].value || 1;
+                          const pct = maxVal > 0 ? (stage.value / maxVal) * 100 : 0;
+                          const prevVal = i > 0 ? funnelStages[i - 1].value : stage.value;
+                          const reduction = prevVal > 0 && i > 0 ? Math.round(((prevVal - stage.value) / prevVal) * 100) : 0;
+                          return (
+                            <div key={stage.label} className="space-y-1">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-muted-foreground">{stage.label}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-semibold tabular-nums" style={{ color: stage.color }}>
+                                    {stage.value.toLocaleString()}
+                                  </span>
+                                  {reduction > 0 && (
+                                    <span className="text-[10px] text-emerald-400">-{reduction}%</span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="h-2 rounded-full bg-muted/30 overflow-hidden">
+                                <motion.div
+                                  className="h-full rounded-full"
+                                  style={{ backgroundColor: stage.color }}
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${Math.max(pct, 2)}%` }}
+                                  transition={{ duration: 0.6, delay: i * 0.1 }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* FAIL distribution mini-bar */}
+                      {(Number(failDist.critical ?? 0) + Number(failDist.high ?? 0) + Number(failDist.medium ?? 0)) > 0 && (
+                        <div className="pt-2 border-t border-border/50">
+                          <p className="text-[10px] text-muted-foreground mb-1.5 uppercase tracking-wider font-semibold">
+                            <Layers className="inline h-3 w-3 mr-1" />
+                            Severity Distribution (Exposure Cases)
+                          </p>
+                          <div className="flex gap-3 text-xs">
+                            {["critical", "high", "medium", "low"].map(sev => {
+                              const count = Number(failDist[sev] ?? 0);
+                              if (count === 0) return null;
+                              return (
+                                <span
+                                  key={sev}
+                                  className="cursor-pointer hover:opacity-80"
+                                  style={{ color: SEVERITY_COLORS[sev] }}
+                                  onClick={() => navigate(`/discover?severity=${sev}`)}
+                                  role="button"
+                                  tabIndex={0}
+                                  onKeyDown={(e) => e.key === "Enter" && navigate(`/discover?severity=${sev}`)}
+                                >
+                                  <span className="font-semibold tabular-nums">{count}</span>{" "}
+                                  <span className="capitalize">{sev}</span>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex h-[120px] items-center justify-center text-sm text-muted-foreground">
+                      No funnel data — run the Brain Pipeline to populate
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+
             {/* AI Overnight Summary */}
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
               <Card className="border-purple-500/20 bg-purple-500/5">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2 text-purple-400">
@@ -503,7 +645,14 @@ export default function CommandDashboard() {
                   <ScrollArea className="h-[200px]">
                     <div className="space-y-0 px-6 pb-4">
                       {topThreats.length > 0 ? topThreats.map((t: Record<string, unknown>, i: number) => (
-                        <div key={i} className="flex items-center gap-3 py-2 border-b border-border/50 last:border-0">
+                        <div
+                          key={i}
+                          className="flex items-center gap-3 py-2 border-b border-border/50 last:border-0 cursor-pointer hover:bg-muted/30 rounded px-1 -mx-1 transition-colors"
+                          onClick={() => navigate(`/discover?search=${encodeURIComponent(String(t.cve_id ?? t.id ?? ""))}`)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => e.key === "Enter" && navigate(`/discover?search=${encodeURIComponent(String(t.cve_id ?? t.id ?? ""))}`)}
+                        >
                           <div
                             className="h-2 w-2 rounded-full shrink-0"
                             style={{ backgroundColor: SEVERITY_COLORS[String(t.severity ?? "medium")] }}
@@ -624,6 +773,12 @@ export default function CommandDashboard() {
             <span>Total findings: <span className="text-foreground font-medium">{ov.total_findings ?? 0}</span></span>
             <Separator orientation="vertical" className="h-3" />
             <span>MTTR: <span className="text-foreground font-medium">{mttr > 0 ? `${mttr.toFixed(1)}h` : "—"}</span></span>
+            {noiseReduction > 0 && (
+              <>
+                <Separator orientation="vertical" className="h-3" />
+                <span>Noise: <span className="text-emerald-400 font-medium">↓{noiseReduction.toFixed(0)}%</span></span>
+              </>
+            )}
           </div>
           <span>Updated: {lastRefreshed.toLocaleTimeString()}</span>
         </motion.div>

@@ -41,7 +41,7 @@ docker compose -f docker/docker-compose.yml up
 ├── suite-integrations/ # External integrations — MCP, webhooks, IaC, OSS tools (6.8K LOC)
 ├── suite-ui/
 │   ├── aldeci/         # Legacy React UI (ACTIVE — wiring to real APIs) 101 src TS/TSX files, 45.5K LOC
-│   └── aldeci-ui-new/  # New UI (MISSING — directory does not exist)
+│   └── aldeci-ui-new/  # New UI (ACTIVE — React 19 + Vite 6 + Tailwind v4, 60+ pages, 5-space CTEM routing)
 ├── tests/              # 386 test files, 194K LOC, 14,133 tests collected
 ├── docker/             # Dockerfiles + compose files + Kubernetes Helm chart
 ├── docs/               # Vision docs, debate transcript, identity docs
@@ -180,7 +180,7 @@ python -m pytest tests/test_brain_pipeline.py -v
 - **DB**: Each domain creates its own SQLite file. Use `PersistentDict` or raw SQLAlchemy.
 - **Events**: Use `core/event_bus.py` for cross-module communication.
 - **Tests**: `test_*.py` in `tests/`. Use `pytest-asyncio` for async tests. 10s timeout.
-- **UI**: Legacy in `suite-ui/aldeci/` (ACTIVE — being wired to real APIs). `suite-ui/aldeci-ui-new/` does NOT exist.
+- **UI**: New UI in `suite-ui/aldeci-ui-new/` (ACTIVE — React 19, Vite 6, Tailwind v4, Zustand, Recharts, RBAC). Legacy in `suite-ui/aldeci/` (FROZEN).
 - **Commits**: Conventional commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`).
 
 ---
@@ -218,7 +218,7 @@ Reusable domain expertise for any agent or session. Read the relevant skill befo
 
 ## Known Issues
 
-1. **New UI is missing** — `suite-ui/aldeci-ui-new/` directory does not exist on disk
+1. ~~**New UI is missing**~~ — RESOLVED: `suite-ui/aldeci-ui-new/` exists with 60+ pages, React 19, RBAC, 5-space routing
 2. **Test coverage at 19.19%** — Below 25% gate, CI failing (DEMO-006 config fix applied but still below gate)
 3. **Non-standard endpoint files at non-obvious paths** — decisions.py (suite-core/api/), nerve_center.py (suite-core/api/), business_context*.py (suite-evidence-risk/api/) are conditionally mounted
 4. **Single-process monolith** — No horizontal scaling (OK for demo/POC)

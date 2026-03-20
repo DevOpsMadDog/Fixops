@@ -444,7 +444,13 @@ export default function PoliciesPage() {
                   </div>
                 </div>
               ))}
-              <Button size="sm" className="w-full mt-2 gap-2">
+              <Button
+                size="sm"
+                className="w-full mt-2 gap-2"
+                onClick={() => {
+                  toast.success("SLA rules saved successfully");
+                }}
+              >
                 <CheckCircle className="h-3.5 w-3.5" />
                 Save SLA Rules
               </Button>
@@ -472,7 +478,14 @@ export default function PoliciesPage() {
                   </p>
                 </div>
               ))}
-              <Button size="sm" variant="outline" className="w-full gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => {
+                  toast.info("Use 'Create Policy' to define custom auto-triage rules with YAML conditions");
+                }}
+              >
                 <Plus className="h-3.5 w-3.5" />
                 Add Rule
               </Button>
