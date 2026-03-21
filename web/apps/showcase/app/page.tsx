@@ -155,6 +155,27 @@ export default function ShowcasePage() {
     },
   ];
 
+  const screenHighlights = [
+    {
+      title: 'Risk Command Center',
+      description: 'Prioritized exposure map with live SSVC decisions and blast-radius impact.',
+      tags: ['Critical queue', 'Exploit intel', 'Owner routing'],
+      accent: 'from-purple-500/30 via-indigo-500/20 to-transparent',
+    },
+    {
+      title: 'Evidence Vault',
+      description: 'Signed audit trails with compliance-ready snapshots and retention controls.',
+      tags: ['Proof bundles', 'Chain of custody', 'SOC2-ready'],
+      accent: 'from-emerald-500/25 via-cyan-500/20 to-transparent',
+    },
+    {
+      title: 'Automation Studio',
+      description: 'End-to-end workflow orchestration that ties scanners, tickets, and SLAs.',
+      tags: ['Playbooks', 'Approvals', 'SLA clocks'],
+      accent: 'from-amber-500/30 via-rose-500/20 to-transparent',
+    },
+  ];
+
   const runPipeline = async () => {
     setPipelineRunning(true);
     setCurrentStage(0);
@@ -588,6 +609,62 @@ export default function ShowcasePage() {
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* FixOps Screens */}
+            <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6">
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div>
+                  <h2 className="text-xl font-bold text-white mb-2">FixOps Screens</h2>
+                  <p className="text-sm text-slate-400">
+                    NopSec-inspired layouts showcasing high-density security decisioning.
+                  </p>
+                </div>
+                <div className="text-xs text-slate-500 uppercase tracking-[0.2em]">
+                  UI Concepts
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-6">
+                {screenHighlights.map((screen, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-slate-950/70 border border-slate-800 rounded-xl p-4 hover:border-slate-700 transition-colors"
+                  >
+                    <div className="relative aspect-video rounded-lg overflow-hidden border border-slate-800 bg-slate-900/70">
+                      <div className={`absolute inset-0 bg-gradient-to-br ${screen.accent}`} />
+                      <div className="absolute inset-0 p-3 flex flex-col">
+                        <div className="flex items-center justify-between text-[10px] text-slate-300">
+                          <span className="uppercase tracking-[0.25em]">FixOps</span>
+                          <span className="text-slate-500">Live</span>
+                        </div>
+                        <div className="mt-auto space-y-2">
+                          <div className="h-2 w-2/3 rounded-full bg-white/15" />
+                          <div className="h-2 w-1/2 rounded-full bg-white/10" />
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="h-6 rounded-md bg-white/10" />
+                            <div className="h-6 rounded-md bg-white/5" />
+                            <div className="h-6 rounded-md bg-white/10" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <div className="text-white font-semibold">{screen.title}</div>
+                      <p className="text-xs text-slate-400 mt-1">{screen.description}</p>
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {screen.tags.map(tag => (
+                          <span
+                            key={tag}
+                            className="px-2 py-1 rounded-full bg-slate-800 text-slate-300 text-[11px]"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Main Content Grid */}
