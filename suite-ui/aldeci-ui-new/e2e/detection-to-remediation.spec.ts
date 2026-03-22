@@ -19,7 +19,7 @@ import { test, expect, type Page } from "@playwright/test";
 const API_BASE = process.env.VITE_API_URL || "http://localhost:8000";
 const API_TOKEN =
   process.env.FIXOPS_API_TOKEN ||
-  "fixops-test-token-placeholder";
+  "fixops_ent_38wJA8mb7CsbJ3PaLvKNz7lFnLWvFWXti_5NcdISXSogi_4grP24NAe_XymVfps_";
 
 async function apiGet(path: string) {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -30,16 +30,16 @@ async function apiGet(path: string) {
 
 /** Inject admin auth into localStorage before the app reads it */
 async function injectAuth(page: Page, role = "admin") {
-  await page.addInitScript(({ authToken, userRole }) => {
-    localStorage.setItem("aldeci.authToken", authToken);
+  await page.addInitScript((r) => {
+    localStorage.setItem("aldeci.authToken", "fixops_ent_38wJA8mb7CsbJ3PaLvKNz7lFnLWvFWXti_5NcdISXSogi_4grP24NAe_XymVfps_");
     localStorage.setItem("aldeci.authStrategy", "token");
     localStorage.setItem("aldeci.orgId", "default");
     localStorage.setItem("aldeci.authUser", JSON.stringify({
-      id: `e2e-${userRole}`, email: `${userRole}@aldeci.local`,
-      first_name: "E2E", last_name: userRole.charAt(0).toUpperCase() + userRole.slice(1),
-      role: userRole, department: "Security",
+      id: `e2e-${r}`, email: `${r}@aldeci.local`,
+      first_name: "E2E", last_name: r.charAt(0).toUpperCase() + r.slice(1),
+      role: r, department: "Security",
     }));
-  }, { authToken: API_TOKEN, userRole: role });
+  }, role);
 }
 
 // ═══════════════════════════════════════════

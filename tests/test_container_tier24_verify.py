@@ -58,6 +58,7 @@ def test_layer_secrets_aws_key():
         "ENV AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
         "COPY .env /app/.env",
         "COPY id_rsa /root/.ssh/id_rsa",
+        "ENV STRIPE_SECRET=STRIPE_SECRET_TEST_FIXTURE",
     ])
     result = scanner.scan_layer_secrets(dockerfile, "Dockerfile")
     assert result.total_findings >= 3, f"Expected >=3 findings, got {result.total_findings}"
