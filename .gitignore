@@ -124,6 +124,16 @@ _*.sh
 data/archive/
 data/exports/
 data/reachability/
+data/analytics/
+
+# Generated runtime artifacts
+MagicMock/_DB_PATH/
+data/audit.log
+data/audit_security.log
+data/feeds/epss-enrichment-cache.json
+data/feeds/kev-latest.json
+suite-ui/aldeci-ui-new/e2e/.auth/
+suite-ui/aldeci-ui-new/test-results/
 
 # Environment secrets - never commit
 .env
