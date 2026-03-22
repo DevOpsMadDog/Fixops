@@ -85,6 +85,7 @@ agenthub/agents/youtube/db
 data/automation/
 data/evidence/
 .fixops_data/
+data/*
 
 # Archive files and large assets
 **/*.zip
