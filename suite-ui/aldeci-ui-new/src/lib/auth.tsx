@@ -8,6 +8,7 @@
  * Scopes: derived from role (admin gets everything).
  */
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from "react";
+import { Navigate } from "react-router-dom";
 import {
   usersApi,
   setStoredAuthToken,
@@ -193,9 +194,7 @@ export function useAuth(): AuthState {
 export function RequireAuth({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
   if (!isAuthenticated) {
-    // Use hash-based redirect since the app uses HashRouter
-    window.location.hash = "#/login";
-    return null;
+    return <Navigate to="/login" replace />;
   }
   return <>{children}</>;
 }

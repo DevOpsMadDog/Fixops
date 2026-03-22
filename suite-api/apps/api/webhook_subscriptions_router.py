@@ -443,3 +443,180 @@ async def test_subscription(sub_id: str, org_id: str = Depends(get_org_id)) -> D
     result = _deliver_webhook(sub, "test", test_payload)
     return {"subscription_id": sub_id, "delivery_id": result["delivery_id"],
             "status": result["status"], "response_code": result["response_code"], "error": result["error"]}
+
+
+
+@router.get("/delivery-log")
+async def delivery_log(
+    subscription_id: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Delivery retry dashboard — list all webhook delivery attempts.
+
+    Supports filtering by subscription_id and status (success/failed).
+    Returns chronological delivery log with response codes and errors.
+    """
+    try:
+        with _db_lock:
+            conn = _get_db()
+            try:
+                # Only show deliveries for subscriptions owned by this org
+                query = """
+                    SELECT dl.* FROM delivery_log dl
+                    JOIN subscriptions s ON dl.subscription_id = s.id
+                    WHERE s.org_id = ?
+                """
+                params: list = [org_id]
+                if subscription_id:
+                    query += " AND dl.subscription_id = ?"
+                    params.append(subscription_id)
+                if status:
+                    query += " AND dl.status = ?"
+                    params.append(status)
+                query += " ORDER BY dl.attempted_at DESC LIMIT ? OFFSET ?"
+                params.extend([limit, offset])
+
+                rows = conn.execute(query, params).fetchall()
+                # Get total count
+                count_query = """
+                    SELECT COUNT(*) FROM delivery_log dl
+                    JOIN subscriptions s ON dl.subscription_id = s.id
+                    WHERE s.org_id = ?
+                """
+                count_params: list = [org_id]
+                if subscription_id:
+                    count_query += " AND dl.subscription_id = ?"
+                    count_params.append(subscription_id)
+                if status:
+                    count_query += " AND dl.status = ?"
+                    count_params.append(status)
+                total = conn.execute(count_query, count_params).fetchone()[0]
+            finally:
+                conn.close()
+    except (sqlite3.Error, OSError):
+        raise HTTPException(500, "Internal database error")
+
+    return {
+        "deliveries": [dict(r) for r in rows],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    }
+
+
+@router.get("/dead-letter")
+async def dead_letter_queue(
+    limit: int = 50,
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Dead letter queue — subscriptions disabled due to repeated delivery failures.
+
+    Returns subscriptions where active=0 AND failure_count >= max_retries,
+    along with their most recent delivery errors.
+    """
+    try:
+        with _db_lock:
+            conn = _get_db()
+            try:
+                rows = conn.execute(
+                    """
+                    SELECT s.*, (
+                        SELECT dl.error_message FROM delivery_log dl
+                        WHERE dl.subscription_id = s.id
+                        ORDER BY dl.attempted_at DESC LIMIT 1
+                    ) as last_error_message,
+                    (
+                        SELECT dl.attempted_at FROM delivery_log dl
+                        WHERE dl.subscription_id = s.id
+                        ORDER BY dl.attempted_at DESC LIMIT 1
+                    ) as last_attempt_at
+                    FROM subscriptions s
+                    WHERE s.org_id = ? AND s.active = 0 AND s.failure_count >= s.max_retries
+                    ORDER BY s.last_triggered DESC
+                    LIMIT ?
+                    """,
+                    (org_id, limit),
+                ).fetchall()
+            finally:
+                conn.close()
+    except (sqlite3.Error, OSError):
+        raise HTTPException(500, "Internal database error")
+
+    items = []
+    for r in rows:
+        d = _row_to_dict(r)
+        d["last_error_message"] = r["last_error_message"]
+        d["last_attempt_at"] = r["last_attempt_at"]
+        items.append(d)
+
+    return {"dead_letters": items, "count": len(items)}
+
+
+@router.post("/dead-letter/{sub_id}/retry")
+async def    retry_dead_letter(sub_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
+    """Retry a dead-lettered subscription — reactivate it and reset failure count.
+
+    Sends a test delivery to verify the endpoint is now reachable.
+    If the test succeeds, the subscription is reactivated.
+    If it fails again, it stays in the dead letter queue.
+    """
+    sub_id = _validate_sub_id(sub_id)
+    try:
+        with _db_lock:
+            conn = _get_db()
+            try:
+                row = conn.execute(
+                    "SELECT * FROM subscriptions WHERE id=? AND org_id=? AND active=0",
+                    (sub_id, org_id),
+                ).fetchone()
+            finally:
+                conn.close()
+    except (sqlite3.Error, OSError):
+        raise HTTPException(500, "Internal database error")
+
+    if not row:
+        raise HTTPException(404, "or subscription is not in dead letter queue")
+
+    sub = _row_to_dict(row)
+
+    # Try a test delivery first
+    test_payload = {
+        "event": "dead_letter_retry",
+        "subscription_id": sub_id,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "message": "Dead letter retry test from ALdeci.",
+    }
+    result = _deliver_webhook(sub, "dead_letter_retry", test_payload)
+
+    if result["status"] == "success":
+        # Reactivate the subscription
+        try:
+            with _db_lock:
+                conn = _get_db()
+                try:
+                    conn.execute(
+                        "UPDATE subscriptions SET active=1, failure_count=0 WHERE id=?",
+                        (sub_id,),
+                    )
+                    conn.commit()
+                finally:
+                    conn.close()
+        except (sqlite3.Error, OSError):
+            raise HTTPException(500, "Internal database error")
+
+        return {
+            "subscription_id": sub_id,
+            "status": "reactivated",
+            "delivery_result": result,
+            "message": "Subscription reactivated after successful test delivery.",
+        }
+    else:
+        return {
+            "subscription_id": sub_id,
+            "status": "still_dead",
+            "delivery_result": result,
+            "message": "Test delivery failed. Subscription remains in dead letter queue.",
+        }

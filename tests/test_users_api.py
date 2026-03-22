@@ -16,6 +16,10 @@ API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "test-token")
 def client(monkeypatch):
     """Create authenticated test client."""
     monkeypatch.setenv("FIXOPS_API_TOKEN", API_TOKEN)
+    monkeypatch.setenv(
+        "FIXOPS_JWT_SECRET",
+        "test-jwt-secret-that-is-at-least-32-characters-long",
+    )
     app = create_app()
     client = TestClient(app)
 

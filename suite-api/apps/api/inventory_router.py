@@ -25,22 +25,43 @@ db = InventoryDB()
 # Persistent stores for enrichment data
 _dependency_store = get_persistent_store("inventory_deps")  # app_id -> deps
 _license_db: Dict[str, str] = {
-    "MIT": "permissive",
-    "Apache-2.0": "permissive",
-    "BSD-2-Clause": "permissive",
-    "BSD-3-Clause": "permissive",
-    "ISC": "permissive",
-    "GPL-2.0": "copyleft",
-    "GPL-3.0": "copyleft",
-    "AGPL-3.0": "copyleft",
-    "LGPL-2.1": "weak_copyleft",
-    "LGPL-3.0": "weak_copyleft",
-    "MPL-2.0": "weak_copyleft",
-    "Unlicense": "public_domain",
-    "CC0-1.0": "public_domain",
-    "SSPL-1.0": "restrictive",
-    "BSL-1.1": "restrictive",
-    "Elastic-2.0": "restrictive",
+    # ── Permissive ────────────────────────────────────────────────────────
+    "MIT": "permissive", "Apache-2.0": "permissive",
+    "BSD-2-Clause": "permissive", "BSD-3-Clause": "permissive",
+    "ISC": "permissive", "Zlib": "permissive", "X11": "permissive",
+    "curl": "permissive", "PostgreSQL": "permissive", "OpenSSL": "permissive",
+    "BSL-1.0": "permissive", "JSON": "permissive", "HPND": "permissive",
+    "PSF-2.0": "permissive", "Ruby": "permissive", "Artistic-2.0": "permissive",
+    "ClArtistic": "permissive", "PIL": "permissive", "blessing": "permissive",
+    "CC-BY-4.0": "permissive", "CC-BY-3.0": "permissive",
+    # ── Public Domain ─────────────────────────────────────────────────────
+    "Unlicense": "public_domain", "CC0-1.0": "public_domain",
+    "0BSD": "public_domain", "WTFPL": "public_domain",
+    # ── Weak Copyleft ─────────────────────────────────────────────────────
+    "LGPL-2.0": "weak_copyleft", "LGPL-2.0-only": "weak_copyleft",
+    "LGPL-2.0-or-later": "weak_copyleft",
+    "LGPL-2.1": "weak_copyleft", "LGPL-2.1-only": "weak_copyleft",
+    "LGPL-2.1-or-later": "weak_copyleft",
+    "LGPL-3.0": "weak_copyleft", "LGPL-3.0-only": "weak_copyleft",
+    "LGPL-3.0-or-later": "weak_copyleft",
+    "MPL-2.0": "weak_copyleft", "MPL-1.0": "weak_copyleft", "MPL-1.1": "weak_copyleft",
+    "EPL-1.0": "weak_copyleft", "EPL-2.0": "weak_copyleft",
+    "CDDL-1.0": "weak_copyleft", "CDDL-1.1": "weak_copyleft",
+    "CPL-1.0": "weak_copyleft", "OSL-3.0": "weak_copyleft",
+    # ── Strong Copyleft ───────────────────────────────────────────────────
+    "GPL-2.0": "copyleft", "GPL-2.0-only": "copyleft", "GPL-2.0-or-later": "copyleft",
+    "GPL-3.0": "copyleft", "GPL-3.0-only": "copyleft", "GPL-3.0-or-later": "copyleft",
+    "CC-BY-SA-4.0": "copyleft", "CC-BY-SA-3.0": "copyleft",
+    # ── Network Copyleft (SaaS trigger) ───────────────────────────────────
+    "AGPL-3.0": "copyleft", "AGPL-3.0-only": "copyleft", "AGPL-3.0-or-later": "copyleft",
+    "EUPL-1.1": "copyleft", "EUPL-1.2": "copyleft",
+    # ── Source-Available / Restrictive ────────────────────────────────────
+    "SSPL-1.0": "restrictive", "BSL-1.1": "restrictive",
+    "Elastic-2.0": "restrictive", "RSAL": "restrictive",
+    "Confluent": "restrictive", "HashiCorp-BSL": "restrictive",
+    "Commons-Clause": "restrictive",
+    "CC-BY-NC-4.0": "restrictive", "CC-BY-NC-SA-4.0": "restrictive",
+    "CC-BY-NC-ND-4.0": "restrictive",
 }
 
 
@@ -813,3 +834,229 @@ async def ingest_sbom(
         "issues": issues[:50],
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+
+
+# ---------------------------------------------------------------------------
+# TIER 3.1: Enhanced SBOM — Transitive Deps, VEX, Vuln Cross-Reference
+# ---------------------------------------------------------------------------
+
+_vex_store = get_persistent_store("vex_documents")  # app_id -> VEX doc
+
+
+@router.post("/sbom/analyze")
+async def analyze_sbom_vulnerabilities(
+    sbom_data: Dict[str, Any],
+    app_id: str = Query(..., min_length=1),
+):
+    """Analyze an SBOM for known vulnerabilities and generate a VEX document.
+
+    Accepts CycloneDX or SPDX format. Cross-references all components against
+    the embedded vulnerability database, returns findings with severity
+    breakdown and auto-generates an OpenVEX companion document.
+    """
+    from risk.sbom.generator import (
+        Dependency,
+        SBOMGenerator,
+    )
+
+    generator = SBOMGenerator()
+
+    # Parse components from SBOM into Dependency objects
+    deps: List[Dependency] = []
+    if "components" in sbom_data:
+        for comp in sbom_data.get("components", []):
+            is_trans = False
+            depth = 0
+            for prop in comp.get("properties", []):
+                if prop.get("name") == "fixops:transitive":
+                    is_trans = prop.get("value", "false") == "true"
+                elif prop.get("name") == "fixops:depth":
+                    try:
+                        depth = int(prop.get("value", "0"))
+                    except (ValueError, TypeError):
+                        depth = 0
+            deps.append(Dependency(
+                name=comp.get("name", ""),
+                version=comp.get("version"),
+                package_manager=_guess_ecosystem(comp.get("purl", "")),
+                purl=comp.get("purl"),
+                is_transitive=is_trans,
+                depth=depth,
+            ))
+    elif "packages" in sbom_data:
+        for pkg in sbom_data.get("packages", []):
+            purl = ""
+            for ref in pkg.get("externalRefs", []):
+                if ref.get("referenceType") == "purl":
+                    purl = ref.get("referenceLocator", "")
+                    break
+            deps.append(Dependency(
+                name=pkg.get("name", ""),
+                version=pkg.get("versionInfo"),
+                package_manager=_guess_ecosystem(purl),
+                purl=purl,
+            ))
+    else:
+        raise HTTPException(status_code=400, detail="Provide CycloneDX or SPDX SBOM")
+
+    # Cross-reference vulns (local DB)
+    vuln_report = generator.cross_reference_vulnerabilities(deps)
+
+    # Pull DTrack findings and merge if available
+    dtrack_findings: List[Dict[str, Any]] = []
+    dtrack_status = "not_configured"
+    try:
+        from core.security_connectors import DependencyTrackConnector
+
+        dtrack = DependencyTrackConnector()
+        if dtrack.configured:
+            # Try to find the project by app_id
+            import json as _json
+
+            proj = dtrack.get_or_create_project(name=app_id)
+            proj_uuid = proj.get("uuid", "")
+            if proj_uuid:
+                outcome = dtrack.fetch_findings(proj_uuid, page_size=500)
+                if outcome.success:
+                    dtrack_findings = outcome.details.get("data", [])
+                    dtrack_status = "merged"
+                    # Merge DTrack findings into vuln_report
+                    existing_ids = {v.get("cve_id") for v in vuln_report.get("vulnerabilities", [])}
+                    for dtf in dtrack_findings:
+                        if dtf.get("id") and dtf["id"] not in existing_ids:
+                            vuln_report.setdefault("vulnerabilities", []).append({
+                                "cve_id": dtf["id"],
+                                "severity": dtf.get("severity", "medium"),
+                                "cvss_score": dtf.get("cvss_v3"),
+                                "component": dtf.get("component_name", ""),
+                                "version": dtf.get("component_version", ""),
+                                "source": f"dependency-track:{dtf.get('source', 'NVD')}",
+                                "suppressed": dtf.get("suppressed", False),
+                            })
+                            existing_ids.add(dtf["id"])
+                    # Update summary counts
+                    vuln_report["total_vulnerabilities"] = len(vuln_report.get("vulnerabilities", []))
+            else:
+                dtrack_status = "project_not_found"
+    except ImportError:
+        dtrack_status = "connector_unavailable"
+    except Exception:
+        dtrack_status = "error"
+
+    # Generate VEX
+    vex_doc = generator.generate_vex_document(deps, vuln_report)
+    _vex_store[app_id] = vex_doc
+
+    return {
+        "application_id": app_id,
+        "vulnerability_report": vuln_report,
+        "vex_document": vex_doc,
+        "dependency_track": {"status": dtrack_status, "findings_merged": len(dtrack_findings)},
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@router.post("/sbom/vex/apply")
+async def apply_vex_to_sbom(
+    sbom_data: Dict[str, Any],
+    vex_data: Optional[Dict[str, Any]] = None,
+    app_id: Optional[str] = Query(None),
+):
+    """Apply VEX status to an SBOM, enriching components with exploitability info.
+
+    If no vex_data is provided, uses the stored VEX document for the app_id.
+    Returns the SBOM with vulnerability status annotations on each component.
+    """
+    from risk.sbom.generator import SBOMGenerator
+
+    generator = SBOMGenerator()
+
+    if not vex_data and app_id:
+        vex_data = _vex_store.get(app_id)
+    if not vex_data:
+        raise HTTPException(
+            status_code=400,
+            detail="Provide vex_data in body or app_id with stored VEX document",
+        )
+
+    statements = SBOMGenerator.parse_vex_document(vex_data)
+    enriched = generator.apply_vex_to_sbom(sbom_data, statements)
+
+    return {
+        "sbom": enriched,
+        "vex_statements_applied": len(statements),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@router.get("/sbom/vex/{app_id}")
+async def get_vex_document(app_id: str):
+    """Retrieve the stored VEX document for an application."""
+    vex_doc = _vex_store.get(app_id)
+    if not vex_doc:
+        raise HTTPException(status_code=404, detail="No VEX document found for this application")
+    return {"application_id": app_id, "vex_document": vex_doc}
+
+
+@router.post("/sbom/vex/ingest")
+async def ingest_vex_document(
+    vex_data: Dict[str, Any],
+    app_id: str = Query(..., min_length=1),
+):
+    """Ingest an external OpenVEX document for an application.
+
+    Parses the document, validates structure, and stores it for
+    later application to SBOMs via /sbom/vex/apply.
+    """
+    from risk.sbom.generator import SBOMGenerator
+
+    statements = SBOMGenerator.parse_vex_document(vex_data)
+    if not statements:
+        raise HTTPException(status_code=400, detail="No valid VEX statements found")
+
+    _vex_store[app_id] = vex_data
+
+    # Auto-forward VEX to Dependency-Track (fire-and-forget)
+    dtrack_status = "not_configured"
+    try:
+        from core.security_connectors import DependencyTrackConnector
+
+        dtrack = DependencyTrackConnector()
+        if dtrack.configured:
+            import json as _json
+
+            vex_json = _json.dumps(vex_data) if isinstance(vex_data, dict) else str(vex_data)
+            outcome = dtrack.upload_vex(
+                project_name=app_id,
+                vex_content=vex_json,
+            )
+            dtrack_status = "forwarded" if outcome.success else "forward_failed"
+    except ImportError:
+        dtrack_status = "connector_unavailable"
+    except Exception:
+        dtrack_status = "error"
+
+    return {
+        "status": "ingested",
+        "app_id": app_id,
+        "statements_parsed": len(statements),
+        "statuses": {
+            s.status.value: sum(1 for st in statements if st.status == s.status)
+            for s in statements
+        },
+        "dependency_track": {"status": dtrack_status},
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def _guess_ecosystem(purl: str) -> str:
+    """Guess package ecosystem from PURL."""
+    if purl.startswith("pkg:npm/"):
+        return "npm"
+    elif purl.startswith("pkg:pypi/"):
+        return "pip"
+    elif purl.startswith("pkg:maven/"):
+        return "maven"
+    elif purl.startswith("pkg:golang/"):
+        return "go"
+    return "unknown"

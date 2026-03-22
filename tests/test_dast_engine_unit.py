@@ -10,11 +10,15 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from core.dast_engine import (
+    AuthMode,
+    AuthSessionConfig,
+    AuthSessionManager,
     DASTEngine,
     DastCategory,
     DastFinding,
     DastScanResult,
     DastSeverity,
+    OpenAPIEndpoint,
     SQL_PAYLOADS,
     XSS_PAYLOADS,
     SSRF_PAYLOADS,
@@ -24,6 +28,8 @@ from core.dast_engine import (
     SECURITY_HEADERS,
     _LinkParser,
     get_dast_engine,
+    parse_openapi_spec,
+    _generate_param_value,
 )
 
 
@@ -322,7 +328,7 @@ class TestHeaderCheck:
     async def test_header_check_exception(self, engine):
         """Test graceful handling of connection errors."""
         mock_client = AsyncMock()
-        mock_client.get = AsyncMock(side_effect=Exception("Connection refused"))
+        mock_client.get = AsyncMock(side_effect=OSError("Connection refused"))
 
         findings = await engine._check_headers(mock_client, "http://unreachable.com")
         assert findings == []
@@ -494,3 +500,291 @@ class TestInfoDisclosure:
 
         findings = await engine._check_info_disclosure(mock_client, "http://test.com")
         assert len(findings) == 0
+
+
+
+# ── Auth Mode & Config Tests ──────────────────────────────────────
+
+
+class TestAuthMode:
+    def test_auth_mode_values(self):
+        assert AuthMode.BEARER.value == "bearer"
+        assert AuthMode.BASIC.value == "basic"
+        assert AuthMode.API_KEY.value == "api_key"
+        assert AuthMode.FORM_LOGIN.value == "form_login"
+        assert AuthMode.COOKIE.value == "cookie"
+        assert AuthMode.OAUTH2.value == "oauth2"
+        assert AuthMode.NONE.value == "none"
+
+    def test_auth_session_config_defaults(self):
+        cfg = AuthSessionConfig()
+        assert cfg.mode == AuthMode.NONE
+        assert cfg.bearer_token == ""
+        assert cfg.reauth_on_401 is True
+        assert cfg.max_reauth_attempts == 3
+
+    def test_auth_session_config_to_dict(self):
+        cfg = AuthSessionConfig(mode=AuthMode.BEARER, bearer_token="tok123")
+        d = cfg.to_dict()
+        assert d["mode"] == "bearer"
+        assert d["has_credentials"] is True
+
+    def test_auth_session_config_no_creds(self):
+        cfg = AuthSessionConfig(mode=AuthMode.NONE)
+        d = cfg.to_dict()
+        assert d["has_credentials"] is False
+
+
+# ── AuthSessionManager Tests ──────────────────────────────────────
+
+
+class TestAuthSessionManager:
+    def test_init(self):
+        cfg = AuthSessionConfig(mode=AuthMode.BEARER, bearer_token="tok")
+        mgr = AuthSessionManager(cfg)
+        assert mgr.is_authenticated is False
+        assert mgr.session_cookies == {}
+        assert mgr.auth_headers == {}
+
+    @pytest.mark.asyncio
+    async def test_auth_bearer(self):
+        cfg = AuthSessionConfig(mode=AuthMode.BEARER, bearer_token="my-jwt-token")
+        mgr = AuthSessionManager(cfg)
+        client = AsyncMock()
+        result = await mgr.authenticate(client)
+        assert result is True
+        assert mgr.is_authenticated is True
+        assert mgr.auth_headers["Authorization"] == "Bearer my-jwt-token"
+
+    @pytest.mark.asyncio
+    async def test_auth_bearer_no_token(self):
+        cfg = AuthSessionConfig(mode=AuthMode.BEARER, bearer_token="")
+        mgr = AuthSessionManager(cfg)
+        client = AsyncMock()
+        result = await mgr.authenticate(client)
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_auth_basic(self):
+        cfg = AuthSessionConfig(mode=AuthMode.BASIC, basic_username="admin", basic_password="pass123")
+        mgr = AuthSessionManager(cfg)
+        client = AsyncMock()
+        result = await mgr.authenticate(client)
+        assert result is True
+        assert "Authorization" in mgr.auth_headers
+        assert mgr.auth_headers["Authorization"].startswith("Basic ")
+
+    @pytest.mark.asyncio
+    async def test_auth_api_key(self):
+        cfg = AuthSessionConfig(mode=AuthMode.API_KEY, api_key_header="X-Custom-Key", api_key_value="key123")
+        mgr = AuthSessionManager(cfg)
+        client = AsyncMock()
+        result = await mgr.authenticate(client)
+        assert result is True
+        assert mgr.auth_headers["X-Custom-Key"] == "key123"
+
+    @pytest.mark.asyncio
+    async def test_auth_cookie_mode(self):
+        cfg = AuthSessionConfig(mode=AuthMode.COOKIE)
+        mgr = AuthSessionManager(cfg)
+        client = AsyncMock()
+        result = await mgr.authenticate(client)
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_auth_none(self):
+        cfg = AuthSessionConfig(mode=AuthMode.NONE)
+        mgr = AuthSessionManager(cfg)
+        client = AsyncMock()
+        result = await mgr.authenticate(client)
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_auth_form_login_success(self):
+        cfg = AuthSessionConfig(
+            mode=AuthMode.FORM_LOGIN,
+            login_url="http://example.com/login",
+            login_username="user",
+            login_password="pass",
+            success_indicator="Welcome",
+        )
+        mgr = AuthSessionManager(cfg)
+
+        mock_cookies = MagicMock()
+        mock_cookies.items.return_value = [("session_id", "abc123")]
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = "Welcome to dashboard"
+        mock_resp.cookies = mock_cookies
+
+        client = AsyncMock()
+        client.post = AsyncMock(return_value=mock_resp)
+
+        result = await mgr.authenticate(client)
+        assert result is True
+        assert mgr.is_authenticated is True
+
+    @pytest.mark.asyncio
+    async def test_auth_form_login_failure_indicator(self):
+        cfg = AuthSessionConfig(
+            mode=AuthMode.FORM_LOGIN,
+            login_url="http://example.com/login",
+            login_username="user",
+            login_password="wrong",
+            failure_indicator="Invalid credentials",
+        )
+        mgr = AuthSessionManager(cfg)
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = "Invalid credentials. Please try again."
+        mock_resp.cookies = {}
+
+        client = AsyncMock()
+        client.post = AsyncMock(return_value=mock_resp)
+
+        result = await mgr.authenticate(client)
+        assert result is False
+
+    def test_apply_to_client_kwargs(self):
+        cfg = AuthSessionConfig(mode=AuthMode.BEARER, bearer_token="tok")
+        mgr = AuthSessionManager(cfg)
+        mgr._auth_headers = {"Authorization": "Bearer tok"}
+        mgr._session_cookies = {"sid": "abc"}
+        h, c = mgr.apply_to_client_kwargs({"X-Custom": "val"}, {"existing": "cookie"})
+        assert h["Authorization"] == "Bearer tok"
+        assert h["X-Custom"] == "val"
+        assert c["sid"] == "abc"
+        assert c["existing"] == "cookie"
+
+    @pytest.mark.asyncio
+    async def test_handle_401_reauth(self):
+        cfg = AuthSessionConfig(mode=AuthMode.BEARER, bearer_token="tok", reauth_on_401=True, max_reauth_attempts=2)
+        mgr = AuthSessionManager(cfg)
+        client = AsyncMock()
+        result = await mgr.handle_401(client)
+        assert result is True
+        assert mgr._reauth_count == 1
+
+    @pytest.mark.asyncio
+    async def test_handle_401_max_reached(self):
+        cfg = AuthSessionConfig(mode=AuthMode.BEARER, bearer_token="tok", reauth_on_401=True, max_reauth_attempts=1)
+        mgr = AuthSessionManager(cfg)
+        mgr._reauth_count = 1
+        client = AsyncMock()
+        result = await mgr.handle_401(client)
+        assert result is False
+
+
+# ── OpenAPI Parser Tests ──────────────────────────────────────────
+
+
+class TestOpenAPIParser:
+    def test_parse_basic_spec(self):
+        spec = {
+            "openapi": "3.0.0",
+            "paths": {
+                "/users": {
+                    "get": {
+                        "operationId": "listUsers",
+                        "summary": "List users",
+                        "parameters": [
+                            {"name": "limit", "in": "query", "schema": {"type": "integer"}},
+                        ],
+                    },
+                    "post": {
+                        "operationId": "createUser",
+                        "requestBody": {"content": {"application/json": {}}},
+                    },
+                },
+                "/users/{id}": {
+                    "get": {
+                        "operationId": "getUser",
+                        "parameters": [
+                            {"name": "id", "in": "path", "required": True, "schema": {"type": "integer"}},
+                        ],
+                    },
+                },
+            },
+        }
+        endpoints = parse_openapi_spec(spec)
+        assert len(endpoints) == 3
+        methods = {e.method for e in endpoints}
+        assert "GET" in methods
+        assert "POST" in methods
+
+    def test_parse_with_security(self):
+        spec = {
+            "openapi": "3.0.0",
+            "security": [{"bearerAuth": []}],
+            "paths": {
+                "/protected": {
+                    "get": {"operationId": "protectedGet"},
+                },
+            },
+        }
+        endpoints = parse_openapi_spec(spec)
+        assert len(endpoints) == 1
+        assert endpoints[0].security == [{"bearerAuth": []}]
+
+    def test_parse_empty_paths(self):
+        spec = {"openapi": "3.0.0", "paths": {}}
+        endpoints = parse_openapi_spec(spec)
+        assert endpoints == []
+
+    def test_endpoint_to_dict(self):
+        ep = OpenAPIEndpoint(path="/test", method="GET", operation_id="testOp")
+        d = ep.to_dict()
+        assert d["path"] == "/test"
+        assert d["method"] == "GET"
+        assert d["operation_id"] == "testOp"
+
+    def test_generate_param_value(self):
+        assert _generate_param_value("integer", "id") == 1
+        assert _generate_param_value("number", "score") == 1.0
+        assert _generate_param_value("boolean", "active") is True
+        assert _generate_param_value("string", "name") == "test_name"
+
+
+# ── DastCategory API Value ────────────────────────────────────────
+
+
+class TestNewCategory:
+    def test_api_category(self):
+        assert DastCategory.API.value == "api_security"
+
+
+# ── ScanResult New Fields ─────────────────────────────────────────
+
+
+class TestScanResultNewFields:
+    def test_auth_mode_field(self):
+        result = DastScanResult(
+            scan_id="test",
+            target="http://test.com",
+            urls_crawled=1,
+            total_findings=0,
+            findings=[],
+            by_severity={},
+            by_category={},
+            crawled_urls=[],
+            auth_mode="bearer",
+            api_endpoints_tested=5,
+        )
+        d = result.to_dict()
+        assert d["auth_mode"] == "bearer"
+        assert d["api_endpoints_tested"] == 5
+
+    def test_default_auth_mode(self):
+        result = DastScanResult(
+            scan_id="test",
+            target="http://test.com",
+            urls_crawled=0,
+            total_findings=0,
+            findings=[],
+            by_severity={},
+            by_category={},
+            crawled_urls=[],
+        )
+        assert result.auth_mode == "none"
+        assert result.api_endpoints_tested == 0

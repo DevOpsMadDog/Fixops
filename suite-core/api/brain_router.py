@@ -633,3 +633,89 @@ async def brain_trends(
             "posture_trend": "unavailable",
             "trends": [],
         }
+
+
+# ---------------------------------------------------------------------------
+# TIER 3.2: False Positive Feedback Loop
+# ---------------------------------------------------------------------------
+
+
+class FPFeedbackRequest(BaseModel):
+    """Submit analyst feedback on a finding."""
+
+    finding_id: str = Field(..., description="Finding ID to provide feedback on")
+    is_false_positive: bool = Field(..., description="True if this is a false positive")
+    reason: str = Field("", description="Reason for the classification")
+    scanner: str = Field("", description="Scanner that produced the finding")
+    cwe_id: str = Field("", description="CWE ID of the finding")
+    app_id: str = Field("", description="Application ID")
+    org_id: str = Field("", description="Organization ID")
+    rule_id: str = Field("", description="Rule/check ID that fired")
+    title: str = Field("", description="Finding title")
+    analyst: str = Field("", description="Analyst who reviewed")
+
+
+@router.post("/feedback")
+async def submit_fp_feedback(req: FPFeedbackRequest) -> Dict[str, Any]:
+    """[V3] Submit false-positive (or true-positive) feedback on a finding.
+
+    When a scanner+CWE or rule_id pattern accumulates 3+ FP reports,
+    future findings matching that pattern are auto-suppressed in the
+    brain pipeline (step 3b).
+
+    Body:
+        finding_id: Finding to classify
+        is_false_positive: True = FP, False = confirmed TP
+        reason: Free-text justification
+        scanner: Scanner name (e.g. 'semgrep', 'snyk')
+        cwe_id: CWE identifier (e.g. 'CWE-79')
+        app_id: Application context
+        rule_id: Specific rule that fired
+    """
+    from core.brain_pipeline import get_fp_feedback_store
+
+    store = get_fp_feedback_store()
+    result = store.record_feedback(
+        finding_id=req.finding_id,
+        is_false_positive=req.is_false_positive,
+        reason=req.reason,
+        scanner=req.scanner,
+        cwe_id=req.cwe_id,
+        app_id=req.app_id,
+        org_id=req.org_id,
+        rule_id=req.rule_id,
+        title=req.title,
+        analyst=req.analyst,
+    )
+    return {
+        "status": "recorded",
+        **result,
+    }
+
+
+@router.get("/feedback/history")
+async def get_fp_feedback_history(
+    limit: int = Query(50, ge=1, le=500),
+) -> Dict[str, Any]:
+    """[V3] Get recent FP feedback entries."""
+    from core.brain_pipeline import get_fp_feedback_store
+
+    store = get_fp_feedback_store()
+    entries = store.get_recent_feedback(limit=limit)
+    return {"entries": entries, "total": len(entries)}
+
+
+@router.get("/feedback/auto-suppress-rules")
+async def get_auto_suppress_rules(
+    threshold: int = Query(3, ge=1, le=100),
+) -> Dict[str, Any]:
+    """[V3] Get patterns qualifying for auto-suppression.
+
+    Returns scanner+CWE+rule combinations that have been marked FP
+    at least `threshold` times.
+    """
+    from core.brain_pipeline import get_fp_feedback_store
+
+    store = get_fp_feedback_store()
+    rules = store.get_auto_suppress_rules(threshold=threshold)
+    return {"rules": rules, "threshold": threshold, "total": len(rules)}

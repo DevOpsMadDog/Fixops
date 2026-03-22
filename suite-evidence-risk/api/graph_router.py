@@ -99,6 +99,26 @@ async def version_anomalies(request: Request) -> list[dict[str, Any]]:
         graph.close()
 
 
+@router.get("/stats")
+async def graph_stats(org_id: str = Depends(get_org_id)):
+    """Graph statistics — delegates to KnowledgeBrain if available."""
+    try:
+        from core.knowledge_brain import KnowledgeBrain
+        brain = KnowledgeBrain.get_instance()
+        s = brain.stats()
+        return {
+            "status": "ok",
+            "engine": "graph",
+            "nodes": s.get("total_nodes", s.get("nodes", 0)),
+            "edges": s.get("total_edges", s.get("edges", 0)),
+            "node_types": s.get("node_types", {}),
+            "edge_types": s.get("edge_types", {}),
+            "density": s.get("density", 0.0),
+        }
+    except Exception:
+        return {"status": "ok", "engine": "graph", "nodes": 0, "edges": 0, "node_types": {}, "edge_types": {}}
+
+
 @router.get("/health")
 async def graph_health(org_id: str = Depends(get_org_id)):
     """Dependency graph health check."""

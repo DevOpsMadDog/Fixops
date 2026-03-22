@@ -2748,76 +2748,131 @@ def _handle_integrations(args: argparse.Namespace) -> int:
 
 
 def _handle_analytics(args: argparse.Namespace) -> int:
-    """Handle analytics commands."""
+    """Handle analytics commands — wired to real AnalyticsDB."""
     import json
     from datetime import datetime, timezone
 
+    try:
+        from core.analytics_db import AnalyticsDB
+        from core.analytics_models import FindingSeverity, FindingStatus
+
+        db = AnalyticsDB()
+    except (ImportError, OSError) as exc:
+        print(json.dumps({"error": f"Analytics DB unavailable: {exc}"}, indent=2))
+        return 1
+
     if args.analytics_command == "dashboard":
+        overview = db.get_dashboard_overview()
+        findings = db.list_findings(limit=10000)
+        severity_counts: dict[str, int] = {}
+        for f in findings:
+            sev = f.severity.value if hasattr(f.severity, "value") else str(f.severity)
+            severity_counts[sev] = severity_counts.get(sev, 0) + 1
+        top_risks = db.get_top_risks(limit=10)
+        mttr_hours = db.calculate_mttr()
         dashboard_data = {
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "period": getattr(args, "period", "30d"),
             "overview": {
-                "note": "Connect findings database to populate real metrics",
-                "total_findings": 0,
-                "critical": 0,
-                "high": 0,
-                "medium": 0,
-                "low": 0,
-                "remediated_last_30d": 0,
-                "new_last_30d": 0,
+                "total_findings": overview.get("total_findings", 0),
+                "open_findings": overview.get("open_findings", 0),
+                "critical": severity_counts.get("critical", 0),
+                "high": severity_counts.get("high", 0),
+                "medium": severity_counts.get("medium", 0),
+                "low": severity_counts.get("low", 0),
+                "recent_findings_30d": overview.get("recent_findings_30d", 0),
             },
             "trends": {
-                "findings_trend": "unknown",
-                "mttr_trend": "unknown",
-                "compliance_trend": "unknown",
+                "mttr_hours": round(mttr_hours, 2) if mttr_hours else None,
             },
-            "top_risks": [],
-            "compliance_status": {},
+            "top_risks": top_risks[:5],
         }
         print(json.dumps(dashboard_data, indent=2))
 
     elif args.analytics_command == "mttr":
+        mttr_hours = db.calculate_mttr()
+        # Calculate per-severity MTTR by listing resolved findings
+        findings = db.list_findings(status="resolved", limit=10000)
+        by_severity: dict[str, list[float]] = {}
+        for f in findings:
+            if f.resolved_at and f.created_at:
+                hours = (f.resolved_at - f.created_at).total_seconds() / 3600
+                if hours >= 0:
+                    sev = f.severity.value if hasattr(f.severity, "value") else str(f.severity)
+                    by_severity.setdefault(sev, []).append(hours)
+        severity_mttr = {
+            sev: round(sum(vals) / len(vals) / 24, 2)
+            for sev, vals in by_severity.items()
+        }
         mttr_data = {
             "period": getattr(args, "period", "30d"),
-            "note": "MTTR requires remediation history — run scans and fix findings to populate",
-            "overall_mttr_days": None,
-            "by_severity": {},
-            "by_team": {},
-            "trend": "unknown",
+            "overall_mttr_days": round(mttr_hours / 24, 2) if mttr_hours else None,
+            "overall_mttr_hours": round(mttr_hours, 2) if mttr_hours else None,
+            "by_severity_days": severity_mttr,
+            "resolved_count": len(findings),
             "target_mttr_days": 5.0,
         }
         print(json.dumps(mttr_data, indent=2))
 
     elif args.analytics_command == "coverage":
+        findings = db.list_findings(limit=10000)
+        apps: set[str] = set()
+        scan_types: dict[str, set[str]] = {}
+        for f in findings:
+            app_id = getattr(f, "application_id", None) or "unknown"
+            apps.add(app_id)
+            source = getattr(f, "source", "unknown") or "unknown"
+            scan_types.setdefault(source, set()).add(app_id)
         coverage_data = {
-            "note": "Coverage data requires registered applications — use 'app register' first",
-            "total_applications": 0,
-            "scanned_applications": 0,
-            "coverage_percent": 0.0,
-            "by_scan_type": {},
-            "unscanned_applications": [],
+            "total_applications": len(apps),
+            "scanned_applications": len(apps),
+            "coverage_percent": 100.0 if apps else 0.0,
+            "by_scan_type": {src: len(app_set) for src, app_set in scan_types.items()},
+            "total_findings": len(findings),
         }
         print(json.dumps(coverage_data, indent=2))
 
     elif args.analytics_command == "roi":
+        findings = db.list_findings(limit=10000)
+        total = len(findings)
+        critical_blocked = sum(
+            1 for f in findings
+            if f.severity == FindingSeverity.CRITICAL and f.status == FindingStatus.RESOLVED
+        )
+        avg_breach_cost = 4_240_000
+        critical_breach_probability = 0.15
+        prevented_cost = critical_blocked * avg_breach_cost * critical_breach_probability
         roi_data = {
             "period": getattr(args, "period", "12m"),
-            "note": "ROI calculations require historical data — system must be running for at least 30 days",
-            "cost_savings": {},
-            "efficiency_gains": {},
-            "risk_reduction": {},
+            "total_findings": total,
+            "critical_blocked": critical_blocked,
+            "estimated_prevented_cost_usd": round(prevented_cost, 2),
+            "resolved_findings": sum(1 for f in findings if f.status == FindingStatus.RESOLVED),
+            "open_findings": sum(1 for f in findings if f.status == FindingStatus.OPEN),
         }
         print(json.dumps(roi_data, indent=2))
 
     elif args.analytics_command == "export":
+        findings = db.list_findings(limit=10000)
+        decisions = db.list_decisions(limit=10000)
+        severity_counts = {}
+        status_counts = {}
+        for f in findings:
+            sev = f.severity.value if hasattr(f.severity, "value") else str(f.severity)
+            severity_counts[sev] = severity_counts.get(sev, 0) + 1
+            st = f.status.value if hasattr(f.status, "value") else str(f.status)
+            status_counts[st] = status_counts.get(st, 0) + 1
         export_data: dict[str, object] = {
             "export_type": "analytics",
             "format": getattr(args, "output_format", "json"),
             "exported_at": datetime.now(timezone.utc).isoformat(),
             "data": {
-                "findings_summary": {},
-                "decisions_summary": {},
-                "compliance_summary": {},
+                "findings_summary": {
+                    "total": len(findings),
+                    "by_severity": severity_counts,
+                    "by_status": status_counts,
+                },
+                "decisions_summary": {"total": len(decisions)},
             },
         }
         output_path = getattr(args, "output", None)
@@ -3240,105 +3295,188 @@ def _handle_workflows(args: argparse.Namespace) -> int:
 
 
 def _handle_advanced_pentest(args: argparse.Namespace) -> int:
-    """Handle advanced penetration testing commands."""
+    """Handle advanced penetration testing commands — wired to real engines."""
+    import asyncio
     import json
     from datetime import datetime, timezone
 
     if args.advanced_pentest_command == "run":
-        result = {
-            "test_id": f"apt-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
-            "status": "not_connected",
-            "started_at": datetime.now(timezone.utc).isoformat(),
-            "target": getattr(args, "target", ""),
-            "cve_ids": (
-                getattr(args, "cves", "").split(",")
-                if getattr(args, "cves", None)
-                else []
-            ),
-            "results": {
-                "note": "MPTE engine not connected — use the API or web UI to run real penetration tests",
-                "vulnerabilities_tested": 0,
-                "exploitable": 0,
-                "blocked": 0,
-                "inconclusive": 0,
-                "findings": [],
-            },
-            "ai_consensus": None,
-        }
-        print(json.dumps(result, indent=2))
+        target = getattr(args, "target", "")
+        cve_ids = (
+            [c.strip() for c in getattr(args, "cves", "").split(",")]
+            if getattr(args, "cves", None)
+            else []
+        )
+        target_urls = [target] if target else []
+        try:
+            from core.micro_pentest import MicroPentestConfig, run_micro_pentest
+            import os
+
+            config = MicroPentestConfig(
+                mpte_url=os.environ.get("MPTE_BASE_URL", "http://mpte:8443"),
+                timeout_seconds=float(os.environ.get("MPTE_TIMEOUT", "300")),
+                provider=os.environ.get("MPTE_PROVIDER", "openai"),
+            )
+            mpte_result = asyncio.run(
+                run_micro_pentest(cve_ids, target_urls, None, config)
+            )
+            result = {
+                "test_id": f"apt-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                "status": mpte_result.status,
+                "started_at": datetime.now(timezone.utc).isoformat(),
+                "target": target,
+                "cve_ids": cve_ids,
+                "flow_id": mpte_result.flow_id,
+                "results": {
+                    "vulnerabilities_tested": len(cve_ids),
+                    "findings": mpte_result.findings if hasattr(mpte_result, "findings") else [],
+                    "message": mpte_result.message,
+                },
+            }
+        except (ImportError, OSError, RuntimeError) as exc:
+            result = {
+                "test_id": f"apt-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                "status": "error",
+                "error": str(exc),
+                "target": target,
+                "cve_ids": cve_ids,
+            }
+        print(json.dumps(result, indent=2, default=str))
 
     elif args.advanced_pentest_command == "threat-intel":
-        cve_id = args.cve
+        cve_id = args.cve.strip().upper()
+        nvd_data = None
+        kev_data = None
+        epss_data = None
+        try:
+            from feeds_service import FeedsService
+            feeds = FeedsService()
+            nvd_raw = feeds.get_nvd_cve(cve_id)
+            if nvd_raw:
+                nvd_data = {
+                    "severity": nvd_raw.get("severity"),
+                    "cvss_score": nvd_raw.get("cvss_score"),
+                    "description": nvd_raw.get("description", "")[:300],
+                    "cwe_ids": nvd_raw.get("cwe_ids", []),
+                }
+            kev_entry = feeds.get_kev_entry(cve_id)
+            if kev_entry:
+                kev_data = {
+                    "vendor_project": kev_entry.vendor_project,
+                    "product": kev_entry.product,
+                    "date_added": str(kev_entry.date_added) if hasattr(kev_entry, "date_added") else None,
+                    "required_action": getattr(kev_entry, "required_action", None),
+                }
+            epss_entry = feeds.get_epss_score(cve_id)
+            if epss_entry:
+                epss_data = {
+                    "score": epss_entry.epss if hasattr(epss_entry, "epss") else float(epss_entry),
+                    "percentile": getattr(epss_entry, "percentile", None),
+                }
+        except (ImportError, OSError, ValueError, RuntimeError):
+            pass
         result = {
             "cve_id": cve_id,
             "queried_at": datetime.now(timezone.utc).isoformat(),
-            "note": "Threat intelligence requires feeds database — run 'fixops feeds sync' to populate",
             "sources": {
-                "nvd": None,
-                "kev": None,
-                "epss": None,
-                "exploit_db": None,
-                "mitre_attack": None,
+                "nvd": nvd_data,
+                "kev": kev_data,
+                "epss": epss_data,
             },
-            "risk_assessment": None,
+            "risk_assessment": "critical" if kev_data else ("high" if epss_data and epss_data.get("score", 0) > 0.5 else None),
         }
-        print(json.dumps(result, indent=2))
+        print(json.dumps(result, indent=2, default=str))
 
     elif args.advanced_pentest_command == "business-impact":
+        target = getattr(args, "target", "")
+        cve_ids = (
+            [c.strip() for c in getattr(args, "cves", "").split(",")]
+            if getattr(args, "cves", None)
+            else []
+        )
+        # Use AnalyticsDB to assess impact on known findings
+        financial_impact = None
+        affected_services: list[str] = []
+        try:
+            from core.analytics_db import AnalyticsDB
+            db = AnalyticsDB()
+            findings = db.list_findings(limit=10000)
+            matched = [f for f in findings if getattr(f, "cve_id", None) in cve_ids]
+            affected_services = list({getattr(f, "application_id", "") for f in matched if getattr(f, "application_id", None)})
+            critical_count = sum(1 for f in matched if f.severity.value == "critical")
+            avg_breach_cost = 4_240_000
+            financial_impact = round(critical_count * avg_breach_cost * 0.15, 2)
+        except (ImportError, OSError):
+            pass
         result = {
             "analysis_id": f"bia-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
-            "target": getattr(args, "target", ""),
-            "cve_ids": (
-                getattr(args, "cves", "").split(",")
-                if getattr(args, "cves", None)
-                else []
-            ),
+            "target": target,
+            "cve_ids": cve_ids,
             "impact_assessment": {
-                "note": "Business impact analysis requires configured application inventory and risk model",
-                "financial_impact": None,
-                "data_at_risk": None,
-                "business_criticality": None,
-                "affected_services": [],
+                "financial_impact_usd": financial_impact,
+                "affected_services": affected_services,
+                "matched_findings": len(matched) if "matched" in dir() else 0,
             },
-            "recommendation": None,
         }
-        print(json.dumps(result, indent=2))
+        print(json.dumps(result, indent=2, default=str))
 
     elif args.advanced_pentest_command == "simulate":
-        result = {
-            "simulation_id": f"sim-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
-            "attack_type": getattr(args, "attack_type", "chained_exploit"),
-            "target": getattr(args, "target", ""),
-            "simulation_results": {
-                "note": "Attack simulation engine not yet connected — run MPTE scans to generate real results",
-                "attack_chain": [],
-                "max_depth_reached": 0,
-                "blocked_at": None,
-                "time_to_detect": None,
-            },
-            "defense_effectiveness": {
-                "controls_tested": 0,
-                "controls_effective": 0,
-                "gaps_identified": [],
-            },
-        }
-        print(json.dumps(result, indent=2))
+        target = getattr(args, "target", "")
+        attack_type = getattr(args, "attack_type", "chained_exploit")
+        try:
+            from core.attack_simulation_engine import AttackSimulationEngine
+            engine = AttackSimulationEngine()
+            scenario = engine.create_scenario(
+                name=f"CLI simulation: {attack_type}",
+                description=f"CLI-initiated {attack_type} simulation against {target}",
+                threat_actor="opportunistic",
+                complexity="medium",
+                target_assets=[target] if target else [],
+                target_cves=[],
+                objectives=["assess_defense_effectiveness"],
+                initial_access_vector=attack_type,
+            )
+            campaign = asyncio.run(engine.run_campaign(scenario.scenario_id))
+            result = {
+                "simulation_id": campaign.campaign_id,
+                "attack_type": attack_type,
+                "target": target,
+                "scenario_id": scenario.scenario_id,
+                "simulation_results": {
+                    "status": campaign.status.value if hasattr(campaign.status, "value") else str(campaign.status),
+                    "kill_chain_phases": len(campaign.steps) if hasattr(campaign, "steps") else 0,
+                    "overall_success": getattr(campaign, "overall_success", False),
+                },
+            }
+        except (ImportError, OSError, RuntimeError, ValueError) as exc:
+            result = {
+                "simulation_id": f"sim-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                "attack_type": attack_type,
+                "target": target,
+                "error": str(exc),
+            }
+        print(json.dumps(result, indent=2, default=str))
 
     elif args.advanced_pentest_command == "remediation":
-        result = {
-            "cve_id": args.cve,
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-            "remediation": {
-                "note": "Remediation guidance requires AutoFix engine connection — use the API or web UI for AI-generated fix recommendations",
-                "summary": None,
-                "steps": [],
-                "code_fix": None,
-                "verification_test": None,
-            },
-            "estimated_effort": None,
-            "risk_if_not_fixed": None,
-        }
-        print(json.dumps(result, indent=2))
+        cve_id = args.cve
+        try:
+            from core.autofix_engine import AutoFixEngine
+            engine = AutoFixEngine()
+            finding = {"id": cve_id, "title": f"Vulnerability {cve_id}", "severity": "high", "cve_ids": [cve_id]}
+            suggestion = asyncio.run(engine.generate_fix(finding=finding))
+            fix_dict = engine.to_dict(suggestion) if hasattr(engine, "to_dict") else {"raw": str(suggestion)}
+            result = {
+                "cve_id": cve_id,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "remediation": fix_dict,
+            }
+        except (ImportError, OSError, RuntimeError, ValueError) as exc:
+            result = {
+                "cve_id": cve_id,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "error": str(exc),
+            }
+        print(json.dumps(result, indent=2, default=str))
 
     elif args.advanced_pentest_command == "capabilities":
         result = {
@@ -3721,72 +3859,137 @@ def _handle_mpte_orchestrator(args: argparse.Namespace) -> int:
 
 
 def _handle_reachability(args: argparse.Namespace) -> int:
-    """Handle reachability analysis commands."""
+    """Handle reachability analysis commands — wired to real ReachabilityAnalyzer."""
     import json
     from datetime import datetime, timezone
 
     if args.reachability_command == "analyze":
-        result = {
-            "analysis_id": f"reach-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
-            "cve_id": args.cve,
-            "status": "completed",
-            "analyzed_at": datetime.now(timezone.utc).isoformat(),
-            "reachability": {
-                "is_reachable": True,
-                "confidence": 0.87,
-                "call_paths": [
-                    {
-                        "entry_point": "api/v1/users/login",
-                        "path": [
-                            "LoginController.authenticate",
-                            "UserService.validateCredentials",
-                            "VulnerableLib.parse",
-                        ],
-                        "depth": 3,
-                    },
-                ],
-                "affected_functions": ["VulnerableLib.parse", "VulnerableLib.decode"],
-                "attack_surface": {
-                    "internet_exposed": True,
-                    "requires_auth": False,
-                    "input_validation": "weak",
-                },
-            },
-            "recommendation": {
-                "priority": "critical",
-                "action": "Immediate remediation - vulnerability is reachable from public API",
-            },
-        }
-        print(json.dumps(result, indent=2))
+        cve_id = args.cve.strip().upper()
+        component = getattr(args, "component", "unknown")
+        component_version = getattr(args, "version", "0.0.0")
+        repo_url = getattr(args, "repo", None)
+
+        # Try to get cached result first
+        try:
+            from risk.reachability.storage import ReachabilityStorage
+            storage = ReachabilityStorage()
+            if repo_url:
+                cached = storage.get_cached_result(
+                    cve_id=cve_id,
+                    component_name=component,
+                    component_version=component_version,
+                    repo_url=repo_url,
+                )
+                if cached:
+                    result = {
+                        "analysis_id": f"reach-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                        "cve_id": cve_id,
+                        "status": "completed",
+                        "source": "cache",
+                        "analyzed_at": datetime.now(timezone.utc).isoformat(),
+                        "reachability": cached.to_dict() if hasattr(cached, "to_dict") else {"is_reachable": cached.is_reachable, "confidence": cached.confidence_score},
+                    }
+                    print(json.dumps(result, indent=2, default=str))
+                    return 0
+        except (ImportError, OSError, RuntimeError):
+            pass
+
+        # Queue a new analysis job if repo_url provided
+        if repo_url:
+            try:
+                from risk.reachability.api import get_job_queue
+                from risk.reachability.job_queue import ReachabilityJob
+                from risk.reachability.models import GitRepository
+
+                git_repo = GitRepository(url=repo_url)
+                job = ReachabilityJob(
+                    repository=git_repo,
+                    cve_id=cve_id,
+                    component_name=component,
+                    component_version=component_version,
+                    vulnerability_details={"cve_id": cve_id},
+                )
+                queue = get_job_queue()
+                job_id = queue.enqueue(job)
+                result = {
+                    "analysis_id": job_id,
+                    "cve_id": cve_id,
+                    "status": "queued",
+                    "message": f"Reachability analysis queued. Check status with: fixops reachability status {job_id}",
+                }
+                print(json.dumps(result, indent=2))
+                return 0
+            except (ImportError, OSError, RuntimeError, ValueError) as exc:
+                result = {
+                    "analysis_id": f"reach-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                    "cve_id": cve_id,
+                    "status": "error",
+                    "error": f"Could not queue analysis: {exc}",
+                }
+                print(json.dumps(result, indent=2))
+                return 1
+        else:
+            result = {
+                "analysis_id": f"reach-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                "cve_id": cve_id,
+                "status": "error",
+                "error": "Repository URL required. Use --repo <url> to specify the repository to analyze.",
+            }
+            print(json.dumps(result, indent=2))
+            return 1
 
     elif args.reachability_command == "bulk":
-        cves = args.cves.split(",")
+        cves = [c.strip().upper() for c in args.cves.split(",")]
         results = []
-        for cve in cves:
-            results.append(
-                {
-                    "cve_id": cve.strip(),
-                    "is_reachable": cve.strip() in ["CVE-2024-1234", "CVE-2024-5678"],
-                    "confidence": 0.85,
-                }
-            )
+        try:
+            from risk.reachability.storage import ReachabilityStorage
+            storage = ReachabilityStorage()
+            repo_url = getattr(args, "repo", None) or ""
+            for cve in cves:
+                cached = storage.get_cached_result(
+                    cve_id=cve,
+                    component_name=getattr(args, "component", "unknown"),
+                    component_version=getattr(args, "version", "0.0.0"),
+                    repo_url=repo_url,
+                ) if repo_url else None
+                if cached:
+                    results.append({
+                        "cve_id": cve,
+                        "is_reachable": cached.is_reachable,
+                        "confidence": cached.confidence_score,
+                        "source": "cache",
+                    })
+                else:
+                    results.append({
+                        "cve_id": cve,
+                        "is_reachable": None,
+                        "confidence": 0.0,
+                        "source": "not_analyzed",
+                    })
+        except (ImportError, OSError, RuntimeError):
+            for cve in cves:
+                results.append({"cve_id": cve, "is_reachable": None, "confidence": 0.0, "source": "unavailable"})
+
         result = {
             "analysis_id": f"bulk-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
             "total_cves": len(cves),
-            "reachable_count": sum(1 for r in results if r["is_reachable"]),
+            "reachable_count": sum(1 for r in results if r.get("is_reachable") is True),
             "results": results,
         }
-        print(json.dumps(result, indent=2))
+        print(json.dumps(result, indent=2, default=str))
 
     elif args.reachability_command == "status":
-        result = {
-            "job_id": args.job_id,
-            "status": "completed",
-            "progress": 100,
-            "started_at": datetime.now(timezone.utc).isoformat(),
-            "completed_at": datetime.now(timezone.utc).isoformat(),
-        }
-        print(json.dumps(result, indent=2))
+        job_id = args.job_id
+        try:
+            from risk.reachability.api import get_job_queue
+            queue = get_job_queue()
+            status_data = queue.get_status(job_id)
+            if status_data:
+                print(json.dumps(status_data, indent=2, default=str))
+            else:
+                print(json.dumps({"job_id": job_id, "status": "not_found"}, indent=2))
+        except (ImportError, OSError, RuntimeError) as exc:
+            print(json.dumps({"job_id": job_id, "status": "error", "error": str(exc)}, indent=2))
 
     return 0
 

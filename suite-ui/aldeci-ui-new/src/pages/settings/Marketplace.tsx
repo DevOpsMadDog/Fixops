@@ -37,15 +37,8 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
 type MarketplaceCategory = "All" | "Scanners" | "ALM" | "Cloud" | "Notification" | "Community";
 const CATEGORIES: MarketplaceCategory[] = ["All", "Scanners", "ALM", "Cloud", "Notification", "Community"];
 
-// Playbooks fallback — overridden by real API data when available
-const COMMUNITY_PLAYBOOKS_FALLBACK = [
-  { name: "SOC2 Rapid Assessment", author: "security-team", stars: 128, downloads: 512, category: "Compliance", verified: true },
-  { name: "OWASP Top 10 Coverage", author: "appsec-pros", stars: 94, downloads: 389, category: "AppSec", verified: true },
-  { name: "Zero Trust Verification", author: "devsecops-io", stars: 211, downloads: 1024, category: "Network", verified: false },
-  { name: "Container Hardening", author: "cloud-native", stars: 156, downloads: 743, category: "Cloud", verified: true },
-  { name: "NIST CSF Mapping", author: "govtech-sec", stars: 73, downloads: 291, category: "Compliance", verified: false },
-  { name: "API Security Baseline", author: "apigw-team", stars: 118, downloads: 605, category: "AppSec", verified: true },
-];
+// Empty default — community playbooks are loaded exclusively from the API
+const COMMUNITY_PLAYBOOKS_EMPTY: { name: string; author: string; stars: number; downloads: number; category: string; verified: boolean }[] = [];
 
 const HEALTH_STATUSES = ["healthy", "healthy", "healthy", "warning", "error", "unknown"] as const;
 
@@ -304,7 +297,7 @@ export default function Marketplace() {
   // Build community playbooks from API or fallback
   const COMMUNITY_PLAYBOOKS = useMemo(() => {
     const items = marketplaceBrowseQuery.data?.items;
-    if (!Array.isArray(items) || items.length === 0) return COMMUNITY_PLAYBOOKS_FALLBACK;
+    if (!Array.isArray(items) || items.length === 0) return COMMUNITY_PLAYBOOKS_EMPTY;
     return items.map((item: Record<string, unknown>) => ({
       name: (item.name as string) || "Unnamed",
       author: (item.author as string) || (item.contributor as string) || "community",
@@ -500,6 +493,9 @@ export default function Marketplace() {
             </Button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {COMMUNITY_PLAYBOOKS.length === 0 && (
+              <p className="text-xs text-muted-foreground col-span-full text-center py-8">No community playbooks available. Playbooks published to the marketplace will appear here.</p>
+            )}
             {COMMUNITY_PLAYBOOKS.map((pb, i) => (
               <Card key={i} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-2">

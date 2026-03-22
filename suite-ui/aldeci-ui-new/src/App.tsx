@@ -96,8 +96,8 @@ export default function App() {
             {/* Space 1: Mission Control */}
             <Route path="/" element={<CommandDashboard />} />
             <Route path="/mission-control" element={<CommandDashboard />} />
-            <Route path="/mission-control/executive" element={<ExecutiveView />} />
-            <Route path="/mission-control/sla" element={<SLADashboard />} />
+            <Route path="/mission-control/executive" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><ExecutiveView /></RequireRole>} />
+            <Route path="/mission-control/sla" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><SLADashboard /></RequireRole>} />
             <Route path="/mission-control/live-feed" element={<LiveFeed />} />
             <Route path="/mission-control/risk" element={<RiskOverview />} />
 
@@ -115,13 +115,13 @@ export default function App() {
             <Route path="/discover/correlation" element={<CorrelationEngine />} />
             <Route path="/discover/data-fabric" element={<DataFabric />} />
 
-            {/* Space 3: Validate */}
-            <Route path="/validate" element={<MPTEConsole />} />
-            <Route path="/validate/mpte" element={<MPTEConsole />} />
-            <Route path="/validate/simulation" element={<AttackSimulation />} />
-            <Route path="/validate/fail" element={<FAILEngine />} />
-            <Route path="/validate/playbooks" element={<Playbooks />} />
-            <Route path="/validate/playbooks/editor" element={<PlaybookEditor />} />
+            {/* Space 3: Validate — admin + security_analyst only (except Reachability) */}
+            <Route path="/validate" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><MPTEConsole /></RequireRole>} />
+            <Route path="/validate/mpte" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><MPTEConsole /></RequireRole>} />
+            <Route path="/validate/simulation" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><AttackSimulation /></RequireRole>} />
+            <Route path="/validate/fail" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><FAILEngine /></RequireRole>} />
+            <Route path="/validate/playbooks" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><Playbooks /></RequireRole>} />
+            <Route path="/validate/playbooks/editor" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><PlaybookEditor /></RequireRole>} />
             <Route path="/validate/reachability" element={<Reachability />} />
 
             {/* Space 4: Remediate */}
@@ -156,11 +156,11 @@ export default function App() {
 
             {/* AI Copilot & AI Engine */}
             <Route path="/ai" element={<CopilotDashboard />} />
-            <Route path="/ai/brain" element={<BrainPipeline />} />
-            <Route path="/ai/consensus" element={<MultiLLM />} />
-            <Route path="/ai/algorithms" element={<AlgorithmicLab />} />
-            <Route path="/ai/ml" element={<MLDashboard />} />
-            <Route path="/ai/predictions" element={<Predictions />} />
+            <Route path="/ai/brain" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><BrainPipeline /></RequireRole>} />
+            <Route path="/ai/consensus" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><MultiLLM /></RequireRole>} />
+            <Route path="/ai/algorithms" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><AlgorithmicLab /></RequireRole>} />
+            <Route path="/ai/ml" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><MLDashboard /></RequireRole>} />
+            <Route path="/ai/predictions" element={<RequireRole roles={["admin", "security_analyst"]} fallback={<AccessDenied />}><Predictions /></RequireRole>} />
 
             {/* Legacy redirects */}
             <Route path="/core/dashboard" element={<Navigate to="/" replace />} />

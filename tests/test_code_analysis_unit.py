@@ -5,9 +5,15 @@ Coverage target: code_analysis.py (553 LOC, ~0% baseline).
 Created: 2026-03-01 by agent-doctor (health run v10).
 """
 
+import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+# Ensure the real module is imported first so that test_reachability_analyzer_unit
+# (which may run earlier) doesn't replace it with a stub missing subprocess.
+import risk.reachability.code_analysis as _ca_mod
+if not hasattr(_ca_mod, "subprocess"):
+    _ca_mod.subprocess = subprocess  # type: ignore[attr-defined]
 
 from risk.reachability.code_analysis import (
     AnalysisResult,

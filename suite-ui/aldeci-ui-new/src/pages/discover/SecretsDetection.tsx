@@ -1,4 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
   Key, Eye, EyeOff, RefreshCw, RotateCcw, ShieldOff, ShieldCheck,
@@ -130,6 +132,7 @@ function formatDate(dateStr?: string): string {
 }
 
 export default function SecretsDetection() {
+  const navigate = useNavigate();
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [repoFilter, setRepoFilter] = useState("all");
@@ -237,11 +240,25 @@ export default function SecretsDetection() {
           <RefreshCw className="h-4 w-4" /> Refresh
         </Button>
         {selectedRows.size > 0 && (
-          <Button size="sm" className="gap-2 bg-orange-500 hover:bg-orange-600 text-white">
+          <Button size="sm" className="gap-2 bg-orange-500 hover:bg-orange-600 text-white" onClick={async () => {
+            try {
+              const ids = Array.from(selectedRows);
+              await Promise.all(ids.map(id => secretsApi.resolve(id)));
+              toast.success(`Initiated rotation for ${ids.length} secrets`);
+              setSelectedRows(new Set());
+              query.refetch();
+            } catch { toast.error("Bulk rotation failed"); }
+          }}>
             <RotateCcw className="h-4 w-4" /> Bulk Rotate ({selectedRows.size})
           </Button>
         )}
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="sm" className="gap-2" onClick={() => {
+          const blob = new Blob([JSON.stringify(allSecrets, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a"); a.href = url; a.download = "secrets-findings.json"; a.click();
+          URL.revokeObjectURL(url);
+          toast.success(`Exported ${allSecrets.length} secrets findings`);
+        }}>
           <Download className="h-4 w-4" /> Export
         </Button>
       </PageHeader>
@@ -412,14 +429,29 @@ export default function SecretsDetection() {
                             <DropdownMenuItem onClick={() => setDetailSecret(secret)}>
                               <Eye className="h-3.5 w-3.5 mr-2" /> View Detail
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={async () => {
+                              try {
+                                await secretsApi.resolve(secret.id || "");
+                                toast.success("Secret rotation initiated");
+                                query.refetch();
+                              } catch { toast.error("Rotation failed"); }
+                            }}>
                               <RotateCcw className="h-3.5 w-3.5 mr-2" /> Rotate Secret
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={async () => {
+                              try {
+                                await secretsApi.resolve(secret.id || "");
+                                toast.success("Secret marked as revoked");
+                                query.refetch();
+                              } catch { toast.error("Failed to mark revoked"); }
+                            }}>
                               <Unlock className="h-3.5 w-3.5 mr-2" /> Mark Revoked
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => {
+                              const title = `Leaked ${secret.type || "secret"} in ${secret.repository || "repo"}`;
+                              navigate(`/remediate/ticket-integration?title=${encodeURIComponent(title)}&source=secrets&severity=critical`);
+                            }}>
                               <AlertTriangle className="h-3.5 w-3.5 mr-2" /> Escalate
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -524,13 +556,30 @@ export default function SecretsDetection() {
                 <Separator />
 
                 <div className="flex gap-2">
-                  <Button size="sm" className="gap-1 bg-orange-500 hover:bg-orange-600">
+                  <Button size="sm" className="gap-1 bg-orange-500 hover:bg-orange-600" onClick={async () => {
+                    try {
+                      await secretsApi.resolve(detailSecret.id || "");
+                      toast.success("Secret rotation initiated");
+                      setDetailSecret(null);
+                      query.refetch();
+                    } catch { toast.error("Rotation failed"); }
+                  }}>
                     <RotateCcw className="h-3 w-3" /> Rotate Now
                   </Button>
-                  <Button size="sm" variant="outline" className="gap-1">
+                  <Button size="sm" variant="outline" className="gap-1" onClick={async () => {
+                    try {
+                      await secretsApi.resolve(detailSecret.id || "");
+                      toast.success("Secret marked as revoked");
+                      setDetailSecret(null);
+                      query.refetch();
+                    } catch { toast.error("Failed to mark revoked"); }
+                  }}>
                     <Unlock className="h-3 w-3" /> Mark Revoked
                   </Button>
-                  <Button size="sm" variant="outline" className="gap-1">
+                  <Button size="sm" variant="outline" className="gap-1" onClick={() => {
+                    const title = `Leaked ${detailSecret.type || "secret"} in ${detailSecret.repository || "repo"}`;
+                    navigate(`/remediate/ticket-integration?title=${encodeURIComponent(title)}&source=secrets&severity=critical`);
+                  }}>
                     <AlertTriangle className="h-3 w-3" /> Escalate
                   </Button>
                 </div>

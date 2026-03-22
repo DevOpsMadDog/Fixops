@@ -34,14 +34,8 @@ const PERMISSION_MATRIX: Record<string, Record<string, boolean>> = {
   Viewer: { "View Findings": true, "Triage Findings": false, "Manage Users": false, "Configure Integrations": false, "Generate Reports": false, "Manage API Keys": false },
 };
 
-// Activity log fallback — overridden by real audit API data
-const USER_ACTIVITY_LOG_FALLBACK = [
-  { user: "alice@corp.com", action: "Triaged CVE-2024-1337 as accepted risk", time: "2m ago", type: "triage" },
-  { user: "bob@corp.com", action: "Generated SOC2 evidence bundle", time: "18m ago", type: "report" },
-  { user: "carol@corp.com", action: "Invited diana@corp.com as Analyst", time: "1h ago", type: "admin" },
-  { user: "bob@corp.com", action: "Connected Snyk integration", time: "2h ago", type: "integration" },
-  { user: "alice@corp.com", action: "Ran MPTE scan on payment-api", time: "3h ago", type: "scan" },
-];
+// Empty default — activity log is loaded exclusively from the audit API
+const USER_ACTIVITY_LOG_EMPTY: { user: string; action: string; time: string; type: string }[] = [];
 
 function UserApiKeyDialog({ user }: { user: any }) {
   const [open, setOpen] = useState(false);
@@ -283,7 +277,7 @@ export default function UsersPage() {
   // Build activity log from API or fallback
   const USER_ACTIVITY_LOG = (() => {
     const items = auditLogsQuery.data?.items ?? auditLogsQuery.data;
-    if (!Array.isArray(items) || items.length === 0) return USER_ACTIVITY_LOG_FALLBACK;
+    if (!Array.isArray(items) || items.length === 0) return USER_ACTIVITY_LOG_EMPTY;
     return items.slice(0, 5).map((e: Record<string, unknown>) => ({
       user: (e.user as string) ?? (e.actor as string) ?? "system",
       action: (e.action as string) ?? (e.description as string) ?? (e.event as string) ?? "Activity",
@@ -574,7 +568,9 @@ export default function UsersPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {USER_ACTIVITY_LOG.map((entry, i) => {
+            {USER_ACTIVITY_LOG.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-6">No recent activity recorded. Actions like triage, scans, and report generation will appear here.</p>
+            ) : USER_ACTIVITY_LOG.map((entry, i) => {
               const typeColors: Record<string, string> = {
                 triage: "text-blue-400 bg-blue-900/20",
                 report: "text-green-400 bg-green-900/20",

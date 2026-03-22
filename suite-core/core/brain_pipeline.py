@@ -66,6 +66,7 @@ STEP_NAMES = [
     "connect",  # 1
     "normalize",  # 2
     "resolve_identity",  # 3
+    "fp_auto_suppress",  # 3b
     "deduplicate",  # 4
     "build_graph",  # 5
     "enrich_threats",  # 6
@@ -365,6 +366,7 @@ class BrainPipeline:
             self._step_connect,
             self._step_normalize,
             self._step_resolve_identity,
+            self._step_fp_auto_suppress,
             self._step_deduplicate,
             self._step_build_graph,
             self._step_enrich_threats,
@@ -707,6 +709,7 @@ class BrainPipeline:
             "sla_assigned": 0,
             "attack_paths_enriched": 0,
             "code_to_cloud_enriched": 0,
+            "material_change_enriched": 0,
             "frameworks_affected": set(),
         }
 
@@ -779,6 +782,15 @@ class BrainPipeline:
             except Exception:  # noqa: BLE001
                 logger.warning(
                     "Post-pipeline enrichment: code-to-cloud trace failed "
+                    "for finding %s", finding.get("id", "unknown")
+                )
+
+            # ── (e) Material change risk amplification ──
+            try:
+                self._enrich_material_change(finding, stats)
+            except Exception:  # noqa: BLE001
+                logger.warning(
+                    "Post-pipeline enrichment: material change enrichment failed "
                     "for finding %s", finding.get("id", "unknown")
                 )
 
@@ -946,6 +958,51 @@ class BrainPipeline:
             "remediation_points": len(result.remediation_points),
         }
         stats["code_to_cloud_enriched"] += 1
+
+    def _enrich_material_change(
+        self,
+        finding: Dict[str, Any],
+        stats: Dict[str, Any],
+    ) -> None:
+        """Boost risk score for findings in files with BREAKING/MATERIAL changes.
+
+        Uses MaterialChangeDetector metadata (if available on the finding's
+        file path) to amplify risk for vulnerabilities discovered in code areas
+        undergoing security-relevant modifications.  This bridges the material
+        change detection engine with the brain pipeline's triage logic.
+        """
+        file_path = finding.get("file_path") or finding.get("source_file") or ""
+        if not file_path:
+            return
+
+        # Check if finding already has material_change data attached
+        # (e.g., from an earlier PR analysis stored on the finding)
+        mc_data = finding.get("material_change")
+        if isinstance(mc_data, dict):
+            classification = mc_data.get("classification", "COSMETIC")
+        else:
+            # Attempt to infer from finding metadata
+            classification = finding.get("material_classification", "")
+
+        if not classification or classification == "COSMETIC":
+            return
+
+        # Apply risk amplification based on classification
+        current_risk = finding.get("risk_score", 0.0)
+        if isinstance(current_risk, (int, float)):
+            if classification == "BREAKING":
+                # BREAKING change: significant risk boost (up to +15%)
+                boost = min(0.15, 0.15 * (1 - current_risk))
+                finding["risk_score"] = round(min(1.0, current_risk + boost), 4)
+                finding["material_change_boost"] = round(boost, 4)
+            elif classification == "MATERIAL":
+                # MATERIAL change: moderate risk boost (up to +8%)
+                boost = min(0.08, 0.08 * (1 - current_risk))
+                finding["risk_score"] = round(min(1.0, current_risk + boost), 4)
+                finding["material_change_boost"] = round(boost, 4)
+
+        finding["material_change_classification"] = classification
+        stats["material_change_enriched"] += 1
 
     # ------------------------------------------------------------------
     # Data Quality Assessment
@@ -1662,6 +1719,34 @@ class BrainPipeline:
                 )
                 resolved += 1
         return {"resolved": resolved, "total": len(ctx["findings"])}
+
+    # ------------------------------------------------------------------
+    # Step 3b: Auto-suppress known false positives
+    # ------------------------------------------------------------------
+    def _step_fp_auto_suppress(
+        self, ctx: Dict[str, Any], inp: PipelineInput
+    ) -> Dict[str, Any]:
+        """Auto-suppress findings matching FP patterns reported 3+ times."""
+        try:
+            store = get_fp_feedback_store()
+        except Exception:
+            return {"suppressed": 0, "skipped": True, "reason": "fp_store_unavailable"}
+
+        suppressed = 0
+        kept: List[Dict[str, Any]] = []
+        for f in ctx["findings"]:
+            scanner = f.get("scanner", f.get("source", ""))
+            cwe_id = f.get("cwe_id", f.get("cwe", ""))
+            rule_id = f.get("rule_id", "")
+            if store.should_auto_suppress(
+                scanner=scanner, cwe_id=cwe_id, rule_id=rule_id
+            ):
+                f["auto_suppressed"] = True
+                f["suppression_reason"] = "fp_feedback_pattern"
+                suppressed += 1
+            kept.append(f)
+        ctx["findings"] = kept
+        return {"suppressed": suppressed, "total": len(kept)}
 
     # ------------------------------------------------------------------
     # Step 4: Collapse duplicates into Exposure Cases
@@ -3593,6 +3678,251 @@ class BrainPipeline:
             )
         except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
             logger.debug("Trend analysis skipped: %s", type(e).__name__)
+
+
+# ---------------------------------------------------------------------------
+# False Positive Feedback Store
+# ---------------------------------------------------------------------------
+import sqlite3 as _sqlite3
+
+
+class FPFeedbackStore:
+    """Persistent store for false-positive feedback on findings.
+
+    Tracks analyst decisions (is_false_positive, reason, scanner, CWE, app_id)
+    and provides auto-suppression logic when a pattern recurs 3+ times.
+    """
+
+    _instance: Optional["FPFeedbackStore"] = None
+    _lock = threading.Lock()
+
+    def __init__(self, db_path: Optional[str] = None):
+        self._db_path = db_path or os.path.join(
+            os.getenv("FIXOPS_DATA_DIR", ".fixops_data"), "fp_feedback.db"
+        )
+        os.makedirs(os.path.dirname(self._db_path), exist_ok=True)
+        self._conn = _sqlite3.connect(self._db_path, check_same_thread=False)
+        self._conn.execute("PRAGMA journal_mode=WAL")
+        self._conn.execute("""
+            CREATE TABLE IF NOT EXISTS fp_feedback (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                finding_id TEXT NOT NULL,
+                is_false_positive INTEGER NOT NULL DEFAULT 1,
+                reason TEXT DEFAULT '',
+                scanner TEXT DEFAULT '',
+                cwe_id TEXT DEFAULT '',
+                app_id TEXT DEFAULT '',
+                org_id TEXT DEFAULT '',
+                rule_id TEXT DEFAULT '',
+                title TEXT DEFAULT '',
+                analyst TEXT DEFAULT '',
+                created_at TEXT DEFAULT (datetime('now'))
+            )
+        """)
+        self._conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_fp_scanner_cwe
+            ON fp_feedback(scanner, cwe_id, is_false_positive)
+        """)
+        self._conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_fp_rule
+            ON fp_feedback(rule_id, is_false_positive)
+        """)
+        self._conn.commit()
+
+    @classmethod
+    def get_instance(cls) -> "FPFeedbackStore":
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = cls()
+        return cls._instance
+
+    def record_feedback(
+        self,
+        finding_id: str,
+        is_false_positive: bool,
+        reason: str = "",
+        scanner: str = "",
+        cwe_id: str = "",
+        app_id: str = "",
+        org_id: str = "",
+        rule_id: str = "",
+        title: str = "",
+        analyst: str = "",
+    ) -> Dict[str, Any]:
+        """Record analyst feedback on a finding."""
+        self._conn.execute(
+            """INSERT INTO fp_feedback
+               (finding_id, is_false_positive, reason, scanner, cwe_id,
+                app_id, org_id, rule_id, title, analyst)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (finding_id, int(is_false_positive), reason, scanner, cwe_id,
+             app_id, org_id, rule_id, title, analyst),
+        )
+        self._conn.commit()
+        return {
+            "finding_id": finding_id,
+            "is_false_positive": is_false_positive,
+            "auto_suppress_eligible": self.should_auto_suppress(
+                scanner=scanner, cwe_id=cwe_id, rule_id=rule_id
+            ),
+        }
+
+    def should_auto_suppress(
+        self,
+        scanner: str = "",
+        cwe_id: str = "",
+        rule_id: str = "",
+        threshold: int = 3,
+    ) -> bool:
+        """Check if a finding pattern should be auto-suppressed.
+
+        Returns True if the same scanner+CWE or rule_id has been marked
+        as FP at least `threshold` times.
+        """
+        if rule_id:
+            row = self._conn.execute(
+                "SELECT COUNT(*) FROM fp_feedback WHERE rule_id = ? AND is_false_positive = 1",
+                (rule_id,),
+            ).fetchone()
+            if row and row[0] >= threshold:
+                return True
+        if scanner and cwe_id:
+            row = self._conn.execute(
+                "SELECT COUNT(*) FROM fp_feedback WHERE scanner = ? AND cwe_id = ? AND is_false_positive = 1",
+                (scanner, cwe_id),
+            ).fetchone()
+            if row and row[0] >= threshold:
+                return True
+        return False
+
+    def get_fp_rate(
+        self,
+        scanner: Optional[str] = None,
+        cwe_id: Optional[str] = None,
+        app_id: Optional[str] = None,
+        org_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Calculate false positive rate with optional filters."""
+        conditions: List[str] = []
+        params: List[Any] = []
+        if scanner:
+            conditions.append("scanner = ?")
+            params.append(scanner)
+        if cwe_id:
+            conditions.append("cwe_id = ?")
+            params.append(cwe_id)
+        if app_id:
+            conditions.append("app_id = ?")
+            params.append(app_id)
+        if org_id:
+            conditions.append("org_id = ?")
+            params.append(org_id)
+
+        where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+
+        row = self._conn.execute(
+            f"SELECT COUNT(*), SUM(is_false_positive) FROM fp_feedback {where}",
+            params,
+        ).fetchone()
+        total = row[0] if row else 0
+        fp_count = int(row[1] or 0) if row else 0
+        tp_count = total - fp_count
+
+        # Breakdown by scanner
+        scanner_rows = self._conn.execute(
+            f"""SELECT scanner, COUNT(*) as total,
+                       SUM(is_false_positive) as fps
+                FROM fp_feedback {where}
+                GROUP BY scanner ORDER BY total DESC""",
+            params,
+        ).fetchall()
+        by_scanner = [
+            {
+                "scanner": r[0] or "unknown",
+                "total": r[1],
+                "false_positives": int(r[2] or 0),
+                "fp_rate": round(int(r[2] or 0) / r[1], 4) if r[1] else 0,
+            }
+            for r in scanner_rows
+        ]
+
+        # Breakdown by CWE
+        cwe_rows = self._conn.execute(
+            f"""SELECT cwe_id, COUNT(*) as total,
+                       SUM(is_false_positive) as fps
+                FROM fp_feedback {where}
+                GROUP BY cwe_id ORDER BY total DESC LIMIT 20""",
+            params,
+        ).fetchall()
+        by_cwe = [
+            {
+                "cwe_id": r[0] or "unknown",
+                "total": r[1],
+                "false_positives": int(r[2] or 0),
+                "fp_rate": round(int(r[2] or 0) / r[1], 4) if r[1] else 0,
+            }
+            for r in cwe_rows
+        ]
+
+        return {
+            "total_feedback": total,
+            "false_positives": fp_count,
+            "true_positives": tp_count,
+            "fp_rate": round(fp_count / total, 4) if total else 0.0,
+            "by_scanner": by_scanner,
+            "by_cwe": by_cwe,
+        }
+
+    def get_recent_feedback(self, limit: int = 50) -> List[Dict[str, Any]]:
+        """Get recent feedback entries."""
+        rows = self._conn.execute(
+            "SELECT finding_id, is_false_positive, reason, scanner, cwe_id, "
+            "app_id, org_id, rule_id, title, analyst, created_at "
+            "FROM fp_feedback ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [
+            {
+                "finding_id": r[0],
+                "is_false_positive": bool(r[1]),
+                "reason": r[2],
+                "scanner": r[3],
+                "cwe_id": r[4],
+                "app_id": r[5],
+                "org_id": r[6],
+                "rule_id": r[7],
+                "title": r[8],
+                "analyst": r[9],
+                "created_at": r[10],
+            }
+            for r in rows
+        ]
+
+    def get_auto_suppress_rules(self, threshold: int = 3) -> List[Dict[str, Any]]:
+        """Get patterns that qualify for auto-suppression."""
+        rows = self._conn.execute(
+            """SELECT scanner, cwe_id, rule_id, COUNT(*) as fp_count
+               FROM fp_feedback WHERE is_false_positive = 1
+               GROUP BY scanner, cwe_id, rule_id
+               HAVING COUNT(*) >= ?
+               ORDER BY fp_count DESC""",
+            (threshold,),
+        ).fetchall()
+        return [
+            {
+                "scanner": r[0] or "",
+                "cwe_id": r[1] or "",
+                "rule_id": r[2] or "",
+                "fp_count": r[3],
+            }
+            for r in rows
+        ]
+
+
+def get_fp_feedback_store() -> FPFeedbackStore:
+    """Get the global FPFeedbackStore singleton."""
+    return FPFeedbackStore.get_instance()
 
 
 # ---------------------------------------------------------------------------

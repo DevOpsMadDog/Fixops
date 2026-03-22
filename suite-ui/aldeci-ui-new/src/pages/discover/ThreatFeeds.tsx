@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
   Rss, RefreshCw, Download, AlertTriangle, CheckCircle,
@@ -34,6 +35,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { useThreatFeeds, useThreatTrending } from "@/hooks/use-api";
+import { copilotApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import {
   PieChart,
@@ -235,7 +237,14 @@ export default function ThreatFeeds() {
         <Button variant="outline" size="sm" onClick={refetch} className="gap-2">
           <RefreshCw className="h-4 w-4" /> Sync All
         </Button>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="sm" className="gap-2" onClick={() => {
+          const exportData = { feeds: allFeeds, trending: trendingCves };
+          const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a"); a.href = url; a.download = "threat-feeds-export.json"; a.click();
+          URL.revokeObjectURL(url);
+          toast.success(`Exported ${allFeeds.length} feeds and ${trendingCves.length} trending CVEs`);
+        }}>
           <Download className="h-4 w-4" /> Export
         </Button>
       </PageHeader>
@@ -426,7 +435,10 @@ export default function ThreatFeeds() {
                             CVSS {cve.cvss_score?.toFixed(1)}
                           </span>
                         )}
-                        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
+                        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => {
+                          const id = cve.cve_id || cve.id || "";
+                          window.open(`https://nvd.nist.gov/vuln/detail/${id}`, "_blank");
+                        }}>
                           <ExternalLink className="h-3 w-3" />
                         </Button>
                       </div>
@@ -535,7 +547,14 @@ export default function ThreatFeeds() {
                   </p>
                 </div>
               )}
-              <Button size="sm" variant="outline" className="w-full mt-3 gap-2">
+              <Button size="sm" variant="outline" className="w-full mt-3 gap-2" onClick={async () => {
+                try {
+                  toast.info("Generating AI threat briefing...");
+                  await copilotApi.suggest({ context: "threat_briefing", feeds: allFeeds.map(f => f.name) });
+                  toast.success("Threat briefing generated");
+                  feedsQuery.refetch();
+                } catch { toast.error("Briefing generation failed"); }
+              }}>
                 <Brain className="h-3.5 w-3.5" /> Generate Full Briefing
               </Button>
             </CardContent>

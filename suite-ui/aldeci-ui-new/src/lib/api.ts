@@ -445,6 +445,11 @@ export const deduplicationApi = {
   clusters: (params?: Record<string, unknown>) => api.get("/api/v1/deduplication/clusters", { params: { ...params, org_id: (params?.org_id as string) || "default" } }),
   stats: () => api.get("/api/v1/deduplication/stats"),
   graph: () => api.get("/api/v1/deduplication/graph"),
+  status: () => api.get("/api/v1/deduplication/status"),
+};
+
+export const webhookEventsApi = {
+  list: (params?: Record<string, unknown>) => api.get("/api/v1/webhooks/events", { params }),
 };
 
 export const casesApi = {
@@ -479,6 +484,7 @@ export const analyticsApi = {
 // ── AutoFix ──
 export const autofixApi = {
   generate: (findingId: string) => api.post("/api/v1/autofix/generate", { finding_id: findingId }),
+  bulkGenerate: (findings: Record<string, unknown>[]) => api.post("/api/v1/autofix/generate/bulk", { findings }),
   suggestions: (findingId: string) => api.get(`/api/v1/autofix/suggestions/${findingId}`),
   apply: (fixId: string) => api.post(`/api/v1/autofix/apply`, { fix_id: fixId }),
   preview: (fixId: string) => api.get(`/api/v1/autofix/preview/${fixId}`),

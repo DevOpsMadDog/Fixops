@@ -487,6 +487,11 @@ Respond in JSON format with keys: action, confidence, reasoning, execution_plan 
                     "tools": ["manual"],
                     "strategy": "Conservative testing approach",
                     "success_criteria": ["Manual verification required"],
+                    "execution_plan": [
+                        {"step": 1, "action": "Reconnaissance", "tool": "nmap"},
+                        {"step": 2, "action": "Vulnerability validation", "tool": "automated"},
+                        {"step": 3, "action": "Manual review", "tool": "manual"},
+                    ],
                     "metadata": {
                         "fallback": True,
                         "error": type(last_error).__name__ if last_error else "unknown",

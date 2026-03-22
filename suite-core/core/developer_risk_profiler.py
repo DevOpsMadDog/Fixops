@@ -50,10 +50,11 @@ _DEFAULT_DB_PATH = os.path.join(
 )
 
 # Risk score weights (must sum to 1.0)
-_W_INTRO_RATE = 0.40   # vulnerability introduction rate
-_W_SEVERITY = 0.25     # severity distribution
-_W_FIX_RATE = 0.20     # fix rate (low = higher risk)
-_W_RECENCY = 0.15      # recent introductions weighted more
+_W_INTRO_RATE = 0.35   # vulnerability introduction rate
+_W_SEVERITY = 0.20     # severity distribution
+_W_FIX_RATE = 0.18     # fix rate (low = higher risk)
+_W_RECENCY = 0.12      # recent introductions weighted more
+_W_MATERIALITY = 0.15  # material/breaking change ratio
 
 # Severity multipliers for weighted severity score
 _SEVERITY_WEIGHTS: Dict[str, float] = {
@@ -218,6 +219,8 @@ class DeveloperRiskProfiler:
                 lines_deleted       INTEGER NOT NULL DEFAULT 0,
                 findings_introduced_json TEXT NOT NULL DEFAULT '[]',
                 security_relevant   INTEGER NOT NULL DEFAULT 0,
+                material_changes_count INTEGER NOT NULL DEFAULT 0,
+                breaking_changes_count INTEGER NOT NULL DEFAULT 0,
                 FOREIGN KEY (developer_id) REFERENCES developer_profiles(developer_id)
             );
 
@@ -313,8 +316,15 @@ class DeveloperRiskProfiler:
         lines_added: int = 0,
         lines_deleted: int = 0,
         findings_introduced: Optional[Sequence[str]] = None,
+        material_changes_count: int = 0,
+        breaking_changes_count: int = 0,
     ) -> str:
-        """Record a commit and any findings it introduced. Returns developer_id."""
+        """Record a commit and any findings it introduced. Returns developer_id.
+
+        Args:
+            material_changes_count: Number of MATERIAL-classified changes in this commit.
+            breaking_changes_count: Number of BREAKING-classified changes in this commit.
+        """
         commit_sha = self._validate_sha(commit_sha)
         author_email = self._validate_email(author_email)
         findings_introduced = list(findings_introduced or [])
@@ -338,8 +348,8 @@ class DeveloperRiskProfiler:
                 """INSERT INTO developer_contributions
                    (commit_sha, developer_id, timestamp, files_changed_json,
                     lines_added, lines_deleted, findings_introduced_json,
-                    security_relevant)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    security_relevant, material_changes_count, breaking_changes_count)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     commit_sha,
                     developer_id,
@@ -349,6 +359,8 @@ class DeveloperRiskProfiler:
                     max(0, int(lines_deleted)),
                     json.dumps(findings_introduced),
                     1 if sec_relevant else 0,
+                    max(0, int(material_changes_count)),
+                    max(0, int(breaking_changes_count)),
                 ),
             )
 
@@ -525,12 +537,41 @@ class DeveloperRiskProfiler:
             # More recent introductions -> higher risk
             recency_score = min(100.0, recency_ratio * 100.0)
 
+        # ---- Factor 5: Material change ratio ----
+        # Developers who frequently make BREAKING/MATERIAL security changes
+        # without corresponding findings are low risk (security-conscious).
+        # Those who make breaking changes AND introduce findings are high risk.
+        material_row = conn.execute(
+            """SELECT
+                   COALESCE(SUM(material_changes_count), 0) as total_material,
+                   COALESCE(SUM(breaking_changes_count), 0) as total_breaking
+               FROM developer_contributions
+               WHERE developer_id = ?""",
+            (developer_id,),
+        ).fetchone()
+        total_material = material_row["total_material"] if material_row else 0
+        total_breaking = material_row["total_breaking"] if material_row else 0
+
+        if total_commits == 0 or (total_material + total_breaking) == 0:
+            materiality_score = 0.0
+        else:
+            # Ratio of breaking+material changes to total commits
+            mat_ratio = (total_material + total_breaking * 2) / total_commits
+            # Higher ratio + findings = dangerous; cap at 100
+            if total_introduced > 0:
+                # Amplify: developer makes security-relevant changes AND introduces vulns
+                materiality_score = min(100.0, mat_ratio * 50.0 * (1 + total_introduced / total_commits))
+            else:
+                # Makes security changes but doesn't introduce vulns — lower risk
+                materiality_score = min(30.0, mat_ratio * 15.0)
+
         # ---- Weighted combination ----
         risk = (
             _W_INTRO_RATE * intro_rate_score
             + _W_SEVERITY * severity_score
             + _W_FIX_RATE * fix_rate_score
             + _W_RECENCY * recency_score
+            + _W_MATERIALITY * materiality_score
         )
         risk = round(min(100.0, max(0.0, risk)), 1)
 
@@ -683,12 +724,25 @@ class DeveloperRiskProfiler:
 
         sec_files = [f for f in files_list if _is_security_file(f)]
 
-        # Determine PR risk level
+        # Fetch material change history for this developer
+        material_row = conn.execute(
+            """SELECT
+                   COALESCE(SUM(material_changes_count), 0) as total_material,
+                   COALESCE(SUM(breaking_changes_count), 0) as total_breaking
+               FROM developer_contributions
+               WHERE developer_id = ?""",
+            (developer_id,),
+        ).fetchone()
+        total_material = material_row["total_material"] if material_row else 0
+        total_breaking = material_row["total_breaking"] if material_row else 0
+
+        # Determine PR risk level — material changes amplify risk
         score = profile.risk_score
         has_sec_files = len(sec_files) > 0
-        if score >= 70 or (score >= 50 and has_sec_files):
+        has_breaking_history = total_breaking > 2
+        if score >= 70 or (score >= 50 and has_sec_files) or (score >= 40 and has_breaking_history):
             pr_level = "critical"
-        elif score >= 45 or (score >= 30 and has_sec_files):
+        elif score >= 45 or (score >= 30 and has_sec_files) or (score >= 25 and has_breaking_history):
             pr_level = "high"
         elif score >= 20:
             pr_level = "medium"
@@ -701,6 +755,11 @@ class DeveloperRiskProfiler:
             "medium": "Standard code review with attention to security-sensitive changes.",
             "low": "Standard code review process.",
         }
+        if has_breaking_history and pr_level in ("critical", "high"):
+            recommendations[pr_level] += (
+                f" Developer has {total_breaking} historical BREAKING changes — "
+                "extra scrutiny on auth/crypto/API surface modifications."
+            )
 
         return {
             "developer_risk_score": profile.risk_score,
@@ -710,6 +769,8 @@ class DeveloperRiskProfiler:
             "fix_rate_percent": fix_rate,
             "security_files_touched": sec_files,
             "historical_findings_in_same_files": historical_in_files,
+            "material_changes_total": total_material,
+            "breaking_changes_total": total_breaking,
             "pr_risk_level": pr_level,
             "recommendation": recommendations[pr_level],
         }

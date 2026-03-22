@@ -31,6 +31,34 @@ from core.tls_config import tls_verify
 
 logger = structlog.get_logger(__name__)
 
+# Lazy-loaded engines (avoid circular imports / hard failures at import time)
+_consensus_engine = None
+_compliance_engine = None
+
+
+def _get_consensus_engine():
+    """Lazy-load ConsensusEngine from core.llm_consensus."""
+    global _consensus_engine
+    if _consensus_engine is None:
+        try:
+            from core.llm_consensus import ConsensusEngine
+            _consensus_engine = ConsensusEngine()
+        except Exception:
+            logger.warning("consensus_engine.unavailable")
+    return _consensus_engine
+
+
+def _get_compliance_engine():
+    """Lazy-load ComplianceEngine from suite-evidence-risk."""
+    global _compliance_engine
+    if _compliance_engine is None:
+        try:
+            from compliance.compliance_engine import ComplianceEngine
+            _compliance_engine = ComplianceEngine()
+        except Exception:
+            logger.warning("compliance_engine.unavailable")
+    return _compliance_engine
+
 
 class IntelligenceLevel(Enum):
     """Intelligence/autonomy level for the engine."""
@@ -838,8 +866,7 @@ class IntelligentSecurityEngine:
     async def _gather_llm_consensus(
         self, target: str, intelligence: ThreatIntelligence, objectives: List[str]
     ) -> Dict[str, Any]:
-        """Gather consensus from multiple LLMs — returns honest 'no consensus' when LLMs unavailable."""
-        # Check if any LLM providers are configured
+        """Gather consensus from multiple LLMs via ConsensusEngine."""
         if not self.config.llm_providers:
             return {
                 "consensus_reached": False,
@@ -848,15 +875,70 @@ class IntelligentSecurityEngine:
                 "recommendations": [],
                 "error": "No LLM providers configured",
             }
-        # TODO: Wire to MultiAIOrchestrator when available
-        logger.debug("llm_consensus_not_wired", providers=self.config.llm_providers)
-        return {
-            "consensus_reached": False,
-            "confidence": 0.0,
-            "providers": self.config.llm_providers,
-            "recommendations": [],
-            "error": "LLM consensus engine not yet connected",
+
+        engine = _get_consensus_engine()
+        if engine is None:
+            logger.warning("llm_consensus.engine_unavailable")
+            return {
+                "consensus_reached": False,
+                "confidence": 0.0,
+                "providers": self.config.llm_providers,
+                "recommendations": [],
+                "error": "ConsensusEngine could not be loaded",
+            }
+
+        prompt = (
+            f"Analyse target '{target}' for security assessment.\n"
+            f"CVEs: {', '.join(intelligence.cve_ids)}\n"
+            f"Risk score: {intelligence.risk_score}\n"
+            f"EPSS scores: {intelligence.epss_scores}\n"
+            f"KEV status: {intelligence.kev_status}\n"
+            f"Objectives: {', '.join(objectives)}\n"
+            "Recommend an action: patch, mitigate, accept, or investigate."
+        )
+        context = {
+            "target": target,
+            "cve_ids": intelligence.cve_ids,
+            "risk_score": intelligence.risk_score,
+            "objectives": objectives,
         }
+
+        try:
+            result = await asyncio.to_thread(
+                engine.analyse,
+                prompt=prompt,
+                context=context,
+                default_action="investigate",
+                default_confidence=0.5,
+                default_reasoning="Heuristic analysis — no LLM providers responded",
+            )
+            logger.info(
+                "llm_consensus.completed",
+                consensus=result.consensus,
+                action=result.action,
+                confidence=result.confidence,
+            )
+            return {
+                "consensus_reached": result.consensus,
+                "confidence": result.confidence,
+                "providers": list(result.votes.keys()) if result.votes else self.config.llm_providers,
+                "action": result.action,
+                "reasoning": result.reasoning,
+                "recommendations": result.attack_vectors,
+                "mitre_techniques": result.mitre_techniques,
+                "compliance_concerns": result.compliance_concerns,
+                "agreement_ratio": result.agreement_ratio,
+                "dissenting_providers": result.dissenting_providers,
+            }
+        except Exception as exc:
+            logger.error("llm_consensus.failed", error=str(exc))
+            return {
+                "consensus_reached": False,
+                "confidence": 0.0,
+                "providers": self.config.llm_providers,
+                "recommendations": [],
+                "error": f"Consensus engine error: {exc}",
+            }
 
     def _build_attack_phases(
         self, decisions: Dict[str, Any], intelligence: ThreatIntelligence
@@ -948,56 +1030,225 @@ class IntelligentSecurityEngine:
         }
 
     async def _execute_phase(self, phase: Dict) -> Dict[str, Any]:
-        """Execute a phase using MPTE integration."""
-        # MPTE integration for actual execution
-        return {
-            "executed": True,
-            "phase_type": phase.get("type", "unknown"),
-            "mpte_required": True,
-            "findings": [],
-            "evidence": [],
-        }
+        """Execute a phase using MPTE integration via httpx client."""
+        phase_type = phase.get("type", "unknown")
+        try:
+            response = await self.mpte_client.post(
+                "/api/v1/mpte/execute-phase",
+                json={
+                    "phase_type": phase_type,
+                    "actions": phase.get("actions", []),
+                    "cve_ids": phase.get("cve_ids", []),
+                    "timeout": phase.get("timeout", 60),
+                    "session_id": self._session_id,
+                },
+            )
+            if response.status_code == 200:
+                data = response.json()
+                logger.info("mpte.phase_executed", phase=phase_type, findings=len(data.get("findings", [])))
+                return {
+                    "executed": True,
+                    "phase_type": phase_type,
+                    "findings": data.get("findings", []),
+                    "evidence": data.get("evidence", []),
+                }
+            else:
+                logger.warning("mpte.phase_failed", phase=phase_type, status=response.status_code)
+                return {
+                    "executed": False,
+                    "phase_type": phase_type,
+                    "findings": [],
+                    "evidence": [],
+                    "error": f"MPTE returned {response.status_code}",
+                }
+        except Exception as exc:
+            logger.warning("mpte.phase_error", phase=phase_type, error=str(exc))
+            return {
+                "executed": False,
+                "phase_type": phase_type,
+                "findings": [],
+                "evidence": [],
+                "error": f"MPTE unreachable: {exc}",
+            }
 
     async def _validate_findings(self, findings: List[Dict]) -> List[Dict]:
-        """Validate findings using LLM consensus."""
-        return findings
+        """Validate findings using LLM consensus — each finding gets a confidence score."""
+        if not findings:
+            return findings
+
+        engine = _get_consensus_engine()
+        if engine is None:
+            # No consensus engine — return findings as-is with flag
+            for f in findings:
+                f.setdefault("validation", {"method": "none", "reason": "consensus_engine_unavailable"})
+            return findings
+
+        validated = []
+        for finding in findings:
+            try:
+                prompt = (
+                    f"Validate this security finding. Is it a true positive?\n"
+                    f"Title: {finding.get('title', 'N/A')}\n"
+                    f"Severity: {finding.get('severity', 'N/A')}\n"
+                    f"Description: {finding.get('description', 'N/A')}\n"
+                    f"Evidence: {finding.get('evidence', 'N/A')}\n"
+                    "Respond with action: confirm, reject, or review."
+                )
+                result = await asyncio.to_thread(
+                    engine.analyse,
+                    prompt=prompt,
+                    context={"finding": finding},
+                    default_action="review",
+                    default_confidence=0.5,
+                    default_reasoning="Could not validate — defaulting to review",
+                )
+                finding["validation"] = {
+                    "method": "llm_consensus",
+                    "consensus": result.consensus,
+                    "action": result.action,
+                    "confidence": result.confidence,
+                }
+                # Only include confirmed or review findings, drop rejects with high consensus
+                if result.action == "reject" and result.consensus and result.confidence > 0.85:
+                    logger.info("finding.rejected_by_consensus", title=finding.get("title"))
+                    continue
+                validated.append(finding)
+            except Exception as exc:
+                logger.warning("finding.validation_error", error=str(exc))
+                finding["validation"] = {"method": "error", "error": str(exc)}
+                validated.append(finding)
+
+        logger.info("findings.validated", total=len(findings), kept=len(validated))
+        return validated
 
     async def _generate_recommendations(
         self, findings: List[Dict], intelligence: Optional[ThreatIntelligence]
     ) -> List[str]:
-        """Generate remediation recommendations."""
-        return [
-            "Apply security patches for identified CVEs",
-            "Implement network segmentation",
-            "Enable security monitoring",
-        ]
+        """Generate context-aware remediation recommendations based on findings."""
+        recommendations: List[str] = []
+        seen = set()
+
+        for finding in findings:
+            severity = finding.get("severity", "medium").lower()
+            title = finding.get("title", "")
+            cve_ids = finding.get("cve_ids", [])
+
+            if cve_ids:
+                rec = f"Patch {', '.join(cve_ids[:3])}: {title}"
+                if rec not in seen:
+                    recommendations.append(rec)
+                    seen.add(rec)
+
+            if severity in ("critical", "high") and "access" in title.lower():
+                rec = f"Restrict access controls for: {title}"
+                if rec not in seen:
+                    recommendations.append(rec)
+                    seen.add(rec)
+
+        # Intelligence-driven recommendations
+        if intelligence:
+            if any(intelligence.kev_status.get(c) for c in intelligence.cve_ids):
+                recommendations.append("URGENT: Known Exploited Vulnerabilities detected — prioritise patching per CISA KEV mandate")
+            high_epss = [c for c, s in intelligence.epss_scores.items() if isinstance(s, (int, float)) and s > 0.5]
+            if high_epss:
+                recommendations.append(f"High exploit probability (EPSS > 0.5): {', '.join(high_epss[:5])}")
+            if intelligence.threat_actors:
+                recommendations.append(f"Threat actor attribution: {', '.join(intelligence.threat_actors[:3])} — review IOCs")
+
+        if not recommendations:
+            recommendations = [
+                "Review all findings and apply patches where applicable",
+                "Enable security monitoring for affected assets",
+            ]
+
+        return recommendations
 
     async def _generate_ml_insights(
         self, intelligence: ThreatIntelligence, result: ExecutionResult
     ) -> Dict[str, Any]:
-        """Generate ML-powered insights using MindsDB."""
+        """Generate ML-powered insights using MindsDB predictions."""
         if not self.mindsdb:
             return {}
 
-        return {
-            "exploit_likelihood": 0.75,
-            "attack_progression_forecast": "high",
+        insights: Dict[str, Any] = {
+            "exploit_likelihood": 0.0,
+            "attack_progression_forecast": "unknown",
             "similar_historical_attacks": [],
             "recommended_mitigations": [],
         }
 
+        # Predict exploit success probability via MindsDB
+        try:
+            prediction = await self.mindsdb.predict(
+                "exploit_success_predictor",
+                {
+                    "risk_score": str(intelligence.risk_score),
+                    "cve_count": str(len(intelligence.cve_ids)),
+                    "finding_count": str(len(result.findings)),
+                    "has_kev": str(any(intelligence.kev_status.values())),
+                },
+            )
+            if "error" not in prediction:
+                prob = prediction.get("success_probability", prediction.get("data", {}).get("success_probability"))
+                if prob is not None:
+                    insights["exploit_likelihood"] = float(prob)
+                    insights["attack_progression_forecast"] = (
+                        "critical" if float(prob) > 0.8 else
+                        "high" if float(prob) > 0.5 else
+                        "medium" if float(prob) > 0.3 else "low"
+                    )
+            else:
+                logger.debug("mindsdb.predict_unavailable", error=prediction["error"])
+        except Exception as exc:
+            logger.debug("mindsdb.predict_error", error=str(exc))
+
+        # Query knowledge base for similar attacks
+        try:
+            kb_result = await self.mindsdb.query_knowledge(
+                "aldeci_attack_patterns_kb",
+                f"CVEs: {', '.join(intelligence.cve_ids[:5])}",
+                limit=3,
+            )
+            if "error" not in kb_result:
+                data = kb_result.get("data", kb_result)
+                if isinstance(data, list):
+                    insights["similar_historical_attacks"] = data
+        except Exception as exc:
+            logger.debug("mindsdb.kb_query_error", error=str(exc))
+
+        return insights
+
     async def _map_to_compliance(
         self, findings: List[Dict], frameworks: List[str]
     ) -> Dict[str, Any]:
-        """Map findings to compliance frameworks."""
-        return {
-            framework: {
-                "status": "review_required",
-                "controls_affected": [],
-                "remediation_priority": "high",
+        """Map findings to compliance frameworks using ComplianceEngine."""
+        engine = _get_compliance_engine()
+        if engine is None:
+            # Graceful fallback — return basic mapping
+            return {
+                framework: {
+                    "status": "review_required",
+                    "controls_affected": [],
+                    "remediation_priority": "high" if findings else "low",
+                    "note": "ComplianceEngine unavailable — manual review required",
+                }
+                for framework in frameworks
             }
-            for framework in frameworks
-        }
+
+        try:
+            result = engine.evaluate(frameworks=frameworks, findings=findings)
+            logger.info("compliance.mapped", frameworks=frameworks, finding_count=len(findings))
+            return result
+        except Exception as exc:
+            logger.error("compliance.mapping_error", error=str(exc))
+            return {
+                framework: {
+                    "status": "error",
+                    "controls_affected": [],
+                    "error": str(exc),
+                }
+                for framework in frameworks
+            }
 
     async def _create_evidence_bundle(self, result: ExecutionResult) -> str:
         """Create a signed evidence bundle."""

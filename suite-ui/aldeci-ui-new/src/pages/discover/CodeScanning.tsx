@@ -1,5 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import {
   Code2, FileCode, RefreshCw, Download, ChevronRight, ChevronDown,
   Bug, Layers, Zap, AlertTriangle, CheckCircle, Filter,
@@ -35,7 +37,8 @@ import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { useFindings, useScannerParsers } from "@/hooks/use-api";
+import { useFindings, useScannerParsers, useAutofix } from "@/hooks/use-api";
+import { findingsApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import {
   BarChart,
@@ -112,6 +115,8 @@ const SCANNER_COLORS: Record<string, string> = {
 };
 
 export default function CodeScanning() {
+  const navigate = useNavigate();
+  const autofixMutation = useAutofix();
   const [activeTab, setActiveTab] = useState("findings");
   const [scannerFilter, setScannerFilter] = useState("all");
   const [severityFilter, setSeverityFilter] = useState("all");
@@ -231,7 +236,13 @@ export default function CodeScanning() {
         <Button variant="outline" size="sm" onClick={() => query.refetch()} className="gap-2">
           <RefreshCw className="h-4 w-4" /> Refresh
         </Button>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="sm" className="gap-2" onClick={() => {
+          const blob = new Blob([JSON.stringify(allFindings, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a"); a.href = url; a.download = "code-scanning-findings.json"; a.click();
+          URL.revokeObjectURL(url);
+          toast.success(`Exported ${allFindings.length} code scanning findings`);
+        }}>
           <Download className="h-4 w-4" /> Export
         </Button>
       </PageHeader>
@@ -415,7 +426,11 @@ export default function CodeScanning() {
                                     <Button size="sm" variant="outline" onClick={() => setDetailFinding(finding)}>
                                       View Full Detail
                                     </Button>
-                                    <Button size="sm" variant="outline">Create Ticket</Button>
+                                    <Button size="sm" variant="outline" onClick={() => {
+                                      const f = finding as Record<string, unknown>;
+                                      const title = (f.title || f.rule || f.cve || "Code finding") as string;
+                                      navigate(`/remediate/ticket-integration?title=${encodeURIComponent(title)}&source=sast`);
+                                    }}>Create Ticket</Button>
                                   </div>
                                 </div>
                               </TableCell>
@@ -598,9 +613,26 @@ export default function CodeScanning() {
                 </div>
               )}
               <div className="flex gap-2">
-                <Button size="sm">Accept Fix</Button>
-                <Button size="sm" variant="outline">Create Ticket</Button>
-                <Button size="sm" variant="outline">Mark False Positive</Button>
+                <Button size="sm" onClick={() => {
+                  const id = detailFinding.id || detailFinding.finding_id || "";
+                  autofixMutation.mutate(id, {
+                    onSuccess: () => { toast.success("Fix accepted — check Remediation Center"); setDetailFinding(null); },
+                    onError: () => toast.error("AutoFix failed"),
+                  });
+                }}>Accept Fix</Button>
+                <Button size="sm" variant="outline" onClick={() => {
+                  const title = detailFinding.title || detailFinding.rule || "Code finding";
+                  navigate(`/remediate/ticket-integration?title=${encodeURIComponent(title)}&source=sast`);
+                }}>Create Ticket</Button>
+                <Button size="sm" variant="outline" onClick={async () => {
+                  try {
+                    const id = detailFinding.id || detailFinding.finding_id || "";
+                    await findingsApi.triage(id, "false_positive");
+                    toast.success("Marked as false positive");
+                    setDetailFinding(null);
+                    query.refetch();
+                  } catch { toast.error("Failed to mark as false positive"); }
+                }}>Mark False Positive</Button>
               </div>
             </div>
           )}

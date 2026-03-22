@@ -158,6 +158,34 @@ function ReachabilityBadge({ reachable }: { reachable?: boolean | string }) {
   );
 }
 
+/** Composite Risk Priority — combines FAIL, EPSS, KEV, Reachability into a single score */
+function RiskPriorityBadge({ finding }: { finding: Finding }) {
+  const epss = finding.epss_score ?? 0;
+  const isKev = finding.kev === true;
+  const isReachable = finding.reachable === true || finding.reachable === "reachable";
+  const fail = finding.fail_score ?? 0;
+  const sevWeight = { critical: 40, high: 30, medium: 20, low: 10, info: 0 }[(finding.severity || "").toLowerCase()] ?? 10;
+  // Composite: severity base + EPSS contribution + KEV bonus + reachability bonus + FAIL score
+  const score = Math.min(100, Math.round(
+    sevWeight + (epss * 30) + (isKev ? 15 : 0) + (isReachable ? 10 : 0) + (fail > 0 ? Math.min(fail / 10, 5) : 0)
+  ));
+  const color = score >= 70 ? "text-red-400 bg-red-500/10 border-red-500/30"
+    : score >= 40 ? "text-orange-400 bg-orange-500/10 border-orange-500/30"
+    : score >= 20 ? "text-yellow-400 bg-yellow-500/10 border-yellow-500/30"
+    : "text-green-400 bg-green-500/10 border-green-500/30";
+  return (
+    <Badge className={cn("border text-xs font-bold tabular-nums", color)}>
+      {score}
+    </Badge>
+  );
+}
+
+function FailScoreBadge({ score }: { score?: number }) {
+  if (score == null || score === 0) return <span className="text-muted-foreground text-xs">—</span>;
+  const color = score >= 80 ? "text-red-400" : score >= 50 ? "text-orange-400" : score >= 20 ? "text-yellow-400" : "text-green-400";
+  return <span className={cn("text-xs font-bold tabular-nums", color)}>{score.toFixed(0)}</span>;
+}
+
 function getAgeDays(dateStr?: string): string {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
@@ -193,6 +221,7 @@ interface Finding {
   fail_score?: number;
   attack_paths_count?: number;
   blast_radius?: number;
+  risk_priority?: number;
 }
 
 export default function FindingExplorer() {
@@ -294,13 +323,25 @@ export default function FindingExplorer() {
   const allFindings: Finding[] = useMemo(() => {
     const epss = epssQuery.data || {};
     const kev = kevQuery.data || { set: new Set<string>(), dueDates: {} };
-    return rawFindings.map(f => ({
-      ...f,
-      epss_score: f.epss_score ?? (f.cve && epss[f.cve] ? epss[f.cve].score : undefined),
-      epss_percentile: f.epss_percentile ?? (f.cve && epss[f.cve] ? epss[f.cve].percentile : undefined),
-      kev: f.kev ?? (f.cve ? kev.set.has(f.cve) : false),
-      kev_due_date: f.kev_due_date ?? (f.cve ? kev.dueDates[f.cve] : undefined),
-    }));
+    return rawFindings.map(f => {
+      const enriched = {
+        ...f,
+        epss_score: f.epss_score ?? (f.cve && epss[f.cve] ? epss[f.cve].score : undefined),
+        epss_percentile: f.epss_percentile ?? (f.cve && epss[f.cve] ? epss[f.cve].percentile : undefined),
+        kev: f.kev ?? (f.cve ? kev.set.has(f.cve) : false),
+        kev_due_date: f.kev_due_date ?? (f.cve ? kev.dueDates[f.cve] : undefined),
+      };
+      // Compute risk_priority for sorting
+      const epssVal = enriched.epss_score ?? 0;
+      const isKev = enriched.kev === true;
+      const isReachable = enriched.reachable === true || enriched.reachable === "reachable";
+      const fail = enriched.fail_score ?? 0;
+      const sevWeight = { critical: 40, high: 30, medium: 20, low: 10, info: 0 }[(enriched.severity || "").toLowerCase()] ?? 10;
+      (enriched as Record<string, unknown>).risk_priority = Math.min(100, Math.round(
+        sevWeight + (epssVal * 30) + (isKev ? 15 : 0) + (isReachable ? 10 : 0) + (fail > 0 ? Math.min(fail / 10, 5) : 0)
+      ));
+      return enriched;
+    });
   }, [rawFindings, epssQuery.data, kevQuery.data]);
 
   // ── AutoFix mutation ──
@@ -585,6 +626,31 @@ export default function FindingExplorer() {
               }}>
               <UserCheck className="h-3 w-3" /> Assign
             </Button>
+            <Button size="sm" variant="default" className="gap-1 bg-violet-600 hover:bg-violet-700" disabled={bulkLoading}
+              onClick={async () => {
+                setBulkLoading(true);
+                try {
+                  const ids = Array.from(selectedRows);
+                  const selected = allFindings.filter(f => ids.includes(f.id || f.finding_id || ""));
+                  const findings = selected.map(f => ({
+                    finding_id: f.finding_id || f.id,
+                    title: f.title,
+                    severity: f.severity,
+                    cve: f.cve,
+                    file: f.file,
+                    line: f.line,
+                    rule: f.rule,
+                    scanner: f.scanner,
+                  }));
+                  const { data } = await autofixApi.bulkGenerate(findings);
+                  toast.success(`Generated ${data?.count || findings.length} fixes`);
+                  qc.invalidateQueries({ queryKey: ["findings"] });
+                  setSelectedRows(new Set());
+                } catch (e) { toast.error(`Bulk AutoFix failed: ${e}`); }
+                finally { setBulkLoading(false); }
+              }}>
+              {bulkLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} Bulk AutoFix
+            </Button>
             <Button size="sm" variant="outline" className="gap-1"
               onClick={() => {
                 const ids = Array.from(selectedRows);
@@ -678,6 +744,12 @@ export default function FindingExplorer() {
                           <span className="flex items-center">Status <SortIcon field="status" sortField={sortField} sortDir={sortDir} /></span>
                         </TableHead>
                         <TableHead>MPTE</TableHead>
+                        <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("fail_score")}>
+                          <span className="flex items-center">FAIL <SortIcon field="fail_score" sortField={sortField} sortDir={sortDir} /></span>
+                        </TableHead>
+                        <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("risk_priority")}>
+                          <span className="flex items-center">Risk <SortIcon field="risk_priority" sortField={sortField} sortDir={sortDir} /></span>
+                        </TableHead>
                         <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("created_at")}>
                           <span className="flex items-center">Age <SortIcon field="created_at" sortField={sortField} sortDir={sortDir} /></span>
                         </TableHead>
@@ -687,7 +759,7 @@ export default function FindingExplorer() {
                     <TableBody>
                       {paginated.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={14} className="text-center py-12 text-muted-foreground">
+                          <TableCell colSpan={16} className="text-center py-12 text-muted-foreground">
                             <div className="flex flex-col items-center gap-2">
                               <Shield className="h-8 w-8 opacity-30" />
                               <p>No findings match the current filters</p>
@@ -742,6 +814,12 @@ export default function FindingExplorer() {
                               </TableCell>
                               <TableCell>
                                 <MpteBadge verdict={finding.mpte_verdict} />
+                              </TableCell>
+                              <TableCell>
+                                <FailScoreBadge score={finding.fail_score} />
+                              </TableCell>
+                              <TableCell>
+                                <RiskPriorityBadge finding={finding} />
                               </TableCell>
                               <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                                 {getAgeDays(finding.created_at)}

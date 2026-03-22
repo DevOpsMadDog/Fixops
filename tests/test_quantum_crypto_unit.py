@@ -328,9 +328,9 @@ class TestErrorHandling:
 
     def test_invalid_security_level_keygen(self):
         """Engine should handle non-standard levels gracefully or error."""
-        engine = MLDSAEngine(security_level=99)
-        # Should either work with fallback or raise
+        # Should either work with fallback or raise during init or keygen
         try:
+            engine = MLDSAEngine(security_level=99)
             kp = engine.keygen()
             assert isinstance(kp, MLDSAKeyPair)
         except (MLDSAError, ValueError, KeyError):

@@ -1184,3 +1184,48 @@ async def analytics_live_feed(request: Request) -> Dict[str, Any]:
         "events": events,
         "total": len(events),
     }
+
+
+# ---------------------------------------------------------------------------
+# TIER 3.2: False-Positive Rate Analytics
+# ---------------------------------------------------------------------------
+
+
+@router.get("/false-positive-rate")
+async def false_positive_rate(
+    scanner: Optional[str] = Query(None),
+    cwe_id: Optional[str] = Query(None),
+    app_id: Optional[str] = Query(None),
+    org_id: Optional[str] = Query(None),
+) -> Dict[str, Any]:
+    """[V3] Get false-positive rate from analyst feedback.
+
+    Breaks down FP rate by scanner, CWE, and overall. Supports
+    filtering by scanner, CWE, app_id, or org_id.
+
+    Query params:
+        scanner: Filter by scanner name (e.g. 'semgrep')
+        cwe_id: Filter by CWE (e.g. 'CWE-79')
+        app_id: Filter by application
+        org_id: Filter by organization
+    """
+    try:
+        from core.brain_pipeline import get_fp_feedback_store
+
+        store = get_fp_feedback_store()
+        return store.get_fp_rate(
+            scanner=scanner,
+            cwe_id=cwe_id,
+            app_id=app_id,
+            org_id=org_id,
+        )
+    except (OSError, ValueError, RuntimeError) as e:
+        return {
+            "error": type(e).__name__,
+            "total_feedback": 0,
+            "false_positives": 0,
+            "true_positives": 0,
+            "fp_rate": 0.0,
+            "by_scanner": [],
+            "by_cwe": [],
+        }

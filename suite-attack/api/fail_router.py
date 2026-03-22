@@ -301,7 +301,7 @@ async def inject_vulnerability(req: InjectRequest) -> InjectResponse:
     summary="List active / historical drills",
 )
 async def list_drills(
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Query("default", description="Organisation identifier"),
     history: bool = Query(False, description="Include historical (graded/cancelled) drills"),
     days: int = Query(90, ge=1, le=365, description="Days of history to include"),
 ) -> Dict[str, Any]:
@@ -519,7 +519,7 @@ async def cancel_drill(
     summary="Components with no recent security activity",
 )
 async def get_neglect_zones(
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Query("default", description="Organisation identifier"),
     threshold_days: int = Query(
         90, ge=1, le=365, description="Days of inactivity to flag as neglected"
     ),
@@ -564,8 +564,13 @@ async def get_neglect_zones(
     "/readiness-score",
     summary="Organisation readiness score",
 )
+@router.get(
+    "/readiness",
+    summary="Organisation readiness score (alias)",
+    include_in_schema=False,
+)
 async def get_readiness_score(
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Query("default", description="Organisation identifier"),
 ) -> Dict[str, Any]:
     """
     Compute the organisation's security readiness score based on drill history.
@@ -800,3 +805,18 @@ async def health_check() -> Dict[str, Any]:
             "status": "degraded",
             "error": str(exc),
         }
+
+
+
+# ---------------------------------------------------------------------------
+# Alias: /history — UI calls /fail/history, maps to drills with history=true
+# ---------------------------------------------------------------------------
+
+
+@router.get("/history", summary="Drill history (alias)", include_in_schema=False)
+async def get_fail_history(
+    org_id: str = Query("default", description="Organisation identifier"),
+    days: int = Query(90, ge=1, le=365, description="Days of history to include"),
+) -> Dict[str, Any]:
+    """Return drill history for an org — alias used by the UI."""
+    return await list_drills(org_id=org_id, history=True, days=days)

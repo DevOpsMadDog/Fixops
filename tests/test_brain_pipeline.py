@@ -140,22 +140,23 @@ class TestEnums:
 
 
 class TestStepNames:
-    def test_twelve_steps(self):
-        assert len(STEP_NAMES) == 12
+    def test_thirteen_steps(self):
+        assert len(STEP_NAMES) == 13
 
     def test_step_order(self):
         assert STEP_NAMES[0] == "connect"
         assert STEP_NAMES[1] == "normalize"
         assert STEP_NAMES[2] == "resolve_identity"
-        assert STEP_NAMES[3] == "deduplicate"
-        assert STEP_NAMES[4] == "build_graph"
-        assert STEP_NAMES[5] == "enrich_threats"
-        assert STEP_NAMES[6] == "score_risk"
-        assert STEP_NAMES[7] == "apply_policy"
-        assert STEP_NAMES[8] == "llm_consensus"
-        assert STEP_NAMES[9] == "micro_pentest"
-        assert STEP_NAMES[10] == "run_playbooks"
-        assert STEP_NAMES[11] == "generate_evidence"
+        assert STEP_NAMES[3] == "fp_auto_suppress"
+        assert STEP_NAMES[4] == "deduplicate"
+        assert STEP_NAMES[5] == "build_graph"
+        assert STEP_NAMES[6] == "enrich_threats"
+        assert STEP_NAMES[7] == "score_risk"
+        assert STEP_NAMES[8] == "apply_policy"
+        assert STEP_NAMES[9] == "llm_consensus"
+        assert STEP_NAMES[10] == "micro_pentest"
+        assert STEP_NAMES[11] == "run_playbooks"
+        assert STEP_NAMES[12] == "generate_evidence"
 
 
 # ---------------------------------------------------------------------------
@@ -316,14 +317,14 @@ class TestPipelineRun:
 
     def test_run_has_12_steps(self, pipeline, basic_input):
         result = pipeline.run(basic_input)
-        assert len(result.steps) == 12
+        assert len(result.steps) == 13
 
     def test_optional_steps_skipped_by_default(self, pipeline, basic_input):
         """Step 10 (pentest) should be SKIPPED; 11/12 run by default."""
         result = pipeline.run(basic_input)
-        micro_pentest = result.steps[9]
-        run_playbooks = result.steps[10]
-        gen_evidence = result.steps[11]
+        micro_pentest = result.steps[10]
+        run_playbooks = result.steps[11]
+        gen_evidence = result.steps[12]
         assert micro_pentest.status == StepStatus.SKIPPED
         assert run_playbooks.status == StepStatus.COMPLETED
         assert gen_evidence.status == StepStatus.COMPLETED
@@ -334,8 +335,8 @@ class TestPipelineRun:
         # Steps 0-2 should complete (no external deps)
         assert result.steps[0].status == StepStatus.COMPLETED  # connect
         assert result.steps[1].status == StepStatus.COMPLETED  # normalize
-        # Steps 3-5 may fail if services unavailable, but should not crash
-        for step in result.steps[:9]:
+        # Steps 3-6 may fail if services unavailable, but should not crash
+        for step in result.steps[:10]:
             assert step.status in (
                 StepStatus.COMPLETED,
                 StepStatus.FAILED,
@@ -450,7 +451,7 @@ class TestStepResolveIdentity:
 class TestStepDeduplicate:
     def test_deduplicate_graceful_when_unavailable(self, pipeline, basic_input):
         result = pipeline.run(basic_input)
-        step = result.steps[3]
+        step = result.steps[4]
         assert step.status in (StepStatus.COMPLETED, StepStatus.FAILED)
 
 
@@ -462,7 +463,7 @@ class TestStepDeduplicate:
 class TestStepBuildGraph:
     def test_build_graph_graceful_when_unavailable(self, pipeline, basic_input):
         result = pipeline.run(basic_input)
-        step = result.steps[4]
+        step = result.steps[5]
         assert step.status in (StepStatus.COMPLETED, StepStatus.FAILED)
 
 
@@ -474,7 +475,7 @@ class TestStepBuildGraph:
 class TestStepEnrichThreats:
     def test_enrich_threats_with_cves(self, pipeline, basic_input):
         result = pipeline.run(basic_input)
-        step = result.steps[5]
+        step = result.steps[6]
         assert step.status == StepStatus.COMPLETED
         # 10 of 20 findings have CVE IDs (every other one)
         assert step.output["enriched"] == 10
@@ -483,7 +484,7 @@ class TestStepEnrichThreats:
         findings = [{"id": "1", "severity": "high"}]
         inp = PipelineInput(org_id="org", findings=findings)
         result = pipeline.run(inp)
-        step = result.steps[5]
+        step = result.steps[6]
         assert step.status == StepStatus.COMPLETED
         assert step.output["enriched"] == 0
 
@@ -524,7 +525,7 @@ class TestStepEnrichThreats:
 class TestStepScoreRisk:
     def test_score_risk_produces_scores(self, pipeline, basic_input):
         result = pipeline.run(basic_input)
-        step = result.steps[6]
+        step = result.steps[7]
         assert step.status == StepStatus.COMPLETED
         assert step.output["scored"] == 20
         assert 0 <= step.output["avg_risk_score"] <= 1.0
@@ -549,7 +550,7 @@ class TestStepScoreRisk:
     def test_score_risk_empty_findings(self, pipeline):
         inp = PipelineInput(org_id="org", findings=[])
         result = pipeline.run(inp)
-        step = result.steps[6]
+        step = result.steps[7]
         assert step.status == StepStatus.COMPLETED
         assert step.output["scored"] == 0
         assert step.output["avg_risk_score"] == 0.0
@@ -563,7 +564,7 @@ class TestStepScoreRisk:
 class TestStepApplyPolicy:
     def test_apply_policy_default_rules(self, pipeline, basic_input):
         result = pipeline.run(basic_input)
-        step = result.steps[7]
+        step = result.steps[8]
         assert step.status == StepStatus.COMPLETED
         assert step.output["decisions"] == 20
         assert isinstance(step.output["action_breakdown"], dict)
@@ -604,7 +605,7 @@ class TestStepApplyPolicy:
             policy_rules=custom_rules,
         )
         result = pipeline.run(inp)
-        step = result.steps[7]
+        step = result.steps[8]
         assert step.status == StepStatus.COMPLETED
 
 
@@ -616,7 +617,7 @@ class TestStepApplyPolicy:
 class TestStepLLMConsensus:
     def test_llm_consensus_graceful_when_unavailable(self, pipeline, basic_input):
         result = pipeline.run(basic_input)
-        step = result.steps[8]
+        step = result.steps[9]
         assert step.status in (StepStatus.COMPLETED, StepStatus.FAILED)
 
     def test_llm_consensus_no_critical_findings(self, pipeline):
@@ -626,7 +627,7 @@ class TestStepLLMConsensus:
         ]
         inp = PipelineInput(org_id="org", findings=findings)
         result = pipeline.run(inp)
-        step = result.steps[8]
+        step = result.steps[9]
         assert step.status == StepStatus.COMPLETED
         assert step.output.get("analyzed") == 0
 
@@ -639,7 +640,7 @@ class TestStepLLMConsensus:
 class TestStepMicroPentest:
     def test_skipped_by_default(self, pipeline, basic_input):
         result = pipeline.run(basic_input)
-        assert result.steps[9].status == StepStatus.SKIPPED
+        assert result.steps[10].status == StepStatus.SKIPPED
 
     @pytest.mark.timeout(15)
     @patch("core.brain_pipeline.BrainPipeline._step_micro_pentest")
@@ -647,7 +648,7 @@ class TestStepMicroPentest:
         mock_pentest.return_value = {"tested_cves": 3, "status": "complete"}
         basic_input.run_pentest = True
         result = pipeline.run(basic_input)
-        assert result.steps[9].status == StepStatus.COMPLETED
+        assert result.steps[10].status == StepStatus.COMPLETED
 
 
 # ---------------------------------------------------------------------------
@@ -658,17 +659,17 @@ class TestStepMicroPentest:
 class TestStepRunPlaybooks:
     def test_runs_by_default(self, pipeline, basic_input):
         result = pipeline.run(basic_input)
-        assert result.steps[10].status == StepStatus.COMPLETED
+        assert result.steps[11].status == StepStatus.COMPLETED
 
     def test_skipped_when_disabled(self, pipeline, basic_input):
         basic_input.run_playbooks = False
         result = pipeline.run(basic_input)
-        assert result.steps[10].status == StepStatus.SKIPPED
+        assert result.steps[11].status == StepStatus.SKIPPED
 
     def test_runs_when_enabled(self, pipeline, basic_input):
         basic_input.run_playbooks = True
         result = pipeline.run(basic_input)
-        step = result.steps[10]
+        step = result.steps[11]
         assert step.status == StepStatus.COMPLETED
         assert "executed" in step.output
 
@@ -678,7 +679,7 @@ class TestStepRunPlaybooks:
             org_id="org", findings=findings, run_playbooks=True
         )
         result = pipeline.run(inp)
-        step = result.steps[10]
+        step = result.steps[11]
         assert step.status == StepStatus.COMPLETED
         assert step.output["executed"] == 0
 
@@ -691,17 +692,17 @@ class TestStepRunPlaybooks:
 class TestStepGenerateEvidence:
     def test_runs_by_default(self, pipeline, basic_input):
         result = pipeline.run(basic_input)
-        assert result.steps[11].status == StepStatus.COMPLETED
+        assert result.steps[12].status == StepStatus.COMPLETED
 
     def test_skipped_when_disabled(self, pipeline, basic_input):
         basic_input.generate_evidence = False
         result = pipeline.run(basic_input)
-        assert result.steps[11].status == StepStatus.SKIPPED
+        assert result.steps[12].status == StepStatus.SKIPPED
 
     def test_runs_when_enabled(self, pipeline, basic_input):
         basic_input.generate_evidence = True
         result = pipeline.run(basic_input)
-        step = result.steps[11]
+        step = result.steps[12]
         assert step.status == StepStatus.COMPLETED
         assert step.output["framework"] == "soc2"
         assert step.output["org_id"] == "test-org"
@@ -711,7 +712,7 @@ class TestStepGenerateEvidence:
     def test_evidence_contains_controls(self, pipeline, basic_input):
         basic_input.generate_evidence = True
         result = pipeline.run(basic_input)
-        controls = result.steps[11].output["controls"]
+        controls = result.steps[12].output["controls"]
         assert "vulnerability_management" in controls
         assert "change_management" in controls
         assert "logging_monitoring" in controls
@@ -720,7 +721,7 @@ class TestStepGenerateEvidence:
         basic_input.generate_evidence = True
         basic_input.evidence_framework = "hipaa"
         result = pipeline.run(basic_input)
-        assert result.steps[11].output["framework"] == "hipaa"
+        assert result.steps[12].output["framework"] == "hipaa"
 
 
 # ---------------------------------------------------------------------------
@@ -751,7 +752,7 @@ class TestPipelineFailureHandling:
         assert result.steps[0].status == StepStatus.COMPLETED  # connect OK
         assert result.steps[1].status == StepStatus.FAILED  # normalize failed
         # Later steps still attempted
-        for step in result.steps[2:9]:
+        for step in result.steps[2:10]:
             assert step.status in (
                 StepStatus.COMPLETED,
                 StepStatus.FAILED,

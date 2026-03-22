@@ -304,7 +304,7 @@ def correlate_cross_stage(
 
 @router.get("/graph")
 def get_correlation_graph(
-    org_id: str, cluster_id: Optional[str] = None
+    org_id: str = Query("default"), cluster_id: Optional[str] = None
 ) -> Dict[str, Any]:
     """Get the correlation graph for visualization.
 

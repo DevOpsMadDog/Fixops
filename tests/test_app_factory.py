@@ -174,11 +174,16 @@ class TestAuthHelpers:
         assert result is False
 
     def test_record_and_check_auth_rate_limit(self):
-        from apps.api.app import _record_auth_failure, _check_auth_rate_limit, _AUTH_FAIL_MAX
+        from unittest.mock import patch as _patch
+        from apps.api.app import _record_auth_failure, _check_auth_rate_limit, _AUTH_FAIL_MAX, _AUTH_FAIL_TRACKER
         test_ip = "198.51.100.99"
-        for _ in range(_AUTH_FAIL_MAX + 1):
-            _record_auth_failure(test_ip)
-        assert _check_auth_rate_limit(test_ip) is True
+        # Ensure rate limiting is enabled for this test (module sets FIXOPS_DISABLE_RATE_LIMIT=1)
+        with _patch.dict(os.environ, {"FIXOPS_DISABLE_RATE_LIMIT": "0"}):
+            # Clear any prior entries for this IP
+            _AUTH_FAIL_TRACKER.pop(test_ip, None)
+            for _ in range(_AUTH_FAIL_MAX + 1):
+                _record_auth_failure(test_ip)
+            assert _check_auth_rate_limit(test_ip) is True
 
 
 # ---------------------------------------------------------------------------

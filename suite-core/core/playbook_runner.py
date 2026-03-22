@@ -457,7 +457,7 @@ class PlaybookRunner:
         try:
             playbook = self.load_playbook(path)
             return self.validate_playbook(playbook)
-        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        except (OSError, ValueError, KeyError, RuntimeError, yaml.YAMLError) as exc:  # narrowed from bare Exception
             return [ValidationError("file", str(exc))]
 
     def _parse_playbook(self, data: Dict[str, Any]) -> Playbook:

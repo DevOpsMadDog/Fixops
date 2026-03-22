@@ -1,5 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import {
   Container, RefreshCw, Download, AlertTriangle, CheckCircle,
   Activity, Shield, Package, Image, Clock, Zap,
@@ -35,6 +37,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { useFindings, useContainerStatus } from "@/hooks/use-api";
+import { containerApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import {
   AreaChart,
@@ -60,6 +63,7 @@ interface ContainerFinding {
   high_count?: number;
   medium_count?: number;
   low_count?: number;
+  cve?: string;
   last_scanned?: string;
   created_at?: string;
   base_image?: string;
@@ -110,6 +114,7 @@ function StatusBadge({ status }: { status?: string }) {
 // Runtime protections derived from container status API capabilities
 
 export default function ContainerSecurity() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [registryFilter, setRegistryFilter] = useState("all");
@@ -225,7 +230,13 @@ export default function ContainerSecurity() {
         <Button variant="outline" size="sm" onClick={() => query.refetch()} className="gap-2">
           <RefreshCw className="h-4 w-4" /> Refresh
         </Button>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="sm" className="gap-2" onClick={() => {
+          const blob = new Blob([JSON.stringify(allFindings, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a"); a.href = url; a.download = "container-findings.json"; a.click();
+          URL.revokeObjectURL(url);
+          toast.success(`Exported ${allFindings.length} container findings`);
+        }}>
           <Download className="h-4 w-4" /> Export
         </Button>
       </PageHeader>
@@ -497,9 +508,22 @@ export default function ContainerSecurity() {
                 </div>
               )}
               <div className="flex gap-2">
-                <Button size="sm">Rescan Image</Button>
-                <Button size="sm" variant="outline">View Full Report</Button>
-                <Button size="sm" variant="outline">Create Ticket</Button>
+                <Button size="sm" onClick={async () => {
+                  try {
+                    const image = detailFinding.title || detailFinding.image || "unknown";
+                    await containerApi.scanImage({ image });
+                    toast.success(`Rescan initiated for ${image}`);
+                    query.refetch();
+                  } catch { toast.error("Rescan failed"); }
+                }}>Rescan Image</Button>
+                <Button size="sm" variant="outline" onClick={() => {
+                  const id = detailFinding.id || detailFinding.finding_id;
+                  if (id) navigate(`/discover/finding-explorer?search=${encodeURIComponent(id)}`);
+                }}>View Full Report</Button>
+                <Button size="sm" variant="outline" onClick={() => {
+                  const title = detailFinding.title || detailFinding.cve || "Container vulnerability";
+                  navigate(`/remediate/ticket-integration?title=${encodeURIComponent(title)}&source=container`);
+                }}>Create Ticket</Button>
               </div>
             </div>
           )}

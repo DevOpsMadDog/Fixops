@@ -1,5 +1,5 @@
 import { toArray } from "@/lib/api-utils";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,8 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
 import { useIntegrations, useTestIntegration, useSyncIntegration, useConfigureIntegration } from "@/hooks/use-api";
+import { webhookEventsApi } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 function WebhookConfigCard({ integration }: { integration: any }) {
@@ -97,15 +99,8 @@ function WebhookConfigCard({ integration }: { integration: any }) {
   );
 }
 
-// Sync timeline fallback — wire to real integrations sync log when available
-const SYNC_TIMELINE = [
-  { time: "09:42", name: "Snyk", event: "Scan results pushed", status: "success", records: 47 },
-  { time: "09:35", name: "Jira", event: "Tickets synced", status: "success", records: 12 },
-  { time: "09:20", name: "GitHub", event: "PR events pulled", status: "success", records: 8 },
-  { time: "08:58", name: "Trivy", event: "Container scan completed", status: "success", records: 134 },
-  { time: "08:30", name: "SonarQube", event: "Code quality sync failed", status: "error", records: 0 },
-  { time: "08:15", name: "Slack", event: "Alert notifications sent", status: "success", records: 3 },
-];
+// Empty default — sync timeline is loaded exclusively from the webhook events API
+const SYNC_TIMELINE_EMPTY: { time: string; name: string; event: string; status: string; records: number }[] = [];
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
   Scanner: Shield,
@@ -216,6 +211,27 @@ export default function Integrations() {
 
   if (integrationsQuery.isLoading) return <PageSkeleton />;
   if (integrationsQuery.isError) return <ErrorState message="Failed to load integrations" onRetry={refetch} />;
+
+  const webhookEventsQuery = useQuery({
+    queryKey: ["webhooks", "events"],
+    queryFn: async () => { const { data } = await webhookEventsApi.list({ limit: 10 }); return data; },
+  });
+
+  const SYNC_TIMELINE = useMemo(() => {
+    const events = webhookEventsQuery.data?.events;
+    if (!Array.isArray(events) || events.length === 0) return SYNC_TIMELINE_EMPTY;
+    return events.slice(0, 8).map((e: Record<string, unknown>) => {
+      const ts = e.received_at ?? e.created_at ?? e.timestamp;
+      const d = ts ? new Date(ts as string) : new Date();
+      return {
+        time: `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`,
+        name: (e.integration_type as string) ?? (e.source as string) ?? "Unknown",
+        event: (e.event_type as string) ?? (e.action as string) ?? "Webhook received",
+        status: (e.processed as boolean) !== false ? "success" : "error",
+        records: Number(e.record_count ?? e.findings_count ?? 1),
+      };
+    });
+  }, [webhookEventsQuery.data]);
 
   const integrations: any[] = toArray(integrationsQuery.data);
 
@@ -465,6 +481,9 @@ export default function Integrations() {
           <div className="relative">
             <div className="absolute left-[5.5rem] top-0 bottom-0 w-px bg-border/40" />
             <div className="space-y-3">
+              {SYNC_TIMELINE.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-6">No sync events yet. Webhook events from connected integrations will appear here.</p>
+              )}
               {SYNC_TIMELINE.map((entry, i) => (
                 <div key={i} className="flex items-start gap-4">
                   <span className="text-xs text-muted-foreground w-20 shrink-0 text-right pt-0.5">{entry.time}</span>

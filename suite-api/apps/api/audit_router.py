@@ -188,7 +188,7 @@ async def get_audit_log(id: str):
 
 @router.get("/user-activity")
 async def get_user_activity(
-    user_id: str = Query(...), limit: int = Query(100, ge=1, le=1000)
+    user_id: str = Query("default"), limit: int = Query(100, ge=1, le=1000)
 ):
     """Get user activity logs."""
     logs = db.list_audit_logs(user_id=user_id, limit=limit)

@@ -166,6 +166,190 @@ class AddSupplyChainVulnRequest(BaseModel):
 
 
 # =============================================================================
+# Root List & Trending Endpoints (consumed by frontend ThreatFeeds page)
+# =============================================================================
+
+
+@router.get("")
+def list_feeds() -> Dict[str, Any]:
+    """List all configured threat intelligence feeds with live status.
+
+    Returns the feed list that the Threat Feeds UI page displays.
+    Each feed includes its name, type, status, item count, and last update time.
+    """
+    import sqlite3 as _sql
+
+    service = get_feeds_service()
+    basic = service.get_feed_stats()
+
+    epss_data = basic.get("epss", {})
+    kev_data = basic.get("kev", {})
+    epss_count = epss_data.get("total_cves", 0)
+    kev_count = kev_data.get("total_cves", 0)
+
+    # Quick counts from DB tables
+    table_counts: Dict[str, int] = {}
+    _ALLOWED = frozenset({"nvd_cves", "exploit_intelligence", "supply_chain_vulns", "threat_actor_mappings"})
+    try:
+        conn = _sql.connect(service.db_path)
+        cur = conn.cursor()
+        for table in _ALLOWED:
+            try:
+                cur.execute(f"SELECT COUNT(*) FROM {table}")  # nosec B608 — allowlisted
+                table_counts[table] = cur.fetchone()[0]
+            except _sql.OperationalError:
+                table_counts[table] = 0
+        conn.close()
+    except (OSError, ValueError, RuntimeError):
+        for table in _ALLOWED:
+            table_counts.setdefault(table, 0)
+
+    feeds = [
+        {
+            "id": "epss",
+            "name": "EPSS (Exploit Prediction Scoring System)",
+            "type": "scoring",
+            "feed_type": "authoritative",
+            "status": "active" if epss_count > 0 else "stale",
+            "enabled": True,
+            "item_count": epss_count,
+            "last_updated": epss_data.get("last_refresh"),
+            "description": "Exploit probability scores from FIRST.org",
+            "url": "https://api.first.org/data/v1/epss",
+        },
+        {
+            "id": "kev",
+            "name": "CISA KEV (Known Exploited Vulnerabilities)",
+            "type": "catalog",
+            "feed_type": "authoritative",
+            "status": "active" if kev_count > 0 else "stale",
+            "enabled": True,
+            "item_count": kev_count,
+            "last_updated": kev_data.get("last_refresh"),
+            "description": "Known exploited vulnerabilities mandated by CISA",
+            "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
+        },
+        {
+            "id": "nvd",
+            "name": "NVD (National Vulnerability Database)",
+            "type": "database",
+            "feed_type": "authoritative",
+            "status": "active" if table_counts.get("nvd_cves", 0) > 0 else "stale",
+            "enabled": True,
+            "item_count": table_counts.get("nvd_cves", 0),
+            "last_updated": None,
+            "description": "NIST National Vulnerability Database — CVE details and CVSS scores",
+            "url": "https://services.nvd.nist.gov/rest/json/cves/2.0",
+        },
+        {
+            "id": "exploitdb",
+            "name": "ExploitDB",
+            "type": "exploits",
+            "feed_type": "exploit",
+            "status": "active" if table_counts.get("exploit_intelligence", 0) > 0 else "stale",
+            "enabled": True,
+            "item_count": table_counts.get("exploit_intelligence", 0),
+            "last_updated": None,
+            "description": "Public exploit database — PoC and weaponised exploits",
+            "url": "https://gitlab.com/exploit-database/exploitdb",
+        },
+        {
+            "id": "osv",
+            "name": "OSV (Open Source Vulnerabilities)",
+            "type": "supply_chain",
+            "feed_type": "supply_chain",
+            "status": "active" if table_counts.get("supply_chain_vulns", 0) > 0 else "stale",
+            "enabled": True,
+            "item_count": table_counts.get("supply_chain_vulns", 0),
+            "last_updated": None,
+            "description": "Google OSV.dev — open-source package vulnerabilities",
+            "url": "https://osv.dev",
+        },
+        {
+            "id": "github_advisory",
+            "name": "GitHub Security Advisories",
+            "type": "supply_chain",
+            "feed_type": "supply_chain",
+            "status": "active" if table_counts.get("supply_chain_vulns", 0) > 0 else "stale",
+            "enabled": True,
+            "item_count": table_counts.get("supply_chain_vulns", 0),
+            "last_updated": None,
+            "description": "GitHub Advisory Database — ecosystem-specific advisories",
+            "url": "https://github.com/advisories",
+        },
+        {
+            "id": "threat_actors",
+            "name": "Threat Actor Intelligence",
+            "type": "threat_intel",
+            "feed_type": "threat_actor",
+            "status": "active" if table_counts.get("threat_actor_mappings", 0) > 0 else "stale",
+            "enabled": True,
+            "item_count": table_counts.get("threat_actor_mappings", 0),
+            "last_updated": None,
+            "description": "APT group and threat actor CVE mappings (MITRE ATT&CK)",
+            "url": "https://attack.mitre.org",
+        },
+    ]
+
+    return {"feeds": feeds, "count": len(feeds)}
+
+
+@router.get("/trending")
+def get_trending_cves(
+    limit: int = Query(default=20, ge=1, le=100),
+) -> Dict[str, Any]:
+    """Get trending CVEs — high-EPSS and KEV-listed vulnerabilities.
+
+    Returns the most urgent CVEs ranked by exploit probability and KEV status.
+    This powers the Trending CVEs section in the Threat Feeds UI.
+    """
+    service = get_feeds_service()
+
+    # Get high-risk CVEs (in both KEV + high EPSS)
+    trending = service.get_high_risk_cves(epss_threshold=0.3, limit=limit)
+
+    # Enrich with NVD data where available
+    enriched: List[Dict[str, Any]] = []
+    for cve in trending:
+        cve_id = cve.get("cve_id", "")
+        nvd = service.get_nvd_cve(cve_id) if cve_id else None
+        entry: Dict[str, Any] = {
+            "cve_id": cve_id,
+            "severity": (nvd or {}).get("severity", "HIGH"),
+            "epss_score": cve.get("epss_score", 0),
+            "kev": True,  # All from get_high_risk_cves are in KEV
+            "in_kev": True,
+            "description": cve.get("vulnerability_name", (nvd or {}).get("description", "")),
+            "cvss_score": (nvd or {}).get("cvss_score"),
+            "product": (nvd or {}).get("affected_packages", [""])[0] if isinstance((nvd or {}).get("affected_packages"), list) else "",
+            "published": (nvd or {}).get("published"),
+        }
+        enriched.append(entry)
+
+    # If no KEV+EPSS overlap, fall back to recent high-severity NVD CVEs
+    if not enriched:
+        recent = service.get_recent_nvd_cves(severity="CRITICAL", limit=limit)
+        for cve in recent:
+            cve_id = cve.get("cve_id", "")
+            epss = service.get_epss_score(cve_id)
+            kev = service.is_in_kev(cve_id)
+            entry = {
+                "cve_id": cve_id,
+                "severity": cve.get("severity", "CRITICAL"),
+                "epss_score": epss.epss if epss else None,
+                "kev": kev,
+                "in_kev": kev,
+                "description": cve.get("description", ""),
+                "cvss_score": cve.get("cvss_score"),
+                "product": cve.get("affected_packages", [""])[0] if isinstance(cve.get("affected_packages"), list) else "",
+                "published": cve.get("published"),
+            }
+            enriched.append(entry)
+
+    return {"cves": enriched, "count": len(enriched)}
+
+
+# =============================================================================
 # EPSS Endpoints
 # =============================================================================
 

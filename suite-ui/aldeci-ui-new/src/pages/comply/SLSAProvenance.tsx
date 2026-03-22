@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useEvidenceBundles } from "@/hooks/use-api";
+import { evidenceApi } from "@/lib/api";
+import { toast } from "sonner";
 
 const SLSA_COLORS: Record<number, string> = {
   0: "#6b7280",
@@ -246,7 +248,16 @@ export default function SLSAProvenance() {
           <RefreshCw className="h-4 w-4" />
           Refresh
         </Button>
-        <Button size="sm" className="gap-2">
+        <Button size="sm" className="gap-2" onClick={async () => {
+          toast.info("Verifying all provenance chains…");
+          const allBuilds = builds;
+          let ok = 0;
+          for (const b of allBuilds) {
+            try { await evidenceApi.verify(b.build_id ?? b.id ?? ""); ok++; } catch { /* skip */ }
+          }
+          toast.success(`Verified ${ok}/${allBuilds.length} provenance chains`);
+          refetch();
+        }}>
           <Shield className="h-4 w-4" />
           Verify All
         </Button>

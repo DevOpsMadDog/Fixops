@@ -292,13 +292,13 @@ class TestCspmScanResult:
 
 class TestRules:
     def test_aws_rules_count(self):
-        assert len(AWS_RULES) == 10
+        assert len(AWS_RULES) == 40
 
     def test_azure_rules_count(self):
-        assert len(AZURE_RULES) == 5
+        assert len(AZURE_RULES) == 25
 
     def test_gcp_rules_count(self):
-        assert len(GCP_RULES) == 5
+        assert len(GCP_RULES) == 20
 
     def test_all_rules_mapping(self):
         assert CloudProvider.AWS in ALL_RULES

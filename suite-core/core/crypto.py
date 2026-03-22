@@ -715,6 +715,11 @@ class MLDSAKeyManager:
             )
         self.level: int = level
         self._impl = _MLDSA_LEVEL_MAP[level]
+        if self._impl is None:
+            raise KeyGenerationError(
+                f"ML-DSA library (dilithium_py) is not installed. "
+                f"Cannot use ML-DSA level {level}. Install with: pip install dilithium-py"
+            )
         self.key_id: str = key_id or self._generate_key_id()
 
         self._public_key_bytes: Optional[bytes] = None

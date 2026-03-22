@@ -605,7 +605,7 @@ class TestBrainPipelineParserQuality:
 
         # Should not crash even if parser_quality raises
         with patch("core.ml.parser_quality.ParserQualityValidator.validate_findings",
-                   side_effect=Exception("Validator error")):
+                   side_effect=RuntimeError("Validator error")):
             result = pipeline.run(inp)
 
         normalize_step = next(s for s in result.steps if s.name == "normalize")

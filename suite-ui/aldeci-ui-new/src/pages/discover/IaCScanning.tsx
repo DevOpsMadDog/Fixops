@@ -1,5 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import {
   Server, RefreshCw, Download, AlertTriangle, CheckCircle,
   ChevronDown, ChevronRight, Cloud, GitBranch, Settings,
@@ -42,7 +44,8 @@ import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { useFindings } from "@/hooks/use-api";
+import { useFindings, useAutofix } from "@/hooks/use-api";
+import { findingsApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface IaCFinding {
@@ -97,6 +100,8 @@ const CIS_CONTROLS = [
 ];
 
 export default function IaCScanning() {
+  const navigate = useNavigate();
+  const autofixMutation = useAutofix();
   const [providerFilter, setProviderFilter] = useState("all");
   const [severityFilter, setSeverityFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -191,7 +196,13 @@ export default function IaCScanning() {
         <Button variant="outline" size="sm" onClick={() => query.refetch()} className="gap-2">
           <RefreshCw className="h-4 w-4" /> Refresh
         </Button>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="sm" className="gap-2" onClick={() => {
+          const blob = new Blob([JSON.stringify(allFindings, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a"); a.href = url; a.download = "iac-findings.json"; a.click();
+          URL.revokeObjectURL(url);
+          toast.success(`Exported ${allFindings.length} IaC findings`);
+        }}>
           <Download className="h-4 w-4" /> Export
         </Button>
       </PageHeader>
@@ -447,9 +458,26 @@ export default function IaCScanning() {
                 </div>
               )}
               <div className="flex gap-2">
-                <Button size="sm">Apply Fix</Button>
-                <Button size="sm" variant="outline">Create Ticket</Button>
-                <Button size="sm" variant="outline">Suppress</Button>
+                <Button size="sm" onClick={() => {
+                  const id = detailFinding.id || detailFinding.finding_id || "";
+                  autofixMutation.mutate(id, {
+                    onSuccess: () => { toast.success("AutoFix generated — check Remediation Center"); setDetailFinding(null); },
+                    onError: () => toast.error("AutoFix generation failed"),
+                  });
+                }}>Apply Fix</Button>
+                <Button size="sm" variant="outline" onClick={() => {
+                  const title = detailFinding.title || detailFinding.rule || "IaC misconfiguration";
+                  navigate(`/remediate/ticket-integration?title=${encodeURIComponent(title)}&source=iac`);
+                }}>Create Ticket</Button>
+                <Button size="sm" variant="outline" onClick={async () => {
+                  try {
+                    const id = detailFinding.id || detailFinding.finding_id || "";
+                    await findingsApi.triage(id, "suppress");
+                    toast.success("Finding suppressed");
+                    setDetailFinding(null);
+                    query.refetch();
+                  } catch { toast.error("Suppress failed"); }
+                }}>Suppress</Button>
               </div>
             </div>
           )}

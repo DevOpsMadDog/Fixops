@@ -120,10 +120,18 @@ for _pkg in ("risk", "risk.reachability"):
 _call_graph_mod = _make_module("risk.reachability.call_graph")
 _call_graph_mod.CallGraphBuilder = MagicMock()
 
-_code_analysis_mod = _make_module("risk.reachability.code_analysis")
-_code_analysis_mod.VulnerablePattern = _FakeVulnerablePattern
-_code_analysis_mod.AnalysisResult = _FakeAnalysisResult
-_code_analysis_mod.CodeAnalyzer = MagicMock()
+# Only create a stub if the real module hasn't been imported yet — otherwise
+# we'd clobber the real module's attributes (e.g. subprocess) and break other
+# tests that patch through the module path.
+if "risk.reachability.code_analysis" not in sys.modules or isinstance(
+    sys.modules["risk.reachability.code_analysis"], MagicMock
+):
+    _code_analysis_mod = _make_module("risk.reachability.code_analysis")
+    _code_analysis_mod.VulnerablePattern = _FakeVulnerablePattern
+    _code_analysis_mod.AnalysisResult = _FakeAnalysisResult
+    _code_analysis_mod.CodeAnalyzer = MagicMock()
+else:
+    _code_analysis_mod = sys.modules["risk.reachability.code_analysis"]
 
 _data_flow_mod = _make_module("risk.reachability.data_flow")
 _data_flow_mod.DataFlowAnalyzer = MagicMock()

@@ -370,6 +370,52 @@ class AWSSecurityHubConnector(_BaseConnector):
         except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
+    def batch_import_findings(
+        self, findings: List[Dict[str, Any]]
+    ) -> ConnectorOutcome:
+        """Batch import findings into AWS Security Hub in ASFF format.
+
+        Uses BatchImportFindings API. Each finding must be a valid ASFF dict with
+        at minimum: SchemaVersion, Id, ProductArn, GeneratorId, AwsAccountId,
+        Types, CreatedAt, UpdatedAt, Severity, Title, Resources.
+
+        Processes in batches of 100 (AWS API limit).
+        """
+        client = self._get_client()
+        if not client:
+            return ConnectorOutcome("skipped", {"reason": "boto3 not available"})
+
+        total_imported = 0
+        total_failed = 0
+        errors: List[str] = []
+
+        # Process in batches of 100 (AWS limit)
+        for i in range(0, len(findings), 100):
+            batch = findings[i : i + 100]
+            try:
+                resp = client.batch_import_findings(Findings=batch)
+                total_imported += resp.get("SuccessCount", 0)
+                total_failed += resp.get("FailedCount", 0)
+                for fail in resp.get("FailedFindings", []):
+                    errors.append(
+                        f"{fail.get('Id', 'unknown')}: {fail.get('ErrorMessage', 'unknown error')}"
+                    )
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:
+                total_failed += len(batch)
+                errors.append(f"Batch {i // 100}: {type(exc).__name__}")
+
+        status = "sent" if total_failed == 0 else ("partial" if total_imported > 0 else "failed")
+        return ConnectorOutcome(
+            status,
+            {
+                "imported": total_imported,
+                "failed": total_failed,
+                "total": len(findings),
+                "errors": errors[:10],  # Cap error messages
+                "operation": "batch_import_findings",
+            },
+        )
+
     def health_check(self) -> ConnectorHealth:
         client = self._get_client()
         if not client:
@@ -651,6 +697,77 @@ class WizConnector(_BaseConnector):
                 "fetched", {"resources": resources, "count": len(resources)}
             )
         except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+            return ConnectorOutcome("failed", {"error": type(exc).__name__})
+
+    def create_issue(
+        self,
+        title: str,
+        severity: str = "HIGH",
+        description: Optional[str] = None,
+        resource_id: Optional[str] = None,
+        due_at: Optional[str] = None,
+    ) -> ConnectorOutcome:
+        """Create a Wiz Issue via GraphQL mutation.
+
+        Args:
+            title: Issue title.
+            severity: CRITICAL | HIGH | MEDIUM | LOW | INFORMATIONAL.
+            description: Detailed description of the issue.
+            resource_id: Optional Wiz resource ID to associate.
+            due_at: Optional ISO8601 due date.
+        """
+        if not self.configured:
+            return ConnectorOutcome("skipped", {"reason": "wiz not configured"})
+
+        mutation = """
+        mutation CreateIssue($input: CreateIssueInput!) {
+            createIssue(input: $input) {
+                issue {
+                    id
+                    severity
+                    status
+                    createdAt
+                    sourceRule { id name }
+                    entitySnapshot { id type name }
+                }
+            }
+        }
+        """
+        variables: Dict[str, Any] = {
+            "input": {
+                "title": title,
+                "severity": severity.upper(),
+            }
+        }
+        if description:
+            variables["input"]["description"] = description
+        if resource_id:
+            variables["input"]["resourceId"] = resource_id
+        if due_at:
+            variables["input"]["dueAt"] = due_at
+
+        try:
+            data = self._graphql(mutation, variables)
+            issue = data.get("data", {}).get("createIssue", {}).get("issue", {})
+            if not issue:
+                errors = data.get("errors", [])
+                return ConnectorOutcome(
+                    "failed",
+                    {
+                        "reason": "wiz issue creation returned no issue",
+                        "errors": [e.get("message", "") for e in errors],
+                    },
+                )
+            return ConnectorOutcome(
+                "sent",
+                {
+                    "issue_id": issue.get("id"),
+                    "severity": issue.get("severity"),
+                    "status": issue.get("status"),
+                    "operation": "create_issue",
+                },
+            )
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:
             return ConnectorOutcome("failed", {"error": type(exc).__name__})
 
     def health_check(self) -> ConnectorHealth:

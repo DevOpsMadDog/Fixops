@@ -247,7 +247,13 @@ export default function AttackPaths() {
         <Button variant="outline" size="sm" onClick={refetch} className="gap-2">
           <RefreshCw className="h-4 w-4" /> Refresh
         </Button>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="sm" className="gap-2" onClick={() => {
+          const blob = new Blob([JSON.stringify(allPaths, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a"); a.href = url; a.download = "attack-paths-report.json"; a.click();
+          URL.revokeObjectURL(url);
+          toast.success(`Exported ${allPaths.length} attack paths`);
+        }}>
           <Download className="h-4 w-4" /> Export Report
         </Button>
       </PageHeader>

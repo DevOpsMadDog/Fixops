@@ -32,8 +32,9 @@ import {
   useNervePulse,
   useDashboardTrends,
   useDashboardCompliance,
+  useIngestStats,
 } from "@/hooks/use-api";
-import { analyticsApi } from "@/lib/api";
+import { analyticsApi, scannerIngestApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const SEVERITY_COLORS: Record<string, string> = {
@@ -160,6 +161,7 @@ export default function CommandDashboard() {
   const pulse = useNervePulse();
   const trends = useDashboardTrends({ period: timeRange });
   const compliance = useDashboardCompliance();
+  const ingestStats = useIngestStats();
 
   // ── Noise Reduction Funnel (real data from /analytics/triage-funnel) ──
   const funnelQuery = useQuery({
@@ -354,26 +356,15 @@ export default function CommandDashboard() {
               onClick={() => navigate("/discover?status=suppressed")}
             />
           </motion.div>
-          {/* Fixes Today — only shows on lg+ */}
-          <motion.div variants={itemVariants} className="hidden lg:block col-span-0">
-            {/* re-use a spare slot for fixes today on smaller grids */}
+          <motion.div variants={itemVariants}>
+            <KpiCard
+              title="Fixes Today"
+              value={fixesToday}
+              icon={Wrench}
+              trend={fixesToday > 0 ? "up" : "flat"}
+              onClick={() => navigate("/remediate?status=resolved")}
+            />
           </motion.div>
-        </motion.div>
-
-        {/* Fixes Today KPI visible on all sizes separately */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="grid grid-cols-1 lg:hidden"
-        >
-          <KpiCard
-            title="Fixes Today"
-            value={fixesToday}
-            icon={Wrench}
-            trend={fixesToday > 0 ? "up" : "flat"}
-            onClick={() => navigate("/remediate?status=resolved")}
-          />
         </motion.div>
 
         {/* Main 3-column layout */}
@@ -622,6 +613,55 @@ export default function CommandDashboard() {
                       Generated: {new Date(pulseData.summary_generated_at).toLocaleString()}
                     </p>
                   )}
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Connected Scanners */}
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Radio className="h-4 w-4 text-green-400" />
+                    Connected Scanners
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {(() => {
+                    const stats = ingestStats.data as Record<string, unknown> | undefined;
+                    const scanners = (stats?.scanners ?? stats?.parsers ?? stats?.supported ?? []) as Record<string, unknown>[];
+                    const totalFindings = Number(stats?.total_findings ?? stats?.findings_count ?? 0);
+                    const lastIngest = stats?.last_ingest_at as string | undefined;
+                    const defaultScanners = [
+                      { name: "Semgrep", type: "SAST" },
+                      { name: "Trivy", type: "SCA/Container" },
+                      { name: "Bandit", type: "SAST" },
+                      { name: "Checkov", type: "IaC" },
+                      { name: "Gitleaks", type: "Secrets" },
+                      { name: "SonarQube", type: "SAST" },
+                    ];
+                    const items = scanners.length > 0
+                      ? scanners.map(s => ({ name: String(s.name ?? s.scanner ?? "Unknown"), type: String(s.type ?? s.category ?? ""), active: s.active !== false }))
+                      : defaultScanners.map(s => ({ ...s, active: totalFindings > 0 }));
+                    return (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          {items.slice(0, 6).map((s) => (
+                            <div key={s.name} className="flex items-center gap-2 text-xs py-1">
+                              <Circle className={cn("h-2 w-2 shrink-0", s.active ? "fill-green-400 text-green-400" : "fill-slate-500 text-slate-500")} />
+                              <span className="font-medium truncate">{s.name}</span>
+                              {s.type && <span className="text-muted-foreground text-[10px] ml-auto">{s.type}</span>}
+                            </div>
+                          ))}
+                        </div>
+                        <Separator />
+                        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                          <span>{totalFindings > 0 ? `${totalFindings.toLocaleString()} findings ingested` : "No findings ingested yet"}</span>
+                          {lastIngest && <span>Last: {new Date(lastIngest).toLocaleDateString()}</span>}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </motion.div>

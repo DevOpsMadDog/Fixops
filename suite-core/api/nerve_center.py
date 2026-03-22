@@ -294,7 +294,7 @@ async def get_nerve_center_state():
                 endpoints = body.get("routes", body.get("endpoints", 0))
             elif r.status_code < 500:
                 status = "degraded"
-        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
+        except (OSError, ValueError, RuntimeError, Exception):
             pass
         suites.append(
             SuiteStatus(
@@ -647,7 +647,7 @@ async def list_playbooks():
                         "author": props.get("author", "FixOps"),
                     }
                 )
-        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
+        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError, OSError, Exception) as exc:
             _log.debug("Playbook query from brain failed: %s", exc)
 
     # If brain has no playbook nodes, seed defaults and return them
@@ -705,18 +705,14 @@ async def list_playbooks():
         # Seed into brain if available
         if brain:
             try:
-                from core.knowledge_brain import NodeType
-
                 for pb in _DEFAULTS:
                     brain.upsert_node(
                         pb["id"],
-                        NodeType.PLAYBOOK
-                        if hasattr(NodeType, "PLAYBOOK")
-                        else "PLAYBOOK",
+                        "PLAYBOOK",
                         label=pb["name"],
                         properties={k: v for k, v in pb.items() if k != "id"},
                     )
-            except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
+            except Exception:
                 pass
         playbooks = _DEFAULTS
     return {"playbooks": playbooks}

@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import React, { useState, useMemo } from "react";
+import { NavLink, Link, Outlet, useLocation } from "react-router-dom";
 import { ErrorState } from "@/components/shared/ErrorState";
 
 // Route-level error boundary that resets on navigation
@@ -93,6 +93,8 @@ interface NavItem {
   to: string;
   icon: LucideIcon;
   badge?: string;
+  /** If set, only users with one of these roles see this item. Omit for everyone. */
+  roles?: string[];
 }
 
 interface NavGroup {
@@ -107,8 +109,8 @@ const navGroups: NavGroup[] = [
     icon: Target,
     items: [
       { label: "Command Dashboard", to: "/mission-control", icon: LayoutDashboard },
-      { label: "Executive View", to: "/mission-control/executive", icon: Crown },
-      { label: "SLA Dashboard", to: "/mission-control/sla", icon: Clock },
+      { label: "Executive View", to: "/mission-control/executive", icon: Crown, roles: ["admin", "security_analyst"] },
+      { label: "SLA Dashboard", to: "/mission-control/sla", icon: Clock, roles: ["admin", "security_analyst"] },
       { label: "Live Feed", to: "/mission-control/live-feed", icon: Activity },
       { label: "Risk Overview", to: "/mission-control/risk", icon: AlertTriangle },
     ],
@@ -121,24 +123,24 @@ const navGroups: NavGroup[] = [
       { label: "Code Scanning", to: "/discover/code", icon: Code },
       { label: "Secrets", to: "/discover/secrets", icon: KeyRound },
       { label: "IaC Scanning", to: "/discover/iac", icon: Server },
-      { label: "Cloud Posture", to: "/discover/cloud", icon: Cloud },
+      { label: "Cloud Posture", to: "/discover/cloud", icon: Cloud, roles: ["admin", "security_analyst"] },
       { label: "Containers", to: "/discover/containers", icon: Container },
       { label: "SBOM & Inventory", to: "/discover/sbom", icon: Package },
-      { label: "Knowledge Graph", to: "/discover/graph", icon: Share2 },
-      { label: "Attack Paths", to: "/discover/attack-paths", icon: Route },
-      { label: "Threat Feeds", to: "/discover/threats", icon: Rss },
-      { label: "Correlation Engine", to: "/discover/correlation", icon: GitMerge },
-      { label: "Data Fabric", to: "/discover/data-fabric", icon: Database },
+      { label: "Knowledge Graph", to: "/discover/graph", icon: Share2, roles: ["admin", "security_analyst"] },
+      { label: "Attack Paths", to: "/discover/attack-paths", icon: Route, roles: ["admin", "security_analyst"] },
+      { label: "Threat Feeds", to: "/discover/threats", icon: Rss, roles: ["admin", "security_analyst"] },
+      { label: "Correlation Engine", to: "/discover/correlation", icon: GitMerge, roles: ["admin", "security_analyst"] },
+      { label: "Data Fabric", to: "/discover/data-fabric", icon: Database, roles: ["admin", "security_analyst"] },
     ],
   },
   {
     label: "Validate",
     icon: ShieldCheck,
     items: [
-      { label: "MPTE Console", to: "/validate/mpte", icon: Crosshair },
-      { label: "Attack Simulation", to: "/validate/simulation", icon: Swords },
-      { label: "FAIL Engine", to: "/validate/fail", icon: Flame, badge: "NEW" },
-      { label: "Playbooks", to: "/validate/playbooks", icon: BookOpen },
+      { label: "MPTE Console", to: "/validate/mpte", icon: Crosshair, roles: ["admin", "security_analyst"] },
+      { label: "Attack Simulation", to: "/validate/simulation", icon: Swords, roles: ["admin", "security_analyst"] },
+      { label: "FAIL Engine", to: "/validate/fail", icon: Flame, badge: "NEW", roles: ["admin", "security_analyst"] },
+      { label: "Playbooks", to: "/validate/playbooks", icon: BookOpen, roles: ["admin", "security_analyst"] },
       { label: "Reachability", to: "/validate/reachability", icon: Network },
     ],
   },
@@ -148,11 +150,11 @@ const navGroups: NavGroup[] = [
     items: [
       { label: "Remediation Center", to: "/remediate", icon: CheckCircle },
       { label: "AutoFix", to: "/remediate/autofix", icon: Wand2 },
-      { label: "Bulk Operations", to: "/remediate/bulk", icon: Layers },
+      { label: "Bulk Operations", to: "/remediate/bulk", icon: Layers, roles: ["admin", "security_analyst"] },
       { label: "Collaboration", to: "/remediate/collaborate", icon: Users },
-      { label: "Workflows", to: "/remediate/workflows", icon: Workflow },
+      { label: "Workflows", to: "/remediate/workflows", icon: Workflow, roles: ["admin", "security_analyst"] },
       { label: "Exposure Cases", to: "/remediate/cases", icon: AlertTriangle },
-      { label: "Ticket Integration", to: "/remediate/tickets", icon: Ticket },
+      { label: "Ticket Integration", to: "/remediate/tickets", icon: Ticket, roles: ["admin", "security_analyst"] },
     ],
   },
   {
@@ -160,11 +162,11 @@ const navGroups: NavGroup[] = [
     icon: Shield,
     items: [
       { label: "Compliance Dashboard", to: "/comply", icon: ClipboardCheck },
-      { label: "Evidence Vault", to: "/comply/evidence", icon: Lock },
-      { label: "Evidence Export", to: "/comply/export", icon: Download },
-      { label: "SOC2 Evidence", to: "/comply/soc2", icon: FileCheck },
-      { label: "SLSA Provenance", to: "/comply/slsa", icon: FileSignature },
-      { label: "Audit Trail", to: "/comply/audit", icon: ScrollText },
+      { label: "Evidence Vault", to: "/comply/evidence", icon: Lock, roles: ["admin", "security_analyst"] },
+      { label: "Evidence Export", to: "/comply/export", icon: Download, roles: ["admin", "security_analyst"] },
+      { label: "SOC2 Evidence", to: "/comply/soc2", icon: FileCheck, roles: ["admin", "security_analyst"] },
+      { label: "SLSA Provenance", to: "/comply/slsa", icon: FileSignature, roles: ["admin", "security_analyst"] },
+      { label: "Audit Trail", to: "/comply/audit", icon: ScrollText, roles: ["admin", "security_analyst"] },
       { label: "Reports", to: "/comply/reports", icon: FileText },
       { label: "Analytics", to: "/comply/analytics", icon: BarChart3 },
     ],
@@ -174,11 +176,11 @@ const navGroups: NavGroup[] = [
     icon: Brain,
     items: [
       { label: "Copilot", to: "/ai", icon: Bot },
-      { label: "Brain Pipeline", to: "/ai/brain", icon: Workflow },
-      { label: "Multi-LLM Consensus", to: "/ai/consensus", icon: Scale },
-      { label: "Algorithmic Lab", to: "/ai/algorithms", icon: FlaskConical },
-      { label: "ML Dashboard", to: "/ai/ml", icon: Cpu },
-      { label: "Predictions", to: "/ai/predictions", icon: TrendingUp },
+      { label: "Brain Pipeline", to: "/ai/brain", icon: Workflow, roles: ["admin", "security_analyst"] },
+      { label: "Multi-LLM Consensus", to: "/ai/consensus", icon: Scale, roles: ["admin", "security_analyst"] },
+      { label: "Algorithmic Lab", to: "/ai/algorithms", icon: FlaskConical, roles: ["admin", "security_analyst"] },
+      { label: "ML Dashboard", to: "/ai/ml", icon: Cpu, roles: ["admin", "security_analyst"] },
+      { label: "Predictions", to: "/ai/predictions", icon: TrendingUp, roles: ["admin", "security_analyst"] },
     ],
   },
 ];
@@ -222,16 +224,103 @@ function UserBadge({ collapsed }: { collapsed: boolean }) {
   );
 }
 
+// ── Breadcrumb navigation derived from route + navGroups ──
+function Breadcrumbs({ navGroups, pathname }: { navGroups: NavGroup[]; pathname: string }) {
+  const crumbs = useMemo(() => {
+    const result: { label: string; to?: string; icon?: LucideIcon }[] = [];
+    for (const group of navGroups) {
+      const match = group.items.find(
+        (item) => pathname === item.to || pathname.startsWith(item.to + "/")
+      );
+      if (match) {
+        result.push({ label: group.label, to: group.items[0]?.to, icon: group.icon });
+        if (match.to !== group.items[0]?.to || pathname !== match.to) {
+          result.push({ label: match.label, to: match.to, icon: match.icon });
+        }
+        // If there's a deeper path beyond the matched item, show it
+        const rest = pathname.slice(match.to.length).replace(/^\//, "");
+        if (rest) {
+          const label = rest.split("/").pop()?.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) ?? rest;
+          result.push({ label });
+        }
+        break;
+      }
+    }
+    if (result.length === 0) {
+      // Settings or other top-level pages
+      if (pathname.startsWith("/settings")) {
+        result.push({ label: "Settings", to: "/settings", icon: Settings });
+        const sub = pathname.slice("/settings/".length).replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+        if (sub && pathname !== "/settings") result.push({ label: sub });
+      }
+    }
+    return result;
+  }, [navGroups, pathname]);
+
+  // Cross-space quick-jump: show other spaces for fast navigation
+  const otherSpaces = useMemo(
+    () => navGroups.filter((g) => !g.items.some((i) => pathname === i.to || pathname.startsWith(i.to + "/"))).slice(0, 4),
+    [navGroups, pathname]
+  );
+
+  return (
+    <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0 flex-1">
+      {crumbs.map((crumb, i) => (
+        <React.Fragment key={i}>
+          {i > 0 && <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/50" />}
+          {crumb.to ? (
+            <Link to={crumb.to} className="flex items-center gap-1.5 hover:text-foreground transition-colors truncate">
+              {crumb.icon && <crumb.icon className="h-3.5 w-3.5 shrink-0" />}
+              <span className={i === crumbs.length - 1 ? "font-medium text-foreground" : ""}>{crumb.label}</span>
+            </Link>
+          ) : (
+            <span className="flex items-center gap-1.5 font-medium text-foreground truncate">
+              {crumb.icon && <crumb.icon className="h-3.5 w-3.5 shrink-0" />}
+              {crumb.label}
+            </span>
+          )}
+        </React.Fragment>
+      ))}
+      {/* Cross-space quick-jump */}
+      {otherSpaces.length > 0 && (
+        <div className="ml-auto flex items-center gap-1 pl-4">
+          {otherSpaces.map((space) => (
+            <Link
+              key={space.label}
+              to={space.items[0]?.to ?? "/"}
+              className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              title={space.label}
+            >
+              <space.icon className="h-3 w-3" />
+              <span className="hidden xl:inline">{space.label}</span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function WorkspaceLayout() {
   const { preferences, toggleSidebar, toggleCopilot, toggleTheme } = useAppStore();
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const location = useLocation();
+  const { user } = useAuth();
 
   const collapsed = preferences.sidebarCollapsed;
   const copilotOpen = preferences.copilotOpen;
+  const userRole = user?.role ?? "viewer";
+
+  // Filter nav items by role — items without `roles` are visible to all
+  const filteredGroups = navGroups
+    .map((g) => ({
+      ...g,
+      items: g.items.filter((item) => !item.roles || item.roles.includes(userRole)),
+    }))
+    .filter((g) => g.items.length > 0);
 
   // Auto-expand active group
-  const activeGroup = navGroups.find((g) =>
+  const activeGroup = filteredGroups.find((g) =>
     g.items.some((item) => location.pathname === item.to || location.pathname.startsWith(item.to + "/"))
   );
 
@@ -259,7 +348,7 @@ export function WorkspaceLayout() {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-2 px-2">
-          {navGroups.map((group) => {
+          {filteredGroups.map((group) => {
             const isExpanded = currentExpanded === group.label;
             const isActive = group.items.some(
               (item) =>
@@ -383,16 +472,9 @@ export function WorkspaceLayout() {
       {/* ── Main Content ── */}
       <main className="flex-1 min-w-0 overflow-y-auto">
         <div className="h-full">
-          {/* Top Bar */}
+          {/* Top Bar with Breadcrumbs */}
           <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-background/80 backdrop-blur-md px-6">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              {activeGroup && (
-                <>
-                  <activeGroup.icon className="h-4 w-4" />
-                  <span className="font-medium text-foreground">{activeGroup.label}</span>
-                </>
-              )}
-            </div>
+            <Breadcrumbs navGroups={filteredGroups} pathname={location.pathname} />
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"

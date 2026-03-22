@@ -88,20 +88,10 @@ const heatColor = (val: number) => {
   return "bg-muted text-muted-foreground";
 };
 
-// ── Dedup effectiveness trend data (12 weeks) — fallback for chart display ──
-const DEDUP_TREND_FALLBACK = Array.from({ length: 12 }, (_, i) => ({
-  week: `W${i + 1}`,
-  total: [980, 1050, 890, 1120, 950, 1080, 920, 1000, 1060, 870, 1030, 960][i],
-  deduplicated: [620, 710, 580, 740, 650, 700, 590, 680, 720, 560, 690, 630][i],
-  unique: [250, 280, 220, 310, 260, 290, 230, 270, 300, 210, 280, 240][i],
-}));
+// Empty defaults — dedup trend and noise pie are loaded exclusively from the dedup API
+const DEDUP_TREND_EMPTY: { week: string; total: number; deduplicated: number; unique: number }[] = [];
 
-// ── Noise analysis pie — fallback for chart display ──────────────────────────
-const NOISE_PIE_FALLBACK = [
-  { name: "True Positives", value: 62, color: "#ef4444" },
-  { name: "False Positives", value: 21, color: "#94a3b8" },
-  { name: "Unverified", value: 17, color: "#f59e0b" },
-];
+const NOISE_PIE_EMPTY: { name: string; value: number; color: string }[] = [];
 
 // ── Cross-scanner correlation matrix (percentage overlap) ───────────────────
 const MATRIX_DATA: Record<Scanner, Record<Scanner, number>> = {
@@ -356,8 +346,23 @@ export default function CorrelationEngine() {
     ? Math.round(dedupStats.noise_reduction_percent)
     : 21;
 
-  // Dedup trend — use fallback (no time-series endpoint yet)
-  const DEDUP_TREND = DEDUP_TREND_FALLBACK;
+  // Dedup trend — derive from status endpoint when available, else use fallback
+  const dedupStatusQuery = useQuery({
+    queryKey: ["deduplication", "status"],
+    queryFn: () => deduplicationApi.status().then((r) => r.data),
+    staleTime: 60_000,
+  });
+  const DEDUP_TREND = useMemo(() => {
+    const st = dedupStatusQuery.data;
+    if (st?.events && st.clusters) {
+      const total = Number(st.events ?? 0);
+      const deduped = Math.max(0, total - Number(st.clusters ?? 0));
+      const unique = total - deduped;
+      // Build a single-point summary (no fake multi-week data)
+      return [{ week: "Current", total, deduplicated: deduped, unique }];
+    }
+    return DEDUP_TREND_EMPTY;
+  }, [dedupStatusQuery.data]);
   // Noise pie — derive from real stats when available
   const NOISE_PIE = useMemo(() => {
     if (dedupStats?.true_positive_count != null || dedupStats?.false_positive_count != null) {
@@ -370,7 +375,7 @@ export default function CorrelationEngine() {
         { name: "Unverified", value: unv, color: "#f59e0b" },
       ];
     }
-    return NOISE_PIE_FALLBACK;
+    return NOISE_PIE_EMPTY;
   }, [dedupStats]);
 
   // Filtered groups ─────────────────────────────────────────────────────────

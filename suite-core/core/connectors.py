@@ -807,6 +807,212 @@ class JiraConnector(_BaseConnector):
             },
         )
 
+    def bulk_search(
+        self,
+        jql: str,
+        fields: Optional[List[str]] = None,
+        max_results: int = 500,
+        page_size: int = 50,
+    ) -> ConnectorOutcome:
+        """Paginated JQL bulk query — fetches all matching issues up to max_results.
+
+        Returns all issues in a single ConnectorOutcome with automatic pagination.
+        Uses POST /rest/api/3/search with startAt advancement.
+        """
+        if not self.configured:
+            return ConnectorOutcome(
+                "skipped", {"reason": "jira connector not fully configured"}
+            )
+
+        all_issues: List[Dict[str, Any]] = []
+        start_at = 0
+        total = None
+
+        while len(all_issues) < max_results:
+            batch_size = min(page_size, max_results - len(all_issues))
+            endpoint = urljoin(self.base_url + "/", "rest/api/3/search")
+            payload: Dict[str, Any] = {
+                "jql": jql,
+                "maxResults": batch_size,
+                "startAt": start_at,
+            }
+            if fields:
+                payload["fields"] = fields
+
+            try:
+                response = self._request(
+                    "POST",
+                    endpoint,
+                    json=payload,
+                    auth=(self.user, str(self.token)),
+                    headers={
+                        "Accept": "application/json",
+                        "Content-Type": "application/json",
+                    },
+                )
+                response.raise_for_status()
+            except RequestException as exc:
+                return ConnectorOutcome(
+                    "failed",
+                    {
+                        "reason": "jira bulk search failed",
+                        "error": type(exc).__name__,
+                        "endpoint": endpoint,
+                        "fetched_so_far": len(all_issues),
+                    },
+                )
+
+            try:
+                data = response.json()
+            except ValueError:
+                break
+
+            issues = data.get("issues", [])
+            if total is None:
+                total = data.get("total", 0)
+            all_issues.extend(issues)
+            start_at += len(issues)
+
+            if not issues or start_at >= (total or 0):
+                break
+
+        return ConnectorOutcome(
+            "fetched",
+            {
+                "total": total or len(all_issues),
+                "fetched": len(all_issues),
+                "issues": all_issues,
+                "operation": "bulk_search",
+                "pages_fetched": (start_at // page_size) + (1 if start_at % page_size else 0),
+            },
+        )
+
+    def create_issue_with_custom_fields(
+        self,
+        action: Mapping[str, Any],
+        custom_fields: Optional[Dict[str, Any]] = None,
+    ) -> ConnectorOutcome:
+        """Create a Jira issue with support for custom fields.
+
+        custom_fields should be a dict mapping Jira custom field IDs to values,
+        e.g. {"customfield_10001": "value", "customfield_10042": {"id": "10100"}}
+        """
+        if not self.configured:
+            return ConnectorOutcome(
+                "skipped", {"reason": "jira connector not fully configured"}
+            )
+
+        summary = action.get("summary") or "FixOps automation task"
+        description = action.get("description") or json.dumps(action, indent=2)
+        project_key = action.get("project_key") or self.project_key
+        issue_type = action.get("issue_type") or self.default_issue_type
+
+        fields_payload: Dict[str, Any] = {
+            "project": {"key": project_key},
+            "summary": summary,
+            "description": description,
+            "issuetype": {"name": issue_type},
+            "priority": {"name": action.get("priority", "High")},
+        }
+
+        # Merge custom fields
+        merged_custom = {**(action.get("custom_fields") or {}), **(custom_fields or {})}
+        for cf_key, cf_value in merged_custom.items():
+            fields_payload[cf_key] = cf_value
+
+        # Optional: labels, components, assignee
+        if action.get("labels"):
+            fields_payload["labels"] = action["labels"]
+        if action.get("components"):
+            fields_payload["components"] = [
+                {"name": c} for c in action["components"]
+            ]
+        if action.get("assignee"):
+            fields_payload["assignee"] = {"accountId": action["assignee"]}
+
+        payload = {"fields": fields_payload}
+        endpoint = urljoin(self.base_url + "/", "rest/api/3/issue")
+        try:
+            response = self._request(
+                "POST",
+                endpoint,
+                json=payload,
+                auth=(self.user, str(self.token)),
+                headers={"Accept": "application/json"},
+            )
+            response.raise_for_status()
+        except RequestException as exc:
+            return ConnectorOutcome(
+                "failed",
+                {
+                    "reason": "jira issue creation failed",
+                    "error": type(exc).__name__,
+                    "endpoint": endpoint,
+                },
+            )
+
+        try:
+            body = response.json()
+        except ValueError:
+            body = {}
+
+        return ConnectorOutcome(
+            "sent",
+            {
+                "endpoint": endpoint,
+                "issue_key": body.get("key"),
+                "project": project_key,
+                "custom_fields_applied": list(merged_custom.keys()),
+                "operation": "create_issue_with_custom_fields",
+            },
+        )
+
+    def assign_to_sprint(
+        self, issue_key: str, sprint_id: int
+    ) -> ConnectorOutcome:
+        """Move an issue into an Agile sprint via POST /rest/agile/1.0/sprint/{sprintId}/issue.
+
+        Requires Jira Software (Agile) board access.
+        """
+        if not self.configured:
+            return ConnectorOutcome(
+                "skipped", {"reason": "jira connector not fully configured"}
+            )
+
+        endpoint = urljoin(
+            self.base_url + "/", f"rest/agile/1.0/sprint/{sprint_id}/issue"
+        )
+        payload = {"issues": [issue_key]}
+
+        try:
+            response = self._request(
+                "POST",
+                endpoint,
+                json=payload,
+                auth=(self.user, str(self.token)),
+                headers={"Accept": "application/json"},
+            )
+            response.raise_for_status()
+        except RequestException as exc:
+            return ConnectorOutcome(
+                "failed",
+                {
+                    "reason": "sprint assignment failed",
+                    "error": type(exc).__name__,
+                    "endpoint": endpoint,
+                },
+            )
+
+        return ConnectorOutcome(
+            "sent",
+            {
+                "endpoint": endpoint,
+                "issue_key": issue_key,
+                "sprint_id": sprint_id,
+                "operation": "assign_to_sprint",
+            },
+        )
+
     def health_check(self) -> ConnectorHealth:
         """Check Jira connectivity and authentication."""
         if not self.configured:
@@ -1201,6 +1407,143 @@ class SlackConnector(_BaseConnector):
             )
 
         return ConnectorOutcome("sent", {"webhook": webhook})
+
+    def post_blocks(self, action: Mapping[str, Any]) -> ConnectorOutcome:
+        """Send a Slack Block Kit message via webhook or Bot API.
+
+        Supports rich formatting with sections, buttons, dividers, and context blocks.
+        action["blocks"] should be a list of Slack Block Kit block dicts.
+        """
+        webhook = action.get("webhook_url") or self.default_webhook
+        bot_token = action.get("bot_token") or getattr(self, "bot_token", None)
+
+        blocks = action.get("blocks", [])
+        text = action.get("text") or action.get("summary") or "ALdeci notification"
+
+        if bot_token and action.get("channel"):
+            # Use Slack Web API (chat.postMessage) for richer features
+            payload: Dict[str, Any] = {
+                "channel": action["channel"],
+                "text": text,
+                "blocks": blocks,
+            }
+            if action.get("thread_ts"):
+                payload["thread_ts"] = action["thread_ts"]
+            try:
+                response = self._request(
+                    "POST",
+                    "https://slack.com/api/chat.postMessage",
+                    json=payload,
+                    headers={"Authorization": f"Bearer {bot_token}"},
+                )
+                response.raise_for_status()
+                data = response.json()
+                if not data.get("ok"):
+                    return ConnectorOutcome(
+                        "failed",
+                        {"reason": "slack api error", "error": data.get("error", "unknown")},
+                    )
+                return ConnectorOutcome(
+                    "sent",
+                    {
+                        "channel": data.get("channel"),
+                        "ts": data.get("ts"),
+                        "operation": "post_blocks",
+                    },
+                )
+            except RequestException as exc:
+                return ConnectorOutcome(
+                    "failed", {"reason": "slack api failed", "error": type(exc).__name__}
+                )
+
+        if not webhook:
+            return ConnectorOutcome(
+                "skipped", {"reason": "slack webhook not configured"}
+            )
+
+        payload = {"text": text, "blocks": blocks}
+        if action.get("channel"):
+            payload["channel"] = action["channel"]
+
+        try:
+            response = self._request("POST", webhook, json=payload)
+            response.raise_for_status()
+        except RequestException as exc:
+            return ConnectorOutcome(
+                "failed", {"reason": "slack block delivery failed", "error": type(exc).__name__}
+            )
+
+        return ConnectorOutcome("sent", {"webhook": webhook, "operation": "post_blocks"})
+
+    def post_interactive(self, action: Mapping[str, Any]) -> ConnectorOutcome:
+        """Send a Slack interactive message with action buttons.
+
+        Convenience wrapper that builds Block Kit blocks with action buttons.
+        action["buttons"] should be a list of dicts with text, action_id, and optional style/value.
+        """
+        text = action.get("text") or action.get("summary") or "Action required"
+        buttons = action.get("buttons", [])
+
+        blocks: List[Dict[str, Any]] = [
+            {"type": "section", "text": {"type": "mrkdwn", "text": text}},
+        ]
+
+        if buttons:
+            elements = []
+            for btn in buttons[:5]:  # Slack max 5 buttons per action block
+                element: Dict[str, Any] = {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": str(btn.get("text", "Click"))},
+                    "action_id": str(btn.get("action_id", f"btn_{len(elements)}")),
+                }
+                if btn.get("value"):
+                    element["value"] = str(btn["value"])
+                if btn.get("style") in ("primary", "danger"):
+                    element["style"] = btn["style"]
+                if btn.get("url"):
+                    element["url"] = str(btn["url"])
+                elements.append(element)
+            blocks.append({"type": "actions", "elements": elements})
+
+        return self.post_blocks({**action, "blocks": blocks, "text": text})
+
+    def list_channels(
+        self, bot_token: str, types: str = "public_channel", limit: int = 200
+    ) -> ConnectorOutcome:
+        """List Slack channels using Bot token via conversations.list API.
+
+        Requires bot token with channels:read scope.
+        """
+        try:
+            response = self._request(
+                "GET",
+                "https://slack.com/api/conversations.list",
+                params={"types": types, "limit": str(limit), "exclude_archived": "true"},
+                headers={"Authorization": f"Bearer {bot_token}"},
+            )
+            response.raise_for_status()
+            data = response.json()
+            if not data.get("ok"):
+                return ConnectorOutcome(
+                    "failed",
+                    {"reason": "slack api error", "error": data.get("error", "unknown")},
+                )
+            channels = data.get("channels", [])
+            return ConnectorOutcome(
+                "fetched",
+                {
+                    "channels": [
+                        {"id": c["id"], "name": c.get("name", ""), "topic": c.get("topic", {}).get("value", "")}
+                        for c in channels
+                    ],
+                    "count": len(channels),
+                    "operation": "list_channels",
+                },
+            )
+        except RequestException as exc:
+            return ConnectorOutcome(
+                "failed", {"reason": "slack channels fetch failed", "error": type(exc).__name__}
+            )
 
     def health_check(self) -> ConnectorHealth:
         """Check Slack webhook configuration.
@@ -2802,6 +3145,200 @@ class GitHubConnector(_BaseConnector):
             },
         )
 
+    def create_check_run(
+        self,
+        head_sha: str,
+        name: str = "ALdeci Security Gate",
+        status: str = "completed",
+        conclusion: str = "success",
+        title: Optional[str] = None,
+        summary: Optional[str] = None,
+        annotations: Optional[List[Dict[str, Any]]] = None,
+        owner: Optional[str] = None,
+        repo: Optional[str] = None,
+    ) -> ConnectorOutcome:
+        """Create a GitHub Check Run for CI/CD gate integration.
+
+        POST /repos/{owner}/{repo}/check-runs
+        Requires the `checks:write` permission on the GitHub App or PAT.
+
+        Args:
+            head_sha: The SHA of the commit to associate the check run with.
+            name: The name of the check (e.g. 'ALdeci Security Gate').
+            status: queued | in_progress | completed
+            conclusion: action_required | cancelled | failure | neutral | success | skipped | timed_out
+            title: Title shown in check run output.
+            summary: Markdown summary for the check run details.
+            annotations: List of file-level annotations (path, start_line, end_line, annotation_level, message).
+        """
+        if not self.configured:
+            return ConnectorOutcome(
+                "skipped", {"reason": "github connector not fully configured"}
+            )
+
+        o = owner or self.owner
+        r = repo or self.repo
+        endpoint = f"{self.base_url}/repos/{o}/{r}/check-runs"
+
+        output: Dict[str, Any] = {
+            "title": title or name,
+            "summary": summary or "ALdeci security analysis complete.",
+        }
+        if annotations:
+            # GitHub API limits to 50 annotations per request
+            output["annotations"] = annotations[:50]
+
+        payload: Dict[str, Any] = {
+            "name": name,
+            "head_sha": head_sha,
+            "status": status,
+            "output": output,
+        }
+        if status == "completed":
+            payload["conclusion"] = conclusion
+
+        try:
+            response = self._request(
+                "POST",
+                endpoint,
+                json=payload,
+                headers=self._get_headers(),
+            )
+            response.raise_for_status()
+        except RequestException as exc:
+            return ConnectorOutcome(
+                "failed",
+                {
+                    "reason": "github check run creation failed",
+                    "error": type(exc).__name__,
+                    "endpoint": endpoint,
+                },
+            )
+
+        try:
+            body = response.json()
+        except ValueError:
+            body = {}
+
+        return ConnectorOutcome(
+            "sent",
+            {
+                "endpoint": endpoint,
+                "check_run_id": body.get("id"),
+                "html_url": body.get("html_url"),
+                "conclusion": conclusion,
+                "operation": "create_check_run",
+            },
+        )
+
+    def list_code_scanning_alerts(
+        self,
+        state: str = "open",
+        severity: Optional[str] = None,
+        max_results: int = 50,
+        owner: Optional[str] = None,
+        repo: Optional[str] = None,
+    ) -> ConnectorOutcome:
+        """List code scanning alerts for a repository.
+
+        GET /repos/{owner}/{repo}/code-scanning/alerts
+        Requires `security_events` scope.
+        """
+        if not self.configured:
+            return ConnectorOutcome(
+                "skipped", {"reason": "github connector not fully configured"}
+            )
+
+        o = owner or self.owner
+        r = repo or self.repo
+        endpoint = f"{self.base_url}/repos/{o}/{r}/code-scanning/alerts"
+        params: Dict[str, str] = {
+            "state": state,
+            "per_page": str(max_results),
+        }
+        if severity:
+            params["severity"] = severity
+
+        try:
+            response = self._request(
+                "GET", endpoint, params=params, headers=self._get_headers()
+            )
+            response.raise_for_status()
+        except RequestException as exc:
+            return ConnectorOutcome(
+                "failed",
+                {
+                    "reason": "github code scanning fetch failed",
+                    "error": type(exc).__name__,
+                    "endpoint": endpoint,
+                },
+            )
+
+        try:
+            data = response.json()
+        except ValueError:
+            data = []
+
+        return ConnectorOutcome(
+            "fetched",
+            {
+                "endpoint": endpoint,
+                "alerts": data,
+                "count": len(data),
+                "operation": "list_code_scanning_alerts",
+            },
+        )
+
+    def dismiss_code_scanning_alert(
+        self,
+        alert_number: int,
+        dismissed_reason: str = "used in tests",
+        owner: Optional[str] = None,
+        repo: Optional[str] = None,
+    ) -> ConnectorOutcome:
+        """Dismiss (close) a code scanning alert.
+
+        PATCH /repos/{owner}/{repo}/code-scanning/alerts/{alert_number}
+        dismissed_reason: false positive | won't fix | used in tests
+        """
+        if not self.configured:
+            return ConnectorOutcome(
+                "skipped", {"reason": "github connector not fully configured"}
+            )
+
+        o = owner or self.owner
+        r = repo or self.repo
+        endpoint = f"{self.base_url}/repos/{o}/{r}/code-scanning/alerts/{alert_number}"
+        payload = {
+            "state": "dismissed",
+            "dismissed_reason": dismissed_reason,
+        }
+
+        try:
+            response = self._request(
+                "PATCH", endpoint, json=payload, headers=self._get_headers()
+            )
+            response.raise_for_status()
+        except RequestException as exc:
+            return ConnectorOutcome(
+                "failed",
+                {
+                    "reason": "github alert dismissal failed",
+                    "error": type(exc).__name__,
+                    "endpoint": endpoint,
+                },
+            )
+
+        return ConnectorOutcome(
+            "sent",
+            {
+                "endpoint": endpoint,
+                "alert_number": alert_number,
+                "dismissed_reason": dismissed_reason,
+                "operation": "dismiss_code_scanning_alert",
+            },
+        )
+
     def health_check(self) -> ConnectorHealth:
         """Check GitHub connectivity and authentication."""
         if not self.configured:
@@ -2887,6 +3424,22 @@ class AutomationConnectors:
                 return self.jira.transition_issue(action)
             if operation == "comment":
                 return self.jira.add_comment(action)
+            if operation == "bulk_search":
+                return self.jira.bulk_search(
+                    jql=str(action.get("jql", "")),
+                    fields=action.get("fields"),
+                    max_results=int(action.get("max_results", 500)),
+                    page_size=int(action.get("page_size", 50)),
+                )
+            if operation == "create_with_custom_fields":
+                return self.jira.create_issue_with_custom_fields(
+                    action, custom_fields=action.get("custom_fields")
+                )
+            if operation == "assign_sprint":
+                return self.jira.assign_to_sprint(
+                    issue_key=str(action.get("issue_key", "")),
+                    sprint_id=int(action.get("sprint_id", 0)),
+                )
             return self.jira.create_issue(action)
 
         if action_type == "confluence_page" or action_type == "confluence":
@@ -2904,6 +3457,17 @@ class AutomationConnectors:
             if not self._check_feature_flag("fixops.feature.connector.slack"):
                 return ConnectorOutcome(
                     "skipped", {"reason": "slack connector disabled"}
+                )
+            if operation == "post_blocks" or operation == "block_kit":
+                return self.slack.post_blocks(action)
+            if operation == "post_interactive" or operation == "interactive":
+                return self.slack.post_interactive(action)
+            if operation == "list_channels":
+                bot_token = str(action.get("bot_token", ""))
+                return self.slack.list_channels(
+                    bot_token=bot_token,
+                    types=str(action.get("channel_types", "public_channel")),
+                    limit=int(action.get("limit", 200)),
                 )
             return self.slack.post_message(action)
 
@@ -2957,6 +3521,33 @@ class AutomationConnectors:
                 return self.github.update_issue(action)
             if operation == "comment":
                 return self.github.add_comment(action)
+            if operation == "check_run" or operation == "create_check_run":
+                return self.github.create_check_run(
+                    head_sha=str(action.get("head_sha", "")),
+                    name=str(action.get("name", "ALdeci Security Gate")),
+                    status=str(action.get("status", "completed")),
+                    conclusion=str(action.get("conclusion", "success")),
+                    title=action.get("title"),
+                    summary=action.get("summary"),
+                    annotations=action.get("annotations"),
+                    owner=action.get("owner"),
+                    repo=action.get("repo"),
+                )
+            if operation == "list_code_scanning_alerts":
+                return self.github.list_code_scanning_alerts(
+                    state=str(action.get("state", "open")),
+                    severity=action.get("severity"),
+                    max_results=int(action.get("max_results", 50)),
+                    owner=action.get("owner"),
+                    repo=action.get("repo"),
+                )
+            if operation == "dismiss_code_scanning_alert":
+                return self.github.dismiss_code_scanning_alert(
+                    alert_number=int(action.get("alert_number", 0)),
+                    dismissed_reason=str(action.get("dismissed_reason", "used in tests")),
+                    owner=action.get("owner"),
+                    repo=action.get("repo"),
+                )
             return self.github.create_issue(action)
 
         return ConnectorOutcome(

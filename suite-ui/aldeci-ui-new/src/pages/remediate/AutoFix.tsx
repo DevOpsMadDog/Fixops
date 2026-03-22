@@ -49,6 +49,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useRemediationTasks, useAutofix } from "@/hooks/use-api";
+import { autofixApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -595,7 +596,13 @@ export default function AutoFix() {
                               Preview
                             </Button>
                             {(fix.status as string) === "approved" && (
-                              <Button size="sm" variant="outline">
+                              <Button size="sm" variant="outline" onClick={async () => {
+                                try {
+                                  await autofixApi.apply(fix.id as string);
+                                  toast.success("Fix applied successfully");
+                                  tasksQuery.refetch();
+                                } catch { toast.error("Failed to apply fix"); }
+                              }}>
                                 <Play className="h-3.5 w-3.5 mr-1" />
                                 Apply
                               </Button>

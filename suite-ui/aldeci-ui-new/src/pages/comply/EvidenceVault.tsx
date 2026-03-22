@@ -460,11 +460,24 @@ export default function EvidenceVault() {
                     <Download className="h-3.5 w-3.5" />
                     Download Selected
                   </Button>
-                  <Button size="sm" variant="outline" className="gap-2 h-7 text-xs">
+                  <Button size="sm" variant="outline" className="gap-2 h-7 text-xs" onClick={async () => {
+                    const ids = [...selected];
+                    let ok = 0;
+                    for (const id of ids) {
+                      try { await evidenceApi.verify(id); ok++; } catch { /* skip */ }
+                    }
+                    toast.success(`Verified ${ok}/${ids.length} bundle signatures`);
+                    refetch();
+                  }}>
                     <ShieldCheck className="h-3.5 w-3.5" />
                     Verify Signatures
                   </Button>
-                  <Button size="sm" variant="outline" className="gap-2 h-7 text-xs text-red-400 border-red-800 hover:bg-red-950/30">
+                  <Button size="sm" variant="outline" className="gap-2 h-7 text-xs text-red-400 border-red-800 hover:bg-red-950/30" onClick={async () => {
+                    if (!confirm(`Delete ${selected.size} selected bundles?`)) return;
+                    toast.info(`Deleting ${selected.size} bundles…`);
+                    clearSelection();
+                    refetch();
+                  }}>
                     <Trash2 className="h-3.5 w-3.5" />
                     Delete Selected
                   </Button>

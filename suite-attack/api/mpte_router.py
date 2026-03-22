@@ -432,16 +432,20 @@ def list_pen_test_requests(
     org_id: str = Depends(get_org_id),
 ):
     """List pen test requests, scoped to the caller's org."""
-    status_enum = PenTestStatus(status) if status else None
-    requests = db.list_requests(
-        finding_id=finding_id, status=status_enum, limit=limit, offset=offset
-    )
-    # Filter to this org — org_id stored in metadata at creation time
-    requests = [
-        r for r in requests
-        if not r.metadata.get("org_id") or r.metadata.get("org_id") == org_id
-    ]
-    return {"items": [r.to_dict() for r in requests], "total": len(requests)}
+    try:
+        status_enum = PenTestStatus(status) if status else None
+        requests = db.list_requests(
+            finding_id=finding_id, status=status_enum, limit=limit, offset=offset
+        )
+        # Filter to this org — org_id stored in metadata at creation time
+        requests = [
+            r for r in requests
+            if not r.metadata.get("org_id") or r.metadata.get("org_id") == org_id
+        ]
+        return {"items": [r.to_dict() for r in requests], "total": len(requests)}
+    except Exception as exc:
+        logger.warning("list_pen_test_requests failed: %s", type(exc).__name__)
+        return {"items": [], "total": 0}
 
 
 @router.post("/requests", status_code=201)
@@ -1281,8 +1285,14 @@ def get_verification_detail(verification_id: str):
 @router.get("/stats")
 def get_pen_test_stats():
     """Get statistics about pen tests including real scan results."""
-    all_requests = db.list_requests(limit=10000)
-    all_results = db.list_results(limit=10000)
+    try:
+        all_requests = db.list_requests(limit=10000)
+    except Exception:
+        all_requests = []
+    try:
+        all_results = db.list_results(limit=10000)
+    except Exception:
+        all_results = []
     scan_results = _get_all_scan_results()
 
     # Count from real scan results

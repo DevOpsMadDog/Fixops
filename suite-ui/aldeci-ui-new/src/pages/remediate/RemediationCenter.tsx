@@ -57,7 +57,11 @@ import {
   Zap,
 } from "lucide-react";
 import { useRemediationTasks, useUsers, useTeams } from "@/hooks/use-api";
+import { remediationApi, autofixApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
+import { Sparkles, Loader2, MessageSquare } from "lucide-react";
 
 type TaskStatus = "assigned" | "open" | "in_progress" | "fix_applied" | "verified" | "closed";
 
@@ -242,6 +246,10 @@ export default function RemediationCenter() {
   const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [commentDialogOpen, setCommentDialogOpen] = useState(false);
+  const [commentTaskId, setCommentTaskId] = useState<string>("");
+  const [commentText, setCommentText] = useState("");
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   // ── Deep-link support: read URL search params ──
   useEffect(() => {
@@ -456,6 +464,31 @@ export default function RemediationCenter() {
               </Button>
               <Button
                 size="sm"
+                variant="default"
+                className="bg-violet-600 hover:bg-violet-700 gap-1"
+                disabled={bulkLoading}
+                onClick={async () => {
+                  setBulkLoading(true);
+                  try {
+                    const selected = selectedTasks.map(t => ({
+                      finding_id: (t.finding_id as string) || (t.id as string),
+                      title: t.title as string,
+                      severity: t.severity as string,
+                      cve: t.cve as string,
+                    }));
+                    const { data } = await autofixApi.bulkGenerate(selected);
+                    toast.success(`Generated ${data?.count || selected.length} auto-fixes`);
+                    setSelectedIds(new Set());
+                    tasksQuery.refetch();
+                  } catch (e) { toast.error(`Bulk AutoFix failed: ${e}`); }
+                  finally { setBulkLoading(false); }
+                }}
+              >
+                {bulkLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                Bulk AutoFix
+              </Button>
+              <Button
+                size="sm"
                 variant="outline"
                 onClick={() => setSelectedIds(new Set())}
               >
@@ -559,8 +592,12 @@ export default function RemediationCenter() {
                             <div className="flex items-center justify-end gap-2">
                               <WorkflowButton
                                 status={(task.status as string) ?? "open"}
-                                onAdvance={(next) => {
-                                  // In real app: call mutation to update status
+                                onAdvance={async (next) => {
+                                  try {
+                                    await remediationApi.update(taskId, { status: next });
+                                    toast.success(`Task moved to ${STATUS_CONFIG[next as TaskStatus]?.label ?? next}`);
+                                    tasksQuery.refetch();
+                                  } catch { toast.error("Failed to update task status"); }
                                 }}
                               />
                               <DropdownMenu>
@@ -570,10 +607,28 @@ export default function RemediationCenter() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem>View Details</DropdownMenuItem>
-                                  <DropdownMenuItem>Assign</DropdownMenuItem>
-                                  <DropdownMenuItem>Add Comment</DropdownMenuItem>
-                                  <DropdownMenuItem className="text-destructive">
+                                  <DropdownMenuItem onClick={() => {
+                                    setSelectedIds(new Set([taskId]));
+                                    toast.info(`Viewing: ${(task.title as string) || taskId}`);
+                                  }}>View Details</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => {
+                                    setSelectedIds(new Set([taskId]));
+                                    setAssignDialogOpen(true);
+                                  }}>Assign</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => {
+                                    setCommentTaskId(taskId);
+                                    setCommentText("");
+                                    setCommentDialogOpen(true);
+                                  }}>
+                                    <MessageSquare className="h-3.5 w-3.5 mr-2" /> Add Comment
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="text-destructive" onClick={async () => {
+                                    try {
+                                      await remediationApi.update(taskId, { status: "closed" });
+                                      toast.success("Task closed");
+                                      tasksQuery.refetch();
+                                    } catch { toast.error("Failed to close task"); }
+                                  }}>
                                     Close Task
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
@@ -731,10 +786,47 @@ export default function RemediationCenter() {
         users={users}
         open={assignDialogOpen}
         onClose={() => setAssignDialogOpen(false)}
-        onAssign={(assignee, priority) => {
-          setSelectedIds(new Set());
+        onAssign={async (assignee, priority) => {
+          try {
+            const ids = Array.from(selectedIds);
+            await remediationApi.bulkAssign({ task_ids: ids, assignee, priority });
+            toast.success(`Assigned ${ids.length} task(s) to ${assignee}`);
+            setSelectedIds(new Set());
+            tasksQuery.refetch();
+          } catch (e) { toast.error(`Assignment failed: ${e}`); }
         }}
       />
+
+      {/* Comment Dialog */}
+      <Dialog open={commentDialogOpen} onOpenChange={(v) => { if (!v) { setCommentDialogOpen(false); setCommentText(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><MessageSquare className="h-4 w-4" /> Add Comment</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Textarea
+              placeholder="Enter your comment..."
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setCommentDialogOpen(false); setCommentText(""); }}>Cancel</Button>
+            <Button disabled={!commentText.trim()} onClick={async () => {
+              try {
+                await remediationApi.update(commentTaskId, { metadata: { comment: commentText.trim(), commented_at: new Date().toISOString() } });
+                toast.success("Comment added");
+                setCommentDialogOpen(false);
+                setCommentText("");
+                tasksQuery.refetch();
+              } catch { toast.error("Failed to add comment"); }
+            }}>
+              Add Comment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }

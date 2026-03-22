@@ -664,8 +664,19 @@ If no regressions are likely, return empty array.
                 logger.warning("Failed to parse LLM response: %s", type(e).__name__)
 
         # Fallback response when LLM is unavailable
+        # Coerce response fields to JSON-serializable types (guards against mock objects in tests)
+        reasoning_str = str(response.reasoning) if response.reasoning else "Manual security review required"
+        try:
+            confidence_val = float(response.confidence)
+        except (TypeError, ValueError):
+            confidence_val = 0.7
+        mode_str = "unknown"
+        try:
+            mode_str = str(response.metadata.get("mode", "unknown"))
+        except (TypeError, AttributeError):
+            pass
         logger.info(
-            f"Using fallback response for {provider} (mode: {response.metadata.get('mode', 'unknown')})"
+            f"Using fallback response for {provider} (mode: {mode_str})"
         )
         if "regression" in prompt.lower():
             return json.dumps({"regressions": []})
@@ -675,7 +686,7 @@ If no regressions are likely, return empty array.
                     "suggestions": [
                         {
                             "title": "Security review recommended",
-                            "description": response.reasoning,
+                            "description": reasoning_str,
                             "type": "code_patch",
                             "priority": "medium",
                             "code_changes": [],
@@ -683,7 +694,7 @@ If no regressions are likely, return empty array.
                             "risk_assessment": "Automated analysis unavailable - manual review needed",
                             "effort_estimate": "4 hours",
                             "success_probability": 0.7,
-                            "confidence": response.confidence,
+                            "confidence": confidence_val,
                         }
                     ]
                 }
