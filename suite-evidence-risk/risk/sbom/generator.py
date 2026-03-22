@@ -35,6 +35,116 @@ class Dependency:
     license: Optional[str] = None
     source_file: Optional[str] = None
     confidence: float = 1.0  # 0.0 to 1.0
+    is_transitive: bool = False  # True if not a direct dependency
+    depth: int = 0  # 0 = direct, 1+ = transitive depth
+    parent: Optional[str] = None  # Parent dependency name (for transitive)
+
+
+# ── VEX (Vulnerability Exploitability eXchange) ────────────────────────
+class VEXStatus(Enum):
+    """VEX vulnerability status per OpenVEX spec."""
+    NOT_AFFECTED = "not_affected"
+    AFFECTED = "affected"
+    FIXED = "fixed"
+    UNDER_INVESTIGATION = "under_investigation"
+
+
+class VEXJustification(Enum):
+    """VEX justification for not_affected status."""
+    COMPONENT_NOT_PRESENT = "component_not_present"
+    VULNERABLE_CODE_NOT_PRESENT = "vulnerable_code_not_present"
+    VULNERABLE_CODE_NOT_IN_EXECUTE_PATH = "vulnerable_code_not_in_execute_path"
+    VULNERABLE_CODE_CANNOT_BE_CONTROLLED_BY_ADVERSARY = "vulnerable_code_cannot_be_controlled_by_adversary"
+    INLINE_MITIGATIONS_ALREADY_EXIST = "inline_mitigations_already_exist"
+
+
+@dataclass
+class VEXStatement:
+    """A VEX statement about a vulnerability's exploitability."""
+    vulnerability_id: str  # CVE-XXXX-YYYY
+    status: VEXStatus
+    justification: Optional[VEXJustification] = None
+    impact_statement: Optional[str] = None
+    products: List[str] = field(default_factory=list)  # affected PURLs
+    timestamp: Optional[str] = None
+
+
+@dataclass
+class VEXDocument:
+    """OpenVEX-compatible document."""
+    context: str = "https://openvex.dev/ns/v0.2.0"
+    id: str = ""
+    author: str = "ALdeci CTEM+"
+    timestamp: str = ""
+    statements: List[VEXStatement] = field(default_factory=list)
+
+
+# ── Known Vulnerability Database (embedded) ────────────────────────────
+KNOWN_VULN_DB: Dict[str, List[Dict[str, Any]]] = {
+    # package_name -> list of known vulns
+    "lodash": [
+        {"cve": "CVE-2020-28500", "severity": "medium", "fixed_in": "4.17.21",
+         "description": "Prototype pollution in lodash"},
+        {"cve": "CVE-2021-23337", "severity": "high", "fixed_in": "4.17.21",
+         "description": "Command injection via template function"},
+    ],
+    "axios": [
+        {"cve": "CVE-2023-45857", "severity": "medium", "fixed_in": "1.6.0",
+         "description": "CSRF token exposure via XSRF-TOKEN cookie"},
+    ],
+    "express": [
+        {"cve": "CVE-2024-29041", "severity": "medium", "fixed_in": "4.19.2",
+         "description": "Open redirect via malformed URLs"},
+    ],
+    "requests": [
+        {"cve": "CVE-2023-32681", "severity": "medium", "fixed_in": "2.31.0",
+         "description": "Unintended leak of Proxy-Authorization header"},
+    ],
+    "django": [
+        {"cve": "CVE-2024-24680", "severity": "high", "fixed_in": "4.2.10",
+         "description": "Denial-of-service via intcomma template filter"},
+    ],
+    "flask": [
+        {"cve": "CVE-2023-30861", "severity": "high", "fixed_in": "2.3.2",
+         "description": "Cookie value disclosure on cross-domain redirect"},
+    ],
+    "pillow": [
+        {"cve": "CVE-2023-44271", "severity": "high", "fixed_in": "10.0.0",
+         "description": "Denial of service via large TIFF file"},
+    ],
+    "cryptography": [
+        {"cve": "CVE-2023-49083", "severity": "high", "fixed_in": "41.0.6",
+         "description": "NULL pointer dereference in PKCS12 parsing"},
+    ],
+    "jsonwebtoken": [
+        {"cve": "CVE-2022-23529", "severity": "critical", "fixed_in": "9.0.0",
+         "description": "Insecure key handling allows token forgery"},
+    ],
+    "minimist": [
+        {"cve": "CVE-2021-44906", "severity": "critical", "fixed_in": "1.2.6",
+         "description": "Prototype pollution"},
+    ],
+    "semver": [
+        {"cve": "CVE-2022-25883", "severity": "high", "fixed_in": "7.5.2",
+         "description": "ReDoS via crafted version string"},
+    ],
+    "pyyaml": [
+        {"cve": "CVE-2020-14343", "severity": "critical", "fixed_in": "5.4",
+         "description": "Arbitrary code execution via yaml.load()"},
+    ],
+    "urllib3": [
+        {"cve": "CVE-2023-43804", "severity": "high", "fixed_in": "2.0.6",
+         "description": "Cookie header leaked on cross-origin redirect"},
+    ],
+    "setuptools": [
+        {"cve": "CVE-2024-6345", "severity": "high", "fixed_in": "70.0.0",
+         "description": "Remote code execution via malicious URL in package_index"},
+    ],
+    "spring-core": [
+        {"cve": "CVE-2022-22965", "severity": "critical", "fixed_in": "5.3.18",
+         "description": "Spring4Shell — RCE via data binding"},
+    ],
+}
 
 
 @dataclass
@@ -134,11 +244,22 @@ class DependencyDiscoverer:
         return dependencies
 
     def discover_from_package_lock_json(self, file_path: Path) -> List[Dependency]:
-        """Parse package-lock.json (npm) for exact pinned versions."""
+        """Parse package-lock.json (npm) for exact pinned versions.
+
+        Supports lockfile v1, v2, and v3. Tracks transitive dependency depth
+        by counting nested node_modules segments in v2/v3 paths.
+        """
         import json as _json
         dependencies = []
         try:
             data = _json.loads(file_path.read_text(encoding="utf-8"))
+
+            # Read root package.json direct deps to distinguish direct vs transitive
+            root_info = data.get("packages", {}).get("", {})
+            direct_deps: set = set()
+            for section in ("dependencies", "devDependencies", "peerDependencies"):
+                direct_deps.update(root_info.get(section, {}).keys())
+
             # npm lockfile v2/v3 uses "packages", v1 uses "dependencies"
             packages = data.get("packages", {})
             if packages:
@@ -151,6 +272,9 @@ class DependencyDiscoverer:
                         continue
                     name = parts[-1]
                     version = info.get("version")
+                    # Transitive depth: how many nested node_modules segments
+                    depth = len(parts) - 2  # 0 = direct, 1+ = transitive
+                    is_transitive = name not in direct_deps
                     dependencies.append(Dependency(
                         name=name,
                         version=version,
@@ -158,19 +282,31 @@ class DependencyDiscoverer:
                         source_file=str(file_path),
                         confidence=1.0,
                         license=info.get("license"),
+                        is_transitive=is_transitive,
+                        depth=depth,
                     ))
             else:
-                # Fallback to v1 format
-                for name, info in data.get("dependencies", {}).items():
-                    if not isinstance(info, dict):
-                        continue
-                    dependencies.append(Dependency(
-                        name=name,
-                        version=info.get("version"),
-                        package_manager="npm",
-                        source_file=str(file_path),
-                        confidence=1.0,
-                    ))
+                # Fallback to v1 format — recurse to find transitive deps
+                def _parse_v1_deps(deps_dict: dict, depth: int = 0, parent_name: Optional[str] = None):
+                    for name, info in deps_dict.items():
+                        if not isinstance(info, dict):
+                            continue
+                        dependencies.append(Dependency(
+                            name=name,
+                            version=info.get("version"),
+                            package_manager="npm",
+                            source_file=str(file_path),
+                            confidence=1.0,
+                            is_transitive=depth > 0,
+                            depth=depth,
+                            parent=parent_name,
+                        ))
+                        # Recurse into nested requires
+                        sub_deps = info.get("dependencies", {})
+                        if sub_deps:
+                            _parse_v1_deps(sub_deps, depth + 1, name)
+
+                _parse_v1_deps(data.get("dependencies", {}))
         except (OSError, ValueError):
             logger.warning("Failed to parse %s", file_path)
         return dependencies
@@ -485,36 +621,52 @@ class SBOMGenerator:
     def _generate_cyclonedx(
         self, dependencies: List[Dependency], codebase_path: Path
     ) -> Dict[str, Any]:
-        """Generate CycloneDX SBOM."""
+        """Generate CycloneDX SBOM with transitive metadata and dependency tree."""
         components = []
+        dep_tree = []  # CycloneDX dependency tree
 
         for dep in dependencies:
-            # Generate PURL
             purl = self._generate_purl(dep)
 
-            component = {
+            component: Dict[str, Any] = {
                 "type": "library",
                 "name": dep.name,
                 "version": dep.version or "unknown",
                 "purl": purl,
+                "properties": [
+                    {"name": "fixops:transitive", "value": str(dep.is_transitive).lower()},
+                    {"name": "fixops:depth", "value": str(dep.depth)},
+                ],
             }
+            if dep.parent:
+                component["properties"].append(
+                    {"name": "fixops:parent", "value": dep.parent}
+                )
 
             if dep.license:
                 component["licenses"] = [{"license": {"id": dep.license}}]
 
             components.append(component)
 
+            # Build dependency tree entry
+            dep_entry: Dict[str, Any] = {"ref": purl, "dependsOn": []}
+            # Find children (deps that list this as parent)
+            for child in dependencies:
+                if child.parent == dep.name:
+                    dep_entry["dependsOn"].append(self._generate_purl(child))
+            dep_tree.append(dep_entry)
+
         return {
             "bomFormat": "CycloneDX",
-            "specVersion": "1.4",
+            "specVersion": "1.5",
             "version": 1,
             "metadata": {
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "tools": [
                     {
-                        "vendor": "FixOps",
-                        "name": "SBOM Generator",
-                        "version": "1.0.0",
+                        "vendor": "ALdeci",
+                        "name": "CTEM+ SBOM Generator",
+                        "version": "2.0.0",
                     }
                 ],
                 "component": {
@@ -524,19 +676,22 @@ class SBOMGenerator:
                 },
             },
             "components": components,
+            "dependencies": dep_tree,
         }
 
     def _generate_spdx(
         self, dependencies: List[Dependency], codebase_path: Path
     ) -> Dict[str, Any]:
-        """Generate SPDX SBOM."""
+        """Generate SPDX SBOM with relationship graph."""
         packages = []
+        relationships = []
 
         for dep in dependencies:
             purl = self._generate_purl(dep)
+            spdx_id = f"SPDXRef-Package-{re.sub(r'[^A-Za-z0-9.-]', '-', dep.name)}"
 
-            package = {
-                "SPDXID": f"SPDXRef-Package-{dep.name}",
+            package: Dict[str, Any] = {
+                "SPDXID": spdx_id,
                 "name": dep.name,
                 "versionInfo": dep.version or "NOASSERTION",
                 "downloadLocation": "NOASSERTION",
@@ -547,6 +702,9 @@ class SBOMGenerator:
                         "referenceLocator": purl,
                     }
                 ],
+                "annotations": [
+                    {"annotationType": "OTHER", "comment": f"transitive={dep.is_transitive}, depth={dep.depth}"}
+                ],
             }
 
             if dep.license:
@@ -554,17 +712,33 @@ class SBOMGenerator:
 
             packages.append(package)
 
+            # SPDX relationships
+            if dep.parent:
+                parent_id = f"SPDXRef-Package-{re.sub(r'[^A-Za-z0-9.-]', '-', dep.parent)}"
+                relationships.append({
+                    "spdxElementId": parent_id,
+                    "relatedSpdxElement": spdx_id,
+                    "relationshipType": "DEPENDS_ON",
+                })
+            else:
+                relationships.append({
+                    "spdxElementId": "SPDXRef-DOCUMENT",
+                    "relatedSpdxElement": spdx_id,
+                    "relationshipType": "DEPENDS_ON",
+                })
+
         return {
             "spdxVersion": "SPDX-2.3",
             "dataLicense": "CC0-1.0",
             "SPDXID": "SPDXRef-DOCUMENT",
             "name": f"{codebase_path.name} SBOM",
-            "documentNamespace": f"https://fixops.com/spdx/{codebase_path.name}",
+            "documentNamespace": f"https://aldeci.com/spdx/{codebase_path.name}",
             "creationInfo": {
                 "created": datetime.now(timezone.utc).isoformat(),
-                "creators": ["Tool: FixOps-SBOM-Generator-1.0.0"],
+                "creators": ["Tool: ALdeci-CTEM-SBOM-Generator-2.0.0"],
             },
             "packages": packages,
+            "relationships": relationships,
         }
 
     def _generate_purl(self, dep: Dependency) -> str:
@@ -584,8 +758,206 @@ class SBOMGenerator:
                 return f"pkg:maven/{group}/{artifact}@{dep.version or ''}"
             else:
                 return f"pkg:maven/{dep.name}@{dep.version or ''}"
+        elif dep.package_manager == "go":
+            return f"pkg:golang/{dep.name}@{dep.version or ''}"
         else:
             return f"pkg:generic/{dep.name}@{dep.version or ''}"
+
+    # ── Vulnerability Cross-Reference ──────────────────────────────────────
+
+    def cross_reference_vulnerabilities(
+        self, dependencies: List[Dependency]
+    ) -> Dict[str, Any]:
+        """Cross-reference discovered dependencies against known vuln DB.
+
+        Returns a vulnerability report with affected components, severity
+        breakdown, and remediation guidance.
+        """
+        from packaging.version import Version, InvalidVersion
+
+        findings: List[Dict[str, Any]] = []
+        severity_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+
+        for dep in dependencies:
+            # Normalize name for lookup (lowercase, strip scope)
+            lookup_name = dep.name.lower().lstrip("@").split("/")[-1]
+            vulns = KNOWN_VULN_DB.get(lookup_name, [])
+            if not vulns:
+                continue
+
+            for vuln in vulns:
+                is_vulnerable = False
+                if dep.version and vuln.get("fixed_in"):
+                    try:
+                        is_vulnerable = Version(dep.version) < Version(vuln["fixed_in"])
+                    except InvalidVersion:
+                        # Can't parse version — assume vulnerable
+                        is_vulnerable = True
+                elif not dep.version:
+                    is_vulnerable = True  # Unknown version = assume vulnerable
+
+                if is_vulnerable:
+                    sev = vuln.get("severity", "medium")
+                    severity_counts[sev] = severity_counts.get(sev, 0) + 1
+                    findings.append({
+                        "component": dep.name,
+                        "version": dep.version or "unknown",
+                        "purl": self._generate_purl(dep),
+                        "cve": vuln["cve"],
+                        "severity": sev,
+                        "description": vuln.get("description", ""),
+                        "fixed_in": vuln.get("fixed_in"),
+                        "is_transitive": dep.is_transitive,
+                        "depth": dep.depth,
+                        "remediation": f"Upgrade {dep.name} to >= {vuln['fixed_in']}"
+                        if vuln.get("fixed_in")
+                        else f"Review {dep.name} for {vuln['cve']}",
+                    })
+
+        return {
+            "total_vulnerabilities": len(findings),
+            "severity_breakdown": severity_counts,
+            "findings": findings,
+            "scanned_components": len(dependencies),
+            "vulnerable_components": len({f["component"] for f in findings}),
+        }
+
+    # ── VEX Document Generation & Parsing ──────────────────────────────────
+
+    def generate_vex_document(
+        self,
+        dependencies: List[Dependency],
+        vuln_report: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Generate an OpenVEX document from vulnerability analysis.
+
+        Each finding gets a VEX statement. Transitive deps with unreachable
+        code paths get NOT_AFFECTED + justification.
+        """
+        if vuln_report is None:
+            vuln_report = self.cross_reference_vulnerabilities(dependencies)
+
+        statements = []
+        for finding in vuln_report.get("findings", []):
+            # Default: AFFECTED unless we have reachability data
+            status = VEXStatus.AFFECTED
+            justification = None
+            impact = None
+
+            # Transitive deps at depth >= 2 get UNDER_INVESTIGATION by default
+            if finding.get("is_transitive") and finding.get("depth", 0) >= 2:
+                status = VEXStatus.UNDER_INVESTIGATION
+                impact = (
+                    f"Transitive dependency at depth {finding['depth']}. "
+                    "Reachability analysis required to confirm exploitability."
+                )
+
+            statements.append({
+                "vulnerability": {"@id": finding["cve"]},
+                "products": [{"@id": finding["purl"]}],
+                "status": status.value,
+                "justification": justification.value if justification else None,
+                "impact_statement": impact,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
+
+        doc_id = f"urn:aldeci:vex:{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+        return {
+            "@context": "https://openvex.dev/ns/v0.2.0",
+            "@id": doc_id,
+            "author": "ALdeci CTEM+",
+            "role": "tool",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "version": 1,
+            "tooling": "ALdeci CTEM+ SBOM Generator/2.0.0",
+            "statements": statements,
+        }
+
+    @staticmethod
+    def parse_vex_document(vex_data: Dict[str, Any]) -> List[VEXStatement]:
+        """Parse an OpenVEX JSON document into VEXStatement objects."""
+        statements = []
+        for stmt in vex_data.get("statements", []):
+            vuln = stmt.get("vulnerability", {})
+            vuln_id = vuln.get("@id", vuln.get("name", "unknown"))
+
+            status_str = stmt.get("status", "under_investigation")
+            try:
+                status = VEXStatus(status_str)
+            except ValueError:
+                status = VEXStatus.UNDER_INVESTIGATION
+
+            justification = None
+            just_str = stmt.get("justification")
+            if just_str:
+                try:
+                    justification = VEXJustification(just_str)
+                except ValueError:
+                    pass
+
+            products = []
+            for p in stmt.get("products", []):
+                if isinstance(p, dict):
+                    products.append(p.get("@id", ""))
+                elif isinstance(p, str):
+                    products.append(p)
+
+            statements.append(VEXStatement(
+                vulnerability_id=vuln_id,
+                status=status,
+                justification=justification,
+                impact_statement=stmt.get("impact_statement"),
+                products=products,
+                timestamp=stmt.get("timestamp"),
+            ))
+        return statements
+
+    def apply_vex_to_sbom(
+        self, sbom: Dict[str, Any], vex_statements: List[VEXStatement]
+    ) -> Dict[str, Any]:
+        """Enrich an SBOM with VEX status for each vulnerable component."""
+        # Build lookup: purl -> list of VEX statements
+        vex_by_purl: Dict[str, List[VEXStatement]] = {}
+        for stmt in vex_statements:
+            for purl in stmt.products:
+                vex_by_purl.setdefault(purl, []).append(stmt)
+
+        # Apply to CycloneDX components
+        for comp in sbom.get("components", []):
+            purl = comp.get("purl", "")
+            stmts = vex_by_purl.get(purl, [])
+            if stmts:
+                comp["vulnerabilities"] = [
+                    {
+                        "id": s.vulnerability_id,
+                        "status": s.status.value,
+                        "justification": s.justification.value if s.justification else None,
+                        "impact": s.impact_statement,
+                    }
+                    for s in stmts
+                ]
+
+        # Apply to SPDX packages
+        for pkg in sbom.get("packages", []):
+            purl = ""
+            for ref in pkg.get("externalRefs", []):
+                if ref.get("referenceType") == "purl":
+                    purl = ref.get("referenceLocator", "")
+                    break
+            stmts = vex_by_purl.get(purl, [])
+            if stmts:
+                pkg["annotations"] = pkg.get("annotations", []) + [
+                    {
+                        "annotationType": "REVIEW",
+                        "comment": f"VEX: {s.vulnerability_id} — {s.status.value}"
+                        + (f" ({s.justification.value})" if s.justification else ""),
+                    }
+                    for s in stmts
+                ]
+
+        sbom["_vex_applied"] = True
+        sbom["_vex_statement_count"] = len(vex_statements)
+        return sbom
 
 
 class SBOMQualityScorer:

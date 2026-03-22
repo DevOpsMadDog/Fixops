@@ -626,7 +626,7 @@ class TestGenerateCycloneDX:
 
     def test_spec_version(self, generator, tmp_path):
         sbom = generator._generate_cyclonedx([], tmp_path)
-        assert sbom["specVersion"] == "1.4"
+        assert sbom["specVersion"] == "1.5"
 
     def test_version_is_1(self, generator, tmp_path):
         sbom = generator._generate_cyclonedx([], tmp_path)
@@ -641,7 +641,7 @@ class TestGenerateCycloneDX:
         tools = sbom["metadata"]["tools"]
         assert isinstance(tools, list)
         assert len(tools) == 1
-        assert tools[0]["vendor"] == "FixOps"
+        assert tools[0]["vendor"] == "ALdeci"
 
     def test_metadata_component_name_matches_dir(self, generator, tmp_path):
         sbom = generator._generate_cyclonedx([], tmp_path)
@@ -736,7 +736,7 @@ class TestGenerateSPDX:
     def test_creator_tool_listed(self, generator, tmp_path):
         sbom = generator._generate_spdx([], tmp_path)
         creators = sbom["creationInfo"]["creators"]
-        assert any("FixOps" in c for c in creators)
+        assert any("ALdeci" in c for c in creators)
 
     def test_packages_list_present(self, generator, tmp_path):
         sbom = generator._generate_spdx([], tmp_path)

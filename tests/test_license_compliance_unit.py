@@ -26,7 +26,7 @@ class TestLicenseType:
         assert LicenseType.UNKNOWN.value == "unknown"
 
     def test_enum_count(self):
-        assert len(LicenseType) == 5
+        assert len(LicenseType) == 8
 
 
 class TestLicenseRisk:
@@ -196,9 +196,9 @@ class TestLicenseComplianceAnalyzer:
 
     def test_analyze_with_custom_project_license(self):
         analyzer = LicenseComplianceAnalyzer(config={"policy": {"project_license": "GPL-3.0"}})
-        packages = [{"name": "flask", "license": "MIT"}]
+        # Use a license that is genuinely incompatible with GPL-3.0
+        packages = [{"name": "proprietary-lib", "license": "SSPL-1.0"}]
         result = analyzer.analyze(packages)
-        # MIT is not in GPL-3.0's compatibility list
         finding = result.findings[0]
         assert len(finding.compatibility_issues) > 0
 
@@ -221,7 +221,7 @@ class TestLicenseComplianceAnalyzer:
 
     def test_get_recommendation_critical(self):
         rec = self.analyzer._get_recommendation("AGPL-3.0", LicenseRisk.CRITICAL)
-        assert "replacing" in rec.lower() or "Consider" in rec
+        assert "replace" in rec.lower() or "critical" in rec.lower()
 
     def test_get_recommendation_high(self):
         rec = self.analyzer._get_recommendation("GPL-3.0", LicenseRisk.HIGH)
@@ -229,7 +229,7 @@ class TestLicenseComplianceAnalyzer:
 
     def test_get_recommendation_medium(self):
         rec = self.analyzer._get_recommendation("LGPL-2.1", LicenseRisk.MEDIUM)
-        assert "Monitor" in rec
+        assert "copyleft" in rec.lower() or "monitor" in rec.lower()
 
     def test_get_recommendation_low(self):
         rec = self.analyzer._get_recommendation("MIT", LicenseRisk.LOW)

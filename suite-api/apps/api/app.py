@@ -75,6 +75,7 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Connectors router not available: %s", e)
 
+from apps.api.gate_router import router as gate_router
 from apps.api.inventory_router import router as inventory_router
 from apps.api.policies_router import router as policies_router
 from apps.api.remediation_router import router as remediation_router
@@ -167,15 +168,26 @@ except ImportError as e:
 feeds_router: Optional[APIRouter] = None
 try:
     import importlib
+    import importlib.util
     import sys as _sys
     from pathlib import Path as _FeedsPath
 
     _feeds_api_dir = str(_FeedsPath(__file__).resolve().parent.parent.parent.parent / "suite-feeds")
     if _feeds_api_dir not in _sys.path:
         _sys.path.insert(0, _feeds_api_dir)
-    _feeds_mod = importlib.import_module("api.feeds_router")
-    feeds_router = _feeds_mod.router
-    _logger.info("Loaded Feeds router from suite-feeds (production, 31 endpoints)")
+    # Force-load from suite-feeds to avoid sys.path cache returning the
+    # lighter suite-core version that sitecustomize.py already resolved.
+    _feeds_router_file = _FeedsPath(__file__).resolve().parent.parent.parent.parent / "suite-feeds" / "api" / "feeds_router.py"
+    if _feeds_router_file.exists():
+        _spec = importlib.util.spec_from_file_location("api.feeds_router_sf", str(_feeds_router_file))
+        _feeds_mod = importlib.util.module_from_spec(_spec)  # type: ignore[arg-type]
+        _spec.loader.exec_module(_feeds_mod)  # type: ignore[union-attr]
+        feeds_router = _feeds_mod.router
+        _logger.info("Loaded Feeds router from suite-feeds (production, %d endpoints)", len(feeds_router.routes))
+    else:
+        _feeds_mod = importlib.import_module("api.feeds_router")
+        feeds_router = _feeds_mod.router
+        _logger.info("Loaded Feeds router via importlib (fallback)")
 except (ImportError, AttributeError) as e:
     # Fallback to whatever api.feeds_router sys.path resolves (suite-core version)
     try:
@@ -437,6 +449,14 @@ try:
 except ImportError as e:
     _logger.warning("Knowledge Graph router not available: %s", e)
 
+supply_chain_router: Optional[APIRouter] = None
+try:
+    from api.supply_chain_router import router as supply_chain_router
+
+    _logger.info("Loaded Supply Chain Security router from suite-core")
+except ImportError as e:
+    _logger.warning("Supply Chain Security router not available: %s", e)
+
 vllm_router: Optional[APIRouter] = None
 try:
     from api.vllm_router import router as vllm_router
@@ -469,6 +489,77 @@ try:
     _logger.info("Loaded Developer Risk Profiles router from suite-core")
 except ImportError as e:
     _logger.warning("Developer Risk Profiles router not available: %s", e)
+
+# Causal Inference router (V3 Decision Intelligence — root cause analysis)
+causal_router: Optional[APIRouter] = None
+try:
+    from api.causal_router import router as causal_router
+
+    _logger.info("Loaded Causal Inference router from suite-core")
+except ImportError as e:
+    _logger.warning("Causal Inference router not available: %s", e)
+
+# GNN Attack Path router (graph neural network attack prediction)
+gnn_router: Optional[APIRouter] = None
+try:
+    from api.gnn_router import router as gnn_router
+
+    _logger.info("Loaded GNN Attack Path router from suite-core")
+except ImportError as e:
+    _logger.warning("GNN Attack Path router not available: %s", e)
+
+# Monte Carlo Risk Simulation router (FAIR-based stochastic modeling)
+monte_carlo_router: Optional[APIRouter] = None
+try:
+    from api.monte_carlo_router import router as monte_carlo_router
+
+    _logger.info("Loaded Monte Carlo Risk Simulation router from suite-core")
+except ImportError as e:
+    _logger.warning("Monte Carlo Risk Simulation router not available: %s", e)
+
+# ---------------------------------------------------------------------------
+# Runtime Protection router (Aikido Zen parity — in-app firewall)
+# ---------------------------------------------------------------------------
+runtime_router: Optional[APIRouter] = None
+try:
+    from api.runtime_router import router as runtime_router
+
+    _logger.info("Loaded Runtime Protection router from suite-core")
+except ImportError as e:
+    _logger.warning("Runtime Protection router not available: %s", e)
+
+# ---------------------------------------------------------------------------
+# Threat Modeling router (STRIDE-based AI threat modeling — Apiiro parity)
+# ---------------------------------------------------------------------------
+threat_modeling_router: Optional[APIRouter] = None
+try:
+    from api.threat_modeling_router import router as threat_modeling_router
+
+    _logger.info("Loaded Threat Modeling router from suite-core")
+except ImportError as e:
+    _logger.warning("Threat Modeling router not available: %s", e)
+
+# ---------------------------------------------------------------------------
+# AI Code Guardian router (AI-generated code security — Apiiro Guardian parity)
+# ---------------------------------------------------------------------------
+ai_code_guardian_router: Optional[APIRouter] = None
+try:
+    from api.ai_code_guardian_router import router as ai_code_guardian_router
+
+    _logger.info("Loaded AI Code Guardian router from suite-core")
+except ImportError as e:
+    _logger.warning("AI Code Guardian router not available: %s", e)
+
+# ---------------------------------------------------------------------------
+# Attack Surface Discovery router (external asset monitoring — Aikido parity)
+# ---------------------------------------------------------------------------
+attack_surface_router: Optional[APIRouter] = None
+try:
+    from api.attack_surface_router import router as attack_surface_router
+
+    _logger.info("Loaded Attack Surface Discovery router from suite-core")
+except ImportError as e:
+    _logger.warning("Attack Surface Discovery router not available: %s", e)
 
 # ---------------------------------------------------------------------------
 # Dependency-Track router (SBOM analysis — from suite-core/api/)
@@ -651,6 +742,14 @@ try:
     _logger.info("Loaded MCP router from suite-integrations")
 except ImportError as e:
     _logger.warning("MCP router not available: %s", e)
+
+siem_router: Optional[APIRouter] = None
+try:
+    from api.siem_router import router as siem_router
+
+    _logger.info("Loaded SIEM router from suite-integrations")
+except ImportError as e:
+    _logger.warning("SIEM router not available: %s", e)
 
 # MCP Auto-Discovery router (auto-generates tool catalog from all FastAPI routes)
 from apps.api.mcp_router import register_startup_hook as _mcp_register_startup
@@ -1598,6 +1697,10 @@ def create_app() -> FastAPI:
         ],
     )
 
+    # CI/CD Pipeline Gate — binary pass/fail for CI systems (Tier 2.1)
+    app.include_router(gate_router)  # auth handled internally via api_key_auth dependency
+    _logger.info("Mounted CI/CD Gate router")
+
     # Enterprise features - Remediation, Collaboration, SLA
     app.include_router(remediation_router, dependencies=[Depends(_verify_api_key)])
     app.include_router(collaboration_router, dependencies=[Depends(_verify_api_key)])
@@ -1712,6 +1815,14 @@ def create_app() -> FastAPI:
         (mcp_protocol_router, "MCP Protocol", None),
         (self_learning_router, "Self-Learning", None),
         (developer_profiles_router, "Developer Risk Profiles", None),
+        (supply_chain_router, "Supply Chain Security", None),
+        (causal_router, "Causal Inference", None),
+        (gnn_router, "GNN Attack Paths", None),
+        (monte_carlo_router, "Monte Carlo Risk Simulation", None),
+        (runtime_router, "Runtime Protection", None),
+        (threat_modeling_router, "Threat Modeling", None),
+        (ai_code_guardian_router, "AI Code Guardian", None),
+        (attack_surface_router, "Attack Surface Discovery", None),
     ]
     for _r, _name, _prefix in _core_routers:
         if _r:
@@ -1776,6 +1887,7 @@ def create_app() -> FastAPI:
         (webhooks_router, "Webhooks"),
         (iac_router, "IaC"),
         (ide_router, "IDE"),
+        (siem_router, "SIEM"),
         # Legacy mcp_router removed — superseded by MCP Auto-Discovery
         # router (apps.api.mcp_router) which auto-generates tools from
         # all FastAPI routes instead of 9 hard-coded definitions.
