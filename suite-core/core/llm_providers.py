@@ -50,6 +50,7 @@ class BaseLLMProvider:
         default_confidence: float,
         default_reasoning: str,
         mitigation_hints: Mapping[str, Any] | None = None,
+        system_prompt: str | None = None,
     ) -> LLMResponse:
         """Return a deterministic response when a provider cannot be reached."""
 
@@ -1011,6 +1012,11 @@ def _response_from_payload(
     attack_vectors = _ensure_list(payload.get("attack_vectors")) or _ensure_list(
         hints.get("attack_vectors")
     )
+    full_metadata = dict(metadata)
+    # Preserve the full LLM response payload so callers (e.g. AutoFix engine)
+    # can access structured fields like "patches", "title", etc. that are not
+    # part of the normalised LLMResponse schema.
+    full_metadata["raw_payload"] = dict(payload)
     return LLMResponse(
         recommended_action=recommended_action,
         confidence=confidence,
@@ -1018,7 +1024,7 @@ def _response_from_payload(
         mitre_techniques=mitre,
         compliance_concerns=compliance,
         attack_vectors=attack_vectors,
-        metadata=dict(metadata),
+        metadata=full_metadata,
     )
 
 

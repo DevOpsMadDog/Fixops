@@ -230,7 +230,7 @@ async def upload_scanner_output(
             pipe_input = PipelineInput(
                 findings=findings_dicts,
                 assets=[],
-                options={"source": f"scanner-ingest:{detected}"},
+                source=f"scanner-ingest:{detected}",
             )
             pipeline_result = bp.run(pipe_input)
             if hasattr(pipeline_result, "model_dump"):
@@ -331,7 +331,7 @@ async def webhook_ingest(
             pipe_input = PipelineInput(
                 findings=findings_dicts,
                 assets=[],
-                options={"source": f"webhook:{scanner}"},
+                source=f"webhook:{scanner}",
             )
             pipeline_result = bp.run(pipe_input)
             if hasattr(pipeline_result, "model_dump"):

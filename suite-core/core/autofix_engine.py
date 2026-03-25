@@ -329,12 +329,14 @@ class AutoFixEngine:
         for p in d.get("code_patches", []):
             patches.append(CodePatch(
                 file_path=p.get("file_path", ""),
-                original_code=p.get("original_code", ""),
-                fixed_code=p.get("fixed_code", ""),
-                patch_content=p.get("patch_content", ""),
+                language=p.get("language", ""),
+                old_code=p.get("old_code", p.get("original_code", "")),
+                new_code=p.get("new_code", p.get("fixed_code", "")),
+                start_line=p.get("start_line", p.get("line_start", 0)),
+                end_line=p.get("end_line", p.get("line_end", 0)),
                 patch_format=PatchFormat(p.get("patch_format", "unified_diff")),
-                line_start=p.get("line_start", 0),
-                line_end=p.get("line_end", 0),
+                unified_diff=p.get("unified_diff", p.get("patch_content", "")),
+                explanation=p.get("explanation", ""),
             ))
         dep_fixes = []
         for df in d.get("dependency_fixes", []):
@@ -342,7 +344,7 @@ class AutoFixEngine:
                 package_name=df.get("package_name", ""),
                 current_version=df.get("current_version", ""),
                 fixed_version=df.get("fixed_version", ""),
-                package_file=df.get("package_file", ""),
+                manifest_file=df.get("manifest_file", df.get("package_file", "")),
                 ecosystem=df.get("ecosystem", ""),
             ))
         return AutoFixSuggestion(
@@ -737,15 +739,35 @@ Provide ONLY valid JSON. The fix must be precise, minimal, and production-ready.
         # Detect deterministic/fallback response (no real LLM available)
         _is_fallback = response.metadata.get("mode") in ("deterministic", "fallback")
 
-        # Parse LLM response
+        # Parse LLM response — prefer the full raw payload preserved by
+        # the provider (contains patches/title/etc.) before falling back
+        # to parsing the reasoning text.
         try:
-            raw = response.reasoning
-            # Try to extract JSON from the response
-            json_match = re.search(r"\{[\s\S]*\}", raw)
-            if json_match:
-                data = json.loads(json_match.group())
+            raw_payload = response.metadata.get("raw_payload")
+            # Accept raw_payload if it looks like a structured fix response
+            # (has any of the expected fix fields, not just the standard LLMResponse fields)
+            _fix_keys = {"patches", "title", "description", "testing_guidance", "effort_minutes"}
+            if raw_payload and isinstance(raw_payload, dict) and (set(raw_payload.keys()) & _fix_keys):
+                data = raw_payload
+                logger.info(
+                    "[AutoFix] Using raw_payload for %s (keys=%s)",
+                    finding.get("id", "?"), list(raw_payload.keys())[:8],
+                )
             else:
-                data = json.loads(raw)
+                logger.info(
+                    "[AutoFix] raw_payload not usable for %s (payload_type=%s, keys=%s, mode=%s)",
+                    finding.get("id", "?"),
+                    type(raw_payload).__name__ if raw_payload else "None",
+                    list(raw_payload.keys())[:5] if isinstance(raw_payload, dict) else "N/A",
+                    response.metadata.get("mode", "?"),
+                )
+                raw = response.reasoning
+                # Try to extract JSON from the response
+                json_match = re.search(r"\{[\s\S]*\}", raw)
+                if json_match:
+                    data = json.loads(json_match.group())
+                else:
+                    data = json.loads(raw)
 
             suggestion.title = data.get(
                 "title", f"Fix {finding.get('title', 'vulnerability')}"
