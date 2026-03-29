@@ -1,320 +1,439 @@
-# ALdeci Organization-Wide Persona Trial Runbook
-
-## Purpose
-Simulate a real enterprise where:
-- All key security and engineering personas exist and actively collaborate.
-- All vulnerable apps from the master validation runbook are treated as internal organizational assets.
-- ALdeci is already implemented and being evaluated as a production CTEM+ operating platform.
-
-This document is a companion to the master runbook and focuses on people, ownership, handoffs, and operational behavior under realistic organizational conditions.
-
-Reference baseline process:
-- docs/REAL_PRODUCT_VALIDATION_MASTER_RUNBOOK.md
-
-## Scenario Assumptions
-1. ALdeci is deployed and integrated with API key auth, core scanners, MPTE, AutoFix, and evidence pipeline.
-2. The organization has AppSec, SecOps, DevOps, engineering, compliance, and executive stakeholders.
-3. The organization maintains intentional internal "training systems" (vulnerable labs) for continuous validation.
-4. All validation targets are in scope by policy and recorded in target manifest.
-
-## Internal Validation Asset Catalog (Treated as Organization-Owned)
-These are intentionally vulnerable internal training assets used for tool calibration and process proof.
-
-1. Internal-Juice-Shop (OWASP Juice Shop)
-2. Internal-crAPI (OWASP crAPI)
-3. Internal-WebGoat (OWASP WebGoat)
-4. Internal-DVWA (DVWA)
-5. Internal-Shepherd (OWASP Security Shepherd) or Internal-bWAPP
-
-These systems are not customer production workloads. They are controlled proving grounds for detection quality, exploitability validation, and remediation workflow stress tests.
-
-## Persona Model (All Active)
-
-### Executive and Leadership Personas
-1. CISO
-2. VP Engineering
-3. CTO
-4. CFO
-
-### Security Operations Personas
-5. SOC Analyst T1
-6. SOC Analyst T2
-7. Incident Responder
-8. Threat Hunter
-9. Vulnerability Manager
-10. AppSec Engineer
-11. Security Architect
-12. GRC Analyst
-13. Compliance Manager
-
-### Engineering and Platform Personas
-14. Engineering Manager
-15. Tech Lead
-16. Backend Engineer
-17. Frontend Engineer
-18. DevOps Engineer
-19. SRE
-20. Platform Engineer
-21. QA Engineer
-
-### Data and AI Personas
-22. Data Scientist
-23. ML Engineer
-24. Security Analyst (AI-assisted triage)
-25. Prompt/Automation Engineer
-
-## Responsibility Matrix
-
-### CISO
-- Owns risk acceptance policy and severity thresholds.
-- Approves scope policy for live permissioned testing.
-- Reviews weekly CTEM outcome report and evidence integrity.
-
-### VP Engineering and CTO
-- Own engineering execution on remediation SLAs.
-- Ensure ALdeci outputs map to team ownership (App -> Component -> Feature).
-- Track fix throughput and regression trends.
-
-### SOC T1/T2 + Vulnerability Manager
-- Operate finding queues and de-duplicate triage.
-- Escalate only actionable and reproducible findings.
-- Validate finding quality against noise targets.
-
-### AppSec Engineer + Security Architect
-- Tune policies, risk scoring, and route critical findings.
-- Trigger MPTE validation on high-impact candidates.
-- Verify exploitability narratives before escalation.
-
-### Incident Responder + Threat Hunter
-- Cross-check ALdeci findings against active threat signals.
-- Build hunt hypotheses from attack path and enrichment metadata.
-
-### DevOps/SRE/Platform
-- Maintain scanning runtime reliability and connector uptime.
-- Ensure telemetry, logs, and evidence storage durability.
-
-### Engineering Teams
-- Consume prioritized remediation backlog.
-- Review AutoFix proposals and merge with ownership approvals.
-- Report fix effectiveness and reopen rates.
-
-### GRC/Compliance
-- Map findings and remediations to control frameworks.
-- Generate signed evidence packs for audits and customer proof.
-
-### Data/AI Roles
-- Monitor false positive rates and scoring drift.
-- Improve prioritization quality and recommendation confidence.
-
-## Trial Governance
-
-### Steering Cadence
-- Daily: Tactical standup (SecOps + AppSec + Eng leads)
-- Weekly: Risk review (CISO, CTO, VP Eng, GRC)
-- Biweekly: Executive trust review (CISO + CFO + Product)
-
-### Decision Rights
-1. Risk acceptance: CISO
-2. Remediation SLA exceptions: VP Engineering
-3. Production release risk exception: CTO
-4. Budget and program continuation: CFO + CISO
-
-## Execution Style - Real-Time Rolling E2E
-This trial is executed as continuous micro-cycles, not as one giant end-to-end run.
-
-Micro-cycle pattern:
-1. Pick one asset + one objective + one persona lead.
-2. Run discovery/triage/validation/remediation slice for that objective.
-3. Record KPI deltas and handoff to next persona.
-4. Repeat throughout the day.
-
-Benefits:
-- Faster feedback loops across personas.
-- Early blocker detection.
-- Better operational realism for enterprise teams.
-- Continuous trust signal instead of one-time demo signal.
-
-## End-to-End Trial Flow (Persona-Driven)
-
-### Phase 1 - Intake and Scope Lock
-Owner: Security Architect + GRC
-- Register all internal validation assets in target manifest.
-- Bind each asset to business owner and technical owner.
-- Validate scope policy and testing guardrails.
-
-Deliverables:
-- Signed scope registry
-- Manifest with owner mapping
-
-### Phase 2 - Discover
-Owner: SOC T1/T2 + AppSec
-- Run multi-engine scans on all internal validation assets.
-- Ingest findings, normalize records, and dedupe duplicates.
-- Track scanner stability and ingestion completeness.
-
-Deliverables:
-- Raw findings export
-- Deduplicated finding set
-
-### Phase 3 - Prioritize and Decide
-Owner: Vulnerability Manager + Security Architect
-- Rank by severity, reachability, business criticality, and exploitability signals.
-- Assign ownership by App -> Component -> Feature.
-- Generate decision queue for validation.
-
-Deliverables:
-- Prioritized queue
-- Ownership-assigned backlog
-
-### Phase 4 - Validate (MPTE)
-Owner: AppSec Engineer + Threat Hunter
-- Run MPTE on selected High/Critical findings.
-- Confirm exploitability paths and remove non-actionable alerts.
-
-Deliverables:
-- MPTE-confirmed findings
-- Validation narrative per finding
-
-### Phase 5 - Remediate
-Owner: Tech Leads + Engineering Teams
-- Evaluate AutoFix recommendations by confidence class.
-- Apply high-confidence changes in controlled branches.
-- Route medium/low confidence to manual review.
-
-Deliverables:
-- Applied fixes
-- Re-test results
-- Reopen analysis (if any)
-
-### Phase 6 - Comply and Evidence
-Owner: GRC + Compliance Manager
-- Generate signed evidence bundles containing findings, decisions, validation, and remediation trail.
-- Maintain immutable timeline for auditability.
-
-Deliverables:
-- Evidence bundles
-- Control mapping report
-
-### Phase 7 - Executive Trust Review
-Owner: CISO + CFO + CTO
-- Review KPI outcomes against agreed success gates.
-- Decide production expansion, pilot extension, or remediation of pilot process gaps.
-
-Deliverables:
-- Go/No-Go memo
-- Investment continuation recommendation
-
-## KPI Framework (Organization Trial)
-
-### Operational KPIs
-1. Ingestion completeness
-2. Dedupe ratio
-3. Time to first meaningful signal
-4. Queue aging by severity
-
-### Quality KPIs
-5. Actionability score
-6. Noise ratio (sampled false positives)
-7. MPTE confirmation rate
-8. Reopen rate after remediation
-
-### Business KPIs
-9. SLA compliance rate by org unit
-10. Mean time to remediation (MTTR)
-11. Audit evidence completeness
-12. Executive confidence index (surveyed)
-
-## Minimum Acceptance Criteria for Full Organizational Confidence
-1. Dedupe ratio >= 35%.
-2. Actionability score >= 60%.
-3. MPTE confirmation rate >= 20% on High/Critical in controlled assets.
-4. Noise ratio < 30%.
-5. Evidence completeness >= 90%.
-6. Scope compliance = 100%.
-7. Critical remediation SLA adherence >= 85%.
-
-## Example Role-to-Workflow Mapping (Internal Validation Assets)
-
-### Internal-Juice-Shop
-- SOC T1 triages and tags severity.
-- AppSec triggers MPTE on auth/session and injection findings.
-- Backend Tech Lead reviews AutoFix recommendations.
-- GRC maps accepted fixes to SOC2/ISO control references.
-
-### Internal-crAPI
-- API Security specialist validates object-level authorization findings.
-- Threat Hunter reviews chainability and abuse paths.
-- Platform team validates gateway and runtime controls.
-
-### Internal-WebGoat / Internal-DVWA
-- Used for repeatability testing and analyst training.
-- QA validates no pipeline regressions across versions.
-
-### Internal-Shepherd / Internal-bWAPP
-- Used for edge-case correlation and multi-step attack path logic.
-- Security Architect validates policy outcomes and escalation quality.
-
-## Artifacts Required Per Trial Cycle
-1. Target manifest with owner mapping
-2. Raw scan exports
-3. Normalized and deduped findings
-4. Prioritized decision queue
-5. MPTE validation logs
-6. AutoFix recommendation and acceptance table
-7. Re-test and closure report
-8. Signed evidence bundles
-9. Executive summary and Go/No-Go memo
-
-## Anti-Hardcoding and Authenticity Controls
-1. Reject findings that only contain static CVE references without source context.
-2. Require reproducible trace: endpoint/path/file + request/response or code location.
-3. Randomly sample at least 20 findings and manually verify reproducibility.
-4. Track repeated CVE patterns across assets and flag template-only detections.
-5. Require at least one contextual anchor: exploit path, reachability, owner mapping, or policy tie-in.
-
-## Communication Templates
-
-### Daily Trial Update
-- Scope status: in-scope only / violations
-- Findings status: raw, unique, critical count
-- Validation status: MPTE queued vs confirmed
-- Remediation status: accepted, in progress, blocked
-- Evidence status: generated, pending, failed
-- Top blockers and owner actions
-
-### Weekly Executive Snapshot
-- Security outcome trend (week over week)
-- Top 5 risk decisions made
-- SLA adherence by team
-- Evidence completeness and audit readiness
-- Recommendation: expand, optimize, or pause
-
-## Ready-to-Use Reporting Templates
-Use these immediately for continuous reporting:
-- docs/templates/DAILY_REALTIME_E2E_REPORT_TEMPLATE.md
-- docs/templates/WEEKLY_REALTIME_E2E_EXECUTIVE_TEMPLATE.md
-
-Reporting rule:
-- Daily report captures micro-cycle deltas and persona handoffs.
-- Weekly report captures trend, leadership decisions, and go/no-go.
-
-## Exit Outcomes
-
-### Outcome A - Production Ready Confidence
-All acceptance criteria met, stable operational rhythm, low noise, high actionability, strong evidence chain.
-
-### Outcome B - Conditional Confidence
-Core KPIs met but one or two areas require tuning (for example, noise ratio or MTTR).
-
-### Outcome C - Not Yet Trusted
-Critical gates missed. Run focused improvement cycle before external customer pilots.
-
-## Implementation Note
-Use this runbook together with:
-- docs/REAL_PRODUCT_VALIDATION_MASTER_RUNBOOK.md
-
-The master runbook defines command-level execution. This persona runbook defines organizational behavior, accountability, and trust criteria.
+# ALdeci CTEM+ — Enterprise Pilot Deployment Guide
+
+> **Classification**: Company Confidential — Customer-Ready
+> **Version**: 3.0 | **Effective**: Q1 2026
+> **Audience**: CISOs, Security Architecture Teams, Pilot Program Managers, Compliance Officers
 
 ---
-Owner: CISO Office + Security Engineering + VP Engineering
-Usage: Internal enterprise pilot simulation, customer readiness proof, governance alignment
+
+## Purpose
+
+This guide defines the organizational deployment model for an ALdeci CTEM+ enterprise pilot. It establishes:
+
+- **Persona-to-workflow mapping** for all stakeholders across security, engineering, compliance, and leadership
+- **Governance structure** with decision rights, escalation paths, and steering cadence
+- **Operational execution model** with rolling micro-cycles for continuous validation
+- **Acceptance criteria** tied to measurable KPIs that determine production readiness
+
+Use this guide alongside the [Technical Validation Runbook](REAL_PRODUCT_VALIDATION_MASTER_RUNBOOK.md), which defines command-level execution. This document defines organizational behavior, accountability, and trust criteria.
+
+---
+
+## Pilot Scope and Prerequisites
+
+### Deployment Assumptions
+
+1. ALdeci is deployed in the customer's environment (SaaS, single-tenant, on-premises, or air-gapped).
+2. API authentication is configured (API key and/or JWT).
+3. Core platform capabilities are operational: native scanners, Brain Pipeline, MPTE, AutoFix, evidence generation.
+4. Integration connectors are configured for the customer's existing toolchain (Jira, Slack, GitHub, etc.).
+
+### Application Portfolio Onboarding
+
+The pilot operates against the customer's **actual application portfolio**. During onboarding, applications are categorized by risk tier:
+
+| Tier | Description | Pilot Priority | Example |
+|------|-------------|---------------|---------|
+| **Tier 1 — Critical** | Revenue-generating, customer-facing, regulated | Primary | Payment processing, API gateway, identity platform |
+| **Tier 2 — Important** | Internal tools, developer platforms, CI/CD | Secondary | Internal dashboards, build systems, package registries |
+| **Tier 3 — Standard** | Low-risk utilities, documentation, static content | Tertiary | Marketing site, internal wikis |
+| **Validation Assets** | Controlled test environments for calibration | Parallel | Security training labs, staging environments |
+
+Each application is registered in ALdeci's Application Registry with:
+
+- **APP_ID**: Unique identifier
+- **Business Owner**: Executive accountable for risk decisions
+- **Technical Owner**: Engineering lead responsible for remediation
+- **Component Map**: Application → Component → Feature hierarchy
+- **Compliance Scope**: Applicable regulatory frameworks (PCI-DSS, SOC 2, HIPAA, etc.)
+
+---
+
+## Persona Model
+
+### 25 Enterprise Personas (All Active During Pilot)
+
+#### Executive and Leadership
+
+| # | Persona | Pilot Role |
+|---|---------|-----------|
+| 1 | **CISO** | Risk acceptance authority, pilot sponsor, steering committee chair |
+| 2 | **VP Engineering** | Remediation SLA owner, engineering resource allocation |
+| 3 | **CTO** | Production release risk authority, architecture review |
+| 4 | **CFO** | Budget authority, ROI measurement, investment continuation |
+
+#### Security Operations
+
+| # | Persona | Pilot Role |
+|---|---------|-----------|
+| 5 | **SOC Analyst Tier 1** | Initial triage, severity classification, queue management |
+| 6 | **SOC Analyst Tier 2** | Deep analysis, escalation, cross-correlation |
+| 7 | **Incident Responder** | Finding-to-incident correlation, active threat cross-reference |
+| 8 | **Threat Hunter** | Attack path analysis, hypothesis-driven validation |
+| 9 | **Vulnerability Manager** | Finding lifecycle ownership, SLA tracking, queue prioritization |
+| 10 | **AppSec Engineer** | Policy tuning, MPTE orchestration, exploitability verification |
+| 11 | **Security Architect** | Policy design, risk model calibration, integration architecture |
+| 12 | **GRC Analyst** | Control mapping, evidence collection, audit preparation |
+| 13 | **Compliance Manager** | Framework alignment, certification readiness, regulatory reporting |
+
+#### Engineering and Platform
+
+| # | Persona | Pilot Role |
+|---|---------|-----------|
+| 14 | **Engineering Manager** | Sprint capacity allocation, remediation backlog management |
+| 15 | **Tech Lead** | AutoFix review authority, code change approval |
+| 16 | **Backend Engineer** | Remediation execution, fix verification |
+| 17 | **Frontend Engineer** | Client-side vulnerability remediation |
+| 18 | **DevOps Engineer** | Scanner runtime, connector configuration, CI/CD integration |
+| 19 | **SRE** | Infrastructure scanning, configuration drift monitoring |
+| 20 | **Platform Engineer** | Runtime environment hardening, container security |
+| 21 | **QA Engineer** | Regression testing post-remediation, fix verification |
+
+#### Data and AI
+
+| # | Persona | Pilot Role |
+|---|---------|-----------|
+| 22 | **Data Scientist** | Risk model validation, scoring drift analysis |
+| 23 | **ML Engineer** | Prioritization quality monitoring, model performance |
+| 24 | **Security Analyst (AI-Assisted)** | AI-augmented triage, consensus decision review |
+| 25 | **Automation Engineer** | MCP integration, workflow automation, agent orchestration |
+
+---
+
+## Responsibility Matrix (RACI)
+
+### Executive Accountability
+
+| Responsibility | CISO | VP Eng | CTO | CFO |
+|---------------|------|--------|-----|-----|
+| Risk acceptance policy | **A** | C | C | I |
+| Remediation SLA exceptions | C | **A** | C | I |
+| Production release risk exception | C | C | **A** | I |
+| Pilot budget and continuation | C | I | I | **A** |
+| Compliance evidence signoff | **A** | I | I | C |
+
+*A = Accountable, R = Responsible, C = Consulted, I = Informed*
+
+### Operational Responsibilities
+
+| Function | Personas | Key Activities |
+|----------|----------|---------------|
+| **Triage & Queue Management** | SOC T1/T2, Vulnerability Manager | Operate finding queues, deduplicate, escalate actionable findings |
+| **Policy & Risk Calibration** | AppSec Engineer, Security Architect | Tune policies, scoring weights, and routing rules |
+| **Exploitability Verification** | AppSec Engineer, Threat Hunter | Orchestrate MPTE validation, verify exploitability narratives |
+| **Threat Correlation** | Incident Responder, Threat Hunter | Cross-reference findings against active threat intelligence |
+| **Platform Operations** | DevOps, SRE, Platform Engineer | Maintain scanner runtime, connector uptime, telemetry |
+| **Remediation Execution** | Tech Lead, Engineers, QA | Review AutoFix proposals, execute fixes, verify resolution |
+| **Compliance & Evidence** | GRC Analyst, Compliance Manager | Map to control frameworks, generate signed evidence |
+| **AI/ML Quality** | Data Scientist, ML Engineer | Monitor false positive rates, scoring drift, model confidence |
+
+---
+
+## Pilot Governance
+
+### Steering Cadence
+
+| Frequency | Meeting | Participants | Purpose |
+|-----------|---------|-------------|---------|
+| **Daily** | Tactical standup | SecOps + AppSec + Engineering leads | Operational blockers, queue status, SLA tracking |
+| **Weekly** | Risk review | CISO, CTO, VP Eng, GRC lead | Risk decisions, KPI review, policy adjustments |
+| **Biweekly** | Executive trust review | CISO, CFO, Product | Investment thesis validation, Go/No-Go assessment |
+
+### Decision Rights
+
+| Decision | Authority | Escalation Path |
+|----------|-----------|----------------|
+| Risk acceptance for specific finding | CISO | Board Risk Committee |
+| Remediation SLA exception | VP Engineering | CTO |
+| Emergency production release hold | CTO | CISO + VP Eng joint |
+| Pilot extension or termination | CFO + CISO | Executive Committee |
+| Compliance evidence release to auditor | Compliance Manager | CISO |
+
+---
+
+## Execution Model — Rolling Micro-Cycles
+
+The pilot executes as **continuous micro-cycles**, not a single end-to-end run. This approach mirrors production operational cadence and generates continuous trust signals.
+
+### Micro-Cycle Pattern
+
+1. Select one application tier + one objective + one persona lead
+2. Execute discovery, triage, validation, and remediation slice
+3. Record KPI deltas and execute handoff to the next persona
+4. Repeat continuously throughout the pilot period
+
+### Benefits Over Traditional POC
+
+| Traditional POC | ALdeci Rolling Micro-Cycle |
+|----------------|---------------------------|
+| Single pass, single demo | Continuous operational validation |
+| Scripted scenarios | Real application portfolio |
+| Results in 2 weeks | Trust signal in 48 hours, deepening daily |
+| One stakeholder validates | All 25 personas engage |
+| Go/No-Go at end | Continuous Go/No-Go assessment |
+
+---
+
+## Seven-Phase Pilot Execution
+
+### Phase 1 — Intake and Scope Lock
+
+**Owner**: Security Architect + GRC Analyst
+
+| Activity | Detail |
+|----------|--------|
+| Register applications in ALdeci Application Registry | APP_ID, business owner, technical owner, component map |
+| Define scope policy | In-scope applications, testing guardrails, excluded environments |
+| Configure compliance framework mapping | PCI-DSS, SOC 2, NIST, ISO 27001 as applicable |
+| Bind integrations | Jira project mapping, Slack channels, GitHub repositories |
+
+**Deliverables**: Signed scope registry, application manifest with ownership mapping
+
+### Phase 2 — Discover
+
+**Owner**: SOC T1/T2 + AppSec Engineer
+
+| Activity | Detail |
+|----------|--------|
+| Execute multi-engine scans across application portfolio | Native scanners + integrated external tools |
+| Ingest and normalize all findings | Unified Finding Format (UFF) standardization |
+| Execute cross-scanner deduplication | Eliminate redundant findings from overlapping tools |
+| Track scanner coverage and stability | Ingestion completeness by engine and application |
+
+**Deliverables**: Raw findings export, deduplicated finding set, scanner coverage report
+
+### Phase 3 — Prioritize and Decide
+
+**Owner**: Vulnerability Manager + Security Architect
+
+| Activity | Detail |
+|----------|--------|
+| Score findings with multi-factor risk model | CVSS + EPSS + business context + reachability |
+| Assign ownership via APP_ID hierarchy | Application to Component to Feature to Owner |
+| Generate decision queue | Ranked by exploitability, blast radius, and SLA urgency |
+| Apply organizational security policies | Auto-triage, auto-assign, auto-escalate per policy |
+
+**Deliverables**: Prioritized queue, ownership-assigned backlog, policy evaluation log
+
+### Phase 4 — Validate (MPTE)
+
+**Owner**: AppSec Engineer + Threat Hunter
+
+| Activity | Detail |
+|----------|--------|
+| Select High/Critical findings for MPTE verification | Prioritize by reachability and business impact |
+| Execute 19-phase exploit verification | Bounded, safe, with automatic rollback |
+| Confirm or dismiss exploitability | Evidence-grade confirmation with chain-of-custody |
+| Generate validation narratives | Per-finding exploitability report |
+
+**Deliverables**: MPTE-confirmed finding set, per-finding validation narrative, false positive reduction metrics
+
+### Phase 5 — Remediate
+
+**Owner**: Tech Leads + Engineering Teams
+
+| Activity | Detail |
+|----------|--------|
+| Evaluate AutoFix recommendations by confidence tier | HIGH: auto-apply; MEDIUM: PR review; LOW: manual |
+| Apply fixes in controlled branches | Feature branches with automated test gates |
+| Execute re-verification scan post-fix | Confirm resolution, detect regressions |
+| Track fix effectiveness and reopen rates | Feed into self-learning loop |
+
+**Deliverables**: Applied fixes with PR links, re-test results, reopen analysis
+
+### Phase 6 — Comply and Evidence
+
+**Owner**: GRC Analyst + Compliance Manager
+
+| Activity | Detail |
+|----------|--------|
+| Generate signed evidence bundles | Finding, Decision, Validation, and Remediation trail |
+| Map to compliance control frameworks | Auto-map to SOC 2, PCI-DSS, NIST, ISO controls |
+| Maintain immutable audit timeline | WORM-retained with cryptographic signatures |
+| Prepare audit-ready compliance reports | Per-framework control coverage and gap analysis |
+
+**Deliverables**: Signed evidence bundles, control mapping report, compliance readiness summary
+
+### Phase 7 — Executive Trust Review
+
+**Owner**: CISO + CFO + CTO
+
+| Activity | Detail |
+|----------|--------|
+| Review KPI outcomes against acceptance criteria | All 12 KPIs measured and reported |
+| Assess operational readiness | Team adoption, workflow integration, process maturity |
+| Evaluate ROI indicators | MTTR improvement, false positive reduction, labor savings |
+| Issue Go/No-Go decision | Production expansion, pilot extension, or optimization cycle |
+
+**Deliverables**: Go/No-Go memo, investment continuation recommendation, production rollout plan
+
+---
+
+## KPI Framework
+
+### Operational KPIs
+
+| # | KPI | Target | Measurement |
+|---|-----|--------|-------------|
+| 1 | Ingestion completeness | >= 99% | Findings ingested / findings generated |
+| 2 | Deduplication ratio | >= 35% | (Raw - Unique) / Raw |
+| 3 | Time to first meaningful signal | < 30 minutes | First actionable finding after scan initiation |
+| 4 | Queue aging by severity | Critical < 4h, High < 24h | Time finding remains in triage queue |
+
+### Quality KPIs
+
+| # | KPI | Target | Measurement |
+|---|-----|--------|-------------|
+| 5 | Actionability score | >= 60% | Actionable findings / Total unique findings |
+| 6 | Noise ratio | < 30% | False positives in sampled set / Sample size |
+| 7 | MPTE confirmation rate | >= 20% | MPTE-confirmed / High+Critical submitted |
+| 8 | Reopen rate after remediation | < 10% | Reopened findings / Closed findings |
+
+### Business KPIs
+
+| # | KPI | Target | Measurement |
+|---|-----|--------|-------------|
+| 9 | SLA compliance rate | >= 85% | Findings remediated within SLA / Total assigned |
+| 10 | Mean time to remediation (MTTR) | Improvement >= 40% | Average remediation time vs. baseline |
+| 11 | Audit evidence completeness | >= 90% | Workflows with signed evidence / Total workflows |
+| 12 | Executive confidence index | >= 4.0 / 5.0 | Surveyed leadership satisfaction |
+
+---
+
+## Acceptance Criteria
+
+**All criteria must be met for production-ready recommendation:**
+
+| # | Criterion | Gate |
+|---|-----------|------|
+| 1 | Deduplication ratio | >= 35% |
+| 2 | Actionability score | >= 60% |
+| 3 | MPTE confirmation rate | >= 20% on High/Critical findings |
+| 4 | Noise ratio | < 30% |
+| 5 | Evidence completeness | >= 90% |
+| 6 | Scope compliance | 100% (zero out-of-scope actions) |
+| 7 | Critical remediation SLA adherence | >= 85% |
+
+---
+
+## Persona-to-Workflow Mapping by Application Tier
+
+### Tier 1 — Critical Applications (Revenue-Generating)
+
+| Persona | Workflow |
+|---------|----------|
+| SOC T1 | Initial triage, severity classification, SLA timer start |
+| AppSec Engineer | MPTE verification on authentication, authorization, and injection findings |
+| Tech Lead | AutoFix review with mandatory senior engineer approval |
+| GRC Analyst | Map accepted fixes to SOC 2, PCI-DSS, and ISO 27001 controls |
+| Compliance Manager | Generate signed evidence bundle, prepare audit artifact |
+
+### Tier 2 — Important Applications (Internal Platforms)
+
+| Persona | Workflow |
+|---------|----------|
+| SOC T2 | Triage and prioritize against infrastructure risk model |
+| Threat Hunter | Review attack paths and lateral movement potential |
+| Platform Engineer | Validate runtime and infrastructure controls |
+| DevOps Engineer | CI/CD integration validation, scanner pipeline health |
+
+### Tier 3 — Standard Applications (Low-Risk)
+
+| Persona | Workflow |
+|---------|----------|
+| QA Engineer | Verify pipeline consistency across application tiers |
+| Automation Engineer | Validate MCP integration and workflow automation |
+| Security Architect | Review policy outcomes and escalation quality |
+
+### Validation Assets (Calibration)
+
+| Persona | Workflow |
+|---------|----------|
+| AppSec Engineer | Baseline scanner detection accuracy against known-vulnerable targets |
+| QA Engineer | Regression testing across platform versions |
+| Data Scientist | False positive rate benchmarking and scoring model validation |
+
+---
+
+## Pilot Artifacts Checklist
+
+Every pilot cycle produces the following deliverables:
+
+| # | Artifact | Owner | Format |
+|---|----------|-------|--------|
+| 1 | Application manifest with ownership mapping | Security Architect | YAML/JSON |
+| 2 | Raw scan exports (all engines) | SOC T1 | JSON/SARIF |
+| 3 | Normalized and deduplicated finding set | Vulnerability Manager | ALdeci UFF |
+| 4 | Prioritized decision queue | Security Architect | Dashboard + Export |
+| 5 | MPTE validation logs | AppSec Engineer | JSON + Narrative |
+| 6 | AutoFix recommendation and acceptance table | Tech Lead | CSV + PR links |
+| 7 | Re-test and closure report | QA Engineer | Markdown + JSON |
+| 8 | Signed evidence bundles | GRC Analyst | Cryptographically signed JSON |
+| 9 | Executive summary and Go/No-Go memo | CISO | PDF |
+
+---
+
+## Data Quality Controls
+
+1. **Source verification**: Reject findings that contain only static CVE references without contextual source evidence (file path, endpoint, request/response, code location).
+2. **Reproducibility requirement**: Every finding must include a reproducible trace consisting of endpoint, code location, or artifact path with supporting evidence.
+3. **Statistical sampling**: Randomly verify at least 20 findings per pilot cycle for manual reproducibility confirmation.
+4. **Pattern detection**: Track repeated CVE patterns across applications and flag template-only or generic detections for manual review.
+5. **Contextual anchoring**: Every prioritized finding must include at least one of: exploit path, reachable asset evidence, ownership mapping, or policy tie-in.
+
+---
+
+## Communication Cadence
+
+### Daily Pilot Update (Operational)
+
+| Section | Content |
+|---------|---------|
+| Scope status | In-scope compliance, any scope questions |
+| Finding status | Raw count, unique count, critical/high count |
+| Validation status | MPTE queue depth, confirmed vs. dismissed |
+| Remediation status | Accepted, in progress, blocked, closed |
+| Evidence status | Generated, pending, failed |
+| Blockers | Top issues with assigned owners and deadlines |
+
+### Weekly Executive Snapshot (Strategic)
+
+| Section | Content |
+|---------|---------|
+| Security outcome trend | Week-over-week KPI movement |
+| Top 5 risk decisions | Decisions made with rationale and owner |
+| SLA adherence | By team and application tier |
+| Evidence completeness | Audit readiness percentage |
+| Recommendation | Expand, optimize, or escalate |
+
+---
+
+## Pilot Outcomes
+
+### Outcome A — Production Ready
+
+All acceptance criteria met. Stable operational rhythm. Low noise, high actionability, complete evidence chain. **Recommendation**: Expand to full application portfolio.
+
+### Outcome B — Conditional Approval
+
+Core KPIs met with one or two areas requiring tuning (e.g., noise ratio calibration or MTTR optimization). **Recommendation**: Approve production deployment with targeted improvement plan.
+
+### Outcome C — Optimization Required
+
+Critical acceptance gates not met. **Recommendation**: Execute focused improvement cycle with identified remediation actions before production expansion.
+
+---
+
+## Related Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [Technical Validation Runbook](REAL_PRODUCT_VALIDATION_MASTER_RUNBOOK.md) | Command-level execution and API validation procedures |
+| [CEO Vision](CEO_VISION.md) | Strategic platform direction and market positioning |
+| [CTEM+ Platform Capabilities](CTEM_PLUS_IDENTITY.md) | Technical capability reference for evaluation teams |
+
+---
+
+*This document defines the organizational deployment model for ALdeci CTEM+ enterprise pilots. It is designed for use by customer security teams, pilot program managers, and executive sponsors during evaluation and deployment.*
+
+*Version 3.0 — Q1 2026 — Company Confidential*
