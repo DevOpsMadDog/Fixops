@@ -9,12 +9,26 @@ Endpoints:
 
 from __future__ import annotations
 
+import logging
+import uuid
+from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from core.sast_engine import SAST_RULES, get_sast_engine
 from fastapi import APIRouter, HTTPException, Depends
 from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
+
+# Severity mapping from SAST engine values to analytics DB enum values
+_SEVERITY_MAP = {
+    "critical": "critical",
+    "high": "high",
+    "medium": "medium",
+    "low": "low",
+    "info": "info",
+}
 
 router = APIRouter(prefix="/api/v1/sast", tags=["SAST"])
 
@@ -53,6 +67,60 @@ def _sanitize_filename(filename: str) -> str:
     return safe or "input.txt"
 
 
+def _persist_sast_findings(findings: list, app_id: str | None = None) -> int:
+    """Persist SAST findings to AnalyticsDB so they appear in triage/risk.
+
+    Returns the number of findings successfully persisted.
+    """
+    if not findings:
+        return 0
+    try:
+        from core.analytics_db import AnalyticsDB
+        from core.analytics_models import Finding, FindingSeverity, FindingStatus
+
+        db = AnalyticsDB()
+        persisted = 0
+        for f in findings:
+            sev_val = f.get("severity", "medium").lower()
+            try:
+                severity = FindingSeverity(sev_val)
+            except ValueError:
+                severity = FindingSeverity.MEDIUM
+
+            finding = Finding(
+                id=f.get("finding_id", str(uuid.uuid4())),
+                application_id=app_id,
+                service_id=None,
+                rule_id=f.get("rule_id", "SAST-UNKNOWN"),
+                severity=severity,
+                status=FindingStatus.OPEN,
+                title=f.get("title", "SAST Finding"),
+                description=f.get("message", f.get("title", "")),
+                source="sast_scanner",
+                cve_id=f.get("cwe_id"),
+                cvss_score=None,
+                epss_score=None,
+                exploitable=False,
+                metadata={
+                    "file_path": f.get("file_path", ""),
+                    "line_number": f.get("line_number", 0),
+                    "column": f.get("column", 0),
+                    "snippet": f.get("snippet", ""),
+                    "language": f.get("language", ""),
+                    "fix_suggestion": f.get("fix_suggestion", ""),
+                    "confidence": f.get("confidence", 0.0),
+                },
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
+            )
+            db.create_finding(finding)
+            persisted += 1
+        return persisted
+    except Exception:
+        logger.exception("Failed to persist SAST findings to analytics DB")
+        return 0
+
+
 @router.post("/scan/code")
 async def scan_code(req: ScanCodeRequest) -> Dict[str, Any]:
     """Scan a single code snippet for vulnerabilities."""
@@ -61,7 +129,11 @@ async def scan_code(req: ScanCodeRequest) -> Dict[str, Any]:
     safe_filename = _sanitize_filename(req.filename)
     engine = get_sast_engine()
     result = engine.scan_code(req.code, safe_filename)
-    return result.to_dict()
+    result_dict = result.to_dict()
+    # Persist findings to analytics DB for triage/risk pipeline
+    persisted = _persist_sast_findings(result_dict.get("findings", []), app_id=req.app_id)
+    result_dict["persisted_count"] = persisted
+    return result_dict
 
 
 @router.post("/scan/files")
@@ -84,7 +156,11 @@ async def scan_files(req: ScanFilesRequest) -> Dict[str, Any]:
         sanitized[_sanitize_filename(fname)] = content
     engine = get_sast_engine()
     result = engine.scan_files(sanitized)
-    return result.to_dict()
+    result_dict = result.to_dict()
+    # Persist findings to analytics DB for triage/risk pipeline
+    persisted = _persist_sast_findings(result_dict.get("findings", []))
+    result_dict["persisted_count"] = persisted
+    return result_dict
 
 
 @router.get("/findings")

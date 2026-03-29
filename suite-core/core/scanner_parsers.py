@@ -2011,6 +2011,194 @@ class SPDXUniversalNormalizer(_Base):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# Gitleaks Secrets Scanner Parser (JSON)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class GitleaksScannerNormalizer(_Base):
+    """Normalizer for Gitleaks JSON output (secrets detection)."""
+
+    def can_handle(self, content: bytes, content_type: Optional[str] = None) -> float:
+        text = content[:5000].decode("utf-8", errors="ignore")
+        # Gitleaks JSON is a list of objects with RuleID, Secret, File, etc.
+        if '"RuleID"' in text and '"Secret"' in text:
+            return 0.95
+        if '"ruleID"' in text and '"secret"' in text:
+            return 0.90
+        # v8+ format uses lowercase keys
+        if '"rule"' in text and '"match"' in text and '"file"' in text:
+            return 0.80
+        return 0.0
+
+    def normalize(self, content: bytes, content_type: Optional[str] = None) -> list:
+        findings: list = []
+        parsed = _parse_json_safe(content)
+        if not parsed:
+            return findings
+
+        # Gitleaks outputs a JSON array of findings
+        items = parsed if isinstance(parsed, list) else parsed.get("results", parsed.get("findings", []))
+
+        for leak in items:
+            # Support both PascalCase (v7) and camelCase/lowercase (v8+) keys
+            rule_id = leak.get("RuleID") or leak.get("ruleID") or leak.get("rule", "unknown-rule")
+            description = leak.get("Description") or leak.get("description") or leak.get("match", "")
+            file_path = leak.get("File") or leak.get("file", "")
+            line = leak.get("StartLine") or leak.get("startLine") or leak.get("line")
+            commit = leak.get("Commit") or leak.get("commit", "")
+            author = leak.get("Author") or leak.get("author", "")
+            date = leak.get("Date") or leak.get("date", "")
+            entropy = leak.get("Entropy") or leak.get("entropy")
+            # Redact the actual secret value — never store plaintext secrets
+            secret_len = len(str(leak.get("Secret") or leak.get("secret", "")))
+
+            # All leaked secrets are high severity by default;
+            # certain rules like private keys or API tokens are critical
+            sev = "high"
+            rule_lower = rule_id.lower()
+            if any(kw in rule_lower for kw in ("private", "key", "token", "password", "aws")):
+                sev = "critical"
+
+            title = f"Secret detected: {rule_id}"
+            if file_path:
+                title += f" in {file_path}"
+
+            desc_parts = [description or f"Leaked secret matching rule {rule_id}"]
+            if commit:
+                desc_parts.append(f"Commit: {commit[:12]}")
+            if author:
+                desc_parts.append(f"Author: {author}")
+            if date:
+                desc_parts.append(f"Date: {date}")
+
+            findings.append(_make_finding(
+                title=title[:500],
+                description=" | ".join(desc_parts)[:2000],
+                severity=sev,
+                source_tool="gitleaks",
+                source_format_str="custom",
+                source_id=rule_id,
+                rule_id=rule_id,
+                file_path=file_path,
+                line_number=int(line) if line else None,
+                cwe_id="CWE-798",  # Use of Hard-coded Credentials
+                tags=["secret", "credential", "gitleaks"],
+            ))
+        return findings
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 27. Claude Code Security Parser (JSON — AI SAST)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class ClaudeCodeSecurityNormalizer(_Base):
+    """Parse Claude Code Security AI-SAST JSON findings.
+
+    Claude Code Security detects logic flaws, broken access control, and
+    context-dependent vulnerabilities that regex-based SAST misses.
+    Output format: JSON array of findings with severity, confidence, CWE,
+    suggested patches, and reasoning.
+    """
+
+    def can_handle(self, content: bytes, content_type: Optional[str] = None) -> float:
+        text = content[:5000].decode("utf-8", errors="ignore")
+        if '"claude_code_security"' in text or '"ai_sast"' in text:
+            return 0.97
+        if '"reasoning"' in text and '"suggested_patch"' in text and '"confidence"' in text:
+            return 0.85
+        if '"findings"' in text and '"claude"' in text.lower():
+            return 0.80
+        return 0.0
+
+    def normalize(self, content: bytes, content_type: Optional[str] = None) -> list:
+        findings = []
+        parsed = _parse_json_safe(content)
+        if not parsed:
+            return findings
+
+        items = parsed if isinstance(parsed, list) else parsed.get("findings", parsed.get("results", []))
+        for f in items:
+            sev = str(f.get("severity", "medium")).lower()
+            sev_map = {"critical": "critical", "high": "high", "medium": "medium", "low": "low", "info": "info"}
+            cwe_raw = f.get("cwe", f.get("cwe_id", ""))
+            cwe = f"CWE-{cwe_raw}" if cwe_raw and not str(cwe_raw).startswith("CWE") else str(cwe_raw) if cwe_raw else None
+            cves = _extract_cves(str(f.get("references", "")))
+
+            findings.append(_make_finding(
+                title=f.get("title", f.get("name", "Claude Code Security Finding")),
+                description=f.get("description", f.get("reasoning", "")),
+                severity=sev_map.get(sev, "medium"),
+                source_tool="claude_code_security",
+                source_format_str="custom",
+                rule_id=f.get("rule_id", f.get("check_id", "")),
+                cwe_id=cwe,
+                cve_id=cves[0] if cves else None,
+                file_path=f.get("file_path", f.get("location", {}).get("file", "")),
+                line_number=f.get("line", f.get("location", {}).get("line")),
+                confidence=f.get("confidence", 0.8),
+                tags=["ai-sast", "claude", "logic-flaw"],
+            ))
+        return findings
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 28. Dependency Combobulator Parser (JSON — Supply Chain)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class CombobulatorNormalizer(_Base):
+    """Parse Dependency Combobulator JSON output.
+
+    Detects dependency confusion, namespace hijacking, and supply chain
+    attacks (apiiro/combobulator). Air-gap compatible, no API keys needed.
+    """
+
+    def can_handle(self, content: bytes, content_type: Optional[str] = None) -> float:
+        text = content[:5000].decode("utf-8", errors="ignore")
+        if '"combobulator"' in text.lower() or '"dependency_confusion"' in text:
+            return 0.95
+        if '"supply_chain"' in text and '"namespace"' in text:
+            return 0.80
+        if '"package_name"' in text and '"risk_type"' in text and '"registry"' in text:
+            return 0.85
+        return 0.0
+
+    def normalize(self, content: bytes, content_type: Optional[str] = None) -> list:
+        findings = []
+        parsed = _parse_json_safe(content)
+        if not parsed:
+            return findings
+
+        items = parsed if isinstance(parsed, list) else parsed.get("results", parsed.get("findings", []))
+        for r in items:
+            risk_type = r.get("risk_type", r.get("attack_type", "dependency_confusion"))
+            sev = str(r.get("severity", "high")).lower()
+            pkg = r.get("package_name", r.get("package", "unknown"))
+            registry = r.get("registry", r.get("source_registry", ""))
+            private_registry = r.get("private_registry", "")
+
+            desc_parts = [
+                f"Package: {pkg}",
+                f"Risk: {risk_type}",
+                f"Public registry: {registry}" if registry else "",
+                f"Private registry: {private_registry}" if private_registry else "",
+                r.get("description", ""),
+            ]
+
+            findings.append(_make_finding(
+                title=f"Supply Chain: {risk_type} — {pkg}",
+                description="\n".join(p for p in desc_parts if p),
+                severity=sev if sev in ("critical", "high", "medium", "low") else "high",
+                source_tool="combobulator",
+                source_format_str="custom",
+                rule_id=r.get("rule_id", risk_type),
+                cwe_id="CWE-427",  # Uncontrolled Search Path
+                file_path=r.get("manifest_file", r.get("lockfile", "")),
+                tags=["supply-chain", "dependency-confusion", risk_type],
+            ))
+        return findings
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # Registry — Central catalog of all scanner parsers
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -2030,6 +2218,7 @@ SCANNER_NORMALIZERS = {
     "snyk": SnykNormalizer,
     "prowler": ProwlerNormalizer,
     "checkov": CheckovNormalizer,
+    "gitleaks": GitleaksScannerNormalizer,
     # New parsers for enterprise scanner ecosystem
     "trivy": TrivyScannerNormalizer,
     "grype": GrypeScannerNormalizer,
@@ -2046,6 +2235,10 @@ SCANNER_NORMALIZERS = {
     "sarif": SARIFUniversalNormalizer,
     "cyclonedx": CycloneDXUniversalNormalizer,
     "spdx": SPDXUniversalNormalizer,
+    # AI-powered scanners
+    "claude_code_security": ClaudeCodeSecurityNormalizer,
+    # Supply chain security
+    "combobulator": CombobulatorNormalizer,
 }
 
 
@@ -2190,9 +2383,10 @@ def parse_scanner_output(
 def get_supported_scanners() -> Dict[str, List[str]]:
     """Return supported scanners grouped by category."""
     return {
-        "sast": ["checkmarx", "sonarqube", "bandit", "fortify", "veracode", "semgrep", "gitlab_sast"],
+        "sast": ["checkmarx", "sonarqube", "bandit", "fortify", "veracode", "semgrep", "gitlab_sast", "claude_code_security"],
         "dast": ["zap", "burp", "nikto", "nuclei", "acunetix"],
         "sca": ["snyk", "dependabot", "grype", "trivy"],
+        "supply_chain": ["combobulator"],
         "infrastructure": ["nessus", "openvas", "nmap", "qualys", "tenable", "rapid7"],
         "cloud": ["prowler", "checkov", "aws_inspector"],
         "universal": ["sarif", "cyclonedx", "spdx"],  # via existing normalizers

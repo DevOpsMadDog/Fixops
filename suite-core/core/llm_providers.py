@@ -101,6 +101,12 @@ class OpenAIChatProvider(BaseLLMProvider):
         self.api_key = self._resolve_api_key()
         self._session = requests.Session()
 
+    _DEFAULT_SYSTEM_PROMPT = (
+        "You are a security decision assistant. Return JSON with keys "
+        "recommended_action, confidence, reasoning, mitre_techniques, "
+        "compliance_concerns, attack_vectors."
+    )
+
     def analyse(
         self,
         *,
@@ -110,6 +116,7 @@ class OpenAIChatProvider(BaseLLMProvider):
         default_confidence: float,
         default_reasoning: str,
         mitigation_hints: Mapping[str, Any] | None = None,
+        system_prompt: str | None = None,
     ) -> LLMResponse:
         if not self.api_key:
             return super().analyse(
@@ -125,11 +132,7 @@ class OpenAIChatProvider(BaseLLMProvider):
             "messages": [
                 {
                     "role": "system",
-                    "content": (
-                        "You are a security decision assistant. Return JSON with keys "
-                        "recommended_action, confidence, reasoning, mitre_techniques, "
-                        "compliance_concerns, attack_vectors."
-                    ),
+                    "content": system_prompt or self._DEFAULT_SYSTEM_PROMPT,
                 },
                 {
                     "role": "user",
@@ -323,6 +326,11 @@ class AnthropicMessagesProvider(BaseLLMProvider):
         self.api_key = self._resolve_api_key()
         self._session = requests.Session()
 
+    _DEFAULT_SYSTEM_PROMPT = (
+        "Return a JSON object with recommended_action, confidence, reasoning, "
+        "mitre_techniques, compliance_concerns, attack_vectors."
+    )
+
     def analyse(
         self,
         *,
@@ -332,6 +340,7 @@ class AnthropicMessagesProvider(BaseLLMProvider):
         default_confidence: float,
         default_reasoning: str,
         mitigation_hints: Mapping[str, Any] | None = None,
+        system_prompt: str | None = None,
     ) -> LLMResponse:
         if not self.api_key:
             return super().analyse(
@@ -346,10 +355,7 @@ class AnthropicMessagesProvider(BaseLLMProvider):
             "model": self.model,
             "max_tokens": 2048,
             "temperature": 0,
-            "system": (
-                "Return a JSON object with recommended_action, confidence, reasoning, "
-                "mitre_techniques, compliance_concerns, attack_vectors."
-            ),
+            "system": system_prompt or self._DEFAULT_SYSTEM_PROMPT,
             "messages": [
                 {"role": "user", "content": prompt},
             ],
@@ -453,6 +459,7 @@ class GeminiProvider(BaseLLMProvider):
         default_confidence: float,
         default_reasoning: str,
         mitigation_hints: Mapping[str, Any] | None = None,
+        system_prompt: str | None = None,
     ) -> LLMResponse:
         if not self.api_key:
             return super().analyse(
@@ -592,6 +599,12 @@ class VLLMSelfHostedProvider(BaseLLMProvider):
         self.api_key = self._resolve_api_key()
         self._session = requests.Session()
 
+    _DEFAULT_SYSTEM_PROMPT = (
+        "You are a security decision assistant running in air-gapped mode. "
+        "Return JSON with keys: recommended_action, confidence, reasoning, "
+        "mitre_techniques, compliance_concerns, attack_vectors."
+    )
+
     def analyse(
         self,
         *,
@@ -601,6 +614,7 @@ class VLLMSelfHostedProvider(BaseLLMProvider):
         default_confidence: float,
         default_reasoning: str,
         mitigation_hints: Mapping[str, Any] | None = None,
+        system_prompt: str | None = None,
     ) -> LLMResponse:
         """Send analysis request to self-hosted vLLM server.
 
@@ -612,11 +626,7 @@ class VLLMSelfHostedProvider(BaseLLMProvider):
             "messages": [
                 {
                     "role": "system",
-                    "content": (
-                        "You are a security decision assistant running in air-gapped mode. "
-                        "Return JSON with keys: recommended_action, confidence, reasoning, "
-                        "mitre_techniques, compliance_concerns, attack_vectors."
-                    ),
+                    "content": system_prompt or self._DEFAULT_SYSTEM_PROMPT,
                 },
                 {"role": "user", "content": prompt},
             ],
@@ -807,6 +817,12 @@ class OllamaSelfHostedProvider(BaseLLMProvider):
         self.timeout = timeout
         self._session = requests.Session()
 
+    _DEFAULT_SYSTEM_PROMPT = (
+        "You are a security decision assistant. Return JSON with keys: "
+        "recommended_action, confidence, reasoning, mitre_techniques, "
+        "compliance_concerns, attack_vectors."
+    )
+
     def analyse(
         self,
         *,
@@ -816,15 +832,13 @@ class OllamaSelfHostedProvider(BaseLLMProvider):
         default_confidence: float,
         default_reasoning: str,
         mitigation_hints: Mapping[str, Any] | None = None,
+        system_prompt: str | None = None,
     ) -> LLMResponse:
         """Send analysis request to Ollama server."""
+        _sys = system_prompt or self._DEFAULT_SYSTEM_PROMPT
         payload = {
             "model": self.model,
-            "prompt": (
-                "You are a security decision assistant. Return JSON with keys: "
-                "recommended_action, confidence, reasoning, mitre_techniques, "
-                "compliance_concerns, attack_vectors.\n\n" + prompt
-            ),
+            "prompt": _sys + "\n\n" + prompt,
             "stream": False,
             "options": {"temperature": 0},
         }
@@ -950,6 +964,7 @@ class SentinelCyberProvider(BaseLLMProvider):
         default_confidence: float,
         default_reasoning: str,
         mitigation_hints: Mapping[str, Any] | None = None,
+        system_prompt: str | None = None,
     ) -> LLMResponse:
         hints = dict(mitigation_hints or {})
         metadata = {
@@ -1062,6 +1077,7 @@ class LLMProviderManager:
         default_confidence: float = 0.5,
         default_reasoning: str = "Default analysis",
         mitigation_hints: Mapping[str, Any] | None = None,
+        system_prompt: str | None = None,
     ) -> LLMResponse:
         """Analyse using a specific provider."""
         provider = self.get_provider(provider_name)
@@ -1072,6 +1088,7 @@ class LLMProviderManager:
             default_confidence=default_confidence,
             default_reasoning=default_reasoning,
             mitigation_hints=mitigation_hints,
+            system_prompt=system_prompt,
         )
 
 

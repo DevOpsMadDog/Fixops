@@ -51,7 +51,7 @@ class AssetInput(BaseModel):
 
 
 class PipelineRunRequest(BaseModel):
-    org_id: str
+    org_id: str = "default"
     findings: List[FindingInput] = Field(default_factory=list)
     assets: List[AssetInput] = Field(default_factory=list)
     source: str = "api"
@@ -64,7 +64,7 @@ class PipelineRunRequest(BaseModel):
 
 
 class EvidenceGenerateRequest(BaseModel):
-    org_id: str
+    org_id: str = "default"
     timeframe_days: int = 90
     controls: Optional[List[str]] = None
     pipeline_run_id: Optional[str] = None

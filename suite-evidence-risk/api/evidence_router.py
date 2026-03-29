@@ -44,19 +44,30 @@ except ImportError:
 # ComplianceEngine for SOC2/PCI-DSS/HIPAA control mapping
 _HAS_COMPLIANCE = False
 _compliance_engine = None
+_compliance_mapper = None
 try:
-    from compliance.compliance_engine import ComplianceEngine, Framework
+    from compliance.compliance_engine import (
+        ComplianceAutoMapper,
+        ComplianceEngine,
+        Framework,
+    )
 
     _compliance_engine = ComplianceEngine()
+    _compliance_mapper = ComplianceAutoMapper()
     _HAS_COMPLIANCE = True
 except ImportError:
     try:
         # Fallback: try importing from suite-evidence-risk path
         import sys
         sys.path.append(str(Path(__file__).parent.parent))
-        from compliance.compliance_engine import ComplianceEngine, Framework
+        from compliance.compliance_engine import (
+            ComplianceAutoMapper,
+            ComplianceEngine,
+            Framework,
+        )
 
         _compliance_engine = ComplianceEngine()
+        _compliance_mapper = ComplianceAutoMapper()
         _HAS_COMPLIANCE = True
     except ImportError:
         pass
@@ -1362,6 +1373,239 @@ _FALLBACK_CONTROLS: Dict[str, Dict[str, Dict[str, Any]]] = {
     "HIPAA": _HIPAA_CONTROL_MAPPING,
 }
 
+# ---------------------------------------------------------------------------
+# P1: Real-World Compliance — Dynamic control derivation from ingested findings
+# ---------------------------------------------------------------------------
+
+# Map export framework names → ComplianceAutoMapper framework keys
+_MAPPER_FW_KEY: Dict[str, str] = {
+    "SOC2": "SOC2",
+    "PCI-DSS": "PCI_DSS_4.0",
+    "HIPAA": "HIPAA",
+    "ISO27001": "ISO_27001_2022",
+    "NIST-800-53": "NIST_800_53_R5",
+}
+
+
+def _load_findings_from_analytics(
+    app_id: str | None = None,
+    period_days: int = 90,
+) -> List[Dict[str, Any]]:
+    """Load real findings from analytics.db.
+
+    Returns list of dicts with keys: title, severity, cve_id, cvss_score,
+    source, status, risk_score.  Returns [] on any error (never raises).
+    """
+    import sqlite3
+
+    db_path = Path("data/analytics.db")
+    if not db_path.exists():
+        return []
+    try:
+        conn = sqlite3.connect(str(db_path), timeout=5)
+        conn.row_factory = sqlite3.Row
+        cutoff = (dt.now(tz.utc) - timedelta(days=period_days)).isoformat()
+        base_cols = (
+            "SELECT id, title, severity, status, source, cve_id, "
+            "cvss_score, epss_score, exploitable, application_id "
+            "FROM findings WHERE created_at >= ? "
+        )
+
+        # Try app-scoped first, then fall back to all findings
+        rows: list = []
+        if app_id:
+            query = base_cols + "AND (application_id = ? OR application_id = 'default') "
+            query += "ORDER BY cvss_score DESC LIMIT 5000"
+            rows = conn.execute(query, [cutoff, app_id]).fetchall()
+
+        # Fallback: load all findings if app-scoped returned nothing
+        if not rows:
+            query = base_cols + "ORDER BY cvss_score DESC LIMIT 5000"
+            rows = conn.execute(query, [cutoff]).fetchall()
+
+        conn.close()
+        return [dict(r) for r in rows]
+    except (OSError, sqlite3.Error) as exc:
+        logger.warning("Failed to load findings from analytics.db: %s", exc)
+        return []
+
+
+def _derive_controls_from_findings(
+    framework: str,
+    findings: List[Dict[str, Any]],
+    include_evidence: bool = True,
+) -> tuple:
+    """Map real findings → compliance controls with severity-based scoring.
+
+    Uses ComplianceAutoMapper to translate CWE / keyword matches into
+    framework-specific controls.  Control status is derived from the
+    severity distribution of mapped findings:
+        - Any critical finding → not_satisfied
+        - Any high finding    → partially_satisfied
+        - Medium / low only   → satisfied
+        - No findings mapped  → not_assessed
+
+    Returns (controls_list, posture_dict, gaps_list) or ([], {}, []) on
+    failure so the caller can fall through to the static fallback.
+    """
+    if _compliance_mapper is None or not findings:
+        return [], {}, []
+
+    mapper_fw = _MAPPER_FW_KEY.get(framework)
+    if not mapper_fw:
+        return [], {}, []
+
+    now_iso = dt.now(tz.utc).isoformat()
+
+    # 1) Map every finding → controls, collecting per-control severities
+    #    control_data: {ctrl_id: {"title": str, "severities": [str], "findings": [dict]}}
+    control_data: Dict[str, Dict[str, Any]] = {}
+    for f in findings:
+        finding_dict = {
+            "cwe_id": _cve_to_cwe_hint(f.get("cve_id", "")),
+            "title": f.get("title", ""),
+            "category": f.get("source", ""),
+            "severity": f.get("severity", "medium"),
+        }
+        mappings = _compliance_mapper.map_finding_to_controls(finding_dict)
+        for m in mappings:
+            if m.framework != mapper_fw:
+                continue
+            entry = control_data.setdefault(m.control_id, {
+                "title": m.control_title,
+                "severities": [],
+                "findings": [],
+                "relevance": 0.0,
+            })
+            entry["severities"].append(
+                str(f.get("severity", "medium")).lower()
+            )
+            entry["findings"].append({
+                "id": f.get("id", ""),
+                "title": f.get("title", "")[:120],
+                "severity": f.get("severity", "medium"),
+                "cve_id": f.get("cve_id", ""),
+            })
+            entry["relevance"] = max(entry["relevance"], m.relevance_score)
+
+    if not control_data:
+        return [], {}, []
+
+    # 2) Score each control based on severity distribution (P1.2)
+    _SEV_RANK = {"critical": 4, "high": 3, "medium": 2, "low": 1, "info": 0}
+    controls_list: List[Dict[str, Any]] = []
+    satisfied = partially = not_satisfied = not_assessed = 0
+
+    for ctrl_id, data in sorted(control_data.items()):
+        sevs = data["severities"]
+        max_sev = max((_SEV_RANK.get(s, 1) for s in sevs), default=0)
+        if max_sev >= 4:
+            status = "not_satisfied"
+            score = 0.0
+        elif max_sev >= 3:
+            status = "partially_satisfied"
+            score = 0.5
+        else:
+            status = "satisfied"
+            score = 1.0
+
+        ctrl_entry: Dict[str, Any] = {
+            "control_id": ctrl_id,
+            "title": data["title"],
+            "category": ctrl_id.split(".")[0] if "." in ctrl_id else ctrl_id,
+            "status": status,
+            "score": score,
+            "finding_count": len(sevs),
+            "severity_distribution": {
+                s: sevs.count(s)
+                for s in sorted(set(sevs), key=lambda x: _SEV_RANK.get(x, 0), reverse=True)
+            },
+            "relevance_score": round(data["relevance"], 2),
+            "notes": f"Dynamically assessed from {len(sevs)} ingested finding(s)",
+        }
+        if include_evidence:
+            ctrl_entry["evidence_items"] = [
+                {
+                    "evidence_id": f"EV-{uuid.uuid4().hex[:8]}",
+                    "type": "scan_result",
+                    "source": fi.get("cve_id") or fi.get("title", "")[:60],
+                    "collected_at": now_iso,
+                    "description": fi["title"],
+                    "severity": fi["severity"],
+                }
+                for fi in data["findings"][:10]  # cap per-control evidence items
+            ]
+        controls_list.append(ctrl_entry)
+        if status == "satisfied":
+            satisfied += 1
+        elif status == "partially_satisfied":
+            partially += 1
+        elif status == "not_satisfied":
+            not_satisfied += 1
+
+    total = len(controls_list)
+    assessable = max(total - not_assessed, 1)
+    overall_score = round((satisfied + partially * 0.5) / assessable, 2)
+    compliance_pct = round(overall_score * 100, 1)
+
+    posture_dict = {
+        "framework": framework,
+        "total_controls": total,
+        "satisfied": satisfied,
+        "partially_satisfied": partially,
+        "not_satisfied": not_satisfied,
+        "not_assessed": not_assessed,
+        "not_applicable": 0,
+        "overall_score": overall_score,
+        "compliance_percentage": compliance_pct,
+        "trend": "improving" if compliance_pct >= 50 else "needs_attention",
+        "last_evaluated": now_iso,
+        "data_source": "analytics.db — real ingested findings",
+        "total_findings_analysed": len(findings),
+    }
+
+    gaps_list = [
+        {
+            "control_id": c["control_id"],
+            "title": c["title"],
+            "status": c["status"],
+            "finding_count": c["finding_count"],
+            "gap_type": (
+                "critical_gap"
+                if c["status"] == "not_satisfied"
+                else "evidence_gap"
+            ),
+        }
+        for c in controls_list
+        if c["status"] in ("not_satisfied", "partially_satisfied")
+    ]
+
+    logger.info(
+        "Dynamic compliance: framework=%s controls=%d satisfied=%d gaps=%d "
+        "from %d findings",
+        framework, total, satisfied, len(gaps_list), len(findings),
+    )
+    return controls_list, posture_dict, gaps_list
+
+
+def _cve_to_cwe_hint(cve_id: str) -> str:
+    """Best-effort CVE → CWE hint using title keywords.
+
+    Real NVD lookups would be better, but for air-gap compatibility we
+    use a lightweight static map of the most common CVE→CWE associations.
+    Returns empty string if no mapping found.
+    """
+    _COMMON_CVE_CWE: Dict[str, str] = {
+        "CVE-2023-46233": "CWE-327",   # crypto weakness (crossenv)
+        "CVE-2015-9235": "CWE-345",    # JWT none algorithm
+        "CVE-2024-4068": "CWE-400",    # ReDoS / resource exhaustion
+        "CVE-2021-44228": "CWE-917",   # Log4Shell (EL injection)
+        "CVE-2021-45046": "CWE-917",   # Log4j follow-up
+        "CVE-2023-44487": "CWE-400",   # HTTP/2 rapid reset
+        "CVE-2024-3094": "CWE-506",    # xz supply-chain
+    }
+    return _COMMON_CVE_CWE.get(cve_id, "")
+
 
 def _build_export_bundle(
     framework: str,
@@ -1384,8 +1628,26 @@ def _build_export_bundle(
     posture_dict: Dict[str, Any] = {}
     gaps_list: List[Dict[str, Any]] = []
 
-    # Try real ComplianceEngine first
-    if _HAS_COMPLIANCE and _compliance_engine is not None:
+    # P1: Dynamic compliance from real ingested findings (preferred path)
+    # Uses ComplianceAutoMapper to derive controls from actual scan data
+    # with severity-based scoring.  Falls through only if no findings exist.
+    if _compliance_mapper is not None:
+        real_findings = _load_findings_from_analytics(
+            app_id=app_id, period_days=period_days
+        )
+        if real_findings:
+            controls_list, posture_dict, gaps_list = _derive_controls_from_findings(
+                framework, real_findings, include_evidence=include_evidence
+            )
+            if controls_list:
+                logger.info(
+                    "Export bundle built via dynamic ComplianceAutoMapper: "
+                    "framework=%s controls=%d findings=%d",
+                    framework, len(controls_list), len(real_findings),
+                )
+
+    # Fallback 1: ComplianceEngine (generic audit bundle, no finding data)
+    if not controls_list and _HAS_COMPLIANCE and _compliance_engine is not None:
         fw_key = _FRAMEWORK_MAP.get(framework, framework)
         try:
             fw_enum = Framework(fw_key)
@@ -1405,7 +1667,7 @@ def _build_export_bundle(
                 "ComplianceEngine failed for %s, using fallback", framework, exc_info=True
             )
 
-    # Fallback to static control mappings
+    # Fallback to static control mappings (only if both engine + dynamic failed)
     if not controls_list:
         mapping = _FALLBACK_CONTROLS.get(framework, _SOC2_CONTROL_MAPPING)
         satisfied = 0
@@ -1565,7 +1827,11 @@ def _build_export_bundle(
                 "start": from_date,
                 "end": generated_at,
             },
-            "compliance_engine": "ComplianceEngine" if _HAS_COMPLIANCE else "static_mapping",
+            "compliance_engine": (
+                "dynamic_findings_mapper"
+                if posture_dict.get("data_source", "").startswith("analytics.db")
+                else ("ComplianceEngine" if _HAS_COMPLIANCE else "static_mapping")
+            ),
             "crypto_available": _HAS_CORE_CRYPTO,
         },
     }

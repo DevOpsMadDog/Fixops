@@ -157,7 +157,7 @@ def seed_findings():
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (fid, f["app"], f["app"] + "-prod", f["rule_id"], f["severity"], status, f["title"], f["description"],
                  f["source"], f["cve_id"], f["cvss_score"], f["epss_score"], f["exploitable"],
-                 json.dumps({"environment": "production", "scanner_version": "2.1.0"}),
+                 json.dumps({"environment": "production", "scanner_version": "2.1.0", "seeded": True}),
                  created, NOW.isoformat(), None))
             count += 1
         except sqlite3.IntegrityError:

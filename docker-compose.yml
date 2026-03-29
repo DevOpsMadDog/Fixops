@@ -1,28 +1,79 @@
-# ─────────────────────────────────────────────────────────────
-# ALdeci FixOps CTEM+ Enterprise
-# ─────────────────────────────────────────────────────────────
-# Just run:  docker compose up -d
-# Open:      http://localhost:3000
-# Logs:      docker compose logs -f
-# Stop:      docker compose down
-# ─────────────────────────────────────────────────────────────
+# ============================================
+# ALdeci CTEM+ Platform — Docker Compose
+# ============================================
+# Quick start:  docker compose up
+# With DTrack:  docker compose --profile dtrack up
+# ============================================
 
 services:
-  fixops:
-    image: devopsaico/fixops:latest
-    container_name: fixops-enterprise
-    restart: unless-stopped
+  aldeci:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${ALDECI_IMAGE:-aldeci:latest}
+    container_name: aldeci-api
     ports:
-      - "3000:3000"
+      - "${ALDECI_PORT:-8000}:8000"
     environment:
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:?Set FIXOPS_API_TOKEN}
+      - FIXOPS_JWT_SECRET=${FIXOPS_JWT_SECRET:-}
       - FIXOPS_MODE=enterprise
-      - FIXOPS_API_TOKEN=fixops_sk_WIjum9WxuQv8s6vzJeU2gYKximI5WSdMDtshH1U_p0U
-      - FIXOPS_JWT_SECRET=d8346832a7fb5307839a8a2a91d6dd357b80773f9b152eb746461a5895eb36f0
-      - API_WORKERS=2
-      - LOG_LEVEL=info
+      - FIXOPS_DISABLE_RATE_LIMIT=${FIXOPS_DISABLE_RATE_LIMIT:-0}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    volumes:
+      - aldeci-data:/app/data
+      - aldeci-state:/app/.fixops_data
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:3000/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
       start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+
+  # OWASP Dependency-Track (optional — SBOM analysis)
+  dtrack-api:
+    image: dependencytrack/apiserver:4.12.3
+    container_name: aldeci-dtrack-api
+    ports:
+      - "${DTRACK_API_PORT:-8080}:8080"
+    volumes:
+      - dtrack-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/version"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+    profiles:
+      - dtrack
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+
+  dtrack-frontend:
+    image: dependencytrack/frontend:4.12.3
+    container_name: aldeci-dtrack-ui
+    environment:
+      - API_BASE_URL=http://localhost:${DTRACK_API_PORT:-8080}
+    ports:
+      - "${DTRACK_UI_PORT:-8081}:8080"
+    depends_on:
+      dtrack-api:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles:
+      - dtrack
+
+volumes:
+  aldeci-data:
+  aldeci-state:
+  dtrack-data:
+

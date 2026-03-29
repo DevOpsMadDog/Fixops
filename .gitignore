@@ -162,3 +162,9 @@ suite-ui/aldeci-ui-new/test-results/
 bash-5.1/
 persona_test_results.json
 .claude/worktrees/
+
+# Runtime artifacts
+allure-results/
+playwright-report/
+verify_out.txt
+suite-api/data/

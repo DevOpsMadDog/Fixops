@@ -2901,9 +2901,11 @@ class BrainPipeline:
 
         try:
             from core.enhanced_decision import EnhancedDecisionEngine
+            from core.llm_guard_service import LLMGuardService
             import concurrent.futures
 
             engine = EnhancedDecisionEngine()
+            llm_guard = LLMGuardService()
 
             # Group findings into severity batches for efficient LLM evaluation
             severity_buckets: Dict[str, List[Dict[str, Any]]] = {
@@ -2920,6 +2922,39 @@ class BrainPipeline:
                 sev: len(findings) for sev, findings in severity_buckets.items()
             }
 
+            # Enrich with cybersecurity skills context for ATT&CK-mapped findings
+            skills_context = ""
+            try:
+                from core.cybersec_skills_loader import get_cybersec_skills_loader
+                mitre_ids = set()
+                for f in critical[:20]:
+                    for tech in f.get("mitre_techniques", []):
+                        mitre_ids.add(tech)
+                if mitre_ids:
+                    skills_context = get_cybersec_skills_loader().get_enrichment_context(
+                        list(mitre_ids), max_skills=5
+                    )
+            except (ImportError, OSError, ValueError):
+                pass  # Air-gap fallback
+
+            # Compress prompt if large (headroom integration)
+            prompt_repr = str(severity_overview)
+            if skills_context:
+                prompt_repr += "\n" + skills_context
+            try:
+                from core.context_compression import compress_prompt
+                prompt_repr = compress_prompt(prompt_repr, max_tokens=4000)
+            except (ImportError, OSError, ValueError):
+                pass  # Air-gap fallback
+
+            # Pre-scan: check prompt for injection/secrets before sending to LLM
+            guard_result = llm_guard.scan_prompt(prompt_repr)
+            if guard_result.blocked:
+                logger.warning(
+                    "LLM-Guard blocked prompt in Step 9: %s", guard_result.issues
+                )
+                return self._deterministic_consensus(critical, ctx)
+
             # Run LLM evaluation with thread-pool timeout to prevent blocking
             def _call_llm():
                 return engine.evaluate_pipeline(
@@ -2931,12 +2966,25 @@ class BrainPipeline:
                 future = pool.submit(_call_llm)
                 result = future.result(timeout=self.STEP_TIMEOUT_S)
 
+            # Post-scan: validate LLM output for secrets/sensitive leakage
+            output_text = str(result)
+            output_guard = llm_guard.scan_output(prompt_repr, output_text)
+            if output_guard.blocked:
+                logger.warning(
+                    "LLM-Guard blocked output in Step 9: %s", output_guard.issues
+                )
+                return self._deterministic_consensus(critical, ctx)
+
             ctx["llm_results"] = [result]
             return {
                 "analyzed": len(critical),
                 "decision": result.get("final_decision", "unknown"),
                 "capped": was_capped,
                 "batch_count": sum(1 for v in severity_buckets.values() if v),
+                "llm_guard": {
+                    "prompt_clean": not guard_result.blocked,
+                    "output_clean": not output_guard.blocked,
+                },
             }
         except (TimeoutError, concurrent.futures.TimeoutError):
             logger.warning("LLM consensus timed out — using deterministic fallback")

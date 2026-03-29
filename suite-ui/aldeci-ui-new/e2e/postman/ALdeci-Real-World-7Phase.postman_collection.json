@@ -1,0 +1,139 @@
+{
+  "info": {
+    "name": "ALdeci CTEM+ — Real-World 7-Phase Trial (Zero Hardcoding)",
+    "description": "Enterprise client deployment validation.\nMaps to ORG_WIDE_PERSONA_TRIAL_RUNBOOK.md phases.\n\nRun:\n  newman run ALdeci-Real-World-7Phase.postman_collection.json \\\n    --env-var 'baseUrl=https://client-aldeci.example.com' \\\n    --env-var 'apiKey=CLIENT_API_KEY' \\\n    --env-var 'orgId=client-org' \\\n    --reporters cli,htmlextra",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      { "key": "key", "value": "X-API-Key", "type": "string" },
+      { "key": "value", "value": "{{apiKey}}", "type": "string" },
+      { "key": "in", "value": "header", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "" },
+    { "key": "apiKey", "value": "" },
+    { "key": "orgId", "value": "default" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "if (!pm.variables.get('baseUrl')) { throw new Error('baseUrl not set — pass --env-var baseUrl=...'); }",
+          "if (!pm.variables.get('apiKey')) { throw new Error('apiKey not set — pass --env-var apiKey=...'); }"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "exec": [
+          "pm.test('Response time < 5000ms', () => pm.expect(pm.response.responseTime).to.be.below(5000));",
+          "pm.test('Content-Type is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+          "pm.test('Response body is valid JSON', () => { pm.response.json(); });"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Phase 0 — Health Gate",
+      "item": [
+        { "name": "Deployment health", "request": { "method": "GET", "url": "{{baseUrl}}/health" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "System info", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/system/info" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Has system data', () => pm.expect(pm.response.json()).to.be.an('object'));"] } }] },
+        { "name": "System health", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/system/health" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Version", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/version" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Metrics", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/metrics" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] }
+      ]
+    },
+    {
+      "name": "Phase 1 — Intake & Scope Lock",
+      "item": [
+        { "name": "List applications", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/inventory/applications" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "List assets", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/inventory/assets" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Policies", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/policies" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Teams", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/teams" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Knowledge Graph status", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/knowledge-graph/status" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Code-to-Cloud status", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/code-to-cloud/status" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] }
+      ]
+    },
+    {
+      "name": "Phase 2 — Discover",
+      "item": [
+        { "name": "Supported scanners", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/scanner-ingest/supported" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Ingest stats", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/scanner-ingest/stats" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Dedup clusters", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/deduplication/clusters?org_id={{orgId}}" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Dedup stats", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/deduplication/stats" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "NVD recent", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/feeds/nvd/recent" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "EPSS scores", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/feeds/epss/scores" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Feeds status", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/feeds/status" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Nerve center pulse", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/nerve-center/pulse" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Copilot ask", "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/copilot/ask", "header": [{"key": "Content-Type", "value": "application/json"}], "body": { "mode": "raw", "raw": "{\"question\": \"What findings need attention?\"}" } }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] }
+      ]
+    },
+    {
+      "name": "Phase 3 — Prioritize & Decide",
+      "item": [
+        { "name": "FAIL score CVE", "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/fail/score", "header": [{"key": "Content-Type", "value": "application/json"}], "body": { "mode": "raw", "raw": "{\"cve_id\": \"CVE-2021-44228\", \"cvss\": 10.0, \"epss\": 0.975, \"is_kev\": true}" } }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "FAIL top risks", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/fail/top-risks" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Brain stats", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/brain/stats" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Risk velocity", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/analytics/risk-velocity" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Coverage analysis", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/analytics/coverage" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Noise reduction", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/analytics/noise-reduction" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "ML status", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/ml/status" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] }
+      ]
+    },
+    {
+      "name": "Phase 4 — Validate (MPTE)",
+      "item": [
+        { "name": "MPTE stats", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/mpte/stats" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Attack sim campaigns", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/attack-sim/campaigns" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "MITRE heatmap", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/attack-sim/mitre/heatmap" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "LLM Guard health", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/llm-guard/health" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Nerve center intelligence map", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/nerve-center/intelligence-map" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Cases", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/cases" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] }
+      ]
+    },
+    {
+      "name": "Phase 5 — Remediate",
+      "item": [
+        { "name": "AutoFix generate (XSS)", "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/autofix/generate", "header": [{"key": "Content-Type", "value": "application/json"}], "body": { "mode": "raw", "raw": "{\"finding_id\": \"rw-xss\", \"finding_type\": \"xss\", \"language\": \"javascript\", \"code_context\": \"document.innerHTML = userInput;\"}" } }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "AutoFix stats", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/autofix/stats" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Fix types", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/autofix/fix-types" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Remediation backlog", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/remediation/backlog" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Remediation metrics", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/remediation/metrics" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "MTTR", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/analytics/mttr" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Self-learning stats", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/self-learning/stats" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] }
+      ]
+    },
+    {
+      "name": "Phase 6 — Comply & Evidence",
+      "item": [
+        { "name": "Compliance frameworks", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/compliance-engine/frameworks" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "SOC2 status", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/compliance-engine/soc2/status" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "PCI-DSS status", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/compliance-engine/pci-dss/status" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Compliance gaps", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/compliance-engine/gaps" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Evidence status", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/evidence/status" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Audit logs", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/audit/logs" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Decision trail", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/audit/decision-trail" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Chain verify", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/audit/chain/verify" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] }
+      ]
+    },
+    {
+      "name": "Phase 7 — Executive Trust Review",
+      "item": [
+        { "name": "Dashboard overview", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/analytics/dashboard/overview" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Has dashboard data', () => pm.expect(pm.response.json()).to.be.an('object'));"] } }] },
+        { "name": "Dashboard trends", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/analytics/dashboard/trends" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Top risks", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/analytics/dashboard/top-risks" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "ROI metrics", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/analytics/roi" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "Analytics summary", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/analytics/summary" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "MCP tools catalog", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/mcp/tools" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] },
+        { "name": "System config", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/system/config" }, "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }] }
+      ]
+    }
+  ]
+}
+

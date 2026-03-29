@@ -1910,6 +1910,180 @@ def list_alm_work_items(
         conn.close()
 
 
+# ============================================================================
+# GitHub CI/CD Integration — push & pull_request webhook receiver
+# ============================================================================
+
+
+class GitHubWebhookPayload(BaseModel):
+    """GitHub webhook payload (push / pull_request events)."""
+
+    action: Optional[str] = None  # opened, synchronize, closed (PR events)
+    ref: Optional[str] = None  # refs/heads/main (push events)
+    before: Optional[str] = None
+    after: Optional[str] = None
+    repository: Optional[Dict[str, Any]] = None
+    sender: Optional[Dict[str, Any]] = None
+    commits: Optional[List[Dict[str, Any]]] = None  # push events
+    pull_request: Optional[Dict[str, Any]] = None  # PR events
+    head_commit: Optional[Dict[str, Any]] = None
+
+
+def _get_github_webhook_secret() -> Optional[str]:
+    """Get configured GitHub webhook secret from environment."""
+    return os.environ.get("FIXOPS_GITHUB_WEBHOOK_SECRET")
+
+
+def _verify_github_signature(body: bytes, signature_header: str, secret: str) -> bool:
+    """Verify GitHub HMAC-SHA256 webhook signature."""
+    if not signature_header.startswith("sha256="):
+        return False
+    expected = hmac.new(
+        secret.encode("utf-8"), body, hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(f"sha256={expected}", signature_header)
+
+
+def _extract_changed_files(payload: GitHubWebhookPayload) -> List[str]:
+    """Extract list of changed files from push commits or PR."""
+    files: set = set()
+    if payload.commits:
+        for commit in payload.commits:
+            files.update(commit.get("added", []))
+            files.update(commit.get("modified", []))
+            files.update(commit.get("removed", []))
+    if payload.pull_request:
+        # PR payload doesn't include file list inline — record the PR ref
+        pr_head = payload.pull_request.get("head", {})
+        if pr_head.get("ref"):
+            files.add(f"__pr_ref__:{pr_head['ref']}")
+    return sorted(files)
+
+
+@receiver_router.post("/github")
+def receive_github_webhook(
+    payload: GitHubWebhookPayload,
+    x_hub_signature_256: Optional[str] = Header(None),
+    x_github_event: Optional[str] = Header(None),
+    x_github_delivery: Optional[str] = Header(None),
+) -> Dict[str, Any]:
+    """Receive webhook events from GitHub for CI/CD integration.
+
+    Supported events:
+    - **push**: Extracts changed files → triggers scanner ingest + brain pipeline.
+    - **pull_request** (opened/synchronize): Queues security scan for PR diff.
+
+    Authentication: HMAC-SHA256 via ``X-Hub-Signature-256`` header when
+    ``FIXOPS_GITHUB_WEBHOOK_SECRET`` is set.  Without the env var, all
+    payloads are accepted (development mode).
+    """
+    # ── Signature verification ──
+    expected_secret = _get_github_webhook_secret()
+    if expected_secret:
+        if not x_hub_signature_256:
+            raise HTTPException(status_code=401, detail="Missing X-Hub-Signature-256 header")
+        raw_body = json.dumps(payload.model_dump(), separators=(",", ":")).encode()
+        if not _verify_github_signature(raw_body, x_hub_signature_256, expected_secret):
+            raise HTTPException(status_code=401, detail="Invalid webhook signature")
+
+    event_type = x_github_event or "unknown"
+    event_id = x_github_delivery or str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    payload_dict = payload.model_dump()
+
+    repo_full_name = (payload.repository or {}).get("full_name", "unknown")
+    changed_files = _extract_changed_files(payload)
+
+    # ── Persist event ──
+    conn = sqlite3.connect(_get_db_path())
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO webhook_events (
+                event_id, integration_type, event_type, external_id, payload, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (event_id, "github", event_type, repo_full_name, json.dumps(payload_dict), now),
+        )
+
+        result: Dict[str, Any] = {
+            "event_id": event_id,
+            "status": "received",
+            "event_type": event_type,
+            "repository": repo_full_name,
+            "changed_files_count": len(changed_files),
+        }
+
+        # ── Trigger pipeline for actionable events ──
+        pipeline_triggered = False
+        if event_type == "push" and changed_files:
+            pipeline_triggered = _trigger_github_pipeline(
+                repo_full_name, changed_files, payload.after or "", "push"
+            )
+        elif event_type == "pull_request" and payload.action in ("opened", "synchronize"):
+            pr = payload.pull_request or {}
+            pipeline_triggered = _trigger_github_pipeline(
+                repo_full_name, changed_files, pr.get("head", {}).get("sha", ""), "pull_request"
+            )
+
+        result["pipeline_triggered"] = pipeline_triggered
+        if pipeline_triggered:
+            result["message"] = (
+                f"Security pipeline queued for {len(changed_files)} changed files"
+            )
+
+        cursor.execute(
+            "UPDATE webhook_events SET processed = TRUE, processed_at = ? WHERE event_id = ?",
+            (now, event_id),
+        )
+        conn.commit()
+        return result
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as e:
+        logger.exception("GitHub webhook processing failed: %s", e)
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+def _trigger_github_pipeline(
+    repo: str, changed_files: List[str], commit_sha: str, trigger_type: str
+) -> bool:
+    """Dispatch brain pipeline for GitHub-changed files (best-effort)."""
+    try:
+        from core.task_queue import dispatch_brain_pipeline
+
+        findings = [
+            {
+                "title": f"GitHub {trigger_type} scan: {repo}@{commit_sha[:8]}",
+                "severity": "info",
+                "source": "github-webhook",
+                "location": ", ".join(changed_files[:20]),
+                "metadata": {
+                    "repo": repo,
+                    "commit": commit_sha,
+                    "trigger": trigger_type,
+                    "files": changed_files[:50],
+                },
+            }
+        ]
+        dispatch_brain_pipeline({
+            "org_id": repo.split("/")[0] if "/" in repo else "github",
+            "findings": findings,
+            "assets": [{"id": repo, "name": repo, "criticality": 0.8}],
+            "source": f"github-{trigger_type}",
+        })
+        logger.info(
+            "GitHub pipeline dispatched: repo=%s trigger=%s files=%d",
+            repo, trigger_type, len(changed_files),
+        )
+        return True
+    except (ImportError, OSError, ValueError, RuntimeError) as exc:
+        logger.warning("GitHub pipeline dispatch failed (non-fatal): %s", exc)
+        return False
+
+
 @router.get("/health")
 async def webhooks_health():
     """Webhooks service health check."""

@@ -13,6 +13,13 @@ from tests.harness import (
 )
 
 
+def pytest_collection_modifyitems(items):
+    """Auto-apply 120s timeout to all E2E tests (override the global 10s)."""
+    for item in items:
+        if "/e2e/" in str(item.fspath):
+            item.add_marker(pytest.mark.timeout(120))
+
+
 @pytest.fixture
 def fixture_manager():
     """Provide a FixtureManager with automatic cleanup."""

@@ -152,7 +152,7 @@ async def upload_scanner_output(
     Upload a scanner output file for ingestion.
 
     Supports: ZAP, Burp, Nessus, OpenVAS, Bandit, Checkmarx, SonarQube,
-    Fortify, Veracode, Nikto, Nuclei, Nmap, Snyk, Prowler, Checkov.
+    Fortify, Veracode, Nikto, Nuclei, Nmap, Snyk, Prowler, Checkov, Gitleaks.
     Plus existing: SARIF, CycloneDX, SPDX, VEX, Trivy, Grype, Semgrep, Dependabot.
 
     If scanner_type is not provided, auto-detection is used.
@@ -422,10 +422,11 @@ async def list_supported_scanners():
                 "dast": ["zap", "burp", "nikto", "nuclei"],
                 "sca": ["snyk", "trivy", "grype", "dependabot"],
                 "infrastructure": ["nessus", "openvas", "nmap"],
+                "secrets": ["gitleaks"],
                 "cloud": ["prowler", "checkov"],
                 "universal": ["sarif", "cyclonedx", "spdx", "vex"],
             },
-            "total": 25,
+            "total": 26,
             "ingestion_methods": ["upload", "webhook", "auto-detect"],
         }
 

@@ -24,14 +24,16 @@ import logging
 import sqlite3
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, EmailStr, Field
 
 from apps.api.dependencies import get_org_id
+from core.audit_logger import get_audit_logger
 from core.user_db import UserDB
 from core.user_models import Team, User, UserRole, UserStatus
 
 logger = logging.getLogger(__name__)
+_audit = get_audit_logger()
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
@@ -149,7 +151,7 @@ async def admin_list_users(
 
 
 @router.post("/users", response_model=AdminUserResponse, status_code=201, summary="Create user")
-async def admin_create_user(user_data: AdminUserCreate) -> AdminUserResponse:
+async def admin_create_user(user_data: AdminUserCreate, request: Request) -> AdminUserResponse:
     """Create a new user. Requires admin scope."""
     existing = _db.get_user_by_email(user_data.email)
     if existing:
@@ -169,6 +171,15 @@ async def admin_create_user(user_data: AdminUserCreate) -> AdminUserResponse:
         created_user = _db.create_user(user)
     except sqlite3.IntegrityError:
         raise HTTPException(status_code=409, detail="Email already exists")
+    _audit.log_admin_action(
+        action="create_user",
+        user_id=getattr(request.state, "user_id", None),
+        client_ip=request.client.host if request.client else None,
+        resource=f"user:{created_user.id}",
+        outcome="success",
+        correlation_id=getattr(request.state, "correlation_id", None),
+        details={"email": user_data.email, "role": user_data.role.value if user_data.role else None},
+    )
     return AdminUserResponse(**created_user.to_dict())
 
 
@@ -182,7 +193,7 @@ async def admin_get_user(user_id: str) -> AdminUserResponse:
 
 
 @router.put("/users/{user_id}", response_model=AdminUserResponse, summary="Update user")
-async def admin_update_user(user_id: str, user_data: AdminUserUpdate) -> AdminUserResponse:
+async def admin_update_user(user_id: str, user_data: AdminUserUpdate, request: Request) -> AdminUserResponse:
     """Update a user. Requires admin scope."""
     user = _db.get_user(user_id)
     if not user:
@@ -200,16 +211,34 @@ async def admin_update_user(user_id: str, user_data: AdminUserUpdate) -> AdminUs
         user.department = user_data.department
 
     updated_user = _db.update_user(user)
+    _audit.log_admin_action(
+        action="update_user",
+        user_id=getattr(request.state, "user_id", None),
+        client_ip=request.client.host if request.client else None,
+        resource=f"user:{user_id}",
+        outcome="success",
+        correlation_id=getattr(request.state, "correlation_id", None),
+        details={"changes": user_data.model_dump(exclude_unset=True)},
+    )
     return AdminUserResponse(**updated_user.to_dict())
 
 
 @router.delete("/users/{user_id}", status_code=204, summary="Delete user")
-async def admin_delete_user(user_id: str) -> None:
+async def admin_delete_user(user_id: str, request: Request) -> None:
     """Delete a user. Requires admin scope."""
     user = _db.get_user(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     _db.delete_user(user_id)
+    _audit.log_admin_action(
+        action="delete_user",
+        user_id=getattr(request.state, "user_id", None),
+        client_ip=request.client.host if request.client else None,
+        resource=f"user:{user_id}",
+        outcome="success",
+        correlation_id=getattr(request.state, "correlation_id", None),
+        details={"email": user.email},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -234,7 +263,7 @@ async def admin_list_teams(
 
 
 @router.post("/teams", response_model=AdminTeamResponse, status_code=201, summary="Create team")
-async def admin_create_team(team_data: AdminTeamCreate) -> AdminTeamResponse:
+async def admin_create_team(team_data: AdminTeamCreate, request: Request) -> AdminTeamResponse:
     """Create a new team. Requires admin scope."""
     team = Team(
         id="",
@@ -248,6 +277,15 @@ async def admin_create_team(team_data: AdminTeamCreate) -> AdminTeamResponse:
             status_code=409,
             detail=f"Team with name '{team_data.name}' already exists",
         )
+    _audit.log_admin_action(
+        action="create_team",
+        user_id=getattr(request.state, "user_id", None),
+        client_ip=request.client.host if request.client else None,
+        resource=f"team:{created_team.id}",
+        outcome="success",
+        correlation_id=getattr(request.state, "correlation_id", None),
+        details={"name": team_data.name},
+    )
     return AdminTeamResponse(**created_team.to_dict())
 
 
@@ -261,7 +299,7 @@ async def admin_get_team(team_id: str) -> AdminTeamResponse:
 
 
 @router.put("/teams/{team_id}", response_model=AdminTeamResponse, summary="Update team")
-async def admin_update_team(team_id: str, team_data: AdminTeamUpdate) -> AdminTeamResponse:
+async def admin_update_team(team_id: str, team_data: AdminTeamUpdate, request: Request) -> AdminTeamResponse:
     """Update a team. Requires admin scope."""
     team = _db.get_team(team_id)
     if not team:
@@ -279,16 +317,34 @@ async def admin_update_team(team_id: str, team_data: AdminTeamUpdate) -> AdminTe
             status_code=409,
             detail=f"Team with name '{team_data.name}' already exists",
         )
+    _audit.log_admin_action(
+        action="update_team",
+        user_id=getattr(request.state, "user_id", None),
+        client_ip=request.client.host if request.client else None,
+        resource=f"team:{team_id}",
+        outcome="success",
+        correlation_id=getattr(request.state, "correlation_id", None),
+        details={"changes": team_data.model_dump(exclude_unset=True)},
+    )
     return AdminTeamResponse(**updated_team.to_dict())
 
 
 @router.delete("/teams/{team_id}", status_code=204, summary="Delete team")
-async def admin_delete_team(team_id: str) -> None:
+async def admin_delete_team(team_id: str, request: Request) -> None:
     """Delete a team. Requires admin scope."""
     team = _db.get_team(team_id)
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
     _db.delete_team(team_id)
+    _audit.log_admin_action(
+        action="delete_team",
+        user_id=getattr(request.state, "user_id", None),
+        client_ip=request.client.host if request.client else None,
+        resource=f"team:{team_id}",
+        outcome="success",
+        correlation_id=getattr(request.state, "correlation_id", None),
+        details={"name": team.name},
+    )
 
 
 __all__ = ["router"]

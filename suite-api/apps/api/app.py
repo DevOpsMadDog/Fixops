@@ -395,8 +395,16 @@ try:
     from api.llm_monitor_router import router as llm_monitor_router
 
     _logger.info("Loaded LLM Monitor router from suite-core")
-except ImportError as e:
+except (ImportError, Exception) as e:
     _logger.warning("LLM Monitor router not available: %s", e)
+
+llm_guard_router: Optional[APIRouter] = None
+try:
+    from api.llm_guard_router import router as llm_guard_router
+
+    _logger.info("Loaded LLM Guard router from suite-core")
+except (ImportError, Exception) as e:
+    _logger.warning("LLM Guard router not available: %s", e)
 
 streaming_router: Optional[APIRouter] = None
 try:
@@ -1786,12 +1794,22 @@ def create_app() -> FastAPI:
     # -------------------------------------------------------------------
     # Suite-Core routers (intelligence, ML, copilot, pipeline)
     # -------------------------------------------------------------------
+    # AutoFix — write operations require write:findings scope
+    if autofix_router:
+        app.include_router(
+            autofix_router,
+            dependencies=[
+                Depends(_verify_api_key),
+                Depends(_require_scope("write:findings")),
+            ],
+        )
+        _logger.info("Mounted AutoFix router with write:findings scope guard")
+
     _core_routers = [
         (nerve_center_router, "Nerve Center", None),
         (decisions_router, "Decisions", "/api/v1"),
         (deduplication_router, "Deduplication", None),
         (ml_router, "ML/MindsDB", None),
-        (autofix_router, "AutoFix", None),
         (autofix_verify_router, "AutoFix Verification", None),
         (postfix_verify_router, "MPTE Post-Fix Verification", None),
         (mitre_mapper_router, "MITRE ATT&CK Mapper", None),
@@ -1805,6 +1823,7 @@ def create_app() -> FastAPI:
         (llm_router, "LLM", None),
         (algorithmic_router, "Algorithmic", None),
         (llm_monitor_router, "LLM Monitor", None),
+        (llm_guard_router, "LLM Guard", None),
         (code_to_cloud_router, "Code-to-Cloud", None),
         (streaming_router, "SSE Streaming", None),
         (quantum_crypto_router, "Quantum Crypto", None),

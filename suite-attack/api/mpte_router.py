@@ -62,17 +62,36 @@ _BLOCKED_NETS = [
 ]
 
 _BLOCKED_HOSTS = frozenset({
-    "localhost",
     "metadata.google.internal",
     "metadata.google.com",
     "169.254.169.254",
 })
+
+# Allowlist: explicitly authorized internal/local targets for pen testing.
+# Set MPTE_ALLOWED_HOSTS=localhost,10.0.1.5 to permit scanning those hosts.
+# Cloud metadata endpoints (169.254.169.254, metadata.google.*) are NEVER
+# allowed regardless of this setting.
+_METADATA_HOSTS = frozenset({
+    "metadata.google.internal",
+    "metadata.google.com",
+    "169.254.169.254",
+})
+_METADATA_NETS = [
+    ipaddress.ip_network("169.254.169.254/32"),
+]
+_raw_allowed = os.environ.get("MPTE_ALLOWED_HOSTS", "")
+_ALLOWED_HOSTS: frozenset[str] = frozenset(
+    h.strip().lower() for h in _raw_allowed.split(",") if h.strip()
+)
 
 
 def _validate_target_url(url: str, field_name: str = "target_url") -> str:
     """Validate a target URL for SSRF and injection attacks.
 
     Raises HTTPException on invalid/blocked URLs.
+    Cloud metadata endpoints are ALWAYS blocked.
+    Internal/private IPs are blocked UNLESS the hostname appears in
+    MPTE_ALLOWED_HOSTS.
     """
     if not url or not url.strip():
         raise HTTPException(status_code=422, detail=f"{field_name} cannot be empty")
@@ -87,21 +106,44 @@ def _validate_target_url(url: str, field_name: str = "target_url") -> str:
             status_code=422, detail=f"{field_name} must use http or https scheme"
         )
     hostname = parsed.hostname or ""
-    if hostname.lower() in _BLOCKED_HOSTS:
+    hostname_lower = hostname.lower()
+
+    # Cloud metadata endpoints are NEVER allowed (SSRF to steal credentials)
+    if hostname_lower in _METADATA_HOSTS:
         raise HTTPException(
             status_code=422, detail=f"{field_name} targets a blocked host"
         )
-    # Resolve hostname to check for internal IPs
-    try:
-        addr = ipaddress.ip_address(hostname)
-        for net in _BLOCKED_NETS:
-            if addr in net:
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"{field_name} targets a blocked internal network",
-                )
-    except ValueError:
-        pass  # Not an IP literal — hostname is OK
+
+    # If the host is explicitly allowed, skip the internal-network check
+    if hostname_lower not in _ALLOWED_HOSTS:
+        if hostname_lower in _BLOCKED_HOSTS:
+            raise HTTPException(
+                status_code=422, detail=f"{field_name} targets a blocked host"
+            )
+        # Resolve hostname to check for internal IPs
+        try:
+            addr = ipaddress.ip_address(hostname)
+            for net in _BLOCKED_NETS:
+                if addr in net:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=f"{field_name} targets a blocked internal network",
+                    )
+        except ValueError:
+            pass  # Not an IP literal — hostname is OK
+    else:
+        # Even for allowed hosts, still block metadata IPs
+        try:
+            addr = ipaddress.ip_address(hostname)
+            for net in _METADATA_NETS:
+                if addr in net:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=f"{field_name} targets a blocked metadata endpoint",
+                    )
+        except ValueError:
+            pass
+
     return url
 
 

@@ -11,10 +11,12 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.dependencies import get_org_id
-from fastapi import APIRouter, Depends, HTTPException, Query
+from core.audit_logger import get_audit_logger
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field, model_validator
 
 logger = logging.getLogger(__name__)
+_audit = get_audit_logger()
 
 router = APIRouter(prefix="/api/v1/autofix", tags=["AutoFix"])
 
@@ -166,6 +168,7 @@ def _get_engine():
 @router.post("/generate", summary="Generate fix for a finding")
 async def generate_fix(
     req: GenerateFixRequest,
+    request: Request,
     org_id: str = Depends(get_org_id),
 ):
     """Generate an AI-powered fix suggestion for a security vulnerability."""
@@ -178,6 +181,14 @@ async def generate_fix(
         finding=finding,
         source_code=req.source_code,
         repo_context=req.repo_context,
+    )
+    _audit.log_autofix_application(
+        action="generate",
+        outcome="success",
+        finding_id=finding.get("id") if isinstance(finding, dict) else None,
+        user_id=getattr(request.state, "user_id", None),
+        client_ip=request.client.host if request.client else None,
+        correlation_id=getattr(request.state, "correlation_id", None),
     )
     return {"status": "ok", "fix": engine.to_dict(suggestion)}
 
@@ -203,7 +214,7 @@ async def generate_bulk_fixes(
 
 
 @router.post("/apply", summary="Apply fix and create PR")
-async def apply_fix(req: ApplyFixRequest):
+async def apply_fix(req: ApplyFixRequest, request: Request):
     """Apply a generated fix to a repository and create a pull request."""
     engine = _get_engine()
     result = await engine.apply_fix(
@@ -211,6 +222,15 @@ async def apply_fix(req: ApplyFixRequest):
         repository=req.repository,
         create_pr=req.create_pr,
         auto_merge=req.auto_merge,
+    )
+    _audit.log_autofix_application(
+        action="apply_patch",
+        outcome="success" if result.success else "failure",
+        finding_id=req.fix_id,
+        user_id=getattr(request.state, "user_id", None),
+        client_ip=request.client.host if request.client else None,
+        correlation_id=getattr(request.state, "correlation_id", None),
+        details={"repository": req.repository, "pr_url": result.pr_url},
     )
     return {
         "status": "ok" if result.success else "error",
@@ -234,10 +254,18 @@ async def validate_fix(req: ValidateFixRequest):
 
 
 @router.post("/rollback", summary="Rollback an applied fix")
-async def rollback_fix(req: RollbackFixRequest):
+async def rollback_fix(req: RollbackFixRequest, request: Request):
     """Rollback a previously applied fix."""
     engine = _get_engine()
     result = await engine.rollback_fix(req.fix_id)
+    _audit.log_autofix_application(
+        action="rollback",
+        outcome="success",
+        finding_id=req.fix_id,
+        user_id=getattr(request.state, "user_id", None),
+        client_ip=request.client.host if request.client else None,
+        correlation_id=getattr(request.state, "correlation_id", None),
+    )
     return result
 
 
@@ -302,6 +330,39 @@ async def get_history(
             if not h.get("org_id") or h.get("org_id") == org_id
         ]
     return {"status": "ok", "org_id": org_id, "history": history}
+
+
+class AutoMergeCheckRequest(BaseModel):
+    """Request to check if a fix qualifies for auto-merge."""
+
+    fix_id: str = Field(..., description="ID of the fix to check")
+    finding: Optional[Dict[str, Any]] = Field(
+        None, description="Original finding (for context enrichment)"
+    )
+
+
+@router.post("/auto-merge/check", summary="Check if fix qualifies for auto-merge")
+async def check_auto_merge(req: AutoMergeCheckRequest):
+    """Check whether a generated fix meets all gates for automated merge.
+
+    [GODMODE] Evaluates 7 gates: confidence, validation, severity, EPSS/KEV,
+    fix type safety, dangerous patterns, and multi-LLM consensus. Returns
+    a full audit-trail-ready decision with reasons and blockers.
+    """
+    engine = _get_engine()
+    fix = engine.get_fix(req.fix_id)
+    if not fix:
+        raise HTTPException(status_code=404, detail=f"Fix {req.fix_id} not found")
+
+    # Use stored decision if available, otherwise compute fresh
+    stored_decision = fix.metadata.get("auto_merge_decision")
+    if stored_decision and not req.finding:
+        return {"status": "ok", "fix_id": req.fix_id, "decision": stored_decision}
+
+    finding = req.finding or {"severity": "high"}
+    graph_ctx = fix.metadata.get("graph_context", {})
+    decision = engine.should_auto_merge(fix, finding, graph_ctx)
+    return {"status": "ok", "fix_id": req.fix_id, "decision": decision}
 
 
 @router.get("/stats", summary="AutoFix statistics")

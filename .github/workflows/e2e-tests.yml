@@ -1,0 +1,116 @@
+name: ALdeci CTEM+ E2E Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  FIXOPS_API_TOKEN: ${{ secrets.FIXOPS_API_TOKEN }}
+  FIXOPS_MODE: enterprise
+  FIXOPS_DISABLE_RATE_LIMIT: "1"
+
+jobs:
+  # ─────────────────────────────────────────────
+  # Stage 1: API Contract Validation (Newman)
+  # ─────────────────────────────────────────────
+  newman-api:
+    name: "Newman API Contracts"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Python deps
+        run: pip install -r requirements.txt
+
+      - name: Start backend
+        run: |
+          OTEL_SDK_DISABLED=true python -m uvicorn apps.api.app:create_app \
+            --factory --port 8000 --host 0.0.0.0 &
+          sleep 10
+          curl -sf http://localhost:8000/health || exit 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Newman
+        run: npm install -g newman newman-reporter-htmlextra
+
+      - name: Run Newman
+        run: |
+          newman run suite-ui/aldeci-ui-new/e2e/postman/ALdeci-CTEM-25-Personas.postman_collection.json \
+            --env-var "baseUrl=http://localhost:8000" \
+            --env-var "apiKey=$FIXOPS_API_TOKEN" \
+            --reporters cli,htmlextra \
+            --reporter-htmlextra-export newman-report.html \
+            --delay-request 100 \
+            --timeout-request 10000
+
+      - name: Upload Newman Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-report
+          path: newman-report.html
+
+  # ─────────────────────────────────────────────
+  # Stage 2: Playwright E2E (UI + API + RBAC)
+  # ─────────────────────────────────────────────
+  playwright-e2e:
+    name: "Playwright E2E"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Python deps
+        run: pip install -r requirements.txt
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install frontend deps
+        working-directory: suite-ui/aldeci-ui-new
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: suite-ui/aldeci-ui-new
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        working-directory: suite-ui/aldeci-ui-new
+        run: npx playwright test --reporter=list,html
+        env:
+          CI: true
+
+      - name: Upload Playwright Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: suite-ui/aldeci-ui-new/playwright-report/
+
+      - name: Upload Allure Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: suite-ui/aldeci-ui-new/allure-results/
+

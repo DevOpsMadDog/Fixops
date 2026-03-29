@@ -799,6 +799,7 @@ async def triage_queue(
     org_id: str = Depends(get_org_id),
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
+    include_demo: bool = Query(False, description="Include demo/seeded findings"),
 ) -> TriageQueueResponse:
     """Smart triage queue.
 
@@ -808,6 +809,9 @@ async def triage_queue(
     Findings that already have analyst feedback are excluded.  Results
     are bucketed into four groups: ``requires_immediate_action``,
     ``high_priority``, ``standard``, and ``can_wait``.
+
+    By default, pre-seeded demo findings are excluded. Pass
+    ``include_demo=true`` to show them.
     """
     # Load already-triaged finding IDs
     triaged_ids: set = set()
@@ -830,6 +834,15 @@ async def triage_queue(
 
     # Filter out already-triaged
     untriaged = [f for f in all_findings if f.id not in triaged_ids]
+
+    # Filter out demo/seeded findings unless explicitly requested
+    if not include_demo:
+        def _is_seeded(f) -> bool:
+            meta = getattr(f, "metadata", None)
+            if isinstance(meta, dict):
+                return meta.get("seeded", False) is True
+            return False
+        untriaged = [f for f in untriaged if not _is_seeded(f)]
 
     # Score and rank
     queue_items: List[TriageQueueItem] = []
